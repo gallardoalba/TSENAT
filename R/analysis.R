@@ -9,7 +9,7 @@
 #'     \item \code{p_gam}: GAM p-values
 #'     \item \code{p_friedman}: Friedman test p-values
 #'     \item \code{agreement}: Categorical variable indicating agreement type
-#'       (e.g., "Both significant", "GAM only", "Friedman only", "Neither significant")
+#'       (e.g., 'Both significant', 'GAM only', 'Friedman only', 'Neither significant')
 #'   }
 #'
 #' @return A gridExtra grob object containing the combined two-panel plot.
@@ -26,10 +26,10 @@
 #' # Create synthetic comparison data
 #' set.seed(123)
 #' comparison_df <- data.frame(
-#'   gene = paste0("gene_", 1:50),
+#'   gene = paste0('gene_', 1:50),
 #'   p_gam = runif(50, 0, 0.5),
 #'   p_friedman = runif(50, 0, 0.5),
-#'   agreement = sample(c("Both significant", "GAM only", "Friedman only", "Neither significant"),
+#'   agreement = sample(c('Both significant', 'GAM only', 'Friedman only', 'Neither significant'),
 #'                      size = 50, replace = TRUE)
 #' )
 #' 
@@ -40,95 +40,64 @@
 #' @noRd
 
 .plot_method_concordance <- function(comparison_df) {
-  
-  # Check if data is valid
-  if (is.null(comparison_df) || nrow(comparison_df) == 0) {
-    stop("comparison_df must be a non-empty data.frame with p-value columns")
-  }
-  
-  # Check required columns
-  required_cols <- c("p_gam", "p_friedman", "agreement")
-  if (!all(required_cols %in% colnames(comparison_df))) {
-    missing <- setdiff(required_cols, colnames(comparison_df))
-    stop("comparison_df missing required columns: ", paste(missing, collapse = ", "))
-  }
-  
-  # Create comparison plot
-  p1 <- ggplot2::ggplot(comparison_df, 
-                        ggplot2::aes(x = -log10(p_gam), 
-                                     y = -log10(p_friedman), 
-                                     color = agreement)) +
-    ggplot2::geom_point(size = 2.5, alpha = 0.6) +
-    ggplot2::geom_vline(xintercept = -log10(0.05), linetype = "dashed", color = "gray50") +
-    ggplot2::geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "gray50") +
-    ggplot2::scale_color_manual(
-      values = c("Both significant" = "#2ecc71", 
-                 "GAM only" = "#3498db",
-                 "Friedman only" = "#e74c3c",
-                 "Neither significant" = "#95a5a6"),
-      breaks = c("Both significant", "GAM only", "Friedman only", "Neither significant")
-    ) +
-    ggplot2::labs(
-      title = "Method Concordance",
-      x = "-log10(p-value, GAM)",
-      y = "-log10(p-value, Friedman)",
-      color = "Significance"
-    ) +
-    ggplot2::theme_minimal() +
-    ggplot2::theme(
-      plot.title = ggplot2::element_text(face = "plain", size = 14),
-      legend.position = "bottomright",
-      panel.grid.major = ggplot2::element_line(color = "gray90")
-    )
-  
-  # P-value distribution comparison
-  p_long <- data.frame(
-    p_value = c(comparison_df$p_gam, comparison_df$p_friedman),
-    method = c(rep("GAM", nrow(comparison_df)), rep("Friedman", nrow(comparison_df))),
-    stringsAsFactors = FALSE
-  )
-  
-  p2 <- ggplot2::ggplot(p_long, ggplot2::aes(x = p_value, fill = method)) +
-    ggplot2::geom_histogram(bins = 30, alpha = 0.6, position = "identity") +
-    ggplot2::scale_fill_manual(values = c("GAM" = "#3498db", "Friedman" = "#e74c3c")) +
-    ggplot2::labs(
-      title = "P-value Distributions",
-      x = "P-value",
-      y = "Frequency",
-      fill = "Method"
-    ) +
-    ggplot2::theme_minimal() +
-    ggplot2::theme(plot.title = ggplot2::element_text(face = "plain", size = 12))
-  
-  # Combine plots with global title using cowplot approach
-  main_grid <- gridExtra::arrangeGrob(p1, p2, ncol = 2)
-  
-  # Add global title with subtitle
-  title_gg <- cowplot::ggdraw() + 
-    cowplot::draw_label("Comparing interaction detection across two statistical methods",
-                       fontface = "bold", size = 16, x = 0.5, y = 0.75) +
-    cowplot::draw_label("Concordance analysis between GAM and Friedman tests",
-                       fontface = "italic", size = 12, x = 0.5, y = 0.45, color = "gray40")
-  
-  # Combine all elements and convert to grob
-  final_plot <- cowplot::plot_grid(
-    title_gg,
-    main_grid,
-    nrow = 2,
-    rel_heights = c(0.15, 1)
-  )
-  
-  # Convert to grob and return invisibly
-  # The plot will render when print() is called on it
-  gridExtra::arrangeGrob(final_plot)
+
+    # Check if data is valid
+    if (is.null(comparison_df) || nrow(comparison_df) == 0) {
+        stop("comparison_df must be a non-empty data.frame with p-value columns")
+    }
+
+    # Check required columns
+    required_cols <- c("p_gam", "p_friedman", "agreement")
+    if (!all(required_cols %in% colnames(comparison_df))) {
+        missing <- setdiff(required_cols, colnames(comparison_df))
+        stop("comparison_df missing required columns: ", paste(missing, collapse = ", "))
+    }
+
+    # Create comparison plot
+    p1 <- ggplot2::ggplot(comparison_df, ggplot2::aes(x = -log10(p_gam), y = -log10(p_friedman),
+        color = agreement)) + ggplot2::geom_point(size = 2.5, alpha = 0.6) + ggplot2::geom_vline(xintercept = -log10(0.05),
+        linetype = "dashed", color = "gray50") + ggplot2::geom_hline(yintercept = -log10(0.05),
+        linetype = "dashed", color = "gray50") + ggplot2::scale_color_manual(values = c(`Both significant` = "#2ecc71",
+        `GAM only` = "#3498db", `Friedman only` = "#e74c3c", `Neither significant` = "#95a5a6"),
+        breaks = c("Both significant", "GAM only", "Friedman only", "Neither significant")) +
+        ggplot2::labs(title = "Method Concordance", x = "-log10(p-value, GAM)", y = "-log10(p-value, Friedman)",
+            color = "Significance") + ggplot2::theme_minimal() + ggplot2::theme(plot.title = ggplot2::element_text(face = "plain",
+        size = 14), legend.position = "bottomright", panel.grid.major = ggplot2::element_line(color = "gray90"))
+
+    # P-value distribution comparison
+    p_long <- data.frame(p_value = c(comparison_df$p_gam, comparison_df$p_friedman),
+        method = c(rep("GAM", nrow(comparison_df)), rep("Friedman", nrow(comparison_df))),
+        stringsAsFactors = FALSE)
+
+    p2 <- ggplot2::ggplot(p_long, ggplot2::aes(x = p_value, fill = method)) + ggplot2::geom_histogram(bins = 30,
+        alpha = 0.6, position = "identity") + ggplot2::scale_fill_manual(values = c(GAM = "#3498db",
+        Friedman = "#e74c3c")) + ggplot2::labs(title = "P-value Distributions", x = "P-value",
+        y = "Frequency", fill = "Method") + ggplot2::theme_minimal() + ggplot2::theme(plot.title = ggplot2::element_text(face = "plain",
+        size = 12))
+
+    # Combine plots with global title using cowplot approach
+    main_grid <- gridExtra::arrangeGrob(p1, p2, ncol = 2)
+
+    # Add global title with subtitle
+    title_gg <- cowplot::ggdraw() + cowplot::draw_label("Comparing interaction detection across two statistical methods",
+        fontface = "bold", size = 16, x = 0.5, y = 0.75) + cowplot::draw_label("Concordance analysis between GAM and Friedman tests",
+        fontface = "italic", size = 12, x = 0.5, y = 0.45, color = "gray40")
+
+    # Combine all elements and convert to grob
+    final_plot <- cowplot::plot_grid(title_gg, main_grid, nrow = 2, rel_heights = c(0.15,
+        1))
+
+    # Convert to grob and return invisibly The plot will render when print() is
+    # called on it
+    gridExtra::arrangeGrob(final_plot)
 }
 
 
 #' @noRd
 
 print.gtable <- function(x, ...) {
-  grid::grid.draw(x)
-  invisible(x)
+    grid::grid.draw(x)
+    invisible(x)
 }
 
 
@@ -168,10 +137,10 @@ print.gtable <- function(x, ...) {
 #' @details
 #' Agreement categories are defined based on significance at adj_p < 0.05:
 #' \itemize{
-#'   \item "Both significant": Significant in both GAM and Friedman (most reliable)
-#'   \item "GAM only": Significant only in GAM
-#'   \item "Friedman only": Significant only in Friedman test
-#'   \item "Neither significant": Not significant in either method
+#'   \item 'Both significant': Significant in both GAM and Friedman (most reliable)
+#'   \item 'GAM only': Significant only in GAM
+#'   \item 'Friedman only': Significant only in Friedman test
+#'   \item 'Neither significant': Not significant in either method
 #' }
 #'
 #' High-confidence genes are those reaching p < 0.05 in both methods, indicating
@@ -180,11 +149,11 @@ print.gtable <- function(x, ...) {
 #' @examples
 #' # Create sample results from two statistical methods
 #' gam_results <- data.frame(
-#'   gene = paste0("gene_", 1:10),
+#'   gene = paste0('gene_', 1:10),
 #'   p_value = runif(10)
 #' )
 #' kw_results <- data.frame(
-#'   gene = paste0("gene_", 1:10),
+#'   gene = paste0('gene_', 1:10),
 #'   p_value = runif(10)
 #' )
 #' # concordance_result <- .compute_method_concordance(
@@ -195,96 +164,88 @@ print.gtable <- function(x, ...) {
 #' @noRd
 
 .compute_method_concordance <- function(gam_results, kw_results) {
-  
-  # Initialize outputs
-  comparison_df <- NULL
-  spearman_rho <- NA
-  high_conf <- NULL
-  agreement_table <- NULL
-  
-  # Validate inputs
-  if (!is.data.frame(gam_results)) {
-    stop("gam_results must be a data.frame")
-  }
-  
-  if (!is.data.frame(kw_results)) {
-    stop("kw_results must be a data.frame")
-  }
-  
-  if (!("p_interaction" %in% colnames(gam_results))) {
-    stop("gam_results missing required column: p_interaction")
-  }
-  
-  if (!("p_value" %in% colnames(kw_results))) {
-    stop("kw_results missing required column: p_value")
-  }
-  
-  # Create matching gene sets
-  gam_genes <- gam_results$gene[!is.na(gam_results$p_interaction)]
-  kw_genes <- kw_results$gene[!is.na(kw_results$p_value)]
-  common_genes <- intersect(gam_genes, kw_genes)
-  
-  if (length(common_genes) > 2) {
-    # Extract matching rows by index
-    gam_idx <- match(common_genes, gam_results$gene)
-    kw_idx <- match(common_genes, kw_results$gene)
-    
-    # Build comparison data frame with all available columns
-    comparison_df <- data.frame(
-      gene = common_genes,
-      p_gam = gam_results$p_interaction[gam_idx],
-      padj_gam = gam_results$adj_p_interaction[gam_idx],
-      effect_gam = if ("effect_size" %in% colnames(gam_results)) {
-        gam_results$effect_size[gam_idx]
-      } else {
-        rep(NA_real_, length(gam_idx))
-      },
-      p_friedman = kw_results$p_value[kw_idx],
-      padj_friedman = if ("adj_p_value" %in% colnames(kw_results)) {
-        kw_results$adj_p_value[kw_idx]
-      } else {
-        rep(NA_real_, length(kw_idx))
-      },
-      effect_friedman = if ("effect_size_eta2" %in% colnames(kw_results)) {
-        kw_results$effect_size_eta2[kw_idx]
-      } else {
-        rep(NA_real_, length(kw_idx))
-      },
-      stringsAsFactors = FALSE
-    )
-    
-    # Calculate Spearman correlation on ADJUSTED p-values (for consistency with significance threshold)
-    spearman_rho <- stats::cor(comparison_df$padj_gam, comparison_df$padj_friedman,
-                               method = "spearman", use = "complete.obs")
-    
-    # Categorize agreement based on adjusted p-value significance (adj_p < 0.05)
-    comparison_df$gam_sig <- comparison_df$padj_gam < 0.05
-    comparison_df$friedman_sig <- comparison_df$padj_friedman < 0.05
-    
-    comparison_df$agreement <- ifelse(
-      comparison_df$gam_sig & comparison_df$friedman_sig, "Both significant",
-      ifelse(comparison_df$gam_sig & !comparison_df$friedman_sig, "GAM only",
-             ifelse(!comparison_df$gam_sig & comparison_df$friedman_sig, "Friedman only",
-                    "Neither significant"))
-    )
-    
-    # Create agreement frequency table
-    agreement_table <- table(comparison_df$agreement)
-    
-    # Extract high-confidence genes (significant in both methods)
-    high_conf <- comparison_df[comparison_df$gam_sig & comparison_df$friedman_sig, ]
-    
-    # Sort by minimum p-value across methods
-    if (nrow(high_conf) > 0) {
-      high_conf <- high_conf[order(pmax(high_conf$p_gam, high_conf$p_friedman)), ]
+
+    # Initialize outputs
+    comparison_df <- NULL
+    spearman_rho <- NA
+    high_conf <- NULL
+    agreement_table <- NULL
+
+    # Validate inputs
+    if (!is.data.frame(gam_results)) {
+        stop("gam_results must be a data.frame")
     }
-  }
-  
-  # Return results as list
-  list(
-    comparison_df = comparison_df,
-    spearman_rho = spearman_rho,
-    high_conf = high_conf,
-    agreement_table = agreement_table
-  )
+
+    if (!is.data.frame(kw_results)) {
+        stop("kw_results must be a data.frame")
+    }
+
+    if (!("p_interaction" %in% colnames(gam_results))) {
+        stop("gam_results missing required column: p_interaction")
+    }
+
+    if (!("p_value" %in% colnames(kw_results))) {
+        stop("kw_results missing required column: p_value")
+    }
+
+    # Create matching gene sets
+    gam_genes <- gam_results$gene[!is.na(gam_results$p_interaction)]
+    kw_genes <- kw_results$gene[!is.na(kw_results$p_value)]
+    common_genes <- intersect(gam_genes, kw_genes)
+
+    if (length(common_genes) > 2) {
+        # Extract matching rows by index
+        gam_idx <- match(common_genes, gam_results$gene)
+        kw_idx <- match(common_genes, kw_results$gene)
+
+        # Build comparison data frame with all available columns
+        comparison_df <- data.frame(gene = common_genes, p_gam = gam_results$p_interaction[gam_idx],
+            padj_gam = gam_results$adj_p_interaction[gam_idx], effect_gam = if ("effect_size" %in%
+                colnames(gam_results)) {
+                gam_results$effect_size[gam_idx]
+            } else {
+                rep(NA_real_, length(gam_idx))
+            }, p_friedman = kw_results$p_value[kw_idx], padj_friedman = if ("adj_p_value" %in%
+                colnames(kw_results)) {
+                kw_results$adj_p_value[kw_idx]
+            } else {
+                rep(NA_real_, length(kw_idx))
+            }, effect_friedman = if ("effect_size_eta2" %in% colnames(kw_results)) {
+                kw_results$effect_size_eta2[kw_idx]
+            } else {
+                rep(NA_real_, length(kw_idx))
+            }, stringsAsFactors = FALSE)
+
+        # Calculate Spearman correlation on ADJUSTED p-values (for consistency
+        # with significance threshold)
+        spearman_rho <- stats::cor(comparison_df$padj_gam, comparison_df$padj_friedman,
+            method = "spearman", use = "complete.obs")
+
+        # Categorize agreement based on adjusted p-value significance (adj_p <
+        # 0.05)
+        comparison_df$gam_sig <- comparison_df$padj_gam < 0.05
+        comparison_df$friedman_sig <- comparison_df$padj_friedman < 0.05
+
+        comparison_df$agreement <- ifelse(comparison_df$gam_sig & comparison_df$friedman_sig,
+            "Both significant", ifelse(comparison_df$gam_sig & !comparison_df$friedman_sig,
+                "GAM only", ifelse(!comparison_df$gam_sig & comparison_df$friedman_sig,
+                  "Friedman only", "Neither significant")))
+
+        # Create agreement frequency table
+        agreement_table <- table(comparison_df$agreement)
+
+        # Extract high-confidence genes (significant in both methods)
+        high_conf <- comparison_df[comparison_df$gam_sig & comparison_df$friedman_sig,
+            ]
+
+        # Sort by minimum p-value across methods
+        if (nrow(high_conf) > 0) {
+            high_conf <- high_conf[order(pmax(high_conf$p_gam, high_conf$p_friedman)),
+                ]
+        }
+    }
+
+    # Return results as list
+    list(comparison_df = comparison_df, spearman_rho = spearman_rho, high_conf = high_conf,
+        agreement_table = agreement_table)
 }

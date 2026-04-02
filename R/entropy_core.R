@@ -1,5 +1,4 @@
 ################################################################################
-#
 #' Internal: Core Tsallis entropy calculation (consolidated)
 #' 
 #' Centralized entropy calculation used by all functions to eliminate duplication.
@@ -15,70 +14,69 @@
 #'
 
 #' @noRd
-.entropy_core <- function(proportions, q = 1, norm = FALSE, 
-                                   log_base = exp(1), q_tol = 1e-6) {
-  # Input validation
-  if (!is.numeric(proportions) || length(proportions) == 0) {
-    return(NA_real_)
-  }
-  
-  if (any(is.na(proportions)) || any(is.infinite(proportions))) {
-    return(NA_real_)
-  }
-  
-  if (!is.numeric(q)) {
-    stop("q must be numeric")
-  }
-  if (length(q) > 1) {
-    stop("q must be a scalar (length 1), not a vector")
-  }
-  if (q < 0) {
-    stop("q must be non-negative")
-  }
-  
-  # Filter out zeros (standard in entropy)
-  p_nonzero <- proportions[proportions > 1e-15]
-  
-  if (length(p_nonzero) == 0) {
-    return(NA_real_)
-  }
-  
-  # Normalize to sum to 1 (handle numerical errors)
-  p <- p_nonzero / sum(p_nonzero)
-  
-  # Species richness (q=0): just count species
-  if (q < q_tol) {
-    H <- (log(length(p)) - 1) / log(log_base)
-    return(H)
-  }
-  
-  # Shannon entropy (q=1): use -sum(p*log(p))
-  if (abs(q - 1) < q_tol) {
-    H <- -sum(p * log(p)) / log(log_base)
-  } else {
-    # Tsallis entropy: (1 - sum(p^q)) / (q-1)
-    # Note: Unlike Shannon, log_base is NOT applied to Tsallis
-    H <- (1.0 - sum(p^q)) / (q - 1.0)
-  }
-  
-  # Normalize by maximum entropy if requested
-  if (norm) {
-    n <- length(p)
+.entropy_core <- function(proportions, q = 1, norm = FALSE, log_base = exp(1), q_tol = 1e-06) {
+    # Input validation
+    if (!is.numeric(proportions) || length(proportions) == 0) {
+        return(NA_real_)
+    }
+
+    if (any(is.na(proportions)) || any(is.infinite(proportions))) {
+        return(NA_real_)
+    }
+
+    if (!is.numeric(q)) {
+        stop("q must be numeric")
+    }
+    if (length(q) > 1) {
+        stop("q must be a scalar (length 1), not a vector")
+    }
+    if (q < 0) {
+        stop("q must be non-negative")
+    }
+
+    # Filter out zeros (standard in entropy)
+    p_nonzero <- proportions[proportions > 1e-15]
+
+    if (length(p_nonzero) == 0) {
+        return(NA_real_)
+    }
+
+    # Normalize to sum to 1 (handle numerical errors)
+    p <- p_nonzero/sum(p_nonzero)
+
+    # Species richness (q=0): just count species
     if (q < q_tol) {
-      H_max <- (log(n) - 1) / log(log_base)
-    } else if (abs(q - 1) < q_tol) {
-      H_max <- log(n) / log(log_base)
+        H <- (log(length(p)) - 1)/log(log_base)
+        return(H)
+    }
+
+    # Shannon entropy (q=1): use -sum(p*log(p))
+    if (abs(q - 1) < q_tol) {
+        H <- -sum(p * log(p))/log(log_base)
     } else {
-      # Tsallis: max entropy without log_base (unlike Shannon)
-      H_max <- (1.0 - n^(1.0 - q)) / (q - 1.0)
+        # Tsallis entropy: (1 - sum(p^q)) / (q-1) Note: Unlike Shannon,
+        # log_base is NOT applied to Tsallis
+        H <- (1 - sum(p^q))/(q - 1)
     }
-    
-    if (!is.na(H_max) && !is.nan(H_max) && H_max > 0 && is.finite(H_max)) {
-      H <- H / H_max
+
+    # Normalize by maximum entropy if requested
+    if (norm) {
+        n <- length(p)
+        if (q < q_tol) {
+            H_max <- (log(n) - 1)/log(log_base)
+        } else if (abs(q - 1) < q_tol) {
+            H_max <- log(n)/log(log_base)
+        } else {
+            # Tsallis: max entropy without log_base (unlike Shannon)
+            H_max <- (1 - n^(1 - q))/(q - 1)
+        }
+
+        if (!is.na(H_max) && !is.nan(H_max) && H_max > 0 && is.finite(H_max)) {
+            H <- H/H_max
+        }
     }
-  }
-  
-  return(H)
+
+    return(H)
 }
 
 #' Internal: Vectorized Tsallis entropy calculation
@@ -95,25 +93,25 @@
 #'
 
 #' @noRd
-.entropy_vectorized <- function(counts, q = 1, norm = FALSE, 
-                                        log_base = exp(1), pseudocount = 0) {
-  counts <- as.matrix(counts)
-  
-  if (nrow(counts) == 0 || ncol(counts) == 0) {
-    return(numeric(0))
-  }
-  
-  # Apply to each row
-  entropy_vals <- apply(counts, 1, function(row) {
-    # Add pseudocount and normalize
-    total <- sum(row, na.rm = TRUE) + length(row) * pseudocount
-    if (total <= 0) return(NA_real_)
-    
-    p <- (row + pseudocount) / total
-    .entropy_core(p, q = q, norm = norm, log_base = log_base)
-  })
-  
-  return(unname(entropy_vals))
+.entropy_vectorized <- function(counts, q = 1, norm = FALSE, log_base = exp(1), pseudocount = 0) {
+    counts <- as.matrix(counts)
+
+    if (nrow(counts) == 0 || ncol(counts) == 0) {
+        return(numeric(0))
+    }
+
+    # Apply to each row
+    entropy_vals <- apply(counts, 1, function(row) {
+        # Add pseudocount and normalize
+        total <- sum(row, na.rm = TRUE) + length(row) * pseudocount
+        if (total <= 0)
+            return(NA_real_)
+
+        p <- (row + pseudocount)/total
+        .entropy_core(p, q = q, norm = norm, log_base = log_base)
+    })
+
+    return(unname(entropy_vals))
 }
 
 #' Internal: Maximum Tsallis entropy for n species
@@ -129,21 +127,22 @@
 #'
 
 #' @noRd
-.entropy_max <- function(n_species, q = 1, log_base = exp(1), q_tol = 1e-6) {
-  if (n_species < 1) return(NA_real_)
-  
-  if (q < q_tol) {
-    # Species richness max: log(n)
-    H_max <- (log(n_species) - 1) / log(log_base)
-  } else if (abs(q - 1) < q_tol) {
-    # Shannon max: log(n)
-    H_max <- log(n_species) / log(log_base)
-  } else {
-    # Tsallis max: (1 - n^(1-q)) / (q-1)  [log_base NOT applied to Tsallis]
-    H_max <- (1.0 - n_species^(1.0 - q)) / (q - 1.0)
-  }
-  
-  return(H_max)
+.entropy_max <- function(n_species, q = 1, log_base = exp(1), q_tol = 1e-06) {
+    if (n_species < 1)
+        return(NA_real_)
+
+    if (q < q_tol) {
+        # Species richness max: log(n)
+        H_max <- (log(n_species) - 1)/log(log_base)
+    } else if (abs(q - 1) < q_tol) {
+        # Shannon max: log(n)
+        H_max <- log(n_species)/log(log_base)
+    } else {
+        # Tsallis max: (1 - n^(1-q)) / (q-1) [log_base NOT applied to Tsallis]
+        H_max <- (1 - n_species^(1 - q))/(q - 1)
+    }
+
+    return(H_max)
 }
 
 #' Internal: Entropy calculation for a single vector with pseudocount support
@@ -166,44 +165,45 @@
 #'   for unified entropy calculations across the package.
 #'
 #' @noRd
-.entropy_single <- function(counts, q = 1, norm = TRUE, log_base = exp(1),
-                           pseudocount = 0, q_tol = 1e-6) {
-  # Normalize to proportions with pseudocount
-  total <- sum(counts) + length(counts) * pseudocount
-  if (total <= 0) return(NA_real_)
-  
-  p <- (counts + pseudocount) / total
-  n <- length(p)
-  
-  # Calculate entropy using standardized core logic
-  if (abs(q - 1) < q_tol) {
-    # Shannon entropy as q -> 1
-    p_nonzero <- p[p > 0]
-    if (length(p_nonzero) > 0) {
-      entropy <- -sum(p_nonzero * log(p_nonzero) / log(log_base))
-    } else {
-      entropy <- 0
-    }
-  } else {
-    # Generalized Tsallis entropy: (1 - sum(p^q)) / (q-1)  [log_base NOT applied]
-    entropy <- (1 / (q - 1)) * (1 - sum(p^q))
-  }
-  
-  # Normalize to [0, 1] if requested
-  if (norm) {
-    # Maximum entropy achieved with uniform distribution
+.entropy_single <- function(counts, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0,
+    q_tol = 1e-06) {
+    # Normalize to proportions with pseudocount
+    total <- sum(counts) + length(counts) * pseudocount
+    if (total <= 0)
+        return(NA_real_)
+
+    p <- (counts + pseudocount)/total
+    n <- length(p)
+
+    # Calculate entropy using standardized core logic
     if (abs(q - 1) < q_tol) {
-      max_entropy <- log(n) / log(log_base)
+        # Shannon entropy as q -> 1
+        p_nonzero <- p[p > 0]
+        if (length(p_nonzero) > 0) {
+            entropy <- -sum(p_nonzero * log(p_nonzero)/log(log_base))
+        } else {
+            entropy <- 0
+        }
     } else {
-      # Tsallis: no log_base applied to maximum
-      max_entropy <- (1 / (q - 1)) * (1 - n^(1 - q))
+        # Generalized Tsallis entropy: (1 - sum(p^q)) / (q-1) [log_base NOT
+        # applied]
+        entropy <- (1/(q - 1)) * (1 - sum(p^q))
     }
-    
-    if (!is.na(max_entropy) && !is.nan(max_entropy) && 
-        max_entropy > 0 && is.finite(max_entropy)) {
-      entropy <- entropy / max_entropy
+
+    # Normalize to [0, 1] if requested
+    if (norm) {
+        # Maximum entropy achieved with uniform distribution
+        if (abs(q - 1) < q_tol) {
+            max_entropy <- log(n)/log(log_base)
+        } else {
+            # Tsallis: no log_base applied to maximum
+            max_entropy <- (1/(q - 1)) * (1 - n^(1 - q))
+        }
+
+        if (!is.na(max_entropy) && !is.nan(max_entropy) && max_entropy > 0 && is.finite(max_entropy)) {
+            entropy <- entropy/max_entropy
+        }
     }
-  }
-  
-  return(as.numeric(entropy))
+
+    return(as.numeric(entropy))
 }

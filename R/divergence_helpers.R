@@ -13,13 +13,13 @@
 #'
 #' **Detection Strategy for group_col:**
 #' Searches colData in precedence order for common grouping column names:
-#' 1. "group" (TSENAT default)
-#' 2. "condition", "treatment", "sample_type" (common alternatives)
+#' 1. 'group' (TSENAT default)
+#' 2. 'condition', 'treatment', 'sample_type' (common alternatives)
 #'
 #' **Detection Strategy for control_group:**
 #' Once group column is found, identifies the reference group by:
-#' 1. First looking for common control/reference names: "Normal", "Control", 
-#'    "WT" (wild-type), "Reference", "Baseline", "wt"
+#' 1. First looking for common control/reference names: 'Normal', 'Control', 
+#'    'WT' (wild-type), 'Reference', 'Baseline', 'wt'
 #' 2. If no match, selects the unique group value with smallest sample count
 #'    (typically the control/reference in case-control designs)
 #' 3. If still no match, uses the first alphabetically sorted group name
@@ -37,87 +37,63 @@
 
 #' @noRd
 .auto_detect_groups <- function(se) {
-  
-  cd <- SummarizedExperiment::colData(se)
-  cd_colnames <- colnames(cd)
-  
-  # Candidate column names (in priority order) for group/condition
-  group_col_candidates <- c(
-    "sample_type",      # TSENAT standard (created by map_metadata)
-    "group",            # Alias for sample_type
-    "condition",        # Common alternative
-    "treatment",        # Experimental design
-    "phenotype",        # Biological phenotype
-    "batch",            # Last resort
-    "category"          # Generic fallback
-  )
-  
-  group_col <- NA_character_
-  
-  # Find first matching group column
-  for (col_name in group_col_candidates) {
-    if (col_name %in% cd_colnames) {
-      group_col <- col_name
-      break
+
+    cd <- SummarizedExperiment::colData(se)
+    cd_colnames <- colnames(cd)
+
+    # Candidate column names (in priority order) for group/condition
+    group_col_candidates <- c("sample_type", "group", "condition", "treatment", "phenotype",
+        "batch", "category")
+
+    group_col <- NA_character_
+
+    # Find first matching group column
+    for (col_name in group_col_candidates) {
+        if (col_name %in% cd_colnames) {
+            group_col <- col_name
+            break
+        }
     }
-  }
-  
-  # If no group column found, return NAs
-  if (is.na(group_col)) {
-    return(list(
-      group_col = NA_character_,
-      control_group = NA_character_,
-      groups = character(0),
-      sample_counts = integer(0)
-    ))
-  }
-  
-  # Get group values and counts
-  group_vec <- as.character(cd[[group_col]])
-  unique_groups <- unique(group_vec)
-  group_counts <- table(group_vec)
-  
-  # Candidate names for control/reference group (in priority order)
-  control_candidates <- c(
-    "Normal",           # TSENAT default
-    "Control",          # Most common control label
-    "WT",               # Wild-type (common in genetics)
-    "wt",               # Lowercase variant
-    "Reference",        # Explicit reference label
-    "Baseline",         # Baseline condition
-    "Wild-type",        # Full name variant
-    "wild_type"         # Underscore variant
-  )
-  
-  control_group <- NA_character_
-  
-  # Try to match control candidates
-  for (control_name in control_candidates) {
-    if (control_name %in% unique_groups) {
-      control_group <- control_name
-      break
+
+    # If no group column found, return NAs
+    if (is.na(group_col)) {
+        return(list(group_col = NA_character_, control_group = NA_character_, groups = character(0),
+            sample_counts = integer(0)))
     }
-  }
-  
-  # If no match found, use heuristics:
-  # 1. Select group with fewer samples (typical case-control design)
-  # 2. Fallback to first alphabetically
-  if (is.na(control_group)) {
-    if (length(unique_groups) >= 2) {
-      # Find group with minimum samples (typically control)
-      min_samples_group <- names(group_counts)[which.min(group_counts)]
-      control_group <- min_samples_group
-    } else if (length(unique_groups) == 1) {
-      control_group <- unique_groups[1]
+
+    # Get group values and counts
+    group_vec <- as.character(cd[[group_col]])
+    unique_groups <- unique(group_vec)
+    group_counts <- table(group_vec)
+
+    # Candidate names for control/reference group (in priority order)
+    control_candidates <- c("Normal", "Control", "WT", "wt", "Reference", "Baseline",
+        "Wild-type", "wild_type")
+
+    control_group <- NA_character_
+
+    # Try to match control candidates
+    for (control_name in control_candidates) {
+        if (control_name %in% unique_groups) {
+            control_group <- control_name
+            break
+        }
     }
-  }
-  
-  return(list(
-    group_col = group_col,
-    control_group = control_group,
-    groups = unique_groups,
-    sample_counts = as.vector(group_counts)
-  ))
+
+    # If no match found, use heuristics: 1. Select group with fewer samples
+    # (typical case-control design) 2. Fallback to first alphabetically
+    if (is.na(control_group)) {
+        if (length(unique_groups) >= 2) {
+            # Find group with minimum samples (typically control)
+            min_samples_group <- names(group_counts)[which.min(group_counts)]
+            control_group <- min_samples_group
+        } else if (length(unique_groups) == 1) {
+            control_group <- unique_groups[1]
+        }
+    }
+
+    return(list(group_col = group_col, control_group = control_group, groups = unique_groups,
+        sample_counts = as.vector(group_counts)))
 }
 
 
@@ -128,13 +104,13 @@
 #' Detect Paired Sample Structure from SummarizedExperiment colData
 #'
 #' Automatically searches for a column containing paired sample identifiers
-#' (e.g., "pair_id", "paired_samples", "patient_id", "subject_id").
+#' (e.g., 'pair_id', 'paired_samples', 'patient_id', 'subject_id').
 #' This enables pair-respecting bootstrap resampling in divergence calculations.
 #'
 #' **Detection Strategy:**
 #' Searches colData in precedence order for common pairing column names:
-#' 1. "paired_samples" (TSENAT default, matches readcounts metadata)
-#' 2. "pair_id", "pair_samples", "subject_id", "patient_id" (common alternatives)
+#' 1. 'paired_samples' (TSENAT default, matches readcounts metadata)
+#' 2. 'pair_id', 'pair_samples', 'subject_id', 'patient_id' (common alternatives)
 #'
 #' Returns a mapping from sample names to pair identifiers, or NULL if no
 #' pairing column is found. A valid pairing column has:
@@ -143,8 +119,8 @@
 #' - Deterministic structure (e.g., all A's paired with another A sample nearby)
 #'
 #' **Database References (Papers validating auto-detection approach):**
-#' - S102: "Experimental Control and Paired Design" - standardizes paired design annotation
-#' - S107: "Related Sample Designs and Paired t-test" - validates paired structure detection
+#' - S102: 'Experimental Control and Paired Design' - standardizes paired design annotation
+#' - S107: 'Related Sample Designs and Paired t-test' - validates paired structure detection
 #'
 #' @param se SummarizedExperiment object with sample metadata in colData
 #'
@@ -157,56 +133,42 @@
 #'     \item{samples_per_pair}{Vector of samples per pair (names: pair IDs, values: counts)}
 #'   }
 #'
-#' @note Paired samples detected from any of: "paired_samples", "pair_id", "pair_samples",
-#'   "subject_id", "patient_id". Returns NULL if none present or validation fails.
+#' @note Paired samples detected from any of: 'paired_samples', 'pair_id', 'pair_samples',
+#'   'subject_id', 'patient_id'. Returns NULL if none present or validation fails.
 #'
 
 #' @noRd
 .detect_pair_ids <- function(se) {
-  
-  cd <- SummarizedExperiment::colData(se)
-  sample_names <- colnames(se)
-  
-  # Candidate column names (in priority order)
-  candidate_cols <- c(
-    "paired_samples",      # TSENAT default
-    "pair_id",             # Common alternative
-    "pair_samples",        # Variant
-    "subject_id",          # Statistical defaults
-    "patient_id"
-  )
-  
-  for (col_name in candidate_cols) {
-    if (col_name %in% colnames(cd)) {
-      pair_col <- cd[[col_name]]
-      
-      # Validate: must be non-NA for all samples
-      if (any(is.na(pair_col))) {
-        next  # Skip if any NAs
-      }
-      
-      # Valid pairing structure found
-      # Keep pair_ids as character (names are character in the data)
-      pair_ids <- setNames(as.character(pair_col), sample_names)
-      unique_pairs <- unique(pair_ids)
-      samples_per_pair <- table(pair_ids)
-      
-      return(list(
-        pair_ids = pair_ids,
-        column_name = col_name,
-        num_pairs = length(unique_pairs),
-        samples_per_pair = samples_per_pair
-      ))
+
+    cd <- SummarizedExperiment::colData(se)
+    sample_names <- colnames(se)
+
+    # Candidate column names (in priority order)
+    candidate_cols <- c("paired_samples", "pair_id", "pair_samples", "subject_id",
+        "patient_id")
+
+    for (col_name in candidate_cols) {
+        if (col_name %in% colnames(cd)) {
+            pair_col <- cd[[col_name]]
+
+            # Validate: must be non-NA for all samples
+            if (any(is.na(pair_col))) {
+                next  # Skip if any NAs
+            }
+
+            # Valid pairing structure found Keep pair_ids as character (names
+            # are character in the data)
+            pair_ids <- setNames(as.character(pair_col), sample_names)
+            unique_pairs <- unique(pair_ids)
+            samples_per_pair <- table(pair_ids)
+
+            return(list(pair_ids = pair_ids, column_name = col_name, num_pairs = length(unique_pairs),
+                samples_per_pair = samples_per_pair))
+        }
     }
-  }
-  
-  # No pairing detected
-  return(list(
-    pair_ids = NULL,
-    column_name = NA_character_,
-    num_pairs = 0,
-    samples_per_pair = numeric(0)
-  ))
+
+    # No pairing detected
+    return(list(pair_ids = NULL, column_name = NA_character_, num_pairs = 0, samples_per_pair = numeric(0)))
 }
 
 
@@ -223,8 +185,8 @@
 #'
 #' **Statistical Justification (Papers C016, S102-S109):**
 #' - C016: Bootstrap for confidence intervals requires preserving data structure
-#' - S102: "Paired Design" - paired resampling required for matched samples
-#' - S107: "Related Sample Designs" - within-pair correlation invalidates independent resampling
+#' - S102: 'Paired Design' - paired resampling required for matched samples
+#' - S107: 'Related Sample Designs' - within-pair correlation invalidates independent resampling
 #'
 #' @param control_samples Vector of counts for control group
 #' @param treatment_samples Vector of counts for treatment group
@@ -240,58 +202,48 @@
 #'
 
 #' @noRd
-.jis_resample_paired_data <- function(
-    control_samples,
-    treatment_samples,
-    pair_ids,
-    group_col,
-    control_group) {
-  
-  # Map sample names to indices
-  all_samples <- c(names(control_samples), names(treatment_samples))
-  all_groups <- c(
-    rep(control_group, length(control_samples)),
-    rep(setdiff(unique(group_col), control_group), length(treatment_samples))
-  )
-  
-  # Get unique pairs involved
-  pairs_in_data <- unique(pair_ids[all_samples])
-  num_pairs <- length(pairs_in_data)
-  
-  # Resample pairs with replacement
-  resampled_pairs <- sample(seq_len(num_pairs), size = num_pairs, replace = TRUE)
-  resampled_pair_ids <- pairs_in_data[resampled_pairs]
-  
-  # Collect samples for each resampled pair
-  resampled_control <- numeric(0)
-  resampled_treatment <- numeric(0)
-  
-  for (pair_id in resampled_pair_ids) {
-    # Get both samples from this pair
-    pair_samples <- names(pair_ids)[pair_ids == pair_id]
-    
-    for (sample_name in pair_samples) {
-      if (sample_name %in% names(control_samples)) {
-        resampled_control <- c(resampled_control, control_samples[sample_name])
-      } else if (sample_name %in% names(treatment_samples)) {
-        resampled_treatment <- c(resampled_treatment, treatment_samples[sample_name])
-      }
+.jis_resample_paired_data <- function(control_samples, treatment_samples, pair_ids,
+    group_col, control_group) {
+
+    # Map sample names to indices
+    all_samples <- c(names(control_samples), names(treatment_samples))
+    all_groups <- c(rep(control_group, length(control_samples)), rep(setdiff(unique(group_col),
+        control_group), length(treatment_samples)))
+
+    # Get unique pairs involved
+    pairs_in_data <- unique(pair_ids[all_samples])
+    num_pairs <- length(pairs_in_data)
+
+    # Resample pairs with replacement
+    resampled_pairs <- sample(seq_len(num_pairs), size = num_pairs, replace = TRUE)
+    resampled_pair_ids <- pairs_in_data[resampled_pairs]
+
+    # Collect samples for each resampled pair
+    resampled_control <- numeric(0)
+    resampled_treatment <- numeric(0)
+
+    for (pair_id in resampled_pair_ids) {
+        # Get both samples from this pair
+        pair_samples <- names(pair_ids)[pair_ids == pair_id]
+
+        for (sample_name in pair_samples) {
+            if (sample_name %in% names(control_samples)) {
+                resampled_control <- c(resampled_control, control_samples[sample_name])
+            } else if (sample_name %in% names(treatment_samples)) {
+                resampled_treatment <- c(resampled_treatment, treatment_samples[sample_name])
+            }
+        }
     }
-  }
-  
-  # BUGFIX #3: Validate balanced groups after paired resampling
-  # Ensures control and treatment have equal sizes (required for divergence computation)
-  if (length(resampled_control) != length(resampled_treatment)) {
-    stop("Paired bootstrap produced unequal group sizes (",
-         length(resampled_control), " control vs ", 
-         length(resampled_treatment), " treatment). ",
-         "Check for unbalanced or incomplete pairs in input data.")
-  }
-  
-  return(list(
-    control_resampled = resampled_control,
-    treatment_resampled = resampled_treatment
-  ))
+
+    # BUGFIX #3: Validate balanced groups after paired resampling Ensures
+    # control and treatment have equal sizes (required for divergence
+    # computation)
+    if (length(resampled_control) != length(resampled_treatment)) {
+        stop("Paired bootstrap produced unequal group sizes (", length(resampled_control),
+            " control vs ", length(resampled_treatment), " treatment). ", "Check for unbalanced or incomplete pairs in input data.")
+    }
+
+    return(list(control_resampled = resampled_control, treatment_resampled = resampled_treatment))
 }
 
 
@@ -310,204 +262,176 @@
 
 #' @noRd
 .prepare_paired_bootstrap_data <- function(x, y, pair_ids) {
-  # Extract separate pair_ids for x and y, ready for flexible C++ bootstrap
-  # OPTIMIZATION (March 2026): Use enhanced C++ supporting mixed paired/unpaired
-  # This version handles complete pairs, incomplete pairs, and unpaired samples
-  # No R fallback - all cases use C++ (~10x speedup)
-  #
-  # Returns: List with components:
-  #   $x_pair_ids: Pair IDs for x samples (0 = unpaired)
-  #   $y_pair_ids: Pair IDs for y samples (0 = unpaired)
-  #   $valid: TRUE if extraction successful, FALSE otherwise
-  
-  tryCatch({
-    # Step 1: Get sample names from x and y
-    x_names <- names(x)
-    y_names <- names(y)
-    
-    # Handle NAs in pair_ids before any operations
-    # Accept both integer and numeric vectors with names (required for matching)
-    if (is.null(names(pair_ids))) {
-      # pair_ids must have names to match with x and y samples
-      return(list(valid = FALSE))
-    }
-    
-    if (!(is.numeric(pair_ids) || is.integer(pair_ids) || is.character(pair_ids))) {
-      warning("pair_ids must be a named integer/numeric/character vector")
-      return(list(valid = FALSE))
-    }
-    
-    # Save original names before any conversion
-    pair_ids_names <- names(pair_ids)
-    
-    # If pair_ids are character, convert to numeric indices while preserving names
-    if (is.character(pair_ids)) {
-      unique_pair_values <- unique(pair_ids)
-      pair_id_map <- setNames(seq_along(unique_pair_values), unique_pair_values)
-      pair_ids_numeric <- as.numeric(pair_id_map[pair_ids])
-      pair_ids <- setNames(pair_ids_numeric, pair_ids_names)
-    } else {
-      # Ensure pair_ids is numeric for consistent handling
-      pair_ids <- as.numeric(pair_ids)
-      names(pair_ids) <- pair_ids_names  # Restore names that may be lost in conversion
-    }
-    
-    # Replace NAs with 0 for unpaired samples
-    pair_ids[is.na(pair_ids)] <- 0
-    
-    if (is.null(x_names) || is.null(y_names)) {
-      warning("x and y must have names for paired bootstrap pairing.")
-      return(list(valid = FALSE))
-    }
-    
-    if (length(x_names) == 0 || length(y_names) == 0) {
-      warning("x and y have empty names.")
-      return(list(valid = FALSE))
-    }
-    
-    # Step 2: Extract pair_ids for x samples
-    if (!all(x_names %in% names(pair_ids))) {
-      warning("Not all x samples found in pair_ids. Cannot prepare paired bootstrap.")
-      return(list(valid = FALSE))
-    }
-    
-    x_pair_ids <- pair_ids[x_names]
-    
-    # Step 3: Extract pair_ids for y samples
-    if (!all(y_names %in% names(pair_ids))) {
-      warning("Not all y samples found in pair_ids. Cannot prepare paired bootstrap.")
-      return(list(valid = FALSE))
-    }
-    
-    y_pair_ids <- pair_ids[y_names]
-    
-    # Step 4: Identify pairing structure for summary
-    x_paired_mask <- x_pair_ids > 0
-    y_paired_mask <- y_pair_ids > 0
-    
-    x_paired_count <- sum(x_paired_mask)
-    y_paired_count <- sum(y_paired_mask)
-    x_unpaired_count <- sum(!x_paired_mask)
-    y_unpaired_count <- sum(!y_paired_mask)
-    
-    # Log pairing structure
-    if (length(pair_ids) > 0) {
-      # Count complete pairs (pair_id in both x and y)
-      x_pair_set <- setNames(x_pair_ids[x_paired_mask], NULL)
-      y_pair_set <- setNames(y_pair_ids[y_paired_mask], NULL)
-      complete_pair_ids <- intersect(unique(x_pair_set[x_pair_set > 0]), 
-                                      unique(y_pair_set[y_pair_set > 0]))
-      
-      if (length(complete_pair_ids) > 0) {
-        message(sprintf(
-          "Paired bootstrap structure: %d complete pairs, %d unpaired x, %d unpaired y",
-          length(complete_pair_ids), x_unpaired_count, y_unpaired_count
-        ), domain = NA)
-      }
-    }
-    
-    # Return extracted pair_ids as integers (no NAs, safe for C++)
-    x_result <- as.numeric(pair_ids[x_names])
-    y_result <- as.numeric(pair_ids[y_names])
-    x_result[is.na(x_result)] <- 0
-    y_result[is.na(y_result)] <- 0
-    
-    return(list(
-      x_pair_ids = x_result,
-      y_pair_ids = y_result,
-      valid = TRUE
-    ))
-    
-  }, error = function(e) {
-    warning("Error preparing paired bootstrap data: ", e$message)
-    return(list(valid = FALSE))
-  })
+    # Extract separate pair_ids for x and y, ready for flexible C++ bootstrap
+    # OPTIMIZATION (March 2026): Use enhanced C++ supporting mixed
+    # paired/unpaired This version handles complete pairs, incomplete pairs,
+    # and unpaired samples No R fallback - all cases use C++ (~10x speedup)
+    # Returns: List with components: $x_pair_ids: Pair IDs for x samples (0 =
+    # unpaired) $y_pair_ids: Pair IDs for y samples (0 = unpaired) $valid: TRUE
+    # if extraction successful, FALSE otherwise
+
+    tryCatch({
+        # Step 1: Get sample names from x and y
+        x_names <- names(x)
+        y_names <- names(y)
+
+        # Handle NAs in pair_ids before any operations Accept both integer and
+        # numeric vectors with names (required for matching)
+        if (is.null(names(pair_ids))) {
+            # pair_ids must have names to match with x and y samples
+            return(list(valid = FALSE))
+        }
+
+        if (!(is.numeric(pair_ids) || is.integer(pair_ids) || is.character(pair_ids))) {
+            warning("pair_ids must be a named integer/numeric/character vector")
+            return(list(valid = FALSE))
+        }
+
+        # Save original names before any conversion
+        pair_ids_names <- names(pair_ids)
+
+        # If pair_ids are character, convert to numeric indices while
+        # preserving names
+        if (is.character(pair_ids)) {
+            unique_pair_values <- unique(pair_ids)
+            pair_id_map <- setNames(seq_along(unique_pair_values), unique_pair_values)
+            pair_ids_numeric <- as.numeric(pair_id_map[pair_ids])
+            pair_ids <- setNames(pair_ids_numeric, pair_ids_names)
+        } else {
+            # Ensure pair_ids is numeric for consistent handling
+            pair_ids <- as.numeric(pair_ids)
+            names(pair_ids) <- pair_ids_names  # Restore names that may be lost in conversion
+        }
+
+        # Replace NAs with 0 for unpaired samples
+        pair_ids[is.na(pair_ids)] <- 0
+
+        if (is.null(x_names) || is.null(y_names)) {
+            warning("x and y must have names for paired bootstrap pairing.")
+            return(list(valid = FALSE))
+        }
+
+        if (length(x_names) == 0 || length(y_names) == 0) {
+            warning("x and y have empty names.")
+            return(list(valid = FALSE))
+        }
+
+        # Step 2: Extract pair_ids for x samples
+        if (!all(x_names %in% names(pair_ids))) {
+            warning("Not all x samples found in pair_ids. Cannot prepare paired bootstrap.")
+            return(list(valid = FALSE))
+        }
+
+        x_pair_ids <- pair_ids[x_names]
+
+        # Step 3: Extract pair_ids for y samples
+        if (!all(y_names %in% names(pair_ids))) {
+            warning("Not all y samples found in pair_ids. Cannot prepare paired bootstrap.")
+            return(list(valid = FALSE))
+        }
+
+        y_pair_ids <- pair_ids[y_names]
+
+        # Step 4: Identify pairing structure for summary
+        x_paired_mask <- x_pair_ids > 0
+        y_paired_mask <- y_pair_ids > 0
+
+        x_paired_count <- sum(x_paired_mask)
+        y_paired_count <- sum(y_paired_mask)
+        x_unpaired_count <- sum(!x_paired_mask)
+        y_unpaired_count <- sum(!y_paired_mask)
+
+        # Log pairing structure
+        if (length(pair_ids) > 0) {
+            # Count complete pairs (pair_id in both x and y)
+            x_pair_set <- setNames(x_pair_ids[x_paired_mask], NULL)
+            y_pair_set <- setNames(y_pair_ids[y_paired_mask], NULL)
+            complete_pair_ids <- intersect(unique(x_pair_set[x_pair_set > 0]), unique(y_pair_set[y_pair_set >
+                0]))
+
+            if (length(complete_pair_ids) > 0) {
+                message(sprintf("Paired bootstrap structure: %d complete pairs, %d unpaired x, %d unpaired y",
+                  length(complete_pair_ids), x_unpaired_count, y_unpaired_count),
+                  domain = NA)
+            }
+        }
+
+        # Return extracted pair_ids as integers (no NAs, safe for C++)
+        x_result <- as.numeric(pair_ids[x_names])
+        y_result <- as.numeric(pair_ids[y_names])
+        x_result[is.na(x_result)] <- 0
+        y_result[is.na(y_result)] <- 0
+
+        return(list(x_pair_ids = x_result, y_pair_ids = y_result, valid = TRUE))
+
+    }, error = function(e) {
+        warning("Error preparing paired bootstrap data: ", e$message)
+        return(list(valid = FALSE))
+    })
 }
 
 #' @noRd
 
-.calculate_divergence_bootstrap <- function(
-    x, y,
-    q = 1,
-    nboot = 1000,
-    ci = 0.95,
-    method = "percentile",
-    log_base = exp(1),
-    pseudocount = 0.5,
-    gene_name = NA_character_,
-    verbose = FALSE,
-    seed = NULL,
-    paired = FALSE,
-    pair_ids = NULL) {
+.calculate_divergence_bootstrap <- function(x, y, q = 1, nboot = 1000, ci = 0.95,
+    method = "percentile", log_base = exp(1), pseudocount = 0.5, gene_name = NA_character_,
+    verbose = FALSE, seed = NULL, paired = FALSE, pair_ids = NULL) {
 
-  # Seed handling left to caller for Bioconductor compliance
+    # Seed handling left to caller for Bioconductor compliance
 
-  # Compute point estimate
-  point_est <- .tsallis_divergence_scalar(x, y, q, pseudocount, log_base)
+    # Compute point estimate
+    point_est <- .tsallis_divergence_scalar(x, y, q, pseudocount, log_base)
 
-  # Bootstrap confidence interval
-  if (nboot > 0) {
-    # Determine if using pair_ids-based pairing
-    use_complex_paired_bootstrap <- isTRUE(paired) && !is.null(pair_ids)
+    # Bootstrap confidence interval
+    if (nboot > 0) {
+        # Determine if using pair_ids-based pairing
+        use_complex_paired_bootstrap <- isTRUE(paired) && !is.null(pair_ids)
 
-    if (use_complex_paired_bootstrap) {
-      # OPTIMIZATION (March 2026): Use C++ flexible paired bootstrap
-      # Supports mixed paired/unpaired data, handles sparse pairings
-      pair_data <- .prepare_paired_bootstrap_data(x, y, pair_ids)
-      
-      if (isTRUE(pair_data$valid)) {
-        # Use enhanced C++ implementation for all pairing scenarios
-        # No fallback - all cases handled by C++ (~10x speedup)
-        bootstrap_dist <- tryCatch(
-          {
-            divergence_bootstrap_flexible_cpp_wrapper(
-              x = as.numeric(x), y = as.numeric(y),
-              x_pair_ids = pair_data$x_pair_ids,
-              y_pair_ids = pair_data$y_pair_ids,
-              nboot = as.integer(nboot), q = q,
-              pseudocount = pseudocount,
-              log_base = log_base
-            )
-          },
-          error = function(e) {
-            stop("C++ flexible paired bootstrap failed: ", e$message)
-          }
-        )
-      } else {
-        stop("Failed to prepare paired bootstrap data from pair_ids")
-      }
+        if (use_complex_paired_bootstrap) {
+            # OPTIMIZATION (March 2026): Use C++ flexible paired bootstrap
+            # Supports mixed paired/unpaired data, handles sparse pairings
+            pair_data <- .prepare_paired_bootstrap_data(x, y, pair_ids)
+
+            if (isTRUE(pair_data$valid)) {
+                # Use enhanced C++ implementation for all pairing scenarios No
+                # fallback - all cases handled by C++ (~10x speedup)
+                bootstrap_dist <- tryCatch({
+                  divergence_bootstrap_flexible_cpp_wrapper(x = as.numeric(x), y = as.numeric(y),
+                    x_pair_ids = pair_data$x_pair_ids, y_pair_ids = pair_data$y_pair_ids,
+                    nboot = as.integer(nboot), q = q, pseudocount = pseudocount,
+                    log_base = log_base)
+                }, error = function(e) {
+                  stop("C++ flexible paired bootstrap failed: ", e$message)
+                })
+            } else {
+                stop("Failed to prepare paired bootstrap data from pair_ids")
+            }
+        } else {
+            # Use C++ accelerated version for independent bootstrap (10-15x
+            # faster)
+            bootstrap_dist <- divergence_bootstrap_compute_cpp_wrapper(x = x, y = y,
+                q = q, nboot = as.integer(nboot), paired = FALSE, pseudocount = pseudocount,
+                log_base = log_base)
+        }
+
+        alpha <- (1 - ci)/2
+
+        if (method == "percentile") {
+            lower_ci <- stats::quantile(bootstrap_dist, probs = alpha, names = FALSE)
+            upper_ci <- stats::quantile(bootstrap_dist, probs = 1 - alpha, names = FALSE)
+        } else if (method == "bca") {
+            # BCA not appropriate for divergence (requires two-sample
+            # jackknife) Fall back to percentile method which is valid for any
+            # divergence
+            lower_ci <- stats::quantile(bootstrap_dist, probs = alpha, names = FALSE)
+            upper_ci <- stats::quantile(bootstrap_dist, probs = 1 - alpha, names = FALSE)
+        }
     } else {
-      # Use C++ accelerated version for independent bootstrap (10-15x faster)
-      bootstrap_dist <- divergence_bootstrap_compute_cpp_wrapper(
-        x = x, y = y, q = q, nboot = as.integer(nboot),
-        paired = FALSE, pseudocount = pseudocount, log_base = log_base
-      )
+        lower_ci <- NA_real_
+        upper_ci <- NA_real_
     }
 
-    alpha <- (1 - ci) / 2
-
-    if (method == "percentile") {
-      lower_ci <- stats::quantile(bootstrap_dist, probs = alpha, names = FALSE)
-      upper_ci <- stats::quantile(bootstrap_dist, probs = 1 - alpha, names = FALSE)
-    } else if (method == "bca") {
-      # BCA not appropriate for divergence (requires two-sample jackknife)
-      # Fall back to percentile method which is valid for any divergence
-      lower_ci <- stats::quantile(bootstrap_dist, probs = alpha, names = FALSE)
-      upper_ci <- stats::quantile(bootstrap_dist, probs = 1 - alpha, names = FALSE)
-    }
-  } else {
-    lower_ci <- NA_real_
-    upper_ci <- NA_real_
-  }
-
-  return(list(
-    estimate = point_est,
-    lower_ci = lower_ci,
-    upper_ci = upper_ci,
-    q = q,
-    nboot = nboot,
-    method = if (nboot > 0) method else NA_character_
-  ))
+    return(list(estimate = point_est, lower_ci = lower_ci, upper_ci = upper_ci, q = q,
+        nboot = nboot, method = if (nboot > 0) method else NA_character_))
 }
 
 
@@ -518,87 +442,89 @@
 
 #' @noRd
 .tsallis_divergence_scalar <- function(x, y, q_val, pseudocount = 0.5, log_base = exp(1)) {
-  # Validate input vectors
-  if (length(x) == 0 || length(y) == 0) {
-    return(NA_real_)
-  }
-  
-  # BUGFIX: Ensure x and y have equal length (required for divergence)
-  if (length(x) != length(y)) {
-    # This can happen if paired bootstrap resampling produces unequal group sizes
-    # Return NA rather than crashing
-    return(NA_real_)
-  }
-  
-  # Normalize to probabilities
-  p <- (x + pseudocount) / (sum(x) + length(x) * pseudocount)
-  r <- (y + pseudocount) / (sum(y) + length(y) * pseudocount)
-
-  if (any(is.na(p)) || any(is.na(r))) {
-    return(NA_real_)
-  }
-  
-  # BUGFIX #2: Add explicit safeguard for near-zero probabilities
-  # Prevents NaN/Inf from log(0) or extremely small values in power operations
-  min_prob <- 1e-10
-  p[p < min_prob] <- min_prob
-  r[r < min_prob] <- min_prob
-  
-  # Re-normalize to maintain probability constraint (sum = 1)
-  p <- p / sum(p)
-  r <- r / sum(r)
-
-  # Compute Tsallis divergence using correct formula from Paper I004
-  # D_q(p||r) with D_q >= 0 and equality iff p = r
-  # BUGFIX: Ensure formula is applied correctly for all q values
-  
-  if (abs(q_val) < 0.01) {
-    # q=0: Tsallis divergence D_0(p||r) = (1/(0-1)) * (1 - sum(p^0 * r^1))
-    #     = -1 * (1 - sum(1 * r)) = -1 * (1 - 1) = 0 (always 0 for any distributions)
-    # This is mathematically correct: at q=0, all probability distributions have equal "divergence"
-    div <- 0
-  } else if (abs(q_val - 1) < 0.01) {
-    # KL divergence (special case q -> 1): lim_{q->1} D_q = sum(p*log(p/r))
-    div <- sum(p * log(p / r), na.rm = TRUE)
-  } else if (q_val > 0 && q_val != 1) {
-    # Standard Tsallis divergence formula: D_q(p||r) = (1/(q-1)) * (1 - sum(p^q * r^(1-q)))
-    # This ensures D_q >= 0 and is asymmetric in p, r
-    # CRITICAL: Ensure p and r vectors are properly aligned
-    p_power <- p^q_val
-    r_power <- r^(1 - q_val)
-    
-    # Check for numerical issues (inf, nan, underflow)
-    if (any(is.nan(p_power)) || any(is.infinite(p_power)) ||
-        any(is.nan(r_power)) || any(is.infinite(r_power))) {
-      # Log-space computation for numerical stability when q is far from 1
-      log_p_power <- q_val * log(p + 1e-10)
-      log_r_power <- (1 - q_val) * log(r + 1e-10)
-      sum_term <- sum(exp(log_p_power + log_r_power), na.rm = TRUE)
-    } else {
-      sum_term <- sum(p_power * r_power, na.rm = TRUE)
+    # Validate input vectors
+    if (length(x) == 0 || length(y) == 0) {
+        return(NA_real_)
     }
-    
-    div <- (1 - sum_term) / (q_val - 1)
-  } else {
-    # Invalid q value
-    return(NA_real_)
-  }
 
-  if (is.nan(div) || !is.finite(div)) {
-    return(NA_real_)
-  }
+    # BUGFIX: Ensure x and y have equal length (required for divergence)
+    if (length(x) != length(y)) {
+        # This can happen if paired bootstrap resampling produces unequal group
+        # sizes Return NA rather than crashing
+        return(NA_real_)
+    }
 
-  # Apply log_base normalization CONSISTENTLY for all q values
-  # This ensures consistent scaling across multi-q spectrum analysis
-  if (log_base != exp(1)) {
-    div <- div / log(log_base)
-  }
+    # Normalize to probabilities
+    p <- (x + pseudocount)/(sum(x) + length(x) * pseudocount)
+    r <- (y + pseudocount)/(sum(y) + length(y) * pseudocount)
 
-  # BUG FIX: Handle sign correctly for q < 1
-  # When q < 1, (q_val - 1) is negative, so the formula naturally produces
-  # a positive divergence. We must take absolute value and ensure non-negativity.
-  # Divergence should always be >= 0.
-  return(abs(div))
+    if (any(is.na(p)) || any(is.na(r))) {
+        return(NA_real_)
+    }
+
+    # BUGFIX #2: Add explicit safeguard for near-zero probabilities Prevents
+    # NaN/Inf from log(0) or extremely small values in power operations
+    min_prob <- 1e-10
+    p[p < min_prob] <- min_prob
+    r[r < min_prob] <- min_prob
+
+    # Re-normalize to maintain probability constraint (sum = 1)
+    p <- p/sum(p)
+    r <- r/sum(r)
+
+    # Compute Tsallis divergence using correct formula from Paper I004
+    # D_q(p||r) with D_q >= 0 and equality iff p = r BUGFIX: Ensure formula is
+    # applied correctly for all q values
+
+    if (abs(q_val) < 0.01) {
+        # q=0: Tsallis divergence D_0(p||r) = (1/(0-1)) * (1 - sum(p^0 * r^1))
+        # = -1 * (1 - sum(1 * r)) = -1 * (1 - 1) = 0 (always 0 for any
+        # distributions) This is mathematically correct: at q=0, all
+        # probability distributions have equal 'divergence'
+        div <- 0
+    } else if (abs(q_val - 1) < 0.01) {
+        # KL divergence (special case q -> 1): lim_{q->1} D_q = sum(p*log(p/r))
+        div <- sum(p * log(p/r), na.rm = TRUE)
+    } else if (q_val > 0 && q_val != 1) {
+        # Standard Tsallis divergence formula: D_q(p||r) = (1/(q-1)) * (1 -
+        # sum(p^q * r^(1-q))) This ensures D_q >= 0 and is asymmetric in p, r
+        # CRITICAL: Ensure p and r vectors are properly aligned
+        p_power <- p^q_val
+        r_power <- r^(1 - q_val)
+
+        # Check for numerical issues (inf, nan, underflow)
+        if (any(is.nan(p_power)) || any(is.infinite(p_power)) || any(is.nan(r_power)) ||
+            any(is.infinite(r_power))) {
+            # Log-space computation for numerical stability when q is far from
+            # 1
+            log_p_power <- q_val * log(p + 1e-10)
+            log_r_power <- (1 - q_val) * log(r + 1e-10)
+            sum_term <- sum(exp(log_p_power + log_r_power), na.rm = TRUE)
+        } else {
+            sum_term <- sum(p_power * r_power, na.rm = TRUE)
+        }
+
+        div <- (1 - sum_term)/(q_val - 1)
+    } else {
+        # Invalid q value
+        return(NA_real_)
+    }
+
+    if (is.nan(div) || !is.finite(div)) {
+        return(NA_real_)
+    }
+
+    # Apply log_base normalization CONSISTENTLY for all q values This ensures
+    # consistent scaling across multi-q spectrum analysis
+    if (log_base != exp(1)) {
+        div <- div/log(log_base)
+    }
+
+    # BUG FIX: Handle sign correctly for q < 1 When q < 1, (q_val - 1) is
+    # negative, so the formula naturally produces a positive divergence. We
+    # must take absolute value and ensure non-negativity.  Divergence should
+    # always be >= 0.
+    return(abs(div))
 }
 
 #' Vectorized Tsallis Divergence Calculation (OPTIMIZED)
@@ -618,91 +544,93 @@
 #'
 #' @noRd
 .tsallis_divergence_vector <- function(x, y, q_vals, pseudocount = 0.5, log_base = exp(1)) {
-  # Input validation
-  if (length(x) == 0 || length(y) == 0) {
-    return(rep(NA_real_, length(q_vals)))
-  }
-  
-  # CRITICAL: Ensure x and y have equal length (required for divergence)
-  # This can happen if paired bootstrap or group extraction produces unequal lengths
-  if (length(x) != length(y)) {
-    return(rep(NA_real_, length(q_vals)))
-  }
-  
-  if (any(is.na(x)) || any(is.na(y))) {
-    return(rep(NA_real_, length(q_vals)))
-  }
-  
-  # Normalize to probabilities (ONCE, not for each q-value)
-  p <- (x + pseudocount) / (sum(x) + length(x) * pseudocount)
-  r <- (y + pseudocount) / (sum(y) + length(y) * pseudocount)
-  
-  if (any(is.na(p)) || any(is.na(r))) {
-    return(rep(NA_real_, length(q_vals)))
-  }
-  
-  # BUGFIX: Add explicit safeguard for near-zero probabilities (ONCE)
-  min_prob <- 1e-10
-  p[p < min_prob] <- min_prob
-  r[r < min_prob] <- min_prob
-  
-  # Re-normalize to maintain probability constraint (ONCE)
-  p <- p / sum(p)
-  r <- r / sum(r)
-  
-  # OPTIMIZATION: Pre-compute p and r powers for all q-values at once
-  # Using outer product: p_q_matrix[i, j] = p[i]^q_vals[j]
-  # This is the KEY optimization that provides 2-3x speedup
-  p_q_mat <- outer(p, q_vals, `^`)  # Vectorized: p^q for all q
-  r_1mq_mat <- outer(r, 1 - q_vals, `^`)  # Vectorized: r^(1-q) for all q
-  
-  # Initialize result vector
-  result <- numeric(length(q_vals))
-  
-  # Process each q-value using pre-computed powers
-  for (j in seq_along(q_vals)) {
-    q_val <- q_vals[j]
-    
-    # Special cases
-    if (abs(q_val) < 0.01) {
-      # q=0: Always 0
-      result[j] <- 0
-    } else if (abs(q_val - 1) < 0.01) {
-      # q=1: KL divergence
-      result[j] <- sum(p * log(p / r), na.rm = TRUE)
-    } else if (q_val > 0 && q_val != 1) {
-      # Standard Tsallis divergence
-      p_power <- p_q_mat[, j]  # Already computed!
-      r_power <- r_1mq_mat[, j]  # Already computed!
-      
-      # Check for numerical issues
-      if (any(is.nan(p_power)) || any(is.infinite(p_power)) ||
-          any(is.nan(r_power)) || any(is.infinite(r_power))) {
-        # Log-space computation for numerical stability
-        log_p_power <- q_val * log(p + 1e-10)
-        log_r_power <- (1 - q_val) * log(r + 1e-10)
-        sum_term <- sum(exp(log_p_power + log_r_power), na.rm = TRUE)
-      } else {
-        sum_term <- sum(p_power * r_power, na.rm = TRUE)
-      }
-      
-      result[j] <- (1 - sum_term) / (q_val - 1)
-    } else {
-      result[j] <- NA_real_
+    # Input validation
+    if (length(x) == 0 || length(y) == 0) {
+        return(rep(NA_real_, length(q_vals)))
     }
-  }
-  
-  # Apply log_base normalization CONSISTENTLY for all q values
-  if (log_base != exp(1)) {
-    result <- result / log(log_base)
-  }
-  
-  # Ensure non-negativity (handle q < 1 cases that may produce negative values)
-  result <- abs(result)
-  
-  # Replace non-finite values with NA
-  result[!is.finite(result)] <- NA_real_
-  
-  return(result)
+
+    # CRITICAL: Ensure x and y have equal length (required for divergence) This
+    # can happen if paired bootstrap or group extraction produces unequal
+    # lengths
+    if (length(x) != length(y)) {
+        return(rep(NA_real_, length(q_vals)))
+    }
+
+    if (any(is.na(x)) || any(is.na(y))) {
+        return(rep(NA_real_, length(q_vals)))
+    }
+
+    # Normalize to probabilities (ONCE, not for each q-value)
+    p <- (x + pseudocount)/(sum(x) + length(x) * pseudocount)
+    r <- (y + pseudocount)/(sum(y) + length(y) * pseudocount)
+
+    if (any(is.na(p)) || any(is.na(r))) {
+        return(rep(NA_real_, length(q_vals)))
+    }
+
+    # BUGFIX: Add explicit safeguard for near-zero probabilities (ONCE)
+    min_prob <- 1e-10
+    p[p < min_prob] <- min_prob
+    r[r < min_prob] <- min_prob
+
+    # Re-normalize to maintain probability constraint (ONCE)
+    p <- p/sum(p)
+    r <- r/sum(r)
+
+    # OPTIMIZATION: Pre-compute p and r powers for all q-values at once Using
+    # outer product: p_q_matrix[i, j] = p[i]^q_vals[j] This is the KEY
+    # optimization that provides 2-3x speedup
+    p_q_mat <- outer(p, q_vals, `^`)  # Vectorized: p^q for all q
+    r_1mq_mat <- outer(r, 1 - q_vals, `^`)  # Vectorized: r^(1-q) for all q
+
+    # Initialize result vector
+    result <- numeric(length(q_vals))
+
+    # Process each q-value using pre-computed powers
+    for (j in seq_along(q_vals)) {
+        q_val <- q_vals[j]
+
+        # Special cases
+        if (abs(q_val) < 0.01) {
+            # q=0: Always 0
+            result[j] <- 0
+        } else if (abs(q_val - 1) < 0.01) {
+            # q=1: KL divergence
+            result[j] <- sum(p * log(p/r), na.rm = TRUE)
+        } else if (q_val > 0 && q_val != 1) {
+            # Standard Tsallis divergence
+            p_power <- p_q_mat[, j]  # Already computed!
+            r_power <- r_1mq_mat[, j]  # Already computed!
+
+            # Check for numerical issues
+            if (any(is.nan(p_power)) || any(is.infinite(p_power)) || any(is.nan(r_power)) ||
+                any(is.infinite(r_power))) {
+                # Log-space computation for numerical stability
+                log_p_power <- q_val * log(p + 1e-10)
+                log_r_power <- (1 - q_val) * log(r + 1e-10)
+                sum_term <- sum(exp(log_p_power + log_r_power), na.rm = TRUE)
+            } else {
+                sum_term <- sum(p_power * r_power, na.rm = TRUE)
+            }
+
+            result[j] <- (1 - sum_term)/(q_val - 1)
+        } else {
+            result[j] <- NA_real_
+        }
+    }
+
+    # Apply log_base normalization CONSISTENTLY for all q values
+    if (log_base != exp(1)) {
+        result <- result/log(log_base)
+    }
+
+    # Ensure non-negativity (handle q < 1 cases that may produce negative
+    # values)
+    result <- abs(result)
+
+    # Replace non-finite values with NA
+    result[!is.finite(result)] <- NA_real_
+
+    return(result)
 }
 

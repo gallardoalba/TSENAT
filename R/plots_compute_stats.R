@@ -21,8 +21,8 @@ NULL
 #'
 #' @param se A \code{SummarizedExperiment} with diversity assays.
 #' @param q_values Numeric vector of q-values to compute (optional, auto-detect if NULL).
-#' @param metric Character: "median" (default) or "mean" for central tendency.
-#' @param variability_metric Character: "iqr" (default) or "sd" for spread.
+#' @param metric Character: 'median' (default) or 'mean' for central tendency.
+#' @param variability_metric Character: 'iqr' (default) or 'sd' for spread.
 #' @param condition_col Character: column name for grouping conditions (optional).
 #'
 #' @return Data frame with columns:
@@ -35,80 +35,64 @@ NULL
 
 #' @noRd
 
-.compute_diversity_spectrum <- function(se,
-                                       q_values = NULL,
-                                       metric = c("median", "mean"),
-                                       variability_metric = c("iqr", "sd"),
-                                       condition_col = NULL) {
+.compute_diversity_spectrum <- function(se, q_values = NULL, metric = c("median",
+    "mean"), variability_metric = c("iqr", "sd"), condition_col = NULL) {
 
-  require_pkgs(c("SummarizedExperiment", "dplyr"))
+    require_pkgs(c("SummarizedExperiment", "dplyr"))
 
-  # Validate input
-  if (!inherits(se, "SummarizedExperiment")) {
-    stop("se must be a SummarizedExperiment object", call. = FALSE)
-  }
+    # Validate input
+    if (!inherits(se, "SummarizedExperiment")) {
+        stop("se must be a SummarizedExperiment object", call. = FALSE)
+    }
 
-  if (nrow(se) == 0 || ncol(se) == 0) {
-    stop("SummarizedExperiment is empty", call. = FALSE)
-  }
+    if (nrow(se) == 0 || ncol(se) == 0) {
+        stop("SummarizedExperiment is empty", call. = FALSE)
+    }
 
-  # Match arguments
-  metric <- match.arg(metric)
-  variability_metric <- match.arg(variability_metric)
+    # Match arguments
+    metric <- match.arg(metric)
+    variability_metric <- match.arg(variability_metric)
 
-  # Prepare long format data
-  long_data <- .prepare_tsallis_long(se,
-    assay_name = "diversity",
-    condition_col = condition_col
-  )
+    # Prepare long format data
+    long_data <- .prepare_tsallis_long(se, assay_name = "diversity", condition_col = condition_col)
 
-  if (nrow(long_data) == 0) {
-    stop("No valid diversity data found in SummarizedExperiment", call. = FALSE)
-  }
+    if (nrow(long_data) == 0) {
+        stop("No valid diversity data found in SummarizedExperiment", call. = FALSE)
+    }
 
-  # Ensure q is numeric
-  long_data$q <- as.numeric(as.character(long_data$q))
+    # Ensure q is numeric
+    long_data$q <- as.numeric(as.character(long_data$q))
 
-  # Compute statistics by group and q-value
-  if (!is.null(condition_col) && condition_col %in% colnames(long_data)) {
-    # Group by condition
-    stats <- long_data %>%
-      dplyr::group_by(group, q) %>%
-      dplyr::summarise(
-        central = if (metric == "median") {
-          median(.data$tsallis, na.rm = TRUE)
-        } else {
-          mean(.data$tsallis, na.rm = TRUE)
-        },
-        spread = if (variability_metric == "iqr") {
-          IQR(.data$tsallis, na.rm = TRUE)
-        } else {
-          sqrt(stats::var(.data$tsallis, na.rm = TRUE))
-        },
-        count = sum(!is.na(.data$tsallis)),
-        .groups = "drop"
-      )
-  } else {
-    # No grouping
-    stats <- long_data %>%
-      dplyr::group_by(q) %>%
-      dplyr::summarise(
-        central = if (metric == "median") {
-          median(.data$tsallis, na.rm = TRUE)
-        } else {
-          mean(.data$tsallis, na.rm = TRUE)
-        },
-        spread = if (variability_metric == "iqr") {
-          IQR(.data$tsallis, na.rm = TRUE)
-        } else {
-          sqrt(stats::var(.data$tsallis, na.rm = TRUE))
-        },
-        count = sum(!is.na(.data$tsallis)),
-        .groups = "drop"
-      )
-  }
+    # Compute statistics by group and q-value
+    if (!is.null(condition_col) && condition_col %in% colnames(long_data)) {
+        # Group by condition
+        stats <- long_data %>%
+            dplyr::group_by(group, q) %>%
+            dplyr::summarise(central = if (metric == "median") {
+                median(.data$tsallis, na.rm = TRUE)
+            } else {
+                mean(.data$tsallis, na.rm = TRUE)
+            }, spread = if (variability_metric == "iqr") {
+                IQR(.data$tsallis, na.rm = TRUE)
+            } else {
+                sqrt(stats::var(.data$tsallis, na.rm = TRUE))
+            }, count = sum(!is.na(.data$tsallis)), .groups = "drop")
+    } else {
+        # No grouping
+        stats <- long_data %>%
+            dplyr::group_by(q) %>%
+            dplyr::summarise(central = if (metric == "median") {
+                median(.data$tsallis, na.rm = TRUE)
+            } else {
+                mean(.data$tsallis, na.rm = TRUE)
+            }, spread = if (variability_metric == "iqr") {
+                IQR(.data$tsallis, na.rm = TRUE)
+            } else {
+                sqrt(stats::var(.data$tsallis, na.rm = TRUE))
+            }, count = sum(!is.na(.data$tsallis)), .groups = "drop")
+    }
 
-  return(stats)
+    return(stats)
 }
 
 
@@ -122,9 +106,9 @@ NULL
 #'
 #' @param results Data frame with at least one p-value column.
 #' @param p_col Character: column name for p-values
-#'   ("adj_p_interaction", "p_interaction", "padj", "pvalue").
+#'   ('adj_p_interaction', 'p_interaction', 'padj', 'pvalue').
 #' @param gene_col Character: column name for gene identifiers
-#'   ("gene_id", "gene", "gene_name").
+#'   ('gene_id', 'gene', 'gene_name').
 #' @param n_genes Integer: number of top genes to select (default: 4).
 #'
 #' @return Character vector of top gene IDs, sorted by p-value (smallest first).
@@ -132,52 +116,45 @@ NULL
 
 #' @noRd
 
-.select_top_genes <- function(results,
-                             p_col = NULL,
-                             gene_col = NULL,
-                             n_genes = 4) {
+.select_top_genes <- function(results, p_col = NULL, gene_col = NULL, n_genes = 4) {
 
-  require_pkgs("dplyr")
+    require_pkgs("dplyr")
 
-  if (!is.data.frame(results) || nrow(results) == 0) {
-    stop("results must be a non-empty data frame", call. = FALSE)
-  }
-
-  # Auto-detect p-value column
-  if (is.null(p_col)) {
-    candidate_cols <- c("adj_p_interaction", "p_interaction", "padj", "pvalue")
-    matched <- candidate_cols[candidate_cols %in% colnames(results)]
-    if (length(matched) > 0) {
-      p_col <- matched[1]
-    } else {
-      stop("Could not find p-value column. ",
-        "Provide p_col explicitly.",
-        call. = FALSE
-      )
+    if (!is.data.frame(results) || nrow(results) == 0) {
+        stop("results must be a non-empty data frame", call. = FALSE)
     }
-  }
 
-  # Auto-detect gene column
-  if (is.null(gene_col)) {
-    candidate_cols <- c("gene_id", "gene", "gene_name")
-    matched <- candidate_cols[candidate_cols %in% colnames(results)]
-    if (length(matched) > 0) {
-      gene_col <- matched[1]
-    } else {
-      stop("Could not find gene column. ",
-        "Provide gene_col explicitly.",
-        call. = FALSE
-      )
+    # Auto-detect p-value column
+    if (is.null(p_col)) {
+        candidate_cols <- c("adj_p_interaction", "p_interaction", "padj", "pvalue")
+        matched <- candidate_cols[candidate_cols %in% colnames(results)]
+        if (length(matched) > 0) {
+            p_col <- matched[1]
+        } else {
+            stop("Could not find p-value column. ", "Provide p_col explicitly.",
+                call. = FALSE)
+        }
     }
-  }
 
-  # Select top genes
-  top_genes <- results %>%
-    dplyr::arrange(.data[[p_col]]) %>%
-    dplyr::slice(seq_len(min(n_genes, nrow(results)))) %>%
-    dplyr::pull(.data[[gene_col]])
+    # Auto-detect gene column
+    if (is.null(gene_col)) {
+        candidate_cols <- c("gene_id", "gene", "gene_name")
+        matched <- candidate_cols[candidate_cols %in% colnames(results)]
+        if (length(matched) > 0) {
+            gene_col <- matched[1]
+        } else {
+            stop("Could not find gene column. ", "Provide gene_col explicitly.",
+                call. = FALSE)
+        }
+    }
 
-  return(as.character(top_genes))
+    # Select top genes
+    top_genes <- results %>%
+        dplyr::arrange(.data[[p_col]]) %>%
+        dplyr::slice(seq_len(min(n_genes, nrow(results)))) %>%
+        dplyr::pull(.data[[gene_col]])
+
+    return(as.character(top_genes))
 }
 
 #' Filter Genes by Significance Threshold
@@ -194,45 +171,42 @@ NULL
 
 #' @noRd
 
-.filter_genes_by_pvalue <- function(results,
-                                   p_threshold = 0.05,
-                                   p_col = NULL,
-                                   gene_col = NULL) {
+.filter_genes_by_pvalue <- function(results, p_threshold = 0.05, p_col = NULL, gene_col = NULL) {
 
-  require_pkgs("dplyr")
+    require_pkgs("dplyr")
 
-  if (!is.data.frame(results) || nrow(results) == 0) {
-    stop("results must be a non-empty data frame", call. = FALSE)
-  }
-
-  # Auto-detect columns (same logic as select_top_genes)
-  if (is.null(p_col)) {
-    candidate_cols <- c("adj_p_interaction", "p_interaction", "padj", "pvalue")
-    matched <- candidate_cols[candidate_cols %in% colnames(results)]
-    if (length(matched) > 0) {
-      p_col <- matched[1]
-    } else {
-      stop("Could not find p-value column", call. = FALSE)
+    if (!is.data.frame(results) || nrow(results) == 0) {
+        stop("results must be a non-empty data frame", call. = FALSE)
     }
-  }
 
-  if (is.null(gene_col)) {
-    candidate_cols <- c("gene_id", "gene", "gene_name")
-    matched <- candidate_cols[candidate_cols %in% colnames(results)]
-    if (length(matched) > 0) {
-      gene_col <- matched[1]
-    } else {
-      stop("Could not find gene column", call. = FALSE)
+    # Auto-detect columns (same logic as select_top_genes)
+    if (is.null(p_col)) {
+        candidate_cols <- c("adj_p_interaction", "p_interaction", "padj", "pvalue")
+        matched <- candidate_cols[candidate_cols %in% colnames(results)]
+        if (length(matched) > 0) {
+            p_col <- matched[1]
+        } else {
+            stop("Could not find p-value column", call. = FALSE)
+        }
     }
-  }
 
-  # Filter and return
-  sig_genes <- results %>%
-    dplyr::filter(.data[[p_col]] < p_threshold) %>%
-    dplyr::arrange(.data[[p_col]]) %>%
-    dplyr::pull(.data[[gene_col]])
+    if (is.null(gene_col)) {
+        candidate_cols <- c("gene_id", "gene", "gene_name")
+        matched <- candidate_cols[candidate_cols %in% colnames(results)]
+        if (length(matched) > 0) {
+            gene_col <- matched[1]
+        } else {
+            stop("Could not find gene column", call. = FALSE)
+        }
+    }
 
-  return(as.character(sig_genes))
+    # Filter and return
+    sig_genes <- results %>%
+        dplyr::filter(.data[[p_col]] < p_threshold) %>%
+        dplyr::arrange(.data[[p_col]]) %>%
+        dplyr::pull(.data[[gene_col]])
+
+    return(as.character(sig_genes))
 }
 
 # ============================================================================
@@ -253,42 +227,40 @@ NULL
 
 .validate_diversity_se <- function(se, check_metadata = TRUE) {
 
-  if (!inherits(se, "SummarizedExperiment")) {
-    stop("se must be a SummarizedExperiment object", call. = FALSE)
-  }
-
-  if (nrow(se) == 0) {
-    stop("SummarizedExperiment has no rows (samples)", call. = FALSE)
-  }
-
-  if (ncol(se) == 0) {
-    stop("SummarizedExperiment has no columns (genes)", call. = FALSE)
-  }
-
-  # Check for diversity assay
-  assay_names <- SummarizedExperiment::assayNames(se)
-  if (!("diversity" %in% assay_names)) {
-    stop("Required 'diversity' assay not found. ",
-      "Available: ", paste(assay_names, collapse = ", "),
-      call. = FALSE
-    )
-  }
-
-  # Check for valid data
-  div_mat <- SummarizedExperiment::assay(se, "diversity")
-  if (all(is.na(div_mat))) {
-    stop("All diversity values are NA", call. = FALSE)
-  }
-
-  if (check_metadata) {
-    # Check for at least one q-value
-    meta <- S4Vectors::metadata(se)
-    if (!("q" %in% names(meta)) || length(meta$q) == 0) {
-      warning("q-values not found in SE metadata", call. = FALSE)
+    if (!inherits(se, "SummarizedExperiment")) {
+        stop("se must be a SummarizedExperiment object", call. = FALSE)
     }
-  }
 
-  return(TRUE)
+    if (nrow(se) == 0) {
+        stop("SummarizedExperiment has no rows (samples)", call. = FALSE)
+    }
+
+    if (ncol(se) == 0) {
+        stop("SummarizedExperiment has no columns (genes)", call. = FALSE)
+    }
+
+    # Check for diversity assay
+    assay_names <- SummarizedExperiment::assayNames(se)
+    if (!("diversity" %in% assay_names)) {
+        stop("Required 'diversity' assay not found. ", "Available: ", paste(assay_names,
+            collapse = ", "), call. = FALSE)
+    }
+
+    # Check for valid data
+    div_mat <- SummarizedExperiment::assay(se, "diversity")
+    if (all(is.na(div_mat))) {
+        stop("All diversity values are NA", call. = FALSE)
+    }
+
+    if (check_metadata) {
+        # Check for at least one q-value
+        meta <- S4Vectors::metadata(se)
+        if (!("q" %in% names(meta)) || length(meta$q) == 0) {
+            warning("q-values not found in SE metadata", call. = FALSE)
+        }
+    }
+
+    return(TRUE)
 }
 
 #' Validate Results Data Frame for Gene Selection
@@ -305,37 +277,33 @@ NULL
 
 .validate_results_df <- function(results, require_pvalue = TRUE) {
 
-  if (!is.data.frame(results)) {
-    stop("results must be a data frame", call. = FALSE)
-  }
-
-  if (nrow(results) == 0) {
-    stop("results data frame is empty", call. = FALSE)
-  }
-
-  # Check for gene column
-  gene_cols <- c("gene_id", "gene", "gene_name")
-  has_gene <- any(gene_cols %in% colnames(results))
-  if (!has_gene) {
-    stop("No gene identifier column found. ",
-      "Expected one of: ", paste(gene_cols, collapse = ", "),
-      call. = FALSE
-    )
-  }
-
-  # Check for p-value column
-  if (require_pvalue) {
-    p_cols <- c("adj_p_interaction", "p_interaction", "padj", "pvalue")
-    has_pval <- any(p_cols %in% colnames(results))
-    if (!has_pval) {
-      stop("No p-value column found. ",
-        "Expected one of: ", paste(p_cols, collapse = ", "),
-        call. = FALSE
-      )
+    if (!is.data.frame(results)) {
+        stop("results must be a data frame", call. = FALSE)
     }
-  }
 
-  return(TRUE)
+    if (nrow(results) == 0) {
+        stop("results data frame is empty", call. = FALSE)
+    }
+
+    # Check for gene column
+    gene_cols <- c("gene_id", "gene", "gene_name")
+    has_gene <- any(gene_cols %in% colnames(results))
+    if (!has_gene) {
+        stop("No gene identifier column found. ", "Expected one of: ", paste(gene_cols,
+            collapse = ", "), call. = FALSE)
+    }
+
+    # Check for p-value column
+    if (require_pvalue) {
+        p_cols <- c("adj_p_interaction", "p_interaction", "padj", "pvalue")
+        has_pval <- any(p_cols %in% colnames(results))
+        if (!has_pval) {
+            stop("No p-value column found. ", "Expected one of: ", paste(p_cols,
+                collapse = ", "), call. = FALSE)
+        }
+    }
+
+    return(TRUE)
 }
 
 # ============================================================================
@@ -347,7 +315,7 @@ NULL
 #' Converts p-value to formatted string (scientific or threshold).
 #'
 #' @param pval Numeric p-value.
-#' @param threshold Numeric: cutoff for "< threshold" format (default: 0.001).
+#' @param threshold Numeric: cutoff for '< threshold' format (default: 0.001).
 #' @param digits Integer: decimal places for scientific notation (default: 2).
 #'
 #' @return Character string formatted p-value.
@@ -357,27 +325,23 @@ NULL
 
 .format_pvalue <- function(pval, threshold = 0.001, digits = 2) {
 
-  if (is.na(pval)) {
-    return("NA")
-  }
+    if (is.na(pval)) {
+        return("NA")
+    }
 
-  if (pval < threshold) {
-    return(paste0("< ", threshold))
-  }
+    if (pval < threshold) {
+        return(paste0("< ", threshold))
+    }
 
-  return(format(
-    pval,
-    scientific = TRUE,
-    digits = digits
-  ))
+    return(format(pval, scientific = TRUE, digits = digits))
 }
 
 #' Format Q-Value Label
 #'
-#' Converts numeric q-value to display label (e.g., "q = 1.0").
+#' Converts numeric q-value to display label (e.g., 'q = 1.0').
 #'
 #' @param q_val Numeric q-value.
-#' @param prefix Character: prefix for label (default: "q").
+#' @param prefix Character: prefix for label (default: 'q').
 #'
 #' @return Character string label.
 #'
@@ -385,10 +349,10 @@ NULL
 #' @noRd
 
 .format_q_label <- function(q_val, prefix = "q") {
-  if (is.na(q_val)) {
-    return("NA")
-  }
-  return(sprintf("%s = %.2f", prefix, as.numeric(q_val)))
+    if (is.na(q_val)) {
+        return("NA")
+    }
+    return(sprintf("%s = %.2f", prefix, as.numeric(q_val)))
 }
 
 #' Format Label for Display
@@ -404,20 +368,20 @@ NULL
 #' @noRd
 
 .format_label <- function(lbl) {
-  if (is.null(lbl)) {
-    return(NULL)
-  }
-  s <- gsub("_", " ", lbl)
-  s <- gsub("\\s+", " ", s)
-  s <- trimws(s)
-  s <- tolower(s)
-  if (nchar(s) == 0) {
-    return(s)
-  }
-  if (nchar(s) == 1) {
-    return(toupper(s))
-  }
-  paste0(toupper(substr(s, 1, 1)), substr(s, 2, nchar(s)))
+    if (is.null(lbl)) {
+        return(NULL)
+    }
+    s <- gsub("_", " ", lbl)
+    s <- gsub("\\s+", " ", s)
+    s <- trimws(s)
+    s <- tolower(s)
+    if (nchar(s) == 0) {
+        return(s)
+    }
+    if (nchar(s) == 1) {
+        return(toupper(s))
+    }
+    paste0(toupper(substr(s, 1, 1)), substr(s, 2, nchar(s)))
 }
 
 # ============================================================================
@@ -435,15 +399,15 @@ NULL
 #' @param samples Character vector: sample group assignments (optional).
 #' @param coldata Character/data.frame: sample metadata (optional).
 #' @param condition_col Character: column name for grouping
-#'   in coldata (default: "sample_type").
+#'   in coldata (default: 'sample_type').
 #' @param tx2gene data.frame/character: Transcript-to-gene mapping with columns
-#'   "Transcript" and "Gen". Can be file path or data.frame.
+#'   'Transcript' and 'Gen'. Can be file path or data.frame.
 #' @param res Optional data.frame with results (gene names and p-values).
 #' @param top_n Integer: number of transcripts to select.
 #' @param pseudocount Numeric: pseudocount for log transformation (default: 0).
 #' @param output_file Character: file path for saving plot (optional).
 #' @param metric Character: aggregation metric
-#'   ("median" [default], "mean", "variance", "iqr").
+#'   ('median' [default], 'mean', 'variance', 'iqr').
 #'
 #' @return List with elements:
 #'   - counts: normalized count matrix
@@ -459,134 +423,108 @@ NULL
 
 #' @noRd
 
-.prepare_transcript_inputs <- function(counts,
-                                      readcounts = NULL,
-                                      samples = NULL,
-                                      coldata = NULL,
-                                      condition_col = "condition",
-                                      tx2gene = NULL,
-                                      res = NULL,
-                                      top_n = NULL,
-                                      pseudocount = 0,
-                                      output_file = NULL,
-                                      metric = c("median", "mean", "variance", "iqr")) {
+.prepare_transcript_inputs <- function(counts, readcounts = NULL, samples = NULL,
+    coldata = NULL, condition_col = "condition", tx2gene = NULL, res = NULL, top_n = NULL,
+    pseudocount = 0, output_file = NULL, metric = c("median", "mean", "variance",
+        "iqr")) {
 
-  require_pkgs(c("SummarizedExperiment", "S4Vectors"))
+    require_pkgs(c("SummarizedExperiment", "S4Vectors"))
 
-  # Handle SummarizedExperiment input
-  if (inherits(counts, "SummarizedExperiment")) {
-    se <- counts
-    counts_mat <- .get_readcounts_from_se(se, readcounts)
-    counts <- as.matrix(counts_mat)
-    samples <- .infer_samples_from_se(se, samples, condition_col = condition_col)
+    # Handle SummarizedExperiment input
+    if (inherits(counts, "SummarizedExperiment")) {
+        se <- counts
+        counts_mat <- .get_readcounts_from_se(se, readcounts)
+        counts <- as.matrix(counts_mat)
+        samples <- .infer_samples_from_se(se, samples, condition_col = condition_col)
 
+        if (is.null(tx2gene)) {
+            txres <- .get_tx2gene_from_se(se, counts)
+            if (!is.null(txres) && !is.null(txres$mapping)) {
+                mapping <- data.frame(Transcript = rownames(counts), Gen = as.character(txres$mapping),
+                  stringsAsFactors = FALSE)
+                tx2gene <- mapping
+            }
+        }
+    }
+
+    # Validate counts
+    if (!is.matrix(counts) && !is.data.frame(counts)) {
+        stop("`counts` must be a matrix, data.frame, or SummarizedExperiment", call. = FALSE)
+    }
+
+    counts <- as.matrix(counts)
+    if (is.null(rownames(counts))) {
+        stop("`counts` must have rownames (transcript identifiers)", call. = FALSE)
+    }
+
+    # Infer samples from coldata if needed
+    if (is.null(samples)) {
+        if (!is.null(coldata)) {
+            samples <- .infer_samples_from_coldata(coldata, counts, condition_col)
+        } else {
+            stop("Either 'samples' or 'coldata' must be provided", call. = FALSE)
+        }
+    }
+
+    # Validate and normalize tx2gene
     if (is.null(tx2gene)) {
-      txres <- .get_tx2gene_from_se(se, counts)
-      if (!is.null(txres) && !is.null(txres$mapping)) {
-        mapping <- data.frame(
-          Transcript = rownames(counts),
-          Gen = as.character(txres$mapping),
-          stringsAsFactors = FALSE
-        )
-        tx2gene <- mapping
-      }
+        stop("`tx2gene` must be provided", call. = FALSE)
     }
-  }
+    mapping <- .read_tx2gene(tx2gene)
 
-  # Validate counts
-  if (!is.matrix(counts) && !is.data.frame(counts)) {
-    stop("`counts` must be a matrix, data.frame, or SummarizedExperiment",
-      call. = FALSE
-    )
-  }
-
-  counts <- as.matrix(counts)
-  if (is.null(rownames(counts))) {
-    stop("`counts` must have rownames (transcript identifiers)", call. = FALSE)
-  }
-
-  # Infer samples from coldata if needed
-  if (is.null(samples)) {
-    if (!is.null(coldata)) {
-      samples <- .infer_samples_from_coldata(coldata, counts, condition_col)
-    } else {
-      stop("Either 'samples' or 'coldata' must be provided", call. = FALSE)
+    if (length(samples) != ncol(counts)) {
+        stop("Length of `samples` must equal columns in `counts`", call. = FALSE)
     }
-  }
 
-  # Validate and normalize tx2gene
-  if (is.null(tx2gene)) {
-    stop("`tx2gene` must be provided", call. = FALSE)
-  }
-  mapping <- .read_tx2gene(tx2gene)
+    # Create aggregation function
+    metric_choice <- match.arg(metric)
+    agg_fun <- switch(metric_choice, median = function(x) stats::median(x, na.rm = TRUE),
+        mean = function(x) base::mean(x, na.rm = TRUE), variance = function(x) stats::var(x,
+            na.rm = TRUE), iqr = function(x) stats::IQR(x, na.rm = TRUE))
 
-  if (length(samples) != ncol(counts)) {
-    stop("Length of `samples` must equal columns in `counts`", call. = FALSE)
-  }
+    agg_label_metric <- if (metric_choice == "iqr")
+        "IQR" else metric_choice
+    agg_label <- sprintf("Transcript-level expression with metric %s", agg_label_metric)
+    agg_label_unique <- agg_label
 
-  # Create aggregation function
-  metric_choice <- match.arg(metric)
-  agg_fun <- switch(metric_choice,
-    median = function(x) stats::median(x, na.rm = TRUE),
-    mean = function(x) base::mean(x, na.rm = TRUE),
-    variance = function(x) stats::var(x, na.rm = TRUE),
-    iqr = function(x) stats::IQR(x, na.rm = TRUE)
-  )
-
-  agg_label_metric <- if (metric_choice == "iqr") "IQR" else metric_choice
-  agg_label <- sprintf("Transcript-level expression with metric %s", agg_label_metric)
-  agg_label_unique <- agg_label
-
-  list(
-    counts = counts,
-    samples = samples,
-    mapping = mapping,
-    metric_choice = metric_choice,
-    agg_fun = agg_fun,
-    agg_label_unique = agg_label_unique,
-    top_n = top_n,
-    pseudocount = pseudocount,
-    output_file = output_file
-  )
+    list(counts = counts, samples = samples, mapping = mapping, metric_choice = metric_choice,
+        agg_fun = agg_fun, agg_label_unique = agg_label_unique, top_n = top_n, pseudocount = pseudocount,
+        output_file = output_file)
 }
 
 #' Read and Validate tx2gene Mapping
 #'
 #' Reads transcript-to-gene mapping from file or data.frame.
-#' Validates required columns: "Transcript" and "Gen".
+#' Validates required columns: 'Transcript' and 'Gen'.
 #'
 #' @param tx2gene Character (file path) or data.frame mapping.
 #'
-#' @return data.frame with columns "Transcript" and "Gen".
+#' @return data.frame with columns 'Transcript' and 'Gen'.
 #'
 
 #' @noRd
 
 .read_tx2gene <- function(tx2gene) {
-  if (is.null(tx2gene)) {
-    stop("`tx2gene` must be provided as file path or data.frame",
-      call. = FALSE
-    )
-  }
-
-  if (is.character(tx2gene) && length(tx2gene) == 1) {
-    if (!file.exists(tx2gene)) {
-      stop("tx2gene file not found: ", tx2gene, call. = FALSE)
+    if (is.null(tx2gene)) {
+        stop("`tx2gene` must be provided as file path or data.frame", call. = FALSE)
     }
-    mapping <- utils::read.delim(tx2gene, stringsAsFactors = FALSE, header = TRUE)
-  } else if (is.data.frame(tx2gene)) {
-    mapping <- tx2gene
-  } else {
-    stop("`tx2gene` must be file path or data.frame", call. = FALSE)
-  }
 
-  if (!all(c("Transcript", "Gen") %in% colnames(mapping))) {
-    stop("tx2gene must have columns 'Transcript' and 'Gen'",
-      call. = FALSE
-    )
-  }
+    if (is.character(tx2gene) && length(tx2gene) == 1) {
+        if (!file.exists(tx2gene)) {
+            stop("tx2gene file not found: ", tx2gene, call. = FALSE)
+        }
+        mapping <- utils::read.delim(tx2gene, stringsAsFactors = FALSE, header = TRUE)
+    } else if (is.data.frame(tx2gene)) {
+        mapping <- tx2gene
+    } else {
+        stop("`tx2gene` must be file path or data.frame", call. = FALSE)
+    }
 
-  return(mapping)
+    if (!all(c("Transcript", "Gen") %in% colnames(mapping))) {
+        stop("tx2gene must have columns 'Transcript' and 'Gen'", call. = FALSE)
+    }
+
+    return(mapping)
 }
 
 #' Infer Samples from Column Metadata
@@ -604,47 +542,44 @@ NULL
 #' @noRd
 
 .infer_samples_from_coldata <- function(coldata, counts, condition_col) {
-  if (is.character(coldata) && length(coldata) == 1) {
-    if (!file.exists(coldata)) {
-      stop("coldata file not found: ", coldata, call. = FALSE)
+    if (is.character(coldata) && length(coldata) == 1) {
+        if (!file.exists(coldata)) {
+            stop("coldata file not found: ", coldata, call. = FALSE)
+        }
+        cdf <- utils::read.delim(coldata, header = TRUE, stringsAsFactors = FALSE)
+    } else if (is.data.frame(coldata)) {
+        cdf <- coldata
+    } else {
+        stop("`coldata` must be file path or data.frame", call. = FALSE)
     }
-    cdf <- utils::read.delim(coldata, header = TRUE, stringsAsFactors = FALSE)
-  } else if (is.data.frame(coldata)) {
-    cdf <- coldata
-  } else {
-    stop("`coldata` must be file path or data.frame", call. = FALSE)
-  }
 
-  # Try row-indexed matching first
-  if (!is.null(rownames(cdf)) && all(colnames(counts) %in% rownames(cdf))) {
-    return(as.character(cdf[colnames(counts), condition_col]))
-  }
-
-  # Try sample ID column matching
-  sample_id_cols <- c("sample", "Sample", "sample_id", "id")
-  sid <- intersect(sample_id_cols, colnames(cdf))
-
-  if (length(sid) > 0) {
-    sid <- sid[1]
-    if (!all(colnames(counts) %in% as.character(cdf[[sid]]))) {
-      stop("coldata sample ID column doesn't match counts columns",
-        call. = FALSE
-      )
+    # Try row-indexed matching first
+    if (!is.null(rownames(cdf)) && all(colnames(counts) %in% rownames(cdf))) {
+        return(as.character(cdf[colnames(counts), condition_col]))
     }
-    row_ix <- match(colnames(counts), as.character(cdf[[sid]]))
-    return(as.character(cdf[[condition_col]][row_ix]))
-  }
 
-  stop("Could not match coldata to counts. Provide rownames or sample ID column.",
-    call. = FALSE
-  )
+    # Try sample ID column matching
+    sample_id_cols <- c("sample", "Sample", "sample_id", "id")
+    sid <- intersect(sample_id_cols, colnames(cdf))
+
+    if (length(sid) > 0) {
+        sid <- sid[1]
+        if (!all(colnames(counts) %in% as.character(cdf[[sid]]))) {
+            stop("coldata sample ID column doesn't match counts columns", call. = FALSE)
+        }
+        row_ix <- match(colnames(counts), as.character(cdf[[sid]]))
+        return(as.character(cdf[[condition_col]][row_ix]))
+    }
+
+    stop("Could not match coldata to counts. Provide rownames or sample ID column.",
+        call. = FALSE)
 }
 
 #' Create Aggregation Function
 #'
 #' Builds an aggregation function based on chosen metric.
 #'
-#' @param metric Character: "median" (default), "mean", "variance", or "iqr".
+#' @param metric Character: 'median' (default), 'mean', 'variance', or 'iqr'.
 #'
 #' @return List with:
 #'   - metric_choice: the selected metric
@@ -654,25 +589,20 @@ NULL
 
 #' @noRd
 
-.create_aggregation_function <- function(metric = c("median", "mean", "variance", "iqr")) {
-  metric_choice <- match.arg(metric)
+.create_aggregation_function <- function(metric = c("median", "mean", "variance",
+    "iqr")) {
+    metric_choice <- match.arg(metric)
 
-  agg_fun <- switch(metric_choice,
-    median = function(x) stats::median(x, na.rm = TRUE),
-    mean = function(x) base::mean(x, na.rm = TRUE),
-    variance = function(x) stats::var(x, na.rm = TRUE),
-    iqr = function(x) stats::IQR(x, na.rm = TRUE)
-  )
+    agg_fun <- switch(metric_choice, median = function(x) stats::median(x, na.rm = TRUE),
+        mean = function(x) base::mean(x, na.rm = TRUE), variance = function(x) stats::var(x,
+            na.rm = TRUE), iqr = function(x) stats::IQR(x, na.rm = TRUE))
 
-  agg_label_metric <- if (metric_choice == "iqr") "IQR" else metric_choice
-  agg_label <- sprintf("Transcript-level expression with metric %s", agg_label_metric)
-  agg_label_unique <- agg_label
+    agg_label_metric <- if (metric_choice == "iqr")
+        "IQR" else metric_choice
+    agg_label <- sprintf("Transcript-level expression with metric %s", agg_label_metric)
+    agg_label_unique <- agg_label
 
-  list(
-    metric_choice = metric_choice,
-    agg_fun = agg_fun,
-    agg_label_unique = agg_label_unique
-  )
+    list(metric_choice = metric_choice, agg_fun = agg_fun, agg_label_unique = agg_label_unique)
 }
 
 #' Build Long-Format Transcript Data
@@ -694,27 +624,27 @@ NULL
 #' @noRd
 
 .build_transcript_long <- function(gene_single, mapping, counts, samples, top_n = NULL) {
-  txs <- mapping$Transcript[mapping$Gen == gene_single]
-  txs <- intersect(txs, rownames(counts))
+    txs <- mapping$Transcript[mapping$Gen == gene_single]
+    txs <- intersect(txs, rownames(counts))
 
-  if (length(txs) == 0) {
-    stop("No transcripts found for gene: ", gene_single, call. = FALSE)
-  }
+    if (length(txs) == 0) {
+        stop("No transcripts found for gene: ", gene_single, call. = FALSE)
+    }
 
-  if (!is.null(top_n)) {
-    txs <- head(txs, top_n)
-  }
+    if (!is.null(top_n)) {
+        txs <- head(txs, top_n)
+    }
 
-  # Create long-format data
-  mat <- counts[txs, , drop = FALSE]
-  df_all <- as.data.frame(mat)
-  df_all$tx <- rownames(mat)
+    # Create long-format data
+    mat <- counts[txs, , drop = FALSE]
+    df_all <- as.data.frame(mat)
+    df_all$tx <- rownames(mat)
 
-  require_pkgs("tidyr")
-  df_long <- tidyr::pivot_longer(df_all, -tx, names_to = "sample", values_to = "expr")
-  df_long$group <- rep(samples, times = length(txs))
+    require_pkgs("tidyr")
+    df_long <- tidyr::pivot_longer(df_all, -tx, names_to = "sample", values_to = "expr")
+    df_long$group <- rep(samples, times = length(txs))
 
-  list(df_long = df_long, txs = txs)
+    list(df_long = df_long, txs = txs)
 }
 
 #' Aggregate Long-Format Transcript Data
@@ -731,10 +661,10 @@ NULL
 #' @noRd
 
 .aggregate_transcript_data <- function(df_long, agg_fun, pseudocount = 0) {
-  df_summary <- stats::aggregate(expr ~ tx + group, data = df_long, FUN = agg_fun)
-  df_summary$log2expr <- log2(df_summary$expr + pseudocount)
-  df_summary$tx <- factor(df_summary$tx, levels = unique(df_summary$tx))
-  return(df_summary)
+    df_summary <- stats::aggregate(expr ~ tx + group, data = df_long, FUN = agg_fun)
+    df_summary$log2expr <- log2(df_summary$expr + pseudocount)
+    df_summary$tx <- factor(df_summary$tx, levels = unique(df_summary$tx))
+    return(df_summary)
 }
 
 #' Select Top Genes from Results  
@@ -750,28 +680,28 @@ NULL
 #' @noRd
 
 .select_genes_from_results <- function(res, top_n) {
-  if (is.null(res)) {
-    stop("Either 'gene' or 'res' must be provided", call. = FALSE)
-  }
+    if (is.null(res)) {
+        stop("Either 'gene' or 'res' must be provided", call. = FALSE)
+    }
 
-  if (!("genes" %in% colnames(res))) {
-    stop("res must contain a 'genes' column", call. = FALSE)
-  }
+    if (!("genes" %in% colnames(res))) {
+        stop("res must contain a 'genes' column", call. = FALSE)
+    }
 
-  # Find p-value column (ordered by preference)
-  p_cols <- c("padj", "adjusted_p_values", "pvalue", "raw_p_values")
-  p_col <- intersect(p_cols, colnames(res))[1]
+    # Find p-value column (ordered by preference)
+    p_cols <- c("padj", "adjusted_p_values", "pvalue", "raw_p_values")
+    p_col <- intersect(p_cols, colnames(res))[1]
 
-  if (is.na(p_col)) {
-    # No p-value column; just return gene order
-    ord <- seq_len(nrow(res))
-  } else {
-    ord <- order(res[[p_col]], na.last = NA)
-  }
+    if (is.na(p_col)) {
+        # No p-value column; just return gene order
+        ord <- seq_len(nrow(res))
+    } else {
+        ord <- order(res[[p_col]], na.last = NA)
+    }
 
-  genes_sel <- as.character(res$genes[ord])
-  genes_sel <- unique(genes_sel)
-  return(head(genes_sel, top_n))
+    genes_sel <- as.character(res$genes[ord])
+    genes_sel <- unique(genes_sel)
+    return(head(genes_sel, top_n))
 }
 
 # ============================================================================
@@ -785,203 +715,200 @@ NULL
 
 #' @noRd
 .prepare_combined_se <- function(analysis) {
-  require_pkgs(c("SummarizedExperiment", "S4Vectors"))
-  
-  div_list <- analysis@diversity_results
-  
-  # Extract first SE to get dimensions
-  first_se <- NULL
-  combined_assays_dict <- list()
-  bootstrap_ci_available <- FALSE
-  
-  for (q_name in names(div_list)) {
-    obj <- div_list[[q_name]]
-    if (methods::is(obj, "SummarizedExperiment")) {
-      mat <- SummarizedExperiment::assay(obj, 1)
-      if (is.null(first_se)) {
-        first_se <- obj
-      }
-      # Check if bootstrap CIs are available in this SE
-      if ("ci_lower" %in% SummarizedExperiment::assayNames(obj) && 
-          "ci_upper" %in% SummarizedExperiment::assayNames(obj)) {
-        bootstrap_ci_available <- TRUE
-      }
-    } else {
-      mat <- as.matrix(obj)
-    }
-    
-    q_val <- as.numeric(sub("^q_", "", q_name))
-    combined_assays_dict[[q_name]] <- list(
-      matrix = mat, q_val = q_val, se_obj = obj
-    )
-  }
-  
-  if (is.null(first_se)) {
-    stop("No valid SummarizedExperiment found in analysis@diversity_results")
-  }
-  
-  # Get dimensions
-  target_genes <- rownames(first_se)
-  target_n_cols <- ncol(first_se)
-  target_n_qs <- length(combined_assays_dict)
-  total_cols <- target_n_cols * target_n_qs
-  
-  # Create combined assay matrix
-  combined_assay <- matrix(0, nrow = length(target_genes), ncol = total_cols)
-  rownames(combined_assay) <- target_genes
-  
-  # Initialize CI assay matrices if available
-  combined_ci_lower <- if (bootstrap_ci_available) {
-    matrix(NA, nrow = length(target_genes), ncol = total_cols)
-  } else NULL
-  combined_ci_upper <- if (bootstrap_ci_available) {
-    matrix(NA, nrow = length(target_genes), ncol = total_cols)
-  } else NULL
-  
-  combined_coldata_list <- list()
-  col_idx <- 1
-  
-  for (q_name in names(combined_assays_dict)) {
-    mat <- combined_assays_dict[[q_name]]$matrix
-    q_val <- combined_assays_dict[[q_name]]$q_val
-    se_obj <- combined_assays_dict[[q_name]]$se_obj
-    
-    # Handle dimension mismatches
-    if (ncol(mat) != target_n_cols) {
-      if (ncol(mat) > target_n_cols) {
-        mat <- mat[, seq_len(target_n_cols), drop = FALSE]
-      } else {
-        mat <- cbind(mat, matrix(0, nrow = nrow(mat), ncol = target_n_cols - ncol(mat)))
-      }
-    }
-    
-    # Reorder rows to match first_se
-    mat <- mat[target_genes, , drop = FALSE]
-    
-    # Extract CI matrices if available
-    if (bootstrap_ci_available && is(se_obj, "SummarizedExperiment")) {
-      if ("ci_lower" %in% SummarizedExperiment::assayNames(se_obj)) {
-        ci_lower_mat <- SummarizedExperiment::assay(se_obj, "ci_lower")
-        if (ncol(ci_lower_mat) != target_n_cols) {
-          if (ncol(ci_lower_mat) > target_n_cols) {
-            ci_lower_mat <- ci_lower_mat[, seq_len(target_n_cols), drop = FALSE]
-          } else {
-            ci_lower_mat <- cbind(ci_lower_mat, matrix(NA, nrow = nrow(ci_lower_mat), ncol = target_n_cols - ncol(ci_lower_mat)))
-          }
+    require_pkgs(c("SummarizedExperiment", "S4Vectors"))
+
+    div_list <- analysis@diversity_results
+
+    # Extract first SE to get dimensions
+    first_se <- NULL
+    combined_assays_dict <- list()
+    bootstrap_ci_available <- FALSE
+
+    for (q_name in names(div_list)) {
+        obj <- div_list[[q_name]]
+        if (methods::is(obj, "SummarizedExperiment")) {
+            mat <- SummarizedExperiment::assay(obj, 1)
+            if (is.null(first_se)) {
+                first_se <- obj
+            }
+            # Check if bootstrap CIs are available in this SE
+            if ("ci_lower" %in% SummarizedExperiment::assayNames(obj) && "ci_upper" %in%
+                SummarizedExperiment::assayNames(obj)) {
+                bootstrap_ci_available <- TRUE
+            }
+        } else {
+            mat <- as.matrix(obj)
         }
-        ci_lower_mat <- ci_lower_mat[target_genes, , drop = FALSE]
-      } else {
-        ci_lower_mat <- matrix(NA, nrow = nrow(mat), ncol = ncol(mat))
-      }
-      
-      if ("ci_upper" %in% SummarizedExperiment::assayNames(se_obj)) {
-        ci_upper_mat <- SummarizedExperiment::assay(se_obj, "ci_upper")
-        if (ncol(ci_upper_mat) != target_n_cols) {
-          if (ncol(ci_upper_mat) > target_n_cols) {
-            ci_upper_mat <- ci_upper_mat[, seq_len(target_n_cols), drop = FALSE]
-          } else {
-            ci_upper_mat <- cbind(ci_upper_mat, matrix(NA, nrow = nrow(ci_upper_mat), ncol = target_n_cols - ncol(ci_upper_mat)))
-          }
+
+        q_val <- as.numeric(sub("^q_", "", q_name))
+        combined_assays_dict[[q_name]] <- list(matrix = mat, q_val = q_val, se_obj = obj)
+    }
+
+    if (is.null(first_se)) {
+        stop("No valid SummarizedExperiment found in analysis@diversity_results")
+    }
+
+    # Get dimensions
+    target_genes <- rownames(first_se)
+    target_n_cols <- ncol(first_se)
+    target_n_qs <- length(combined_assays_dict)
+    total_cols <- target_n_cols * target_n_qs
+
+    # Create combined assay matrix
+    combined_assay <- matrix(0, nrow = length(target_genes), ncol = total_cols)
+    rownames(combined_assay) <- target_genes
+
+    # Initialize CI assay matrices if available
+    combined_ci_lower <- if (bootstrap_ci_available) {
+        matrix(NA, nrow = length(target_genes), ncol = total_cols)
+    } else NULL
+    combined_ci_upper <- if (bootstrap_ci_available) {
+        matrix(NA, nrow = length(target_genes), ncol = total_cols)
+    } else NULL
+
+    combined_coldata_list <- list()
+    col_idx <- 1
+
+    for (q_name in names(combined_assays_dict)) {
+        mat <- combined_assays_dict[[q_name]]$matrix
+        q_val <- combined_assays_dict[[q_name]]$q_val
+        se_obj <- combined_assays_dict[[q_name]]$se_obj
+
+        # Handle dimension mismatches
+        if (ncol(mat) != target_n_cols) {
+            if (ncol(mat) > target_n_cols) {
+                mat <- mat[, seq_len(target_n_cols), drop = FALSE]
+            } else {
+                mat <- cbind(mat, matrix(0, nrow = nrow(mat), ncol = target_n_cols -
+                  ncol(mat)))
+            }
         }
-        ci_upper_mat <- ci_upper_mat[target_genes, , drop = FALSE]
-      } else {
-        ci_upper_mat <- matrix(NA, nrow = nrow(mat), ncol = ncol(mat))
-      }
+
+        # Reorder rows to match first_se
+        mat <- mat[target_genes, , drop = FALSE]
+
+        # Extract CI matrices if available
+        if (bootstrap_ci_available && is(se_obj, "SummarizedExperiment")) {
+            if ("ci_lower" %in% SummarizedExperiment::assayNames(se_obj)) {
+                ci_lower_mat <- SummarizedExperiment::assay(se_obj, "ci_lower")
+                if (ncol(ci_lower_mat) != target_n_cols) {
+                  if (ncol(ci_lower_mat) > target_n_cols) {
+                    ci_lower_mat <- ci_lower_mat[, seq_len(target_n_cols), drop = FALSE]
+                  } else {
+                    ci_lower_mat <- cbind(ci_lower_mat, matrix(NA, nrow = nrow(ci_lower_mat),
+                      ncol = target_n_cols - ncol(ci_lower_mat)))
+                  }
+                }
+                ci_lower_mat <- ci_lower_mat[target_genes, , drop = FALSE]
+            } else {
+                ci_lower_mat <- matrix(NA, nrow = nrow(mat), ncol = ncol(mat))
+            }
+
+            if ("ci_upper" %in% SummarizedExperiment::assayNames(se_obj)) {
+                ci_upper_mat <- SummarizedExperiment::assay(se_obj, "ci_upper")
+                if (ncol(ci_upper_mat) != target_n_cols) {
+                  if (ncol(ci_upper_mat) > target_n_cols) {
+                    ci_upper_mat <- ci_upper_mat[, seq_len(target_n_cols), drop = FALSE]
+                  } else {
+                    ci_upper_mat <- cbind(ci_upper_mat, matrix(NA, nrow = nrow(ci_upper_mat),
+                      ncol = target_n_cols - ncol(ci_upper_mat)))
+                  }
+                }
+                ci_upper_mat <- ci_upper_mat[target_genes, , drop = FALSE]
+            } else {
+                ci_upper_mat <- matrix(NA, nrow = nrow(mat), ncol = ncol(mat))
+            }
+        }
+
+        # Add q-value suffix to column names
+        orig_colnames <- colnames(mat)
+        if (is.null(orig_colnames)) {
+            orig_colnames <- paste0("sample_", seq_len(ncol(mat)))
+        }
+
+        clean_colnames <- sub("_q=.*$", "", orig_colnames)
+        if (is.na(clean_colnames[1]) || identical(clean_colnames, orig_colnames)) {
+            clean_colnames <- orig_colnames
+        }
+
+        unique_colnames <- paste0(clean_colnames, "_q=", formatC(q_val, format = "f",
+            digits = 3))
+
+        # Fill in combined assay
+        if (col_idx + ncol(mat) - 1 > total_cols) {
+            stop("Dimension mismatch: ", col_idx, " to ", col_idx + ncol(mat) - 1,
+                " exceeds total_cols=", total_cols)
+        }
+
+        for (i in seq_len(ncol(mat))) {
+            combined_assay[, col_idx] <- mat[, i]
+            if (bootstrap_ci_available && !is.null(combined_ci_lower) && exists("ci_lower_mat")) {
+                combined_ci_lower[, col_idx] <- ci_lower_mat[, i]
+                combined_ci_upper[, col_idx] <- ci_upper_mat[, i]
+            }
+            col_idx <- col_idx + 1
+        }
+
+        # Build colData for this q-value
+        if (is(div_list[[q_name]], "SummarizedExperiment")) {
+            cd <- as.data.frame(SummarizedExperiment::colData(div_list[[q_name]]))
+        } else {
+            cd <- data.frame(row.names = unique_colnames)
+        }
+        cd$q <- q_val
+        rownames(cd) <- unique_colnames
+        combined_coldata_list[[q_name]] <- cd
     }
-    
-    # Add q-value suffix to column names
-    orig_colnames <- colnames(mat)
-    if (is.null(orig_colnames)) {
-      orig_colnames <- paste0("sample_", seq_len(ncol(mat)))
+
+    # Combine colData
+    combined_coldata_df <- do.call(rbind, combined_coldata_list)
+    combined_colnames <- rownames(combined_coldata_df)
+
+    # Set column names for all assays (including CI matrices if available)
+    colnames(combined_assay) <- combined_colnames
+    if (bootstrap_ci_available && !is.null(combined_ci_lower) && !is.null(combined_ci_upper)) {
+        colnames(combined_ci_lower) <- combined_colnames
+        colnames(combined_ci_upper) <- combined_colnames
     }
-    
-    clean_colnames <- sub("_q=.*$", "", orig_colnames)
-    if (is.na(clean_colnames[1]) || identical(clean_colnames, orig_colnames)) {
-      clean_colnames <- orig_colnames
+
+    # Get/create rowData
+    rd_combined <- tryCatch({
+        rd_temp <- SummarizedExperiment::rowData(first_se)
+        if (!is.null(rd_temp) && nrow(rd_temp) > 0) {
+            rd_temp
+        } else {
+            NULL
+        }
+    }, error = function(e) NULL)
+
+    if (is.null(rd_combined) || nrow(rd_combined) == 0) {
+        rd_combined <- data.frame(gene_id = rownames(combined_assay), row.names = rownames(combined_assay),
+            stringsAsFactors = FALSE)
     }
-    
-    unique_colnames <- paste0(clean_colnames, "_q=", formatC(q_val, format = "f", digits = 3))
-    
-    # Fill in combined assay
-    if (col_idx + ncol(mat) - 1 > total_cols) {
-      stop("Dimension mismatch: ", col_idx, " to ", col_idx + ncol(mat) - 1,
-           " exceeds total_cols=", total_cols)
+    # Return combined SE
+    assays_list <- list(diversity = combined_assay)
+    if (bootstrap_ci_available && !is.null(combined_ci_lower) && !is.null(combined_ci_upper)) {
+        # Verify CI assays are fully populated (not all NAs)
+        ci_lower_valid <- sum(!is.na(combined_ci_lower)) > 0
+        ci_upper_valid <- sum(!is.na(combined_ci_upper)) > 0
+
+        if (ci_lower_valid && ci_upper_valid) {
+            assays_list$ci_lower <- combined_ci_lower
+            assays_list$ci_upper <- combined_ci_upper
+        }
     }
-    
-    for (i in seq_len(ncol(mat))) {
-      combined_assay[, col_idx] <- mat[, i]
-      if (bootstrap_ci_available && !is.null(combined_ci_lower) && exists("ci_lower_mat")) {
-        combined_ci_lower[, col_idx] <- ci_lower_mat[, i]
-        combined_ci_upper[, col_idx] <- ci_upper_mat[, i]
-      }
-      col_idx <- col_idx + 1
+
+    combined_se <- SummarizedExperiment::SummarizedExperiment(assays = assays_list,
+        colData = combined_coldata_df, rowData = rd_combined)
+
+    # Store bootstrap metadata for debugging
+    if (bootstrap_ci_available && !is.null(combined_ci_lower)) {
+        S4Vectors::metadata(combined_se)$bootstrap_ci_count <- sum(!is.na(combined_ci_lower))
+        S4Vectors::metadata(combined_se)$has_bootstrap_ci <- (sum(!is.na(combined_ci_lower)) >
+            0)
     }
-    
-    # Build colData for this q-value
-    if (is(div_list[[q_name]], "SummarizedExperiment")) {
-      cd <- as.data.frame(SummarizedExperiment::colData(div_list[[q_name]]))
-    } else {
-      cd <- data.frame(row.names = unique_colnames)
-    }
-    cd$q <- q_val
-    rownames(cd) <- unique_colnames
-    combined_coldata_list[[q_name]] <- cd
-  }
-  
-  # Combine colData
-  combined_coldata_df <- do.call(rbind, combined_coldata_list)
-  combined_colnames <- rownames(combined_coldata_df)
-  
-  # Set column names for all assays (including CI matrices if available)
-  colnames(combined_assay) <- combined_colnames
-  if (bootstrap_ci_available && !is.null(combined_ci_lower) && !is.null(combined_ci_upper)) {
-    colnames(combined_ci_lower) <- combined_colnames
-    colnames(combined_ci_upper) <- combined_colnames
-  }
-  
-  # Get/create rowData
-  rd_combined <- tryCatch({
-    rd_temp <- SummarizedExperiment::rowData(first_se)
-    if (!is.null(rd_temp) && nrow(rd_temp) > 0) {
-      rd_temp
-    } else {
-      NULL
-    }
-  }, error = function(e) NULL)
-  
-  if (is.null(rd_combined) || nrow(rd_combined) == 0) {
-    rd_combined <- data.frame(
-      gene_id = rownames(combined_assay),
-      row.names = rownames(combined_assay),
-      stringsAsFactors = FALSE
-    )
-  }
-  # Return combined SE
-  assays_list <- list(diversity = combined_assay)
-  if (bootstrap_ci_available && !is.null(combined_ci_lower) && !is.null(combined_ci_upper)) {
-    # Verify CI assays are fully populated (not all NAs)
-    ci_lower_valid <- sum(!is.na(combined_ci_lower)) > 0
-    ci_upper_valid <- sum(!is.na(combined_ci_upper)) > 0
-    
-    if (ci_lower_valid && ci_upper_valid) {
-      assays_list$ci_lower <- combined_ci_lower
-      assays_list$ci_upper <- combined_ci_upper
-    }
-  }
-  
-  combined_se <- SummarizedExperiment::SummarizedExperiment(
-    assays = assays_list,
-    colData = combined_coldata_df,
-    rowData = rd_combined
-  )
-  
-  # Store bootstrap metadata for debugging
-  if (bootstrap_ci_available && !is.null(combined_ci_lower)) {
-    S4Vectors::metadata(combined_se)$bootstrap_ci_count <- sum(!is.na(combined_ci_lower))
-    S4Vectors::metadata(combined_se)$has_bootstrap_ci <- (sum(!is.na(combined_ci_lower)) > 0)
-  }
-  
-  combined_se
+
+    combined_se
 }
 
 #' Compute gene-level statistics (median +/- SD) by group and q-value
@@ -991,29 +918,26 @@ NULL
 
 #' @noRd
 .compute_gene_group_stats <- function(long_data, metric = "iqr") {
-  require_pkgs("dplyr")
-  
-  metric <- match.arg(tolower(metric), c("iqr", "sd"))
-  long_data$qnum <- as.numeric(as.character(long_data$q))
-  
-  # Calculate spread based on metric choice
-  if (metric == "iqr") {
-    spread_calc <- quote(stats::IQR(tsallis, na.rm = TRUE) / 2)
-  } else {
-    spread_calc <- quote(sqrt(stats::var(tsallis, na.rm = TRUE)))
-  }
-  
-  dplyr::summarise(
-    dplyr::group_by(long_data, group, qnum),
-    central = median(tsallis, na.rm = TRUE),
-    spread = !!spread_calc,
-    .groups = "drop"
-  )
+    require_pkgs("dplyr")
+
+    metric <- match.arg(tolower(metric), c("iqr", "sd"))
+    long_data$qnum <- as.numeric(as.character(long_data$q))
+
+    # Calculate spread based on metric choice
+    if (metric == "iqr") {
+        spread_calc <- quote(stats::IQR(tsallis, na.rm = TRUE)/2)
+    } else {
+        spread_calc <- quote(sqrt(stats::var(tsallis, na.rm = TRUE)))
+    }
+
+    dplyr::summarise(dplyr::group_by(long_data, group, qnum), central = median(tsallis,
+        na.rm = TRUE), spread = !!spread_calc, .groups = "drop")
 }
 
 #' Aggregate bootstrap CI bounds by group and q-value
 #'
-# NOTE (March 2026): .bootstrap_aggregate_ci() moved to bootstrap.R for consolidation
+# NOTE (March 2026): .bootstrap_aggregate_ci() moved to bootstrap.R for
+# consolidation
 
 # ============================================================================
 # GAM INTERACTION HELPERS
@@ -1027,19 +951,19 @@ NULL
 
 #' @noRd
 .prepare_sample_group_mapping <- function(cdata, condition_col) {
-  coldata_rownames <- rownames(cdata)
-  coldata_sample_names <- sub("_q=.*", "", coldata_rownames)
-  
-  unique_samples <- unique(coldata_sample_names)
-  sample_to_group <- character(length(unique_samples))
-  names(sample_to_group) <- unique_samples
-  
-  for (samp in unique_samples) {
-    idx <- which(coldata_sample_names == samp)[1]
-    sample_to_group[samp] <- as.character(cdata[[condition_col]][idx])
-  }
-  
-  sample_to_group
+    coldata_rownames <- rownames(cdata)
+    coldata_sample_names <- sub("_q=.*", "", coldata_rownames)
+
+    unique_samples <- unique(coldata_sample_names)
+    sample_to_group <- character(length(unique_samples))
+    names(sample_to_group) <- unique_samples
+
+    for (samp in unique_samples) {
+        idx <- which(coldata_sample_names == samp)[1]
+        sample_to_group[samp] <- as.character(cdata[[condition_col]][idx])
+    }
+
+    sample_to_group
 }
 
 #' Prepare long-format plot data for a single gene
@@ -1051,41 +975,36 @@ NULL
 
 #' @noRd
 .plot_gam_prepare_gene_data <- function(gene, mat, sample_to_group) {
-  if (!(gene %in% rownames(mat))) {
-    return(NULL)
-  }
-  
-  gene_vals <- mat[gene, ]
-  col_names_full <- colnames(mat)
-  
-  # Parse column names: "Sample_q=value"
-  col_sample_names <- sub("_q=.*", "", col_names_full)
-  col_q_values <- as.numeric(sub(".*_q=", "", col_names_full))
-  
-  # Look up group for each column
-  col_groups <- unname(sample_to_group[col_sample_names])
-  
-  if (any(is.na(col_groups))) {
-    return(NULL)
-  }
-  
-  # Build long-format data frame
-  plot_df <- data.frame(
-    sample = col_sample_names,
-    group = col_groups,
-    q = col_q_values,
-    entropy = as.numeric(gene_vals),
-    stringsAsFactors = FALSE
-  )
-  
-  # Remove NA entries
-  plot_df <- plot_df[!is.na(plot_df$entropy), , drop = FALSE]
-  
-  if (nrow(plot_df) == 0) {
-    return(NULL)
-  }
-  
-  plot_df
+    if (!(gene %in% rownames(mat))) {
+        return(NULL)
+    }
+
+    gene_vals <- mat[gene, ]
+    col_names_full <- colnames(mat)
+
+    # Parse column names: 'Sample_q=value'
+    col_sample_names <- sub("_q=.*", "", col_names_full)
+    col_q_values <- as.numeric(sub(".*_q=", "", col_names_full))
+
+    # Look up group for each column
+    col_groups <- unname(sample_to_group[col_sample_names])
+
+    if (any(is.na(col_groups))) {
+        return(NULL)
+    }
+
+    # Build long-format data frame
+    plot_df <- data.frame(sample = col_sample_names, group = col_groups, q = col_q_values,
+        entropy = as.numeric(gene_vals), stringsAsFactors = FALSE)
+
+    # Remove NA entries
+    plot_df <- plot_df[!is.na(plot_df$entropy), , drop = FALSE]
+
+    if (nrow(plot_df) == 0) {
+        return(NULL)
+    }
+
+    plot_df
 }
 
 #' Fit GAM models per group and generate predictions
@@ -1095,66 +1014,58 @@ NULL
 
 #' @noRd
 .plot_gam_fit_group <- function(plot_df) {
-  require_pkgs(c("mgcv", "dplyr"))
-  
-  unique_groups <- unique(plot_df$group)
-  
-  if (length(unique_groups) < 2) {
-    return(NULL)
-  }
-  
-  # Generate prediction grid
-  q_range <- range(plot_df$q, na.rm = TRUE)
-  if (!is.finite(q_range[1]) || !is.finite(q_range[2])) {
-    return(NULL)
-  }
-  
-  pred_q <- seq(q_range[1], q_range[2], length.out = 100)
-  
-  # Fit GAM and predict for each group
-  pred_list <- list()
-  for (gr in unique_groups) {
-    subset_data <- subset(plot_df, group == gr)
-    
-    if (nrow(subset_data) < 3) {
-      next
+    require_pkgs(c("mgcv", "dplyr"))
+
+    unique_groups <- unique(plot_df$group)
+
+    if (length(unique_groups) < 2) {
+        return(NULL)
     }
-    
-    tryCatch(
-      {
-        k <- min(10, max(2, round(nrow(subset_data) / 2)))
-        gam_fit <- mgcv::gam(entropy ~ s(q, k = k), data = subset_data)
-        
-        pred_data <- data.frame(q = pred_q)
-        pred_vals <- stats::predict(gam_fit, newdata = pred_data, se.fit = TRUE)
-        
-        pred_list[[as.character(gr)]] <- data.frame(
-          group = gr,
-          q = pred_q,
-          entropy_fit = pred_vals$fit,
-          se = pred_vals$se.fit,
-          stringsAsFactors = FALSE
-        )
-      },
-      error = function(e) {
-        # Silently skip failed fits
-        NULL
-      }
-    )
-  }
-  
-  if (length(pred_list) == 0) {
-    return(NULL)
-  }
-  
-  pred_df <- do.call(rbind, pred_list)
-  
-  # Ensure group is factor with consistent levels
-  group_levels <- sort(unique(c(as.character(plot_df$group), as.character(pred_df$group))))
-  plot_df$group <- factor(plot_df$group, levels = group_levels)
-  pred_df$group <- factor(pred_df$group, levels = group_levels)
-  
-  list(plot_data = plot_df, pred_data = pred_df, group_levels = group_levels)
+
+    # Generate prediction grid
+    q_range <- range(plot_df$q, na.rm = TRUE)
+    if (!is.finite(q_range[1]) || !is.finite(q_range[2])) {
+        return(NULL)
+    }
+
+    pred_q <- seq(q_range[1], q_range[2], length.out = 100)
+
+    # Fit GAM and predict for each group
+    pred_list <- list()
+    for (gr in unique_groups) {
+        subset_data <- subset(plot_df, group == gr)
+
+        if (nrow(subset_data) < 3) {
+            next
+        }
+
+        tryCatch({
+            k <- min(10, max(2, round(nrow(subset_data)/2)))
+            gam_fit <- mgcv::gam(entropy ~ s(q, k = k), data = subset_data)
+
+            pred_data <- data.frame(q = pred_q)
+            pred_vals <- stats::predict(gam_fit, newdata = pred_data, se.fit = TRUE)
+
+            pred_list[[as.character(gr)]] <- data.frame(group = gr, q = pred_q, entropy_fit = pred_vals$fit,
+                se = pred_vals$se.fit, stringsAsFactors = FALSE)
+        }, error = function(e) {
+            # Silently skip failed fits
+            NULL
+        })
+    }
+
+    if (length(pred_list) == 0) {
+        return(NULL)
+    }
+
+    pred_df <- do.call(rbind, pred_list)
+
+    # Ensure group is factor with consistent levels
+    group_levels <- sort(unique(c(as.character(plot_df$group), as.character(pred_df$group))))
+    plot_df$group <- factor(plot_df$group, levels = group_levels)
+    pred_df$group <- factor(pred_df$group, levels = group_levels)
+
+    list(plot_data = plot_df, pred_data = pred_df, group_levels = group_levels)
 }
 
 #' Select genes to plot based on significance
@@ -1167,30 +1078,31 @@ NULL
 
 #' @noRd
 .plot_select_genes <- function(lm_res, genes = NULL, n_top = 6, sig_alpha = 0.05) {
-  if (!is.null(genes)) {
-    if (!is.character(genes)) {
-      stop("genes must be a character vector of gene names", call. = FALSE)
+    if (!is.null(genes)) {
+        if (!is.character(genes)) {
+            stop("genes must be a character vector of gene names", call. = FALSE)
+        }
+        return(genes)
     }
-    return(genes)
-  }
-  
-  # Select top genes by p-value
-  if ("adj_p_interaction" %in% colnames(lm_res)) {
-    sig_mask <- lm_res$adj_p_interaction <= sig_alpha
-  } else if ("p_interaction" %in% colnames(lm_res)) {
-    sig_mask <- lm_res$p_interaction <= sig_alpha
-  } else {
-    stop("lm_res must contain 'adj_p_interaction' or 'p_interaction' column", call. = FALSE)
-  }
-  
-  sig_genes <- lm_res[sig_mask, , drop = FALSE]
-  
-  if (nrow(sig_genes) == 0) {
-    return(NULL)
-  }
-  
-  # Select top n
-  sig_genes$gene[seq_len(min(n_top, nrow(sig_genes)))]
+
+    # Select top genes by p-value
+    if ("adj_p_interaction" %in% colnames(lm_res)) {
+        sig_mask <- lm_res$adj_p_interaction <= sig_alpha
+    } else if ("p_interaction" %in% colnames(lm_res)) {
+        sig_mask <- lm_res$p_interaction <= sig_alpha
+    } else {
+        stop("lm_res must contain 'adj_p_interaction' or 'p_interaction' column",
+            call. = FALSE)
+    }
+
+    sig_genes <- lm_res[sig_mask, , drop = FALSE]
+
+    if (nrow(sig_genes) == 0) {
+        return(NULL)
+    }
+
+    # Select top n
+    sig_genes$gene[seq_len(min(n_top, nrow(sig_genes)))]
 }
 
 #' Prepare gene CI data for plotting
@@ -1206,63 +1118,58 @@ NULL
 #'
 #' @noRd
 .prepare_gene_ci_data <- function(long_data, ci_lower_mat, ci_upper_mat, genes) {
-  require_pkgs("dplyr")
-  
-  # Aggregate to get median per gene, group, q
-  stats_df <- dplyr::summarise(
-    dplyr::group_by(long_data, Gene, group, q),
-    median = median(tsallis, na.rm = TRUE),
-    .groups = "drop"
-  )
-  
-  # Extract CI values for each gene, group, q combination
-  plot_df <- stats_df
-  plot_df$ci_lower <- NA_real_
-  plot_df$ci_upper <- NA_real_
-  
-  # Map CI assay columns to gene/group/q combinations
-  if (nrow(ci_lower_mat) > 0) {
-    colnames_ci <- colnames(ci_lower_mat)
-    
-    # Parse column names (e.g., "Sample_q=0.01")
-    ci_samples <- sub("_q=.*", "", colnames_ci)
-    ci_q_values <- as.numeric(sub(".*_q=", "", colnames_ci))
-    
-    for (i in seq_len(nrow(plot_df))) {
-      g <- plot_df$Gene[i]
-      gr <- as.character(plot_df$group[i])
-      q_val <- plot_df$q[i]
-      
-      # Find indices in long_data for this gene/group/q
-      matching_rows <- which(
-        as.character(long_data$Gene) == g &
-        as.character(long_data$group) == gr &
-        as.numeric(as.character(long_data$q)) == q_val
-      )
-      
-      if (length(matching_rows) > 0) {
-        # Get samples for this group from long_data
-        samples_for_group <- unique(as.character(long_data$sample[matching_rows]))
-        
-        # Find CI columns for these samples at this q
-        ci_col_mask <- (ci_samples %in% samples_for_group) & (abs(ci_q_values - q_val) < 1e-6)
-        ci_col_indices <- which(ci_col_mask)
-        
-        if (length(ci_col_indices) > 0) {
-          # Get CI bounds for these columns
-          gene_idx <- which(rownames(ci_lower_mat) == g)
-          if (length(gene_idx) > 0) {
-            ci_lower_vals <- ci_lower_mat[gene_idx, ci_col_indices]
-            ci_upper_vals <- ci_upper_mat[gene_idx, ci_col_indices]
-            
-            # Use median of CI values across samples in this group
-            plot_df$ci_lower[i] <- median(ci_lower_vals, na.rm = TRUE)
-            plot_df$ci_upper[i] <- median(ci_upper_vals, na.rm = TRUE)
-          }
+    require_pkgs("dplyr")
+
+    # Aggregate to get median per gene, group, q
+    stats_df <- dplyr::summarise(dplyr::group_by(long_data, Gene, group, q), median = median(tsallis,
+        na.rm = TRUE), .groups = "drop")
+
+    # Extract CI values for each gene, group, q combination
+    plot_df <- stats_df
+    plot_df$ci_lower <- NA_real_
+    plot_df$ci_upper <- NA_real_
+
+    # Map CI assay columns to gene/group/q combinations
+    if (nrow(ci_lower_mat) > 0) {
+        colnames_ci <- colnames(ci_lower_mat)
+
+        # Parse column names (e.g., 'Sample_q=0.01')
+        ci_samples <- sub("_q=.*", "", colnames_ci)
+        ci_q_values <- as.numeric(sub(".*_q=", "", colnames_ci))
+
+        for (i in seq_len(nrow(plot_df))) {
+            g <- plot_df$Gene[i]
+            gr <- as.character(plot_df$group[i])
+            q_val <- plot_df$q[i]
+
+            # Find indices in long_data for this gene/group/q
+            matching_rows <- which(as.character(long_data$Gene) == g & as.character(long_data$group) ==
+                gr & as.numeric(as.character(long_data$q)) == q_val)
+
+            if (length(matching_rows) > 0) {
+                # Get samples for this group from long_data
+                samples_for_group <- unique(as.character(long_data$sample[matching_rows]))
+
+                # Find CI columns for these samples at this q
+                ci_col_mask <- (ci_samples %in% samples_for_group) & (abs(ci_q_values -
+                  q_val) < 1e-06)
+                ci_col_indices <- which(ci_col_mask)
+
+                if (length(ci_col_indices) > 0) {
+                  # Get CI bounds for these columns
+                  gene_idx <- which(rownames(ci_lower_mat) == g)
+                  if (length(gene_idx) > 0) {
+                    ci_lower_vals <- ci_lower_mat[gene_idx, ci_col_indices]
+                    ci_upper_vals <- ci_upper_mat[gene_idx, ci_col_indices]
+
+                    # Use median of CI values across samples in this group
+                    plot_df$ci_lower[i] <- median(ci_lower_vals, na.rm = TRUE)
+                    plot_df$ci_upper[i] <- median(ci_upper_vals, na.rm = TRUE)
+                  }
+                }
+            }
         }
-      }
     }
-  }
-  
-  plot_df
+
+    plot_df
 }

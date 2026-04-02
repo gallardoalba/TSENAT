@@ -57,7 +57,7 @@
 #' # Example: Create synthetic multi-q switching results
 #' # For real analysis, use .jackknife_isoform_switching() output
 #' set.seed(123)
-#' gene_names <- paste0("gene_", 1:4)
+#' gene_names <- paste0('gene_', 1:4)
 #' names(gene_names) <- 1:4
 #' 
 #' # Create multi-q results structure
@@ -75,7 +75,7 @@
 #'       )
 #'     )
 #'   ),
-#'   class = "tsenat_isoform_switching_multiq"
+#'   class = 'tsenat_isoform_switching_multiq'
 #' )
 #' 
 #' # Create heatmap visualization
@@ -87,137 +87,121 @@
 
 #' @noRd
 
-.plot_multiq_delta_influence_heatmaps <- function(
-    switching_results,
-  n_genes = 4,
-  lm_results = NULL,
-  verbose = FALSE,
-  cellwidth = 0,
-  cellheight = 0,
-  fontsize = 18,
-  layout_ncol = 2,
-  output_file = NULL) {
-  # Phase 1: Validate input
-  result_data <- .validate_multiq_input(switching_results)
-  q_result_keys <- result_data$q_result_keys
-  gene_ids <- result_data$gene_ids
-  gene_name_map <- result_data$gene_name_map
+.plot_multiq_delta_influence_heatmaps <- function(switching_results, n_genes = 4,
+    lm_results = NULL, verbose = FALSE, cellwidth = 0, cellheight = 0, fontsize = 18,
+    layout_ncol = 2, output_file = NULL) {
+    # Phase 1: Validate input
+    result_data <- .validate_multiq_input(switching_results)
+    q_result_keys <- result_data$q_result_keys
+    gene_ids <- result_data$gene_ids
+    gene_name_map <- result_data$gene_name_map
 
-  # Phase 2: Select genes
-  top_genes <- .heatmap_select_genes_multiq(switching_results, n_genes, lm_results)
+    # Phase 2: Select genes
+    top_genes <- .heatmap_select_genes_multiq(switching_results, n_genes, lm_results)
 
-  # Phase 3: Collect gene info for layout planning
-  gene_info_list <- lapply(seq_along(top_genes), function(i) {
-    mat <- .heatmap_prepare_multiq_data(switching_results, top_genes[i], q_result_keys)
-    if (is.null(mat)) {
-      list(n_transcripts = 0)
-    } else {
-      list(n_transcripts = ncol(mat))
-    }
-  })
+    # Phase 3: Collect gene info for layout planning
+    gene_info_list <- lapply(seq_along(top_genes), function(i) {
+        mat <- .heatmap_prepare_multiq_data(switching_results, top_genes[i], q_result_keys)
+        if (is.null(mat)) {
+            list(n_transcripts = 0)
+        } else {
+            list(n_transcripts = ncol(mat))
+        }
+    })
 
-  # Phase 4: Plan layout and calculate dimensions
-  layout_result <- .plot_adaptive_layout(gene_info_list,
-                                         use_fixed_layout = !is.null(layout_ncol) && layout_ncol > 0,
-                                         layout_ncol = layout_ncol)
-  gene_layout <- layout_result$layout
-  n_layout_rows <- layout_result$n_layout_rows
-  dims <- .calculate_heatmap_dimensions(n_layout_rows, length(q_result_keys))
+    # Phase 4: Plan layout and calculate dimensions
+    layout_result <- .plot_adaptive_layout(gene_info_list, use_fixed_layout = !is.null(layout_ncol) &&
+        layout_ncol > 0, layout_ncol = layout_ncol)
+    gene_layout <- layout_result$layout
+    n_layout_rows <- layout_result$n_layout_rows
+    dims <- .calculate_heatmap_dimensions(n_layout_rows, length(q_result_keys))
 
-  # Phase 5: Create heatmaps (using refactored loop)
-  all_gene_matrices <- list()
-  all_gene_info <- list()
+    # Phase 5: Create heatmaps (using refactored loop)
+    all_gene_matrices <- list()
+    all_gene_info <- list()
 
-  for (gene_idx in seq_along(top_genes)) {
-    gene_id <- top_genes[gene_idx]
-    mat <- .heatmap_prepare_multiq_data(switching_results, gene_id, q_result_keys)
+    for (gene_idx in seq_along(top_genes)) {
+        gene_id <- top_genes[gene_idx]
+        mat <- .heatmap_prepare_multiq_data(switching_results, gene_id, q_result_keys)
 
-    if (is.null(mat) || nrow(mat) == 0 || ncol(mat) == 0) {
-      all_gene_matrices[[gene_idx]] <- NULL
-      all_gene_info[[gene_idx]] <- NULL
-      next
-    }
+        if (is.null(mat) || nrow(mat) == 0 || ncol(mat) == 0) {
+            all_gene_matrices[[gene_idx]] <- NULL
+            all_gene_info[[gene_idx]] <- NULL
+            next
+        }
 
-    # Get gene name
-    gene_name_idx <- which(gene_ids == gene_id)[1]
-    gene_name <- if (!is.na(gene_name_idx) && !is.na(gene_name_map[gene_name_idx])) {
-      gene_name_map[gene_name_idx]
-    } else {
-      gene_id
+        # Get gene name
+        gene_name_idx <- which(gene_ids == gene_id)[1]
+        gene_name <- if (!is.na(gene_name_idx) && !is.na(gene_name_map[gene_name_idx])) {
+            gene_name_map[gene_name_idx]
+        } else {
+            gene_id
+        }
+
+        all_gene_matrices[[gene_idx]] <- mat
+        all_gene_info[[gene_idx]] <- list(gene_id = gene_id, gene_name = gene_name,
+            n_transcripts = ncol(mat))
     }
 
-    all_gene_matrices[[gene_idx]] <- mat
-    all_gene_info[[gene_idx]] <- list(
-      gene_id = gene_id,
-      gene_name = gene_name,
-      n_transcripts = ncol(mat)
-    )
-  }
-
-  # Security check: if all matrices are NULL...
-  if (all(vapply(all_gene_matrices, is.null, logical(1)))) {
-    warning("No valid heatmap data generated for any genes", call. = FALSE)
-    return(invisible(NULL))
-  }
-
-  # Phase 6: Create pheatmap objects
-  if (!requireNamespace("pheatmap", quietly = TRUE)) {
-    stop("pheatmap package required for this function. Install with: install.packages('pheatmap')",
-         call. = FALSE)
-  }
-
-  heatmap_plots <- list()
-  for (gene_idx in seq_along(top_genes)) {
-    if (is.null(all_gene_matrices[[gene_idx]]) || is.null(all_gene_info[[gene_idx]])) {
-      heatmap_plots[[gene_idx]] <- NULL
-      next
+    # Security check: if all matrices are NULL...
+    if (all(vapply(all_gene_matrices, is.null, logical(1)))) {
+        warning("No valid heatmap data generated for any genes", call. = FALSE)
+        return(invisible(NULL))
     }
 
-    mat <- all_gene_matrices[[gene_idx]]
-    gene_info <- all_gene_info[[gene_idx]]
-    layout_info <- gene_layout[[gene_idx]]
-    width_frac <- if (!is.null(layout_info)) layout_info$width else 1
-
-    # Calculate cell sizes
-    cells <- .calculate_adaptive_cellsizes(ncol(mat), nrow(mat), width_frac,
-                                            cellwidth, cellheight, fontsize)
-
-    # Create pheatmap grob
-    heatmap_plots[[gene_idx]] <- .create_pheatmap_grob(mat,
-      title = gene_info$gene_name,
-      cellw = cells$cellwidth,
-      cellh = cells$cellheight,
-      fontsize = cells$fontsize_adj,
-      cluster_rows = FALSE
-    )
-  }
-
-  # Phase 7: Render grid
-  tryCatch({
-    .plot_grid_setup(n_layout_rows, output_file, dims$png_width, dims$png_height,
-      title = "Delta Influence Across Diversity Scales",
-      subtitle = "Jackknife weights across q-spectrum for selected genes"
-    )
-
-    .render_heatmaps_to_grid(heatmap_plots, gene_layout, layout_ncol)
-    
-    .plot_grid_finalize(output_file, verbose = verbose)
-  }, error = function(e) {
-    if (!is.null(output_file)) {
-      tryCatch(grDevices::dev.off(), silent = TRUE)
+    # Phase 6: Create pheatmap objects
+    if (!requireNamespace("pheatmap", quietly = TRUE)) {
+        stop("pheatmap package required for this function. Install with: install.packages('pheatmap')",
+            call. = FALSE)
     }
-    stop("Heatmap creation failed: ", e$message, call. = FALSE)
-  })
+
+    heatmap_plots <- list()
+    for (gene_idx in seq_along(top_genes)) {
+        if (is.null(all_gene_matrices[[gene_idx]]) || is.null(all_gene_info[[gene_idx]])) {
+            heatmap_plots[[gene_idx]] <- NULL
+            next
+        }
+
+        mat <- all_gene_matrices[[gene_idx]]
+        gene_info <- all_gene_info[[gene_idx]]
+        layout_info <- gene_layout[[gene_idx]]
+        width_frac <- if (!is.null(layout_info))
+            layout_info$width else 1
+
+        # Calculate cell sizes
+        cells <- .calculate_adaptive_cellsizes(ncol(mat), nrow(mat), width_frac,
+            cellwidth, cellheight, fontsize)
+
+        # Create pheatmap grob
+        heatmap_plots[[gene_idx]] <- .create_pheatmap_grob(mat, title = gene_info$gene_name,
+            cellw = cells$cellwidth, cellh = cells$cellheight, fontsize = cells$fontsize_adj,
+            cluster_rows = FALSE)
+    }
+
+    # Phase 7: Render grid
+    tryCatch({
+        .plot_grid_setup(n_layout_rows, output_file, dims$png_width, dims$png_height,
+            title = "Delta Influence Across Diversity Scales", subtitle = "Jackknife weights across q-spectrum for selected genes")
+
+        .render_heatmaps_to_grid(heatmap_plots, gene_layout, layout_ncol)
+
+        .plot_grid_finalize(output_file, verbose = verbose)
+    }, error = function(e) {
+        if (!is.null(output_file)) {
+            tryCatch(grDevices::dev.off(), silent = TRUE)
+        }
+        stop("Heatmap creation failed: ", e$message, call. = FALSE)
+    })
 }
 
 #' Plot top transcripts for a gene using pheatmap
 #' @param se A `SummarizedExperiment` with transcript counts as assay and gene information in rowData.
-#'   Must have a "genes" column in rowData specifying which gene each transcript belongs to.
+#'   Must have a 'genes' column in rowData specifying which gene each transcript belongs to.
 #'   If `use_tpm = TRUE`, requires TPM data in metadata (provided to `build_analysis_s4()` or `.build_se()`).
 #' @param gene Character vector; gene symbol(s) to inspect. If NULL and `res` is provided, 
 #'   top genes are selected by p-value.
 #' @param condition_col Character; column name in colData(se) to use for sample grouping 
-#'   (default: "sample_type").
+#'   (default: 'sample_type').
 #' @param res Optional result data.frame from differential/interaction analysis with gene identifiers and p-values.
 #'   Supported sources:
 #'   - `.calculate_lm_interaction(..., return_model_data = TRUE)` returns a list with $results and $model_data
@@ -226,7 +210,7 @@
 #'   If provided and `gene` is NULL, top genes are selected by adjusted p-value.
 #' @param top_n Integer number of transcripts to show (default = 3). Use NULL to plot all transcripts for the gene.
 #' @param output_file Optional file path to save the plot. If `NULL`, renders to active graphics device.
-#' @param metric Aggregation metric: "median", "mean", "variance", or "iqr" (default: "median").
+#' @param metric Aggregation metric: 'median', 'mean', 'variance', or 'iqr' (default: 'median').
 #' @param use_tpm Logical; if TRUE, uses TPM (Transcripts Per Million) from metadata instead of raw counts 
 #'   (default: FALSE). TPM is normalized for sequencing depth and is recommended for comparing 
 #'   expression across samples. Requires TPM data in `metadata(se)$salmon_tpm` from `build_analysis_s4()` or `.build_se()` 
@@ -256,148 +240,126 @@
 #' library(S4Vectors)
 #' # Create example SummarizedExperiment
 #' counts <- matrix(sample(1:100, 36, replace = TRUE), nrow = 6, ncol = 6)
-#' rownames(counts) <- paste0("tx", 1:6)
-#' rowData_df <- DataFrame(genes = rep(paste0("G", 1:3), each = 2))
-#' colData_df <- DataFrame(sample_type = rep(c("Normal", "Tumor"), 3))
+#' rownames(counts) <- paste0('tx', 1:6)
+#' rowData_df <- DataFrame(genes = rep(paste0('G', 1:3), each = 2))
+#' colData_df <- DataFrame(sample_type = rep(c('Normal', 'Tumor'), 3))
 #' se <- SummarizedExperiment(assays = list(counts = counts), 
 #'                           rowData = rowData_df, colData = colData_df)
 #' # Plot top transcripts
-#' .plot_top_transcripts(se, gene = "G1", top_n = 2, output_file = "/tmp/heatmap.png")
+#' .plot_top_transcripts(se, gene = 'G1', top_n = 2, output_file = '/tmp/heatmap.png')
 
 #' @noRd
 
-.plot_top_transcripts <- function(
-  se,
-  gene = NULL,
-  condition_col = "condition",
-  res = NULL,
-  top_n = 3,
-  output_file = NULL,
-  metric = c("median", "mean", "variance", "iqr"),
-  use_tpm = TRUE,
-  width = NULL,
-  height = NULL,
-  fontsize = 16,
-  cellwidth = 0,
-  cellheight = 0,
-  layout_ncol = 2
-) {
-  if (!requireNamespace("pheatmap", quietly = TRUE)) {
-    stop("pheatmap package required", call. = FALSE)
-  }
-  
-  # Phase 1: Validate input and extract components
-  se_data <- .validate_se_for_heatmaps(se, condition_col = condition_col)
-  counts <- se_data$counts
-  rd <- se_data$rowdata
-  cd <- se_data$coldata
-  gene_col <- se_data$gene_col
-  
-  # Handle TPM override if available
-  if (use_tpm) {
-    md <- S4Vectors::metadata(se)
-    if (!is.null(md$salmon_tpm)) {
-      tpm_data <- as.matrix(md$salmon_tpm)
-      if (nrow(tpm_data) == nrow(counts) && ncol(tpm_data) == ncol(counts)) {
-        counts <- tpm_data
-      }
+.plot_top_transcripts <- function(se, gene = NULL, condition_col = "condition", res = NULL,
+    top_n = 3, output_file = NULL, metric = c("median", "mean", "variance", "iqr"),
+    use_tpm = TRUE, width = NULL, height = NULL, fontsize = 16, cellwidth = 0, cellheight = 0,
+    layout_ncol = 2) {
+    if (!requireNamespace("pheatmap", quietly = TRUE)) {
+        stop("pheatmap package required", call. = FALSE)
     }
-  }
-  
-  # Build tx2gene mapping
-  tx2gene <- data.frame(
-    Transcript = rownames(counts),
-    Gen = as.character(rd[[gene_col]]),
-    stringsAsFactors = FALSE
-  )
-  
-  conditions <- as.character(cd[[condition_col]])
-  unique_conditions <- unique(conditions)
-  
-  # Phase 2: Select genes
-  metric_choice <- match.arg(metric)
-  if (is.null(gene) && !is.null(res)) {
-    gene <- .heatmap_select_genes_results(se, res, gene_col, top_n, tx2gene)
-  }
-  if (is.null(gene)) {
-    stop("gene must be provided or derivable from res", call. = FALSE)
-  }
-  
-  # Phase 3: Plan layout
-  gene_info_list <- lapply(seq_along(gene), function(i) {
-    tx_idx <- which(tx2gene$Gen == gene[i])
-    list(n_transcripts = length(tx_idx))
-  })
-  
-  layout_result <- .plot_adaptive_layout(gene_info_list,
-    use_fixed_layout = !is.null(layout_ncol) && layout_ncol > 0,
-    layout_ncol = layout_ncol)
-  n_layout_rows <- layout_result$n_layout_rows
-  gene_layout <- layout_result$layout
-  
-  dims <- list(
-    png_width = if (is.null(width)) 12 else width,
-    png_height = if (is.null(height)) 3.5 * n_layout_rows + 2.5 else height
-  )
-  
-  # Phase 4: Create heatmaps
-  heatmap_plots <- list()
-  for (gene_idx in seq_along(gene)) {
-    gene_name <- gene[gene_idx]
-    tx_indices <- which(tx2gene$Gen == gene_name)
-    
-    if (length(tx_indices) == 0) {
-      heatmap_plots[[gene_idx]] <- NULL
-      next
+
+    # Phase 1: Validate input and extract components
+    se_data <- .validate_se_for_heatmaps(se, condition_col = condition_col)
+    counts <- se_data$counts
+    rd <- se_data$rowdata
+    cd <- se_data$coldata
+    gene_col <- se_data$gene_col
+
+    # Handle TPM override if available
+    if (use_tpm) {
+        md <- S4Vectors::metadata(se)
+        if (!is.null(md$salmon_tpm)) {
+            tpm_data <- as.matrix(md$salmon_tpm)
+            if (nrow(tpm_data) == nrow(counts) && ncol(tpm_data) == ncol(counts)) {
+                counts <- tpm_data
+            }
+        }
     }
-    
-    gene_counts <- counts[tx_indices, , drop = FALSE]
-    mat <- .heatmap_prepare_condition_data(gene_counts, seq_along(tx_indices),
-      conditions, metric_choice)
-    
-    if (is.null(mat) || nrow(mat) == 0) {
-      heatmap_plots[[gene_idx]] <- NULL
-      next
+
+    # Build tx2gene mapping
+    tx2gene <- data.frame(Transcript = rownames(counts), Gen = as.character(rd[[gene_col]]),
+        stringsAsFactors = FALSE)
+
+    conditions <- as.character(cd[[condition_col]])
+    unique_conditions <- unique(conditions)
+
+    # Phase 2: Select genes
+    metric_choice <- match.arg(metric)
+    if (is.null(gene) && !is.null(res)) {
+        gene <- .heatmap_select_genes_results(se, res, gene_col, top_n, tx2gene)
     }
-    
-    # Calculate cell sizes
-    layout_info <- gene_layout[[gene_idx]]
-    width_frac <- if (!is.null(layout_info)) layout_info$width else 1
-    cells <- .calculate_adaptive_cellsizes(ncol(mat), nrow(mat), width_frac,
-      cellwidth, cellheight, fontsize)
-    
-    # Create pheatmap
-    heatmap_plots[[gene_idx]] <- .create_pheatmap_grob(mat,
-      title = gene_name,
-      cellw = cells$cellwidth,
-      cellh = cells$cellheight,
-      fontsize = cells$fontsize_adj,
-      cluster_rows = FALSE
-    )
-  }
-  
-  if (all(vapply(heatmap_plots, is.null, logical(1)))) {
-    stop("No valid heatmaps created", call. = FALSE)
-  }
-  
-  # Phase 5: Render grid
-  tryCatch({
-    metric_label <- if (metric_choice == "iqr") "IQR" else metric_choice
-    
-    .plot_grid_setup(n_layout_rows, output_file,
-      dims$png_width, dims$png_height,
-      title = "Isoform Expression Profiles",
-      subtitle = paste("Log2-normalized", metric_label, "by condition")
-    )
-    
-    .render_heatmaps_to_grid(heatmap_plots, gene_layout, layout_ncol)
-    .plot_grid_finalize(output_file, verbose = FALSE)
-  }, error = function(e) {
-    if (!is.null(output_file)) {
-      tryCatch(grDevices::dev.off(), silent = TRUE)
+    if (is.null(gene)) {
+        stop("gene must be provided or derivable from res", call. = FALSE)
     }
-    stop("Heatmap rendering failed: ", e$message, call. = FALSE)
-  })
+
+    # Phase 3: Plan layout
+    gene_info_list <- lapply(seq_along(gene), function(i) {
+        tx_idx <- which(tx2gene$Gen == gene[i])
+        list(n_transcripts = length(tx_idx))
+    })
+
+    layout_result <- .plot_adaptive_layout(gene_info_list, use_fixed_layout = !is.null(layout_ncol) &&
+        layout_ncol > 0, layout_ncol = layout_ncol)
+    n_layout_rows <- layout_result$n_layout_rows
+    gene_layout <- layout_result$layout
+
+    dims <- list(png_width = if (is.null(width)) 12 else width, png_height = if (is.null(height)) 3.5 *
+        n_layout_rows + 2.5 else height)
+
+    # Phase 4: Create heatmaps
+    heatmap_plots <- list()
+    for (gene_idx in seq_along(gene)) {
+        gene_name <- gene[gene_idx]
+        tx_indices <- which(tx2gene$Gen == gene_name)
+
+        if (length(tx_indices) == 0) {
+            heatmap_plots[[gene_idx]] <- NULL
+            next
+        }
+
+        gene_counts <- counts[tx_indices, , drop = FALSE]
+        mat <- .heatmap_prepare_condition_data(gene_counts, seq_along(tx_indices),
+            conditions, metric_choice)
+
+        if (is.null(mat) || nrow(mat) == 0) {
+            heatmap_plots[[gene_idx]] <- NULL
+            next
+        }
+
+        # Calculate cell sizes
+        layout_info <- gene_layout[[gene_idx]]
+        width_frac <- if (!is.null(layout_info))
+            layout_info$width else 1
+        cells <- .calculate_adaptive_cellsizes(ncol(mat), nrow(mat), width_frac,
+            cellwidth, cellheight, fontsize)
+
+        # Create pheatmap
+        heatmap_plots[[gene_idx]] <- .create_pheatmap_grob(mat, title = gene_name,
+            cellw = cells$cellwidth, cellh = cells$cellheight, fontsize = cells$fontsize_adj,
+            cluster_rows = FALSE)
+    }
+
+    if (all(vapply(heatmap_plots, is.null, logical(1)))) {
+        stop("No valid heatmaps created", call. = FALSE)
+    }
+
+    # Phase 5: Render grid
+    tryCatch({
+        metric_label <- if (metric_choice == "iqr")
+            "IQR" else metric_choice
+
+        .plot_grid_setup(n_layout_rows, output_file, dims$png_width, dims$png_height,
+            title = "Isoform Expression Profiles", subtitle = paste("Log2-normalized",
+                metric_label, "by condition"))
+
+        .render_heatmaps_to_grid(heatmap_plots, gene_layout, layout_ncol)
+        .plot_grid_finalize(output_file, verbose = FALSE)
+    }, error = function(e) {
+        if (!is.null(output_file)) {
+            tryCatch(grDevices::dev.off(), silent = TRUE)
+        }
+        stop("Heatmap rendering failed: ", e$message, call. = FALSE)
+    })
 }
 
 # ============================================================================
@@ -405,9 +367,8 @@
 # ============================================================================
 # This file contains shared helper functions extracted to support
 # .plot_multiq_delta_influence_heatmaps() and .plot_top_transcripts()
-# refactoring to meet Bioconductor's 50-line function guideline.
-#
-# All functions marked @keywords internal @noRd are NOT exported.
+# refactoring to meet Bioconductor's 50-line function guideline.  All functions
+# marked @keywords internal @noRd are NOT exported.
 # ============================================================================
 
 # ============================================================================
@@ -430,30 +391,26 @@
 
 #' @noRd
 .validate_multiq_input <- function(switching_results) {
-  if (!inherits(switching_results, "tsenat_isoform_switching_multiq")) {
-    stop("switching_results must be a multi-q result from .jackknife_isoform_switching()",
-         call. = FALSE)
-  }
+    if (!inherits(switching_results, "tsenat_isoform_switching_multiq")) {
+        stop("switching_results must be a multi-q result from .jackknife_isoform_switching()",
+            call. = FALSE)
+    }
 
-  q_result_keys <- names(switching_results)[grepl("^q_", names(switching_results))]
-  if (length(q_result_keys) == 0) {
-    stop("No multi-q results found in switching_results", call. = FALSE)
-  }
+    q_result_keys <- names(switching_results)[grepl("^q_", names(switching_results))]
+    if (length(q_result_keys) == 0) {
+        stop("No multi-q results found in switching_results", call. = FALSE)
+    }
 
-  first_result <- switching_results[[q_result_keys[1]]]
-  gene_ids <- first_result$gene_ids
-  gene_name_map <- first_result$gene_name_map
+    first_result <- switching_results[[q_result_keys[1]]]
+    gene_ids <- first_result$gene_ids
+    gene_name_map <- first_result$gene_name_map
 
-  if (length(gene_ids) == 0) {
-    stop("No genes found in switching_results", call. = FALSE)
-  }
+    if (length(gene_ids) == 0) {
+        stop("No genes found in switching_results", call. = FALSE)
+    }
 
-  list(
-    q_result_keys = q_result_keys,
-    first_result = first_result,
-    gene_ids = gene_ids,
-    gene_name_map = gene_name_map
-  )
+    list(q_result_keys = q_result_keys, first_result = first_result, gene_ids = gene_ids,
+        gene_name_map = gene_name_map)
 }
 
 #' Validate SummarizedExperiment Input
@@ -474,43 +431,38 @@
 
 #' @noRd
 .validate_se_for_heatmaps <- function(se, gene_col = NULL, condition_col = NULL) {
-  if (!inherits(se, "SummarizedExperiment")) {
-    stop("se must be a SummarizedExperiment object", call. = FALSE)
-  }
+    if (!inherits(se, "SummarizedExperiment")) {
+        stop("se must be a SummarizedExperiment object", call. = FALSE)
+    }
 
-  # Validate/auto-detect gene column
-  if (is.null(gene_col)) {
-    gene_col <- if ("genes" %in% colnames(rowData(se))) {
-      "genes"
-    } else if ("gene_name" %in% colnames(rowData(se))) {
-      "gene_name"
-    } else if ("gene_id" %in% colnames(rowData(se))) {
-      "gene_id"
+    # Validate/auto-detect gene column
+    if (is.null(gene_col)) {
+        gene_col <- if ("genes" %in% colnames(rowData(se))) {
+            "genes"
+        } else if ("gene_name" %in% colnames(rowData(se))) {
+            "gene_name"
+        } else if ("gene_id" %in% colnames(rowData(se))) {
+            "gene_id"
+        } else {
+            stop("rowData(se) must contain 'genes', 'gene_name', or 'gene_id' column",
+                call. = FALSE)
+        }
     } else {
-      stop("rowData(se) must contain 'genes', 'gene_name', or 'gene_id' column",
-           call. = FALSE)
+        if (!gene_col %in% colnames(rowData(se))) {
+            stop("gene_col '", gene_col, "' not found in rowData(se)", call. = FALSE)
+        }
     }
-  } else {
-    if (!gene_col %in% colnames(rowData(se))) {
-      stop("gene_col '", gene_col, "' not found in rowData(se)", call. = FALSE)
-    }
-  }
 
-  # Validate condition column (optional)
-  if (!is.null(condition_col)) {
-    if (!condition_col %in% colnames(colData(se))) {
-      stop("condition_col '", condition_col, "' not found in colData(se)",
-           call. = FALSE)
+    # Validate condition column (optional)
+    if (!is.null(condition_col)) {
+        if (!condition_col %in% colnames(colData(se))) {
+            stop("condition_col '", condition_col, "' not found in colData(se)",
+                call. = FALSE)
+        }
     }
-  }
 
-  list(
-    counts = as.matrix(assay(se)),
-    rowdata = as.data.frame(rowData(se)),
-    coldata = as.data.frame(colData(se)),
-    gene_col = gene_col,
-    condition_col = condition_col
-  )
+    list(counts = as.matrix(assay(se)), rowdata = as.data.frame(rowData(se)), coldata = as.data.frame(colData(se)),
+        gene_col = gene_col, condition_col = condition_col)
 }
 
 # ============================================================================
@@ -530,54 +482,53 @@
 #'
 
 #' @noRd
-.heatmap_select_genes_multiq <- function(switching_results, n_genes = 4,
-                                               lm_results = NULL) {
-  q_key <- names(switching_results)[grepl("^q_", names(switching_results))][1]
-  first_result <- switching_results[[q_key]]
-  gene_ids <- first_result$gene_ids
+.heatmap_select_genes_multiq <- function(switching_results, n_genes = 4, lm_results = NULL) {
+    q_key <- names(switching_results)[grepl("^q_", names(switching_results))][1]
+    first_result <- switching_results[[q_key]]
+    gene_ids <- first_result$gene_ids
 
-  if (is.null(lm_results)) {
-    # No ranking: use first N genes
-    return(gene_ids[seq_len(min(n_genes, length(gene_ids)))])
-  }
+    if (is.null(lm_results)) {
+        # No ranking: use first N genes
+        return(gene_ids[seq_len(min(n_genes, length(gene_ids)))])
+    }
 
-  # Find p-value column
-  p_col <- if ("adj_p_interaction" %in% colnames(lm_results)) {
-    "adj_p_interaction"
-  } else if ("p_interaction" %in% colnames(lm_results)) {
-    "p_interaction"
-  } else {
-    NULL
-  }
+    # Find p-value column
+    p_col <- if ("adj_p_interaction" %in% colnames(lm_results)) {
+        "adj_p_interaction"
+    } else if ("p_interaction" %in% colnames(lm_results)) {
+        "p_interaction"
+    } else {
+        NULL
+    }
 
-  if (is.null(p_col)) {
-    return(gene_ids[seq_len(min(n_genes, length(gene_ids)))])
-  }
+    if (is.null(p_col)) {
+        return(gene_ids[seq_len(min(n_genes, length(gene_ids)))])
+    }
 
-  # Find gene identifier column in lm_results
-  lm_gene_col <- if ("gene_id" %in% colnames(lm_results)) {
-    "gene_id"
-  } else if ("gene" %in% colnames(lm_results)) {
-    "gene"
-  } else if ("gene_name" %in% colnames(lm_results)) {
-    "gene_name"
-  } else {
-    NULL
-  }
+    # Find gene identifier column in lm_results
+    lm_gene_col <- if ("gene_id" %in% colnames(lm_results)) {
+        "gene_id"
+    } else if ("gene" %in% colnames(lm_results)) {
+        "gene"
+    } else if ("gene_name" %in% colnames(lm_results)) {
+        "gene_name"
+    } else {
+        NULL
+    }
 
-  if (is.null(lm_gene_col)) {
-    return(gene_ids[seq_len(min(n_genes, length(gene_ids)))])
-  }
+    if (is.null(lm_gene_col)) {
+        return(gene_ids[seq_len(min(n_genes, length(gene_ids)))])
+    }
 
-  # Rank genes by p-value (lowest = most significant)
-  matches <- match(gene_ids, lm_results[[lm_gene_col]])
-  p_values <- rep(Inf, length(gene_ids))
-  matched_idx <- !is.na(matches)
-  p_values[matched_idx] <- lm_results[[p_col]][matches[matched_idx]]
+    # Rank genes by p-value (lowest = most significant)
+    matches <- match(gene_ids, lm_results[[lm_gene_col]])
+    p_values <- rep(Inf, length(gene_ids))
+    matched_idx <- !is.na(matches)
+    p_values[matched_idx] <- lm_results[[p_col]][matches[matched_idx]]
 
-  gene_order <- order(p_values)
-  gene_ids_sorted <- gene_ids[gene_order]
-  gene_ids_sorted[seq_len(min(n_genes, length(gene_ids_sorted)))]
+    gene_order <- order(p_values)
+    gene_ids_sorted <- gene_ids[gene_order]
+    gene_ids_sorted[seq_len(min(n_genes, length(gene_ids_sorted)))]
 }
 
 #' Select Top Genes from Results DataFrame
@@ -596,69 +547,66 @@
 #'
 
 #' @noRd
-.heatmap_select_genes_results <- function(se, res, gene_col = "genes",
-                                               top_n = 3, tx2gene = NULL) {
-  if (!is.data.frame(res)) {
-    stop("res must be a data.frame", call. = FALSE)
-  }
+.heatmap_select_genes_results <- function(se, res, gene_col = "genes", top_n = 3,
+    tx2gene = NULL) {
+    if (!is.data.frame(res)) {
+        stop("res must be a data.frame", call. = FALSE)
+    }
 
-  # Build tx2gene if not provided
-  if (is.null(tx2gene)) {
-    rd <- as.data.frame(rowData(se))
-    tx2gene <- data.frame(
-      Transcript = rownames(se),
-      Gen = as.character(rd[[gene_col]]),
-      stringsAsFactors = FALSE
-    )
-  }
+    # Build tx2gene if not provided
+    if (is.null(tx2gene)) {
+        rd <- as.data.frame(rowData(se))
+        tx2gene <- data.frame(Transcript = rownames(se), Gen = as.character(rd[[gene_col]]),
+            stringsAsFactors = FALSE)
+    }
 
-  # Find gene column in results
-  res_gene_col <- if ("gene" %in% colnames(res)) {
-    "gene"
-  } else if ("genes" %in% colnames(res)) {
-    "genes"
-  } else if ("gene_id" %in% colnames(res)) {
-    "gene_id"
-  } else if ("gene_name" %in% colnames(res)) {
-    "gene_name"
-  } else {
-    NULL
-  }
+    # Find gene column in results
+    res_gene_col <- if ("gene" %in% colnames(res)) {
+        "gene"
+    } else if ("genes" %in% colnames(res)) {
+        "genes"
+    } else if ("gene_id" %in% colnames(res)) {
+        "gene_id"
+    } else if ("gene_name" %in% colnames(res)) {
+        "gene_name"
+    } else {
+        NULL
+    }
 
-  if (is.null(res_gene_col)) {
-    stop("res must contain 'gene', 'genes', 'gene_id', or 'gene_name' column",
-         call. = FALSE)
-  }
+    if (is.null(res_gene_col)) {
+        stop("res must contain 'gene', 'genes', 'gene_id', or 'gene_name' column",
+            call. = FALSE)
+    }
 
-  # Find p-value column
-  p_col <- if ("adj_p_value" %in% colnames(res)) {
-    "adj_p_value"
-  } else if ("adj_p_interaction" %in% colnames(res)) {
-    "adj_p_interaction"
-  } else if ("padj" %in% colnames(res)) {
-    "padj"
-  } else if ("adjusted_p_values" %in% colnames(res)) {
-    "adjusted_p_values"
-  } else if ("p_value" %in% colnames(res)) {
-    "p_value"
-  } else if ("p_interaction" %in% colnames(res)) {
-    "p_interaction"
-  } else {
-    NULL
-  }
+    # Find p-value column
+    p_col <- if ("adj_p_value" %in% colnames(res)) {
+        "adj_p_value"
+    } else if ("adj_p_interaction" %in% colnames(res)) {
+        "adj_p_interaction"
+    } else if ("padj" %in% colnames(res)) {
+        "padj"
+    } else if ("adjusted_p_values" %in% colnames(res)) {
+        "adjusted_p_values"
+    } else if ("p_value" %in% colnames(res)) {
+        "p_value"
+    } else if ("p_interaction" %in% colnames(res)) {
+        "p_interaction"
+    } else {
+        NULL
+    }
 
-  if (!is.null(p_col)) {
-    res_sorted <- res[order(res[[p_col]], na.last = NA), ]
-  } else {
-    # No p-value column: use order as-is
-    res_sorted <- res
-  }
+    if (!is.null(p_col)) {
+        res_sorted <- res[order(res[[p_col]], na.last = NA), ]
+    } else {
+        # No p-value column: use order as-is
+        res_sorted <- res
+    }
 
-  # Extract genes and filter to those in SE
-  se_genes <- unique(tx2gene$Gen)
-  selected_genes <- as.character(res_sorted[[res_gene_col]])
-  selected_genes <- selected_genes[selected_genes %in% se_genes]
-  selected_genes[seq_len(min(top_n, length(selected_genes)))]
+    # Extract genes and filter to those in SE
+    se_genes <- unique(tx2gene$Gen)
+    selected_genes <- as.character(res_sorted[[res_gene_col]])
+    selected_genes <- selected_genes[selected_genes %in% se_genes]
+    selected_genes[seq_len(min(top_n, length(selected_genes)))]
 }
 
 # ============================================================================
@@ -684,66 +632,59 @@
 #'
 
 #' @noRd
-.plot_adaptive_layout <- function(gene_info_list, use_fixed_layout = TRUE,
-                                   layout_ncol = 2) {
-  n_genes <- length(gene_info_list)
+.plot_adaptive_layout <- function(gene_info_list, use_fixed_layout = TRUE, layout_ncol = 2) {
+    n_genes <- length(gene_info_list)
 
-  if (use_fixed_layout && layout_ncol > 0) {
-    # FIXED LAYOUT: layout_ncol genes per row
-    n_cols <- as.integer(layout_ncol)
-    gene_layout <- list()
-    grid_row <- 0
+    if (use_fixed_layout && layout_ncol > 0) {
+        # FIXED LAYOUT: layout_ncol genes per row
+        n_cols <- as.integer(layout_ncol)
+        gene_layout <- list()
+        grid_row <- 0
 
-    for (i in seq_len(n_genes)) {
-      col_pos <- ((i - 1) %% n_cols) + 1
-      if (col_pos == 1) grid_row <- grid_row + 1
-      gene_layout[[i]] <- list(
-        row = grid_row,
-        col = col_pos,
-        width = 1 / n_cols
-      )
+        for (i in seq_len(n_genes)) {
+            col_pos <- ((i - 1)%%n_cols) + 1
+            if (col_pos == 1)
+                grid_row <- grid_row + 1
+            gene_layout[[i]] <- list(row = grid_row, col = col_pos, width = 1/n_cols)
+        }
+        n_layout_rows <- grid_row
+    } else {
+        # ADAPTIVE LAYOUT: genes with >5 transcripts get full width
+        gene_layout <- list()
+        n_layout_rows <- 0
+        i <- 1
+
+        while (i <= n_genes) {
+            n_tx_i <- gene_info_list[[i]]$n_transcripts %||% 1
+            has_next <- i < n_genes
+            n_tx_next <- if (has_next) {
+                gene_info_list[[i + 1]]$n_transcripts %||% 1
+            } else {
+                0
+            }
+
+            if (n_tx_i > 5) {
+                # Full-width row
+                gene_layout[[i]] <- list(row = n_layout_rows + 1, col = 1, width = 1)
+                n_layout_rows <- n_layout_rows + 1
+                i <- i + 1
+            } else if (n_tx_i <= 5 && has_next && n_tx_next <= 5) {
+                # Pair two small genes (half-width each)
+                gene_layout[[i]] <- list(row = n_layout_rows + 1, col = 1, width = 0.5)
+                gene_layout[[i + 1]] <- list(row = n_layout_rows + 1, col = 2, width = 0.5)
+                n_layout_rows <- n_layout_rows + 1
+                i <- i + 2
+            } else {
+                # Single full-width row
+                gene_layout[[i]] <- list(row = n_layout_rows + 1, col = 1, width = 1)
+                n_layout_rows <- n_layout_rows + 1
+                i <- i + 1
+            }
+        }
     }
-    n_layout_rows <- grid_row
-  } else {
-    # ADAPTIVE LAYOUT: genes with >5 transcripts get full width
-    gene_layout <- list()
-    n_layout_rows <- 0
-    i <- 1
 
-    while (i <= n_genes) {
-      n_tx_i <- gene_info_list[[i]]$n_transcripts %||% 1
-      has_next <- i < n_genes
-      n_tx_next <- if (has_next) {
-        gene_info_list[[i + 1]]$n_transcripts %||% 1
-      } else {
-        0
-      }
-
-      if (n_tx_i > 5) {
-        # Full-width row
-        gene_layout[[i]] <- list(row = n_layout_rows + 1, col = 1, width = 1)
-        n_layout_rows <- n_layout_rows + 1
-        i <- i + 1
-      } else if (n_tx_i <= 5 && has_next && n_tx_next <= 5) {
-        # Pair two small genes (half-width each)
-        gene_layout[[i]] <- list(row = n_layout_rows + 1, col = 1, width = 0.5)
-        gene_layout[[i + 1]] <- list(row = n_layout_rows + 1, col = 2, width = 0.5)
-        n_layout_rows <- n_layout_rows + 1
-        i <- i + 2
-      } else {
-        # Single full-width row
-        gene_layout[[i]] <- list(row = n_layout_rows + 1, col = 1, width = 1)
-        n_layout_rows <- n_layout_rows + 1
-        i <- i + 1
-      }
-    }
-  }
-
-  list(
-    layout = gene_layout,
-    n_layout_rows = n_layout_rows,
-    row_heights = rep(c(1, 0.15), n_layout_rows)[seq_len(n_layout_rows * 2 - 1)]
-  )
+    list(layout = gene_layout, n_layout_rows = n_layout_rows, row_heights = rep(c(1,
+        0.15), n_layout_rows)[seq_len(n_layout_rows * 2 - 1)])
 }
 
 #' Calculate Heatmap Output Dimensions
@@ -764,28 +705,24 @@
 #'
 
 #' @noRd
-.calculate_heatmap_dimensions <- function(n_layout_rows, n_data_rows,
-                                          width_in = 12, height_in = NULL) {
-  png_width <- width_in
+.calculate_heatmap_dimensions <- function(n_layout_rows, n_data_rows, width_in = 12,
+    height_in = NULL) {
+    png_width <- width_in
 
-  # Scale height: 3 inches per layout row + gaps
-  height_per_layout_row <- 3 * (n_data_rows / 5)
-  gap_between_rows <- 1.5
-  heatmap_height <- height_per_layout_row * n_layout_rows +
-    gap_between_rows * (n_layout_rows - 1)
+    # Scale height: 3 inches per layout row + gaps
+    height_per_layout_row <- 3 * (n_data_rows/5)
+    gap_between_rows <- 1.5
+    heatmap_height <- height_per_layout_row * n_layout_rows + gap_between_rows *
+        (n_layout_rows - 1)
 
-  # Total PNG height includes title/subtitle space
-  total_height <- if (is.null(height_in)) {
-    heatmap_height + 2.5
-  } else {
-    height_in
-  }
+    # Total PNG height includes title/subtitle space
+    total_height <- if (is.null(height_in)) {
+        heatmap_height + 2.5
+    } else {
+        height_in
+    }
 
-  list(
-    png_width = png_width,
-    png_height = total_height,
-    heatmap_height = heatmap_height
-  )
+    list(png_width = png_width, png_height = total_height, heatmap_height = heatmap_height)
 }
 
 # ============================================================================
@@ -813,39 +750,36 @@
 
 #' @noRd
 .calculate_adaptive_cellsizes <- function(n_cols_mat, n_rows_mat, width_frac = 1,
-                                          cellwidth = 0, cellheight = 0,
-                                          fontsize = 18) {
-  # Base sizes (in pixels, for ~1200px wide plots)
-  base_cellwidth <- 35
-  base_cellheight <- 29
+    cellwidth = 0, cellheight = 0, fontsize = 18) {
+    # Base sizes (in pixels, for ~1200px wide plots)
+    base_cellwidth <- 35
+    base_cellheight <- 29
 
-  if (cellwidth > 0 && cellheight > 0) {
-    # Use explicit sizes provided
-    final_cellwidth <- cellwidth
-    final_cellheight <- cellheight
-  } else {
-    # Adaptive sizing
-    if (width_frac < 1) {
-      # Half-width: ~32% of plot width (1200px × 0.65 × 0.5)
-      available_width_px <- 1200 * 0.65 * width_frac - 40 - 30
-      cellwidth_calc <- available_width_px / max(1, n_cols_mat)
-      final_cellwidth <- max(15, cellwidth_calc)  # Minimum 15px
+    if (cellwidth > 0 && cellheight > 0) {
+        # Use explicit sizes provided
+        final_cellwidth <- cellwidth
+        final_cellheight <- cellheight
     } else {
-      # Full-width
-      scale_factor_width <- if (n_cols_mat > 8) 2.3 else 2.6
-      final_cellwidth <- base_cellwidth * scale_factor_width
+        # Adaptive sizing
+        if (width_frac < 1) {
+            # Half-width: ~32% of plot width (1200px × 0.65 × 0.5)
+            available_width_px <- 1200 * 0.65 * width_frac - 40 - 30
+            cellwidth_calc <- available_width_px/max(1, n_cols_mat)
+            final_cellwidth <- max(15, cellwidth_calc)  # Minimum 15px
+        } else {
+            # Full-width
+            scale_factor_width <- if (n_cols_mat > 8)
+                2.3 else 2.6
+            final_cellwidth <- base_cellwidth * scale_factor_width
+        }
+
+        # Height scaling based on number of rows
+        scale_factor_height <- max(0.7, 1.15 - n_rows_mat * 0.03)
+        final_cellheight <- base_cellheight * scale_factor_height
     }
 
-    # Height scaling based on number of rows
-    scale_factor_height <- max(0.7, 1.15 - n_rows_mat * 0.03)
-    final_cellheight <- base_cellheight * scale_factor_height
-  }
-
-  list(
-    cellwidth = final_cellwidth,
-    cellheight = final_cellheight,
-    fontsize_adj = fontsize * 0.7
-  )
+    list(cellwidth = final_cellwidth, cellheight = final_cellheight, fontsize_adj = fontsize *
+        0.7)
 }
 
 # ============================================================================
@@ -870,36 +804,18 @@
 #'
 
 #' @noRd
-.create_pheatmap_grob <- function(matrix_data, title = "", cellw = 35,
-                                  cellh = 29, fontsize = 18,
-                                  cluster_rows = FALSE,
-                                  color_palette = NULL) {
-  if (is.null(color_palette)) {
-    color_palette <- grDevices::colorRampPalette(
-      c("#4575B4", "#FFFFFF", "#D73027")
-    )(70)
-  }
+.create_pheatmap_grob <- function(matrix_data, title = "", cellw = 35, cellh = 29,
+    fontsize = 18, cluster_rows = FALSE, color_palette = NULL) {
+    if (is.null(color_palette)) {
+        color_palette <- (grDevices::colorRampPalette(c("#4575B4", "#FFFFFF", "#D73027")))(70)
+    }
 
-  pheatmap::pheatmap(
-    matrix_data,
-    main = title,
-    cluster_rows = cluster_rows,
-    cluster_cols = (ncol(matrix_data) > 1),
-    display_numbers = FALSE,
-    na_col = "lightgray",
-    border_color = "black",
-    color = color_palette,
-    cellwidth = cellw,
-    cellheight = cellh,
-    fontsize = fontsize,
-    fontsize_row = fontsize,
-    fontsize_col = fontsize,
-    fontsize_number = fontsize * 0.8,
-    margins = c(8, 10),
-    show_rownames = TRUE,
-    show_colnames = TRUE,
-    silent = TRUE
-  )
+    pheatmap::pheatmap(matrix_data, main = title, cluster_rows = cluster_rows, cluster_cols = (ncol(matrix_data) >
+        1), display_numbers = FALSE, na_col = "lightgray", border_color = "black",
+        color = color_palette, cellwidth = cellw, cellheight = cellh, fontsize = fontsize,
+        fontsize_row = fontsize, fontsize_col = fontsize, fontsize_number = fontsize *
+            0.8, margins = c(8, 10), show_rownames = TRUE, show_colnames = TRUE,
+        silent = TRUE)
 }
 
 # ============================================================================
@@ -922,58 +838,40 @@
 #'
 
 #' @noRd
-.plot_grid_setup <- function(n_layout_rows, output_file = NULL,
-                                   png_width = 12, png_height = 8,
-                                   title = "Heatmap Analysis",
-                                   subtitle = "") {
-  # Open PNG if specified
-  if (!is.null(output_file)) {
-    grDevices::png(output_file, width = png_width, height = png_height,
-                   units = "in", res = 100)
-  }
+.plot_grid_setup <- function(n_layout_rows, output_file = NULL, png_width = 12, png_height = 8,
+    title = "Heatmap Analysis", subtitle = "") {
+    # Open PNG if specified
+    if (!is.null(output_file)) {
+        grDevices::png(output_file, width = png_width, height = png_height, units = "in",
+            res = 100)
+    }
 
-  # Initialize grid page
-  grid::grid.newpage()
+    # Initialize grid page
+    grid::grid.newpage()
 
-  # Calculate title sizes
-  title_fontsize <- 16 * (1 + 0.15 * n_layout_rows)
-  subtitle_fontsize <- 12 * (1 + 0.15 * n_layout_rows)
+    # Calculate title sizes
+    title_fontsize <- 16 * (1 + 0.15 * n_layout_rows)
+    subtitle_fontsize <- 12 * (1 + 0.15 * n_layout_rows)
 
-  # Add title
-  grid::grid.text(title,
-    x = 0.5, y = 0.97,
-    just = "top",
-    gp = grid::gpar(fontsize = title_fontsize, fontface = "bold")
-  )
+    # Add title
+    grid::grid.text(title, x = 0.5, y = 0.97, just = "top", gp = grid::gpar(fontsize = title_fontsize,
+        fontface = "bold"))
 
-  # Add subtitle if provided
-  if (nzchar(subtitle)) {
-    grid::grid.text(subtitle,
-      x = 0.5, y = 0.94,
-      just = "top",
-      gp = grid::gpar(fontsize = subtitle_fontsize, fontface = "italic", col = "gray40")
-    )
-  }
+    # Add subtitle if provided
+    if (nzchar(subtitle)) {
+        grid::grid.text(subtitle, x = 0.5, y = 0.94, just = "top", gp = grid::gpar(fontsize = subtitle_fontsize,
+            fontface = "italic", col = "gray40"))
+    }
 
-  # Push main viewport for grid layout
-  n_grid_rows <- n_layout_rows * 2 - 1
-  row_heights <- rep(c(1, 0.15), n_layout_rows)[seq_len(n_grid_rows)]
+    # Push main viewport for grid layout
+    n_grid_rows <- n_layout_rows * 2 - 1
+    row_heights <- rep(c(1, 0.15), n_layout_rows)[seq_len(n_grid_rows)]
 
-  grid::pushViewport(grid::viewport(
-    x = 0.5,
-    y = 0.48,
-    width = 0.96,
-    height = 0.85,
-    layout = grid::grid.layout(
-      n_grid_rows,
-      3,
-      heights = grid::unit(row_heights, "null"),
-      widths = c(1, 0.12, 1),
-      respect = FALSE
-    )
-  ))
+    grid::pushViewport(grid::viewport(x = 0.5, y = 0.48, width = 0.96, height = 0.85,
+        layout = grid::grid.layout(n_grid_rows, 3, heights = grid::unit(row_heights,
+            "null"), widths = c(1, 0.12, 1), respect = FALSE)))
 
-  invisible(NULL)
+    invisible(NULL)
 }
 
 #' Render Heatmaps into Grid Layout
@@ -989,64 +887,59 @@
 #'
 
 #' @noRd
-.render_heatmaps_to_grid <- function(heatmap_plots, gene_layout,
-                                      layout_ncol = 2) {
-  if (is.null(gene_layout)) {
-    # Simple rendering: assume layout_ncol columns per row
-    n_cols <- as.integer(layout_ncol)
-    for (i in seq_along(heatmap_plots)) {
-      if (is.null(heatmap_plots[[i]])) next
+.render_heatmaps_to_grid <- function(heatmap_plots, gene_layout, layout_ncol = 2) {
+    if (is.null(gene_layout)) {
+        # Simple rendering: assume layout_ncol columns per row
+        n_cols <- as.integer(layout_ncol)
+        for (i in seq_along(heatmap_plots)) {
+            if (is.null(heatmap_plots[[i]]))
+                next
 
-      grid_row <- ((i - 1) %/% n_cols) * 2 + 1
-      col_pos <- ((i - 1) %% n_cols) + 1
+            grid_row <- ((i - 1)%/%n_cols) * 2 + 1
+            col_pos <- ((i - 1)%%n_cols) + 1
 
-      if (n_cols == 1) {
-        grid_col_start <- 1
-        grid_col_end <- 3
-      } else if (col_pos == 1) {
-        grid_col_start <- 1
-        grid_col_end <- 1
-      } else {
-        grid_col_start <- 3
-        grid_col_end <- 3
-      }
+            if (n_cols == 1) {
+                grid_col_start <- 1
+                grid_col_end <- 3
+            } else if (col_pos == 1) {
+                grid_col_start <- 1
+                grid_col_end <- 1
+            } else {
+                grid_col_start <- 3
+                grid_col_end <- 3
+            }
 
-      grid::pushViewport(grid::viewport(
-        layout.pos.row = grid_row,
-        layout.pos.col = grid_col_start:grid_col_end
-      ))
-      grid::grid.draw(heatmap_plots[[i]])
-      grid::popViewport()
+            grid::pushViewport(grid::viewport(layout.pos.row = grid_row, layout.pos.col = grid_col_start:grid_col_end))
+            grid::grid.draw(heatmap_plots[[i]])
+            grid::popViewport()
+        }
+    } else {
+        # Use gene_layout positions
+        for (i in seq_along(heatmap_plots)) {
+            if (is.null(heatmap_plots[[i]]) || is.null(gene_layout[[i]]))
+                next
+
+            layout_info <- gene_layout[[i]]
+            grid_row <- layout_info$row * 2 - 1
+
+            if (layout_info$width == 1) {
+                grid_col_start <- 1
+                grid_col_end <- 3
+            } else if (layout_info$col == 1) {
+                grid_col_start <- 1
+                grid_col_end <- 1
+            } else {
+                grid_col_start <- 3
+                grid_col_end <- 3
+            }
+
+            grid::pushViewport(grid::viewport(layout.pos.row = grid_row, layout.pos.col = grid_col_start:grid_col_end))
+            grid::grid.draw(heatmap_plots[[i]])
+            grid::popViewport()
+        }
     }
-  } else {
-    # Use gene_layout positions
-    for (i in seq_along(heatmap_plots)) {
-      if (is.null(heatmap_plots[[i]]) || is.null(gene_layout[[i]])) next
 
-      layout_info <- gene_layout[[i]]
-      grid_row <- layout_info$row * 2 - 1
-
-      if (layout_info$width == 1) {
-        grid_col_start <- 1
-        grid_col_end <- 3
-      } else if (layout_info$col == 1) {
-        grid_col_start <- 1
-        grid_col_end <- 1
-      } else {
-        grid_col_start <- 3
-        grid_col_end <- 3
-      }
-
-      grid::pushViewport(grid::viewport(
-        layout.pos.row = grid_row,
-        layout.pos.col = grid_col_start:grid_col_end
-      ))
-      grid::grid.draw(heatmap_plots[[i]])
-      grid::popViewport()
-    }
-  }
-
-  invisible(NULL)
+    invisible(NULL)
 }
 
 #' Finalize Grid Rendering and Output
@@ -1061,17 +954,17 @@
 
 #' @noRd
 .plot_grid_finalize <- function(output_file = NULL, verbose = FALSE) {
-  grid::popViewport()
+    grid::popViewport()
 
-  if (!is.null(output_file)) {
-    grDevices::dev.off()
-    if (verbose) {
-      message("Heatmap saved to: ", output_file)
+    if (!is.null(output_file)) {
+        grDevices::dev.off()
+        if (verbose) {
+            message("Heatmap saved to: ", output_file)
+        }
+        return(invisible(output_file))
     }
-    return(invisible(output_file))
-  }
 
-  invisible(NULL)
+    invisible(NULL)
 }
 
 # ============================================================================
@@ -1094,78 +987,74 @@
 #'
 
 #' @noRd
-.heatmap_prepare_multiq_data <- function(switching_results, gene_id,
-                                         q_result_keys,
-                                         cap_outliers_pctl = 0.95) {
-  heatmap_data <- NULL
+.heatmap_prepare_multiq_data <- function(switching_results, gene_id, q_result_keys,
+    cap_outliers_pctl = 0.95) {
+    heatmap_data <- NULL
 
-  for (q_key in q_result_keys) {
-    if (is.null(switching_results[[q_key]]) ||
-        is.null(switching_results[[q_key]]$results_per_gene) ||
-        !gene_id %in% names(switching_results[[q_key]]$results_per_gene)) {
-      next
+    for (q_key in q_result_keys) {
+        if (is.null(switching_results[[q_key]]) || is.null(switching_results[[q_key]]$results_per_gene) ||
+            !gene_id %in% names(switching_results[[q_key]]$results_per_gene)) {
+            next
+        }
+
+        gene_res <- switching_results[[q_key]]$results_per_gene[[gene_id]]
+        if (is.null(gene_res$delta_influence))
+            next
+
+        # Extract q value from key (q_0_01 -> 0.01)
+        q_str_cleaned <- gsub("_", ".", gsub("^q_", "", q_key))
+        q_num <- as.numeric(q_str_cleaned)
+        col_name <- paste0("q_", sprintf("%.2f", q_num))
+
+        delta_vals <- as.numeric(gene_res$delta_influence)
+        delta_vals[!is.finite(delta_vals)] <- NA
+
+        if (is.null(heatmap_data)) {
+            heatmap_data <- data.frame(transcript = as.character(gene_res$transcript_ids),
+                stringsAsFactors = FALSE)
+        }
+
+        # Ensure row alignment
+        n_rows <- nrow(heatmap_data)
+        if (length(delta_vals) < n_rows) {
+            delta_vals <- c(delta_vals, rep(NA_real_, n_rows - length(delta_vals)))
+        } else if (length(delta_vals) > n_rows) {
+            delta_vals <- delta_vals[seq_len(n_rows)]
+        }
+
+        heatmap_data[[col_name]] <- as.numeric(delta_vals)
     }
 
-    gene_res <- switching_results[[q_key]]$results_per_gene[[gene_id]]
-    if (is.null(gene_res$delta_influence)) next
-
-    # Extract q value from key (q_0_01 -> 0.01)
-    q_str_cleaned <- gsub("_", ".", gsub("^q_", "", q_key))
-    q_num <- as.numeric(q_str_cleaned)
-    col_name <- paste0("q_", sprintf("%.2f", q_num))
-
-    delta_vals <- as.numeric(gene_res$delta_influence)
-    delta_vals[!is.finite(delta_vals)] <- NA
-
-    if (is.null(heatmap_data)) {
-      heatmap_data <- data.frame(
-        transcript = as.character(gene_res$transcript_ids),
-        stringsAsFactors = FALSE
-      )
+    if (is.null(heatmap_data) || nrow(heatmap_data) == 0) {
+        return(NULL)
     }
 
-    # Ensure row alignment
-    n_rows <- nrow(heatmap_data)
-    if (length(delta_vals) < n_rows) {
-      delta_vals <- c(delta_vals, rep(NA_real_, n_rows - length(delta_vals)))
-    } else if (length(delta_vals) > n_rows) {
-      delta_vals <- delta_vals[seq_len(n_rows)]
+    # Convert to matrix
+    heatmap_matrix <- as.matrix(heatmap_data[, -1, drop = FALSE])
+    rownames(heatmap_matrix) <- heatmap_data$transcript
+    colnames(heatmap_matrix) <- colnames(heatmap_data)[-1]
+
+    # Remove all-NA rows
+    valid_rows <- rowSums(!is.na(heatmap_matrix)) > 0
+    heatmap_matrix <- heatmap_matrix[valid_rows, , drop = FALSE]
+
+    if (nrow(heatmap_matrix) == 0 || ncol(heatmap_matrix) == 0) {
+        return(NULL)
     }
 
-    heatmap_data[[col_name]] <- as.numeric(delta_vals)
-  }
-
-  if (is.null(heatmap_data) || nrow(heatmap_data) == 0) {
-    return(NULL)
-  }
-
-  # Convert to matrix
-  heatmap_matrix <- as.matrix(heatmap_data[, -1, drop = FALSE])
-  rownames(heatmap_matrix) <- heatmap_data$transcript
-  colnames(heatmap_matrix) <- colnames(heatmap_data)[-1]
-
-  # Remove all-NA rows
-  valid_rows <- rowSums(!is.na(heatmap_matrix)) > 0
-  heatmap_matrix <- heatmap_matrix[valid_rows, , drop = FALSE]
-
-  if (nrow(heatmap_matrix) == 0 || ncol(heatmap_matrix) == 0) {
-    return(NULL)
-  }
-
-  # Cap outliers
-  finite_vals <- heatmap_matrix[is.finite(heatmap_matrix)]
-  if (length(finite_vals) > 0) {
-    cap_val <- as.numeric(quantile(abs(as.numeric(finite_vals)),
-                                   probs = cap_outliers_pctl))
-    abs_hm <- abs(heatmap_matrix)
-    mask <- which(is.finite(abs_hm) & abs_hm > cap_val)
-    if (length(mask) > 0) {
-      heatmap_matrix[mask] <- sign(heatmap_matrix[mask]) * cap_val
+    # Cap outliers
+    finite_vals <- heatmap_matrix[is.finite(heatmap_matrix)]
+    if (length(finite_vals) > 0) {
+        cap_val <- as.numeric(quantile(abs(as.numeric(finite_vals)), probs = cap_outliers_pctl))
+        abs_hm <- abs(heatmap_matrix)
+        mask <- which(is.finite(abs_hm) & abs_hm > cap_val)
+        if (length(mask) > 0) {
+            heatmap_matrix[mask] <- sign(heatmap_matrix[mask]) * cap_val
+        }
     }
-  }
 
-  # Transpose: q-values as rows, transcripts as columns
-  t(heatmap_matrix)
+    # Transpose: q-values as rows, transcripts as columns
+    t(heatmap_matrix)
 }
 
 #' Prepare Heatmap Data from Condition Samples
@@ -1186,43 +1075,41 @@
 
 #' @noRd
 .heatmap_prepare_condition_data <- function(counts, gene_transcripts, conditions,
-                                            metric = "median", pseudocount = 1e-6) {
-  unique_conditions <- unique(conditions)
+    metric = "median", pseudocount = 1e-06) {
+    unique_conditions <- unique(conditions)
 
-  # Get expression for this gene's transcripts
-  gene_counts <- counts[gene_transcripts, , drop = FALSE]
+    # Get expression for this gene's transcripts
+    gene_counts <- counts[gene_transcripts, , drop = FALSE]
 
-  # Aggregate by condition
-  condition_matrix <- matrix(0,
-    nrow = nrow(gene_counts),
-    ncol = length(unique_conditions)
-  )
-  rownames(condition_matrix) <- rownames(gene_counts)
-  colnames(condition_matrix) <- unique_conditions
+    # Aggregate by condition
+    condition_matrix <- matrix(0, nrow = nrow(gene_counts), ncol = length(unique_conditions))
+    rownames(condition_matrix) <- rownames(gene_counts)
+    colnames(condition_matrix) <- unique_conditions
 
-  for (cond in unique_conditions) {
-    cond_mask <- conditions == cond
-    if (sum(cond_mask) == 0) next
+    for (cond in unique_conditions) {
+        cond_mask <- conditions == cond
+        if (sum(cond_mask) == 0)
+            next
 
-    if (metric == "mean") {
-      condition_matrix[, cond] <- rowMeans(gene_counts[, cond_mask, drop = FALSE])
-    } else if (metric == "median") {
-      condition_matrix[, cond] <- apply(gene_counts[, cond_mask, drop = FALSE],
-                                        1, median)
-    } else if (metric == "variance") {
-      condition_matrix[, cond] <- apply(gene_counts[, cond_mask, drop = FALSE],
-                                        1, var)
-    } else if (metric == "iqr") {
-      condition_matrix[, cond] <- apply(gene_counts[, cond_mask, drop = FALSE],
-                                        1, IQR)
+        if (metric == "mean") {
+            condition_matrix[, cond] <- rowMeans(gene_counts[, cond_mask, drop = FALSE])
+        } else if (metric == "median") {
+            condition_matrix[, cond] <- apply(gene_counts[, cond_mask, drop = FALSE],
+                1, median)
+        } else if (metric == "variance") {
+            condition_matrix[, cond] <- apply(gene_counts[, cond_mask, drop = FALSE],
+                1, var)
+        } else if (metric == "iqr") {
+            condition_matrix[, cond] <- apply(gene_counts[, cond_mask, drop = FALSE],
+                1, IQR)
+        }
     }
-  }
 
-  # Log-normalize
-  condition_matrix_log <- log2(condition_matrix + pseudocount)
+    # Log-normalize
+    condition_matrix_log <- log2(condition_matrix + pseudocount)
 
-  # Transpose: conditions as rows, transcripts as columns
-  t(condition_matrix_log)
+    # Transpose: conditions as rows, transcripts as columns
+    t(condition_matrix_log)
 }
 
 # ============================================================================

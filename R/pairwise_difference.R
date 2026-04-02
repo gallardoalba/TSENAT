@@ -37,11 +37,11 @@
 #'   Set to > 1 to parallelize per-feature statistical tests.
 #' @param seed Integer seed for label shuffling reproducibility (default: NULL).
 #'   When provided, ensures reproducible permutation test results.
-#' @param robust_loss_type Character; loss function for M-estimation when \code{method = "m_estimate"}.
+#' @param robust_loss_type Character; loss function for M-estimation when \code{method = 'm_estimate'}.
 #'   Options: \code{'huber'} (default, robust), \code{'tukey'} (more aggressive),
 #'   \code{'lsq'} (least squares). Ignored if method is 'mean' or 'median'.
 #' @param robust_scale_method Character; scale selection method for M-estimation when
-#'   \code{method = "m_estimate"}. Options: \code{'mad'} (default, fast),
+#'   \code{method = 'm_estimate'}. Options: \code{'mad'} (default, fast),
 #'   \code{'proposal2'} (Huber's Proposal 2, adaptive), \code{'s-estimator'} (high breakdown).
 #'   Ignored if method is 'mean' or 'median'. **Note: Permutation loop uses ~50-100x more
 #'   computation time with M-estimation; pre-computed scales once before permutations.**
@@ -74,9 +74,9 @@
 #'         'wilcoxon'
 #' )
 
-.calculate_difference <- function(x, condition_col = NULL, control, method = "mean", test = "wilcoxon",
-    randomizations = 100, pcorr = "BH", assayno = 1, verbose = TRUE, paired = FALSE,
-    exact = FALSE, pseudocount = 0, nthreads = 1, seed = NULL, robust_loss_type = "huber", 
+.calculate_difference <- function(x, condition_col = NULL, control, method = "mean",
+    test = "wilcoxon", randomizations = 100, pcorr = "BH", assayno = 1, verbose = TRUE,
+    paired = FALSE, exact = FALSE, pseudocount = 0, nthreads = 1, seed = NULL, robust_loss_type = "huber",
     robust_scale_method = "mad") {
     # internal small helpers (kept here to avoid adding new files)
     .prepare_df <- function(x, condition_col, assayno) {
@@ -94,15 +94,16 @@
                 if (length(condition_col) != 1) {
                   stop("'condition_col' must be a single colData column.", call. = FALSE)
                 }
-                # Check if the requested column exists; if not, try 'sample_type' as fallback
-                # (map_metadata stores condition info in sample_type column)
+                # Check if the requested column exists; if not, try
+                # 'sample_type' as fallback (map_metadata stores condition info
+                # in sample_type column)
                 if (condition_col %in% colnames(SummarizedExperiment::colData(x))) {
-                    samples_col <- condition_col
+                  samples_col <- condition_col
                 } else if ("sample_type" %in% colnames(SummarizedExperiment::colData(x))) {
-                    samples_col <- "sample_type"
+                  samples_col <- "sample_type"
                 } else {
-                    stop(sprintf("Column '%s' not found in colData, and fallback 'sample_type' is also missing. Call map_metadata() first.",
-                        condition_col), call. = FALSE)
+                  stop(sprintf("Column '%s' not found in colData, and fallback 'sample_type' is also missing. Call map_metadata() first.",
+                    condition_col), call. = FALSE)
                 }
             }
             samples_vec <- SummarizedExperiment::colData(x)[[samples_col]]
@@ -144,25 +145,22 @@
     samples <- pd$samples
     pairs <- pd$pairs
 
-    # Validate: reject multiple q values (they are mathematically dependent via AR(1) structure)
+    # Validate: reject multiple q values (they are mathematically dependent via
+    # AR(1) structure)
     col_names <- colnames(df)[-1]  # Exclude gene column
     has_q_tags <- grepl("_q=", col_names)
     if (any(has_q_tags)) {
         q_vals <- as.numeric(sub(".*_q=", "", col_names[has_q_tags]))
         unique_q <- unique(q_vals)
         if (length(unique_q) > 1) {
-            stop(
-                ".calculate_difference() does not accept multiple q values (q-values are mathematically dependent via AR(1) covariance structure).\n",
-                "  Input has q values: ", paste(sort(unique_q), collapse = ", "), "\n",
-                "  For proper multi-q analysis that accounts for correlation:\n",
+            stop(".calculate_difference() does not accept multiple q values (q-values are mathematically dependent via AR(1) covariance structure).\n",
+                "  Input has q values: ", paste(sort(unique_q), collapse = ", "),
+                "\n", "  For proper multi-q analysis that accounts for correlation:\n",
                 "    Use .calculate_lm_interaction() instead, which supports:\n",
                 "    - method='lmm': Linear mixed models with AR(1) covariance (recommended)\n",
-                "    - method='gam': Generalized additive models\n",
-                "    - method='fpca': Functional PCA (implicit AR(1) via ordered curves)\n",
-                "    - method='gee': Generalized estimating equations\n",
-                "  Or reduce to a single q value (e.g., q=1 for Shannon entropy).",
-                call. = FALSE
-            )
+                "    - method='gam': Generalized additive models\n", "    - method='fpca': Functional PCA (implicit AR(1) via ordered curves)\n",
+                "    - method='gee': Generalized estimating equations\n", "  Or reduce to a single q value (e.g., q=1 for Shannon entropy).",
+                call. = FALSE)
         }
     }
 
@@ -193,40 +191,41 @@
         # p-value calculation
         if (test == "wilcoxon") {
             # Standard Wilcoxon test
-            wilcoxon_result <- .wilcoxon(ymat, samples, pcorr = pcorr, paired = paired, exact = exact,
-                nthreads = nthreads, pairs = pairs)
+            wilcoxon_result <- .wilcoxon(ymat, samples, pcorr = pcorr, paired = paired,
+                exact = exact, nthreads = nthreads, pairs = pairs)
             # Extract p-value, effect size (r), and statistic (U) columns
             ptab <- wilcoxon_result[, c("pvalue", "padj", "r", "U"), drop = FALSE]
             test_results <- data.frame(gene_id = df_keep[, 1], .calculate_fc(ymat,
-                samples, control, method, pseudocount = pseudocount,
-                robust_loss_type = robust_loss_type, robust_scale_method = robust_scale_method,
-                verbose = verbose), ptab, stringsAsFactors = FALSE)
+                samples, control, method, pseudocount = pseudocount, robust_loss_type = robust_loss_type,
+                robust_scale_method = robust_scale_method, verbose = verbose), ptab,
+                stringsAsFactors = FALSE)
         } else {
             # Set seed for reproducibility if provided
             if (!is.null(seed)) {
                 withr::local_seed(as.integer(seed))
             }
-            shuffling_result <- .label_shuffling(ymat, samples, control, method, randomizations = randomizations,
-                pcorr = pcorr, paired = paired, nthreads = nthreads, pairs = pairs,
-                robust_loss_type = robust_loss_type, robust_scale_method = robust_scale_method)
+            shuffling_result <- .label_shuffling(ymat, samples, control, method,
+                randomizations = randomizations, pcorr = pcorr, paired = paired,
+                nthreads = nthreads, pairs = pairs, robust_loss_type = robust_loss_type,
+                robust_scale_method = robust_scale_method)
             # Extract p-value, effect size (r), and statistic (U) columns
-            cols_to_extract <- colnames(shuffling_result)[colnames(shuffling_result) %in% c("pvalue", "padj", "r", "U")]
+            cols_to_extract <- colnames(shuffling_result)[colnames(shuffling_result) %in%
+                c("pvalue", "padj", "r", "U")]
             ptab <- shuffling_result[, cols_to_extract, drop = FALSE]
             test_results <- data.frame(gene_id = df_keep[, 1], .calculate_fc(ymat,
-                samples, control, method, pseudocount = pseudocount,
-                robust_loss_type = robust_loss_type, robust_scale_method = robust_scale_method,
-                verbose = verbose), ptab, stringsAsFactors = FALSE)
+                samples, control, method, pseudocount = pseudocount, robust_loss_type = robust_loss_type,
+                robust_scale_method = robust_scale_method, verbose = verbose), ptab,
+                stringsAsFactors = FALSE)
         }
-        
+
         result_list$tested <- test_results
     }
 
     if (nrow(df_small) > 0) {
         small_mat <- sample_matrix(df_small)
         result_list$small <- data.frame(gene_id = df_small[, 1], .calculate_fc(small_mat,
-            samples, control, method, pseudocount = pseudocount,
-            robust_loss_type = robust_loss_type, robust_scale_method = robust_scale_method,
-            verbose = verbose), pvalue = NA,
+            samples, control, method, pseudocount = pseudocount, robust_loss_type = robust_loss_type,
+            robust_scale_method = robust_scale_method, verbose = verbose), pvalue = NA,
             padj = NA, r = NA, U = NA, stringsAsFactors = FALSE)
     }
 
@@ -235,8 +234,9 @@
         return(data.frame())
     }
     res <- do.call(rbind, result_list)
-    
-    # Preserve gene names as rownames for downstream matching in jackknife/bootstrap analyses
+
+    # Preserve gene names as rownames for downstream matching in
+    # jackknife/bootstrap analyses
     if ("gene_id" %in% colnames(res)) {
         rownames(res) <- as.character(res$gene_id)
     } else {
@@ -249,10 +249,10 @@
 }
 
 
-# Internal: Hochberg Stepup Procedure for FWER Control
-# NOTE (March 2026): .hochberg_stepup() and .benjamini_yekutieli()
-# are now imported from rank_based_methods.R to eliminate duplication.
-# These functions are defined there with full NA/Inf handling for robustness.
+# Internal: Hochberg Stepup Procedure for FWER Control NOTE (March 2026):
+# .hochberg_stepup() and .benjamini_yekutieli() are now imported from
+# rank_based_methods.R to eliminate duplication.  These functions are defined
+# there with full NA/Inf handling for robustness.
 
 
 # small helper (replacement for `%||%`) to provide default when NULL
@@ -284,8 +284,7 @@
 #' @noRd
 
 .calculate_fc <- function(x, samples, control, method = "mean", pseudocount = 0,
-                         robust_loss_type = "huber", robust_scale_method = "mad",
-                         verbose = FALSE) {
+    robust_loss_type = "huber", robust_scale_method = "mad", verbose = FALSE) {
     # validate control and samples inputs
     if (is.null(control) || !nzchar(control)) {
         stop("`control` must be provided to calculate_fc", call. = FALSE)
@@ -296,22 +295,21 @@
     if (!(control %in% samples)) {
         stop("Control sample type not found in samples.", call. = FALSE)
     }
-    
+
     # Validate method parameter
     if (!(method %in% c("mean", "median", "m_estimate"))) {
         stop("method must be 'mean', 'median', or 'm_estimate'", call. = FALSE)
     }
-    
+
     # Warn about computational cost of M-estimation
     if (method == "m_estimate" && verbose) {
         message("Note: M-estimation is more computationally intensive than mean/median.")
         message("  Permutation loop runtime may be 50-100x longer.")
         message("  Scales are pre-computed once then reused in permutations.")
     }
-    
-    agg <- .aggregate_fc_values(x = x, samples = samples, method = method,
-        control = control, robust_loss_type = robust_loss_type,
-        robust_scale_method = robust_scale_method)
+
+    agg <- .aggregate_fc_values(x = x, samples = samples, method = method, control = control,
+        robust_loss_type = robust_loss_type, robust_scale_method = robust_scale_method)
     value <- agg$value
     sorted <- agg$sorted
 
@@ -370,7 +368,8 @@
 #' and paired designs.
 #' @noRd
 
-.wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nthreads = 1, pairs = NULL) {
+.wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nthreads = 1,
+    pairs = NULL) {
     # Determine group indices (two groups expected)
     groups <- unique(sort(samples))
     if (length(groups) != 2) {
@@ -383,20 +382,22 @@
             if (length(pairs) != ncol(x)) {
                 stop("`pairs` must have length equal to ncol(x).", call. = FALSE)
             }
-            # Validate pairing structure: each pair should have exactly one sample from each group
+            # Validate pairing structure: each pair should have exactly one
+            # sample from each group
             pair_groups <- tapply(samples, pairs, function(s) unique(s))
-            bad_pairs <- names(pair_groups)[vapply(pair_groups, function(g) length(g) != 2, logical(1))]
+            bad_pairs <- names(pair_groups)[vapply(pair_groups, function(g) length(g) !=
+                2, logical(1))]
             if (length(bad_pairs) > 0) {
                 stop("Paired Wilcoxon requires each pair to have exactly one sample from each group. ",
-                    "Bad pairs: ", paste(bad_pairs, collapse = ", "), call. = FALSE)
+                  "Bad pairs: ", paste(bad_pairs, collapse = ", "), call. = FALSE)
             }
         } else {
             # Fall back to position-based pairing (original behavior)
             g1_idx <- as.numeric(which(samples %in% groups[1]))
             g2_idx <- as.numeric(which(samples %in% groups[2]))
             if (length(g1_idx) != length(g2_idx)) {
-                stop("Paired Wilcoxon requires equal numbers of samples in each group ", 
-                    "when pairing information is not provided.", call. = FALSE)
+                stop("Paired Wilcoxon requires equal numbers of samples in each group ",
+                  "when pairing information is not provided.", call. = FALSE)
             }
         }
     } else {
@@ -413,21 +414,24 @@
                 unique_pairs <- unique(pairs)
                 all_diffs <- numeric(0)
                 for (p in unique_pairs) {
-                    g1_samples <- which(pairs == p & samples == groups[1])
-                    g2_samples <- which(pairs == p & samples == groups[2])
-                    if (length(g1_samples) == 1 && length(g2_samples) == 1) {
-                        # Extract paired values
-                        all_diffs <- c(all_diffs, x[i, g1_samples] - x[i, g2_samples])
-                    }
+                  g1_samples <- which(pairs == p & samples == groups[1])
+                  g2_samples <- which(pairs == p & samples == groups[2])
+                  if (length(g1_samples) == 1 && length(g2_samples) == 1) {
+                    # Extract paired values
+                    all_diffs <- c(all_diffs, x[i, g1_samples] - x[i, g2_samples])
+                  }
                 }
                 # Perform paired test on the differences
                 test_result <- wilcox.test(all_diffs, mu = 0, exact = exact)
-                list(p.value = test_result$p.value, statistic = test_result$statistic, n = length(all_diffs))
+                list(p.value = test_result$p.value, statistic = test_result$statistic,
+                  n = length(all_diffs))
             } else {
                 # Standard Wilcoxon test (paired or unpaired based on position)
-                test_result <- wilcox.test(x[i, g1_idx], x[i, g2_idx], paired = paired, exact = exact)
+                test_result <- wilcox.test(x[i, g1_idx], x[i, g2_idx], paired = paired,
+                  exact = exact)
                 n <- ifelse(paired, length(g1_idx), length(g1_idx) + length(g2_idx))
-                list(p.value = test_result$p.value, statistic = test_result$statistic, n = n)
+                list(p.value = test_result$p.value, statistic = test_result$statistic,
+                  n = n)
             }
         }, error = function(e) {
             list(p.value = NA_real_, statistic = NA_real_, n = NA_real_)
@@ -440,49 +444,49 @@
     test_results <- .bplapply(seq_len(nrow(x)), .wilcox_one, nthreads = nthreads)
 
     # Extract components
-    raw_p_values <- vapply(test_results, function(r) if(is.na(r$p.value)) 1 else r$p.value, FUN.VALUE = numeric(1))
+    raw_p_values <- vapply(test_results, function(r) if (is.na(r$p.value))
+        1 else r$p.value, FUN.VALUE = numeric(1))
     u_statistics <- vapply(test_results, function(r) r$statistic, FUN.VALUE = numeric(1))
     n_samples <- vapply(test_results, function(r) r$n, FUN.VALUE = numeric(1))
-    
+
     adjusted_p_values <- p.adjust(raw_p_values, method = pcorr)
-    
+
     # Compute r-value (effect size) from U statistic: r = Z / sqrt(N)
-    # OPTIMIZED: Vectorized computation (eliminates loop - 10-20x faster for large n)
+    # OPTIMIZED: Vectorized computation (eliminates loop - 10-20x faster for
+    # large n)
     r_values <- rep(NA_real_, length(raw_p_values))
-    
+
     if (paired) {
-        # For paired tests (signed-rank): Z = (U - n*(n+1)/4) / sqrt(n*(n+1)*(2n+1)/24)
+        # For paired tests (signed-rank): Z = (U - n*(n+1)/4) /
+        # sqrt(n*(n+1)*(2n+1)/24)
         n_vec <- n_samples  # n for each gene (from paired test)
-        expected_U <- n_vec * (n_vec + 1) / 4
-        var_U <- (n_vec * (n_vec + 1) * (2 * n_vec + 1)) / 24
+        expected_U <- n_vec * (n_vec + 1)/4
+        var_U <- (n_vec * (n_vec + 1) * (2 * n_vec + 1))/24
         sd_U <- sqrt(var_U)
-        Z <- (u_statistics - expected_U) / sd_U
+        Z <- (u_statistics - expected_U)/sd_U
         r_values_valid <- !is.na(u_statistics) & !is.na(n_vec) & n_vec > 0
-        r_values[r_values_valid] <- Z[r_values_valid] / sqrt(n_vec[r_values_valid])
+        r_values[r_values_valid] <- Z[r_values_valid]/sqrt(n_vec[r_values_valid])
     } else {
         # For unpaired tests: Z = (U - n1*n2/2) / sqrt(n1*n2*(n1+n2+1)/12)
         n1 <- length(g1_idx)
         n2 <- length(g2_idx)
         n_total <- n1 + n2
-        
-        expected_U <- n1 * n2 / 2
-        var_U <- (n1 * n2 * (n1 + n2 + 1)) / 12
+
+        expected_U <- n1 * n2/2
+        var_U <- (n1 * n2 * (n1 + n2 + 1))/12
         sd_U <- sqrt(var_U)
-        Z <- (u_statistics - expected_U) / sd_U
-        r_values_valid <- !is.na(u_statistics) & !is.na(n_samples) & n_samples > 0
-        r_values[r_values_valid] <- Z[r_values_valid] / sqrt(n_total)
+        Z <- (u_statistics - expected_U)/sd_U
+        r_values_valid <- !is.na(u_statistics) & !is.na(n_samples) & n_samples >
+            0
+        r_values[r_values_valid] <- Z[r_values_valid]/sqrt(n_total)
     }
-    
-    # Clamp r-values to [-1, 1] range to handle numerical edge cases (VECTORIZED)
+
+    # Clamp r-values to [-1, 1] range to handle numerical edge cases
+    # (VECTORIZED)
     r_values <- pmax(-1, pmin(1, r_values))
-    
-    out <- data.frame(
-        pvalue = raw_p_values,
-        padj = adjusted_p_values,
-        U = u_statistics,
-        r = r_values,
-        row.names = NULL
-    )
+
+    out <- data.frame(pvalue = raw_p_values, padj = adjusted_p_values, U = u_statistics,
+        r = r_values, row.names = NULL)
     return(out)
 
 }
@@ -515,9 +519,9 @@
 #'   Set to > 1 to parallelize per-feature p-value computation.
 #' @param robust_loss_type Character; loss function for M-estimation (Tukey, Huber, or other).
 #'   Used when non-parametric tests switch to robust parametric alternatives.
-#'   Default: "huber".
+#'   Default: 'huber'.
 #' @param robust_scale_method Character; scale selection method for M-estimation
-#'   (e.g., "mad" for median absolute deviation). Default: "mad".
+#'   (e.g., 'mad' for median absolute deviation). Default: 'mad'.
 #' @return Raw and corrected p-values.
 #' @details
 #' \strong{S019 Implementation: Phipson & Smyth (2010) Bias Correction}
@@ -577,48 +581,48 @@
     paired = FALSE, paired_method = c("swap", "signflip"), nthreads = 1, pairs = NULL,
     robust_loss_type = "huber", robust_scale_method = "mad") {
     paired_method <- match.arg(paired_method)
-    
+
     # CRITICAL: Validate control and sample structure
     if (!(control %in% samples)) {
         stop("Control group '", control, "' not found in unique sample types: ",
-             paste(unique(samples), collapse = ", "), call. = FALSE)
+            paste(unique(samples), collapse = ", "), call. = FALSE)
     }
-    
+
     unique_groups <- unique(samples)
     if (length(unique_groups) != 2) {
         stop(".label_shuffling() requires exactly 2 sample groups (control and case); found ",
-             length(unique_groups), ": ", paste(unique_groups, collapse = ", "), call. = FALSE)
+            length(unique_groups), ": ", paste(unique_groups, collapse = ", "), call. = FALSE)
     }
-    
+
     # When paired with explicit pairing info, validate structure
     if (isTRUE(paired) && !is.null(pairs)) {
         if (length(pairs) != ncol(x)) {
             stop("`pairs` must have length equal to ncol(x).", call. = FALSE)
         }
     }
-    
+
     # observed log2 fold changes and group-wise means
     fc_result <- .calculate_fc(x, samples, control, method)
     log2_fc <- fc_result[, 4]
     group_means <- fc_result[, seq_len(2)]
-    
+
     # ========================================================================
-    # OPTIMIZATION: Pre-compute group indices and pseudocount once
-    # Instead of calling .calculate_fc() repeatedly in the permutation loop,
-    # use fast vectorized computation with pre-computed structure.
-    # This eliminates 49x overhead of aggregate() and data.frame creation.
+    # OPTIMIZATION: Pre-compute group indices and pseudocount once Instead of
+    # calling .calculate_fc() repeatedly in the permutation loop, use fast
+    # vectorized computation with pre-computed structure.  This eliminates 49x
+    # overhead of aggregate() and data.frame creation.
     # ========================================================================
-    
-    # Extract pseudocount from the initial result
-    # (calculated based on observed group summaries)
+
+    # Extract pseudocount from the initial result (calculated based on observed
+    # group summaries)
     pos_vals <- as.matrix(fc_result[, seq_len(2)])
     pos_vals <- pos_vals[!is.na(pos_vals) & pos_vals > 0]
     if (length(pos_vals) > 0) {
-        pseudocount_val <- min(pos_vals, na.rm = TRUE) / 2
+        pseudocount_val <- min(pos_vals, na.rm = TRUE)/2
     } else {
-        pseudocount_val <- 1e-6
+        pseudocount_val <- 1e-06
     }
-    
+
     # Pre-compute groups: identify control and case groups
     unique_groups <- unique(samples)
     case_group <- setdiff(unique_groups, control)
@@ -632,41 +636,45 @@
     # build permutation/null distribution of log2 fold changes
     if (isTRUE(paired)) {
         if (!is.null(pairs)) {
-            # Use explicit pairing: sign-flip within pairs
-            # OPTIMIZATION: Pre-compute pair indices once outside loop
+            # Use explicit pairing: sign-flip within pairs OPTIMIZATION:
+            # Pre-compute pair indices once outside loop
             unique_pairs <- unique(pairs)
             pair_indices <- vector("list", length(unique_pairs))
             for (p_idx in seq_along(unique_pairs)) {
                 pair_indices[[p_idx]] <- which(pairs == unique_pairs[p_idx])
             }
-            
-            # Pre-allocate matrix for permutation results (avoids repeated data.frame creation)
+
+            # Pre-allocate matrix for permutation results (avoids repeated
+            # data.frame creation)
             perm_mat <- matrix(NA_real_, nrow = nrow(x), ncol = randomizations)
-            
+
             for (r in seq_len(randomizations)) {
                 # Generate sign-flips for each pair
-                flip_signs <- sample(c(TRUE, FALSE), size = length(unique_pairs), replace = TRUE)
+                flip_signs <- sample(c(TRUE, FALSE), size = length(unique_pairs),
+                  replace = TRUE)
                 perm_samples <- samples
-                
-                # OPTIMIZATION: Vectorized pair swapping - only loop through pairs needing flip
+
+                # OPTIMIZATION: Vectorized pair swapping - only loop through
+                # pairs needing flip
                 flip_pairs_idx <- which(flip_signs)
                 if (length(flip_pairs_idx) > 0) {
-                    for (p_idx in flip_pairs_idx) {
-                        pair_idx <- pair_indices[[p_idx]]
-                        if (length(pair_idx) == 2) {
-                            perm_samples[pair_idx] <- perm_samples[rev(pair_idx)]
-                        }
+                  for (p_idx in flip_pairs_idx) {
+                    pair_idx <- pair_indices[[p_idx]]
+                    if (length(pair_idx) == 2) {
+                      perm_samples[pair_idx] <- perm_samples[rev(pair_idx)]
                     }
+                  }
                 }
-                
-                # Map permuted samples to group indices and compute log2FC directly
+
+                # Map permuted samples to group indices and compute log2FC
+                # directly
                 perm_case_idx <- which(perm_samples == case_group)
                 perm_ctrl_idx <- which(perm_samples == control)
-                
-                # Use fast computation instead of .calculate_fc(avoids aggregate overhead)
-                perm_mat[, r] <- .fast_log2fc_permutation(x, perm_case_idx, perm_ctrl_idx, 
-                                                                 method, pseudocount_val,
-                                                                 robust_loss_type, robust_scale_method)
+
+                # Use fast computation instead of .calculate_fc(avoids
+                # aggregate overhead)
+                perm_mat[, r] <- .fast_log2fc_permutation(x, perm_case_idx, perm_ctrl_idx,
+                  method, pseudocount_val, robust_loss_type, robust_scale_method)
             }
         } else {
             # Fall back to position-based paired permutation
@@ -675,22 +683,23 @@
         }
     } else {
         # Generate unpaired permutations with optimized computation
-        # Pre-allocate matrix to store permutation results (avoids repeated data.frame creation)
+        # Pre-allocate matrix to store permutation results (avoids repeated
+        # data.frame creation)
         perm_mat <- matrix(NA_real_, nrow = nrow(x), ncol = randomizations)
-        
+
         for (r in seq_len(randomizations)) {
             # Shuffle sample labels
             perm_samples <- sample(samples)
-            
+
             # Map permuted samples to group indices and compute log2FC directly
             # This uses vectorized mean/median instead of aggregate()
             perm_case_idx <- which(perm_samples == case_group)
             perm_ctrl_idx <- which(perm_samples == control)
-            
-            # Use fast computation instead of .calculate_fc(avoids aggregate overhead)
+
+            # Use fast computation instead of .calculate_fc(avoids aggregate
+            # overhead)
             perm_mat[, r] <- .fast_log2fc_permutation(x, perm_case_idx, perm_ctrl_idx,
-                                                             method, pseudocount_val,
-                                                             robust_loss_type, robust_scale_method)
+                method, pseudocount_val, robust_loss_type, robust_scale_method)
         }
     }
 
@@ -713,92 +722,87 @@
     }
 
     # compute two-sided permutation p-value with pseudocount, in parallel
-    raw_p_values <- unlist(.bplapply(seq_len(nrow(perm_mat)), .compute_pval,
-        nthreads = nthreads))
+    raw_p_values <- unlist(.bplapply(seq_len(nrow(perm_mat)), .compute_pval, nthreads = nthreads))
 
     adjusted_p_values <- p.adjust(raw_p_values, method = pcorr)
-    
-    # Compute effect size statistics (r and U) from observed data
-    # These are independent of the permutation distribution
+
+    # Compute effect size statistics (r and U) from observed data These are
+    # independent of the permutation distribution
     groups <- unique(sort(samples))
-    
+
     # Helper to compute U and r for a single feature
     .compute_effect_sizes <- function(i) {
         tryCatch({
             if (isTRUE(paired) && !is.null(pairs)) {
-                # Paired design: compute signed-rank test from paired differences
+                # Paired design: compute signed-rank test from paired
+                # differences
                 unique_pairs <- unique(pairs)
                 all_diffs <- numeric(0)
                 for (p in unique_pairs) {
-                    g1_samples <- which(pairs == p & samples == groups[1])
-                    g2_samples <- which(pairs == p & samples == groups[2])
-                    if (length(g1_samples) == 1 && length(g2_samples) == 1) {
-                        all_diffs <- c(all_diffs, x[i, g1_samples] - x[i, g2_samples])
-                    }
+                  g1_samples <- which(pairs == p & samples == groups[1])
+                  g2_samples <- which(pairs == p & samples == groups[2])
+                  if (length(g1_samples) == 1 && length(g2_samples) == 1) {
+                    all_diffs <- c(all_diffs, x[i, g1_samples] - x[i, g2_samples])
+                  }
                 }
                 if (is.null(all_diffs) || length(all_diffs) < 2) {
-                    return(c(U = NA_real_, r = NA_real_))
+                  return(c(U = NA_real_, r = NA_real_))
                 }
-                # Signed-rank test on paired differences (exact=FALSE to avoid tie warnings)
+                # Signed-rank test on paired differences (exact=FALSE to avoid
+                # tie warnings)
                 wt <- wilcox.test(all_diffs, mu = 0, exact = FALSE)
                 U <- as.numeric(wt$statistic)
                 n <- length(all_diffs)
                 # For paired: r = Z / sqrt(n)
-                expected_U <- n * (n + 1) / 4
-                var_U <- (n * (n + 1) * (2 * n + 1)) / 24
+                expected_U <- n * (n + 1)/4
+                var_U <- (n * (n + 1) * (2 * n + 1))/24
                 sd_U <- sqrt(var_U)
-                Z <- (U - expected_U) / sd_U
-                r <- Z / sqrt(n)
+                Z <- (U - expected_U)/sd_U
+                r <- Z/sqrt(n)
                 c(U = U, r = pmax(-1, pmin(1, r)))  # Clamp r to [-1, 1]
             } else {
                 # Unpaired design: compute rank-sum test
                 g1_idx <- which(samples == groups[1])
                 g2_idx <- which(samples == groups[2])
-                
+
                 if (length(g1_idx) == 0 || length(g2_idx) == 0) {
-                    return(c(U = NA_real_, r = NA_real_))
+                  return(c(U = NA_real_, r = NA_real_))
                 }
-                
-                # Use exact=FALSE to avoid warnings about ties/zeroes on small samples
+
+                # Use exact=FALSE to avoid warnings about ties/zeroes on small
+                # samples
                 wt <- wilcox.test(x[i, g1_idx], x[i, g2_idx], paired = FALSE, exact = FALSE)
                 U <- as.numeric(wt$statistic)
                 n1 <- length(g1_idx)
                 n2 <- length(g2_idx)
                 n <- n1 + n2
                 # For unpaired: r = Z / sqrt(n)
-                expected_U <- n1 * n2 / 2
-                var_U <- (n1 * n2 * (n1 + n2 + 1)) / 12
+                expected_U <- n1 * n2/2
+                var_U <- (n1 * n2 * (n1 + n2 + 1))/12
                 sd_U <- sqrt(var_U)
-                Z <- (U - expected_U) / sd_U
-                r <- Z / sqrt(n)
+                Z <- (U - expected_U)/sd_U
+                r <- Z/sqrt(n)
                 c(U = U, r = pmax(-1, pmin(1, r)))  # Clamp r to [-1, 1]
             }
         }, error = function(e) {
             c(U = NA_real_, r = NA_real_)
         })
     }
-    
+
     # Compute effect sizes in parallel
     effect_sizes <- .bplapply(seq_len(nrow(x)), .compute_effect_sizes, nthreads = nthreads)
     u_statistics <- vapply(effect_sizes, function(es) es["U"], FUN.VALUE = numeric(1))
     r_values <- vapply(effect_sizes, function(es) es["r"], FUN.VALUE = numeric(1))
-    
-    # Build output data frame with p-values, fold changes, group means, and effect sizes
-    out <- data.frame(
-        pvalue = raw_p_values,
-        padj = adjusted_p_values,
-        log2FC = log2_fc,
-        U = u_statistics,
-        r = r_values,
-        group_means,
-        check.names = FALSE,
-        stringsAsFactors = FALSE
-    )
-    
+
+    # Build output data frame with p-values, fold changes, group means, and
+    # effect sizes
+    out <- data.frame(pvalue = raw_p_values, padj = adjusted_p_values, log2FC = log2_fc,
+        U = u_statistics, r = r_values, group_means, check.names = FALSE, stringsAsFactors = FALSE)
+
     # Set column names for group means
     group_names <- colnames(group_means)
     colnames(out) <- c("pvalue", "padj", "log2FC", "U", "r", group_names)
-    
+
     return(out)
 }
 
@@ -806,8 +810,8 @@
 
 # Helper utilities for calculate_difference
 
-.calculate_difference_partition <- function(df, samples, control, method,
-    test, pcorr, randomizations, verbose) {
+.calculate_difference_partition <- function(df, samples, control, method, test, pcorr,
+    randomizations, verbose) {
     if (ncol(df) - 1 != length(samples)) {
         stop("Column count doesn't match length(samples).", call. = FALSE)
     }
@@ -879,93 +883,92 @@
 
 # Helpers for calculate_fc
 .aggregate_fc_values <- function(x, samples, method, control, robust_loss_type = "huber",
-                                        robust_scale_method = "mad") {
+    robust_scale_method = "mad") {
     if (method == "mean") {
         value <- aggregate(t(x), by = list(samples), mean, na.rm = TRUE)
     } else if (method == "median") {
         value <- aggregate(t(x), by = list(samples), median, na.rm = TRUE)
     } else if (method == "m_estimate") {
-        # Robust location estimation using M-estimation with PRE-COMPUTED SCALES
-        # OPTIMIZATION: Compute scales once per group (not per-feature) to reduce computation
-        # This gives ~2-10x speedup vs. the naive approach
+        # Robust location estimation using M-estimation with PRE-COMPUTED
+        # SCALES OPTIMIZATION: Compute scales once per group (not per-feature)
+        # to reduce computation This gives ~2-10x speedup vs. the naive
+        # approach
         unique_groups <- unique(samples)
         if (length(unique_groups) != 2) {
             stop("M-estimation requires exactly 2 groups", call. = FALSE)
         }
-        
+
         # Pre-compute group indices and group data once
         group1_idx <- which(samples == unique_groups[1])
         group2_idx <- which(samples == unique_groups[2])
-        
-        # Compute scales once per group using aggregate data or MAD-based approach
-        # For each scale_method, compute a single representative scale value for all features in that group
+
+        # Compute scales once per group using aggregate data or MAD-based
+        # approach For each scale_method, compute a single representative scale
+        # value for all features in that group
         if (robust_scale_method == "proposal2") {
             # PROPOSAL 2: Use Huber's Proposal 2 scale on aggregate statistics
             # Compute across all features in each group
-            group1_medians <- vapply(seq_len(nrow(x)), function(feat) 
-                median(x[feat, group1_idx], na.rm = TRUE), FUN.VALUE = numeric(1))
-            group2_medians <- vapply(seq_len(nrow(x)), function(feat)
-                median(x[feat, group2_idx], na.rm = TRUE), FUN.VALUE = numeric(1))
-            
+            group1_medians <- vapply(seq_len(nrow(x)), function(feat) median(x[feat,
+                group1_idx], na.rm = TRUE), FUN.VALUE = numeric(1))
+            group2_medians <- vapply(seq_len(nrow(x)), function(feat) median(x[feat,
+                group2_idx], na.rm = TRUE), FUN.VALUE = numeric(1))
+
             scale1 <- .huber_proposal2_scale(group1_medians)
             scale2 <- .huber_proposal2_scale(group2_medians)
         } else if (robust_scale_method == "s-estimator") {
             # S-ESTIMATOR: Similar aggregate approach
-            group1_medians <- vapply(seq_len(nrow(x)), function(feat)
-                median(x[feat, group1_idx], na.rm = TRUE), FUN.VALUE = numeric(1))
-            group2_medians <- vapply(seq_len(nrow(x)), function(feat)
-                median(x[feat, group2_idx], na.rm = TRUE), FUN.VALUE = numeric(1))
-            
+            group1_medians <- vapply(seq_len(nrow(x)), function(feat) median(x[feat,
+                group1_idx], na.rm = TRUE), FUN.VALUE = numeric(1))
+            group2_medians <- vapply(seq_len(nrow(x)), function(feat) median(x[feat,
+                group2_idx], na.rm = TRUE), FUN.VALUE = numeric(1))
+
             scale1 <- .mest_s_estimator_scale(group1_medians)
             scale2 <- .mest_s_estimator_scale(group2_medians)
         } else {
-            # DEFAULT: MAD-based scale on aggregate (fastest)
-            # Use MAD computed from pooled residuals
+            # DEFAULT: MAD-based scale on aggregate (fastest) Use MAD computed
+            # from pooled residuals
             group1_all <- as.numeric(x[, group1_idx])
             group2_all <- as.numeric(x[, group2_idx])
-            
+
             med1 <- median(group1_all, na.rm = TRUE)
             med2 <- median(group2_all, na.rm = TRUE)
-            
+
             mad1 <- median(abs(group1_all - med1), na.rm = TRUE)
             mad2 <- median(abs(group2_all - med2), na.rm = TRUE)
-            
-            scale1 <- 1.345 * if (mad1 == 0) 1 else mad1
-            scale2 <- 1.345 * if (mad2 == 0) 1 else mad2
+
+            scale1 <- 1.345 * if (mad1 == 0)
+                1 else mad1
+            scale2 <- 1.345 * if (mad2 == 0)
+                1 else mad2
         }
-        
-        # Now compute location for each feature using pre-computed scales
-        # This avoids re-computing scales inside .mest_irls_location()
+
+        # Now compute location for each feature using pre-computed scales This
+        # avoids re-computing scales inside .mest_irls_location()
         value_list <- list()
-        
+
         for (feat in seq_len(nrow(x))) {
             feat_vals <- as.numeric(x[feat, ])
-            
+
             group1_vals <- feat_vals[group1_idx]
             group2_vals <- feat_vals[group2_idx]
-            
-            # Pass pre-computed scales to IRLS, skipping scale computation inside the function
-            est1 <- .mest_irls_location(group1_vals, 
-                                            loss_type = robust_loss_type,
-                                            scale = scale1,  # <- PRE-COMPUTED, avoids recomputation!
-                                            max_iter = 20,
-                                            tol = 1e-4)
-            est2 <- .mest_irls_location(group2_vals,
-                                            loss_type = robust_loss_type,
-                                            scale = scale2,  # <- PRE-COMPUTED, avoids recomputation!
-                                            max_iter = 20,
-                                            tol = 1e-4)
-            
+
+            # Pass pre-computed scales to IRLS, skipping scale computation
+            # inside the function
+            est1 <- .mest_irls_location(group1_vals, loss_type = robust_loss_type,
+                scale = scale1, max_iter = 20, tol = 1e-04)
+            est2 <- .mest_irls_location(group2_vals, loss_type = robust_loss_type,
+                scale = scale2, max_iter = 20, tol = 1e-04)
+
             value_list[[feat]] <- c(est1, est2)
         }
-        
-        # Format as matrix matching mean/median output
-        # value_list is a list of 2-element vectors, one per feature
-        # We need to transpose to get: 2 rows (groups) x nfeatures columns
+
+        # Format as matrix matching mean/median output value_list is a list of
+        # 2-element vectors, one per feature We need to transpose to get: 2
+        # rows (groups) x nfeatures columns
         value_matrix <- do.call(rbind, value_list)
         # Now value_matrix is nfeatures x 2, need to transpose to 2 x nfeatures
         value_matrix <- t(value_matrix)
-        
+
         # Create output data.frame with Group.1 column
         value <- data.frame(Group.1 = unique_groups, value_matrix, stringsAsFactors = FALSE)
         colnames(value) <- c("Group.1", paste0("V", seq_len(nrow(x))))
@@ -1001,13 +1004,14 @@
 }
 
 # Optimized helper for fast log2FC computation in permutation loops
-# Pre-computes group indices and pseudocount once, avoiding aggregate() overhead
-# Reduces permutation test overhead by 20-30% via direct matrix operations
-# For m_estimate: pre-computes scales once per permutation (not per-feature)
+# Pre-computes group indices and pseudocount once, avoiding aggregate()
+# overhead Reduces permutation test overhead by 20-30% via direct matrix
+# operations For m_estimate: pre-computes scales once per permutation (not
+# per-feature)
 .fast_log2fc_permutation <- function(x, group1_idx, group2_idx, method, pseudocount,
-                                            robust_loss_type = "huber", 
-                                            robust_scale_method = "mad") {
-    # Compute group summaries using pre-computed indices (vectorized, no aggregate)
+    robust_loss_type = "huber", robust_scale_method = "mad") {
+    # Compute group summaries using pre-computed indices (vectorized, no
+    # aggregate)
     if (method == "mean") {
         g1_val <- rowMeans(x[, group1_idx, drop = FALSE], na.rm = TRUE)
         g2_val <- rowMeans(x[, group2_idx, drop = FALSE], na.rm = TRUE)
@@ -1015,66 +1019,68 @@
         g1_val <- apply(x[, group1_idx, drop = FALSE], 1, median, na.rm = TRUE)
         g2_val <- apply(x[, group2_idx, drop = FALSE], 1, median, na.rm = TRUE)
     } else if (method == "m_estimate") {
-        # M-estimation: OPTIMIZATION - Pre-compute scales once per permutation, not per-feature
-        # This is CRITICAL for permutation loop performance (called hundreds/thousands of times)
-        # Pre-computing scales reduces matrix operations ~50-70% compared to naive approach
-        
-        # Compute scales using aggregate data from pooled residuals (fastest approach)
+        # M-estimation: OPTIMIZATION - Pre-compute scales once per permutation,
+        # not per-feature This is CRITICAL for permutation loop performance
+        # (called hundreds/thousands of times) Pre-computing scales reduces
+        # matrix operations ~50-70% compared to naive approach
+
+        # Compute scales using aggregate data from pooled residuals (fastest
+        # approach)
         if (robust_scale_method == "proposal2") {
             group1_all <- as.numeric(x[, group1_idx])
             group2_all <- as.numeric(x[, group2_idx])
-            
+
             # Proposal 2 scale on aggregated data
             scale1 <- .huber_proposal2_scale(group1_all)
             scale2 <- .huber_proposal2_scale(group2_all)
         } else if (robust_scale_method == "s-estimator") {
             group1_all <- as.numeric(x[, group1_idx])
             group2_all <- as.numeric(x[, group2_idx])
-            
+
             scale1 <- .mest_s_estimator_scale(group1_all)
             scale2 <- .mest_s_estimator_scale(group2_all)
         } else {
             # DEFAULT: MAD-based scale (fastest, most robust)
             group1_all <- as.numeric(x[, group1_idx])
             group2_all <- as.numeric(x[, group2_idx])
-            
+
             med1 <- median(group1_all, na.rm = TRUE)
             med2 <- median(group2_all, na.rm = TRUE)
-            
+
             mad1 <- median(abs(group1_all - med1), na.rm = TRUE)
             mad2 <- median(abs(group2_all - med2), na.rm = TRUE)
-            
-            scale1 <- 1.345 * if (mad1 == 0) 1 else mad1
-            scale2 <- 1.345 * if (mad2 == 0) 1 else mad2
+
+            scale1 <- 1.345 * if (mad1 == 0)
+                1 else mad1
+            scale2 <- 1.345 * if (mad2 == 0)
+                1 else mad2
         }
-        
+
         # Apply location estimation to each feature using pre-computed scales
         g1_val <- apply(x[, group1_idx, drop = FALSE], 1, function(row) {
-            .mest_irls_location(row, loss_type = robust_loss_type,
-                                    scale = scale1,  # <- Use pre-computed scale!
-                                    max_iter = 20, tol = 1e-4)
+            .mest_irls_location(row, loss_type = robust_loss_type, scale = scale1,
+                max_iter = 20, tol = 1e-04)
         })
         g2_val <- apply(x[, group2_idx, drop = FALSE], 1, function(row) {
-            .mest_irls_location(row, loss_type = robust_loss_type,
-                                    scale = scale2,  # <- Use pre-computed scale!
-                                    max_iter = 20, tol = 1e-4)
+            .mest_irls_location(row, loss_type = robust_loss_type, scale = scale2,
+                max_iter = 20, tol = 1e-04)
         })
     } else {
         stop("Invalid method; must be 'mean', 'median', or 'm_estimate'")
     }
-    
+
     # Create 2-column structure for pseudocount application
     values <- cbind(g1_val, g2_val)
     values[!is.finite(values)] <- NA
-    
+
     # Apply pseudocount: reuse the precomputed pseudocount parameter
     replace_idx <- !is.na(values) & values <= 0
     values[replace_idx] <- pseudocount
-    
+
     # Compute log2FC
-    log2fc <- log2(values[, 1] / values[, 2])
+    log2fc <- log2(values[, 1]/values[, 2])
     log2fc[is.na(values[, 1]) | is.na(values[, 2])] <- NA
-    
+
     return(log2fc)
 }
 

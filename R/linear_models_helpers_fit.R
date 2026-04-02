@@ -59,8 +59,8 @@
 #' @param q_vals Numeric vector of Tsallis q-parameters (length = ncol(mat))
 #' @param sample_names Character vector of sample identifiers (length = ncol(mat))
 #' @param group_vec Factor/character vector of group assignments (length = ncol(mat))
-#' @param method Character: statistical method - "lmm", "gam", "fpca", or "gee"
-#' @param pvalue Character: p-value extraction method - "lrt", "satterthwaite", or "both"
+#' @param method Character: statistical method - 'lmm', 'gam', 'fpca', or 'gee'
+#' @param pvalue Character: p-value extraction method - 'lrt', 'satterthwaite', or 'both'
 #'   (LMM only; ignored for GAM/FPCA/GEE)
 #' @param subject_col Character: colData column name for subject IDs (optional; overrides paired)
 #' @param paired Logical: if TRUE, search for paired_samples or sample_base columns (LMM, GAM)
@@ -69,10 +69,10 @@
 #' @param suppress_lme4_warnings Logical: if TRUE, suppress lme4 warnings during fitting
 #' @param progress Logical: if TRUE, show progress messages and timing
 #' @param bias_correction Logical: if TRUE, apply bias corrections in GAM models (default TRUE)
-#' @param regularization Character: regularization method - "pca", "lasso", "elasticnet",
-#'   "gamsel", or "spline" (affects GAM and FPCA feature selection)
-#' @param corstr Character: correlation structure - "ar1" (default), "exchangeable", or
-#'   "independence" (GEE only)
+#' @param regularization Character: regularization method - 'pca', 'lasso', 'elasticnet',
+#'   'gamsel', or 'spline' (affects GAM and FPCA feature selection)
+#' @param corstr Character: correlation structure - 'ar1' (default), 'exchangeable', or
+#'   'independence' (GEE only)
 #' @param adaptive_knots Logical: if TRUE, automatically select basis dimension in GAM (default TRUE)
 #' @param weights Numeric vector: optional inverse-variance weights for robust estimation
 #'   (length must equal nrow(df); applied in LMM and GEE)
@@ -83,7 +83,7 @@
 #'   - p_interaction: Numeric p-value for q*group interaction test
 #'   - p_lrt: Numeric p-value from Likelihood Ratio Test (LMM only; NA for GAM/FPCA/GEE)
 #'   - slope_diff: Numeric interaction coefficient (slope difference between groups)
-#'   - fit_method: Character method used ("nlme::lme", "nlme::lme_arima(1,1,0)", "gam", "fpca", "gee", etc.)
+#'   - fit_method: Character method used ('nlme::lme', 'nlme::lme_arima(1,1,0)', 'gam', 'fpca', 'gee', etc.)
 #'   - singular: Logical TRUE if model fit was singular (lmer only)
 #'   - arima_transformation: Logical TRUE if ARIMA(1,1,0) first-differencing applied (LMM)
 #'   - ci_weighted: Logical TRUE if inverse-variance weights were applied
@@ -97,92 +97,97 @@
 #'
 #' @keywords internal
 #' @noRd
-.fit_one_interaction <- function(g, se, mat, q_vals, sample_names, group_vec,
-    method, pvalue, subject_col, paired, min_obs, verbose, suppress_lme4_warnings,
-    progress, bias_correction = TRUE, regularization = c("pca", "lasso", "elasticnet", "gamsel", "spline"),
-    corstr = c("ar1", "exchangeable", "independence"), adaptive_knots = TRUE, weights = NULL) {
+.fit_one_interaction <- function(g, se, mat, q_vals, sample_names, group_vec, method,
+    pvalue, subject_col, paired, min_obs, verbose, suppress_lme4_warnings, progress,
+    bias_correction = TRUE, regularization = c("pca", "lasso", "elasticnet", "gamsel",
+        "spline"), corstr = c("ar1", "exchangeable", "independence"), adaptive_knots = TRUE,
+    weights = NULL) {
     # ═══════════════════════════════════════════════════════════════════════════
     # INPUT VALIDATION AND SETUP (compressed via helpers)
     # ═══════════════════════════════════════════════════════════════════════════
-    # Matches regularization/corstr args, validates gene exists, extracts entropy,
-    # initializes data frame, applies optional weights
-    
+    # Matches regularization/corstr args, validates gene exists, extracts
+    # entropy, initializes data frame, applies optional weights
+
     regularization <- match.arg(regularization)
     corstr <- match.arg(corstr)
-    
+
     # Setup data frame via helper (validates gene + builds df)
     df <- .setup_interaction_data(g, mat, q_vals, group_vec)
     df <- .apply_weights_to_df(df, weights, g, verbose)
-    
+
     # Dispatch to method-specific helper (contains all details for that method)
     if (method == "lmm") {
-        return(.lmm_interaction(df, mat, q_vals, sample_names, group_vec, g, se, 
-                                subject_col, paired, min_obs, verbose, 
-                                suppress_lme4_warnings, progress, 
-                                regularization, weights))
+        return(.lmm_interaction(df, mat, q_vals, sample_names, group_vec, g, se,
+            subject_col, paired, min_obs, verbose, suppress_lme4_warnings, progress,
+            regularization, weights))
     }
-    
+
     if (method == "gam") {
         subject <- .get_subject_ids(se, subject_col, paired, mat, sample_names)
-        df$subject <- if (!is.null(subject)) factor(subject) else factor(sample_names)
+        df$subject <- if (!is.null(subject))
+            factor(subject) else factor(sample_names)
         return(.gam_interaction(df, q_vals, g, min_obs = min_obs, subject = subject,
-                                regularization = regularization, bias_correction = bias_correction,
-                                adaptive_knots = adaptive_knots, weights = weights))
+            regularization = regularization, bias_correction = bias_correction, adaptive_knots = adaptive_knots,
+            weights = weights))
     }
-    
+
     if (method == "fpca") {
         subject <- .get_subject_ids(se, subject_col, paired, mat, sample_names)
-        return(.fpca_interaction(mat, q_vals, sample_names, group_vec, g,
-                                 min_obs = min_obs, subject = subject, regularization = regularization, weights = weights))
+        return(.fpca_interaction(mat, q_vals, sample_names, group_vec, g, min_obs = min_obs,
+            subject = subject, regularization = regularization, weights = weights))
     }
-    
+
     if (method == "gee") {
         subject <- .get_subject_ids(se, subject_col, paired, mat, sample_names)
-        if (is.null(subject) && !paired) subject <- sample_names
-        return(.gee_interaction(df, q_vals, g, subject = subject, min_obs = min_obs, 
-                                corstr = corstr, bias_correction = bias_correction, weights = weights))
+        if (is.null(subject) && !paired)
+            subject <- sample_names
+        return(.gee_interaction(df, q_vals, g, subject = subject, min_obs = min_obs,
+            corstr = corstr, bias_correction = bias_correction, weights = weights))
     }
-    
+
     NULL  # Invalid method (should be caught upstream)
 }
 
 #' @noRd
 #' @keywords internal
-.lmm_interaction <- function(df, mat, q_vals, sample_names, group_vec, g, se, 
-                              subject_col, paired, min_obs, verbose, 
-                              suppress_lme4_warnings, progress, regularization, weights) {
+.lmm_interaction <- function(df, mat, q_vals, sample_names, group_vec, g, se, subject_col,
+    paired, min_obs, verbose, suppress_lme4_warnings, progress, regularization, weights) {
     # ═══════════════════════════════════════════════════════════════════════════
     # .lmm_interaction() - LINEAR MIXED MODELS (LMM METHOD IMPLEMENTATION)
     # ═══════════════════════════════════════════════════════════════════════════
     # Purpose: Fit LMM with AR(1) covariance structure for interaction testing
-    # Contains all method-specific logic extracted from main dispatcher function
-    # Preserves full documentation of methodology while reducing line count
-    
+    # Contains all method-specific logic extracted from main dispatcher
+    # function Preserves full documentation of methodology while reducing line
+    # count
+
     if (!requireNamespace("nlme", quietly = TRUE)) {
         stop("Package 'nlme' is required for method = 'lmm'")
     }
-    
+
     # Get subject IDs and build subject column
     subject <- .get_subject_ids(se, subject_col, paired, mat, sample_names)
-    if (is.null(subject)) subject <- sample_names
+    if (is.null(subject))
+        subject <- sample_names
     df$subject <- factor(subject)
-    
+
     # Validate sample size requirements
     result <- .check_lmm_sample_sizes(df, min_obs)
-    if (!isTRUE(result)) return(NULL)
-    
+    if (!isTRUE(result))
+        return(NULL)
+
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # ARIMA(1,1,0) TRANSFORMATION: First differencing for stationarity
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # Problem: Raw Tsallis entropy H_q is monotone increasing with q, violating
-    #   stationarity assumption (constant mean) required for AR(1) modeling
+    # stationarity assumption (constant mean) required for AR(1) modeling
     # Solution: Use first differences DeltaH_q = H_q - H_{q-1} to remove trend
-    # - Bounded-support data [0, log(m)] after differencing approximates normality
-    # - Enables valid hypothesis testing under AR(1) correlation structure
-    # - Information preserved: interaction effects remain in differenced data
-    
+    # - Bounded-support data [0, log(m)] after differencing approximates
+    # normality - Enables valid hypothesis testing under AR(1) correlation
+    # structure - Information preserved: interaction effects remain in
+    # differenced data
+
     arima_result <- .compute_arima_differences(df, q_vals, df$group, df$subject)
-    
+
     if (is.null(arima_result) || nrow(arima_result$df) < 3) {
         df_model <- df
         use_arima <- FALSE
@@ -193,71 +198,60 @@
         df_model <- arima_result$df
         use_arima <- TRUE
         if (verbose) {
-            message(sprintf("[.lmm_interaction] ARIMA(1,1,0): %d observations -> %d after differencing", 
-                    arima_result$n_observations_original, arima_result$n_observations_differenced))
+            message(sprintf("[.lmm_interaction] ARIMA(1,1,0): %d observations -> %d after differencing",
+                arima_result$n_observations_original, arima_result$n_observations_differenced))
         }
     }
-    
+
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # MODEL FORMULAS: NULL (no interaction) vs ALTERNATIVE (q*group interaction)
+    # MODEL FORMULAS: NULL (no interaction) vs ALTERNATIVE (q*group
+    # interaction)
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     formula_null <- entropy ~ q + group
     formula_alt <- entropy ~ q * group
-    
+
     # OPTIONAL REGULARIZATION: Apply feature selection if not PCA
     fs_result <- NULL
     if (regularization != "pca") {
         fs_result <- .lmm_regularization(q_vals = df_model$q, entropy_vals = df_model$entropy,
-                                                group_vec = df_model$group, subject_vec = df_model$subject,
-                                                regularization = regularization)
+            group_vec = df_model$group, subject_vec = df_model$subject, regularization = regularization)
         if (!is.null(fs_result) && verbose) {
             uq_levels <- length(fs_result$q_values)
-            message("[.lmm_interaction] regularization retained ", 
-                    length(fs_result$selected_features), " of ", uq_levels - 1, " q-interaction features")
+            message("[.lmm_interaction] regularization retained ", length(fs_result$selected_features),
+                " of ", uq_levels - 1, " q-interaction features")
         }
     }
-    
+
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # HETEROSCEDASTICITY DETECTION: Use varPower() if variance depends on q
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     hetero_result <- .detect_heteroscedasticity(df_model, df_model$q, df_model$group)
     use_var_structure <- FALSE
-    
+
     if (!is.na(hetero_result$is_heteroscedastic) && hetero_result$is_heteroscedastic) {
         use_var_structure <- TRUE
         if (verbose) {
             message(sprintf("[.lmm_interaction] Heteroscedasticity detected (BP p = %.4f); applying varPower",
-                           hetero_result$p_value))
+                hetero_result$p_value))
         }
     }
-    
+
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # MODEL FITTING: nlme::lme with AR(1) covariance and optional variance structure
+    # MODEL FITTING: nlme::lme with AR(1) covariance and optional variance
+    # structure
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     if (use_var_structure) {
-        fit0 <- try(
-            nlme::lme(formula_null, random = ~1 | subject, data = df_model, method = "ML",
-                     correlation = nlme::corAR1(form = ~1 | subject),
-                     weights = nlme::varPower(form = ~ q)),
-            silent = TRUE
-        )
-        fit1 <- try(
-            nlme::lme(formula_alt, random = ~1 | subject, data = df_model, method = "ML",
-                     correlation = nlme::corAR1(form = ~1 | subject),
-                     weights = nlme::varPower(form = ~ q)),
-            silent = TRUE
-        )
+        fit0 <- try(nlme::lme(formula_null, random = ~1 | subject, data = df_model,
+            method = "ML", correlation = nlme::corAR1(form = ~1 | subject), weights = nlme::varPower(form = ~q)),
+            silent = TRUE)
+        fit1 <- try(nlme::lme(formula_alt, random = ~1 | subject, data = df_model,
+            method = "ML", correlation = nlme::corAR1(form = ~1 | subject), weights = nlme::varPower(form = ~q)),
+            silent = TRUE)
     } else {
-        fit0 <- try(
-            nlme::lme(formula_null, random = ~1 | subject, data = df_model, method = "ML",
-                     correlation = nlme::corAR1(form = ~1 | subject)),
-            silent = TRUE
-        )
-        fit1 <- try(
-            nlme::lme(formula_alt, random = ~1 | subject, data = df_model, method = "ML",
-                     correlation = nlme::corAR1(form = ~1 | subject)),
-            silent = TRUE
-        )
+        fit0 <- try(nlme::lme(formula_null, random = ~1 | subject, data = df_model,
+            method = "ML", correlation = nlme::corAR1(form = ~1 | subject)), silent = TRUE)
+        fit1 <- try(nlme::lme(formula_alt, random = ~1 | subject, data = df_model,
+            method = "ML", correlation = nlme::corAR1(form = ~1 | subject)), silent = TRUE)
     }
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -266,7 +260,7 @@
     fallback_lm <- NULL
     used_fit_method <- "nlme::lme"
     used_singular <- FALSE
-    
+
     if (inherits(fit0, "try-error") || inherits(fit1, "try-error")) {
         if (progress || verbose) {
             message("[.lmm_interaction] nlme::lme failed; trying fallback models")
@@ -277,7 +271,8 @@
             used_fit_method <- fb$method
         }
     } else {
-        used_fit_method <- if (use_arima) "nlme::lme_arima(1,1,0)" else "nlme::lme_ar1_raw"
+        used_fit_method <- if (use_arima)
+            "nlme::lme_arima(1,1,0)" else "nlme::lme_ar1_raw"
     }
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -285,10 +280,11 @@
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     lrt_result <- list(p_value = NA_real_, n_subjects = NA_integer_, small_sample_flag = FALSE)
     msg <- NULL
-    
+
     if (!is.null(fallback_lm)) {
         lrt_result <- .extract_lrt_p(fallback_lm$fit0, fallback_lm$fit1, df = df_model)
-        if (!is.null(fallback_lm$message)) msg <- fallback_lm$message
+        if (!is.null(fallback_lm$message))
+            msg <- fallback_lm$message
     } else {
         lrt_result <- .extract_lrt_p(fit0, fit1, df = df_model)
     }
@@ -301,34 +297,28 @@
         coefs <- tryCatch(coef(fallback_lm$fit1), error = function(e) NULL)
         if (!is.null(coefs)) {
             interaction_idx <- grep("q:group|group:q", names(coefs), ignore.case = FALSE)
-            if (length(interaction_idx) > 0) slope_diff <- coefs[interaction_idx[1]]
+            if (length(interaction_idx) > 0)
+                slope_diff <- coefs[interaction_idx[1]]
         }
     } else if (!inherits(fit1, "try-error")) {
         coefs <- tryCatch(nlme::fixef(fit1), error = function(e) NULL)
         if (!is.null(coefs)) {
             interaction_idx <- grep("q:group|group:q", names(coefs), ignore.case = FALSE)
-            if (length(interaction_idx) > 0) slope_diff <- coefs[interaction_idx[1]]
+            if (length(interaction_idx) > 0)
+                slope_diff <- coefs[interaction_idx[1]]
         }
     }
-    
+
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # RESULTS OUTPUT: Return data frame with model statistics
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     has_weights <- !is.null(df$weight)
-    res <- data.frame(
-        gene = g, 
-        p_interaction = lrt_result$p_value, 
-        p_lrt = lrt_result$p_value,
-        slope_diff = slope_diff, 
-        fit_method = used_fit_method, 
-        singular = used_singular, 
-        arima_transformation = use_arima, 
-        ci_weighted = has_weights,
-        n_subjects = lrt_result$n_subjects,
-        small_sample_flag = lrt_result$small_sample_flag,
-        stringsAsFactors = FALSE
-    )
-    if (!is.null(msg)) res$message <- msg
+    res <- data.frame(gene = g, p_interaction = lrt_result$p_value, p_lrt = lrt_result$p_value,
+        slope_diff = slope_diff, fit_method = used_fit_method, singular = used_singular,
+        arima_transformation = use_arima, ci_weighted = has_weights, n_subjects = lrt_result$n_subjects,
+        small_sample_flag = lrt_result$small_sample_flag, stringsAsFactors = FALSE)
+    if (!is.null(msg))
+        res$message <- msg
     res
 }
 
@@ -350,9 +340,9 @@
     # Validate that gene g exists in matrix
     if (!(g %in% rownames(mat))) {
         stop(sprintf("Gene '%s' not found in matrix rownames. Available genes: %s",
-                     g, paste(rownames(mat)[seq_len(min(5, nrow(mat)))], collapse=", ")))
+            g, paste(rownames(mat)[seq_len(min(5, nrow(mat)))], collapse = ", ")))
     }
-    
+
     # Extract entropy values and build data frame
     vals <- as.numeric(mat[g, ])
     df <- data.frame(entropy = vals, q = q_vals, group = factor(group_vec))
@@ -370,28 +360,29 @@
         df$weight <- weights
         if (verbose) {
             message(sprintf("[.fit_one_interaction] Gene '%s': weights applied (n=%d, mean=%.4f, min=%.4f, max=%.4f)",
-                           g, length(weights), mean(weights, na.rm=TRUE), 
-                           min(weights, na.rm=TRUE), max(weights, na.rm=TRUE)))
+                g, length(weights), mean(weights, na.rm = TRUE), min(weights, na.rm = TRUE),
+                max(weights, na.rm = TRUE)))
         }
     } else {
         if (verbose && !is.null(weights)) {
             message(sprintf("[.fit_one_interaction] Gene '%s': weights NOT applied - length mismatch (weights=%d, df rows=%d)",
-                           g, length(weights), nrow(df)))
+                g, length(weights), nrow(df)))
         }
     }
     df
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# .get_subject_ids() - Extract subject identifiers (refactored from 4 duplicates)
+# .get_subject_ids() - Extract subject identifiers (refactored from 4
+# duplicates)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 #' @noRd
 #' @keywords internal
-.get_subject_ids <- function(se = NULL, subject_col = NULL, paired = FALSE, 
-                             mat = NULL, sample_names = NULL) {
+.get_subject_ids <- function(se = NULL, subject_col = NULL, paired = FALSE, mat = NULL,
+    sample_names = NULL) {
     subject <- NULL
-    
+
     # Explicit subject_col provided
     if (!is.null(subject_col)) {
         if (is.null(se) || !(subject_col %in% colnames(SummarizedExperiment::colData(se)))) {
@@ -406,12 +397,12 @@
         subject <- unname(subj_full[sample_names])
         return(subject)
     }
-    
+
     # paired=TRUE: extract from colData
     if (paired && !is.null(se)) {
         coldata <- SummarizedExperiment::colData(se)
         coldata_cols <- colnames(coldata)
-        
+
         # Look for standard paired columns
         subject_col_name <- NULL
         if ("paired_samples" %in% coldata_cols) {
@@ -421,7 +412,7 @@
         } else if (length(coldata_cols) >= 3) {
             subject_col_name <- coldata_cols[3]  # fallback
         }
-        
+
         if (!is.null(subject_col_name)) {
             subject_ids <- as.character(coldata[, subject_col_name])
             sample_names_expanded <- sub("_q=.*", "", rownames(coldata))
@@ -432,7 +423,7 @@
             stop("paired = TRUE requires 'paired_samples' or 'sample_base' column in colData; supply subject_col explicitly")
         }
     }
-    
+
     # Fallback: use sample names as subject identifiers
     sample_names
 }
@@ -447,11 +438,11 @@
     if (nrow(df) < min_obs) {
         return(NULL)  # Not enough observations
     }
-    
+
     n_subjects <- length(unique(na.omit(df$subject)))
     if (n_subjects < 2) {
         return(NULL)  # Not enough subjects for random intercept
     }
-    
+
     TRUE  # Passes all checks
 }

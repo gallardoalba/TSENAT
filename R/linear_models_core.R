@@ -120,8 +120,8 @@
 #' TSENAT functions use consistent parameter names for sample grouping and subject identification:
 #' \itemize{
 #'   \item{\code{condition_col}: Character string specifying the colData column 
-#'         containing sample group/condition labels (e.g., "Normal", "Tumor", "control", "treatment"). 
-#'         Default: "condition". Map your grouping variable into this column before calling TSENAT functions.}
+#'         containing sample group/condition labels (e.g., 'Normal', 'Tumor', 'control', 'treatment'). 
+#'         Default: 'condition'. Map your grouping variable into this column before calling TSENAT functions.}
 #'   \item{\code{subject_col}: For paired/blocked/repeated-measures designs, character string specifying 
 #'         the colData column with subject/individual/patient identifiers. Default: NULL. 
 #'         Required when \code{paired = TRUE}.}
@@ -179,9 +179,9 @@
 #'   sample(1:100, 60, replace = TRUE),
 #'   nrow = 15, ncol = 4
 #' )
-#' rownames(counts) <- paste0("tx_", 1:15)
-#' colnames(counts) <- paste0("sample_", 1:4)
-#' genes <- rep(paste0("gene_", 1:5), each = 3)
+#' rownames(counts) <- paste0('tx_', 1:15)
+#' colnames(counts) <- paste0('sample_', 1:4)
+#' genes <- rep(paste0('gene_', 1:5), each = 3)
 #' 
 #' # Calculate diversity at multiple q values
 #' se <- .calculate_diversity(counts, genes = genes, q = c(0.5, 1.0, 1.5), norm = TRUE)
@@ -193,37 +193,20 @@
 #' )
 #' 
 #' # Run linear model interaction analysis
-#' results <- .calculate_lm_interaction(se, condition_col = "condition")
-.calculate_lm_interaction <- function(
-    se,
-    condition_col = "condition",
-    min_obs = 10,
-    method = c("lmm", "gam", "fpca", "gee"),
-    pvalue = c("satterthwaite", "lrt", "both"),
-    subject_col = NULL,
-    paired = FALSE,
-    nthreads = 1,
-    assay_name = "diversity",
-    pcorr = "BH",
-    verbose = FALSE,
-    bias_correction = TRUE,
-    regularization = c("pca", "lasso", "elasticnet", "gamsel",
-                       "spline"),
-    corstr = c("ar1", "exchangeable", "independence"),
-    multicorr = c("hochberg", "westfall-young",
-                  "benjamini-yekutieli"),
-    storey = FALSE,
-    wy_randomizations = 1000,
-    adaptive_knots = TRUE,
-    return_model_data = FALSE
-) {
+#' results <- .calculate_lm_interaction(se, condition_col = 'condition')
+.calculate_lm_interaction <- function(se, condition_col = "condition", min_obs = 10,
+    method = c("lmm", "gam", "fpca", "gee"), pvalue = c("satterthwaite", "lrt", "both"),
+    subject_col = NULL, paired = FALSE, nthreads = 1, assay_name = "diversity", pcorr = "BH",
+    verbose = FALSE, bias_correction = TRUE, regularization = c("pca", "lasso", "elasticnet",
+        "gamsel", "spline"), corstr = c("ar1", "exchangeable", "independence"), multicorr = c("hochberg",
+        "westfall-young", "benjamini-yekutieli"), storey = FALSE, wy_randomizations = 1000,
+    adaptive_knots = TRUE, return_model_data = FALSE) {
     # Normalize and validate arguments
     method <- match.arg(method)
     corstr <- match.arg(corstr)
     pvalue <- match.arg(pvalue)
     regularization <- match.arg(regularization)
-    pcorr <- match.arg(pcorr, c("BH", "bonferroni", "hochberg",
-                                "holm"))
+    pcorr <- match.arg(pcorr, c("BH", "bonferroni", "hochberg", "holm"))
     multicorr <- match.arg(multicorr)
 
     if (!requireNamespace("SummarizedExperiment", quietly = TRUE)) {
@@ -251,20 +234,10 @@
     }
 
     # Validate input parameters
-    validated <- .validate_lm_interaction_input(
-        method = method,
-        pvalue = pvalue,
-        corstr = corstr,
-        regularization = regularization,
-        multicorr = multicorr,
-        pcorr = pcorr,
-        storey = storey,
-        wy_randomizations = wy_randomizations,
-        paired = paired,
-        subject_col = subject_col,
-        se = se,
-        verbose = verbose
-    )
+    validated <- .validate_lm_interaction_input(method = method, pvalue = pvalue,
+        corstr = corstr, regularization = regularization, multicorr = multicorr,
+        pcorr = pcorr, storey = storey, wy_randomizations = wy_randomizations, paired = paired,
+        subject_col = subject_col, se = se, verbose = verbose)
 
     # Update subject_col from validated params (may be auto-detected)
     subject_col <- validated$subject_col
@@ -273,44 +246,26 @@
     cd_colnames <- colnames(SummarizedExperiment::colData(se))
     if (!(condition_col %in% cd_colnames)) {
         stop(sprintf("condition_col '%s' not found in colData. Available columns: %s",
-                     condition_col, paste(cd_colnames, collapse = ", ")),
-             call. = FALSE)
+            condition_col, paste(cd_colnames, collapse = ", ")), call. = FALSE)
     }
 
     # Validate assay name exists
     if (!(assay_name %in% SummarizedExperiment::assayNames(se))) {
-        stop(sprintf("Assay '%s' not found. Available assays: %s",
-                     assay_name, paste(SummarizedExperiment::assayNames(se), collapse = ", ")),
-             call. = FALSE)
+        stop(sprintf("Assay '%s' not found. Available assays: %s", assay_name, paste(SummarizedExperiment::assayNames(se),
+            collapse = ", ")), call. = FALSE)
     }
 
     # Parse sample metadata and q-values
-    metadata <- .parse_sample_metadata(
-        se = se,
-        condition_col = condition_col,
-        assay_name = assay_name,
-        verbose = verbose
-    )
+    metadata <- .parse_sample_metadata(se = se, condition_col = condition_col, assay_name = assay_name,
+        verbose = verbose)
 
     mat <- SummarizedExperiment::assay(se, assay_name)
 
     # Fit models to all genes
-    res <- .fit_all_genes(
-        mat = mat,
-        se = se,
-        metadata = metadata,
-        method = method,
-        pvalue = pvalue,
-        subject_col = subject_col,
-        paired = paired,
-        min_obs = min_obs,
-        nthreads = nthreads,
-        verbose = verbose,
-        bias_correction = bias_correction,
-        regularization = regularization,
-        corstr = corstr,
-        adaptive_knots = adaptive_knots
-    )
+    res <- .fit_all_genes(mat = mat, se = se, metadata = metadata, method = method,
+        pvalue = pvalue, subject_col = subject_col, paired = paired, min_obs = min_obs,
+        nthreads = nthreads, verbose = verbose, bias_correction = bias_correction,
+        regularization = regularization, corstr = corstr, adaptive_knots = adaptive_knots)
 
     # Validate res is a data.frame
     if (!is.data.frame(res)) {
@@ -327,50 +282,27 @@
     }
 
     # Adjust p-values for multiple q-values
-    res$adj_p_interaction <- .adjust_pvalues_multicorr(
-        p_values = res$p_interaction,
-        multicorr = multicorr,
-        wy_randomizations = wy_randomizations,
-        metadata = metadata,
-        verbose = verbose,
-        storey = storey
-    )
+    res$adj_p_interaction <- .adjust_pvalues_multicorr(p_values = res$p_interaction,
+        multicorr = multicorr, wy_randomizations = wy_randomizations, metadata = metadata,
+        verbose = verbose, storey = storey)
 
     # Sort by adjusted p-values, then raw p-values
-    res <- res[order(res$adj_p_interaction, res$p_interaction),
-               , drop = FALSE]
+    res <- res[order(res$adj_p_interaction, res$p_interaction), , drop = FALSE]
     rownames(res) <- NULL
 
     .report_fit_summary(res, verbose = verbose)
 
     # Map gene identifiers to annotations
-    res <- .map_gene_annotations(
-        res = res,
-        se = se,
-        verbose = verbose
-    )
+    res <- .map_gene_annotations(res = res, se = se, verbose = verbose)
 
     # Optionally return model data alongside results
     if (return_model_data) {
-        model_data <- .assemble_model_metadata(
-            se = se,
-            res = res,
-            mat = mat,
-            metadata = metadata,
-            method = method,
-            pvalue = pvalue,
-            multicorr = multicorr,
-            assay_name = assay_name,
-            bias_correction = bias_correction,
-            regularization = regularization,
-            corstr = corstr,
-            adaptive_knots = adaptive_knots
-        )
+        model_data <- .assemble_model_metadata(se = se, res = res, mat = mat, metadata = metadata,
+            method = method, pvalue = pvalue, multicorr = multicorr, assay_name = assay_name,
+            bias_correction = bias_correction, regularization = regularization, corstr = corstr,
+            adaptive_knots = adaptive_knots)
 
-        return(list(
-            results = res,
-            model_data = model_data
-        ))
+        return(list(results = res, model_data = model_data))
     }
 
     return(res)

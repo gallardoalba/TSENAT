@@ -21,7 +21,7 @@
 #' @keywords datasets
 #'
 #' @examples
-#' data(readcounts, package = "TSENAT")
+#' data(readcounts, package = 'TSENAT')
 #' dim(salmon_dataset)
 #' head(salmon_dataset[1:4, 1:3])
 #'

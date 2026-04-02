@@ -23,12 +23,12 @@ NULL
 #' library(SummarizedExperiment)
 #' set.seed(42)
 #' counts <- matrix(rpois(100, lambda = 10), nrow = 10, ncol = 10)
-#' colnames(counts) <- paste0("sample_", 1:10)
-#' rownames(counts) <- paste0("gene_", 1:10)
+#' colnames(counts) <- paste0('sample_', 1:10)
+#' rownames(counts) <- paste0('gene_', 1:10)
 #' se <- SummarizedExperiment(assays = list(counts = counts))
 #' 
 #' # Create TSENATAnalysis object
-#' example_analysis <- new("TSENATAnalysis", se = se)
+#' example_analysis <- new('TSENATAnalysis', se = se)
 #' 
 #' # Access SummarizedExperiment
 #' se_retrieved <- getSE(example_analysis)

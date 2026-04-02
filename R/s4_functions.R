@@ -1,8 +1,7 @@
-# S4 Wrapper Functions for TSENAT Pipeline
-# These functions provide S4-integrated alternatives to existing analysis
-# functions. They extract input from TSENATAnalysis slots, run analysis,
-# and store results back to appropriate slots.
-#
+# S4 Wrapper Functions for TSENAT Pipeline These functions provide
+# S4-integrated alternatives to existing analysis functions. They extract input
+# from TSENATAnalysis slots, run analysis, and store results back to
+# appropriate slots.
 
 
 
@@ -14,8 +13,8 @@
 #' @param formula \code{formula} or NULL. Reserved for future use.
 #' @param condition_col \code{character} or \code{NULL}. Column name in colData identifying sample conditions.
 #'   If NULL, reads from \code{@config$condition_col} or auto-detects common column names.
-#' @param method \code{character}. Statistical method (e.g., "lmm", "gam", "gee").
-#'   If NULL, uses method from @config$method or defaults to "lmm".
+#' @param method \code{character}. Statistical method (e.g., 'lmm', 'gam', 'gee').
+#'   If NULL, uses method from @config$method or defaults to 'lmm'.
 #' @param paired \code{logical}. Whether to use paired design. Default: FALSE.
 #'   If not specified, reads from \code{@config$paired} if available.
 #' @param subject_col \code{character} or \code{NULL}. Column name identifying subject IDs for paired designs.
@@ -23,13 +22,13 @@
 #' @param nthreads \code{numeric} or \code{NULL}. Number of CPU threads for parallel processing.
 #'   If NULL, reads from \code{@config$nthreads} (or defaults to NULL, letting base function decide).
 #' @param multicorr \code{character} or \code{NULL}. Multiple comparison correction method.
-#'   Options: "hochberg", "westfall-young", "benjamini-yekutieli".
+#'   Options: 'hochberg', 'westfall-young', 'benjamini-yekutieli'.
 #'   If NULL, uses method from @config or base function defaults.
 #' @param corstr \code{character} or \code{NULL}. Correlation structure for GEE models.
-#'   Options: "ar1", "exchangeable", "independence".
+#'   Options: 'ar1', 'exchangeable', 'independence'.
 #'   If NULL, uses method from @config or base function defaults.
 #' @param pcorr \code{character} or \code{NULL}. P-value correction method.
-#'   Default: "BH" (Benjamini-Hochberg).
+#'   Default: 'BH' (Benjamini-Hochberg).
 #'   If NULL, reads from \code{@config$pcorr} if available.
 #' @param verbose \code{logical}. Print progress messages. Default: FALSE.
 #' @param return_model_data \code{logical}. Return model data for visualization. Default: TRUE.
@@ -79,13 +78,13 @@
 #' }
 #' counts <- pmax(counts, 50)  # Ensure minimum expression
 #' 
-#' rownames(counts) <- paste0("TX_", seq_len(n_transcripts))
-#' colnames(counts) <- paste0("Sample_", seq_len(n_samples))
+#' rownames(counts) <- paste0('TX_', seq_len(n_transcripts))
+#' colnames(counts) <- paste0('Sample_', seq_len(n_samples))
 #' 
 #' # Create rowData with gene mapping (tx2gene structure)
 #' rowdata <- data.frame(
 #'   transcript_id = rownames(counts),
-#'   gene_id = rep(paste0("GENE_", 1:n_genes), 
+#'   gene_id = rep(paste0('GENE_', 1:n_genes), 
 #'                 each = n_transcripts_per_gene),
 #'   row.names = rownames(counts)
 #' )
@@ -93,9 +92,9 @@
 #' # Create colData with paired design metadata
 #' coldata <- data.frame(
 #'   sample_id = colnames(counts),
-#'   condition = rep(c("control", "treatment"), 
+#'   condition = rep(c('control', 'treatment'), 
 #'                   length.out = n_samples),
-#'   subject = rep(paste0("Subject_", 1:8), 
+#'   subject = rep(paste0('Subject_', 1:8), 
 #'                 length.out = n_samples),
 #'   row.names = colnames(counts)
 #' )
@@ -126,314 +125,303 @@
 #' # (avoids convergence issues with LMM)
 #' analysis <- calculate_lm_interaction_s4(
 #'   analysis,
-#'   condition_col = "condition",
-#'   method = "gam",
+#'   condition_col = 'condition',
+#'   method = 'gam',
 #'   verbose = FALSE
 #' )
 #' 
 #' # View interaction test results
-#' head(lmResults(analysis, "lm_interaction"))
+#' head(lmResults(analysis, 'lm_interaction'))
 #'
 #' @export
 #' @importFrom utils write.table
-calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, 
-                                       formula = NULL, condition_col = NULL, method = NULL,
-                                       paired = FALSE, subject_col = NULL, nthreads = NULL,
-                                       multicorr = NULL, corstr = NULL, pcorr = NULL,
-                                       verbose = FALSE, return_model_data = TRUE,
-                                       output_file = NULL, ...) {
-  if (!is(analysis, "TSENATAnalysis")) {
-    stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
-  }
+calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula = NULL,
+    condition_col = NULL, method = NULL, paired = FALSE, subject_col = NULL, nthreads = NULL,
+    multicorr = NULL, corstr = NULL, pcorr = NULL, verbose = FALSE, return_model_data = TRUE,
+    output_file = NULL, ...) {
+    if (!is(analysis, "TSENATAnalysis")) {
+        stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
+    }
 
-  # OPTIMIZATION: Clear memoization cache for new analysis
-  # Ensures fresh calculations for new dataset
-  .clear_lm_helper_cache()
+    # OPTIMIZATION: Clear memoization cache for new analysis Ensures fresh
+    # calculations for new dataset
+    .clear_lm_helper_cache()
 
-  # Check prerequisites
-  if (length(analysis@diversity_results) == 0) {
-    stop("Diversity results required. Run calculate_diversity_s4() first.",
-         call. = FALSE)
-  }
+    # Check prerequisites
+    if (length(analysis@diversity_results) == 0) {
+        stop("Diversity results required. Run calculate_diversity_s4() first.", call. = FALSE)
+    }
 
-  # Ensure colData consistency: If diversity results have colData, sync to analysis@se
-  # This maintains pairing structure through the analysis pipeline
-  if (length(analysis@diversity_results) > 0) {
-    # Get colData from first diversity result (should be consistent across q-values)
-    first_diversity_se <- analysis@diversity_results[[1]]
-    if (is(first_diversity_se, "SummarizedExperiment") && ncol(first_diversity_se) > 0) {
-      diversity_coldata <- SummarizedExperiment::colData(first_diversity_se)
-      if (!is.null(diversity_coldata) && nrow(diversity_coldata) == ncol(analysis@se)) {
-        # If diversity results have richer colData, use that
-        if (!is.null(diversity_coldata) && ncol(diversity_coldata) > 0) {
-          SummarizedExperiment::colData(analysis@se) <- diversity_coldata
+    # Ensure colData consistency: If diversity results have colData, sync to
+    # analysis@se This maintains pairing structure through the analysis
+    # pipeline
+    if (length(analysis@diversity_results) > 0) {
+        # Get colData from first diversity result (should be consistent across
+        # q-values)
+        first_diversity_se <- analysis@diversity_results[[1]]
+        if (is(first_diversity_se, "SummarizedExperiment") && ncol(first_diversity_se) >
+            0) {
+            diversity_coldata <- SummarizedExperiment::colData(first_diversity_se)
+            if (!is.null(diversity_coldata) && nrow(diversity_coldata) == ncol(analysis@se)) {
+                # If diversity results have richer colData, use that
+                if (!is.null(diversity_coldata) && ncol(diversity_coldata) > 0) {
+                  SummarizedExperiment::colData(analysis@se) <- diversity_coldata
+                }
+            }
         }
-      }
     }
-  }
 
-  # =========================================================================
-  # PARAMETER EXTRACTION FROM @config using centralized helpers
-  # =========================================================================
-  
-  # Auto-detect condition_col if not provided
-  if (is.null(condition_col)) {
-    cd_cols <- colnames(colData(analysis@se))
-    condition_col <- auto_detect_column(
-      cd_cols,
-      config_list = analysis@config,
-      config_key = "condition_col",
-      priority_candidates = c("condition", "sample_type", "group", "treatment"),
-      default_fallback = NULL,
-      verbose = verbose,
-      param_name = "condition_col"
-    )
-  }
-  
-  # Resolve remaining parameters using centralized handler
-  method <- resolve_slot_param(method, analysis@config, "method", "lmm")
-  subject_col <- resolve_slot_param(subject_col, analysis@config, "subject_col", NULL)
-  multicorr <- resolve_slot_param(multicorr, analysis@config, "multicorr", NULL)
-  corstr <- resolve_slot_param(corstr, analysis@config, "corstr", NULL)
-  pcorr <- resolve_slot_param(pcorr, analysis@config, "pcorr", "BH")
-  nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", NULL)
-  
-  # Paired design (logical flag)
-  if (!paired && "paired" %in% names(analysis@config)) {
-    paired <- analysis@config$paired
-  }
-  
-  # Validate that required parameters are available
-  if (is.null(condition_col)) {
-    cd_cols <- colnames(colData(analysis@se))
-    if (length(cd_cols) > 0) {
-      message("condition_col not specified. Available columns: ",
-          paste(cd_cols, collapse = ", "))
-    } else {
-      message("condition_col not specified and colData is empty. ",
-          "Will be determined by .calculate_lm_interaction().")
+    # =========================================================================
+    # PARAMETER EXTRACTION FROM @config using centralized helpers
+    # =========================================================================
+
+    # Auto-detect condition_col if not provided
+    if (is.null(condition_col)) {
+        cd_cols <- colnames(colData(analysis@se))
+        condition_col <- auto_detect_column(cd_cols, config_list = analysis@config,
+            config_key = "condition_col", priority_candidates = c("condition", "sample_type",
+                "group", "treatment"), default_fallback = NULL, verbose = verbose,
+            param_name = "condition_col")
     }
-  }
 
-  # Extract q-values from diversity_results keys (format: "q_0.5", "q_1.0", etc.)
-  q_keys <- names(analysis@diversity_results)
-  
-  # =========================================================================
-  # APPROACH: Combine existing per-q diversity results
-  # NO recomputation - just stack the already-computed SEs horizontally
-  # Add _q= suffix to column names to distinguish q-values
-  # =========================================================================
-  
-  # Combine per-q SEs into single multi-q SE for calculate_lm_interaction
-  diversity_combined <- tryCatch({
-    # Extract assay matrices and colData from each per-q SE
-    assay_list <- list()
-    coldata_list <- list()
-    rowdata_first <- NULL
-    
-    for (key in sort(q_keys)) {
-      se <- analysis@diversity_results[[key]]
-      if (!is(se, "SummarizedExperiment")) {
-        stop("[calculate_lm_interaction_s4] Diversity result ", key, 
-             " is not a SummarizedExperiment", call. = FALSE)
-      }
-      
-      # Extract q-value from key (e.g., "q_0.100" -> 0.1)
-      q_val_str <- sub("^q_", "", key)
-      q_val <- as.numeric(q_val_str)
-      
-      # Get assay matrix (should be named "diversity")
-      if (length(SummarizedExperiment::assays(se)) == 0) {
-        stop("[calculate_lm_interaction_s4] Diversity SE ", key, 
-             " has no assays", call. = FALSE)
-      }
-      assay_matrix <- as.matrix(SummarizedExperiment::assay(se))
-      
-      # Add _q= suffix to ASSAY column names ONLY to distinguish q-values
-      # DO NOT add suffix to colData column names (rbind requires identical column names across all DFrames)
-      assay_colnames_with_q <- paste0(colnames(assay_matrix), "_q=", q_val_str)
-      colnames(assay_matrix) <- assay_colnames_with_q
-      
-      assay_list[[key]] <- assay_matrix
-      
-      # Get colData - IMPORTANT: colData column names must remain the same across all q-values
-      # Only update rownames to match new assay column names
-      coldata <- SummarizedExperiment::colData(se)
-      rownames(coldata) <- assay_colnames_with_q
-      coldata_list[[key]] <- coldata
-      
-      # Save rowData from first SE (same genes for all q-values)
-      if (is.null(rowdata_first)) {
-        rowdata_first <- SummarizedExperiment::rowData(se)
-      }
+    # Resolve remaining parameters using centralized handler
+    method <- resolve_slot_param(method, analysis@config, "method", "lmm")
+    subject_col <- resolve_slot_param(subject_col, analysis@config, "subject_col",
+        NULL)
+    multicorr <- resolve_slot_param(multicorr, analysis@config, "multicorr", NULL)
+    corstr <- resolve_slot_param(corstr, analysis@config, "corstr", NULL)
+    pcorr <- resolve_slot_param(pcorr, analysis@config, "pcorr", "BH")
+    nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", NULL)
+
+    # Paired design (logical flag)
+    if (!paired && "paired" %in% names(analysis@config)) {
+        paired <- analysis@config$paired
     }
-    
-    # Combine assays horizontally (columns from different q-values)
-    combined_assay <- do.call(cbind, assay_list)
-    
-    # Combine colData vertically (each q-value's samples with q-suffix in rownames)
-    combined_coldata <- do.call(rbind, coldata_list)
-    
-    # Ensure colnames of assay match rownames of colData
-    colnames(combined_assay) <- rownames(combined_coldata)
-    
-    # Create combined SE
-    se_combined <- SummarizedExperiment::SummarizedExperiment(
-      assays = list(diversity = combined_assay),
-      colData = combined_coldata,
-      rowData = rowdata_first
-    )
-    
-    se_combined
-  }, error = function(e) {
-    stop("[calculate_lm_interaction_s4] Failed to combine diversity results: ",
-                conditionMessage(e), call. = FALSE)
-  })
-  
-  # Build arguments for calculate_lm_interaction
-  args <- list(se = diversity_combined)
-  
-  if (!is.null(method)) {
-    args$method <- method
-  }
-  
-  # Add extracted parameters
-  if (!is.null(condition_col)) {
-    args$condition_col <- condition_col
-  }
-  
-  if (paired) {
-    args$paired <- paired
-  }
-  
-  if (!is.null(subject_col)) {
-    args$subject_col <- subject_col
-  }
 
-  if (!is.null(nthreads)) {
-    args$nthreads <- nthreads
-  }
+    # Validate that required parameters are available
+    if (is.null(condition_col)) {
+        cd_cols <- colnames(colData(analysis@se))
+        if (length(cd_cols) > 0) {
+            message("condition_col not specified. Available columns: ", paste(cd_cols,
+                collapse = ", "))
+        } else {
+            message("condition_col not specified and colData is empty. ", "Will be determined by .calculate_lm_interaction().")
+        }
+    }
 
-  if (!is.null(multicorr)) {
-    args$multicorr <- multicorr
-  }
+    # Extract q-values from diversity_results keys (format: 'q_0.5', 'q_1.0',
+    # etc.)
+    q_keys <- names(analysis@diversity_results)
 
-  if (!is.null(corstr)) {
-    args$corstr <- corstr
-  }
+    # =========================================================================
+    # APPROACH: Combine existing per-q diversity results NO recomputation -
+    # just stack the already-computed SEs horizontally Add _q= suffix to column
+    # names to distinguish q-values
+    # =========================================================================
 
-  if (!is.null(pcorr)) {
-    args$pcorr <- pcorr
-  }
+    # Combine per-q SEs into single multi-q SE for calculate_lm_interaction
+    diversity_combined <- tryCatch({
+        # Extract assay matrices and colData from each per-q SE
+        assay_list <- list()
+        coldata_list <- list()
+        rowdata_first <- NULL
 
-  if (verbose) {
-    args$verbose <- verbose
-  }
+        for (key in sort(q_keys)) {
+            se <- analysis@diversity_results[[key]]
+            if (!is(se, "SummarizedExperiment")) {
+                stop("[calculate_lm_interaction_s4] Diversity result ", key, " is not a SummarizedExperiment",
+                  call. = FALSE)
+            }
 
-  # Request model_data for plotting compatibility
-  args$return_model_data <- return_model_data
-  
-  # Merge with additional args (which may override these values)
-  args <- c(args, list(...))
+            # Extract q-value from key (e.g., 'q_0.100' -> 0.1)
+            q_val_str <- sub("^q_", "", key)
+            q_val <- as.numeric(q_val_str)
 
-  # Run LM analysis
-  result <- tryCatch({
-    do.call(.calculate_lm_interaction, args)
-  }, error = function(e) {
-    stop("lm_interaction calculation failed:\n", conditionMessage(e),
-         call. = FALSE)
-  })
+            # Get assay matrix (should be named 'diversity')
+            if (length(SummarizedExperiment::assays(se)) == 0) {
+                stop("[calculate_lm_interaction_s4] Diversity SE ", key, " has no assays",
+                  call. = FALSE)
+            }
+            assay_matrix <- as.matrix(SummarizedExperiment::assay(se))
 
-  # =========================================================================
-  # HANDLE RESULT: May be list($results, $model_data) or just data.frame
-  # =========================================================================
-  lm_results_df <- result
-  model_data <- NULL
-  
-  # Check if result is a list with $results and $model_data (return_model_data=TRUE)
-  if (is.list(result) && "results" %in% names(result)) {
-    lm_results_df <- result$results
-    model_data <- result$model_data
-  }
-  
-  # =========================================================================
-  # CRITICAL VALIDATION: Ensure result has required structure
-  # =========================================================================
-  # The result MUST be a data.frame with columns 'gene' and 'adj_p_interaction'
-  # to be compatible with downstream functions like .effect_sizes_divergence()
-  if (!is.data.frame(lm_results_df)) {
-    stop("[calculate_lm_interaction_s4] Result from calculate_lm_interaction must be a data.frame, ",
-         "but got: ", class(lm_results_df),
-         ". This indicates an unexpected change in the underlying function.",
-         call. = FALSE)
-  }
-  
-  # Check if result is empty (0 rows OR 0 columns)
-  if (nrow(lm_results_df) == 0 || ncol(lm_results_df) == 0) {
-    warning("[calculate_lm_interaction_s4] Result is empty (", 
-            nrow(lm_results_df), " rows, ", ncol(lm_results_df), " columns). ",
-            "This can occur with: low sample counts per condition, ",
-            "insufficient signal, or model convergence issues. ",
-            "Try: increasing samples, using higher lambda for data generation, ",
-            "or checking colData grouping structure.",
+            # Add _q= suffix to ASSAY column names ONLY to distinguish q-values
+            # DO NOT add suffix to colData column names (rbind requires
+            # identical column names across all DFrames)
+            assay_colnames_with_q <- paste0(colnames(assay_matrix), "_q=", q_val_str)
+            colnames(assay_matrix) <- assay_colnames_with_q
+
+            assay_list[[key]] <- assay_matrix
+
+            # Get colData - IMPORTANT: colData column names must remain the
+            # same across all q-values Only update rownames to match new assay
+            # column names
+            coldata <- SummarizedExperiment::colData(se)
+            rownames(coldata) <- assay_colnames_with_q
+            coldata_list[[key]] <- coldata
+
+            # Save rowData from first SE (same genes for all q-values)
+            if (is.null(rowdata_first)) {
+                rowdata_first <- SummarizedExperiment::rowData(se)
+            }
+        }
+
+        # Combine assays horizontally (columns from different q-values)
+        combined_assay <- do.call(cbind, assay_list)
+
+        # Combine colData vertically (each q-value's samples with q-suffix in
+        # rownames)
+        combined_coldata <- do.call(rbind, coldata_list)
+
+        # Ensure colnames of assay match rownames of colData
+        colnames(combined_assay) <- rownames(combined_coldata)
+
+        # Create combined SE
+        se_combined <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = combined_assay),
+            colData = combined_coldata, rowData = rowdata_first)
+
+        se_combined
+    }, error = function(e) {
+        stop("[calculate_lm_interaction_s4] Failed to combine diversity results: ",
+            conditionMessage(e), call. = FALSE)
+    })
+
+    # Build arguments for calculate_lm_interaction
+    args <- list(se = diversity_combined)
+
+    if (!is.null(method)) {
+        args$method <- method
+    }
+
+    # Add extracted parameters
+    if (!is.null(condition_col)) {
+        args$condition_col <- condition_col
+    }
+
+    if (paired) {
+        args$paired <- paired
+    }
+
+    if (!is.null(subject_col)) {
+        args$subject_col <- subject_col
+    }
+
+    if (!is.null(nthreads)) {
+        args$nthreads <- nthreads
+    }
+
+    if (!is.null(multicorr)) {
+        args$multicorr <- multicorr
+    }
+
+    if (!is.null(corstr)) {
+        args$corstr <- corstr
+    }
+
+    if (!is.null(pcorr)) {
+        args$pcorr <- pcorr
+    }
+
+    if (verbose) {
+        args$verbose <- verbose
+    }
+
+    # Request model_data for plotting compatibility
+    args$return_model_data <- return_model_data
+
+    # Merge with additional args (which may override these values)
+    args <- c(args, list(...))
+
+    # Run LM analysis
+    result <- tryCatch({
+        do.call(.calculate_lm_interaction, args)
+    }, error = function(e) {
+        stop("lm_interaction calculation failed:\n", conditionMessage(e), call. = FALSE)
+    })
+
+    # =========================================================================
+    # HANDLE RESULT: May be list($results, $model_data) or just data.frame
+    # =========================================================================
+    lm_results_df <- result
+    model_data <- NULL
+
+    # Check if result is a list with $results and $model_data
+    # (return_model_data=TRUE)
+    if (is.list(result) && "results" %in% names(result)) {
+        lm_results_df <- result$results
+        model_data <- result$model_data
+    }
+
+    # =========================================================================
+    # CRITICAL VALIDATION: Ensure result has required structure
+    # =========================================================================
+    # The result MUST be a data.frame with columns 'gene' and
+    # 'adj_p_interaction' to be compatible with downstream functions like
+    # .effect_sizes_divergence()
+    if (!is.data.frame(lm_results_df)) {
+        stop("[calculate_lm_interaction_s4] Result from calculate_lm_interaction must be a data.frame, ",
+            "but got: ", class(lm_results_df), ". This indicates an unexpected change in the underlying function.",
             call. = FALSE)
-    # Return empty results gracefully rather than error
-    analysis@lm_results <- list(lm_interaction = data.frame())
-    return(analysis)
-  }
-  
-  required_cols <- c("gene", "adj_p_interaction")
-  missing_cols <- setdiff(required_cols, colnames(lm_results_df))
-  if (length(missing_cols) > 0) {
-    stop("[calculate_lm_interaction_s4] Result missing required columns: ",
-         paste(missing_cols, collapse = ", "),
-         ". Available columns: ", paste(colnames(lm_results_df), collapse = ", "),
-         call. = FALSE)
-  }
-
-  # Store results with model_data
-  if (is.list(analysis@lm_results) && "lm_interaction" %in% names(analysis@lm_results)) {
-    # Preserve other lm_results components
-    analysis@lm_results$lm_interaction <- lm_results_df
-    if (!is.null(model_data)) {
-      analysis@lm_results$lm_interaction_model_data <- model_data
     }
-  } else {
-    analysis@lm_results <- list(lm_interaction = lm_results_df)
-    if (!is.null(model_data)) {
-      analysis@lm_results$lm_interaction_model_data <- model_data
+
+    # Check if result is empty (0 rows OR 0 columns)
+    if (nrow(lm_results_df) == 0 || ncol(lm_results_df) == 0) {
+        warning("[calculate_lm_interaction_s4] Result is empty (", nrow(lm_results_df),
+            " rows, ", ncol(lm_results_df), " columns). ", "This can occur with: low sample counts per condition, ",
+            "insufficient signal, or model convergence issues. ", "Try: increasing samples, using higher lambda for data generation, ",
+            "or checking colData grouping structure.", call. = FALSE)
+        # Return empty results gracefully rather than error
+        analysis@lm_results <- list(lm_interaction = data.frame())
+        return(analysis)
     }
-  }
 
-  # Track metadata
-  analysis@metadata$function_calls <- c(
-    analysis@metadata$function_calls,
-    "calculate_lm_interaction"
-  )
+    required_cols <- c("gene", "adj_p_interaction")
+    missing_cols <- setdiff(required_cols, colnames(lm_results_df))
+    if (length(missing_cols) > 0) {
+        stop("[calculate_lm_interaction_s4] Result missing required columns: ", paste(missing_cols,
+            collapse = ", "), ". Available columns: ", paste(colnames(lm_results_df),
+            collapse = ", "), call. = FALSE)
+    }
 
-  # Save if output_file provided
-  if (!is.null(output_file)) {
-    lm_data <- NULL
-    
-    # Try multiple ways to extract data
-    if (!is.null(analysis@lm_results)) {
-      if (is.list(analysis@lm_results) && "lm_interaction" %in% names(analysis@lm_results)) {
-        lm_int <- analysis@lm_results$lm_interaction
-        if (is.data.frame(lm_int)) {
-          lm_data <- lm_int
-        } else if (is.list(lm_int) && "results" %in% names(lm_int)) {
-          lm_data <- lm_int$results
+    # Store results with model_data
+    if (is.list(analysis@lm_results) && "lm_interaction" %in% names(analysis@lm_results)) {
+        # Preserve other lm_results components
+        analysis@lm_results$lm_interaction <- lm_results_df
+        if (!is.null(model_data)) {
+            analysis@lm_results$lm_interaction_model_data <- model_data
         }
-      }
+    } else {
+        analysis@lm_results <- list(lm_interaction = lm_results_df)
+        if (!is.null(model_data)) {
+            analysis@lm_results$lm_interaction_model_data <- model_data
+        }
     }
-    
-    if (!is.null(lm_data) && is.data.frame(lm_data)) {
-      save_analysis_output(lm_data, output_file, object = analysis, verbose = verbose,
-                           func_name = "calculate_lm_interaction_s4")
-    }
-  }
 
-  analysis
+    # Track metadata
+    analysis@metadata$function_calls <- c(analysis@metadata$function_calls, "calculate_lm_interaction")
+
+    # Save if output_file provided
+    if (!is.null(output_file)) {
+        lm_data <- NULL
+
+        # Try multiple ways to extract data
+        if (!is.null(analysis@lm_results)) {
+            if (is.list(analysis@lm_results) && "lm_interaction" %in% names(analysis@lm_results)) {
+                lm_int <- analysis@lm_results$lm_interaction
+                if (is.data.frame(lm_int)) {
+                  lm_data <- lm_int
+                } else if (is.list(lm_int) && "results" %in% names(lm_int)) {
+                  lm_data <- lm_int$results
+                }
+            }
+        }
+
+        if (!is.null(lm_data) && is.data.frame(lm_data)) {
+            save_analysis_output(lm_data, output_file, object = analysis, verbose = verbose,
+                func_name = "calculate_lm_interaction_s4")
+        }
+    }
+
+    analysis
 }
 
 # ============================================================================
@@ -473,19 +461,19 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
 #' # Load example data (matching TSENAT.Rmd workflow)
 #' data(readcounts)
 #' readcounts <- as.matrix(salmon_dataset)
-#' mode(readcounts) <- "numeric"
+#' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
-#'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t"
+#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' 
 #' # Build analysis from vignette data
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #'
 #' # Filter low-abundance genes (required for reliable jackknife estimates)
-#' analysis <- filter_analysis_s4(analysis, stringency = "severe")
+#' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 #' 
 #' # Compute diversity first (required for jackknife)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
@@ -499,156 +487,138 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
 #'
 #' @export
 #' @importFrom utils write.table
-jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_base = NULL, seed = NULL, top_n = NULL, verbose = FALSE, nthreads = NULL, pseudocount = NULL, output_file = NULL, ...) {
-  if (!is(analysis, "TSENATAnalysis")) {
-    stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
-  }
-
-  # Check prerequisite: diversity must be calculated
-  if (length(analysis@diversity_results) == 0) {
-    stop("Diversity results required. Run calculate_diversity_s4() first.",
-         call. = FALSE)
-  }
-
-  # PARAMETER EXTRACTION using utility function
-  q <- resolve_slot_param(q, analysis@config, "q_values", 1.0)
-  norm <- resolve_slot_param(norm, analysis@config, "norm", TRUE)
-  log_base <- resolve_slot_param(log_base, analysis@config, "log_base", exp(1))
-  seed <- resolve_slot_param(seed, analysis@config, "seed", NULL)
-  top_n <- resolve_slot_param(top_n, analysis@config, "top_n", 5)
-  nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
-  pseudocount <- resolve_slot_param(pseudocount, analysis@config, "pseudocount", 0)
-  
-  # Ensure q is numeric
-  if (!is.numeric(q)) {
-    stop("'q' must be numeric", call. = FALSE)
-  }
-
-  for (q_val in q) {
-    # Verify diversity was computed for this q-value (prerequisite for jackknife)
-    div_key <- paste0("q_", formatC(q_val, format = "f", digits = 3))
-    if (!(div_key %in% names(analysis@diversity_results))) {
-      stop("Diversity not calculated for q=", q_val,
-           ". Run calculate_diversity_s4(analysis, q=", q_val, ") first.",
-           call. = FALSE)
+jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
+    seed = NULL, top_n = NULL, verbose = FALSE, nthreads = NULL, pseudocount = NULL,
+    output_file = NULL, ...) {
+    if (!is(analysis, "TSENATAnalysis")) {
+        stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }
 
-    # Run jackknife - pass the COUNTS (not diversity values!) to jackknife function
-    # Jackknife stability analysis requires raw count data, not pre-computed diversity
-    tryCatch({
-      # Extract counts matrix from SummarizedExperiment
-      counts_matrix <- SummarizedExperiment::assay(analysis@se, "counts")
-      
-      result <- .jackknife_entropy_outliers(
-        x = counts_matrix,
-        q = q_val,
-        norm = norm,
-        log_base = log_base,
-        seed = seed,
-        top_n = top_n,
-        pseudocount = pseudocount,
-        verbose = verbose,
-        nthreads = nthreads,
-        ...
-      )
-
-      # Store with key "q_X.XXX" (consistent 3 decimal formatting)
-      jk_key <- paste0("q_", formatC(q_val, format = "f", digits = 3))
-      analysis@jackknife_results[[jk_key]] <- result
-
-      # Track metadata
-      analysis@metadata$function_calls <- c(
-        analysis@metadata$function_calls,
-        paste0("jackknife_tsallis_entropy[q=", q_val, "]")
-      )
-    }, error = function(e) {
-      stop("Jackknife computation failed for q=", q_val, ":\n", e$message,
-           call. = FALSE)
-    })
-  }
-
-  # Save if output_file provided
-  if (!is.null(output_file)) {
-    # Create directory if it doesn't exist
-    output_dir <- dirname(output_file)
-    if (output_dir != "." && !dir.exists(output_dir)) {
-      dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+    # Check prerequisite: diversity must be calculated
+    if (length(analysis@diversity_results) == 0) {
+        stop("Diversity results required. Run calculate_diversity_s4() first.", call. = FALSE)
     }
-    
-    if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
-      # Convert jackknife results to data.frame for text output
-      tryCatch({
-        # Extract all jackknife results and convert to data.frame
-        all_results <- list()
-        for (jk_key in names(analysis@jackknife_results)) {
-          jk_result <- analysis@jackknife_results[[jk_key]]
-          
-          # Handle both single result and list of results
-          if (inherits(jk_result, "tsenat_jackknife")) {
-            # Single result - wrap in list for uniform processing
-            jk_result <- list(jk_result)
-            names(jk_result) <- "gene1"
-          }
-          
-          if (inherits(jk_result, "tsenat_jackknife_list")) {
-            # Convert list of results to data.frame
-            df_list <- lapply(names(jk_result), function(gene_name) {
-              res <- jk_result[[gene_name]]
-              data.frame(
-                gene = gene_name,
-                estimate = res$estimate,
-                jackknife_se = res$jackknife_se,
-                n_transcripts = res$n_transcripts,
-                n_outliers = length(res$outlier_indices),
-                outlier_indices = paste(res$outlier_indices, collapse = ","),
-                outlier_threshold = res$outlier_threshold,
-                outlier_cutoff_value = res$outlier_cutoff_value,
-                q_value = res$q,
-                normalized = res$norm,
-                stringsAsFactors = FALSE
-              )
+
+    # PARAMETER EXTRACTION using utility function
+    q <- resolve_slot_param(q, analysis@config, "q_values", 1)
+    norm <- resolve_slot_param(norm, analysis@config, "norm", TRUE)
+    log_base <- resolve_slot_param(log_base, analysis@config, "log_base", exp(1))
+    seed <- resolve_slot_param(seed, analysis@config, "seed", NULL)
+    top_n <- resolve_slot_param(top_n, analysis@config, "top_n", 5)
+    nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
+    pseudocount <- resolve_slot_param(pseudocount, analysis@config, "pseudocount",
+        0)
+
+    # Ensure q is numeric
+    if (!is.numeric(q)) {
+        stop("'q' must be numeric", call. = FALSE)
+    }
+
+    for (q_val in q) {
+        # Verify diversity was computed for this q-value (prerequisite for
+        # jackknife)
+        div_key <- paste0("q_", formatC(q_val, format = "f", digits = 3))
+        if (!(div_key %in% names(analysis@diversity_results))) {
+            stop("Diversity not calculated for q=", q_val, ". Run calculate_diversity_s4(analysis, q=",
+                q_val, ") first.", call. = FALSE)
+        }
+
+        # Run jackknife - pass the COUNTS (not diversity values!) to jackknife
+        # function Jackknife stability analysis requires raw count data, not
+        # pre-computed diversity
+        tryCatch({
+            # Extract counts matrix from SummarizedExperiment
+            counts_matrix <- SummarizedExperiment::assay(analysis@se, "counts")
+
+            result <- .jackknife_entropy_outliers(x = counts_matrix, q = q_val, norm = norm,
+                log_base = log_base, seed = seed, top_n = top_n, pseudocount = pseudocount,
+                verbose = verbose, nthreads = nthreads, ...)
+
+            # Store with key 'q_X.XXX' (consistent 3 decimal formatting)
+            jk_key <- paste0("q_", formatC(q_val, format = "f", digits = 3))
+            analysis@jackknife_results[[jk_key]] <- result
+
+            # Track metadata
+            analysis@metadata$function_calls <- c(analysis@metadata$function_calls,
+                paste0("jackknife_tsallis_entropy[q=", q_val, "]"))
+        }, error = function(e) {
+            stop("Jackknife computation failed for q=", q_val, ":\n", e$message,
+                call. = FALSE)
+        })
+    }
+
+    # Save if output_file provided
+    if (!is.null(output_file)) {
+        # Create directory if it doesn't exist
+        output_dir <- dirname(output_file)
+        if (output_dir != "." && !dir.exists(output_dir)) {
+            dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+        }
+
+        if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
+            # Convert jackknife results to data.frame for text output
+            tryCatch({
+                # Extract all jackknife results and convert to data.frame
+                all_results <- list()
+                for (jk_key in names(analysis@jackknife_results)) {
+                  jk_result <- analysis@jackknife_results[[jk_key]]
+
+                  # Handle both single result and list of results
+                  if (inherits(jk_result, "tsenat_jackknife")) {
+                    # Single result - wrap in list for uniform processing
+                    jk_result <- list(jk_result)
+                    names(jk_result) <- "gene1"
+                  }
+
+                  if (inherits(jk_result, "tsenat_jackknife_list")) {
+                    # Convert list of results to data.frame
+                    df_list <- lapply(names(jk_result), function(gene_name) {
+                      res <- jk_result[[gene_name]]
+                      data.frame(gene = gene_name, estimate = res$estimate, jackknife_se = res$jackknife_se,
+                        n_transcripts = res$n_transcripts, n_outliers = length(res$outlier_indices),
+                        outlier_indices = paste(res$outlier_indices, collapse = ","),
+                        outlier_threshold = res$outlier_threshold, outlier_cutoff_value = res$outlier_cutoff_value,
+                        q_value = res$q, normalized = res$norm, stringsAsFactors = FALSE)
+                    })
+
+                    df <- do.call(rbind, df_list)
+                    df$q_key <- jk_key  # Add q-value key for multi-q results
+                    rownames(df) <- NULL
+                    all_results[[jk_key]] <- df
+                  }
+                }
+
+                # Combine all results into single data.frame
+                if (length(all_results) > 0) {
+                  output_df <- do.call(rbind, all_results)
+                  rownames(output_df) <- NULL
+
+                  # Determine separator based on file extension
+                  sep <- if (grepl("\\.csv$", tolower(output_file)))
+                    "," else "\t"
+
+                  write.table(output_df, file = output_file, sep = sep, quote = FALSE,
+                    row.names = FALSE)
+
+                  if (verbose) {
+                    message("[jackknife_entropy_outliers_s4] Results saved to ",
+                      output_file)
+                  }
+                }
+            }, error = function(e) {
+                warning("[jackknife_entropy_outliers_s4] Could not write jackknife results to file: ",
+                  conditionMessage(e), call. = FALSE)
             })
-            
-            df <- do.call(rbind, df_list)
-            df$q_key <- jk_key  # Add q-value key for multi-q results
-            rownames(df) <- NULL
-            all_results[[jk_key]] <- df
-          }
+        } else {
+            # Default to RDS for S4 object
+            saveRDS(analysis, file = output_file)
+            if (verbose) {
+                message("[jackknife_entropy_outliers_s4] Analysis object saved to ",
+                  output_file)
+            }
         }
-        
-        # Combine all results into single data.frame
-        if (length(all_results) > 0) {
-          output_df <- do.call(rbind, all_results)
-          rownames(output_df) <- NULL
-          
-          # Determine separator based on file extension
-          sep <- if (grepl("\\.csv$", tolower(output_file))) "," else "\t"
-          
-          write.table(
-            output_df,
-            file = output_file,
-            sep = sep,
-            quote = FALSE,
-            row.names = FALSE
-          )
-          
-          if (verbose) {
-            message("[jackknife_entropy_outliers_s4] Results saved to ", output_file)
-          }
-        }
-      }, error = function(e) {
-        warning("[jackknife_entropy_outliers_s4] Could not write jackknife results to file: ",
-                conditionMessage(e), call. = FALSE)
-      })
-    } else {
-      # Default to RDS for S4 object
-      saveRDS(analysis, file = output_file)
-      if (verbose) {
-        message("[jackknife_entropy_outliers_s4] Analysis object saved to ", output_file)
-      }
     }
-  }
-  analysis
+    analysis
 }
 
 # ============================================================================
@@ -693,12 +663,12 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_b
 #' # Load example data (matching TSENAT.Rmd workflow)
 #' data(readcounts)
 #' readcounts <- as.matrix(salmon_dataset)
-#' mode(readcounts) <- "numeric"
+#' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
-#'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t"
+#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' 
 #' # Build analysis from vignette data and create manageable subset
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
@@ -717,257 +687,259 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_b
 #'
 #' @export
 #' @importFrom utils write.table
-calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads = NULL, 
-                                    output_file = NULL, control_group = NULL, paired = FALSE, 
-                                    method = NULL, bootstrap = FALSE, nboot = NULL, 
-                                    seed = NULL, progress = FALSE, ...) {
-  if (!is(analysis, "TSENATAnalysis")) {
-    stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
-  }
-
-  if (nrow(analysis@se) == 0) {
-    stop("SummarizedExperiment in @se is empty", call. = FALSE)
-  }
-
-  # Check if diversity available
-  if (length(analysis@diversity_results) == 0) {
-    stop("Diversity results required. Run calculate_diversity_s4() first.",
-         call. = FALSE)
-  }
-
-  # PARAMETER EXTRACTION using utility functions
-  q <- resolve_slot_param(q, analysis@config, "q_values", 1.0)
-  control_group <- resolve_slot_param(control_group, analysis@config, "control_group", NULL)
-  method <- resolve_slot_param(method, analysis@config, "method", "percentile")
-  nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
-  nboot <- resolve_slot_param(nboot, analysis@config, "nboot", NULL)
-  seed <- resolve_slot_param(seed, analysis@config, "seed", NULL)
-  
-  # Replace q=0 with q=0.01 for practical approximation
-  # (q=0 divergence always returns 0, which is mathematically correct but uninformative)
-  if (is.vector(q)) {
-    q[q == 0] <- 0.01
-  } else if (is.numeric(q) && q == 0) {
-    q <- 0.01
-  }
-  
-  # Paired design flag - ensure it's always a logical value
-  if (!isTRUE(paired) && !isFALSE(paired)) {
-    if ("paired" %in% names(analysis@config)) {
-      paired <- analysis@config$paired
-    } else {
-      paired <- FALSE
+calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads = NULL,
+    output_file = NULL, control_group = NULL, paired = FALSE, method = NULL, bootstrap = FALSE,
+    nboot = NULL, seed = NULL, progress = FALSE, ...) {
+    if (!is(analysis, "TSENATAnalysis")) {
+        stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }
-    if (!is.logical(paired) || is.na(paired)) paired <- FALSE
-  }
-  
-  # Bootstrap parameters - ensure it's always a logical value
-  if (!isTRUE(bootstrap) && !isFALSE(bootstrap)) {
-    if ("bootstrap" %in% names(analysis@config)) {
-      bootstrap <- analysis@config$bootstrap
-    } else {
-      bootstrap <- FALSE
-    }
-    if (!is.logical(bootstrap) || is.na(bootstrap)) bootstrap <- FALSE
-  }
-  
-  # Sanitize method if needed
-  if (!is.null(method)) {
-    method <- as.character(method[1])
-  }
-  if (is.null(method) || is.na(method)) {
-    method <- "percentile"
-  }
 
-  # Run divergence calculation with extracted parameters
-  # Include progress explicitly to prevent NA boolean operations
-  args <- list(
-    se = analysis@se,
-    q = q,
-    verbose = verbose,
-    nthreads = nthreads,
-    progress = progress  # Use parameter value, not hardcoded
-  )
-  
-  # Add parameters if they are not NULL/FALSE
-  if (!is.null(control_group)) {
-    args$control_group <- control_group
-  }
-  
-  # Use isTRUE to safely handle NA values
-  if (isTRUE(paired)) {
-    args$paired <- paired
-  }
-  
-  if (!is.null(method)) {
-    args$method <- method
-  }
-  
-  # Use isTRUE to safely handle NA values
-  if (isTRUE(bootstrap)) {
-    args$bootstrap <- bootstrap
-    # Add bootstrap parameters if bootstrap is TRUE
-    if (!is.null(nboot)) {
-      args$nboot <- nboot
+    if (nrow(analysis@se) == 0) {
+        stop("SummarizedExperiment in @se is empty", call. = FALSE)
     }
-    if (!is.null(seed)) {
-      args$seed <- seed
+
+    # Check if diversity available
+    if (length(analysis@diversity_results) == 0) {
+        stop("Diversity results required. Run calculate_diversity_s4() first.", call. = FALSE)
     }
-  }
-  
-  # Merge with additional args (which may override values)
-  args <- c(args, list(...))
-  
-  # Run divergence calculation
-  result <- tryCatch({
-    do.call(.calculate_divergence, args)
-  }, error = function(e) {
-    # More detailed error handling
-    stop("Divergence calculation failed [NA boolean likely in: ",
-         paste0(names(args), collapse = ", "), "]:\n", 
-         e$message, call. = FALSE)
-  })
 
-  # =========================================================================
-  # VALIDATE AND STORE RESULTS
-  # =========================================================================
-  # Store results in list format (required by @divergence_results slot)
-  if (is.null(result)) {
-    warning("[calculate_divergence_s4] Result is NULL. Check .calculate_divergence() output.",
-            call. = FALSE)
-    analysis@divergence_results <- list()
-  } else if (is(result, "SummarizedExperiment")) {
-    # Wrap SummarizedExperiment in list with "divergence_se" key
-    analysis@divergence_results <- list(divergence_se = result)
-  } else if (is.list(result)) {
-    analysis@divergence_results <- result
-  } else if (is.data.frame(result) || is.matrix(result)) {
-    # Wrap single result in list
-    analysis@divergence_results <- list(main = result)
-  } else {
-    warning("[calculate_divergence_s4] Unexpected result type: ", class(result),
-            ". Wrapping in list.",
-            call. = FALSE)
-    analysis@divergence_results <- list(result = result)
-  }
+    # PARAMETER EXTRACTION using utility functions
+    q <- resolve_slot_param(q, analysis@config, "q_values", 1)
+    control_group <- resolve_slot_param(control_group, analysis@config, "control_group",
+        NULL)
+    method <- resolve_slot_param(method, analysis@config, "method", "percentile")
+    nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
+    nboot <- resolve_slot_param(nboot, analysis@config, "nboot", NULL)
+    seed <- resolve_slot_param(seed, analysis@config, "seed", NULL)
 
-  # Track metadata
-  analysis@metadata$function_calls <- c(
-    analysis@metadata$function_calls,
-    paste0("calculate_divergence[q=", q, "]")
-  )
-
-  # Save if output_file provided
-  if (!is.null(output_file)) {
-    # Create directory if it doesn't exist
-    output_dir <- dirname(output_file)
-    if (output_dir != "." && !dir.exists(output_dir)) {
-      dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+    # Replace q=0 with q=0.01 for practical approximation (q=0 divergence
+    # always returns 0, which is mathematically correct but uninformative)
+    if (is.vector(q)) {
+        q[q == 0] <- 0.01
+    } else if (is.numeric(q) && q == 0) {
+        q <- 0.01
     }
-    
-    if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
-      # Write divergence results as text table
-      tryCatch({
-        if (length(analysis@divergence_results) > 0) {
-          # Extract and combine all divergence results
-          div_list <- analysis@divergence_results
-          
-          # Handle wrapped structure (divergence_se key) or direct SummarizedExperiments
-          if ("divergence_se" %in% names(div_list)) {
-            write_data <- as.data.frame(SummarizedExperiment::assay(div_list$divergence_se))
-          } else if (is(div_list[[1]], "SummarizedExperiment")) {
-            # Combine multiple SE objects if present
-            data_list <- lapply(div_list, function(se) {
-              as.data.frame(SummarizedExperiment::assay(se, 1))
-            })
-            write_data <- do.call(cbind, data_list)
-          } else {
-            write_data <- as.data.frame(div_list)
-          }
-          
-          # Determine separator
-          sep <- if (grepl("\\.csv$", tolower(output_file))) "," else "\t"
-          write.table(write_data, file = output_file, sep = sep, quote = FALSE, row.names = TRUE)
+
+    # Paired design flag - ensure it's always a logical value
+    if (!isTRUE(paired) && !isFALSE(paired)) {
+        if ("paired" %in% names(analysis@config)) {
+            paired <- analysis@config$paired
         } else {
-          warning("[calculate_divergence_s4] No divergence results to save", call. = FALSE)
+            paired <- FALSE
         }
-      }, error = function(e) {
-        warning("[calculate_divergence_s4] Could not write divergence results to file: ", 
-                conditionMessage(e), call. = FALSE)
-      })
-      
-      # If bootstrap was used, also save bootstrap results to separate file
-      if (isTRUE(bootstrap)) {
-        tryCatch({
-          bootstrap_file <- gsub("\\.(tsv|csv|txt)$", "_bootstrap.\\1", tolower(output_file), ignore.case = TRUE)
-          if (basename(bootstrap_file) == basename(output_file)) {
-            # Fallback: if replacement didn't work, append before extension
-            bootstrap_file <- sub("(\\.[^.]+)$", "_bootstrap\\1", output_file)
-          }
-          
-          if (isTRUE(verbose)) {
-            message("[calculate_divergence_s4] Attempting to save bootstrap results to: ", bootstrap_file)
-          }
-          
-          # Extract bootstrap results from rowData
-          if (length(analysis@divergence_results) > 0) {
-            div_list <- analysis@divergence_results
-            
-            # Handle wrapped structure (divergence_se key)
-            se <- if ("divergence_se" %in% names(div_list)) {
-              div_list$divergence_se
-            } else if (is(div_list[[1]], "SummarizedExperiment")) {
-              div_list[[1]]
-            } else {
-              NULL
-            }
-            
-            if (!is.null(se) && is(se, "SummarizedExperiment")) {
-              rd <- SummarizedExperiment::rowData(se)
-              
-              # Extract bootstrap-related columns: gene_name + all CI/estimate/nboot columns
-              bootstrap_cols <- c(
-                "gene_name",
-                grep("^estimate_q|^lower_ci_q|^upper_ci_q|^ci_width_q|^nboot_q|^method_q", 
-                     colnames(rd), value = TRUE)
-              )
-              
-              # Include computation_time_sec and error if present
-              if ("computation_time_sec" %in% colnames(rd)) {
-                bootstrap_cols <- c(bootstrap_cols, "computation_time_sec")
-              }
-              if ("error" %in% colnames(rd)) {
-                bootstrap_cols <- c(bootstrap_cols, "error")
-              }
-              
-              # Filter to only existing columns
-              bootstrap_cols <- bootstrap_cols[bootstrap_cols %in% colnames(rd)]
-              
-              if (length(bootstrap_cols) > 1) {  # More than just gene_name
-                bootstrap_data <- as.data.frame(rd[, bootstrap_cols])
-                sep <- if (grepl("\\.csv$", tolower(bootstrap_file))) "," else "\t"
-                write.table(bootstrap_data, file = bootstrap_file, sep = sep, 
-                           quote = FALSE, row.names = FALSE)
-                
-                if (isTRUE(verbose)) {
-                  message("[calculate_divergence_s4] Saved bootstrap results to: ", bootstrap_file)
-                }
-              }
-            }
-          }
-        }, error = function(e) {
-          warning("[calculate_divergence_s4] Could not write bootstrap results to file: ", 
-                  conditionMessage(e), call. = FALSE)
-        })
-      }
-    } else {
-      # Default to RDS for S4 object
-      saveRDS(analysis, file = output_file)
+        if (!is.logical(paired) || is.na(paired))
+            paired <- FALSE
     }
 
-  }
+    # Bootstrap parameters - ensure it's always a logical value
+    if (!isTRUE(bootstrap) && !isFALSE(bootstrap)) {
+        if ("bootstrap" %in% names(analysis@config)) {
+            bootstrap <- analysis@config$bootstrap
+        } else {
+            bootstrap <- FALSE
+        }
+        if (!is.logical(bootstrap) || is.na(bootstrap))
+            bootstrap <- FALSE
+    }
 
-  analysis
+    # Sanitize method if needed
+    if (!is.null(method)) {
+        method <- as.character(method[1])
+    }
+    if (is.null(method) || is.na(method)) {
+        method <- "percentile"
+    }
+
+    # Run divergence calculation with extracted parameters Include progress
+    # explicitly to prevent NA boolean operations
+    args <- list(se = analysis@se, q = q, verbose = verbose, nthreads = nthreads,
+        progress = progress  # Use parameter value, not hardcoded
+)
+
+    # Add parameters if they are not NULL/FALSE
+    if (!is.null(control_group)) {
+        args$control_group <- control_group
+    }
+
+    # Use isTRUE to safely handle NA values
+    if (isTRUE(paired)) {
+        args$paired <- paired
+    }
+
+    if (!is.null(method)) {
+        args$method <- method
+    }
+
+    # Use isTRUE to safely handle NA values
+    if (isTRUE(bootstrap)) {
+        args$bootstrap <- bootstrap
+        # Add bootstrap parameters if bootstrap is TRUE
+        if (!is.null(nboot)) {
+            args$nboot <- nboot
+        }
+        if (!is.null(seed)) {
+            args$seed <- seed
+        }
+    }
+
+    # Merge with additional args (which may override values)
+    args <- c(args, list(...))
+
+    # Run divergence calculation
+    result <- tryCatch({
+        do.call(.calculate_divergence, args)
+    }, error = function(e) {
+        # More detailed error handling
+        stop("Divergence calculation failed [NA boolean likely in: ", paste0(names(args),
+            collapse = ", "), "]:\n", e$message, call. = FALSE)
+    })
+
+    # =========================================================================
+    # VALIDATE AND STORE RESULTS
+    # =========================================================================
+    # Store results in list format (required by @divergence_results slot)
+    if (is.null(result)) {
+        warning("[calculate_divergence_s4] Result is NULL. Check .calculate_divergence() output.",
+            call. = FALSE)
+        analysis@divergence_results <- list()
+    } else if (is(result, "SummarizedExperiment")) {
+        # Wrap SummarizedExperiment in list with 'divergence_se' key
+        analysis@divergence_results <- list(divergence_se = result)
+    } else if (is.list(result)) {
+        analysis@divergence_results <- result
+    } else if (is.data.frame(result) || is.matrix(result)) {
+        # Wrap single result in list
+        analysis@divergence_results <- list(main = result)
+    } else {
+        warning("[calculate_divergence_s4] Unexpected result type: ", class(result),
+            ". Wrapping in list.", call. = FALSE)
+        analysis@divergence_results <- list(result = result)
+    }
+
+    # Track metadata
+    analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("calculate_divergence[q=",
+        q, "]"))
+
+    # Save if output_file provided
+    if (!is.null(output_file)) {
+        # Create directory if it doesn't exist
+        output_dir <- dirname(output_file)
+        if (output_dir != "." && !dir.exists(output_dir)) {
+            dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+        }
+
+        if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
+            # Write divergence results as text table
+            tryCatch({
+                if (length(analysis@divergence_results) > 0) {
+                  # Extract and combine all divergence results
+                  div_list <- analysis@divergence_results
+
+                  # Handle wrapped structure (divergence_se key) or direct
+                  # SummarizedExperiments
+                  if ("divergence_se" %in% names(div_list)) {
+                    write_data <- as.data.frame(SummarizedExperiment::assay(div_list$divergence_se))
+                  } else if (is(div_list[[1]], "SummarizedExperiment")) {
+                    # Combine multiple SE objects if present
+                    data_list <- lapply(div_list, function(se) {
+                      as.data.frame(SummarizedExperiment::assay(se, 1))
+                    })
+                    write_data <- do.call(cbind, data_list)
+                  } else {
+                    write_data <- as.data.frame(div_list)
+                  }
+
+                  # Determine separator
+                  sep <- if (grepl("\\.csv$", tolower(output_file)))
+                    "," else "\t"
+                  write.table(write_data, file = output_file, sep = sep, quote = FALSE,
+                    row.names = TRUE)
+                } else {
+                  warning("[calculate_divergence_s4] No divergence results to save",
+                    call. = FALSE)
+                }
+            }, error = function(e) {
+                warning("[calculate_divergence_s4] Could not write divergence results to file: ",
+                  conditionMessage(e), call. = FALSE)
+            })
+
+            # If bootstrap was used, also save bootstrap results to separate
+            # file
+            if (isTRUE(bootstrap)) {
+                tryCatch({
+                  bootstrap_file <- gsub("\\.(tsv|csv|txt)$", "_bootstrap.\\1", tolower(output_file),
+                    ignore.case = TRUE)
+                  if (basename(bootstrap_file) == basename(output_file)) {
+                    # Fallback: if replacement didn't work, append before
+                    # extension
+                    bootstrap_file <- sub("(\\.[^.]+)$", "_bootstrap\\1", output_file)
+                  }
+
+                  if (isTRUE(verbose)) {
+                    message("[calculate_divergence_s4] Attempting to save bootstrap results to: ",
+                      bootstrap_file)
+                  }
+
+                  # Extract bootstrap results from rowData
+                  if (length(analysis@divergence_results) > 0) {
+                    div_list <- analysis@divergence_results
+
+                    # Handle wrapped structure (divergence_se key)
+                    se <- if ("divergence_se" %in% names(div_list)) {
+                      div_list$divergence_se
+                    } else if (is(div_list[[1]], "SummarizedExperiment")) {
+                      div_list[[1]]
+                    } else {
+                      NULL
+                    }
+
+                    if (!is.null(se) && is(se, "SummarizedExperiment")) {
+                      rd <- SummarizedExperiment::rowData(se)
+
+                      # Extract bootstrap-related columns: gene_name + all
+                      # CI/estimate/nboot columns
+                      bootstrap_cols <- c("gene_name", grep("^estimate_q|^lower_ci_q|^upper_ci_q|^ci_width_q|^nboot_q|^method_q",
+                        colnames(rd), value = TRUE))
+
+                      # Include computation_time_sec and error if present
+                      if ("computation_time_sec" %in% colnames(rd)) {
+                        bootstrap_cols <- c(bootstrap_cols, "computation_time_sec")
+                      }
+                      if ("error" %in% colnames(rd)) {
+                        bootstrap_cols <- c(bootstrap_cols, "error")
+                      }
+
+                      # Filter to only existing columns
+                      bootstrap_cols <- bootstrap_cols[bootstrap_cols %in% colnames(rd)]
+
+                      if (length(bootstrap_cols) > 1) {
+                        # More than just gene_name
+                        bootstrap_data <- as.data.frame(rd[, bootstrap_cols])
+                        sep <- if (grepl("\\.csv$", tolower(bootstrap_file)))
+                          "," else "\t"
+                        write.table(bootstrap_data, file = bootstrap_file, sep = sep,
+                          quote = FALSE, row.names = FALSE)
+
+                        if (isTRUE(verbose)) {
+                          message("[calculate_divergence_s4] Saved bootstrap results to: ",
+                            bootstrap_file)
+                        }
+                      }
+                    }
+                  }
+                }, error = function(e) {
+                  warning("[calculate_divergence_s4] Could not write bootstrap results to file: ",
+                    conditionMessage(e), call. = FALSE)
+                })
+            }
+        } else {
+            # Default to RDS for S4 object
+            saveRDS(analysis, file = output_file)
+        }
+
+    }
+
+    analysis
 }
 
 
@@ -988,13 +960,13 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 #'   attempts to retrieve from \code{analysis@config$control}.
 #' @param condition_col \code{character} or \code{NULL}. Column name in colData identifying sample conditions.
 #'   If NULL, reads from \code{@config$condition_col} or auto-detects.
-#' @param method \code{character}. Difference calculation method. Default: "mean".
+#' @param method \code{character}. Difference calculation method. Default: 'mean'.
 #'   If NULL, reads from \code{@config$method} if available.
-#' @param test \code{character}. Statistical test type. Default: "wilcoxon".
+#' @param test \code{character}. Statistical test type. Default: 'wilcoxon'.
 #'   If NULL, reads from \code{@config$test} if available.
 #' @param randomizations \code{numeric}. Number of randomizations. Default: 100.
 #'   If NULL, reads from \code{@config$randomizations} if available.
-#' @param pcorr \code{character}. P-value correction method. Default: "BH".
+#' @param pcorr \code{character}. P-value correction method. Default: 'BH'.
 #'   If NULL, reads from \code{@config$pcorr} if available.
 #' @param assayno \code{numeric}. Assay number to use. Default: 1.
 #'   If NULL, reads from \code{@config$assayno} if available.
@@ -1010,9 +982,9 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 #'   If NULL, reads from \code{@config$nthreads} (or defaults to 1).
 #' @param seed \code{numeric} or \code{NULL}. Random seed. Default: NULL.
 #'   If NULL, reads from \code{@config$seed} if available.
-#' @param robust_loss_type \code{character}. Robust regression loss type. Default: "huber".
+#' @param robust_loss_type \code{character}. Robust regression loss type. Default: 'huber'.
 #'   If NULL, reads from \code{@config$robust_loss_type} if available.
-#' @param robust_scale_method \code{character}. Robust scaling method. Default: "mad".
+#' @param robust_scale_method \code{character}. Robust scaling method. Default: 'mad'.
 #'   If NULL, reads from \code{@config$robust_scale_method} if available.
 #' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
 #'   Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).
@@ -1032,7 +1004,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 #'   \item \code{control}: Uses explicit arg, else \code{@config$control}, else error
 #'   \item \code{nthreads}: Uses explicit arg, else \code{@config$nthreads}, else 1
 #'   \item \code{condition_col} (sample grouping): Uses \code{@config$condition_col},
-#'     else auto-detects from colData columns: "group", "sample_type", "condition"
+#'     else auto-detects from colData columns: 'group', 'sample_type', 'condition'
 #' }
 #'
 #' @importFrom utils write.table
@@ -1043,145 +1015,129 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 #' # Load example data (matching TSENAT.Rmd workflow)
 #' data(readcounts)
 #' readcounts <- as.matrix(salmon_dataset)
-#' mode(readcounts) <- "numeric"
+#' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
-#'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t"
+#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' 
 #' # Build analysis from vignette data and create small subset
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' result <- calculate_difference_s4(analysis, control = "normal", verbose = FALSE)
+#' result <- calculate_difference_s4(analysis, control = 'normal', verbose = FALSE)
 #'
 #' @export
 calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, condition_col = NULL,
-                                    method = NULL, test = NULL, randomizations = NULL, pcorr = NULL,
-                                    assayno = NULL, verbose = NULL, paired = FALSE, exact = FALSE,
-                                    pseudocount = NULL, nthreads = NULL, seed = NULL, 
-                                    robust_loss_type = NULL, robust_scale_method = NULL,
-                                    output_file = NULL, ...) {
-  if (!is(analysis, "TSENATAnalysis")) {
-    stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
-  }
+    method = NULL, test = NULL, randomizations = NULL, pcorr = NULL, assayno = NULL,
+    verbose = NULL, paired = FALSE, exact = FALSE, pseudocount = NULL, nthreads = NULL,
+    seed = NULL, robust_loss_type = NULL, robust_scale_method = NULL, output_file = NULL,
+    ...) {
+    if (!is(analysis, "TSENATAnalysis")) {
+        stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
+    }
 
-  # Check prerequisites: diversity results must exist
-  if (length(analysis@diversity_results) == 0) {
-    stop("Diversity results required. Run calculate_diversity_s4() first.",
-         call. = FALSE)
-  }
+    # Check prerequisites: diversity results must exist
+    if (length(analysis@diversity_results) == 0) {
+        stop("Diversity results required. Run calculate_diversity_s4() first.", call. = FALSE)
+    }
 
-  # Priority 1: Use explicit parameter
-  # Priority 2: Use @config$control
-  if (is.null(control)) {
-    if ("control" %in% names(analysis@config)) {
-      control <- analysis@config$control
+    # Priority 1: Use explicit parameter Priority 2: Use @config$control
+    if (is.null(control)) {
+        if ("control" %in% names(analysis@config)) {
+            control <- analysis@config$control
+        } else {
+            stop("'control' must be specified (control group identifier) or set in config",
+                call. = FALSE)
+        }
+    }
+
+    # Determine which diversity result to use
+    if (is.null(q)) {
+        div_keys <- names(analysis@diversity_results)
+        if (length(div_keys) == 0) {
+            stop("No diversity results found in @diversity_results", call. = FALSE)
+        }
+        diversity_se <- analysis@diversity_results[[div_keys[1]]]
+        q_used <- sub("^q_", "", div_keys[1])
     } else {
-      stop("'control' must be specified (control group identifier) or set in config",
-           call. = FALSE)
+        q_key <- paste0("q_", formatC(q, format = "f", digits = 3))
+        if (!(q_key %in% names(analysis@diversity_results))) {
+            stop("Diversity not calculated for q=", q, ". Available: ", paste(names(analysis@diversity_results),
+                collapse = ", "), call. = FALSE)
+        }
+        diversity_se <- analysis@diversity_results[[q_key]]
+        q_used <- q
     }
-  }
 
-  # Determine which diversity result to use
-  if (is.null(q)) {
-    div_keys <- names(analysis@diversity_results)
-    if (length(div_keys) == 0) {
-      stop("No diversity results found in @diversity_results", call. = FALSE)
+    # Determine condition column to use
+    condition_col <- resolve_slot_param(condition_col, analysis@config, "condition_col",
+        NULL)
+
+    # Resolve remaining parameters using centralized handler
+    method <- resolve_slot_param(method, analysis@config, "method", "mean")
+    test <- resolve_slot_param(test, analysis@config, "test", "wilcoxon")
+    randomizations <- resolve_slot_param(randomizations, analysis@config, "randomizations",
+        100)
+    pcorr <- resolve_slot_param(pcorr, analysis@config, "pcorr", "BH")
+    assayno <- resolve_slot_param(assayno, analysis@config, "assayno", 1)
+    verbose <- resolve_slot_param(verbose, analysis@config, "verbose", TRUE)
+    pseudocount <- resolve_slot_param(pseudocount, analysis@config, "pseudocount",
+        0)
+    nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
+    robust_loss_type <- resolve_slot_param(robust_loss_type, analysis@config, "robust_loss_type",
+        "huber")
+    robust_scale_method <- resolve_slot_param(robust_scale_method, analysis@config,
+        "robust_scale_method", "mad")
+
+    # Parameters with logical defaults (check config if FALSE)
+    if (!paired && "paired" %in% names(analysis@config)) {
+        paired <- analysis@config$paired
     }
-    diversity_se <- analysis@diversity_results[[div_keys[1]]]
-    q_used <- sub("^q_", "", div_keys[1])
-  } else {
-    q_key <- paste0("q_", formatC(q, format = "f", digits = 3))
-    if (!(q_key %in% names(analysis@diversity_results))) {
-      stop("Diversity not calculated for q=", q, 
-           ". Available: ", paste(names(analysis@diversity_results), collapse = ", "),
-           call. = FALSE)
+    if (!exact && "exact" %in% names(analysis@config)) {
+        exact <- analysis@config$exact
     }
-    diversity_se <- analysis@diversity_results[[q_key]]
-    q_used <- q
-  }
 
-  # Determine condition column to use
-  condition_col <- resolve_slot_param(condition_col, analysis@config, "condition_col", NULL)
-  
-  # Resolve remaining parameters using centralized handler
-  method <- resolve_slot_param(method, analysis@config, "method", "mean")
-  test <- resolve_slot_param(test, analysis@config, "test", "wilcoxon")
-  randomizations <- resolve_slot_param(randomizations, analysis@config, "randomizations", 100)
-  pcorr <- resolve_slot_param(pcorr, analysis@config, "pcorr", "BH")
-  assayno <- resolve_slot_param(assayno, analysis@config, "assayno", 1)
-  verbose <- resolve_slot_param(verbose, analysis@config, "verbose", TRUE)
-  pseudocount <- resolve_slot_param(pseudocount, analysis@config, "pseudocount", 0)
-  nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
-  robust_loss_type <- resolve_slot_param(robust_loss_type, analysis@config, "robust_loss_type", "huber")
-  robust_scale_method <- resolve_slot_param(robust_scale_method, analysis@config, "robust_scale_method", "mad")
-  
-  # Parameters with logical defaults (check config if FALSE)
-  if (!paired && "paired" %in% names(analysis@config)) {
-    paired <- analysis@config$paired
-  }
-  if (!exact && "exact" %in% names(analysis@config)) {
-    exact <- analysis@config$exact
-  }
-  
-  # Optional parameters (may be NULL)
-  seed <- resolve_slot_param(seed, analysis@config, "seed", NULL)
+    # Optional parameters (may be NULL)
+    seed <- resolve_slot_param(seed, analysis@config, "seed", NULL)
 
-  # Run difference calculation on diversity results
-  # Note: diversity_se and its colData are already prepared by calculate_diversity_s4
-  result <- tryCatch({
-    .calculate_difference(
-      x = diversity_se,
-      condition_col = condition_col,
-      control = control,
-      method = method,
-      test = test,
-      randomizations = randomizations,
-      pcorr = pcorr,
-      assayno = assayno,
-      verbose = verbose,
-      paired = paired,
-      exact = exact,
-      pseudocount = pseudocount,
-      nthreads = nthreads,
-      seed = seed,
-      robust_loss_type = robust_loss_type,
-      robust_scale_method = robust_scale_method,
-      ...
-    )
-  }, error = function(e) {
-    stop("Difference calculation failed:\n", e$message,
-         call. = FALSE)
-  })
+    # Run difference calculation on diversity results Note: diversity_se and
+    # its colData are already prepared by calculate_diversity_s4
+    result <- tryCatch({
+        .calculate_difference(x = diversity_se, condition_col = condition_col, control = control,
+            method = method, test = test, randomizations = randomizations, pcorr = pcorr,
+            assayno = assayno, verbose = verbose, paired = paired, exact = exact,
+            pseudocount = pseudocount, nthreads = nthreads, seed = seed, robust_loss_type = robust_loss_type,
+            robust_scale_method = robust_scale_method, ...)
+    }, error = function(e) {
+        stop("Difference calculation failed:\n", e$message, call. = FALSE)
+    })
 
-  # Store in lm_results under "difference" key
-  if (is.list(analysis@lm_results)) {
-    analysis@lm_results$difference <- result
-  } else {
-    analysis@lm_results <- list(difference = result)
-  }
-
-  # Track metadata
-  analysis@metadata$function_calls <- c(
-    analysis@metadata$function_calls,
-    paste0("calculate_difference_s4[q=", q_used, ", control=", control, "]")
-  )
-
-  # Save if output_file provided (using centralized output handler)
-  if (!is.null(output_file)) {
-    diff_data <- if (!is.null(analysis@lm_results$difference$results)) {
-      analysis@lm_results$difference$results
+    # Store in lm_results under 'difference' key
+    if (is.list(analysis@lm_results)) {
+        analysis@lm_results$difference <- result
     } else {
-      as.data.frame(analysis@lm_results$difference)
+        analysis@lm_results <- list(difference = result)
     }
-    save_analysis_output(diff_data, output_file, object = analysis, verbose = verbose,
-                         func_name = "calculate_difference_s4")
-  }
 
-  analysis
+    # Track metadata
+    analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("calculate_difference_s4[q=",
+        q_used, ", control=", control, "]"))
+
+    # Save if output_file provided (using centralized output handler)
+    if (!is.null(output_file)) {
+        diff_data <- if (!is.null(analysis@lm_results$difference$results)) {
+            analysis@lm_results$difference$results
+        } else {
+            as.data.frame(analysis@lm_results$difference)
+        }
+        save_analysis_output(diff_data, output_file, object = analysis, verbose = verbose,
+            func_name = "calculate_difference_s4")
+    }
+
+    analysis
 }
 
 # ============================================================================
@@ -1195,7 +1151,7 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
 #' @param q \code{numeric}. Q-value(s) to extract from diversity results.
 #'   If NULL, uses the first available diversity result or q=1.0.
 #' @param checks \code{character}. Which assumptions to test. Default includes:
-#'   "exchangeability", "monotonicity", "consistency".
+#'   'exchangeability', 'monotonicity', 'consistency'.
 #' @param alpha \code{numeric}. Significance level for tests (default: 0.05).
 #' @param ... Additional arguments (for future extensibility).
 #'
@@ -1221,12 +1177,12 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
 #' # Load example data (matching TSENAT.Rmd workflow)
 #' data(readcounts)
 #' readcounts <- as.matrix(salmon_dataset)
-#' mode(readcounts) <- "numeric"
+#' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
-#'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t"
+#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' 
 #' # Build analysis from vignette data and create small subset
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
@@ -1235,138 +1191,125 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' analysis <- test_rankbased_assumptions_s4(analysis, q = 1.0)
 #' # Access results using getMeta S4 accessor
-#' names(getMeta(analysis, "rankbased_assumptions"))
+#' names(getMeta(analysis, 'rankbased_assumptions'))
 #'
 #' @export
 #' @rdname test_rankbased_assumptions_s4
-setGeneric("test_rankbased_assumptions_s4", function(analysis, q = NULL, 
-           checks = c("exchangeability", "monotonicity", "consistency"),
-           alpha = 0.05, ...) {
-  standardGeneric("test_rankbased_assumptions_s4")
+setGeneric("test_rankbased_assumptions_s4", function(analysis, q = NULL, checks = c("exchangeability",
+    "monotonicity", "consistency"), alpha = 0.05, ...) {
+    standardGeneric("test_rankbased_assumptions_s4")
 })
 
 #' @rdname test_rankbased_assumptions_s4
-setMethod(
-  "test_rankbased_assumptions_s4",
-  signature(analysis = "TSENATAnalysis"),
-  function(analysis, q = NULL, 
-           checks = c("exchangeability", "monotonicity", "consistency"),
-           alpha = 0.05, ...) {
-    
-    # Validate inputs
-    if (!methods::is(analysis, "TSENATAnalysis")) {
-      stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
-    }
-    
-    # Extract diversity data
-    diversity_data <- NULL
-    q_used <- q
-    
-    # If q is specified, try to get that specific q-value
-    if (!is.null(q)) {
-      q_key <- if (nchar(as.character(q)) > 3) {
-        paste0("q_", round(q, 1))
-      } else {
-        paste0("q_", q)
-      }
-      
-      if (q_key %in% names(analysis@diversity_results)) {
-        div_se <- analysis@diversity_results[[q_key]]
-        diversity_data <- assay(div_se, "diversity")
-      }
-    }
-    
-    # If q is NULL and multiple diversity results exist, combine all q-values
-    if (is.null(diversity_data) && is.null(q) && length(analysis@diversity_results) > 1) {
-      entropy_list <- lapply(analysis@diversity_results, function(se) {
-        mat <- assay(se, "diversity")
-        if (!is.matrix(mat)) {
-          mat <- as.matrix(mat)
+setMethod("test_rankbased_assumptions_s4", signature(analysis = "TSENATAnalysis"),
+    function(analysis, q = NULL, checks = c("exchangeability", "monotonicity", "consistency"),
+        alpha = 0.05, ...) {
+
+        # Validate inputs
+        if (!methods::is(analysis, "TSENATAnalysis")) {
+            stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
         }
-        return(mat)
-      })
-      
-      # Use complete case analysis: keep only genes present in ALL q-value matrices
-      # This is mathematically sound for rank-based tests (Friedman)
-      # and follows best practices per scholarly literature (Springer Handbook, Permutation Tests)
-      all_genes <- lapply(entropy_list, rownames)
-      common_genes <- Reduce(intersect, all_genes)
-      
-      # Subset all matrices to common genes in same order
-      entropy_list <- lapply(entropy_list, function(mat) {
-        mat[common_genes, , drop = FALSE]
-      })
-      
-      # Combine all matrices column-wise (genes x all samples across q-values)
-      diversity_data <- do.call(cbind, entropy_list)
-      # Keep natural column names from cbind to preserve structure
-      q_used <- "all"
-    }
-    
-    # If q is NULL and only one result, use it
-    if (is.null(diversity_data) && is.null(q) && length(analysis@diversity_results) == 1) {
-      div_se <- analysis@diversity_results[[1]]
-      diversity_data <- assay(div_se, "diversity")
-      q_used <- .extract_q_from_key(names(analysis@diversity_results)[1])
-    }
-    
-    # Fallback: use first diversity result
-    if (is.null(diversity_data) && length(analysis@diversity_results) > 0) {
-      div_se <- analysis@diversity_results[[1]]
-      diversity_data <- assay(div_se, "diversity")
-      if (is.null(q_used) || is.na(q_used)) {
-        q_used <- .extract_q_from_key(names(analysis@diversity_results)[1])
-      }
-    }
-    
-    # Check that we have data
-    if (is.null(diversity_data)) {
-      stop("No diversity results found in analysis object. ",
-           "Run calculate_diversity_s4() first.",
-           call. = FALSE)
-    }
-    
-    # Ensure we have a matrix
-    if (!is.matrix(diversity_data)) {
-      diversity_data <- as.matrix(diversity_data)
-    }
-    
-    # Run assumptions test
-    result <- tryCatch({
-      .test_rankbased_assumptions(
-        data = diversity_data,
-        checks = checks,
-        alpha = alpha
-      )
-    }, error = function(e) {
-      stop("Rankbased assumptions test failed:\n", e$message,
-           call. = FALSE)
+
+        # Extract diversity data
+        diversity_data <- NULL
+        q_used <- q
+
+        # If q is specified, try to get that specific q-value
+        if (!is.null(q)) {
+            q_key <- if (nchar(as.character(q)) > 3) {
+                paste0("q_", round(q, 1))
+            } else {
+                paste0("q_", q)
+            }
+
+            if (q_key %in% names(analysis@diversity_results)) {
+                div_se <- analysis@diversity_results[[q_key]]
+                diversity_data <- assay(div_se, "diversity")
+            }
+        }
+
+        # If q is NULL and multiple diversity results exist, combine all
+        # q-values
+        if (is.null(diversity_data) && is.null(q) && length(analysis@diversity_results) >
+            1) {
+            entropy_list <- lapply(analysis@diversity_results, function(se) {
+                mat <- assay(se, "diversity")
+                if (!is.matrix(mat)) {
+                  mat <- as.matrix(mat)
+                }
+                return(mat)
+            })
+
+            # Use complete case analysis: keep only genes present in ALL
+            # q-value matrices This is mathematically sound for rank-based
+            # tests (Friedman) and follows best practices per scholarly
+            # literature (Springer Handbook, Permutation Tests)
+            all_genes <- lapply(entropy_list, rownames)
+            common_genes <- Reduce(intersect, all_genes)
+
+            # Subset all matrices to common genes in same order
+            entropy_list <- lapply(entropy_list, function(mat) {
+                mat[common_genes, , drop = FALSE]
+            })
+
+            # Combine all matrices column-wise (genes x all samples across
+            # q-values)
+            diversity_data <- do.call(cbind, entropy_list)
+            # Keep natural column names from cbind to preserve structure
+            q_used <- "all"
+        }
+
+        # If q is NULL and only one result, use it
+        if (is.null(diversity_data) && is.null(q) && length(analysis@diversity_results) ==
+            1) {
+            div_se <- analysis@diversity_results[[1]]
+            diversity_data <- assay(div_se, "diversity")
+            q_used <- .extract_q_from_key(names(analysis@diversity_results)[1])
+        }
+
+        # Fallback: use first diversity result
+        if (is.null(diversity_data) && length(analysis@diversity_results) > 0) {
+            div_se <- analysis@diversity_results[[1]]
+            diversity_data <- assay(div_se, "diversity")
+            if (is.null(q_used) || is.na(q_used)) {
+                q_used <- .extract_q_from_key(names(analysis@diversity_results)[1])
+            }
+        }
+
+        # Check that we have data
+        if (is.null(diversity_data)) {
+            stop("No diversity results found in analysis object. ", "Run calculate_diversity_s4() first.",
+                call. = FALSE)
+        }
+
+        # Ensure we have a matrix
+        if (!is.matrix(diversity_data)) {
+            diversity_data <- as.matrix(diversity_data)
+        }
+
+        # Run assumptions test
+        result <- tryCatch({
+            .test_rankbased_assumptions(data = diversity_data, checks = checks, alpha = alpha)
+        }, error = function(e) {
+            stop("Rankbased assumptions test failed:\n", e$message, call. = FALSE)
+        })
+
+        # Store results
+        analysis@metadata$rankbased_assumptions <- list(result = result, q_value_tested = q_used,
+            checks_performed = checks, alpha_used = alpha, timestamp = Sys.time())
+
+        # Track function call
+        analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("test_rankbased_assumptions_s4[q=",
+            q_used, "]"))
+
+        analysis
     })
-    
-    # Store results
-    analysis@metadata$rankbased_assumptions <- list(
-      result = result,
-      q_value_tested = q_used,
-      checks_performed = checks,
-      alpha_used = alpha,
-      timestamp = Sys.time()
-    )
-    
-    # Track function call
-    analysis@metadata$function_calls <- c(
-      analysis@metadata$function_calls,
-      paste0("test_rankbased_assumptions_s4[q=", q_used, "]")
-    )
-    
-    analysis
-  }
-)
 
 # Helper function to extract q-value from key
 
 .extract_q_from_key <- function(key) {
-  # Extract numeric part from "q_X.X" format
-  as.numeric(sub("^q_", "", key))
+    # Extract numeric part from 'q_X.X' format
+    as.numeric(sub("^q_", "", key))
 }
 
 #' Plot Volcano and MA Grid from Differential Analysis Results (S4 Wrapper)
@@ -1380,7 +1323,7 @@ setMethod(
 #' @param x_col \code{character}. Column name for x-axis in MA plot.
 #'   Default: NULL (uses mean_difference if available, else mean fold-change).
 #' @param padj_col \code{character}. Column name for adjusted p-values.
-#'   Default: "padj" (the standard column name from calculate_difference).
+#'   Default: 'padj' (the standard column name from calculate_difference).
 #' @param label_thresh \code{numeric}. P-value threshold for labeling top genes.
 #'   Genes with adjusted p-value below this threshold are labeled.
 #'   Default: 0.1.
@@ -1392,7 +1335,7 @@ setMethod(
 #' @param title_volcano \code{character}. Title for volcano plot.
 #'   Default: NULL (no title).
 #' @param title_ma \code{character}. Title for MA plot.
-#'   Default: "Tsallis-based MA plot".
+#'   Default: 'Tsallis-based MA plot'.
 #' @param verbose \code{logical}. Print status messages. Default: FALSE.
 #' @param output_file \code{character} or \code{NULL}. Optional file path to save the plot.
 #'   Default: NULL (no file output).
@@ -1447,19 +1390,19 @@ setMethod(
 #' # Load example data (matching TSENAT.Rmd workflow)
 #' data(readcounts)
 #' readcounts <- as.matrix(salmon_dataset)
-#' mode(readcounts) <- "numeric"
+#' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
-#'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t"
+#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' 
 #' # Build analysis from vignette data and create small subset
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' analysis <- calculate_difference_s4(analysis, control = "normal", verbose = FALSE)
+#' analysis <- calculate_difference_s4(analysis, control = 'normal', verbose = FALSE)
 #'   
 #' # Plot volcano and MA plots
 #' p <- plot_volcano_ma_grid_s4(analysis, sig_alpha = 0.05, top_n = 3)
@@ -1469,93 +1412,67 @@ setMethod(
 #' \code{\link{calculate_difference_s4}} for computing differential analysis.
 #'
 #' @export
-plot_volcano_ma_grid_s4 <- function(
-    analysis,
-    x_col = NULL,
-    padj_col = "padj",
-    label_thresh = 0.1,
-    sig_alpha = 0.05,
-    top_n = 5,
-    title_volcano = NULL,
-    title_ma = "Tsallis-based MA plot",
-    verbose = FALSE,
-    output_file = NULL,
-    width = 12,
-    height = 7.2,
-    ...) {
-  
-  # Load visualization dependencies (ggplot2, cowplot, etc.)
-  .load_visualization_deps()
+plot_volcano_ma_grid_s4 <- function(analysis, x_col = NULL, padj_col = "padj", label_thresh = 0.1,
+    sig_alpha = 0.05, top_n = 5, title_volcano = NULL, title_ma = "Tsallis-based MA plot",
+    verbose = FALSE, output_file = NULL, width = 12, height = 7.2, ...) {
 
-  # Extract verbose parameter if not provided
-  verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
+    # Load visualization dependencies (ggplot2, cowplot, etc.)
+    .load_visualization_deps()
 
-  # Validate input
-  if (!is(analysis, "TSENATAnalysis")) {
-    stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
-  }
+    # Extract verbose parameter if not provided
+    verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
 
-  # Extract difference results from S4 object
-  if (is.null(analysis@lm_results) || !is.list(analysis@lm_results)) {
-    stop("No LM results found in analysis@lm_results. ",
-         "Run calculate_difference_s4() first.", call. = FALSE)
-  }
+    # Validate input
+    if (!is(analysis, "TSENATAnalysis")) {
+        stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
+    }
 
-  if (!("difference" %in% names(analysis@lm_results))) {
-    stop("Difference results not found in analysis@lm_results$difference. ",
-         "Run calculate_difference_s4() first.", call. = FALSE)
-  }
+    # Extract difference results from S4 object
+    if (is.null(analysis@lm_results) || !is.list(analysis@lm_results)) {
+        stop("No LM results found in analysis@lm_results. ", "Run calculate_difference_s4() first.",
+            call. = FALSE)
+    }
 
-  diff_df <- analysis@lm_results$difference
+    if (!("difference" %in% names(analysis@lm_results))) {
+        stop("Difference results not found in analysis@lm_results$difference. ",
+            "Run calculate_difference_s4() first.", call. = FALSE)
+    }
 
-  if (!is.data.frame(diff_df) || nrow(diff_df) == 0) {
-    stop("Difference results are empty or not a data frame", call. = FALSE)
-  }
+    diff_df <- analysis@lm_results$difference
 
-  # Auto-detect column names - padj_col with fallbacks, x_col for effect size
-  actual_padj_col <- auto_detect_column(
-    colnames(diff_df), analysis@config, "padj_col",
-    c("padj", "adjusted_p_values", "pvalue"),
-    verbose = verbose, param_name = "padj_col"
-  )
-  
-  if (is.null(x_col)) {
-    x_col <- auto_detect_column(
-      colnames(diff_df), analysis@config, "x_col",
-      c("mean_difference", "log2_fold_change", "effect_size"),
-      verbose = verbose, param_name = "x_col"
-    )
-  }
+    if (!is.data.frame(diff_df) || nrow(diff_df) == 0) {
+        stop("Difference results are empty or not a data frame", call. = FALSE)
+    }
 
-  plot_obj <- tryCatch({
-    .plot_volcano_ma_grid(
-      diff_df = diff_df,
-      x_col = x_col,
-      padj_col = actual_padj_col,
-      label_thresh = label_thresh,
-      sig_alpha = sig_alpha,
-      top_n = top_n,
-      title_volcano = title_volcano,
-      title_ma = title_ma,
-      ...
-    )
-  }, error = function(e) {
-    stop("[plot_volcano_ma_grid_s4]", conditionMessage(e),
-         call. = FALSE)
-  })
+    # Auto-detect column names - padj_col with fallbacks, x_col for effect size
+    actual_padj_col <- auto_detect_column(colnames(diff_df), analysis@config, "padj_col",
+        c("padj", "adjusted_p_values", "pvalue"), verbose = verbose, param_name = "padj_col")
 
-  if (verbose) {
-    message("[plot_volcano_ma_grid_s4] Plot created successfully")
-  }
+    if (is.null(x_col)) {
+        x_col <- auto_detect_column(colnames(diff_df), analysis@config, "x_col",
+            c("mean_difference", "log2_fold_change", "effect_size"), verbose = verbose,
+            param_name = "x_col")
+    }
 
-  # Save plot to file if requested
-  if (!is.null(output_file)) {
-    save_analysis_output(plot_obj, output_file, object = analysis, verbose = verbose,
-                         func_name = "plot_volcano_ma_grid_s4",
-                         width = width, height = height)
-  }
+    plot_obj <- tryCatch({
+        .plot_volcano_ma_grid(diff_df = diff_df, x_col = x_col, padj_col = actual_padj_col,
+            label_thresh = label_thresh, sig_alpha = sig_alpha, top_n = top_n, title_volcano = title_volcano,
+            title_ma = title_ma, ...)
+    }, error = function(e) {
+        stop("[plot_volcano_ma_grid_s4]", conditionMessage(e), call. = FALSE)
+    })
 
-  return(invisible(plot_obj))
+    if (verbose) {
+        message("[plot_volcano_ma_grid_s4] Plot created successfully")
+    }
+
+    # Save plot to file if requested
+    if (!is.null(output_file)) {
+        save_analysis_output(plot_obj, output_file, object = analysis, verbose = verbose,
+            func_name = "plot_volcano_ma_grid_s4", width = width, height = height)
+    }
+
+    return(invisible(plot_obj))
 }
 
 # ============================================================================
@@ -1566,9 +1483,9 @@ plot_volcano_ma_grid_s4 <- function(
 #'
 #' @param analysis \code{TSENATAnalysis} object with LM results (e.g., GAM).
 #' @param gam_method \code{character}. Key for GAM/interaction results in \code{@lm_results}.
-#'   Default: "q_interactions" (results from \code{rank_test_q_condition_s4})
+#'   Default: 'q_interactions' (results from \code{rank_test_q_condition_s4})
 #' @param friedman_method \code{character}. Key for Friedman/rank-based results in \code{@lm_results}.
-#'   Default: "rankbased" (results from \code{test_rankbased_assumptions_s4})
+#'   Default: 'rankbased' (results from \code{test_rankbased_assumptions_s4})
 #' @param gam_results \code{data.frame} or \code{NULL}. Optional GAM results data frame to store
 #'   in the analysis object. If provided, automatically stored in \code{@lm_results} under the
 #'   key specified by \code{gam_method}. Useful for importing external results or results 
@@ -1601,12 +1518,12 @@ plot_volcano_ma_grid_s4 <- function(
 #' # Load example data (matching TSENAT.Rmd workflow)
 #' data(readcounts)
 #' readcounts <- as.matrix(salmon_dataset)
-#' mode(readcounts) <- "numeric"
+#' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
-#'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t"
+#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' 
 #' # Build analysis from vignette data (matching TSENAT.Rmd workflow)
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
@@ -1614,148 +1531,136 @@ plot_volcano_ma_grid_s4 <- function(
 #' 
 #' # Configure analysis parameters (best practice for reproducibility)
 #' config <- tsenat_config(
-#'   condition_col = "condition",
-#'   subject_col = "paired_samples",
+#'   condition_col = 'condition',
+#'   subject_col = 'paired_samples',
 #'   paired = TRUE,
-#'   control = "normal",
+#'   control = 'normal',
 #'   metadata = metadata_df
 #' )
 #' analysis <- setConfig(analysis, config)
 #' 
-#' analysis <- filter_analysis_s4(analysis, stringency = "severe")
+#' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, method = "gam", verbose = FALSE)
+#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
 #' # Note: compute_method_concordance_s4 requires results from both
 #' # rank_test_q_condition_s4 and test_rankbased_assumptions_s4
 #'
 #' @aliases compute_method_concordance_s4
 #' @export
 setGeneric("compute_method_concordance_s4", function(analysis, ...) {
-  standardGeneric("compute_method_concordance_s4")
+    standardGeneric("compute_method_concordance_s4")
 })
 
 #' @rdname compute_method_concordance_s4
-setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(
-    analysis,
-    gam_method = "q_interactions",
-    friedman_method = "rankbased",
-    gam_results = NULL,
-    verbose = FALSE,
-    output_file = NULL) {
-  
-  # ===================================================================
-  # VALIDATION
-  # ===================================================================
-  
-  if (!is(analysis, "TSENATAnalysis")) {
-    stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
-  }
-  
-  # If gam_results provided, store them in lmResults automatically
-  if (!is.null(gam_results)) {
-    if (!is.data.frame(gam_results)) {
-      stop("gam_results must be a data.frame", call. = FALSE)
+setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(analysis, gam_method = "q_interactions",
+    friedman_method = "rankbased", gam_results = NULL, verbose = FALSE, output_file = NULL) {
+
+    # ===================================================================
+    # VALIDATION
+    # ===================================================================
+
+    if (!is(analysis, "TSENATAnalysis")) {
+        stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }
-    # Store GAM results in analysis@lm_results
+
+    # If gam_results provided, store them in lmResults automatically
+    if (!is.null(gam_results)) {
+        if (!is.data.frame(gam_results)) {
+            stop("gam_results must be a data.frame", call. = FALSE)
+        }
+        # Store GAM results in analysis@lm_results
+        if (is.null(analysis@lm_results)) {
+            analysis@lm_results <- list()
+        }
+        analysis@lm_results[[gam_method]] <- gam_results
+        if (verbose) {
+            message("[compute_method_concordance_s4] Stored GAM results as '", gam_method,
+                "'")
+        }
+    }
+
     if (is.null(analysis@lm_results)) {
-      analysis@lm_results <- list()
+        stop("No LM results found in analysis@lm_results. Run rank_test_q_condition_s4() first.",
+            call. = FALSE)
     }
-    analysis@lm_results[[gam_method]] <- gam_results
+
+    # Check for required methods
+    if (!(gam_method %in% names(analysis@lm_results))) {
+        available_methods <- paste(names(analysis@lm_results), collapse = ", ")
+        stop("GAM method '", gam_method, "' not found in LM results. ", "Available: ",
+            available_methods, call. = FALSE)
+    }
+
+    if (!(friedman_method %in% names(analysis@lm_results))) {
+        available_methods <- paste(names(analysis@lm_results), collapse = ", ")
+        stop("Friedman method '", friedman_method, "' not found in LM results. ",
+            "Available: ", available_methods, call. = FALSE)
+    }
+
+    # Extract results
+    gam_results_final <- analysis@lm_results[[gam_method]]
+    friedman_results <- analysis@lm_results[[friedman_method]]
+
+    # Validate they're data frames
+    if (!is.data.frame(gam_results_final)) {
+        stop("GAM results ('", gam_method, "') must be a data.frame", call. = FALSE)
+    }
+
+    if (!is.data.frame(friedman_results)) {
+        stop("Friedman results ('", friedman_method, "') must be a data.frame", call. = FALSE)
+    }
+
+    # ===================================================================
+    # COMPUTE CONCORDANCE
+    # ===================================================================
+
     if (verbose) {
-      message("[compute_method_concordance_s4] Stored GAM results as '", gam_method, "'")
+        message("[compute_method_concordance_s4] Computing concordance between ",
+            gam_method, " and ", friedman_method)
     }
-  }
-  
-  if (is.null(analysis@lm_results)) {
-    stop("No LM results found in analysis@lm_results. Run rank_test_q_condition_s4() first.",
-         call. = FALSE)
-  }
-  
-  # Check for required methods
-  if (!(gam_method %in% names(analysis@lm_results))) {
-    available_methods <- paste(names(analysis@lm_results), collapse = ", ")
-    stop("GAM method '", gam_method, "' not found in LM results. ",
-                "Available: ", available_methods, call. = FALSE)
-  }
-  
-  if (!(friedman_method %in% names(analysis@lm_results))) {
-    available_methods <- paste(names(analysis@lm_results), collapse = ", ")
-    stop("Friedman method '", friedman_method, "' not found in LM results. ",
-                "Available: ", available_methods, call. = FALSE)
-  }
-  
-  # Extract results
-  gam_results_final <- analysis@lm_results[[gam_method]]
-  friedman_results <- analysis@lm_results[[friedman_method]]
-  
-  # Validate they're data frames
-  if (!is.data.frame(gam_results_final)) {
-    stop("GAM results ('", gam_method, "') must be a data.frame", call. = FALSE)
-  }
-  
-  if (!is.data.frame(friedman_results)) {
-    stop("Friedman results ('", friedman_method, "') must be a data.frame", call. = FALSE)
-  }
-  
-  # ===================================================================
-  # COMPUTE CONCORDANCE
-  # ===================================================================
-  
-  if (verbose) {
-    message("[compute_method_concordance_s4] Computing concordance between ",
-        gam_method, " and ", friedman_method)
-  }
-  
-  # Call the standard function
-  concordance_result <- tryCatch({
-    .compute_method_concordance(gam_results_final, friedman_results)
-  }, error = function(e) {
-    stop("[compute_method_concordance_s4]", conditionMessage(e), call. = FALSE)
-  })
-  
-  # ===================================================================
-  # STORE RESULTS
-  # ===================================================================
-  
-  analysis@metadata$method_concordance <- list(
-    comparison_df = concordance_result$comparison_df,
-    spearman_rho = concordance_result$spearman_rho,
-    high_confidence = concordance_result$high_conf,
-    agreement_table = concordance_result$agreement_table,
-    gam_method = gam_method,
-    friedman_method = friedman_method,
-    timestamp = Sys.time()
-  )
-  
-  # Track function call
-  analysis@metadata$function_calls <- c(
-    analysis@metadata$function_calls,
-    paste0("compute_method_concordance_s4[", gam_method, " vs ", friedman_method, "]")
-  )
-  
-  if (verbose) {
-    message("[compute_method_concordance_s4] Concordance computed successfully")
-    if (!is.na(concordance_result$spearman_rho)) {
-      message("[compute_method_concordance_s4] Spearman corr = ", 
-          round(concordance_result$spearman_rho, 3))
-    }
-  }
-  
-  # ===================================================================
-  # SAVE TO FILE (if output_file provided)
-  # ===================================================================
-  
-  if (!is.null(output_file)) {
+
+    # Call the standard function
+    concordance_result <- tryCatch({
+        .compute_method_concordance(gam_results_final, friedman_results)
+    }, error = function(e) {
+        stop("[compute_method_concordance_s4]", conditionMessage(e), call. = FALSE)
+    })
+
+    # =================================================================== STORE
+    # RESULTS
+    # ===================================================================
+
+    analysis@metadata$method_concordance <- list(comparison_df = concordance_result$comparison_df,
+        spearman_rho = concordance_result$spearman_rho, high_confidence = concordance_result$high_conf,
+        agreement_table = concordance_result$agreement_table, gam_method = gam_method,
+        friedman_method = friedman_method, timestamp = Sys.time())
+
+    # Track function call
+    analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("compute_method_concordance_s4[",
+        gam_method, " vs ", friedman_method, "]"))
+
     if (verbose) {
-      message("[compute_method_concordance_s4] Writing results to: ", output_file)
+        message("[compute_method_concordance_s4] Concordance computed successfully")
+        if (!is.na(concordance_result$spearman_rho)) {
+            message("[compute_method_concordance_s4] Spearman corr = ", round(concordance_result$spearman_rho,
+                3))
+        }
     }
-    saveRDS(analysis, file = output_file)
-  }
-  
-  analysis
-}
-)
+
+    # =================================================================== SAVE
+    # TO FILE (if output_file provided)
+    # ===================================================================
+
+    if (!is.null(output_file)) {
+        if (verbose) {
+            message("[compute_method_concordance_s4] Writing results to: ", output_file)
+        }
+        saveRDS(analysis, file = output_file)
+    }
+
+    analysis
+})
 
 #' Plot Global Divergence q-Curve Across All Genes (S4 Wrapper)
 #'
@@ -1772,9 +1677,9 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(
 #' @param ncol \code{integer}. Number of columns in grid layout for multi-gene
 #'   plots. Default is 2. Number of rows is automatically calculated.
 #' @param metric \code{character}. Summary statistic for global curve:
-#'   "median" (default) or "mean". Only used when gene = NULL.
+#'   'median' (default) or 'mean'. Only used when gene = NULL.
 #' @param variability_metric \code{character}. Error bar type for global curve:
-#'   "iqr" (default) or "sd". Only used when gene = NULL.
+#'   'iqr' (default) or 'sd'. Only used when gene = NULL.
 #' @param use_pvalue_ranking \code{logical}. If TRUE, uses LM results to rank and
 #'   display top n_genes by p-value significance. If FALSE (default), plots global
 #'   divergence curve when gene = NULL. Default is FALSE.
@@ -1815,12 +1720,12 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(
 #' # Load example data (matching TSENAT.Rmd workflow)
 #' data(readcounts)
 #' readcounts <- as.matrix(salmon_dataset)
-#' mode(readcounts) <- "numeric"
+#' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
-#'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t"
+#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' 
 #' # Build analysis from vignette data and create small subset
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
@@ -1835,116 +1740,98 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(
 #' \code{\link{calculate_divergence_s4}} for computing divergence.
 #'
 #' @export
-plot_divergence_spectrum_s4 <- function(
-    analysis,
-    gene = NULL,
-    n_genes = 4,
-    ncol = 2,
-    metric = c("median", "mean"),
-    variability_metric = c("iqr", "sd"),
-    use_pvalue_ranking = FALSE,
-    output_file = NULL,
-    width = 12,
-    height = NULL,
-    verbose = TRUE,
-    ...) {
+plot_divergence_spectrum_s4 <- function(analysis, gene = NULL, n_genes = 4, ncol = 2,
+    metric = c("median", "mean"), variability_metric = c("iqr", "sd"), use_pvalue_ranking = FALSE,
+    output_file = NULL, width = 12, height = NULL, verbose = TRUE, ...) {
 
-  # Load visualization dependencies (ggplot2, cowplot, etc.)
-  .load_visualization_deps()
+    # Load visualization dependencies (ggplot2, cowplot, etc.)
+    .load_visualization_deps()
 
-  # Extract verbose parameter if not provided
-  verbose <- resolve_slot_param(verbose, analysis@config, "verbose", TRUE)
+    # Extract verbose parameter if not provided
+    verbose <- resolve_slot_param(verbose, analysis@config, "verbose", TRUE)
 
-  # Validate input
-  if (!is(analysis, "TSENATAnalysis")) {
-    stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
-  }
-
-  # Match metric and variability_metric arguments
-  metric <- match.arg(metric)
-  variability_metric <- match.arg(variability_metric)
-
-  # Extract divergence SE from analysis object
-  if (is.null(analysis@divergence_results)) {
-    stop("Divergence results not found in analysis@divergence_results. ",
-         "Run calculate_divergence_s4() first.", call. = FALSE)
-  }
-
-  # Handle both direct SE and wrapped "divergence_se" key
-  divergence_results_se <- if (is.list(analysis@divergence_results) &&
-                               "divergence_se" %in% names(analysis@divergence_results)) {
-    analysis@divergence_results$divergence_se
-  } else if (is(analysis@divergence_results, "SummarizedExperiment")) {
-    analysis@divergence_results
-  } else {
-    stop("Invalid divergence_results structure. Expected SummarizedExperiment or list with 'divergence_se' key",
-         call. = FALSE)
-  }
-
-  if (nrow(divergence_results_se) == 0 || ncol(divergence_results_se) == 0) {
-    stop("Divergence SummarizedExperiment is empty", call. = FALSE)
-  }
-
-  # Extract LM results for lm_res parameter (optional)
-  # Only use for ranking if use_pvalue_ranking = TRUE
-  lm_res <- NULL
-  if (use_pvalue_ranking && !is.null(analysis@lm_results) && is.list(analysis@lm_results)) {
-    if ("lm_interaction" %in% names(analysis@lm_results)) {
-      lm_res <- analysis@lm_results$lm_interaction
-    } else if (length(analysis@lm_results) > 0) {
-      lm_res <- analysis@lm_results[[1]]
+    # Validate input
+    if (!is(analysis, "TSENATAnalysis")) {
+        stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }
-  }
 
-  # Validate LM results if using multi-gene mode
-  if (is.null(gene) && use_pvalue_ranking && !is.null(lm_res)) {
-    if (!is.data.frame(lm_res) || nrow(lm_res) == 0) {
-      if (verbose) {
-        message("Note: Invalid LM results. Plotting global curve without gene ranking.")
-      }
-      lm_res <- NULL
+    # Match metric and variability_metric arguments
+    metric <- match.arg(metric)
+    variability_metric <- match.arg(variability_metric)
+
+    # Extract divergence SE from analysis object
+    if (is.null(analysis@divergence_results)) {
+        stop("Divergence results not found in analysis@divergence_results. ", "Run calculate_divergence_s4() first.",
+            call. = FALSE)
     }
-  }
 
-  # Calculate height if not provided (based on grid layout)
-  if (is.null(height)) {
-    n_rows <- ceiling(n_genes / ncol)
-    height <- 3 + (3.5 * n_rows)  # 3" base + 3.5" per row
-  }
-
-  # Create the plot using base function
-  p <- tryCatch({
-    .plot_divergence_spectrum(
-      divergence_results_se = divergence_results_se,
-      gene = gene,
-      lm_res = lm_res,
-      n_genes = n_genes,
-      ncol = ncol,
-      metric = metric,
-      variability_metric = variability_metric,
-      ...
-    )
-  }, error = function(e) {
-    if (verbose) {
-      message("plot_divergence_spectrum failed: ", e$message)
+    # Handle both direct SE and wrapped 'divergence_se' key
+    divergence_results_se <- if (is.list(analysis@divergence_results) && "divergence_se" %in%
+        names(analysis@divergence_results)) {
+        analysis@divergence_results$divergence_se
+    } else if (is(analysis@divergence_results, "SummarizedExperiment")) {
+        analysis@divergence_results
+    } else {
+        stop("Invalid divergence_results structure. Expected SummarizedExperiment or list with 'divergence_se' key",
+            call. = FALSE)
     }
-    return(NULL)
-  })
 
-  # If plot creation failed, return NULL invisibly
-  if (is.null(p)) {
-    return(invisible(NULL))
-  }
+    if (nrow(divergence_results_se) == 0 || ncol(divergence_results_se) == 0) {
+        stop("Divergence SummarizedExperiment is empty", call. = FALSE)
+    }
 
-  # Save plot to file if requested
-  if (!is.null(output_file)) {
-    save_analysis_output(p, output_file, object = analysis, verbose = verbose,
-                         func_name = "plot_divergence_spectrum_s4",
-                         width = width, height = height)
-  }
+    # Extract LM results for lm_res parameter (optional) Only use for ranking
+    # if use_pvalue_ranking = TRUE
+    lm_res <- NULL
+    if (use_pvalue_ranking && !is.null(analysis@lm_results) && is.list(analysis@lm_results)) {
+        if ("lm_interaction" %in% names(analysis@lm_results)) {
+            lm_res <- analysis@lm_results$lm_interaction
+        } else if (length(analysis@lm_results) > 0) {
+            lm_res <- analysis@lm_results[[1]]
+        }
+    }
 
-  # Return file path if saved, otherwise return plot
-  invisible(p)
+    # Validate LM results if using multi-gene mode
+    if (is.null(gene) && use_pvalue_ranking && !is.null(lm_res)) {
+        if (!is.data.frame(lm_res) || nrow(lm_res) == 0) {
+            if (verbose) {
+                message("Note: Invalid LM results. Plotting global curve without gene ranking.")
+            }
+            lm_res <- NULL
+        }
+    }
+
+    # Calculate height if not provided (based on grid layout)
+    if (is.null(height)) {
+        n_rows <- ceiling(n_genes/ncol)
+        height <- 3 + (3.5 * n_rows)  # 3' base + 3.5' per row
+    }
+
+    # Create the plot using base function
+    p <- tryCatch({
+        .plot_divergence_spectrum(divergence_results_se = divergence_results_se,
+            gene = gene, lm_res = lm_res, n_genes = n_genes, ncol = ncol, metric = metric,
+            variability_metric = variability_metric, ...)
+    }, error = function(e) {
+        if (verbose) {
+            message("plot_divergence_spectrum failed: ", e$message)
+        }
+        return(NULL)
+    })
+
+    # If plot creation failed, return NULL invisibly
+    if (is.null(p)) {
+        return(invisible(NULL))
+    }
+
+    # Save plot to file if requested
+    if (!is.null(output_file)) {
+        save_analysis_output(p, output_file, object = analysis, verbose = verbose,
+            func_name = "plot_divergence_spectrum_s4", width = width, height = height)
+    }
+
+    # Return file path if saved, otherwise return plot
+    invisible(p)
 }
 
 # ============================================================================
@@ -1976,12 +1863,12 @@ plot_divergence_spectrum_s4 <- function(
 #' # Load example data (matching TSENAT.Rmd workflow)
 #' data(readcounts)
 #' readcounts <- as.matrix(salmon_dataset)
-#' mode(readcounts) <- "numeric"
+#' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
-#'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t"
+#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' 
 #' # Build analysis from vignette data and create small subset
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
@@ -1993,48 +1880,45 @@ plot_divergence_spectrum_s4 <- function(
 #' @aliases plot_method_concordance_s4
 #' @export
 setGeneric("plot_method_concordance_s4", function(analysis, verbose = FALSE) {
-  standardGeneric("plot_method_concordance_s4")
+    standardGeneric("plot_method_concordance_s4")
 })
 
 #' @rdname plot_method_concordance_s4
 setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, verbose = FALSE) {
-  
-  # Load visualization dependencies (ggplot2, cowplot, etc.)
-  .load_visualization_deps()
-  
-  # Validate that concordance results exist
-  if (is.null(analysis@metadata$method_concordance)) {
-    stop(
-      "[plot_method_concordance_s4] No concordance results found in @metadata.\n",
-      "  Please run compute_method_concordance_s4() first."
-    )
-  }
-  
-  concordance_results <- analysis@metadata$method_concordance
-  
-  # Extract comparison dataframe
-  comparison_df <- concordance_results$comparison_df
-  
-  if (is.null(comparison_df) || nrow(comparison_df) == 0) {
-    stop("[plot_method_concordance_s4] Concordance comparison_df is empty or missing.")
-  }
-  
-  if (verbose) {
-    message("[plot_method_concordance_s4] Plotting concordance for ",
-        nrow(comparison_df), " genes")
-    message("[plot_method_concordance_s4] Methods compared: ",
-        concordance_results$gam_method, " vs ",
-        concordance_results$friedman_method)
-  }
-  
-  # Call standard plotting function
-  plot_obj <- .plot_method_concordance(comparison_df)
-  
-  if (verbose) {
-    message("[plot_method_concordance_s4] Plot generated successfully")
-  }
-  
-  return(plot_obj)
+
+    # Load visualization dependencies (ggplot2, cowplot, etc.)
+    .load_visualization_deps()
+
+    # Validate that concordance results exist
+    if (is.null(analysis@metadata$method_concordance)) {
+        stop("[plot_method_concordance_s4] No concordance results found in @metadata.\n",
+            "  Please run compute_method_concordance_s4() first.")
+    }
+
+    concordance_results <- analysis@metadata$method_concordance
+
+    # Extract comparison dataframe
+    comparison_df <- concordance_results$comparison_df
+
+    if (is.null(comparison_df) || nrow(comparison_df) == 0) {
+        stop("[plot_method_concordance_s4] Concordance comparison_df is empty or missing.")
+    }
+
+    if (verbose) {
+        message("[plot_method_concordance_s4] Plotting concordance for ", nrow(comparison_df),
+            " genes")
+        message("[plot_method_concordance_s4] Methods compared: ", concordance_results$gam_method,
+            " vs ", concordance_results$friedman_method)
+    }
+
+    # Call standard plotting function
+    plot_obj <- .plot_method_concordance(comparison_df)
+
+    if (verbose) {
+        message("[plot_method_concordance_s4] Plot generated successfully")
+    }
+
+    return(plot_obj)
 })
 
 # ============================================================================
@@ -2043,39 +1927,40 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 # This helper consolidates redundant fallback extraction patterns into a single
 # source of truth, reducing code duplication and improving maintainability.
 #' @noRd
-.extract_object_with_fallbacks <- function(obj, expected_class, key_name = NULL, verbose = FALSE) {
-  # Single source of extraction logic for common pattern:
-  # Try direct class match, then named list access, then list[1]
-  
-  if (is(obj, expected_class)) {
+.extract_object_with_fallbacks <- function(obj, expected_class, key_name = NULL,
+    verbose = FALSE) {
+    # Single source of extraction logic for common pattern: Try direct class
+    # match, then named list access, then list[1]
+
+    if (is(obj, expected_class)) {
+        if (verbose) {
+            message("[extract_object] Found object via direct class match: ", expected_class)
+        }
+        return(obj)
+    }
+
+    if (is.list(obj)) {
+        # Try named access first
+        if (!is.null(key_name) && key_name %in% names(obj)) {
+            if (verbose) {
+                message("[extract_object] Found object via key: ", key_name)
+            }
+            return(obj[[key_name]])
+        }
+
+        # Fall back to first element
+        if (length(obj) > 0) {
+            if (verbose) {
+                message("[extract_object] Using first element of list")
+            }
+            return(obj[[1]])
+        }
+    }
+
     if (verbose) {
-      message("[extract_object] Found object via direct class match: ", expected_class)
+        message("[extract_object] Could not extract object of class ", expected_class)
     }
-    return(obj)
-  }
-  
-  if (is.list(obj)) {
-    # Try named access first
-    if (!is.null(key_name) && key_name %in% names(obj)) {
-      if (verbose) {
-        message("[extract_object] Found object via key: ", key_name)
-      }
-      return(obj[[key_name]])
-    }
-    
-    # Fall back to first element
-    if (length(obj) > 0) {
-      if (verbose) {
-        message("[extract_object] Using first element of list")
-      }
-      return(obj[[1]])
-    }
-  }
-  
-  if (verbose) {
-    message("[extract_object] Could not extract object of class ", expected_class)
-  }
-  return(NULL)
+    return(NULL)
 }
 
 #' Compute Effect Sizes from Divergence Results (S4 Wrapper)
@@ -2129,36 +2014,36 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #' # Setup: Create test analysis with divergence and LM interaction results
 #' data(readcounts)
 #' readcounts <- as.matrix(salmon_dataset)
-#' mode(readcounts) <- "numeric"
+#' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
-#'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t"
+#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' 
 #' # Configure analysis parameters (best practice for reproducibility)
 #' config <- tsenat_config(
-#'   condition_col = "condition",
-#'   subject_col = "paired_samples",
+#'   condition_col = 'condition',
+#'   subject_col = 'paired_samples',
 #'   paired = TRUE,
-#'   control = "normal",
+#'   control = 'normal',
 #'   metadata = metadata_df
 #' )
 #' analysis <- setConfig(analysis, config)
 #' 
-#' analysis <- filter_analysis_s4(analysis, stringency = "severe")
+#' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, method = "gam", verbose = FALSE)
+#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
 #'
 #' # Compute effect sizes from divergence results
 #' analysis <- effect_sizes_divergence_s4(analysis,
 #'   significance_threshold = 0.05, verbose = FALSE)
 #'
 #' # Access results using metadata accessor
-#' effect_size_results <- getMeta(analysis, "effect_sizes_divergence")
+#' effect_size_results <- getMeta(analysis, 'effect_sizes_divergence')
 #'
 #' # View structure of results
 #' str(effect_size_results, max.level = 1)
@@ -2170,240 +2055,222 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #' @export
 #' @importFrom methods is
 #' @importFrom utils write.table
-effect_sizes_divergence_s4 <- function(
-    analysis,
-    significance_threshold = 0.05,
-    enrich_per_q_pattern = TRUE,
-    verbose = FALSE,
-    output_file = NULL,
-    ...) {
+effect_sizes_divergence_s4 <- function(analysis, significance_threshold = 0.05, enrich_per_q_pattern = TRUE,
+    verbose = FALSE, output_file = NULL, ...) {
 
-  # Extract verbose parameter if not provided
-  verbose <- resolve_slot_param(verbose, getConfig(analysis), "verbose", FALSE)
+    # Extract verbose parameter if not provided
+    verbose <- resolve_slot_param(verbose, getConfig(analysis), "verbose", FALSE)
 
-  # =========================================================================
-  # INPUT VALIDATION
-  # =========================================================================
-  if (!is(analysis, "TSENATAnalysis")) {
-    stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
-  }
-
-  # Check for required results
-  if (length(divRes(analysis)) == 0) {
-    stop("Divergence results required. Run calculate_divergence_s4() first.",
-         call. = FALSE)
-  }
-
-  if (is.null(lmRes(analysis)) || length(lmRes(analysis)) == 0) {
-    stop("LM results required. Run calculate_lm_interaction_s4() first.",
-         call. = FALSE)
-  }
-
-  # =========================================================================
-  # PARAMETER EXTRACTION using utility functions
-  significance_threshold <- resolve_slot_param(significance_threshold, getConfig(analysis), 
-                                               "significance_threshold", 0.05)
-  enrich_per_q_pattern <- resolve_slot_param(enrich_per_q_pattern, getConfig(analysis), 
-                                             "enrich_per_q_pattern", TRUE)
-  verbose <- resolve_slot_param(verbose, getConfig(analysis), "verbose", FALSE)
-
-  # =========================================================================
-  # EXTRACT RESULTS FROM ANALYSIS OBJECT
-  # =========================================================================
-  
-  # OPTIMIZATION: Use consolidated extraction helper instead of repeated fallback chains
-  # Extract divergence SE
-  analysis_divres <- divRes(analysis)
-  divergence_se <- .extract_object_with_fallbacks(
-    analysis_divres,
-    "SummarizedExperiment",
-    key_name = "divergence_se",
-    verbose = verbose
-  )
-
-  if (is.null(divergence_se) || !is(divergence_se, "SummarizedExperiment")) {
-    stop("Could not extract divergence SummarizedExperiment from divergence results",
-         call. = FALSE)
-  }
-
-  # Extract LM results
-  analysis_lmres <- lmRes(analysis)
-  lm_res <- .extract_object_with_fallbacks(
-    analysis_lmres,
-    "data.frame",
-    key_name = "lm_interaction",
-    verbose = verbose
-  )
-
-  if (is.null(lm_res) || !is.data.frame(lm_res)) {
-    stop("Could not extract LM results data.frame from LM results",
-         call. = FALSE)
-  }
-
-  if (verbose) {
-    message("[effect_sizes_divergence_s4] Extracted:")
-    message("  - Divergence SE: ", paste(dim(divergence_se), collapse = " x "))
-    message("  - LM results: ", nrow(lm_res), " genes")
-  }
-
-  # =========================================================================
-  # COMPUTE EFFECT SIZES
-  # =========================================================================
-  if (verbose) {
-    message("[effect_sizes_divergence_s4] Computing effect sizes...")
-  }
-
-  # =========================================================================
-  # ENSURE DIVERGENCE SE HAS GENE NAMES FOR EFFECT SIZES
-  # =========================================================================
-  # The effect_sizes_divergence base function requires gene_name in rowData
-  # Create a proper mapping that expands genes to match transcript-level rows
-  
-  rd <- rowData(divergence_se)
-  if (is.null(rd) || !("gene_name" %in% colnames(rd))) {
-    if (is.null(rd)) {
-      rd <- DataFrame(row.names = rownames(divergence_se))
+    # =========================================================================
+    # INPUT VALIDATION
+    # =========================================================================
+    if (!is(analysis, "TSENATAnalysis")) {
+        stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }
-    
-    gene_names_added <- FALSE
-    
-    # Try tx2gene mapping first
-    base_se <- getSE(analysis)
-    tx2gene <- metadata(base_se)$tx2gene
-    if (!is.null(tx2gene) && nrow(tx2gene) > 0 && ncol(tx2gene) >= 2) {
-      # Find transcript and gene columns by name
-      col_names <- tolower(colnames(tx2gene))
-      tx_col <- NULL
-      gene_col <- NULL
-      
-      # Find transcript column (first priority: Transcript, second: Tx)
-      for (cn in colnames(tx2gene)) {
-        if (tolower(cn) %in% c("transcript", "tx")) {
-          tx_col <- cn
-          break
+
+    # Check for required results
+    if (length(divRes(analysis)) == 0) {
+        stop("Divergence results required. Run calculate_divergence_s4() first.",
+            call. = FALSE)
+    }
+
+    if (is.null(lmRes(analysis)) || length(lmRes(analysis)) == 0) {
+        stop("LM results required. Run calculate_lm_interaction_s4() first.", call. = FALSE)
+    }
+
+    # =========================================================================
+    # PARAMETER EXTRACTION using utility functions
+    significance_threshold <- resolve_slot_param(significance_threshold, getConfig(analysis),
+        "significance_threshold", 0.05)
+    enrich_per_q_pattern <- resolve_slot_param(enrich_per_q_pattern, getConfig(analysis),
+        "enrich_per_q_pattern", TRUE)
+    verbose <- resolve_slot_param(verbose, getConfig(analysis), "verbose", FALSE)
+
+    # =========================================================================
+    # EXTRACT RESULTS FROM ANALYSIS OBJECT
+    # =========================================================================
+
+    # OPTIMIZATION: Use consolidated extraction helper instead of repeated
+    # fallback chains Extract divergence SE
+    analysis_divres <- divRes(analysis)
+    divergence_se <- .extract_object_with_fallbacks(analysis_divres, "SummarizedExperiment",
+        key_name = "divergence_se", verbose = verbose)
+
+    if (is.null(divergence_se) || !is(divergence_se, "SummarizedExperiment")) {
+        stop("Could not extract divergence SummarizedExperiment from divergence results",
+            call. = FALSE)
+    }
+
+    # Extract LM results
+    analysis_lmres <- lmRes(analysis)
+    lm_res <- .extract_object_with_fallbacks(analysis_lmres, "data.frame", key_name = "lm_interaction",
+        verbose = verbose)
+
+    if (is.null(lm_res) || !is.data.frame(lm_res)) {
+        stop("Could not extract LM results data.frame from LM results", call. = FALSE)
+    }
+
+    if (verbose) {
+        message("[effect_sizes_divergence_s4] Extracted:")
+        message("  - Divergence SE: ", paste(dim(divergence_se), collapse = " x "))
+        message("  - LM results: ", nrow(lm_res), " genes")
+    }
+
+    # =========================================================================
+    # COMPUTE EFFECT SIZES
+    # =========================================================================
+    if (verbose) {
+        message("[effect_sizes_divergence_s4] Computing effect sizes...")
+    }
+
+    # =========================================================================
+    # ENSURE DIVERGENCE SE HAS GENE NAMES FOR EFFECT SIZES
+    # =========================================================================
+    # The effect_sizes_divergence base function requires gene_name in rowData
+    # Create a proper mapping that expands genes to match transcript-level rows
+
+    rd <- rowData(divergence_se)
+    if (is.null(rd) || !("gene_name" %in% colnames(rd))) {
+        if (is.null(rd)) {
+            rd <- DataFrame(row.names = rownames(divergence_se))
         }
-      }
-      
-      # Find gene column (first priority: Gene, second: Gen)
-      for (cn in colnames(tx2gene)) {
-        if (tolower(cn) %in% c("gene", "gen")) {
-          gene_col <- cn
-          break
+
+        gene_names_added <- FALSE
+
+        # Try tx2gene mapping first
+        base_se <- getSE(analysis)
+        tx2gene <- metadata(base_se)$tx2gene
+        if (!is.null(tx2gene) && nrow(tx2gene) > 0 && ncol(tx2gene) >= 2) {
+            # Find transcript and gene columns by name
+            col_names <- tolower(colnames(tx2gene))
+            tx_col <- NULL
+            gene_col <- NULL
+
+            # Find transcript column (first priority: Transcript, second: Tx)
+            for (cn in colnames(tx2gene)) {
+                if (tolower(cn) %in% c("transcript", "tx")) {
+                  tx_col <- cn
+                  break
+                }
+            }
+
+            # Find gene column (first priority: Gene, second: Gen)
+            for (cn in colnames(tx2gene)) {
+                if (tolower(cn) %in% c("gene", "gen")) {
+                  gene_col <- cn
+                  break
+                }
+            }
+
+            if (!is.null(tx_col) && !is.null(gene_col)) {
+                # Use tx2gene to map rownames to genes
+                tx_in_divergence <- rownames(divergence_se)
+                tx_vector <- as.character(tx2gene[[tx_col]])
+                gene_vector <- as.character(tx2gene[[gene_col]])
+
+                # Find matching indices
+                match_idx <- match(tx_in_divergence, tx_vector)
+
+                # Get gene names using matched indices
+                gene_names_expanded <- gene_vector[match_idx]
+
+                # Check if all transcripts have valid mappings (no NAs)
+                if (all(!is.na(gene_names_expanded))) {
+                  rd$gene_name <- gene_names_expanded
+                  gene_names_added <- TRUE
+                  if (verbose) {
+                    message("[effect_sizes_divergence_s4] Added gene_name to rowData from tx2gene mapping")
+                  }
+                }
+            }
         }
-      }
-      
-      if (!is.null(tx_col) && !is.null(gene_col)) {
-        # Use tx2gene to map rownames to genes
-        tx_in_divergence <- rownames(divergence_se)
-        tx_vector <- as.character(tx2gene[[tx_col]])
-        gene_vector <- as.character(tx2gene[[gene_col]])
-        
-        # Find matching indices
-        match_idx <- match(tx_in_divergence, tx_vector)
-        
-        # Get gene names using matched indices
-        gene_names_expanded <- gene_vector[match_idx]
-        
-        # Check if all transcripts have valid mappings (no NAs)
-        if (all(!is.na(gene_names_expanded))) {
-          rd$gene_name <- gene_names_expanded
-          gene_names_added <- TRUE
-          if (verbose) {
-            message("[effect_sizes_divergence_s4] Added gene_name to rowData from tx2gene mapping")
-          }
+
+        # If tx2gene didn't work, try direct assignment (for same nrow case)
+        if (!gene_names_added && "gene" %in% colnames(lm_res)) {
+            if (nrow(lm_res) == nrow(divergence_se)) {
+                rd$gene_name <- as.character(lm_res$gene)
+                gene_names_added <- TRUE
+                if (verbose) {
+                  message("[effect_sizes_divergence_s4] Added gene_name to rowData via direct assignment")
+                }
+            }
         }
-      }
-    }
-    
-    # If tx2gene didn't work, try direct assignment (for same nrow case)
-    if (!gene_names_added && "gene" %in% colnames(lm_res)) {
-      if (nrow(lm_res) == nrow(divergence_se)) {
-        rd$gene_name <- as.character(lm_res$gene)
-        gene_names_added <- TRUE
-        if (verbose) {
-          message("[effect_sizes_divergence_s4] Added gene_name to rowData via direct assignment")
+
+        # Store updated rowData
+        rowData(divergence_se) <- rd
+
+        # Validate that gene_name was successfully added without NAs
+        rd_final <- rowData(divergence_se)
+        if (!("gene_name" %in% colnames(rd_final)) || any(is.na(rd_final$gene_name))) {
+            stop("[effect_sizes_divergence_s4] Failed to add valid gene_name column to divergence_se rowData. ",
+                "Ensure tx2gene metadata is properly set with matching transcript IDs.",
+                call. = FALSE)
         }
-      }
     }
-    
-    # Store updated rowData
-    rowData(divergence_se) <- rd
-    
-    # Validate that gene_name was successfully added without NAs
-    rd_final <- rowData(divergence_se)
-    if (!("gene_name" %in% colnames(rd_final)) || any(is.na(rd_final$gene_name))) {
-      stop("[effect_sizes_divergence_s4] Failed to add valid gene_name column to divergence_se rowData. ",
-           "Ensure tx2gene metadata is properly set with matching transcript IDs.",
-           call. = FALSE)
+
+    result <- tryCatch({
+        .effect_sizes_divergence(lm_res = lm_res, divergence_results_se = divergence_se,
+            significance_threshold = significance_threshold, enrich_per_q_pattern = enrich_per_q_pattern,
+            verbose = verbose, ...)
+    }, error = function(e) {
+        stop("effect_sizes_divergence", e$message, call. = FALSE)
+    })
+
+    # =========================================================================
+    # STORE RESULTS IN ANALYSIS OBJECT
+    # =========================================================================
+    # Store result list in metadata (not in dedicated slot since none exists)
+    current_meta <- getMeta(analysis)
+    if (is.null(current_meta)) {
+        analysis@metadata <- list()
     }
-  }
 
-  result <- tryCatch({
-    .effect_sizes_divergence(
-      lm_res = lm_res,
-      divergence_results_se = divergence_se,
-      significance_threshold = significance_threshold,
-      enrich_per_q_pattern = enrich_per_q_pattern,
-      verbose = verbose,
-      ...
-    )
-  }, error = function(e) {
-    stop("effect_sizes_divergence", e$message,
-         call. = FALSE)
-  })
+    analysis@metadata$effect_sizes_divergence <- result
 
-  # =========================================================================
-  # STORE RESULTS IN ANALYSIS OBJECT
-  # =========================================================================
-  # Store result list in metadata (not in dedicated slot since none exists)
-  current_meta <- getMeta(analysis)
-  if (is.null(current_meta)) {
-    analysis@metadata <- list()
-  }
-
-  analysis@metadata$effect_sizes_divergence <- result
-
-  # Track function call
-  current_calls <- getMeta(analysis, "function_calls")
-  if (is.null(current_calls)) {
-    current_calls <- character(0)
-  }
-  analysis@metadata$function_calls <- c(
-    current_calls,
-    paste0("effect_sizes_divergence[threshold=", significance_threshold, "]")
-  )
-
-  if (verbose) {
-    message("[effect_sizes_divergence_s4] Results stored in metadata")
-    if (!is.null(result$interaction_results)) {
-      message("  - Effect size results: ", nrow(result$interaction_results), " genes")
+    # Track function call
+    current_calls <- getMeta(analysis, "function_calls")
+    if (is.null(current_calls)) {
+        current_calls <- character(0)
     }
-  }
+    analysis@metadata$function_calls <- c(current_calls, paste0("effect_sizes_divergence[threshold=",
+        significance_threshold, "]"))
 
-  # Save if output_file provided
-  if (!is.null(output_file)) {
-    if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
-      # Write effect size results as text table, filtering out all-NA columns
-      results_df <- as.data.frame(result$interaction_results)
-      
-      # Filter out columns that are all NA
-      all_na_cols <- colnames(results_df)[vapply(results_df, function(x) all(is.na(x)), FUN.VALUE = logical(1))]
-      if (length(all_na_cols) > 0) {
-        results_df <- results_df[, !colnames(results_df) %in% all_na_cols]
-        if (verbose) {
-          message("[effect_sizes_divergence_s4] Removed all-NA columns: ", paste(all_na_cols, collapse = ", "))
+    if (verbose) {
+        message("[effect_sizes_divergence_s4] Results stored in metadata")
+        if (!is.null(result$interaction_results)) {
+            message("  - Effect size results: ", nrow(result$interaction_results),
+                " genes")
         }
-      }
-      
-      write.table(results_df, file = output_file, sep = "\t", quote = FALSE, row.names = FALSE)
-    } else {
-      # Default to RDS for S4 object
-      saveRDS(analysis, file = output_file)
     }
 
-  }
+    # Save if output_file provided
+    if (!is.null(output_file)) {
+        if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
+            # Write effect size results as text table, filtering out all-NA
+            # columns
+            results_df <- as.data.frame(result$interaction_results)
 
-  analysis
+            # Filter out columns that are all NA
+            all_na_cols <- colnames(results_df)[vapply(results_df, function(x) all(is.na(x)),
+                FUN.VALUE = logical(1))]
+            if (length(all_na_cols) > 0) {
+                results_df <- results_df[, !colnames(results_df) %in% all_na_cols]
+                if (verbose) {
+                  message("[effect_sizes_divergence_s4] Removed all-NA columns: ",
+                    paste(all_na_cols, collapse = ", "))
+                }
+            }
+
+            write.table(results_df, file = output_file, sep = "\t", quote = FALSE,
+                row.names = FALSE)
+        } else {
+            # Default to RDS for S4 object
+            saveRDS(analysis, file = output_file)
+        }
+
+    }
+
+    analysis
 }
 
 #' Plot Top Transcripts from TSENATAnalysis Object
@@ -2421,7 +2288,7 @@ effect_sizes_divergence_s4 <- function(
 #'   Default: NULL (auto-extract from lm_results).
 #'
 #' @param condition_col \code{character}. Column name in colData(se) specifying
-#'   group assignments (default: "sample_type").
+#'   group assignments (default: 'sample_type').
 #'
 #' @param top_n \code{numeric}. Number of top transcripts to display for each
 #'   condition (default: 3).
@@ -2430,7 +2297,7 @@ effect_sizes_divergence_s4 <- function(
 #'   a PNG file. If NULL, saves to a temporary location (default: NULL).
 #'
 #' @param metric \code{character}. Method for ranking transcripts within genes.
-#'   One of "median", "mean", "variance", or "iqr" (default: "median").
+#'   One of 'median', 'mean', 'variance', or 'iqr' (default: 'median').
 #'
 #' @param width \code{numeric} or \code{NULL}. Output image width in inches. 
 #'   If NULL, automatically calculated based on number of genes (default: ~13 inches per column).
@@ -2484,28 +2351,28 @@ effect_sizes_divergence_s4 <- function(
 #' # Plot 6: Top transcripts across groups
 #' data(readcounts)
 #' readcounts <- as.matrix(salmon_dataset)
-#' mode(readcounts) <- "numeric"
+#' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
-#'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t"
+#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' 
 #' # Configure analysis parameters
 #' config <- tsenat_config(
-#'   condition_col = "condition",
-#'   subject_col = "paired_samples",
+#'   condition_col = 'condition',
+#'   subject_col = 'paired_samples',
 #'   paired = TRUE,
-#'   control = "normal",
+#'   control = 'normal',
 #'   metadata = metadata_df
 #' )
 #' analysis <- setConfig(analysis, config)
 #' 
-#' analysis <- filter_analysis_s4(analysis, stringency = "severe")
+#' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, method = "gam", verbose = FALSE)
+#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
 #' plot_file <- plot_top_transcripts_s4(analysis, top_n = 3)
 #'
 #' @seealso
@@ -2513,145 +2380,118 @@ effect_sizes_divergence_s4 <- function(
 #'
 #' @export
 #' @importFrom methods is
-plot_top_transcripts_s4 <- function(
-    analysis,
-    gene = NULL,
-    condition_col = NULL,
-    top_n = 4,
-    output_file = NULL,
-    metric = c("median", "mean", "variance", "iqr"),
-    use_tpm = TRUE,
-    width = NULL,
-    height = NULL,
-    fontsize = 16,
-    cellwidth = 0,
-    cellheight = 0,
-    layout_ncol = 2,
-    verbose = FALSE,
-    ...) {
+plot_top_transcripts_s4 <- function(analysis, gene = NULL, condition_col = NULL,
+    top_n = 4, output_file = NULL, metric = c("median", "mean", "variance", "iqr"),
+    use_tpm = TRUE, width = NULL, height = NULL, fontsize = 16, cellwidth = 0, cellheight = 0,
+    layout_ncol = 2, verbose = FALSE, ...) {
 
-  # Load visualization dependencies (ggplot2, cowplot, pheatmap, etc.)
-  .load_visualization_deps()
+    # Load visualization dependencies (ggplot2, cowplot, pheatmap, etc.)
+    .load_visualization_deps()
 
-  # Extract verbose parameter if not provided
-  verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
+    # Extract verbose parameter if not provided
+    verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
 
-  # =========================================================================
-  # INPUT VALIDATION
-  # =========================================================================
-  if (!is(analysis, "TSENATAnalysis")) {
-    stop("analysis must be a TSENATAnalysis object", call. = FALSE)
-  }
+    # =========================================================================
+    # INPUT VALIDATION
+    # =========================================================================
+    if (!is(analysis, "TSENATAnalysis")) {
+        stop("analysis must be a TSENATAnalysis object", call. = FALSE)
+    }
 
-  se <- analysis@se
-  if (!inherits(se, "SummarizedExperiment")) {
-    stop("analysis@se must be a SummarizedExperiment object", call. = FALSE)
-  }
+    se <- analysis@se
+    if (!inherits(se, "SummarizedExperiment")) {
+        stop("analysis@se must be a SummarizedExperiment object", call. = FALSE)
+    }
 
-  # =========================================================================
-  # AUTO-DETECT condition_col
-  # =========================================================================
-  if (is.null(condition_col)) {
-    cd_cols <- colnames(colData(se))
-    condition_col <- auto_detect_column(
-      cd_cols, analysis@config, "condition_col",
-      c("condition", "sample_type", "group", "treatment"),
-      verbose = verbose, param_name = "condition_col"
-    )
-  }
+    # =========================================================================
+    # AUTO-DETECT condition_col
+    # =========================================================================
+    if (is.null(condition_col)) {
+        cd_cols <- colnames(colData(se))
+        condition_col <- auto_detect_column(cd_cols, analysis@config, "condition_col",
+            c("condition", "sample_type", "group", "treatment"), verbose = verbose,
+            param_name = "condition_col")
+    }
 
-  # =========================================================================
-  # EXTRACT LM RESULTS (for gene ranking if not specified)
-  # =========================================================================
-  lm_results_df <- NULL
-  if (is.null(gene) && !is.null(analysis@lm_results)) {
-    if ("lm_interaction" %in% names(analysis@lm_results)) {
-      # Extract results data.frame from list structure
-      if (is.data.frame(analysis@lm_results$lm_interaction)) {
-        lm_results_df <- analysis@lm_results$lm_interaction
-      } else if (is.list(analysis@lm_results$lm_interaction) &&
-                 "results" %in% names(analysis@lm_results$lm_interaction)) {
-        lm_results_df <- analysis@lm_results$lm_interaction$results
-      }
+    # =========================================================================
+    # EXTRACT LM RESULTS (for gene ranking if not specified)
+    # =========================================================================
+    lm_results_df <- NULL
+    if (is.null(gene) && !is.null(analysis@lm_results)) {
+        if ("lm_interaction" %in% names(analysis@lm_results)) {
+            # Extract results data.frame from list structure
+            if (is.data.frame(analysis@lm_results$lm_interaction)) {
+                lm_results_df <- analysis@lm_results$lm_interaction
+            } else if (is.list(analysis@lm_results$lm_interaction) && "results" %in%
+                names(analysis@lm_results$lm_interaction)) {
+                lm_results_df <- analysis@lm_results$lm_interaction$results
+            }
 
-      # Auto-select top gene from LM results
-      if (!is.null(lm_results_df) && nrow(lm_results_df) > 0) {
-        # Find p-value and gene columns
-        p_col <- auto_detect_column(
-          colnames(lm_results_df), analysis@config, "p_col",
-          c("p_interaction", "padj", "pvalue", "p.value", "p_value"),
-          verbose = FALSE, param_name = "p_col"
-        )
-        
-        gene_col <- auto_detect_column(
-          colnames(lm_results_df), analysis@config, "gene_col",
-          c("gene", "gene_name", "gene_id"),
-          verbose = FALSE, param_name = "gene_col"
-        )
+            # Auto-select top gene from LM results
+            if (!is.null(lm_results_df) && nrow(lm_results_df) > 0) {
+                # Find p-value and gene columns
+                p_col <- auto_detect_column(colnames(lm_results_df), analysis@config,
+                  "p_col", c("p_interaction", "padj", "pvalue", "p.value", "p_value"),
+                  verbose = FALSE, param_name = "p_col")
 
-        if (!is.null(p_col) && p_col %in% colnames(lm_results_df)) {
-          # Get top genes (sorted by p-value, select top_n)
-          top_indices <- order(lm_results_df[[p_col]])[seq_len(min(top_n, nrow(lm_results_df)))]
-          gene <- as.character(lm_results_df[top_indices, gene_col])
+                gene_col <- auto_detect_column(colnames(lm_results_df), analysis@config,
+                  "gene_col", c("gene", "gene_name", "gene_id"), verbose = FALSE,
+                  param_name = "gene_col")
 
-          if (verbose) {
-            message("[plot_top_transcripts_s4] Auto-selected top ", length(gene), " genes from LM results")
-            message("  ", paste(gene, collapse = ", "))
-          }
+                if (!is.null(p_col) && p_col %in% colnames(lm_results_df)) {
+                  # Get top genes (sorted by p-value, select top_n)
+                  top_indices <- order(lm_results_df[[p_col]])[seq_len(min(top_n,
+                    nrow(lm_results_df)))]
+                  gene <- as.character(lm_results_df[top_indices, gene_col])
+
+                  if (verbose) {
+                    message("[plot_top_transcripts_s4] Auto-selected top ", length(gene),
+                      " genes from LM results")
+                    message("  ", paste(gene, collapse = ", "))
+                  }
+                }
+            }
         }
-      }
     }
-  }
 
-  if (is.null(gene)) {
-    stop("[plot_top_transcripts_s4] No gene specified and cannot auto-detect from LM results. ",
-         "Provide gene explicitly.", call. = FALSE)
-  }
-
-  # =========================================================================
-  # CALL BASE FUNCTION
-  # =========================================================================
-  if (verbose) {
-    if (length(gene) > 1) {
-      message("[plot_top_transcripts_s4] Calling .plot_top_transcripts() for genes: ", 
-          paste(gene, collapse = ", "))
-    } else {
-      message("[plot_top_transcripts_s4] Calling .plot_top_transcripts() for gene: ", gene)
+    if (is.null(gene)) {
+        stop("[plot_top_transcripts_s4] No gene specified and cannot auto-detect from LM results. ",
+            "Provide gene explicitly.", call. = FALSE)
     }
-  }
 
-  plot_file <- tryCatch({
-    .plot_top_transcripts(
-      se = se,
-      gene = gene,
-      condition_col = condition_col,
-      res = lm_results_df,
-      top_n = top_n,
-      output_file = output_file,
-      metric = metric[1],  # Use first metric if multiple provided
-      use_tpm = use_tpm,
-      width = width,
-      height = height,
-      fontsize = fontsize,
-      cellwidth = cellwidth,
-      cellheight = cellheight,
-      layout_ncol = layout_ncol,
-      ...
-    )
-  }, error = function(e) {
-    stop("[plot_top_transcripts_s4]", conditionMessage(e), call. = FALSE)
-  })
-
-  # Optionally save to file if output_file provided
-  if (!is.null(output_file)) {
+    # =========================================================================
+    # CALL BASE FUNCTION
+    # =========================================================================
     if (verbose) {
-      message("[plot_top_transcripts_s4] Plot saved to: ", output_file)
+        if (length(gene) > 1) {
+            message("[plot_top_transcripts_s4] Calling .plot_top_transcripts() for genes: ",
+                paste(gene, collapse = ", "))
+        } else {
+            message("[plot_top_transcripts_s4] Calling .plot_top_transcripts() for gene: ",
+                gene)
+        }
     }
-  }
 
-  # Always return the plot object (ggplot)
-  # Knitr will auto-manage figure rendering
-  invisible(plot_file)
+    plot_file <- tryCatch({
+        .plot_top_transcripts(se = se, gene = gene, condition_col = condition_col,
+            res = lm_results_df, top_n = top_n, output_file = output_file, metric = metric[1],
+            use_tpm = use_tpm, width = width, height = height, fontsize = fontsize,
+            cellwidth = cellwidth, cellheight = cellheight, layout_ncol = layout_ncol,
+            ...)
+    }, error = function(e) {
+        stop("[plot_top_transcripts_s4]", conditionMessage(e), call. = FALSE)
+    })
+
+    # Optionally save to file if output_file provided
+    if (!is.null(output_file)) {
+        if (verbose) {
+            message("[plot_top_transcripts_s4] Plot saved to: ", output_file)
+        }
+    }
+
+    # Always return the plot object (ggplot) Knitr will auto-manage figure
+    # rendering
+    invisible(plot_file)
 }
 
 #' Plot Tsallis Divergence Effect Size Distribution (S4 Wrapper)
@@ -2696,29 +2536,29 @@ plot_top_transcripts_s4 <- function(
 #' # Plot 2: Distribution of effect sizes across genes
 #' data(readcounts)
 #' readcounts <- as.matrix(salmon_dataset)
-#' mode(readcounts) <- "numeric"
+#' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
-#'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t"
+#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' 
 #' # Configure analysis parameters
 #' config <- tsenat_config(
-#'   condition_col = "condition",
-#'   subject_col = "paired_samples",
+#'   condition_col = 'condition',
+#'   subject_col = 'paired_samples',
 #'   paired = TRUE,
-#'   control = "normal",
+#'   control = 'normal',
 #'   metadata = metadata_df
 #' )
 #' analysis <- setConfig(analysis, config)
 #' 
-#' analysis <- filter_analysis_s4(analysis, stringency = "severe")
+#' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, method = "gam", verbose = FALSE)
+#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
 #' analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE)
 #' p_dist <- plot_divergence_distribution_s4(analysis, verbose = FALSE)
 #' print(p_dist)
@@ -2727,76 +2567,65 @@ plot_top_transcripts_s4 <- function(
 #' \code{\link{effect_sizes_divergence_s4}} for computing effect sizes.
 #'
 #' @export
-plot_divergence_distribution_s4 <- function(
-    analysis,
-    threshold = 0.1,
-    output_file = NULL,
-    width = 12,
-    height = 6,
-    verbose = TRUE,
-    ...) {
+plot_divergence_distribution_s4 <- function(analysis, threshold = 0.1, output_file = NULL,
+    width = 12, height = 6, verbose = TRUE, ...) {
 
-  # Load visualization dependencies (ggplot2, cowplot, etc.)
-  .load_visualization_deps()
+    # Load visualization dependencies (ggplot2, cowplot, etc.)
+    .load_visualization_deps()
 
-  # Extract verbose parameter if not provided
-  verbose <- resolve_slot_param(verbose, analysis@config, "verbose", TRUE)
+    # Extract verbose parameter if not provided
+    verbose <- resolve_slot_param(verbose, analysis@config, "verbose", TRUE)
 
-  # Validate input
-  if (!is(analysis, "TSENATAnalysis")) {
-    stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
-  }
-
-  # Extract effect sizes from metadata
-  if (is.null(analysis@metadata$effect_sizes_divergence)) {
-    stop("Effect sizes not found in analysis@metadata$effect_sizes_divergence. ",
-         "Run effect_sizes_divergence_s4() first.", call. = FALSE)
-  }
-
-  effect_sizes <- analysis@metadata$effect_sizes_divergence
-
-  # Extract interaction results (with effect size columns)
-  if (!is.list(effect_sizes) || is.null(effect_sizes$interaction_results)) {
-    stop("Invalid effect size structure. Expected @metadata$effect_sizes_divergence$interaction_results",
-         call. = FALSE)
-  }
-
-  interaction_results <- effect_sizes$interaction_results
-
-  if (!is.data.frame(interaction_results) || nrow(interaction_results) == 0) {
-    stop("interaction_results must be a non-empty data frame", call. = FALSE)
-  }
-
-  # Create the plot using base function
-  p <- tryCatch({
-    .plot_divergence_distribution(
-      interaction_results = interaction_results,
-      threshold = threshold,
-      ...
-    )
-  }, error = function(e) {
-    if (verbose) {
-      message("plot_divergence_distribution failed: ", e$message)
+    # Validate input
+    if (!is(analysis, "TSENATAnalysis")) {
+        stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }
-    return(NULL)
-  })
 
-  # If plot creation failed, return NULL invisibly
-  if (is.null(p)) {
-    return(invisible(NULL))
-  }
+    # Extract effect sizes from metadata
+    if (is.null(analysis@metadata$effect_sizes_divergence)) {
+        stop("Effect sizes not found in analysis@metadata$effect_sizes_divergence. ",
+            "Run effect_sizes_divergence_s4() first.", call. = FALSE)
+    }
 
-  # Save to file if requested
-  if (!is.null(output_file)) {
-    save_analysis_output(p, output_file, object = analysis, verbose = verbose,
-                         func_name = "plot_divergence_distribution_s4",
-                         width = width, height = height)
-  }
+    effect_sizes <- analysis@metadata$effect_sizes_divergence
 
-  # Always return the plot object (not file path)
-  # Knitr will auto-manage figure rendering
-  # File is saved separately if output_file provided
-  invisible(p)
+    # Extract interaction results (with effect size columns)
+    if (!is.list(effect_sizes) || is.null(effect_sizes$interaction_results)) {
+        stop("Invalid effect size structure. Expected @metadata$effect_sizes_divergence$interaction_results",
+            call. = FALSE)
+    }
+
+    interaction_results <- effect_sizes$interaction_results
+
+    if (!is.data.frame(interaction_results) || nrow(interaction_results) == 0) {
+        stop("interaction_results must be a non-empty data frame", call. = FALSE)
+    }
+
+    # Create the plot using base function
+    p <- tryCatch({
+        .plot_divergence_distribution(interaction_results = interaction_results,
+            threshold = threshold, ...)
+    }, error = function(e) {
+        if (verbose) {
+            message("plot_divergence_distribution failed: ", e$message)
+        }
+        return(NULL)
+    })
+
+    # If plot creation failed, return NULL invisibly
+    if (is.null(p)) {
+        return(invisible(NULL))
+    }
+
+    # Save to file if requested
+    if (!is.null(output_file)) {
+        save_analysis_output(p, output_file, object = analysis, verbose = verbose,
+            func_name = "plot_divergence_distribution_s4", width = width, height = height)
+    }
+
+    # Always return the plot object (not file path) Knitr will auto-manage
+    # figure rendering File is saved separately if output_file provided
+    invisible(p)
 }
 
 
@@ -2844,28 +2673,28 @@ plot_divergence_distribution_s4 <- function(
 #' @examples
 #' data(readcounts)
 #' readcounts <- as.matrix(salmon_dataset)
-#' mode(readcounts) <- "numeric"
+#' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
-#'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t"
+#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' 
 #' # Configure analysis parameters
 #' config <- tsenat_config(
-#'   condition_col = "condition",
-#'   subject_col = "paired_samples",
+#'   condition_col = 'condition',
+#'   subject_col = 'paired_samples',
 #'   paired = TRUE,
-#'   control = "normal",
+#'   control = 'normal',
 #'   metadata = metadata_df
 #' )
 #' analysis <- setConfig(analysis, config)
 #' 
-#' analysis <- filter_analysis_s4(analysis, stringency = "severe")
+#' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, method = "gam", verbose = FALSE)
+#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
 #' analysis <- jackknife_isoform_switching_s4(analysis, n_bootstrap = 50,
 #'   verbose = FALSE)
 #' tables <- prepare_gene_switching_tables_s4(analysis)
@@ -2877,122 +2706,119 @@ plot_divergence_distribution_s4 <- function(
 #' @export
 #' @importFrom methods is
 #' @importFrom utils write.table
-prepare_gene_switching_tables_s4 <- function(
-    analysis,
-    n_top_genes = NULL,
-    n_transcripts_per_gene = 10,
-    verbose = FALSE,
-    output_file = NULL,
-    ...) {
-  
-  # Extract verbose parameter if not provided
-  verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
+prepare_gene_switching_tables_s4 <- function(analysis, n_top_genes = NULL, n_transcripts_per_gene = 10,
+    verbose = FALSE, output_file = NULL, ...) {
 
-  # Validation
-  if (!is(analysis, "TSENATAnalysis")) {
-    stop("analysis must be a TSENATAnalysis object")
-  }
-  
-  # Extract LM results
-  if (verbose) message("Extracting LM results from analysis object...")
-  
-  lm_results_list <- analysis@lm_results
-  if (is.null(lm_results_list) || length(lm_results_list) == 0) {
-    stop("No LM results found in analysis@lm_results. Run calculate_lm_interaction_s4() first.")
-  }
-  
-  # Try to get lm_interaction results first, fallback to first available
-  if (!is.null(lm_results_list$lm_interaction)) {
-    if (is.data.frame(lm_results_list$lm_interaction$results)) {
-      lm_res <- lm_results_list$lm_interaction$results
-    } else if (is.data.frame(lm_results_list$lm_interaction)) {
-      lm_res <- lm_results_list$lm_interaction
-    } else {
-      stop("Cannot extract LM results from analysis@lm_results$lm_interaction")
-    }
-  } else if (is.data.frame(lm_results_list)) {
-    lm_res <- lm_results_list
-  } else {
-    stop("Cannot find LM results data.frame in analysis@lm_results")
-  }
-  
-  if (verbose) message("  [OK] Extracted LM results with ", nrow(lm_res), " genes")
-  
-  # Extract jackknife/switching results
-  if (verbose) message("Extracting jackknife switching results from analysis object...")
-  
-  jackknife_results_list <- analysis@jackknife_results
-  if (is.null(jackknife_results_list) || length(jackknife_results_list) == 0) {
-    stop("No jackknife results found in analysis@jackknife_results. Run jackknife_isoform_switching_s4() first.")
-  }
-  
-  # Check if results are stored under "multi_q" key (jackknife_isoform_switching_multiq class)
-  if ("multi_q" %in% names(jackknife_results_list)) {
-    multi_q_object <- jackknife_results_list[["multi_q"]]
-    
-    # If it's a tsenat_isoform_switching_multiq object, use it directly
-    if (inherits(multi_q_object, "tsenat_isoform_switching_multiq")) {
-      multi_q_results <- multi_q_object
-      if (verbose) {
-        message("  [OK] Found multi-q results under 'multi_q' key with ", 
-            length(multi_q_results), " q-values")
-      }
-    } else {
-      stop("Element at jackknife_results$multi_q is not a tsenat_isoform_switching_multiq object")
-    }
-  } else {
-    # Fallback: look for q-keyed results directly
-    # Extract only the q-keyed results (filter by pattern "q_X_XX")
-    q_key_pattern <- "^q_[0-9]+_[0-9]{2}$"
-    q_keyed_results <- jackknife_results_list[grep(q_key_pattern, names(jackknife_results_list))]
-    
-    if (length(q_keyed_results) == 0) {
-      stop("No q-keyed jackknife results found in analysis@jackknife_results. ",
-           "Expected keys in format 'q_X_XX' (e.g., 'q_0_01', 'q_1_00') or 'multi_q'.")
-    }
-    
-    # Wrap q-keyed results as a multi_q object for consistency
-    multi_q_results <- q_keyed_results
-    if (verbose) {
-      message("  [OK] Found ", length(multi_q_results), " q-keyed results")
-    }
-  }
-  
-  if (verbose) message("  [OK] Extracted jackknife results with ", length(multi_q_results), " q-values")
-  
-  # Call base function with extracted parameters
-  if (verbose) message("Calling .prepare_gene_switching_tables()...")
-  
-  result <- .prepare_gene_switching_tables(
-    lm_res = lm_res,
-    multi_q_results = multi_q_results,
-    n_top_genes = n_top_genes,
-    n_transcripts_per_gene = n_transcripts_per_gene,
-    verbose = verbose,
-    ...
-  )
-  
-  if (verbose) message("[OK] Gene switching tables prepared successfully")
-  
-  # Track function call in metadata
-  analysis@metadata$function_calls <- c(analysis@metadata$function_calls, 
-                                        "prepare_gene_switching_tables_s4")
-  analysis@metadata$function_timestamps <- c(analysis@metadata$function_timestamps,
-                                             as.character(Sys.time()))
-  
-  # Save if output_file provided
-  if (!is.null(output_file)) {
-    if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
-      # Write as TSV/CSV
-      write.table(result, file = output_file, sep = "\t", quote = FALSE, row.names = TRUE)
-    } else {
-      # Default to RDS for arbitrary objects
-      saveRDS(result, file = output_file)
+    # Extract verbose parameter if not provided
+    verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
+
+    # Validation
+    if (!is(analysis, "TSENATAnalysis")) {
+        stop("analysis must be a TSENATAnalysis object")
     }
 
-  }
-  
-  return(result)
+    # Extract LM results
+    if (verbose)
+        message("Extracting LM results from analysis object...")
+
+    lm_results_list <- analysis@lm_results
+    if (is.null(lm_results_list) || length(lm_results_list) == 0) {
+        stop("No LM results found in analysis@lm_results. Run calculate_lm_interaction_s4() first.")
+    }
+
+    # Try to get lm_interaction results first, fallback to first available
+    if (!is.null(lm_results_list$lm_interaction)) {
+        if (is.data.frame(lm_results_list$lm_interaction$results)) {
+            lm_res <- lm_results_list$lm_interaction$results
+        } else if (is.data.frame(lm_results_list$lm_interaction)) {
+            lm_res <- lm_results_list$lm_interaction
+        } else {
+            stop("Cannot extract LM results from analysis@lm_results$lm_interaction")
+        }
+    } else if (is.data.frame(lm_results_list)) {
+        lm_res <- lm_results_list
+    } else {
+        stop("Cannot find LM results data.frame in analysis@lm_results")
+    }
+
+    if (verbose)
+        message("  [OK] Extracted LM results with ", nrow(lm_res), " genes")
+
+    # Extract jackknife/switching results
+    if (verbose)
+        message("Extracting jackknife switching results from analysis object...")
+
+    jackknife_results_list <- analysis@jackknife_results
+    if (is.null(jackknife_results_list) || length(jackknife_results_list) == 0) {
+        stop("No jackknife results found in analysis@jackknife_results. Run jackknife_isoform_switching_s4() first.")
+    }
+
+    # Check if results are stored under 'multi_q' key
+    # (jackknife_isoform_switching_multiq class)
+    if ("multi_q" %in% names(jackknife_results_list)) {
+        multi_q_object <- jackknife_results_list[["multi_q"]]
+
+        # If it's a tsenat_isoform_switching_multiq object, use it directly
+        if (inherits(multi_q_object, "tsenat_isoform_switching_multiq")) {
+            multi_q_results <- multi_q_object
+            if (verbose) {
+                message("  [OK] Found multi-q results under 'multi_q' key with ",
+                  length(multi_q_results), " q-values")
+            }
+        } else {
+            stop("Element at jackknife_results$multi_q is not a tsenat_isoform_switching_multiq object")
+        }
+    } else {
+        # Fallback: look for q-keyed results directly Extract only the q-keyed
+        # results (filter by pattern 'q_X_XX')
+        q_key_pattern <- "^q_[0-9]+_[0-9]{2}$"
+        q_keyed_results <- jackknife_results_list[grep(q_key_pattern, names(jackknife_results_list))]
+
+        if (length(q_keyed_results) == 0) {
+            stop("No q-keyed jackknife results found in analysis@jackknife_results. ",
+                "Expected keys in format 'q_X_XX' (e.g., 'q_0_01', 'q_1_00') or 'multi_q'.")
+        }
+
+        # Wrap q-keyed results as a multi_q object for consistency
+        multi_q_results <- q_keyed_results
+        if (verbose) {
+            message("  [OK] Found ", length(multi_q_results), " q-keyed results")
+        }
+    }
+
+    if (verbose)
+        message("  [OK] Extracted jackknife results with ", length(multi_q_results),
+            " q-values")
+
+    # Call base function with extracted parameters
+    if (verbose)
+        message("Calling .prepare_gene_switching_tables()...")
+
+    result <- .prepare_gene_switching_tables(lm_res = lm_res, multi_q_results = multi_q_results,
+        n_top_genes = n_top_genes, n_transcripts_per_gene = n_transcripts_per_gene,
+        verbose = verbose, ...)
+
+    if (verbose)
+        message("[OK] Gene switching tables prepared successfully")
+
+    # Track function call in metadata
+    analysis@metadata$function_calls <- c(analysis@metadata$function_calls, "prepare_gene_switching_tables_s4")
+    analysis@metadata$function_timestamps <- c(analysis@metadata$function_timestamps,
+        as.character(Sys.time()))
+
+    # Save if output_file provided
+    if (!is.null(output_file)) {
+        if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
+            # Write as TSV/CSV
+            write.table(result, file = output_file, sep = "\t", quote = FALSE, row.names = TRUE)
+        } else {
+            # Default to RDS for arbitrary objects
+            saveRDS(result, file = output_file)
+        }
+
+    }
+
+    return(result)
 }
 
 #' Plot Multi-Q Delta Influence Heatmaps from TSENATAnalysis Object
@@ -3026,7 +2852,7 @@ prepare_gene_switching_tables_s4 <- function(
 #' This function extracts the following from \code{analysis}:
 #' \describe{
 #'   \item{Jackknife results}{From \code{analysis@jackknife_results}, which should
-#'         contain multi-q switching results keyed by q-value (e.g., "q_1.00")}
+#'         contain multi-q switching results keyed by q-value (e.g., 'q_1.00')}
 #'   \item{LM results}{From \code{analysis@lm_results$lm_interaction} if not
 #'         explicitly provided, for ranking genes by significance}
 #' }
@@ -3038,29 +2864,29 @@ prepare_gene_switching_tables_s4 <- function(
 #' # Plot 5: Multi-q delta influence (isoform switching) heatmaps
 #' data(readcounts)
 #' readcounts <- as.matrix(salmon_dataset)
-#' mode(readcounts) <- "numeric"
+#' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
-#'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t"
+#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' 
 #' # Configure analysis parameters
 #' config <- tsenat_config(
-#'   condition_col = "condition",
-#'   subject_col = "paired_samples",
+#'   condition_col = 'condition',
+#'   subject_col = 'paired_samples',
 #'   paired = TRUE,
-#'   control = "normal",
+#'   control = 'normal',
 #'   metadata = metadata_df
 #' )
 #' analysis <- setConfig(analysis, config)
 #' 
-#' analysis <- filter_analysis_s4(analysis, stringency = "severe")
+#' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, method = "gam", verbose = FALSE)
+#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
 #' analysis <- jackknife_isoform_switching_s4(analysis, q = c(0.5, 1, 1.5),
 #'   n_bootstrap = 50, verbose = FALSE)
 #' heatmap_file <- plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 2)
@@ -3070,92 +2896,89 @@ prepare_gene_switching_tables_s4 <- function(
 #'
 #' @export
 #' @importFrom methods is
-plot_multiq_delta_influence_heatmaps_s4 <- function(
-    analysis,
-    n_genes = 4,
-    lm_results = NULL,
-    verbose = FALSE,
-    output_file = NULL,
-    ...) {
-  
-  # Load visualization dependencies (ggplot2, cowplot, pheatmap, etc.)
-  .load_visualization_deps()
-  
-  # Extract verbose parameter if not provided
-  verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
+plot_multiq_delta_influence_heatmaps_s4 <- function(analysis, n_genes = 4, lm_results = NULL,
+    verbose = FALSE, output_file = NULL, ...) {
 
-  # Validation
-  if (!is(analysis, "TSENATAnalysis")) {
-    stop("analysis must be a TSENATAnalysis object", call. = FALSE)
-  }
-  
-  if (verbose) message("Extracting jackknife switching results from analysis object...")
-  
-  # Extract jackknife/switching results
-  jackknife_results_list <- analysis@jackknife_results
-  if (is.null(jackknife_results_list) || length(jackknife_results_list) == 0) {
-    stop("No jackknife results found in analysis@jackknife_results. ",
-         "Run jackknife_isoform_switching_s4() first.", call. = FALSE)
-  }
-  
-  # Check for multi-q result (stored under "multi_q" key when multiple q-values provided)
-  if ("multi_q" %in% names(jackknife_results_list)) {
-    switching_results <- jackknife_results_list$multi_q
-    if (verbose) {
-      message("  [OK] Found multi-q result with class: ", class(switching_results)[1])
+    # Load visualization dependencies (ggplot2, cowplot, pheatmap, etc.)
+    .load_visualization_deps()
+
+    # Extract verbose parameter if not provided
+    verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
+
+    # Validation
+    if (!is(analysis, "TSENATAnalysis")) {
+        stop("analysis must be a TSENATAnalysis object", call. = FALSE)
     }
-  } else {
-    # Fallback: use all results as list (for single or multiple q-values)
-    switching_results <- jackknife_results_list
-    if (verbose) {
-      message("  [OK] Using individual q-value results (", length(switching_results), " q-values)")
+
+    if (verbose)
+        message("Extracting jackknife switching results from analysis object...")
+
+    # Extract jackknife/switching results
+    jackknife_results_list <- analysis@jackknife_results
+    if (is.null(jackknife_results_list) || length(jackknife_results_list) == 0) {
+        stop("No jackknife results found in analysis@jackknife_results. ", "Run jackknife_isoform_switching_s4() first.",
+            call. = FALSE)
     }
-  }
-  
-  if (verbose) {
-    message("  Q-values: ", paste(names(switching_results), collapse = ", "))
-  }
-  
-  # Extract LM results if not provided
-  if (is.null(lm_results)) {
-    if (verbose) message("Extracting LM results from analysis@lm_results...")
-    
-    lm_results_list <- analysis@lm_results
-    if (!is.null(lm_results_list)) {
-      if (!is.null(lm_results_list$lm_interaction)) {
-        if (is.data.frame(lm_results_list$lm_interaction$results)) {
-          lm_results <- lm_results_list$lm_interaction$results
-        } else if (is.data.frame(lm_results_list$lm_interaction)) {
-          lm_results <- lm_results_list$lm_interaction
+
+    # Check for multi-q result (stored under 'multi_q' key when multiple
+    # q-values provided)
+    if ("multi_q" %in% names(jackknife_results_list)) {
+        switching_results <- jackknife_results_list$multi_q
+        if (verbose) {
+            message("  [OK] Found multi-q result with class: ", class(switching_results)[1])
         }
-      }
-      
-      if (!is.null(lm_results)) {
-        if (verbose) message("  [OK] Extracted LM results with ", nrow(lm_results), " genes")
-      } else if (verbose) {
-        message("  LM results not found; genes will be ranked by appearance")
-      }
+    } else {
+        # Fallback: use all results as list (for single or multiple q-values)
+        switching_results <- jackknife_results_list
+        if (verbose) {
+            message("  [OK] Using individual q-value results (", length(switching_results),
+                " q-values)")
+        }
     }
-  }
-  
-  if (verbose) message("Calling .plot_multiq_delta_influence_heatmaps()...")
-  
-  # Call base function with extracted parameters
-  # Note: output_file parameter can be used to save heatmap as PNG file
-  result <- .plot_multiq_delta_influence_heatmaps(
-    switching_results = switching_results,
-    n_genes = n_genes,
-    lm_results = lm_results,
-    verbose = verbose,
-    output_file = output_file,
-    ...
-  )
-  
-  if (verbose) {
-    message("[OK] Heatmap plot generated successfully")
-  }
 
-  invisible(result)
+    if (verbose) {
+        message("  Q-values: ", paste(names(switching_results), collapse = ", "))
+    }
+
+    # Extract LM results if not provided
+    if (is.null(lm_results)) {
+        if (verbose)
+            message("Extracting LM results from analysis@lm_results...")
+
+        lm_results_list <- analysis@lm_results
+        if (!is.null(lm_results_list)) {
+            if (!is.null(lm_results_list$lm_interaction)) {
+                if (is.data.frame(lm_results_list$lm_interaction$results)) {
+                  lm_results <- lm_results_list$lm_interaction$results
+                } else if (is.data.frame(lm_results_list$lm_interaction)) {
+                  lm_results <- lm_results_list$lm_interaction
+                }
+            }
+
+            if (!is.null(lm_results)) {
+                if (verbose)
+                  message("  [OK] Extracted LM results with ", nrow(lm_results),
+                    " genes")
+            } else if (verbose) {
+                message("  LM results not found; genes will be ranked by appearance")
+            }
+        }
+    }
+
+    if (verbose)
+        message("Calling .plot_multiq_delta_influence_heatmaps()...")
+
+    # Call base function with extracted parameters Note: output_file parameter
+    # can be used to save heatmap as PNG file
+    result <- .plot_multiq_delta_influence_heatmaps(switching_results = switching_results,
+        n_genes = n_genes, lm_results = lm_results, verbose = verbose, output_file = output_file,
+        ...)
+
+    if (verbose) {
+        message("[OK] Heatmap plot generated successfully")
+    }
+
+    invisible(result)
 }
 
 #' Plot GAM q-curves from TSENATAnalysis object
@@ -3171,14 +2994,14 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
 #'
 #' @param condition_col \code{character}. Column name in colData(se) specifying 
 #'   group assignments for samples. If NULL, attempts to auto-detect from @config
-#'   (looks for "condition_col" or "condition"). If still NULL, defaults to "sample_type".
+#'   (looks for 'condition_col' or 'condition'). If still NULL, defaults to 'sample_type'.
 #'
 #' @param sig_alpha \code{numeric}. Significance threshold for adjusted p-values 
 #'   (default: 0.05). Only used if genes = NULL; filters lm_res to significant 
 #'   genes before selecting top n.
 #'
 #' @param assay_name \code{character}. Name of the assay in se to extract 
-#'   (default: "diversity").
+#'   (default: 'diversity').
 #'
 #' @param output_file \code{character} or \code{NULL}. Optional file path to save the plot.
 #'   Default: NULL (no file output).
@@ -3207,7 +3030,7 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
 #'   \item Explicit \code{condition_col} parameter (highest priority)
 #'   \item \code{@config$condition_col} if available
 #'   \item \code{@config$condition} if available  
-#'   \item Default: "sample_type"
+#'   \item Default: 'sample_type'
 #' }
 #'
 #' @seealso
@@ -3217,199 +3040,165 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
 #' # Plot 3: GAM q-curves for genes with q-by-condition interactions
 #' data(readcounts)
 #' readcounts <- as.matrix(salmon_dataset)
-#' mode(readcounts) <- "numeric"
+#' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
-#'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t"
+#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' 
 #' # Configure analysis parameters
 #' config <- tsenat_config(
-#'   condition_col = "condition",
-#'   subject_col = "paired_samples",
+#'   condition_col = 'condition',
+#'   subject_col = 'paired_samples',
 #'   paired = TRUE,
-#'   control = "normal",
+#'   control = 'normal',
 #'   metadata = metadata_df
 #' )
 #' analysis <- setConfig(analysis, config)
 #' 
-#' analysis <- filter_analysis_s4(analysis, stringency = "severe")
+#' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 #' analysis <- calculate_diversity_s4(analysis, q = seq(0.2, 2.5, by = 0.15), verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, method = "gam", verbose = FALSE)
+#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
 #' 
 #' p_gam <- plot_lm_interaction_gam_s4(analysis, n_top = 2, sig_alpha = 0.15)
 #' print(p_gam)
 #'
 #' @export
-plot_lm_interaction_gam_s4 <- function(
-  analysis,
-  n_top = 6,
-  genes = NULL,
-  condition_col = NULL,
-  sig_alpha = 0.05,
-  assay_name = "diversity",
-  output_file = NULL,
-  width = 12,
-  height = NULL,
-  ...
-) {
-  # Load visualization dependencies (ggplot2, cowplot, mgcv, etc.)
-  .load_visualization_deps()
-  
-  # =========================================================================
-  # INPUT VALIDATION
-  # =========================================================================
-  if (!is(analysis, "TSENATAnalysis")) {
-    stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
-  }
-  
-  # Check that LM results exist
-  if (is.null(analysis@lm_results) || is.null(analysis@lm_results$lm_interaction)) {
-    stop("[plot_lm_interaction_gam_s4] No LM interaction results found in @lm_results$lm_interaction. ",
-         "Run calculate_lm_interaction_s4() first.",
-         call. = FALSE)
-  }
-  
-  lm_res <- analysis@lm_results$lm_interaction
-  
-  if (!is.data.frame(lm_res)) {
-    stop("[plot_lm_interaction_gam_s4] @lm_results$lm_interaction must be a data.frame",
-         call. = FALSE)
-  }
-  
-  # Check that diversity results exist (needed for SE reconstruction)
-  if (length(analysis@diversity_results) == 0) {
-    stop("[plot_lm_interaction_gam_s4] No diversity results found in @diversity_results. ",
-         "Run calculate_diversity_s4() first.",
-         call. = FALSE)
-  }
-  
-  # =========================================================================
-  # AUTO-DETECT condition_col FROM @config IF NOT PROVIDED
-  # =========================================================================
-  if (is.null(condition_col)) {
-    cd_cols <- colnames(colData(analysis@se))
-    condition_col <- auto_detect_column(
-      cd_cols, analysis@config, "condition_col",
-      c("condition", "sample_type", "group", "treatment"),
-      verbose = verbose, param_name = "condition_col"
-    )
-  }
-  
-  # Validate that condition_col exists in colData
-  if (!(condition_col %in% colnames(colData(analysis@se)))) {
-    stop("[plot_lm_interaction_gam_s4] Specified condition_col='", condition_col, 
-         "' not found in colData. Available columns: ",
-         paste(colnames(colData(analysis@se)), collapse = ", "),
-         call. = FALSE)
-  }
-  
-  # =========================================================================
-  # RECONSTRUCT COMBINED DIVERSITY SE FOR PLOTTING
-  # (Same approach as in calculate_lm_interaction_s4)
-  # =========================================================================
-  # Extract q-values from diversity_results keys
-  q_keys <- names(analysis@diversity_results)
-  q_computed <- as.numeric(sub("^q_", "", q_keys))
-  
-  # Reconstruct combined diversity SE with all q-values
-  diversity_combined <- tryCatch({
-    verbose <- if ("verbose" %in% names(analysis@config)) {
-      analysis@config$verbose
-    } else {
-      FALSE
-    }
-    
-    .calculate_diversity(
-      x = analysis@se,
-      q = sort(q_computed),
-      norm = TRUE,
-      verbose = verbose,
-      bootstrap = FALSE
-    )
-  }, error = function(e) {
-    stop("[plot_lm_interaction_gam_s4] Failed to reconstruct diversity SE:\n",
-                conditionMessage(e), call. = FALSE)
-  })
-  
-  # =========================================================================
-  # EXTRACT model_data FROM STORED RESULTS
-  # =========================================================================
-  model_data <- NULL
-  if ("lm_interaction_model_data" %in% names(analysis@lm_results)) {
-    model_data <- analysis@lm_results$lm_interaction_model_data
-  }
-  
-  # =========================================================================
-  # CALCULATE HEIGHT IF NOT PROVIDED
-  # =========================================================================
-  if (is.null(height)) {
-    # Estimate number of genes to be plotted
-    if (!is.null(genes)) {
-      n_genes_plot <- length(genes)
-    } else {
-      # Count significant genes
-      if ("adj_p_interaction" %in% colnames(lm_res)) {
-        sig_genes <- lm_res$adj_p_interaction <= sig_alpha
-      } else if ("p_interaction" %in% colnames(lm_res)) {
-        sig_genes <- lm_res$p_interaction <= sig_alpha
-      } else {
-        sig_genes <- rep(TRUE, nrow(lm_res))
-      }
-      n_genes_plot <- min(sum(sig_genes), n_top)
-    }
-    # Calculate height: 2 rows per 3-gene group, ~3.5 inches per row
-    n_rows <- ceiling(n_genes_plot / 2)
-    height <- 2 + (3.5 * n_rows)
-  }
-  
-  # =========================================================================
-  # CALL plot_lm_interaction_gam WITH RECONSTRUCTED DIVERSITY SE
-  # =========================================================================
-  result <- tryCatch({
-    .plot_lm_interaction_gam(
-      se = diversity_combined,
-      lm_res = lm_res,
-      condition_col = condition_col,
-      n_top = n_top,
-      genes = genes,
-      sig_alpha = sig_alpha,
-      assay_name = assay_name,
-      model_data = model_data,
-      output_file = output_file,
-      width = width,
-      height = height,
-      ...
-    )
-  }, error = function(e) {
-    stop("[plot_lm_interaction_gam_s4]", conditionMessage(e),
-         call. = FALSE)
-  })
-  
-  # =========================================================================
-  # RETURN PLOT
-  # =========================================================================
-  # Track that plotting occurred
-  if (is.list(analysis@metadata)) {
-    analysis@metadata$function_calls <- c(
-      analysis@metadata$function_calls,
-      paste0("plot_lm_interaction_gam_s4[n_top=", n_top, ", condition_col=", 
-             condition_col, "]")
-    )
-  }
-  
-  # Save plot to file if requested
-  if (!is.null(output_file)) {
-    save_analysis_output(result, output_file, object = analysis, verbose = verbose,
-                         func_name = "plot_lm_interaction_gam_s4",
-                         width = width, height = height)
-  }
+plot_lm_interaction_gam_s4 <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL,
+    sig_alpha = 0.05, assay_name = "diversity", output_file = NULL, width = 12, height = NULL,
+    ...) {
+    # Load visualization dependencies (ggplot2, cowplot, mgcv, etc.)
+    .load_visualization_deps()
 
-  # Return the plot object directly (not the analysis object)
-  result
+    # =========================================================================
+    # INPUT VALIDATION
+    # =========================================================================
+    if (!is(analysis, "TSENATAnalysis")) {
+        stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
+    }
+
+    # Check that LM results exist
+    if (is.null(analysis@lm_results) || is.null(analysis@lm_results$lm_interaction)) {
+        stop("[plot_lm_interaction_gam_s4] No LM interaction results found in @lm_results$lm_interaction. ",
+            "Run calculate_lm_interaction_s4() first.", call. = FALSE)
+    }
+
+    lm_res <- analysis@lm_results$lm_interaction
+
+    if (!is.data.frame(lm_res)) {
+        stop("[plot_lm_interaction_gam_s4] @lm_results$lm_interaction must be a data.frame",
+            call. = FALSE)
+    }
+
+    # Check that diversity results exist (needed for SE reconstruction)
+    if (length(analysis@diversity_results) == 0) {
+        stop("[plot_lm_interaction_gam_s4] No diversity results found in @diversity_results. ",
+            "Run calculate_diversity_s4() first.", call. = FALSE)
+    }
+
+    # =========================================================================
+    # AUTO-DETECT condition_col FROM @config IF NOT PROVIDED
+    # =========================================================================
+    if (is.null(condition_col)) {
+        cd_cols <- colnames(colData(analysis@se))
+        condition_col <- auto_detect_column(cd_cols, analysis@config, "condition_col",
+            c("condition", "sample_type", "group", "treatment"), verbose = verbose,
+            param_name = "condition_col")
+    }
+
+    # Validate that condition_col exists in colData
+    if (!(condition_col %in% colnames(colData(analysis@se)))) {
+        stop("[plot_lm_interaction_gam_s4] Specified condition_col='", condition_col,
+            "' not found in colData. Available columns: ", paste(colnames(colData(analysis@se)),
+                collapse = ", "), call. = FALSE)
+    }
+
+    # =========================================================================
+    # RECONSTRUCT COMBINED DIVERSITY SE FOR PLOTTING (Same approach as in
+    # calculate_lm_interaction_s4)
+    # =========================================================================
+    # Extract q-values from diversity_results keys
+    q_keys <- names(analysis@diversity_results)
+    q_computed <- as.numeric(sub("^q_", "", q_keys))
+
+    # Reconstruct combined diversity SE with all q-values
+    diversity_combined <- tryCatch({
+        verbose <- if ("verbose" %in% names(analysis@config)) {
+            analysis@config$verbose
+        } else {
+            FALSE
+        }
+
+        .calculate_diversity(x = analysis@se, q = sort(q_computed), norm = TRUE,
+            verbose = verbose, bootstrap = FALSE)
+    }, error = function(e) {
+        stop("[plot_lm_interaction_gam_s4] Failed to reconstruct diversity SE:\n",
+            conditionMessage(e), call. = FALSE)
+    })
+
+    # =========================================================================
+    # EXTRACT model_data FROM STORED RESULTS
+    # =========================================================================
+    model_data <- NULL
+    if ("lm_interaction_model_data" %in% names(analysis@lm_results)) {
+        model_data <- analysis@lm_results$lm_interaction_model_data
+    }
+
+    # =========================================================================
+    # CALCULATE HEIGHT IF NOT PROVIDED
+    # =========================================================================
+    if (is.null(height)) {
+        # Estimate number of genes to be plotted
+        if (!is.null(genes)) {
+            n_genes_plot <- length(genes)
+        } else {
+            # Count significant genes
+            if ("adj_p_interaction" %in% colnames(lm_res)) {
+                sig_genes <- lm_res$adj_p_interaction <= sig_alpha
+            } else if ("p_interaction" %in% colnames(lm_res)) {
+                sig_genes <- lm_res$p_interaction <= sig_alpha
+            } else {
+                sig_genes <- rep(TRUE, nrow(lm_res))
+            }
+            n_genes_plot <- min(sum(sig_genes), n_top)
+        }
+        # Calculate height: 2 rows per 3-gene group, ~3.5 inches per row
+        n_rows <- ceiling(n_genes_plot/2)
+        height <- 2 + (3.5 * n_rows)
+    }
+
+    # =========================================================================
+    # CALL plot_lm_interaction_gam WITH RECONSTRUCTED DIVERSITY SE
+    # =========================================================================
+    result <- tryCatch({
+        .plot_lm_interaction_gam(se = diversity_combined, lm_res = lm_res, condition_col = condition_col,
+            n_top = n_top, genes = genes, sig_alpha = sig_alpha, assay_name = assay_name,
+            model_data = model_data, output_file = output_file, width = width, height = height,
+            ...)
+    }, error = function(e) {
+        stop("[plot_lm_interaction_gam_s4]", conditionMessage(e), call. = FALSE)
+    })
+
+    # =========================================================================
+    # RETURN PLOT
+    # =========================================================================
+    # Track that plotting occurred
+    if (is.list(analysis@metadata)) {
+        analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("plot_lm_interaction_gam_s4[n_top=",
+            n_top, ", condition_col=", condition_col, "]"))
+    }
+
+    # Save plot to file if requested
+    if (!is.null(output_file)) {
+        save_analysis_output(result, output_file, object = analysis, verbose = verbose,
+            func_name = "plot_lm_interaction_gam_s4", width = width, height = height)
+    }
+
+    # Return the plot object directly (not the analysis object)
+    result
 }
 
 #' Jackknife isoform switching analysis on TSENATAnalysis object
@@ -3425,16 +3214,16 @@ plot_lm_interaction_gam_s4 <- function(
 #'   }
 #'
 #' @param condition_col \code{character}. Column name in colData(se) specifying 
-#'   group assignments (default: "sample_type"). If NULL, attempts auto-detection.
+#'   group assignments (default: 'sample_type'). If NULL, attempts auto-detection.
 #'
 #' @param subject_col \code{character}. Optional column for paired/repeated measures design.
 #'   If provided, enables paired analysis. Default: NULL (unpaired).
 #'
 #' @param gene_col \code{character}. Column name in rowData(se) or metadata identifying genes.
-#'   Default: "gene".
+#'   Default: 'gene'.
 #'
 #' @param isoform_col \code{character}. Column name in rowData(se) or metadata identifying 
-#'   isoforms/transcripts. Default: "transcript" or "isoform".
+#'   isoforms/transcripts. Default: 'transcript' or 'isoform'.
 #'
 #' @param q \code{numeric}. Tsallis entropy parameter(s) to analyze. Can be single value 
 #'   or vector for multi-q analysis (default: 1).
@@ -3448,7 +3237,7 @@ plot_lm_interaction_gam_s4 <- function(
 #'
 #' @param threshold \code{numeric}. Percentile threshold for detecting transcript switching 
 #'   (default: 90). Transcripts with delta_influence >= threshold percentile are classified 
-#'   as "switching".
+#'   as 'switching'.
 #'
 #' @param n_bootstrap \code{integer}. Number of bootstrap resamples for confidence 
 #'   intervals (default: 1000).
@@ -3475,7 +3264,7 @@ plot_lm_interaction_gam_s4 <- function(
 #' @param ... Additional arguments for future extensibility.
 #'
 #' @return \code{TSENATAnalysis} object with jackknife results stored in \code{@jackknife_results}
-#'   slot. Results are keyed by q-value (e.g., "q_1.00"). For multi-q analysis, multiple
+#'   slot. Results are keyed by q-value (e.g., 'q_1.00'). For multi-q analysis, multiple
 #'   calls will accumulate results in the slot.
 #'
 #'   The analysis object is returned visibly to support method chaining:
@@ -3492,9 +3281,9 @@ plot_lm_interaction_gam_s4 <- function(
 #'
 #' **Parameter Auto-Detection:**
 #' \enumerate{
-#'   \item \code{condition_col}: Uses explicit parameter, then @config, then "sample_type"
-#'   \item \code{gene_col}: Uses explicit parameter, then looks for "gene" or "Gene"
-#'   \item \code{isoform_col}: Uses explicit parameter, then looks for "transcript", "isoform", or "Isoform"
+#'   \item \code{condition_col}: Uses explicit parameter, then @config, then 'sample_type'
+#'   \item \code{gene_col}: Uses explicit parameter, then looks for 'gene' or 'Gene'
+#'   \item \code{isoform_col}: Uses explicit parameter, then looks for 'transcript', 'isoform', or 'Isoform'
 #' }
 #'
 #' @seealso \code{jackknife_isoform_switching} for the underlying implementation,
@@ -3502,329 +3291,282 @@ plot_lm_interaction_gam_s4 <- function(
 #'
 #' @examples
 #' data(readcounts)
-#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'                           header = TRUE, sep = "\t")
-#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'                           header = TRUE, sep = '\t')
+#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,
 #'                              tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 20, subset_n_samples = 8)
 #' analysis <- calculate_diversity_s4(analysis, q = 1, verbose = FALSE)
 #' 
 #' @export
-jackknife_isoform_switching_s4 <- function(
-  analysis,
-  condition_col = NULL,
-  subject_col = NULL,
-  gene_col = NULL,
-  isoform_col = NULL,
-  q = 1,
-  norm = NULL,
-  log_base = NULL,
-  threshold = 90,
-  n_bootstrap = 1000,
-  pseudocount = NULL,
-  lm_results = NULL,
-  lm_p_threshold = 0.05,
-  use_lm_fdr = TRUE,
-  output_file = NULL,
-  verbose = FALSE,
-  ...
-) {
-  # =========================================================================
-  # INPUT VALIDATION
-  # =========================================================================
-  if (!is(analysis, "TSENATAnalysis")) {
-    stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
-  }
-  
-  se <- analysis@se
-  
-  if (!inherits(se, "SummarizedExperiment")) {
-    stop("[jackknife_isoform_switching_s4] @se must be a SummarizedExperiment object",
-         call. = FALSE)
-  }
-  
-  # =========================================================================
-  # AUTO-DETECT condition_col (using centralized helper)
-  # =========================================================================
-  cd_cols <- colnames(colData(se))
-  condition_col <- auto_detect_column(
-    cd_cols, 
-    config_list = analysis@config, 
-    config_key = "condition_col",
-    priority_candidates = c("sample_type", "condition", "group", "sample_group"),
-    default_fallback = if (length(cd_cols) > 0) cd_cols[1] else NULL,
-    verbose = verbose,
-    param_name = "condition_col"
-  )
-  
-  if (is.null(condition_col)) {
-    stop(
-      "[jackknife_isoform_switching_s4] Cannot auto-detect condition_col.\n",
-      "  Available colData columns: ", paste(cd_cols, collapse = ", "), "\n\n",
-      "SOLUTION: Set @config$condition_col or pass explicit parameter\n",
-      "  Example: analysis@config$condition_col <- 'sample_type'\n",
-      "  Or:      jackknife_isoform_switching_s4(analysis, condition_col = 'sample_type')\n",
-      call. = FALSE)
-  }
-  
-  # =========================================================================
-  # AUTO-DETECT gene_col AND isoform_col FROM rowData (using centralized helper)
-  # =========================================================================
-  rd <- if (!is.null(rowData(se)) && nrow(rowData(se)) > 0) {
-    rowData(se)
-  } else {
-    NULL
-  }
-  
-  rd_cols <- if (!is.null(rd)) colnames(rd) else character(0)
-  
-  # Detect gene_col
-  if (is.null(gene_col)) {
-    gene_col <- auto_detect_column(
-      rd_cols,
-      config_list = analysis@config,
-      config_key = "gene_col",
-      priority_candidates = c("gene_id", "gene", "Gene", "gene_name"),
-      default_fallback = "gene",
-      verbose = verbose,
-      param_name = "gene_col"
-    )
-  }
-  
-  # Detect isoform_col
-  if (is.null(isoform_col)) {
-    isoform_col <- auto_detect_column(
-      rd_cols,
-      config_list = analysis@config,
-      config_key = "isoform_col",
-      priority_candidates = c("transcript_id", "transcript", "isoform", "Isoform", "tx_id"),
-      default_fallback = "transcript",
-      verbose = verbose,
-      param_name = "isoform_col"
-    )
-  }
-  
-  # =========================================================================
-  # EXTRACT LM_RESULTS IF PROVIDED VIA ANALYSIS OBJECT
-  # =========================================================================
-  if (is.null(lm_results) && !is.null(analysis@lm_results)) {
-    # Try to extract LM results from analysis object
-    if ("lm_interaction" %in% names(analysis@lm_results)) {
-      lm_results <- analysis@lm_results$lm_interaction
-      if (verbose) {
-        message("[jackknife_isoform_switching_s4] Using LM interaction results from @lm_results")
-      }
-    }
-  }
-  
-  # =========================================================================
-  # CHECK Q-VALUES AVAILABILITY IN DIVERSITY RESULTS
-  # =========================================================================
-  if (!is.null(analysis@diversity_results) && length(analysis@diversity_results) > 0) {
-    available_q_keys <- names(analysis@diversity_results)
-    available_q <- as.numeric(sub("^q_", "", available_q_keys))
-    available_q <- sort(unique(available_q))
-    
-    # Check if requested q-values are available
-    q_vals <- if (is.numeric(q)) q else c(q)
-    missing_q <- setdiff(q_vals, available_q)
-    
-    if (length(missing_q) > 0) {
-      warning(
-        "[jackknife_isoform_switching_s4] Requested q-values not in @diversity_results:\n",
-        "  Requested: ", paste(q_vals, collapse = ", "), "\n",
-        "  Available: ", paste(available_q, collapse = ", "), "\n",
-        "  Missing:   ", paste(missing_q, collapse = ", "), "\n\n",
-        "SOLUTION: Recompute diversity with all desired q-values before calling jackknife_isoform_switching_s4:\n",
-        "  analysis <- calculate_diversity_s4(analysis, q = c(", paste(q_vals, collapse = ", "), 
-        "), norm = TRUE)\n",
-        "  analysis <- jackknife_isoform_switching_s4(analysis, q = c(", paste(q_vals, collapse = ", "), "))\n",
-        call. = FALSE
-      )
-    }
-    
-    if (verbose && length(missing_q) == 0) {
-      message("[jackknife_isoform_switching_s4] All requested q-values available in diversity results")
-    }
-  }
-
-  # =========================================================================
-  # RESOLVE PARAMETERS
-  # =========================================================================
-  norm <- resolve_slot_param(norm, analysis@config, "norm", TRUE)
-  log_base <- resolve_slot_param(log_base, analysis@config, "log_base", exp(1))
-  pseudocount <- resolve_slot_param(pseudocount, analysis@config, "pseudocount", 0)
-  
-  # =========================================================================
-  # VALIDATE n_bootstrap PARAMETER
-  # =========================================================================
-  if (!is.numeric(n_bootstrap) || length(n_bootstrap) != 1 || n_bootstrap < 1) {
-    stop("'n_bootstrap' must be a positive integer", call. = FALSE)
-  }
-  
-  if (n_bootstrap < 50) {
-    warning(
-      "n_bootstrap = ", n_bootstrap, " is less than the recommended minimum of 50. ",
-      "Results may be unreliable. Consider increasing to at least 50-100 for stable estimates.",
-      call. = FALSE
-    )
-  }
-  
-  # =========================================================================
-  # CALL BASE FUNCTION
-  # =========================================================================
-  result <- tryCatch({
-    .jackknife_isoform_switching(
-      se = se,
-      condition_col = condition_col,
-      subject_col = subject_col,
-      gene_col = gene_col,
-      isoform_col = isoform_col,
-      q = q,
-      norm = norm,
-      log_base = log_base,
-      threshold = threshold,
-      n_bootstrap = n_bootstrap,
-      pseudocount = pseudocount,
-      verbose = verbose,
-      lm_results = lm_results,
-      lm_p_threshold = lm_p_threshold,
-      use_lm_fdr = use_lm_fdr
-    )
-  }, error = function(e) {
-    stop("[jackknife_isoform_switching_s4] Jackknife analysis failed:\\n",
-                conditionMessage(e), call. = FALSE)
-  })
-  
-  # =========================================================================
-  # STORE RESULTS IN ANALYSIS OBJECT (OPTIMIZED - vectorized q-value storage)
-  # =========================================================================
-  # Ensure q is a vector and validate
-  if (!is.numeric(q) && !(is.vector(q) && all(vapply(q, is.numeric, FUN.VALUE = logical(1))))) {
-    stop("[jackknife_isoform_switching_s4] 'q' must be numeric or numeric vector", call. = FALSE)
-  }
-  q_vals <- if (is.numeric(q)) q else as.numeric(c(q))
-  
-  # Check if result has multi-q class
-  if (inherits(result, "tsenat_isoform_switching_multiq")) {
-    # Multi-q result: store as-is (already has correct underscore-format keys from base function)
-    for (q_key in names(result)) {
-      analysis@jackknife_results[[q_key]] <- result[[q_key]]
-    }
-    # Also store the entire multi-q result object for plotting function access
-    analysis@jackknife_results[["multi_q"]] <- result
-    if (verbose) {
-      message(sprintf("[jackknife_isoform_switching_s4] Stored multi-q result with keys: %s", paste(names(result), collapse = ", ")))
-    }
-  } else {
-    # Store results for each q-value (vectorized - no explicit loop)
-    # Use underscore format to match base function: paste0("q_", gsub("\\.", "_", sprintf("%.2f", q)))
-    q_keys <- paste0("q_", gsub("\\.", "_", sprintf("%.2f", q_vals)))
-    
-    # Store each result
-    for (i in seq_along(q_keys)) {
-      q_key <- q_keys[i]
-      
-      # Check if result is list with named q-values (should have underscore format now)
-      if (is.list(result) && q_key %in% names(result)) {
-        analysis@jackknife_results[[q_key]] <- result[[q_key]]
-      } else if (length(q_vals) == 1) {
-        # Single q-value: store result directly
-        analysis@jackknife_results[[q_key]] <- result
-      } else {
-        # Multiple q-values: log warning if not found
-        warning("[jackknife_isoform_switching_s4] Result for q=", q_vals[i], 
-                " (key: ", q_key, ") not found in base function result.", call. = FALSE)
-      }
-      
-      if (verbose) {
-        message(sprintf("[jackknife_isoform_switching_s4] Stored results for %s", q_key))
-      }
-    }
-  }
-  
-  # =========================================================================
-  # TRACK FUNCTION CALL IN METADATA (OPTIMIZED - single paste())
-  # =========================================================================
-  if (is.list(analysis@metadata)) {
-    # Pre-format all metadata in one call (more efficient)
-    call_str <- sprintf(
-      "jackknife_isoform_switching_s4[q=%s, condition_col=%s]",
-      paste(q_vals, collapse = ","),
-      condition_col
-    )
-    
-    analysis@metadata$function_calls <- c(
-      analysis@metadata$function_calls,
-      call_str
-    )
-    analysis@metadata$function_timestamps <- c(
-      analysis@metadata$function_timestamps,
-      as.character(Sys.time())
-    )
-  }
-
-  # =========================================================================
-  # SAVE RESULTS IF output_file PROVIDED
-  # =========================================================================
-  if (!is.null(output_file)) {
-    output_dir <- dirname(output_file)
-    if (output_dir != "." && !dir.exists(output_dir)) {
-      dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+jackknife_isoform_switching_s4 <- function(analysis, condition_col = NULL, subject_col = NULL,
+    gene_col = NULL, isoform_col = NULL, q = 1, norm = NULL, log_base = NULL, threshold = 90,
+    n_bootstrap = 1000, pseudocount = NULL, lm_results = NULL, lm_p_threshold = 0.05,
+    use_lm_fdr = TRUE, output_file = NULL, verbose = FALSE, ...) {
+    # =========================================================================
+    # INPUT VALIDATION
+    # =========================================================================
+    if (!is(analysis, "TSENATAnalysis")) {
+        stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }
 
-    if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
-      # Write as text table (extract from jackknife results)
-      tryCatch({
-        output_ext <- sub("^.*\\.", ".", tolower(output_file))
-        output_base <- sub(paste0(output_ext, "$"), "", output_file)
-        transcript_file <- paste0(output_base, "_transcripts", output_ext)
-        
-        # Extract gene-level and transcript-level tables using helper
-        gene_data <- extract_multiq_table(
-          result, is_multiq = inherits(result, "tsenat_isoform_switching_multiq"),
-          extract_fn = function(res, q_key) {
-            if (!is.null(res$summary_table)) {
-              return(res$summary_table)
-            }
-            return(NULL)
-          },
-          q_value_col = "q_value"
-        )
-        
-        transcript_data <- extract_multiq_table(
-          result, is_multiq = inherits(result, "tsenat_isoform_switching_multiq"),
-          extract_fn = function(res, q_key) {
-            if (!is.null(res$all_transcript_stats)) {
-              return(res$all_transcript_stats)
-            }
-            return(NULL)
-          },
-          q_value_col = "q_value"
-        )
-        
-        # Write gene-level to original file
-        if (!is.null(gene_data)) {
-          write.table(gene_data, file = output_file, sep = "\t", quote = FALSE, row.names = FALSE)
-        }
-        
-        # Write transcript-level to separate file
-        if (!is.null(transcript_data)) {
-          write.table(transcript_data, file = transcript_file, sep = "\t", quote = FALSE, row.names = FALSE)
-        }
-      }, error = function(e) {
-        warning("[jackknife_isoform_switching_s4] Could not write jackknife results to file: ",
-                conditionMessage(e), call. = FALSE)
-      })
+    se <- analysis@se
+
+    if (!inherits(se, "SummarizedExperiment")) {
+        stop("[jackknife_isoform_switching_s4] @se must be a SummarizedExperiment object",
+            call. = FALSE)
+    }
+
+    # =========================================================================
+    # AUTO-DETECT condition_col (using centralized helper)
+    # =========================================================================
+    cd_cols <- colnames(colData(se))
+    condition_col <- auto_detect_column(cd_cols, config_list = analysis@config, config_key = "condition_col",
+        priority_candidates = c("sample_type", "condition", "group", "sample_group"),
+        default_fallback = if (length(cd_cols) > 0)
+            cd_cols[1] else NULL, verbose = verbose, param_name = "condition_col")
+
+    if (is.null(condition_col)) {
+        stop("[jackknife_isoform_switching_s4] Cannot auto-detect condition_col.\n",
+            "  Available colData columns: ", paste(cd_cols, collapse = ", "), "\n\n",
+            "SOLUTION: Set @config$condition_col or pass explicit parameter\n", "  Example: analysis@config$condition_col <- 'sample_type'\n",
+            "  Or:      jackknife_isoform_switching_s4(analysis, condition_col = 'sample_type')\n",
+            call. = FALSE)
+    }
+
+    # =========================================================================
+    # AUTO-DETECT gene_col AND isoform_col FROM rowData (using centralized
+    # helper)
+    # =========================================================================
+    rd <- if (!is.null(rowData(se)) && nrow(rowData(se)) > 0) {
+        rowData(se)
     } else {
-      # Default to RDS for S4 object
-      saveRDS(analysis, file = output_file)
+        NULL
     }
-  }
-  
-  # Return modified analysis object (visibly for method chaining as documented)
-  analysis
+
+    rd_cols <- if (!is.null(rd))
+        colnames(rd) else character(0)
+
+    # Detect gene_col
+    if (is.null(gene_col)) {
+        gene_col <- auto_detect_column(rd_cols, config_list = analysis@config, config_key = "gene_col",
+            priority_candidates = c("gene_id", "gene", "Gene", "gene_name"), default_fallback = "gene",
+            verbose = verbose, param_name = "gene_col")
+    }
+
+    # Detect isoform_col
+    if (is.null(isoform_col)) {
+        isoform_col <- auto_detect_column(rd_cols, config_list = analysis@config,
+            config_key = "isoform_col", priority_candidates = c("transcript_id",
+                "transcript", "isoform", "Isoform", "tx_id"), default_fallback = "transcript",
+            verbose = verbose, param_name = "isoform_col")
+    }
+
+    # =========================================================================
+    # EXTRACT LM_RESULTS IF PROVIDED VIA ANALYSIS OBJECT
+    # =========================================================================
+    if (is.null(lm_results) && !is.null(analysis@lm_results)) {
+        # Try to extract LM results from analysis object
+        if ("lm_interaction" %in% names(analysis@lm_results)) {
+            lm_results <- analysis@lm_results$lm_interaction
+            if (verbose) {
+                message("[jackknife_isoform_switching_s4] Using LM interaction results from @lm_results")
+            }
+        }
+    }
+
+    # =========================================================================
+    # CHECK Q-VALUES AVAILABILITY IN DIVERSITY RESULTS
+    # =========================================================================
+    if (!is.null(analysis@diversity_results) && length(analysis@diversity_results) >
+        0) {
+        available_q_keys <- names(analysis@diversity_results)
+        available_q <- as.numeric(sub("^q_", "", available_q_keys))
+        available_q <- sort(unique(available_q))
+
+        # Check if requested q-values are available
+        q_vals <- if (is.numeric(q))
+            q else c(q)
+        missing_q <- setdiff(q_vals, available_q)
+
+        if (length(missing_q) > 0) {
+            warning("[jackknife_isoform_switching_s4] Requested q-values not in @diversity_results:\n",
+                "  Requested: ", paste(q_vals, collapse = ", "), "\n", "  Available: ",
+                paste(available_q, collapse = ", "), "\n", "  Missing:   ", paste(missing_q,
+                  collapse = ", "), "\n\n", "SOLUTION: Recompute diversity with all desired q-values before calling jackknife_isoform_switching_s4:\n",
+                "  analysis <- calculate_diversity_s4(analysis, q = c(", paste(q_vals,
+                  collapse = ", "), "), norm = TRUE)\n", "  analysis <- jackknife_isoform_switching_s4(analysis, q = c(",
+                paste(q_vals, collapse = ", "), "))\n", call. = FALSE)
+        }
+
+        if (verbose && length(missing_q) == 0) {
+            message("[jackknife_isoform_switching_s4] All requested q-values available in diversity results")
+        }
+    }
+
+    # =========================================================================
+    # RESOLVE PARAMETERS
+    # =========================================================================
+    norm <- resolve_slot_param(norm, analysis@config, "norm", TRUE)
+    log_base <- resolve_slot_param(log_base, analysis@config, "log_base", exp(1))
+    pseudocount <- resolve_slot_param(pseudocount, analysis@config, "pseudocount",
+        0)
+
+    # =========================================================================
+    # VALIDATE n_bootstrap PARAMETER
+    # =========================================================================
+    if (!is.numeric(n_bootstrap) || length(n_bootstrap) != 1 || n_bootstrap < 1) {
+        stop("'n_bootstrap' must be a positive integer", call. = FALSE)
+    }
+
+    if (n_bootstrap < 50) {
+        warning("n_bootstrap = ", n_bootstrap, " is less than the recommended minimum of 50. ",
+            "Results may be unreliable. Consider increasing to at least 50-100 for stable estimates.",
+            call. = FALSE)
+    }
+
+    # =========================================================================
+    # CALL BASE FUNCTION
+    # =========================================================================
+    result <- tryCatch({
+        .jackknife_isoform_switching(se = se, condition_col = condition_col, subject_col = subject_col,
+            gene_col = gene_col, isoform_col = isoform_col, q = q, norm = norm, log_base = log_base,
+            threshold = threshold, n_bootstrap = n_bootstrap, pseudocount = pseudocount,
+            verbose = verbose, lm_results = lm_results, lm_p_threshold = lm_p_threshold,
+            use_lm_fdr = use_lm_fdr)
+    }, error = function(e) {
+        stop("[jackknife_isoform_switching_s4] Jackknife analysis failed:\\n", conditionMessage(e),
+            call. = FALSE)
+    })
+
+    # =========================================================================
+    # STORE RESULTS IN ANALYSIS OBJECT (OPTIMIZED - vectorized q-value storage)
+    # =========================================================================
+    # Ensure q is a vector and validate
+    if (!is.numeric(q) && !(is.vector(q) && all(vapply(q, is.numeric, FUN.VALUE = logical(1))))) {
+        stop("[jackknife_isoform_switching_s4] 'q' must be numeric or numeric vector",
+            call. = FALSE)
+    }
+    q_vals <- if (is.numeric(q))
+        q else as.numeric(c(q))
+
+    # Check if result has multi-q class
+    if (inherits(result, "tsenat_isoform_switching_multiq")) {
+        # Multi-q result: store as-is (already has correct underscore-format
+        # keys from base function)
+        for (q_key in names(result)) {
+            analysis@jackknife_results[[q_key]] <- result[[q_key]]
+        }
+        # Also store the entire multi-q result object for plotting function
+        # access
+        analysis@jackknife_results[["multi_q"]] <- result
+        if (verbose) {
+            message(sprintf("[jackknife_isoform_switching_s4] Stored multi-q result with keys: %s",
+                paste(names(result), collapse = ", ")))
+        }
+    } else {
+        # Store results for each q-value (vectorized - no explicit loop) Use
+        # underscore format to match base function: paste0('q_', gsub('\\.',
+        # '_', sprintf('%.2f', q)))
+        q_keys <- paste0("q_", gsub("\\.", "_", sprintf("%.2f", q_vals)))
+
+        # Store each result
+        for (i in seq_along(q_keys)) {
+            q_key <- q_keys[i]
+
+            # Check if result is list with named q-values (should have
+            # underscore format now)
+            if (is.list(result) && q_key %in% names(result)) {
+                analysis@jackknife_results[[q_key]] <- result[[q_key]]
+            } else if (length(q_vals) == 1) {
+                # Single q-value: store result directly
+                analysis@jackknife_results[[q_key]] <- result
+            } else {
+                # Multiple q-values: log warning if not found
+                warning("[jackknife_isoform_switching_s4] Result for q=", q_vals[i],
+                  " (key: ", q_key, ") not found in base function result.", call. = FALSE)
+            }
+
+            if (verbose) {
+                message(sprintf("[jackknife_isoform_switching_s4] Stored results for %s",
+                  q_key))
+            }
+        }
+    }
+
+    # =========================================================================
+    # TRACK FUNCTION CALL IN METADATA (OPTIMIZED - single paste())
+    # =========================================================================
+    if (is.list(analysis@metadata)) {
+        # Pre-format all metadata in one call (more efficient)
+        call_str <- sprintf("jackknife_isoform_switching_s4[q=%s, condition_col=%s]",
+            paste(q_vals, collapse = ","), condition_col)
+
+        analysis@metadata$function_calls <- c(analysis@metadata$function_calls, call_str)
+        analysis@metadata$function_timestamps <- c(analysis@metadata$function_timestamps,
+            as.character(Sys.time()))
+    }
+
+    # =========================================================================
+    # SAVE RESULTS IF output_file PROVIDED
+    # =========================================================================
+    if (!is.null(output_file)) {
+        output_dir <- dirname(output_file)
+        if (output_dir != "." && !dir.exists(output_dir)) {
+            dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+        }
+
+        if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
+            # Write as text table (extract from jackknife results)
+            tryCatch({
+                output_ext <- sub("^.*\\.", ".", tolower(output_file))
+                output_base <- sub(paste0(output_ext, "$"), "", output_file)
+                transcript_file <- paste0(output_base, "_transcripts", output_ext)
+
+                # Extract gene-level and transcript-level tables using helper
+                gene_data <- extract_multiq_table(result, is_multiq = inherits(result,
+                  "tsenat_isoform_switching_multiq"), extract_fn = function(res,
+                  q_key) {
+                  if (!is.null(res$summary_table)) {
+                    return(res$summary_table)
+                  }
+                  return(NULL)
+                }, q_value_col = "q_value")
+
+                transcript_data <- extract_multiq_table(result, is_multiq = inherits(result,
+                  "tsenat_isoform_switching_multiq"), extract_fn = function(res,
+                  q_key) {
+                  if (!is.null(res$all_transcript_stats)) {
+                    return(res$all_transcript_stats)
+                  }
+                  return(NULL)
+                }, q_value_col = "q_value")
+
+                # Write gene-level to original file
+                if (!is.null(gene_data)) {
+                  write.table(gene_data, file = output_file, sep = "\t", quote = FALSE,
+                    row.names = FALSE)
+                }
+
+                # Write transcript-level to separate file
+                if (!is.null(transcript_data)) {
+                  write.table(transcript_data, file = transcript_file, sep = "\t",
+                    quote = FALSE, row.names = FALSE)
+                }
+            }, error = function(e) {
+                warning("[jackknife_isoform_switching_s4] Could not write jackknife results to file: ",
+                  conditionMessage(e), call. = FALSE)
+            })
+        } else {
+            # Default to RDS for S4 object
+            saveRDS(analysis, file = output_file)
+        }
+    }
+
+    # Return modified analysis object (visibly for method chaining as
+    # documented)
+    analysis
 }
 
 #' M-Estimation for Sample Quality (S4 Wrapper)
@@ -3838,21 +3580,21 @@ jackknife_isoform_switching_s4 <- function(
 #' @param condition_col \code{character}. Column name in sample metadata indicating
 #'   condition/sample grouping. Auto-detected from \code{@config$condition_col}
 #'   if available.
-#' @param loss_type \code{character}. Type of loss function: "huber" (default),
-#'   "tukey", or "lsq". Determines robustness vs efficiency trade-off.
+#' @param loss_type \code{character}. Type of loss function: 'huber' (default),
+#'   'tukey', or 'lsq'. Determines robustness vs efficiency trade-off.
 #' @param scale \code{numeric}. Manual scale parameter. If NULL, estimated from data.
 #' @param max_iter \code{integer}. Maximum iterations for M-estimation. Default: 50.
 #' @param tol \code{numeric}. Convergence tolerance. Default: 1e-6.
 #' @param paired \code{logical}. If TRUE, adjusts degrees of freedom for paired
 #'   designs. Auto-detected from \code{@config$paired} if available.
 #'   Default: FALSE.
-#' @param pcorr \code{character}. P-value correction method. Default: "BH" (Benjamini-Hochberg).
+#' @param pcorr \code{character}. P-value correction method. Default: 'BH' (Benjamini-Hochberg).
 #' @param q_combine_method \code{character}. How to collapse multi-q results:
-#'   "mean" (default) or "median".
+#'   'mean' (default) or 'median'.
 #' @param influence_threshold \code{numeric}. Threshold for classifying samples
 #'   as high-influence. Default: 0.75.
-#' @param scale_method \code{character}. Scale estimation method: "mad" (default),
-#'   "proposal2", or "s-estimator".
+#' @param scale_method \code{character}. Scale estimation method: 'mad' (default),
+#'   'proposal2', or 's-estimator'.
 #' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
 #'   Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).
 #' @param verbose \code{logical}. Print status messages. Default: TRUE.
@@ -3878,7 +3620,7 @@ jackknife_isoform_switching_s4 <- function(
 #'   \item \code{robustness_weight}: Down-weighting factor (lower = more outlying)
 #'   \item \code{entropy_mean}: Average entropy for the sample
 #'   \item \code{entropy_sd}: Entropy variability within the sample
-#'   \item \code{Status}: QC Classification ("OK" or "Flag for QC" based on influence_threshold)
+#'   \item \code{Status}: QC Classification ('OK' or 'Flag for QC' based on influence_threshold)
 #' }
 #'
 #' **Parameter resolution priority** (explicit > @config > error):
@@ -3898,20 +3640,20 @@ jackknife_isoform_switching_s4 <- function(
 #' # Create test analysis and compute M-estimation
 #' data(readcounts)
 #' readcounts <- as.matrix(salmon_dataset)
-#' mode(readcounts) <- "numeric"
+#' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
-#'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t"
+#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' analysis <- m_estimate_s4(
 #'   analysis,
-#'   condition_col = "condition",
-#'   loss_type = "huber",
+#'   condition_col = 'condition',
+#'   loss_type = 'huber',
 #'   verbose = FALSE
 #' )
 #'
@@ -3920,168 +3662,143 @@ jackknife_isoform_switching_s4 <- function(
 #'
 #' @export
 #' @importFrom utils write.table
-m_estimate_s4 <- function(
-    analysis,
-    condition_col = NULL,
-    loss_type = "huber",
-    scale = NULL,
-    max_iter = 50,
-    tol = 1e-6,
-    paired = NULL,
-    pcorr = "BH",
-    q_combine_method = "mean",
-    influence_threshold = 0.75,
-    scale_method = "mad",
-    output_file = NULL,
-    verbose = FALSE) {
+m_estimate_s4 <- function(analysis, condition_col = NULL, loss_type = "huber", scale = NULL,
+    max_iter = 50, tol = 1e-06, paired = NULL, pcorr = "BH", q_combine_method = "mean",
+    influence_threshold = 0.75, scale_method = "mad", output_file = NULL, verbose = FALSE) {
 
-  # Validate input
-  if (!is(analysis, "TSENATAnalysis")) {
-    stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
-  }
-
-  # Check for diversity results
-  if (is.null(analysis@diversity_results) || length(analysis@diversity_results) == 0) {
-    stop("Diversity results not found. Run calculate_diversity_s4() first.",
-         call. = FALSE)
-  }
-  
-  # Validate that diversity_results is a properly structured named list
-  if (!is.list(analysis@diversity_results) || is.null(names(analysis@diversity_results))) {
-    stop("Diversity results must be a named list of SummarizedExperiment objects",
-         call. = FALSE)
-  }
-
-  # Auto-detect condition_col if not provided
-  if (is.null(condition_col)) {
-    if ("condition_col" %in% names(analysis@config)) {
-      condition_col <- analysis@config$condition_col
-      if (is.null(condition_col) || !is.character(condition_col) || condition_col == "") {
-        stop("@config$condition_col must be a non-empty character value",
-             call. = FALSE)
-      }
-      if (verbose) {
-        message(sprintf("Auto-detected 'condition_col' from config: %s", condition_col))
-      }
-    } else {
-      cd_cols <- colnames(SummarizedExperiment::colData(analysis@diversity_results[[1]]))
-      stop(
-        "Sample grouping column not specified:\n",
-        "  Available colData columns: ", paste(cd_cols, collapse = ", "), "\n\n",
-        "SOLUTION: Set @config$condition_col or pass 'condition_col' parameter\n",
-        "  Example: analysis@config$condition_col <- 'sample_type'\n",
-        "  Or:      m_estimate_s4(analysis, condition_col = 'sample_type')\n",
-        call. = FALSE)
+    # Validate input
+    if (!is(analysis, "TSENATAnalysis")) {
+        stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }
-  } else if (!is.character(condition_col) || length(condition_col) != 1) {
-    stop("'condition_col' must be a single character value", call. = FALSE)
-  }
 
-  # Auto-detect paired parameter from @config if not explicitly provided
-  paired <- resolve_slot_param(paired, analysis@config, "paired", FALSE)
-  
-  if (!is.logical(paired) || length(paired) != 1) {
-    stop("'paired' must be a single logical value (TRUE or FALSE)", call. = FALSE)
-  }
-
-  # Extract diversity results - get first SE to access sample metadata
-  diversity_se <- analysis@diversity_results[[1]]
-
-  if (is.null(diversity_se) || nrow(diversity_se) == 0) {
-    stop("Diversity SummarizedExperiment is empty", call. = FALSE)
-  }
-
-  # Verify condition_col exists
-  sample_info <- SummarizedExperiment::colData(diversity_se)
-  if (!(condition_col %in% colnames(sample_info))) {
-    stop(
-      "Column '", condition_col, "' not found in sample metadata.\n",
-      "Available columns: ", paste(colnames(sample_info), collapse = ", "), "\n\n",
-      "SOLUTION: Use a valid column name\n",
-      "  Example: m_estimate_s4(analysis, condition_col = 'sample_type')\n",
-      call. = FALSE)
-  }
-
-  # Combine all q-value diversity results into a single matrix
-  # (m_estimate needs all diversity data in one SE)
-  if (verbose) {
-    message(sprintf("Combining %d q-value diversity results...", length(analysis@diversity_results)))
-  }
-
-  first_se <- analysis@diversity_results[[1]]
-  combined_assay <- SummarizedExperiment::assay(first_se)
-  combined_colnames <- colnames(first_se)
-
-  # Add other q-values
-  for (q_name in names(analysis@diversity_results)[-1]) {
-    se_q <- analysis@diversity_results[[q_name]]
-    combined_assay <- cbind(combined_assay, SummarizedExperiment::assay(se_q))
-    combined_colnames <- c(combined_colnames, colnames(se_q))
-  }
-
-  # Update column names to reflect combined data
-  colnames(combined_assay) <- combined_colnames
-  single_colData <- SummarizedExperiment::colData(first_se)
-
-  # Replicate colData for each q-value
-  n_q_values <- length(analysis@diversity_results)
-  combined_colData <- do.call(rbind, replicate(n_q_values, single_colData, simplify = FALSE))
-  rownames(combined_colData) <- combined_colnames
-
-  # Create combined SummarizedExperiment
-  combined_se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = combined_assay),
-    colData = combined_colData
-  )
-
-  # Run m_estimate
-  if (verbose) {
-    message("Running M-estimation on combined diversity...")
-  }
-
-  m_est_results <- tryCatch({
-    result <- .m_estimate(
-      x = combined_se,
-      samples = condition_col,
-      loss_type = loss_type,
-      scale = scale,
-      max_iter = max_iter,
-      tol = tol,
-      paired = paired,
-      pcorr = pcorr,
-      q_combine_method = q_combine_method,
-      influence_threshold = influence_threshold,
-      scale_method = scale_method
-    )
-    result
-  }, error = function(e) {
-    stop("M-estimation failed:\n", e$message, call. = FALSE)
-  })
-
-  # Store results in metadata
-  analysis@metadata$m_estimate_results <- m_est_results
-
-  # Save to output file if provided
-  if (!is.null(output_file)) {
-    if (!is.character(output_file) || length(output_file) != 1) {
-      stop("'output_file' must be a character string (file path)", call. = FALSE)
+    # Check for diversity results
+    if (is.null(analysis@diversity_results) || length(analysis@diversity_results) ==
+        0) {
+        stop("Diversity results not found. Run calculate_diversity_s4() first.",
+            call. = FALSE)
     }
-    # Use save_analysis_output for consistent handling (data frame for TSV, RDS for S4)
-    save_analysis_output(m_est_results, output_file, object = analysis, verbose = verbose,
-                         func_name = "m_estimate_s4")
-  }
 
-  # Track function call
-  analysis@metadata$function_calls <- c(
-    analysis@metadata$function_calls,
-    paste0("m_estimate_s4[condition_col=", condition_col, ",loss_type=", loss_type, "]")
-  )
+    # Validate that diversity_results is a properly structured named list
+    if (!is.list(analysis@diversity_results) || is.null(names(analysis@diversity_results))) {
+        stop("Diversity results must be a named list of SummarizedExperiment objects",
+            call. = FALSE)
+    }
 
-  if (verbose) {
-    message("M-estimation complete. Results stored in @metadata$m_estimate_results")
-  }
+    # Auto-detect condition_col if not provided
+    if (is.null(condition_col)) {
+        if ("condition_col" %in% names(analysis@config)) {
+            condition_col <- analysis@config$condition_col
+            if (is.null(condition_col) || !is.character(condition_col) || condition_col ==
+                "") {
+                stop("@config$condition_col must be a non-empty character value",
+                  call. = FALSE)
+            }
+            if (verbose) {
+                message(sprintf("Auto-detected 'condition_col' from config: %s",
+                  condition_col))
+            }
+        } else {
+            cd_cols <- colnames(SummarizedExperiment::colData(analysis@diversity_results[[1]]))
+            stop("Sample grouping column not specified:\n", "  Available colData columns: ",
+                paste(cd_cols, collapse = ", "), "\n\n", "SOLUTION: Set @config$condition_col or pass 'condition_col' parameter\n",
+                "  Example: analysis@config$condition_col <- 'sample_type'\n", "  Or:      m_estimate_s4(analysis, condition_col = 'sample_type')\n",
+                call. = FALSE)
+        }
+    } else if (!is.character(condition_col) || length(condition_col) != 1) {
+        stop("'condition_col' must be a single character value", call. = FALSE)
+    }
 
-  invisible(analysis)
+    # Auto-detect paired parameter from @config if not explicitly provided
+    paired <- resolve_slot_param(paired, analysis@config, "paired", FALSE)
+
+    if (!is.logical(paired) || length(paired) != 1) {
+        stop("'paired' must be a single logical value (TRUE or FALSE)", call. = FALSE)
+    }
+
+    # Extract diversity results - get first SE to access sample metadata
+    diversity_se <- analysis@diversity_results[[1]]
+
+    if (is.null(diversity_se) || nrow(diversity_se) == 0) {
+        stop("Diversity SummarizedExperiment is empty", call. = FALSE)
+    }
+
+    # Verify condition_col exists
+    sample_info <- SummarizedExperiment::colData(diversity_se)
+    if (!(condition_col %in% colnames(sample_info))) {
+        stop("Column '", condition_col, "' not found in sample metadata.\n", "Available columns: ",
+            paste(colnames(sample_info), collapse = ", "), "\n\n", "SOLUTION: Use a valid column name\n",
+            "  Example: m_estimate_s4(analysis, condition_col = 'sample_type')\n",
+            call. = FALSE)
+    }
+
+    # Combine all q-value diversity results into a single matrix (m_estimate
+    # needs all diversity data in one SE)
+    if (verbose) {
+        message(sprintf("Combining %d q-value diversity results...", length(analysis@diversity_results)))
+    }
+
+    first_se <- analysis@diversity_results[[1]]
+    combined_assay <- SummarizedExperiment::assay(first_se)
+    combined_colnames <- colnames(first_se)
+
+    # Add other q-values
+    for (q_name in names(analysis@diversity_results)[-1]) {
+        se_q <- analysis@diversity_results[[q_name]]
+        combined_assay <- cbind(combined_assay, SummarizedExperiment::assay(se_q))
+        combined_colnames <- c(combined_colnames, colnames(se_q))
+    }
+
+    # Update column names to reflect combined data
+    colnames(combined_assay) <- combined_colnames
+    single_colData <- SummarizedExperiment::colData(first_se)
+
+    # Replicate colData for each q-value
+    n_q_values <- length(analysis@diversity_results)
+    combined_colData <- do.call(rbind, replicate(n_q_values, single_colData, simplify = FALSE))
+    rownames(combined_colData) <- combined_colnames
+
+    # Create combined SummarizedExperiment
+    combined_se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = combined_assay),
+        colData = combined_colData)
+
+    # Run m_estimate
+    if (verbose) {
+        message("Running M-estimation on combined diversity...")
+    }
+
+    m_est_results <- tryCatch({
+        result <- .m_estimate(x = combined_se, samples = condition_col, loss_type = loss_type,
+            scale = scale, max_iter = max_iter, tol = tol, paired = paired, pcorr = pcorr,
+            q_combine_method = q_combine_method, influence_threshold = influence_threshold,
+            scale_method = scale_method)
+        result
+    }, error = function(e) {
+        stop("M-estimation failed:\n", e$message, call. = FALSE)
+    })
+
+    # Store results in metadata
+    analysis@metadata$m_estimate_results <- m_est_results
+
+    # Save to output file if provided
+    if (!is.null(output_file)) {
+        if (!is.character(output_file) || length(output_file) != 1) {
+            stop("'output_file' must be a character string (file path)", call. = FALSE)
+        }
+        # Use save_analysis_output for consistent handling (data frame for TSV,
+        # RDS for S4)
+        save_analysis_output(m_est_results, output_file, object = analysis, verbose = verbose,
+            func_name = "m_estimate_s4")
+    }
+
+    # Track function call
+    analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("m_estimate_s4[condition_col=",
+        condition_col, ",loss_type=", loss_type, "]"))
+
+    if (verbose) {
+        message("M-estimation complete. Results stored in @metadata$m_estimate_results")
+    }
+
+    invisible(analysis)
 }
 
 #' Filter Low-Abundance Transcripts in a TSENATAnalysis Object
@@ -4103,8 +3820,8 @@ m_estimate_s4 <- function(
 #' @param min_samples Numeric. Minimum number of samples in which a transcript
 #'   must be present (default: 5). Ignored if \code{stringency} is specified.
 #'
-#' @param stringency Character. Filtering stringency level: "soft" (permissive),
-#'   "medium" (balanced), or "severe" (stringent). When specified, auto-estimates:
+#' @param stringency Character. Filtering stringency level: 'soft' (permissive),
+#'   'medium' (balanced), or 'severe' (stringent). When specified, auto-estimates:
 #'   \code{min_samples}, \code{min_tpm}, \code{min_tx_per_gene}, and \code{min_isoform_abundance}
 #'   from data. Requires \code{pair_col} in colData for paired designs.
 #'   User-provided values for any parameter override stringency defaults.
@@ -4142,10 +3859,10 @@ m_estimate_s4 <- function(
 #'   Default: NULL.
 #'
 #' @param subset_select_by Character; gene selection method for \code{subset_n_genes}:
-#'   "variance" (highest variance), "mean" (highest mean expression), or "random".
-#'   Default: "variance".
+#'   'variance' (highest variance), 'mean' (highest mean expression), or 'random'.
+#'   Default: 'variance'.
 #'
-#' @param subset_seed Integer; random seed for reproducibility when \code{subset_select_by = "random"}.
+#' @param subset_seed Integer; random seed for reproducibility when \code{subset_select_by = 'random'}.
 #'   Default: 42.
 #'
 #' @param subset_min_count Numeric; optional minimum count threshold applied during subsetting.
@@ -4183,84 +3900,60 @@ m_estimate_s4 <- function(
 #' # Create test analysis and filter
 #' data(readcounts)
 #' readcounts <- as.matrix(salmon_dataset)
-#' mode(readcounts) <- "numeric"
+#' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
-#'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t"
+#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- filter_analysis_s4(analysis, stringency = "medium")
+#' analysis <- filter_analysis_s4(analysis, stringency = 'medium')
 #'
 #' @export
-filter_analysis_s4 <- function(analysis, min_tpm = 1.0, tpm_assay_name = NULL,
-    min_samples = 5L, stringency = NULL, pair_col = NULL,
-    min_tx_per_gene = 2L, min_isoform_abundance = NULL,
-    assay_name = "counts",
-    # Subsetting parameters (optional, applied after filtering)
-    subset_n_genes = NULL,
-    subset_genes = NULL,
-    subset_n_samples = NULL,
-    subset_samples = NULL,
-    subset_select_by = c("variance", "mean", "random"),
-    subset_seed = 42,
-    subset_min_count = NULL,
-    verbose = FALSE) {
-  # Validate input
-  if (!inherits(analysis, "TSENATAnalysis")) {
-    stop("analysis must be a TSENATAnalysis object", call. = FALSE)
-  }
-
-  # Extract SE from analysis
-  se <- analysis@se
-
-  # Apply filtering via .filter_se() with all parameters
-  se_filtered <- .filter_se(
-    se = se,
-    min_tpm = min_tpm,
-    tpm_assay_name = tpm_assay_name,
-    min_samples = min_samples,
-    stringency = stringency,
-    pair_col = pair_col,
-    min_tx_per_gene = min_tx_per_gene,
-    min_isoform_abundance = min_isoform_abundance,
-    assay_name = assay_name,
-    verbose = verbose
-  )
-
-  # Store filtered SE back in analysis object
-  analysis@se <- se_filtered
-
-  # Apply optional subsetting after filtering
-  has_subset_params <- !is.null(subset_n_genes) || !is.null(subset_genes) ||
-                       !is.null(subset_n_samples) || !is.null(subset_samples) ||
-                       !is.null(subset_min_count)
-  
-  if (has_subset_params) {
-    if (verbose) {
-      message("Applying subset_analysis to filtered data...")
+filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min_samples = 5L,
+    stringency = NULL, pair_col = NULL, min_tx_per_gene = 2L, min_isoform_abundance = NULL,
+    assay_name = "counts", subset_n_genes = NULL, subset_genes = NULL, subset_n_samples = NULL,
+    subset_samples = NULL, subset_select_by = c("variance", "mean", "random"), subset_seed = 42,
+    subset_min_count = NULL, verbose = FALSE) {
+    # Validate input
+    if (!inherits(analysis, "TSENATAnalysis")) {
+        stop("analysis must be a TSENATAnalysis object", call. = FALSE)
     }
-    
-    # Use match.arg to validate subset_select_by
-    subset_select_by <- match.arg(subset_select_by)
-    
-    # Apply subsetting via .subset_analysis
-    analysis <- .subset_analysis(
-      analysis = analysis,
-      n_genes = subset_n_genes,
-      n_samples = subset_n_samples,
-      genes = subset_genes,
-      samples = subset_samples,
-      select_by = subset_select_by,
-      seed = subset_seed,
-      min_count = subset_min_count,
-      verbose = verbose
-    )
-  }
 
-  # Return modified analysis object
-  analysis
+    # Extract SE from analysis
+    se <- analysis@se
+
+    # Apply filtering via .filter_se() with all parameters
+    se_filtered <- .filter_se(se = se, min_tpm = min_tpm, tpm_assay_name = tpm_assay_name,
+        min_samples = min_samples, stringency = stringency, pair_col = pair_col,
+        min_tx_per_gene = min_tx_per_gene, min_isoform_abundance = min_isoform_abundance,
+        assay_name = assay_name, verbose = verbose)
+
+    # Store filtered SE back in analysis object
+    analysis@se <- se_filtered
+
+    # Apply optional subsetting after filtering
+    has_subset_params <- !is.null(subset_n_genes) || !is.null(subset_genes) || !is.null(subset_n_samples) ||
+        !is.null(subset_samples) || !is.null(subset_min_count)
+
+    if (has_subset_params) {
+        if (verbose) {
+            message("Applying subset_analysis to filtered data...")
+        }
+
+        # Use match.arg to validate subset_select_by
+        subset_select_by <- match.arg(subset_select_by)
+
+        # Apply subsetting via .subset_analysis
+        analysis <- .subset_analysis(analysis = analysis, n_genes = subset_n_genes,
+            n_samples = subset_n_samples, genes = subset_genes, samples = subset_samples,
+            select_by = subset_select_by, seed = subset_seed, min_count = subset_min_count,
+            verbose = verbose)
+    }
+
+    # Return modified analysis object
+    analysis
 }
 
 #' Build a Complete TSENATAnalysis Object
@@ -4281,10 +3974,10 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1.0, tpm_assay_name = NULL,
 #'
 #' @param tx2gene Either:
 #'   - A path to a GFF3 or GFF3.gz file containing transcript-to-gene mapping
-#'   - A path to a TSV file with columns "Transcript" and "Gene"
+#'   - A path to a TSV file with columns 'Transcript' and 'Gene'
 #'   - A data.frame with transcript-to-gene mapping
 #'
-#' @param assay_name Character. Name for the assay (default: "counts").
+#' @param assay_name Character. Name for the assay (default: 'counts').
 #'
 #' @param metadata Optional data.frame with sample metadata. Should have sample
 #'   names as row names and metadata columns (e.g., sample_type, condition, etc.).
@@ -4355,17 +4048,17 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1.0, tpm_assay_name = NULL,
 #' # Generate count matrix
 #' counts <- matrix(rpois(n_isoforms * n_samples, lambda = 20),
 #'                  nrow = n_isoforms, ncol = n_samples)
-#' rownames(counts) <- paste0("TX_", 1:n_isoforms)
-#' colnames(counts) <- paste0("Sample_", 1:n_samples)
+#' rownames(counts) <- paste0('TX_', 1:n_isoforms)
+#' colnames(counts) <- paste0('Sample_', 1:n_samples)
 #'
 #' # Create tx2gene mapping
 #' tx2gene <- data.frame(
 #'   Transcript = rownames(counts),
-#'   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
+#'   Gene = rep(paste0('GENE_', 1:n_genes), each = n_isoforms_per_gene))
 #'
 #' # Create sample metadata
 #' metadata <- data.frame(
-#'   condition = rep(c("control", "treatment"), each = 5),
+#'   condition = rep(c('control', 'treatment'), each = 5),
 #'   row.names = colnames(counts))
 #'
 #' # Build analysis object - use NAMED parameters to avoid confusion
@@ -4387,17 +4080,17 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1.0, tpm_assay_name = NULL,
 #' #     sample2/quant.sf
 #' #     ...
 #' # 
-#' # salmon_dir <- "/path/to/salmon/directory"
+#' # salmon_dir <- '/path/to/salmon/directory'
 #' # 
 #' # First create sample metadata matching Salmon sample names
 #' # salmon_metadata <- data.frame(
-#' #   condition = c("control", "control", "treatment", "treatment"),
-#' #   row.names = c("sample1", "sample2", "sample3", "sample4")
+#' #   condition = c('control', 'control', 'treatment', 'treatment'),
+#' #   row.names = c('sample1', 'sample2', 'sample3', 'sample4')
 #' # )
 #' # 
 #' # analysis_salmon <- build_analysis_s4(
 #' #   salmon_dir = salmon_dir,
-#' #   tx2gene = "annotation.gff3.gz",  # Auto-parsed from GFF3
+#' #   tx2gene = 'annotation.gff3.gz',  # Auto-parsed from GFF3
 #' #   metadata = salmon_metadata
 #' # )
 #' #
@@ -4410,105 +4103,88 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1.0, tpm_assay_name = NULL,
 #' }
 #'
 #' @export
-build_analysis_s4 <- function(readcounts = NULL, salmon_dir = NULL, tx2gene, 
-                             assay_name = "counts",
-                             metadata = NULL, tpm = NULL, effective_length = NULL,
-                             config = list(), skip = FALSE, verbose = TRUE) {
-  # Handle salmon_dir parameter - auto-load Salmon quantification data
-  if (!is.null(salmon_dir)) {
-    # Detect Salmon samples
-    salmon_info <- .detect_salmon_samples(salmon_dir)
-    
-    if (verbose) message("[build_analysis_s4] Found ", salmon_info$count, " Salmon samples")
-    
-    # Validate Salmon sample names match metadata (if metadata provided)
-    if (!is.null(metadata)) {
-      metadata_samples <- rownames(metadata)
-      salmon_samples <- salmon_info$sample_names
-      
-      # Check if all Salmon samples have corresponding metadata
-      missing_in_metadata <- setdiff(salmon_samples, metadata_samples)
-      missing_in_salmon <- setdiff(metadata_samples, salmon_samples)
-      
-      if (length(missing_in_metadata) > 0 || length(missing_in_salmon) > 0) {
-        error_msg <- "[build_analysis_s4] Sample name mismatch between Salmon folder and metadata:\n"
-        
-        if (length(missing_in_metadata) > 0) {
-          error_msg <- paste0(
-            error_msg,
-            "  Salmon samples NOT in metadata (", length(missing_in_metadata), "): ",
-            paste(missing_in_metadata, collapse = ", "), "\n"
-          )
+build_analysis_s4 <- function(readcounts = NULL, salmon_dir = NULL, tx2gene, assay_name = "counts",
+    metadata = NULL, tpm = NULL, effective_length = NULL, config = list(), skip = FALSE,
+    verbose = TRUE) {
+    # Handle salmon_dir parameter - auto-load Salmon quantification data
+    if (!is.null(salmon_dir)) {
+        # Detect Salmon samples
+        salmon_info <- .detect_salmon_samples(salmon_dir)
+
+        if (verbose)
+            message("[build_analysis_s4] Found ", salmon_info$count, " Salmon samples")
+
+        # Validate Salmon sample names match metadata (if metadata provided)
+        if (!is.null(metadata)) {
+            metadata_samples <- rownames(metadata)
+            salmon_samples <- salmon_info$sample_names
+
+            # Check if all Salmon samples have corresponding metadata
+            missing_in_metadata <- setdiff(salmon_samples, metadata_samples)
+            missing_in_salmon <- setdiff(metadata_samples, salmon_samples)
+
+            if (length(missing_in_metadata) > 0 || length(missing_in_salmon) > 0) {
+                error_msg <- "[build_analysis_s4] Sample name mismatch between Salmon folder and metadata:\n"
+
+                if (length(missing_in_metadata) > 0) {
+                  error_msg <- paste0(error_msg, "  Salmon samples NOT in metadata (",
+                    length(missing_in_metadata), "): ", paste(missing_in_metadata,
+                      collapse = ", "), "\n")
+                }
+
+                if (length(missing_in_salmon) > 0) {
+                  error_msg <- paste0(error_msg, "  Metadata samples NOT in Salmon folder (",
+                    length(missing_in_salmon), "): ", paste(missing_in_salmon, collapse = ", "),
+                    "\n")
+                }
+
+                error_msg <- paste0(error_msg, "\n  Suggestion: Ensure sample folder names in Salmon directory exactly match",
+                  "\n  the row names of the metadata data.frame (case-sensitive)")
+
+                stop(error_msg)
+            }
+
+            if (verbose)
+                message("[build_analysis_s4] ✓ Sample names match metadata")
         }
-        
-        if (length(missing_in_salmon) > 0) {
-          error_msg <- paste0(
-            error_msg,
-            "  Metadata samples NOT in Salmon folder (", length(missing_in_salmon), "): ",
-            paste(missing_in_salmon, collapse = ", "), "\n"
-          )
-        }
-        
-        error_msg <- paste0(
-          error_msg,
-          "\n  Suggestion: Ensure sample folder names in Salmon directory exactly match",
-          "\n  the row names of the metadata data.frame (case-sensitive)"
-        )
-        
-        stop(error_msg)
-      }
-      
-      if (verbose) message("[build_analysis_s4] \u2713 Sample names match metadata")
+
+        # Read Salmon quantification files
+        salmon_data <- .read_salmon_samples(file_paths = salmon_info$file_paths,
+            sample_names = salmon_info$sample_names, include_tpm = is.null(tpm),
+            include_eff_length = is.null(effective_length), verbose = verbose)
+
+        # Assign extracted data to parameters
+        readcounts <- salmon_data$counts
+        if (is.null(tpm))
+            tpm <- salmon_data$tpm
+        if (is.null(effective_length))
+            effective_length <- salmon_data$effective_length
     }
-    
-    # Read Salmon quantification files
-    salmon_data <- .read_salmon_samples(
-      file_paths = salmon_info$file_paths,
-      sample_names = salmon_info$sample_names,
-      include_tpm = is.null(tpm),
-      include_eff_length = is.null(effective_length),
-      verbose = verbose
-    )
-    
-    # Assign extracted data to parameters
-    readcounts <- salmon_data$counts
-    if (is.null(tpm)) tpm <- salmon_data$tpm
-    if (is.null(effective_length)) effective_length <- salmon_data$effective_length
-  }
-  
-  # Validate readcounts is now available
-  if (is.null(readcounts)) {
-    stop(
-      "[build_analysis_s4] Either 'readcounts' or 'salmon_dir' must be provided\n",
-      "  readcounts: matrix/data.frame of transcript counts\n",
-      "  salmon_dir: path to Salmon quantification output directory"
-    )
-  }
-  # Build SummarizedExperiment
-  se <- .build_se(
-    readcounts = readcounts,
-    tx2gene = tx2gene,
-    assay_name = assay_name,
-    metadata = metadata,
-    tpm = tpm,
-    effective_length = effective_length,
-    skip = skip,
-    verbose = verbose
-  )
 
-  # Ensure sample_id column exists in colData (required by TSENATAnalysis)
-  # OPTIMIZATION: Only add if not already present
-  if (!"sample_id" %in% colnames(SummarizedExperiment::colData(se))) {
-    SummarizedExperiment::colData(se)$sample_id <- colnames(se)
-  }
+    # Validate readcounts is now available
+    if (is.null(readcounts)) {
+        stop("[build_analysis_s4] Either 'readcounts' or 'salmon_dir' must be provided\n",
+            "  readcounts: matrix/data.frame of transcript counts\n", "  salmon_dir: path to Salmon quantification output directory")
+    }
+    # Build SummarizedExperiment
+    se <- .build_se(readcounts = readcounts, tx2gene = tx2gene, assay_name = assay_name,
+        metadata = metadata, tpm = tpm, effective_length = effective_length, skip = skip,
+        verbose = verbose)
 
-  # Store metadata in config for later use (e.g., in calculate_lm_interaction_s4)
-  if (!is.null(metadata)) {
-    config$metadata <- metadata
-  }
+    # Ensure sample_id column exists in colData (required by TSENATAnalysis)
+    # OPTIMIZATION: Only add if not already present
+    if (!"sample_id" %in% colnames(SummarizedExperiment::colData(se))) {
+        SummarizedExperiment::colData(se)$sample_id <- colnames(se)
+    }
 
-  # Wrap in TSENATAnalysis
-  analysis <- TSENATAnalysis(se = se, config = config)
+    # Store metadata in config for later use (e.g., in
+    # calculate_lm_interaction_s4)
+    if (!is.null(metadata)) {
+        config$metadata <- metadata
+    }
 
-  return(analysis)
+    # Wrap in TSENATAnalysis
+    analysis <- TSENATAnalysis(se = se, config = config)
+
+    return(analysis)
 }

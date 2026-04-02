@@ -11,28 +11,28 @@
 #'
 #' @details
 #' Searches rowData in this priority order:
-#' 1. "gene_id" (standard column from build_se)
-#' 2. "gene_name" (fallback for GFF3-derived names)
+#' 1. 'gene_id' (standard column from build_se)
+#' 2. 'gene_name' (fallback for GFF3-derived names)
 #'
 
 #' @noRd
 .get_gene_ids <- function(se) {
-  rd <- SummarizedExperiment::rowData(se)
-  if (is.null(rd)) {
+    rd <- SummarizedExperiment::rowData(se)
+    if (is.null(rd)) {
+        return(NULL)
+    }
+
+    # Try gene_id column first
+    if ("gene_id" %in% colnames(rd)) {
+        return(as.character(rd$gene_id))
+    }
+
+    # Fall back to gene_name if available
+    if ("gene_name" %in% colnames(rd)) {
+        return(as.character(rd$gene_name))
+    }
+
     return(NULL)
-  }
-  
-  # Try gene_id column first
-  if ("gene_id" %in% colnames(rd)) {
-    return(as.character(rd$gene_id))
-  }
-  
-  # Fall back to gene_name if available
-  if ("gene_name" %in% colnames(rd)) {
-    return(as.character(rd$gene_name))
-  }
-  
-  return(NULL)
 }
 
 ## Helper: Extract BOTH tx2gene mapping AND gene names in single GFF3 file pass
@@ -52,7 +52,7 @@
 .extract_gff3_data <- function(gff3_file, verbose = FALSE) {
     # STREAMING + OPTIMIZED: Pre-filter + vectorized extraction per chunk
     start_time <- Sys.time()
-    
+
     # Handle both .gff3 and .gff3.gz files
     if (grepl("\\.gff3\\.gz$", gff3_file, ignore.case = TRUE)) {
         con <- gzfile(gff3_file, "rt")
@@ -61,8 +61,9 @@
     }
     on.exit(close(con))
 
-    if (verbose) message("[.extract_gff3_data] Parsing GFF3 file (optimized stream)...")
-    
+    if (verbose)
+        message("[.extract_gff3_data] Parsing GFF3 file (optimized stream)...")
+
     tx_list <- list()
     gene_list <- list()
     chunk_size <- 5000
@@ -72,94 +73,92 @@
     while (TRUE) {
         # Stream chunk
         chunk_lines <- readLines(con, n = chunk_size)
-        if (length(chunk_lines) == 0) break
-        
+        if (length(chunk_lines) == 0)
+            break
+
         total_lines_read <- total_lines_read + length(chunk_lines)
-        
+
         # Progress every 100k lines (only if verbose)
-        if (verbose && total_lines_read - last_progress > 100000) {
+        if (verbose && total_lines_read - last_progress > 1e+05) {
             elapsed <- as.numeric(Sys.time() - start_time, units = "secs")
-            message(sprintf("[.extract_gff3_data] Processed %d lines (%.1f sec)...", 
-                           total_lines_read, elapsed))
+            message(sprintf("[.extract_gff3_data] Processed %d lines (%.1f sec)...",
+                total_lines_read, elapsed))
             last_progress <- total_lines_read
         }
-        
+
         # Pre-filter: Skip headers/empty and invalid lines in batch
         valid_mask <- !(startsWith(chunk_lines, "#") | chunk_lines == "")
         valid_lines <- chunk_lines[valid_mask]
-        if (length(valid_lines) == 0) next
-        
+        if (length(valid_lines) == 0)
+            next
+
         # Split all valid lines at once (vectorized)
         fields_list <- strsplit(valid_lines, "\t", fixed = TRUE)
-        
+
         # Vectorized extraction - check length first
         has_9_cols <- sapply(fields_list, length) >= 9
         valid_lines <- valid_lines[has_9_cols]
         fields_list <- fields_list[has_9_cols]
-        if (length(fields_list) == 0) next
-        
+        if (length(fields_list) == 0)
+            next
+
         # Extract feature types and attributes
         feature_types <- sapply(fields_list, "[", 3)
         attributes <- sapply(fields_list, "[", 9)
-        
-        # ===== TRANSCRIPTS =====
-        # Pre-filter to transcript lines
+
+        # ===== TRANSCRIPTS ===== Pre-filter to transcript lines
         tx_mask <- feature_types %in% c("transcript", "mRNA")
         if (any(tx_mask)) {
             tx_attrs <- attributes[tx_mask]
-            
+
             # Check both ID= and Parent= exist in batch
-            has_both <- grepl("ID=", tx_attrs, fixed = TRUE) & grepl("Parent=", tx_attrs, fixed = TRUE)
+            has_both <- grepl("ID=", tx_attrs, fixed = TRUE) & grepl("Parent=", tx_attrs,
+                fixed = TRUE)
             tx_attrs <- tx_attrs[has_both]
-            
+
             if (length(tx_attrs) > 0) {
                 # Vectorized extraction using sub()
                 tx_ids <- sub(".*ID=([^;]+);.*", "\\1", tx_attrs)
                 gene_ids <- sub(".*Parent=([^;]+);.*", "\\1", tx_attrs)
-                
+
                 # Filter out failed extractions
                 valid_tx <- !(tx_ids == tx_attrs | gene_ids == tx_attrs)
-                
+
                 if (any(valid_tx)) {
-                    tx_list[[length(tx_list) + 1]] <- data.frame(
-                        Transcript = sub("^transcript:", "", tx_ids[valid_tx], fixed = TRUE),
-                        Gene = sub("^gene:", "", gene_ids[valid_tx], fixed = TRUE),
-                        stringsAsFactors = FALSE
-                    )
+                  tx_list[[length(tx_list) + 1]] <- data.frame(Transcript = sub("^transcript:",
+                    "", tx_ids[valid_tx], fixed = TRUE), Gene = sub("^gene:", "",
+                    gene_ids[valid_tx], fixed = TRUE), stringsAsFactors = FALSE)
                 }
             }
         }
-        
-        # ===== GENES =====
-        # Pre-filter to gene lines
+
+        # ===== GENES ===== Pre-filter to gene lines
         gene_mask <- feature_types == "gene"
         if (any(gene_mask)) {
             gene_attrs <- attributes[gene_mask]
-            
+
             # Check ID= exists
             has_id <- grepl("ID=", gene_attrs, fixed = TRUE)
             gene_attrs <- gene_attrs[has_id]
-            
+
             if (length(gene_attrs) > 0) {
                 # Vectorized extraction
                 gene_ids_gene <- sub(".*ID=([^;]+);.*", "\\1", gene_attrs)
                 gene_names <- sub(".*gene_name=([^;]+);.*", "\\1", gene_attrs)
-                
+
                 # Filter out failed ID extractions
                 valid_genes <- !(gene_ids_gene == gene_attrs)
-                
+
                 if (any(valid_genes)) {
-                    gene_list[[length(gene_list) + 1]] <- data.frame(
-                        GeneID = sub("^gene:", "", gene_ids_gene[valid_genes], fixed = TRUE),
-                        GeneName = ifelse(gene_names[valid_genes] == gene_attrs[valid_genes], 
-                                         NA_character_, gene_names[valid_genes]),
-                        stringsAsFactors = FALSE
-                    )
+                  gene_list[[length(gene_list) + 1]] <- data.frame(GeneID = sub("^gene:",
+                    "", gene_ids_gene[valid_genes], fixed = TRUE), GeneName = ifelse(gene_names[valid_genes] ==
+                    gene_attrs[valid_genes], NA_character_, gene_names[valid_genes]),
+                    stringsAsFactors = FALSE)
                 }
             }
         }
     }
-    
+
     # Combine all batches
     if (length(tx_list) > 0) {
         tx2gene_df <- do.call(rbind, tx_list)
@@ -167,7 +166,7 @@
     } else {
         tx2gene_df <- data.frame(Transcript = character(), Gene = character())
     }
-    
+
     if (length(gene_list) > 0) {
         gene_names_df <- do.call(rbind, gene_list)
         rownames(gene_names_df) <- NULL
@@ -175,19 +174,21 @@
     } else {
         gene_names_df <- NULL
     }
-    
+
     elapsed <- as.numeric(Sys.time() - start_time, units = "secs")
-    gene_count <- if (!is.null(gene_names_df)) nrow(gene_names_df) else 0
-    if (verbose) message(sprintf("[.extract_gff3_data] \u2713 Complete: %d transcripts, %d genes extracted (%.1f sec)",
-                   nrow(tx2gene_df), gene_count, elapsed))
-    
+    gene_count <- if (!is.null(gene_names_df))
+        nrow(gene_names_df) else 0
+    if (verbose)
+        message(sprintf("[.extract_gff3_data] ✓ Complete: %d transcripts, %d genes extracted (%.1f sec)",
+            nrow(tx2gene_df), gene_count, elapsed))
+
     return(list(tx2gene = tx2gene_df, gene_names = gene_names_df))
 }
 
 #' Helper: Fast attribute extraction from GFF3 attributes string
 #'
-#' @param attributes Character string of GFF3 attributes (e.g., "ID=ENST000001;Parent=ENSG000001")
-#' @param field_pattern Character pattern to search for (e.g., "ID=", "Parent=")
+#' @param attributes Character string of GFF3 attributes (e.g., 'ID=ENST000001;Parent=ENSG000001')
+#' @param field_pattern Character pattern to search for (e.g., 'ID=', 'Parent=')
 #'
 #' @return Character value of extracted attribute or NA
 #'
@@ -195,15 +196,16 @@
 .extract_attribute_fast <- function(attributes, field_pattern) {
     # Find the start position of the field
     start_pos <- gregexpr(field_pattern, attributes, fixed = TRUE)[[1]][1]
-    
-    if (start_pos < 0) return(NA_character_)
-    
+
+    if (start_pos < 0)
+        return(NA_character_)
+
     # Skip past the pattern itself
     start_pos <- start_pos + nchar(field_pattern)
-    
+
     # Find the end (semicolon or end of string)
     end_pos <- gregexpr(";", substr(attributes, start_pos, nchar(attributes)), fixed = TRUE)[[1]][1]
-    
+
     if (end_pos < 0) {
         # No semicolon found, take rest of string
         value <- substr(attributes, start_pos, nchar(attributes))
@@ -211,7 +213,7 @@
         # Semicolon found
         value <- substr(attributes, start_pos, start_pos + end_pos - 2)
     }
-    
+
     return(if (value == "") NA_character_ else value)
 }
 
@@ -360,60 +362,65 @@
 #' # Assuming you have a file 'annotation.gff3.gz' with transcript features
 #' # se <- .build_se(readcounts, 'path/to/annotation.gff3.gz')
 
-.build_se <- function(readcounts, tx2gene, assay_name = "counts", skip = FALSE, 
-                     tpm = NULL, effective_length = NULL, metadata = NULL, verbose = TRUE) {
-    # Auto-detect TPM and effective_length from readcounts.RData Global Environment
-    # OPTIMIZATION: Create rc_matrix once and reuse for both TPM and effective_length checks
+.build_se <- function(readcounts, tx2gene, assay_name = "counts", skip = FALSE, tpm = NULL,
+    effective_length = NULL, metadata = NULL, verbose = TRUE) {
+    # Auto-detect TPM and effective_length from readcounts.RData Global
+    # Environment OPTIMIZATION: Create rc_matrix once and reuse for both TPM
+    # and effective_length checks
     rc_matrix <- NULL  # Will be created on first use
-    
+
     if (is.null(tpm) && !is.null(readcounts)) {
         tryCatch({
             # Convert readcounts to matrix if needed (reuse if created later)
-            rc_matrix <- if (is.matrix(readcounts)) readcounts else as.matrix(readcounts)
-            
+            rc_matrix <- if (is.matrix(readcounts))
+                readcounts else as.matrix(readcounts)
+
             # Search Global Environment for TPM-like variables
             if (exists(".GlobalEnv")) {
                 env_vars <- ls(envir = .GlobalEnv)
                 for (var_name in env_vars) {
-                    var <- get(var_name, envir = .GlobalEnv)
-                    if ((is.matrix(var) || is.data.frame(var)) && 
-                        nrow(var) == nrow(rc_matrix) && ncol(var) == ncol(rc_matrix) &&
-                        grepl("tpm", tolower(var_name), ignore.case = TRUE)) {
-                        tpm <- var
-                        break
-                    }
+                  var <- get(var_name, envir = .GlobalEnv)
+                  if ((is.matrix(var) || is.data.frame(var)) && nrow(var) == nrow(rc_matrix) &&
+                    ncol(var) == ncol(rc_matrix) && grepl("tpm", tolower(var_name),
+                    ignore.case = TRUE)) {
+                    tpm <- var
+                    break
+                  }
                 }
             }
-        }, error = function(e) {})
+        }, error = function(e) {
+        })
     }
-    
+
     if (is.null(effective_length) && !is.null(readcounts)) {
         tryCatch({
             # Reuse rc_matrix from above if available
             if (is.null(rc_matrix)) {
-                rc_matrix <- if (is.matrix(readcounts)) readcounts else as.matrix(readcounts)
+                rc_matrix <- if (is.matrix(readcounts))
+                  readcounts else as.matrix(readcounts)
             }
-            
+
             # Search Global Environment for effective_length-like variables
             if (exists(".GlobalEnv")) {
                 env_vars <- ls(envir = .GlobalEnv)
                 for (var_name in env_vars) {
-                    var <- get(var_name, envir = .GlobalEnv)
-                    if ((is.numeric(var) && !is.matrix(var)) && 
-                        length(var) == nrow(rc_matrix) &&
-                        (grepl("length", tolower(var_name), ignore.case = TRUE) ||
-                         grepl("eff", tolower(var_name), ignore.case = TRUE))) {
-                        effective_length <- var
-                        break
-                    }
+                  var <- get(var_name, envir = .GlobalEnv)
+                  if ((is.numeric(var) && !is.matrix(var)) && length(var) == nrow(rc_matrix) &&
+                    (grepl("length", tolower(var_name), ignore.case = TRUE) || grepl("eff",
+                      tolower(var_name), ignore.case = TRUE))) {
+                    effective_length <- var
+                    break
+                  }
                 }
             }
-        }, error = function(e) {})
+        }, error = function(e) {
+        })
     }
-    
-    # GFF3 parsing - OPTIMIZED: Single pass extracts both tx2gene and gene_names
+
+    # GFF3 parsing - OPTIMIZED: Single pass extracts both tx2gene and
+    # gene_names
     gff3_data <- NULL
-    
+
     if (is.character(tx2gene) && length(tx2gene) == 1) {
         if (!file.exists(tx2gene)) {
             stop("tx2gene file not found: ", tx2gene, call. = FALSE)
@@ -421,8 +428,10 @@
 
         # Detect file type and parse accordingly
         if (grepl("\\.gff3(\\.gz)?$", tx2gene, ignore.case = TRUE)) {
-            if (verbose) message("Detected GFF3 format. Extracting transcript-to-gene mapping...")
-            # OPTIMIZATION: Single function call extracts both tx2gene and gene_names
+            if (verbose)
+                message("Detected GFF3 format. Extracting transcript-to-gene mapping...")
+            # OPTIMIZATION: Single function call extracts both tx2gene and
+            # gene_names
             gff3_data <- .extract_gff3_data(tx2gene, verbose = verbose)
             tx2gene_df <- gff3_data$tx2gene
         } else {
@@ -457,19 +466,23 @@
     unmapped_idx <- which(is.na(genes))
     if (length(unmapped_idx) > 0) {
         unmapped_txs <- tx_ids[unmapped_idx]
-        
+
         if (!skip) {
             message(length(unmapped_txs), " transcript IDs were not found in tx2gene mapping.")
             message("Unmapped transcripts: ", paste(head(unmapped_txs, 10), collapse = ", "),
-                    if (length(unmapped_txs) > 10) paste0(" ... and ", length(unmapped_txs) - 10, " more") else "")
-            stop("Unmapped transcripts detected. Set skip=TRUE to remove them and continue.", call. = FALSE)
+                if (length(unmapped_txs) > 10)
+                  paste0(" ... and ", length(unmapped_txs) - 10, " more") else "")
+            stop("Unmapped transcripts detected. Set skip=TRUE to remove them and continue.",
+                call. = FALSE)
         } else {
             message(length(unmapped_txs), " transcript IDs were not found in tx2gene mapping.")
             message("Unmapped transcripts: ", paste(head(unmapped_txs, 10), collapse = ", "),
-                    if (length(unmapped_txs) > 10) paste0(" ... and ", length(unmapped_txs) - 10, " more") else "")
-            
-            # When majority or all transcripts are unmapped, use them directly as gene identifiers
-            # This provides a sensible fallback for cases where the annotation doesn't match the data
+                if (length(unmapped_txs) > 10)
+                  paste0(" ... and ", length(unmapped_txs) - 10, " more") else "")
+
+            # When majority or all transcripts are unmapped, use them directly
+            # as gene identifiers This provides a sensible fallback for cases
+            # where the annotation doesn't match the data
             if (length(unmapped_idx) >= length(tx_ids) * 0.9) {
                 message("Note: >90% of transcripts unmapped. Using transcript IDs as gene identifiers.")
                 genes <- tx_ids  # Use transcript IDs directly as gene identifiers
@@ -479,16 +492,17 @@
                 keep_idx <- which(!is.na(genes))
                 readcounts <- readcounts[keep_idx, , drop = FALSE]
                 if (!is.null(tpm)) {
-                    tpm <- tpm[keep_idx, , drop = FALSE]
+                  tpm <- tpm[keep_idx, , drop = FALSE]
                 }
                 if (!is.null(effective_length)) {
-                    if (is.matrix(effective_length)) {
-                        # If effective_length is a matrix (from Salmon), extract rows
-                        effective_length <- effective_length[keep_idx, , drop = FALSE]
-                    } else {
-                        # If it's a vector, extract elements
-                        effective_length <- effective_length[keep_idx]
-                    }
+                  if (is.matrix(effective_length)) {
+                    # If effective_length is a matrix (from Salmon), extract
+                    # rows
+                    effective_length <- effective_length[keep_idx, , drop = FALSE]
+                  } else {
+                    # If it's a vector, extract elements
+                    effective_length <- effective_length[keep_idx]
+                  }
                 }
                 tx_ids <- tx_ids[keep_idx]
                 genes <- genes[keep_idx]
@@ -496,8 +510,10 @@
         }
     }
 
-    # Extract gene names if we're using a GFF3 file (already extracted in consolidated function)
-    gene_names_df <- if (!is.null(gff3_data)) gff3_data$gene_names else NULL
+    # Extract gene names if we're using a GFF3 file (already extracted in
+    # consolidated function)
+    gene_names_df <- if (!is.null(gff3_data))
+        gff3_data$gene_names else NULL
 
     assays_list <- S4Vectors::SimpleList()
     assays_list[[assay_name]] <- readcounts
@@ -509,9 +525,9 @@
     # ========================================================================
     # SALMON DATA: Store TPM and effective_length in metadata
     # ========================================================================
-    # These are used by .filter_se() for TPM-based filtering
-    # and .calculate_diversity() for length-normalized entropy
-    
+    # These are used by .filter_se() for TPM-based filtering and
+    # .calculate_diversity() for length-normalized entropy
+
     # Store TPM if provided
     if (!is.null(tpm)) {
         if (is.data.frame(tpm)) {
@@ -523,31 +539,29 @@
         # Validate dimensions match readcounts
         if (nrow(tpm) != nrow(readcounts) || ncol(tpm) != ncol(readcounts)) {
             stop(sprintf("'tpm' dimensions (%d x %d) do not match 'readcounts' (%d x %d).",
-                        nrow(tpm), ncol(tpm), nrow(readcounts), ncol(readcounts)),
-                 call. = FALSE)
+                nrow(tpm), ncol(tpm), nrow(readcounts), ncol(readcounts)), call. = FALSE)
         }
         # Sync rownames to readcounts
         rownames(tpm) <- rownames(readcounts)
         S4Vectors::metadata(se)$salmon_tpm <- tpm
     }
-    
+
     # Store effective_length if provided
     if (!is.null(effective_length)) {
-        # Handle case where effective_length is a matrix (from Salmon)
-        # Extract first column since effective_length is a per-transcript property
+        # Handle case where effective_length is a matrix (from Salmon) Extract
+        # first column since effective_length is a per-transcript property
         if (is.matrix(effective_length) || is.data.frame(effective_length)) {
             # Use first column (typically same across samples in Salmon output)
             effective_length <- as.numeric(effective_length[, 1])
         }
-        
+
         if (!is.numeric(effective_length)) {
             stop("'effective_length' must be numeric.", call. = FALSE)
         }
         # Validate length matches readcounts
         if (length(effective_length) != nrow(readcounts)) {
             stop(sprintf("'effective_length' length (%d) does not match 'readcounts' rows (%d).",
-                        length(effective_length), nrow(readcounts)),
-                 call. = FALSE)
+                length(effective_length), nrow(readcounts)), call. = FALSE)
         }
         # Ensure names match readcounts rownames
         if (is.null(names(effective_length))) {
@@ -557,39 +571,31 @@
             if (!all(names(effective_length) == rownames(readcounts))) {
                 # Try to reorder if names exist but are in different order
                 if (all(rownames(readcounts) %in% names(effective_length))) {
-                    effective_length <- effective_length[rownames(readcounts)]
+                  effective_length <- effective_length[rownames(readcounts)]
                 } else {
-                    warning("Names in 'effective_length' do not match 'readcounts' rownames. ",
-                           "Assigning rownames without reordering.",
-                           call. = FALSE)
-                    names(effective_length) <- rownames(readcounts)
+                  warning("Names in 'effective_length' do not match 'readcounts' rownames. ",
+                    "Assigning rownames without reordering.", call. = FALSE)
+                  names(effective_length) <- rownames(readcounts)
                 }
             }
         }
         S4Vectors::metadata(se)$salmon_effective_length <- effective_length
     }
 
-    # Populate rowData with gene assignments and transcript IDs
-    # Includes transcript_id and gene_id for gene annotation
-    # This enables downstream functions to easily access either identifier
+    # Populate rowData with gene assignments and transcript IDs Includes
+    # transcript_id and gene_id for gene annotation This enables downstream
+    # functions to easily access either identifier
     if (!is.null(gene_names_df) && nrow(gene_names_df) > 0) {
         # OPTIMIZATION: Direct indexing instead of setNames/unname
         gene_name_idx <- match(genes, gene_names_df$GeneID)
         gene_names <- gene_names_df$GeneName[gene_name_idx]
         gene_names[is.na(gene_name_idx)] <- NA_character_
-        
-        SummarizedExperiment::rowData(se) <- S4Vectors::DataFrame(
-            transcript_id = tx_ids,
-            gene_id = genes,
-            gene_name = gene_names,
-            row.names = tx_ids
-        )
+
+        SummarizedExperiment::rowData(se) <- S4Vectors::DataFrame(transcript_id = tx_ids,
+            gene_id = genes, gene_name = gene_names, row.names = tx_ids)
     } else {
-        SummarizedExperiment::rowData(se) <- S4Vectors::DataFrame(
-            transcript_id = tx_ids,
-            gene_id = genes,
-            row.names = tx_ids
-        )
+        SummarizedExperiment::rowData(se) <- S4Vectors::DataFrame(transcript_id = tx_ids,
+            gene_id = genes, row.names = tx_ids)
     }
 
     # Apply metadata mapping if metadata is provided

@@ -26,7 +26,7 @@
 #'   downstream wrapper functions.
 #'
 #' @slot diversity_results \code{list}. Named list of diversity calculation
-#'   results. Each name corresponds to a q-value (e.g., "q_0.5", "q_1.0").
+#'   results. Each name corresponds to a q-value (e.g., 'q_0.5', 'q_1.0').
 #'   Values are SummarizedExperiment objects or data.frames containing entropy
 #'   values for each gene at that q-value.
 #'
@@ -40,7 +40,7 @@
 #'   }
 #'
 #' @slot jackknife_results \code{list}. Resampling-based confidence intervals.
-#'   Names correspond to q-values (e.g., "q_0.5", "q_1.0"). Values are
+#'   Names correspond to q-values (e.g., 'q_0.5', 'q_1.0'). Values are
 #'   jackknife result objects containing resamples, CI bounds, and diagnostics.
 #'
 #' @slot divergence_results \code{list}. Divergence metric calculations.
@@ -51,7 +51,7 @@
 #'   }
 #'
 #' @slot plots \code{list}. Cached visualization objects (ggplot). Names
-#'   identify plot type (e.g., "q_curve", "lm_interaction", "influence").
+#'   identify plot type (e.g., 'q_curve', 'lm_interaction', 'influence').
 #'   Populated by \code{tsenat()} if \code{generate_plots=TRUE}.
 #'
 #' @slot metadata \code{list}. Reproducibility and tracking metadata.
@@ -82,9 +82,9 @@
 #' @examples
 #' # Load real TSENAT data
 #' data(readcounts)
-#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t")
-#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t')
+#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
@@ -118,51 +118,39 @@ NULL
 #' @examples
 #' # Load real TSENAT data
 #' data(readcounts)
-#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t")
-#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t')
+#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
 #' @export
 TSENATAnalysis <- function(se, config = list()) {
-  # Validate input
-  if (!inherits(se, "SummarizedExperiment")) {
-    stop("se must be a SummarizedExperiment object", call. = FALSE)
-  }
+    # Validate input
+    if (!inherits(se, "SummarizedExperiment")) {
+        stop("se must be a SummarizedExperiment object", call. = FALSE)
+    }
 
-  # Convert TSENATConfig S4 object to list if needed
-  if (inherits(config, "TSENATConfig")) {
-    config <- unclass(config)
-  }
+    # Convert TSENATConfig S4 object to list if needed
+    if (inherits(config, "TSENATConfig")) {
+        config <- unclass(config)
+    }
 
-  # Ensure sample_id column exists in colData (required by validator)
-  if (!"sample_id" %in% colnames(SummarizedExperiment::colData(se))) {
-    SummarizedExperiment::colData(se)$sample_id <- colnames(se)
-  }
+    # Ensure sample_id column exists in colData (required by validator)
+    if (!"sample_id" %in% colnames(SummarizedExperiment::colData(se))) {
+        SummarizedExperiment::colData(se)$sample_id <- colnames(se)
+    }
 
-  # Create new object with all slots initialized
-  new(
-    "TSENATAnalysis",
-    se = se,
-    config = if (length(config) > 0) config else list(),
-    diversity_results = list(),
-    lm_results = list(),
-    jackknife_results = list(),
-    divergence_results = list(),
-    plots = list(),
-    metadata = list(
-      created_at = Sys.time(),
-      package_version = as.character(utils::packageVersion("TSENAT")),
-      function_calls = character()
-    )
-  )
+    # Create new object with all slots initialized
+    new("TSENATAnalysis", se = se, config = if (length(config) > 0)
+        config else list(), diversity_results = list(), lm_results = list(), jackknife_results = list(),
+        divergence_results = list(), plots = list(), metadata = list(created_at = Sys.time(),
+            package_version = as.character(utils::packageVersion("TSENAT")), function_calls = character()))
 }
 
-# Accessor Methods for TSENATAnalysis Objects
-# Standard methods for extracting results and metadata from TSENATAnalysis
-# objects. Following Bioconductor conventions (DESeq2, edgeR).
-#
+# Accessor Methods for TSENATAnalysis Objects Standard methods for extracting
+# results and metadata from TSENATAnalysis objects. Following Bioconductor
+# conventions (DESeq2, edgeR).
 
 # ============================================================================
 # DIVERSITY ACCESSOR
@@ -178,7 +166,7 @@ TSENATAnalysis <- function(se, config = list()) {
 #'   containing diversity values keyed by q-value.
 #'
 #' @details
-#' Results stored in @diversity_results with names like "q_0.5", "q_1.0", etc.
+#' Results stored in @diversity_results with names like 'q_0.5', 'q_1.0', etc.
 #' Use \code{diversity(analysis)} to get all results as a list, or
 #' \code{diversity(analysis, q=1.0)} for a specific q-value.
 #'
@@ -188,10 +176,10 @@ TSENATAnalysis <- function(se, config = list()) {
 #' @examples
 #' # Load real TSENAT data
 #' data(readcounts)
-#' metadata_df <- read.table(system.file("extdata", "metadata.tsv",
-#'   package = "TSENAT"), header = TRUE, sep = "\t")
-#' gff3_file <- system.file("extdata", "annotation.gff3.gz",
-#'   package = "TSENAT")
+#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv',
+#'   package = 'TSENAT'), header = TRUE, sep = '\t')
+#' gff3_file <- system.file('extdata', 'annotation.gff3.gz',
+#'   package = 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file,
 #'   metadata = metadata_df, tpm = salmon_tpm,
 #'   effective_length = salmon_effective_length)
@@ -201,78 +189,77 @@ TSENATAnalysis <- function(se, config = list()) {
 #'
 #' @export
 setGeneric("diversity", function(object, q = NULL) {
-  standardGeneric("diversity")
+    standardGeneric("diversity")
 })
 
 #' @rdname diversity
 #' @export
 setMethod("diversity", "TSENATAnalysis", function(object, q = NULL) {
-  if (length(object@diversity_results) == 0) {
-    warning("No diversity results found. Run calculate_diversity_s4() first.")
-    return(NULL)
-  }
-
-  if (is.null(q)) {
-    # Return all results
-    return(object@diversity_results)
-  }
-
-  # Format q-value key - try multiple precision levels for robustness
-  supported_decimals <- c(1, 2, 3)
-  q_key <- NULL
-  
-  for (decimals in supported_decimals) {
-    candidate_key <- paste0("q_", formatC(q, format = "f", digits = decimals))
-    if (candidate_key %in% names(object@diversity_results)) {
-      q_key <- candidate_key
-      break
+    if (length(object@diversity_results) == 0) {
+        warning("No diversity results found. Run calculate_diversity_s4() first.")
+        return(NULL)
     }
-  }
 
-  if (is.null(q_key)) {
-    # Fallback: check if lazy conversion is needed from combined result
-    if (!is.null(object@metadata$diversity_combined) && 
-        is.list(object@metadata$diversity_combined) &&
-        !is.null(object@metadata$diversity_combined$combined_result)) {
-      
-      # Perform lazy conversion from combined format
-      combined_result <- object@metadata$diversity_combined$combined_result
-      
-      # Extract columns for this q-value from combined result
-      q_cols <- grep(paste0("_q=", gsub("\\.", "\\\\.", as.character(q)), "$"), 
-                     colnames(combined_result))
-      
-      if (length(q_cols) > 0) {
-        # Extract per-q data
-        result_subset <- combined_result[, q_cols, drop = FALSE]
-        
-        # Convert to SummarizedExperiment
-        assay_matrix <- as.matrix(result_subset[, vapply(result_subset, is.numeric, FUN.VALUE = logical(1))])
-        result_se <- SummarizedExperiment(assays = list(diversity = assay_matrix))
-        rownames(result_se) <- rownames(result_subset)
-        
-        # Apply colData from original SE
-        if (!is.null(object@se)) {
-          orig_coldata <- SummarizedExperiment::colData(object@se)
-          if (!is.null(orig_coldata) && nrow(orig_coldata) == ncol(result_se)) {
-            SummarizedExperiment::colData(result_se) <- orig_coldata
-          }
+    if (is.null(q)) {
+        # Return all results
+        return(object@diversity_results)
+    }
+
+    # Format q-value key - try multiple precision levels for robustness
+    supported_decimals <- c(1, 2, 3)
+    q_key <- NULL
+
+    for (decimals in supported_decimals) {
+        candidate_key <- paste0("q_", formatC(q, format = "f", digits = decimals))
+        if (candidate_key %in% names(object@diversity_results)) {
+            q_key <- candidate_key
+            break
         }
-        
-        # Cache this result for future access
-        q_key_to_cache <- paste0("q_", formatC(q, format = "f", digits = 3))
-        object@diversity_results[[q_key_to_cache]] <- result_se
-        
-        return(result_se)
-      }
     }
-    
-    stop("Q-value ", q, " not found in diversity_results.\n",
-         "Available q-values: ", paste(names(object@diversity_results), collapse = ", "),
-         call. = FALSE)
-  }
 
-  object@diversity_results[[q_key]]
+    if (is.null(q_key)) {
+        # Fallback: check if lazy conversion is needed from combined result
+        if (!is.null(object@metadata$diversity_combined) && is.list(object@metadata$diversity_combined) &&
+            !is.null(object@metadata$diversity_combined$combined_result)) {
+
+            # Perform lazy conversion from combined format
+            combined_result <- object@metadata$diversity_combined$combined_result
+
+            # Extract columns for this q-value from combined result
+            q_cols <- grep(paste0("_q=", gsub("\\.", "\\\\.", as.character(q)), "$"),
+                colnames(combined_result))
+
+            if (length(q_cols) > 0) {
+                # Extract per-q data
+                result_subset <- combined_result[, q_cols, drop = FALSE]
+
+                # Convert to SummarizedExperiment
+                assay_matrix <- as.matrix(result_subset[, vapply(result_subset, is.numeric,
+                  FUN.VALUE = logical(1))])
+                result_se <- SummarizedExperiment(assays = list(diversity = assay_matrix))
+                rownames(result_se) <- rownames(result_subset)
+
+                # Apply colData from original SE
+                if (!is.null(object@se)) {
+                  orig_coldata <- SummarizedExperiment::colData(object@se)
+                  if (!is.null(orig_coldata) && nrow(orig_coldata) == ncol(result_se)) {
+                    SummarizedExperiment::colData(result_se) <- orig_coldata
+                  }
+                }
+
+                # Cache this result for future access
+                q_key_to_cache <- paste0("q_", formatC(q, format = "f", digits = 3))
+                object@diversity_results[[q_key_to_cache]] <- result_se
+
+                return(result_se)
+            }
+        }
+
+        stop("Q-value ", q, " not found in diversity_results.\n", "Available q-values: ",
+            paste(names(object@diversity_results), collapse = ", "), call. = FALSE)
+    }
+
+    object@diversity_results[[q_key]]
 })
 
 # ============================================================================
@@ -283,8 +270,8 @@ setMethod("diversity", "TSENATAnalysis", function(object, q = NULL) {
 #'
 #' @param object \code{TSENATAnalysis} object.
 #' @param component \code{character}. Which result component to extract.
-#'   Options: NULL (all), "results", "lm_interaction", "q_interactions",
-#'   "divergence_difference", etc.
+#'   Options: NULL (all), 'results', 'lm_interaction', 'q_interactions',
+#'   'divergence_difference', etc.
 #'
 #' @return List or data.frame depending on component requested.
 #'
@@ -297,12 +284,12 @@ setMethod("diversity", "TSENATAnalysis", function(object, q = NULL) {
 #' # Load example data and run LM interaction analysis
 #' data(readcounts)
 #' readcounts <- as.matrix(salmon_dataset)
-#' mode(readcounts) <- "numeric"
+#' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
-#'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t"
+#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #'
 #' # Build analysis from vignette data
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
@@ -314,7 +301,7 @@ setMethod("diversity", "TSENATAnalysis", function(object, q = NULL) {
 #'
 #' # Calculate LM interaction
 #' analysis <- calculate_lm_interaction_s4(analysis, 
-#'   condition_col = "condition", method = "gam", verbose = FALSE)
+#'   condition_col = 'condition', method = 'gam', verbose = FALSE)
 #'
 #' # Extract and view LM results
 #' res <- lmResults(analysis)
@@ -322,61 +309,59 @@ setMethod("diversity", "TSENATAnalysis", function(object, q = NULL) {
 #'
 #' @export
 setGeneric("lmResults", function(object, component = NULL) {
-  standardGeneric("lmResults")
+    standardGeneric("lmResults")
 })
 
 #' @rdname lmResults
 #' @export
 setMethod("lmResults", "TSENATAnalysis", function(object, component = NULL) {
-  if (length(object@lm_results) == 0) {
-    warning("No LM results found. Run calculate_lm_interaction_s4() first.")
-    return(NULL)
-  }
-
-  if (is.null(component)) {
-    # Return all LM results
-    return(object@lm_results)
-  }
-
-  # Try to extract specific component
-  if (component %in% names(object@lm_results)) {
-    return(object@lm_results[[component]])
-  }
-
-  # If component.results pattern, extract the $results subcomponent
-  if (component %in% c("results", "p_value", "effect_size")) {
-    # Search all subcomponents
-    for (name in names(object@lm_results)) {
-      if (is.list(object@lm_results[[name]]) &&
-          "results" %in% names(object@lm_results[[name]])) {
-        results_df <- object@lm_results[[name]]$results
-        if (is.data.frame(results_df) && component %in% colnames(results_df)) {
-          return(results_df[[component]])
-        }
-      }
+    if (length(object@lm_results) == 0) {
+        warning("No LM results found. Run calculate_lm_interaction_s4() first.")
+        return(NULL)
     }
-  }
 
-  stop("Component '", component, "' not found in lm_results.\n",
-       "Available: ", paste(names(object@lm_results), collapse = ", "),
-       call. = FALSE)
+    if (is.null(component)) {
+        # Return all LM results
+        return(object@lm_results)
+    }
+
+    # Try to extract specific component
+    if (component %in% names(object@lm_results)) {
+        return(object@lm_results[[component]])
+    }
+
+    # If component.results pattern, extract the $results subcomponent
+    if (component %in% c("results", "p_value", "effect_size")) {
+        # Search all subcomponents
+        for (name in names(object@lm_results)) {
+            if (is.list(object@lm_results[[name]]) && "results" %in% names(object@lm_results[[name]])) {
+                results_df <- object@lm_results[[name]]$results
+                if (is.data.frame(results_df) && component %in% colnames(results_df)) {
+                  return(results_df[[component]])
+                }
+            }
+        }
+    }
+
+    stop("Component '", component, "' not found in lm_results.\n", "Available: ",
+        paste(names(object@lm_results), collapse = ", "), call. = FALSE)
 })
 
 #' @rdname lmResults
 #' @export
 setGeneric("lmResults<-", function(object, value) {
-  standardGeneric("lmResults<-")
+    standardGeneric("lmResults<-")
 })
 
 #' @rdname lmResults
 #' @param value A list of LM results to assign to the object.
 #' @export
 setMethod("lmResults<-", "TSENATAnalysis", function(object, value) {
-  if (!is.list(value)) {
-    stop("lmResults value must be a list", call. = FALSE)
-  }
-  object@lm_results <- value
-  object
+    if (!is.list(value)) {
+        stop("lmResults value must be a list", call. = FALSE)
+    }
+    object@lm_results <- value
+    object
 })
 
 # ============================================================================
@@ -402,9 +387,9 @@ setMethod("lmResults<-", "TSENATAnalysis", function(object, value) {
 #' @examples
 #' # Load real TSENAT data and run jackknife analysis
 #' data(readcounts)
-#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t")
-#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t')
+#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
@@ -414,33 +399,33 @@ setMethod("lmResults<-", "TSENATAnalysis", function(object, value) {
 #'
 #' @export
 setGeneric("jackKnife", function(object, q = NULL) {
-  standardGeneric("jackKnife")
+    standardGeneric("jackKnife")
 })
 
 #' @rdname jackKnife
 #' @export
 setMethod("jackKnife", "TSENATAnalysis", function(object, q = NULL) {
-  if (length(object@jackknife_results) == 0) {
-    warning("No jackknife results found. Run jackknife_isoform_switching_s4() first.")
-    return(NULL)
-  }
+    if (length(object@jackknife_results) == 0) {
+        warning("No jackknife results found. Run jackknife_isoform_switching_s4() first.")
+        return(NULL)
+    }
 
-  if (is.null(q)) {
-    # Return all results
-    return(object@jackknife_results)
-  }
+    if (is.null(q)) {
+        # Return all results
+        return(object@jackknife_results)
+    }
 
-  # Format q-value key - must match storage format used by base .jackknife_isoform_switching()
-  # Uses paste0("q_", gsub("\\.", "_", sprintf("%.2f", q))) to store (e.g., "q_0_01", "q_1_00")
-  q_key <- paste0("q_", gsub("\\.", "_", sprintf("%.2f", q)))
+    # Format q-value key - must match storage format used by base
+    # .jackknife_isoform_switching() Uses paste0('q_', gsub('\\.', '_',
+    # sprintf('%.2f', q))) to store (e.g., 'q_0_01', 'q_1_00')
+    q_key <- paste0("q_", gsub("\\.", "_", sprintf("%.2f", q)))
 
-  if (!(q_key %in% names(object@jackknife_results))) {
-    stop("Q-value ", q, " not found in jackknife_results.\n",
-         "Available q-values: ", paste(names(object@jackknife_results), collapse = ", "),
-         call. = FALSE)
-  }
+    if (!(q_key %in% names(object@jackknife_results))) {
+        stop("Q-value ", q, " not found in jackknife_results.\n", "Available q-values: ",
+            paste(names(object@jackknife_results), collapse = ", "), call. = FALSE)
+    }
 
-  object@jackknife_results[[q_key]]
+    object@jackknife_results[[q_key]]
 })
 
 # ============================================================================
@@ -451,7 +436,7 @@ setMethod("jackKnife", "TSENATAnalysis", function(object, q = NULL) {
 #'
 #' @param object \code{TSENATAnalysis} object.
 #' @param component \code{character}. Component to extract: NULL (all),
-#'   "tsallis_divergence", "effect_sizes", etc.
+#'   'tsallis_divergence', 'effect_sizes', etc.
 #'
 #' @return SummarizedExperiment or data.frame with divergence metrics.
 #'
@@ -466,9 +451,9 @@ setMethod("jackKnife", "TSENATAnalysis", function(object, q = NULL) {
 #' @examples
 #' # Load real TSENAT data and calculate divergence
 #' data(readcounts)
-#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t")
-#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t')
+#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
@@ -478,29 +463,28 @@ setMethod("jackKnife", "TSENATAnalysis", function(object, q = NULL) {
 #'
 #' @export
 setGeneric("divergence", function(object, component = NULL) {
-  standardGeneric("divergence")
+    standardGeneric("divergence")
 })
 
 #' @rdname divergence
 #' @export
 setMethod("divergence", "TSENATAnalysis", function(object, component = NULL) {
-  if (length(object@divergence_results) == 0) {
-    warning("No divergence results found. Run calculate_divergence_s4() first.")
-    return(NULL)
-  }
+    if (length(object@divergence_results) == 0) {
+        warning("No divergence results found. Run calculate_divergence_s4() first.")
+        return(NULL)
+    }
 
-  if (is.null(component)) {
-    # Return all results
-    return(object@divergence_results)
-  }
+    if (is.null(component)) {
+        # Return all results
+        return(object@divergence_results)
+    }
 
-  if (!(component %in% names(object@divergence_results))) {
-    stop("Component '", component, "' not found in divergence_results.\n",
-         "Available: ", paste(names(object@divergence_results), collapse = ", "),
-         call. = FALSE)
-  }
+    if (!(component %in% names(object@divergence_results))) {
+        stop("Component '", component, "' not found in divergence_results.\n", "Available: ",
+            paste(names(object@divergence_results), collapse = ", "), call. = FALSE)
+    }
 
-  object@divergence_results[[component]]
+    object@divergence_results[[component]]
 })
 
 # ============================================================================
@@ -510,8 +494,8 @@ setMethod("divergence", "TSENATAnalysis", function(object, component = NULL) {
 #' Get cached plot
 #'
 #' @param object \code{TSENATAnalysis} object.
-#' @param type \code{character}. Plot type: "q_curve", "lm_interaction",
-#'   "divergence", "influence", "volcano", etc.
+#' @param type \code{character}. Plot type: 'q_curve', 'lm_interaction',
+#'   'divergence', 'influence', 'volcano', etc.
 #'   If NULL, returns all cached plots.
 #'
 #' @return ggplot object or list of plots.
@@ -519,9 +503,9 @@ setMethod("divergence", "TSENATAnalysis", function(object, component = NULL) {
 #' @examples
 #' # Load real TSENAT data
 #' data(readcounts)
-#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t")
-#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t')
+#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
@@ -529,30 +513,30 @@ setMethod("divergence", "TSENATAnalysis", function(object, component = NULL) {
 #'
 #' @noRd
 setGeneric("getPlot", function(object, type = NULL) {
-  standardGeneric("getPlot")
+    standardGeneric("getPlot")
 })
 
 #' @rdname getPlot
 
 #' @noRd
 setMethod("getPlot", "TSENATAnalysis", function(object, type = NULL) {
-  if (length(object@plots) == 0) {
-    warning("No plots found. Run tsenat() with generate_plots=TRUE.")
-    return(NULL)
-  }
+    if (length(object@plots) == 0) {
+        warning("No plots found. Run tsenat() with generate_plots=TRUE.")
+        return(NULL)
+    }
 
-  if (is.null(type)) {
-    # Return all plots
-    return(object@plots)
-  }
+    if (is.null(type)) {
+        # Return all plots
+        return(object@plots)
+    }
 
-  if (!(type %in% names(object@plots))) {
-    warning("Plot type '", type, "' not found.\n",
-            "Available: ", paste(names(object@plots), collapse = ", "))
-    return(NULL)
-  }
+    if (!(type %in% names(object@plots))) {
+        warning("Plot type '", type, "' not found.\n", "Available: ", paste(names(object@plots),
+            collapse = ", "))
+        return(NULL)
+    }
 
-  object@plots[[type]]
+    object@plots[[type]]
 })
 
 #' Add plot to cache
@@ -569,29 +553,29 @@ setMethod("getPlot", "TSENATAnalysis", function(object, type = NULL) {
 #' library(SummarizedExperiment)
 #' se <- SummarizedExperiment(
 #'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
-#'   colData = data.frame(sample_id = paste0("S", 1:10))
+#'   colData = data.frame(sample_id = paste0('S', 1:10))
 #' )
 #' analysis <- TSENATAnalysis(se)
-#' # analysis <- addPlot(analysis, type = "example", plot = NULL)
+#' # analysis <- addPlot(analysis, type = 'example', plot = NULL)
 #'
 
 #' @noRd
 setGeneric("addPlot", function(object, type, plot, replace = FALSE) {
-  standardGeneric("addPlot")
+    standardGeneric("addPlot")
 })
 
 #' @rdname addPlot
 
 #' @noRd
 setMethod("addPlot", "TSENATAnalysis", function(object, type, plot, replace = FALSE) {
-  if (!replace && type %in% names(object@plots)) {
-    warning("Plot type '", type, "' already exists. Set replace=TRUE to overwrite.",
+    if (!replace && type %in% names(object@plots)) {
+        warning("Plot type '", type, "' already exists. Set replace=TRUE to overwrite.",
             call. = FALSE)
-    return(object)
-  }
+        return(object)
+    }
 
-  object@plots[[type]] <- plot
-  object
+    object@plots[[type]] <- plot
+    object
 })
 
 # ============================================================================
@@ -612,9 +596,9 @@ setMethod("addPlot", "TSENATAnalysis", function(object, type, plot, replace = FA
 #' @examples
 #' # Load real TSENAT data
 #' data(readcounts)
-#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t")
-#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t')
+#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
@@ -622,57 +606,58 @@ setMethod("addPlot", "TSENATAnalysis", function(object, type, plot, replace = FA
 #'
 #' @export
 setMethod("show", "TSENATAnalysis", function(object) {
-  message("TSENATAnalysis object")
-  message("=====================")
+    message("TSENATAnalysis object")
+    message("=====================")
 
-  # Show SE info
-  message("SummarizedExperiment:")
-  message(sprintf("  Genes:   %d", nrow(object@se)))
-  message(sprintf("  Samples: %d", ncol(object@se)))
+    # Show SE info
+    message("SummarizedExperiment:")
+    message(sprintf("  Genes:   %d", nrow(object@se)))
+    message(sprintf("  Samples: %d", ncol(object@se)))
 
-  # Show config
-  if (length(object@config) > 0) {
-    message("\nConfiguration:")
-    for (name in names(object@config)) {
-      val <- object@config[[name]]
-      if (is.character(val) && length(val) == 1) {
-        message(sprintf("  %s: %s", name, val))
-      } else if (is.numeric(val) && length(val) <= 3) {
-        message(sprintf("  %s: %s", name, paste(val, collapse = ", ")))
-      } else {
-        message(sprintf("  %s: <%s>", name, class(val)))
-      }
+    # Show config
+    if (length(object@config) > 0) {
+        message("\nConfiguration:")
+        for (name in names(object@config)) {
+            val <- object@config[[name]]
+            if (is.character(val) && length(val) == 1) {
+                message(sprintf("  %s: %s", name, val))
+            } else if (is.numeric(val) && length(val) <= 3) {
+                message(sprintf("  %s: %s", name, paste(val, collapse = ", ")))
+            } else {
+                message(sprintf("  %s: <%s>", name, class(val)))
+            }
+        }
     }
-  }
 
-  # Show results
-  message("\nAnalysis Status:")
-  if (length(object@diversity_results) > 0) {
-    message(sprintf("  \u2713 Diversity: %d q-value(s)", length(object@diversity_results)))
-  }
-  if (length(object@lm_results) > 0) {
-    message(sprintf("  \u2713 LM results: %s", paste(names(object@lm_results), collapse = ", ")))
-  }
-  if (length(object@jackknife_results) > 0) {
-    message(sprintf("  \u2713 Jackknife: %d q-value(s)", length(object@jackknife_results)))
-  }
-  if (length(object@divergence_results) > 0) {
-    message(sprintf("  \u2713 Divergence: %d component(s)", length(object@divergence_results)))
-  }
-  if (length(object@plots) > 0) {
-    message(sprintf("  \u2713 Plots: %s", paste(names(object@plots), collapse = ", ")))
-  }
-
-  # Show metadata
-  if (length(object@metadata) > 0 && "function_calls" %in% names(object@metadata)) {
-    n_calls <- length(object@metadata$function_calls)
-    if (n_calls > 0) {
-      message("\nFunction History:")
-      message(sprintf("  Calls: %s", paste(object@metadata$function_calls, collapse = " \u2192 ")))
+    # Show results
+    message("\nAnalysis Status:")
+    if (length(object@diversity_results) > 0) {
+        message(sprintf("  ✓ Diversity: %d q-value(s)", length(object@diversity_results)))
     }
-  }
+    if (length(object@lm_results) > 0) {
+        message(sprintf("  ✓ LM results: %s", paste(names(object@lm_results), collapse = ", ")))
+    }
+    if (length(object@jackknife_results) > 0) {
+        message(sprintf("  ✓ Jackknife: %d q-value(s)", length(object@jackknife_results)))
+    }
+    if (length(object@divergence_results) > 0) {
+        message(sprintf("  ✓ Divergence: %d component(s)", length(object@divergence_results)))
+    }
+    if (length(object@plots) > 0) {
+        message(sprintf("  ✓ Plots: %s", paste(names(object@plots), collapse = ", ")))
+    }
 
-  message("")
+    # Show metadata
+    if (length(object@metadata) > 0 && "function_calls" %in% names(object@metadata)) {
+        n_calls <- length(object@metadata$function_calls)
+        if (n_calls > 0) {
+            message("\nFunction History:")
+            message(sprintf("  Calls: %s", paste(object@metadata$function_calls,
+                collapse = " → ")))
+        }
+    }
+
+    message("")
 })
 
 # ============================================================================
@@ -692,9 +677,9 @@ setMethod("show", "TSENATAnalysis", function(object) {
 #' @examples
 #' # Load real TSENAT data
 #' data(readcounts)
-#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t")
-#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t')
+#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
@@ -702,101 +687,95 @@ setMethod("show", "TSENATAnalysis", function(object) {
 #'
 #' @export
 setMethod("summary", "TSENATAnalysis", function(object) {
-  message("=== TSENAT Analysis Summary ===")
+    message("=== TSENAT Analysis Summary ===")
 
-  # Dimensions
-  message("DATA:")
-  message(sprintf("  Genes:    %6d", nrow(object@se)))
-  message(sprintf("  Samples:  %6d", ncol(object@se)))
-  message(sprintf("  Assays:   %6d (%s)",
-              length(SummarizedExperiment::assays(object@se)),
-              paste(SummarizedExperiment::assayNames(object@se), collapse = ", ")))
+    # Dimensions
+    message("DATA:")
+    message(sprintf("  Genes:    %6d", nrow(object@se)))
+    message(sprintf("  Samples:  %6d", ncol(object@se)))
+    message(sprintf("  Assays:   %6d (%s)", length(SummarizedExperiment::assays(object@se)),
+        paste(SummarizedExperiment::assayNames(object@se), collapse = ", ")))
 
-  # Configuration
-  message("\nCONFIGURATION:")
-  if (length(object@config) == 0) {
-    message("  (None set)")
-  } else {
-    for (name in names(object@config)) {
-      val <- object@config[[name]]
-      if (is.character(val)) {
-        if (length(val) == 1) {
-          message(sprintf("  %s: %s", name, val))
-        } else {
-          message(sprintf("  %s: <%d values>", name, length(val)))
+    # Configuration
+    message("\nCONFIGURATION:")
+    if (length(object@config) == 0) {
+        message("  (None set)")
+    } else {
+        for (name in names(object@config)) {
+            val <- object@config[[name]]
+            if (is.character(val)) {
+                if (length(val) == 1) {
+                  message(sprintf("  %s: %s", name, val))
+                } else {
+                  message(sprintf("  %s: <%d values>", name, length(val)))
+                }
+            } else if (is.numeric(val)) {
+                if (length(val) <= 5) {
+                  message(sprintf("  %s: %s", name, paste(round(val, 2), collapse = ", ")))
+                } else {
+                  message(sprintf("  %s: <%d values>", name, length(val)))
+                }
+            } else {
+                message(sprintf("  %s: <%s>", name, class(val)))
+            }
         }
-      } else if (is.numeric(val)) {
-        if (length(val) <= 5) {
-          message(sprintf("  %s: %s", name, paste(round(val, 2), collapse = ", ")))
-        } else {
-          message(sprintf("  %s: <%d values>", name, length(val)))
+    }
+
+    # Results Summary
+    message("\nRESULTS:")
+
+    if (length(object@diversity_results) > 0) {
+        q_vals <- gsub("q_", "", names(object@diversity_results))
+        message(sprintf("  Diversity:   %d analyses at q = %s", length(object@diversity_results),
+            paste(q_vals, collapse = ", ")))
+    }
+
+    if (length(object@lm_results) > 0) {
+        message(sprintf("  LM/Stats:    %d result set(s) (%s)", length(object@lm_results),
+            paste(names(object@lm_results), collapse = ", ")))
+
+        # Show gene counts if results available
+        for (name in names(object@lm_results)) {
+            if (is.list(object@lm_results[[name]]) && "results" %in% names(object@lm_results[[name]]) &&
+                is.data.frame(object@lm_results[[name]]$results)) {
+                n_genes <- nrow(object@lm_results[[name]]$results)
+                message(sprintf("    - %s: %d genes", name, n_genes))
+            }
         }
-      } else {
-        message(sprintf("  %s: <%s>", name, class(val)))
-      }
     }
-  }
 
-  # Results Summary
-  message("\nRESULTS:")
-
-  if (length(object@diversity_results) > 0) {
-    q_vals <- gsub("q_", "", names(object@diversity_results))
-    message(sprintf("  Diversity:   %d analyses at q = %s",
-                length(object@diversity_results),
-                paste(q_vals, collapse = ", ")))
-  }
-
-  if (length(object@lm_results) > 0) {
-    message(sprintf("  LM/Stats:    %d result set(s) (%s)",
-                length(object@lm_results),
-                paste(names(object@lm_results), collapse = ", ")))
-
-    # Show gene counts if results available
-    for (name in names(object@lm_results)) {
-      if (is.list(object@lm_results[[name]]) &&
-          "results" %in% names(object@lm_results[[name]]) &&
-          is.data.frame(object@lm_results[[name]]$results)) {
-        n_genes <- nrow(object@lm_results[[name]]$results)
-        message(sprintf("    - %s: %d genes", name, n_genes))
-      }
+    if (length(object@jackknife_results) > 0) {
+        q_vals <- gsub("q_", "", names(object@jackknife_results))
+        message(sprintf("  Jackknife:   %d analyses at q = %s", length(object@jackknife_results),
+            paste(q_vals, collapse = ", ")))
     }
-  }
 
-  if (length(object@jackknife_results) > 0) {
-    q_vals <- gsub("q_", "", names(object@jackknife_results))
-    message(sprintf("  Jackknife:   %d analyses at q = %s",
-                length(object@jackknife_results),
-                paste(q_vals, collapse = ", ")))
-  }
+    if (length(object@divergence_results) > 0) {
+        message(sprintf("  Divergence:  %d component(s) (%s)", length(object@divergence_results),
+            paste(names(object@divergence_results), collapse = ", ")))
+    }
 
-  if (length(object@divergence_results) > 0) {
-    message(sprintf("  Divergence:  %d component(s) (%s)",
-                length(object@divergence_results),
-                paste(names(object@divergence_results), collapse = ", ")))
-  }
+    if (length(object@plots) > 0) {
+        message(sprintf("  Plots:       %d cached (%s)", length(object@plots), paste(names(object@plots),
+            collapse = ", ")))
+    }
 
-  if (length(object@plots) > 0) {
-    message(sprintf("  Plots:       %d cached (%s)",
-                length(object@plots),
-                paste(names(object@plots), collapse = ", ")))
-  }
+    # Metadata
+    message("\nMETADATA:")
+    if ("created_at" %in% names(object@metadata)) {
+        message(sprintf("  Created: %s", format(object@metadata$created_at, "%Y-%m-%d %H:%M:%S")))
+    }
+    if ("package_version" %in% names(object@metadata)) {
+        message(sprintf("  Package: TSENAT %s", object@metadata$package_version))
+    }
+    if ("function_calls" %in% names(object@metadata) && length(object@metadata$function_calls) >
+        0) {
+        message(sprintf("  Workflow: %s", paste(object@metadata$function_calls, collapse = " -> ")))
+    }
 
-  # Metadata
-  message("\nMETADATA:")
-  if ("created_at" %in% names(object@metadata)) {
-    message(sprintf("  Created: %s", format(object@metadata$created_at, "%Y-%m-%d %H:%M:%S")))
-  }
-  if ("package_version" %in% names(object@metadata)) {
-    message(sprintf("  Package: TSENAT %s", object@metadata$package_version))
-  }
-  if ("function_calls" %in% names(object@metadata) && length(object@metadata$function_calls) > 0) {
-    message(sprintf("  Workflow: %s", paste(object@metadata$function_calls, collapse = " -> ")))
-  }
+    message("")
 
-  message("")
-
-  invisible(object)
+    invisible(object)
 })
 
 # ============================================================================
@@ -805,13 +784,13 @@ setMethod("summary", "TSENATAnalysis", function(object) {
 
 #' @rdname divResults
 setGeneric("getConfig", function(object) {
-  standardGeneric("getConfig")
+    standardGeneric("getConfig")
 })
 
 #' @rdname divResults
 #' @export
 setMethod("getConfig", "TSENATAnalysis", function(object) {
-  object@config
+    object@config
 })
 
 #' Replace analysis configuration
@@ -842,9 +821,9 @@ setMethod("getConfig", "TSENATAnalysis", function(object) {
 #' @examples
 #' # Load real TSENAT data
 #' data(readcounts)
-#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t")
-#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t')
+#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' 
 #' # Build and subset analysis
 #' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,
@@ -861,7 +840,7 @@ setMethod("getConfig", "TSENATAnalysis", function(object) {
 #'
 #' @export
 setGeneric("setConfig", function(object, value) {
-  standardGeneric("setConfig")
+    standardGeneric("setConfig")
 })
 
 #' @rdname setConfig
@@ -871,9 +850,9 @@ setGeneric("setConfig", function(object, value) {
 #' @examples
 #' # Load real TSENAT data
 #' data(readcounts)
-#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t")
-#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t')
+#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' 
 #' # Build and subset analysis
 #' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,
@@ -887,17 +866,17 @@ setGeneric("setConfig", function(object, value) {
 #' # Verify and display
 #' summary(analysis)
 setMethod("setConfig", "TSENATAnalysis", function(object, value) {
-  # Convert TSENATConfig S4 object to list if needed
-  if (inherits(value, "TSENATConfig")) {
-    value <- unclass(value)
-  }
-  
-  if (!is.list(value)) {
-    stop("Configuration must be a list or TSENATConfig object", call. = FALSE)
-  }
-  object@config <- value
-  validObject(object)
-  object
+    # Convert TSENATConfig S4 object to list if needed
+    if (inherits(value, "TSENATConfig")) {
+        value <- unclass(value)
+    }
+
+    if (!is.list(value)) {
+        stop("Configuration must be a list or TSENATConfig object", call. = FALSE)
+    }
+    object@config <- value
+    validObject(object)
+    object
 })
 
 #' Set a single configuration value in TSENATAnalysis
@@ -925,9 +904,9 @@ setMethod("setConfig", "TSENATAnalysis", function(object, value) {
 #' @examples
 #' # Load real TSENAT data
 #' data(readcounts)
-#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t")
-#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t')
+#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' 
 #' # Build and subset analysis
 #' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,
@@ -935,7 +914,7 @@ setMethod("setConfig", "TSENATAnalysis", function(object, value) {
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
 #' 
 #' # Update a single configuration value while preserving others
-#' analysis <- setConfigValue(analysis, "q_values", c(0.5, 1.0, 1.5))
+#' analysis <- setConfigValue(analysis, 'q_values', c(0.5, 1.0, 1.5))
 #' 
 #' # Verify the update
 #' config <- getConfig(analysis)
@@ -943,7 +922,7 @@ setMethod("setConfig", "TSENATAnalysis", function(object, value) {
 #'
 #' @export
 setGeneric("setConfigValue", function(object, key, value) {
-  standardGeneric("setConfigValue")
+    standardGeneric("setConfigValue")
 })
 
 #' @rdname setConfigValue
@@ -953,9 +932,9 @@ setGeneric("setConfigValue", function(object, key, value) {
 #' @examples
 #' # Load real TSENAT data
 #' data(readcounts)
-#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t")
-#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t')
+#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' 
 #' # Build and subset analysis with initial configuration
 #' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,
@@ -964,18 +943,18 @@ setGeneric("setConfigValue", function(object, key, value) {
 #' 
 #' # Use setConfigValue to update single configuration values
 #' # This preserves all other config values
-#' analysis <- setConfigValue(analysis, "q_values", c(0.5, 1.5, 2.0))
-#' analysis <- setConfigValue(analysis, "seed", 456)
+#' analysis <- setConfigValue(analysis, 'q_values', c(0.5, 1.5, 2.0))
+#' analysis <- setConfigValue(analysis, 'seed', 456)
 #' 
 #' # Verify the updates
 #' summary(analysis)
 setMethod("setConfigValue", "TSENATAnalysis", function(object, key, value) {
-  config <- getConfig(object)
-  if (is.null(config)) {
-    config <- list()
-  }
-  config[[key]] <- value
-  setConfig(object, config)
+    config <- getConfig(object)
+    if (is.null(config)) {
+        config <- list()
+    }
+    config[[key]] <- value
+    setConfig(object, config)
 })
 
 #' Extract SummarizedExperiment from TSENATAnalysis
@@ -994,28 +973,28 @@ setMethod("setConfigValue", "TSENATAnalysis", function(object, key, value) {
 #' @examples
 #' # Load real TSENAT data
 #' data(readcounts)
-#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t")
-#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t')
+#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
 #' @export
 setGeneric("se", function(object) {
-  standardGeneric("se")
+    standardGeneric("se")
 })
 
 #' @noRd
 if (!isGeneric("metadata")) {
-  setGeneric("metadata", function(x, key = NULL) {
-    standardGeneric("metadata")
-  })
+    setGeneric("metadata", function(x, key = NULL) {
+        standardGeneric("metadata")
+    })
 }
 
 #' @rdname se
 #' @export
 setMethod("se", "TSENATAnalysis", function(object) {
-  object@se
+    object@se
 })
 
 #' Extract metadata from TSENATAnalysis
@@ -1037,9 +1016,9 @@ setMethod("se", "TSENATAnalysis", function(object) {
 #' @examples
 #' # Load real TSENAT data
 #' data(readcounts)
-#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t")
-#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t')
+#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
@@ -1047,15 +1026,15 @@ setMethod("se", "TSENATAnalysis", function(object) {
 #' @rdname metadata
 
 setMethod("metadata", "TSENATAnalysis", function(x, key = NULL) {
-  if (is.null(key)) {
-    return(x@metadata)
-  }
-  
-  if (key %in% names(x@metadata)) {
-    return(x@metadata[[key]])
-  }
-  
-  NULL
+    if (is.null(key)) {
+        return(x@metadata)
+    }
+
+    if (key %in% names(x@metadata)) {
+        return(x@metadata[[key]])
+    }
+
+    NULL
 })
 
 #' Test rank-based method assumptions
@@ -1073,10 +1052,7 @@ setMethod("metadata", "TSENATAnalysis", function(x, key = NULL) {
 #' by evaluating exchangeability, monotonicity, and consistency assumptions.
 #'
 #' @export
-setGeneric("test_rankbased_assumptions_s4", function(analysis, q = NULL,
-                                                      checks = c("exchangeability",
-                                                                 "monotonicity",
-                                                                 "consistency"),
-                                                      alpha = 0.05, ...) {
-  standardGeneric("test_rankbased_assumptions_s4")
+setGeneric("test_rankbased_assumptions_s4", function(analysis, q = NULL, checks = c("exchangeability",
+    "monotonicity", "consistency"), alpha = 0.05, ...) {
+    standardGeneric("test_rankbased_assumptions_s4")
 })

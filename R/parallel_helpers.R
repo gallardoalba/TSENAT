@@ -7,15 +7,14 @@
         return(1)
     }
 
-    # Check for _R_CHECK_LIMIT_CORES_ environment variable (used by R CMD check)
+    # Check for _R_CHECK_LIMIT_CORES_ environment variable (used by R CMD
+    # check)
     core_limit <- Sys.getenv("_R_CHECK_LIMIT_CORES_", "")
     if (nchar(core_limit) > 0) {
-        # Safely coerce environment variable (will return NA if not valid integer)
-        core_limit <- tryCatch(
-            as.integer(core_limit),
-            warning = function(w) NA_integer_,
-            error = function(e) NA_integer_
-        )
+        # Safely coerce environment variable (will return NA if not valid
+        # integer)
+        core_limit <- tryCatch(as.integer(core_limit), warning = function(w) NA_integer_,
+            error = function(e) NA_integer_)
         if (!is.na(core_limit) && is.finite(core_limit) && core_limit > 0) {
             nthreads <- min(nthreads, core_limit)
         }
@@ -80,11 +79,11 @@
     return(unname(BiocParallel::bpmapply(FUN, X, Y, BPPARAM = bpparam, SIMPLIFY = FALSE)))
 }
 
-# Auto-detect and validate number of threads for parallel execution
-# If nthreads is NULL or < 1, auto-detects available cores (minus 1)
-# Otherwise uses provided value. Always applies environment constraints.
-# @param nthreads Integer or NULL; number of threads (default: NULL for auto-detect)
-# @return Validated number of threads respecting environment limits
+# Auto-detect and validate number of threads for parallel execution If nthreads
+# is NULL or < 1, auto-detects available cores (minus 1) Otherwise uses
+# provided value. Always applies environment constraints.  @param nthreads
+# Integer or NULL; number of threads (default: NULL for auto-detect) @return
+# Validated number of threads respecting environment limits
 .get_nthreads_auto_detect <- function(nthreads = NULL) {
     if (is.null(nthreads) || nthreads < 1) {
         # Auto-detect available cores, leaving one free for system

@@ -8,122 +8,127 @@
 
 #' @noRd
 .validate_diversity_parameters <- function(norm, q, what, shrinkage, pseudocount) {
-  # Coerce logical norm to character for backward compatibility
-  if (is.logical(norm)) {
-    norm <- if (norm) "range" else "none"
-  }
-  norm <- match.arg(norm, choices = c("none", "range", "zscore", 
-                                      "log_odds_ratio", "relative_reference"))
-  
-  # Validate q values
-  if (!is.numeric(q) || any(q < 0)) {
-    stop("Argument 'q' must be numeric and >= 0 (q=0 represents species richness).", call. = FALSE)
-  }
-  
-  # Validate other parameters
-  what <- match.arg(what, choices = c("S", "D"))
-  shrinkage <- match.arg(shrinkage, choices = c("none", "empirical_bayes"))
-  
-  # Validate pseudocount
-  if (!is.numeric(pseudocount) && !(is.character(pseudocount) && tolower(pseudocount) == "auto")) {
-    stop("pseudocount must be numeric or 'auto'", call. = FALSE)
-  }
-  
-  list(norm = norm, q = q, what = what, shrinkage = shrinkage, pseudocount = pseudocount)
+    # Coerce logical norm to character for backward compatibility
+    if (is.logical(norm)) {
+        norm <- if (norm)
+            "range" else "none"
+    }
+    norm <- match.arg(norm, choices = c("none", "range", "zscore", "log_odds_ratio",
+        "relative_reference"))
+
+    # Validate q values
+    if (!is.numeric(q) || any(q < 0)) {
+        stop("Argument 'q' must be numeric and >= 0 (q=0 represents species richness).",
+            call. = FALSE)
+    }
+
+    # Validate other parameters
+    what <- match.arg(what, choices = c("S", "D"))
+    shrinkage <- match.arg(shrinkage, choices = c("none", "empirical_bayes"))
+
+    # Validate pseudocount
+    if (!is.numeric(pseudocount) && !(is.character(pseudocount) && tolower(pseudocount) ==
+        "auto")) {
+        stop("pseudocount must be numeric or 'auto'", call. = FALSE)
+    }
+
+    list(norm = norm, q = q, what = what, shrinkage = shrinkage, pseudocount = pseudocount)
 }
 
 #' Handle pseudocount auto-estimation
 
 #' @noRd
 .handle_pseudocount_auto <- function(pseudocount, x, verbose) {
-  if (!is.character(pseudocount) || tolower(pseudocount) != "auto") {
-    return(pseudocount)  # Return as-is if not "auto"
-  }
-  
-  if (verbose) {
-    message("Computing pseudocount automatically via .estimate_pseudocount()...")
-  }
-  pc_result <- .estimate_pseudocount(x, verbose = FALSE)
-  pseudocount <- pc_result$scalar_pseudocount
-  
-  if (verbose) {
-    message(sprintf("  -> Estimated pseudocount = %.4f", pseudocount))
-  }
-  
-  pseudocount
+    if (!is.character(pseudocount) || tolower(pseudocount) != "auto") {
+        return(pseudocount)  # Return as-is if not 'auto'
+    }
+
+    if (verbose) {
+        message("Computing pseudocount automatically via .estimate_pseudocount()...")
+    }
+    pc_result <- .estimate_pseudocount(x, verbose = FALSE)
+    pseudocount <- pc_result$scalar_pseudocount
+
+    if (verbose) {
+        message(sprintf("  -> Estimated pseudocount = %.4f", pseudocount))
+    }
+
+    pseudocount
 }
 
 #' Extract gene names from SummarizedExperiment rowData
 
 #' @noRd
 .extract_gene_names <- function(original_x, genes, result) {
-  gene_names <- NULL
-  
-  if (!is(original_x, "SummarizedExperiment") && !is(original_x, "RangedSummarizedExperiment")) {
-    return(NULL)
-  }
-  
-  rd <- try(SummarizedExperiment::rowData(original_x), silent = TRUE)
-  if (inherits(rd, "try-error") || is.null(rd)) {
-    return(NULL)
-  }
-  
-  # Look for gene_names or gene_name column
-  gene_name_col <- if ("gene_names" %in% colnames(rd)) {
-    "gene_names"
-  } else if ("gene_name" %in% colnames(rd)) {
-    "gene_name"
-  } else {
-    NULL
-  }
-  
-  if (is.null(gene_name_col)) {
-    return(NULL)
-  }
-  
-  # Use tapply for vectorized gene-to-name mapping
-  # CRITICAL FIX: Must verify gene_names_col and genes have matching lengths
-  tx_genes <- genes
-  gene_names_col <- rd[[gene_name_col]]
-  
-  # Check for length mismatch and handle gracefully
-  if (length(gene_names_col) != length(tx_genes)) {
-    # Length mismatch - try to recover using rownames
-    se_rownames <- rownames(original_x)
-    if (!is.null(se_rownames) && length(se_rownames) == length(gene_names_col)) {
-      # Map rownames to gene names, then use to look up names for each tx_gene
-      names(gene_names_col) <- se_rownames
-      tx_genes_char <- as.character(tx_genes)
-      # Try to match each tx_gene to a rowname
-      matched_idx <- match(tx_genes_char, se_rownames)
-      if (!all(is.na(matched_idx)) && sum(!is.na(matched_idx)) == length(tx_genes)) {
-        # Successfully matched - use the indexed gene names
-        gene_names_col <- gene_names_col[matched_idx]
-      } else {
-        # Could not match - return NULL to skip gene name extraction
+    gene_names <- NULL
+
+    if (!is(original_x, "SummarizedExperiment") && !is(original_x, "RangedSummarizedExperiment")) {
         return(NULL)
-      }
-    } else {
-      # Cannot resolve length mismatch - return NULL
-      return(NULL)
     }
-  }
-  
-  gene_to_name <- tapply(gene_names_col, tx_genes, function(x) {
-    x_valid <- x[!is.na(x)]
-    if (length(x_valid) > 0) x_valid[1] else NA
-  }, simplify = FALSE)
-  
-  result_genes <- result[, 1]
-  gene_names <- unname(gene_to_name[as.character(result_genes)])
-  gene_names[is.na(gene_names)] <- result_genes[is.na(gene_names)]
-  
-  # Check for duplicates; if found, return NULL to fall back to gene IDs
-  if (length(unique(gene_names)) < length(gene_names)) {
-    return(NULL)
-  }
-  
-  gene_names
+
+    rd <- try(SummarizedExperiment::rowData(original_x), silent = TRUE)
+    if (inherits(rd, "try-error") || is.null(rd)) {
+        return(NULL)
+    }
+
+    # Look for gene_names or gene_name column
+    gene_name_col <- if ("gene_names" %in% colnames(rd)) {
+        "gene_names"
+    } else if ("gene_name" %in% colnames(rd)) {
+        "gene_name"
+    } else {
+        NULL
+    }
+
+    if (is.null(gene_name_col)) {
+        return(NULL)
+    }
+
+    # Use tapply for vectorized gene-to-name mapping CRITICAL FIX: Must verify
+    # gene_names_col and genes have matching lengths
+    tx_genes <- genes
+    gene_names_col <- rd[[gene_name_col]]
+
+    # Check for length mismatch and handle gracefully
+    if (length(gene_names_col) != length(tx_genes)) {
+        # Length mismatch - try to recover using rownames
+        se_rownames <- rownames(original_x)
+        if (!is.null(se_rownames) && length(se_rownames) == length(gene_names_col)) {
+            # Map rownames to gene names, then use to look up names for each
+            # tx_gene
+            names(gene_names_col) <- se_rownames
+            tx_genes_char <- as.character(tx_genes)
+            # Try to match each tx_gene to a rowname
+            matched_idx <- match(tx_genes_char, se_rownames)
+            if (!all(is.na(matched_idx)) && sum(!is.na(matched_idx)) == length(tx_genes)) {
+                # Successfully matched - use the indexed gene names
+                gene_names_col <- gene_names_col[matched_idx]
+            } else {
+                # Could not match - return NULL to skip gene name extraction
+                return(NULL)
+            }
+        } else {
+            # Cannot resolve length mismatch - return NULL
+            return(NULL)
+        }
+    }
+
+    gene_to_name <- tapply(gene_names_col, tx_genes, function(x) {
+        x_valid <- x[!is.na(x)]
+        if (length(x_valid) > 0)
+            x_valid[1] else NA
+    }, simplify = FALSE)
+
+    result_genes <- result[, 1]
+    gene_names <- unname(gene_to_name[as.character(result_genes)])
+    gene_names[is.na(gene_names)] <- result_genes[is.na(gene_names)]
+
+    # Check for duplicates; if found, return NULL to fall back to gene IDs
+    if (length(unique(gene_names)) < length(gene_names)) {
+        return(NULL)
+    }
+
+    gene_names
 }
 
 #' Prepare column and row data for diversity result#' Prepare and validate diversity input data
@@ -133,17 +138,17 @@
 #'
 
 #' @noRd
-.prepare_diversity_data <- function(x, genes, original_x, effective_length, 
-    norm, q, what, nthreads, shrinkage, pseudocount, verbose, 
-    tpm, assayno, show_messages = FALSE, min_valid_frac = 0.75) {
-    
+.prepare_diversity_data <- function(x, genes, original_x, effective_length, norm,
+    q, what, nthreads, shrinkage, pseudocount, verbose, tpm, assayno, show_messages = FALSE,
+    min_valid_frac = 0.75) {
+
     # Prepare input data
     inp <- .prepare_diversity_input(x = x, genes = genes, tpm = tpm, assayno = assayno,
         verbose = verbose)
     x <- inp$x
     genes <- inp$genes
     se_assay_mat <- inp$se_assay_mat
-    
+
     # Validate data
     if (!is.numeric(x) || any(is.na(x))) {
         stop("Input data must be numeric and contain no NAs!", call. = FALSE)
@@ -151,38 +156,41 @@
     if (nrow(x) != length(genes)) {
         stop("The number of rows is not equal to the given gene set.", call. = FALSE)
     }
-    
+
     if (is.null(se_assay_mat)) {
         se_assay_mat <- x
     }
-    
+
     # Look for effective_length in metadata if not provided
-    if (is.null(effective_length) && (is(original_x, "SummarizedExperiment") || is(original_x, "RangedSummarizedExperiment"))) {
+    if (is.null(effective_length) && (is(original_x, "SummarizedExperiment") || is(original_x,
+        "RangedSummarizedExperiment"))) {
         md <- tryCatch(S4Vectors::metadata(original_x), error = function(e) NULL)
         if (!is.null(md) && !is.null(md$salmon_effective_length)) {
             effective_length <- md$salmon_effective_length
-            if (verbose && show_messages) message("[OK] Found salmon_effective_length in input metadata")
+            if (verbose && show_messages)
+                message("[OK] Found salmon_effective_length in input metadata")
         }
     }
-    
+
     # Calculate diversity
     use_range_norm <- (norm == "range")
     if (!is.null(effective_length) && verbose && show_messages) {
         message("Calculating diversity with EFFECTIVE LENGTH NORMALIZATION")
     }
-    
 
-    
-    result <- .calculate_method(x, genes, use_range_norm, verbose = verbose, show_messages = show_messages, q = q, what = what,
-        nthreads = nthreads, pseudocount = pseudocount, min_valid_frac = min_valid_frac,
+
+
+    result <- .calculate_method(x, genes, use_range_norm, verbose = verbose, show_messages = show_messages,
+        q = q, what = what, nthreads = nthreads, pseudocount = pseudocount, min_valid_frac = min_valid_frac,
         shrinkage = shrinkage, effective_length = effective_length)
-    
 
-    
+
+
     list(result = result, x = x, genes = genes, se_assay_mat = se_assay_mat, effective_length = effective_length)
 }
 
-# NOTE (March 2026): .bootstrap_diversity_ci() moved to bootstrap.R for consolidation
+# NOTE (March 2026): .bootstrap_diversity_ci() moved to bootstrap.R for
+# consolidation
 
 #' Build SummarizedExperiment output for diversity
 #'
@@ -192,15 +200,17 @@
 #' @noRd
 .build_diversity_se_output <- function(result, output_structure, original_x, se_assay_mat,
     bootstrap_ci_results, bootstrap, metadata, verbose, what, q, genes) {
-    
+
     result_assay <- output_structure$result_assay
-    # Do NOT set rownames/colnames here - let SE constructor handle alignment with rowData/colData
-    
-    # Build assays list: include both diversity and counts assays
-    # Aggregate transcript-level se_assay_mat to gene-level to match result_assay rows
-    # The gene_ids are in the first column of result (before we extracted the assay)
+    # Do NOT set rownames/colnames here - let SE constructor handle alignment
+    # with rowData/colData
+
+    # Build assays list: include both diversity and counts assays Aggregate
+    # transcript-level se_assay_mat to gene-level to match result_assay rows
+    # The gene_ids are in the first column of result (before we extracted the
+    # assay)
     filtered_gene_ids <- as.character(result[, 1])
-    
+
     # Pre-allocate counts_assay matrix for efficiency (avoid rbind overhead)
     n_samples <- ncol(se_assay_mat)
     n_genes <- length(filtered_gene_ids)
@@ -217,14 +227,15 @@
         # Empty result - no genes passed filtering
         counts_assay <- matrix(nrow = 0, ncol = n_samples)
     }
-    
-    # For multi-q case, replicate counts for each q value
-    # Check independently of result_assay rows to handle empty result case
-    n_q <- length(output_structure$col_ids) / ncol(counts_assay)
+
+    # For multi-q case, replicate counts for each q value Check independently
+    # of result_assay rows to handle empty result case
+    n_q <- length(output_structure$col_ids)/ncol(counts_assay)
     if (is.finite(n_q) && n_q == as.integer(n_q) && n_q > 1) {
         # Pre-allocate replicated matrix instead of cbind overhead
         n_q_int <- as.integer(n_q)
-        counts_assay_rep <- matrix(0, nrow = nrow(counts_assay), ncol = ncol(counts_assay) * n_q_int)
+        counts_assay_rep <- matrix(0, nrow = nrow(counts_assay), ncol = ncol(counts_assay) *
+            n_q_int)
         for (q_idx in seq_len(n_q_int)) {
             col_start <- (q_idx - 1) * ncol(counts_assay) + 1
             col_end <- q_idx * ncol(counts_assay)
@@ -232,260 +243,279 @@
         }
         counts_assay <- counts_assay_rep
     }
-    
-    # Set assay dimnames to match rowData/colData rownames
-    # This ensures compatibility with SummarizedExperiment constructor
-    # IMPORTANT: Only set rownames here; colnames must match result_assay's existing names
-    # The colData rownames are formatted with decimals (e.g., "q=1.000"), 
-    # while result_assay colnames use the original formatting from .calculate_method()
+
+    # Set assay dimnames to match rowData/colData rownames This ensures
+    # compatibility with SummarizedExperiment constructor IMPORTANT: Only set
+    # rownames here; colnames must match result_assay's existing names The
+    # colData rownames are formatted with decimals (e.g., 'q=1.000'), while
+    # result_assay colnames use the original formatting from
+    # .calculate_method()
     rownames(result_assay) <- rownames(output_structure$rowData)
     rownames(counts_assay) <- rownames(output_structure$rowData)
-    # DO NOT overwrite colnames - keep the original formatting from result matrix
-    # This ensures colnames match what the SummarizedExperiment expects
-    
+    # DO NOT overwrite colnames - keep the original formatting from result
+    # matrix This ensures colnames match what the SummarizedExperiment expects
+
     # Create assays list with appropriate name based on what parameter
-    assay_name <- if (what[1] == "D") "hill" else "diversity"
+    assay_name <- if (what[1] == "D")
+        "hill" else "diversity"
     assays_list <- if (nrow(result_assay) > 0) {
         list(result_assay, counts_assay)
     } else {
         list(result_assay)  # Empty result - just include the empty assay
     }
     names(assays_list)[1] <- assay_name
-    if (length(assays_list) > 1) names(assays_list)[2] <- "counts"
+    if (length(assays_list) > 1)
+        names(assays_list)[2] <- "counts"
     if (!is.null(bootstrap_ci_results) && !is.null(bootstrap_ci_results$bootstrap_ci_results)) {
         # Extract CI matrices from bootstrap results
         bootstrap_out <- bootstrap_ci_results$bootstrap_ci_results
-        
-        # Create CI matrices: initialize with NA, then populate from bootstrap output
+
+        # Create CI matrices: initialize with NA, then populate from bootstrap
+        # output
         ci_lower <- result_assay * NA_real_
         ci_upper <- result_assay * NA_real_
-        
-        # Extract bootstrap CIs if available in output
-        # NEW STRUCTURE: each bootstrap result is for ONE (gene, sample) pair
+
+        # Extract bootstrap CIs if available in output NEW STRUCTURE: each
+        # bootstrap result is for ONE (gene, sample) pair
         if (is.list(bootstrap_out) && length(bootstrap_out) > 0) {
-            
-            # Get row names from the result_assay to map (gene, sample) pairs to indices
-            result_row_names  <- rownames(result_assay)
+
+            # Get row names from the result_assay to map (gene, sample) pairs
+            # to indices
+            result_row_names <- rownames(result_assay)
             result_col_names <- colnames(result_assay)
-            
+
             # Build gene ID to row index mapping using output_structure$rowData
-            # This maps bootstrap gene names (which are gene IDs) to result_assay row indices
-            gene_id_map <- data.frame(
-                gene_id = if (is.null(output_structure$rowData$gene_id)) {
-                    result_row_names
-                } else {
-                    output_structure$rowData$gene_id
-                },
-                row_index = seq_along(result_row_names),
-                row.names = result_row_names
-            )
-            
-            # Pre-compute sample column indices for fast lookups (cache all pattern matches)
+            # This maps bootstrap gene names (which are gene IDs) to
+            # result_assay row indices
+            gene_id_map <- data.frame(gene_id = if (is.null(output_structure$rowData$gene_id)) {
+                result_row_names
+            } else {
+                output_structure$rowData$gene_id
+            }, row_index = seq_along(result_row_names), row.names = result_row_names)
+
+            # Pre-compute sample column indices for fast lookups (cache all
+            # pattern matches)
             sample_col_cache <- list()
-            # Extract unique sample names from result_col_names by removing q= suffix
+            # Extract unique sample names from result_col_names by removing q=
+            # suffix
             unique_samples <- unique(sub("_q=.*$", "", result_col_names))
-            
+
             for (s_name in unique_samples) {
-                if (is.na(s_name) || s_name == "") next
+                if (is.na(s_name) || s_name == "")
+                  next
                 # Escape special regex characters once and cache
                 s_escaped <- gsub("([.^$*+?{}\\(\\)\\[\\]|\\\\])", "\\\\\\1", s_name)
                 col_pattern <- paste0("^", s_escaped, "_q=")
                 col_matches <- grep(col_pattern, result_col_names)
-                
+
                 if (length(col_matches) > 0) {
-                    sample_col_cache[[s_name]] <- list(
-                        pattern = col_pattern,
-                        indices = col_matches,
-                        q_values = sub(col_pattern, "", result_col_names[col_matches])
-                    )
+                  sample_col_cache[[s_name]] <- list(pattern = col_pattern, indices = col_matches,
+                    q_values = sub(col_pattern, "", result_col_names[col_matches]))
                 }
             }
-            
-            # Process each bootstrap result
-            # Names should be like "gene_id_sample_1", "gene_name_sample_1", etc.
+
+            # Process each bootstrap result Names should be like
+            # 'gene_id_sample_1', 'gene_name_sample_1', etc.
             for (i in seq_along(bootstrap_out)) {
                 boot_item <- bootstrap_out[[i]]
-                if (is.null(boot_item)) next
-                
-                # Parse bootstrap result name: "gene_id_sample_INDEX"
+                if (is.null(boot_item))
+                  next
+
+                # Parse bootstrap result name: 'gene_id_sample_INDEX'
                 boot_name <- names(bootstrap_out)[i]
-                if (is.null(boot_name) || is.na(boot_name)) next
-                
+                if (is.null(boot_name) || is.na(boot_name))
+                  next
+
                 m <- regexec("^(.+)_sample_([0-9]+)$", boot_name)
                 parts <- regmatches(boot_name, m)
-                if (length(parts[[1]]) != 3) next
-                
+                if (length(parts[[1]]) != 3)
+                  next
+
                 gene_name_in_result <- parts[[1]][2]
                 sample_idx_str <- parts[[1]][3]
                 sample_idx <- as.integer(sample_idx_str)
-                
+
                 # Get actual sample name from original se_assay_mat
-                if (is.null(se_assay_mat) || !is.matrix(se_assay_mat)) next
-                if (sample_idx < 1 || sample_idx > ncol(se_assay_mat)) next
+                if (is.null(se_assay_mat) || !is.matrix(se_assay_mat))
+                  next
+                if (sample_idx < 1 || sample_idx > ncol(se_assay_mat))
+                  next
                 sample_name <- colnames(se_assay_mat)[sample_idx]
-                if (is.null(sample_name) || is.na(sample_name) || sample_name == "") next
-                
-                # Find gene row in result matrix - Use gene ID map to match bootstrap gene names to result_row_names
+                if (is.null(sample_name) || is.na(sample_name) || sample_name ==
+                  "")
+                  next
+
+                # Find gene row in result matrix - Use gene ID map to match
+                # bootstrap gene names to result_row_names
                 gene_row_idx <- NA
                 if (gene_name_in_result %in% gene_id_map$gene_id) {
-                    # Bootstrap gene name matches a gene_id in the mapping
-                    matching_rows <- which(gene_id_map$gene_id == gene_name_in_result)
-                    if (length(matching_rows) > 0) {
-                        gene_row_idx <- gene_id_map$row_index[matching_rows[1]]
-                    }
+                  # Bootstrap gene name matches a gene_id in the mapping
+                  matching_rows <- which(gene_id_map$gene_id == gene_name_in_result)
+                  if (length(matching_rows) > 0) {
+                    gene_row_idx <- gene_id_map$row_index[matching_rows[1]]
+                  }
                 } else if (gene_name_in_result %in% result_row_names) {
-                    # Bootstrap gene name is already a result row name (gene symbol)
-                    gene_row_idx <- which(result_row_names == gene_name_in_result)[1]
+                  # Bootstrap gene name is already a result row name (gene
+                  # symbol)
+                  gene_row_idx <- which(result_row_names == gene_name_in_result)[1]
                 }
-                
-                if (is.na(gene_row_idx)) next
-                
-                # Look up pre-computed column indices from cache (no regex evaluation)
-                if (is.null(sample_name) || is.na(sample_name) || !(sample_name %in% names(sample_col_cache))) next
+
+                if (is.na(gene_row_idx))
+                  next
+
+                # Look up pre-computed column indices from cache (no regex
+                # evaluation)
+                if (is.null(sample_name) || is.na(sample_name) || !(sample_name %in%
+                  names(sample_col_cache)))
+                  next
                 cached_info <- sample_col_cache[[sample_name]]
                 col_indices <- cached_info$indices
                 col_q_values <- cached_info$q_values
-                
+
                 # Process bootstrap result depending on structure
-                if (is.list(boot_item) && !is.null(names(boot_item)) && all(grepl("^q=", names(boot_item)))) {
-                    # Multi-q case: bootstrap result is a list with names like "q=1.0"
-                    for (j in seq_along(boot_item)) {
-                        q_name <- names(boot_item)[j]  # "q=1.0"
-                        q_val <- sub("^q=", "", q_name)
-                        q_result <- boot_item[[j]]
-                        
-                        if (!is.null(q_result$lower_ci) && !is.null(q_result$upper_ci)) {
-                            # Find which columns match this q value
-                            matching_q_idx <- which(col_q_values == q_val)
-                            if (length(matching_q_idx) > 0) {
-                                target_col_indices <- col_indices[matching_q_idx]
-                                
-                                ci_lower[gene_row_idx, target_col_indices] <- as.numeric(q_result$lower_ci)[1]
-                                ci_upper[gene_row_idx, target_col_indices] <- as.numeric(q_result$upper_ci)[1]
-                            }
-                        }
+                if (is.list(boot_item) && !is.null(names(boot_item)) && all(grepl("^q=",
+                  names(boot_item)))) {
+                  # Multi-q case: bootstrap result is a list with names like
+                  # 'q=1.0'
+                  for (j in seq_along(boot_item)) {
+                    q_name <- names(boot_item)[j]  # 'q=1.0'
+                    q_val <- sub("^q=", "", q_name)
+                    q_result <- boot_item[[j]]
+
+                    if (!is.null(q_result$lower_ci) && !is.null(q_result$upper_ci)) {
+                      # Find which columns match this q value
+                      matching_q_idx <- which(col_q_values == q_val)
+                      if (length(matching_q_idx) > 0) {
+                        target_col_indices <- col_indices[matching_q_idx]
+
+                        ci_lower[gene_row_idx, target_col_indices] <- as.numeric(q_result$lower_ci)[1]
+                        ci_upper[gene_row_idx, target_col_indices] <- as.numeric(q_result$upper_ci)[1]
+                      }
                     }
+                  }
                 } else if (!is.null(boot_item$lower_ci) && !is.null(boot_item$upper_ci)) {
-                    # Single-q case: bootstrap result is a tsenat_bootstrap_ci object
-                    ci_lower[gene_row_idx, col_indices] <- as.numeric(boot_item$lower_ci)[1]
-                    ci_upper[gene_row_idx, col_indices] <- as.numeric(boot_item$upper_ci)[1]
+                  # Single-q case: bootstrap result is a tsenat_bootstrap_ci
+                  # object
+                  ci_lower[gene_row_idx, col_indices] <- as.numeric(boot_item$lower_ci)[1]
+                  ci_upper[gene_row_idx, col_indices] <- as.numeric(boot_item$upper_ci)[1]
                 }
             }
         }
-        
+
         # Set dimnames on CI matrices to match result_assay
         rownames(ci_lower) <- rownames(result_assay)
         colnames(ci_lower) <- colnames(result_assay)
         rownames(ci_upper) <- rownames(result_assay)
         colnames(ci_upper) <- colnames(result_assay)
-        
+
         # Only add CI assays if they have actual values (not all NA)
         if (!all(is.na(ci_lower)) && !all(is.na(ci_upper))) {
             assays_list$ci_lower <- ci_lower
             assays_list$ci_upper <- ci_upper
-            if (verbose) message("  [OK] Added ci_lower and ci_upper assays to output SE")
+            if (verbose)
+                message("  [OK] Added ci_lower and ci_upper assays to output SE")
         } else if (verbose) {
             message("  [INFO] Bootstrap CIs extracted but no valid values found; skipping CI assays")
         }
     }
-    
+
     # Build metadata
-    result_meta_list <- list(
-        q = q,  # Store q values used
-        what = what[1],  # Store which metric (S or D)
-        readcounts = se_assay_mat,
-        bootstrap = bootstrap,
-        bootstrap_nboot = if (!is.null(bootstrap_ci_results)) bootstrap_ci_results$bootstrap_nboot else NULL,
-        bootstrap_method = if (!is.null(bootstrap_ci_results)) bootstrap_ci_results$bootstrap_method else NULL,
-        bootstrap_ci = if (!is.null(bootstrap_ci_results)) bootstrap_ci_results$bootstrap_ci else NULL
-    )
+    bootstrap_nboot_val <- if (!is.null(bootstrap_ci_results)) {
+        bootstrap_ci_results$bootstrap_nboot
+    } else {
+        NULL
+    }
+    bootstrap_method_val <- if (!is.null(bootstrap_ci_results)) {
+        bootstrap_ci_results$bootstrap_method
+    } else {
+        NULL
+    }
+    bootstrap_ci_val <- if (!is.null(bootstrap_ci_results)) {
+        bootstrap_ci_results$bootstrap_ci
+    } else {
+        NULL
+    }
+    result_meta_list <- list(q = q, what = what[1], readcounts = se_assay_mat, bootstrap = bootstrap,
+        bootstrap_nboot = bootstrap_nboot_val, bootstrap_method = bootstrap_method_val,
+        bootstrap_ci = bootstrap_ci_val)
     if (is(original_x, "SummarizedExperiment") || is(original_x, "RangedSummarizedExperiment")) {
         result_meta_list$se <- original_x
     }
-    
+
     # Build and return SummarizedExperiment
-    result <- SummarizedExperiment::SummarizedExperiment(
-        assays = assays_list,
-        rowData = output_structure$rowData,
-        colData = output_structure$colData,
-        metadata = result_meta_list
-    )
-    
+    result <- SummarizedExperiment::SummarizedExperiment(assays = assays_list, rowData = output_structure$rowData,
+        colData = output_structure$colData, metadata = result_meta_list)
+
     # Apply metadata mapping if provided
     if (!is.null(metadata)) {
         result <- .map_metadata_se(result, metadata)
     }
-    
+
     result
 }
 
 #' @noRd
 .prepare_diversity_metadata <- function(x, result, original_x, genes, q, gene_names = NULL) {
-  # Get gene IDs from first column of result
-  gene_ids <- as.character(result[, 1])
-  row_ids <- if (!is.null(gene_names)) gene_names else gene_ids
-  
-  # Create rowData with row_ids as rownames (not gene_ids)
-  result_rowData <- data.frame(gene_id = gene_ids, row.names = row_ids)
-  result_rowData$gene_name <- gene_names
-  
-  if (length(q) > 1) {
-    col_split <- do.call(rbind, strsplit(colnames(result)[-1], "_q="))
-    col_ids <- paste0(col_split[, 1], "_q=", col_split[, 2])  # Keep original formatting
-    
-    result_colData <- data.frame(
-      samples = as.character(col_split[, 1]),
-      q = as.numeric(col_split[, 2]),
-      row.names = col_ids,  # Use the same format as the assay colnames
-      stringsAsFactors = FALSE
-    )
-    
-    # Preserve original colData if available
-    if (is(original_x, "SummarizedExperiment") || is(original_x, "RangedSummarizedExperiment")) {
-      orig_coldata <- try(SummarizedExperiment::colData(original_x), silent = TRUE)
-      if (!inherits(orig_coldata, "try-error") && nrow(orig_coldata) > 0) {
-        sample_indices <- NA
-        if (length(rownames(orig_coldata)) > 0 && rownames(orig_coldata)[1] != "") {
-          sample_indices <- match(col_split[, 1], rownames(orig_coldata))
-        } else if ("Sample" %in% colnames(orig_coldata)) {
-          sample_indices <- match(col_split[, 1], as.character(orig_coldata$Sample))
+    # Get gene IDs from first column of result
+    gene_ids <- as.character(result[, 1])
+    row_ids <- if (!is.null(gene_names))
+        gene_names else gene_ids
+
+    # Create rowData with row_ids as rownames (not gene_ids)
+    result_rowData <- data.frame(gene_id = gene_ids, row.names = row_ids)
+    result_rowData$gene_name <- gene_names
+
+    if (length(q) > 1) {
+        col_split <- do.call(rbind, strsplit(colnames(result)[-1], "_q="))
+        col_ids <- paste0(col_split[, 1], "_q=", col_split[, 2])  # Keep original formatting
+
+        result_colData <- data.frame(samples = as.character(col_split[, 1]), q = as.numeric(col_split[,
+            2]), row.names = col_ids, stringsAsFactors = FALSE)
+
+        # Preserve original colData if available
+        if (is(original_x, "SummarizedExperiment") || is(original_x, "RangedSummarizedExperiment")) {
+            orig_coldata <- try(SummarizedExperiment::colData(original_x), silent = TRUE)
+            if (!inherits(orig_coldata, "try-error") && nrow(orig_coldata) > 0) {
+                sample_indices <- NA
+                if (length(rownames(orig_coldata)) > 0 && rownames(orig_coldata)[1] !=
+                  "") {
+                  sample_indices <- match(col_split[, 1], rownames(orig_coldata))
+                } else if ("Sample" %in% colnames(orig_coldata)) {
+                  sample_indices <- match(col_split[, 1], as.character(orig_coldata$Sample))
+                }
+
+                if (!all(is.na(sample_indices))) {
+                  for (col in colnames(orig_coldata)) {
+                    result_colData[[col]] <- orig_coldata[[col]][sample_indices]
+                  }
+                }
+            }
         }
-        
-        if (!all(is.na(sample_indices))) {
-          for (col in colnames(orig_coldata)) {
-            result_colData[[col]] <- orig_coldata[[col]][sample_indices]
-          }
+    } else {
+        # Single q-value - use raw q value formatting like .calculate_method()
+        # does
+        base_col_ids <- colnames(x)
+        if (is.null(base_col_ids) || any(base_col_ids == "")) {
+            base_col_ids <- paste0("Sample", seq_len(ncol(x)))
         }
-      }
-    }
-  } else {
-    # Single q-value - use raw q value formatting like .calculate_method() does
-    base_col_ids <- colnames(x)
-    if (is.null(base_col_ids) || any(base_col_ids == "")) {
-      base_col_ids <- paste0("Sample", seq_len(ncol(x)))
-    }
-    col_ids <- paste0(base_col_ids, "_q=", q)  # Use raw q, no formatting
-    
-    result_colData <- data.frame(
-      samples = base_col_ids,
-      q = rep(q, length(base_col_ids)),
-      row.names = col_ids,
-      stringsAsFactors = FALSE
-    )
-    
-    # Preserve original colData
-    if (is(original_x, "SummarizedExperiment") || is(original_x, "RangedSummarizedExperiment")) {
-      orig_coldata <- try(SummarizedExperiment::colData(original_x), silent = TRUE)
-      if (!inherits(orig_coldata, "try-error") && nrow(orig_coldata) > 0) {
-        for (col in colnames(orig_coldata)) {
-          result_colData[[col]] <- orig_coldata[[col]]
+        col_ids <- paste0(base_col_ids, "_q=", q)  # Use raw q, no formatting
+
+        result_colData <- data.frame(samples = base_col_ids, q = rep(q, length(base_col_ids)),
+            row.names = col_ids, stringsAsFactors = FALSE)
+
+        # Preserve original colData
+        if (is(original_x, "SummarizedExperiment") || is(original_x, "RangedSummarizedExperiment")) {
+            orig_coldata <- try(SummarizedExperiment::colData(original_x), silent = TRUE)
+            if (!inherits(orig_coldata, "try-error") && nrow(orig_coldata) > 0) {
+                for (col in colnames(orig_coldata)) {
+                  result_colData[[col]] <- orig_coldata[[col]]
+                }
+            }
         }
-      }
     }
-  }
-  
-  list(colData = result_colData, rowData = result_rowData, 
-       col_ids = col_ids, row_ids = row_ids, result_assay = as.matrix(result[, -1, drop = FALSE]))
+
+    list(colData = result_colData, rowData = result_rowData, col_ids = col_ids, row_ids = row_ids,
+        result_assay = as.matrix(result[, -1, drop = FALSE]))
 }
 
 #' Calculate Tsallis diversity per gene across samples
@@ -495,22 +525,22 @@
 #' like object.
 #' @param tpm Logical. If TRUE, use TPM/abundance data instead of raw counts.
 #' For tximport-style lists: uses the `$abundance` matrix instead of `$counts`.
-#' For SummarizedExperiment: looks for an assay named "tpm"; if found, uses it;
+#' For SummarizedExperiment: looks for an assay named 'tpm'; if found, uses it;
 #' otherwise falls back to the assay specified by `assayno` parameter and warns
 #' if `tpm=TRUE`.
 #' @param genes Character vector assigning each transcript (row) to a gene.
 #' Must have length equal to nrow(x) or the number of transcripts in `x`.
 #' @param norm Logical or character; normalization/standardization mode (default: TRUE).
-#' Backward compatible: TRUE = "range", FALSE = "none".
+#' Backward compatible: TRUE = 'range', FALSE = 'none'.
 #' Options:
-#' - "none": Raw entropy values, no standardization
-#' - "range": Range standardization [0,1] per gene (classic approach)
-#' - "zscore": Z-score standardization per q-value: (S_q - mean) / sd
+#' - 'none': Raw entropy values, no standardization
+#' - 'range': Range standardization [0,1] per gene (classic approach)
+#' - 'zscore': Z-score standardization per q-value: (S_q - mean) / sd
 #'   Useful for cross-study comparison; results in mean=0, sd=1
-#' - "log_odds_ratio": Log-odds ratio relative to random expectation:
+#' - 'log_odds_ratio': Log-odds ratio relative to random expectation:
 #'   log(S_q / S_q_max) where S_q_max is entropy of uniform distribution
 #'   Interpretation: 0 = uniform, >0 = more structured than random
-#' - "relative_reference": Ratio to reference group mean (requires colData 'sample_type')
+#' - 'relative_reference': Ratio to reference group mean (requires colData 'sample_type')
 #'   Interpretation: Reference group mean=1, >1 higher than reference
 #' @param assayno Integer assay index to use when `x` is a SummarizedExperiment.
 #' @param verbose Logical; print diagnostic messages when TRUE (default: TRUE).
@@ -521,10 +551,10 @@
 #' numbers.
 #' @param nthreads Number of threads for parallel processing (default: 1).
 #' Set to > 1 to parallelize per-gene entropy calculations.
-#' @param pseudocount Numeric scalar or "auto". Add this value to all transcript counts
+#' @param pseudocount Numeric scalar or 'auto'. Add this value to all transcript counts
 #' before calculating proportions (default: 0). Useful for handling genes with
 #' zero counts in some samples. Values like 0.5 or 1 are commonly used to avoid
-#' zero-division issues and NaN results. When set to "auto", pseudocount is
+#' zero-division issues and NaN results. When set to 'auto', pseudocount is
 #' automatically estimated using library size adjustment via `.estimate_pseudocount()`
 #' (recommended for sparse count data where regularization strength should adapt
 #' to sequencing depth).
@@ -542,9 +572,9 @@
 #' **Bibliography:** Papers S070, S197 (DESeq2, edgeR) recommend filtering low-abundance
 #' genes before hypothesis testing; same principle applies to bootstrap CI validity.
 #' @param shrinkage Character; method for stabilizing entropy estimates, particularly
-#' for genes with few expressed isoforms (default: "none"). Options:
-#' - "none": returns raw entropy estimates with no shrinkage
-#' - "empirical_bayes": applies empirical Bayes shrinkage toward the global mean
+#' for genes with few expressed isoforms (default: 'none'). Options:
+#' - 'none': returns raw entropy estimates with no shrinkage
+#' - 'empirical_bayes': applies empirical Bayes shrinkage toward the global mean
 #'   entropy, borrowing strength across genes. Recommended for datasets with many
 #'   genes and variable isoform complexity. Particularly effective for genes with
 #'   < 5 expressed isoforms (Bayesian strength borrowing).
@@ -564,8 +594,8 @@
 #' If NULL, automatically suggests nboot based on number of genes using \code{.suggest_nboot()}.
 #' For detailed inference on few genes (< 5), use 500-1000. For many genes (> 100),
 #' 250-500 is usually sufficient. Set explicitly to override auto-suggestion.
-#' @param bootstrap_method Character; bootstrap CI method: "percentile" (default, fast)
-#' or "bca" (bias-corrected and accelerated, more accurate but slower). BCa adjusts
+#' @param bootstrap_method Character; bootstrap CI method: 'percentile' (default, fast)
+#' or 'bca' (bias-corrected and accelerated, more accurate but slower). BCa adjusts
 #' for bias and skewness, improving coverage in small samples.
 #' @param bootstrap_ci Numeric; confidence level for bootstrap CIs (default: 0.95 for 95%).
 #' Must be in (0, 1). Higher values (e.g., 0.99) yield wider CIs; lower values are narrower.
@@ -580,12 +610,12 @@
 #' or other experimental metadata. Default: NULL (no metadata mapping applied).
 #'
 #' @return A \link[SummarizedExperiment]{SummarizedExperiment} with assays:
-#' - `diversity`: Per-gene Tsallis entropy values (if what="S")
-#' - `hill`: Per-gene Hill numbers (if what="D")
+#' - `diversity`: Per-gene Tsallis entropy values (if what='S')
+#' - `hill`: Per-gene Hill numbers (if what='D')
 #' - `counts`: Original raw transcript counts (preserved for downstream analysis)
 #' - `ci_lower`, `ci_upper`: Bootstrap confidence interval bounds (if bootstrap=TRUE)
 #' 
-#' **Important:** The original "counts" assay is preserved to allow downstream functions
+#' **Important:** The original 'counts' assay is preserved to allow downstream functions
 #' (e.g., `calculate_tsallis_entropy_bootstrap`, `jackknife_tsallis_entropy`) to access
 #' raw count data for valid resampling and diagnostics. These functions **require raw
 #' counts** to perform bootstrap resampling or jackknife leave-one-out analysis and will
@@ -600,8 +630,8 @@
 #'   The q-parameter controls emphasis on rare vs. abundant transcripts through
 #'   q_weight = 0.5 + q, affecting information gain linearly (papers S063-S067).
 #' [OK] Entropy normalization methods: Papers I023 (Hill numbers), B002-B007 (entropy
-#'   standardization) validate normalization approaches. "range" normalization
-#'   [0,1] is standard; "zscore", "log_odds_ratio", and "relative_reference"
+#'   standardization) validate normalization approaches. 'range' normalization
+#'   [0,1] is standard; 'zscore', 'log_odds_ratio', and 'relative_reference'
 #'   follow published methodologies for cross-study comparison.
 #' [OK] Effective length bias correction: Salmon quantification method (Smith et al., 2017;
 #'   reference dataset S001-S003) recommends normalization by effective length to
@@ -626,9 +656,9 @@
 #'   sample(1:100, 60, replace = TRUE),
 #'   nrow = 15, ncol = 4
 #' )
-#' rownames(counts) <- paste0("tx_", 1:15)
-#' colnames(counts) <- paste0("sample_", 1:4)
-#' genes <- rep(paste0("gene_", 1:5), each = 3)
+#' rownames(counts) <- paste0('tx_', 1:15)
+#' colnames(counts) <- paste0('sample_', 1:4)
+#' genes <- rep(paste0('gene_', 1:5), each = 3)
 #' 
 #' # Calculate diversity at q=1 (Shannon entropy)
 #' se <- .calculate_diversity(counts, genes = genes, q = 1.0, norm = TRUE)
@@ -638,11 +668,11 @@
 #' @noRd
 
 .calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assayno = 1,
-    verbose = FALSE, show_messages = FALSE, q = 2, what = c("S", "D"), nthreads = 1, pseudocount = 0, min_valid_frac = 0.75,
-    shrinkage = "none", effective_length = NULL, metadata = NULL,
-    bootstrap = FALSE, bootstrap_nboot = NULL, bootstrap_method = "percentile",
+    verbose = FALSE, show_messages = FALSE, q = 2, what = c("S", "D"), nthreads = 1,
+    pseudocount = 0, min_valid_frac = 0.75, shrinkage = "none", effective_length = NULL,
+    metadata = NULL, bootstrap = FALSE, bootstrap_nboot = NULL, bootstrap_method = "percentile",
     bootstrap_ci = 0.95, bootstrap_include_diagnostics = TRUE, seed = NULL) {
-    
+
     # Store original input and validate parameters
     original_x <- x
     validated <- .validate_diversity_parameters(norm, q, what, shrinkage, pseudocount)
@@ -650,29 +680,31 @@
     q <- validated$q
     what <- validated$what
     shrinkage <- validated$shrinkage
-    
+
     # Handle pseudocount auto-estimation
     pseudocount <- .handle_pseudocount_auto(pseudocount, x, verbose)
-    
+
     # Prepare input and calculate diversity
-    prep <- .prepare_diversity_data(x, genes, original_x, effective_length,
-        norm, q, what, nthreads, shrinkage, pseudocount, verbose,
-        tpm, assayno, show_messages, min_valid_frac)
+    prep <- .prepare_diversity_data(x, genes, original_x, effective_length, norm,
+        q, what, nthreads, shrinkage, pseudocount, verbose, tpm, assayno, show_messages,
+        min_valid_frac)
     result <- prep$result
     x <- prep$x
     genes <- prep$genes
     se_assay_mat <- prep$se_assay_mat
     effective_length <- prep$effective_length  # Extract effective_length from prep result
-    
+
     # Optional: Compute bootstrap CIs
     bootstrap_ci_results <- .bootstrap_diversity_ci(bootstrap, result, genes, se_assay_mat,
         bootstrap_method, bootstrap_ci, bootstrap_nboot, q, pseudocount, nthreads,
-        bootstrap_include_diagnostics, verbose, seed, effective_length, show_messages, min_valid_frac)
-    
+        bootstrap_include_diagnostics, verbose, seed, effective_length, show_messages,
+        min_valid_frac)
+
     # Prepare output structure
     gene_names <- .extract_gene_names(original_x, genes, result)
-    output_structure <- .prepare_diversity_metadata(x, result, original_x, genes, q, gene_names)
-    
+    output_structure <- .prepare_diversity_metadata(x, result, original_x, genes,
+        q, gene_names)
+
     # Build and return SummarizedExperiment
     .build_diversity_se_output(result, output_structure, original_x, se_assay_mat,
         bootstrap_ci_results, bootstrap, metadata, verbose, what, q, genes)

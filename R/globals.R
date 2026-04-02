@@ -18,10 +18,10 @@ NULL
 # # Declare package global variables to satisfy R CMD check NOTES
 if (getRversion() >= "2.15.1") {
     utils::globalVariables(c("xval", "x", "y", "padj", "padj_num", "padj_clean",
-        "label_flag", "sample_q", "qnum", "significant", "prcomp", "predict",
-        ".data", "divergence", "lower", "upper", "central", "spread", 
-        "ci_lower", "ci_upper", "entropy", "entropy_fit", "p_gam", "p_friedman",
-        "agreement", "p_value", "method", "direction", "gene", "calculate_tsallis_divergence_paired_gene"))
+        "label_flag", "sample_q", "qnum", "significant", "prcomp", "predict", ".data",
+        "divergence", "lower", "upper", "central", "spread", "ci_lower", "ci_upper",
+        "entropy", "entropy_fit", "p_gam", "p_friedman", "agreement", "p_value",
+        "method", "direction", "gene", "calculate_tsallis_divergence_paired_gene"))
 }
 
 # ============================================================================
@@ -45,13 +45,8 @@ if (getRversion() >= "2.15.1") {
 #'
 
 #' @noRd
-DEPENDENCIES <- list(
-  diversity = character(0),              # No dependencies
-  jackknife = "diversity",               # Requires diversity
-  divergence = "diversity",              # Requires diversity
-  q_interactions = "diversity",          # Requires diversity
-  lm_interaction = "diversity"           # Requires diversity
-)
+DEPENDENCIES <- list(diversity = character(0), jackknife = "diversity", divergence = "diversity",
+    q_interactions = "diversity", lm_interaction = "diversity")
 
 #' Method Execution Order
 #'
@@ -71,7 +66,7 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' TSENAT Discrete Color Palette
 #'
 #' Returns a colorblind-safe discrete palette following RColorBrewer best practices.
-#' Uses the "Dark2" palette which is tested for accessibility across color blindness types.
+#' Uses the 'Dark2' palette which is tested for accessibility across color blindness types.
 #' Supports up to 8 distinct categories.
 #'
 #' @param n Numeric; number of colors to return (default: 8, max: 8).
@@ -99,19 +94,17 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 
 #' @noRd
 .palette_discrete <- function(n = 8) {
-  palette_dark2 <- c(
-    "#1B9E77", "#D95F02", "#7570B3", "#E7298A",
-    "#66A61E", "#E6AB02", "#A6761D", "#666666"
-  )
-  
-  if (n <= 0) {
-    return(character(0))
-  } else if (n <= 8) {
-    palette_dark2[seq_len(n)]
-  } else {
-    # Wrap around if more than 8 colors requested
-    palette_dark2[seq_len(n) %% 8 + 1]
-  }
+    palette_dark2 <- c("#1B9E77", "#D95F02", "#7570B3", "#E7298A", "#66A61E", "#E6AB02",
+        "#A6761D", "#666666")
+
+    if (n <= 0) {
+        return(character(0))
+    } else if (n <= 8) {
+        palette_dark2[seq_len(n)]
+    } else {
+        # Wrap around if more than 8 colors requested
+        palette_dark2[seq_len(n)%%8 + 1]
+    }
 }
 
 #' TSENAT Blue-Red Harmonized Color Palette
@@ -137,24 +130,16 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 
 #' @noRd
 .palette_blue_red <- function(n = 8) {
-  palette_blue_red <- c(
-    "#4575B4",  # Blue (heatmap primary)
-    "#D73027",  # Red (heatmap primary)
-    "#74ADD1",  # Light blue
-    "#F46D43",  # Light red/orange
-    "#1A5490",  # Dark blue
-    "#A50026",  # Dark red
-    "#ABD9E9",  # Pale blue
-    "#FFFFBF"   # Pale yellow
-  )
-  
-  if (n <= 0) {
-    return(character(0))
-  } else if (n <= 8) {
-    palette_blue_red[seq_len(n)]
-  } else {
-    palette_blue_red[seq_len(n) %% 8 + 1]
-  }
+    palette_blue_red <- c("#4575B4", "#D73027", "#74ADD1", "#F46D43", "#1A5490",
+        "#A50026", "#ABD9E9", "#FFFFBF")
+
+    if (n <= 0) {
+        return(character(0))
+    } else if (n <= 8) {
+        palette_blue_red[seq_len(n)]
+    } else {
+        palette_blue_red[seq_len(n)%%8 + 1]
+    }
 }
 
 #' TSENAT Continuous Diverging Color Palette
@@ -179,7 +164,7 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 
 #' @noRd
 .palette_continuous_diverging <- function(n = 100) {
-  grDevices::colorRampPalette(c("#4575B4", "#FFFFFF", "#D73027"))(n)
+    (grDevices::colorRampPalette(c("#4575B4", "#FFFFFF", "#D73027")))(n)
 }
 
 #' TSENAT Significance Testing Color Scheme
@@ -188,8 +173,8 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' Harmonizes with the blue-red heatmap theme.
 #'
 #' @return Named character vector mapping significance to colors:
-#'   - "non-significant": Grey (#CCCCCC) - de-emphasized
-#'   - "significant": Red (#D73027) - matches heatmap red
+#'   - 'non-significant': Grey (#CCCCCC) - de-emphasized
+#'   - 'significant': Red (#D73027) - matches heatmap red
 #'
 #' @details
 #' Design choices:
@@ -199,16 +184,13 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' Apply in ggplot2 with:
 #' \code{ggplot2::scale_color_manual(values = .significance_colors())}
 #'
-#' This replaces ad-hoc color choices like "black" and "red" across different plots,
+#' This replaces ad-hoc color choices like 'black' and 'red' across different plots,
 #' ensuring visual consistency in significance indicator colors.
 #'
 
 #' @noRd
 .significance_colors <- function() {
-  c(
-    "non-significant" = "#CCCCCC",  # Grey (neutral, understated)
-    "significant" = "#D73027"        # Red (heatmap red, emphatic)
-  )
+    c(`non-significant` = "#CCCCCC", significant = "#D73027")
 }
 
 #' TSENAT Base Plot Theme
@@ -245,30 +227,12 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 
 #' @noRd
 .theme_base <- function(base_size = 11) {
-  list(
-    ggplot2::theme_minimal(base_size = base_size),
-    ggplot2::theme(
-      plot.title = ggplot2::element_text(
-        hjust = 0.5, 
-        face = "bold", 
-        size = base_size * 1.3,
-        margin = ggplot2::margin(b = 8)
-      ),
-      plot.subtitle = ggplot2::element_text(
-        hjust = 0.5,
-        face = "italic",
-        size = base_size * 0.95
-      ),
-      axis.title = ggplot2::element_text(size = base_size * 1.1),
-      axis.text = ggplot2::element_text(size = base_size * 0.9),
-      panel.grid.minor = ggplot2::element_blank(),
-      panel.border = ggplot2::element_rect(
-        color = "grey85", 
-        fill = NA, 
-        linewidth = 0.3
-      )
-    )
-  )
+    list(ggplot2::theme_minimal(base_size = base_size), ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5,
+        face = "bold", size = base_size * 1.3, margin = ggplot2::margin(b = 8)),
+        plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "italic", size = base_size *
+            0.95), axis.title = ggplot2::element_text(size = base_size * 1.1), axis.text = ggplot2::element_text(size = base_size *
+            0.9), panel.grid.minor = ggplot2::element_blank(), panel.border = ggplot2::element_rect(color = "grey85",
+            fill = NA, linewidth = 0.3)))
 }
 
 # ============================================================================
@@ -308,16 +272,8 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #'
 
 #' @noRd
-.font_sizes <- list(
-  title = 19,           # Main plot title (increased from 18)
-  subtitle = 15,        # Plot subtitle (increased from 14)
-  axis_title = 15,      # X/Y axis titles (increased from 14)
-  axis_text = 13,       # Axis tick labels (increased from 12)
-  legend_title = 13,    # Legend heading (increased from 12)
-  legend_text = 12,     # Legend entries (increased from 11)
-  heatmap_main = 13,    # Heatmap panel title (increased from 12)
-  heatmap_labels = 11   # Heatmap row/column labels (increased from 10)
-)
+.font_sizes <- list(title = 19, subtitle = 15, axis_title = 15, axis_text = 13, legend_title = 13,
+    legend_text = 12, heatmap_main = 13, heatmap_labels = 11)
 
 # ============================================================================
 # THEME VARIANTS - Specialized themes for different plot types
@@ -344,14 +300,9 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 
 #' @noRd
 .theme_spectrum <- function(base_size = 11) {
-  list(
-    .theme_base(base_size = base_size),
-    ggplot2::theme(
-      legend.position = "right",
-      panel.grid.major.y = ggplot2::element_line(color = "gray90", linewidth = 0.25),
-      plot.margin = ggplot2::margin(t = 5, r = 8, b = 5, l = 5, unit = "mm")
-    )
-  )
+    list(.theme_base(base_size = base_size), ggplot2::theme(legend.position = "right",
+        panel.grid.major.y = ggplot2::element_line(color = "gray90", linewidth = 0.25),
+        plot.margin = ggplot2::margin(t = 5, r = 8, b = 5, l = 5, unit = "mm")))
 }
 
 
@@ -376,9 +327,9 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #'
 
 #' @noRd
-.aspect_ratio_standard <- 12 / 7.2    # 1.67 (16:10, publication standard)
-.aspect_ratio_tall <- 12 / 10         # 1.20 (taller, for heatmaps)
-.aspect_ratio_wide <- 12 / 5          # 2.40 (wider, for spectral profiles)
+.aspect_ratio_standard <- 12/7.2  # 1.67 (16:10, publication standard)
+.aspect_ratio_tall <- 12/10  # 1.20 (taller, for heatmaps)
+.aspect_ratio_wide <- 12/5  # 2.40 (wider, for spectral profiles)
 
 #' Calculate Plot Dimensions from Width and Aspect Ratio
 #'
@@ -386,7 +337,7 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' Returns both dimensions and DPI as a list for use with ggsave and grid functions.
 #'
 #' @param width_inches Numeric; plot width in inches (default: 12).
-#' @param aspect_type Character; one of "standard", "tall", or "wide" (default: "standard").
+#' @param aspect_type Character; one of 'standard', 'tall', or 'wide' (default: 'standard').
 #' @param dpi_output Numeric; output DPI for PNG/TIFF (default: 100).
 #'
 #' @return List with elements: $width (inches), $height (inches), $dpi (integer).
@@ -396,12 +347,12 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #'
 #' ```r
 #' # Standard aspect ratio plot
-#' dims <- .calculate_plot_dims(width_inches = 12, aspect_type = "standard")
-#' ggplot2::ggsave("plot.pdf", plot_obj, width = dims$width, 
+#' dims <- .calculate_plot_dims(width_inches = 12, aspect_type = 'standard')
+#' ggplot2::ggsave('plot.pdf', plot_obj, width = dims$width, 
 #'                  height = dims$height, dpi = dims$dpi)
 #'
 #' # Heatmap with many rows (use tall aspect)
-#' dims <- .calculate_plot_dims(width_inches = 12, aspect_type = "tall")
+#' dims <- .calculate_plot_dims(width_inches = 12, aspect_type = 'tall')
 #' # ... render and save
 #' ```
 #'
@@ -412,34 +363,24 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #'
 
 #' @noRd
-.calculate_plot_dims <- function(width_inches = 12, 
-                                  aspect_type = "standard",
-                                  dpi_output = 100) {
-  # Validate aspect_type
-  valid_aspects <- c("standard", "tall", "wide")
-  if (!aspect_type %in% valid_aspects) {
-    warning("aspect_type '", aspect_type, "' not recognized. Using 'standard'.")
-    aspect_type <- "standard"
-  }
-  
-  # Get aspect ratio constant by direct lookup
-  aspect_ratio <- switch(aspect_type,
-    standard = .aspect_ratio_standard,
-    tall = .aspect_ratio_tall,
-    wide = .aspect_ratio_wide,
-    .aspect_ratio_standard  # Fallback to standard
-  )
-  
-  # Calculate height from width and aspect ratio
-  # aspect_ratio = width / height, so:
-  # height = width / aspect_ratio
-  height_inches <- width_inches / aspect_ratio
-  
-  list(
-    width = width_inches,
-    height = height_inches,
-    dpi = as.integer(dpi_output)
-  )
+.calculate_plot_dims <- function(width_inches = 12, aspect_type = "standard", dpi_output = 100) {
+    # Validate aspect_type
+    valid_aspects <- c("standard", "tall", "wide")
+    if (!aspect_type %in% valid_aspects) {
+        warning("aspect_type '", aspect_type, "' not recognized. Using 'standard'.")
+        aspect_type <- "standard"
+    }
+
+    # Get aspect ratio constant by direct lookup
+    aspect_ratio <- switch(aspect_type, standard = .aspect_ratio_standard, tall = .aspect_ratio_tall,
+        wide = .aspect_ratio_wide, .aspect_ratio_standard  # Fallback to standard
+)
+
+    # Calculate height from width and aspect ratio aspect_ratio = width /
+    # height, so: height = width / aspect_ratio
+    height_inches <- width_inches/aspect_ratio
+
+    list(width = width_inches, height = height_inches, dpi = as.integer(dpi_output))
 }
 
 #' Scale Font Sizes Responsively Based on Plot Area
@@ -474,9 +415,8 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #'
 
 #' @noRd
-.scale_font_by_area <- function(width_inches, height_inches, 
-                                 reference_area = 96) {
-  actual_area <- width_inches * height_inches
-  sqrt(actual_area / reference_area)
+.scale_font_by_area <- function(width_inches, height_inches, reference_area = 96) {
+    actual_area <- width_inches * height_inches
+    sqrt(actual_area/reference_area)
 }
 
