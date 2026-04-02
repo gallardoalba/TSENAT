@@ -854,3 +854,290 @@ testthat::test_that(".plot_select_genes returns NULL when no significant genes",
   
   testthat::expect_null(selected)
 })
+
+# ============================================================================
+# TEST: New GAM Plot Helpers
+# ============================================================================
+
+testthat::test_that(".plot_gam_handle_inputs validates SE and extracts dataframe", {
+  # Create test SE and results
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(diversity = matrix(rnorm(20), nrow = 4, ncol = 5))
+  )
+  lm_res <- data.frame(
+    gene = paste0("gene_", 1:4),
+    p_interaction = c(0.01, 0.05, 0.1, 0.9),
+    adj_p_interaction = c(0.02, 0.1, 0.2, 1)
+  )
+  
+  result <- TSENAT:::.plot_gam_handle_inputs(se, lm_res)
+  
+  testthat::expect_is(result, "list")
+  testthat::expect_true("se" %in% names(result))
+  testthat::expect_true("lm_res" %in% names(result))
+  testthat::expect_is(result$lm_res, "data.frame")
+})
+
+testthat::test_that(".plot_gam_handle_inputs extracts from list with model_data", {
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(diversity = matrix(rnorm(20), nrow = 4, ncol = 5))
+  )
+  lm_res_df <- data.frame(
+    gene = paste0("gene_", 1:4),
+    p_interaction = c(0.01, 0.05, 0.1, 0.9)
+  )
+  model_data_list <- list(q_values = c(0.1, 0.5, 1.0, 1.5, 2.0))
+  
+  lm_res_list <- list(results = lm_res_df, model_data = model_data_list)
+  
+  result <- TSENAT:::.plot_gam_handle_inputs(se, lm_res_list)
+  
+  testthat::expect_is(result$lm_res, "data.frame")
+  testthat::expect_is(result$model_data, "list")
+  testthat::expect_equal(result$model_data$q_values, c(0.1, 0.5, 1.0, 1.5, 2.0))
+})
+
+testthat::test_that(".plot_gam_handle_inputs rejects invalid SE", {
+  lm_res <- data.frame(gene = c("g1", "g2"))
+  
+  testthat::expect_error(
+    TSENAT:::.plot_gam_handle_inputs("not_an_se", lm_res),
+    "se must be a SummarizedExperiment"
+  )
+})
+
+testthat::test_that(".plot_gam_extract_q_values extracts and normalizes q-values", {
+  model_data <- list(q_values = c(0.1, 0.5, 1.0, 1.5, 2.0))
+  
+  q_vals <- TSENAT:::.plot_gam_extract_q_values(model_data)
+  
+  testthat::expect_is(q_vals, "numeric")
+  testthat::expect_equal(q_vals, c(0.1, 0.5, 1.0, 1.5, 2.0))
+})
+
+testthat::test_that(".plot_gam_extract_q_values handles wrapped q-values", {
+  model_data <- list(q_values = list(c(0.1, 0.5, 1.0)))
+  
+  q_vals <- TSENAT:::.plot_gam_extract_q_values(model_data)
+  
+  testthat::expect_is(q_vals, "numeric")
+  testthat::expect_equal(q_vals, c(0.1, 0.5, 1.0))
+})
+
+testthat::test_that(".plot_gam_extract_q_values rejects NULL model_data", {
+  testthat::expect_error(
+    TSENAT:::.plot_gam_extract_q_values(NULL),
+    "model_data is required"
+  )
+})
+
+testthat::test_that(".plot_gam_match_genes matches genes between SE and results", {
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(diversity = matrix(rnorm(20), nrow = 4, ncol = 5)),
+    rowData = S4Vectors::DataFrame(gene_id = paste0("gene_", 1:4))
+  )
+  rownames(se) <- paste0("gene_", 1:4)
+  
+  lm_res <- data.frame(
+    gene = paste0("gene_", c(1, 2, 4)),
+    p_value = c(0.01, 0.05, 0.1)
+  )
+  
+  result <- TSENAT:::.plot_gam_match_genes(se, lm_res)
+  
+  testthat::expect_equal(nrow(result$se), 3)
+  testthat::expect_equal(nrow(result$lm_res), 3)
+  testthat::expect_equal(rownames(result$se), c("gene_1", "gene_2", "gene_4"))
+})
+
+testthat::test_that(".plot_gam_match_genes stops when no genes match", {
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(diversity = matrix(rnorm(20), nrow = 4, ncol = 5))
+  )
+  rownames(se) <- paste0("gene_", 1:4)
+  
+  lm_res <- data.frame(
+    gene = paste0("other_", 1:3),
+    p_value = c(0.01, 0.05, 0.1)
+  )
+  
+  testthat::expect_error(
+    TSENAT:::.plot_gam_match_genes(se, lm_res),
+    "No genes from lm_res found in rownames"
+  )
+})
+
+testthat::test_that(".plot_gam_create_gene_map creates mapping from gene IDs", {
+  lm_res <- data.frame(
+    gene = c("g1", "g2", "g3"),
+    p_value = c(0.01, 0.05, 0.1)
+  )
+  
+  gene_map <- TSENAT:::.plot_gam_create_gene_map(lm_res)
+  
+  testthat::expect_is(gene_map, "character")
+  testthat::expect_equal(names(gene_map), c("g1", "g2", "g3"))
+  testthat::expect_equal(gene_map["g1"], c(g1 = "g1"))
+})
+
+testthat::test_that(".plot_gam_create_gene_map uses gene_name column when present", {
+  lm_res <- data.frame(
+    gene = c("g1", "g2", "g3"),
+    gene_name = c("Gene1", "Gene2", "Gene3"),
+    p_value = c(0.01, 0.05, 0.1)
+  )
+  
+  gene_map <- TSENAT:::.plot_gam_create_gene_map(lm_res)
+  
+  testthat::expect_equal(gene_map["g1"], c(g1 = "Gene1"))
+  testthat::expect_equal(gene_map["g2"], c(g2 = "Gene2"))
+})
+
+# ============================================================================
+# TEST: Metadata Mapping Helpers
+# ============================================================================
+
+testthat::test_that(".map_metadata_detect_columns finds position-based columns", {
+  coldata <- data.frame(
+    Sample = c("S1", "S2", "S3"),
+    Condition = c("Normal", "Tumor", "Normal")
+  )
+  
+  col_idx <- TSENAT:::.map_metadata_detect_columns(coldata, "Sample", "Condition")
+  
+  testthat::expect_equal(col_idx$sample_col_idx, 1)
+  testthat::expect_equal(col_idx$condition_col_idx, 2)
+})
+
+testthat::test_that(".map_metadata_detect_columns uses named columns as fallback", {
+  coldata <- data.frame(
+    Condition = c("Normal", "Tumor", "Normal"),
+    Sample = c("S1", "S2", "S3"),
+    Other = c("A", "B", "C")
+  )
+  
+  col_idx <- TSENAT:::.map_metadata_detect_columns(coldata, "Sample", "Condition")
+  
+  testthat::expect_equal(col_idx$sample_col_idx, 2)
+  testthat::expect_equal(col_idx$condition_col_idx, 1)
+})
+
+testthat::test_that(".map_metadata_detect_columns uses case-insensitive matching", {
+  coldata <- data.frame(
+    sample = c("S1", "S2"),
+    condition = c("N", "T")
+  )
+  
+  col_idx <- TSENAT:::.map_metadata_detect_columns(coldata, "SAMPLE", "CONDITION")
+  
+  testthat::expect_equal(col_idx$sample_col_idx, 1)
+  testthat::expect_equal(col_idx$condition_col_idx, 2)
+})
+
+testthat::test_that(".map_metadata_detect_conditions identifies unique conditions", {
+  coldata <- data.frame(
+    Sample = c("S1", "S2", "S3", "S4"),
+    Condition = c("Normal", "Tumor", "Normal", "Tumor"),
+    Pairing = c("A", "A", "B", "B")
+  )
+  
+  col_idx <- TSENAT:::.map_metadata_detect_columns(coldata, "Sample", "Condition")
+  cond_info <- TSENAT:::.map_metadata_detect_conditions(coldata, col_idx$condition_col_idx, col_idx$sample_col_idx)
+  
+  testthat::expect_equal(sort(cond_info$conds), c("Normal", "Tumor"))
+  testthat::expect_true(cond_info$has_pairing)
+})
+
+testthat::test_that(".map_metadata_detect_conditions validates pairing structure", {
+  coldata <- data.frame(
+    Sample = c("S1", "S2", "S3"),
+    Condition = c("Normal", "Tumor", "Normal"),
+    Pairing = c("A", "A", "B")
+  )
+  
+  col_idx <- TSENAT:::.map_metadata_detect_columns(coldata, "Sample", "Condition")
+  
+  testthat::expect_error(
+    TSENAT:::.map_metadata_detect_conditions(coldata, col_idx$condition_col_idx, col_idx$sample_col_idx),
+    "Unpaired samples found"
+  )
+})
+
+testthat::test_that(".map_metadata_detect_conditions detects pairing from sample names", {
+  coldata <- data.frame(
+    Sample = c("S1_N", "S1_T", "S2_N", "S2_T"),
+    Condition = c("Normal", "Tumor", "Normal", "Tumor")
+  )
+  
+  col_idx <- TSENAT:::.map_metadata_detect_columns(coldata, "Sample", "Condition")
+  cond_info <- TSENAT:::.map_metadata_detect_conditions(coldata, col_idx$condition_col_idx, col_idx$sample_col_idx)
+  
+  testthat::expect_false(cond_info$has_pairing)
+  testthat::expect_equal(cond_info$coldata_base, c("S1", "S1", "S2", "S2"))
+})
+
+testthat::test_that(".map_metadata_reorder_columns reorders by metadata order", {
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = matrix(rnorm(20), nrow = 4, ncol = 5))
+  )
+  colnames(se) <- c("S2", "S1", "S3", "S1", "S2")
+  
+  coldata_samples <- c("S1", "S2", "S3")
+  
+  result <- TSENAT:::.map_metadata_reorder_columns(se, coldata_samples)
+  
+  # Should have reordered: S1, S1, S2, S2, S3
+  expected_order <- c("S1", "S1", "S2", "S2", "S3")
+  testthat::expect_equal(
+    sub("_q.*", "", colnames(result)),
+    expected_order
+  )
+})
+
+testthat::test_that(".map_metadata_expand_coldata expands when n_coldata < n_assay", {
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(diversity = matrix(rnorm(20), nrow = 4, ncol = 5)),
+    colData = S4Vectors::DataFrame(sample = c("S1", "S2", "S3", "S4", "S5"))
+  )
+  colnames(se) <- c("S1_q0.1", "S1_q0.5", "S2_q0.1", "S2_q0.5", "S3_q0.1")
+  
+  coldata_samples <- c("S1", "S2", "S3", "S4", "S5")
+  
+  result <- TSENAT:::.map_metadata_expand_coldata(se, coldata_samples)
+  
+  # colData should now match assay column count
+  testthat::expect_equal(nrow(SummarizedExperiment::colData(result)), 5)
+})
+
+testthat::test_that(".map_metadata_set_coldata_final adds condition and pairing columns", {
+  # Create a simple SE with colData matching the assay dimensions
+  col_data_df <- S4Vectors::DataFrame(
+    sample = c("S1", "S1", "S2", "S2", "S3"),
+    row.names = c("col1", "col2", "col3", "col4", "col5")
+  )
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(diversity = matrix(rnorm(20), nrow = 4, ncol = 5)),
+    colData = col_data_df
+  )
+  colnames(se) <- c("col1", "col2", "col3", "col4", "col5")
+  
+  # Create mappings with sample names matching colData values
+  st_map <- c(S1 = "Normal", S2 = "Tumor", S3 = "Normal")
+  pairing_map <- c(S1 = "A", S2 = "A", S3 = "B")
+  
+  coldata <- data.frame(
+    Sample = c("S1", "S2", "S3"),
+    Condition = c("Normal", "Tumor", "Normal")
+  )
+  
+  # Note: This helper expects rownames of colData to be sample names (without suffixes)
+  # For this test, we'll just test that columns are added 
+  result <- TSENAT:::.map_metadata_set_coldata_final(se, st_map, pairing_map, coldata, 2, 1)
+  col_data <- SummarizedExperiment::colData(result)
+  
+  testthat::expect_true("sample_type" %in% colnames(col_data))
+  testthat::expect_true("sample_base" %in% colnames(col_data))
+  testthat::expect_equal(length(col_data$sample_type), 5)
+  testthat::expect_equal(length(col_data$sample_base), 5)
+})

@@ -59,121 +59,44 @@
 
 #' @noRd
 .map_metadata_se <- function(ts_se, coldata, coldata_sample_col = "Sample", coldata_condition_col = "Condition") {
-    if (is.null(coldata)) {
+    if (is.null(coldata) || !is.data.frame(coldata)) {
         return(ts_se)
     }
-    if (!is.data.frame(coldata)) {
-        return(ts_se)
-    }
-
-    # Position-based column detection (PRIMARY STRATEGY) This is more robust
-    # for fixed-structure metadata files
-    sample_col_idx <- 1
-    condition_col_idx <- 2
 
     # Verify minimum columns required
     if (ncol(coldata) < 2) {
         return(ts_se)
     }
 
-    # Alternative: named column detection (FALLBACK - only if not found by
-    # position) This allows flexibility if columns are in different order
-    # IMPROVED: Try case-insensitive matching first
-    named_sample_col <- which(tolower(colnames(coldata)) == tolower(coldata_sample_col))
-    named_condition_col <- which(tolower(colnames(coldata)) == tolower(coldata_condition_col))
-    if (length(named_sample_col) > 0) {
-        sample_col_idx <- named_sample_col[1]
-    }
-    if (length(named_condition_col) > 0) {
-        condition_col_idx <- named_condition_col[1]
-    }
+    # Detect and validate column indices using helper
+    col_indices <- .map_metadata_detect_columns(coldata, coldata_sample_col, coldata_condition_col)
+    sample_col_idx <- col_indices$sample_col_idx
+    condition_col_idx <- col_indices$condition_col_idx
 
-    # OPTIMIZATION: Cache character conversions to avoid repeated
-    # as.character() calls
+    # Cache character conversions for efficiency
     coldata_sample_col_values <- as.character(coldata[[sample_col_idx]])
     coldata_condition_col_values <- as.character(coldata[[condition_col_idx]])
 
-    # Prepare canonical condition order and base extraction.  `conds` is sorted
-    # for deterministic ordering when constructing paired column order.
-    conds <- sort(unique(coldata_condition_col_values))
+    # Detect conditions and pairing structure
+    cond_info <- .map_metadata_detect_conditions(coldata, condition_col_idx, sample_col_idx)
+    coldata_base <- cond_info$coldata_base
+    has_pairing <- cond_info$has_pairing
 
-    # Automatically detect pairing from third column if present, or use
-    # suffix-removal if paired column is not available
-    if (ncol(coldata) >= 3) {
-        # Use the third column for sample base identifiers (pairing
-        # information)
-        coldata_base <- as.character(coldata[[3]])
-        # Validate that pairing is consistent (each base has all conditions)
-        has_pairing <- TRUE
-    } else {
-        # Extract base by removing trailing suffix (e.g. _N/_T)
-        coldata_base <- sub("_[^_]+$", "", coldata_sample_col_values)
-        has_pairing <- FALSE
-    }
-    bases <- unique(coldata_base)
+    # Reorder SE columns to match metadata order
+    ts_se <- .map_metadata_reorder_columns(ts_se, coldata_sample_col_values)
 
-    # Validate pairing structure if pairing information is present
-    if (has_pairing && length(conds) >= 2) {
-        unpaired <- vapply(bases, function(b) {
-            length(unique(coldata[[condition_col_idx]][coldata_base == b]))
-        }, integer(1))
-        bad <- bases[unpaired != length(conds)]
-        if (length(bad) > 0) {
-            bad_list <- paste(bad, collapse = ", ")
-            cond_list <- paste(conds, collapse = ", ")
-            msg <- paste0("Unpaired samples found in coldata for bases: ", bad_list,
-                ". Ensure each base has all conditions: ", cond_list)
-            stop(msg, call. = FALSE)
-        }
-    }
-    # OPTIMIZATION: Use .strip_q_suffix() helper
-    sample_base_names <- .strip_q_suffix(colnames(SummarizedExperiment::assay(ts_se)))
-
-    # Reorder the SummarizedExperiment columns following the order in coldata.
-    # Note: For paired analyses, the explicit pairing information is stored in
-    # colData(ts_se)$sample_base and used directly by paired statistical tests,
-    # so column reordering is not required.
-    base_names <- sample_base_names
-    idx_list <- integer(0)
-
-    # Follow the order present in `coldata` (groups multiple q-values per
-    # sample together)
-    ordered_samples <- coldata_sample_col_values
-    for (s in ordered_samples) {
-        # Find ALL columns for this sample (important when there are multiple
-        # q-values)
-        matches <- which(base_names == s)
-        if (length(matches) > 0) {
-            idx_list <- c(idx_list, matches)
-        }
-    }
-    remaining <- setdiff(seq_along(base_names), idx_list)
-    new_order <- c(idx_list, remaining)
-
-    if (length(new_order) > 0 && !all(new_order == seq_along(base_names))) {
-        ts_se <- ts_se[, new_order, drop = FALSE]
-        # OPTIMIZATION: Use .strip_q_suffix() helper for consistency and
-        # caching benefit
-        sample_base_names <- .strip_q_suffix(colnames(SummarizedExperiment::assay(ts_se)))
-    }
-
-    # Create a mapping from sample names to their pairing information
-    # (coldata_base)
+    # Create sample-to-pairing mapping
     if (ncol(coldata) < 3) {
-        # No explicit pairing column - use coldata_base extracted from sample
-        # names
         pairing_map <- setNames(coldata_base, coldata_sample_col_values)
     } else {
-        # Use explicit pairing column (column 3)
         pairing_map <- .create_mapping(coldata, 3, sample_col_idx)
     }
-    sample_pairing <- unname(pairing_map[sample_base_names])
 
-    # Create a mapping for actual sample base names (always from Sample column)
-    sample_name_map <- setNames(coldata_sample_col_values, coldata_sample_col_values)
-
-    # OPTIMIZATION: Use .create_sample_type_map() helper
+    # Create sample-to-condition mapping
     st_map <- .create_sample_type_map(coldata, sample_col_idx, condition_col_idx)
+
+    # Validate that all samples in SE are in the mapping
+    sample_base_names <- .strip_q_suffix(colnames(SummarizedExperiment::assay(ts_se)))
     sample_types <- unname(st_map[sample_base_names])
     has_na <- is.na(sample_types)
     if (any(has_na)) {
@@ -183,114 +106,23 @@
             "colData(ts_se)$sample_type beforehand.")
         stop(msg, call. = FALSE)
     }
-    # Don't set sample_type yet - do it AFTER colData expansion
-    # SummarizedExperiment::colData(ts_se)$sample_type <- sample_types
 
-    # Record the pairing information (from the third column of coldata) per
-    # column so downstream functions can use explicit pairing for paired tests.
-    # Also don't set sample_base yet - do it AFTER colData expansion
-    # SummarizedExperiment::colData(ts_se)$sample_base <- sample_pairing
+    # Expand colData to match assay dimensions
+    ts_se <- .map_metadata_expand_coldata(ts_se, coldata_sample_col_values)
 
-    # Expand colData if assay has more columns than colData rows (e.g., after
-    # calculate_diversity adds _q= suffixes)
-    n_coldata_rows <- nrow(SummarizedExperiment::colData(ts_se))
-    assay_cols <- colnames(SummarizedExperiment::assay(ts_se))
-    n_assay_cols <- length(assay_cols)
+    # Set final colData columns
+    ts_se <- .map_metadata_set_coldata_final(ts_se, st_map, pairing_map, coldata,
+        condition_col_idx, sample_col_idx)
 
-    if (n_coldata_rows < n_assay_cols) {
-        # Assay has been expanded (multiple q-values per sample) Expand colData
-        # to match by repeating rows for each q-value
-        col_data <- SummarizedExperiment::colData(ts_se)
-        sample_names_full <- .strip_q_suffix(assay_cols)
-
-        # OPTIMIZATION: Use vectorized match() instead of loop (O(n) vs O(n²))
-        # Match against original coldata sample column values, not reordered
-        # sample_base_names
-        expanded_rows <- match(sample_names_full, coldata_sample_col_values)
-        # Replace NA with 1 (fallback to first row)
-        expanded_rows[is.na(expanded_rows)] <- 1
-
-        # Expand colData using the mapped indices
-        new_col_data <- col_data[expanded_rows, ]
-        rownames(new_col_data) <- assay_cols
-        SummarizedExperiment::colData(ts_se) <- new_col_data
-    } else if (n_coldata_rows == n_assay_cols) {
-        # Dimensions already match, just set rownames
-        rownames(SummarizedExperiment::colData(ts_se)) <- assay_cols
-    }
-
-    # NOW set condition and pairing column after colData expansion is complete
-    # This ensures all rows have these values properly assigned
-    col_data_final <- SummarizedExperiment::colData(ts_se)
-    # OPTIMIZATION: Use .strip_q_suffix() helper
-    sample_names_final <- .strip_q_suffix(rownames(col_data_final))
-
-    # Map each expanded row's sample name to its condition using the actual
-    # column name from metadata Preserve the original condition column name
-    # from the input metadata (column 2)
-    condition_col_name <- colnames(coldata)[condition_col_idx]
-    col_data_final[[condition_col_name]] <- unname(st_map[sample_names_final])
-
-    # Also create standardized sample_type column for backward compatibility
-    col_data_final$sample_type <- unname(st_map[sample_names_final])
-
-    # Always create standardized sample_base column with pairing identifiers
-    # This contains the pairing information (A, B, C, etc.) used by paired
-    # tests
-    col_data_final$sample_base <- unname(pairing_map[sample_names_final])
-
-    # Preserve the actual pairing column name from metadata (e.g.,
-    # paired_samples)
-    if (ncol(coldata) >= 3 && has_pairing) {
-        paired_col_name <- colnames(coldata)[3]
-        col_data_final[[paired_col_name]] <- unname(pairing_map[sample_names_final])
-    }
-
-    # Map batch column if present (typically column 4)
-    if (ncol(coldata) >= 4) {
-        batch_col_name <- colnames(coldata)[4]
-        # OPTIMIZATION: Use cached sample column values
-        batch_map <- setNames(as.character(coldata[[4]]), coldata_sample_col_values)
-        col_data_final$batch <- unname(batch_map[sample_names_final])
-    }
-
-    SummarizedExperiment::colData(ts_se) <- col_data_final
-    # Note: readcounts and tx2gene mapping should be explicitly provided via
-    # function parameters or stored in the TSENATAnalysis @config slot.  We no
-    # longer look in parent environment or globalenv() to ensure reproducible,
-    # self-contained analysis workflows.
+    # Preserve or initialize metadata
     if (requireNamespace("S4Vectors", quietly = TRUE)) {
         md <- S4Vectors::metadata(ts_se)
-        # Only preserve metadata that was explicitly provided Do not attempt to
-        # fetch from calling environment
         S4Vectors::metadata(ts_se) <- md
     }
-    # If a diversity assay is present, prepare a simple diversity data.frame
-    # (genes + per-sample diversity values) and store it in metadata so the
-    # vignette and plotting helpers can use a ready-made table.
-    if ("diversity" %in% SummarizedExperiment::assayNames(ts_se)) {
-        div_mat <- as.matrix(SummarizedExperiment::assay(ts_se, "diversity"))
-        # OPTIMIZATION: Use .strip_q_suffix() helper
-        sample_base_names <- .strip_q_suffix(colnames(div_mat))
-        # prefer explicit sample_type in colData when present
-        samples_vec <- NULL
-        if ("sample_type" %in% colnames(SummarizedExperiment::colData(ts_se))) {
-            samples_vec <- as.character(SummarizedExperiment::colData(ts_se)$sample_type)
-        }
-        div_df <- as.data.frame(div_mat)
-        genes_col <- .get_gene_ids(ts_se)
-        if (is.null(genes_col)) {
-            genes_col <- rownames(div_df)
-        }
-        div_df <- cbind(genes = genes_col, div_df)
-        md2 <- S4Vectors::metadata(ts_se)
-        md2$diversity_df <- div_df
-        md2$sample_base_names <- sample_base_names
-        if (!is.null(samples_vec)) {
-            md2$samples <- samples_vec
-        }
-        S4Vectors::metadata(ts_se) <- md2
-    }
+
+    # Create diversity data.frame if diversity assay is present
+    ts_se <- .map_metadata_create_diversity_df(ts_se)
+
     return(ts_se)
 }
 
@@ -570,4 +402,247 @@
 
     stop(sprintf("Number of transcripts in tx2gene (%d) does not match readcounts rows (%d), and automatic matching failed.",
         n_tx, n_rc), call. = FALSE)
+}
+
+# ============================================================================
+# HELPERS FOR .map_metadata_se() REFACTORING
+# ============================================================================
+
+#' Detect and Validate Column Indices in Metadata
+#'
+#' Determines which columns in metadata contain sample, condition, pairing,
+#' and batch information using both positional and named approaches.
+#'
+#' @param coldata Metadata data.frame
+#' @param coldata_sample_col Sample column name
+#' @param coldata_condition_col Condition column name
+#'
+#' @return List with indices: sample_col_idx, condition_col_idx
+#'
+#' @noRd
+.map_metadata_detect_columns <- function(coldata, coldata_sample_col, coldata_condition_col) {
+    # Position-based detection (PRIMARY)
+    sample_col_idx <- 1
+    condition_col_idx <- 2
+
+    # Named column detection (FALLBACK) with case-insensitive matching
+    named_sample_col <- which(tolower(colnames(coldata)) == tolower(coldata_sample_col))
+    named_condition_col <- which(tolower(colnames(coldata)) == tolower(coldata_condition_col))
+
+    if (length(named_sample_col) > 0) {
+        sample_col_idx <- named_sample_col[1]
+    }
+    if (length(named_condition_col) > 0) {
+        condition_col_idx <- named_condition_col[1]
+    }
+
+    list(sample_col_idx = sample_col_idx, condition_col_idx = condition_col_idx)
+}
+
+#' Detect Conditions and Pairing Structure
+#'
+#' Determines unique conditions and validates pairing structure from metadata.
+#'
+#' @param coldata Metadata data.frame
+#' @param condition_col_idx Index of condition column
+#' @param sample_col_idx Index of sample column
+#'
+#' @return List with: conds (sorted unique conditions), coldata_base,
+#'   has_pairing (TRUE if 3+ columns)
+#'
+#' @noRd
+.map_metadata_detect_conditions <- function(coldata, condition_col_idx, sample_col_idx) {
+    coldata_condition_col_values <- as.character(coldata[[condition_col_idx]])
+    coldata_sample_col_values <- as.character(coldata[[sample_col_idx]])
+
+    # Sorted conditions for deterministic ordering
+    conds <- sort(unique(coldata_condition_col_values))
+
+    # Auto-detect pairing from third column or extract from sample names
+    if (ncol(coldata) >= 3) {
+        coldata_base <- as.character(coldata[[3]])
+        has_pairing <- TRUE
+
+        # Validate pairing consistency
+        bases <- unique(coldata_base)
+        if (length(conds) >= 2) {
+            unpaired <- vapply(bases, function(b) {
+                length(unique(coldata[[condition_col_idx]][coldata_base == b]))
+            }, integer(1))
+            bad <- bases[unpaired != length(conds)]
+            if (length(bad) > 0) {
+                bad_list <- paste(bad, collapse = ", ")
+                cond_list <- paste(conds, collapse = ", ")
+                msg <- paste0("Unpaired samples found in coldata for bases: ", bad_list,
+                  ". Ensure each base has all conditions: ", cond_list)
+                stop(msg, call. = FALSE)
+            }
+        }
+    } else {
+        # Extract base by removing trailing suffix
+        coldata_base <- sub("_[^_]+$", "", coldata_sample_col_values)
+        has_pairing <- FALSE
+    }
+
+    list(conds = conds, coldata_base = coldata_base, has_pairing = has_pairing)
+}
+
+#' Reorder SummarizedExperiment Columns by Metadata
+#'
+#' Reorders assay columns to match metadata order, handling multiple
+#' q-values per sample.
+#'
+#' @param ts_se SummarizedExperiment object
+#' @param coldata_sample_col_values Character vector of sample names from
+#' metadata
+#'
+#' @return Reordered SummarizedExperiment
+#'
+#' @noRd
+.map_metadata_reorder_columns <- function(ts_se, coldata_sample_col_values) {
+    sample_base_names <- .strip_q_suffix(colnames(SummarizedExperiment::assay(ts_se)))
+
+    base_names <- sample_base_names
+    idx_list <- integer(0)
+
+    # Follow metadata order (groups multiple q-values per sample together)
+    for (s in coldata_sample_col_values) {
+        matches <- which(base_names == s)
+        if (length(matches) > 0) {
+            idx_list <- c(idx_list, matches)
+        }
+    }
+    remaining <- setdiff(seq_along(base_names), idx_list)
+    new_order <- c(idx_list, remaining)
+
+    if (length(new_order) > 0 && !all(new_order == seq_along(base_names))) {
+        ts_se <- ts_se[, new_order, drop = FALSE]
+    }
+
+    ts_se
+}
+
+#' Expand colData to Match Assay Dimensions
+#'
+#' When assay has more columns than colData (e.g., multiple q-values per
+#' sample), expand colData rows to match.
+#'
+#' @param ts_se SummarizedExperiment object
+#' @param coldata_sample_col_values Character vector of sample names from
+#' metadata
+#'
+#' @return SummarizedExperiment with expanded colData
+#'
+#' @noRd
+.map_metadata_expand_coldata <- function(ts_se, coldata_sample_col_values) {
+    n_coldata_rows <- nrow(SummarizedExperiment::colData(ts_se))
+    assay_cols <- colnames(SummarizedExperiment::assay(ts_se))
+    n_assay_cols <- length(assay_cols)
+
+    if (n_coldata_rows < n_assay_cols) {
+        # Assay has been expanded (multiple q-values per sample)
+        col_data <- SummarizedExperiment::colData(ts_se)
+        sample_names_full <- .strip_q_suffix(assay_cols)
+
+        # Match against original coldata sample names
+        expanded_rows <- match(sample_names_full, coldata_sample_col_values)
+        expanded_rows[is.na(expanded_rows)] <- 1
+
+        # Expand colData using the mapped indices
+        new_col_data <- col_data[expanded_rows, ]
+        rownames(new_col_data) <- assay_cols
+        SummarizedExperiment::colData(ts_se) <- new_col_data
+    } else if (n_coldata_rows == n_assay_cols) {
+        # Dimensions match, just set rownames
+        rownames(SummarizedExperiment::colData(ts_se)) <- assay_cols
+    }
+
+    ts_se
+}
+
+#' Set Final colData Columns from Metadata
+#'
+#' Assigns condition, pairing, batch, and other metadata columns to final
+#' colData.
+#'
+#' @param ts_se SummarizedExperiment object
+#' @param st_map Named vector mapping sample names to conditions
+#' @param pairing_map Named vector mapping samples to pairing identifiers
+#' @param coldata Metadata data.frame
+#' @param condition_col_idx Index of condition column
+#' @param sample_col_idx Index of sample column
+#'
+#' @return SummarizedExperiment with updated colData
+#'
+#' @noRd
+.map_metadata_set_coldata_final <- function(ts_se, st_map, pairing_map, coldata,
+    condition_col_idx, sample_col_idx) {
+    col_data_final <- SummarizedExperiment::colData(ts_se)
+    sample_names_final <- .strip_q_suffix(rownames(col_data_final))
+
+    # Set condition column (preserve original name from metadata)
+    condition_col_name <- colnames(coldata)[condition_col_idx]
+    col_data_final[[condition_col_name]] <- unname(st_map[sample_names_final])
+
+    # Create standardized sample_type column for backward compatibility
+    col_data_final$sample_type <- unname(st_map[sample_names_final])
+
+    # Always create standardized sample_base column with pairing identifiers
+    col_data_final$sample_base <- unname(pairing_map[sample_names_final])
+
+    # Preserve actual pairing column name from metadata (e.g., paired_samples)
+    if (ncol(coldata) >= 3) {
+        paired_col_name <- colnames(coldata)[3]
+        col_data_final[[paired_col_name]] <- unname(pairing_map[sample_names_final])
+    }
+
+    # Map batch column if present (typically column 4)
+    if (ncol(coldata) >= 4) {
+        batch_col_name <- colnames(coldata)[4]
+        batch_map <- setNames(as.character(coldata[[4]]), as.character(coldata[[sample_col_idx]]))
+        col_data_final$batch <- unname(batch_map[sample_names_final])
+    }
+
+    SummarizedExperiment::colData(ts_se) <- col_data_final
+    ts_se
+}
+
+#' Create Diversity Data.Frame from Assay
+#'
+#' Creates a ready-made diversity table from diversity assay for use in
+#' vignettes and plotting.
+#'
+#' @param ts_se SummarizedExperiment object
+#'
+#' @return Updated metadata with diversity_df and sample information
+#'
+#' @noRd
+.map_metadata_create_diversity_df <- function(ts_se) {
+    if ("diversity" %in% SummarizedExperiment::assayNames(ts_se)) {
+        div_mat <- as.matrix(SummarizedExperiment::assay(ts_se, "diversity"))
+        sample_base_names <- .strip_q_suffix(colnames(div_mat))
+
+        # Prefer explicit sample_type in colData when present
+        samples_vec <- NULL
+        if ("sample_type" %in% colnames(SummarizedExperiment::colData(ts_se))) {
+            samples_vec <- as.character(SummarizedExperiment::colData(ts_se)$sample_type)
+        }
+
+        div_df <- as.data.frame(div_mat)
+        genes_col <- .get_gene_ids(ts_se)
+        if (is.null(genes_col)) {
+            genes_col <- rownames(div_df)
+        }
+        div_df <- cbind(genes = genes_col, div_df)
+
+        md <- S4Vectors::metadata(ts_se)
+        md$diversity_df <- div_df
+        md$sample_base_names <- sample_base_names
+        if (!is.null(samples_vec)) {
+            md$samples <- samples_vec
+        }
+        S4Vectors::metadata(ts_se) <- md
+    }
+
+    ts_se
 }
