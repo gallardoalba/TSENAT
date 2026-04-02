@@ -74,10 +74,8 @@
 #' API discoverability
 #' across the TSENAT package.
 #'
-
 #' @noRd
 # MAIN FUNCTION - Refactored  to ~45 lines using helper functions
-
 .jackknife_isoform_switching <- function(se = NULL, condition_col = "condition",
     subject_col = NULL, gene_col = NULL, isoform_col = NULL, q = 1, norm = TRUE,
     log_base = exp(1), pseudocount = 0, threshold = 90, n_bootstrap = 1000, verbose = TRUE,
