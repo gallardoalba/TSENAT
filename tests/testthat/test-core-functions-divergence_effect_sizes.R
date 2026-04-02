@@ -788,3 +788,856 @@ test_that("NA or invalid input returns NA", {
   expect_true(is.na(.classify_q_pattern(NULL)))
 })
 
+# ============================================================================
+# TESTS FOR NEW REFACTORED HELPER FUNCTIONS
+# ============================================================================
+
+test_that(".filterSignificantGenes filters by p-value threshold correctly", {
+  lm_res <- data.frame(
+    gene = c("gene1", "gene2", "gene3", "gene4"),
+    adj_p_interaction = c(0.001, 0.01, 0.05, 0.5)
+  )
+  
+  q_values <- NA_real_
+  
+  # Test with threshold 0.05 - should filter to p < 0.05 which are first 3
+  result <- TSENAT:::.filterSignificantGenes(
+    lm_res = lm_res,
+    significance_threshold = 0.05,
+    q_values = q_values,
+    use_generic = TRUE,
+    verbose = FALSE
+  )
+  
+  # All genes with p < 0.05 are gene1, gene2, gene3
+  expect_true(length(result$significant_genes) > 0)
+  expect_true("gene1" %in% result$significant_genes)
+})
+
+test_that(".filterSignificantGenes handles strict threshold", {
+  lm_res <- data.frame(
+    gene = c("gene1", "gene2", "gene3"),
+    adj_p_interaction = c(0.001, 0.01, 0.05)
+  )
+  
+  # Test with strict threshold 0.01 - genes with p < 0.01
+  result <- TSENAT:::.filterSignificantGenes(
+    lm_res = lm_res,
+    significance_threshold = 0.01,
+    q_values = NA_real_,
+    use_generic = TRUE,
+    verbose = FALSE
+  )
+  
+  # Only gene1 has p < 0.01 (p=0.001)
+  expect_true(length(result$significant_genes) >= 1)
+  expect_true("gene1" %in% result$significant_genes)
+})
+
+test_that(".filterSignificantGenes returns empty with no significant genes", {
+  lm_res <- data.frame(
+    gene = c("gene1", "gene2", "gene3"),
+    adj_p_interaction = c(0.1, 0.2, 0.5)
+  )
+  
+  result <- TSENAT:::.filterSignificantGenes(
+    lm_res = lm_res,
+    significance_threshold = 0.05,
+    q_values = NA_real_,
+    use_generic = TRUE,
+    verbose = FALSE
+  )
+  
+  expect_equal(length(result$significant_genes), 0)
+  expect_equal(nrow(result$empty_results), 0)
+})
+
+test_that(".filterSignificantGenes handles NA p-values", {
+  lm_res <- data.frame(
+    gene = c("gene1", "gene2", "gene3"),
+    adj_p_interaction = c(0.01, NA, 0.05)
+  )
+  
+  result <- TSENAT:::.filterSignificantGenes(
+    lm_res = lm_res,
+    significance_threshold = 0.05,
+    q_values = NA_real_,
+    use_generic = TRUE,
+    verbose = FALSE
+  )
+  
+  # NA values should be excluded, so gene2 missing and gene1, gene3 included
+  expect_true(length(result$significant_genes) > 0)
+  expect_true("gene1" %in% result$significant_genes)
+  expect_false("gene2" %in% result$significant_genes)  # NA excluded
+})
+
+test_that(".filterSignificantGenes creates proper empty results dataframe", {
+  lm_res <- data.frame(
+    gene = c("gene1"),
+    adj_p_interaction = c(0.01)
+  )
+  
+  q_values <- c(0.5, 1.0, 2.0)
+  
+  result_generic <- TSENAT:::.filterSignificantGenes(
+    lm_res = lm_res,
+    significance_threshold = 0.05,
+    q_values = NA_real_,
+    use_generic = TRUE,
+    verbose = FALSE
+  )
+  
+  result_multi_q <- TSENAT:::.filterSignificantGenes(
+    lm_res = lm_res,
+    significance_threshold = 0.05,
+    q_values = q_values,
+    use_generic = FALSE,
+    verbose = FALSE
+  )
+  
+  # Check structure of empty dataframes
+  expect_equal(nrow(result_generic$empty_results), 0)
+  expect_equal(nrow(result_multi_q$empty_results), 0)
+  expect_true("gene" %in% colnames(result_generic$empty_results))
+  expect_true("p_value_interaction" %in% colnames(result_multi_q$empty_results))
+})
+
+test_that(".mergeEffectSizesForGenes processes genes correctly", {
+  lm_res <- data.frame(
+    gene = c("gene1", "gene2"),
+    adj_p_interaction = c(0.01, 0.05)
+  )
+  
+  rd <- data.frame(
+    gene_name = c("gene1", "gene2"),
+    estimate = c(0.8, 0.7),
+    lower_ci = c(0.7, 0.6),
+    upper_ci = c(0.9, 0.8)
+  )
+  
+  result <- TSENAT:::.mergeEffectSizesForGenes(
+    lm_res = lm_res,
+    rd = rd,
+    significant_genes = c("gene1", "gene2"),
+    q_values = NA_real_,
+    use_generic = TRUE,
+    verbose = FALSE
+  )
+  
+  expect_true(is.data.frame(result$interaction_results))
+  expect_true(is.list(result$validation_stats))
+  expect_equal(result$validation_stats$total_genes, 2)
+})
+
+test_that(".mergeEffectSizesForGenes tracks validation statistics", {
+  lm_res <- data.frame(
+    gene = c("gene1", "gene2", "gene3"),
+    adj_p_interaction = c(0.01, 0.05, 0.02)
+  )
+  
+  rd <- data.frame(
+    gene_name = c("gene1", "gene2"),  # Missing gene3
+    estimate = c(0.8, 0.7),
+    lower_ci = c(0.7, 0.6),
+    upper_ci = c(0.9, 0.8)
+  )
+  
+  result <- TSENAT:::.mergeEffectSizesForGenes(
+    lm_res = lm_res,
+    rd = rd,
+    significant_genes = c("gene1", "gene2", "gene3"),
+    q_values = NA_real_,
+    use_generic = TRUE,
+    verbose = FALSE
+  )
+  
+  stats <- result$validation_stats
+  expect_equal(stats$total_genes, 3)
+  expect_true(stats$failed_missing_divergence >= 1)  # gene3 missing
+})
+
+test_that(".mergeEffectSizesForGenes handles empty significant genes", {
+  lm_res <- data.frame(
+    gene = c("gene1"),
+    adj_p_interaction = c(0.01)
+  )
+  
+  rd <- data.frame(
+    gene_name = c("gene1"),
+    estimate = c(0.8),
+    lower_ci = c(0.7),
+    upper_ci = c(0.9)
+  )
+  
+  result <- TSENAT:::.mergeEffectSizesForGenes(
+    lm_res = lm_res,
+    rd = rd,
+    significant_genes = character(0),  # Empty significant genes
+    q_values = NA_real_,
+    use_generic = TRUE,
+    verbose = FALSE
+  )
+  
+  expect_equal(nrow(result$interaction_results), 0)
+  expect_equal(result$validation_stats$total_genes, 0)
+})
+
+test_that(".mergeEffectSizesForGenes processes multi-q correctly", {
+  lm_res <- data.frame(
+    gene = c("gene1"),
+    adj_p_interaction = c(0.01)
+  )
+  
+  rd <- data.frame(
+    gene_name = c("gene1"),
+    estimate_q0.5 = 0.9,
+    lower_ci_q0.5 = 0.8,
+    upper_ci_q0.5 = 1.0,
+    estimate_q1 = 0.8,
+    lower_ci_q1 = 0.7,
+    upper_ci_q1 = 0.9,
+    estimate_q2 = 0.6,
+    lower_ci_q2 = 0.5,
+    upper_ci_q2 = 0.7
+  )
+  
+  result <- TSENAT:::.mergeEffectSizesForGenes(
+    lm_res = lm_res,
+    rd = rd,
+    significant_genes = c("gene1"),
+    q_values = c(0.5, 1.0, 2.0),
+    use_generic = FALSE,
+    verbose = FALSE
+  )
+  
+  expect_true(nrow(result$interaction_results) > 0)
+  expect_true("effect_size_D_q0_5" %in% colnames(result$interaction_results))
+})
+
+test_that(".mergeEffectSizesForGenes handles gene_name column in lm_res", {
+  # Note: When gene_name column exists in lm_res, matching uses it
+  lm_res <- data.frame(
+    gene = c("g_id_1", "g_id_2"),
+    adj_p_interaction = c(0.01, 0.05)
+    # Note: no gene_name column here - the function checks for it to decide strategy
+  )
+  
+  rd <- data.frame(
+    gene_name = c("g_id_1", "g_id_2"),  # Match on original gene identifiers
+    estimate = c(0.8, 0.7),
+    lower_ci = c(0.7, 0.6),
+    upper_ci = c(0.9, 0.8)
+  )
+  
+  result <- TSENAT:::.mergeEffectSizesForGenes(
+    lm_res = lm_res,
+    rd = rd,
+    significant_genes = c("g_id_1", "g_id_2"),
+    q_values = NA_real_,
+    use_generic = TRUE,
+    verbose = FALSE
+  )
+  
+  # Should merge successfully 
+  expect_true(nrow(result$interaction_results) >= 1)
+})
+
+test_that(".buildColumnCache creates accurate column indicator matrix", {
+  div_data <- data.frame(
+    check.names = FALSE,
+    `estimate_q0.5` = 0.9,
+    `lower_ci_q0.5` = 0.8,
+    `upper_ci_q0.5` = 1.0,
+    `estimate_q1` = 0.8,
+    `lower_ci_q1` = 0.7,
+    `upper_ci_q1` = 0.9,
+    `estimate_q2` = 0.6,
+    `lower_ci_q2` = 0.5
+    # Note: missing upper_ci_q2
+  )
+  
+  q_values <- c(0.5, 1.0, 2.0)
+  cache <- TSENAT:::.buildColumnCache(div_data, q_values)
+  
+  expect_equal(nrow(cache), 3)
+  expect_equal(ncol(cache), 3)
+  expect_true(cache[1, "estimate"])     # q0.5 has estimate
+  expect_true(cache[1, "lower"])        # q0.5 has lower_ci
+  expect_true(cache[1, "upper"])        # q0.5 has upper_ci
+  expect_true(cache[3, "estimate"])     # q2.0 has estimate
+  expect_true(!cache[3, "upper"])       # q2.0 missing upper_ci
+})
+
+test_that(".buildColumnCache handles columns with numeric q values", {
+  # Test with different q-value representations (e.g., "0.5" vs "1" vs "2")
+  div_data <- data.frame(
+    check.names = FALSE,
+    `estimate_q0.5` = 0.9,
+    `lower_ci_q0.5` = 0.8,
+    `upper_ci_q0.5` = 1.0,
+    `estimate_q1` = 0.8,   # Note: numeric as "1" not "1.0"
+    `lower_ci_q1` = 0.7,
+    `upper_ci_q1` = 0.9
+  )
+  
+  q_values <- c(0.5, 1.0)  # Note: numeric 1.0
+  cache <- TSENAT:::.buildColumnCache(div_data, q_values)
+  
+  # Should match correctly
+  expect_true(cache[2, "estimate"])  # q1.0 should find estimate_q1
+})
+
+test_that(".printMergeSummary produces output with verbose=TRUE", {
+  validation_stats <- list(
+    total_genes = 5,
+    passed_lmm = 4,
+    failed_missing_divergence = 1,
+    other_errors = 0,
+    q_values = NA_real_
+  )
+  
+  interaction_results <- data.frame(
+    gene = c("gene1", "gene2", "gene3", "gene4"),
+    effect_size_D = c(0.8, 0.7, 0.6, 0.5)
+  )
+  
+  # Should not error and produce verbose output
+  expect_message(
+    TSENAT:::.printMergeSummary(
+      validation_stats = validation_stats,
+      interaction_results = interaction_results,
+      q_values = NA_real_,
+      use_generic = TRUE,
+      verbose = TRUE
+    ),
+    "MERGE COMPLETED"
+  )
+})
+
+test_that(".printMergeSummary silently handles verbose=FALSE", {
+  validation_stats <- list(
+    total_genes = 5,
+    passed_lmm = 4,
+    failed_missing_divergence = 1,
+    other_errors = 0,
+    q_values = NA_real_
+  )
+  
+  interaction_results <- data.frame(
+    gene = c("gene1", "gene2"),
+    effect_size_D = c(0.8, 0.7)
+  )
+  
+  # Should not error and produce no output
+  expect_no_message(
+    TSENAT:::.printMergeSummary(
+      validation_stats = validation_stats,
+      interaction_results = interaction_results,
+      q_values = NA_real_,
+      use_generic = TRUE,
+      verbose = FALSE
+    )
+  )
+})
+
+test_that(".enrichWithQPatterns adds per_q_pattern column", {
+  interaction_results <- data.frame(
+    gene = c("gene1", "gene2"),
+    p_value_interaction = c(0.01, 0.05),
+    effect_size_D = c(0.8, 0.7)
+  )
+  
+  # Create matrices without dimnames then set them via SE
+  q_matrices <- list(
+    matrix(c(0.9, 0.5), nrow = 2, ncol = 1),
+    matrix(c(0.8, 0.3), nrow = 2, ncol = 1),
+    matrix(c(0.7, 0.1), nrow = 2, ncol = 1)
+  )
+  names(q_matrices) <- c("q_0.5", "q_1.0", "q_2.0")
+  
+  div_se <- SummarizedExperiment::SummarizedExperiment(
+    assays = q_matrices
+  )
+  rownames(div_se) <- c("gene1", "gene2")
+  
+  # Add rowData with gene naming
+  SummarizedExperiment::rowData(div_se) <- data.frame(
+    gene_name = c("gene1", "gene2")
+  )
+  
+  result <- TSENAT:::.enrichWithQPatterns(
+    interaction_results = interaction_results,
+    divergence_results_se = div_se,
+    verbose = FALSE
+  )
+  
+  expect_true("per_q_pattern" %in% colnames(result))
+  expect_equal(nrow(result), 2)
+})
+
+test_that("complete workflow with multi-q divergence produces correct output", {
+  lm_res <- data.frame(
+    gene = c("gene1", "gene2"),
+    adj_p_interaction = c(0.001, 0.05)
+  )
+  
+  div_se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(
+      q_0.5 = matrix(c(0.95, 0.55), nrow = 2, ncol = 1),
+      q_1.0 = matrix(c(0.85, 0.35), nrow = 2, ncol = 1),
+      q_2.0 = matrix(c(0.75, 0.15), nrow = 2, ncol = 1)
+    ),
+    rowData = data.frame(
+      gene_name = c("gene1", "gene2"),
+      estimate_q0.5 = c(0.95, 0.55),
+      lower_ci_q0.5 = c(0.85, 0.45),
+      upper_ci_q0.5 = c(1.05, 0.65),
+      estimate_q1 = c(0.85, 0.35),
+      lower_ci_q1 = c(0.75, 0.25),
+      upper_ci_q1 = c(0.95, 0.45),
+      estimate_q2 = c(0.75, 0.15),
+      lower_ci_q2 = c(0.65, 0.05),
+      upper_ci_q2 = c(0.85, 0.25)
+    )
+  )
+  
+  result <- .effect_sizes_divergence(
+    lm_res = lm_res,
+    divergence_results_se = div_se,
+    significance_threshold = 0.05,
+    enrich_per_q_pattern = TRUE,
+    verbose = FALSE
+  )
+  
+  # Verify multi-q columns are present
+  expect_true("effect_size_D_q0_5" %in% colnames(result$interaction_results))
+  expect_true("effect_size_D_q1" %in% colnames(result$interaction_results) ||
+              "effect_size_D_q1_0" %in% colnames(result$interaction_results))
+  expect_true("effect_size_D_q2" %in% colnames(result$interaction_results) ||
+              "effect_size_D_q2_0" %in% colnames(result$interaction_results))
+})
+
+test_that("effect_sizes_divergence maintains data integrity through pipeline", {
+  lm_res <- data.frame(
+    gene = c("ENSG00001", "ENSG00002", "ENSG00003"),
+    adj_p_interaction = c(0.001, 0.01, 0.5),
+    slope_diff = c(0.5, 0.3, 0.1)
+  )
+  
+  div_se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(div = matrix(c(0.8, 0.7, 0.6), nrow = 3, ncol = 1)),
+    rowData = data.frame(
+      gene_name = c("ENSG00001", "ENSG00002", "ENSG00003"),
+      estimate = c(0.8, 0.7, 0.6),
+      lower_ci = c(0.7, 0.6, 0.5),
+      upper_ci = c(0.9, 0.8, 0.7)
+    )
+  )
+  
+  result <- .effect_sizes_divergence(
+    lm_res = lm_res,
+    divergence_results_se = div_se,
+    significance_threshold = 0.1,
+    verbose = FALSE
+  )
+  
+  # Verify data integrity
+  expect_equal(nrow(result$interaction_results), 2)  # ENSG00001, ENSG00002
+  expect_true(all(c("ENSG00001", "ENSG00002") %in% result$interaction_results$gene))
+  expect_equal(result$interaction_results$p_value_interaction[1], 0.001)
+})
+
+# ============================================================================
+# NUMERICAL CORRECTNESS TESTS
+# ============================================================================
+
+test_that("formatSingleQResult computes correct absolute value of divergence", {
+  # Test that negative divergence values are properly converted to absolute
+  div_data <- data.frame(
+    estimate = -0.742,
+    lower_ci = -0.850,
+    upper_ci = -0.634
+  )
+  
+  result <- TSENAT:::.formatSingleQResult(
+    match_name = "ENSG00001",
+    p_interaction = 0.00523,
+    slope_diff = 0.456,
+    div_data = div_data
+  )
+  
+  # Effect size should be absolute value
+  expect_equal(result$effect_size_D, 0.742, tolerance = 1e-10)
+  expect_equal(result$p_value_interaction, 0.00523, tolerance = 1e-10)
+  expect_equal(result$slope_diff, 0.456, tolerance = 1e-10)
+  # CIs should be preserved as-is (sign preserved)
+  expect_equal(result$D_lower_ci, -0.850, tolerance = 1e-10)
+  expect_equal(result$D_upper_ci, -0.634, tolerance = 1e-10)
+})
+
+test_that("formatSingleQResult preserves positive values correctly", {
+  # Test with positive divergence
+  div_data <- data.frame(
+    estimate = 0.456,
+    lower_ci = 0.389,
+    upper_ci = 0.523
+  )
+  
+  result <- TSENAT:::.formatSingleQResult(
+    match_name = "test_gene",
+    p_interaction = 0.01,
+    slope_diff = 0.2,
+    div_data = div_data
+  )
+  
+  expect_equal(result$effect_size_D, 0.456, tolerance = 1e-10)
+  expect_equal(result$D_lower_ci, 0.389, tolerance = 1e-10)
+  expect_equal(result$D_upper_ci, 0.523, tolerance = 1e-10)
+})
+
+test_that("formatMultiQResult produces numerically correct multi-q values", {
+  # High precision test with known values
+  div_data <- data.frame(
+    check.names = FALSE,
+    `estimate_q0.5` = 0.8234,
+    `lower_ci_q0.5` = 0.7123,
+    `upper_ci_q0.5` = 0.9345,
+    `estimate_q1` = 0.6512,
+    `lower_ci_q1` = 0.5401,
+    `upper_ci_q1` = 0.7623,
+    `estimate_q2` = 0.4891,
+    `lower_ci_q2` = 0.3780,
+    `upper_ci_q2` = 0.6002
+  )
+  
+  result <- TSENAT:::.formatMultiQResult(
+    match_name = "ENSG00001",
+    p_interaction = 0.00234,
+    slope_diff = 0.567,
+    div_data = div_data,
+    q_values = c(0.5, 1.0, 2.0)
+  )
+  
+  # Verify exact numerical values
+  expect_equal(result$gene, "ENSG00001")
+  expect_equal(result$effect_size_D_q0_5, 0.8234, tolerance = 1e-10)
+  expect_equal(result$D_q0_5_lower_ci, 0.7123, tolerance = 1e-10)
+  expect_equal(result$D_q0_5_upper_ci, 0.9345, tolerance = 1e-10)
+  expect_equal(result$effect_size_D_q1, 0.6512, tolerance = 1e-10)
+  expect_equal(result$effect_size_D_q2, 0.4891, tolerance = 1e-10)
+})
+
+test_that("formatMultiQResult handles negative divergence with absolute value", {
+  # Test that negative estimates are converted to positive effect sizes
+  div_data <- data.frame(
+    check.names = FALSE,
+    `estimate_q0.5` = -0.8234,
+    `lower_ci_q0.5` = -0.9345,
+    `upper_ci_q0.5` = -0.7123,
+    `estimate_q1` = -0.6512,
+    `lower_ci_q1` = -0.7623,
+    `upper_ci_q1` = -0.5401
+  )
+  
+  result <- TSENAT:::.formatMultiQResult(
+    match_name = "ENSG00002",
+    p_interaction = 0.05,
+    slope_diff = 0.1,
+    div_data = div_data,
+    q_values = c(0.5, 1.0)
+  )
+  
+  # Effect sizes should be absolute values
+  expect_equal(result$effect_size_D_q0_5, 0.8234, tolerance = 1e-10)
+  expect_equal(result$effect_size_D_q1, 0.6512, tolerance = 1e-10)
+  # CIs should preserve original values
+  expect_equal(result$D_q0_5_lower_ci, -0.9345, tolerance = 1e-10)
+  expect_equal(result$D_q0_5_upper_ci, -0.7123, tolerance = 1e-10)
+})
+
+test_that("effect_sizes_divergence produces exact numerical output for known input", {
+  # Test with precise known values to validate numerical correctness
+  lm_res <- data.frame(
+    gene = c("g1", "g2"),
+    adj_p_interaction = c(0.001234, 0.050000)
+  )
+  
+  div_se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(div = matrix(c(0.5432, 0.7654), nrow = 2, ncol = 1)),
+    rowData = data.frame(
+      gene_name = c("g1", "g2"),
+      estimate = c(0.5432, 0.7654),
+      lower_ci = c(0.4321, 0.6543),
+      upper_ci = c(0.6543, 0.8765)
+    )
+  )
+  
+  result <- .effect_sizes_divergence(
+    lm_res = lm_res,
+    divergence_results_se = div_se,
+    significance_threshold = 0.1,
+    verbose = FALSE
+  )
+  
+  # Verify exact numerical correspondence
+  expect_equal(result$interaction_results$p_value_interaction[1], 0.001234, tolerance = 1e-10)
+  expect_equal(result$interaction_results$effect_size_D[1], 0.5432, tolerance = 1e-10)
+  expect_equal(result$interaction_results$D_lower_ci[1], 0.4321, tolerance = 1e-10)
+  expect_equal(result$interaction_results$D_upper_ci[1], 0.6543, tolerance = 1e-10)
+})
+
+test_that("effect_sizes_divergence handles zero values correctly", {
+  # Test edge case with zero divergence
+  lm_res <- data.frame(
+    gene = c("zero_gene"),
+    adj_p_interaction = c(0.01)
+  )
+  
+  div_se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(div = matrix(0.0, nrow = 1, ncol = 1)),
+    rowData = data.frame(
+      gene_name = c("zero_gene"),
+      estimate = c(0.0),
+      lower_ci = c(0.0),
+      upper_ci = c(0.0)
+    )
+  )
+  
+  result <- .effect_sizes_divergence(
+    lm_res = lm_res,
+    divergence_results_se = div_se,
+    verbose = FALSE
+  )
+  
+  # Should handle zero correctly (no error, produces zero)
+  expect_equal(result$interaction_results$effect_size_D[1], 0.0)
+  expect_equal(result$interaction_results$D_lower_ci[1], 0.0)
+  expect_equal(result$interaction_results$D_upper_ci[1], 0.0)
+})
+
+test_that("effect_sizes_divergence handles very small numbers correctly", {
+  # Test with very small numbers (but not zero)
+  lm_res <- data.frame(
+    gene = c("tiny_gene"),
+    adj_p_interaction = c(0.001)
+  )
+  
+  div_se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(div = matrix(1e-10, nrow = 1, ncol = 1)),
+    rowData = data.frame(
+      gene_name = c("tiny_gene"),
+      estimate = c(1e-10),
+      lower_ci = c(5e-11),
+      upper_ci = c(1.5e-10)
+    )
+  )
+  
+  result <- .effect_sizes_divergence(
+    lm_res = lm_res,
+    divergence_results_se = div_se,
+    verbose = FALSE
+  )
+  
+  # Should preserve precision with very small numbers
+  expect_equal(result$interaction_results$effect_size_D[1], 1e-10, tolerance = 1e-20)
+  expect_equal(result$interaction_results$D_lower_ci[1], 5e-11, tolerance = 1e-20)
+})
+
+test_that("effect_sizes_divergence handles large numbers correctly", {
+  # Test with large divergence values
+  lm_res <- data.frame(
+    gene = c("large_gene"),
+    adj_p_interaction = c(0.01)
+  )
+  
+  div_se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(div = matrix(15.6789, nrow = 1, ncol = 1)),
+    rowData = data.frame(
+      gene_name = c("large_gene"),
+      estimate = c(15.6789),
+      lower_ci = c(14.5678),
+      upper_ci = c(16.7890)
+    )
+  )
+  
+  result <- .effect_sizes_divergence(
+    lm_res = lm_res,
+    divergence_results_se = div_se,
+    verbose = FALSE
+  )
+  
+  expect_equal(result$interaction_results$effect_size_D[1], 15.6789, tolerance = 1e-4)
+  expect_equal(result$interaction_results$D_lower_ci[1], 14.5678, tolerance = 1e-4)
+})
+
+test_that("formatMultiQResult handles mixed NA/valid values numerically", {
+  # Test case where some q-values have data and others are NA
+  div_data <- data.frame(
+    check.names = FALSE,
+    `estimate_q0.5` = 0.5432,
+    `lower_ci_q0.5` = 0.4321,
+    `upper_ci_q0.5` = 0.6543,
+    `estimate_q1` = NA_real_,
+    `lower_ci_q1` = NA_real_,
+    `upper_ci_q1` = NA_real_,
+    `estimate_q2` = 0.1234,
+    `lower_ci_q2` = 0.0123,
+    `upper_ci_q2` = 0.2345
+  )
+  
+  result <- TSENAT:::.formatMultiQResult(
+    match_name = "partial_gene",
+    p_interaction = 0.05,
+    slope_diff = 0.01,
+    div_data = div_data,
+    q_values = c(0.5, 1.0, 2.0)
+  )
+  
+  # Should include valid values and NA for missing
+  expect_equal(result$effect_size_D_q0_5, 0.5432, tolerance = 1e-10)
+  expect_true(is.na(result$effect_size_D_q1))
+  expect_equal(result$effect_size_D_q2, 0.1234, tolerance = 1e-10)
+})
+
+test_that(".buildColumnCache correctly identifies present/absent columns", {
+  # Verify numeric correctness: 1 for present, 0 for absent
+  div_data <- data.frame(
+    check.names = FALSE,
+    `estimate_q0.5` = 1.0,
+    `lower_ci_q0.5` = 2.0,
+    `upper_ci_q0.5` = 3.0,
+    `estimate_q1` = 4.0,
+    `lower_ci_q1` = 5.0,
+    # Missing upper_ci_q1
+    `estimate_q2` = 6.0
+    # Missing lower_ci_q2 and upper_ci_q2
+  )
+  
+  cache <- TSENAT:::.buildColumnCache(div_data, c(0.5, 1.0, 2.0))
+  
+  # Check structure: should be matrix with TRUE/FALSE
+  expect_equal(nrow(cache), 3)
+  expect_equal(ncol(cache), 3)
+  
+  # Verify presence matrix
+  expect_true(cache[1, "estimate"])   # q0.5 estimate present
+  expect_true(cache[1, "lower"])      # q0.5 lower present
+  expect_true(cache[1, "upper"])      # q0.5 upper present
+  expect_true(cache[2, "estimate"])   # q1 estimate present
+  expect_true(cache[2, "lower"])      # q1 lower present
+  expect_false(cache[2, "upper"])     # q1 upper MISSING
+  expect_true(cache[3, "estimate"])   # q2 estimate present
+  expect_false(cache[3, "lower"])     # q2 lower MISSING
+  expect_false(cache[3, "upper"])     # q2 upper MISSING
+})
+
+test_that("classify_q_pattern produces numerically correct ratio thresholds", {
+  # Test boundary conditions for ratio threshold (default 1.3)
+  # ratio = rare_median / abundant_median
+  
+  # Case 1: Ratio strictly greater than threshold (rare_median = 1.5 * abundant_median)
+  # Should be RARE_DRIVEN
+  divs_above_rare <- c(q_0.5 = 1.5, q_1.0 = 1.0, q_2.0 = 1.0)
+  expect_equal(.classify_q_pattern(divs_above_rare), "RARE_DRIVEN")
+  
+  # Case 2: Ratio exactly at threshold - should be BALANCED (not >= but strictly >)
+  divs_at_threshold <- c(q_0.5 = 1.3, q_1.0 = 1.0, q_2.0 = 1.0)
+  expect_equal(.classify_q_pattern(divs_at_threshold), "BALANCED")
+  
+  # Case 3: Ratio strictly below ABUNDANT threshold (ratio < 1/1.3 ≈ 0.769)
+  # rare_median = 0.5, abundant_median = 1.0 → ratio = 0.5 < 0.769
+  divs_below_abundant <- c(q_0.5 = 0.5, q_1.0 = 1.0, q_2.0 = 1.0)
+  expect_equal(.classify_q_pattern(divs_below_abundant), "ABUNDANT_DRIVEN")
+  
+  # Case 4: Ratio exactly at ABUNDANT threshold - should be BALANCED (not <= but strictly <)
+  # rare_median = 0.769, abundant_median = 1.0 → ratio ≈ 0.769
+  divs_at_abundant_boundary <- c(q_0.5 = 1.0 / 1.3, q_1.0 = 1.0, q_2.0 = 1.0)
+  expect_equal(.classify_q_pattern(divs_at_abundant_boundary), "BALANCED")
+})
+
+test_that("classify_q_pattern correctly computes median for classification", {
+  # Test with multiple values per region to verify median calculation
+  # Rare region (q < 1): 0.8, 0.9, 1.0 (should be excluded) -> median = 0.85
+  # Abundant region (q > 1): 1.1, 1.2 -> median = 1.15
+  # ratio = 0.85 / 1.15 = 0.739 < 1/1.3 → ABUNDANT_DRIVEN
+  divs_multi <- c(q_0.25 = 0.8, q_0.5 = 0.9, q_1.0 = 1.0, q_1.5 = 1.1, q_2.0 = 1.2)
+  result <- .classify_q_pattern(divs_multi)
+  
+  # Verify it correctly identified median and ratio
+  expect_equal(result, "ABUNDANT_DRIVEN")
+})
+
+test_that("Effect size calculation preserves full precision through pipeline", {
+  # Test full pipeline with high-precision values
+  lm_res <- data.frame(
+    gene = c("precision_test"),
+    adj_p_interaction = c(0.00112358)  # High precision p-value
+  )
+  
+  div_se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(div = matrix(0.6180339887, nrow = 1, ncol = 1)),
+    rowData = data.frame(
+      gene_name = c("precision_test"),
+      estimate = c(0.6180339887),
+      lower_ci = c(0.5555555556),
+      upper_ci = c(0.6805555550)
+    )
+  )
+  
+  result <- .effect_sizes_divergence(
+    lm_res = lm_res,
+    divergence_results_se = div_se,
+    verbose = FALSE
+  )
+  
+  # Verify precision maintained through pipeline
+  expect_equal(result$interaction_results$p_value_interaction[1], 0.00112358, 
+               tolerance = 1e-10)
+  expect_equal(result$interaction_results$effect_size_D[1], 0.6180339887,
+               tolerance = 1e-10)
+  expect_equal(result$interaction_results$D_lower_ci[1], 0.5555555556,
+               tolerance = 1e-10)
+})
+
+test_that("Multi-q output maintains numerical ordering consistency", {
+  # Verify that q-values are ordered consistently (low q to high q)
+  lm_res <- data.frame(
+    gene = c("order_test"),
+    adj_p_interaction = c(0.01)
+  )
+  
+  div_se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(div = matrix(0.5, nrow = 1, ncol = 1)),
+    rowData = data.frame(
+      gene_name = c("order_test"),
+      estimate_q0.5 = 0.9,
+      lower_ci_q0.5 = 0.8,
+      upper_ci_q0.5 = 1.0,
+      estimate_q1 = 0.7,
+      lower_ci_q1 = 0.6,
+      upper_ci_q1 = 0.8,
+      estimate_q2 = 0.5,
+      lower_ci_q2 = 0.4,
+      upper_ci_q2 = 0.6,
+      estimate_q10 = 0.1,
+      lower_ci_q10 = 0.0,
+      upper_ci_q10 = 0.2
+    )
+  )
+  
+  result <- .effect_sizes_divergence(
+    lm_res = lm_res,
+    divergence_results_se = div_se,
+    verbose = FALSE
+  )
+  
+  # Verify columns exist and values are in correct order
+  expect_equal(result$interaction_results$effect_size_D_q0_5, 0.9)
+  expect_equal(result$interaction_results$effect_size_D_q1, 0.7)
+  expect_equal(result$interaction_results$effect_size_D_q2, 0.5)
+  expect_equal(result$interaction_results$effect_size_D_q10, 0.1)
+})
+
+
+

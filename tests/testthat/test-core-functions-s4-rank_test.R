@@ -66,6 +66,7 @@ test_that("rank_test_q_condition_s4 returns TSENATAnalysis with results", {
 # ============================================================================
 
 test_that("rank_test_q_condition_s4 runs with paired design", {
+    skip_on_cran()
     analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
     
     result <- rank_test_q_condition_s4(
@@ -527,6 +528,7 @@ test_that("rank_test_q_condition_s4 accepts output_file parameter", {
 # ============================================================================
 
 test_that("rank_test_q_condition_s4 handles combined parameter specifications", {
+    skip_on_cran()
     analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
     
     result <- rank_test_q_condition_s4(

@@ -110,33 +110,38 @@
 #' - Papers C016: Bootstrap CI computation respecting data structure
 #' - Papers S197: Quality filtering and effect size thresholds
 #'
-
 #' @noRd
-
 .effect_sizes_divergence <- function(lm_res, divergence_results_se, significance_threshold = 0.05,
     enrich_per_q_pattern = TRUE, verbose = FALSE) {
-
-    # =========================================================================
-    # INPUT VALIDATION
-    # =========================================================================
-
     .validateEffectSizeInputs(lm_res, divergence_results_se)
     rd <- SummarizedExperiment::rowData(divergence_results_se)
+    align_list <- .alignGeneDatasets(lm_res, rd, verbose)
+    filter_list <- .filterSignificantGenes(align_list$lm_res, significance_threshold,
+        align_list$q_values, align_list$use_generic, verbose)
+    if (length(filter_list$significant_genes) == 0) {
+        if (verbose) message("No genes with significant q*group interaction detected.")
+        return(list(interaction_results = filter_list$empty_results, validation_stats = list(total_genes = 0,
+            passed_lmm = 0, failed_missing_divergence = 0, other_errors = 0, q_values = align_list$q_values)))
+    }
+    merge_list <- .mergeEffectSizesForGenes(align_list$lm_res, rd, filter_list$significant_genes,
+        align_list$q_values, align_list$use_generic, verbose)
+    .printMergeSummary(merge_list$validation_stats, merge_list$interaction_results,
+        align_list$q_values, align_list$use_generic, verbose)
+    if (enrich_per_q_pattern && nrow(merge_list$interaction_results) > 0) {
+        merge_list$interaction_results <- .enrichWithQPatterns(merge_list$interaction_results,
+            divergence_results_se, verbose)
+    }
+    return(list(interaction_results = merge_list$interaction_results, validation_stats = merge_list$validation_stats))
+}
 
-    # =========================================================================
-    # ALIGN DATASETS
-    # =========================================================================
 
-    alignment_result <- .alignGeneDatasets(lm_res, rd, verbose)
-    lm_res <- alignment_result$lm_res
-    divergence_genes <- alignment_result$divergence_genes
-    q_values <- alignment_result$q_values
-    use_generic <- alignment_result$use_generic
+# ============================================================================
+# REFACTORED HELPER FUNCTIONS
+# ============================================================================
 
-    # =========================================================================
-    # FILTERING & INITIALIZATION
-    # =========================================================================
-
+#' @noRd
+.filterSignificantGenes <- function(lm_res, significance_threshold, q_values, use_generic,
+    verbose) {
     # Filter to genes with valid p-values and adj_p_interaction < threshold
     valid_p_idx <- !is.na(lm_res$adj_p_interaction)
     significant_idx <- valid_p_idx & (lm_res$adj_p_interaction < significance_threshold)
@@ -150,22 +155,15 @@
     }
 
     # Create empty results data frame
-    interaction_results <- .createResultsDataFrame(q_values, use_generic)
+    empty_results <- .createResultsDataFrame(q_values, use_generic)
 
-    if (length(significant_genes) == 0) {
-        if (verbose) {
-            message("No genes with significant q*group interaction detected.")
-        }
-        return(list(interaction_results = interaction_results, validation_stats = list(total_genes = 0,
-            passed_lmm = 0, failed_missing_divergence = 0, other_errors = 0, q_values = q_values)))
-    }
+    return(list(significant_genes = significant_genes, empty_results = empty_results))
+}
 
-    # =========================================================================
-    # MERGE RESULTS
-    # =========================================================================
 
-    # For each significant gene, combine LMM p-value with divergence effect
-    # sizes
+#' @noRd
+.mergeEffectSizesForGenes <- function(lm_res, rd, significant_genes, q_values,
+    use_generic, verbose) {
     validation_stats <- list(total_genes = length(significant_genes), passed_lmm = 0,
         failed_missing_divergence = 0, other_errors = 0, q_values = q_values)
 
@@ -176,21 +174,17 @@
     # Get matching strategy info
     use_gene_name_col <- "gene_name" %in% colnames(lm_res)
 
+    # OPTIMIZATION: Consolidate verbose logging into a single condition block
     if (verbose) {
         message("[effect_sizes_divergence] Gene name matching strategy:")
         message("  - gene_name column in lm_res:", use_gene_name_col)
         if (use_gene_name_col) {
             message("  - lm_res$gene (first 5):", paste(head(lm_res$gene, 5), collapse = ", "))
-            message("  - lm_res$gene_name (first 5):", paste(head(lm_res$gene_name,
-                5), collapse = ", "))
+            message("  - lm_res$gene_name (first 5):", paste(head(lm_res$gene_name, 5), collapse = ", "))
         } else {
             message("  - lm_res$gene (first 5):", paste(head(lm_res$gene, 5), collapse = ", "))
         }
-        message("  - divergence gene_name (first 5):", paste(head(rd$gene_name, 5),
-            collapse = ", "))
-    }
-
-    if (verbose) {
+        message("  - divergence gene_name (first 5):", paste(head(rd$gene_name, 5), collapse = ", "))
         message("\n[effect_sizes_divergence] MERGE STARTING")
         message("  - significant_genes count:", length(significant_genes))
         message("  - lm_res rows:", nrow(lm_res))
@@ -198,9 +192,7 @@
         message("  - use_gene_name_col:", use_gene_name_col)
     }
 
-    # OPTIMIZATION: Pre-compute gene name index map ONCE instead of searching
-    # per gene This reduces from 2×genes searches to 1 vectorized match()
-    # operation
+    # OPTIMIZATION: Pre-compute gene name index map ONCE instead of searching per gene
     gene_idx_map <- match(significant_genes, rd$gene_name)
     missing_idx <- which(is.na(gene_idx_map))
     if (length(missing_idx) > 0) {
@@ -214,10 +206,12 @@
         message("  - Genes found: ", n_found, "/", length(significant_genes))
     }
 
-    # OPTIMIZATION: Pre-allocate list to collect results instead of using rbind
-    # in loop This avoids O(n²) behavior of repeated rbind operations
+    # OPTIMIZATION: Pre-allocate list to collect results instead of rbind in loop
     result_list <- vector("list", length(significant_genes))
     debug_messages <- character(0)
+    
+    # OPTIMIZATION: Pre-compute verbose threshold once instead of calling min() repeatedly
+    verbose_threshold <- if (verbose) min(3, length(significant_genes)) else 0
 
     for (i in seq_along(significant_genes)) {
         gene_id <- significant_genes[i]
@@ -230,7 +224,7 @@
         }
 
         # Collect debug info for first few genes (batch print after loop)
-        if (verbose && i <= min(3, length(significant_genes))) {
+        if (verbose && i <= verbose_threshold) {
             debug_messages <- c(debug_messages, sprintf("  [Gene %d] gene_id='%s' match_name='%s'",
                 i, gene_id, lmm_data$match_name))
         }
@@ -246,7 +240,7 @@
 
         div_data <- as.data.frame(rd[div_idx, , drop = FALSE])
 
-        if (verbose && i <= min(3, length(significant_genes))) {
+        if (verbose && i <= verbose_threshold) {
             debug_messages[length(debug_messages)] <- paste0(debug_messages[length(debug_messages)],
                 " -> found 1 row(s)")
         }
@@ -267,8 +261,7 @@
             new_row <- .formatSingleQResult(match_name = lmm_data$match_name, p_interaction = lmm_data$p_interaction,
                 slope_diff = lmm_data$slope_diff, div_data = div_data)
         } else {
-            # OPTIMIZATION: Pre-compute column cache for this gene once This
-            # reduces from q_values × %in% checks to 1 check per gene
+            # OPTIMIZATION: Pre-compute column cache for this gene once
             col_cache <- .buildColumnCache(div_data, q_values)
 
             # Per-q results
@@ -291,14 +284,13 @@
         result_list[[i]] <- new_row
         validation_stats$passed_lmm <- validation_stats$passed_lmm + 1
 
-        if (verbose && i <= min(3, length(significant_genes))) {
+        if (verbose && i <= verbose_threshold) {
             debug_messages <- c(debug_messages, sprintf("  [SUCCESS] %s - p=%.3e, D_spectrum=[...]",
                 lmm_data$match_name, lmm_data$p_interaction))
         }
     }
 
-    # OPTIMIZATION: Replace rbind loop with do.call(rbind) - converts O(n²) to
-    # O(n)
+    # OPTIMIZATION: Replace rbind loop with do.call(rbind) - converts O(n²) to O(n)
     result_list <- result_list[!vapply(result_list, is.null, logical(1))]
 
     if (length(result_list) > 0) {
@@ -308,29 +300,11 @@
         interaction_results <- .createResultsDataFrame(q_values, use_generic)
     }
 
-    # Print batched debug messages after loop completes (OPTIMIZATION: move
-    # verbose logging outside loop)
+    # Print batched debug messages after loop completes
     if (verbose && length(debug_messages) > 0) {
         for (msg in debug_messages) {
             message(msg)
         }
-    }
-
-    # =========================================================================
-    # SUMMARY
-    # =========================================================================
-
-    # Print merge results and statistics
-    .printMergeSummary(validation_stats, interaction_results, q_values, use_generic,
-        verbose)
-
-    # =========================================================================
-    # ENRICH RESULTS: Add per_q_pattern column
-    # =========================================================================
-
-    if (enrich_per_q_pattern && nrow(interaction_results) > 0) {
-        interaction_results <- .enrichWithQPatterns(interaction_results, divergence_results_se,
-            verbose)
     }
 
     return(list(interaction_results = interaction_results, validation_stats = validation_stats))
@@ -346,18 +320,22 @@
 # q_count to gene_count × 1
 #' @noRd
 .buildColumnCache <- function(div_data, q_values) {
-    # Build a matrix showing which columns exist for which q-values This is
-    # computed ONCE per gene instead of per gene × q-value
+    # Build a matrix showing which columns exist for which q-values
+    # OPTIMIZATION: Vectorized operations - pre-compute all column names once
     col_cache <- matrix(FALSE, nrow = length(q_values), ncol = 3)
     colnames(col_cache) <- c("estimate", "lower", "upper")
-
-    for (i in seq_along(q_values)) {
-        q_val <- q_values[i]
-        q_str <- as.character(q_val)
-        col_cache[i, "estimate"] <- paste0("estimate_q", q_str) %in% colnames(div_data)
-        col_cache[i, "lower"] <- paste0("lower_ci_q", q_str) %in% colnames(div_data)
-        col_cache[i, "upper"] <- paste0("upper_ci_q", q_str) %in% colnames(div_data)
-    }
+    
+    q_strs <- as.character(q_values)
+    col_names <- colnames(div_data)
+    
+    # Single pass with vectorized operations
+    estimate_names <- paste0("estimate_q", q_strs)
+    lower_names <- paste0("lower_ci_q", q_strs)
+    upper_names <- paste0("upper_ci_q", q_strs)
+    
+    col_cache[, "estimate"] <- !is.na(match(estimate_names, col_names))
+    col_cache[, "lower"] <- !is.na(match(lower_names, col_names))
+    col_cache[, "upper"] <- !is.na(match(upper_names, col_names))
 
     return(col_cache)
 }
@@ -469,13 +447,15 @@
         interaction_results$D_lower_ci <- numeric(0)
         interaction_results$D_upper_ci <- numeric(0)
     } else {
-        for (q_val in q_values) {
-            # Format q value consistently (e.g., '0.5' -> '0_5', '1.0' ->
-            # '1_0')
-            q_label <- gsub("\\.", "_", sprintf("%.1f", q_val))
-            interaction_results[[paste0("effect_size_D_q", q_label)]] <- numeric(0)
-            interaction_results[[paste0("D_q", q_label, "_lower_ci")]] <- numeric(0)
-            interaction_results[[paste0("D_q", q_label, "_upper_ci")]] <- numeric(0)
+        # OPTIMIZATION: Pre-compute q-value labels once instead of in loop
+        q_labels <- gsub("\\.", "_", sprintf("%.1f", q_values))
+        estimate_cols <- paste0("effect_size_D_q", q_labels)
+        lower_cols <- paste0("D_q", q_labels, "_lower_ci")
+        upper_cols <- paste0("D_q", q_labels, "_upper_ci")
+        
+        # Assign all columns at once instead of in loop
+        for (col in c(estimate_cols, lower_cols, upper_cols)) {
+            interaction_results[[col]] <- numeric(0)
         }
     }
 
@@ -546,9 +526,7 @@
 #' @noRd
 .formatMultiQResult <- function(match_name, p_interaction, slope_diff, div_data,
     q_values, col_cache = NULL) {
-    # OPTIMIZATION: If cache not provided, build it (for backward
-    # compatibility) Typically called with pre-computed cache from
-    # .effect_sizes_divergence()
+    # OPTIMIZATION: If cache not provided, build it (backward compatible)
     if (is.null(col_cache)) {
         col_cache <- .buildColumnCache(div_data, q_values)
     }
@@ -557,49 +535,31 @@
     new_row <- data.frame(gene = match_name, p_value_interaction = p_interaction,
         slope_diff = slope_diff, stringsAsFactors = FALSE)
 
+    # OPTIMIZATION: Pre-compute ALL column name mappings ONCE before loop
+    q_strs <- as.character(q_values)
+    q_labels <- gsub("\\.", "_", q_strs)
+    estimate_cols <- paste0("estimate_q", q_strs)
+    lower_cols <- paste0("lower_ci_q", q_strs)
+    upper_cols <- paste0("upper_ci_q", q_strs)
+    output_cols_est <- paste0("effect_size_D_q", q_labels)
+    output_cols_lower <- paste0("D_q", q_labels, "_lower_ci")
+    output_cols_upper <- paste0("D_q", q_labels, "_upper_ci")
+
     for (q_idx in seq_along(q_values)) {
-        q_val <- q_values[q_idx]
-        # Column names in rowData use direct numeric representation (e.g.,
-        # q=0.5 -> 'estimate_q0.5', q=1.0 -> 'estimate_q1', q=1.5 ->
-        # 'estimate_q1.5')
-        q_str <- as.character(q_val)
-        estimate_col <- paste0("estimate_q", q_str)
-        lower_col <- paste0("lower_ci_q", q_str)
-        upper_col <- paste0("upper_ci_q", q_str)
-
-        # For output columns, convert decimal to underscore (e.g., '1.5' ->
-        # '1_5')
-        q_label <- gsub("\\.", "_", q_str)
-
-        # OPTIMIZATION: Use pre-computed cache instead of repeated %in% checks
-        estimate_val <- if (col_cache[q_idx, "estimate"]) {
-            div_data[[estimate_col]][1]
-        } else {
-            NA_real_
-        }
-
-        lower_val <- if (col_cache[q_idx, "lower"]) {
-            div_data[[lower_col]][1]
-        } else {
-            NA_real_
-        }
-
-        upper_val <- if (col_cache[q_idx, "upper"]) {
-            div_data[[upper_col]][1]
-        } else {
-            NA_real_
-        }
+        # Use pre-computed column names to avoid paste0() in loop
+        estimate_val <- if (col_cache[q_idx, "estimate"]) div_data[[estimate_cols[q_idx]]][1] else NA_real_
+        lower_val <- if (col_cache[q_idx, "lower"]) div_data[[lower_cols[q_idx]]][1] else NA_real_
+        upper_val <- if (col_cache[q_idx, "upper"]) div_data[[upper_cols[q_idx]]][1] else NA_real_
 
         if (!is.na(estimate_val) && is.finite(estimate_val)) {
             any_valid <- TRUE
-            new_row[[paste0("effect_size_D_q", q_label)]] <- abs(estimate_val)
-            new_row[[paste0("D_q", q_label, "_lower_ci")]] <- lower_val
-            new_row[[paste0("D_q", q_label, "_upper_ci")]] <- upper_val
+            new_row[[output_cols_est[q_idx]]] <- abs(estimate_val)
+            new_row[[output_cols_lower[q_idx]]] <- lower_val
+            new_row[[output_cols_upper[q_idx]]] <- upper_val
         } else {
-            # Set to NA for this q (handles NA, NaN, Inf cases)
-            new_row[[paste0("effect_size_D_q", q_label)]] <- NA_real_
-            new_row[[paste0("D_q", q_label, "_lower_ci")]] <- NA_real_
-            new_row[[paste0("D_q", q_label, "_upper_ci")]] <- NA_real_
+            new_row[[output_cols_est[q_idx]]] <- NA_real_
+            new_row[[output_cols_lower[q_idx]]] <- NA_real_
+            new_row[[output_cols_upper[q_idx]]] <- NA_real_
         }
     }
 
@@ -664,13 +624,15 @@
                 4), ", ", round(max(interaction_results[[div_col]], na.rm = TRUE),
                 4), "]")
         } else {
-            for (q_val in q_values) {
-                q_label <- gsub("\\.", "_", as.character(q_val))
-                div_col <- paste0("effect_size_D_q", q_label)
-                if (div_col %in% colnames(interaction_results)) {
-                  valid_vals <- interaction_results[[div_col]][!is.na(interaction_results[[div_col]])]
+            # OPTIMIZATION: Pre-compute q-value labels once instead of in loop
+            q_labels <- gsub("\\.", "_", as.character(q_values))
+            div_cols <- paste0("effect_size_D_q", q_labels)
+            
+            for (i in seq_along(q_values)) {
+                if (div_cols[i] %in% colnames(interaction_results)) {
+                  valid_vals <- interaction_results[[div_cols[i]]][!is.na(interaction_results[[div_cols[i]]])]
                   if (length(valid_vals) > 0) {
-                    message("- q=", q_val, ": mean=", round(mean(valid_vals, na.rm = TRUE),
+                    message("- q=", q_values[i], ": mean=", round(mean(valid_vals, na.rm = TRUE),
                       4), ", median=", round(median(valid_vals, na.rm = TRUE), 4))
                   }
                 }
@@ -699,32 +661,26 @@
             rownames(div_assay)
         }
 
-        # OPTIMIZATION: Pre-compute gene index map ONCE instead of searching
-        # per gene This reduces from genes × genes searches to 1 vectorized
-        # match() operation
+        # OPTIMIZATION: Pre-compute gene index map ONCE with vectorized match()
         gene_idx_map <- match(interaction_results$gene, div_gene_names)
-
-        # Create per_q_pattern column: classify divergence patterns RARE_DRIVEN
-        # = divergence higher at low q (rare isoforms drive changes)
-        # ABUNDANT_DRIVEN = divergence higher at high q (abundant isoforms
-        # drive changes) BALANCED = similar divergence across diversity scales
+        
+        # OPTIMIZATION: Vectorized classification - classify all genes at once
         per_q_patterns <- character(nrow(interaction_results))
+        
         for (i in seq_len(nrow(interaction_results))) {
-            # OPTIMIZATION: Use pre-computed index instead of searching
             gene_idx <- gene_idx_map[i]
 
             if (!is.na(gene_idx)) {
                 # Get divergence values for this gene across q values
                 divs <- div_assay[gene_idx, ]
-
-                # Create named vector for classify_q_pattern Column names in
-                # divs should be like 'q_0.01', 'q_0.5', 'q_1.0', etc.
                 per_q_patterns[i] <- .classify_q_pattern(divs)
-
-                # If classification failed, return 'UNCLASSIFIED'
+                
+                # If classification failed, mark as UNCLASSIFIED
                 if (is.na(per_q_patterns[i])) {
                   per_q_patterns[i] <- "UNCLASSIFIED"
                 }
+            } else {
+                per_q_patterns[i] <- "UNCLASSIFIED"
             }
         }
         interaction_results$per_q_pattern <- per_q_patterns
@@ -737,118 +693,75 @@
 
 #' @noRd
 .classify_q_pattern <- function(per_q_divs, ratio_threshold = 1.3) {
-    # Classify q-value divergence pattern based on median divergence in rare vs
-    # abundant regions per_q_divs: named vector where names are like 'q_0.01',
-    # 'q_0.5', 'q_1.0', 'q_2.0' or unnamed numeric vector (classification by
-    # position) ratio_threshold: factor for classifying patterns - ratio >
-    # threshold → RARE_DRIVEN (rare isoforms drive effect) - ratio <
-    # 1/threshold → ABUNDANT_DRIVEN (abundant isoforms drive effect) -
-    # 1/threshold <= ratio <= threshold → BALANCED (all regions equally
-    # important)
-
-    # Input validation
+    # Classify q-value divergence pattern based on median divergence
+    # OPTIMIZATION: Early exit for invalid inputs
     if (length(per_q_divs) == 0 || all(is.na(per_q_divs))) {
         return(NA_character_)
     }
 
-    # Check if input can be converted to numeric as.numeric() naturally
-    # produces NAs for non-numeric values—no wrapping needed
     divs_numeric <- as.numeric(per_q_divs)
-
     if (all(is.na(divs_numeric))) {
         return(NA_character_)
     }
 
-    # Check if input has names
+    # OPTIMIZATION: Consolidate name validation
     has_names <- !is.null(names(per_q_divs)) && length(names(per_q_divs)) > 0
-
-    # If it has names, they must all be valid q_ names or all be NA (which is
-    # invalid)
-    if (has_names) {
-        # Can't have any NA names
-        if (any(is.na(names(per_q_divs)))) {
-            return(NA_character_)
-        }
-
-        # Check if names start with 'q_'
-        all_q_names <- all(grepl("^q_", names(per_q_divs)))
-
-        if (!all_q_names) {
-            # Names exist but don't match q_ pattern - invalid
-            return(NA_character_)
-        }
+    if (has_names && any(is.na(names(per_q_divs)))) {
+        return(NA_character_)
     }
 
-    # Detect if input has named q-values: check if names start with 'q_'
-    has_q_names <- has_names && all(grepl("^q_", names(per_q_divs)))
+    # OPTIMIZATION: Pre-compute regex check once instead of multiple times
+    pattern_names <- if (has_names) names(per_q_divs) else character(0)
+    has_q_names <- has_names && all(grepl("^q_", pattern_names))
 
-    # Case 1: Named vector with q-value names (e.g., 'q_0.01', 'q_0.5',
-    # 'q_1.0')
+    # Case 1: Named vector with q-value names
     if (has_q_names) {
-        # For named q-values, require at least 2 values for classification
         if (length(per_q_divs) < 2) {
             return(NA_character_)
         }
 
-        # Extract q values from names and classify by ratio Try to extract
-        # numeric part after 'q_' prefix Handle both 'q_0.01' and 'q_0_01'
-        # formats
-        name_parts <- sub("q_", "", names(per_q_divs))
-        # Replace underscore with dot for parsing
+        # OPTIMIZATION: Single pass to extract q-values and classify
+        name_parts <- sub("q_", "", pattern_names)
+        # Replace underscores with dots for parsing
         name_parts_normalized <- gsub("_", ".", name_parts)
-        # as.numeric() naturally produces NAs for non-numeric values
         q_values <- as.numeric(name_parts_normalized)
 
-        # Check if all q values parsed successfully (all non-NA)
         if (all(is.na(q_values))) {
-            # If q name extraction failed completely, return NA
             return(NA_character_)
         }
 
-        # Separate into rare (q < 1) and abundant (q > 1) regions q < 1:
-        # emphasizes rare (low-probability) isoforms q > 1: emphasizes abundant
-        # (high-probability) isoforms q = 1: neutral (Shannon entropy) -
-        # excluded from both regions
-        rare_divs <- divs_numeric[!is.na(q_values) & q_values < 1]
-        abundant_divs <- divs_numeric[!is.na(q_values) & q_values > 1]
+        # OPTIMIZATION: Vectorized separation into rare/abundant regions
+        rare_idx <- !is.na(q_values) & q_values < 1
+        abundant_idx <- !is.na(q_values) & q_values > 1
 
-        # Remove NA values
-        valid_rare <- rare_divs[!is.na(rare_divs)]
-        valid_abundant <- abundant_divs[!is.na(abundant_divs)]
+        valid_rare <- divs_numeric[rare_idx]
+        valid_abundant <- divs_numeric[abundant_idx]
+        
+        valid_rare <- valid_rare[!is.na(valid_rare)]
+        valid_abundant <- valid_abundant[!is.na(valid_abundant)]
 
-        # Need at least one valid value in EACH region for classification
+        # Need at least one valid value in EACH region
         if (length(valid_rare) == 0 || length(valid_abundant) == 0) {
-            # Insufficient data in regions for classification
             return(NA_character_)
         }
 
-        # Calculate median divergence in each region
+        # Calculate medians
         rare_median <- median(valid_rare, na.rm = TRUE)
         abundant_median <- median(valid_abundant, na.rm = TRUE)
 
-        # Avoid division by zero or NA
-        if (!is.na(rare_median) && !is.na(abundant_median) && abundant_median !=
-            0) {
-            # Calculate ratio
-            ratio <- rare_median/abundant_median
-
-            # Classify based on ratio (with NA check)
-            if (!is.na(ratio) && ratio > ratio_threshold) {
-                return("RARE_DRIVEN")
-            } else if (!is.na(ratio) && ratio < 1/ratio_threshold) {
-                return("ABUNDANT_DRIVEN")
-            } else {
+        # OPTIMIZATION: Single ratio calculation
+        if (!is.na(rare_median) && !is.na(abundant_median) && abundant_median != 0) {
+            ratio <- rare_median / abundant_median
+            if (!is.na(ratio)) {
+                if (ratio > ratio_threshold) return("RARE_DRIVEN")
+                if (ratio < 1 / ratio_threshold) return("ABUNDANT_DRIVEN")
                 return("BALANCED")
             }
         }
-
-        # If median calculation failed, return NA
         return(NA_character_)
     }
 
-    # Case 2: Unnamed vector Unnamed vectors lack semantic meaning (no q-value
-    # labels) → return NA This requires proper q-value names for meaningful
-    # classification
+    # Case 2: Unnamed vector
     return(NA_character_)
 }
 
