@@ -730,31 +730,114 @@ test_that("label_shuffling: Handle NAs gracefully in effect sizes", {
 context("Output File: Numerical Correctness (TSV, CSV, RDS)")
 
 test_that("output_file: TSV format preserves numerical precision", {
-    skip("output_file functionality tested at S4 wrapper level", "pairwise_shuffling.R")
-    # This is tested at the S4 level in calculate_difference S4 method
-    # which calls .calculate_difference() internally and writes output
+    # Create test data
+    set.seed(42)
+    mat <- matrix(rnorm(32), nrow = 4)  # 4x8 matrix (32 elements)
+    samples <- c(rep("Control", 4), rep("Case", 4))  # 8 samples
     
-    # Note: Low-level .label_shuffling() does not have output_file parameter
-    # Output file writing is handled by High-level S4 methods
-    expect_true(TRUE)  # Placeholder test
+    # Generate results
+    res <- .label_shuffling(
+        mat, samples,
+        control = "Control",
+        method = "mean",
+        randomizations = 50,
+        pcorr = "BH"
+    )
+    
+    # Write to temporary TSV file
+    temp_file <- tempfile(fileext = ".tsv")
+    on.exit(unlink(temp_file), add = TRUE)
+    
+    write.table(res, file = temp_file, sep = "\t", row.names = FALSE)
+    
+    # Read back and verify precision
+    res_read <- read.table(temp_file, sep = "\t", header = TRUE)
+    
+    # Check that numerical columns match (within floating point tolerance)
+    expect_equal(nrow(res_read), nrow(res))
+    expect_equal(ncol(res_read), ncol(res))
+    
+    # Verify p-values are preserved
+    expect_equal(as.numeric(res_read$pvalue), res$pvalue, tolerance = 1e-10)
 })
 
 test_that("output_file: CSV format preserves p-values exactly", {
-    skip("output_file functionality tested at S4 wrapper level", "pairwise_shuffling.R")
-    expect_true(TRUE)  # Placeholder test
+    # Create test data
+    set.seed(123)
+    mat <- matrix(rnorm(28), nrow = 4)  # 4x7 matrix
+    samples <- c(rep("A", 4), rep("B", 3))  # 7 samples
+    
+    # Generate results
+    res <- .label_shuffling(
+        mat, samples,
+        control = "A",
+        method = "mean",
+        randomizations = 50,
+        pcorr = "BH"
+    )
+    
+    # Write to temporary CSV file
+    temp_file <- tempfile(fileext = ".csv")
+    on.exit(unlink(temp_file), add = TRUE)
+    
+    write.csv(res, file = temp_file, row.names = FALSE)
+    
+    # Read back
+    res_read <- read.csv(temp_file)
+    
+    # Verify p-values column is preserved exactly
+    expect_equal(length(res_read$pvalue), length(res$pvalue))
+    expect_equal(as.numeric(res_read$pvalue), res$pvalue, tolerance = 1e-10)
+    
+    # Verify all columns present
+    expect_true(all(colnames(res) %in% colnames(res_read)))
 })
 
 test_that("output_file: RDS format round-trips all columns correctly", {
-    skip("output_file functionality tested at S4 wrapper level", "pairwise_shuffling.R")
-    expect_true(TRUE)  # Placeholder test
+    # Create test data
+    set.seed(789)
+    mat <- matrix(rnorm(32), nrow = 4)
+    samples <- c(rep("X", 4), rep("Y", 4))
+    
+    # Generate results
+    res <- .label_shuffling(
+        mat, samples,
+        control = "X",
+        method = "mean",
+        randomizations = 50,
+        pcorr = "BH"
+    )
+    
+    # Write to temporary RDS file
+    temp_file <- tempfile(fileext = ".rds")
+    on.exit(unlink(temp_file), add = TRUE)
+    
+    saveRDS(res, file = temp_file)
+    
+    # Read back
+    res_read <- readRDS(temp_file)
+    
+    # Verify all columns and values match exactly
+    expect_equal(nrow(res_read), nrow(res))
+    expect_equal(ncol(res_read), ncol(res))
+    expect_equal(colnames(res_read), colnames(res))
+    
+    # RDS should preserve data exactly (within floating point)
+    for (col in colnames(res)) {
+        expect_equal(res_read[[col]], res[[col]], tolerance = 1e-15,
+                     info = sprintf("Column '%s' not preserved in RDS", col))
+    }
 })
 
 test_that(".label_shuffling output numerical values are stable across runs with same seed", {
     # Verify reproducibility: identical seed produces identical numerical output
+    # Create matrix with fixed seed first
     set.seed(9999)
     mat <- matrix(rnorm(20), nrow = 4)
     samples <- c(rep("A", 3), rep("B", 2))
     
+    # Use same seed for both shuffling calls
+    set.seed(8888)
     result1 <- .label_shuffling(
         mat, samples,
         control = "A",
@@ -763,8 +846,8 @@ test_that(".label_shuffling output numerical values are stable across runs with 
         pcorr = "BH"
     )
     
-    # Reset seed and re-run
-    set.seed(9999)
+    # Reset to SAME seed and re-run
+    set.seed(8888)
     result2 <- .label_shuffling(
         mat, samples,
         control = "A",
@@ -813,7 +896,7 @@ test_that("label_shuffling output: p-values and adjusted p-values ordering corre
     # Larger p-values should adjust to larger adjusted p-values (for BH)
     set.seed(7777)
     
-    mat <- matrix(rnorm(40, mean = 0, sd = 1), nrow = 10)
+    mat <- matrix(rnorm(100, mean = 0, sd = 1), nrow = 10)
     # Add effects to different rows
     mat[1, 1:5] <- mat[1, 1:5] + 0.5  # Small effect
     mat[5, 1:5] <- mat[5, 1:5] + 2.0  # Large effect
