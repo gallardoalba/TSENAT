@@ -2380,3 +2380,391 @@ test_that("diversity point estimates are consistent regardless of bootstrap", {
         expect_true(TRUE)
     }
 })
+
+# ============================================================================
+# TESTS FOR HELPER FUNCTIONS ONE by ONE
+# ============================================================================
+
+context("Helper Functions: Diversity SE Output Building")
+
+# Test .aggregate_counts_to_genes()
+test_that(".aggregate_counts_to_genes correctly aggregates transcript counts to genes", {
+    # Create transcript-level count matrix (6 transcripts, 3 samples)
+    se_assay_mat <- matrix(c(10, 5, 0, 20, 15, 10, 8, 2, 30), nrow = 6, ncol = 3)
+    colnames(se_assay_mat) <- c("S1", "S2", "S3")
+    
+    # These are the filtered (unique) gene IDs from result - only 3 genes
+    filtered_gene_ids <- c("Gene1", "Gene2", "Gene3")
+    
+    # This is the full transcript-to-gene mapping for all 6 transcripts
+    genes <- c("Gene1", "Gene1", "Gene2", "Gene2", "Gene3", "Gene3")
+    
+    result <- .aggregate_counts_to_genes(se_assay_mat, filtered_gene_ids, genes)
+    
+    # Should have 3 genes (rows) and 3 samples (columns)
+    expect_equal(nrow(result), 3)
+    expect_equal(ncol(result), 3)
+    
+    # Gene1 (transcripts 1-2): S1 = 10+5=15
+    expect_equal(result[1, 1], 15)
+    # Gene2 (transcripts 3-4): S1 = 0+20=20
+    expect_equal(result[2, 1], 20)
+    # Gene3 (transcripts 5-6): S1 = 15+10=25
+    expect_equal(result[3, 1], 25)
+    
+    # Gene1: S2 = 8+2=10
+    expect_equal(result[1, 2], 10)
+    # Gene2: S2 = 30+? (only 2 samples, need to check matrix construction)
+})
+
+test_that(".aggregate_counts_to_genes handles empty result", {
+    se_assay_mat <- matrix(c(1, 2, 3, 4), nrow = 2, ncol = 2)
+    filtered_gene_ids <- character(0)  # Empty gene IDs
+    genes <- character(0)
+    
+    result <- .aggregate_counts_to_genes(se_assay_mat, filtered_gene_ids, genes)
+    
+    expect_equal(nrow(result), 0)
+    expect_equal(ncol(result), 2)
+})
+
+test_that(".aggregate_counts_to_genes handles single gene with multiple transcripts", {
+    se_assay_mat <- matrix(c(5, 10, 15, 20), nrow = 4, ncol = 1)
+    colnames(se_assay_mat) <- "S1"
+    filtered_gene_ids <- c("Gene1")
+    # All 4 transcripts map to Gene1
+    genes <- c("Gene1", "Gene1", "Gene1", "Gene1")
+    
+    result <- .aggregate_counts_to_genes(se_assay_mat, filtered_gene_ids, genes)
+    
+    expect_equal(nrow(result), 1)
+    expect_equal(result[1, 1], 50)  # 5 + 10 + 15 + 20
+})
+
+# Test .replicate_counts_for_multi_q()
+test_that(".replicate_counts_for_multi_q replicates counts for multiple q values", {
+    counts_assay <- matrix(c(1, 2, 3, 4), nrow = 2, ncol = 2)
+    
+    # Create output structure with 6 col_ids (2 samples * 3 q values)
+    output_structure <- list(col_ids = 1:6)
+    
+    result <- .replicate_counts_for_multi_q(counts_assay, output_structure)
+    
+    # Should have same rows but 3x columns (replicated for 3 q-values)
+    expect_equal(nrow(result), 2)
+    expect_equal(ncol(result), 6)
+    
+    # Each q value block should be identical
+    expect_equal(result[, 1:2], result[, 3:4])
+    expect_equal(result[, 3:4], result[, 5:6])
+})
+
+test_that(".replicate_counts_for_multi_q returns original with single q", {
+    counts_assay <- matrix(c(1, 2, 3, 4), nrow = 2, ncol = 2)
+    output_structure <- list(col_ids = 1:2)  # Only 2 col_ids means 1 q value
+    
+    result <- .replicate_counts_for_multi_q(counts_assay, output_structure)
+    
+    expect_equal(result, counts_assay)
+})
+
+# Test .build_bootstrap_column_cache()
+test_that(".build_bootstrap_column_cache builds correct column cache", {
+    result_col_names <- c("Sample1_q=1.0", "Sample2_q=1.0", "Sample1_q=1.5", "Sample2_q=1.5")
+    
+    cache <- .build_bootstrap_column_cache(result_col_names)
+    
+    expect_true("Sample1" %in% names(cache))
+    expect_true("Sample2" %in% names(cache))
+    
+    # Check Sample1 mapping
+    expect_equal(cache$Sample1$indices, c(1, 3))
+    expect_equal(cache$Sample1$q_values, c("1.0", "1.5"))
+})
+
+test_that(".build_bootstrap_column_cache handles special regex characters", {
+    # Test with dots and other special chars in sample names
+    result_col_names <- c("Sample.1_q=1.0", "Sample.2_q=1.0", "Sample.1_q=1.5")
+    
+    cache <- .build_bootstrap_column_cache(result_col_names)
+    
+    expect_true("Sample.1" %in% names(cache))
+    expect_equal(cache$`Sample.1`$indices, c(1, 3))
+})
+
+# Test .build_gene_id_map()
+test_that(".build_gene_id_map creates correct gene ID mapping", {
+    result_row_names <- c("Gene1", "Gene2", "Gene3")
+    rowData_df <- data.frame(gene_id = c("ENSG001", "ENSG002", "ENSG003"))
+    output_structure <- list(rowData = rowData_df)
+    
+    gene_map <- .build_gene_id_map(result_row_names, output_structure)
+    
+    expect_equal(nrow(gene_map), 3)
+    expect_equal(gene_map$gene_id, c("ENSG001", "ENSG002", "ENSG003"))
+    expect_equal(gene_map$row_index, c(1, 2, 3))
+})
+
+test_that(".build_gene_id_map uses row names when gene_id is NULL", {
+    result_row_names <- c("Gene1", "Gene2", "Gene3")
+    rowData_df <- data.frame(other_col = c(1, 2, 3))
+    output_structure <- list(rowData = rowData_df)
+    
+    gene_map <- .build_gene_id_map(result_row_names, output_structure)
+    
+    expect_equal(gene_map$gene_id, result_row_names)
+})
+
+# Test .parse_bootstrap_result_name()
+test_that(".parse_bootstrap_result_name correctly parses bootstrap result names", {
+    boot_name <- "Gene1_sample_5"
+    result <- .parse_bootstrap_result_name(boot_name)
+    
+    expect_equal(result$gene_name, "Gene1")
+    expect_equal(result$sample_idx, 5)
+})
+
+test_that(".parse_bootstrap_result_name handles complex gene names", {
+    boot_name <- "ENSG00000000003_sample_10"
+    result <- .parse_bootstrap_result_name(boot_name)
+    
+    expect_equal(result$gene_name, "ENSG00000000003")
+    expect_equal(result$sample_idx, 10)
+})
+
+test_that(".parse_bootstrap_result_name returns NULL for invalid format", {
+    boot_name <- "InvalidFormat"
+    result <- .parse_bootstrap_result_name(boot_name)
+    
+    expect_null(result)
+})
+
+# Test .lookup_gene_row_idx()
+test_that(".lookup_gene_row_idx finds gene by gene_id", {
+    gene_name <- "ENSG001"
+    result_row_names <- c("Gene1", "Gene2", "Gene3")
+    gene_id_map <- data.frame(
+        gene_id = c("ENSG001", "ENSG002", "ENSG003"),
+        row_index = c(1, 2, 3),
+        row.names = result_row_names
+    )
+    
+    idx <- .lookup_gene_row_idx(gene_name, result_row_names, gene_id_map)
+    
+    expect_equal(idx, 1)
+})
+
+test_that(".lookup_gene_row_idx finds gene by symbol", {
+    gene_name <- "Gene2"
+    result_row_names <- c("Gene1", "Gene2", "Gene3")
+    gene_id_map <- data.frame(
+        gene_id = c("ENSG001", "ENSG002", "ENSG003"),
+        row_index = c(1, 2, 3),
+        row.names = result_row_names
+    )
+    
+    idx <- .lookup_gene_row_idx(gene_name, result_row_names, gene_id_map)
+    
+    expect_equal(idx, 2)
+})
+
+test_that(".lookup_gene_row_idx returns NA for missing gene", {
+    gene_name <- "GeneMissing"
+    result_row_names <- c("Gene1", "Gene2", "Gene3")
+    gene_id_map <- data.frame(
+        gene_id = c("ENSG001", "ENSG002", "ENSG003"),
+        row_index = c(1, 2, 3),
+        row.names = result_row_names
+    )
+    
+    idx <- .lookup_gene_row_idx(gene_name, result_row_names, gene_id_map)
+    
+    expect_true(is.na(idx))
+})
+
+# Test .populate_ci_from_bootstrap()
+test_that(".populate_ci_from_bootstrap populates single-q bootstrap CI", {
+    # Create base CI matrices (all NAs)
+    ci_lower <- matrix(NA_real_, nrow = 2, ncol = 2)
+    ci_upper <- matrix(NA_real_, nrow = 2, ncol = 2)
+    
+    # Create bootstrap result for single-q
+    boot_item <- list(lower_ci = 0.95, upper_ci = 1.05)
+    
+    result <- .populate_ci_from_bootstrap(ci_lower, ci_upper, boot_item, 
+                                          gene_row_idx = 1, 
+                                          col_indices = c(1, 2),
+                                          col_q_values = c("1.0", "1.0"))
+    
+    expect_equal(result$ci_lower[1, 1], 0.95)
+    expect_equal(result$ci_upper[1, 1], 1.05)
+})
+
+test_that(".populate_ci_from_bootstrap populates multi-q bootstrap CI", {
+    # Create base CI matrices
+    ci_lower <- matrix(NA_real_, nrow = 2, ncol = 4)
+    ci_upper <- matrix(NA_real_, nrow = 2, ncol = 4)
+    
+    # Create multi-q bootstrap result
+    boot_item <- list(
+        `q=1.0` = list(lower_ci = 0.95, upper_ci = 1.05),
+        `q=1.5` = list(lower_ci = 0.90, upper_ci = 1.10)
+    )
+    
+    result <- .populate_ci_from_bootstrap(ci_lower, ci_upper, boot_item,
+                                          gene_row_idx = 1,
+                                          col_indices = c(1, 2, 3, 4),
+                                          col_q_values = c("1.0", "1.0", "1.5", "1.5"))
+    
+    # Check first q value
+    expect_equal(result$ci_lower[1, 1], 0.95)
+    # Check second q value  
+    expect_equal(result$ci_lower[1, 3], 0.90)
+})
+
+# Test .build_diversity_metadata()
+test_that(".build_diversity_metadata builds correct metadata list", {
+    q_vals <- c(1.0, 1.5)
+    what_val <- "S"
+    se_assay <- matrix(c(1, 2, 3, 4), nrow = 2, ncol = 2)
+    bootstrap_flag <- TRUE
+    
+    boot_ci_results <- list(
+        bootstrap_nboot = 1000,
+        bootstrap_method = "percentile",
+        bootstrap_ci = 0.95
+    )
+    
+    original_x <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(dummy = matrix(0, 2, 2))
+    )
+    
+    meta <- .build_diversity_metadata(q_vals, what_val, se_assay, bootstrap_flag,
+                                       boot_ci_results, original_x)
+    
+    expect_equal(meta$q, q_vals)
+    expect_equal(meta$what, "S")
+    expect_equal(meta$bootstrap, TRUE)
+    expect_equal(meta$bootstrap_nboot, 1000)
+    expect_equal(meta$bootstrap_method, "percentile")
+    expect_equal(meta$bootstrap_ci, 0.95)
+    expect_true(is(meta$se, "SummarizedExperiment"))
+})
+
+test_that(".build_diversity_metadata handles NULL bootstrap results", {
+    q_vals <- c(1.0)
+    what_val <- "D"
+    se_assay <- matrix(c(1, 2), nrow = 1, ncol = 2)
+    
+    meta <- .build_diversity_metadata(q_vals, what_val, se_assay, FALSE, NULL, NULL)
+    
+    expect_equal(meta$q, q_vals)
+    expect_equal(meta$what, "D")
+    expect_equal(meta$bootstrap, FALSE)
+    expect_null(meta$bootstrap_nboot)
+    expect_null(meta$bootstrap_method)
+})
+
+# Test .populate_diversity_ci_matrices()
+test_that(".populate_diversity_ci_matrices processes bootstrap results correctly", {
+    # Create a simple result assay
+    result_assay <- matrix(c(1.0, 2.0), nrow = 2, ncol = 2)
+    rownames(result_assay) <- c("Gene1", "Gene2")
+    colnames(result_assay) <- c("Sample1_q=1.0", "Sample2_q=1.0")
+    
+    # Create bootstrap output with one result
+    bootstrap_out <- list(
+        Gene1_sample_1 = list(lower_ci = 0.95, upper_ci = 1.05)
+    )
+    names(bootstrap_out)[1] <- "Gene1_sample_1"
+    
+    # Create se_assay_mat for sample name lookup
+    se_assay_mat <- matrix(c(1, 2, 3, 4), nrow = 2, ncol = 2)
+    colnames(se_assay_mat) <- c("Sample1", "Sample2")
+    
+    output_structure <- list(
+        rowData = data.frame(gene_id = c("Gene1", "Gene2"))
+    )
+    
+    result <- .populate_diversity_ci_matrices(bootstrap_out, result_assay, 
+                                               se_assay_mat, output_structure)
+    
+    expect_equal(dim(result$ci_lower), dim(result_assay))
+    expect_equal(dim(result$ci_upper), dim(result_assay))
+    
+    # Check that at least one CI value was populated
+    expect_true(!all(is.na(result$ci_lower)))
+})
+
+test_that(".populate_diversity_ci_matrices handles empty bootstrap output", {
+    result_assay <- matrix(c(1.0, 2.0), nrow = 2, ncol = 2)
+    rownames(result_assay) <- c("Gene1", "Gene2")
+    colnames(result_assay) <- c("Sample1_q=1.0", "Sample2_q=1.0")
+    
+    # Empty bootstrap output
+    bootstrap_out <- list()
+    
+    se_assay_mat <- matrix(c(1, 2, 3, 4), nrow = 2, ncol = 2)
+    colnames(se_assay_mat) <- c("Sample1", "Sample2")
+    
+    output_structure <- list(
+        rowData = data.frame(gene_id = c("Gene1", "Gene2"))
+    )
+    
+    result <- .populate_diversity_ci_matrices(bootstrap_out, result_assay,
+                                               se_assay_mat, output_structure)
+    
+    # Should return all-NA matrices with correct dimensions
+    expect_equal(dim(result$ci_lower), dim(result_assay))
+    expect_true(all(is.na(result$ci_lower)))
+})
+
+# Integration test for .build_diversity_se_output()
+test_that(".build_diversity_se_output creates complete SE with all components", {
+    # Create test data
+    result_mat <- matrix(c(1.5, 2.0, 1.8, 2.1), nrow = 2, ncol = 2)
+    colnames(result_mat) <- c("S1_q=1.0", "S2_q=1.0")
+    result_df <- as.data.frame(result_mat)
+    result_df <- cbind(c("Gene1", "Gene2"), result_df)
+    result_df <- as.matrix(result_df)
+    
+    se_assay_mat <- matrix(c(1, 2, 3, 4, 5, 6, 7, 8), nrow = 4, ncol = 2)
+    colnames(se_assay_mat) <- c("S1", "S2")
+    
+    output_structure <- list(
+        result_assay = result_mat,
+        col_ids = 1:2,
+        rowData = data.frame(
+            gene_id = c("Gene1", "Gene2"),
+            row.names = c("Gene1", "Gene2")
+        ),
+        colData = data.frame(
+            sample = c("S1", "S2"),
+            row.names = c("S1_q=1.0", "S2_q=1.0")
+        )
+    )
+    
+    genes <- c("Gene1", "Gene1", "Gene2", "Gene2")
+    original_x <- NULL
+    
+    result_se <- .build_diversity_se_output(
+        result_df, output_structure, original_x, se_assay_mat,
+        bootstrap_ci_results = NULL, bootstrap = FALSE,
+        metadata = NULL, verbose = FALSE, what = "S", q = 1.0, genes = genes
+    )
+    
+    # Check SE structure
+    expect_s4_class(result_se, "SummarizedExperiment")
+    expect_equal(nrow(result_se), 2)
+    expect_equal(ncol(result_se), 2)
+    
+    # Check assays
+    assay_names <- SummarizedExperiment::assayNames(result_se)
+    expect_true("diversity" %in% assay_names)
+    expect_true("counts" %in% assay_names)
+    
+    # Check metadata
+    meta <- S4Vectors::metadata(result_se)
+    expect_equal(meta$q, 1.0)
+    expect_equal(meta$what, "S")
+})
