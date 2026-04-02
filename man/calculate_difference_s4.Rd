@@ -22,6 +22,7 @@ calculate_difference_s4(
   seed = NULL,
   robust_loss_type = NULL,
   robust_scale_method = NULL,
+  pairs = NULL,
   output_file = NULL,
   ...
 )
@@ -83,6 +84,13 @@ Default:  'huber'.
 \item{robust_scale_method}{\code{character}.  Robust scaling method.
 Default:  'mad'.
  If NULL, reads from \code{@config$robust_scale_method} if available.}
+
+\item{pairs}{\code{character} or \code{numeric} vector or \code{NULL}. 
+Pairing information for paired designs.
+  When \code{paired = TRUE}, specifies which samples are paired 
+  (e.g., c(1,1,2,2,3,3) for 3 pairs).
+  Default: NULL. When NULL with \code{paired = TRUE}, auto-extracted 
+  from colData 'sample_base' column if available.}
 
 \item{output_file}{\code{character} or  \code{NULL}.
  Optional file path to save results.
