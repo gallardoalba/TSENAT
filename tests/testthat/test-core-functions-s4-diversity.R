@@ -1085,3 +1085,489 @@ test_that("diversity increases monotonically with species richness", {
   # Clean up
   if (file.exists(output_file)) unlink(output_file)
 })
+
+context("S4 Diversity Calculator: Helper Function Unit Tests")
+
+# ===========================================================================
+# Setup: Create test fixtures
+# ===========================================================================
+
+make_test_analysis_helpers <- function(n_genes = 8, n_samples_per_group = 2, seed = 999) {
+  TSENAT:::.create_test_analysis(
+    n_genes = n_genes,
+    n_samples_per_group = n_samples_per_group,
+    q_values = c(0.5, 1.0, 1.5),
+    include_divergence = FALSE,
+    include_lm_results = FALSE,
+    seed = seed,
+    verbose = FALSE
+  )
+}
+
+# ===========================================================================
+# TEST GROUP: Input Validation Helpers
+# ===========================================================================
+
+test_that(".validate_diversity_analysis_input validates TSENATAnalysis object", {
+  
+  analysis <- make_test_analysis_helpers()
+  
+  # Should not throw error
+  expect_silent(TSENAT:::.validate_diversity_analysis_input(analysis))
+})
+
+test_that(".validate_diversity_analysis_input rejects non-TSENATAnalysis objects", {
+  
+  # Test with non-TSENATAnalysis object
+  plain_list <- list()
+  expect_error(
+    TSENAT:::.validate_diversity_analysis_input(plain_list),
+    "must be a TSENATAnalysis object"
+  )
+})
+
+test_that(".validate_diversity_analysis_input rejects analysis with empty SummarizedExperiment", {
+  
+  # Test with empty SE
+  analysis <- make_test_analysis_helpers()
+  analysis@se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = matrix(nrow=0, ncol=0)))
+  
+  expect_error(
+    TSENAT:::.validate_diversity_analysis_input(analysis),
+    "SummarizedExperiment in @se is empty"
+  )
+})
+
+test_that(".validate_norm_method accepts valid normalization methods", {
+  
+  valid_methods <- c("default", "zscore", "log_odds_ratio", "relative_reference")
+  
+  for (method in valid_methods) {
+    expect_silent(TSENAT:::.validate_norm_method(method))
+  }
+  
+  # NULL should also pass (no normalization)
+  expect_silent(TSENAT:::.validate_norm_method(NULL))
+})
+
+test_that(".validate_norm_method rejects invalid normalization methods", {
+  
+  expect_error(
+    TSENAT:::.validate_norm_method("invalid_method"),
+    "must be one of"
+  )
+})
+
+# ===========================================================================
+# TEST GROUP: Parameter Preparation Helpers
+# ===========================================================================
+
+test_that(".resolve_pseudocount handles numeric pseudocount values", {
+  
+  analysis <- make_test_analysis_helpers()
+  params <- list(pseudocount = 0.5, verbose = FALSE)
+  result_df <- matrix(1:10, nrow=2)
+  
+  # Should return the numeric value unchanged
+  resolved <- TSENAT:::.resolve_pseudocount(params, analysis, result_df)
+  expect_equal(resolved, 0.5)
+})
+
+test_that(".resolve_pseudocount handles 'auto' pseudocount resolution", {
+  
+  analysis <- make_test_analysis_helpers()
+  params <- list(pseudocount = "auto", verbose = FALSE)
+  result_df <- matrix(1:10, nrow=2)
+  
+  # Should resolve to a numeric value
+  resolved <- TSENAT:::.resolve_pseudocount(params, analysis, result_df)
+  expect_is(resolved, "numeric")
+  expect_true(is.finite(resolved))
+  expect_true(resolved >= 0)
+})
+
+# ===========================================================================
+# TEST GROUP: Q-Value Processing Helpers
+# ===========================================================================
+
+test_that(".build_q_format_cache creates format entries for all q-values", {
+  
+  q_values <- c(0.5, 1.0, 1.5, 2.0)
+  cache <- TSENAT:::.build_q_format_cache(q_values, q_decimals = 3)
+  
+  # Should have one entry per q-value
+  expect_equal(length(cache), length(q_values))
+  
+  # Each entry should have required fields
+  for (q_val in q_values) {
+    q_str <- as.character(q_val)
+    expect_true(q_str %in% names(cache))
+    expect_true("formatted" %in% names(cache[[q_str]]))
+    expect_true("pattern" %in% names(cache[[q_str]]))
+    expect_true("patterns_alt" %in% names(cache[[q_str]]))
+  }
+})
+
+test_that(".build_q_format_cache formats q-values correctly", {
+  
+  q_values <- c(0.5, 1.0, 1.5)
+  cache <- TSENAT:::.build_q_format_cache(q_values, q_decimals = 3)
+  
+  # Check formatting
+  expect_equal(cache[["0.5"]]$formatted, "0.500")
+  expect_equal(cache[["1"]]$formatted, "1.000")
+  expect_equal(cache[["1.5"]]$formatted, "1.500")
+})
+
+test_that(".extract_q_metadata_from_result extracts q-values from column names", {
+  
+  # Create mock result with q-value column names
+  result_df <- data.frame(
+    gene = c("G1", "G2"),
+    sample_q_0.5 = c(1.5, 2.0),
+    sample_q_1.0 = c(2.5, 3.0),
+    sample_q_1.5 = c(3.5, 4.0)
+  )
+  names(result_df) <- c("gene", "S1_q=0.500", "S2_q=1.000", "S3_q=1.500")
+  
+  q_values <- c(0.5, 1.0, 1.5)
+  extracted <- TSENAT:::.extract_q_metadata_from_result(result_df, q_values)
+  
+  # Should extract numeric q-values
+  expect_true(any(!is.na(extracted)))
+})
+
+# ===========================================================================
+# TEST GROUP: Result Caching Helpers
+# ===========================================================================
+
+test_that(".cache_combined_diversity_result stores metadata and returns analysis", {
+  
+  analysis <- make_test_analysis_helpers()
+  result_df <- matrix(runif(100), nrow=10)
+  params <- list(
+    q = c(0.5, 1.0),
+    norm = TRUE,
+    verbose = FALSE,
+    bootstrap = FALSE,
+    pseudocount = 0,
+    nthreads = 1,
+    what = "S"
+  )
+  pseudocount_resolved <- 0
+  
+  result <- TSENAT:::.cache_combined_diversity_result(analysis, result_df, params, pseudocount_resolved)
+  
+  # Should return analysis object
+  expect_is(result, "TSENATAnalysis")
+  
+  # Should have cached data
+  expect_true("diversity_combined" %in% names(result@metadata))
+  expect_true("combined_result" %in% names(result@metadata$diversity_combined))
+  expect_true("q_values_computed" %in% names(result@metadata$diversity_combined))
+})
+
+# ===========================================================================
+# TEST GROUP: SE Conversion Helpers
+# ===========================================================================
+
+test_that(".convert_result_to_se converts dataframe to SummarizedExperiment", {
+  
+  # Create mock result
+  result_subset <- data.frame(
+    S1 = c(1.5, 2.0, 2.5),
+    S2 = c(1.8, 2.3, 2.8),
+    S3 = c(1.2, 2.2, 2.4),
+    row.names = c("G1", "G2", "G3")
+  )
+  result_se_original <- result_subset
+  q_cols <- 1:3
+  q_val <- 1.0
+  
+  se <- TSENAT:::.convert_result_to_se(result_subset, result_se_original, q_cols, q_val)
+  
+  # Should return SummarizedExperiment
+  expect_is(se, "SummarizedExperiment")
+  
+  # Should have assays
+  expect_gt(length(SummarizedExperiment::assays(se)), 0)
+  
+  # Should have correct dimensions
+  expect_equal(nrow(se), 3)
+  expect_equal(ncol(se), 3)
+})
+
+test_that(".apply_original_coldata preserves metadata from original SE", {
+  
+  # Create original SE with colData
+  original_se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = matrix(1:20, nrow=4, ncol=5)),
+    colData = S4Vectors::DataFrame(
+      sample_id = c("S1", "S2", "S3", "S4", "S5"),
+      condition = c("A", "A", "B", "B", "B")
+    )
+  )
+  
+  # Create result SE without colData
+  result_se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(diversity = matrix(runif(20), nrow=4, ncol=5))
+  )
+  
+  # Apply original colData
+  result_se <- TSENAT:::.apply_original_coldata(result_se, original_se)
+  
+  # Should now have colData
+  cd <- SummarizedExperiment::colData(result_se)
+  expect_equal(nrow(cd), 5)
+  expect_equal(as.character(cd$condition), c("A", "A", "B", "B", "B"))
+})
+
+# ===========================================================================
+# TEST GROUP: Structure Validation Helpers
+# ===========================================================================
+
+test_that(".validate_se_structure checks SummarizedExperiment validity", {
+  
+  # Valid SE
+  valid_se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(diversity = matrix(runif(20), nrow=4, ncol=5))
+  )
+  
+  expect_true(TSENAT:::.validate_se_structure(valid_se, q_val = 1.0))
+})
+
+test_that(".validate_se_structure rejects SE with no assays", {
+  
+  invalid_se <- SummarizedExperiment::SummarizedExperiment()
+  
+  expect_error(
+    TSENAT:::.validate_se_structure(invalid_se, q_val = 1.0),
+    "has no assays"
+  )
+})
+
+# ===========================================================================
+# TEST GROUP: Configuration Update Helpers
+# ===========================================================================
+
+test_that(".update_config_post_diversity stores audit trail", {
+  
+  analysis <- make_test_analysis_helpers()
+  params <- list(
+    q = c(0.5, 1.0),
+    norm = TRUE,
+    norm_method = "default",
+    verbose = FALSE,
+    bootstrap = FALSE,
+    pseudocount = 0,
+    nthreads = 1,
+    what = "S"
+  )
+  pseudocount_resolved <- 0
+  
+  result <- TSENAT:::.update_config_post_diversity(analysis, params, pseudocount_resolved)
+  
+  # Should have updated config
+  expect_true("last_diversity_run" %in% names(result@config))
+  
+  # Should contain metadata
+  last_run <- result@config$last_diversity_run
+  expect_true("timestamp" %in% names(last_run))
+  expect_true("q_values_computed" %in% names(last_run))
+  expect_true("parameters_used" %in% names(last_run))
+  
+  # Parameters should match
+  expect_equal(last_run$q_values_computed, params$q)
+})
+
+# ===========================================================================
+# TEST GROUP: Output Helpers
+# ===========================================================================
+
+test_that(".build_diversity_output_table creates output from results", {
+  
+  analysis <- make_test_analysis_helpers()
+  
+  # First compute diversity to populate diversity_results
+  analysis <- TSENAT::calculate_diversity_s4(
+    analysis,
+    q = c(0.5, 1.0),
+    verbose = FALSE
+  )
+  
+  params <- list(q = c(0.5, 1.0))
+  
+  output_table <- TSENAT:::.build_diversity_output_table(analysis, params)
+  
+  # Should return a dataframe-like object
+  expect_true(!is.null(output_table))
+  if (!is.null(output_table)) {
+    expect_true(nrow(output_table) > 0)
+  }
+})
+
+# ===========================================================================
+# TEST GROUP: Integration Tests for Helper Functions
+# ===========================================================================
+
+test_that("Helper functions work together in full pipeline", {
+  
+  analysis <- make_test_analysis_helpers(n_genes = 5, n_samples_per_group = 2)
+  
+  # Call main function which uses all helpers
+  result <- TSENAT::calculate_diversity_s4(
+    analysis,
+    q = c(0.5, 1.0),
+    norm_method = "default",
+    bootstrap = FALSE,
+    verbose = FALSE
+  )
+  
+  # Should have diversity results
+  expect_gt(length(result@diversity_results), 0)
+  
+  # Each q-value should have a result
+  q_keys <- names(result@diversity_results)
+  expect_true(any(grepl("q_0.500", q_keys)))
+  expect_true(any(grepl("q_1.000", q_keys)))
+  
+  # Results should be SummarizedExperiments
+  for (key in q_keys) {
+    expect_is(result@diversity_results[[key]], "SummarizedExperiment")
+  }
+})
+
+test_that("Helper functions produce consistent results across runs", {
+  
+  # Run 1
+  analysis1 <- make_test_analysis_helpers(seed = 111)
+  result1 <- TSENAT::calculate_diversity_s4(analysis1, q = 1.0, verbose = FALSE)
+  
+  # Run 2 (same seed)
+  analysis2 <- make_test_analysis_helpers(seed = 111)
+  result2 <- TSENAT::calculate_diversity_s4(analysis2, q = 1.0, verbose = FALSE)
+  
+  # Should have same structure
+  expect_equal(
+    length(result1@diversity_results),
+    length(result2@diversity_results)
+  )
+  
+  # Config timestamps might differ, but parameters should match
+  expect_equal(
+    result1@config$last_diversity_run$num_q_values,
+    result2@config$last_diversity_run$num_q_values
+  )
+})
+
+test_that("Helper functions handle edge case: single sample", {
+  
+  # Create test with minimal samples
+  analysis <- TSENAT:::.create_test_analysis(
+    n_genes = 3,
+    n_samples_per_group = 1,
+    q_values = c(1.0),
+    include_divergence = FALSE,
+    include_lm_results = FALSE,
+    seed = 222,
+    verbose = FALSE
+  )
+  
+  # Should not fail
+  result <- TSENAT::calculate_diversity_s4(
+    analysis,
+    q = 1.0,
+    verbose = FALSE
+  )
+  
+  expect_is(result, "TSENATAnalysis")
+  expect_gt(length(result@diversity_results), 0)
+})
+
+test_that("Helper functions handle edge case: single q-value", {
+  
+  # Create analysis with a single q-value in config
+  analysis <- TSENAT:::.create_test_analysis(
+    n_genes = 5,
+    n_samples_per_group = 2,
+    q_values = c(0.5),  # Single q-value
+    include_divergence = FALSE,
+    include_lm_results = FALSE,
+    seed = 333,
+    verbose = FALSE
+  )
+  
+  # Call with explicit q to override config
+  result <- TSENAT::calculate_diversity_s4(
+    analysis,
+    q = 0.5,  # Explicit single q-value
+    verbose = FALSE
+  )
+  
+  # Should have result for the single q-value
+  expect_gt(length(result@diversity_results), 0)
+  expect_true(grepl("q_0.500", names(result@diversity_results)[1]))
+})
+
+test_that("Helper functions handle edge case: many q-values", {
+  
+  # Create analysis without pre-configured q_values  
+  analysis <- TSENAT:::.create_test_analysis(
+    n_genes = 5,
+    n_samples_per_group = 2,
+    q_values = c(0.5),  # Default config
+    include_divergence = FALSE,
+    include_lm_results = FALSE,
+    seed = 444,
+    verbose = FALSE
+  )
+  
+  many_q <- seq(0.1, 2.0, by = 0.2)
+  
+  # Call with explicit many q-values
+  result <- TSENAT::calculate_diversity_s4(
+    analysis,
+    q = many_q,  # Override config with many q values
+    verbose = FALSE
+  )
+  
+  # Should have result for each q-value requested
+  expect_equal(length(result@diversity_results), length(many_q))
+})
+
+# ===========================================================================
+# TEST GROUP: Error Handling in Helper Functions
+# ===========================================================================
+
+test_that("Helpers produce meaningful error messages on invalid input", {
+  
+  analysis <- make_test_analysis_helpers()
+  
+  # q = NA should produce a clear error
+  expect_error(
+    TSENAT::calculate_diversity_s4(analysis, q = NA, verbose = FALSE),
+    "must be numeric"
+  )
+})
+
+test_that("Helper functions preserve audit trail information", {
+  
+  analysis <- make_test_analysis_helpers()
+  
+  result <- TSENAT::calculate_diversity_s4(
+    analysis,
+    q = c(0.5, 1.0),
+    norm = TRUE,
+    norm_method = "zscore",
+    bootstrap = FALSE,
+    nthreads = 2,
+    verbose = FALSE
+  )
+  
+  # Check audit trail
+  computed_with <- attr(result@diversity_results[[1]], "computed_with")
+  expect_is(computed_with, "list")
+  expect_equal(computed_with$bootstrap, FALSE)
+  expect_equal(computed_with$nthreads, 2)
+  expect_true("timestamp" %in% names(computed_with))
+})
