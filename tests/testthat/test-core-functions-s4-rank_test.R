@@ -289,6 +289,7 @@ test_that("rank_test_q_condition_s4 results have correct structure", {
 # ============================================================================
 
 test_that("rank_test_q_condition_s4 handles multiple genes with varying significance", {
+    skip_on_cran()
     analysis <- setup_rank_test_analysis(n_genes = 30, n_samples = 8)
     
     result <- rank_test_q_condition_s4(

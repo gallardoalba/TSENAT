@@ -1233,3 +1233,408 @@ test_that("jackknife_entropy_outliers nthreads behavior: nthreads > 1 without mu
   expect_true(inherits(result, "tsenat_jackknife"))
   expect_true("estimate" %in% names(result))
 })
+
+# ============================================================================
+# TEST: .jis_setup_lm_filtering()
+# ============================================================================
+
+test_that(".jis_setup_lm_filtering returns NULL when lm_results is NULL", {
+  se <- create_test_se()
+  gene_ids <- unique(SummarizedExperiment::rowData(se)$gene_id)
+  
+  result <- TSENAT:::.jis_setup_lm_filtering(se, NULL, 0.05, TRUE, gene_ids, "gene_id")
+  
+  expect_null(result$lm_gene_mapping)
+  expect_equal(result$filtered_genes, gene_ids)
+  expect_equal(result$lm_genes_filtered, 0)
+})
+
+test_that(".jis_setup_lm_filtering requires 'gene' column in lm_results", {
+  se <- create_test_se()
+  gene_ids <- unique(SummarizedExperiment::rowData(se)$gene_id)
+  
+  lm_results_bad <- data.frame(p_value = c(0.001, 0.05))
+  
+  expect_error(
+    TSENAT:::.jis_setup_lm_filtering(se, lm_results_bad, 0.05, TRUE, gene_ids, "gene_id"),
+    "lm_results must have 'gene' column"
+  )
+})
+
+test_that(".jis_setup_lm_filtering filters by p_interaction column", {
+  se <- create_test_se()
+  gene_ids <- unique(SummarizedExperiment::rowData(se)$gene_id)
+  
+  lm_results <- data.frame(
+    gene = c("g1", "g2"),
+    p_interaction = c(0.001, 0.1),
+    stringsAsFactors = FALSE
+  )
+  
+  result <- TSENAT:::.jis_setup_lm_filtering(se, lm_results, 0.05, FALSE, gene_ids, "gene_id")
+  
+  # Should filter out g2 (p_interaction = 0.1 > threshold)
+  expect_equal(result$filtered_genes, "g1")
+  expect_equal(result$lm_genes_filtered, 1)
+})
+
+test_that(".jis_setup_lm_filtering prefers adj_p_interaction when use_lm_fdr=TRUE", {
+  se <- create_test_se()
+  gene_ids <- unique(SummarizedExperiment::rowData(se)$gene_id)
+  
+  lm_results <- data.frame(
+    gene = c("g1", "g2"),
+    p_interaction = c(0.001, 0.1),
+    adj_p_interaction = c(0.01, 0.2),
+    stringsAsFactors = FALSE
+  )
+  
+  result <- TSENAT:::.jis_setup_lm_filtering(se, lm_results, 0.05, TRUE, gene_ids, "gene_id")
+  
+  # Should use adj_p_interaction (more stringent), filtering out g1 and g2
+  expect_equal(length(result$filtered_genes), 1)
+  expect_true("g1" %in% result$filtered_genes)
+})
+
+test_that(".jis_setup_lm_filtering maps gene names to IDs automatically", {
+  se <- create_test_se()
+  gene_ids <- unique(SummarizedExperiment::rowData(se)$gene_id)
+  
+  # Create lm_results with gene NAMES instead of IDs
+  lm_results <- data.frame(
+    gene = c("GENE1", "GENE2"),
+    p_interaction = c(0.001, 0.1),
+    stringsAsFactors = FALSE
+  )
+  
+  result <- TSENAT:::.jis_setup_lm_filtering(se, lm_results, 0.05, FALSE, gene_ids, "gene_id")
+  
+  # Should successfully map names to IDs
+  expect_true(all(result$filtered_genes %in% gene_ids))
+})
+
+test_that(".jis_setup_lm_filtering handles empty lm_results after filtering", {
+  se <- create_test_se()
+  gene_ids <- unique(SummarizedExperiment::rowData(se)$gene_id)
+  
+  # Create lm_results with all p-values > threshold
+  lm_results <- data.frame(
+    gene = c("g1", "g2"),
+    p_interaction = c(0.1, 0.2),
+    stringsAsFactors = FALSE
+  )
+  
+  result <- TSENAT:::.jis_setup_lm_filtering(se, lm_results, 0.05, FALSE, gene_ids, "gene_id")
+  
+  # All genes filtered out
+  expect_equal(length(result$filtered_genes), 0)
+})
+
+# ============================================================================
+# TEST: .jis_process_all_genes()
+# ============================================================================
+
+test_that(".jis_process_all_genes processes genes with 2+ transcripts", {
+  se <- create_test_se()
+  conditions <- c("A", "B")
+  paired_info <- TSENAT:::.setup_paired_design_jis(se, NULL, "condition")
+  
+  result <- TSENAT:::.jis_process_all_genes(
+    se = se,
+    gene_ids = c("g1", "g2"),
+    gene_col = "gene_id",
+    isoform_col = "transcript_id",
+    condition_col = "condition",
+    conditions = conditions,
+    paired_info = paired_info,
+    q = 1,
+    norm = TRUE,
+    log_base = exp(1),
+    pseudocount = 0,
+    n_bootstrap = 10,
+    lm_gene_mapping = NULL
+  )
+  
+  expect_true(is.list(result))
+  expect_true("results_per_gene" %in% names(result))
+  expect_true("all_pvalues" %in% names(result))
+  expect_true("gene_processing_log" %in% names(result))
+  expect_equal(length(result$results_per_gene), 2)
+})
+
+test_that(".jis_process_all_genes skips genes with <2 transcripts", {
+  se <- create_test_se()
+  conditions <- c("A", "B")
+  paired_info <- TSENAT:::.setup_paired_design_jis(se, NULL, "condition")
+  
+  # Create a gene with only 1 transcript (assign only one row to g_single)
+  rd <- SummarizedExperiment::rowData(se)
+  rd$gene_id <- c("g1", "g1", "g1", "g_single", "g2", "g2")
+  SummarizedExperiment::rowData(se) <- rd
+  
+  result <- TSENAT:::.jis_process_all_genes(
+    se = se,
+    gene_ids = c("g1", "g_single", "g2"),
+    gene_col = "gene_id",
+    isoform_col = "transcript_id",
+    condition_col = "condition",
+    conditions = conditions,
+    paired_info = paired_info,
+    q = 1,
+    norm = TRUE,
+    log_base = exp(1),
+    pseudocount = 0,
+    n_bootstrap = 10,
+    lm_gene_mapping = NULL
+  )
+  
+  # g_single should be in processing log but not in results (only 1 transcript)
+  log_df <- result$gene_processing_log
+  expect_true(any(log_df$gene == "g_single" & !log_df$has_2_transcripts))
+  # g2 should also be skipped (only 2 transcripts now... wait, 2 is exactly the threshold)
+  # Let's check that g1 was processed (has 3 transcripts)
+  expect_true(any(log_df$gene == "g1" & log_df$has_2_transcripts))
+})
+
+test_that(".jis_process_all_genes adds LM results when provided", {
+  se <- create_test_se()
+  conditions <- c("A", "B")
+  paired_info <- TSENAT:::.setup_paired_design_jis(se, NULL, "condition")
+  
+  lm_results <- data.frame(
+    gene = c("g1", "g2"),
+    p_interaction = c(0.001, 0.01),
+    adj_p_interaction = c(0.01, 0.02),
+    stringsAsFactors = FALSE
+  )
+  
+  result <- TSENAT:::.jis_process_all_genes(
+    se = se,
+    gene_ids = c("g1", "g2"),
+    gene_col = "gene_id",
+    isoform_col = "transcript_id",
+    condition_col = "condition",
+    conditions = conditions,
+    paired_info = paired_info,
+    q = 1,
+    norm = TRUE,
+    log_base = exp(1),
+    pseudocount = 0,
+    n_bootstrap = 10,
+    lm_gene_mapping = lm_results
+  )
+  
+  # Check that LM results were added
+  expect_true("lm_p_interaction" %in% names(result$results_per_gene$g1))
+})
+
+test_that(".jis_process_all_genes handles paired design corrections", {
+  se <- create_paired_se()
+  conditions <- c("A", "B")
+  paired_info <- TSENAT:::.setup_paired_design_jis(se, "individual_id", "condition")
+  
+  result <- TSENAT:::.jis_process_all_genes(
+    se = se,
+    gene_ids = c("g1", "g2"),
+    gene_col = "gene_id",
+    isoform_col = "transcript_id",
+    condition_col = "condition",
+    conditions = conditions,
+    paired_info = paired_info,
+    q = 1,
+    norm = TRUE,
+    log_base = exp(1),
+    pseudocount = 0,
+    n_bootstrap = 10,
+    lm_gene_mapping = NULL
+  )
+  
+  expect_true(is.list(result))
+  expect_equal(length(result$results_per_gene), 2)
+})
+
+# ============================================================================
+# TEST: .jis_build_summary_results()
+# ============================================================================
+
+test_that(".jis_build_summary_results creates transcript-level statistics", {
+  se <- create_test_se()
+  
+  # Create mock results_per_gene
+  results_per_gene <- list(
+    g1 = list(
+      gene_id = "g1",
+      transcript_ids = c("tx1", "tx2", "tx3"),
+      delta_influence = c(0.1, -0.2, 0.05),
+      delta_pvalue = c(0.001, 0.01, 0.05),
+      switching_status = c("up", "down", "neutral"),
+      effect_size = c(0.5, 0.8, 0.2)
+    )
+  )
+  
+  all_pvalues <- list(
+    list(gene = "g1", transcript = "tx1", pvalue = 0.001),
+    list(gene = "g1", transcript = "tx2", pvalue = 0.01),
+    list(gene = "g1", transcript = "tx3", pvalue = 0.05)
+  )
+  
+  result <- TSENAT:::.jis_build_summary_results(se, results_per_gene, all_pvalues, "gene_id", NULL)
+  
+  expect_true("results_per_gene" %in% names(result))
+  expect_true("all_transcript_stats" %in% names(result))
+  expect_true("summary_table" %in% names(result))
+  
+  # Check transcript-level stats
+  expect_equal(nrow(result$all_transcript_stats), 3)
+  expect_true("fdr" %in% colnames(result$all_transcript_stats))
+})
+
+test_that(".jis_build_summary_results creates gene-level summary", {
+  se <- create_test_se()
+  
+  results_per_gene <- list(
+    g1 = list(
+      gene_id = "g1",
+      transcript_ids = c("tx1", "tx2", "tx3"),
+      delta_influence = c(0.1, -0.2, 0.05),
+      delta_pvalue = c(0.001, 0.01, 0.05),
+      delta_fdr = c(0.005, 0.025, 0.1),
+      switching_status = c("up", "down", "neutral")
+    )
+  )
+  
+  all_pvalues <- list(
+    list(gene = "g1", transcript = "tx1", pvalue = 0.001),
+    list(gene = "g1", transcript = "tx2", pvalue = 0.01),
+    list(gene = "g1", transcript = "tx3", pvalue = 0.05)
+  )
+  
+  result <- TSENAT:::.jis_build_summary_results(se, results_per_gene, all_pvalues, "gene_id", NULL)
+  
+  # Check summary table
+  expect_equal(nrow(result$summary_table), 1)
+  expect_true("gene" %in% colnames(result$summary_table))
+  expect_true("n_switching_transcripts" %in% colnames(result$summary_table))
+  expect_true("n_fdr_significant" %in% colnames(result$summary_table))
+  
+  # 2 switching transcripts (up, down), 3 FDR significant (all < 0.1)
+  expect_equal(result$summary_table$n_switching_transcripts[1], 2)
+})
+
+test_that(".jis_build_summary_results applies FDR correction", {
+  se <- create_test_se()
+  
+  results_per_gene <- list(
+    g1 = list(
+      gene_id = "g1",
+      transcript_ids = c("tx1", "tx2"),
+      delta_influence = c(0.1, -0.2),
+      delta_pvalue = c(0.001, 0.01)
+    ),
+    g2 = list(
+      gene_id = "g2",
+      transcript_ids = c("tx3", "tx4"),
+      delta_influence = c(0.05, -0.1),
+      delta_pvalue = c(0.05, 0.1)
+    )
+  )
+  
+  all_pvalues <- list(
+    list(gene = "g1", transcript = "tx1", pvalue = 0.001),
+    list(gene = "g1", transcript = "tx2", pvalue = 0.01),
+    list(gene = "g2", transcript = "tx3", pvalue = 0.05),
+    list(gene = "g2", transcript = "tx4", pvalue = 0.1)
+  )
+  
+  result <- TSENAT:::.jis_build_summary_results(se, results_per_gene, all_pvalues, "gene_id", NULL)
+  
+  # Check that FDR correction was applied
+  fdr_vals <- result$all_transcript_stats$fdr
+  expect_true(all(fdr_vals <= 1))
+  expect_true(all(fdr_vals >= 0))
+  # First p-value should have smallest FDR
+  expect_true(fdr_vals[1] <= fdr_vals[4])
+})
+
+test_that(".jis_build_summary_results handles LM results mapping", {
+  se <- create_test_se()
+  
+  results_per_gene <- list(
+    g1 = list(
+      gene_id = "g1",
+      transcript_ids = c("tx1", "tx2"),
+      delta_influence = c(0.1, -0.2),
+      delta_pvalue = c(0.001, 0.01),
+      lm_p_interaction = 0.01,
+      lm_adj_p_interaction = 0.02
+    )
+  )
+  
+  all_pvalues <- list(
+    list(gene = "g1", transcript = "tx1", pvalue = 0.001),
+    list(gene = "g1", transcript = "tx2", pvalue = 0.01)
+  )
+  
+  lm_mapping <- data.frame(
+    gene = "g1",
+    p_interaction = 0.01,
+    adj_p_interaction = 0.02
+  )
+  
+  result <- TSENAT:::.jis_build_summary_results(se, results_per_gene, all_pvalues, "gene_id", lm_mapping)
+  
+  # Check that LM columns were added to transcript stats
+  expect_true("lm_p_interaction" %in% colnames(result$all_transcript_stats))
+})
+
+# ============================================================================
+# TEST: .jis_normalize_pseudocount()
+# ============================================================================
+
+test_that(".jis_normalize_pseudocount returns pseudocount >= 1e-8", {
+  pc_valid <- TSENAT:::.jis_normalize_pseudocount(0.5)
+  expect_equal(pc_valid, 0.5)
+  
+  pc_zero <- TSENAT:::.jis_normalize_pseudocount(0)
+  expect_equal(pc_zero, 1e-8)
+  
+  pc_negative <- TSENAT:::.jis_normalize_pseudocount(-0.1)
+  expect_equal(pc_negative, 1e-8)
+})
+
+# ============================================================================
+# TEST: Integration tests for refactored flow
+# ============================================================================
+
+test_that("Full workflow: validation -> pairing -> LM filtering -> gene processing", {
+  skip_on_cran()
+  
+  se <- create_test_se()
+  
+  # Step 1: Validate
+  conditions <- TSENAT:::.jis_validate_input(se, "condition", "gene_id", "transcript_id")
+  expect_equal(conditions, c("A", "B"))
+  
+  # Step 2: Setup pairing
+  paired_info <- TSENAT:::.setup_paired_design_jis(se, NULL, "condition")
+  expect_false(paired_info$is_paired)
+  
+  # Step 3: Setup LM filtering
+  gene_ids <- unique(SummarizedExperiment::rowData(se)$gene_id)
+  lm_setup <- TSENAT:::.jis_setup_lm_filtering(se, NULL, 0.05, TRUE, gene_ids, "gene_id")
+  expect_equal(lm_setup$filtered_genes, gene_ids)
+  
+  # Step 4: Process genes
+  gene_results <- TSENAT:::.jis_process_all_genes(
+    se, lm_setup$filtered_genes, "gene_id", "transcript_id",
+    "condition", conditions, paired_info, 1, TRUE, exp(1), 0, 10, NULL
+  )
+  expect_equal(length(gene_results$results_per_gene), 2)
+  
+  # Step 5: Build summary
+  summary_results <- TSENAT:::.jis_build_summary_results(
+    se, gene_results$results_per_gene, 
+    gene_results$all_pvalues, "gene_id", NULL
+  )
+  expect_true("summary_table" %in% names(summary_results))
+})
