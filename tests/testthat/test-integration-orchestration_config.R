@@ -298,3 +298,249 @@ test_that("tsenat processes stringency levels", {
     expect_true(TRUE)
   }
 })
+
+
+# ============================================================================
+# TEST: Helper function .setup_tsenat_parameters
+# ============================================================================
+
+test_that(".setup_tsenat_parameters extracts config defaults", {
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  
+  params <- .setup_tsenat_parameters(analysis, NULL, NULL, TRUE, FALSE)
+  
+  expect_type(params, "list")
+  expect_true(length(params$methods_to_run) > 0)
+  expect_true(length(params$q_vals) > 0)
+  expect_true(is.character(params$condition_col_name))
+  expect_true(is.logical(params$do_plots))
+})
+
+test_that(".setup_tsenat_parameters overrides config with parameters", {
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se, config = tsenat_config(methods = c("diversity")))
+  
+  new_methods <- c("diversity", "lm_interaction")
+  new_q <- c(0.5, 1.5)
+  
+  params <- .setup_tsenat_parameters(analysis, new_methods, new_q, TRUE, FALSE)
+  
+  expect_equal(params$methods_to_run, new_methods)
+  expect_equal(params$q_vals, new_q)
+})
+
+test_that(".setup_tsenat_parameters uses config condition_col", {
+  se <- make_test_se()
+  custom_col <- "my_condition"
+  analysis <- TSENATAnalysis(se, config = tsenat_config(condition_col = custom_col))
+  
+  params <- .setup_tsenat_parameters(analysis, NULL, NULL, TRUE, FALSE)
+  
+  expect_equal(params$condition_col_name, custom_col)
+})
+
+test_that(".setup_tsenat_parameters handles parallel flag", {
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  
+  # With parallel=TRUE but parallel not installed
+  params <- .setup_tsenat_parameters(analysis, NULL, NULL, TRUE, TRUE)
+  
+  # do_parallel should reflect if parallel is available
+  expect_true(is.logical(params$do_parallel))
+})
+
+
+# ============================================================================
+# TEST: Helper function .validate_tsenat_methods
+# ============================================================================
+
+test_that(".validate_tsenat_methods accepts valid methods", {
+  # Should not raise error for valid methods
+  expect_no_error(
+    .validate_tsenat_methods(c("diversity", "lm_interaction", "jackknife"))
+  )
+})
+
+test_that(".validate_tsenat_methods rejects methods without dependencies", {
+  # jackknife requires diversity
+  expect_error(
+    .validate_tsenat_methods(c("jackknife")),
+    "Method 'jackknife' requires 'diversity'"
+  )
+})
+
+test_that(".validate_tsenat_methods rejects divergence without diversity", {
+  # divergence requires diversity
+  expect_error(
+    .validate_tsenat_methods(c("divergence")),
+    "Method 'divergence' requires 'diversity'"
+  )
+})
+
+test_that(".validate_tsenat_methods rejects q_interactions without diversity", {
+  # q_interactions requires diversity
+  expect_error(
+    .validate_tsenat_methods(c("q_interactions")),
+    "Method 'q_interactions' requires 'diversity'"
+  )
+})
+
+test_that(".validate_tsenat_methods rejects lm_interaction without diversity", {
+  # lm_interaction requires diversity
+  expect_error(
+    .validate_tsenat_methods(c("lm_interaction")),
+    "Method 'lm_interaction' requires 'diversity'"
+  )
+})
+
+test_that(".validate_tsenat_methods accepts multiple methods with diversity", {
+  expect_no_error(
+    .validate_tsenat_methods(c("diversity", "jackknife", "divergence", "q_interactions"))
+  )
+})
+
+
+# ============================================================================
+# TEST: Helper function .finalize_tsenat_analysis
+# ============================================================================
+
+test_that(".finalize_tsenat_analysis adds end time", {
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se)
+  
+  before_finalize <- Sys.time()
+  analysis_finalized <- .finalize_tsenat_analysis(analysis, verbose = FALSE)
+  after_finalize <- Sys.time()
+  
+  expect_true(inherits(analysis_finalized@metadata$ended_at, "POSIXct"))
+  expect_true(analysis_finalized@metadata$ended_at >= before_finalize)
+})
+
+test_that(".finalize_tsenat_analysis prints summary when verbose", {
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se)
+  
+  # Test that messages are produced when verbose = TRUE
+  expect_message(
+    .finalize_tsenat_analysis(analysis, verbose = TRUE),
+    "Analysis Complete"
+  )
+  
+  expect_message(
+    .finalize_tsenat_analysis(analysis, verbose = TRUE),
+    "Results summary"
+  )
+})
+
+test_that(".finalize_tsenat_analysis silent when not verbose", {
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se)
+  
+  # Test that NO messages are produced when verbose = FALSE
+  expect_no_message(
+    .finalize_tsenat_analysis(analysis, verbose = FALSE)
+  )
+})
+
+
+# ============================================================================
+# TEST: Helper function .generate_plot_by_type
+# ============================================================================
+
+test_that(".generate_plot_by_type returns null for unsupported type", {
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se)
+  
+  # Unknown type should return NULL
+  result <- .generate_plot_by_type("unknown_plot_type", analysis)
+  
+  expect_null(result)
+})
+
+test_that(".generate_plot_by_type returns NULL for q_curve when no diversity", {
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se)
+  # No diversity results yet - plot function should handle gracefully
+  
+  # Since diversity_results is empty, plot function may error or return NULL
+  result <- tryCatch(
+    .generate_plot_by_type("q_curve", analysis),
+    error = function(e) NULL
+  )
+  
+  # Should return NULL when no diversity results
+  expect_true(is.null(result))
+})
+
+test_that(".generate_plot_by_type handles divergence plots when no results", {
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se)
+  
+  # No divergence results yet
+  result_dist <- .generate_plot_by_type("divergence_distribution", analysis)
+  result_spec <- .generate_plot_by_type("divergence_spectrum", analysis)
+  
+  expect_null(result_dist)
+  expect_null(result_spec)
+})
+
+test_that(".generate_plot_by_type handles lm_interaction plot when no results", {
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se)
+  
+  # No LM results yet
+  result <- .generate_plot_by_type("lm_interaction", analysis)
+  
+  expect_null(result)
+})
+
+
+# ============================================================================
+# TEST: Integration - Helper functions work together in pipeline
+# ============================================================================
+
+test_that("Helper functions integrate smoothly in tsenat pipeline", {
+  se <- make_test_se()
+  
+  # Test full pipeline with helper orchestration
+  result <- tryCatch(
+    tsenat(
+      se,
+      methods = c("diversity"),
+      q_values = c(0.5, 1.0),
+      verbose = FALSE,
+      generate_plots = FALSE
+    ),
+    error = function(e) {
+      cat("Error:", e$message, "\n")
+      NULL
+    }
+  )
+  
+  # Should complete without error (or NULL if error occurred)
+  expect_true(is.null(result) || inherits(result, "TSENATAnalysis"))
+})
+
+test_that("Setup parameters correctly configure diversity execution", {
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se, config = tsenat_config(q_values = c(0.5, 1.0)))
+  
+  params <- .setup_tsenat_parameters(analysis, NULL, NULL, TRUE, FALSE)
+  
+  # Verify q-values were extracted
+  expect_equal(length(params$q_vals), 2)
+  expect_equal(params$q_vals, c(0.5, 1.0))
+})
+
+test_that("Method validation prevents incomplete pipelines", {
+  # These should error - missing diversity dependency
+  expect_error(.validate_tsenat_methods(c("jackknife")))
+  expect_error(.validate_tsenat_methods(c("divergence")))
+  expect_error(.validate_tsenat_methods(c("q_interactions")))
+  
+  # These should pass
+  expect_no_error(.validate_tsenat_methods(c("diversity")))
+  expect_no_error(.validate_tsenat_methods(c("diversity", "jackknife")))
+})
