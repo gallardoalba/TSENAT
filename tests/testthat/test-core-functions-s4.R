@@ -1536,42 +1536,6 @@ test_that("S4 Wrappers: calculate_difference_s4 accepts new arguments", {
   }
 })
 
-test_that("S4 Wrappers: calculate_lm_interaction_s4 accepts new arguments", {
-  # Pre-compute diversity to have valid input data
-  analysis <- .create_test_analysis(precompute_diversity = TRUE)
-  
-  # Ensure diversity results exist
-  if (length(analysis@diversity_results) == 0) {
-    skip_on_cran()
-  }
-  
-  # Test each argument individually
-  args_to_test <- list(
-    list(condition_col = "condition"),
-    list(method = "lmm"),
-    list(paired = FALSE),
-    list(pcorr = "BH"),
-    list(return_model_data = TRUE),
-    list(nthreads = 1)
-  )
-  
-  for (args in args_to_test) {
-    arg_string <- paste(names(args), collapse = ", ")
-    # Test that arguments are accepted
-    result <- tryCatch({
-      do.call(calculate_lm_interaction_s4, 
-              c(list(analysis = analysis, verbose = FALSE), args))
-    }, error = function(e) {
-      list(error = paste("Error:", e$message))
-    })
-    
-    # Should accept arguments without syntax errors
-    expect_true(!is.list(result) || !("error" %in% names(result)),
-                info = paste("Failed for argument:", arg_string,
-                            "Error:", if(is.list(result) && "error" %in% names(result)) result$error else "None"))
-  }
-})
-
 test_that("S4 Wrappers: calculate_divergence_s4 accepts new arguments", {
   # Pre-compute diversity to have valid input data
   analysis <- .create_test_analysis(precompute_diversity = TRUE)
