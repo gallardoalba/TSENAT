@@ -133,7 +133,7 @@
 #' readcounts <- as.matrix(salmon_dataset)
 #' mode(readcounts) <- 'numeric'
 #' 
-#' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' 
 #' # Filter to manageable size (use 200+ genes to survive diversity filtering)

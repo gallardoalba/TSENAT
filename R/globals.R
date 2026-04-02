@@ -237,12 +237,10 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' - Axis labels: 10pt (0.9x)
 #'
 #' @examples
-#' \dontrun{
 #' # Apply to a ggplot2 plot
 #' ggplot2::ggplot(data) +
 #'   .theme_base(base_size = 11) +
 #'   ggplot2::geom_point()
-#' }
 #'
 
 #' @noRd

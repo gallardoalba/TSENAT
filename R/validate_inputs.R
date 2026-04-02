@@ -29,7 +29,6 @@
 #' Error messages are actionable and suggest common fixes.
 #'
 #' @examples
-#' \dontrun{
 #' # Valid SE object
 #' .validate_se(se, assay_name = "diversity")
 #'
@@ -37,7 +36,6 @@
 #' .validate_se(df, assay_name = "diversity")
 #' # Error: Input must be a SummarizedExperiment, not data.frame
 #' # Use: se <- SummarizedExperiment::SummarizedExperiment(assays = list(...))
-#' }
 #'
 
 #' @noRd
@@ -106,14 +104,12 @@
 #' Error messages suggest which columns are missing.
 #'
 #' @examples
-#' \dontrun{
 #' # Valid data frame
 #' .validate_df(lm_results, required_cols = c("gene", "p_value"))
 #'
 #' # Missing column error:
 #' # Error: 'p_value' column missing in lm_results
 #' # Available columns: gene, estimate, std.error, t.stat
-#' }
 #'
 
 #' @noRd
@@ -168,14 +164,12 @@
 #' @return Invisibly returns TRUE if valid. Stops with error message if invalid.
 #'
 #' @examples
-#' \dontrun{
 #' # Valid
 #' .validate_numeric(n_genes, "n_genes", min = 1, integer_only = TRUE)
 #'
 #' # Invalid - will stop with message
 #' .validate_numeric(sig_alpha = 1.5, "sig_alpha", min = 0, max = 1)
 #' # Error: sig_alpha must be between 0 and 1, got 1.5
-#' }
 #'
 
 #' @noRd
@@ -224,7 +218,6 @@
 #' @return Invisibly returns TRUE if valid. Stops with error message if invalid.
 #'
 #' @examples
-#' \dontrun{
 #' # Valid
 #' .validate_choice(metric, "metric", allowed_values = c("median", "mean", "sd"))
 #'
@@ -232,7 +225,6 @@
 #' .validate_choice(metric = "mode", "metric", 
 #'                 allowed_values = c("median", "mean", "sd"))
 #' # Error: metric must be one of: median, mean, sd (got 'mode')
-#' }
 #'
 
 #' @noRd

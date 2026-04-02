@@ -39,7 +39,7 @@ metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSEN
 gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 
 # Build and subset analysis
-analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
+analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
 
@@ -50,7 +50,6 @@ analysis <- setConfigValue(analysis, "q_values", c(0.5, 1.0, 1.5))
 config <- getConfig(analysis)
 print(config$q_values)  # Shows c(0.5, 1.0, 1.5)
 
-\dontrun{
 # Load real TSENAT data
 data(readcounts)
 metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
@@ -58,7 +57,7 @@ metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSEN
 gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 
 # Build and subset analysis with initial configuration
-analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
+analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
 
@@ -69,7 +68,6 @@ analysis <- setConfigValue(analysis, "seed", 456)
 
 # Verify the updates
 summary(analysis)
-}
 }
 \seealso{
 \code{\link{setConfig}} for replacing entire configuration,

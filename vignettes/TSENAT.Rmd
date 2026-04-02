@@ -339,8 +339,8 @@ improved analysis:
 ## Build a complete `TSENATAnalysis` object from readcounts + GFF3.gz annotation
 ## Include TPM and effective length for filtering and QC purposes
 analysis <- build_analysis_s4(
-  readcounts, 
-  gff3_dataset, 
+  readcounts = readcounts, 
+  tx2gene = gff3_dataset, 
   metadata = metadata_df,
   tpm = salmon_tpm,
   effective_length = salmon_effective_length

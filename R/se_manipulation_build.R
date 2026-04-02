@@ -49,10 +49,9 @@
 #'   \item{gene_names}{data.frame with GeneID and GeneName columns (or NULL if none found)}
 #' @noRd
 
-.extract_gff3_data <- function(gff3_file, verbose = TRUE) {
+.extract_gff3_data <- function(gff3_file, verbose = FALSE) {
     # STREAMING + OPTIMIZED: Pre-filter + vectorized extraction per chunk
     start_time <- Sys.time()
-    suppressMessages(suppressWarnings(library("data.table")))
     
     # Handle both .gff3 and .gff3.gz files
     if (grepl("\\.gff3\\.gz$", gff3_file, ignore.case = TRUE)) {
@@ -179,7 +178,7 @@
     
     elapsed <- as.numeric(Sys.time() - start_time, units = "secs")
     gene_count <- if (!is.null(gene_names_df)) nrow(gene_names_df) else 0
-    if (verbose) message(sprintf("[.extract_gff3_data] ✓ Complete: %d transcripts, %d genes extracted (%.1f sec)",
+    if (verbose) message(sprintf("[.extract_gff3_data] \u2713 Complete: %d transcripts, %d genes extracted (%.1f sec)",
                    nrow(tx2gene_df), gene_count, elapsed))
     
     return(list(tx2gene = tx2gene_df, gene_names = gene_names_df))

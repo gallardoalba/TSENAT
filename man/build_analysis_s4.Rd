@@ -46,6 +46,14 @@ stored in the SummarizedExperiment. Same dimensions as readcounts required.}
 
 \item{config}{Optional list of configuration parameters to store in the
 TSENATAnalysis object. Useful for tracking analysis parameters.}
+
+\item{skip}{Logical. If TRUE, allow unmapped transcripts (transcripts not found
+in tx2gene mapping) and remove them from analysis. If FALSE (default), stop with
+an error when unmapped transcripts are detected. Useful for handling data with
+transcript IDs that don't match the annotation file provided.}
+
+\item{verbose}{Logical. If TRUE, print informative messages during execution
+(e.g., Salmon sample discovery, progress on data loading). Default: TRUE.}
 }
 \value{
 A \code{TSENATAnalysis} S4 object with:
@@ -110,7 +118,8 @@ metadata <- data.frame(
   condition = rep(c("control", "treatment"), each = 5),
   row.names = colnames(counts))
 
-# Build analysis object (Method 1: Manual count matrix)
+# Build analysis object - use NAMED parameters to avoid confusion
+# Method 1: With explicit tx2gene data.frame (most common)
 analysis <- build_analysis_s4(
   readcounts = counts,
   tx2gene = tx2gene,
@@ -118,19 +127,36 @@ analysis <- build_analysis_s4(
 
 # Verify the analysis object was created
 analysis
+print(dim(analysis))
 
-\\dontrun{
-# Build analysis object (Method 2: From Salmon folder)
-# This requires a directory with Salmon output structure:
-#   salmon/
+\donttest{
+# Method 2: From Salmon quantification folder
+# Requires directory structure like:
+#   salmon_output/
 #     sample1/quant.sf
 #     sample2/quant.sf
 #     ...
-analysis_salmon <- build_analysis_s4(
-  salmon_dir = "/path/to/salmon/output",
-  tx2gene = "annotation.gff3.gz",  # Auto-parsed!
-  metadata = sample_metadata
-)
+# 
+# salmon_dir <- "/path/to/salmon/directory"
+# 
+# First create sample metadata matching Salmon sample names
+# salmon_metadata <- data.frame(
+#   condition = c("control", "control", "treatment", "treatment"),
+#   row.names = c("sample1", "sample2", "sample3", "sample4")
+# )
+# 
+# analysis_salmon <- build_analysis_s4(
+#   salmon_dir = salmon_dir,
+#   tx2gene = "annotation.gff3.gz",  # Auto-parsed from GFF3
+#   metadata = salmon_metadata
+# )
+#
+# Method 3: Hybrid - Salmon counts with manual tx2gene
+# analysis_hybrid <- build_analysis_s4(
+#   salmon_dir = salmon_dir,
+#   tx2gene = tx2gene,  # data.frame instead of file
+#   metadata = salmon_metadata
+# )
 }
 
 }

@@ -99,7 +99,7 @@ set.seed(42)
 n_genes <- 50
 n_transcripts_per_gene <- 30
 n_transcripts <- n_genes * n_transcripts_per_gene
-n_samples <- 16  # 8 subjects × 2 conditions (paired design)
+n_samples <- 16  # 8 subjects \u00D7 2 conditions (paired design)
 
 # Generate counts with clear biological signal
 control_idx <- seq(1, n_samples, by = 2)
@@ -155,7 +155,7 @@ analysis <- calculate_diversity_s4(
   verbose = FALSE
 )
 
-# Calculate q × condition interactions using GAM
+# Calculate q \u00D7 condition interactions using GAM
 # (avoids convergence issues with LMM)
 analysis <- calculate_lm_interaction_s4(
   analysis,

@@ -72,7 +72,7 @@ metadata_df <- read.table(
 gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 
 # Build analysis from vignette data
-analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
+analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 
 # Filter low-abundance genes (required for reliable jackknife estimates)

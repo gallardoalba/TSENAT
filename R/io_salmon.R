@@ -30,7 +30,6 @@
 #' }
 #'
 #' @examples
-#' \dontrun{
 #' # Basic usage
 #' salmon_info <- .detect_salmon_samples("/path/to/salmon_output")
 #' print(salmon_info$sample_names)
@@ -38,7 +37,6 @@
 #' # Access file paths and count
 #' length(salmon_info$file_paths)
 #' head(salmon_info$file_paths)
-#' }
 #'
 #' @noRd
 .detect_salmon_samples <- function(
@@ -241,7 +239,7 @@
     }
   }
 
-  if (verbose) message("[.validate_salmon_files] ✓ All validations passed")
+  if (verbose) message("[.validate_salmon_files] \u2713 All validations passed")
   invisible(TRUE)
 }
 
@@ -259,7 +257,7 @@
 #'
 #' @return \code{list} with elements:
 #'   \itemize{
-#'     \item \code{$counts}: Numeric matrix of NumReads (transcripts × samples)
+#'     \item \code{$counts}: Numeric matrix of NumReads (transcripts \u00D7 samples)
 #'     \item \code{$tpm}: Numeric matrix of TPM values (if \code{include_tpm=TRUE})
 #'     \item \code{$effective_length}: Numeric matrix of EffectiveLength (if \code{include_eff_length=TRUE})
 #'     \item \code{$transcript_ids}: Character vector of transcript IDs (row names)
@@ -280,7 +278,6 @@
 #' extracted for downstream computations (e.g., filtering, offset calculations).
 #'
 #' @examples
-#' \dontrun{
 #' # Read Salmon samples
 #' salmon_info <- .detect_salmon_samples("/path/to/salmon")
 #'
@@ -290,9 +287,8 @@
 #' )
 #'
 #' # Access results
-#' dim(salmon_data$counts)           # Transcripts × Samples
+#' # dim(salmon_data$counts)           # Transcripts \u00D7 Samples
 #' head(salmon_data$transcript_ids)
-#' }
 #'
 #' @noRd
 .read_salmon_samples <- function(
@@ -415,7 +411,7 @@
     }
   }
 
-  if (verbose) message("[.read_salmon_samples] ✓ Successfully read all Salmon files")
+  if (verbose) message("[.read_salmon_samples] \u2713 Successfully read all Salmon files")
 
   # Build result list
   result <- list(

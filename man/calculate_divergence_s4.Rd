@@ -83,7 +83,7 @@ metadata_df <- read.table(
 gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 
 # Build analysis from vignette data and create manageable subset
-analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
+analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 # Use 200+ genes to ensure diversity filtering doesn't remove all genes
 analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
