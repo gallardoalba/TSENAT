@@ -156,6 +156,12 @@
         )
     }
     
+    # Validate that at least one model fit succeeded
+    if (is.null(fit_result$fit_alt)) {
+        # Model fitting completely failed - return NULL
+        return(NULL)
+    }
+    
     # ===== BIAS CORRECTION & OUTPUT PROCESSING =====
     # Apply GAM-specific bias correction for small samples
     n_subjects_bc <- if (!is.null(subject)) 
