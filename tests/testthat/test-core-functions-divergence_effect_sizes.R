@@ -1640,4 +1640,463 @@ test_that("Multi-q output maintains numerical ordering consistency", {
 })
 
 
+# ============================================================================
+# TESTS FOR S4 WRAPPER HELPER FUNCTIONS
+# ============================================================================
+
+test_that(".validate_effect_sizes_inputs_s4 rejects non-TSENATAnalysis", {
+  # Should reject non-S4 objects
+  expect_error(
+    TSENAT:::.validate_effect_sizes_inputs_s4(list(data = "test")),
+    "must be a TSENATAnalysis object"
+  )
+})
+
+test_that(".validate_effect_sizes_inputs_s4 rejects missing divergence results", {
+  # Create analysis with empty divergence results
+  analysis <- new("TSENATAnalysis")
+  analysis@divergence_results <- list()
+  
+  expect_error(
+    TSENAT:::.validate_effect_sizes_inputs_s4(analysis),
+    "Divergence results required"
+  )
+})
+
+test_that(".validate_effect_sizes_inputs_s4 rejects missing LM results", {
+  # Create analysis with divergence but no LM results
+  analysis <- new("TSENATAnalysis")
+  analysis@divergence_results <- list(mock = "data")
+  analysis@lm_results <- list()
+  
+  expect_error(
+    TSENAT:::.validate_effect_sizes_inputs_s4(analysis),
+    "LM results required"
+  )
+})
+
+test_that(".validate_effect_sizes_inputs_s4 passes valid analysis", {
+  # Create valid analysis
+  analysis <- new("TSENATAnalysis")
+  analysis@divergence_results <- list(mock = "data")
+  analysis@lm_results <- list(mock = "data")
+  
+  # Should not throw error
+  expect_error(
+    TSENAT:::.validate_effect_sizes_inputs_s4(analysis),
+    NA
+  )
+})
+
+test_that(".extract_effect_sizes_data_s4 extracts data from valid analysis", {
+  # Create minimal mock analysis with required data structures
+  mock_se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = matrix(c(100, 200, 150, 175), nrow = 2, ncol = 2))
+  )
+  
+  analysis <- new("TSENATAnalysis")
+  analysis@se <- mock_se
+  analysis@divergence_results <- list(
+    divergence_se = SummarizedExperiment::SummarizedExperiment(
+      assays = list(divergence = matrix(c(0.8, 0.7), nrow = 2, ncol = 1)),
+      rowData = data.frame(gene_name = c("gene1", "gene2"))
+    )
+  )
+  analysis@lm_results <- list(
+    lm_interaction = data.frame(
+      gene = c("gene1", "gene2"),
+      adj_p_interaction = c(0.01, 0.05)
+    )
+  )
+  
+  # Extract data
+  data_list <- TSENAT:::.extract_effect_sizes_data_s4(analysis, verbose = FALSE)
+  
+  expect_true(is.list(data_list))
+  expect_true("divergence_se" %in% names(data_list))
+  expect_true("lm_res" %in% names(data_list))
+  expect_true(is(data_list$divergence_se, "SummarizedExperiment"))
+  expect_true(is.data.frame(data_list$lm_res))
+})
+
+test_that(".extract_effect_sizes_data_s4 handles missing divergence results", {
+  # Create analysis with LM but no divergence results
+  analysis <- new("TSENATAnalysis")
+  analysis@lm_results <- list(mock = "lm_data")
+  analysis@divergence_results <- list()
+  
+  expect_error(
+    TSENAT:::.extract_effect_sizes_data_s4(analysis),
+    "Could not extract divergence"
+  )
+})
+
+test_that(".map_tx_to_genes handles valid tx2gene mapping", {
+  # Create mock tx2gene dataframe
+  tx2gene <- data.frame(
+    Transcript = c("TX001", "TX002", "TX003"),
+    Gene = c("GENE_A", "GENE_B", "GENE_A"),
+    stringsAsFactors = FALSE
+  )
+  
+  tx_in_divergence <- c("TX001", "TX002")
+  
+  result <- TSENAT:::.map_tx_to_genes(tx2gene, tx_in_divergence, verbose = FALSE)
+  
+  expect_true(!is.null(result))
+  expect_equal(length(result), 2)
+  expect_equal(result[1], "GENE_A")
+  expect_equal(result[2], "GENE_B")
+})
+
+test_that(".map_tx_to_genes returns NULL for invalid columns", {
+  # tx2gene with non-standard column names
+  tx2gene <- data.frame(
+    col1 = c("TX001", "TX002"),
+    col2 = c("GENE_A", "GENE_B"),
+    stringsAsFactors = FALSE
+  )
+  
+  tx_in_divergence <- c("TX001", "TX002")
+  
+  result <- TSENAT:::.map_tx_to_genes(tx2gene, tx_in_divergence, verbose = FALSE)
+  
+  expect_null(result)
+})
+
+test_that(".map_tx_to_genes returns NULL for non-matching transcripts", {
+  # Transcripts not in tx2gene
+  tx2gene <- data.frame(
+    Transcript = c("TX001", "TX002"),
+    Gene = c("GENE_A", "GENE_B"),
+    stringsAsFactors = FALSE
+  )
+  
+  tx_in_divergence <- c("TX_NOT_FOUND", "TX_ALSO_NOT_FOUND")
+  
+  result <- TSENAT:::.map_tx_to_genes(tx2gene, tx_in_divergence, verbose = FALSE)
+  
+  # Should return NULL because all matches are NA
+  expect_null(result)
+})
+
+test_that(".add_gene_names_to_divergence_se adds via tx2gene mapping", {
+  # Create divergence SE without gene names
+  div_se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(div = matrix(c(0.8, 0.7, 0.6), nrow = 3, ncol = 1)),
+    rowData = data.frame(
+      estimate = c(0.8, 0.7, 0.6),
+      lower_ci = c(0.7, 0.6, 0.5),
+      upper_ci = c(0.9, 0.8, 0.7),
+      row.names = c("TX001", "TX002", "TX003")
+    )
+  )
+  rownames(div_se) <- c("TX001", "TX002", "TX003")
+  
+  # Create base SE with tx2gene metadata
+  tx2gene <- data.frame(
+    Transcript = c("TX001", "TX002", "TX003"),
+    Gene = c("GENE_A", "GENE_B", "GENE_A"),
+    stringsAsFactors = FALSE
+  )
+  
+  base_se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = matrix(100, nrow = 3, ncol = 2))
+  )
+  S4Vectors::metadata(base_se)$tx2gene <- tx2gene
+  
+  # Create minimal analysis with required slots
+  analysis <- new("TSENATAnalysis")
+  analysis@se <- base_se
+  
+  lm_res <- data.frame(
+    gene = c("GENE_A", "GENE_B"),
+    adj_p_interaction = c(0.01, 0.05)
+  )
+  
+  # Add gene names
+  result_se <- TSENAT:::.add_gene_names_to_divergence_se(div_se, analysis, lm_res, verbose = FALSE)
+  
+  expect_true(is(result_se, "SummarizedExperiment"))
+  expect_true("gene_name" %in% colnames(SummarizedExperiment::rowData(result_se)))
+})
+
+test_that(".add_gene_names_to_divergence_se handles missing tx2gene gracefully", {
+  # Create divergence SE without gene names
+  div_se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(div = matrix(c(0.8, 0.7), nrow = 2, ncol = 1)),
+    rowData = data.frame(
+      estimate = c(0.8, 0.7),
+      row.names = c("TX001", "TX002")
+    )
+  )
+  rownames(div_se) <- c("TX001", "TX002")
+  
+  # Create base SE without tx2gene
+  base_se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = matrix(100, nrow = 2, ncol = 2))
+  )
+  
+  analysis <- new("TSENATAnalysis")
+  analysis@se <- base_se
+  
+  lm_res <- data.frame(
+    gene = c("GENE_A", "GENE_B"),
+    adj_p_interaction = c(0.01, 0.05)
+  )
+  
+  # Should fallback to direct assignment
+  result_se <- TSENAT:::.add_gene_names_to_divergence_se(div_se, analysis, lm_res, verbose = FALSE)
+  
+  expect_true("gene_name" %in% colnames(SummarizedExperiment::rowData(result_se)))
+  expect_equal(SummarizedExperiment::rowData(result_se)$gene_name, c("GENE_A", "GENE_B"))
+})
+
+test_that(".store_effect_sizes_results_in_metadata stores results correctly", {
+  # Create minimal analysis
+  analysis <- new("TSENATAnalysis")
+  
+  # Create mock result
+  result <- list(
+    interaction_results = data.frame(gene = "gene1", estimate = 0.8),
+    validation_stats = list(n_genes = 1)
+  )
+  
+  # Store results
+  analysis_updated <- TSENAT:::.store_effect_sizes_results_in_metadata(
+    analysis, result, significance_threshold = 0.05, verbose = FALSE
+  )
+  
+  expect_true(!is.null(analysis_updated@metadata$effect_sizes_divergence))
+  expect_equal(
+    analysis_updated@metadata$effect_sizes_divergence$interaction_results$gene,
+    "gene1"
+  )
+})
+
+test_that(".store_effect_sizes_results_in_metadata tracks function calls", {
+  # Create analysis with existing function calls
+  analysis <- new("TSENATAnalysis")
+  analysis@metadata <- list(function_calls = c("prev_call1", "prev_call2"))
+  
+  result <- list(interaction_results = data.frame(gene = "gene1"))
+  
+  analysis_updated <- TSENAT:::.store_effect_sizes_results_in_metadata(
+    analysis, result, significance_threshold = 0.05, verbose = FALSE
+  )
+  
+  calls <- analysis_updated@metadata$function_calls
+  expect_equal(length(calls), 3)
+  expect_true(any(grepl("effect_sizes_divergence", calls)))
+})
+
+test_that(".save_effect_sizes_output writes TSV files", {
+  # Create temporary file
+  temp_tsv <- tempfile(fileext = ".tsv")
+  
+  # Create mock result
+  result <- list(
+    interaction_results = data.frame(
+      gene = c("gene1", "gene2"),
+      estimate = c(0.8, 0.7),
+      pval = c(0.01, 0.05)
+    )
+  )
+  
+  # Save output
+  TSENAT:::.save_effect_sizes_output(temp_tsv, result, verbose = FALSE)
+  
+  # Verify file was created
+  expect_true(file.exists(temp_tsv))
+  
+  # Verify content
+  saved_data <- read.table(temp_tsv, header = TRUE, sep = "\t")
+  expect_equal(nrow(saved_data), 2)
+  expect_equal(ncol(saved_data), 3)
+  
+  # Cleanup
+  file.remove(temp_tsv)
+})
+
+test_that(".save_effect_sizes_output filters all-NA columns in TSV output", {
+  # Create temporary file
+  temp_tsv <- tempfile(fileext = ".tsv")
+  
+  # Create result with NA column
+  result <- list(
+    interaction_results = data.frame(
+      gene = c("gene1", "gene2"),
+      estimate = c(0.8, 0.7),
+      na_col = c(NA, NA)
+    )
+  )
+  
+  # Save output
+  TSENAT:::.save_effect_sizes_output(temp_tsv, result, verbose = FALSE)
+  
+  # Verify NA column was removed
+  saved_data <- read.table(temp_tsv, header = TRUE, sep = "\t")
+  expect_false("na_col" %in% colnames(saved_data))
+  expect_equal(ncol(saved_data), 2)
+  
+  # Cleanup
+  file.remove(temp_tsv)
+})
+
+test_that(".save_effect_sizes_output writes RDS files", {
+  # Create temporary file
+  temp_rds <- tempfile(fileext = ".rds")
+  
+  # Create mock result
+  result <- list(
+    interaction_results = data.frame(gene = c("gene1", "gene2")),
+    validation_stats = list(notes = "test")
+  )
+  
+  # Save output
+  TSENAT:::.save_effect_sizes_output(temp_rds, result, verbose = FALSE)
+  
+  # Verify file was created and readable
+  expect_true(file.exists(temp_rds))
+  loaded_result <- readRDS(temp_rds)
+  expect_equal(loaded_result$validation_stats$notes, "test")
+  
+  # Cleanup
+  file.remove(temp_rds)
+})
+
+test_that(".save_effect_sizes_output handles NULL output_file", {
+  # Should not produce error when output_file is NULL
+  result <- list(interaction_results = data.frame(gene = "gene1"))
+  
+  expect_error(
+    TSENAT:::.save_effect_sizes_output(NULL, result, verbose = FALSE),
+    NA
+  )
+})
+
+test_that("effect_sizes_divergence_s4 orchestrates helpers correctly", {
+  # Replicate roxygen documentation example exactly
+  data(readcounts)
+  readcounts <- as.matrix(readcounts)
+  mode(readcounts) <- 'numeric'
+  
+  metadata_df <- read.table(
+    system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+    header = TRUE, sep = '\t'
+  )
+  
+  gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+  
+  # Create TPM and effective_length as in roxygen example
+  # Simple normalization to simulate TPM
+  tpm <- sweep(readcounts, 2, colSums(readcounts), "/") * 1e6
+  effective_length <- rep(1000, nrow(readcounts))
+  names(effective_length) <- rownames(readcounts)
+  
+  analysis <- build_analysis_s4(
+    readcounts = readcounts,
+    tx2gene = gff3_dataset,
+    metadata = metadata_df,
+    tpm = tpm,
+    effective_length = effective_length,
+    verbose = FALSE
+  )
+  
+  config <- tsenat_config(
+    condition_col = 'condition',
+    subject_col = 'paired_samples',
+    paired = TRUE,
+    control = 'normal',
+    metadata = metadata_df
+  )
+  analysis <- setConfig(analysis, config)
+  
+  analysis <- filter_analysis_s4(analysis, stringency = 'severe', verbose = FALSE)
+  analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+  analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+  analysis <- suppressWarnings(
+    calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
+  )
+  
+  # Compute effect sizes from divergence results
+  analysis <- effect_sizes_divergence_s4(
+    analysis,
+    significance_threshold = 0.05, 
+    verbose = FALSE
+  )
+  
+  # Access results using metadata accessor
+  effect_size_results <- getMeta(analysis, 'effect_sizes_divergence')
+  
+  # Verify structure of results
+  expect_true(!is.null(effect_size_results))
+  expect_true(is.list(effect_size_results))
+})
+
+test_that("effect_sizes_divergence_s4 respects output_file parameter", {
+  # Replicate roxygen documentation example with output_file
+  data(readcounts)
+  readcounts <- as.matrix(readcounts)
+  mode(readcounts) <- 'numeric'
+  
+  metadata_df <- read.table(
+    system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+    header = TRUE, sep = '\t'
+  )
+  
+  gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+  
+  # Create TPM and effective_length as in roxygen example
+  # Simple normalization to simulate TPM
+  tpm <- sweep(readcounts, 2, colSums(readcounts), "/") * 1e6
+  effective_length <- rep(1000, nrow(readcounts))
+  names(effective_length) <- rownames(readcounts)
+  
+  analysis <- build_analysis_s4(
+    readcounts = readcounts,
+    tx2gene = gff3_dataset,
+    metadata = metadata_df,
+    tpm = tpm,
+    effective_length = effective_length,
+    verbose = FALSE
+  )
+  
+  config <- tsenat_config(
+    condition_col = 'condition',
+    subject_col = 'paired_samples',
+    paired = TRUE,
+    control = 'normal',
+    metadata = metadata_df
+  )
+  analysis <- setConfig(analysis, config)
+  
+  analysis <- filter_analysis_s4(analysis, stringency = 'severe', verbose = FALSE)
+  analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+  analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+  analysis <- suppressWarnings(
+    calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
+  )
+  
+  # Create temporary file for TSV output
+  temp_output <- tempfile(fileext = ".tsv")
+  
+  # Compute effect sizes and save to file
+  analysis <- effect_sizes_divergence_s4(
+    analysis,
+    significance_threshold = 0.05,
+    output_file = temp_output,
+    verbose = FALSE
+  )
+  
+  # Verify output file was created and is readable
+  expect_true(file.exists(temp_output))
+  
+  # Verify contents
+  output_data <- read.table(temp_output, header = TRUE, sep = "\t")
+  expect_true(nrow(output_data) > 0)
+  
+  # Cleanup
+  file.remove(temp_output)
+})
 
