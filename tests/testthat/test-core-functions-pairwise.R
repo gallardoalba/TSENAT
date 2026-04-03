@@ -1716,3 +1716,274 @@ test_that("wilcoxon paired matches paired test from R", {
     expect_equal(tsenat_p, r_p, tolerance = 1e-10)
 })
 
+# ============================================================================
+# HELPER FUNCTION TESTS FOR REFACTORED .calculate_difference()
+# ============================================================================
+
+context("Helper Functions: Input Validation")
+
+test_that(".validate_input_type rejects matrix input", {
+    mat <- matrix(rnorm(20), nrow = 5)
+    expect_error(
+        .validate_input_type(mat),
+        "Input type unsupported"
+    )
+})
+
+test_that(".validate_input_type accepts data.frame", {
+    df <- data.frame(a = 1:5, b = 6:10)
+    expect_invisible(.validate_input_type(df))
+})
+
+test_that(".validate_input_type accepts SummarizedExperiment", {
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = matrix(1:20, nrow = 5)),
+        colData = data.frame(sample_type = rep(c("A", "B"), each = 2))
+    )
+    expect_invisible(.validate_input_type(se))
+})
+
+test_that(".validate_input_type rejects list", {
+    expect_error(
+        .validate_input_type(list(a = 1:5)),
+        "Input data type not supported"
+    )
+})
+
+context("Helper Functions: Condition Column Resolution")
+
+test_that(".resolve_condition_col returns sample_type when condition_col is NULL", {
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = matrix(1:20, nrow = 5)),
+        colData = data.frame(sample_type = rep(c("A", "B"), each = 2))
+    )
+    result <- .resolve_condition_col(se, NULL)
+    expect_equal(result, "sample_type")
+})
+
+test_that(".resolve_condition_col uses provided condition_col when present", {
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = matrix(1:20, nrow = 5)),
+        colData = data.frame(
+            custom_col = rep(c("A", "B"), each = 2),
+            sample_type = rep(c("X", "Y"), each = 2)
+        )
+    )
+    result <- .resolve_condition_col(se, "custom_col")
+    expect_equal(result, "custom_col")
+})
+
+test_that(".resolve_condition_col errors with no sample_type fallback", {
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = matrix(1:20, nrow = 5)),
+        colData = data.frame(other_col = rep(c("A", "B"), each = 2))
+    )
+    expect_error(
+        .resolve_condition_col(se, NULL),
+        "supply 'condition_col' as a colData column"
+    )
+})
+
+test_that(".resolve_condition_col rejects multiple condition_col values", {
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = matrix(1:20, nrow = 5)),
+        colData = data.frame(sample_type = rep(c("A", "B"), each = 2))
+    )
+    expect_error(
+        .resolve_condition_col(se, c("col1", "col2")),
+        "'condition_col' must be a single colData column"
+    )
+})
+
+context("Helper Functions: Data Preparation")
+
+test_that(".prepare_data_and_samples handles data.frame input", {
+    df <- data.frame(Genes = letters[1:5], matrix(rnorm(20), nrow = 5))
+    samples <- c(rep("A", 2), rep("B", 2))
+    
+    result <- .prepare_data_and_samples(df, samples, assayno = 1)
+    
+    expect_true("df" %in% names(result))
+    expect_true("samples" %in% names(result))
+    expect_true("pairs" %in% names(result))
+    expect_equal(nrow(result$df), 5)
+    expect_equal(length(result$samples), 2)
+    expect_null(result$pairs)
+})
+
+test_that(".prepare_data_and_samples handles SummarizedExperiment", {
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = matrix(1:20, nrow = 5)),
+        colData = data.frame(
+            sample_type = rep(c("A", "B"), each = 2),
+            sample_base = c(1, 1, 2, 2)
+        ),
+        rowData = data.frame(gene_id = letters[1:5])
+    )
+    
+    result <- .prepare_data_and_samples(se, "sample_type", assayno = 1)
+    
+    expect_equal(nrow(result$df), 5)
+    expect_equal(ncol(result$df), 5)  # gene_id + 4 samples
+    expect_equal(result$df[1, 1], "a")  # gene_id
+    expect_equal(length(result$samples), 4)
+    expect_equal(result$pairs, c("1", "1", "2", "2"))
+})
+
+context("Helper Functions: Validation")
+
+test_that(".validate_no_multiple_q_values allows single q value", {
+    col_names <- c("gene_id", "sample_q=1", "sample_q=1")
+    expect_invisible(.validate_no_multiple_q_values(col_names))
+})
+
+test_that(".validate_no_multiple_q_values allows no q values", {
+    col_names <- c("gene_id", "sample1", "sample2")
+    expect_invisible(.validate_no_multiple_q_values(col_names))
+})
+
+test_that(".validate_no_multiple_q_values rejects multiple q values", {
+    col_names <- c("gene_id", "sample_q=1", "sample_q=2")
+    expect_error(
+        .validate_no_multiple_q_values(col_names),
+        "does not accept multiple q values"
+    )
+})
+
+test_that(".validate_paired_requirements accepts unpaired setup", {
+    expect_invisible(.validate_paired_requirements(paired = FALSE, pairs = NULL))
+})
+
+test_that(".validate_paired_requirements accepts paired with pairs provided", {
+    pairs <- c(1, 1, 2, 2)
+    expect_invisible(.validate_paired_requirements(paired = TRUE, pairs = pairs))
+})
+
+test_that(".validate_paired_requirements rejects paired without pairs", {
+    expect_error(
+        .validate_paired_requirements(paired = TRUE, pairs = NULL),
+        "paired=TRUE requires `pairs` parameter"
+    )
+})
+
+context("Helper Functions: Matrix Extraction")
+
+test_that(".extract_sample_matrix correctly extracts sample columns", {
+    # Simulate df_keep structure: gene_id | samples... | cond_1 | cond_2
+    df <- data.frame(
+        gene_id = c("gene1", "gene2"),
+        X1 = c(0.5, 0.6),
+        X2 = c(0.7, 0.8),
+        X3 = c(0.3, 0.4),
+        X4 = c(0.2, 0.25),
+        cond_1 = c(2, 2),
+        cond_2 = c(2, 2)
+    )
+    
+    result <- .extract_sample_matrix(df)
+    
+    expect_equal(nrow(result), 2)
+    expect_equal(ncol(result), 4)  # Should have removed first, last two columns
+    expect_equal(as.numeric(result[1, ]), c(0.5, 0.7, 0.3, 0.2))
+})
+
+context("Helper Functions: Result Building")
+
+test_that(".build_test_results combines components correctly", {
+    gene_ids <- c("gene1", "gene2")
+    fc_results <- data.frame(
+        log2FC = c(1.5, -0.5),
+        mean_1 = c(5, 3),
+        mean_2 = c(2, 4)
+    )
+    pvalue_table <- data.frame(
+        pvalue = c(0.01, 0.05),
+        padj = c(0.02, 0.10),
+        r = c(0.8, -0.6),
+        U = c(8, 9)
+    )
+    
+    result <- .build_test_results(gene_ids, fc_results, pvalue_table)
+    
+    expect_equal(nrow(result), 2)
+    expect_true("gene_id" %in% colnames(result))
+    expect_true("pvalue" %in% colnames(result))
+    expect_true("r" %in% colnames(result))
+    expect_equal(result$gene_id[1], "gene1")
+    expect_equal(result$r[1], 0.8)
+})
+
+test_that(".build_excluded_results creates NA p-values", {
+    gene_ids <- c("gene1", "gene2")
+    fc_results <- data.frame(
+        log2FC = c(1.5, -0.5),
+        mean_1 = c(5, 3),
+        mean_2 = c(2, 4)
+    )
+    
+    result <- .build_excluded_results(gene_ids, fc_results)
+    
+    expect_equal(nrow(result), 2)
+    expect_true(all(is.na(result$pvalue)))
+    expect_true(all(is.na(result$r)))
+    expect_true(all(is.na(result$U)))
+    expect_equal(result$log2FC[1], 1.5)
+})
+
+context("Helper Functions: Result Combination")
+
+test_that(".combine_and_finalize_results handles empty list", {
+    result <- .combine_and_finalize_results(list())
+    expect_equal(nrow(result), 0)
+})
+
+test_that(".combine_and_finalize_results combines tested and small results", {
+    tested <- data.frame(
+        gene_id = c("gene1", "gene2"),
+        pvalue = c(0.01, 0.05),
+        padj = c(0.02, 0.10),
+        r = c(0.8, -0.6),
+        U = c(8, 9)
+    )
+    
+    small <- data.frame(
+        gene_id = c("gene3", "gene4"),
+        pvalue = c(NA, NA),
+        padj = c(NA, NA),
+        r = c(NA, NA),
+        U = c(NA, NA)
+    )
+    
+    result <- .combine_and_finalize_results(list(tested = tested, small = small))
+    
+    expect_equal(nrow(result), 4)
+    expect_equal(result$gene_id[1], "gene1")
+    expect_equal(result$gene_id[4], "gene4")
+    expect_equal(rownames(result)[1], "gene1")
+})
+
+test_that(".combine_and_finalize_results preserves tested rows first", {
+    tested <- data.frame(
+        gene_id = c("tested_1", "tested_2"),
+        pvalue = c(0.01, 0.05),
+        padj = c(0.02, 0.10),
+        r = c(0.8, -0.6),
+        U = c(8, 9)
+    )
+    
+    small <- data.frame(
+        gene_id = c("small_1"),
+        pvalue = c(NA),
+        padj = c(NA),
+        r = c(NA),
+        U = c(NA)
+    )
+    
+    result <- .combine_and_finalize_results(list(tested = tested, small = small))
+    
+    # Tested rows should come first
+    expect_equal(result[1, "gene_id"], "tested_1")
+    expect_equal(result[2, "gene_id"], "tested_2")
+    expect_equal(result[3, "gene_id"], "small_1")
+})
+

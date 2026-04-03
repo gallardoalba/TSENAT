@@ -1136,6 +1136,351 @@ NULL
 # PLOT TSALLIS Q-CURVE HELPERS
 # ============================================================================
 
+#' Extract diversity objects from analysis results
+#'
+#' @param div_list List of diversity results (SummarizedExperiment or matrix)
+#' @return List with: objects, q_names, first_se, bootstrap_ci_available
+
+#' @noRd
+.extract_diversity_objects <- function(div_list) {
+    require_pkgs(c("SummarizedExperiment"))
+    
+    combined_assays_dict <- list()
+    first_se <- NULL
+    bootstrap_ci_available <- FALSE
+
+    for (q_name in names(div_list)) {
+        obj <- div_list[[q_name]]
+        if (methods::is(obj, "SummarizedExperiment")) {
+            if (is.null(first_se)) {
+                first_se <- obj
+            }
+            # Check if bootstrap CIs are available
+            si <- SummarizedExperiment::assayNames(obj)
+            if ("ci_lower" %in% si && "ci_upper" %in% si) {
+                bootstrap_ci_available <- TRUE
+            }
+        }
+        mat <- if (methods::is(obj, "SummarizedExperiment")) {
+            SummarizedExperiment::assay(obj, 1)
+        } else {
+            as.matrix(obj)
+        }
+        
+        q_val <- as.numeric(sub("^q_", "", q_name))
+        combined_assays_dict[[q_name]] <- list(matrix = mat, q_val = q_val, se_obj = obj)
+    }
+
+    if (is.null(first_se)) {
+        stop("No valid SummarizedExperiment found in analysis@diversity_results")
+    }
+
+    list(
+        objects = combined_assays_dict,
+        q_names = names(combined_assays_dict),
+        first_se = first_se,
+        bootstrap_ci_available = bootstrap_ci_available
+    )
+}
+
+#' Normalize matrix dimensions and row order
+#'
+#' @param matrix Matrix to normalize
+#' @param target_genes Target gene order (character vector)
+#' @param target_n_cols Target number of columns
+#' @return Normalized matrix
+
+#' @noRd
+.normalize_matrix_to_target <- function(matrix, target_genes, target_n_cols) {
+    # Adjust column count
+    if (ncol(matrix) != target_n_cols) {
+        if (ncol(matrix) > target_n_cols) {
+            matrix <- matrix[, seq_len(target_n_cols), drop = FALSE]
+        } else {
+            pad_cols <- target_n_cols - ncol(matrix)
+            matrix <- cbind(matrix, matrix(0, nrow = nrow(matrix), ncol = pad_cols))
+        }
+    }
+    
+    # Reorder rows to match target genes
+    matrix[target_genes, , drop = FALSE]
+}
+
+#' Extract bootstrap CI matrices from SE object
+#'
+#' @param se_obj SummarizedExperiment or matrix object
+#' @param target_genes Target gene order
+#' @param target_n_cols Target number of columns
+#' @param assay_names Assay names in SE
+#' @return List(ci_lower, ci_upper) or NULL
+
+#' @noRd
+.extract_bootstrap_ci_matrices <- function(se_obj, target_genes, target_n_cols, assay_names) {
+    require_pkgs("SummarizedExperiment")
+    
+    if (!methods::is(se_obj, "SummarizedExperiment")) {
+        return(NULL)
+    }
+    
+    if (!("ci_lower" %in% assay_names && "ci_upper" %in% assay_names)) {
+        return(NULL)
+    }
+    
+    # Extract ci_lower
+    ci_lower <- SummarizedExperiment::assay(se_obj, "ci_lower")
+    ci_lower <- .normalize_matrix_to_target(ci_lower, target_genes, target_n_cols)
+    
+    # Extract ci_upper
+    ci_upper <- SummarizedExperiment::assay(se_obj, "ci_upper")
+    ci_upper <- .normalize_matrix_to_target(ci_upper, target_genes, target_n_cols)
+    
+    list(ci_lower = ci_lower, ci_upper = ci_upper)
+}
+
+#' Create Q-value suffixed column names
+#'
+#' @param colnames Column names (character vector or NULL)
+#' @param q_val Q-value (numeric)
+#' @param n_cols Number of column names needed
+#' @return Character vector with _q=X.XXX suffix
+
+#' @noRd
+.create_q_suffixed_colnames <- function(colnames, q_val, n_cols) {
+    if (is.null(colnames) || length(colnames) == 0) {
+        colnames <- paste0("sample_", seq_len(n_cols))
+    }
+    
+    clean_colnames <- sub("_q=.*$", "", colnames)
+    paste0(clean_colnames, "_q=", formatC(q_val, format = "f", digits = 3))
+}
+
+#' Build combined colData across all q-values
+#'
+#' @param div_list Original diversity results list
+#' @param q_names Q-value names (keys from div_list)
+#' @param unique_colnames Final combined column names with q-suffix
+#' @return Data frame with combined colData
+
+#' @noRd
+.build_combined_coldata <- function(div_list, q_names, unique_colnames_list) {
+    require_pkgs("SummarizedExperiment")
+    
+    combined_coldata_list <- list()
+    
+    for (q_name in q_names) {
+        q_val <- as.numeric(sub("^q_", "", q_name))
+        
+        # Access unique_colnames by q-value name (stored as list keys in .fill_combined_assays)
+        unique_colnames <- unique_colnames_list[[q_name]]
+        
+        if (methods::is(div_list[[q_name]], "SummarizedExperiment")) {
+            cd <- as.data.frame(SummarizedExperiment::colData(div_list[[q_name]]))
+        } else {
+            cd <- data.frame(row.names = unique_colnames)
+        }
+        
+        cd$q <- q_val
+        rownames(cd) <- unique_colnames
+        combined_coldata_list[[q_name]] <- cd
+    }
+    
+    do.call(rbind, combined_coldata_list)
+}
+
+#' Create combined SummarizedExperiment with assays and metadata
+#'
+#' @param combined_assay Main diversity assay matrix
+#' @param combined_ci_lower CI lower matrix (optional)
+#' @param combined_ci_upper CI upper matrix (optional)
+#' @param combined_coldata ColData frame
+#' @param first_se Template SE for rowData
+#' @return SummarizedExperiment object
+
+#' @noRd
+.create_combined_se_object <- function(combined_assay, combined_ci_lower, combined_ci_upper,
+                                        combined_coldata, first_se) {
+    require_pkgs(c("SummarizedExperiment", "S4Vectors"))
+    
+    # Extract or create rowData, ensuring dimensions match combined_assay
+    rd_combined <- tryCatch({
+        rd_temp <- SummarizedExperiment::rowData(first_se)
+        if (!is.null(rd_temp) && nrow(rd_temp) == nrow(combined_assay)) {
+            # Ensure rownames match combined_assay
+            rownames(rd_temp) <- rownames(combined_assay)
+            rd_temp
+        } else {
+            NULL
+        }
+    }, error = function(e) NULL)
+    
+    if (is.null(rd_combined) || nrow(rd_combined) != nrow(combined_assay)) {
+        rd_combined <- data.frame(
+            gene_id = rownames(combined_assay),
+            row.names = rownames(combined_assay),
+            stringsAsFactors = FALSE
+        )
+    } else {
+        # Ensure rownames match even if we're using extracted rowData
+        rownames(rd_combined) <- rownames(combined_assay)
+    }
+    
+    # Validate dimensions
+    if (ncol(combined_assay) != nrow(combined_coldata)) {
+        stop("Column mismatch: assay has ", ncol(combined_assay),
+            " columns but colData has ", nrow(combined_coldata), " rows")
+    }
+    if (nrow(combined_assay) != nrow(rd_combined)) {
+        stop("Row mismatch: assay has ", nrow(combined_assay),
+            " rows but rowData has ", nrow(rd_combined), " rows")
+    }
+    
+    # Validate names match
+    if (!identical(colnames(combined_assay), rownames(combined_coldata))) {
+        stop("Column name mismatch between assay and colData")
+    }
+    if (!identical(rownames(combined_assay), rownames(rd_combined))) {
+        stop("Row name mismatch between assay and rowData")
+    }
+    
+    # Build assays list
+    assays_list <- list(diversity = combined_assay)
+    
+    if (!is.null(combined_ci_lower) && !is.null(combined_ci_upper)) {
+        ci_lower_valid <- sum(!is.na(combined_ci_lower)) > 0
+        ci_upper_valid <- sum(!is.na(combined_ci_upper)) > 0
+        
+        if (ci_lower_valid && ci_upper_valid) {
+            assays_list$ci_lower <- combined_ci_lower
+            assays_list$ci_upper <- combined_ci_upper
+        }
+    }
+    
+    # Create SE
+    combined_se <- SummarizedExperiment::SummarizedExperiment(
+        assays = assays_list,
+        colData = combined_coldata,
+        rowData = rd_combined
+    )
+    
+    # Add metadata if CI available
+    if (!is.null(combined_ci_lower)) {
+        S4Vectors::metadata(combined_se)$bootstrap_ci_count <- sum(!is.na(combined_ci_lower))
+        S4Vectors::metadata(combined_se)$has_bootstrap_ci <- (sum(!is.na(combined_ci_lower)) > 0)
+    }
+    
+    combined_se
+}
+
+#' Prepare single q-value data for combined assays
+#'
+#' @param q_name Q-value name (key from combined_assays_dict)
+#' @param combined_assays_dict Dictionary of matrices and metadata
+#' @param target_genes Target gene order
+#' @param target_n_cols Target columns per q-value
+#' @param bootstrap_ci_available Boolean: CIs available
+#' @return List with: unique_colnames, ncol, ci_lower, ci_upper
+
+#' @noRd
+.prepare_q_value_for_combining <- function(q_name, combined_assays_dict, target_genes,
+                                            target_n_cols, bootstrap_ci_available) {
+    require_pkgs("SummarizedExperiment")
+    
+    mat <- combined_assays_dict[[q_name]]$matrix
+    q_val <- combined_assays_dict[[q_name]]$q_val
+    se_obj <- combined_assays_dict[[q_name]]$se_obj
+    
+    # Normalize matrix dimensions
+    mat <- .normalize_matrix_to_target(mat, target_genes, target_n_cols)
+    
+    # Create q-suffixed column names
+    unique_colnames <- .create_q_suffixed_colnames(colnames(mat), q_val, ncol(mat))
+    
+    # Extract CI matrices if available
+    ci_lower <- ci_upper <- NULL
+    if (bootstrap_ci_available) {
+        sim_names <- SummarizedExperiment::assayNames(se_obj)
+        ci_matrices <- .extract_bootstrap_ci_matrices(
+            se_obj, target_genes, target_n_cols, sim_names
+        )
+        if (!is.null(ci_matrices)) {
+            ci_lower <- ci_matrices$ci_lower
+            ci_upper <- ci_matrices$ci_upper
+        } else {
+            ci_lower <- matrix(NA, nrow = nrow(mat), ncol = ncol(mat))
+            ci_upper <- matrix(NA, nrow = nrow(mat), ncol = ncol(mat))
+        }
+    }
+    
+    list(
+        matrix = mat,
+        unique_colnames = unique_colnames,
+        ncol_val = ncol(mat),
+        ci_lower = ci_lower,
+        ci_upper = ci_upper
+    )
+}
+
+#' Fill combined assay matrices with data from all q-values
+#'
+#' @param combined_assays_dict Dictionary of matrices and metadata per q-value
+#' @param q_names Q-value names (keys)
+#' @param target_genes Target gene order
+#' @param target_n_cols Target number of columns
+#' @param bootstrap_ci_available Boolean: CIs available
+#' @return List with: combined_assay, combined_ci_lower, combined_ci_upper, unique_colnames_list
+
+#' @noRd
+.fill_combined_assays <- function(combined_assays_dict, q_names, target_genes,
+                                   target_n_cols, bootstrap_ci_available) {
+    total_cols <- target_n_cols * length(q_names)
+    
+    # Initialize matrices
+    combined_assay <- matrix(0, nrow = length(target_genes), ncol = total_cols)
+    rownames(combined_assay) <- target_genes
+    
+    combined_ci_lower <- if (bootstrap_ci_available) {
+        matrix(NA, nrow = length(target_genes), ncol = total_cols)
+    } else NULL
+    combined_ci_upper <- if (bootstrap_ci_available) {
+        matrix(NA, nrow = length(target_genes), ncol = total_cols)
+    } else NULL
+    
+    unique_colnames_list <- list()
+    col_idx <- 1
+    
+    for (q_name in q_names) {
+        result <- .prepare_q_value_for_combining(
+            q_name, combined_assays_dict, target_genes,
+            target_n_cols, bootstrap_ci_available
+        )
+        
+        ncol_q <- result$ncol_val
+        if (col_idx + ncol_q - 1 > total_cols) {
+            stop("Dimension mismatch: ", col_idx, " to ", col_idx + ncol_q - 1,
+                " exceeds total_cols=", total_cols)
+        }
+        
+        # Fill main assay
+        combined_assay[, col_idx:(col_idx + ncol_q - 1)] <- result$matrix
+        unique_colnames_list[[q_name]] <- result$unique_colnames
+        
+        # Fill CI matrices if available
+        if (bootstrap_ci_available && !is.null(result$ci_lower)) {
+            combined_ci_lower[, col_idx:(col_idx + ncol_q - 1)] <- result$ci_lower
+            combined_ci_upper[, col_idx:(col_idx + ncol_q - 1)] <- result$ci_upper
+        }
+        
+        col_idx <- col_idx + ncol_q
+    }
+    
+    list(
+        combined_assay = combined_assay,
+        combined_ci_lower = combined_ci_lower,
+        combined_ci_upper = combined_ci_upper,
+        unique_colnames_list = unique_colnames_list
+    )
+}
+
 #' Convert TSENATAnalysis to combined SummarizedExperiment
 #'
 #' @param analysis TSENATAnalysis object with diversity_results
@@ -1146,197 +1491,38 @@ NULL
     require_pkgs(c("SummarizedExperiment", "S4Vectors"))
 
     div_list <- analysis@diversity_results
-
-    # Extract first SE to get dimensions
-    first_se <- NULL
-    combined_assays_dict <- list()
-    bootstrap_ci_available <- FALSE
-
-    for (q_name in names(div_list)) {
-        obj <- div_list[[q_name]]
-        if (methods::is(obj, "SummarizedExperiment")) {
-            mat <- SummarizedExperiment::assay(obj, 1)
-            if (is.null(first_se)) {
-                first_se <- obj
-            }
-            # Check if bootstrap CIs are available in this SE
-            if ("ci_lower" %in% SummarizedExperiment::assayNames(obj) && "ci_upper" %in%
-                SummarizedExperiment::assayNames(obj)) {
-                bootstrap_ci_available <- TRUE
-            }
-        } else {
-            mat <- as.matrix(obj)
-        }
-
-        q_val <- as.numeric(sub("^q_", "", q_name))
-        combined_assays_dict[[q_name]] <- list(matrix = mat, q_val = q_val, se_obj = obj)
-    }
-
-    if (is.null(first_se)) {
-        stop("No valid SummarizedExperiment found in analysis@diversity_results")
-    }
-
-    # Get dimensions
-    target_genes <- rownames(first_se)
-    target_n_cols <- ncol(first_se)
-    target_n_qs <- length(combined_assays_dict)
-    total_cols <- target_n_cols * target_n_qs
-
-    # Create combined assay matrix
-    combined_assay <- matrix(0, nrow = length(target_genes), ncol = total_cols)
-    rownames(combined_assay) <- target_genes
-
-    # Initialize CI assay matrices if available
-    combined_ci_lower <- if (bootstrap_ci_available) {
-        matrix(NA, nrow = length(target_genes), ncol = total_cols)
-    } else NULL
-    combined_ci_upper <- if (bootstrap_ci_available) {
-        matrix(NA, nrow = length(target_genes), ncol = total_cols)
-    } else NULL
-
-    combined_coldata_list <- list()
-    col_idx <- 1
-
-    for (q_name in names(combined_assays_dict)) {
-        mat <- combined_assays_dict[[q_name]]$matrix
-        q_val <- combined_assays_dict[[q_name]]$q_val
-        se_obj <- combined_assays_dict[[q_name]]$se_obj
-
-        # Handle dimension mismatches
-        if (ncol(mat) != target_n_cols) {
-            if (ncol(mat) > target_n_cols) {
-                mat <- mat[, seq_len(target_n_cols), drop = FALSE]
-            } else {
-                mat <- cbind(mat, matrix(0, nrow = nrow(mat), ncol = target_n_cols -
-                  ncol(mat)))
-            }
-        }
-
-        # Reorder rows to match first_se
-        mat <- mat[target_genes, , drop = FALSE]
-
-        # Extract CI matrices if available
-        if (bootstrap_ci_available && is(se_obj, "SummarizedExperiment")) {
-            if ("ci_lower" %in% SummarizedExperiment::assayNames(se_obj)) {
-                ci_lower_mat <- SummarizedExperiment::assay(se_obj, "ci_lower")
-                if (ncol(ci_lower_mat) != target_n_cols) {
-                  if (ncol(ci_lower_mat) > target_n_cols) {
-                    ci_lower_mat <- ci_lower_mat[, seq_len(target_n_cols), drop = FALSE]
-                  } else {
-                    ci_lower_mat <- cbind(ci_lower_mat, matrix(NA, nrow = nrow(ci_lower_mat),
-                      ncol = target_n_cols - ncol(ci_lower_mat)))
-                  }
-                }
-                ci_lower_mat <- ci_lower_mat[target_genes, , drop = FALSE]
-            } else {
-                ci_lower_mat <- matrix(NA, nrow = nrow(mat), ncol = ncol(mat))
-            }
-
-            if ("ci_upper" %in% SummarizedExperiment::assayNames(se_obj)) {
-                ci_upper_mat <- SummarizedExperiment::assay(se_obj, "ci_upper")
-                if (ncol(ci_upper_mat) != target_n_cols) {
-                  if (ncol(ci_upper_mat) > target_n_cols) {
-                    ci_upper_mat <- ci_upper_mat[, seq_len(target_n_cols), drop = FALSE]
-                  } else {
-                    ci_upper_mat <- cbind(ci_upper_mat, matrix(NA, nrow = nrow(ci_upper_mat),
-                      ncol = target_n_cols - ncol(ci_upper_mat)))
-                  }
-                }
-                ci_upper_mat <- ci_upper_mat[target_genes, , drop = FALSE]
-            } else {
-                ci_upper_mat <- matrix(NA, nrow = nrow(mat), ncol = ncol(mat))
-            }
-        }
-
-        # Add q-value suffix to column names
-        orig_colnames <- colnames(mat)
-        if (is.null(orig_colnames)) {
-            orig_colnames <- paste0("sample_", seq_len(ncol(mat)))
-        }
-
-        clean_colnames <- sub("_q=.*$", "", orig_colnames)
-        if (is.na(clean_colnames[1]) || identical(clean_colnames, orig_colnames)) {
-            clean_colnames <- orig_colnames
-        }
-
-        unique_colnames <- paste0(clean_colnames, "_q=", formatC(q_val, format = "f",
-            digits = 3))
-
-        # Fill in combined assay
-        if (col_idx + ncol(mat) - 1 > total_cols) {
-            stop("Dimension mismatch: ", col_idx, " to ", col_idx + ncol(mat) - 1,
-                " exceeds total_cols=", total_cols)
-        }
-
-        for (i in seq_len(ncol(mat))) {
-            combined_assay[, col_idx] <- mat[, i]
-            if (bootstrap_ci_available && !is.null(combined_ci_lower) && exists("ci_lower_mat")) {
-                combined_ci_lower[, col_idx] <- ci_lower_mat[, i]
-                combined_ci_upper[, col_idx] <- ci_upper_mat[, i]
-            }
-            col_idx <- col_idx + 1
-        }
-
-        # Build colData for this q-value
-        if (is(div_list[[q_name]], "SummarizedExperiment")) {
-            cd <- as.data.frame(SummarizedExperiment::colData(div_list[[q_name]]))
-        } else {
-            cd <- data.frame(row.names = unique_colnames)
-        }
-        cd$q <- q_val
-        rownames(cd) <- unique_colnames
-        combined_coldata_list[[q_name]] <- cd
-    }
-
-    # Combine colData
-    combined_coldata_df <- do.call(rbind, combined_coldata_list)
+    
+    # Step 1: Extract diversity objects and metadata
+    extracted <- .extract_diversity_objects(div_list)
+    
+    # Step 2: Get target dimensions
+    target_genes <- rownames(extracted$first_se)
+    target_n_cols <- ncol(extracted$first_se)
+    
+    # Step 3: Fill combined assays
+    filled <- .fill_combined_assays(
+        extracted$objects, extracted$q_names, target_genes,
+        target_n_cols, extracted$bootstrap_ci_available
+    )
+    
+    # Step 4: Build combined colData (which defines the sample names via rownames)
+    combined_coldata_df <- .build_combined_coldata(
+        div_list, extracted$q_names, filled$unique_colnames_list
+    )
+    
+    # Step 5: Set column names on all assays to match colData rownames
     combined_colnames <- rownames(combined_coldata_df)
-
-    # Set column names for all assays (including CI matrices if available)
-    colnames(combined_assay) <- combined_colnames
-    if (bootstrap_ci_available && !is.null(combined_ci_lower) && !is.null(combined_ci_upper)) {
-        colnames(combined_ci_lower) <- combined_colnames
-        colnames(combined_ci_upper) <- combined_colnames
+    colnames(filled$combined_assay) <- combined_colnames
+    if (!is.null(filled$combined_ci_lower) && !is.null(filled$combined_ci_upper)) {
+        colnames(filled$combined_ci_lower) <- combined_colnames
+        colnames(filled$combined_ci_upper) <- combined_colnames
     }
-
-    # Get/create rowData
-    rd_combined <- tryCatch({
-        rd_temp <- SummarizedExperiment::rowData(first_se)
-        if (!is.null(rd_temp) && nrow(rd_temp) > 0) {
-            rd_temp
-        } else {
-            NULL
-        }
-    }, error = function(e) NULL)
-
-    if (is.null(rd_combined) || nrow(rd_combined) == 0) {
-        rd_combined <- data.frame(gene_id = rownames(combined_assay), row.names = rownames(combined_assay),
-            stringsAsFactors = FALSE)
-    }
-    # Return combined SE
-    assays_list <- list(diversity = combined_assay)
-    if (bootstrap_ci_available && !is.null(combined_ci_lower) && !is.null(combined_ci_upper)) {
-        # Verify CI assays are fully populated (not all NAs)
-        ci_lower_valid <- sum(!is.na(combined_ci_lower)) > 0
-        ci_upper_valid <- sum(!is.na(combined_ci_upper)) > 0
-
-        if (ci_lower_valid && ci_upper_valid) {
-            assays_list$ci_lower <- combined_ci_lower
-            assays_list$ci_upper <- combined_ci_upper
-        }
-    }
-
-    combined_se <- SummarizedExperiment::SummarizedExperiment(assays = assays_list,
-        colData = combined_coldata_df, rowData = rd_combined)
-
-    # Store bootstrap metadata for debugging
-    if (bootstrap_ci_available && !is.null(combined_ci_lower)) {
-        S4Vectors::metadata(combined_se)$bootstrap_ci_count <- sum(!is.na(combined_ci_lower))
-        S4Vectors::metadata(combined_se)$has_bootstrap_ci <- (sum(!is.na(combined_ci_lower)) >
-            0)
-    }
-
-    combined_se
+    
+    # Step 6: Create and return combined SE
+    .create_combined_se_object(
+        filled$combined_assay, filled$combined_ci_lower, filled$combined_ci_upper,
+        combined_coldata_df, extracted$first_se
+    )
 }
 
 #' Compute gene-level statistics (median +/- SD) by group and q-value
