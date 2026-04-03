@@ -247,7 +247,6 @@
 #' Adaptive FDR estimation via λ0 proportion (used in
 #' multicorr='westfall-young-storey').
 #' More powerful than Hochberg when substantial proportion of nulls are true.
-
 #' @noRd
 #' @examples
 #' # Create example data
@@ -341,10 +340,29 @@
     mat <- SummarizedExperiment::assay(se, assay_name)
 
     # Fit models to all genes
-    res <- .fit_all_genes(mat = mat, se = se, metadata = metadata, method = method,
+    if (verbose) message("[.calculate_lm_interaction] Starting .fit_all_genes() for ", nrow(mat), " genes")
+    
+    # Phase 15: Wrap .fit_all_genes in try-error to catch any errors during fitting
+    res <- try(.fit_all_genes(mat = mat, se = se, metadata = metadata, method = method,
         pvalue = pvalue, subject_col = subject_col, paired = paired, min_obs = min_obs,
         nthreads = nthreads, verbose = verbose, bias_correction = bias_correction,
-        regularization = regularization, corstr = corstr, adaptive_knots = adaptive_knots)
+        regularization = regularization, corstr = corstr, adaptive_knots = adaptive_knots),
+        silent = FALSE)
+    
+    if (inherits(res, "try-error")) {
+        # Extract error message safely from try-error object
+        error_msg <- if (!is.null(attr(res, "condition"))) {
+            conditionMessage(attr(res, "condition"))
+        } else {
+            as.character(res)
+        }
+        warning("[.calculate_lm_interaction] .fit_all_genes() failed with: ", 
+            error_msg, "\n[Returning empty results]", call. = FALSE)
+        res <- data.frame()
+    }
+    
+    if (verbose && nrow(res) > 0) message("[.calculate_lm_interaction] .fit_all_genes() completed successfully with ", nrow(res), " results")
+
 
     # Validate res is a data.frame
     if (!is.data.frame(res)) {

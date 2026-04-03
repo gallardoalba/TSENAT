@@ -185,10 +185,14 @@ test_that(".fit_one_interaction LMM applies variance structure for heteroscedast
         q_vals = q_vals,
         sample_names = sample_names,
         group_vec = group_vec,
-        subject_col = "subject",
         method = "lmm",
+        pvalue = "lrt",
+        subject_col = "subject",
+        paired = FALSE,
         min_obs = 5,
-        verbose = FALSE
+        verbose = FALSE,
+        suppress_lme4_warnings = TRUE,
+        progress = FALSE
     )
     
     expect_true(is.data.frame(result) || is.null(result))

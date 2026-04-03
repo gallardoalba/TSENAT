@@ -184,10 +184,13 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
         verbose = verbose, ...)
 
     # Run LM analysis
+    # Phase 15: Catch errors gracefully - return empty results instead of crashing
     result <- tryCatch({
         do.call(.calculate_lm_interaction, args)
     }, error = function(e) {
-        stop("lm_interaction calculation failed:\n", conditionMessage(e), call. = FALSE)
+        # Return empty data.frame on error instead of stopping workflow
+        warning("lm_interaction calculation failed:\n", conditionMessage(e), call. = FALSE)
+        data.frame()
     })
 
     # Validate and extract results

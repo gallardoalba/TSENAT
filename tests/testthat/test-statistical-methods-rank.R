@@ -1952,3 +1952,187 @@ test_that(".detect_q_analyze_gene: handles condition column", {
   expect_true(is.numeric(result$f_stat))
   expect_true(!is.na(result$p_val))
 })
+
+context("High-Level Analysis Workflow: Method Concordance")
+
+# =============================================================================
+# TEST: compute_method_concordance - Basic functionality
+# =============================================================================
+
+test_that("compute_method_concordance computes correlation correctly", {
+  # Create sample data
+  gam_results <- data.frame(
+    gene = paste0("GENE_", 1:20),
+    p_interaction = runif(20),
+    adj_p_interaction = runif(20),
+    effect_size = rnorm(20)
+  )
+  
+  kw_results <- data.frame(
+    gene = paste0("GENE_", 1:20),
+    p_value = runif(20),
+    adj_p_value = runif(20),
+    effect_size_eta2 = runif(20)
+  )
+  
+  result <- .compute_method_concordance(gam_results, kw_results)
+  
+  expect_true(is.list(result))
+  expect_true("comparison_df" %in% names(result))
+  expect_true("spearman_rho" %in% names(result))
+  expect_true("high_conf" %in% names(result))
+  expect_true("agreement_table" %in% names(result))
+  
+  # Check correlation is valid
+  expect_true(is.numeric(result$spearman_rho))
+  expect_true(result$spearman_rho >= -1 && result$spearman_rho <= 1)
+})
+
+test_that("compute_method_concordance identifies agreement categories", {
+  gam_results <- data.frame(
+    gene = paste0("GENE_", 1:10),
+    p_interaction = c(0.001, 0.01, 0.5, 0.5, 0.001, 0.01, 0.5, 0.5, 0.001, 0.01),
+    adj_p_interaction = c(0.01, 0.05, 0.5, 0.5, 0.01, 0.05, 0.5, 0.5, 0.01, 0.05)
+  )
+  
+  kw_results <- data.frame(
+    gene = paste0("GENE_", 1:10),
+    p_value = c(0.001, 0.5, 0.01, 0.5, 0.5, 0.5, 0.001, 0.5, 0.5, 0.05),
+    adj_p_value = c(0.01, 0.5, 0.05, 0.5, 0.5, 0.5, 0.01, 0.5, 0.5, 0.05)
+  )
+  
+  result <- .compute_method_concordance(gam_results, kw_results)
+  
+  expect_true(nrow(result$comparison_df) > 0)
+  expect_true("agreement" %in% colnames(result$comparison_df))
+  
+  # Check agreement categories exist
+  categories <- unique(result$comparison_df$agreement)
+  expect_true(any(c("Both significant", "GAM only", "Friedman only", "Neither significant") %in% categories))
+})
+
+test_that("compute_method_concordance extracts high-confidence genes", {
+  gam_results <- data.frame(
+    gene = paste0("GENE_", 1:10),
+    p_interaction = c(0.001, 0.5, rep(0.5, 8)),
+    adj_p_interaction = c(0.01, 0.5, rep(0.5, 8))
+  )
+  
+  kw_results <- data.frame(
+    gene = paste0("GENE_", 1:10),
+    p_value = c(0.001, 0.5, rep(0.5, 8)),
+    adj_p_value = c(0.01, 0.5, rep(0.5, 8))
+  )
+  
+  result <- .compute_method_concordance(gam_results, kw_results)
+  
+  # First gene should be in high_conf
+  expect_true(nrow(result$high_conf) >= 1)
+  expect_true("GENE_1" %in% result$high_conf$gene)
+})
+
+test_that("compute_method_concordance handles missing p_interaction column", {
+  gam_results <- data.frame(
+    gene = paste0("GENE_", 1:10),
+    p_value = runif(10)
+  )
+  
+  kw_results <- data.frame(
+    gene = paste0("GENE_", 1:10),
+    p_value = runif(10)
+  )
+  
+  expect_error(
+    .compute_method_concordance(gam_results, kw_results),
+    "p_interaction"
+  )
+})
+
+test_that("compute_method_concordance handles non-data.frame input", {
+  gam_results <- list(a = 1, b = 2)
+  kw_results <- data.frame(gene = 1:10, p_value = runif(10))
+  
+  expect_error(
+    .compute_method_concordance(gam_results, kw_results),
+    "data.frame"
+  )
+})
+
+test_that("compute_method_concordance handles mismatched genes", {
+  gam_results <- data.frame(
+    gene = paste0("GENE_A_", 1:10),
+    p_interaction = runif(10),
+    adj_p_interaction = runif(10)
+  )
+  
+  kw_results <- data.frame(
+    gene = paste0("GENE_B_", 1:10),
+    p_value = runif(10),
+    adj_p_value = runif(10)
+  )
+  
+  result <- .compute_method_concordance(gam_results, kw_results)
+  
+  # No common genes - expect NULL or empty results
+  expect_true(is.null(result$comparison_df) || nrow(result$comparison_df) == 0)
+})
+
+# =============================================================================
+# TEST: plot_method_concordance - Visualization
+# =============================================================================
+
+context("High-Level Analysis Workflow: Concordance Plotting")
+
+test_that("plot_method_concordance creates valid plot", {
+  skip_if_not_installed("ggplot2")
+  skip_if_not_installed("gridExtra")
+  skip_if_not_installed("cowplot")
+  
+  comparison_df <- data.frame(
+    gene = paste0("GENE_", 1:20),
+    p_gam = runif(20),
+    p_friedman = runif(20),
+    agreement = sample(c("Both significant", "GAM only", "Friedman only", "Neither significant"),
+                      size = 20, replace = TRUE)
+  )
+  
+  plot <- .plot_method_concordance(comparison_df)
+  
+  # Check that result is a grob object
+  expect_true(methods::is(plot, "grob") || methods::is(plot, "gtable"))
+})
+
+test_that("plot_method_concordance rejects empty data.frame", {
+  skip_if_not_installed("ggplot2")
+  
+  comparison_df <- data.frame()
+  
+  expect_error(
+    .plot_method_concordance(comparison_df),
+    "non-empty"
+  )
+})
+
+test_that("plot_method_concordance rejects NULL input", {
+  skip_if_not_installed("ggplot2")
+  
+  expect_error(
+    .plot_method_concordance(NULL),
+    "non-empty"
+  )
+})
+
+test_that("plot_method_concordance requires required columns", {
+  skip_if_not_installed("ggplot2")
+  
+  comparison_df <- data.frame(
+    gene = paste0("GENE_", 1:10),
+    p_gam = runif(10)
+    # Missing p_friedman and agreement columns
+  )
+  
+  expect_error(
+    .plot_method_concordance(comparison_df),
+    "required columns"
+  )
+})

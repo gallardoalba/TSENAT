@@ -677,11 +677,18 @@
         subj_data <- df_full[subj_idx, ]
 
         # Compute differences: DeltaH_q = H_q - H_{q-1}
+        # CRITICAL: Convert group to character BEFORE subsetting to avoid factor level issues
+        # When you subset a factor, R keeps ALL original levels, which causes rbind() problems later
         n_diff <- nrow(subj_data) - 1
 
-        df_diff_list[[subj]] <- data.frame(entropy_diff = diff(subj_data$entropy),
-            q = subj_data$q[-1], q_prev = subj_data$q[-nrow(subj_data)], group = subj_data$group[-nrow(subj_data)],
-            subject = rep(subj, n_diff), stringsAsFactors = FALSE)
+        df_diff_list[[subj]] <- data.frame(
+            entropy_diff = diff(subj_data$entropy),
+            q = subj_data$q[-1],
+            q_prev = subj_data$q[-nrow(subj_data)],
+            group = as.character(subj_data$group[-nrow(subj_data)]),  # Convert to character first!
+            subject = rep(subj, n_diff),
+            stringsAsFactors = FALSE
+        )
     }
 
     if (length(df_diff_list) == 0) {
@@ -698,6 +705,14 @@
 
     # Rename entropy_diff to entropy for compatibility with model fitting
     names(df_diff)[names(df_diff) == "entropy_diff"] <- "entropy"
+
+    # CRITICAL FIX (Phase 15): Ensure factor consistency after ARIMA differencing
+    # Problem: Some subjects/groups may be completely dropped by differencing,
+    # leaving factor levels that don't exist in the data. nlme can't handle this.
+    # Solution: Convert to factor WITHOUT forcing unused original levels.
+    # Just let R infer the levels from the actual data present.
+    df_diff$subject <- factor(as.character(df_diff$subject))
+    df_diff$group <- factor(as.character(df_diff$group))
 
     return(list(df = df_diff, n_observations_original = nrow(df_full) + n_lost, n_observations_differenced = nrow(df_diff),
         n_observations_lost = n_lost, transformation = "ARIMA(1,1,0): First differences"))
@@ -1138,7 +1153,81 @@ if (getOption("TSENAT.memoization", TRUE)) {
     if (length(all_results) == 0) {
         return(data.frame())
     }
-    res <- do.call(rbind, all_results)
+    
+    # Ensure all results are data frames
+    all_results <- Filter(function(x) is.data.frame(x), all_results)
+    if (length(all_results) == 0) {
+        return(data.frame())
+    }
+    
+    # Normalize columns: collect all unique column names and ensure every result has them
+    # Use first result's column order as reference
+    first_cols <- colnames(all_results[[1]])
+    all_col_names <- unique(c(first_cols, unlist(lapply(all_results, colnames))))
+    
+    all_results <- lapply(all_results, function(df) {
+        # Add missing columns as NA
+        missing_cols <- setdiff(all_col_names, colnames(df))
+        for (col in missing_cols) {
+            df[[col]] <- NA
+        }
+        # Keep columns in consistent order
+        df[, all_col_names, drop = FALSE]
+    })
+    
+    # Phase 15: Wrap rbind in try-error to catch "los nombres no coinciden" errors
+    # from factor level mismatches during result combination
+    res <- try(do.call(rbind, all_results), silent = FALSE)
+    if (inherits(res, "try-error")) {
+        # Debug: Check column mismatch details
+        col_counts <- sapply(all_results, ncol)
+        col_names_list <- lapply(all_results, colnames)
+        unique_col_counts <- unique(col_counts)
+        
+        if (length(unique_col_counts) > 1) {
+            # Column count mismatch
+            msg <- sprintf("Column mismatch detected: %d results with varying columns [%s]",
+                length(all_results), paste(unique_col_counts, collapse=", "))
+            warning("[calculate_lm_interaction] rbind failed with: ", conditionMessage(res),
+                "\n[", msg, "]\n[Attempting recovery: ensuring all results have same columns]",
+                call. = FALSE)
+            
+            # Add/remove columns to match first result's structure
+            first_cols <- col_names_list[[1]]
+            all_results_aligned <- lapply(all_results, function(df) {
+                # Add missing columns as NA
+                missing_cols <- setdiff(first_cols, colnames(df))
+                for (col in missing_cols) {
+                    df[[col]] <- NA
+                }
+                # Keep only matching columns
+                df[, first_cols, drop = FALSE]
+            })
+            
+            res <- try(do.call(rbind, all_results_aligned), silent = FALSE)
+            if (!inherits(res, "try-error")) {
+                # Successfully aligned, continue
+                return(res)
+            }
+        }
+        
+        # If rbind fails due to factor level issues, try converting factor columns to character
+        warning("[calculate_lm_interaction] rbind failed with: ", conditionMessage(res),
+            "\n[Attempting recovery: converting factors to character]", call. = FALSE)
+        
+        # Convert all factor columns to character to allow rbind
+        all_results_char <- lapply(all_results, function(df) {
+            factor_cols <- sapply(df, is.factor)
+            df[factor_cols] <- lapply(df[factor_cols], as.character)
+            df
+        })
+        
+        res <- try(do.call(rbind, all_results_char), silent = FALSE)
+        if (inherits(res, "try-error")) {
+            stop("[calculate_lm_interaction] Could not combine results even after ", 
+                "factor conversion. Error: ", conditionMessage(res), call. = FALSE)
+        }
+    }
 
     # VALIDATION: Ensure critical columns exist after rbind
     if (nrow(res) == 0) {

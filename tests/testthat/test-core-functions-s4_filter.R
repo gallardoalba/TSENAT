@@ -1143,3 +1143,90 @@ test_that("filter_analysis_s4 chained subsetting operations is reproducible", {
   expect_equal(rownames(filtered1@se), rownames(filtered2@se))
   expect_equal(colnames(filtered1@se), colnames(filtered2@se))
 })
+
+
+# =============================================================================
+# CONTEXT: Filter Analysis Workflow
+# =============================================================================
+
+context("Analysis Workflow: Filter Analysis")
+
+# Helper functions
+make_test_se <- function(n_genes = 100, n_samples = 20) {
+  counts <- matrix(rpois(n_genes * n_samples, lambda = 50), nrow = n_genes)
+  rownames(counts) <- paste0("TX_", 1:n_genes)
+  colnames(counts) <- paste0("Sample_", 1:n_samples)
+  
+  # Add TPM data to avoid warnings during filtering
+  # Simple TPM calculation: scale counts to sum to 1 million per sample
+  tpm <- t(t(counts) / colSums(counts) * 1e6)
+  
+  SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = counts, tpm = tpm)
+  )
+}
+
+test_that("filter_analysis modifies SE in analysis object", {
+  se <- make_test_se(n_genes = 100, n_samples = 20)
+  coldata <- S4Vectors::DataFrame(
+    pair_id = rep(1:10, each = 2),
+    row.names = colnames(se)
+  )
+  SummarizedExperiment::colData(se) <- coldata
+  analysis <- TSENATAnalysis(se)
+  
+  # Apply filtering
+  filtered_analysis <- filter_analysis_s4(analysis, stringency = "severe", verbose = FALSE)
+  
+  # Check that analysis is returned
+  expect_true(inherits(filtered_analysis, "TSENATAnalysis"))
+  
+  # Check that SE was modified
+  expect_true(nrow(filtered_analysis@se) <= nrow(analysis@se))
+})
+
+test_that("filter_analysis preserves colData", {
+  se <- make_test_se(n_genes = 100, n_samples = 20)
+  coldata <- S4Vectors::DataFrame(
+    pair_id = rep(1:10, each = 2),
+    condition = rep(c("control", "treatment"), 10),
+    row.names = colnames(se)
+  )
+  SummarizedExperiment::colData(se) <- coldata
+  
+  analysis <- TSENATAnalysis(se)
+  filtered_analysis <- filter_analysis_s4(analysis, stringency = "soft", verbose = FALSE)
+  
+  # colData should preserve original columns (sample_id is added by constructor)
+  filtered_coldata <- SummarizedExperiment::colData(filtered_analysis@se)
+  expect_true("pair_id" %in% colnames(filtered_coldata))
+  expect_true("condition" %in% colnames(filtered_coldata))
+  expect_true("sample_id" %in% colnames(filtered_coldata))
+  # Check expected column count: pair_id + condition + sample_id (added by constructor)
+  expect_equal(ncol(filtered_coldata), 3)
+})
+
+test_that("filter_analysis validates input type", {
+  bad_input <- "not_an_analysis"
+  
+  expect_error(
+    filter_analysis_s4(bad_input),
+    "TSENATAnalysis"
+  )
+})
+
+test_that("filter_analysis accepts stringency parameter", {
+  se <- make_test_se(n_genes = 200, n_samples = 30)
+  coldata <- S4Vectors::DataFrame(
+    pair_id = rep(1:15, each = 2),
+    row.names = colnames(se)
+  )
+  SummarizedExperiment::colData(se) <- coldata
+  analysis <- TSENATAnalysis(se)
+  
+  # Test different stringency levels
+  for (stringency in c("soft", "medium", "severe")) {
+    result <- filter_analysis_s4(analysis, stringency = stringency, verbose = FALSE)
+    expect_true(inherits(result, "TSENATAnalysis"))
+  }
+})
