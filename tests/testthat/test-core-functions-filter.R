@@ -2533,3 +2533,384 @@ test_that("Refactored code handles empty results gracefully", {
     )
   })
 })
+
+# ============================================================================
+# Tests for .resolve_filter_parameters() helper function
+# ============================================================================
+
+test_that(".resolve_filter_parameters returns correct structure with manual params", {
+  # Create simple SE
+  tpm <- matrix(c(10, 20, 30, 5, 15, 25, 2, 8, 12), nrow = 3, ncol = 3)
+  rownames(tpm) <- c("TX1", "TX2", "TX3")
+  colnames(tpm) <- c("S1", "S2", "S3")
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(tpm = tpm)
+  )
+  
+  # Call helper with manual parameters
+  result <- TSENAT:::.resolve_filter_parameters(
+    se, min_samples = 2, min_tpm = 5, stringency = NULL,
+    pair_col = NULL, tpm_assay_name = "tpm", assay_name = "tpm",
+    min_tx_per_gene = 2, min_isoform_abundance = 0.05, verbose = FALSE
+  )
+  
+  # Check structure and values
+  expect_true(is.list(result))
+  expect_true(all(c("min_samples", "min_tpm", "assay_mat", "assay_source", "genes_vec") %in% names(result)))
+  expect_equal(result$min_samples, 2)
+  expect_equal(result$min_tpm, 5)
+  expect_equal(result$assay_source, "assay 'tpm' (user-specified)")
+  expect_equal(nrow(result$assay_mat), 3)
+  expect_equal(ncol(result$assay_mat), 3)
+})
+
+test_that(".resolve_filter_parameters fills missing isoform_abundance with default", {
+  tpm <- matrix(1:9, nrow = 3, ncol = 3)
+  rownames(tpm) <- c("TX1", "TX2", "TX3")
+  colnames(tpm) <- c("S1", "S2", "S3")
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(tpm = tpm)
+  )
+  
+  # Call with NULL min_isoform_abundance
+  result <- TSENAT:::.resolve_filter_parameters(
+    se, min_samples = 2, min_tpm = 1, stringency = NULL,
+    pair_col = NULL, tpm_assay_name = "tpm", assay_name = "tpm",
+    min_tx_per_gene = 2, min_isoform_abundance = NULL, verbose = FALSE
+  )
+  
+  # Should be NULL (not set by helper for manual params)
+  expect_null(result$min_isoform_abundance)
+})
+
+test_that(".resolve_filter_parameters detects gene IDs from rowData", {
+  tpm <- matrix(1:9, nrow = 3, ncol = 3)
+  rownames(tpm) <- c("TX1", "TX2", "TX3")
+  colnames(tpm) <- c("S1", "S2", "S3")
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(tpm = tpm),
+    rowData = data.frame(
+      gene_id = c("G1", "G1", "G2"),
+      row.names = rownames(tpm)
+    )
+  )
+  
+  result <- TSENAT:::.resolve_filter_parameters(
+    se, min_samples = 1, min_tpm = 1, stringency = NULL,
+    pair_col = NULL, tpm_assay_name = "tpm", assay_name = "tpm",
+    min_tx_per_gene = 1, min_isoform_abundance = NULL, verbose = FALSE
+  )
+  
+  # Should find genes from rowData
+  expect_equal(result$genes_vec, c("G1", "G1", "G2"))
+})
+
+test_that(".resolve_filter_parameters validates isoform_abundance range", {
+  tpm <- matrix(1:9, nrow = 3, ncol = 3)
+  se <- SummarizedExperiment::SummarizedExperiment(assays = list(tpm = tpm))
+  
+  # Test invalid value > 1
+  expect_error(
+    TSENAT:::.resolve_filter_parameters(
+      se, min_samples = 1, min_tpm = 1, stringency = NULL,
+      pair_col = NULL, tpm_assay_name = "tpm", assay_name = "tpm",
+      min_tx_per_gene = 1, min_isoform_abundance = 1.5, verbose = FALSE
+    ),
+    "must be numeric in"
+  )
+  
+  # Test invalid value < 0
+  expect_error(
+    TSENAT:::.resolve_filter_parameters(
+      se, min_samples = 1, min_tpm = 1, stringency = NULL,
+      pair_col = NULL, tpm_assay_name = "tpm", assay_name = "tpm",
+      min_tx_per_gene = 1, min_isoform_abundance = -0.1, verbose = FALSE
+    ),
+    "must be numeric in"
+  )
+})
+
+test_that(".resolve_filter_parameters auto-detects pair_col for stringency", {
+  tpm <- matrix(1:12, nrow = 3, ncol = 4)
+  rownames(tpm) <- c("TX1", "TX2", "TX3")
+  colnames(tpm) <- c("S1", "S2", "S3", "S4")
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(tpm = tpm),
+    colData = data.frame(
+      pair_id = c(1, 1, 2, 2),
+      condition = c("A", "B", "A", "B"),
+      row.names = colnames(tpm)
+    )
+  )
+  
+  # Call with stringency but no pair_col
+  result <- TSENAT:::.resolve_filter_parameters(
+    se, min_samples = 2, min_tpm = 1, stringency = "medium",
+    pair_col = NULL, tpm_assay_name = "tpm", assay_name = "tpm",
+    min_tx_per_gene = 2, min_isoform_abundance = NULL, verbose = FALSE
+  )
+  
+  # Should auto-detect pair_col and calculate thresholds
+  expect_equal(result$pair_col_used, "pair_id")
+  expect_true(result$min_samples > 0)
+  expect_equal(result$min_tx_per_gene, 2)
+})
+
+test_that(".resolve_filter_parameters stringency='soft' sets correct thresholds", {
+  tpm <- matrix(1:20, nrow = 5, ncol = 4)
+  rownames(tpm) <- c("TX1", "TX2", "TX3", "TX4", "TX5")
+  colnames(tpm) <- c("S1", "S2", "S3", "S4")
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(tpm = tpm),
+    colData = data.frame(
+      pair_id = c(1, 1, 2, 2),
+      row.names = colnames(tpm)
+    )
+  )
+  
+  result <- TSENAT:::.resolve_filter_parameters(
+    se, min_samples = 999, min_tpm = 999, stringency = "soft",
+    pair_col = "pair_id", tpm_assay_name = "tpm", assay_name = "tpm",
+    min_tx_per_gene = 999, min_isoform_abundance = NULL, verbose = FALSE
+  )
+  
+  # Soft should use low thresholds
+  expect_true(result$min_samples < 4)  # 25% of 4 samples
+  expect_true(result$min_tpm < 999)  # Auto-estimated
+  expect_equal(result$min_tx_per_gene, 2)
+  expect_equal(result$min_isoform_abundance, 0.01)  # 1% - permissive
+})
+
+test_that(".resolve_filter_parameters stringency='severe' sets correct thresholds", {
+  tpm <- matrix(1:20, nrow = 5, ncol = 4)
+  rownames(tpm) <- c("TX1", "TX2", "TX3", "TX4", "TX5")
+  colnames(tpm) <- c("S1", "S2", "S3", "S4")
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(tpm = tpm),
+    colData = data.frame(
+      pair_id = c(1, 1, 2, 2),
+      row.names = colnames(tpm)
+    )
+  )
+  
+  result <- TSENAT:::.resolve_filter_parameters(
+    se, min_samples = 1, min_tpm = 1, stringency = "severe",
+    pair_col = "pair_id", tpm_assay_name = "tpm", assay_name = "tpm",
+    min_tx_per_gene = 1, min_isoform_abundance = NULL, verbose = FALSE
+  )
+  
+  # Severe should use high thresholds
+  expect_equal(result$min_samples, 3)  # 75% of 4 samples = ceiling(0.75 * 4) = 3
+  expect_true(result$min_tpm > 0)
+  expect_equal(result$min_tx_per_gene, 3)
+  expect_equal(result$min_isoform_abundance, 0.15)  # 15% - stringent
+})
+
+# ============================================================================
+# Tests for .apply_combined_filters() helper function
+# ============================================================================
+
+test_that(".apply_combined_filters applies all three filters in order", {
+  # Create data with known filter outcomes
+  assay_mat <- matrix(c(
+    100, 50, 30,  # TX1: passes TPM
+    5, 2, 1,      # TX2: fails TPM
+    80, 60, 40,   # TX3: passes TPM
+    3, 1, 0       # TX4: fails TPM
+  ), nrow = 4, byrow = TRUE, dimnames = list(
+    c("TX1", "TX2", "TX3", "TX4"),
+    c("S1", "S2", "S3")
+  ))
+  
+  genes_vec <- c("G1", "G1", "G2", "G2")
+  
+  params <- list(
+    min_tpm = 4,
+    min_samples = 2,
+    min_tx_per_gene = 2,
+    min_isoform_abundance = 0.05
+  )
+  
+  result <- TSENAT:::.apply_combined_filters(assay_mat, genes_vec, params, verbose = FALSE)
+  
+  # Check structure
+  expect_true(is.list(result))
+  expect_true(all(c("tokeep", "before", "after") %in% names(result)))
+  expect_true(is.logical(result$tokeep))
+  expect_equal(length(result$tokeep), 4)
+  expect_equal(result$before, 4)
+  expect_true(result$after <= 4)
+})
+
+test_that(".apply_combined_filters returns logical vector of correct length", {
+  assay_mat <- matrix(1:15, nrow = 5, ncol = 3)
+  genes_vec <- c("G1", "G1", "G2", "G2", "G3")
+  
+  params <- list(
+    min_tpm = 1, min_samples = 1, min_tx_per_gene = 1, min_isoform_abundance = NULL
+  )
+  
+  result <- TSENAT:::.apply_combined_filters(assay_mat, genes_vec, params, verbose = FALSE)
+  
+  expect_equal(length(result$tokeep), nrow(assay_mat))
+  expect_equal(result$before, nrow(assay_mat))
+  expect_true(result$after >= 0)
+})
+
+test_that(".apply_combined_filters skips gene filters when genes_vec is NULL", {
+  assay_mat <- matrix(c(1, 2, 3, 4, 5, 6, 0, 0, 0, 1, 2, 3), nrow = 4, ncol = 3)
+  genes_vec <- NULL  # No gene mapping
+  
+  params <- list(
+    min_tpm = 1, min_samples = 2, min_tx_per_gene = 2, min_isoform_abundance = 0.05
+  )
+  
+  # Should not error even with NULL genes_vec
+  result <- TSENAT:::.apply_combined_filters(assay_mat, genes_vec, params, verbose = FALSE)
+  
+  expect_true(is.logical(result$tokeep))
+  expect_equal(length(result$tokeep), 4)
+})
+
+test_that(".apply_combined_filters before count equals nrow", {
+  assay_mat <- matrix(1:20, nrow = 5, ncol = 4)
+  genes_vec <- c("G1", "G1", "G2", "G2", "G3")
+  
+  params <- list(
+    min_tpm = 0, min_samples = 1, min_tx_per_gene = 1, min_isoform_abundance = NULL
+  )
+  
+  result <- TSENAT:::.apply_combined_filters(assay_mat, genes_vec, params, verbose = FALSE)
+  
+  expect_equal(result$before, 5)
+})
+
+test_that(".apply_combined_filters after count is sum of logical vector", {
+  assay_mat <- matrix(1:12, nrow = 4, ncol = 3)
+  genes_vec <- c("G1", "G1", "G2", "G2")
+  
+  params <- list(
+    min_tpm = 5, min_samples = 1, min_tx_per_gene = 1, min_isoform_abundance = NULL
+  )
+  
+  result <- TSENAT:::.apply_combined_filters(assay_mat, genes_vec, params, verbose = FALSE)
+  
+  expect_equal(result$after, sum(result$tokeep))
+})
+
+# ============================================================================
+# Tests for .finalize_filtered_se() helper function
+# ============================================================================
+
+test_that(".finalize_filtered_se returns SummarizedExperiment", {
+  # Create test SE
+  tpm <- matrix(1:9, nrow = 3, ncol = 3)
+  rownames(tpm) <- c("TX1", "TX2", "TX3")
+  colnames(tpm) <- c("S1", "S2", "S3")
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(tpm = tpm)
+  )
+  
+  tokeep <- c(TRUE, TRUE, FALSE)
+  assays_list <- SummarizedExperiment::assays(se)
+  
+  result <- TSENAT:::.finalize_filtered_se(
+    se, tokeep, assays_list, genes_vec = NULL,
+    min_samples = 2, min_tpm = 1, min_tx_per_gene = 1,
+    min_isoform_abundance = 0.05, stringency = NULL
+  )
+  
+  expect_s4_class(result, "SummarizedExperiment")
+  expect_equal(nrow(result), 2)
+  expect_equal(ncol(result), 3)
+})
+
+test_that(".finalize_filtered_se subsets all assays correctly", {
+  counts <- matrix(1:12, nrow = 4, ncol = 3)
+  tpm <- matrix(10:21, nrow = 4, ncol = 3)
+  rownames(counts) <- rownames(tpm) <- c("TX1", "TX2", "TX3", "TX4")
+  colnames(counts) <- colnames(tpm) <- c("S1", "S2", "S3")
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = counts, tpm = tpm)
+  )
+  
+  tokeep <- c(TRUE, FALSE, TRUE, FALSE)
+  assays_list <- SummarizedExperiment::assays(se)
+  
+  result <- TSENAT:::.finalize_filtered_se(
+    se, tokeep, assays_list, genes_vec = NULL,
+    min_samples = 1, min_tpm = 1, min_tx_per_gene = 1,
+    min_isoform_abundance = 0.05, stringency = NULL
+  )
+  
+  # Check both assays subsetted
+  expect_equal(nrow(SummarizedExperiment::assays(result)$counts), 2)
+  expect_equal(nrow(SummarizedExperiment::assays(result)$tpm), 2)
+  expect_equal(rownames(SummarizedExperiment::assays(result)$counts), c("TX1", "TX3"))
+})
+
+test_that(".finalize_filtered_se adds filtering record to metadata", {
+  tpm <- matrix(1:9, nrow = 3, ncol = 3)
+  rownames(tpm) <- c("TX1", "TX2", "TX3")
+  colnames(tpm) <- c("S1", "S2", "S3")
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(tpm = tpm)
+  )
+  
+  tokeep <- c(TRUE, TRUE, FALSE)
+  assays_list <- SummarizedExperiment::assays(se)
+  
+  result <- TSENAT:::.finalize_filtered_se(
+    se, tokeep, assays_list, genes_vec = NULL,
+    min_samples = 2, min_tpm = 1.5, min_tx_per_gene = 2,
+    min_isoform_abundance = 0.1, stringency = "medium"
+  )
+  
+  md <- S4Vectors::metadata(result)
+  
+  # Check filtering record
+  expect_true("filtered" %in% names(md))
+  expect_equal(md$filtered$min_samples, 2)
+  expect_equal(md$filtered$min_tpm, 1.5)
+  expect_equal(md$filtered$min_tx_per_gene, 2)
+  expect_equal(md$filtered$min_isoform_abundance, 0.1)
+  expect_equal(md$filtered$stringency, "medium")
+})
+
+test_that(".finalize_filtered_se preserves colData", {
+  tpm <- matrix(1:9, nrow = 3, ncol = 3)
+  rownames(tpm) <- c("TX1", "TX2", "TX3")
+  colnames(tpm) <- c("S1", "S2", "S3")
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(tpm = tpm),
+    colData = data.frame(
+      sample_id = c("S1", "S2", "S3"),
+      condition = c("A", "B", "A"),
+      row.names = c("S1", "S2", "S3")
+    )
+  )
+  
+  tokeep <- c(TRUE, FALSE, TRUE)
+  assays_list <- SummarizedExperiment::assays(se)
+  
+  result <- TSENAT:::.finalize_filtered_se(
+    se, tokeep, assays_list, genes_vec = NULL,
+    min_samples = 1, min_tpm = 1, min_tx_per_gene = 1,
+    min_isoform_abundance = 0.05, stringency = NULL
+  )
+  
+  # colData should be unchanged (not subsetted)
+  result_coldata <- SummarizedExperiment::colData(result)
+  expect_equal(nrow(result_coldata), 3)
+  expect_equal(result_coldata$condition, c("A", "B", "A"))
+})

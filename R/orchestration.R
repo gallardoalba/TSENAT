@@ -130,11 +130,28 @@ tsenat <- function(se, config = NULL, methods = NULL, q_values = NULL, generate_
 #' from the TSENATAnalysis object, abstracting away internal storage details.
 #'
 #' @examples
-#' \dontrun{
-#' # After running tsenat() analysis:
+#' # Load example data
+#' data(readcounts, package = "TSENAT")
+#'
+#' # Create minimal TSENATAnalysis object with mock results
+#' se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = readcounts))
+#' analysis <- TSENAT(se, min_samples = 2, verbose = FALSE)
+#'
+#' # Run analysis to generate results
+#' analysis <- calculate_diversity_s4(analysis, q_vals = c(0.5, 1.0, 2.0), 
+#'                                    verbose = FALSE)
+#'
+#' # Extract diversity results
 #' div_results <- getResults(analysis, type = "diversity")
+#' head(div_results[1:3, 1:2])
+#'
+#' # Extract results for specific q-value
 #' div_q1.0 <- getResults(analysis, type = "diversity", q = 1.0)
-#' lm_results <- getResults(analysis, type = "lm")
+#' head(div_q1.0[1:5])
+#'
+#' # Check what result types are available
+#' if (!is.null(getResults(analysis, type = "diversity"))) {
+#'   cat("Diversity results available\n")
 #' }
 #'
 #' @export

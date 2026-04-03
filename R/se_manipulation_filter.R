@@ -80,14 +80,61 @@
 #' @param verbose Logical; print before/after counts and filtering
 #' parameters when TRUE.
 #' @return A filtered `SummarizedExperiment`.
-
-#' @noRd
 #' @examples
 #' mat <- matrix(c(0, 6, 7, 2, 8, 9), nrow = 3, dimnames = list(paste0('tx',
 #' 1:3), paste0('S', 1:2)))
 #' se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = mat))
 #' filt <- .filter_se(se, min_samples = 1)
 #' class(filt)
+#' @noRd
+.filter_se <- function(se, min_samples = 5L, stringency = NULL, pair_col = NULL,
+    min_tpm = 1, tpm_assay_name = NULL, min_tx_per_gene = 2L, min_isoform_abundance = NULL,
+    assay_name = "counts", verbose = TRUE) {
+    if (!is(se, "SummarizedExperiment")) {
+        stop("'se' must be a SummarizedExperiment", call. = FALSE)
+    }
+
+    # Phase 1: Consolidate parameter resolution (manual vs stringency-based)
+    params <- .resolve_filter_parameters(se, min_samples, min_tpm, stringency,
+        pair_col, tpm_assay_name, assay_name, min_tx_per_gene, min_isoform_abundance,
+        verbose = verbose)
+
+    # Set default min_isoform_abundance if still NULL
+    if (is.null(params$min_isoform_abundance)) {
+        params$min_isoform_abundance <- 0.05
+    }
+
+    # Validate assay is numeric
+    if (!is.numeric(params$assay_mat)) {
+        stop("Assay data must be numeric.", call. = FALSE)
+    }
+
+    # Phase 2: Apply combined filtering pipeline
+    filter_result <- .apply_combined_filters(params$assay_mat, params$genes_vec,
+        list(min_tpm = params$min_tpm, min_samples = params$min_samples, min_tx_per_gene = params$min_tx_per_gene,
+            min_isoform_abundance = params$min_isoform_abundance), verbose = verbose)
+
+    tokeep <- filter_result$tokeep
+
+    # Verbose reporting
+    if (verbose) {
+        message(sprintf("Transcripts: before = %d, after = %d", filter_result$before,
+            filter_result$after))
+        message(sprintf("Filtering data source: %s", params$assay_source))
+    }
+
+    if (filter_result$after == 0L) {
+        warning("Filtering removed all transcripts; returning empty SummarizedExperiment.",
+            call. = FALSE)
+    }
+
+    # Phase 3: Finalize filtered SE with synchronized metadata
+    new_se <- .finalize_filtered_se(se, tokeep, SummarizedExperiment::assays(se),
+        params$genes_vec, params$min_samples, params$min_tpm, params$min_tx_per_gene,
+        params$min_isoform_abundance, stringency)
+
+    return(new_se)
+}
 
 # ============================================================================
 # HELPER: Resolve assay by name/index with fallback logic OPTIMIZATION:
@@ -479,36 +526,30 @@
     new_se
 }
 
-
-.filter_se <- function(se, min_samples = 5L, stringency = NULL, pair_col = NULL,
-    min_tpm = 1, tpm_assay_name = NULL, min_tx_per_gene = 2L, min_isoform_abundance = NULL,
-    assay_name = "counts", verbose = TRUE) {
-    if (!is(se, "SummarizedExperiment")) {
-        stop("'se' must be a SummarizedExperiment", call. = FALSE)
-    }
-
-    # Validate parameters
+# ============================================================================
+# HELPER: Consolidate parameter resolution (manual vs stringency-based)
+# Returns: list(min_samples, min_tpm, min_tx_per_gene, min_isoform_abundance,
+#              assay_mat, assay_source, genes_vec, pair_col_used)
+# OPTIMIZATION: Eliminates 100+ lines of redundant parameter discovery @noRd
+.resolve_filter_parameters <- function(se, min_samples, min_tpm, stringency,
+    pair_col, tpm_assay_name, assay_name, min_tx_per_gene, min_isoform_abundance,
+    verbose = FALSE) {
+    # Validate isoform_abundance parameter
     if (!is.null(min_isoform_abundance)) {
         if (!is.numeric(min_isoform_abundance) || length(min_isoform_abundance) !=
-            1) {
-            stop(".filter_se: 'min_isoform_abundance' must be numeric in [0, 1], or NULL to use defaults",
-                call. = FALSE)
-        }
-        if (min_isoform_abundance < 0 || min_isoform_abundance > 1) {
+            1 || min_isoform_abundance < 0 || min_isoform_abundance > 1) {
             stop(".filter_se: 'min_isoform_abundance' must be numeric in [0, 1], or NULL to use defaults",
                 call. = FALSE)
         }
     }
 
-    # OPTIMIZATION: Single assays retrieval (moved out of duplicate locations)
+    # Get assays and discover TPM source
     assays_list <- SummarizedExperiment::assays(se)
-
-    # ========================================================================
-    # LOCATE TPM DATA FOR FILTERING (OPTIMIZATION: consolidated helper)
     tpm_result <- .get_assay_filtering(se, assays_list, tpm_assay_name, assay_name)
-    tpm_assay_mat <- tpm_result$mat
-    tpm_source <- tpm_result$source
+    assay_mat <- tpm_result$mat
+    assay_source <- tpm_result$source
 
+    # Warn if fallback (not TPM)
     if (!is.null(tpm_result$is_fallback) && tpm_result$is_fallback) {
         warning("No TPM data found in assays or metadata. Falling back to assay '",
             assay_name, "'.", "\nThis may produce INCORRECT results if '", assay_name,
@@ -516,31 +557,30 @@
             call. = FALSE)
     }
 
-    # Handle stringency-based filtering for paired designs Automatically
-    # estimates BOTH min_samples AND min_tpm from data
+    # Get gene IDs for downstream filtering
+    genes_vec <- .get_gene_ids(se)
+
+    # Handle stringency-based auto-calculation
+    pair_col_used <- NULL
     if (!is.null(stringency)) {
         if (!(stringency %in% c("soft", "medium", "severe"))) {
             stop("'stringency' must be one of: 'soft', 'medium', 'severe', or NULL",
                 call. = FALSE)
         }
 
-        # Detect pair column if not provided
+        # Auto-detect or validate pair column
         if (is.null(pair_col)) {
             col_data <- SummarizedExperiment::colData(se)
-            # Look for common pair ID column names
             pair_candidates <- c("pair", "pair_id", "paired_samples", "subject",
                 "subject_id", "individual")
-
-            # Try colData first
             pair_col <- pair_candidates[pair_candidates %in% colnames(col_data)][1]
 
-            # If colData is empty, try metadata
             if (is.na(pair_col)) {
                 meta <- S4Vectors::metadata(se)
                 if (!is.null(meta$coldata) && is.data.frame(meta$coldata)) {
                   pair_col <- pair_candidates[pair_candidates %in% colnames(meta$coldata)][1]
                   if (!is.na(pair_col)) {
-                    # Use metadata coldata for sampling calculation
+                    # Update col_data to metadata$coldata for consistency
                     col_data <- meta$coldata
                   }
                 }
@@ -564,110 +604,99 @@
             stop(sprintf("Pair column '%s' not found. Available columns: %s", pair_col,
                 cols_str), call. = FALSE)
         }
+        pair_col_used <- pair_col
 
-        # Use helper to calculate stringency thresholds
+        # Calculate stringency-based thresholds
         n_samples <- ncol(se)
         n_pairs <- length(unique(col_data[[pair_col]]))
-
         stringency_result <- .calculate_stringency_thresholds(stringency, n_samples,
             n_pairs)
         min_samples <- stringency_result$min_samples
         min_tx_per_gene <- stringency_result$min_tx_per_gene
 
-        # Use stringency-based min_isoform_abundance, but allow explicit
-        # override
+        # Use stringency min_isoform_abundance if not explicitly set
         if (is.null(min_isoform_abundance)) {
             min_isoform_abundance <- stringency_result$min_isoform_abundance
         }
 
-        # Use TPM data if available, otherwise use count data
-        if (!is.null(tpm_assay_mat)) {
-            assay_mat_temp <- tpm_assay_mat
-        } else {
-            assays_list_temp <- SummarizedExperiment::assays(se)
-            if (is.character(assay_name) && assay_name %in% names(assays_list_temp)) {
-                assay_mat_temp <- as.matrix(assays_list_temp[[assay_name]])
-            } else if (is.numeric(assay_name) && assay_name >= 1 && assay_name <= length(assays_list_temp)) {
-                assay_mat_temp <- as.matrix(assays_list_temp[[assay_name]])
-            } else {
-                assay_mat_temp <- as.matrix(assays_list_temp[[1]])
-            }
-        }
-
-        # Use helper to estimate min_tpm (returns list with min_tpm and
-        # quant_label)
-        tpm_result_stringency <- .estimate_min_tpm(assay_mat_temp, stringency, verbose = verbose)
-        min_tpm <- tpm_result_stringency$min_tpm
+        # Estimate min_tpm from data distribution
+        tpm_est <- .estimate_min_tpm(assay_mat, stringency, verbose = verbose)
+        min_tpm <- tpm_est$min_tpm
 
         if (verbose) {
-            message(sprintf("Stringency: '%s' (n_pairs=%d, n_samples=%d) -> min_samples=%d, min_tx_per_gene=%d",
-                stringency, n_pairs, n_samples, min_samples, min_tx_per_gene))
+            message(sprintf("[resolve_filter_parameters] stringency='%s' -> min_samples=%d, min_tpm=%.3f, min_tx_per_gene=%d",
+                stringency, min_samples, min_tpm, min_tx_per_gene))
         }
     }
 
-    # If min_isoform_abundance not specified and no stringency, use default
-    # 0.05
-    if (is.null(min_isoform_abundance)) {
-        min_isoform_abundance <- 0.05
-    }
+    list(min_samples = min_samples, min_tpm = min_tpm, min_tx_per_gene = min_tx_per_gene,
+        min_isoform_abundance = min_isoform_abundance, assay_mat = assay_mat, assay_source = assay_source,
+        genes_vec = genes_vec, pair_col_used = pair_col_used)
+}
 
-    # Get assay matrix for filtering (OPTIMIZATION: reuse assays_list from top;
-    # use TPM data if found, otherwise use specified assay)
-    if (!is.null(tpm_assay_mat)) {
-        assay_mat <- tpm_assay_mat
-    } else {
-        idx <- .resolve_assay_index(assay_name, names(assays_list))
-        assay_mat <- as.matrix(assays_list[[idx]])
-        if (idx != 1 && !(is.character(assay_name) && assay_name %in% names(assays_list)) &&
-            !is.null(assay_name)) {
-            warning("Requested assay not found; using first assay.", call. = FALSE)
-        }
-    }
-
-    if (!is.numeric(assay_mat)) {
-        stop("Assay data must be numeric.", call. = FALSE)
-    }
+# ============================================================================
+# HELPER: Apply all three filters in sequence with consolidated reporting
+# Returns: list(tokeep, before, after) where tokeep is logical vector
+# OPTIMIZATION: Consolidates 75 lines of filter chaining @noRd
+.apply_combined_filters <- function(assay_mat, genes_vec, params_list, verbose = FALSE) {
+    # Extract parameters
+    min_tpm <- params_list$min_tpm
+    min_samples <- params_list$min_samples
+    min_tx_per_gene <- params_list$min_tx_per_gene
+    min_isoform_abundance <- params_list$min_isoform_abundance
 
     before <- nrow(assay_mat)
 
-    # Get gene IDs for gene-level filtering
-    genes_vec <- .get_gene_ids(se)
+    # Apply TPM filter
+    tokeep <- .apply_tpm_filter(assay_mat, min_tpm, min_samples, verbose = FALSE)
+    after_tpm <- sum(tokeep)
 
-    # Apply TPM-based filtering
-    tokeep <- .apply_tpm_filter(assay_mat, min_tpm, min_samples, verbose = verbose)
-
-    if (verbose) {
-        msg <- sprintf("Filtering data source: %s", tpm_source)
-        message(msg)
-        msg <- sprintf("TPM-based filtering: min_tpm = %.3f", min_tpm)
-        if (!is.null(stringency)) {
-            msg <- paste0(msg, " (data-driven, auto-estimated from ", stringency,
-                " stringency)")
-        } else {
-            msg <- paste0(msg, " (manual specification)")
-        }
-        message(msg)
+    # Apply gene filter (skip if no gene mapping)
+    if (!is.null(genes_vec) && length(genes_vec) > 0) {
+        tokeep <- .filter_by_tx_per_gene(tokeep, genes_vec, min_tx_per_gene, verbose = FALSE)
+        after_tx <- sum(tokeep)
+        
+        tokeep <- .filter_by_isoform_abundance(tokeep, genes_vec, assay_mat, min_isoform_abundance,
+            verbose = FALSE)
+        after_iso <- sum(tokeep)
+    } else {
+        after_tx <- after_tpm
+        after_iso <- after_tpm
     }
-
-    # Filter out genes with fewer than min_tx_per_gene transcripts
-    tokeep <- .filter_by_tx_per_gene(tokeep, genes_vec, min_tx_per_gene, verbose = verbose)
-
-    # Filter isoforms by relative abundance within genes (Soneson et al. 2016)
-    tokeep <- .filter_by_isoform_abundance(tokeep, genes_vec, assay_mat, min_isoform_abundance,
-        verbose = verbose)
 
     after <- sum(tokeep)
 
+    # Consolidate verbose output
     if (verbose) {
-        message(sprintf("Transcripts: before = %d, after = %d", before, after))
+        message(sprintf("TPM-based filtering: min_tpm = %.3f in >= %d samples -> kept %d transcripts",
+            min_tpm, min_samples, after_tpm))
+        if (!is.null(genes_vec) && length(genes_vec) > 0 && min_tx_per_gene > 1) {
+            removed_tx <- after_tpm - after_tx
+            if (removed_tx > 0) {
+                message(sprintf("Filtered by min_tx_per_gene = %d: removed %d transcripts -> %d remaining",
+                  min_tx_per_gene, removed_tx, after_tx))
+            }
+        }
+        if (!is.null(genes_vec) && length(genes_vec) > 0 && !is.null(min_isoform_abundance) &&
+            min_isoform_abundance > 0) {
+            removed_iso <- after_tx - after_iso
+            if (removed_iso > 0) {
+                message(sprintf("Isoform-level filtering (Soneson et al. 2016): min relative abundance = %.1f%%, removed %d isoforms -> %d remaining",
+                  min_isoform_abundance * 100, removed_iso, after_iso))
+            }
+        }
     }
 
-    if (after == 0L) {
-        warning("Filtering removed all transcripts; returning empty SummarizedExperiment.",
-            call. = FALSE)
-    }
+    list(tokeep = tokeep, before = before, after = after)
+}
 
-    # subset all assays
+# ============================================================================
+# HELPER: Finalize filtered SE with synchronized assays and metadata
+# Returns: filtered SummarizedExperiment with all metadata synchronized
+# OPTIMIZATION: Consolidates post-filtering (20 lines) @noRd
+.finalize_filtered_se <- function(se, tokeep, assays_list, genes_vec, min_samples,
+    min_tpm, min_tx_per_gene, min_isoform_abundance, stringency) {
+    # Subset all assays
     new_assays <- S4Vectors::SimpleList(lapply(assays_list, function(a) {
         if (is.matrix(a) || is.data.frame(a)) {
             as.matrix(a)[tokeep, , drop = FALSE]
@@ -677,19 +706,20 @@
     }))
     names(new_assays) <- names(assays_list)
 
-    # Synchronize metadata after filtering
+    # Synchronize metadata
     md <- S4Vectors::metadata(se)
+    assay_mat <- assays_list[[1]]  # Use first assay for rownames
     md <- .sync_filter_metadata(md, tokeep, assay_mat, rownames(se))
 
-    # Add filtering record to metadata
+    # Add filtering record
     md$filtered <- list(min_samples = min_samples, min_tpm = min_tpm, min_tx_per_gene = min_tx_per_gene,
         min_isoform_abundance = min_isoform_abundance, stringency = stringency)
 
-    # Construct new SE with consolidated metadata
-    new_se <- .construct_filtered_se(se, tokeep, new_assays, md, assay_mat)
-
-    return(new_se)
+    # Construct and return
+    .construct_filtered_se(se, tokeep, new_assays, md, assay_mat)
 }
+
+
 
 #' Subset a TSENATAnalysis Object for Testing and Examples
 #'
