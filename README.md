@@ -2,167 +2,261 @@
 
 # TSENAT: Tsallis Entropy Analysis Toolbox
 
+TSENAT is a Bioconductor package for quantifying and modeling **isoform-usage diversity** across RNA-seq samples using **Tsallis entropy**—a scale-dependent information-theoretic measure of transcript heterogeneity. 
 
-TSENAT is an R package for quantifying and modelling the relative isoform-usage diversity across samples. It provides a complementary, _orthogonal_ analytical method to standard differential-expression tools (for example, DESeq2), allowing the identification of isoform switching and splicing-driven regulatory changes that may occur without pronounced changes in overall gene expression, enabling thus the detection of regulatory events which cannot be captured by count-based differential expression methods.
+## The Problem
 
-## Overview
+Standard differential expression tools (DESeq2, edgeR) detect changes in total transcript abundance. However, genes often reorganize their isoform diversity *without* changing total abundance: they may shift from a balanced isoform distribution to dominance by a single isoform, or vice versa. This **isoform switching and splicing-driven regulation** is biologically important for cell state and function but invisible to abundance-focused methods.
 
-Key capabilities:
+## The Solution
 
-- Scale-dependent diversity analysis: evaluate isoform heterogeneity at different sensitivity levels using the parameter `q`.
-- Statistical testing: compare diversity measures between sample groups using Wilcoxon tests, permutation-based and linear-model approaches.
-- Reproducible workflows: from raw counts to publication-ready visualizations with paired sample support.
+TSENAT captures **isoform complexity** independently of which specific isoforms are abundant. The method uses **Tsallis entropy** with a sensitivity parameter `q` that acts like a lens:
+- **Low q** (e.g., 0.5): Focuses on rare isoforms—detects if diversity is maintained or collapsed
+- **Mid q** (e.g., 1.0): Balanced view (Shannon entropy)—overall isoform complexity
+- **High q** (e.g., 2.0): Focuses on dominant isoforms—detects dominance shifts
 
-## Tsallis Theory
-
-Tsallis entropy generalizes Shannon entropy. For a probability vector $p = (p_1, \dots, p_n)$ (with $p_i \ge 0$ and $\sum_i p_i = 1$) the Tsallis entropy of order $q$ is defined for $q \ne 1$ as
-
-$$
-S_q(p) = \frac{1 - \sum_{i} p_i^q}{q - 1}.
-$$
-
-When $q = 1$, this becomes Shannon entropy: $\lim_{q \to 1} S_q(p) = -\sum_i p_i \log p_i$ (a standard diversity measure).
-
-### Application to Transcript Expression
-
-Most genes produce multiple protein isoforms through alternative splicing. Rather than treating gene expression as a single number, TSENAT captures the pattern of isoform usage—which isoforms are abundant vs. rare—by computing Tsallis entropy at the transcript level.
-
-The parameter `q` acts as a sensitivity dial for isoform weighting:
-- $q < 1$ (e.g., 0.1, 0.5): emphasizes rare isoforms—useful for detecting whether a gene maintains diverse isoforms or loses minor variants in disease.
-- $q \approx 1$ (Shannon entropy): balanced view of overall isoform diversity.
-- $q > 1$ (e.g., 1.5, 2): emphasizes dominant isoforms—useful for detecting when one isoform abnormally dominates (common in cancer).
-
-## Features
-
-### Tsallis Entropy and Diversity Calculations
-
-- `calculate_tsallis_entropy()`: calculate Tsallis entropy for a single isoform distribution.
-  
-- `calculate_diversity()`: calculate diversity for every gene in your dataset. Works with count matrices, tximport lists, or standard Bioconductor objects.
-
-- `calculate_difference()`: test whether diversity changes between groups (e.g., tumor vs. normal). Supports paired samples and multiple statistical tests.
-
-- `calculate_lm_interaction()`: fit linear models to test interactions between factors (e.g., does treatment effect on diversity depend on genotype?). Useful for complex experimental designs.
-
-### Differential and Statistical Analyses
-
-Beyond computing diversity values, TSENAT enables group comparisons to identify biological effects:
-
-- Paired and unpaired designs: test whether isoform diversity differs between groups (e.g., tumor vs. normal samples). Account for paired designs when comparing same patients before/after treatment, or use unpaired designs for independent cohorts.
-- Robust statistical testing: choose between Wilcoxon rank-sum tests (ideal for small sample sizes and non-normal distributions common in omics data) or permutation-based tests (no distributional assumptions required).
-- Linear model framework: fit linear mixed-effects models to account for random effects and covariates, which are particularly useful when controlling for confounding variables while testing group effects on diversity.
-
-
-### Plotting and Visualization
-
-- Per-gene q-curve profiles: visualize how a single gene's isoform diversity changes across the sensitivity parameter `q`. This reveals scale-dependent patterns: rare isoforms may disappear at high `q`, while dominant isoforms emerge.
-
-![PI16 q-Curve Profile](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/pi16-gene-qprofile-1.png)
-
-- Group comparisons and significance: summarize diversity differences between biological groups across all genes simultaneously to identify candidate genes.
-
-![MA plot (Tsallis)](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/ma-tsallis-1.png)
-
-
-- Isoform-level details: explore individual transcripts to understand which specific isoforms are driving diversity changes. TSENAT enables the visualization of transcript composition across samples for candidate genes.
-
-![Isoform Composition](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/top-transcripts-singleq-1.png)
+By examining diversity across multiple q-values, you identify **scale-dependent** diversity changes—the hallmark of coordinate isoform switching.
 
 ## Installation
 
-Install from GitHub:
+**Requirements:** R >= 4.5.0
+
+Install from [Bioconductor](https://bioconductor.org/packages/TSENAT) (recommended):
 
 ```r
-if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
-remotes::install_github("gallardoalba/TSENAT")
-
-## Recommended (reproducible environment): use renv
-install.packages("renv")
-renv::init()
-renv::snapshot()
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("TSENAT")
 ```
 
-## Quick Start
+Or the development version from GitHub:
 
-Compute Tsallis diversity for a single `q` and plot a q-curve across multiple `q` values:
+```r
+remotes::install_github("gallardoalba/TSENAT")
+```
+
+## Workflow
+
+TSENAT follows a streamlined pipeline:
+
+```
+Transcript Counts → Build Analysis → Filter → Configure → 
+Compute Diversity → Test Differences → Visualize
+```
+
+### Quick Start: Orchestration Function
+
+For a complete analysis with default parameters, use the `tsenat()` orchestration function:
 
 ```r
 library(TSENAT)
-data("tcga_brca_luma", package = "TSENAT")
 
-# Compute normalized diversity for q = 0.1
-readcounts <- as.matrix(tcga_brca_luma[, -1, drop = FALSE])
-genes <- tcga_brca_luma[, 1]
-ts_se <- calculate_diversity(readcounts, genes, q = 0.1, norm = TRUE)
-
-# Compute across multiple q values
-qvec <- seq(0.01, 2, by = 0.1)
-ts_multi <- calculate_diversity(readcounts, genes, q = qvec, norm = TRUE)
-
-# Visualize
-p_qcurve <- plot_tsallis_q_curve(ts_multi)
-print(p_qcurve)
-```
-
-For a detailed, reproducible workflow see the [package vignette](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html).
-
-## Parallel Processing and Performance
-
-TSENAT supports multi-threaded processing to accelerate large-scale analyses. All main S4 wrapper functions accept an `nthreads` parameter to parallelize gene-level computations:
-
-### Using Parallel Processing
-
-```r
-# Single-threaded analysis (default)
-result_serial <- calculate_divergence_s4(
-  analysis = my_analysis,
-  nthreads = 1
+# Build SummarizedExperiment from raw counts
+se <- build_analysis_s4(
+  readcounts = readcounts,
+  tx2gene = gff3_file,
+  metadata = metadata_df
 )
 
-# Parallel analysis (4 threads)
-result_parallel <- calculate_divergence_s4(
-  analysis = my_analysis,
-  nthreads = 4
+# Configure and run complete pipeline
+cfg <- tsenat_config(
+  q_values = seq(0, 2, by = 0.1),
+  condition_col = "treatment"
+)
+
+analysis <- tsenat(se, config = cfg)
+# Returns: Fully configured TSENATAnalysis object with diversity, testing, and plots
+```
+
+### Detailed Step-by-Step Workflow
+
+For customization at each stage, use individual functions:
+
+### 1. Load Data & Configure
+
+```r
+library(TSENAT)
+
+# Load transcript counts, annotation (GFF3), and sample metadata
+analysis <- build_analysis_s4(
+  readcounts = readcounts,
+  tx2gene = gff3_file,
+  metadata = metadata_df
+)
+
+# Configure analysis parameters once (used throughout pipeline)
+analysis <- tsenat_config(
+  analysis,
+  q_values = seq(0, 2, by = 0.1),       # q-spectrum for scale analysis
+  condition_col = "treatment",          # experimental groups
+  subject_col = "patient",              # for paired designs
+  control = "control"
 )
 ```
 
-Parallel processing offers 3–8× speedup on multi-core systems for large datasets (1000+ genes, multiple q-values):
+### 2. Filter & Compute Diversity
 
 ```r
-library(system.time)
+# Remove low-abundance transcripts
+analysis <- filter_analysis_s4(analysis, stringency = "medium")
 
-# Benchmark: 1000 genes, q = c(0.5, 1.0, 1.5), 50 samples
-system.time({
-  result <- calculate_diversity_s4(analysis, nthreads = 1)
-})
-# user  system elapsed 
-# 45.2   1.1   46.3   # Serial
-
-system.time({
-  result <- calculate_diversity_s4(analysis, nthreads = 4)
-})
-# user  system elapsed 
-# 92.4   3.2   15.6   # 4-threaded (~3× speedup)
+# Compute Tsallis entropy across q-spectrum
+analysis <- calculate_diversity_s4(analysis, norm = TRUE)
 ```
 
-### Platform-Specific Behavior
+### 3. Statistical Testing
 
-- **Unix/Linux/Mac**: Uses process-based parallelism (`MulticoreParam`) for maximum efficiency
-- **Windows**: Uses socket-based parallelism (`SnowParam`) with automatic cluster management
+```r
+# Test for diversity differences between groups
+analysis <- calculate_difference_s4(analysis, test = "wilcox")
 
-Note: parallelization is automatically disabled when `nthreads ≤ 1` or when the dataset has fewer than 5 genes (overhead exceeds benefit).
+# Fit linear models to detect q×condition interactions
+analysis <- calculate_lm_interaction_s4(analysis, method = "gam")
 
-### Recommended Settings
+# Identify isoform switching via jackknife diagnostics
+analysis <- jackknife_isoform_switching_s4(analysis)
+```
 
-- **Small datasets** (< 100 genes): Use `nthreads = 1` (serial processing)
-- **Medium datasets** (100–1000 genes): Use `nthreads = 2–4`
-- **Large datasets** (> 1000 genes): Use `nthreads = min(8, detectCores() - 1)`
+### 4. Visualize Results
+
+```r
+# Q-curve profile (how diversity changes across q-spectrum)
+plot_tsallis_q_curve(analysis, gene = "your_gene")
+
+# Volcano plot (significance vs. effect size)
+plot_volcano_ma_grid_s4(analysis)
+
+# Isoform switching heatmaps
+plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 4)
+```
+
+## Core Features
+
+### Diversity Analysis
+- **Multi-scale q-curves**: Examine isoform heterogeneity from rare to dominant isoforms
+- **Tsallis entropy**: Scale-dependent complexity measure capturing beyond Shannon entropy
+- **Normalization options**: Account for gene-specific isoform potential
+
+### Statistical Inference  
+- **Paired designs**: Account for repeated measures, subject random effects (via LMM/GEE)
+- **Multiple testing methods**: Wilcoxon, permutation, linear models, GAM, robust M-estimation
+- **Confidence intervals**: Bootstrap (percentile, BCA) and jackknife resampling
+
+### Advanced Analysis
+- **Divergence metrics**: Pairwise information-theoretic distance with effect sizes
+- **Q×condition interactions**: Detect scale-dependent group differences via GAM/GEE
+- **Isoform switching**: Jackknife-based diagnostics identifying transcript shifts
+- **Robust methods**: M-estimation (Huber, Tukey) for outlier-resistant analysis
+
+### Data Integration
+- **Unified object**: `TSENATAnalysis` encapsulates data, config, and all results
+- `SummarizedExperiment` foundation: Full Bioconductor ecosystem compatibility
+- Accessor functions: `diversity()`, `divergence()`, `lmResults()`, etc.
+
+## Related Packages
+
+TSENAT complements other Bioconductor RNA-seq analysis tools:
+
+- **DESeq2, edgeR, limma**: These tools detect *abundance* differences. TSENAT detects **isoform diversity** changes independent of total abundance.
+- **SplicingFactory, DRIMSeq**: These tools test for shifts in *individual transcript proportions* (differential transcript usage). TSENAT quantifies **overall isoform heterogeneity/complexity** as a unified measure.
+- **Bioconductor standard**: All tools use `SummarizedExperiment`, enabling seamless integration in multi-tool workflows.
+
+## Example Data
+
+TSENAT includes a reproducible example dataset with transcript counts and sample metadata. Load it with:
+
+```r
+data("readcounts", package = "TSENAT")
+meta_file <- system.file("extdata", "metadata.tsv", package = "TSENAT")
+gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+```
+
+## Loading Salmon Quantification Data
+
+TSENAT supports raw **Salmon quantification results** for length-normalized diversity analysis. This is particularly important for accurate entropy calculations across transcripts of different lengths.
+
+### From Salmon Output Directory
+
+If you have Salmon quantification output (one `quant.sf` file per sample):
+
+```r
+library(TSENAT)
+
+# 1. Aggregate Salmon quant.sf files into a counts matrix
+readcounts <- tximport::tximport(
+  files = list.files("salmon_output", pattern = "quant.sf$", full.names = TRUE),
+  type = "salmon",
+  txOut = TRUE,  # Keep transcript-level (not gene-aggregated)
+  ignoreTxVersion = TRUE
+)
+
+# Extract count data (NumReads column)
+counts_matrix <- readcounts$counts
+
+# 2. Get TPM and effective length from Salmon
+tpm_matrix <- readcounts$abundance  # TPM values
+eff_length <- rowMeans(readcounts$length)  # Median effective length per transcript
+
+# 3. Load transcript annotation (GFF3) and sample metadata
+gff3_file <- "path/to/annotation.gff3.gz"  # or .gff3
+metadata_df <- read.table("metadata.tsv", header = TRUE, sep = "\t")
+
+# 4. Build analysis with Salmon data
+analysis <- build_analysis_s4(
+  readcounts = counts_matrix,
+  tx2gene = gff3_file,
+  metadata = metadata_df,
+  tpm = tpm_matrix,                # Salmon TPM for filtering
+  effective_length = eff_length     # Salmon effective length for normalization
+)
+
+# Configure and run analysis
+cfg <- tsenat_config(
+  q_values = seq(0, 2, by = 0.1),
+  condition_col = "treatment"
+)
+analysis <- setConfig(analysis, cfg)
+analysis <- filter_analysis_s4(analysis, stringency = "medium")
+analysis <- calculate_diversity_s4(analysis)  # TPM-informed filtering + length-normalized entropy
+```
+
+### Key Parameters for Salmon Data:
+
+- **`tpm`**: Transcripts Per Million from Salmon (`abundance` column from `tximport`)
+  - Used for TPM-based filtering in `filter_analysis_s4()` to remove very low abundance transcripts
+  - Optional but recommended for improved filtering accuracy
+
+- **`effective_length`**: Effective transcript length from Salmon (`length` column from `tximport`)
+  - Used for length-normalization in entropy calculations
+  - Accounts for transcript GC-bias and variable sequencing depth
+  - Optional but recommended for cross-study comparability
+
+See `build_analysis_s4()` documentation for details on data format requirements.
 
 ## Tests coverage
 
-Testing is vital in research as it ensures the validity and reliability 
-of results, which is essential for accurately interpreting findings. 
-The report about the current testing coverage can be found in [here](https://app.codecov.io/gh/gallardoalba/TSENAT).
+Testing is vital in research as it ensures the validity and reliability of results, which is essential for accurately interpreting findings. The report about the current testing coverage can be found [here](https://app.codecov.io/gh/gallardoalba/TSENAT).
+
+## Learn More
+
+### Comprehensive Workflow
+See the package vignette for detailed examples, theory background, and typical workflows:
+
+```r
+vignette("TSENAT")
+```
+
+### Function Reference
+Interactive help for functions and classes:
+
+```r
+?build_analysis_s4
+?calculate_diversity_s4
+?TSENATAnalysis-class
+```
+
+### Online Documentation
+Full documentation and examples: [gallardoalba.github.io/TSENAT](https://gallardoalba.github.io/TSENAT)
 
 ## Citation
 
@@ -215,8 +309,16 @@ remotes::install_deps(dependencies = c("Suggests"))
 # Run checks
 R CMD check --as-cran
 ```
+## Learn More
+
+For methodology details and a comprehensive bibliography with 50+ peer-reviewed citations, see the [TSENAT vignette](vignettes/TSENAT.Rmd):
+
+```r
+vignette("TSENAT")
+```
 
 ## License and Attribution
+
 
 This project is licensed under the GNU General Public License v3.0 (GPL-3). See [LICENSE](LICENSE) for details.
 

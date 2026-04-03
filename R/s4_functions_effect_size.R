@@ -260,8 +260,8 @@
 #' @export
 #' @importFrom methods is
 #' @importFrom utils write.table
-effect_sizes_divergence_s4 <- function(analysis, significance_threshold = 0.05, enrich_per_q_pattern = TRUE,
-    verbose = FALSE, output_file = NULL, ...) {
+effect_sizes_divergence_s4 <- function(analysis, significance_threshold = NULL, enrich_per_q_pattern = NULL,
+    verbose = NULL, output_file = NULL, ...) {
 
     verbose <- resolve_slot_param(verbose, getConfig(analysis), "verbose", FALSE)
     .validate_effect_sizes_inputs_s4(analysis)
@@ -270,7 +270,8 @@ effect_sizes_divergence_s4 <- function(analysis, significance_threshold = 0.05, 
         "significance_threshold", 0.05)
     enrich_per_q_pattern <- resolve_slot_param(enrich_per_q_pattern, getConfig(analysis),
         "enrich_per_q_pattern", TRUE)
-    verbose <- resolve_slot_param(verbose, getConfig(analysis), "verbose", FALSE)
+    output_file <- resolve_slot_param(output_file, getConfig(analysis),
+        "output_file", NULL)
 
     data_list <- .extract_effect_sizes_data_s4(analysis, verbose)
     divergence_se <- data_list$divergence_se

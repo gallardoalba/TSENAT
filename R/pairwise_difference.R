@@ -267,7 +267,7 @@
     shuffling_result <- .label_shuffling(ymat, samples, control, method,
         randomizations = randomizations, pcorr = pcorr, paired = paired,
         nthreads = nthreads, pairs = pairs, robust_loss_type = robust_loss_type,
-        robust_scale_method = robust_scale_method)
+        robust_scale_method = robust_scale_method, seed = seed)
     
     # FIXED: Ensure all p-value columns exist, fill missing with NA
     expected_cols <- c("pvalue", "padj", "r", "U")

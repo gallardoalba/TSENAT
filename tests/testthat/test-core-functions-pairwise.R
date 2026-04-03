@@ -1807,13 +1807,13 @@ test_that(".prepare_data_and_samples handles data.frame input", {
     expect_true("samples" %in% names(result))
     expect_true("pairs" %in% names(result))
     expect_equal(nrow(result$df), 5)
-    expect_equal(length(result$samples), 2)
+    expect_equal(length(result$samples), 4)  # full samples vector, not unique
     expect_null(result$pairs)
 })
 
 test_that(".prepare_data_and_samples handles SummarizedExperiment", {
     se <- SummarizedExperiment::SummarizedExperiment(
-        assays = list(counts = matrix(1:20, nrow = 5)),
+        assays = list(counts = matrix(1:20, nrow = 5, dimnames = list(letters[1:5], NULL))),
         colData = data.frame(
             sample_type = rep(c("A", "B"), each = 2),
             sample_base = c(1, 1, 2, 2)

@@ -142,8 +142,8 @@
 #' @export
 #' @importFrom utils write.table
 calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula = NULL,
-    condition_col = NULL, method = NULL, paired = FALSE, subject_col = NULL, nthreads = NULL,
-    multicorr = NULL, corstr = NULL, pcorr = NULL, verbose = FALSE, return_model_data = TRUE,
+    condition_col = NULL, method = NULL, paired = NULL, subject_col = NULL, nthreads = NULL,
+    multicorr = NULL, corstr = NULL, pcorr = NULL, verbose = NULL, return_model_data = NULL,
     output_file = NULL, ...) {
     # Validate input
     if (!is(analysis, "TSENATAnalysis")) {
@@ -161,7 +161,16 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
     # Sync colData from diversity results
     analysis <- .sync_coldata_from_diversity(analysis, verbose = verbose)
 
-    # Extract and resolve parameters
+    # Resolve parameters from config first
+    fdr_threshold <- resolve_slot_param(fdr_threshold, analysis@config, "fdr_threshold", NULL)
+    formula <- resolve_slot_param(formula, analysis@config, "formula", NULL)
+    output_file <- resolve_slot_param(output_file, analysis@config, "output_file", NULL)
+    verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
+    paired <- resolve_slot_param(paired, analysis@config, "paired", FALSE)
+    return_model_data <- resolve_slot_param(return_model_data, analysis@config, "return_model_data", TRUE)
+
+    # Extract and resolve remaining parameters
+    # Note: .extract_lm_params() receives resolved paired value
     params <- .extract_lm_params(analysis, condition_col = condition_col,
         method = method, subject_col = subject_col, nthreads = nthreads,
         multicorr = multicorr, corstr = corstr, pcorr = pcorr, paired = paired,
@@ -239,11 +248,12 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
     subject_col = NULL, nthreads = NULL, multicorr = NULL, corstr = NULL, pcorr = NULL,
     paired = FALSE, verbose = FALSE) {
     # Auto-detect condition_col if not provided
+    # Note: Always pass verbose=TRUE for condition_col to ensure users are aware of auto-detection
     if (is.null(condition_col)) {
         cd_cols <- colnames(colData(analysis@se))
         condition_col <- auto_detect_column(cd_cols, config_list = analysis@config,
             config_key = "condition_col", priority_candidates = c("condition", "sample_type",
-                "group", "treatment"), default_fallback = NULL, verbose = verbose,
+                "group", "treatment"), default_fallback = NULL, verbose = TRUE,
             param_name = "condition_col")
     }
 
@@ -255,10 +265,8 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
     pcorr <- resolve_slot_param(pcorr, analysis@config, "pcorr", "BH")
     nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", NULL)
 
-    # Paired design (logical flag)
-    if (!paired && "paired" %in% names(analysis@config)) {
-        paired <- analysis@config$paired
-    }
+    # Note: 'paired' is already resolved by calling function (calculate_lm_interaction_s4)
+    # to avoid duplicate resolution. Use as-is.
 
     # Log condition_col info
     if (is.null(condition_col)) {

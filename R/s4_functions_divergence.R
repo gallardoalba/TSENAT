@@ -111,24 +111,29 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
     # Step 1: Validate input
     .validate_divergence_input(analysis)
 
-    # Step 2: Resolve and process parameters
+    # Step 2: Resolve all parameters from config
+    verbose <- resolve_slot_param(verbose, analysis@config, "verbose", TRUE)
+    output_file <- resolve_slot_param(output_file, analysis@config, "output_file", NULL)
+    progress <- resolve_slot_param(progress, analysis@config, "progress", FALSE)
+
+    # Step 3: Resolve and process parameters
     params <- .resolve_divergence_parameters(q, control_group, method, nthreads, nboot, seed,
         paired, bootstrap, analysis)
 
-    # Step 3: Build arguments for computation
+    # Step 4: Build arguments for computation
     args <- .build_divergence_args(analysis, params, verbose, progress, ...)
 
-    # Step 4: Run divergence calculation
+    # Step 5: Run divergence calculation
     result <- tryCatch({
         do.call(.calculate_divergence, args)
     }, error = function(e) {
         stop("Divergence calculation failed:\n", e$message, call. = FALSE)
     })
 
-    # Step 5: Store results
+    # Step 6: Store results
     analysis <- .store_divergence_results(analysis, result)
 
-    # Step 6: Track metadata
+    # Step 7: Track metadata
     analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("calculate_divergence[q=",
         params$q, "]"))
 

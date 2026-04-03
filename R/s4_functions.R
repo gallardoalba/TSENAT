@@ -80,7 +80,7 @@
 #' @export
 #' @importFrom utils write.table
 jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
-    seed = NULL, top_n = NULL, verbose = FALSE, nthreads = NULL, pseudocount = NULL,
+    seed = NULL, top_n = NULL, verbose = NULL, nthreads = NULL, pseudocount = NULL,
     output_file = NULL, ...) {
     if (!is(analysis, "TSENATAnalysis")) {
         stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
@@ -100,6 +100,8 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_b
     nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
     pseudocount <- resolve_slot_param(pseudocount, analysis@config, "pseudocount",
         0)
+    verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
+    output_file <- resolve_slot_param(output_file, analysis@config, "output_file", NULL)
 
     # Ensure q is numeric
     if (!is.numeric(q)) {
@@ -1520,8 +1522,9 @@ plot_top_transcripts_s4 <- function(analysis, gene = NULL, condition_col = NULL,
     # =========================================================================
     if (is.null(condition_col)) {
         cd_cols <- colnames(colData(se))
+        # Note: Always pass verbose=TRUE for condition_col to ensure users are aware of auto-detection
         condition_col <- auto_detect_column(cd_cols, analysis@config, "condition_col",
-            c("condition", "sample_type", "group", "treatment"), verbose = verbose,
+            c("condition", "sample_type", "group", "treatment"), verbose = TRUE,
             param_name = "condition_col")
     }
 

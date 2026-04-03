@@ -246,6 +246,7 @@ jackknife_isoform_switching_s4 <- function(analysis, condition_col = NULL, subje
     cd_cols <- colnames(colData(se))
     
     # Use explicit condition_col if provided, otherwise auto-detect
+    # Note: Always pass verbose=TRUE for condition_col to ensure users are aware of auto-detection
     if (is.null(condition_col)) {
         condition_col <- auto_detect_column(cd_cols, config_list = analysis@config, 
                                             config_key = "condition_col",
@@ -254,7 +255,7 @@ jackknife_isoform_switching_s4 <- function(analysis, condition_col = NULL, subje
                                                                    "sample_group"),
                                             default_fallback = if (length(cd_cols) > 0) 
                                                 cd_cols[1] else NULL, 
-                                            verbose = verbose, param_name = "condition_col")
+                                            verbose = TRUE, param_name = "condition_col")
     } else {
         # Validate explicit condition_col exists
         if (!condition_col %in% cd_cols) {

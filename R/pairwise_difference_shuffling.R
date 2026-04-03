@@ -98,7 +98,7 @@
 #' head(result)
 .label_shuffling <- function(x, samples, control, method, randomizations = 100, pcorr = "BH",
     paired = FALSE, paired_method = c("swap", "signflip"), nthreads = 1, pairs = NULL,
-    robust_loss_type = "huber", robust_scale_method = "mad") {
+    robust_loss_type = "huber", robust_scale_method = "mad", seed = NULL) {
     paired_method <- match.arg(paired_method)
 
     # Validate inputs and get observed statistics
@@ -115,7 +115,7 @@
     # Generate permutation null distribution
     perm_mat <- .generate_permutation_matrix(x, samples, control, method, 
         randomizations, paired, paired_method, pairs, pseudocount_val, 
-        robust_loss_type, robust_scale_method)
+        robust_loss_type, robust_scale_method, seed)
 
     # Compute p-values from permutation distribution (with S019 correction)
     raw_p_values <- .compute_pvalues_from_permutations(log2_fc, perm_mat, nthreads)
@@ -182,7 +182,7 @@
 #'
 #' @noRd
 .generate_permutation_matrix <- function(x, samples, control, method, randomizations, 
-    paired, paired_method, pairs, pseudocount_val, robust_loss_type, robust_scale_method) {
+    paired, paired_method, pairs, pseudocount_val, robust_loss_type, robust_scale_method, seed = NULL) {
     
     perm_mat <- matrix(NA_real_, nrow = nrow(x), ncol = randomizations)
     unique_groups <- unique(samples)
@@ -191,10 +191,10 @@
     if (isTRUE(paired) && !is.null(pairs)) {
         perm_mat <- .generate_paired_permutations(x, samples, control, case_group, 
             method, randomizations, pairs, paired_method, pseudocount_val, 
-            robust_loss_type, robust_scale_method)
+            robust_loss_type, robust_scale_method, seed)
     } else {
         perm_mat <- .generate_unpaired_permutations(x, samples, control, case_group, 
-            method, randomizations, pseudocount_val, robust_loss_type, robust_scale_method)
+            method, randomizations, pseudocount_val, robust_loss_type, robust_scale_method, seed)
     }
 
     perm_mat
@@ -204,7 +204,12 @@
 #'
 #' @noRd
 .generate_paired_permutations <- function(x, samples, control, case_group, method, 
-    randomizations, pairs, paired_method, pseudocount_val, robust_loss_type, robust_scale_method) {
+    randomizations, pairs, paired_method, pseudocount_val, robust_loss_type, robust_scale_method, seed = NULL) {
+    
+    # Set seed if provided
+    if (!is.null(seed)) {
+        set.seed(seed)
+    }
     
     perm_mat <- matrix(NA_real_, nrow = nrow(x), ncol = randomizations)
     unique_pairs <- unique(pairs)
@@ -256,7 +261,12 @@
 #'
 #' @noRd
 .generate_unpaired_permutations <- function(x, samples, control, case_group, method, 
-    randomizations, pseudocount_val, robust_loss_type, robust_scale_method) {
+    randomizations, pseudocount_val, robust_loss_type, robust_scale_method, seed = NULL) {
+    
+    # Set seed if provided
+    if (!is.null(seed)) {
+        set.seed(seed)
+    }
     
     perm_mat <- matrix(NA_real_, nrow = nrow(x), ncol = randomizations)
 
