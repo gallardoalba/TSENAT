@@ -264,11 +264,6 @@
     randomizations, pcorr, paired, nthreads, pairs, robust_loss_type, 
     robust_scale_method, seed) {
     
-    # Set seed for reproducibility
-    if (!is.null(seed)) {
-        set.seed(as.integer(seed))
-    }
-    
     shuffling_result <- .label_shuffling(ymat, samples, control, method,
         randomizations = randomizations, pcorr = pcorr, paired = paired,
         nthreads = nthreads, pairs = pairs, robust_loss_type = robust_loss_type,
