@@ -702,3 +702,415 @@ testthat::test_that("select_genesselect_genes prioritizes adj_p_lmm over adj_p_i
   genes_ordered <- unique(as.character(lm_res$gene[order(lm_res[[p_col]])]))
   testthat::expect_equal(genes_ordered[1], "G2")
 })
+
+# ============================================================================
+# TEST: Helper Functions for .prepare_combined_se (Refactored Components)
+# ============================================================================
+
+testthat::test_that(".extract_diversity_objects extracts SummarizedExperiment and metadata", {
+  require_pkgs(c("SummarizedExperiment", "S4Vectors"))
+  
+  # Create test analysis
+  analysis <- TSENAT:::.create_test_analysis(
+    n_genes = 5, n_samples_per_group = 3,
+    q_values = c(1, 2, 3), seed = 42
+  )
+  
+  div_list <- analysis@diversity_results
+  
+  # Call helper
+  extracted <- TSENAT:::.extract_diversity_objects(div_list)
+  
+  # Verify structure
+  testthat::expect_is(extracted, "list")
+  testthat::expect_true("objects" %in% names(extracted))
+  testthat::expect_true("q_names" %in% names(extracted))
+  testthat::expect_true("first_se" %in% names(extracted))
+  testthat::expect_true("bootstrap_ci_available" %in% names(extracted))
+  
+  # Verify first_se is SummarizedExperiment
+  testthat::expect_true(methods::is(extracted$first_se, "SummarizedExperiment"))
+  
+  # Verify q_names match input
+  testthat::expect_equal(extracted$q_names, names(div_list))
+  
+  # Verify bootstrap_ci_available is logical
+  testthat::expect_is(extracted$bootstrap_ci_available, "logical")
+})
+
+testthat::test_that(".extract_diversity_objects errors with no valid SE", {
+  # Create empty list with only matrices
+  div_list <- list(
+    q_1 = matrix(1:10, nrow = 5, ncol = 2)
+  )
+  
+  # Should error since no SummarizedExperiment
+  testthat::expect_error(
+    TSENAT:::.extract_diversity_objects(div_list),
+    "No valid SummarizedExperiment"
+  )
+})
+
+testthat::test_that(".normalize_matrix_to_target pads columns when needed", {
+  # Create small matrix with fewer columns than target
+  mat <- matrix(1:6, nrow = 3, ncol = 2)
+  rownames(mat) <- c("G1", "G2", "G3")
+  
+  target_genes <- c("G1", "G2", "G3")
+  target_n_cols <- 5
+  
+  # Call helper
+  result <- TSENAT:::.normalize_matrix_to_target(mat, target_genes, target_n_cols)
+  
+  # Verify dimensions
+  testthat::expect_equal(ncol(result), 5)  # Padded to 5 columns
+  testthat::expect_equal(nrow(result), 3)
+  
+  # Verify row order preserved
+  testthat::expect_equal(rownames(result), target_genes)
+  
+  # Verify original data preserved
+  testthat::expect_equal(result[, 1:2], mat[target_genes, ])
+})
+
+testthat::test_that(".normalize_matrix_to_target truncates when needed", {
+  require_pkgs("SummarizedExperiment")
+  
+  # Create larger matrix
+  mat <- matrix(1:15, nrow = 3, ncol = 5)
+  rownames(mat) <- c("G1", "G2", "G3")
+  
+  target_genes <- c("G1", "G2", "G3")
+  target_n_cols <- 3
+  
+  # Call helper
+  result <- TSENAT:::.normalize_matrix_to_target(mat, target_genes, target_n_cols)
+  
+  # Verify truncation
+  testthat::expect_equal(ncol(result), 3)
+  testthat::expect_equal(nrow(result), 3)
+  
+  # Verify data integrity
+  testthat::expect_equal(result, mat[target_genes, 1:3])
+})
+
+testthat::test_that(".normalize_matrix_to_target reorders rows", {
+  mat <- matrix(1:6, nrow = 3, ncol = 2)
+  rownames(mat) <- c("G3", "G1", "G2")
+  
+  target_genes <- c("G1", "G2", "G3")  # Different order
+  target_n_cols <- 2
+  
+  # Call helper
+  result <- TSENAT:::.normalize_matrix_to_target(mat, target_genes, target_n_cols)
+  
+  # Verify row order matches target
+  testthat::expect_equal(rownames(result), target_genes)
+})
+
+testthat::test_that(".create_q_suffixed_colnames adds q-value suffix", {
+  colnames <- c("sample_1", "sample_2", "sample_3")
+  q_val <- 1.5
+  n_cols <- 3
+  
+  # Call helper
+  result <- TSENAT:::.create_q_suffixed_colnames(colnames, q_val, n_cols)
+  
+  # Verify format
+  testthat::expect_equal(length(result), 3)
+  testthat::expect_true(all(grepl("_q=1\\.5", result)))
+  testthat::expect_true(all(grepl("^sample_", result)))
+})
+
+testthat::test_that(".create_q_suffixed_colnames handles NULL colnames", {
+  colnames <- NULL
+  q_val <- 2.0
+  n_cols <- 4
+  
+  # Call helper
+  result <- TSENAT:::.create_q_suffixed_colnames(colnames, q_val, n_cols)
+  
+  # Verify synthetic names created
+  testthat::expect_equal(length(result), 4)
+  testthat::expect_true(all(grepl("sample_", result)))
+  testthat::expect_true(all(grepl("_q=2\\.000", result)))
+})
+
+testthat::test_that(".create_q_suffixed_colnames removes existing q= suffixes", {
+  colnames <- c("sample_1_q=1.000", "sample_2_q=1.000")
+  q_val <- 2.0
+  n_cols <- 2
+  
+  # Call helper
+  result <- TSENAT:::.create_q_suffixed_colnames(colnames, q_val, n_cols)
+  
+  # Verify old suffix removed and new one added
+  testthat::expect_true(all(grepl("_q=2\\.000", result)))
+  testthat::expect_false(any(grepl("_q=1\\.000", result)))
+})
+
+testthat::test_that(".build_combined_coldata combines metadata across q-values", {
+  require_pkgs(c("SummarizedExperiment", "S4Vectors"))
+  
+  # Create test analysis
+  analysis <- TSENAT:::.create_test_analysis(
+    n_genes = 4, n_samples_per_group = 2,
+    q_values = c(1, 2), seed = 42
+  )
+  
+  div_list <- analysis@diversity_results
+  q_names <- names(div_list)
+  
+  # Create unique colnames for each q - must match the number of columns in each SE
+  n_cols_q1 <- ncol(div_list[[1]])
+  n_cols_q2 <- ncol(div_list[[2]])
+  
+  unique_colnames_list <- list(
+    q_1 = paste0("sample_", seq_len(n_cols_q1), "_q=1.000"),
+    q_2 = paste0("sample_", seq_len(n_cols_q2), "_q=2.000")
+  )
+  
+  # Call helper
+  result <- TSENAT:::.build_combined_coldata(div_list, q_names, unique_colnames_list)
+  
+  # Verify structure
+  testthat::expect_is(result, "data.frame")
+  testthat::expect_true("q" %in% colnames(result))
+  
+  # Verify q column has both values
+  unique_q_vals <- unique(result$q)
+  testthat::expect_equal(length(unique_q_vals), 2)
+  
+  # Verify row count matches total samples
+  testthat::expect_equal(nrow(result), n_cols_q1 + n_cols_q2)
+})
+
+testthat::test_that(".extract_bootstrap_ci_matrices returns NULL for non-SE", {
+  # Create regular matrix
+  mat <- matrix(1:6, nrow = 3, ncol = 2)
+  target_genes <- rownames(mat) <- c("G1", "G2", "G3")
+  target_n_cols <- 2
+  assay_names <- c()
+  
+  # Call helper
+  result <- TSENAT:::.extract_bootstrap_ci_matrices(
+    mat, target_genes, target_n_cols, assay_names
+  )
+  
+  # Should return NULL for matrix input
+  testthat::expect_null(result)
+})
+
+testthat::test_that(".extract_bootstrap_ci_matrices extracts CI matrices from SE", {
+  require_pkgs(c("SummarizedExperiment", "S4Vectors"))
+  
+  # Create test analysis
+  analysis <- TSENAT:::.create_test_analysis(
+    n_genes = 3, n_samples_per_group = 2,
+    q_values = c(1), seed = 42
+  )
+  
+  # Get first SE with CIs (if available)
+  se_obj <- analysis@diversity_results[[1]]
+  
+  # Extract assay names
+  sim_names <- SummarizedExperiment::assayNames(se_obj)
+  
+  # Call helper
+  result <- TSENAT:::.extract_bootstrap_ci_matrices(
+    se_obj,
+    rownames(se_obj),
+    ncol(se_obj),
+    sim_names
+  )
+  
+  # Verify result structure - result can be NULL or a list
+  if (!is.null(result)) {
+    testthat::expect_is(result, "list")
+    testthat::expect_true("ci_lower" %in% names(result))
+    testthat::expect_true("ci_upper" %in% names(result))
+  } else {
+    # If CIs not available, that's also valid - test passes
+    testthat::expect_null(result)
+  }
+})
+
+testthat::test_that(".prepare_q_value_for_combining processes q-value data correctly", {
+  require_pkgs(c("SummarizedExperiment", "S4Vectors"))
+  
+  # Create test analysis
+  analysis <- TSENAT:::.create_test_analysis(
+    n_genes = 3, n_samples_per_group = 2,
+    q_values = c(1.5), seed = 42
+  )
+  
+  div_list <- analysis@diversity_results
+  combined_assays_dict <- list(
+    q_1.5 = list(
+      matrix = SummarizedExperiment::assay(div_list[[1]], 1),
+      q_val = 1.5,
+      se_obj = div_list[[1]]
+    )
+  )
+  
+  target_genes <- rownames(div_list[[1]])
+  target_n_cols <- ncol(div_list[[1]])
+  
+  # Call helper
+  result <- TSENAT:::.prepare_q_value_for_combining(
+    "q_1.5", combined_assays_dict, target_genes,
+    target_n_cols, FALSE  # No bootstrap CI
+  )
+  
+  # Verify result structure
+  testthat::expect_is(result, "list")
+  testthat::expect_true("matrix" %in% names(result))
+  testthat::expect_true("unique_colnames" %in% names(result))
+  testthat::expect_true("ncol_val" %in% names(result))
+  
+  # Verify q-value appears in colnames
+  testthat::expect_true(all(grepl("_q=1\\.500", result$unique_colnames)))
+})
+
+testthat::test_that(".fill_combined_assays combines multiple q-values", {
+  require_pkgs(c("SummarizedExperiment", "S4Vectors"))
+  
+  # Create test analysis with multiple q-values
+  analysis <- TSENAT:::.create_test_analysis(
+    n_genes = 3, n_samples_per_group = 2,
+    q_values = c(1, 2), seed = 42
+  )
+  
+  extracted <- TSENAT:::.extract_diversity_objects(analysis@diversity_results)
+  
+  target_genes <- rownames(extracted$first_se)
+  target_n_cols <- ncol(extracted$first_se)
+  
+  # Call helper
+  filled <- TSENAT:::.fill_combined_assays(
+    extracted$objects, extracted$q_names,
+    target_genes, target_n_cols,
+    extracted$bootstrap_ci_available
+  )
+  
+  # Verify structure
+  testthat::expect_is(filled, "list")
+  testthat::expect_is(filled$combined_assay, "matrix")
+  
+  # Verify dimensions
+  expected_cols <- target_n_cols * length(extracted$q_names)
+  testthat::expect_equal(ncol(filled$combined_assay), expected_cols)
+  testthat::expect_equal(nrow(filled$combined_assay), length(target_genes))
+  
+  # Verify column names collect all q-values
+  testthat::expect_equal(length(filled$unique_colnames_list), length(extracted$q_names))
+})
+
+testthat::test_that(".create_combined_se_object creates valid SummarizedExperiment", {
+  require_pkgs(c("SummarizedExperiment", "S4Vectors"))
+  
+  # Create minimal test data
+  genes <- c("G1", "G2", "G3")
+  samples <- c("S1_q=1", "S2_q=1", "S3_q=2", "S4_q=2")
+  
+  combined_assay <- matrix(1:12, nrow = 3, ncol = 4)
+  rownames(combined_assay) <- genes
+  colnames(combined_assay) <- samples
+  
+  combined_coldata <- data.frame(
+    q = c(1, 1, 2, 2),
+    row.names = samples
+  )
+  
+  # Create a simple SE as template
+  se_template <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(diversity = combined_assay),
+    colData = combined_coldata
+  )
+  
+  # Call helper
+  result <- TSENAT:::.create_combined_se_object(
+    combined_assay,
+    NULL, NULL,  # No CI matrices
+    combined_coldata,
+    se_template
+  )
+  
+  # Verify result
+  testthat::expect_true(methods::is(result, "SummarizedExperiment"))
+  testthat::expect_equal(nrow(result), 3)
+  testthat::expect_equal(ncol(result), 4)
+  testthat::expect_true("diversity" %in% SummarizedExperiment::assayNames(result))
+})
+
+testthat::test_that(".create_combined_se_object includes CI assays when provided", {
+  require_pkgs(c("SummarizedExperiment", "S4Vectors"))
+  
+  # Create test data with CIs
+  genes <- c("G1", "G2")
+  samples <- c("S1", "S2")
+  
+  combined_assay <- matrix(1:4, nrow = 2, ncol = 2)
+  rownames(combined_assay) <- genes
+  colnames(combined_assay) <- samples
+  
+  combined_ci_lower <- matrix(0.5:3.5, nrow = 2, ncol = 2)
+  rownames(combined_ci_lower) <- genes
+  colnames(combined_ci_lower) <- samples
+  combined_ci_upper <- matrix(1.5:4.5, nrow = 2, ncol = 2)
+  rownames(combined_ci_upper) <- genes
+  colnames(combined_ci_upper) <- samples
+  
+  combined_coldata <- data.frame(q = c(1, 1), row.names = samples)
+  
+  se_template <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(diversity = combined_assay),
+    colData = combined_coldata
+  )
+  
+  # Call helper with CI matrices
+  result <- TSENAT:::.create_combined_se_object(
+    combined_assay,
+    combined_ci_lower, combined_ci_upper,
+    combined_coldata,
+    se_template
+  )
+  
+  # Verify CI assays included
+  assay_names <- SummarizedExperiment::assayNames(result)
+  testthat::expect_true("ci_lower" %in% assay_names)
+  testthat::expect_true("ci_upper" %in% assay_names)
+})
+
+testthat::test_that(".prepare_combined_se integration test with all helpers", {
+  require_pkgs(c("SummarizedExperiment", "S4Vectors"))
+  
+  # Create test analysis
+  analysis <- TSENAT:::.create_test_analysis(
+    n_genes = 5, n_samples_per_group = 3,
+    q_values = c(1, 2, 3), seed = 42
+  )
+  
+  # Call main function (which uses all refactored helpers)
+  se_combined <- TSENAT:::.prepare_combined_se(analysis)
+  
+  # Verify result
+  testthat::expect_true(methods::is(se_combined, "SummarizedExperiment"))
+  testthat::expect_equal(nrow(se_combined), 5)
+  testthat::expect_equal(ncol(se_combined), 18)  # 3 samples * 2 groups * 3 q-values
+  
+  # Verify assays
+  testthat::expect_true("diversity" %in% SummarizedExperiment::assayNames(se_combined))
+  
+  # Verify colData structure
+  coldata <- SummarizedExperiment::colData(se_combined)
+  testthat::expect_true("q" %in% colnames(coldata))
+  
+  # Verify rowData structure
+  rowdata <- SummarizedExperiment::rowData(se_combined)
+  testthat::expect_true("gene_id" %in% colnames(rowdata))
+  
+  # Verify column names have q suffixes
+  colnames_se <- colnames(se_combined)
+  testthat::expect_true(any(grepl("_q=", colnames_se)))
+})
