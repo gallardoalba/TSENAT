@@ -599,3 +599,463 @@ test_that("Filtered diversity results maintain colname alignment", {
   all_cn_have_q <- all(grepl("_q=", colnames(prep_output$result_assay)))
   expect_true(all_cn_have_q, info = "All column names should contain _q= separator")
 })
+
+
+# ============================================================================
+# TESTS FOR .normalize_log_odds_ratio
+# ============================================================================
+# Tests for normalization using log-odds ratio relative to S_max
+
+context("Entropy Normalization: Log-Odds Ratio")
+
+test_that(".normalize_log_odds_ratio handles Shannon entropy (q=1) correctly", {
+  # Create entropy matrix for Shannon diversity
+  entropy_matrix <- matrix(
+    c(0.5, 1.0, 1.5, 2.0, 0.8, 1.2),
+    nrow = 3, ncol = 2
+  )
+  colnames(entropy_matrix) <- c("Sample1_q=1", "Sample2_q=1")
+  rownames(entropy_matrix) <- c("gene1", "gene2", "gene3")
+  
+  # n_isoforms for each gene (as named vector)
+  n_isoforms <- c(gene1 = 3, gene2 = 4, gene3 = 5)
+  
+  result <- TSENAT:::.normalize_log_odds_ratio(
+    entropy_matrix = entropy_matrix,
+    n_isoforms = n_isoforms,
+    q = 1
+  )
+  
+  # Result should be matrix
+  expect_is(result, "matrix")
+  expect_equal(dim(result), dim(entropy_matrix))
+  expect_equal(rownames(result), rownames(entropy_matrix))
+  
+  # Values should be finite (log of ratios)
+  expect_true(all(is.finite(result)))
+  
+  # For Shannon entropy with q=1: S_max = log(n_isoforms)
+  # Normalized value = log(S / S_max) = log(S / log(n))
+  # For gene1 (n=3): S_max = log(3) ≈ 1.0986
+  # Sample1: 0.5 / 1.0986 ≈ 0.455, log(0.455) ≈ -0.789
+  expected_normalized <- log(entropy_matrix / outer(log(n_isoforms), rep(1, ncol(entropy_matrix))))
+  expect_equal(as.numeric(result), as.numeric(expected_normalized), tolerance = 1e-10)
+})
+
+test_that(".normalize_log_odds_ratio handles Tsallis entropy (q≠1) correctly", {
+  # Tsallis divergence at q=2
+  entropy_matrix <- matrix(
+    c(0.3, 0.6, 0.2, 0.5, 0.4, 0.7),
+    nrow = 3, ncol = 2
+  )
+  colnames(entropy_matrix) <- c("Sample1_q=2", "Sample2_q=2")
+  rownames(entropy_matrix) <- c("gene1", "gene2", "gene3")
+  
+  n_isoforms <- c(gene1 = 2, gene2 = 3, gene3 = 4)
+  
+  result <- TSENAT:::.normalize_log_odds_ratio(
+    entropy_matrix = entropy_matrix,
+    n_isoforms = n_isoforms,
+    q = 2
+  )
+  
+  # Result should be matrix with finite values
+  expect_is(result, "matrix")
+  expect_true(all(is.finite(result)))
+  
+  # For Tsallis (q=2): S_max = (1 - n^(1-q)) / (q-1) = (1 - n^(-1)) / 1
+  # For gene1 (n=2): S_max = (1 - 0.5) = 0.5
+  # For gene2 (n=3): S_max = (1 - 1/3) = 2/3
+  # For gene3 (n=4): S_max = (1 - 0.25) = 0.75
+  s_max_gene1 <- (1 - 2^(1-2)) / (2-1)  # 0.5
+  s_max_gene2 <- (1 - 3^(1-2)) / (2-1)  # 2/3
+  s_max_gene3 <- (1 - 4^(1-2)) / (2-1)  # 0.75
+  
+  expected_s_max <- c(s_max_gene1, s_max_gene2, s_max_gene3)
+  expected_normalized <- log(cbind(
+    entropy_matrix[, 1] / expected_s_max,
+    entropy_matrix[, 2] / expected_s_max
+  ))
+  
+  expect_equal(as.numeric(result), as.numeric(expected_normalized), tolerance = 1e-10)
+})
+
+test_that(".normalize_log_odds_ratio handles data.frame input", {
+  # Test with data.frame instead of matrix
+  entropy_df <- data.frame(
+    Sample1 = c(0.5, 1.0, 1.5),
+    Sample2 = c(0.8, 1.2, 0.9)
+  )
+  rownames(entropy_df) <- c("gene1", "gene2", "gene3")
+  
+  n_isoforms <- c(gene1 = 3, gene2 = 4, gene3 = 2)
+  
+  result <- TSENAT:::.normalize_log_odds_ratio(
+    entropy_matrix = entropy_df,
+    n_isoforms = n_isoforms,
+    q = 1
+  )
+  
+  # Should return matrix
+  expect_is(result, "matrix")
+  expect_equal(nrow(result), nrow(entropy_df))
+  expect_equal(ncol(result), ncol(entropy_df))
+})
+
+test_that(".normalize_log_odds_ratio handles NA values correctly", {
+  entropy_matrix <- matrix(
+    c(0.5, NA, 1.5, 2.0, 0.8, NA),
+    nrow = 3, ncol = 2
+  )
+  colnames(entropy_matrix) <- c("Sample1_q=1", "Sample2_q=1")
+  rownames(entropy_matrix) <- c("gene1", "gene2", "gene3")
+  
+  n_isoforms <- c(gene1 = 3, gene2 = 4, gene3 = 5)
+  
+  result <- TSENAT:::.normalize_log_odds_ratio(
+    entropy_matrix = entropy_matrix,
+    n_isoforms = n_isoforms,
+    q = 1
+  )
+  
+  # NA values should be preserved
+  expect_true(is.na(result[2, 1]))
+  expect_true(is.na(result[3, 2]))
+  expect_false(is.na(result[1, 1]))  # Valid value not NA
+})
+
+test_that(".normalize_log_odds_ratio extracts q from column names when not specified", {
+  # Test automatic q extraction from colnames
+  entropy_matrix <- matrix(
+    c(0.5, 1.0, 2.0, 1.5),
+    nrow = 2, ncol = 2
+  )
+  colnames(entropy_matrix) <- c("Sample1_q=1.0", "Sample2_q=1.0")
+  rownames(entropy_matrix) <- c("gene1", "gene2")
+  
+  n_isoforms <- c(gene1 = 3, gene2 = 4)
+  
+  # Call without specifying q - should extract from colnames
+  result <- TSENAT:::.normalize_log_odds_ratio(
+    entropy_matrix = entropy_matrix,
+    n_isoforms = n_isoforms,
+    q = NULL
+  )
+  
+  # Should successfully extract q=1.0 from column names
+  expect_is(result, "matrix")
+  expect_true(all(is.finite(result)))
+})
+
+test_that(".normalize_log_odds_ratio rejects invalid input", {
+  # Test with invalid input types
+  entropy_list <- list(a = c(0.5, 1.0), b = c(0.8, 1.2))
+  n_isoforms <- c(3, 4)
+  
+  expect_error(
+    TSENAT:::.normalize_log_odds_ratio(
+      entropy_matrix = entropy_list,
+      n_isoforms = n_isoforms,
+      q = 1
+    ),
+    "must be a matrix or data.frame"
+  )
+})
+
+test_that(".normalize_log_odds_ratio numerical correctness: entropy ratios", {
+  # High precision numerical validation
+  entropy_matrix <- matrix(
+    c(0.6931471806, 1.0986122887, 1.3862943611),  # ln(2), ln(3), ln(4)
+    nrow = 3, ncol = 1
+  )
+  colnames(entropy_matrix) <- "Sample_q=1"
+  rownames(entropy_matrix) <- c("gene_with_2iso", "gene_with_3iso", "gene_with_4iso")
+  
+  n_isoforms <- c(gene_with_2iso = 2, gene_with_3iso = 3, gene_with_4iso = 4)
+  
+  result <- TSENAT:::.normalize_log_odds_ratio(
+    entropy_matrix = entropy_matrix,
+    n_isoforms = n_isoforms,
+    q = 1
+  )
+  
+  # All normalized values should be 0 (since S = S_max for uniform distributions)
+  # S_max(q=1, n) = log(n)
+  # S / S_max ratios: [ln(2)/ln(2), ln(3)/ln(3), ln(4)/ln(4)] = [1, 1, 1]
+  # log(1) = 0 for all
+  expect_equal(as.numeric(result), c(0, 0, 0), tolerance = 1e-10)
+})
+
+test_that(".normalize_log_odds_ratio handles zero values", {
+  # Test with zero entropy (edge case)
+  entropy_matrix <- matrix(
+    c(0, 0.5, 1.0),
+    nrow = 3, ncol = 1
+  )
+  colnames(entropy_matrix) <- "Sample_q=1"
+  rownames(entropy_matrix) <- c("gene1", "gene2", "gene3")
+  
+  n_isoforms <- c(gene1 = 4, gene2 = 4, gene3 = 4)
+  
+  result <- TSENAT:::.normalize_log_odds_ratio(
+    entropy_matrix = entropy_matrix,
+    n_isoforms = n_isoforms,
+    q = 1
+  )
+  
+  # Zero entropy doesn't meet s_vals > 0 condition, remains unchanged at 0
+  expect_equal(result[1, 1], 0.0)
+  expect_true(is.finite(result[2, 1]))
+  expect_true(is.finite(result[3, 1]))
+})
+
+
+# ============================================================================
+# TESTS FOR .normalize_relative_reference
+# ============================================================================
+# Tests for normalization relative to a reference group
+
+context("Entropy Normalization: Relative Reference")
+
+test_that(".normalize_relative_reference normalizes correctly with specified reference", {
+  # Create entropy matrix for 2 genes, 4 samples (2 control, 2 treatment)
+  entropy_matrix <- matrix(
+    c(1.0, 1.1, 2.0, 2.1, 1.5, 1.6, 2.5, 2.6),
+    nrow = 2, ncol = 4,
+    byrow = TRUE
+  )
+  colnames(entropy_matrix) <- c("ctrl_rep1", "ctrl_rep2", "treat_rep1", "treat_rep2")
+  rownames(entropy_matrix) <- c("gene1", "gene2")
+  
+  # Group vector: 2 controls, 2 treatments
+  group_vector <- factor(c("control", "control", "treatment", "treatment"))
+  
+  result <- TSENAT:::.normalize_relative_reference(
+    entropy_matrix = entropy_matrix,
+    group_vector = group_vector,
+    reference_group = "control"
+  )
+  
+  # Result should be matrix with same dimensions
+  expect_is(result, "matrix")
+  expect_equal(dim(result), dim(entropy_matrix))
+  
+  # Control samples should be normalized to ~1.0 (divided by their own mean)
+  # gene1: ref_mean = (1.0 + 1.1) / 2 = 1.05
+  # gene1, ctrl_rep1 normalized: 1.0 / 1.05 ≈ 0.952
+  # gene1, ctrl_rep2 normalized: 1.1 / 1.05 ≈ 1.048
+  expect_equal(result[1, 1], 1.0 / ((1.0 + 1.1) / 2), tolerance = 1e-10)
+  expect_equal(result[1, 2], 1.1 / ((1.0 + 1.1) / 2), tolerance = 1e-10)
+  
+  # Treatment samples should be different
+  # gene1, treat_rep1 normalized: 2.0 / 1.05 ≈ 1.905
+  expect_equal(result[1, 3], 2.0 / ((1.0 + 1.1) / 2), tolerance = 1e-10)
+})
+
+test_that(".normalize_relative_reference uses first group when reference_group=NULL", {
+  entropy_matrix <- matrix(
+    c(1.0, 1.2, 2.0, 2.2, 1.5, 1.7, 2.5, 2.7),
+    nrow = 2, ncol = 4,
+    byrow = TRUE
+  )
+  rownames(entropy_matrix) <- c("gene1", "gene2")
+  
+  # Alphabetically: "group_A" comes first, then "group_B"
+  group_vector <- factor(c("group_A", "group_A", "group_B", "group_B"))
+  
+  result <- TSENAT:::.normalize_relative_reference(
+    entropy_matrix = entropy_matrix,
+    group_vector = group_vector,
+    reference_group = NULL  # Should default to first level
+  )
+  
+  # Should normalize relative to group_A
+  # gene1, group_A samples: (1.0 + 1.2) / 2 = 1.1
+  # Result[1,1] = 1.0 / 1.1
+  expect_equal(as.numeric(result[1, 1]), 1.0 / 1.1, tolerance = 1e-10)
+})
+
+test_that(".normalize_relative_reference handles character group_vector", {
+  entropy_matrix <- matrix(
+    c(1.0, 1.1, 2.0, 2.1),
+    nrow = 2, ncol = 2
+  )
+  rownames(entropy_matrix) <- c("gene1", "gene2")
+  
+  # Character vector (not factor) - should be converted
+  group_vector <- c("control", "treatment")
+  
+  result <- TSENAT:::.normalize_relative_reference(
+    entropy_matrix = entropy_matrix,
+    group_vector = group_vector,
+    reference_group = "control"
+  )
+  
+  expect_is(result, "matrix")
+  expect_equal(nrow(result), 2)
+  expect_equal(ncol(result), 2)
+})
+
+test_that(".normalize_relative_reference validates group_vector length", {
+  entropy_matrix <- matrix(
+    c(1.0, 1.1, 2.0, 2.1),
+    nrow = 2, ncol = 2
+  )
+  
+  # Mismatched group_vector length
+  group_vector <- c("a", "b", "c")  # Length 3, but matrix has 2 columns
+  
+  expect_error(
+    TSENAT:::.normalize_relative_reference(
+      entropy_matrix = entropy_matrix,
+      group_vector = group_vector,
+      reference_group = "a"
+    ),
+    "group_vector length must equal ncol"
+  )
+})
+
+test_that(".normalize_relative_reference validates reference_group exists", {
+  entropy_matrix <- matrix(
+    c(1.0, 1.1, 2.0, 2.1),
+    nrow = 2, ncol = 2
+  )
+  
+  group_vector <- c("control", "treatment")
+  
+  expect_error(
+    TSENAT:::.normalize_relative_reference(
+      entropy_matrix = entropy_matrix,
+      group_vector = group_vector,
+      reference_group = "nonexistent_group"
+    ),
+    "reference_group .* not found"
+  )
+})
+
+test_that(".normalize_relative_reference handles NA values correctly", {
+  entropy_matrix <- matrix(
+    c(1.0, NA, 2.0, 2.1, 1.5, NA, 2.5, 2.6),
+    nrow = 2, ncol = 4,
+    byrow = TRUE
+  )
+  rownames(entropy_matrix) <- c("gene1", "gene2")
+  
+  group_vector <- factor(c("a", "a", "b", "b"))
+  
+  result <- TSENAT:::.normalize_relative_reference(
+    entropy_matrix = entropy_matrix,
+    group_vector = group_vector,
+    reference_group = "a"
+  )
+  
+  # NA values should be preserved
+  expect_true(is.na(result[1, 2]))
+  expect_true(is.na(result[2, 2]))
+  # Valid values should be normalized
+  expect_false(is.na(result[1, 1]))
+})
+
+test_that(".normalize_relative_reference numerical correctness: group means", {
+  # High precision test
+  entropy_matrix <- matrix(
+    c(0.5, 1.5, 1.0, 2.0, 2.5, 3.0),
+    nrow = 3, ncol = 2,
+    byrow = TRUE
+  )
+  colnames(entropy_matrix) <- c("ref_sample", "test_sample")
+  rownames(entropy_matrix) <- c("gene1", "gene2", "gene3")
+  
+  group_vector <- c("reference", "test")
+  
+  result <- TSENAT:::.normalize_relative_reference(
+    entropy_matrix = entropy_matrix,
+    group_vector = group_vector,
+    reference_group = "reference"
+  )
+  
+  # Reference samples divided by their own value (should be 1.0)
+  expect_equal(result[1, 1], 1.0, tolerance = 1e-10)
+  expect_equal(result[2, 1], 1.0, tolerance = 1e-10)
+  expect_equal(result[3, 1], 1.0, tolerance = 1e-10)
+  
+  # Test samples divided by reference value (ratio differs from 1.0)
+  # gene1: 1.5 / 0.5 = 3.0
+  expect_equal(result[1, 2], 3.0, tolerance = 1e-10)
+  # gene2: 2.0 / 1.0 = 2.0
+  expect_equal(result[2, 2], 2.0, tolerance = 1e-10)
+  # gene3: 3.0 / 2.5 = 1.2
+  expect_equal(result[3, 2], 1.2, tolerance = 1e-10)
+})
+
+test_that(".normalize_relative_reference rejects invalid input", {
+  # Test with non-matrix input
+  entropy_list <- list(a = c(1, 2), b = c(3, 4))
+  group_vector <- c("a", "b")
+  
+  expect_error(
+    TSENAT:::.normalize_relative_reference(
+      entropy_matrix = entropy_list,
+      group_vector = group_vector,
+      reference_group = "a"
+    ),
+    "must be a matrix or data.frame"
+  )
+})
+
+test_that(".normalize_relative_reference handles single sample per group", {
+  entropy_matrix <- matrix(
+    c(1.0, 2.0, 1.5, 1.2, 2.5, 2.2),
+    nrow = 2, ncol = 3,
+    byrow = TRUE
+  )
+  
+  # Single reference sample (reference_group has only 1 sample)
+  group_vector <- factor(c("ref", "test1", "test2"), levels = c("ref", "test1", "test2"))
+  
+  result <- TSENAT:::.normalize_relative_reference(
+    entropy_matrix = entropy_matrix,
+    group_vector = group_vector,
+    reference_group = "ref"
+  )
+  
+  # Reference sample normalized by itself should be 1.0
+  expect_equal(result[1, 1], 1.0, tolerance = 1e-10)
+  # Test samples normalized by reference value
+  expect_equal(result[1, 2], 2.0 / 1.0, tolerance = 1e-10)
+  expect_equal(result[1, 3], 1.5 / 1.0, tolerance = 1e-10)
+})
+
+test_that(".normalize_relative_reference handles multiple replicates per group", {
+  # 4 genes x 6 samples (3 control replicates, 3 treatment replicates)
+  entropy_matrix <- matrix(
+    c(
+      1.0, 1.05, 0.95, 2.0, 2.05, 1.95,  # gene1
+      1.5, 1.55, 1.45, 2.5, 2.55, 2.45,  # gene2
+      0.8, 0.85, 0.75, 1.8, 1.85, 1.75,  # gene3
+      2.2, 2.25, 2.15, 3.2, 3.25, 3.15   # gene4
+    ),
+    nrow = 4, ncol = 6, byrow = TRUE
+  )
+  rownames(entropy_matrix) <- paste0("gene", 1:4)
+  colnames(entropy_matrix) <- paste0("sample", 1:6)
+  
+  # 3 controls, 3 treatments
+  group_vector <- factor(rep(c("control", "control", "control", "treatment", "treatment", "treatment")),
+                        levels = c("control", "treatment"))
+  
+  result <- TSENAT:::.normalize_relative_reference(
+    entropy_matrix = entropy_matrix,
+    group_vector = group_vector,
+    reference_group = "control"
+  )
+  
+  # Check that control replicates normalize to approximately 1.0
+  # (average of control replicates = reference for that gene)
+  # gene1 control mean = (1.0 + 1.05 + 0.95) / 3 ≈ 1.0
+  control_mean_gene1 <- (1.0 + 1.05 + 0.95) / 3
+  expect_equal(result[1, 1] * control_mean_gene1, 1.0, tolerance = 1e-10)
+  
+  # Treatment samples should be higher
+  expect_true(result[1, 4] > result[1, 1])  # treatment > control
+})

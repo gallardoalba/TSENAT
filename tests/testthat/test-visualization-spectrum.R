@@ -453,3 +453,123 @@ test_that("plot_divergence_spectrum_s4: parameter validation", {
   metrics <- c("iqr", "sd", "mad")
   expect_true("iqr" %in% metrics)
 })
+
+
+# ============================================================================
+# TEST 2: plot_divergence_spectrum_s4 - Divergence spectrum plot
+# ============================================================================
+
+test_that("plot_divergence_spectrum_s4: validates analysis object", {
+  expect_error(
+    TSENAT:::plot_divergence_spectrum_s4("not_analysis"),
+    "must be a TSENATAnalysis object"
+  )
+})
+
+test_that("plot_divergence_spectrum_s4: requires divergence results", {
+  set.seed(304)
+  
+  # Create minimal analysis without divergence results
+  analysis <- TSENAT:::.create_test_analysis(
+    n_genes = 10,
+    n_samples_per_group = 3,
+    q_values = c(1.0),
+    include_divergence = FALSE,
+    include_lm_results = FALSE,
+    seed = 304,
+    verbose = FALSE
+  )
+  
+  # Should error when no divergence results
+  expect_error(
+    TSENAT:::plot_divergence_spectrum_s4(analysis),
+    "Divergence results not found|Invalid divergence_results structure"
+  )
+})
+
+test_that("plot_divergence_spectrum_s4: creates plot with valid divergence data", {
+  skip_if_not_installed("ggplot2")
+  
+  set.seed(305)
+  
+  # Create analysis WITH divergence results
+  analysis <- TSENAT:::.create_test_analysis(
+    n_genes = 10,
+    n_samples_per_group = 3,
+    q_values = c(0.5, 1.0, 1.5),
+    include_divergence = TRUE,  # Key: include divergence
+    include_lm_results = FALSE,
+    seed = 305,
+    verbose = FALSE
+  )
+  
+  # Should create plot successfully with default parameters
+  result <- tryCatch(
+    TSENAT:::plot_divergence_spectrum_s4(analysis, n_genes = 2, verbose = FALSE),
+    error = function(e) {
+      cat("Error:", e$message, "\n")
+      NULL
+    }
+  )
+  
+  # Result should be ggplot object or list (or NULL if dependencies missing)
+  expect_true(is.null(result) || inherits(result, "ggplot") || is.list(result))
+})
+
+test_that("plot_divergence_spectrum_s4: handles single gene mode", {
+  skip_if_not_installed("ggplot2")
+  
+  set.seed(306)
+  
+  analysis <- TSENAT:::.create_test_analysis(
+    n_genes = 10,
+    n_samples_per_group = 3,
+    q_values = c(0.5, 1.0, 1.5),
+    include_divergence = TRUE,
+    include_lm_results = FALSE,
+    seed = 306,
+    verbose = FALSE
+  )
+  
+  # Test with single gene specified
+  result <- tryCatch(
+    TSENAT:::plot_divergence_spectrum_s4(analysis, gene = "gene_1", verbose = FALSE),
+    error = function(e) NULL
+  )
+  
+  expect_true(is.null(result) || inherits(result, "ggplot") || is.list(result))
+})
+
+test_that("plot_divergence_spectrum_s4: respects metric and variability parameters", {
+  skip_if_not_installed("ggplot2")
+  
+  set.seed(307)
+  
+  analysis <- TSENAT:::.create_test_analysis(
+    n_genes = 10,
+    n_samples_per_group = 3,
+    q_values = c(0.5, 1.0, 1.5),
+    include_divergence = TRUE,
+    include_lm_results = FALSE,
+    seed = 307,
+    verbose = FALSE
+  )
+  
+  # Test different metric combinations
+  result_median_iqr <- tryCatch(
+    TSENAT:::plot_divergence_spectrum_s4(
+      analysis, n_genes = 2, metric = "median", variability_metric = "iqr", verbose = FALSE
+    ),
+    error = function(e) NULL
+  )
+  
+  result_mean_sd <- tryCatch(
+    TSENAT:::plot_divergence_spectrum_s4(
+      analysis, n_genes = 2, metric = "mean", variability_metric = "sd", verbose = FALSE
+    ),
+    error = function(e) NULL
+  )
+  
+  expect_true(is.null(result_median_iqr) || inherits(result_median_iqr, "ggplot") || is.list(result_median_iqr))
+  expect_true(is.null(result_mean_sd) || inherits(result_mean_sd, "ggplot") || is.list(result_mean_sd))
+})

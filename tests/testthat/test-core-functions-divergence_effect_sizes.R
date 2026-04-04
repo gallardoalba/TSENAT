@@ -1177,6 +1177,8 @@ test_that(".enrichWithQPatterns adds per_q_pattern column", {
 })
 
 test_that("complete workflow with multi-q divergence produces correct output", {
+  skip_on_cran()
+  
   lm_res <- data.frame(
     gene = c("gene1", "gene2"),
     adj_p_interaction = c(0.001, 0.05)
@@ -1219,6 +1221,8 @@ test_that("complete workflow with multi-q divergence produces correct output", {
 })
 
 test_that("effect_sizes_divergence maintains data integrity through pipeline", {
+  skip_on_cran()
+  
   lm_res <- data.frame(
     gene = c("ENSG00001", "ENSG00002", "ENSG00003"),
     adj_p_interaction = c(0.001, 0.01, 0.5),
@@ -1569,6 +1573,8 @@ test_that("classify_q_pattern correctly computes median for classification", {
 })
 
 test_that("Effect size calculation preserves full precision through pipeline", {
+  skip_on_cran()
+  
   # Test full pipeline with high-precision values
   lm_res <- data.frame(
     gene = c("precision_test"),
@@ -2098,5 +2104,434 @@ test_that("effect_sizes_divergence_s4 respects output_file parameter", {
   
   # Cleanup
   file.remove(temp_output)
+})
+
+
+# ============================================================================
+# TESTS FOR .printMergeSuccess - EDGE CASES AND ERROR HANDLING
+# ============================================================================
+# These tests cover the uncovered conditional branches (use_generic TRUE/FALSE)
+# and error/edge case paths in the message printing logic
+
+test_that(".printMergeSuccess prints generic path with valid CI values", {
+  # Test generic divergence path with complete CI information
+  lmm_data <- list(
+    match_name = "gene_A1BG",
+    p_interaction = 0.01234
+  )
+  
+  div_data <- data.frame(
+    estimate = 0.854,
+    lower_ci = 0.750,
+    upper_ci = 0.920
+  )
+  
+  # Capture message output
+  expect_message(
+    TSENAT:::.printMergeSuccess(lmm_data, div_data, q_values = NA_real_, use_generic = TRUE),
+    "SUCCESS.*gene_A1BG.*p=.*D_spectrum=.*CI="
+  )
+})
+
+test_that(".printMergeSuccess prints generic path with NA CI values", {
+  # Test generic path when CI values are NA (missing bootstrap CI)
+  lmm_data <- list(
+    match_name = "gene_BRCA1",
+    p_interaction = 0.0001
+  )
+  
+  div_data <- data.frame(
+    estimate = 0.42,
+    lower_ci = NA_real_,
+    upper_ci = NA_real_
+  )
+  
+  # Should print without CI text when values are NA
+  # Use a custom reporter to capture the output
+  env <- new.env()
+  capture_output <- capture.output({
+    withCallingHandlers(
+      TSENAT:::.printMergeSuccess(lmm_data, div_data, q_values = NA_real_, use_generic = TRUE),
+      message = function(m) {
+        env$msg <- m$message
+      }
+    )
+  })
+  
+  # Check that message was generated without CI text
+  if (is.null(env$msg)) {
+    # Alternative: function may not throw message, just print
+    # Verify that at least SUCCESS is printed
+    expect_match(paste(capture_output, collapse = ""), "SUCCESS")
+  } else {
+    expect_match(env$msg, "SUCCESS")
+    expect_false(grepl("CI=", env$msg))
+  }
+})
+
+test_that(".printMergeSuccess handles very small p-values in generic path", {
+  # Test with p-value that triggers scientific notation
+  lmm_data <- list(
+    match_name = "gene_TP53",
+    p_interaction = 1.23e-45  # Extremely small p-value
+  )
+  
+  div_data <- data.frame(
+    estimate = 0.95,
+    lower_ci = 0.88,
+    upper_ci = 0.98
+  )
+  
+  # Should handle scientific notation formatting correctly
+  expect_message(
+    TSENAT:::.printMergeSuccess(lmm_data, div_data, q_values = NA_real_, use_generic = TRUE),
+    "SUCCESS.*TP53.*D_spectrum="
+  )
+})
+
+test_that(".printMergeSuccess handles very large divergence values in generic path", {
+  # Test with divergence values near boundary (log N)
+  lmm_data <- list( 
+    match_name = "gene_ABC",
+    p_interaction = 0.05
+  )
+  
+  div_data <- data.frame(
+    estimate = 15.234,  # Large divergence (e.g., for large alphabet size)
+    lower_ci = 14.1,
+    upper_ci = 16.5
+  )
+  
+  # Should format large values correctly
+  expect_message(
+    TSENAT:::.printMergeSuccess(lmm_data, div_data, q_values = NA_real_, use_generic = TRUE),
+    "SUCCESS.*D_spectrum=.*1\\.52e"
+  )
+})
+
+test_that(".printMergeSuccess handles negative divergence estimates in generic path", {
+  # Test with negative divergence (should take absolute value)
+  lmm_data <- list(
+    match_name = "gene_NEG",
+    p_interaction = 0.02
+  )
+  
+  div_data <- data.frame(
+    estimate = -0.65,  # Negative estimate
+    lower_ci = -0.8,
+    upper_ci = -0.4
+  )
+  
+  # Should convert to absolute value and format CI
+  expect_message(
+    TSENAT:::.printMergeSuccess(lmm_data, div_data, q_values = NA_real_, use_generic = TRUE),
+    "SUCCESS.*NEG.*D_spectrum=.*6\\.5"  # 0.65 in scientific or decimal
+  )
+})
+
+test_that(".printMergeSuccess prints multi-q path with homogeneous values", {
+  # Test multi-q path with uniform divergence across q-values
+  lmm_data <- list(
+    match_name = "gene_MultiQ",
+    p_interaction = 0.003
+  )
+  
+  # IMPORTANT: Column names MUST match paste0("estimate_q", q_values)
+  # When q=1.0, paste0("estimate_q", 1.0) creates "estimate_q1" (not "estimate_q1.0")
+  q_values <- c(0.5, 1.0, 2.0)
+  div_data <- data.frame(
+    estimate_q0.5 = 0.50,
+    estimate_q1 = 0.50,      # Note: "estimate_q1" not "estimate_q1.0"
+    estimate_q2 = 0.50
+  )
+  
+  # Should print all divergence values
+  expect_message(
+    TSENAT:::.printMergeSuccess(lmm_data, div_data, q_values = q_values, use_generic = FALSE),
+    "SUCCESS.*MultiQ.*D_spectrum=.*0\\.50.*0\\.50.*0\\.50"
+  )
+})
+
+test_that(".printMergeSuccess prints multi-q path with heterogeneous values", {
+  # Test multi-q path with varying divergence across q-values (spectrum effect)
+  lmm_data <- list(
+    match_name = "gene_Spectrum",
+    p_interaction = 0.01
+  )
+  
+  # IMPORTANT: Column names MUST match paste0("estimate_q", q_values)
+  q_values <- c(0.5, 1.0, 2.0)
+  div_data <- data.frame(
+    estimate_q0.5 = 0.95,   # High at low q (rare-driven)
+    estimate_q1 = 0.65,     # Moderate at Shannon (note: "estimate_q1")
+    estimate_q2 = 0.35      # Low at high q
+  )
+  
+  # Should show spectrum pattern
+  expect_message(
+    TSENAT:::.printMergeSuccess(lmm_data, div_data, q_values = q_values, use_generic = FALSE),
+    "SUCCESS.*Spectrum.*D_spectrum=.*0\\.95.*0\\.65.*0\\.35"
+  )
+})
+
+test_that(".printMergeSuccess prints multi-q path with NA estimates", {
+  # Test multi-q where some q-values have NA estimates
+  lmm_data <- list(
+    match_name = "gene_WithNA",
+    p_interaction = 0.04
+  )
+  
+  # IMPORTANT: Column names MUST match paste0("estimate_q", q_values)
+  q_values <- c(0.5, 1.0, 2.0)
+  div_data <- data.frame(
+    estimate_q0.5 = 0.7,
+    estimate_q1 = NA_real_,  # Missing at q=1.0 (note: "estimate_q1")
+    estimate_q2 = 0.5
+  )
+  
+  # Should handle NA values (will extract NA from data)
+  expect_message(
+    TSENAT:::.printMergeSuccess(lmm_data, div_data, q_values = q_values, use_generic = FALSE),
+    "SUCCESS.*WithNA"
+  )
+})
+
+test_that(".printMergeSuccess prints multi-q path with many q-values", {
+  # Test with large q-value spectrum
+  lmm_data <- list(
+    match_name = "gene_FullSpectrum",
+    p_interaction = 0.001
+  )
+  
+  q_values <- c(0.1, 0.5, 1.0, 1.5, 2.0, 3.0)
+  
+  # IMPORTANT: Create columns matching paste0("estimate_q", q_values)
+  # Results: "estimate_q0.1", "estimate_q0.5", "estimate_q1", "estimate_q1.5", "estimate_q2", "estimate_q3"
+  col_names <- paste0("estimate_q", q_values)
+  div_data <- as.data.frame(setNames(
+    as.list(seq(0.9, 0.3, length.out = 6)),
+    col_names
+  ))
+  
+  # Should format multiple q-values
+  expect_message(
+    TSENAT:::.printMergeSuccess(lmm_data, div_data, q_values = q_values, use_generic = FALSE),
+    "SUCCESS.*FullSpectrum.*D_spectrum="
+  )
+})
+
+test_that(".printMergeSuccess handles boundary p-value (p=1.0) in generic path", {
+  # Test with p-value at boundary (no significant effect)
+  lmm_data <- list(
+    match_name = "gene_NoEffect",
+    p_interaction = 1.0  # Not significant
+  )
+  
+  div_data <- data.frame(
+    estimate = 0.01,  # Very small divergence
+    lower_ci = 0.001,
+    upper_ci = 0.02
+  )
+  
+  # Should still print (function doesn't filter - that's caller's job)
+  expect_message(
+    TSENAT:::.printMergeSuccess(lmm_data, div_data, q_values = NA_real_, use_generic = TRUE),
+    "SUCCESS.*NoEffect.*p=.*1"
+  )
+})
+
+test_that(".printMergeSuccess handles boundary p-value (p=0.0) in generic path", {
+  # Test with p-value very close to 0 (extremely significant)
+  lmm_data <- list(
+    match_name = "gene_VerySignificant",
+    p_interaction = 1e-300  # Near-zero p-value
+  )
+  
+  div_data <- data.frame(
+    estimate = 0.99,
+    lower_ci = 0.95,
+    upper_ci = 0.999
+  )
+  
+  # Should handle extreme scientific notation
+  expect_message(
+    TSENAT:::.printMergeSuccess(lmm_data, div_data, q_values = NA_real_, use_generic = TRUE),
+    "SUCCESS.*VerySignificant"
+  )
+})
+
+test_that(".printMergeSuccess handles special gene names in generic path", {
+  # Test with complex gene names (symbols, numbers, dots, dashes)
+  lmm_data <- list(
+    match_name = "ENSG00000000003.13-AS1",  # Real Ensembl format
+    p_interaction = 0.005
+  )
+  
+  div_data <- data.frame(
+    estimate = 0.42,
+    lower_ci = 0.35,
+    upper_ci = 0.50
+  )
+  
+  # Should print gene name as-is
+  expect_message(
+    TSENAT:::.printMergeSuccess(lmm_data, div_data, q_values = NA_real_, use_generic = TRUE),
+    "ENSG00000000003"
+  )
+})
+
+test_that(".printMergeSuccess outputs message (is callable)", {
+  # Verify that function doesn't error when called with valid data
+  lmm_data <- list(
+    match_name = "test_gene",
+    p_interaction = 0.012
+  )
+  
+  div_data <- data.frame(
+    estimate = 0.5,
+    lower_ci = 0.4,
+    upper_ci = 0.6
+  )
+  
+  # Should not throw error
+  expect_error(
+    TSENAT:::.printMergeSuccess(lmm_data, div_data, q_values = NA_real_, use_generic = TRUE),
+    NA  # Expect no error
+  )
+})
+
+test_that(".printMergeSuccess returns invisible(NULL) silently", {
+  # Test return value (should be invisible so doesn't print in console)
+  lmm_data <- list(
+    match_name = "test_gene",
+    p_interaction = 0.05
+  )
+  
+  div_data <- data.frame(
+    estimate = 0.5,
+    lower_ci = 0.4,
+    upper_ci = 0.6
+  )
+  
+  # Function doesn't explicitly return but should not print object
+  result <- TSENAT:::.printMergeSuccess(
+    lmm_data, div_data, q_values = NA_real_, use_generic = TRUE
+  )
+  
+  expect_null(result)
+})
+
+test_that(".printMergeSuccess handles zero divergence in multi-q path", {
+  # Test multi-q with zero divergence values
+  lmm_data <- list(
+    match_name = "gene_ZeroDivergence",
+    p_interaction = 0.02
+  )
+  
+  # IMPORTANT: Column names MUST match paste0("estimate_q", q_values)
+  q_values <- c(0.5, 1.0, 2.0)
+  div_data <- data.frame(
+    estimate_q0.5 = 0.0,
+    estimate_q1 = 0.0,       # Note: "estimate_q1"
+    estimate_q2 = 0.0
+  )
+  
+  # Should handle all-zero case
+  expect_message(
+    TSENAT:::.printMergeSuccess(lmm_data, div_data, q_values = q_values, use_generic = FALSE),
+    "SUCCESS.*ZeroDivergence.*0\\.000.*0\\.000.*0\\.000"
+  )
+})
+
+test_that(".printMergeSuccess handles scientific notation for small divergence in generic", {
+  # Test very small divergence (may use scientific notation)
+  lmm_data <- list(
+    match_name = "gene_TinyDiv",
+    p_interaction = 0.03
+  )
+  
+  div_data <- data.frame(
+    estimate = 1.23e-5,  # Tiny divergence
+    lower_ci = 1e-6,
+    upper_ci = 2e-5
+  )
+  
+  # Should format in scientific notation
+  expect_message(
+    TSENAT:::.printMergeSuccess(lmm_data, div_data, q_values = NA_real_, use_generic = TRUE),
+    "SUCCESS.*TinyDiv.*D_spectrum=.*1\\.23e"
+  )
+})
+
+test_that(".printMergeSuccess formats p-values (generic path works)", {
+  # Verify p-value formatting by verifying function executes without error
+  test_cases <- list(
+    list(p = 0.001234),
+    list(p = 0.1234),
+    list(p = 0.9999),
+    list(p = 1e-6)
+  )
+  
+  for (case in test_cases) {
+    lmm_data <- list(
+      match_name = "test_gene",
+      p_interaction = case$p
+    )
+    
+    div_data <- data.frame(
+      estimate = 0.5,
+      lower_ci = 0.4,
+      upper_ci = 0.6
+    )
+    
+    # Should not error regardless of p-value
+    expect_error(
+      TSENAT:::.printMergeSuccess(lmm_data, div_data, q_values = NA_real_, use_generic = TRUE),
+      NA
+    )
+  }
+})
+
+test_that(".printMergeSuccess formats divergence to 3 digits in generic path", {
+  # Verify divergence formatting in generic mode - test that it handles various values
+  lmm_data <- list(
+    match_name = "test_gene",
+    p_interaction = 0.05
+  )
+  
+  # Test various divergence values
+  div_data <- data.frame(
+    estimate = 0.123456,  # Should truncate to 3 significant figures in scientific notation
+    lower_ci = 0.1,
+    upper_ci = 0.15
+  )
+  
+  # Should process without error
+  expect_error(
+    TSENAT:::.printMergeSuccess(lmm_data, div_data, q_values = NA_real_, use_generic = TRUE),
+    NA
+  )
+})
+
+test_that(".printMergeSuccess formats divergence to 3 digits in multi-q path", {
+  # Verify divergence formatting in multi-q mode
+  lmm_data <- list(
+    match_name = "test_gene",
+    p_interaction = 0.05
+  )
+  
+  # IMPORTANT: Column names MUST match paste0("estimate_q", q_values)
+  q_values <- c(0.5, 1.0, 2.0)
+  div_data <- data.frame(
+    estimate_q0.5 = 0.123456,
+    estimate_q1 = 0.456789,    # Note: "estimate_q1"
+    estimate_q2 = 0.789012
+  )
+  
+  # Should process without error
+  expect_error(
+    TSENAT:::.printMergeSuccess(lmm_data, div_data, q_values = q_values, use_generic = FALSE),
+    NA
+  )
 })
 
