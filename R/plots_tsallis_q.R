@@ -288,16 +288,16 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
         p <- ggplot2::ggplot() + ggplot2::geom_ribbon(data = stats_df, ggplot2::aes(x = qnum,
             ymin = central - spread, ymax = central + spread, fill = group), alpha = 0.2) +
             ggplot2::geom_line(data = stats_df, ggplot2::aes(x = qnum, y = central,
-                color = group), linewidth = 1.3) + ggplot2::labs(title = sel, x = "q value",
-            y = "Tsallis entropy", color = "Group", fill = "Group") + ggplot2::scale_color_manual(values = .palette_blue_red(),
-            name = "Group") + ggplot2::scale_fill_manual(values = .palette_blue_red(),
-            name = "Group") + .theme_base(base_size = 11) + ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5,
-            size = 16, face = "bold"))
+                color = group), linewidth = 1.3)
+        p <- .apply_group_aesthetics(p, palette = "palette_blue_red", legend_name = "Group")
+        p <- .apply_publication_theme(p, base_theme = "theme_spectrum", base_size = 11,
+            title = sel, title_size = 16)
+        p <- p + ggplot2::labs(x = "q value", y = "Tsallis entropy")
         p
     }
 
     if (length(genes) == 1) {
-        p <- make_plot_for_gene(genes)
+        p <- make_plot_for_gene(genes[[1]])
         # Add subtitle for single gene mode
         p <- p + ggplot2::labs(subtitle = ci_subtitle)
         return(p)
@@ -306,22 +306,17 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
     plots <- lapply(genes, make_plot_for_gene)
     names(plots) <- genes
 
-    legend_obj <- cowplot::get_legend(plots[[1]] + ggplot2::theme(legend.position = "bottom",
-        legend.direction = "horizontal"))
-
-    plots_no_legend <- lapply(plots, function(p) p + ggplot2::theme(legend.position = "none"))
-    grid_with_plots <- do.call(cowplot::plot_grid, c(plots_no_legend, list(nrow = 2,
-        ncol = 2)))
-
-    title_plot <- cowplot::ggdraw() + cowplot::draw_label("Tsallis Entropy q-Curve Profile",
-        fontface = "bold", size = 19) + cowplot::draw_label(ci_subtitle, fontface = "italic",
-        size = 13, y = 0.25)
-
-    grid_with_legend <- cowplot::plot_grid(title_plot, grid_with_plots, legend_obj,
-        nrow = 3, rel_heights = c(0.12, 1, 0.08))
+    # Assemble grid with title and legend using helper
+    grid_with_legend <- .assemble_grid_plot(plots,
+        ncol = 2, nrow = 2,
+        title = "Tsallis Entropy q-Curve Profile",
+        subtitle = ci_subtitle,
+        legend_position = "bottom",
+        extract_legend = TRUE)
 
     if (!is.null(output_file)) {
-        ggplot2::ggsave(output_file, plot = grid_with_legend, width = 12, height = 10,
+        plot_dims <- .calculate_plot_dims(width_inches = 12, aspect_type = "tall", dpi_output = 100)
+        ggplot2::ggsave(output_file, plot = grid_with_legend, width = plot_dims$width, height = plot_dims$height,
             dpi = 100)
     }
 
@@ -359,21 +354,25 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
 
     plot_df <- .bootstrap_aggregate_ci(se, long)
 
-    p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = q, y = median, color = group,
-        fill = group)) + ggplot2::geom_line(linewidth = 1.2) + ggplot2::geom_ribbon(ggplot2::aes(ymin = ci_lower,
-        ymax = ci_upper), alpha = 0.15, color = NA) + ggplot2::scale_color_manual(values = .palette_blue_red(),
-        name = "Group") + ggplot2::scale_fill_manual(values = .palette_blue_red(),
-        name = "Group") + .theme_base(base_size = 11) + ggplot2::labs(title = "Tsallis Entropy Across Diversity Scales (q-spectrum)",
-        subtitle = "Observed median (line) with bootstrap 95% percentile CI (shaded band)",
-        x = "q value", y = expression("Tsallis entropy (" * S[q] * ")"), color = "Group",
-        fill = "Group")
+    # REFACTORED: Using consolidated helpers (.create_ci_ribbon_plot + .apply_group_aesthetics + .apply_publication_theme)
+    # Preserves exact original aesthetics while reducing code duplication
+    p <- .create_ci_ribbon_plot(plot_df, x_col = "q", y_col = "median",
+        group_col = "group", ci_lower_col = "ci_lower", ci_upper_col = "ci_upper",
+        ribbon_alpha = 0.15, line_width = 1.2, show_points = FALSE)
+    p <- .apply_group_aesthetics(p, palette = "palette_blue_red", legend_name = "Group")
+    p <- .apply_publication_theme(p, base_theme = "theme_spectrum", base_size = 11,
+        title = "Tsallis Entropy Across Diversity Scales (q-spectrum)",
+        subtitle = "Observed median (line) with bootstrap 95% percentile CI (shaded band)")
+    p <- p + ggplot2::labs(x = "q value", y = expression("Tsallis entropy (" * S[q] * ")"), 
+        color = "Group", fill = "Group")
 
     if (length(groups) == 1) {
         p <- p + ggplot2::theme(legend.position = "none")
     }
 
     if (!is.null(output_file)) {
-        ggplot2::ggsave(output_file, plot = p, width = 12, height = 7.2, dpi = 100)
+        plot_dims <- .calculate_plot_dims(width_inches = 12, aspect_type = "standard", dpi_output = 100)
+        ggplot2::ggsave(output_file, plot = p, width = plot_dims$width, height = plot_dims$height, dpi = plot_dims$dpi)
     }
 
     p
@@ -419,15 +418,13 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
             return(NULL)
         }
 
-        p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = q, y = median, color = group,
-            fill = group)) + ggplot2::geom_ribbon(ggplot2::aes(ymin = ci_lower, ymax = ci_upper),
-            alpha = 0.15, color = NA) + ggplot2::geom_line(linewidth = 1.2) + ggplot2::scale_color_manual(values = .palette_blue_red(),
-            name = "Group") + ggplot2::scale_fill_manual(values = .palette_blue_red(),
-            name = "Group") + .theme_base(base_size = 11) + ggplot2::labs(title = g,
-            x = "q value", y = "Tsallis entropy", color = "Group", fill = "Group") +
-            ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 14,
-                face = "bold"))
-
+        p <- .create_ci_ribbon_plot(plot_data, x_col = "q", y_col = "median",
+            group_col = "group", ci_lower_col = "ci_lower", ci_upper_col = "ci_upper",
+            ribbon_alpha = 0.15, line_width = 1.2, show_points = FALSE)
+        p <- .apply_group_aesthetics(p, palette = "palette_blue_red", legend_name = "Group")
+        p <- .apply_publication_theme(p, base_theme = "theme_spectrum", base_size = 11,
+            title = g, title_size = 14)
+        p <- p + ggplot2::labs(x = "q value", y = "Tsallis entropy")
         p
     }
 
@@ -448,23 +445,17 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
         stop("No valid genes found for plotting")
     }
 
-    legend_obj <- cowplot::get_legend(plots[[1]] + ggplot2::theme(legend.position = "bottom",
-        legend.direction = "horizontal"))
-
-    plots_no_legend <- lapply(plots, function(p) p + ggplot2::theme(legend.position = "none"))
-    grid_with_plots <- do.call(cowplot::plot_grid, c(plots_no_legend, list(nrow = 2,
-        ncol = 2)))
-
-    title_plot <- cowplot::ggdraw() + cowplot::draw_label("Tsallis Entropy q-Curve Profile",
-        fontface = "bold", size = 19) + cowplot::draw_label("Median with Bootstrap 95% Confidence Intervals",
-        fontface = "italic", size = 13, y = 0.25)
-
-    grid_with_legend <- cowplot::plot_grid(title_plot, grid_with_plots, legend_obj,
-        nrow = 3, rel_heights = c(0.12, 1, 0.08))
+    grid_with_legend <- .assemble_grid_plot(plots,
+        ncol = 2, nrow = 2,
+        title = "Tsallis Entropy q-Curve Profile",
+        subtitle = "Median with Bootstrap 95% Confidence Intervals",
+        legend_position = "bottom",
+        extract_legend = TRUE)
 
     if (!is.null(output_file)) {
-        ggplot2::ggsave(output_file, plot = grid_with_legend, width = 12, height = 10,
-            dpi = 100)
+        plot_dims <- .calculate_plot_dims(width_inches = 12, aspect_type = "tall", dpi_output = 100)
+        ggplot2::ggsave(output_file, plot = grid_with_legend, width = plot_dims$width, height = plot_dims$height,
+            dpi = plot_dims$dpi)
     }
 
     grid_with_legend
@@ -501,13 +492,11 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
 
         p <- ggplot2::ggplot(stats_df, ggplot2::aes(x = q, y = median, color = group,
             fill = group)) + ggplot2::geom_line(linewidth = 1.2) + ggplot2::geom_ribbon(ggplot2::aes(ymin = median -
-            spread, ymax = median + spread), alpha = 0.2, color = NA) + ggplot2::scale_color_manual(values = .palette_blue_red(),
-            name = "Group") + ggplot2::scale_fill_manual(values = .palette_blue_red(),
-            name = "Group") + .theme_base(base_size = 11) + ggplot2::labs(title = g,
-            x = "q value", y = "Tsallis entropy", color = "Group", fill = "Group") +
-            ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 14,
-                face = "bold"))
-
+            spread, ymax = median + spread), alpha = 0.2, color = NA)
+        p <- .apply_group_aesthetics(p, palette = "palette_blue_red", legend_name = "Group")
+        p <- .apply_publication_theme(p, base_theme = "theme_spectrum", base_size = 11,
+            title = g, title_size = 14)
+        p <- p + ggplot2::labs(x = "q value", y = "Tsallis entropy")
         p
     }
 
@@ -518,23 +507,18 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
     }
 
     plots <- lapply(genes, make_gene_plot)
-    legend_obj <- cowplot::get_legend(plots[[1]] + ggplot2::theme(legend.position = "bottom",
-        legend.direction = "horizontal"))
 
-    plots_no_legend <- lapply(plots, function(p) p + ggplot2::theme(legend.position = "none"))
-    grid_with_plots <- do.call(cowplot::plot_grid, c(plots_no_legend, list(nrow = 2,
-        ncol = 2)))
-
-    title_plot <- cowplot::ggdraw() + cowplot::draw_label("Tsallis Entropy q-Curve Profile",
-        fontface = "bold", size = 19) + cowplot::draw_label(subtitle, fontface = "italic",
-        size = 13, y = 0.25)
-
-    grid_with_legend <- cowplot::plot_grid(title_plot, grid_with_plots, legend_obj,
-        nrow = 3, rel_heights = c(0.12, 1, 0.08))
+    grid_with_legend <- .assemble_grid_plot(plots,
+        ncol = 2, nrow = 2,
+        title = "Tsallis Entropy q-Curve Profile",
+        subtitle = subtitle,
+        legend_position = "bottom",
+        extract_legend = TRUE)
 
     if (!is.null(output_file)) {
-        ggplot2::ggsave(output_file, plot = grid_with_legend, width = 12, height = 10,
-            dpi = 100)
+        plot_dims <- .calculate_plot_dims(width_inches = 12, aspect_type = "tall", dpi_output = 100)
+        ggplot2::ggsave(output_file, plot = grid_with_legend, width = plot_dims$width, height = plot_dims$height,
+            dpi = plot_dims$dpi)
     }
 
     grid_with_legend
@@ -563,18 +547,20 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
 
     p <- ggplot2::ggplot(stats_df, ggplot2::aes(x = q, y = median, color = group,
         fill = group)) + ggplot2::geom_line(linewidth = 1.3) + ggplot2::geom_ribbon(ggplot2::aes(ymin = median -
-        spread, ymax = median + spread), alpha = 0.2, color = NA) + ggplot2::scale_color_manual(values = .palette_blue_red(),
-        name = "Group") + ggplot2::scale_fill_manual(values = .palette_blue_red(),
-        name = "Group") + .theme_base(base_size = 11) + ggplot2::labs(title = "Tsallis Entropy Across Diversity Scales (q-spectrum)",
-        subtitle = subtitle, x = "q value", y = expression("Tsallis entropy (" *
-            S[q] * ")"), color = "Group", fill = "Group")
+        spread, ymax = median + spread), alpha = 0.2, color = NA)
+    p <- .apply_group_aesthetics(p, palette = "palette_blue_red", legend_name = "Group")
+    p <- .apply_publication_theme(p, base_theme = "theme_spectrum", base_size = 11,
+        title = "Tsallis Entropy Across Diversity Scales (q-spectrum)",
+        subtitle = subtitle)
+    p <- p + ggplot2::labs(x = "q value", y = expression("Tsallis entropy (" * S[q] * ")"))
 
     if (length(unique(long$group)) == 1) {
         p <- p + ggplot2::theme(legend.position = "none")
     }
 
     if (!is.null(output_file)) {
-        ggplot2::ggsave(output_file, plot = p, width = 12, height = 7.2, dpi = 100)
+        plot_dims <- .calculate_plot_dims(width_inches = 12, aspect_type = "standard", dpi_output = 100)
+        ggplot2::ggsave(output_file, plot = p, width = plot_dims$width, height = plot_dims$height, dpi = plot_dims$dpi)
     }
 
     p

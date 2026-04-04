@@ -509,8 +509,9 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
 
     # Save to file if output_file is provided
     if (!is.null(output_file)) {
-        ggplot2::ggsave(output_file, plot = grid_with_title, width = 12, height = 7.2,
-            dpi = 100, create.dir = TRUE)
+        plot_dims <- .calculate_plot_dims(width_inches = 12, aspect_type = "standard", dpi_output = 100)
+        ggplot2::ggsave(output_file, plot = grid_with_title, width = plot_dims$width, height = plot_dims$height,
+            dpi = plot_dims$dpi, create.dir = TRUE)
     }
 
     return(grid_with_title)

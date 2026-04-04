@@ -240,16 +240,17 @@
 
     p <- p + ggplot2::facet_wrap(~gene, ncol = ncol, scales = "free_y") + ggplot2::geom_line(color = "#4575B4",
         linewidth = 1.2, alpha = 0.8) + ggplot2::geom_point(color = "#4575B4", size = 3,
-        alpha = 0.8) + ggplot2::labs(title = "Divergence Spectra: Per-gene Comparisons",
+        alpha = 0.8)
+    p <- .apply_publication_theme(p, base_theme = "theme_base", base_size = 11,
+        title = "Divergence Spectra: Per-gene Comparisons",
         subtitle = if (has_ci_assays && "ci_lower" %in% colnames(multi_gene_df)) {
             paste0("Ranked by interaction significance (", metric, ") | Bootstrap CI (95%)")
         } else {
             paste0("Ranked by interaction significance (", metric, ")")
-        }, x = "q value", y = expression("Divergence D[q]")) + .theme_base(base_size = 11) +
-        ggplot2::theme(plot.title = ggplot2::element_text(size = .font_sizes$title,
-            face = "bold", hjust = 0.5), plot.subtitle = ggplot2::element_text(face = "italic",
-            size = .font_sizes$subtitle, hjust = 0.5), panel.spacing = ggplot2::unit(1.5,
-            "lines"), strip.text = ggplot2::element_text(face = "bold", size = .font_sizes$subtitle))
+        })
+    p <- p + ggplot2::labs(x = "q value", y = expression("Divergence D[q]"))
+    p <- p + ggplot2::theme(panel.spacing = ggplot2::unit(1.5,
+        "lines"), strip.text = ggplot2::element_text(face = "bold", size = .font_sizes$subtitle))
 
     return(p)
 }
@@ -284,16 +285,15 @@
         metric_label <- "Mean"
         ci_source <- "Bootstrap (95%)"
 
-        return(ggplot2::ggplot(summary_stats, ggplot2::aes(x = q, y = central)) +
+        p <- ggplot2::ggplot(summary_stats, ggplot2::aes(x = q, y = central)) +
             ggplot2::geom_ribbon(ggplot2::aes(ymin = ci_lower, ymax = ci_upper),
                 alpha = 0.1, fill = "#4575B4", color = NA) + ggplot2::geom_line(color = "#4575B4",
-            linewidth = 1.3) + ggplot2::geom_point(color = "#4575B4", size = 3.5,
-            alpha = 0.8) + ggplot2::labs(title = expression("Global Divergence Spectrum: Average " *
-            D[q]), x = "q value", y = expression("Divergence D[q]"), subtitle = paste0(metric_label,
-            " with ", ci_source, " CI", " (", nrow(div_mat_sorted), " genes)")) +
-            .theme_base(base_size = 11) + ggplot2::theme(plot.title = ggplot2::element_text(size = .font_sizes$title,
-            face = "bold", hjust = 0.5), plot.subtitle = ggplot2::element_text(face = "italic",
-            size = .font_sizes$subtitle, hjust = 0.5)))
+            linewidth = 1.3) + ggplot2::geom_point(color = "#4575B4", size = 3.5, alpha = 0.8)
+        p <- .apply_publication_theme(p, base_theme = "theme_base", base_size = 11,
+            title = expression("Global Divergence Spectrum: Average " * D[q]),
+            subtitle = paste0(metric_label, " with ", ci_source, " CI", " (", nrow(div_mat_sorted), " genes)"))
+        p <- p + ggplot2::labs(x = "q value", y = expression("Divergence D[q]"))
+        return(p)
     }
 
     # Fall back to IQR or SD computation when bootstrap CIs not available
@@ -323,15 +323,15 @@
 
     metric_label <- if (metric == "median")
         "Median" else "Mean"
-    return(ggplot2::ggplot(summary_stats, ggplot2::aes(x = q, y = central)) + ggplot2::geom_ribbon(ggplot2::aes(ymin = central -
+    p <- ggplot2::ggplot(summary_stats, ggplot2::aes(x = q, y = central)) + ggplot2::geom_ribbon(ggplot2::aes(ymin = central -
         spread * spread_factor, ymax = central + spread * spread_factor), alpha = 0.1,
         fill = "#4575B4", color = NA) + ggplot2::geom_line(color = "#4575B4", linewidth = 1.3) +
-        ggplot2::geom_point(color = "#4575B4", size = 3.5, alpha = 0.8) + ggplot2::labs(title = expression("Global Divergence Spectrum: Average " *
-        D[q]), x = "q value", y = expression("Divergence D[q]"), subtitle = paste0(metric_label,
-        " +/- ", spread_label, " (", nrow(summary_stats), " genes)")) + .theme_base(base_size = 11) +
-        ggplot2::theme(plot.title = ggplot2::element_text(size = .font_sizes$title,
-            face = "bold", hjust = 0.5), plot.subtitle = ggplot2::element_text(face = "italic",
-            size = .font_sizes$subtitle, hjust = 0.5)))
+        ggplot2::geom_point(color = "#4575B4", size = 3.5, alpha = 0.8)
+    p <- .apply_publication_theme(p, base_theme = "theme_base", base_size = 11,
+        title = expression("Global Divergence Spectrum: Average " * D[q]),
+        subtitle = paste0(metric_label, " +/- ", spread_label, " (", nrow(summary_stats), " genes)"))
+    p <- p + ggplot2::labs(x = "q value", y = expression("Divergence D[q]"))
+    return(p)
 }
 
 # PLOT DISPATCH WRAPPER - Route to single gene, top genes, or global plot

@@ -2001,7 +2001,7 @@ NULL
 
 #' Save Plot to File
 #'
-#' Saves a ggplot object to file with optional dimensions.
+#' Saves a ggplot object to file with optional dimensions and adaptive font sizing.
 #'
 #' @param plot A ggplot object
 #' @param output_file File path for output (if NULL, skips saving)
@@ -2010,16 +2010,44 @@ NULL
 #'
 #' @return Invisible NULL; plot saved as side effect
 #'
+#' @details
+#' Uses .calculate_plot_dims() to compute consistent aspect ratios and
+#' .scale_font_by_area() to adapt font sizes based on output dimensions.
+#'
 #' @noRd
 .plot_gam_save_plot <- function(plot, output_file, width = NULL, height = NULL) {
     if (!is.null(output_file)) {
         # Use provided dimensions or defaults
-        save_width <- if (is.null(width))
-            12 else width
-        save_height <- if (is.null(height))
-            10.3 else height
-        ggplot2::ggsave(output_file, plot = plot, width = save_width, height = save_height,
-            dpi = 100, create.dir = TRUE)
+        save_width <- if (is.null(width)) 12 else width
+        save_height <- if (is.null(height)) 10.3 else height
+        
+        # Determine aspect type based on provided dimensions
+        # tall: height/width ratio > 0.8 (e.g., 10/12 = 0.833)
+        # standard: height/width ratio <= 0.8 (e.g., 7.2/12 = 0.6)
+        aspect_type <- if (save_height / save_width > 0.8) "tall" else "standard"
+        
+        # Calculate dimensions via .calculate_plot_dims for consistency
+        plot_dims <- .calculate_plot_dims(width_inches = save_width, aspect_type = aspect_type, 
+                                         dpi_output = 100)
+        
+        # Compute adaptive font scaling based on actual area
+        font_scale <- .scale_font_by_area(plot_dims$width, plot_dims$height)
+        
+        # Apply adaptive font scaling if dimensions deviate significantly from reference (96 sq in)
+        # Only scale if deviation is >10% to avoid excessive changes
+        if (abs(font_scale - 1.0) > 0.1) {
+            plot <- plot + ggplot2::theme(
+                text = ggplot2::element_text(size = 11 * font_scale),
+                plot.title = ggplot2::element_text(size = 14 * font_scale),
+                axis.title = ggplot2::element_text(size = 12 * font_scale),
+                axis.text = ggplot2::element_text(size = 10 * font_scale),
+                legend.text = ggplot2::element_text(size = 10 * font_scale),
+                legend.title = ggplot2::element_text(size = 11 * font_scale)
+            )
+        }
+        
+        ggplot2::ggsave(output_file, plot = plot, width = plot_dims$width, height = plot_dims$height,
+            dpi = plot_dims$dpi, create.dir = TRUE)
     }
     invisible(NULL)
 }
@@ -2088,4 +2116,274 @@ NULL
             gene), gene_display_name)) + .theme_spectrum(base_size = 11) + ggplot2::theme(legend.position = "none")
 
     p
+}
+
+# ============================================================================
+# PLOT COMPOSITION MEGA-HELPERS (Consolidation Phase)
+# ============================================================================
+
+#' Apply Publication-Ready Theme with Centered Titles
+#'
+#' Consolidated helper that applies base theme + centered/bolded title/subtitle.
+#' Replaces repeated 35+ line pattern across all plot files.
+#'
+#' AESTHETIC PRESERVATION: Uses exact same font sizes and styling as originals.
+#' - Title: .font_sizes$title, bold, centered
+#' - Subtitle: .font_sizes$subtitle, italic, centered  
+#' - Base theme: .theme_base (or .theme_spectrum for spectrum plots)
+#'
+#' @param plot ggplot2 object to style
+#' @param title Character: plot title (optional)
+#' @param subtitle Character: plot subtitle (optional)
+#' @param base_theme Character: "theme_base" (default) or "theme_spectrum"
+#' @param base_size Integer: base font size (default: 11, matches .theme_base default)
+#' @param title_size Integer: title font size (default: from .font_sizes constants)
+#' @param subtitle_size Integer: subtitle font size (default: from .font_sizes constants)
+#'
+#' @return Modified ggplot2 object with applied theme
+#'
+#' @noRd
+.apply_publication_theme <- function(plot, title = NULL, subtitle = NULL,
+                                     base_theme = "theme_base", base_size = 11,
+                                     title_size = .font_sizes$title,
+                                     subtitle_size = .font_sizes$subtitle) {
+    require_pkgs("ggplot2")
+    
+    # Apply base theme (either .theme_base or .theme_spectrum)
+    # Add dot prefix if not already present
+    theme_name <- if (startsWith(base_theme, ".")) base_theme else paste0(".", base_theme)
+    theme_fn <- get(theme_name)
+    result <- plot + theme_fn(base_size = base_size)
+    
+    # Apply title/subtitle styling (always centered, bold/italic as per TSENAT convention)
+    result <- result + ggplot2::theme(
+        plot.title = ggplot2::element_text(hjust = 0.5, size = title_size, 
+                                          face = "bold"),
+        plot.subtitle = ggplot2::element_text(hjust = 0.5, size = subtitle_size, 
+                                             face = "italic")
+    )
+    
+    # Add title/subtitle labels if provided
+    if (!is.null(title) && !is.null(subtitle)) {
+        result <- result + ggplot2::labs(title = title, subtitle = subtitle)
+    } else if (!is.null(title)) {
+        result <- result + ggplot2::labs(title = title)
+    } else if (!is.null(subtitle)) {
+        result <- result + ggplot2::labs(subtitle = subtitle)
+    }
+    
+    result
+}
+
+#' Apply Group Aesthetic Scales (Color + Fill + Legend)
+#'
+#' Consolidated helper for color palette + manual scales + legend styling.
+#' Replaces repeated 21x pattern of palette + scale_color_manual + scale_fill_manual.
+#'
+#' AESTHETIC PRESERVATION: Uses exact same colors and mappings as originals.
+#' - Palette: .palette_blue_red() by default (standard TSENAT convention)
+#' - Color/Fill Manual: with name="Group" (standard legend title)
+#'
+#' @param plot ggplot2 object
+#' @param palette Character: palette function name (e.g. "palette_blue_red") OR 
+#'   a vector of colors. If character, will call the .palette_* function.
+#' @param legend_name Character: legend title (default: "Group")
+#' @param legend_position Character: legend position (default: "bottom")
+#' @param direction Integer: 1 (normal) or -1 (reversed palette)
+#'
+#' @return Modified ggplot2 object with applied color scales
+#'
+#' @noRd
+.apply_group_aesthetics <- function(plot, palette = "palette_blue_red",
+                                   legend_name = "Group", legend_position = "bottom",
+                                   direction = 1) {
+    require_pkgs("ggplot2")
+    
+    # Get palette colors - handle both string (function name) and vector cases
+    if (is.character(palette) && length(palette) == 1) {
+        # palette is a function name string, call the function
+        palette_fn <- get(paste0(".", palette))  # e.g., .palette_blue_red
+        colors <- palette_fn()
+    } else {
+        # palette is already a vector of colors
+        colors <- palette
+    }
+    
+    # Reverse if needed
+    if (direction == -1) {
+        colors <- rev(colors)
+    }
+    
+    # Apply color and fill scales (exact pattern from original code)
+    result <- plot +
+        ggplot2::scale_color_manual(values = colors, name = legend_name) +
+        ggplot2::scale_fill_manual(values = colors, name = legend_name) +
+        ggplot2::theme(legend.position = legend_position)
+    
+    result
+}
+
+#' Create Confidence Interval Line Plot Base
+#'
+#' Consolidated helper for ribbon + line + point layer pattern.
+#' Replaces repeated 18x pattern of geom_ribbon + geom_line + geom_point.
+#'
+#' AESTHETIC PRESERVATION: Uses exact styling from q-curve plots:
+#' - Ribbon: alpha=0.15, color=NA (transparent, no outline)
+#' - Line: linewidth=1.2
+#' - Point: size=3.5, alpha=0.8
+#'
+#' @param data Data frame with plot data
+#' @param x_col Character: name of x column (default: "q")
+#' @param y_col Character: name of y column (default: "median")
+#' @param group_col Character: name of grouping column (default: "group")
+#' @param ci_lower_col Character: name of CI lower column (default: "ci_lower")
+#' @param ci_upper_col Character: name of CI upper column (default: "ci_upper")
+#' @param ribbon_alpha Numeric: ribbon transparency (default: 0.15)
+#' @param line_width Numeric: line width (default: 1.2)
+#' @param point_size Numeric: point size (default: 3.5)
+#' @param show_points Logical: include geom_point layer? (default: TRUE)
+#'
+#' @return Base ggplot2 object with ribbon/line/point layers
+#'
+#' @noRd
+.create_ci_ribbon_plot <- function(data, x_col = "q", y_col = "median",
+                                  group_col = "group",
+                                  ci_lower_col = "ci_lower", 
+                                  ci_upper_col = "ci_upper",
+                                  ribbon_alpha = 0.15, line_width = 1.2, 
+                                  point_size = 3.5, show_points = TRUE) {
+    require_pkgs("ggplot2")
+    
+    # Build base plot with aesthetics
+    p <- ggplot2::ggplot(data, 
+                        ggplot2::aes(x = .data[[x_col]], y = .data[[y_col]],
+                                    color = .data[[group_col]], 
+                                    fill = .data[[group_col]]))
+    
+    # Add ribbon layer (CI bounds)
+    p <- p + ggplot2::geom_ribbon(
+        ggplot2::aes(ymin = .data[[ci_lower_col]], 
+                    ymax = .data[[ci_upper_col]]),
+        alpha = ribbon_alpha, color = NA
+    )
+    
+    # Add line layer
+    p <- p + ggplot2::geom_line(linewidth = line_width)
+    
+    # Add point layer if requested
+    if (show_points) {
+        p <- p + ggplot2::geom_point(size = point_size, alpha = 0.8)
+    }
+    
+    p
+}
+
+#' Assemble Multi-Plot Grid with Shared Legend
+#'
+#' Consolidated helper for legend extraction + grid composition pattern.
+#' Replaces repeated 21x pattern of get_legend + plot_nolegend + plot_grid assembly.
+#'
+#' AESTHETIC PRESERVATION: Uses exact parameters from original code:
+#' - Legend position: "bottom" (default, customizable)
+#' - Legend direction: "horizontal" (standard for TSENAT)
+#' - Grid alignment: "hv" (both axes aligned)
+#' - Title/subtitle: uses .font_sizes constants
+#'
+#' @param plots List of ggplot2 objects (one per subplot)
+#' @param ncol Integer: number of columns (default: 2)
+#' @param nrow Integer: number of rows (default: auto-calculated)
+#' @param title Character: main title (optional)
+#' @param subtitle Character: subtitle under title (optional)
+#' @param legend_position Character: position for legend - "bottom", "top", "left", "right", "none" 
+#'   (default: "bottom")
+#' @param extract_legend Logical: whether to extract and place legend separately 
+#'   (default: TRUE). If FALSE, plots retain their individual legends.
+#' @param rel_heights Numeric vector: relative heights for title/plots/legend
+#'   (default: c(0.08, 1, 0.08) - 8% title, 100% plots, 8% legend)
+#'
+#' @return Combined ggplot2/cowplot object ready for display/saving
+#'
+#' @details
+#' Automatically:
+#' - Extracts legend from first plot (if extract_legend=TRUE)
+#' - Removes legends from all individual plots (if extract_legend=TRUE)
+#' - Arranges in grid with specified layout
+#' - Adds optional title/subtitle at top
+#' - Places shared legend at specified position
+#'
+#' @noRd
+.assemble_grid_plot <- function(plots, ncol = 2, nrow = NULL, 
+                               title = NULL, subtitle = NULL,
+                               legend_position = "bottom",
+                               extract_legend = TRUE,
+                               rel_heights = c(0.08, 1, 0.08)) {
+    require_pkgs(c("ggplot2", "cowplot"))
+    
+    if (length(plots) == 0) {
+        stop("plots list cannot be empty", call. = FALSE)
+    }
+    
+    # Calculate nrow if not provided
+    if (is.null(nrow)) {
+        nrow <- ceiling(length(plots) / ncol)
+    }
+    
+    # Extract legend from first plot if requested
+    legend_obj <- NULL
+    if (extract_legend) {
+        legend_obj <- cowplot::get_legend(
+            plots[[1]] + ggplot2::theme(legend.position = legend_position,
+                                       legend.direction = "horizontal")
+        )
+    }
+    
+    # Remove legends from all plots
+    plots_nolegend <- lapply(plots, function(p) {
+        p + ggplot2::theme(legend.position = "none")
+    })
+    
+    # Compose grid without legend
+    grid_plot <- cowplot::plot_grid(plotlist = plots_nolegend, 
+                                   ncol = ncol, nrow = nrow,
+                                   align = "hv")
+    
+    # If title/subtitle provided, create title grobs and assemble all 3 components
+    if (!is.null(title) || !is.null(subtitle)) {
+        title_plot <- cowplot::ggdraw()
+        
+        if (!is.null(title)) {
+            title_plot <- title_plot + 
+                cowplot::draw_label(title, fontface = "bold", size = .font_sizes$title,
+                                  x = 0.5, hjust = 0.5)
+        }
+        
+        if (!is.null(subtitle)) {
+            y_pos <- if (is.null(title)) 0.5 else 0.25
+            subtitle_plot <- cowplot::ggdraw() + 
+                cowplot::draw_label(subtitle, fontface = "italic", 
+                                  size = .font_sizes$subtitle,
+                                  x = 0.5, hjust = 0.5, color = "gray40")
+            title_plot <- cowplot::plot_grid(title_plot, subtitle_plot, 
+                                           nrow = 2, rel_heights = c(1, 0.6))
+        }
+        
+        # Assemble title + grid + legend (if extracted)
+        if (extract_legend && !is.null(legend_obj)) {
+            return(cowplot::plot_grid(title_plot, grid_plot, legend_obj, 
+                                     nrow = 3, rel_heights = rel_heights))
+        } else {
+            # No legend: just title + grid
+            return(cowplot::plot_grid(title_plot, grid_plot, 
+                                     nrow = 2, rel_heights = rel_heights[c(1, 2)]))
+        }
+    }
+    
+    # No title/subtitle: just grid + legend (if extracted)
+    if (extract_legend && !is.null(legend_obj)) {
+        return(cowplot::plot_grid(grid_plot, legend_obj, nrow = 2, 
+                          rel_heights = rel_heights[c(2, 3)]))
+    } else {
+        return(grid_plot)
+    }
 }

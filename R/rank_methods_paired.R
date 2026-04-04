@@ -110,10 +110,10 @@
                     var_ratio <- 1
                   }
 
-                  # Heteroscedasticity detected if p < 0.05 AND variance_ratio
-                  # > 2
-                  if (!is.na(bp_pvalue) && !is.na(var_ratio) && bp_pvalue < 0.05 &&
-                    var_ratio > 2) {
+                  # Heteroscedasticity detected if p < 0.01 AND variance_ratio > 3
+                  # (stricter thresholds to reduce false positives on balanced data)
+                  if (!is.na(bp_pvalue) && !is.na(var_ratio) && bp_pvalue < 0.01 &&
+                    var_ratio > 3) {
                     characteristics$heteroscedastic <- TRUE
                     reasons <- c(reasons, sprintf("Heteroscedasticity: BP_p=%.4f, var_ratio=%.2f (treatment-based)",
                       bp_pvalue, var_ratio))
