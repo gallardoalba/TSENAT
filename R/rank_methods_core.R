@@ -96,11 +96,15 @@
         stop("Column '", condition_col, "' not found in data", call. = FALSE)
     }
 
-    # Standardize column names
-    colnames(data)[colnames(data) == entropy_col] <- "entropy"
-    colnames(data)[colnames(data) == q_col] <- "q"
-    colnames(data)[colnames(data) == gene_col] <- "gene"
-    if (condition_col %in% colnames(data) && condition_col != "condition") {
+    # Standardize column names with vectorized rename
+    rename_map <- c(entropy_col, q_col, gene_col)
+    rename_targets <- c("entropy", "q", "gene")
+    for (i in seq_along(rename_map)) {
+        if (rename_map[i] %in% colnames(data) && rename_map[i] != rename_targets[i]) {
+            colnames(data)[colnames(data) == rename_map[i]] <- rename_targets[i]
+        }
+    }
+    if (condition_col != "condition" && condition_col %in% colnames(data)) {
         colnames(data)[colnames(data) == condition_col] <- "condition"
     }
 
@@ -137,11 +141,15 @@
         return(list(test_failed = TRUE, class = "Test failed", method = "failed"))
 
     # Compute effect size
-    ss_total <- sum((gene_data$entropy - mean(gene_data$entropy, na.rm = TRUE))^2,
-        na.rm = TRUE)
     overall_mean <- mean(gene_data$entropy, na.rm = TRUE)
-    q_means <- tapply(gene_data$entropy, gene_data$q, mean, na.rm = TRUE)
-    q_counts <- tapply(gene_data$entropy, gene_data$q, length)
+    ss_total <- sum((gene_data$entropy - overall_mean)^2, na.rm = TRUE)
+    
+    # Calculate per-q means and counts using tapply
+    q_means <- tapply(gene_data$entropy, gene_data$q, 
+                      function(x) mean(x, na.rm = TRUE), simplify = TRUE)
+    q_counts <- tapply(gene_data$entropy, gene_data$q, 
+                       function(x) length(x), simplify = TRUE)
+    
     ss_q <- sum(q_counts * (q_means - overall_mean)^2, na.rm = TRUE)
     ss_residual <- ss_total - ss_q
 
@@ -163,14 +171,11 @@
                 data, paired, subject_col, has_condition), nthreads, verbose)
 
         max_stats <- apply(perm_result$perm_stats_matrix, 2, max, na.rm = TRUE)
-        interaction_results$adj_p_value <- vapply(seq_len(nrow(interaction_results)),
-            function(i) {
-                H_obs <- interaction_results$f_statistic[i]
-                if (is.na(H_obs))
-                  return(NA)
-                pmin(1, (sum(max_stats >= H_obs, na.rm = TRUE) + 1)/(wy_randomizations +
-                  1))
-            }, numeric(1))
+        H_obs <- interaction_results$f_statistic
+        counts <- vapply(H_obs, function(h) {
+            if (is.na(h)) return(NA_real_) else sum(max_stats >= h, na.rm = TRUE)
+        }, numeric(1))
+        interaction_results$adj_p_value <- pmin(1, (counts + 1)/(wy_randomizations + 1))
 
         interaction_results <- interaction_results[order(interaction_results$p_value),
             , drop = FALSE]
@@ -199,7 +204,7 @@
             for (subj in unique_subjects) {
                 idx <- d[[subject_col]] == subj
                 if (sum(idx) > 0)
-                  d$condition[idx] <- sample(d$condition[idx])
+                  d$condition[idx] <- as.character(sample(d$condition[idx]))
             }
             d
         }
@@ -727,11 +732,6 @@
         subject_col, condition_col, verbose)
     data <- prep_result$data
     has_condition <- prep_result$has_condition
-    
-    # OPTIMIZATION: Pre-convert q and condition to factors once (avoids repeated factor() calls in 200 genes)
-    # This happens once per function call instead of 200 times in the gene loop
-    data$q <- factor(data$q)
-    data$condition <- factor(data$condition)
 
     # PHASE 3: HANDLE AUTOMATIC PERMUTATION ESTIMATION
     if (identical(wy_randomizations, "auto")) {
@@ -745,7 +745,7 @@
     wy_randomizations <- as.integer(wy_randomizations)
 
     # PHASE 4: INITIALIZE RESULTS FRAME
-    all_genes <- unique(data$gene)
+    all_genes <- if (is.factor(data$gene)) levels(data$gene) else unique(data$gene)
     n_genes <- length(all_genes)
     interaction_results <- data.frame(gene = all_genes, n_q_values_tested = integer(n_genes),
         f_statistic = numeric(n_genes), p_value = numeric(n_genes), adj_p_value = numeric(n_genes),

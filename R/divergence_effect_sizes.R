@@ -206,12 +206,25 @@
         message("  - Genes found: ", n_found, "/", length(significant_genes))
     }
 
-    # OPTIMIZATION: Pre-allocate list to collect results instead of rbind in loop
+    # OPTIMIZATION: Pre-allocate and pre-compute all q-metadata ONCE for all genes
     result_list <- vector("list", length(significant_genes))
     debug_messages <- character(0)
-    
-    # OPTIMIZATION: Pre-compute verbose threshold once instead of calling min() repeatedly
     verbose_threshold <- if (verbose) min(3, length(significant_genes)) else 0
+    
+    # Pre-compute q-labels that will be used for all genes (not per-gene)
+    q_strs_precomp <- NULL
+    q_labels_precomp <- NULL
+    estimate_cols_precomp <- NULL
+    lower_cols_precomp <- NULL
+    upper_cols_precomp <- NULL
+    
+    if (!use_generic) {
+        q_strs_precomp <- as.character(q_values)
+        q_labels_precomp <- gsub("\\.", "_", q_strs_precomp)
+        estimate_cols_precomp <- paste0("estimate_q", q_strs_precomp)
+        lower_cols_precomp <- paste0("lower_ci_q", q_strs_precomp)
+        upper_cols_precomp <- paste0("upper_ci_q", q_strs_precomp)
+    }
 
     for (i in seq_along(significant_genes)) {
         gene_id <- significant_genes[i]
@@ -261,13 +274,17 @@
             new_row <- .formatSingleQResult(match_name = lmm_data$match_name, p_interaction = lmm_data$p_interaction,
                 slope_diff = lmm_data$slope_diff, div_data = div_data)
         } else {
-            # OPTIMIZATION: Pre-compute column cache for this gene once
-            col_cache <- .buildColumnCache(div_data, q_values)
-
-            # Per-q results
-            new_row <- .formatMultiQResult(match_name = lmm_data$match_name, p_interaction = lmm_data$p_interaction,
-                slope_diff = lmm_data$slope_diff, div_data = div_data, q_values = q_values,
-                col_cache = col_cache)
+            # OPTIMIZATION: Reuse pre-computed columns if multi-q
+            if (!use_generic) {
+                col_cache <- .buildColumnCache(div_data, q_values)
+                new_row <- .formatMultiQResult(match_name = lmm_data$match_name, p_interaction = lmm_data$p_interaction,
+                    slope_diff = lmm_data$slope_diff, div_data = div_data, q_values = q_values,
+                    col_cache = col_cache, q_strs = q_strs_precomp, q_labels = q_labels_precomp,
+                    estimate_cols = estimate_cols_precomp, lower_cols = lower_cols_precomp, upper_cols = upper_cols_precomp)
+            } else {
+                new_row <- .formatSingleQResult(match_name = lmm_data$match_name, p_interaction = lmm_data$p_interaction,
+                    slope_diff = lmm_data$slope_diff, div_data = div_data)
+            }
 
             if (is.null(new_row)) {
                 validation_stats$failed_missing_divergence <- validation_stats$failed_missing_divergence +
@@ -366,21 +383,12 @@
 .alignGeneDatasets <- function(lm_res, rd, verbose) {
     # Filter lm_res to include only genes present in divergence_results_se
 
-    # Extract gene identifiers from divergence_results_se
-    if ("gene_name" %in% colnames(rd)) {
-        divergence_genes <- as.character(rd$gene_name)
-    } else {
-        divergence_genes <- as.character(rownames(rd))
-    }
-
-    # Get lm_res gene identifiers (prefer gene column, fall back to rownames)
-    if ("gene" %in% colnames(lm_res)) {
-        lm_res_genes <- as.character(lm_res$gene)
-    } else {
-        lm_res_genes <- as.character(rownames(lm_res))
-        if (length(lm_res_genes) == 0 || all(is.na(lm_res_genes))) {
-            stop("lm_res must have either a 'gene' column or valid gene names in rownames")
-        }
+    # OPTIMIZATION: Consolidate string conversions in single pass
+    divergence_genes <- as.character(if ("gene_name" %in% colnames(rd)) rd$gene_name else rownames(rd))
+    lm_res_genes <- as.character(if ("gene" %in% colnames(lm_res)) lm_res$gene else rownames(lm_res))
+    
+    if (length(lm_res_genes) == 0 || all(is.na(lm_res_genes))) {
+        stop("lm_res must have either a 'gene' column or valid gene names in rownames")
     }
 
     # Find matching genes and filter lm_res
@@ -438,25 +446,29 @@
 
 #' @noRd
 .createResultsDataFrame <- function(q_values, use_generic) {
-    interaction_results <- data.frame(gene = character(0), p_value_interaction = numeric(0),
-        slope_diff = numeric(0), stringsAsFactors = FALSE)
-
-    # Add per-q effect size columns
+    # OPTIMIZATION: Build entire df at once with vectorized column creation
     if (use_generic) {
-        interaction_results$effect_size_D <- numeric(0)
-        interaction_results$D_lower_ci <- numeric(0)
-        interaction_results$D_upper_ci <- numeric(0)
+        interaction_results <- data.frame(
+            gene = character(0), 
+            p_value_interaction = numeric(0),
+            slope_diff = numeric(0),
+            effect_size_D = numeric(0),
+            D_lower_ci = numeric(0),
+            D_upper_ci = numeric(0),
+            stringsAsFactors = FALSE
+        )
     } else {
-        # OPTIMIZATION: Pre-compute q-value labels once instead of in loop
         q_labels <- gsub("\\.", "_", sprintf("%.1f", q_values))
         estimate_cols <- paste0("effect_size_D_q", q_labels)
         lower_cols <- paste0("D_q", q_labels, "_lower_ci")
         upper_cols <- paste0("D_q", q_labels, "_upper_ci")
         
-        # Assign all columns at once instead of in loop
-        for (col in c(estimate_cols, lower_cols, upper_cols)) {
-            interaction_results[[col]] <- numeric(0)
-        }
+        # All columns at once using setNames
+        col_list <- setNames(replicate(length(c(estimate_cols, lower_cols, upper_cols)), numeric(0)), 
+                           c(estimate_cols, lower_cols, upper_cols))
+        interaction_results <- data.frame(gene = character(0), p_value_interaction = numeric(0),
+            slope_diff = numeric(0), stringsAsFactors = FALSE)
+        interaction_results <- cbind(interaction_results, as.data.frame(col_list))
     }
 
     return(interaction_results)
@@ -525,22 +537,25 @@
 
 #' @noRd
 .formatMultiQResult <- function(match_name, p_interaction, slope_diff, div_data,
-    q_values, col_cache = NULL) {
-    # OPTIMIZATION: If cache not provided, build it (backward compatible)
+    q_values, col_cache = NULL, q_strs = NULL, q_labels = NULL, 
+    estimate_cols = NULL, lower_cols = NULL, upper_cols = NULL) {
+    # OPTIMIZATION: Accept pre-computed q-labels parameter for reuse across genes
     if (is.null(col_cache)) {
         col_cache <- .buildColumnCache(div_data, q_values)
+    }
+    
+    if (is.null(q_strs)) {
+        q_strs <- as.character(q_values)
+        q_labels <- gsub("\\.", "_", q_strs)
+        estimate_cols <- paste0("estimate_q", q_strs)
+        lower_cols <- paste0("lower_ci_q", q_strs)
+        upper_cols <- paste0("upper_ci_q", q_strs)
     }
 
     any_valid <- FALSE
     new_row <- data.frame(gene = match_name, p_value_interaction = p_interaction,
         slope_diff = slope_diff, stringsAsFactors = FALSE)
 
-    # OPTIMIZATION: Pre-compute ALL column name mappings ONCE before loop
-    q_strs <- as.character(q_values)
-    q_labels <- gsub("\\.", "_", q_strs)
-    estimate_cols <- paste0("estimate_q", q_strs)
-    lower_cols <- paste0("lower_ci_q", q_strs)
-    upper_cols <- paste0("upper_ci_q", q_strs)
     output_cols_est <- paste0("effect_size_D_q", q_labels)
     output_cols_lower <- paste0("D_q", q_labels, "_lower_ci")
     output_cols_upper <- paste0("D_q", q_labels, "_upper_ci")
@@ -704,15 +719,15 @@
         return(NA_character_)
     }
 
-    # OPTIMIZATION: Consolidate name validation
+    # OPTIMIZATION: Consolidate name validation in single pass
     has_names <- !is.null(names(per_q_divs)) && length(names(per_q_divs)) > 0
     if (has_names && any(is.na(names(per_q_divs)))) {
         return(NA_character_)
     }
 
-    # OPTIMIZATION: Pre-compute regex check once instead of multiple times
+    # OPTIMIZATION: Quick first-element check before all(grepl())
     pattern_names <- if (has_names) names(per_q_divs) else character(0)
-    has_q_names <- has_names && all(grepl("^q_", pattern_names))
+    has_q_names <- has_names && (length(pattern_names) > 0 && substr(pattern_names[1], 1, 2) == "q_")
 
     # Case 1: Named vector with q-value names
     if (has_q_names) {
@@ -730,15 +745,12 @@
             return(NA_character_)
         }
 
-        # OPTIMIZATION: Vectorized separation into rare/abundant regions
+        # OPTIMIZATION: Vectorized filtering in single pass
         rare_idx <- !is.na(q_values) & q_values < 1
         abundant_idx <- !is.na(q_values) & q_values > 1
 
-        valid_rare <- divs_numeric[rare_idx]
-        valid_abundant <- divs_numeric[abundant_idx]
-        
-        valid_rare <- valid_rare[!is.na(valid_rare)]
-        valid_abundant <- valid_abundant[!is.na(valid_abundant)]
+        valid_rare <- divs_numeric[rare_idx & !is.na(divs_numeric)]
+        valid_abundant <- divs_numeric[abundant_idx & !is.na(divs_numeric)]
 
         # Need at least one valid value in EACH region
         if (length(valid_rare) == 0 || length(valid_abundant) == 0) {

@@ -2210,6 +2210,7 @@ test_that(".printMergeSuccess handles very large divergence values in generic pa
 })
 
 test_that(".printMergeSuccess handles negative divergence estimates in generic path", {
+  
   # Test with negative divergence (should take absolute value)
   lmm_data <- list(
     match_name = "gene_NEG",
