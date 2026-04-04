@@ -271,7 +271,7 @@ print(top_genes_plot)
 
 ## Friedman Test: Testing q × Condition Interactions
 
-The Friedman test evaluates whether entropy patterns across q-values differ between normal and tumor samples [@S205]. It ranks observations within each subject, preserving the paired structure critical for valid inference in paired designs [@S044]. This rank-based approach is particularly robust for skewed distributions like entropy values.
+The Friedman test evaluates whether entropy patterns across q-values differ between normal and tumor samples [@S205]. It ranks observations within each subject, preserving the paired structure critical for valid inference in paired designs [@S044]. This rank-based approach is particularly robust for skewed distributions like entropy values [@S019], and the Westfall-Young permutation correction used here is asymptotically optimal for dependent test statistics [@S166].
 
 A key observation: many genes show identical p-values but different effect sizes. This reflects the rank-based nature of the test [@S115]. Effect size η² directly quantifies the strength of the q-value × condition dependence and serves as the practical ranking metric when p-values cluster [@S205]:
 
@@ -284,7 +284,7 @@ This represents the proportion of total variance in entropy explained by changes
 A key observation in this analysis is that **many genes share identical p-values** (e.g., 3.224e-43) despite dramatically different effect sizes (59.9%, 58.6%, 54.6%). This is **not a statistical error** but rather a fundamental property of the two-way Friedman test applied to q × condition interaction:
 
 **Why identical p-values occur in two-way Friedman:**
-The test statistic depends on the **rank patterns** of entropy values across q-levels within each condition and subject [@S205]. When genes show similar interaction structure (e.g., Q-entropy consistently higher in tumors vs normals at all q-values), they produce identical test statistics despite different magnitudes of entropy change. This property of rank statistics [@S115] is characteristic of non-parametric testing when distributions are heavily skewed or bounded.
+The test statistic depends on the **rank patterns** of entropy values across q-levels within each condition and subject [@S205]. When genes show similar interaction structure (e.g., Q-entropy consistently higher in tumors vs normals at all q-values), they produce identical test statistics despite different magnitudes of entropy change. This property of rank statistics [@S115] is characteristic of non-parametric testing when distributions are heavily skewed or bounded. For multifactorial designs, aligned rank transform methods [@S187] provide robust alternatives to traditional ANOVA.
 
 **How to rank genes when p-values cluster:**
 In this scenario, **effect size (η²) becomes the practical ranking metric** [@S205] because it directly quantifies the strength of the q-value × entropy dependence:
@@ -305,7 +305,7 @@ The vignette table sorts genes by (1) p-value and (2) effect size as tiebreaker.
 
 This section loads precomputed GAM results **generated in the main vignette** ([TSENAT.Rmd](TSENAT.Rmd)). The GAM analysis provides a complementary parametric approach to detect q-value × group interactions. Results are integrated into the TSENATAnalysis object for S4 workflow consistency:
 
-- **Model:** Generalized Additive Models (GAM) with ARIMA(1,1,0) transformations
+- **Model:** Generalized Additive Models (GAM) with ARIMA(1,1,0) transformations (can be combined with rank-based quasi-likelihood regularization) [@C073; @C077]
 - **Approach:** Smooth functions fit across q-values for each gene
 - **Correction:** Hochberg multiple testing correction accounting for AR(1) correlation
 - **Assumptions:** Assumes continuous underlying distribution (better for nonlinear patterns)
