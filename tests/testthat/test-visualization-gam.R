@@ -2,6 +2,13 @@
 # Located in generate_plots.R lines ~1921-2000
 
 context("make_gam_plot: GAM-based entropy vs q-value plotting")
+library(mgcv)
+library(RColorBrewer)
+library(ggplot2)
+library(testthat)
+
+
+
 
 test_that("make_gam_plot: basic setup with valid gene data", {
   config <- list()

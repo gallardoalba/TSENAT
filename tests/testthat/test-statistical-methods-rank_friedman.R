@@ -1,7 +1,8 @@
+
+context("friedman_complete: Complete Friedman Test Implementation")
 library(TSENAT)
 library(SummarizedExperiment)
 
-context("friedman_complete: Complete Friedman Test Implementation")
 
 # ════════════════════════════════════════════════════════════════════════════════
 # SETUP: Create test data with valid structure for paired designs
@@ -505,7 +506,6 @@ test_that("detect_q_gene_interactions stores data characteristics", {
   expect_true(all(is.logical(results$highly_skewed)))
 })
 
-library(TSENAT)
 
 context("Friedman Test for Paired Rank-Based Analysis")
 
@@ -999,7 +999,6 @@ test_that("Friedman test results are reproducible", {
   expect_equal(result1$method, result2$method)
 })
 
-library(TSENAT)
 
 context("Friedman Test Integration and Edge Cases")
 

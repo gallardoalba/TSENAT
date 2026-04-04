@@ -2,11 +2,16 @@
 # Covers: .plot_lm_interaction_gam(updated), .plot_multiq_delta_influence_heatmaps(45)
 
 context("plot_lm_interaction_gam_s4: S4 wrapper for GAM-based interaction visualization")
+library(SummarizedExperiment)
+library(testthat)
+library(ggplot2)
+
+
+
 
 test_that("plot_lm_interaction_gam_s4: requires LM interaction results", {
   skip_if_not_installed("SummarizedExperiment")
   
-  library("SummarizedExperiment")
   set.seed(123)
   
   # Create analysis without LM results
@@ -30,7 +35,6 @@ test_that("plot_lm_interaction_gam_s4: requires LM interaction results", {
 test_that("plot_lm_interaction_gam_s4: requires diversity results", {
   skip_if_not_installed("SummarizedExperiment")
   
-  library("SummarizedExperiment")
   set.seed(124)
   
   # Create analysis with LM results but no diversity
@@ -63,7 +67,6 @@ test_that("plot_lm_interaction_gam_s4: requires diversity results", {
 test_that("plot_lm_interaction_gam_s4: auto-detects condition column", {
   skip_if_not_installed("SummarizedExperiment")
   
-  library("SummarizedExperiment")
   set.seed(125)
   
   analysis <- TSENAT:::.create_test_analysis(
@@ -88,7 +91,6 @@ test_that("plot_lm_interaction_gam_s4: auto-detects condition column", {
 test_that("plot_lm_interaction_gam_s4: handles n_top parameter", {
   skip_if_not_installed("SummarizedExperiment")
   
-  library("SummarizedExperiment")
   set.seed(126)
   
   analysis <- TSENAT:::.create_test_analysis(

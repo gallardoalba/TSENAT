@@ -1,6 +1,7 @@
-library(TSENAT)
 
 context("rank_based_methods: Rank-Based Nonparametric Methods")
+library(TSENAT)
+
 
 
 test_that("test_rankbased_assumptions validates assumptions", {
@@ -1248,7 +1249,6 @@ test_that("estimate_nperm with single q-value", {
 # Comprehensive testing for uncovered lines in rank_based_methods.R
 # Tests edge cases and specific code paths for rank-based assumptions testing
 
-library(TSENAT)
 skip_on_bioc()
 
 context("Rank-Based Methods: Coverage Expansion")

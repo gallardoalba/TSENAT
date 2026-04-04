@@ -1,8 +1,14 @@
 context("plot_divergence_spectrum: Refactored helper functions")
+library(SummarizedExperiment)
+library(ggplot2)
+library(testthat)
+
 
 # ============================================================================
 # Test: .spectrum_extract_q_values
 # ============================================================================
+
+
 
 test_that(".spectrum_extract_q_values extracts numeric q-values from column names", {
   col_names <- c("q_0.5", "q_1.0", "q_1.5", "q_2.0")
@@ -421,8 +427,6 @@ test_that("plot_divergence_spectrum_s4: creates spectrum plot from S4 object", {
   skip_if_not_installed("SummarizedExperiment")
   skip_if_not_installed("ggplot2")
   
-  library("SummarizedExperiment")
-  library("ggplot2")
   set.seed(888)
   
   # Create minimal SE with q-spectrum divergence data
@@ -442,7 +446,6 @@ test_that("plot_divergence_spectrum_s4: creates spectrum plot from S4 object", {
 test_that("plot_divergence_spectrum_s4: parameter validation", {
   skip_if_not_installed("ggplot2")
   
-  library("ggplot2")
   
   # Validate expected parameters
   q_values <- c(0.5, 1.0, 1.5, 2.0)

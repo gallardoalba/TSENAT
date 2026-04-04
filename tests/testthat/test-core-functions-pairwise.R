@@ -1017,7 +1017,6 @@ test_that(".calculate_difference(shuffle): Effect sizes robust to small effect d
 
 test_that("calculate_difference rejects multiple q values with helpful error", {
     # Create multi-q SummarizedExperiment (should fail)
-    library(SummarizedExperiment)
     
     # Create data with multiple q values (e.g., q=0.5, 1.0, 2.0)
     mat <- matrix(runif(3 * 6), nrow = 3)  # 3 genes, 6 columns
@@ -1061,7 +1060,6 @@ test_that("calculate_difference rejects multiple q values with helpful error", {
 
 test_that("calculate_difference accepts single q value (no error)", {
     # Create single-q SummarizedExperiment (should work)
-    library(SummarizedExperiment)
     
     mat <- matrix(runif(3 * 12), nrow = 3)
     rownames(mat) <- c("g1", "g2", "g3")

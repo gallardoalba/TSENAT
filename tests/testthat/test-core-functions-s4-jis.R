@@ -9,7 +9,6 @@
 #' Create minimal test SummarizedExperiment with required metadata
 make_test_se_jis <- function(n_genes = 6, n_samples = 10, n_conditions = 2) {
   suppressPackageStartupMessages({
-    library(SummarizedExperiment)
   })
   
   # Create replicate isoforms per gene

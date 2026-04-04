@@ -10,6 +10,276 @@
 NULL
 
 # ============================================================================
+# VOLCANO PLOT DATA PREPARATION
+# ============================================================================
+
+#' Prepare volcano plot data frame
+#'
+#' Formats and validates differential analysis data for volcano plot visualization.
+#' Auto-detects x-axis column if not specified, flags significant genes based on
+#' thresholds, and returns formatted labels.
+#'
+#' @param diff_df Data frame from differential analysis results
+#' @param x_col Column name for x-axis (e.g., 'mean_difference'). If NULL, auto-detected.
+#' @param padj_col Column name for adjusted p-values (default: 'adjusted_p_values')
+#' @param label_thresh Threshold for labeling significance (default: 0.1)
+#' @param sig_alpha Significance threshold for adjusted p-values (default: 0.05)
+#' @param title Optional title for plot
+#'
+#' @return List with elements:
+#'   - df: Processed data frame with xval, padj, significant columns
+#'   - x_col: Selected x-axis column name
+#'   - padj_col: Selected p-value column name
+#'   - x_label_formatted: Formatted x-axis label
+#'   - padj_label_formatted: Formatted p-value label
+#'   - title_use: Plot title
+#'
+#' @noRd
+
+.prepare_volcano_df <- function(diff_df, x_col = NULL, padj_col = "adjusted_p_values",
+    label_thresh = 0.1, sig_alpha = 0.05, title = NULL) {
+    df <- as.data.frame(diff_df)
+    cn <- colnames(df)
+
+    # Auto-detect x-axis column if not specified
+    if (is.null(x_col)) {
+        diff_cols <- grep("_difference$", cn, value = TRUE, ignore.case = TRUE)
+        if (length(diff_cols) > 0) {
+            x_col <- diff_cols[1]
+        } else {
+            numeric_cols <- vapply(df, is.numeric, logical(1))
+            p_cols <- grep("p_value|p.value", cn, ignore.case = TRUE)
+            numeric_cols[p_cols] <- FALSE
+            if (any(numeric_cols)) {
+                x_col <- cn[which(numeric_cols)[1]]
+            } else {
+                stop("Could not find suitable column for x-axis. Specify 'x_col' explicitly.")
+            }
+        }
+    }
+
+    # Verify columns
+    if (!(x_col %in% cn)) {
+        stop(sprintf("Column '%s' not found in diff_df", x_col))
+    }
+    if (!(padj_col %in% cn)) {
+        stop(sprintf("Column '%s' not found in diff_df", padj_col))
+    }
+
+    df$xval <- as.numeric(df[[x_col]])
+    df$padj <- as.numeric(df[[padj_col]])
+    df$padj[is.na(df$padj)] <- 1
+    df$padj[df$padj <= 0] <- .Machine$double.xmin
+
+    df$significant <- ifelse(abs(df$xval) >= label_thresh & df$padj < sig_alpha,
+        "significant", "non-significant")
+    df <- df[is.finite(df$xval) & is.finite(df$padj), ]
+
+    if (nrow(df) == 0) {
+        stop("No valid points to plot")
+    }
+
+    metric_label <- if (grepl("median", x_col, ignore.case = TRUE)) {
+        "Median"
+    } else if (grepl("mean", x_col, ignore.case = TRUE)) {
+        "Mean"
+    } else {
+        "Value"
+    }
+
+    title_use <- title %||% "Volcano plot: fold-change vs significance"
+
+    x_label_formatted <- .format_label(x_col)
+    padj_label_formatted <- .format_label(padj_col)
+
+    list(df = df, x_col = x_col, padj_col = padj_col, x_label_formatted = x_label_formatted,
+        padj_label_formatted = padj_label_formatted, title_use = title_use)
+}
+
+# ============================================================================
+# PLOT TOP TRANSCRIPTS HELPERS
+# ============================================================================
+
+#' Prepare inputs for top transcripts plot
+#'
+#' Validates and normalizes counts, samples, and tx2gene mapping for transcripts plot.
+#'
+#' @param counts Matrix or SummarizedExperiment with transcripts as rownames
+#' @param readcounts Optional column name for read counts in SE
+#' @param samples Character vector of sample group assignments
+#' @param coldata Optional data.frame or file path with sample metadata
+#' @param condition_col Column in coldata for sample conditions (default: 'condition')
+#' @param tx2gene Data frame or file path with tx2gene mapping
+#' @param res Optional results data frame for gene selection
+#' @param top_n Number of top genes to plot
+#' @param pseudocount Pseudocount to add for log transformation
+#' @param output_file Optional output file path
+#' @param metric Aggregation metric: 'median', 'mean', 'variance', or 'iqr'
+#'
+#' @return List with normalized counts, samples, mapping, aggregation function
+#' @noRd
+
+.make_plot_for_geneprepare_inputs <- function(counts, readcounts = NULL, samples = NULL,
+    coldata = NULL, condition_col = "condition", tx2gene = NULL, res = NULL, top_n = NULL,
+    pseudocount = 0, output_file = NULL, metric = c("median", "mean", "variance",
+        "iqr")) {
+    # handle selecting genes from `res` is left to caller; this function
+    # focuses on normalizing counts, samples and tx2gene mapping and preparing
+    # agg functions
+    if (inherits(counts, "SummarizedExperiment")) {
+        library(SummarizedExperiment)
+        library(S4Vectors)
+        se <- counts
+        counts_mat <- .get_readcounts_from_se(se, readcounts)
+        counts <- as.matrix(counts_mat)
+        samples <- .infer_samples_from_se(se, samples, condition_col = condition_col)
+
+        if (is.null(tx2gene)) {
+            txres <- .get_tx2gene_from_se(se, counts)
+            if (!is.null(txres) && !is.null(txres$mapping)) {
+                mapping <- data.frame(Transcript = rownames(counts), Gen = as.character(txres$mapping),
+                  stringsAsFactors = FALSE)
+                tx2gene <- mapping
+            }
+        }
+    }
+
+    if (!is.matrix(counts) && !is.data.frame(counts))
+        stop("`counts` must be a matrix or data.frame with transcripts as rownames")
+    counts <- as.matrix(counts)
+    if (is.null(rownames(counts)))
+        stop("`counts` must have rownames corresponding to transcript identifiers")
+
+    # derive samples from coldata if needed
+    if (is.null(samples)) {
+        if (!is.null(coldata)) {
+            if (is.character(coldata) && length(coldata) == 1) {
+                if (!file.exists(coldata))
+                  stop("coldata file not found: ", coldata)
+                cdf <- utils::read.delim(coldata, header = TRUE, stringsAsFactors = FALSE)
+            } else if (is.data.frame(coldata)) {
+                cdf <- coldata
+            } else {
+                stop("`coldata` must be a data.frame or path to a tab-delimited file")
+            }
+
+            if (!is.null(rownames(cdf)) && all(colnames(counts) %in% rownames(cdf))) {
+                samples <- as.character(cdf[colnames(counts), condition_col])
+            } else {
+                sample_id_cols <- c("sample", "Sample", "sample_id", "id")
+                sid <- intersect(sample_id_cols, colnames(cdf))
+                if (length(sid) > 0) {
+                  sid <- sid[1]
+                  if (!all(colnames(counts) %in% as.character(cdf[[sid]])))
+                    stop("coldata sample id column does not match column names of counts")
+                  row_ix <- match(colnames(counts), as.character(cdf[[sid]]))
+                  samples <- as.character(cdf[[condition_col]][row_ix])
+                } else {
+                  stop("Could not match `coldata` rows to `counts` columns. Provide `samples` or a row-named `coldata`.")
+                }
+            }
+        } else {
+            stop("Either 'samples' or 'coldata' must be provided to determine sample groups")
+        }
+    }
+
+    # normalize tx2gene mapping
+    if (is.null(tx2gene))
+        stop("`tx2gene` must be provided as a file path or data.frame (or include mapping in metadata of provided SummarizedExperiment)")
+    if (is.character(tx2gene) && length(tx2gene) == 1) {
+        if (!file.exists(tx2gene))
+            stop("tx2gene file not found: ", tx2gene)
+        mapping <- utils::read.delim(tx2gene, stringsAsFactors = FALSE, header = TRUE)
+    } else if (is.data.frame(tx2gene)) {
+        mapping <- tx2gene
+    } else {
+        stop("`tx2gene` must be provided as a file path or data.frame (or include mapping in metadata of provided SummarizedExperiment)")
+    }
+
+    if (!all(c("Transcript", "Gen") %in% colnames(mapping)))
+        stop("tx2gene must have columns 'Transcript' and 'Gen'")
+
+    if (!requireNamespace("ggplot2", quietly = TRUE))
+        stop("ggplot2 required for plotting")
+
+    if (!is.null(samples) && length(samples) != ncol(counts))
+        stop("Length of `samples` must equal number of columns in `counts`")
+
+    metric_choice <- match.arg(metric)
+    agg_fun <- switch(metric_choice, median = function(x) stats::median(x, na.rm = TRUE),
+        mean = function(x) base::mean(x, na.rm = TRUE), variance = function(x) stats::var(x,
+            na.rm = TRUE), iqr = function(x) stats::IQR(x, na.rm = TRUE))
+    agg_label_metric <- if (metric_choice == "iqr")
+        "IQR" else metric_choice
+    agg_label <- agg_label_metric
+    .cnt <- as.integer(getOption("TSENAT.plot_top_counter", 0)) + 1L
+    options(TSENAT.plot_top_counter = .cnt)
+    agg_label_unique <- agg_label
+
+    list(counts = counts, samples = samples, mapping = mapping, metric_choice = metric_choice,
+        agg_fun = agg_fun, agg_label_unique = agg_label_unique, top_n = top_n, pseudocount = pseudocount,
+        output_file = output_file)
+}
+
+#' Make plot for a single gene
+#'
+#' Creates a transcript-level expression plot for a single gene.
+#'
+#' @param gene_single Character: gene identifier
+#' @param mapping Data frame with Transcript and Gen columns
+#' @param counts Matrix of read counts
+#' @param samples Character vector of sample assignments
+#' @param top_n Number of top transcripts to show
+#' @param agg_fun Aggregation function for summarization
+#' @param pseudocount Pseudocount for log transformation
+#' @param agg_label_unique Label for aggregation metric
+#' @param fill_limits Optional numeric vector for fill scale limits
+#' @param font_scale Font scaling factor
+#'
+#' @return ggplot2 object
+#' @noRd
+
+.make_plot_for_genemake_plot_for_gene <- function(gene_single, mapping, counts, samples,
+    top_n, agg_fun, pseudocount, agg_label_unique, fill_limits = NULL, font_scale = 1) {
+    library(ggplot2)
+    library(tidyr)
+    built <- .make_plot_for_genebuild_tx_long(gene_single, mapping, counts, samples,
+        NULL)
+    df_summary <- .make_plot_for_geneaggregate_df_long(built$df_long, agg_fun, pseudocount)
+    .make_plot_for_genebuild_plot_from_summary(df_summary, agg_label_unique, fill_limits,
+        font_scale = font_scale)
+}
+
+#' Combine multiple gene plots
+#'
+#' Combines individual gene plots into a grid layout.
+#'
+#' @param plots List of ggplot2 objects (one per gene)
+#' @param output_file Optional file path to save combined plot
+#' @param agg_label_unique Label for aggregation metric
+#'
+#' @return Combined plot object or invisible NULL if output_file provided
+#' @noRd
+
+.make_plot_for_genecombine_plots <- function(plots, output_file = NULL, agg_label_unique = NULL) {
+    library(ggplot2)
+    # Allow callers to pass a single character second argument as the
+    # `agg_label_unique` for convenience (legacy test call patterns).
+    if (is.null(agg_label_unique) && !is.null(output_file) && is.character(output_file) &&
+        length(output_file) == 1) {
+        agg_label_unique <- output_file
+        output_file <- NULL
+    }
+    if (requireNamespace("patchwork", quietly = TRUE)) {
+        .make_plot_for_genecombine_patchwork(plots, agg_label_unique)
+    } else if (requireNamespace("cowplot", quietly = TRUE)) {
+        .make_plot_for_genecombine_cowplot(plots, output_file = output_file, agg_label_unique = agg_label_unique)
+    } else {
+        .make_plot_for_genecombine_grid(plots, output_file = output_file, agg_label_unique = agg_label_unique)
+    }
+}
+
+# ============================================================================
 # MULTI-PLOT COMPOSITION: Patchwork
 # ============================================================================
 
@@ -27,7 +297,7 @@ NULL
 #' @noRd
 
 .combine_plots_patchwork <- function(plots, agg_label_unique) {
-    require_pkgs("patchwork")
+    library(patchwork)
 
     # Use 2 columns (2 genes per row) with controlled spacing
     n_cols <- 2
@@ -107,7 +377,7 @@ NULL
 #' @noRd
 
 .combine_plots_cowplot <- function(plots, output_file = NULL, agg_label_unique) {
-    require_pkgs("cowplot")
+    library(cowplot)
 
     # Extract legend from first plot
     p_for_legend <- .configure_legend(plots[[1]], position = "bottom")
@@ -167,7 +437,7 @@ NULL
 #' @noRd
 
 .combine_plots_grid <- function(plots, output_file = NULL, agg_label_unique) {
-    require_pkgs("grid")
+    library(grid)
 
     # Remove legends from all plots
     plots_nolegend <- lapply(plots, function(pp) {
@@ -239,7 +509,7 @@ NULL
 
 .draw_transcript_grid <- function(grobs, agg_label_unique, legend_grob, ncol, heights,
     to_file = NULL) {
-    require_pkgs("grid")
+    library(grid)
 
     nrow <- ceiling(length(grobs)/ncol)
 
@@ -286,7 +556,7 @@ NULL
 #' @noRd
 
 .create_color_scale <- function(palette = "blue_red", direction = 1, name = NULL) {
-    require_pkgs("ggplot2")
+    library(ggplot2)
 
     if (palette == "blue_red") {
         colors <- .palette_blue_red()
@@ -325,7 +595,7 @@ NULL
 
 .create_fill_scale <- function(palette = "blue_red", direction = 1, name = NULL,
     breaks = 50) {
-    require_pkgs("ggplot2")
+    library(ggplot2)
 
     if (palette == "continuous_diverging") {
         colors <- .palette_continuous_diverging(n = breaks)
@@ -358,7 +628,7 @@ NULL
 #' @noRd
 
 .apply_tsenat_theme <- function(base_size = 11, color_palette = "blue_red") {
-    require_pkgs("ggplot2")
+    library(ggplot2)
 
     theme_result <- .theme_base(base_size = base_size) + ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5,
         size = .font_sizes$title, face = "bold"), plot.subtitle = ggplot2::element_text(hjust = 0.5,
@@ -384,7 +654,7 @@ NULL
 
 .set_plot_title <- function(plot, title = NULL, subtitle = NULL, title_size = .font_sizes$title,
     subtitle_size = .font_sizes$subtitle) {
-    require_pkgs("ggplot2")
+    library(ggplot2)
 
     if (!is.null(title)) {
         plot <- plot + ggplot2::labs(title = title)
@@ -424,7 +694,7 @@ NULL
 
 .create_tsenat_heatmap <- function(mat, title = NULL, colors = NULL, breaks = NULL,
     fontsize_row = 11, fontsize_col = 11, ...) {
-    require_pkgs("pheatmap")
+    library(pheatmap)
 
     if (is.null(colors)) {
         colors <- .palette_continuous_diverging(n = 100)
@@ -464,7 +734,8 @@ NULL
 .compute_diversity_spectrum <- function(se, q_values = NULL, metric = c("median",
     "mean"), variability_metric = c("iqr", "sd"), condition_col = NULL) {
 
-    require_pkgs(c("SummarizedExperiment", "dplyr"))
+        library(SummarizedExperiment)
+    library(dplyr)
 
     # Validate input
     if (!inherits(se, "SummarizedExperiment")) {
@@ -544,7 +815,7 @@ NULL
 
 .select_top_genes <- function(results, p_col = NULL, gene_col = NULL, n_genes = 4) {
 
-    require_pkgs("dplyr")
+    library(dplyr)
 
     if (!is.data.frame(results) || nrow(results) == 0) {
         stop("results must be a non-empty data frame", call. = FALSE)
@@ -599,7 +870,7 @@ NULL
 
 .filter_genes_by_pvalue <- function(results, p_threshold = 0.05, p_col = NULL, gene_col = NULL) {
 
-    require_pkgs("dplyr")
+    library(dplyr)
 
     if (!is.data.frame(results) || nrow(results) == 0) {
         stop("results must be a non-empty data frame", call. = FALSE)
@@ -856,7 +1127,8 @@ NULL
     pseudocount = 0, output_file = NULL, metric = c("median", "mean", "variance",
         "iqr")) {
 
-    require_pkgs(c("SummarizedExperiment", "S4Vectors"))
+        library(SummarizedExperiment)
+    library(S4Vectors)
 
     # Handle SummarizedExperiment input
     if (inherits(counts, "SummarizedExperiment")) {
@@ -1068,7 +1340,7 @@ NULL
     df_all <- as.data.frame(mat)
     df_all$tx <- rownames(mat)
 
-    require_pkgs("tidyr")
+    library(tidyr)
     df_long <- tidyr::pivot_longer(df_all, -tx, names_to = "sample", values_to = "expr")
     df_long$group <- rep(samples, times = length(txs))
 
@@ -1143,7 +1415,7 @@ NULL
 
 #' @noRd
 .extract_diversity_objects <- function(div_list) {
-    require_pkgs(c("SummarizedExperiment"))
+        library(SummarizedExperiment)
     
     combined_assays_dict <- list()
     first_se <- NULL
@@ -1216,7 +1488,7 @@ NULL
 
 #' @noRd
 .extract_bootstrap_ci_matrices <- function(se_obj, target_genes, target_n_cols, assay_names) {
-    require_pkgs("SummarizedExperiment")
+    library(SummarizedExperiment)
     
     if (!methods::is(se_obj, "SummarizedExperiment")) {
         return(NULL)
@@ -1263,7 +1535,7 @@ NULL
 
 #' @noRd
 .build_combined_coldata <- function(div_list, q_names, unique_colnames_list) {
-    require_pkgs("SummarizedExperiment")
+    library(SummarizedExperiment)
     
     combined_coldata_list <- list()
     
@@ -1299,7 +1571,8 @@ NULL
 #' @noRd
 .create_combined_se_object <- function(combined_assay, combined_ci_lower, combined_ci_upper,
                                         combined_coldata, first_se) {
-    require_pkgs(c("SummarizedExperiment", "S4Vectors"))
+        library(SummarizedExperiment)
+    library(S4Vectors)
     
     # Extract or create rowData, ensuring dimensions match combined_assay
     rd_combined <- tryCatch({
@@ -1383,7 +1656,7 @@ NULL
 #' @noRd
 .prepare_q_value_for_combining <- function(q_name, combined_assays_dict, target_genes,
                                             target_n_cols, bootstrap_ci_available) {
-    require_pkgs("SummarizedExperiment")
+    library(SummarizedExperiment)
     
     mat <- combined_assays_dict[[q_name]]$matrix
     q_val <- combined_assays_dict[[q_name]]$q_val
@@ -1488,7 +1761,8 @@ NULL
 
 #' @noRd
 .prepare_combined_se <- function(analysis) {
-    require_pkgs(c("SummarizedExperiment", "S4Vectors"))
+        library(SummarizedExperiment)
+    library(S4Vectors)
 
     div_list <- analysis@diversity_results
     
@@ -1532,7 +1806,7 @@ NULL
 
 #' @noRd
 .compute_gene_group_stats <- function(long_data, metric = "iqr") {
-    require_pkgs("dplyr")
+    library(dplyr)
 
     metric <- match.arg(tolower(metric), c("iqr", "sd"))
     long_data$qnum <- as.numeric(as.character(long_data$q))
@@ -1630,7 +1904,8 @@ NULL
 
 #' @noRd
 .plot_gam_fit_group <- function(plot_df) {
-    require_pkgs(c("mgcv", "dplyr"))
+        library(mgcv)
+    library(dplyr)
 
     unique_groups <- unique(plot_df$group)
 
@@ -1735,7 +2010,7 @@ NULL
 #'
 #' @noRd
 .prepare_gene_ci_data <- function(long_data, ci_lower_mat, ci_upper_mat, genes) {
-    require_pkgs("dplyr")
+    library(dplyr)
 
     # Aggregate to get median per gene, group, q
     stats_df <- dplyr::summarise(dplyr::group_by(long_data, Gene, group, q), median = median(tsallis,
@@ -1962,7 +2237,7 @@ NULL
 #'
 #' @noRd
 .plot_gam_arrange_grid <- function(plots, condition_col, font_sizes) {
-    require_pkgs("cowplot")
+    library(cowplot)
 
     n_plots <- length(plots)
     n_cols <- 2
@@ -2070,7 +2345,7 @@ NULL
 #' @noRd
 .plot_gam_make_plot <- function(gene, gene_display_name = NULL, gene_name_map,
     mat, sample_to_group, condition_col) {
-    require_pkgs(c("ggplot2"))
+        library(ggplot2)
 
     # Use provided gene name, or look it up from mapping, or default to gene ID
     if (is.null(gene_display_name)) {
@@ -2150,7 +2425,7 @@ NULL
                                      base_theme = "theme_base", base_size = 11,
                                      title_size = .font_sizes$title,
                                      subtitle_size = .font_sizes$subtitle) {
-    require_pkgs("ggplot2")
+    library(ggplot2)
     
     # Apply base theme (either .theme_base or .theme_spectrum)
     # Add dot prefix if not already present
@@ -2222,7 +2497,7 @@ NULL
                              title_size = NULL, justification = NULL,
                              background_color = NULL, border_color = NULL,
                              spacing_lines = 2) {
-    require_pkgs("ggplot2")
+    library(ggplot2)
     
     theme_list <- list()
     
@@ -2314,7 +2589,7 @@ NULL
                                 h_linetype = "dashed", v_linetype = "dashed",
                                 h_size = 0.8, v_size = 0.8,
                                 h_alpha = 0.7, v_alpha = 0.7) {
-    require_pkgs("ggplot2")
+    library(ggplot2)
     
     # Add horizontal reference lines
     if (!is.null(h_intercept)) {
@@ -2385,7 +2660,7 @@ NULL
                                x_face = "plain", y_face = "plain",
                                x_color = "black", y_color = "black",
                                bold_title = TRUE) {
-    require_pkgs("ggplot2")
+    library(ggplot2)
     
     theme_list <- list()
     
@@ -2498,7 +2773,7 @@ NULL
 .apply_group_aesthetics <- function(plot, palette = "palette_blue_red",
                                    legend_name = "Group", legend_position = "bottom",
                                    direction = 1) {
-    require_pkgs("ggplot2")
+    library(ggplot2)
     
     # Get palette colors - handle both string (function name) and vector cases
     if (is.character(palette) && length(palette) == 1) {
@@ -2554,7 +2829,7 @@ NULL
                                   ci_upper_col = "ci_upper",
                                   ribbon_alpha = 0.15, line_width = 1.2, 
                                   point_size = 3.5, show_points = TRUE) {
-    require_pkgs("ggplot2")
+    library(ggplot2)
     
     # Build base aesthetics - include group color/fill only if group_col provided and exists
     if (!is.null(group_col) && group_col %in% colnames(data)) {
@@ -2625,7 +2900,8 @@ NULL
                                legend_position = "bottom",
                                extract_legend = TRUE,
                                rel_heights = c(0.08, 1, 0.08)) {
-    require_pkgs(c("ggplot2", "cowplot"))
+        library(ggplot2)
+    library(cowplot)
     
     if (length(plots) == 0) {
         stop("plots list cannot be empty", call. = FALSE)
@@ -2721,7 +2997,7 @@ NULL
                               subtitle_size = .font_sizes$subtitle,
                               title_face = "bold", subtitle_face = "italic",
                               title_color = "black", subtitle_color = "gray40") {
-    require_pkgs("cowplot")
+    library(cowplot)
     
     # Start with title grob
     title_grob <- cowplot::ggdraw() +
@@ -2762,7 +3038,7 @@ NULL
 .apply_facet_styling <- function(plot, ncol = 2, nrow = NULL, facet_var = NULL,
                                 scales = "free_y", strip_text_size = .font_sizes$subtitle,
                                 panel_spacing_lines = 1.5) {
-    require_pkgs("ggplot2")
+    library(ggplot2)
     
     # Apply facet wrap if variable specified
     if (!is.null(facet_var)) {
@@ -2797,7 +3073,8 @@ NULL
 #' @noRd
 .prepare_long_format <- function(se, assay_name = "diversity", 
                                condition_col = NULL, validate = TRUE) {
-    require_pkgs(c("SummarizedExperiment", "dplyr"))
+        library(SummarizedExperiment)
+    library(dplyr)
     
     # Use condition_col from metadata config if not provided
     if (is.null(condition_col)) {
@@ -2842,7 +3119,7 @@ NULL
                                   title_size = .font_sizes$title,
                                   subtitle_size = .font_sizes$subtitle,
                                   hjust = 0.5) {
-    require_pkgs("ggplot2")
+    library(ggplot2)
     
     theme_list <- list()
     
@@ -2880,7 +3157,8 @@ NULL
 #' @noRd
 .normalize_plot_scales <- function(df, fold_col_candidates = c("log2_fold_change", "logFC", "fold"),
                                   mean_col_pattern = "_mean$|_median$", scale_type = "log2fold") {
-    require_pkgs(c("dplyr", "rlang"))
+        library(dplyr)
+    library(rlang)
     
     # Find fold-change column
     fold_col <- intersect(fold_col_candidates, colnames(df))[1]
@@ -2924,7 +3202,7 @@ NULL
 .create_simple_line_plot <- function(data, x_col, y_col, group_col = NULL,
                                     points = TRUE, line_width = 1.2, point_size = 2.5,
                                     alpha = 0.8, line_color = "#4575B4") {
-    require_pkgs("ggplot2")
+    library(ggplot2)
     
     # NO grouping: simple single-series plot with fixed color
     if (is.null(group_col)) {
@@ -2976,7 +3254,8 @@ NULL
                                             median = median,
                                             iqr = function(x) diff(quantile(x, c(0.25, 0.75), na.rm = TRUE))
                                         )) {
-    require_pkgs(c("SummarizedExperiment", "dplyr"))
+        library(SummarizedExperiment)
+    library(dplyr)
     
     # Extract assay
     assay_mat <- SummarizedExperiment::assay(se, assay_name)
@@ -3063,7 +3342,7 @@ NULL
                                          base_theme = "theme_base",
                                          group_col = NULL, palette = "blue_red",
                                          group_levels = NULL, subtitle = NULL) {
-    require_pkgs("ggplot2")
+    library(ggplot2)
 
     # Apply publication theme first
     p <- .apply_publication_theme(plot, title = title, base_size = base_size,
@@ -3119,7 +3398,7 @@ NULL
 .save_plot_standard <- function(plot, filename, width_inches = 12,
                                aspect_type = "standard", dpi_output = 100,
                                width_cm = NULL, height_cm = NULL) {
-    require_pkgs("ggplot2")
+    library(ggplot2)
 
     # Calculate dimensions
     plot_dims <- .calculate_plot_dims(width_inches = width_inches,
@@ -3190,7 +3469,7 @@ NULL
 #' @noRd
 .compute_distribution_stats <- function(df, group_col, value_col,
                                        metric = "median", spread_metric = "iqr") {
-    require_pkgs(c("dplyr"))
+        library(dplyr)
 
     # Validate inputs
     if (!is.data.frame(df)) {
@@ -3217,23 +3496,37 @@ NULL
 
     # Calculate statistics
     if (spread_metric == "iqr") {
-        stats_df <- df %>%
-            dplyr::group_by(.data[[group_col]]) %>%
-            dplyr::summarize(
-                value = central_fn(.data[[value_col]]),
-                lower = stats::quantile(.data[[value_col]], 0.25, na.rm = TRUE),
-                upper = stats::quantile(.data[[value_col]], 0.75, na.rm = TRUE),
-                .groups = "drop"
+        # Compute for each group separately to avoid dplyr quantile issues
+        groups <- unique(df[[group_col]])
+        stats_list <- lapply(groups, function(grp) {
+            grp_data <- df[[value_col]][df[[group_col]] == grp]
+            data.frame(
+                group = grp,
+                value = central_fn(grp_data),
+                lower = as.numeric(stats::quantile(grp_data, 0.25, na.rm = TRUE)),
+                upper = as.numeric(stats::quantile(grp_data, 0.75, na.rm = TRUE))
             )
+        })
+        names(stats_list) <- NULL
+        stats_df <- do.call(rbind, stats_list)
+        colnames(stats_df)[1] <- group_col
     } else if (spread_metric == "sd") {
-        stats_df <- df %>%
-            dplyr::group_by(.data[[group_col]]) %>%
-            dplyr::summarize(
-                value = central_fn(.data[[value_col]]),
-                lower = value - stats::sd(.data[[value_col]], na.rm = TRUE),
-                upper = value + stats::sd(.data[[value_col]], na.rm = TRUE),
-                .groups = "drop"
+        # Compute for each group separately to avoid dplyr binding issues
+        groups <- unique(df[[group_col]])
+        stats_list <- lapply(groups, function(grp) {
+            grp_data <- df[[value_col]][df[[group_col]] == grp]
+            val <- central_fn(grp_data)
+            sd_val <- stats::sd(grp_data, na.rm = TRUE)
+            data.frame(
+                group = grp,
+                value = val,
+                lower = val - sd_val,
+                upper = val + sd_val
             )
+        })
+        names(stats_list) <- NULL
+        stats_df <- do.call(rbind, stats_list)
+        colnames(stats_df)[1] <- group_col
     } else {
         stop("Unknown spread_metric: ", spread_metric, call. = FALSE)
     }
@@ -3289,7 +3582,7 @@ NULL
 #' @noRd
 .extract_bootstrap_ci_assays <- function(se, assay_name = "diversity",
                                         fallback_to_iqr = TRUE) {
-    require_pkgs(c("SummarizedExperiment"))
+        library(SummarizedExperiment)
 
     # Validate base assay exists
     if (!assay_name %in% SummarizedExperiment::assayNames(se)) {

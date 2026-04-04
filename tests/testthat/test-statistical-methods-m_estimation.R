@@ -1,8 +1,13 @@
 context("Robust Statistical Methods: Basic Functionality")
+library(SummarizedExperiment)
+library(testthat)
+
 
 # ============================================================================
 # TEST: .m_estimate() - M-Estimation with Robust Loss Functions
 # ============================================================================
+
+
 
 test_that("m_estimate returns correct data frame structure", {
   x <- matrix(rnorm(40), nrow = 5, ncol = 8)
@@ -247,7 +252,6 @@ test_that("Default scale_method is MAD", {
 context("Enhanced QC Metrics: Robustness Weight, Entropy Statistics, and Centroid Distance")
 
 test_that("m_estimate with SummarizedExperiment includes all QC metrics", {
-  library(SummarizedExperiment)
   set.seed(123)
   
   # Create multi-q column names like S1_q=1, S1_q=2, etc.
@@ -279,7 +283,6 @@ test_that("m_estimate with SummarizedExperiment includes all QC metrics", {
 })
 
 test_that("Robustness_Weight values are between 0 and 1", {
-  library(SummarizedExperiment)
   set.seed(456)
   
   n_q <- 2
@@ -303,7 +306,6 @@ test_that("Robustness_Weight values are between 0 and 1", {
 })
 
 test_that("Entropy_Mean and Entropy_SD are positive or zero", {
-  library(SummarizedExperiment)
   set.seed(789)
   
   n_q <- 2
@@ -327,7 +329,6 @@ test_that("Entropy_Mean and Entropy_SD are positive or zero", {
 })
 
 test_that("Distance_from_Centroid is non-negative", {
-  library(SummarizedExperiment)
   set.seed(321)
   
   n_q <- 2
@@ -351,7 +352,6 @@ test_that("Distance_from_Centroid is non-negative", {
 })
 
 test_that("Samples closer to centroid have lower distances", {
-  library(SummarizedExperiment)
   set.seed(654)
   
   n_q <- 2
@@ -385,7 +385,6 @@ test_that("Samples closer to centroid have lower distances", {
 })
 
 test_that("Distance_from_Centroid varies across samples (typical data)", {
-  library(SummarizedExperiment)
   set.seed(987)
   
   n_q <- 2
@@ -413,7 +412,6 @@ test_that("Distance_from_Centroid varies across samples (typical data)", {
 })
 
 test_that("Proportion_Affected and Genes_Affected are consistent", {
-  library(SummarizedExperiment)
   set.seed(111)
   
   n_q <- 2
@@ -438,7 +436,6 @@ test_that("Proportion_Affected and Genes_Affected are consistent", {
 })
 
 test_that("Entropy_Mean within reasonable bounds for data", {
-  library(SummarizedExperiment)
   set.seed(222)
   
   n_q <- 2
@@ -466,7 +463,6 @@ test_that("Entropy_Mean within reasonable bounds for data", {
 })
 
 test_that("Paired parameter propagates through recursive calls", {
-  library(SummarizedExperiment)
   set.seed(333)
   
   n_q <- 2
@@ -501,7 +497,6 @@ test_that("Paired parameter propagates through recursive calls", {
 })
 
 test_that("QC Status correctly flags high-influence samples", {
-  library(SummarizedExperiment)
   set.seed(444)
   
   n_q <- 2
@@ -534,7 +529,6 @@ test_that("QC Status correctly flags high-influence samples", {
 })
 
 test_that("Different influence thresholds produce different flagging", {
-  library(SummarizedExperiment)
   set.seed(555)
   
   n_q <- 2
@@ -564,7 +558,6 @@ test_that("Different influence thresholds produce different flagging", {
 })
 
 test_that("Robustness metrics work with different loss types", {
-  library(SummarizedExperiment)
   set.seed(666)
   
   n_q <- 2
@@ -595,7 +588,6 @@ test_that("Robustness metrics work with different loss types", {
 })
 
 test_that("Pair information is correctly extracted when available", {
-  library(SummarizedExperiment)
   set.seed(777)
   
   n_q <- 2
@@ -626,7 +618,6 @@ test_that("Pair information is correctly extracted when available", {
 })
 
 test_that("Entropy statistics reflect data variance", {
-  library(SummarizedExperiment)
   set.seed(888)
   
   n_q <- 2
@@ -664,7 +655,6 @@ test_that("Entropy statistics reflect data variance", {
 })
 
 test_that("m_estimate SummarizedExperiment path with various data sizes", {
-  library(SummarizedExperiment)
   set.seed(999)
   
   n_q <- 2
@@ -700,7 +690,6 @@ test_that("m_estimate SummarizedExperiment path with various data sizes", {
 context("Helper Functions: Data Preparation and Analysis")
 
 test_that(".mest_prepare_se_data correctly collapses multi-q data", {
-  library(SummarizedExperiment)
   set.seed(1001)
   
   n_q <- 3
@@ -729,7 +718,6 @@ test_that(".mest_prepare_se_data correctly collapses multi-q data", {
 })
 
 test_that(".mest_prepare_se_data handles median vs mean collapsing", {
-  library(SummarizedExperiment)
   set.seed(1002)
   
   n_q <- 2
@@ -763,7 +751,6 @@ test_that(".mest_prepare_se_data handles median vs mean collapsing", {
 })
 
 test_that(".mest_prepare_se_data rejects invalid column names", {
-  library(SummarizedExperiment)
   
   se <- SummarizedExperiment(
     assays = list(diversity = matrix(rnorm(40), nrow = 5, ncol = 8)),
@@ -779,7 +766,6 @@ test_that(".mest_prepare_se_data rejects invalid column names", {
 })
 
 test_that(".mest_prepare_se_data preserves gene names and sample order", {
-  library(SummarizedExperiment)
   set.seed(1003)
   
   n_q <- 2
@@ -811,7 +797,6 @@ test_that(".mest_prepare_se_data preserves gene names and sample order", {
 # ============================================================================
 
 test_that(".mest_influence_loo identifies high-influence samples", {
-  library(SummarizedExperiment)
   set.seed(1004)
   
   n_q <- 2
@@ -841,7 +826,6 @@ test_that(".mest_influence_loo identifies high-influence samples", {
 })
 
 test_that(".mest_influence_loo handles identical groups", {
-  library(SummarizedExperiment)
   set.seed(1005)
   
   n_q <- 2
@@ -873,7 +857,6 @@ test_that(".mest_influence_loo handles identical groups", {
 # ============================================================================
 
 test_that(".mest_compute_distances calculates euclidean distances", {
-  library(SummarizedExperiment)
   set.seed(1006)
   
   n_q <- 2
@@ -904,7 +887,6 @@ test_that(".mest_compute_distances calculates euclidean distances", {
 })
 
 test_that(".mest_compute_distances with single-sample groups", {
-  library(SummarizedExperiment)
   set.seed(1007)
   
   n_q <- 2
@@ -1088,7 +1070,6 @@ test_that("m_estimate weights reflect influence correctly", {
 context("Consistency: Matrix Input vs SummarizedExperiment Input")
 
 test_that("Matrix and SE have different output formats as designed", {
-  library(SummarizedExperiment)
   set.seed(2005)
   
   n_q <- 2
@@ -1126,7 +1107,6 @@ test_that("Matrix and SE have different output formats as designed", {
 })
 
 test_that("QC metrics exist for both matrix and SE input paths", {
-  library(SummarizedExperiment)
   set.seed(2006)
   
   n_q <- 2
@@ -1462,7 +1442,6 @@ test_that(".processMEstimateFeature produces valid p-values", {
 })
 
 test_that(".handleMEstimateSEInput returns sample-level results", {
-  library(SummarizedExperiment)
   set.seed(3009)
   
   n_q <- 2
@@ -1492,7 +1471,6 @@ test_that(".handleMEstimateSEInput returns sample-level results", {
 })
 
 test_that(".handleMEstimateSEInput preserves paired metadata", {
-  library(SummarizedExperiment)
   set.seed(3010)
   
   n_q <- 2
@@ -1520,7 +1498,6 @@ test_that(".handleMEstimateSEInput preserves paired metadata", {
 })
 
 test_that(".handleMEstimateSEInput combines multi-q data correctly", {
-  library(SummarizedExperiment)
   set.seed(3011)
   
   n_q <- 3  # Multiple q-values
@@ -1547,7 +1524,6 @@ test_that(".handleMEstimateSEInput combines multi-q data correctly", {
 })
 
 test_that(".handleMEstimateSEInput metadata for pair_id vs Pair vs pair_id column", {
-  library(SummarizedExperiment)
   set.seed(3012)
   
   n_q <- 2
@@ -1645,7 +1621,6 @@ test_that("Refactored code maintains loss function behavior", {
 test_that("m_estimate_s4: returns TSENATAnalysis with m_estimation results", {
   skip_if_not_installed("SummarizedExperiment")
   
-  library("SummarizedExperiment")
   set.seed(3017)
   
   # Create test analysis with counts
@@ -1677,7 +1652,6 @@ test_that("m_estimate_s4: returns TSENATAnalysis with m_estimation results", {
 test_that("m_estimate_s4: handles different loss functions", {
   skip_if_not_installed("SummarizedExperiment")
   
-  library("SummarizedExperiment")
   set.seed(3018)
   
   analysis <- TSENAT:::.create_test_analysis(
@@ -1715,7 +1689,6 @@ test_that("m_estimate_s4: handles different loss functions", {
 test_that("prepare_gene_switching_tables_s4: requires isoform switching results", {
   skip_if_not_installed("SummarizedExperiment")
   
-  library("SummarizedExperiment")
   set.seed(3019)
   
   # Create test analysis without isoform switching results
@@ -1743,7 +1716,6 @@ test_that("prepare_gene_switching_tables_s4: requires isoform switching results"
 test_that("prepare_gene_switching_tables_s4: returns data structure", {
   skip_if_not_installed("SummarizedExperiment")
   
-  library("SummarizedExperiment")
   set.seed(3020)
   
   analysis <- TSENAT:::.create_test_analysis(

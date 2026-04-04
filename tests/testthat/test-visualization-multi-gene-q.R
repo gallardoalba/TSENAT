@@ -2,6 +2,13 @@
 # Located in generate_plots.R lines ~2727-2930
 
 context("plot_multi_gene_q_spectrum_s4: Multi-gene q-spectrum plotting")
+library(SummarizedExperiment)
+library(ggplot2)
+library(patchwork)
+library(testthat)
+
+
+
 
 test_that("plot_multi_gene_q_spectrum_s4: TSENATAnalysis S4 object handling", {
   config <- list()
@@ -35,7 +42,6 @@ test_that("plot_multi_gene_q_spectrum_s4: lm_results extraction from TSENATAnaly
 test_that("plot_multi_gene_q_spectrum_s4: diversity_results extraction", {
   config <- list()
   skip_if_not_installed("SummarizedExperiment")
-  library("SummarizedExperiment")
   
   mat <- matrix(rnorm(12), nrow = 3, ncol = 4)
   rownames(mat) <- c("g1", "g2", "g3")
@@ -176,7 +182,6 @@ test_that("plot_multi_gene_q_spectrum_s4: plot_df construction", {
 test_that("plot_multi_gene_q_spectrum_s4: individual q-spectrum plot", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   plot_df <- data.frame(
     q = c(0.1, 0.15, 0.2),
@@ -194,7 +199,6 @@ test_that("plot_multi_gene_q_spectrum_s4: individual q-spectrum plot", {
 test_that("plot_multi_gene_q_spectrum_s4: vline for q=1", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   plot_df <- data.frame(
     q = seq(0.1, 0.3, length.out = 5),
@@ -211,7 +215,6 @@ test_that("plot_multi_gene_q_spectrum_s4: vline for q=1", {
 test_that("plot_multi_gene_q_spectrum_s4: plot title with gene name", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   gene_name <- "BRCA1"
   adj_p <- 0.001
@@ -230,7 +233,6 @@ test_that("plot_multi_gene_q_spectrum_s4: plot title with gene name", {
 test_that("plot_multi_gene_q_spectrum_s4: plot list accumulation", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   genes <- c("g1", "g2", "g3")
   plot_list <- list()
@@ -284,7 +286,6 @@ test_that("plot_multi_gene_q_spectrum_s4: mode 1 failure - missing columns", {
 test_that("plot_multi_gene_q_spectrum_s4: mode 2 fallback - lm_res and divergence_results_se", {
   config <- list()
   skip_if_not_installed("SummarizedExperiment")
-  library("SummarizedExperiment")
   
   lm_res <- data.frame(
     gene = c("g1", "g2", "g3"),
@@ -328,8 +329,6 @@ test_that("plot_multi_gene_q_spectrum_s4: no valid genes error handling", {
 test_that("plot_multi_gene_q_spectrum_s4: grid arrangement with patchwork", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
-  library("patchwork")
   
   set.seed(42)
   plot_list <- list()
@@ -356,7 +355,6 @@ test_that("plot_multi_gene_q_spectrum_s4: grid arrangement with patchwork", {
 test_that("plot_multi_gene_q_spectrum_s4: single gene plotting", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   genes <- c("g1")
   plot_list <- list()
@@ -380,7 +378,6 @@ test_that("plot_multi_gene_q_spectrum_s4: single gene plotting", {
 test_that("plot_multi_gene_q_spectrum_s4: many genes plotting", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   n_genes <- 9
   plot_list <- list()
@@ -495,7 +492,6 @@ test_that("plot_multi_gene_q_spectrum_s4: NA handling in plots", {
 
 test_that(".extract_s4_components: successful extraction from valid S4 object", {
   skip_if_not_installed("SummarizedExperiment")
-  library("SummarizedExperiment")
   
   # Create mock TSENATAnalysis object with required slots
   lm_results_list <- list(
@@ -519,7 +515,6 @@ test_that(".extract_s4_components: successful extraction from valid S4 object", 
 
 test_that(".extract_s4_components: handles missing lm_results", {
   skip_if_not_installed("SummarizedExperiment")
-  library("SummarizedExperiment")
   
   # Empty lm_results should trigger error message
   lm_results_list <- list()
@@ -529,7 +524,6 @@ test_that(".extract_s4_components: handles missing lm_results", {
 
 test_that(".extract_s4_components: handles missing diversity_results", {
   skip_if_not_installed("SummarizedExperiment")
-  library("SummarizedExperiment")
   
   # Empty diversity_results should trigger error message
   diversity_results_list <- list()
@@ -692,7 +686,6 @@ test_that(".select_genes_from_eff_res: returns NULL when no valid patterns", {
 
 test_that(".select_genes_fallback: successful fallback extraction", {
   skip_if_not_installed("SummarizedExperiment")
-  library("SummarizedExperiment")
   
   lm_res <- data.frame(
     gene = c("g1", "g2", "g3"),
@@ -745,7 +738,6 @@ test_that(".select_genes_fallback: missing gene column in lm_res", {
 
 test_that(".select_genes_fallback: gene name extraction from rowData", {
   skip_if_not_installed("SummarizedExperiment")
-  library("SummarizedExperiment")
   
   div_assay <- matrix(rnorm(12), nrow = 3, ncol = 4)
   rownames(div_assay) <- c("g1", "g2", "g3")
@@ -766,7 +758,6 @@ test_that(".select_genes_fallback: gene name extraction from rowData", {
 
 test_that(".select_genes_fallback: gene name extraction from rownames fallback", {
   skip_if_not_installed("SummarizedExperiment")
-  library("SummarizedExperiment")
   
   div_assay <- matrix(rnorm(12), nrow = 3, ncol = 4)
   rownames(div_assay) <- c("g1", "g2", "g3")
@@ -807,7 +798,6 @@ test_that(".select_genes_fallback: partial gene matching", {
 
 test_that(".create_gene_q_plots: successful plot creation", {
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   genes <- c("g1", "g2")
   patterns <- c("1,0.8,0.6", "0.5,0.4,0.3")
@@ -887,7 +877,6 @@ test_that(".create_gene_q_plots: data frame construction", {
 
 test_that(".create_gene_q_plots: plot object creation", {
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   plot_df <- data.frame(q = c(0.1, 0.15, 0.2), divergence = c(1.0, 0.8, 0.6))
   
@@ -901,7 +890,6 @@ test_that(".create_gene_q_plots: plot object creation", {
 
 test_that(".create_gene_q_plots: filtering invalid ggplot objects", {
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   plot_list <- list(
     ggplot2::ggplot(data.frame(x = 1, y = 1)) + ggplot2::geom_point(),
@@ -934,8 +922,6 @@ test_that(".create_gene_q_plots: error handling in tryCatch", {
 test_that(".assemble_plot_grid: successful grid assembly", {
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("patchwork")
-  library("ggplot2")
-  library("patchwork")
   
   plot_list <- list()
   for (i in 1:4) {
@@ -954,7 +940,6 @@ test_that(".assemble_plot_grid: successful grid assembly", {
 
 test_that(".assemble_plot_grid: single plot", {
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   plot_df <- data.frame(q = c(0.1, 0.15, 0.2), divergence = c(1.0, 0.8, 0.6))
   plot_list <- list(ggplot2::ggplot(plot_df, ggplot2::aes(x = q, y = divergence)) +
@@ -1007,7 +992,6 @@ test_that(".assemble_plot_grid: row-wise plot extraction", {
 
 test_that(".assemble_plot_grid: row filtering for valid ggplot objects", {
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   row_plots <- list(
     ggplot2::ggplot(data.frame(x = 1, y = 1)) + ggplot2::geom_point(),
@@ -1023,8 +1007,6 @@ test_that(".assemble_plot_grid: row filtering for valid ggplot objects", {
 test_that(".assemble_plot_grid: patchwork plot combining", {
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("patchwork")
-  library("ggplot2")
-  library("patchwork")
   
   p1 <- ggplot2::ggplot(data.frame(x = 1, y = 1)) + ggplot2::geom_point()
   p2 <- ggplot2::ggplot(data.frame(x = 1, y = 1)) + ggplot2::geom_point()
@@ -1037,8 +1019,6 @@ test_that(".assemble_plot_grid: patchwork plot combining", {
 test_that(".assemble_plot_grid: patchwork plot spacing", {
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("patchwork")
-  library("ggplot2")
-  library("patchwork")
   
   p1 <- ggplot2::ggplot(data.frame(x = 1, y = 1)) + ggplot2::geom_point()
   spacer <- patchwork::plot_spacer()

@@ -203,7 +203,10 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
 
 .plot_tsallis_gene_specific <- function(se, assay_name, condition_col, gene, lm_res,
     n_top, metric, output_file) {
-    require_pkgs(c("ggplot2", "dplyr", "cowplot", "SummarizedExperiment"))
+    library(ggplot2)
+    library(dplyr)
+    library(cowplot)
+    library(SummarizedExperiment)
 
     long <- .prepare_long_format(se, assay_name = assay_name, condition_col = condition_col)
 
@@ -326,7 +329,8 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
 # ============================================================================
 
 .plot_tsallis_bootstrap_ci <- function(se, long, output_file) {
-    require_pkgs(c("ggplot2", "SummarizedExperiment"))
+    library(ggplot2)
+    library(SummarizedExperiment)
 
     # Bootstrap CI Visualization Methodology (From Literature: S115, S018)
     # =================================================================== Point
@@ -380,7 +384,10 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
 # ============================================================================
 
 .plot_tsallis_gene_bootstrap_ci <- function(se, long, genes, output_file) {
-    require_pkgs(c("ggplot2", "dplyr", "cowplot", "SummarizedExperiment"))
+    library(ggplot2)
+    library(dplyr)
+    library(cowplot)
+    library(SummarizedExperiment)
 
     # Filter long data to selected genes
     long$q <- as.numeric(as.character(long$q))
@@ -461,7 +468,9 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
 # ============================================================================
 
 .plot_tsallis_basic_gene <- function(long, genes, metric = "iqr", output_file) {
-    require_pkgs(c("ggplot2", "dplyr", "cowplot"))
+    library(ggplot2)
+    library(dplyr)
+    library(cowplot)
 
     metric <- match.arg(tolower(metric), c("iqr", "sd"))
 
@@ -522,7 +531,7 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
 # ============================================================================
 
 .plot_tsallis_basic <- function(long, metric = "iqr", output_file) {
-    require_pkgs("ggplot2")
+    library(ggplot2)
 
     metric <- match.arg(tolower(metric), c("iqr", "sd"))
     long$q <- as.numeric(as.character(long$q))

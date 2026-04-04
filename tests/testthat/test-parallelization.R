@@ -718,7 +718,6 @@ context("Parallelization: calculate_divergence with nthreads")
 context("Parallelization: calculate_divergence with nthreads")
 
 test_that("calculate_divergence sequential execution produces valid results", {
-    library(SummarizedExperiment)
     set.seed(42)
     
     # Create test SummarizedExperiment: 30 genes, 8 samples
@@ -768,7 +767,6 @@ test_that("calculate_divergence sequential execution produces valid results", {
 })
 
 test_that("calculate_divergence sequential vs parallel produce consistent results", {
-    library(SummarizedExperiment)
     set.seed(42)
     
     # Create test data
@@ -836,7 +834,6 @@ test_that("calculate_divergence sequential vs parallel produce consistent result
 })
 
 test_that("calculate_divergence multiple thread levels produce consistent nrows", {
-    library(SummarizedExperiment)
     set.seed(99)
     
     # Create test data
@@ -896,7 +893,6 @@ test_that("calculate_divergence multiple thread levels produce consistent nrows"
 })
 
 test_that("calculate_divergence handles small gene count correctly", {
-    library(SummarizedExperiment)
     set.seed(55)
     
     # Create very small dataset: only 3 genes
@@ -937,7 +933,6 @@ test_that("calculate_divergence handles small gene count correctly", {
 })
 
 test_that("calculate_divergence auto-detects cores when nthreads=NULL", {
-    library(SummarizedExperiment)
     set.seed(77)
     
     # Create test data
@@ -981,7 +976,6 @@ test_that("calculate_divergence auto-detects cores when nthreads=NULL", {
 })
 
 test_that("calculate_divergence processes all genes (top_n no longer used)", {
-    library(SummarizedExperiment)
     set.seed(88)
     
     # Create test data with many genes
@@ -1018,7 +1012,6 @@ test_that("calculate_divergence processes all genes (top_n no longer used)", {
 })
 
 test_that("calculate_divergence error handling for invalid input", {
-    library(SummarizedExperiment)
     
     # Invalid SE (not SummarizedExperiment)
     expect_error(
@@ -1057,7 +1050,6 @@ test_that("calculate_divergence error handling for invalid input", {
 })
 
 test_that("calculate_divergence output includes required columns", {
-    library(SummarizedExperiment)
     set.seed(33)
     
     # Create small dataset

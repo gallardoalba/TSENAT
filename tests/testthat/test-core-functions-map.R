@@ -1,4 +1,6 @@
 context("Metadata Mapping: Core Functionality")
+library(SummarizedExperiment)
+
 
 # Use a small in-memory toy `coldata` for tests to avoid file/system dependencies
 toy_coldata <- data.frame(
@@ -239,7 +241,6 @@ test_that("Auto-detection accepts complete pairs with suffix-based pairing", {
 
 context("Metadata Mapping: Additional Tests")
 
-library(SummarizedExperiment)
 
 test_that("map_tx_to_readcounts assigns rownames when sizes match", {
     rc <- matrix(1:4, nrow = 2)
@@ -306,7 +307,6 @@ test_that("prepare_tsallis_long parses _q= suffixes and maps groups", {
 test_that("prepare_tsallis_long preserves decimal q-values as numeric", {
     # Test for bug fix: q values like 0.1, 0.15, 0.2 were being converted to factors
     skip_if_not_installed("tidyr")
-    library(tidyr)
     
     mat <- matrix(rnorm(30), nrow = 3, ncol = 10)
     # Create column names with decimal q-values
@@ -377,7 +377,6 @@ test_that("map_tx_to_readcounts reads tx2gene from file and errors on mismatch",
 
 context("Metadata Mapping: Extended Tests")
 
-library(SummarizedExperiment)
 
 test_that("map_tx_to_readcounts accepts file path input", {
     rc <- matrix(1:6, nrow = 3)

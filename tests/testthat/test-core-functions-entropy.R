@@ -1,4 +1,6 @@
 context("DEEP BUG ANALYSIS: Formula Sign Errors in Tsallis")
+library(TSENAT)
+
 
 test_that("BUG ALERT: Tsallis formula uses wrong denominator (q-1 vs 1-q) - produces opposite signs", {
   # This test documents the critical formula bug
@@ -166,7 +168,6 @@ test_that("QUANTILE METHOD: Check if type=1 is being used correctly", {
 # Additional tests for calculate_tsallis_entropy function
 # Tests the low-level entropy calculation function
 
-library(TSENAT)
 
 context("calculate_tsallis_entropy: Core Entropy Calculations")
 
@@ -839,7 +840,6 @@ test_that("BUGFIX 1.8: Normalized entropy of singular distribution is very small
   }
 })
 
-library(TSENAT)
 
 context("entropy_core: Centralized Entropy Calculation")
 

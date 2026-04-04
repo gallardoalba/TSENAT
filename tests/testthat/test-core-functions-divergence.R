@@ -1,7 +1,8 @@
 context("calculate_divergence: Bootstrap Divergence CI Computation")
-
 library(TSENAT)
 library(SummarizedExperiment)
+
+
 
 # Suppress nboot < 100 warnings for exploratory tests (acceptable for testing)
 options(TSENAT.suppress_nboot_warning = TRUE)
@@ -940,7 +941,6 @@ test_that("calculate_divergence returns error results gracefully", {
 # Comprehensive testing for uncovered lines in divergence analysis
 # Tests edge cases and error conditions in divergence calculation functions
 
-library(TSENAT)
 skip_on_bioc()
 
 context("Divergence: Coverage Expansion")

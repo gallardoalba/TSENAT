@@ -1,6 +1,9 @@
-library(testthat)
 
 context("Linear Model Interaction: GEE Method Implementation")
+library(testthat)
+library(TSENAT)
+library(SummarizedExperiment)
+
 
 test_that("gee method returns expected columns (basic functionality)", {
     skip_if_not_installed("geepack")
@@ -2286,15 +2289,11 @@ test_that(".gee_interaction with valid data returns result", {
 # Tests for linear model interactions: GEE and LMM comparisons
 # GAM tests have been moved to test-statistical-methods-lm_gam.R
 
-library(testthat)
-library(TSENAT)
-library(SummarizedExperiment)
 
 context("Linear Models: GEE K-C Bias Correction Algorithm")
 
 test_that("bias_correction parameter is accepted by calculate_lm_interaction", {
     skip_if_not_installed("geepack")
-    library(TSENAT)
     
     # Create simple test data with small number of clusters (triggering K-C correction)
     qvec <- seq(0.01, 0.05, by = 0.01)
@@ -2392,7 +2391,6 @@ test_that("bias_correction parameter is accepted by calculate_lm_interaction", {
 
 test_that("K-C bias_correction is triggered only for small clusters (n<20)", {
     skip_if_not_installed("geepack")
-    library(TSENAT)
     
     # Create test data with different cluster counts
     qvec <- seq(0.01, 0.05, by = 0.01)
@@ -2492,7 +2490,6 @@ test_that("K-C bias_correction is triggered only for small clusters (n<20)", {
 
 test_that("K-C correction maintains theoretical Type I error rate for small samples", {
     skip_if_not_installed("geepack")
-    library(TSENAT)
     
     # Generate null data (no interaction) with small clusters
     # and verify p-values are reasonable under null

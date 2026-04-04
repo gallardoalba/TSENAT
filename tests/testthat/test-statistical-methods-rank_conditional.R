@@ -132,7 +132,6 @@ test_that(".apply_quantile_test triggered by boundary-clustered data", {
   skip_on_cran()
   skip_if_not_installed("SummarizedExperiment")
   
-  library(SummarizedExperiment)
   
   # Create data with BOUNDARY CLUSTERING at quartiles
   set.seed(99)

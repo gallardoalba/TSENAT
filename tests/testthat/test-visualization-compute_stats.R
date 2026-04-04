@@ -107,7 +107,6 @@ testthat::test_that("validate_diversity_se checks for SummarizedExperiment class
 
 testthat::test_that("validate_diversity_se checks for diversity assay", {
   create_test_se_without_diversity <- function() {
-    require_pkgs("SummarizedExperiment")
     mat <- matrix(1:10, nrow = 5)
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = mat))
     se
@@ -121,7 +120,6 @@ testthat::test_that("validate_diversity_se checks for diversity assay", {
 })
 
 testthat::test_that("validate_diversity_se passes with valid diversity SE", {
-  require_pkgs("SummarizedExperiment")
 
   mat <- matrix(rnorm(50), nrow = 5)
   se <- SummarizedExperiment::SummarizedExperiment(
@@ -321,7 +319,6 @@ testthat::test_that("create_aggregation_function generates appropriate label", {
 # ============================================================================
 
 testthat::test_that("build_transcript_long creates long-format data", {
-  require_pkgs("tidyr")
 
   # Create test data
   mapping <- data.frame(
@@ -349,7 +346,6 @@ testthat::test_that("build_transcript_long creates long-format data", {
 })
 
 testthat::test_that("build_transcript_long respects top_n parameter", {
-  require_pkgs("tidyr")
 
   mapping <- data.frame(
     Transcript = c("tx1", "tx2", "tx3", "tx4"),
@@ -375,7 +371,6 @@ testthat::test_that("build_transcript_long respects top_n parameter", {
 })
 
 testthat::test_that("build_transcript_long errors on missing gene", {
-  require_pkgs("tidyr")
 
   mapping <- data.frame(
     Transcript = c("tx1", "tx2"),

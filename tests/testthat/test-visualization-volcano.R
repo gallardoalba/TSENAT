@@ -3,11 +3,17 @@
 # extract_q, plot_divergence_distribution, and helper functions
 
 context("Low-priority plotting functions: Single uncovered lines and edge cases")
+library(ggplot2)
+library(cowplot)
+library(SummarizedExperiment)
+library(testthat)
+
+
+
 
 test_that("plot_volcano: basic plot creation", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   # Create minimal volcano plot data
   plot_df <- data.frame(
@@ -24,7 +30,6 @@ test_that("plot_volcano: basic plot creation", {
 test_that("plot_volcano: significance threshold lines", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   plot_df <- data.frame(
     log2FoldChange = c(-2, -1, 0, 1, 2),
@@ -41,8 +46,6 @@ test_that("plot_volcano: significance threshold lines", {
 test_that("plot_volcano_ma_grid: MA plot with grid arrangement", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
-  library("patchwork")
   
   # Create two MA plots
   ma_df1 <- data.frame(
@@ -71,8 +74,6 @@ test_that("plot_volcano_ma_grid: MA plot with grid arrangement", {
 test_that("plot_top_transcripts: multi-panel gene plot arrangement", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
-  library("cowplot")
   
   # Create sample plots for multiple genes
   set.seed(42)
@@ -107,7 +108,6 @@ test_that("plot_top_transcripts: grid layout calculation", {
 test_that("plot_top_transcripts: single plot handling", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   df <- data.frame(x = c(1, 2, 3), y = c(1, 4, 9))
   
@@ -121,7 +121,6 @@ test_that("plot_top_transcripts: single plot handling", {
 test_that("plot_top_transcripts: many plots (>10)", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   n_genes <- 12
   plots <- list()
@@ -185,7 +184,6 @@ test_that("extract_q: sequential q-value fallback", {
 test_that("plot_divergence_distribution: histogram of divergence values", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   divergence_vals <- c(0.1, 0.15, 0.2, 0.05, 0.3, 0.12, 0.18)
   
@@ -200,7 +198,6 @@ test_that("plot_divergence_distribution: histogram of divergence values", {
 test_that("plot_divergence_distribution: density plot overlay", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   divergence_vals <- rnorm(100, mean = 0.5, sd = 0.1)
   df <- data.frame(divergence = divergence_vals)
@@ -215,7 +212,6 @@ test_that("plot_divergence_distribution: density plot overlay", {
 test_that(".plot_transcript_grid_draw: grid arrangement helper", {
   config <- list()
   skip_if_not_installed("cowplot")
-  library("cowplot")
   
   # Mock plots for grid
   plots <- list(
@@ -230,7 +226,6 @@ test_that(".plot_transcript_grid_draw: grid arrangement helper", {
 test_that("make_plot_for_genecombine_plots: combine multiple plots", {
   config <- list()
   skip_if_not_installed("cowplot")
-  library("cowplot")
   
   p1 <- ggplot2::ggplot() + ggplot2::geom_point(ggplot2::aes(1:5, 1:5))
   p2 <- ggplot2::ggplot() + ggplot2::geom_point(ggplot2::aes(1:5, 1:5))
@@ -252,7 +247,6 @@ test_that("make_plot_for_genecombine_grid: arrange plots in grid", {
 test_that("make_plot_for_genecombine_cowplot: cowplot arrangement wrapper", {
   config <- list()
   skip_if_not_installed("cowplot")
-  library("cowplot")
   
   plots <- list(
     ggplot2::ggplot() + ggplot2::geom_blank(),
@@ -265,7 +259,6 @@ test_that("make_plot_for_genecombine_cowplot: cowplot arrangement wrapper", {
 test_that("plot_tsallis_density_singleq: single q-value density plot", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   entropy_vals <- rnorm(100, mean = 2.0, sd = 0.5)
   groups <- rep(c("A", "B"), 50)
@@ -284,7 +277,6 @@ test_that("plot_tsallis_density_singleq: single q-value density plot", {
 test_that("plot_tsallis_density_singleq: two-group comparison", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   df <- data.frame(
     entropy = c(rnorm(50, 2.0, 0.5), rnorm(50, 2.5, 0.5)),
@@ -300,7 +292,6 @@ test_that("plot_tsallis_density_singleq: two-group comparison", {
 test_that("plot_tsallis_violin_density_grid_s4: violin plot with density", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   df <- data.frame(
     entropy = c(rnorm(50, 2.0, 0.5), rnorm(50, 2.5, 0.5)),
@@ -318,7 +309,6 @@ test_that("plot_tsallis_violin_density_grid_s4: violin plot with density", {
 test_that("plot_tsallis_violin_density_grid_s4: multi-q faceting", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   df <- data.frame(
     entropy = c(rnorm(100, 2.0, 0.5), rnorm(100, 2.3, 0.5)),
@@ -396,7 +386,6 @@ test_that(".prepare_volcano_df: prepare volcano plot data", {
 test_that("make_plot_for_gene: single gene plot wrapper", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   gene_data <- data.frame(
     condition = c("A", "A", "B", "B"),
@@ -423,7 +412,6 @@ test_that("make_plot_for_genecombine_grid: grid calculation edge case (odd numbe
 test_that("plot color consistency across theme", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   df <- data.frame(x = 1:5, y = 1:5, group = rep(c("A", "B"), length.out = 5))
   
@@ -438,7 +426,6 @@ test_that("plot color consistency across theme", {
 test_that("label formatting in plots", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   df <- data.frame(x = c(1, 2, 3), y = c(1, 4, 9))
   
@@ -456,7 +443,6 @@ test_that("label formatting in plots", {
 test_that("axis scale transformations", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   df <- data.frame(x = 1:100, y = 10^(1:100 / 10))
   
@@ -470,7 +456,6 @@ test_that("axis scale transformations", {
 test_that("faceted plot grid consistency", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   df <- data.frame(
     x = rep(1:5, 4),
@@ -489,8 +474,6 @@ test_that("plot_volcano_ma_grid_s4: creates plots from divergence results", {
   skip_if_not_installed("SummarizedExperiment")
   skip_if_not_installed("ggplot2")
   
-  library("SummarizedExperiment")
-  library("ggplot2")
   set.seed(999)
   
   # Create a minimal TSENATAnalysis-like structure with divergence results
@@ -513,7 +496,6 @@ test_that("plot_volcano_ma_grid_s4: creates plots from divergence results", {
 test_that("plot_volcano_ma_grid_s4: handles parameter validation", {
   skip_if_not_installed("ggplot2")
   
-  library("ggplot2")
   
   # Test sig_alpha parameter validation
   sig_alpha <- 0.05

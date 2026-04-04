@@ -1,11 +1,20 @@
 context("plot_helpers: Plot Composition and Theme Utilities")
+library(ggplot2)
+library(grid)
+library(RColorBrewer)
+library(SummarizedExperiment)
+library(pheatmap)
+library(patchwork)
+library(cowplot)
+library(methods)
+library(testthat)
+library(TSENAT)
 
 # ============================================================================
 # TEST: Theme and Title Functions
 # ============================================================================
 
 testthat::test_that("apply_tsenat_theme can be applied to plots", {
-  require_pkgs("ggplot2")
 
   # Just verify the function can be called
   testthat::expect_error(
@@ -25,7 +34,6 @@ testthat::test_that("apply_tsenat_theme can be applied to plots", {
 })
 
 testthat::test_that("set_plot_title modifies title correctly", {
-  require_pkgs("ggplot2")
 
   p <- ggplot2::ggplot(data.frame(x = 1, y = 1), ggplot2::aes(x, y)) +
     ggplot2::geom_point()
@@ -39,7 +47,6 @@ testthat::test_that("set_plot_title modifies title correctly", {
 })
 
 testthat::test_that("set_plot_title applies font sizes", {
-  require_pkgs("ggplot2")
 
   p <- ggplot2::ggplot(data.frame(x = 1, y = 1), ggplot2::aes(x, y)) +
     ggplot2::geom_point()
@@ -50,7 +57,6 @@ testthat::test_that("set_plot_title applies font sizes", {
 })
 
 testthat::test_that("set_plot_title handles NULL title/subtitle", {
-  require_pkgs("ggplot2")
 
   p <- ggplot2::ggplot(data.frame(x = 1, y = 1), ggplot2::aes(x, y)) +
     ggplot2::geom_point()
@@ -65,14 +71,12 @@ testthat::test_that("set_plot_title handles NULL title/subtitle", {
 # ============================================================================
 
 testthat::test_that("create_color_scale returns ggplot scale", {
-  require_pkgs("ggplot2")
 
   scale <- .create_color_scale(palette = "blue_red")
   testthat::expect_is(scale, "Scale")
 })
 
 testthat::test_that("create_color_scale reverses with direction -1", {
-  require_pkgs("ggplot2")
 
   scale_fwd <- .create_color_scale(palette = "blue_red", direction = 1)
   scale_rev <- .create_color_scale(palette = "blue_red", direction = -1)
@@ -82,14 +86,12 @@ testthat::test_that("create_color_scale reverses with direction -1", {
 })
 
 testthat::test_that("create_fill_scale returns appropriate scale", {
-  require_pkgs("ggplot2")
 
   scale <- .create_fill_scale(palette = "continuous_diverging")
   testthat::expect_is(scale, "Scale")
 })
 
 testthat::test_that("create_fill_scale accepts breaks parameter", {
-  require_pkgs("ggplot2")
 
   scale_50 <- .create_fill_scale(breaks = 50)
   scale_100 <- .create_fill_scale(breaks = 100)
@@ -103,7 +105,6 @@ testthat::test_that("create_fill_scale accepts breaks parameter", {
 # ============================================================================
 
 testthat::test_that("create_tsenat_heatmap creates basic heatmap", {
-  require_pkgs("pheatmap")
   
   # Create a simple test matrix
   mat <- matrix(rnorm(50), nrow = 10, ncol = 5)
@@ -125,7 +126,6 @@ testthat::test_that("create_tsenat_heatmap creates basic heatmap", {
 })
 
 testthat::test_that("create_tsenat_heatmap applies custom colors", {
-  require_pkgs(c("pheatmap", "RColorBrewer"))
   
   mat <- matrix(rnorm(50), nrow = 10, ncol = 5)
   rownames(mat) <- paste0("Gene_", 1:10)
@@ -149,7 +149,6 @@ testthat::test_that("create_tsenat_heatmap applies custom colors", {
 })
 
 testthat::test_that("create_tsenat_heatmap respects font size parameters", {
-  require_pkgs("pheatmap")
   
   mat <- matrix(rnorm(50), nrow = 10, ncol = 5)
   rownames(mat) <- paste0("Gene_", 1:10)
@@ -176,7 +175,6 @@ testthat::test_that("create_tsenat_heatmap respects font size parameters", {
 # ============================================================================
 
 testthat::test_that("combine_plots_patchwork handles single plot", {
-  require_pkgs(c("ggplot2", "patchwork"))
 
   p <- ggplot2::ggplot(data.frame(x = 1:10, y = 1:10), ggplot2::aes(x, y)) +
     ggplot2::geom_point()
@@ -187,7 +185,6 @@ testthat::test_that("combine_plots_patchwork handles single plot", {
 })
 
 testthat::test_that("combine_plots_patchwork handles multiple plots", {
-  require_pkgs(c("ggplot2", "patchwork"))
 
   plots <- list(
     ggplot2::ggplot(data.frame(x = 1:5, y = 1:5), ggplot2::aes(x, y)) +
@@ -203,7 +200,6 @@ testthat::test_that("combine_plots_patchwork handles multiple plots", {
 })
 
 testthat::test_that("combine_plots_patchwork generates title annotation", {
-  require_pkgs(c("ggplot2", "patchwork"))
 
   p <- ggplot2::ggplot(data.frame(x = 1:5, y = 1:5), ggplot2::aes(x, y)) +
     ggplot2::geom_point()
@@ -219,7 +215,6 @@ testthat::test_that("combine_plots_patchwork generates title annotation", {
 # ============================================================================
 
 testthat::test_that("combine_plots_cowplot handles single plot", {
-  require_pkgs(c("ggplot2", "cowplot"))
 
   p <- ggplot2::ggplot(data.frame(x = 1:10, y = 1:10), ggplot2::aes(x, y)) +
     ggplot2::geom_point()
@@ -231,7 +226,6 @@ testthat::test_that("combine_plots_cowplot handles single plot", {
 })
 
 testthat::test_that("combine_plots_cowplot handles multiple plots", {
-  require_pkgs(c("ggplot2", "cowplot"))
 
   plots <- list(
     ggplot2::ggplot(data.frame(x = 1:5, y = 1:5), ggplot2::aes(x, y)) +
@@ -246,7 +240,6 @@ testthat::test_that("combine_plots_cowplot handles multiple plots", {
 })
 
 testthat::test_that("combine_plots_cowplot returns invisible NULL with output_file", {
-  require_pkgs(c("ggplot2", "cowplot"))
 
   p <- ggplot2::ggplot(data.frame(x = 1:5, y = 1:5), ggplot2::aes(x, y)) +
     ggplot2::geom_point()
@@ -273,7 +266,6 @@ testthat::test_that("combine_plots_cowplot returns invisible NULL with output_fi
 # ============================================================================
 
 testthat::test_that("combine_plots_grid handles single plot", {
-  require_pkgs("ggplot2")
 
   p <- ggplot2::ggplot(data.frame(x = 1:10, y = 1:10), ggplot2::aes(x, y)) +
     ggplot2::geom_point()
@@ -285,7 +277,6 @@ testthat::test_that("combine_plots_grid handles single plot", {
 })
 
 testthat::test_that("combine_plots_grid handles multiple plots", {
-  require_pkgs("ggplot2")
 
   plots <- list(
     ggplot2::ggplot(data.frame(x = 1:5, y = 1:5), ggplot2::aes(x, y)) +
@@ -300,7 +291,6 @@ testthat::test_that("combine_plots_grid handles multiple plots", {
 })
 
 testthat::test_that("combine_plots_grid saves PNG with output_file", {
-  require_pkgs("ggplot2")
 
   p <- ggplot2::ggplot(data.frame(x = 1:5, y = 1:5), ggplot2::aes(x, y)) +
     ggplot2::geom_point()
@@ -323,7 +313,6 @@ testthat::test_that("combine_plots_grid saves PNG with output_file", {
 # ============================================================================
 
 testthat::test_that("combine_plots_patchwork produces distinct layouts from cowplot", {
-  require_pkgs(c("ggplot2", "patchwork", "cowplot"))
 
   plots <- list(
     ggplot2::ggplot(data.frame(x = 1:5, y = 1:5), ggplot2::aes(x, y)) +
@@ -345,14 +334,12 @@ testthat::test_that("combine_plots_patchwork produces distinct layouts from cowp
 # ============================================================================
 
 testthat::test_that("create_color_scale handles NULL name parameter", {
-  require_pkgs("ggplot2")
 
   scale <- .create_color_scale(palette = "blue_red", name = NULL)
   testthat::expect_is(scale, "Scale")
 })
 
 testthat::test_that("set_plot_title preserves existing plot aesthetics", {
-  require_pkgs("ggplot2")
 
   p <- ggplot2::ggplot(data.frame(x = 1:10, y = 1:10), ggplot2::aes(x, y)) +
     ggplot2::geom_point(color = "red", size = 3) +
@@ -370,7 +357,6 @@ testthat::test_that("set_plot_title preserves existing plot aesthetics", {
 })
 
 testthat::test_that("combine_plots functions handle plots with legends", {
-  require_pkgs(c("ggplot2", "patchwork"))
 
   df <- data.frame(x = 1:5, y = 1:5, group = c("A", "B", "A", "B", "A"))
   p <- ggplot2::ggplot(df, ggplot2::aes(x, y, color = group)) +
@@ -387,7 +373,6 @@ testthat::test_that("combine_plots functions handle plots with legends", {
 # ============================================================================
 
 testthat::test_that("draw_transcript_grid handles proper dimensions", {
-  require_pkgs("ggplot2")
 
   p <- ggplot2::ggplot(data.frame(x = 1:5, y = 1:5), ggplot2::aes(x, y)) +
     ggplot2::geom_point()
@@ -412,7 +397,6 @@ testthat::test_that("draw_transcript_grid handles proper dimensions", {
 # ============================================================================
 
 testthat::test_that("theme + composition workflow produces valid plot", {
-  require_pkgs(c("ggplot2", "patchwork"))
 
   # Create adata frame with groups
   df <- data.frame(
@@ -437,7 +421,6 @@ testthat::test_that("theme + composition workflow produces valid plot", {
 })
 
 testthat::test_that("scale creation works with theme application", {
-  require_pkgs("ggplot2")
 
   df <- data.frame(
     x = 1:10,
@@ -605,7 +588,6 @@ testthat::test_that("select_genesextract_q_values returns sorted unique q values
 })
 
 testthat::test_that("select_genesbuild_facet_plot returns ggplot object", {
-  require_pkgs("ggplot2")
   
   # Create sample plot data with realistic q values
   plot_data <- data.frame(
@@ -627,7 +609,6 @@ testthat::test_that("select_genesbuild_facet_plot returns ggplot object", {
 })
 
 testthat::test_that("select_genesbuild_facet_plot handles signed divergence", {
-  require_pkgs("ggplot2")
   
   # Create signed plot data
   plot_data <- data.frame(
@@ -651,7 +632,6 @@ testthat::test_that("select_genesbuild_facet_plot handles signed divergence", {
 })
 
 testthat::test_that("select_genesbuild_list_plots returns named list of ggplot objects", {
-  require_pkgs("ggplot2")
   
   # Create sample plot data
   plot_data <- data.frame(
@@ -708,7 +688,6 @@ testthat::test_that("select_genesselect_genes prioritizes adj_p_lmm over adj_p_i
 # ============================================================================
 
 testthat::test_that(".extract_diversity_objects extracts SummarizedExperiment and metadata", {
-  require_pkgs(c("SummarizedExperiment", "S4Vectors"))
   
   # Create test analysis
   analysis <- TSENAT:::.create_test_analysis(
@@ -774,7 +753,6 @@ testthat::test_that(".normalize_matrix_to_target pads columns when needed", {
 })
 
 testthat::test_that(".normalize_matrix_to_target truncates when needed", {
-  require_pkgs("SummarizedExperiment")
   
   # Create larger matrix
   mat <- matrix(1:15, nrow = 3, ncol = 5)
@@ -850,7 +828,6 @@ testthat::test_that(".create_q_suffixed_colnames removes existing q= suffixes", 
 })
 
 testthat::test_that(".build_combined_coldata combines metadata across q-values", {
-  require_pkgs(c("SummarizedExperiment", "S4Vectors"))
   
   # Create test analysis
   analysis <- TSENAT:::.create_test_analysis(
@@ -902,7 +879,6 @@ testthat::test_that(".extract_bootstrap_ci_matrices returns NULL for non-SE", {
 })
 
 testthat::test_that(".extract_bootstrap_ci_matrices extracts CI matrices from SE", {
-  require_pkgs(c("SummarizedExperiment", "S4Vectors"))
   
   # Create test analysis
   analysis <- TSENAT:::.create_test_analysis(
@@ -936,7 +912,6 @@ testthat::test_that(".extract_bootstrap_ci_matrices extracts CI matrices from SE
 })
 
 testthat::test_that(".prepare_q_value_for_combining processes q-value data correctly", {
-  require_pkgs(c("SummarizedExperiment", "S4Vectors"))
   
   # Create test analysis
   analysis <- TSENAT:::.create_test_analysis(
@@ -973,7 +948,6 @@ testthat::test_that(".prepare_q_value_for_combining processes q-value data corre
 })
 
 testthat::test_that(".fill_combined_assays combines multiple q-values", {
-  require_pkgs(c("SummarizedExperiment", "S4Vectors"))
   
   # Create test analysis with multiple q-values
   analysis <- TSENAT:::.create_test_analysis(
@@ -1007,7 +981,6 @@ testthat::test_that(".fill_combined_assays combines multiple q-values", {
 })
 
 testthat::test_that(".create_combined_se_object creates valid SummarizedExperiment", {
-  require_pkgs(c("SummarizedExperiment", "S4Vectors"))
   
   # Create minimal test data
   genes <- c("G1", "G2", "G3")
@@ -1044,7 +1017,6 @@ testthat::test_that(".create_combined_se_object creates valid SummarizedExperime
 })
 
 testthat::test_that(".create_combined_se_object includes CI assays when provided", {
-  require_pkgs(c("SummarizedExperiment", "S4Vectors"))
   
   # Create test data with CIs
   genes <- c("G1", "G2")
@@ -1083,7 +1055,6 @@ testthat::test_that(".create_combined_se_object includes CI assays when provided
 })
 
 testthat::test_that(".prepare_combined_se integration test with all helpers", {
-  require_pkgs(c("SummarizedExperiment", "S4Vectors"))
   
   # Create test analysis
   analysis <- TSENAT:::.create_test_analysis(
@@ -1113,4 +1084,627 @@ testthat::test_that(".prepare_combined_se integration test with all helpers", {
   # Verify column names have q suffixes
   colnames_se <- colnames(se_combined)
   testthat::expect_true(any(grepl("_q=", colnames_se)))
+})
+
+# =============================================================================
+# COMPREHENSIVE TESTS FOR 11 UNCOVERED PLOT HELPER FUNCTIONS
+# =============================================================================
+# These tests cover the critical plot helper functions identified in coverage
+# analysis as having 0% test coverage.
+
+# =============================================================================
+# 1. .extract_bootstrap_ci_assays - CRITICAL FOUNDATION TEST
+# =============================================================================
+
+testthat::test_that(".extract_bootstrap_ci_assays correctly identifies CI assays", {
+  
+  # Create test SE with both base and CI assays
+  base_assay <- matrix(rnorm(100), nrow = 10, ncol = 10)
+  ci_lower <- base_assay - 0.5
+  ci_upper <- base_assay + 0.5
+  
+  rownames(base_assay) <- paste0("Gene", 1:10)
+  colnames(base_assay) <- paste0("Sample", 1:10)
+  rownames(ci_lower) <- rownames(base_assay)
+  colnames(ci_lower) <- colnames(base_assay)
+  rownames(ci_upper) <- rownames(base_assay)
+  colnames(ci_upper) <- colnames(base_assay)
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(
+      diversity = base_assay,
+      diversity_ci_lower = ci_lower,
+      diversity_ci_upper = ci_upper
+    )
+  )
+  
+  result <- .extract_bootstrap_ci_assays(se, assay_name = "diversity")
+  
+  testthat::expect_true(result$has_ci)
+  testthat::expect_false(is.null(result$ci_lower))
+  testthat::expect_false(is.null(result$ci_upper))
+  testthat::expect_equal(nrow(result$ci_lower), 10)
+  testthat::expect_equal(ncol(result$ci_lower), 10)
+  testthat::expect_null(result$fallback_metric)
+})
+
+testthat::test_that(".extract_bootstrap_ci_assays handles missing CI assays", {
+  
+  base_assay <- matrix(rnorm(100), nrow = 10, ncol = 10)
+  rownames(base_assay) <- paste0("Gene", 1:10)
+  colnames(base_assay) <- paste0("Sample", 1:10)
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(diversity = base_assay)
+  )
+  
+  result <- .extract_bootstrap_ci_assays(se, assay_name = "diversity", fallback_to_iqr = TRUE)
+  
+  testthat::expect_false(result$has_ci)
+  testthat::expect_null(result$ci_lower)
+  testthat::expect_null(result$ci_upper)
+  testthat::expect_equal(result$fallback_metric, "iqr")
+})
+
+testthat::test_that(".extract_bootstrap_ci_assays errors on missing base assay", {
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(other = matrix(rnorm(100), nrow = 10, ncol = 10))
+  )
+  
+  testthat::expect_error(
+    .extract_bootstrap_ci_assays(se, assay_name = "diversity"),
+    "Assay 'diversity' not found"
+  )
+})
+
+testthat::test_that(".extract_bootstrap_ci_assays handles partial CI assays", {
+  
+  # Only lower CI present
+  base_assay <- matrix(rnorm(100), nrow = 10, ncol = 10)
+  ci_lower <- base_assay - 0.5
+  
+  rownames(base_assay) <- paste0("Gene", 1:10)
+  colnames(base_assay) <- paste0("Sample", 1:10)
+  rownames(ci_lower) <- rownames(base_assay)
+  colnames(ci_lower) <- colnames(base_assay)
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(
+      diversity = base_assay,
+      diversity_ci_lower = ci_lower
+    )
+  )
+  
+  result <- .extract_bootstrap_ci_assays(se, assay_name = "diversity")
+  
+  testthat::expect_false(result$has_ci)
+  testthat::expect_false(is.null(result$ci_lower))
+  testthat::expect_null(result$ci_upper)
+})
+
+# =============================================================================
+# 2. .calculate_scaled_fonts - Font Scaling Test
+# =============================================================================
+
+testthat::test_that(".calculate_scaled_fonts computes correct scaled sizes", {
+  # No packages required
+  result <- .calculate_scaled_fonts(base_size = 11, scale_factor = 1.0)
+  
+  testthat::expect_is(result, "list")
+  testthat::expect_equal(result$base, 11)
+  testthat::expect_equal(result$scaled, 11)
+  testthat::expect_true(result$axis_text > result$base)
+  testthat::expect_true(result$title > result$axis_title)
+})
+
+testthat::test_that(".calculate_scaled_fonts scales by multipliers", {
+  multipliers <- list(
+    axis_text = 1.2,
+    axis_title = 1.3,
+    title = 1.5,
+    legend = 0.9
+  )
+  
+  result <- .calculate_scaled_fonts(base_size = 10, scale_factor = 2.0, font_multipliers = multipliers)
+  
+  testthat::expect_equal(result$scaled, 20)
+  testthat::expect_equal(result$axis_text, round(20 * 1.2))
+  testthat::expect_equal(result$title, round(20 * 1.5))
+})
+
+testthat::test_that(".calculate_scaled_fonts computes all font sizes", {
+  result <- .calculate_scaled_fonts(base_size = 11, scale_factor = 0.8)
+  
+  testthat::expect_true(all(c("base", "scaled", "axis_text", "axis_title", 
+                              "title", "legend", "subtitle", "caption") %in% names(result)))
+  testthat::expect_true(all(unlist(result) > 0))
+})
+
+# =============================================================================
+# 3. .create_centered_theme - Theme Creation Test
+# =============================================================================
+
+testthat::test_that(".create_centered_theme creates theme object", {
+  
+  theme <- .create_centered_theme(include_title = TRUE, include_subtitle = TRUE)
+  
+  testthat::expect_is(theme, "theme")
+  testthat::expect_false(is.null(theme$plot.title))
+  testthat::expect_false(is.null(theme$plot.subtitle))
+})
+
+testthat::test_that(".create_centered_theme respects flags", {
+  
+  theme_both <- .create_centered_theme(include_title = TRUE, include_subtitle = TRUE)
+  theme_title_only <- .create_centered_theme(include_title = TRUE, include_subtitle = FALSE)
+  theme_none <- .create_centered_theme(include_title = FALSE, include_subtitle = FALSE)
+  
+  testthat::expect_is(theme_both, "theme")
+  testthat::expect_is(theme_title_only, "theme")
+  testthat::expect_is(theme_none, "theme")
+})
+
+testthat::test_that(".create_centered_theme applies centering", {
+  
+  # Create theme with centering
+  theme <- .create_centered_theme(include_title = TRUE, hjust = 0.5)
+  
+  # Apply to plot and verify no errors
+  p <- ggplot2::ggplot(data.frame(x = 1:5), ggplot2::aes(x = x)) +
+    ggplot2::geom_point() +
+    theme
+  
+  testthat::expect_is(p, "ggplot")
+})
+
+# =============================================================================
+# 4. .normalize_plot_scales - Scale Normalization Test
+# =============================================================================
+
+testthat::test_that(".normalize_plot_scales identifies fold-change column", {
+  # No packages required
+  df <- data.frame(
+    logFC = c(1.5, -2.0, 0.5),
+    condition1_mean = c(100, 200, 150),
+    condition2_mean = c(110, 210, 160),
+    gene = c("A", "B", "C"),
+    stringsAsFactors = FALSE
+  )
+  
+  result <- .normalize_plot_scales(df, fold_col_candidates = c("log2_fold_change", "logFC", "fold"))
+  
+  testthat::expect_is(result, "list")
+  testthat::expect_equal(result$fold_col, "logFC")
+  testthat::expect_true("x_norm" %in% colnames(result$df))
+  testthat::expect_true("y_norm" %in% colnames(result$df))
+})
+
+testthat::test_that(".normalize_plot_scales computes normalized positions", {
+  # No packages required
+  df <- data.frame(
+    log2_fold_change = c(1.0, -1.0, 0.5),
+    control_mean = c(100, 200, 150),
+    treatment_mean = c(120, 210, 160),
+    gene = c("A", "B", "C"),
+    stringsAsFactors = FALSE
+  )
+  
+  result <- .normalize_plot_scales(df, fold_col_candidates = c("log2_fold_change", "logFC"))
+  
+  # x_norm should be average of means
+  expected_x <- c((100+120)/2, (200+210)/2, (150+160)/2)
+  testthat::expect_equal(result$df$x_norm, expected_x, tolerance = 0.1)
+})
+
+testthat::test_that(".normalize_plot_scales warns on missing fold column", {
+  # No packages required
+  df <- data.frame(
+    x = c(1, 2, 3),
+    y = c(4, 5, 6)
+  )
+  
+  testthat::expect_warning(
+    .normalize_plot_scales(df, fold_col_candidates = c("logFC", "log2FC")),
+    "No fold-change column found"
+  )
+})
+
+# =============================================================================
+# 5. .compute_distribution_stats - Statistics Computation Test
+# =============================================================================
+
+testthat::test_that(".compute_distribution_stats computes median and IQR", {
+  
+  df <- data.frame(
+    group = c("A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B"),
+    value = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
+  )
+  
+  result <- .compute_distribution_stats(df, "group", "value", metric = "median", spread_metric = "iqr")
+  
+  testthat::expect_equal(nrow(result), 2)
+  testthat::expect_true(all(c("value", "lower", "upper") %in% colnames(result)))
+  testthat::expect_true(result$lower[1] < result$value[1])
+  testthat::expect_true(result$upper[1] > result$value[1])
+})
+
+testthat::test_that(".compute_distribution_stats computes mean and SD", {
+  
+  df <- data.frame(
+    group = c(rep("A", 10), rep("B", 10)),
+    value = c(c(-5, -4, -3, -2, -1, 0, 1, 2, 3, 4), c(5, 6, 7, 8, 9, 10, 11, 12, 13, 14))
+  )
+  
+  result <- .compute_distribution_stats(df, "group", "value", metric = "mean", spread_metric = "sd")
+  
+  testthat::expect_equal(nrow(result), 2)
+  testthat::expect_true(all(!is.na(result$value)))
+  testthat::expect_true(!is.na(result$upper[1]) && result$upper[1] > result$value[1])
+})
+
+testthat::test_that(".compute_distribution_stats handles missing values", {
+  
+  df <- data.frame(
+    group = rep(c("A", "B"), each = 10),
+    value = c(rnorm(9), NA, rnorm(9, mean = 2), NA)
+  )
+  
+  result <- .compute_distribution_stats(df, "group", "value")
+  
+  testthat::expect_equal(nrow(result), 2)
+  testthat::expect_true(all(!is.na(result$value)))
+})
+
+testthat::test_that(".compute_distribution_stats errors on non-numeric values", {
+  
+  df <- data.frame(group = c("A", "B"), value = c("x", "y"))
+  
+  testthat::expect_error(
+    .compute_distribution_stats(df, "group", "value"),
+    "not numeric"
+  )
+})
+
+testthat::test_that(".compute_distribution_stats errors on missing columns", {
+  df <- data.frame(x = c(1, 2), y = c(3, 4))
+  
+  testthat::expect_error(
+    .compute_distribution_stats(df, "group", "value"),
+    "not found"
+  )
+})
+
+# =============================================================================
+# 6. .prepare_grouped_long_format - Data Preparation Test
+# =============================================================================
+
+testthat::test_that(".prepare_grouped_long_format transforms to long format", {
+  
+  assay_mat <- matrix(rnorm(50), nrow = 5, ncol = 10)
+  rownames(assay_mat) <- paste0("Gene", 1:5)
+  colnames(assay_mat) <- paste0("Sample", 1:10)
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(diversity = assay_mat),
+    colData = data.frame(
+      condition = rep(c("A", "B"), each = 5),
+      row.names = colnames(assay_mat)
+    )
+  )
+  
+  result <- .prepare_grouped_long_format(se, assay_name = "diversity", group_by_col = "condition")
+  
+  testthat::expect_is(result, "data.frame")
+  testthat::expect_true("Gene" %in% colnames(result))
+  testthat::expect_true("group" %in% colnames(result))
+  testthat::expect_true("value" %in% colnames(result))
+  testthat::expect_true("lower" %in% colnames(result))
+  testthat::expect_true("upper" %in% colnames(result))
+})
+
+testthat::test_that(".prepare_grouped_long_format computes aggregated statistics", {
+  
+  assay_mat <- matrix(1:50, nrow = 5, ncol = 10)
+  rownames(assay_mat) <- paste0("Gene", 1:5)
+  colnames(assay_mat) <- paste0("Sample", 1:10)
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(diversity = assay_mat),
+    colData = data.frame(
+      condition = rep(c("A", "B"), each = 5),
+      row.names = colnames(assay_mat)
+    )
+  )
+  
+  result <- .prepare_grouped_long_format(se, assay_name = "diversity", group_by_col = "condition")
+  
+  testthat::expect_true(nrow(result) >= 5)
+  testthat::expect_true(all(result$value > 0))
+})
+
+testthat::test_that(".prepare_grouped_long_format errors on invalid colData column", {
+  
+  assay_mat <- matrix(rnorm(50), nrow = 5, ncol = 10)
+  rownames(assay_mat) <- paste0("Gene", 1:5)
+  colnames(assay_mat) <- paste0("Sample", 1:10)
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(diversity = assay_mat),
+    colData = data.frame(row.names = colnames(assay_mat))
+  )
+  
+  testthat::expect_error(
+    .prepare_grouped_long_format(se, assay_name = "diversity", group_by_col = "missing_col"),
+    "not found"
+  )
+})
+
+# =============================================================================
+# 7. .prepare_gene_ci_data - CI Data Preparation Test
+# =============================================================================
+
+testthat::test_that(".prepare_gene_ci_data prepares CI data structure", {
+  
+  long_data <- data.frame(
+    Gene = rep(c("Gene1", "Gene2"), each = 10),
+    group = rep(c("A", "A", "B", "B"), length.out = 20),
+    q = rep(c(0.5, 1.0), 10),
+    tsallis = rnorm(20),
+    sample = rep(c("S1", "S2", "S3", "S4", "S5"), 4),
+    stringsAsFactors = FALSE
+  )
+  
+  ci_lower <- matrix(rnorm(50), nrow = 2, ncol = 25)
+  ci_upper <- matrix(rnorm(50) + 1, nrow = 2, ncol = 25)
+  rownames(ci_lower) <- c("Gene1", "Gene2")
+  rownames(ci_upper) <- c("Gene1", "Gene2")
+  colnames(ci_lower) <- paste0("Sample_q=", rep(c(0.5, 1.0), length.out = 25))
+  colnames(ci_upper) <- paste0("Sample_q=", rep(c(0.5, 1.0), length.out = 25))
+  
+  result <- .prepare_gene_ci_data(long_data, ci_lower, ci_upper, c("Gene1", "Gene2"))
+  
+  testthat::expect_is(result, "data.frame")
+  testthat::expect_true("ci_lower" %in% colnames(result))
+  testthat::expect_true("ci_upper" %in% colnames(result))
+})
+
+testthat::test_that(".prepare_gene_ci_data handles empty CI matrices", {
+  
+  long_data <- data.frame(
+    Gene = c("Gene1", "Gene2"),
+    group = c("A", "B"),
+    q = c(0.5, 1.0),
+    tsallis = c(1.5, 2.0),
+    sample = c("S1", "S2"),
+    stringsAsFactors = FALSE
+  )
+  
+  ci_lower <- matrix(nrow = 0, ncol = 0)
+  ci_upper <- matrix(nrow = 0, ncol = 0)
+  
+  result <- .prepare_gene_ci_data(long_data, ci_lower, ci_upper, c("Gene1", "Gene2"))
+  
+  testthat::expect_is(result, "data.frame")
+})
+
+# =============================================================================
+# 8. .prepare_transcript_inputs - Input Preparation Test
+# =============================================================================
+
+testthat::test_that(".prepare_transcript_inputs validates matrix input", {
+  counts <- matrix(rnbinom(100, size = 1, prob = 0.1), nrow = 10, ncol = 10)
+  rownames(counts) <- paste0("TX", 1:10)
+  colnames(counts) <- paste0("Sample", 1:10)
+  
+  samples <- rep(c("A", "B"), each = 5)
+  
+  tx2gene <- data.frame(
+    Transcript = rownames(counts),
+    Gen = paste0("Gene", sample(1:5, 10, replace = TRUE)),
+    stringsAsFactors = FALSE
+  )
+  
+  result <- .prepare_transcript_inputs(
+    counts, samples = samples, tx2gene = tx2gene, metric = "median"
+  )
+  
+  testthat::expect_is(result, "list")
+  testthat::expect_true("counts" %in% names(result))
+  testthat::expect_true("samples" %in% names(result))
+  testthat::expect_true("mapping" %in% names(result))
+  testthat::expect_equal(length(result$samples), ncol(counts))
+})
+
+testthat::test_that(".prepare_transcript_inputs errors on missing rownames", {
+  counts <- matrix(rnorm(100), nrow = 10, ncol = 10)
+  
+  testthat::expect_error(
+    .prepare_transcript_inputs(counts, samples = rep(c("A", "B"), 5)),
+    "must have rownames"
+  )
+})
+
+testthat::test_that(".prepare_transcript_inputs handles different metrics", {
+  counts <- matrix(rnbinom(100, size = 1, prob = 0.1), nrow = 10, ncol = 10)
+  rownames(counts) <- paste0("TX", 1:10)
+  colnames(counts) <- paste0("Sample", 1:10)
+  
+  samples <- rep(c("A", "B"), each = 5)
+  tx2gene <- data.frame(
+    Transcript = rownames(counts),
+    Gen = paste0("Gene", sample(1:5, 10, replace = TRUE)),
+    stringsAsFactors = FALSE
+  )
+  
+  result_median <- .prepare_transcript_inputs(
+    counts, samples = samples, tx2gene = tx2gene, metric = "median"
+  )
+  
+  result_mean <- .prepare_transcript_inputs(
+    counts, samples = samples, tx2gene = tx2gene, metric = "mean"
+  )
+  
+  testthat::expect_equal(result_median$metric_choice, "median")
+  testthat::expect_equal(result_mean$metric_choice, "mean")
+})
+
+# =============================================================================
+# 9. .plot_gam_arrange_grid - Grid Arrangement Test
+# =============================================================================
+
+testthat::test_that(".plot_gam_arrange_grid creates grid plot", {
+  
+  plots <- list(
+    ggplot2::ggplot(data.frame(x = 1:10, y = 1:10), 
+                   ggplot2::aes(x = x, y = y)) + ggplot2::geom_point(),
+    ggplot2::ggplot(data.frame(x = 1:10, y = 10:1), 
+                   ggplot2::aes(x = x, y = y)) + ggplot2::geom_point()
+  )
+  
+  font_sizes <- list(legend_text = 10, legend_title = 11)
+  
+  result <- .plot_gam_arrange_grid(plots, condition_col = "condition", font_sizes = font_sizes)
+  
+  testthat::expect_true(ggplot2::is_ggplot(result) || inherits(result, "gtable"))
+})
+
+testthat::test_that(".plot_gam_arrange_grid handles single plot", {
+  
+  plots <- list(
+    ggplot2::ggplot(data.frame(x = 1:5, y = 1:5), 
+                   ggplot2::aes(x = x, y = y)) + ggplot2::geom_point()
+  )
+  
+  font_sizes <- list(legend_text = 10, legend_title = 11)
+  
+  result <- .plot_gam_arrange_grid(plots, condition_col = "cond", font_sizes = font_sizes)
+  
+  testthat::expect_true(ggplot2::is_ggplot(result) || inherits(result, "gtable"))
+})
+
+# =============================================================================
+# 10. .plot_gam_save_plot - Plot Saving Test
+# =============================================================================
+
+testthat::test_that(".plot_gam_save_plot saves plot to file", {
+  
+  tmpfile <- tempfile(fileext = ".png")
+  on.exit(unlink(tmpfile))
+  
+  p <- ggplot2::ggplot(data.frame(x = 1:10, y = 1:10), 
+                      ggplot2::aes(x = x, y = y)) + ggplot2::geom_point()
+  
+  .plot_gam_save_plot(p, output_file = tmpfile, width = 8, height = 6)
+  
+  testthat::expect_true(file.exists(tmpfile))
+  testthat::expect_true(file.size(tmpfile) > 0)
+})
+
+testthat::test_that(".plot_gam_save_plot handles NULL output_file", {
+  
+  p <- ggplot2::ggplot(data.frame(x = 1:10, y = 1:10), 
+                      ggplot2::aes(x = x, y = y)) + ggplot2::geom_point()
+  
+  # Should not error when output_file is NULL
+  result <- .plot_gam_save_plot(p, output_file = NULL, width = 8, height = 6)
+  testthat::expect_true(is.null(result) || is.function(result))
+})
+
+# =============================================================================
+# 11. .save_plot_standard - Standard Plot Saving Test
+# =============================================================================
+
+testthat::test_that(".save_plot_standard saves with standard dimensions", {
+  
+  tmpfile <- tempfile(fileext = ".png")
+  on.exit(unlink(tmpfile))
+  
+  p <- ggplot2::ggplot(data.frame(x = 1:10, y = 1:10), 
+                      ggplot2::aes(x = x, y = y)) + ggplot2::geom_point()
+  
+  .save_plot_standard(p, filename = tmpfile, width_inches = 12, aspect_type = "standard")
+  
+  testthat::expect_true(file.exists(tmpfile))
+  testthat::expect_true(file.size(tmpfile) > 0)
+})
+
+testthat::test_that(".save_plot_standard handles different aspect ratios", {
+  
+  p <- ggplot2::ggplot(data.frame(x = 1:10, y = 1:10), 
+                      ggplot2::aes(x = x, y = y)) + ggplot2::geom_point()
+  
+  for (aspect in c("standard", "wide", "tall")) {
+    tmpfile_aspect <- tempfile(fileext = ".png")
+    on.exit(unlink(tmpfile_aspect))
+    
+    .save_plot_standard(p, filename = tmpfile_aspect, width_inches = 10, aspect_type = aspect)
+    testthat::expect_true(file.exists(tmpfile_aspect))
+  }
+})
+
+testthat::test_that(".save_plot_standard handles cm dimensions", {
+  
+  tmpfile <- tempfile(fileext = ".png")
+  on.exit(unlink(tmpfile))
+  
+  p <- ggplot2::ggplot(data.frame(x = 1:10, y = 1:10), 
+                      ggplot2::aes(x = x, y = y)) + ggplot2::geom_point()
+  
+  .save_plot_standard(p, filename = tmpfile, width_cm = 25, height_cm = 20)
+  
+  testthat::expect_true(file.exists(tmpfile))
+})
+
+# =============================================================================
+# INTEGRATION TESTS
+# =============================================================================
+
+testthat::test_that("CI extraction + distribution stats workflow", {
+  
+  base_assay <- matrix(rnorm(100), nrow = 5, ncol = 20)
+  ci_lower <- base_assay - 0.5
+  ci_upper <- base_assay + 0.5
+  
+  rownames(base_assay) <- paste0("Gene", 1:5)
+  colnames(base_assay) <- paste0("Sample", 1:20)
+  rownames(ci_lower) <- rownames(base_assay)
+  colnames(ci_lower) <- colnames(base_assay)
+  rownames(ci_upper) <- rownames(base_assay)
+  colnames(ci_upper) <- colnames(base_assay)
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(
+      diversity = base_assay,
+      diversity_ci_lower = ci_lower,
+      diversity_ci_upper = ci_upper
+    ),
+    colData = data.frame(
+      condition = rep(c("A", "B"), each = 10),
+      row.names = colnames(base_assay)
+    )
+  )
+  
+  # Extract CIs
+  ci_result <- .extract_bootstrap_ci_assays(se, assay_name = "diversity")
+  testthat::expect_true(ci_result$has_ci)
+  
+  # Use in preparation
+  long_prepared <- .prepare_grouped_long_format(se, assay_name = "diversity", group_by_col = "condition")
+  testthat::expect_true(nrow(long_prepared) > 0)
+})
+
+testthat::test_that("Font scaling + theme creation workflow", {
+  
+  fonts <- .calculate_scaled_fonts(base_size = 11, scale_factor = 0.9)
+  testthat::expect_true(fonts$title > fonts$base)
+  
+  theme <- .create_centered_theme(
+    include_title = TRUE,
+    include_subtitle = TRUE,
+    title_size = fonts$title,
+    subtitle_size = fonts$subtitle
+  )
+  
+  testthat::expect_is(theme, "theme")
 })

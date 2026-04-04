@@ -1771,7 +1771,6 @@ test_that("calculate_diversity with pseudocount auto-estimation", {
 })
 
 test_that("calculate_diversity preserves metadata from SummarizedExperiment input", {
-    library(SummarizedExperiment)
     set.seed(123)
     
     # Create SE with metadata
@@ -1797,7 +1796,6 @@ test_that("calculate_diversity preserves metadata from SummarizedExperiment inpu
 })
 
 test_that("calculate_diversity with SE input uses colData correctly", {
-    library(SummarizedExperiment)
     set.seed(123)
     
     n_genes <- 3
@@ -1937,7 +1935,6 @@ test_that("calculate_diversity combines vocalization of parameters with helper f
 })
 
 test_that("calculate_diversity output includes rowData with gene info", {
-    library(SummarizedExperiment)
     set.seed(123)
     
     n_genes <- 4
@@ -1956,7 +1953,6 @@ test_that("calculate_diversity output includes rowData with gene info", {
 })
 
 test_that("calculate_diversity output includes colData with sample and q info", {
-    library(SummarizedExperiment)
     set.seed(123)
     
     n_genes <- 3

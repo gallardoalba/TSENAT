@@ -2,14 +2,16 @@
 # Tests plot_ma, plot_top_transcripts, plot_volcano, plot_tsallis_q_curve_s4,
 # plot_tsallis_violin_multq
 
-library(TSENAT)
 skip_on_bioc()
 
 context("plots: Visualization and Data Exploration")
+library(TSENAT)
+library(SummarizedExperiment)
+library(testthat)
+
 
 test_that("plot_ma returns ggplot object with mean columns", {
     skip_if_not_installed("ggplot2")
-    library(ggplot2)
 
     df <- data.frame(
         Gene = paste0("G", 1:10),
@@ -25,7 +27,6 @@ test_that("plot_ma returns ggplot object with mean columns", {
 
 test_that("plot_ma returns ggplot object with median columns", {
     skip_if_not_installed("ggplot2")
-    library(ggplot2)
 
     df <- data.frame(
         Gene = paste0("G", 1:10),
@@ -40,7 +41,6 @@ test_that("plot_ma returns ggplot object with median columns", {
 
 test_that("plot_ma errors on mixed mean/median columns", {
     skip_if_not_installed("ggplot2")
-    library(ggplot2)
 
     df <- data.frame(
         Gene = paste0("G", 1:10),
@@ -109,7 +109,6 @@ test_that("plot_top_transcripts selects genes from res when gene is NULL", {
 
 test_that("plot_volcano returns a ggplot and annotates top genes", {
     skip_if_not_installed("ggplot2")
-    library(ggplot2)
 
     set.seed(42)
     n <- 20
@@ -131,7 +130,6 @@ test_that("plot_volcano returns a ggplot and annotates top genes", {
 
 test_that("plot_volcano with custom columns", {
     skip_if_not_installed("ggplot2")
-    library(ggplot2)
 
     set.seed(42)
     n <- 15
@@ -155,8 +153,6 @@ test_that("plot_tsallis_q_curve_s4 returns ggplot with valid SE", {
     skip_if_not_installed("tidyr")
     skip_if_not_installed("dplyr")
 
-    library(SummarizedExperiment)
-    library(ggplot2)
 
     set.seed(1)
     readcounts <- matrix(rpois(30 * 3, lambda = 10), nrow = 30, ncol = 3)
@@ -179,7 +175,6 @@ test_that("plot_tsallis_q_curve_s4 returns ggplot with valid SE", {
 })
 
 
-library(SummarizedExperiment)
 
 test_that("infer_samples_from_se finds sample_type column and falls back", {
     mat <- matrix(runif(6), nrow = 3, ncol = 2)
@@ -257,7 +252,6 @@ test_that(".plot_ma_core errors when fold-change column missing or x axis missin
 
 context("Visualization: Top Transcripts Plotting")
 
-library(SummarizedExperiment)
 
 test_that("plot_top_transcripts works on simple matrix input", {
     tx_counts <- matrix(sample(1:100, 24, replace = TRUE), nrow = 6)
@@ -285,7 +279,6 @@ test_that("plot_top_transcripts errors when se is not SummarizedExperiment", {
 
 context("Visualization: Generate Plots Additional Tests")
 
-library(SummarizedExperiment)
 
 skip_on_bioc()
 
@@ -331,7 +324,6 @@ test_that("make_plot_for_genecombine_plots returns a plot-like object", {
 
 context("Visualization: Generate Plots Extra Tests")
 
-library(SummarizedExperiment)
 
 skip_on_bioc()
 
@@ -345,7 +337,6 @@ test_that("plot_ma_tsallis handles simple inputs", {
 
 test_that("plot_tsallis_q_curve_s4 correctly handles multiple groups with different entropy values", {
     skip_if_not_installed(c("ggplot2", "SummarizedExperiment", "dplyr"))
-    library(dplyr)
     
     # Create SE with two groups having different entropy profiles
     set.seed(42)
@@ -412,7 +403,6 @@ test_that("plot_tsallis_q_curve_s4 correctly handles multiple groups with differ
 
 test_that("plot_tsallis_q_curve_s4 preserves decimal q-values correctly", {
     skip_if_not_installed(c("ggplot2", "SummarizedExperiment", "dplyr"))
-    library(dplyr)
     
     # Create SE with decimal q-values
     q_decimal_vals <- c(0.15, 0.35)
@@ -468,7 +458,6 @@ skip_on_bioc()
 
 context("Visualization: Generate Plots Extended Tests")
 
-library(TSENAT)
 
 # plot_top_transcripts writes output_file for single and multiple genes
 
@@ -552,7 +541,6 @@ test_that(".plot_ma_core uses fc_df values when provided", {
 
 context("Visualization: Top Transcripts Helper Functions")
 
-library(testthat)
 
 # make_plot_for_geneselect_genes_from_res
 test_that("make_plot_for_geneselect_genes_from_res errors on NULL or missing genes", {
@@ -682,7 +670,6 @@ test_that("make_plot_for_genebuild_plot_from_summary generates ggplot and combin
 
 context("Visualization: Plot Helper Functions")
 
-library(testthat)
 
 test_that(".format_label handles various inputs", {
     expect_null(.format_label(NULL))
@@ -815,7 +802,6 @@ skip_on_bioc()
 
 context("Visualization: Unit Tests for Plotting Helpers")
 
-library(TSENAT)
 
 # make_plot_for_geneselect_genes_from_res
 
@@ -920,7 +906,6 @@ test_that("tx long building, aggregation and plot building behave correctly", {
 
 test_that("make_plot_for_genecombine_grid writes a PNG file when output_file is given", {
     skip_if_not_installed("ggplot2")
-    library(ggplot2)
 
     df <- data.frame(x = 1:3, y = rnorm(3))
     p1 <- ggplot(df, ggplot2::aes(x = x, y = y)) +
@@ -937,7 +922,6 @@ test_that("make_plot_for_genecombine_grid writes a PNG file when output_file is 
 
 context("Visualization: Gene Profile Plotting (Edge Cases)")
 
-library(testthat)
 
 context("Visualization: generate_plots.R Comprehensive Coverage")
 
@@ -3498,7 +3482,6 @@ context("plot_divergence_spectrum: Multi-q divergence spectrum plotting")
 test_that("plot_divergence_spectrum: input validation - SummarizedExperiment type", {
   config <- list()
   skip_if_not_installed("SummarizedExperiment")
-  library("SummarizedExperiment")
   
   # Create valid SE
   mat <- matrix(rnorm(20), nrow = 4, ncol = 5)
@@ -3522,7 +3505,6 @@ test_that("plot_divergence_spectrum: invalid input - non-SE object", {
 test_that("plot_divergence_spectrum: empty SE handling", {
   config <- list()
   skip_if_not_installed("SummarizedExperiment")
-  library("SummarizedExperiment")
   
   # Empty SE
   empty_se <- SummarizedExperiment::SummarizedExperiment()
@@ -3535,7 +3517,6 @@ test_that("plot_divergence_spectrum: empty SE handling", {
 test_that("plot_divergence_spectrum: gene name extraction from rowData", {
   config <- list()
   skip_if_not_installed("SummarizedExperiment")
-  library("SummarizedExperiment")
   
   mat <- matrix(rnorm(12), nrow = 3, ncol = 4)
   rownames(mat) <- c("ENSG001", "ENSG002", "ENSG003")
@@ -3591,8 +3572,6 @@ test_that("plot_divergence_spectrum: q-value sorting", {
 test_that("plot_divergence_spectrum: single gene spectrum case", {
   config <- list()
   skip_if_not_installed("SummarizedExperiment")
-  library("SummarizedExperiment")
-  library("ggplot2")
   
   mat <- matrix(c(1.0, 0.8, 0.6, 0.4, 0.2), nrow = 1, ncol = 5)
   rownames(mat) <- "gene_1"
@@ -3610,7 +3589,6 @@ test_that("plot_divergence_spectrum: single gene spectrum case", {
 test_that("plot_divergence_spectrum: single gene - plot creation", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   q_vals <- c(0.5, 1.0, 1.5, 2.0, 2.5)
   gene_div <- c(1.0, 0.8, 0.6, 0.4, 0.2)
@@ -3715,7 +3693,6 @@ test_that("plot_divergence_spectrum: multi-gene plotting data construction", {
 test_that("plot_divergence_spectrum: confidence interval extraction", {
   config <- list()
   skip_if_not_installed("SummarizedExperiment")
-  library("SummarizedExperiment")
   
   mat <- matrix(rnorm(10), nrow = 2, ncol = 5)
   rownames(mat) <- c("g1", "g2")
@@ -3762,7 +3739,6 @@ test_that("plot_divergence_spectrum: CI data frame construction", {
 test_that("plot_divergence_spectrum: gene factor ordering by p-value", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   multi_gene_df <- data.frame(
     gene = rep(c("g3", "g1", "g2"), each = 2),
@@ -3787,7 +3763,6 @@ test_that("plot_divergence_spectrum: gene factor ordering by p-value", {
 test_that("plot_divergence_spectrum: faceted plot creation", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   multi_gene_df <- data.frame(
     q = rep(c(0.5, 1.0, 1.5), 3),
@@ -3806,7 +3781,6 @@ test_that("plot_divergence_spectrum: faceted plot creation", {
 test_that("plot_divergence_spectrum: CI ribbon overlay", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   multi_gene_df <- data.frame(
     q = rep(c(0.5, 1.0, 1.5), 2),
@@ -3837,7 +3811,6 @@ test_that("plot_divergence_spectrum: CI ribbon overlay", {
 test_that("plot_divergence_spectrum: theme application", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   df <- data.frame(q = c(0.5, 1.0), divergence = c(1.0, 0.5))
   
@@ -3873,7 +3846,6 @@ test_that("plot_divergence_spectrum: handling variability_metric parameter", {
 test_that("plot_divergence_spectrum: ncol parameter application", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   df <- data.frame(
     q = rep(c(0.5, 1.0), 6),
@@ -3902,7 +3874,6 @@ test_that("plot_divergence_spectrum: no genes found fallback", {
 test_that("plot_divergence_spectrum: return NULL for empty input", {
   config <- list()
   skip_if_not_installed("SummarizedExperiment")
-  library("SummarizedExperiment")
   
   # Empty SE
   empty_se <- SummarizedExperiment::SummarizedExperiment()
@@ -3960,7 +3931,6 @@ test_that("plot_divergence_spectrum: error on invalid variability_metric", {
 test_that("plot_divergence_spectrum: gene not found in divergence matrix", {
   config <- list()
   skip_if_not_installed("SummarizedExperiment")
-  library("SummarizedExperiment")
   
   mat <- matrix(rnorm(8), nrow = 2, ncol = 4)
   rownames(mat) <- c("g1", "g2")
@@ -3977,7 +3947,6 @@ test_that("plot_divergence_spectrum: gene not found in divergence matrix", {
 test_that("plot_divergence_spectrum: large divergence matrix", {
   config <- list()
   skip_if_not_installed("SummarizedExperiment")
-  library("SummarizedExperiment")
   
   set.seed(42)
   n_genes <- 500
@@ -4031,7 +4000,6 @@ test_that("plot_multi_gene_q_spectrum_s4: lm_results extraction from TSENATAnaly
 test_that("plot_multi_gene_q_spectrum_s4: diversity_results extraction", {
   config <- list()
   skip_if_not_installed("SummarizedExperiment")
-  library("SummarizedExperiment")
   
   mat <- matrix(rnorm(12), nrow = 3, ncol = 4)
   rownames(mat) <- c("g1", "g2", "g3")
@@ -4172,7 +4140,6 @@ test_that("plot_multi_gene_q_spectrum_s4: plot_df construction", {
 test_that("plot_multi_gene_q_spectrum_s4: individual q-spectrum plot", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   plot_df <- data.frame(
     q = c(0.1, 0.15, 0.2),
@@ -4190,7 +4157,6 @@ test_that("plot_multi_gene_q_spectrum_s4: individual q-spectrum plot", {
 test_that("plot_multi_gene_q_spectrum_s4: vline for q=1", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   plot_df <- data.frame(
     q = seq(0.1, 0.3, length.out = 5),
@@ -4207,7 +4173,6 @@ test_that("plot_multi_gene_q_spectrum_s4: vline for q=1", {
 test_that("plot_multi_gene_q_spectrum_s4: plot title with gene name", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   gene_name <- "BRCA1"
   adj_p <- 0.001
@@ -4226,7 +4191,6 @@ test_that("plot_multi_gene_q_spectrum_s4: plot title with gene name", {
 test_that("plot_multi_gene_q_spectrum_s4: plot list accumulation", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   genes <- c("g1", "g2", "g3")
   plot_list <- list()
@@ -4280,7 +4244,6 @@ test_that("plot_multi_gene_q_spectrum_s4: mode 1 failure - missing columns", {
 test_that("plot_multi_gene_q_spectrum_s4: mode 2 fallback - lm_res and divergence_results_se", {
   config <- list()
   skip_if_not_installed("SummarizedExperiment")
-  library("SummarizedExperiment")
   
   lm_res <- data.frame(
     gene = c("g1", "g2", "g3"),
@@ -4324,8 +4287,6 @@ test_that("plot_multi_gene_q_spectrum_s4: no valid genes error handling", {
 test_that("plot_multi_gene_q_spectrum_s4: grid arrangement with patchwork", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
-  library("patchwork")
   
   set.seed(42)
   plot_list <- list()
@@ -4352,7 +4313,6 @@ test_that("plot_multi_gene_q_spectrum_s4: grid arrangement with patchwork", {
 test_that("plot_multi_gene_q_spectrum_s4: single gene plotting", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   genes <- c("g1")
   plot_list <- list()
@@ -4376,7 +4336,6 @@ test_that("plot_multi_gene_q_spectrum_s4: single gene plotting", {
 test_that("plot_multi_gene_q_spectrum_s4: many genes plotting", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   n_genes <- 9
   plot_list <- list()
@@ -4495,8 +4454,6 @@ test_that("plot_lm_interaction_gam: function call returns ggplot", {
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("mgcv")
   
-  library("SummarizedExperiment")
-  library("ggplot2")
   
   set.seed(200)
   n_genes <- 4
@@ -4541,7 +4498,6 @@ test_that("plot_lm_interaction_gam: respects n_top parameter", {
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("mgcv")
   
-  library("SummarizedExperiment")
   
   set.seed(300)
   mat <- matrix(rnorm(12 * 6, mean = 2, sd = 0.5), nrow = 12, ncol = 6)
@@ -4577,7 +4533,6 @@ test_that("plot_lm_interaction_gam: can plot specific gene subset", {
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("mgcv")
   
-  library("SummarizedExperiment")
   
   set.seed(400)
   mat <- matrix(rnorm(8 * 6, mean = 2, sd = 0.5), nrow = 8, ncol = 6)
@@ -4986,7 +4941,6 @@ context("Low-priority plotting functions: Single uncovered lines and edge cases"
 test_that("plot_volcano: basic plot creation", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   # Create minimal volcano plot data
   plot_df <- data.frame(
@@ -5003,7 +4957,6 @@ test_that("plot_volcano: basic plot creation", {
 test_that("plot_volcano: significance threshold lines", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   plot_df <- data.frame(
     log2FoldChange = c(-2, -1, 0, 1, 2),
@@ -5020,8 +4973,6 @@ test_that("plot_volcano: significance threshold lines", {
 test_that("plot_volcano_ma_grid: MA plot with grid arrangement", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
-  library("patchwork")
   
   # Create two MA plots
   ma_df1 <- data.frame(
@@ -5050,8 +5001,6 @@ test_that("plot_volcano_ma_grid: MA plot with grid arrangement", {
 test_that("plot_top_transcripts: multi-panel gene plot arrangement", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
-  library("cowplot")
   
   # Create sample plots for multiple genes
   set.seed(42)
@@ -5086,7 +5035,6 @@ test_that("plot_top_transcripts: grid layout calculation", {
 test_that("plot_top_transcripts: single plot handling", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   df <- data.frame(x = c(1, 2, 3), y = c(1, 4, 9))
   
@@ -5100,7 +5048,6 @@ test_that("plot_top_transcripts: single plot handling", {
 test_that("plot_top_transcripts: many plots (>10)", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   n_genes <- 12
   plots <- list()
@@ -5164,7 +5111,6 @@ test_that("extract_q: sequential q-value fallback", {
 test_that("plot_divergence_distribution: histogram of divergence values", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   divergence_vals <- c(0.1, 0.15, 0.2, 0.05, 0.3, 0.12, 0.18)
   
@@ -5179,7 +5125,6 @@ test_that("plot_divergence_distribution: histogram of divergence values", {
 test_that("plot_divergence_distribution: density plot overlay", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   divergence_vals <- rnorm(100, mean = 0.5, sd = 0.1)
   df <- data.frame(divergence = divergence_vals)
@@ -5194,7 +5139,6 @@ test_that("plot_divergence_distribution: density plot overlay", {
 test_that(".plot_transcript_grid_draw: grid arrangement helper", {
   config <- list()
   skip_if_not_installed("cowplot")
-  library("cowplot")
   
   # Mock plots for grid
   plots <- list(
@@ -5209,7 +5153,6 @@ test_that(".plot_transcript_grid_draw: grid arrangement helper", {
 test_that("make_plot_for_genecombine_plots: combine multiple plots", {
   config <- list()
   skip_if_not_installed("cowplot")
-  library("cowplot")
   
   p1 <- ggplot2::ggplot() + ggplot2::geom_point(ggplot2::aes(1:5, 1:5))
   p2 <- ggplot2::ggplot() + ggplot2::geom_point(ggplot2::aes(1:5, 1:5))
@@ -5231,7 +5174,6 @@ test_that("make_plot_for_genecombine_grid: arrange plots in grid", {
 test_that("make_plot_for_genecombine_cowplot: cowplot arrangement wrapper", {
   config <- list()
   skip_if_not_installed("cowplot")
-  library("cowplot")
   
   plots <- list(
     ggplot2::ggplot() + ggplot2::geom_blank(),
@@ -5244,7 +5186,6 @@ test_that("make_plot_for_genecombine_cowplot: cowplot arrangement wrapper", {
 test_that("plot_tsallis_density_singleq: single q-value density plot", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   entropy_vals <- rnorm(100, mean = 2.0, sd = 0.5)
   groups <- rep(c("A", "B"), 50)
@@ -5263,7 +5204,6 @@ test_that("plot_tsallis_density_singleq: single q-value density plot", {
 test_that("plot_tsallis_density_singleq: two-group comparison", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   df <- data.frame(
     entropy = c(rnorm(50, 2.0, 0.5), rnorm(50, 2.5, 0.5)),
@@ -5279,7 +5219,6 @@ test_that("plot_tsallis_density_singleq: two-group comparison", {
 test_that("plot_tsallis_violin_density_grid_s4: violin plot with density", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   df <- data.frame(
     entropy = c(rnorm(50, 2.0, 0.5), rnorm(50, 2.5, 0.5)),
@@ -5297,7 +5236,6 @@ test_that("plot_tsallis_violin_density_grid_s4: violin plot with density", {
 test_that("plot_tsallis_violin_density_grid_s4: multi-q faceting", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   df <- data.frame(
     entropy = c(rnorm(100, 2.0, 0.5), rnorm(100, 2.3, 0.5)),
@@ -5375,7 +5313,6 @@ test_that(".prepare_volcano_df: prepare volcano plot data", {
 test_that("make_plot_for_gene: single gene plot wrapper", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   gene_data <- data.frame(
     condition = c("A", "A", "B", "B"),
@@ -5402,7 +5339,6 @@ test_that("make_plot_for_genecombine_grid: grid calculation edge case (odd numbe
 test_that("plot color consistency across theme", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   df <- data.frame(x = 1:5, y = 1:5, group = rep(c("A", "B"), length.out = 5))
   
@@ -5417,7 +5353,6 @@ test_that("plot color consistency across theme", {
 test_that("label formatting in plots", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   df <- data.frame(x = c(1, 2, 3), y = c(1, 4, 9))
   
@@ -5435,7 +5370,6 @@ test_that("label formatting in plots", {
 test_that("axis scale transformations", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   df <- data.frame(x = 1:100, y = 10^(1:100 / 10))
   
@@ -5449,7 +5383,6 @@ test_that("axis scale transformations", {
 test_that("faceted plot grid consistency", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  library("ggplot2")
   
   df <- data.frame(
     x = rep(1:5, 4),
@@ -5467,7 +5400,6 @@ test_that("faceted plot grid consistency", {
 # Comprehensive testing for uncovered lines in generate_plots.R
 # Tests edge cases, error conditions, and specific code paths
 
-library(TSENAT)
 skip_on_bioc()
 
 context("Plots: Coverage Expansion for Edge Cases")
@@ -5953,7 +5885,6 @@ test_that("infer_samples_from_se: handles matrix input for samples parameter", {
 test_that("plot_divergence_distribution_s4: requires effect_sizes_divergence in metadata", {
   skip_if_not_installed("SummarizedExperiment")
   
-  library("SummarizedExperiment")
   set.seed(5555)
   
   # Create minimal TSENATAnalysis object without effect sizes
@@ -5978,8 +5909,6 @@ test_that("plot_divergence_distribution_s4: returns plot or NULL gracefully", {
   skip_if_not_installed("SummarizedExperiment")
   skip_if_not_installed("ggplot2")
   
-  library("SummarizedExperiment")
-  library("ggplot2")
   set.seed(5556)
   
   # Create analysis with mock effect_sizes_divergence
@@ -6014,7 +5943,6 @@ test_that("plot_divergence_distribution_s4: returns plot or NULL gracefully", {
 test_that("plot_method_concordance_s4: requires method_concordance in metadata", {
   skip_if_not_installed("SummarizedExperiment")
   
-  library("SummarizedExperiment")
   set.seed(5557)
   
   # Create minimal TSENATAnalysis object without concordance
@@ -6039,8 +5967,6 @@ test_that("plot_method_concordance_s4: returns plot with valid concordance data"
   skip_if_not_installed("SummarizedExperiment")
   skip_if_not_installed("ggplot2")
   
-  library("SummarizedExperiment")
-  library("ggplot2")
   set.seed(5558)
   
   # Create analysis with mock method_concordance

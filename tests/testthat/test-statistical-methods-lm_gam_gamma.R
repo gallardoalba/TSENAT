@@ -4,6 +4,11 @@
 # ════════════════════════════════════════════════════════════════════════════════
 
 context("Gamma Family Conditional Selection")
+library(mgcv)
+library(testthat)
+
+
+
 
 testthat::test_that(".compute_skewness calculates skewness correctly", {
     # Test symmetric distribution (skewness ≈ 0)

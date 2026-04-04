@@ -2019,7 +2019,6 @@ test_that("print and summary methods work", {
 # from a SummarizedExperiment's counts assay
 
 test_that("drop=FALSE preserves matrix dimensions for single row extraction", {
-    library(SummarizedExperiment)
     
     # Create a test SE with 3 rows (transcript-level)
     # Note: Matrix fills column-wise, so arrange values accordingly
@@ -2054,7 +2053,6 @@ test_that("drop=FALSE preserves matrix dimensions for single row extraction", {
 })
 
 test_that("drop=FALSE preserves matrix dimensions for multi-row extraction", {
-    library(SummarizedExperiment)
     
     # Matrix columns represent samples, rows represent transcripts
     # Fills column-wise
@@ -2120,7 +2118,6 @@ test_that("bootstrap entropy calculation produces non-zero values with drop=FALS
 })
 
 test_that("aggregated transcript counts via drop=FALSE produce valid entropy", {
-    library(SummarizedExperiment)
     
     # Create SE with 2 transcripts per gene
     counts_matrix <- matrix(
@@ -2857,7 +2854,6 @@ test_that("diagnostics work with low-abundance genes (with warning)", {
 })
 
 test_that("diagnostics with multiple genes (SE extraction)", {
-    library(SummarizedExperiment)
     
     counts_matrix <- matrix(
         c(100, 80, 90, 45,
@@ -3219,7 +3215,6 @@ test_that("JOB computational cost is manageable", {
 })
 
 test_that("JOB parameter passed through recursive calls", {
-    library(SummarizedExperiment)
     
     counts_matrix <- matrix(
         c(100, 80, 90, 45,

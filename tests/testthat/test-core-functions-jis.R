@@ -1,4 +1,8 @@
 context("Core Internal Functions: Jackknife Isoform Switching")
+library(SummarizedExperiment)
+library(parallel)
+library(testthat)
+
 
 # Helper functions are defined locally below
 # (Previously sourced from helper-jackknife-consolidation.R, now integrated)
@@ -16,6 +20,8 @@ context("Core Internal Functions: Jackknife Isoform Switching")
 #' @param check_influence Whether to check influence field
 #'
 #' @keywords internal
+
+
 assert_jackknife_result_valid <- function(result, n_transcripts = NULL, check_influence = TRUE) {
   expect_is(result, "tsenat_jackknife", info = "Result should be tsenat_jackknife object")
   

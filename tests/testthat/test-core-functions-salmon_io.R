@@ -1,4 +1,8 @@
 # Comprehensive tests for Salmon I/O functions and build_analysis_s4 integration
+library(TSENAT)
+library(testthat)
+
+# Comprehensive tests for Salmon I/O functions and build_analysis_s4 integration
 # Tests for: .detect_salmon_samples(), .validate_salmon_files(), .read_salmon_samples()
 # And: build_analysis_s4() with salmon_dir and salmon data parameters
 
@@ -8,6 +12,8 @@
 
 #' Create mock Salmon quant.sf file for testing
 #' @noRd
+
+
 create_mock_salmon_file <- function(filepath, n_transcripts = 100, seed = NULL, high_tpm = FALSE) {
   if (!is.null(seed)) set.seed(seed)
   

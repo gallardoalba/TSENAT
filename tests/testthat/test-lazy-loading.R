@@ -1,4 +1,10 @@
 # Tests for lazy-loading visualization functions
+library(ggplot2)
+library(dplyr)
+library(SummarizedExperiment)
+library(testthat)
+
+# Tests for lazy-loading visualization functions
 # 
 # These tests verify that visualization dependencies are not loaded at package
 # startup, but are correctly loaded on first use via lazy-loading mechanism.
@@ -6,6 +12,8 @@
 # Note: These tests are designed to run in a clean environment where TSENAT
 # is freshly loaded. Some tests may need to be skipped in full test suites
 # if other tests have already triggered visualization loading.
+
+
 
 test_that("Lazy-loading infrastructure exists", {
   # Verify functions are available

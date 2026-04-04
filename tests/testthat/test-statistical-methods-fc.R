@@ -1,6 +1,7 @@
 context("Fold Change Calculation: Defensive Input Validation")
-
 library(testthat)
+
+
 
 test_that("calculate_fc errors when control missing or not found", {
     x <- matrix(runif(8), nrow = 2)
@@ -11,7 +12,6 @@ test_that("calculate_fc errors when control missing or not found", {
     expect_error(TSENAT:::.calculate_fc(x, samples[-1], "A"), "Length of 'samples' must equal number of columns in 'x'")
 })
 
-library(testthat)
 
 context("Fold Change Calculation: Pseudocount Behavior")
 

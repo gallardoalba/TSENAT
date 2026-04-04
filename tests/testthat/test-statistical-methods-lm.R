@@ -1,6 +1,7 @@
-library(testthat)
 
 context("Linear Model Interaction Testing")
+library(testthat)
+
 
 test_that("calculate_lm_interaction returns expected columns and filters genes", {
     # construct synthetic data: 2 samples (Normal, Tumor) and multiple q values
@@ -59,7 +60,6 @@ test_that("calculate_lm_interaction returns expected columns and filters genes",
     expect_true("g2" %in% as.character(rd_df$gene) || !is.na(rd_df["g2", "p_interaction"]))
 })
 
-library(testthat)
 
 context("Linear Model Interaction: Edge Cases")
 
@@ -104,7 +104,6 @@ test_that("invalid method and pvalue arguments produce errors", {
     expect_error(.calculate_lm_interaction(se, condition_col = "samples", method = "lmm", pvalue = "nope"), "should be one of", fixed = FALSE)
 })
 
-library(testthat)
 
 context("Linear Model Interaction: LMM p-Value Options")
 
@@ -279,7 +278,6 @@ test_that("calculate_lm_interaction with nthreads > 1 uses .bplapply", {
 # Tests for lmer fitting with withCallingHandlers and warning suppression
 context("Linear Model Interaction: lmer Fitting with Warning Suppression")
 
-library(testthat)
 
 context("Linear Model Interaction: GEE Method")
 

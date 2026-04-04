@@ -1,4 +1,11 @@
 # ============================================================================
+library(SummarizedExperiment)
+library(ggplot2)
+library(ComplexHeatmap)
+library(pheatmap)
+library(testthat)
+
+# ============================================================================
 # Unit Tests for Heatmap Helper Functions
 # ============================================================================
 # Tests for the 13 internal helper functions in R/heatmap_helpers.R
@@ -6,6 +13,8 @@
 # ============================================================================
 
 # Setup test data
+
+
 test_se <- create_test_se_simple(n_genes = 15, n_samples = 6, control_n = 3)
 
 # Create multi-q switching results for testing
@@ -773,7 +782,6 @@ test_that("plot_multiq_delta_influence_heatmaps_s4: creates heatmaps from q-valu
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("ComplexHeatmap")
   
-  library("SummarizedExperiment")
   set.seed(777)
   
   # Create mock multi-q divergence results
@@ -804,7 +812,6 @@ test_that("plot_multiq_delta_influence_heatmaps_s4: creates heatmaps from q-valu
 test_that("plot_multiq_delta_influence_heatmaps_s4: parameter validation", {
   skip_if_not_installed("ggplot2")
   
-  library("ggplot2")
   
   # Test top_n parameter
   top_n <- 10

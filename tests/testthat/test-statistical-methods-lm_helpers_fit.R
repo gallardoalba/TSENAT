@@ -1,6 +1,7 @@
 context("Fit One Interaction Function Tests")
-
 library(testthat)
+
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # CORE BEHAVIOR: Linear branch with min_obs and observations checks
@@ -270,7 +271,6 @@ test_that(".fit_one_interaction LMM method includes slope_diff in results", {
 
 context("Fit One Interaction - Additional Coverage Tests")
 
-library(testthat)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # GEE METHOD TESTS (Generalized Estimating Equations)
@@ -1074,7 +1074,6 @@ test_that(".fit_one_interaction with many subjects", {
 
 context("Helper Functions for .fit_one_interaction() Tests")
 
-library(testthat)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # .setup_interaction_data() - Data frame initialization and validation

@@ -1,6 +1,8 @@
-library(testthat)
 
 context("LMM Phase 14 Enhancements: AR(1) Correlation")
+library(testthat)
+library(TSENAT)
+
 
 test_that("LMM with use_ar1=FALSE (default) returns valid results", {
     skip_if_not_installed("lme4")
@@ -974,8 +976,6 @@ test_that("Feature selection reduces model complexity as expected", {
 # p-value bias correction for Linear Mixed Models (LMMs), despite having
 # implemented it for GAM and GEE models.
 
-library(testthat)
-library(TSENAT)
 
 context("LMM Bias Correction Analysis: Literature Review")
 

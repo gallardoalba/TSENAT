@@ -1,6 +1,11 @@
 context("Bayesian Shrinkage: Entropy Estimation for Small Sample Sizes")
+library(SummarizedExperiment)
+library(testthat)
+
 
 # calculate_method is internal; expose for tests
+
+
 calculate_method <- TSENAT:::.calculate_method
 
 test_that(".estimate_shrinkage_params estimates global mean correctly", {

@@ -1,4 +1,8 @@
 # ============================================================================
+library(microbenchmark)
+library(testthat)
+
+# ============================================================================
 # PERFORMANCE REGRESSION TESTS
 # ============================================================================
 # These tests verify that critical functions maintain acceptable performance
@@ -7,6 +11,8 @@
 # Run with: devtools::test("tests/testthat/test-performance.R")
 
 # SKIP ALL TESTS IF RUNNING COVERAGE ANALYSIS (performance tests are slow and not needed for coverage)
+
+
 
 if (identical(Sys.getenv("SKIP_PERFORMANCE_TESTS"), "true")) {
   cat("Skipping all performance tests (SKIP_PERFORMANCE_TESTS environment variable set)\n")

@@ -1,6 +1,7 @@
 context("Linear Model Helpers: Basic Calculations")
-
 library(testthat)
+
+
 
 # Report summary messages
 test_that(".report_fit_summary prints fallback and singular messages", {
@@ -160,7 +161,6 @@ testthat::test_that("GAM interaction returns a data.frame with p-value when mgcv
 
 context("Linear Model Helpers: Edge Cases and Validation")
 
-library(testthat)
 
 # .report_fit_summary should be silent when no fallback/singular
 test_that(".report_fit_summary is silent when no messages to print", {

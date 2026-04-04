@@ -3,7 +3,6 @@ context("Jackknife Isoform Switching: Updates - Multi-Q, Gene Mapping, and LM Fi
 # Helper function to create test SummarizedExperiment with gene names
 test_se_with_gene_names <- function() {
   suppressPackageStartupMessages({
-    library(SummarizedExperiment)
   })
   
   counts_mat <- matrix(rpois(60, lambda=15), nrow=6, ncol=10,
@@ -227,7 +226,6 @@ test_that("Gene mapping respects LM p-value threshold", {
 
 test_that("Gene name to ID mapping removes duplicates", {
   suppressPackageStartupMessages({
-    library(SummarizedExperiment)
   })
   
   # Create SE with duplicate gene names (edge case)

@@ -300,7 +300,6 @@ test_that(".fpca_interaction works with all regularization methods", {
 # ============================================================================
 
 test_that("FPCA with regularization='pca' (default) works correctly", {
-    library(TSENAT)
     qvec <- seq(0.01, 0.15, by = 0.01)
     
     set.seed(200)
@@ -371,7 +370,6 @@ test_that("FPCA with regularization='pca' (default) works correctly", {
 
 test_that("FPCA with regularization='lasso' produces valid results", {
     skip_if_not_installed("glmnet")
-    library(TSENAT)
     
     qvec <- seq(0.01, 0.15, by = 0.01)
     
@@ -426,7 +424,6 @@ test_that("FPCA with regularization='lasso' produces valid results", {
 
 test_that("FPCA with regularization='elasticnet' produces valid results", {
     skip_if_not_installed("glmnet")
-    library(TSENAT)
     
     qvec <- seq(0.01, 0.15, by = 0.01)
     
@@ -482,7 +479,6 @@ test_that("FPCA with regularization='elasticnet' produces valid results", {
 test_that("FPCA regularization methods produce reasonable p-value differences", {
     skip_on_ci()  # Expensive: runs 3 regularization methods (pca, lasso, elasticnet). Keep locally for full validation
     skip_if_not_installed("glmnet")
-    library(TSENAT)
     
     qvec <- seq(0.01, 0.15, by = 0.01)
     
@@ -572,7 +568,6 @@ test_that("FPCA regularization methods produce reasonable p-value differences", 
 
 test_that("FPCA regularization with paired design works correctly", {
     skip_if_not_installed("glmnet")
-    library(TSENAT)
     
     # Test paired design with regularization methods
     qvec <- seq(0.01, 0.1, by = 0.01)

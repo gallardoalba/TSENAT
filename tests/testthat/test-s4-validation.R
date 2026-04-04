@@ -3,10 +3,14 @@
 # This ensures invalid configuration parameters are caught early (fail-fast)
 
 context("TSENATAnalysis constructor parameter validation")
+library(SummarizedExperiment)
+library(testthat)
+
+
+
 
 test_that("Constructor rejects invalid condition_col", {
     skip_if_not_installed("SummarizedExperiment")
-    library(SummarizedExperiment)
     
     se <- SummarizedExperiment(
         assays = list(counts = matrix(1:100, nrow = 10, ncol = 10)),
@@ -25,7 +29,6 @@ test_that("Constructor rejects invalid condition_col", {
 
 test_that("Constructor rejects invalid subject_col when paired", {
     skip_if_not_installed("SummarizedExperiment")
-    library(SummarizedExperiment)
     
     se <- SummarizedExperiment(
         assays = list(counts = matrix(1:100, nrow = 10, ncol = 10)),
@@ -48,7 +51,6 @@ test_that("Constructor rejects invalid subject_col when paired", {
 
 test_that("Constructor accepts valid parameters", {
     skip_if_not_installed("SummarizedExperiment")
-    library(SummarizedExperiment)
     
     se <- SummarizedExperiment(
         assays = list(counts = matrix(1:100, nrow = 10, ncol = 10)),
@@ -73,7 +75,6 @@ context("TSENATAnalysis setValidity() comprehensive checks")
 
 test_that("validObject() catches invalid condition_col", {
     skip_if_not_installed("SummarizedExperiment")
-    library(SummarizedExperiment)
     
     se <- SummarizedExperiment(
         assays = list(counts = matrix(1:100, nrow = 10, ncol = 10)),
@@ -92,7 +93,6 @@ test_that("validObject() catches invalid condition_col", {
 
 test_that("validObject() catches invalid subject_col", {
     skip_if_not_installed("SummarizedExperiment")
-    library(SummarizedExperiment)
     
     se <- SummarizedExperiment(
         assays = list(counts = matrix(1:100, nrow = 10, ncol = 10)),
@@ -115,7 +115,6 @@ test_that("validObject() catches invalid subject_col", {
 
 test_that("validObject() allows NULL or missing condition_col", {
     skip_if_not_installed("SummarizedExperiment")
-    library(SummarizedExperiment)
     
     se <- SummarizedExperiment(
         assays = list(counts = matrix(1:100, nrow = 10, ncol = 10)),
@@ -133,7 +132,6 @@ test_that("validObject() allows NULL or missing condition_col", {
 
 test_that("validObject() ignores subject_col when paired=FALSE", {
     skip_if_not_installed("SummarizedExperiment")
-    library(SummarizedExperiment)
     
     se <- SummarizedExperiment(
         assays = list(counts = matrix(1:100, nrow = 10, ncol = 10)),
@@ -161,7 +159,6 @@ context("setConfig() method with validation")
 
 test_that("setConfig() validates config parameter", {
     skip_if_not_installed("SummarizedExperiment")
-    library(SummarizedExperiment)
     
     se <- SummarizedExperiment(
         assays = list(counts = matrix(1:100, nrow = 10, ncol = 10)),
@@ -181,7 +178,6 @@ test_that("setConfig() validates config parameter", {
 
 test_that("setConfig() accepts valid config", {
     skip_if_not_installed("SummarizedExperiment")
-    library(SummarizedExperiment)
     
     se <- SummarizedExperiment(
         assays = list(counts = matrix(1:100, nrow = 10, ncol = 10)),
@@ -207,7 +203,6 @@ context("Integration tests with real metadata")
 
 test_that("Real vignette metadata works with correct config", {
     skip_if_not_installed("SummarizedExperiment")
-    library(SummarizedExperiment)
     
     # Use real metadata from vignette data
     metadata_file <- system.file("extdata", "metadata.tsv", package = "TSENAT")

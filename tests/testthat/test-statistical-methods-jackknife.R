@@ -229,7 +229,6 @@ set.seed(42)
 # Create a simple test SummarizedExperiment
 test_se_basic <- function() {
   suppressPackageStartupMessages({
-    library(SummarizedExperiment)
   })
   
   counts_mat <- matrix(rpois(20, lambda=10), nrow=2, ncol=10,
@@ -359,7 +358,6 @@ test_that("all_transcript_stats has required columns", {
 # Test 7: Paired design parameter is accepted
 test_that("jackknife_isoform_switching accepts subject_col parameter", {
   suppressPackageStartupMessages({
-    library(SummarizedExperiment)
   })
   
   counts_mat <- matrix(rpois(30, lambda=10), nrow=3, ncol=10,
@@ -397,7 +395,6 @@ test_that("jackknife_isoform_switching accepts lm_results parameter", {
   skip_on_cran()
   
   suppressPackageStartupMessages({
-    library(SummarizedExperiment)
   })
   
   counts_mat <- matrix(rpois(40, lambda=10), nrow=4, ncol=10,
