@@ -315,9 +315,7 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
         extract_legend = TRUE)
 
     if (!is.null(output_file)) {
-        plot_dims <- .calculate_plot_dims(width_inches = 12, aspect_type = "tall", dpi_output = 100)
-        ggplot2::ggsave(output_file, plot = grid_with_legend, width = plot_dims$width, height = plot_dims$height,
-            dpi = 100)
+        .save_plot_standard(grid_with_legend, output_file, width_inches = 12, aspect_type = "tall", dpi_output = 100)
     }
 
     grid_with_legend
@@ -371,8 +369,7 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
     }
 
     if (!is.null(output_file)) {
-        plot_dims <- .calculate_plot_dims(width_inches = 12, aspect_type = "standard", dpi_output = 100)
-        ggplot2::ggsave(output_file, plot = p, width = plot_dims$width, height = plot_dims$height, dpi = plot_dims$dpi)
+        .save_plot_standard(p, output_file, width_inches = 12, aspect_type = "standard", dpi_output = 100)
     }
 
     p
@@ -453,9 +450,7 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
         extract_legend = TRUE)
 
     if (!is.null(output_file)) {
-        plot_dims <- .calculate_plot_dims(width_inches = 12, aspect_type = "tall", dpi_output = 100)
-        ggplot2::ggsave(output_file, plot = grid_with_legend, width = plot_dims$width, height = plot_dims$height,
-            dpi = plot_dims$dpi)
+        .save_plot_standard(grid_with_legend, output_file, width_inches = 12, aspect_type = "tall", dpi_output = 100)
     }
 
     grid_with_legend
@@ -516,9 +511,7 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
         extract_legend = TRUE)
 
     if (!is.null(output_file)) {
-        plot_dims <- .calculate_plot_dims(width_inches = 12, aspect_type = "tall", dpi_output = 100)
-        ggplot2::ggsave(output_file, plot = grid_with_legend, width = plot_dims$width, height = plot_dims$height,
-            dpi = plot_dims$dpi)
+        .save_plot_standard(grid_with_legend, output_file, width_inches = 12, aspect_type = "tall", dpi_output = 100)
     }
 
     grid_with_legend
@@ -559,8 +552,7 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
     }
 
     if (!is.null(output_file)) {
-        plot_dims <- .calculate_plot_dims(width_inches = 12, aspect_type = "standard", dpi_output = 100)
-        ggplot2::ggsave(output_file, plot = p, width = plot_dims$width, height = plot_dims$height, dpi = plot_dims$dpi)
+        .save_plot_standard(p, output_file, width_inches = 12, aspect_type = "standard", dpi_output = 100)
     }
 
     p
