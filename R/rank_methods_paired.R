@@ -44,6 +44,14 @@
 #'
 
 #' @noRd
+
+# Helper: Safe extraction with error handling
+.safe_extract <- function(expr, default = NA) {
+    result <- try(expr, silent = TRUE)
+    if (inherits(result, "try-error")) default else result
+}
+
+#' @noRd
 .select_rank_test_paired <- function(data, value_col = "entropy", group_col = "q",
     subject_col = "paired_samples", verbose = FALSE) {
 
@@ -51,13 +59,9 @@
     groups <- data[[group_col]]
     subjects <- data[[subject_col]]
 
-    # Ensure factors
-    if (!is.factor(groups)) {
-        groups <- factor(groups)
-    }
-    if (!is.factor(subjects)) {
-        subjects <- factor(subjects)
-    }
+    # Ensure factors only if not already (avoid unnecessary conversion overhead)
+    groups <- if (!is.factor(groups)) factor(groups) else groups
+    subjects <- if (!is.factor(subjects)) factor(subjects) else subjects
 
     characteristics <- list(heteroscedastic = FALSE, boundary_clustered = FALSE,
         highly_skewed = FALSE, n_groups = nlevels(groups), n_subjects = nlevels(subjects),
@@ -89,26 +93,14 @@
             var_ratio <- NA_real_
 
             if (!inherits(bp_anova, "try-error") && nrow(bp_anova) >= 1) {
-                pval_vec <- try(as.numeric(bp_anova[1, "Pr(>F)"]), silent = TRUE)
+                bp_pvalue <- .safe_extract(as.numeric(bp_anova[1, "Pr(>F)"]))
 
-                if (!inherits(pval_vec, "try-error") && length(pval_vec) == 1 &&
-                  !is.na(pval_vec)) {
-                  bp_pvalue <- pval_vec
-
+                if (!is.na(bp_pvalue)) {
                   # Compute variance ratio across treatment groups (not
                   # subjects)
                   group_vars <- tapply(values, groups, var, na.rm = TRUE)
-                  if (length(group_vars) > 1) {
-                    finite_vars <- group_vars[is.finite(group_vars)]
-                    if (length(finite_vars) > 1) {
-                      var_ratio <- max(finite_vars, na.rm = TRUE)/min(finite_vars,
-                        na.rm = TRUE)
-                    } else {
-                      var_ratio <- 1
-                    }
-                  } else {
-                    var_ratio <- 1
-                  }
+                  finite_vars <- group_vars[is.finite(group_vars)]
+                  var_ratio <- if (length(finite_vars) > 1) max(finite_vars)/min(finite_vars) else 1
 
                   # Heteroscedasticity detected if p < 0.01 AND variance_ratio > 3
                   # (stricter thresholds to reduce false positives on balanced data)
@@ -198,23 +190,15 @@
     subjects <- as.factor(data[[subject_col]])
 
     n_treatments <- nlevels(groups)
-    n_blocks <- nlevels(subjects)
 
-    # Create ranks within each block
-    block_ranks <- matrix(NA, nrow = n_blocks, ncol = n_treatments)
-    rownames(block_ranks) <- levels(subjects)
+    # OPTIMIZATION: Vectorized median calculation using by() instead of for-loop
+    # Compute all block-group medians in one operation (faster than sequential loops)
+    block_list <- by(data.frame(values, groups), subjects, function(d) {
+        tapply(d$values, d$groups, median, na.rm = TRUE)
+    }, simplify = TRUE)
+    
+    block_ranks <- do.call(rbind, block_list)
     colnames(block_ranks) <- levels(groups)
-
-    # OPTIMIZATION: Vectorized median calculation within blocks Use tapply to
-    # compute all group medians for each block in one operation
-    for (b in levels(subjects)) {
-        block_idx <- subjects == b
-        block_vals <- values[block_idx]
-        block_grps <- groups[block_idx]
-
-        # Vectorized: Calculate medians for all groups in this block at once
-        block_ranks[b, ] <- tapply(block_vals, block_grps, median, na.rm = TRUE)
-    }
 
     # Count median-based differences (robust approach) Use median test: For
     # each block, is a treatment's value above or below grand median?
@@ -228,9 +212,11 @@
     # Compute chi-squared test for independence H0: Probability of being above
     # median is same for all treatments
     # Create contingency table: rows = above/below median, columns = treatments
-    above_below <- as.numeric(as.vector(above_median_matrix))  # Flatten: 1 = above, 0 = below
-    treatment_rep <- rep(colnames(block_ranks), each = nrow(block_ranks))  # Which treatment each row belongs to
-    contingency_table <- table(Above = above_below, Treatment = treatment_rep)
+    # OPTIMIZATION: Directly flatten matrix and create factors instead of intermediate vectors
+    contingency_table <- table(
+        Above = factor(c(above_median_matrix), levels = c(0, 1), labels = c("Below", "Above")),
+        Treatment = rep(colnames(block_ranks), each = nrow(block_ranks))
+    )
 
     # For robustness: Use exact or simulated p-value (Fisher's exact not
     # practical for large tables) Fallback: Chi-squared test
