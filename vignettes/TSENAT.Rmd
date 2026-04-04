@@ -306,13 +306,8 @@ Now we will load the example dataset and associated metadata:
 # - effective_length: EffectiveLength vector (read-length corrected)
 data(readcounts)
 
-# Ensure numeric format (keep transcript IDs as rownames)
 readcounts <- as.matrix(readcounts)
 mode(readcounts) <- "numeric"
-
-# Explicitly load TPM and effective length
-tpm <- tpm  # TPM-normalized values
-effective_length <- effective_length  # Length-corrected values
 
 # Load sample metadata
 metadata_df <- read.table(
@@ -362,32 +357,7 @@ analysis <- setConfig(analysis, config)
 ```
 
 The `TSENATAnalysis` object contains a `SummarizedExperiment` with transcript-level 
-counts and gene annotations extracted from the GFF3 file. Let's examine its internal structure:
-
-```{r examine-se-structure, include = FALSE}
-# Display the structure of the SummarizedExperiment
-se_obj <- se(analysis)
-cat("SummarizedExperiment dimensions:\n")
-cat("  Transcripts (rows):", nrow(se_obj), "\n")
-cat("  Samples (columns):", ncol(se_obj), "\n")
-cat("  Assay (counts):", nrow(assay(se_obj, "counts")), "×", ncol(assay(se_obj, "counts")), "\n")
-cat("\nRowData columns:", paste(colnames(rowData(se_obj)), collapse = ", "), "\n")
-cat("Sample metadata available:", exists("metadata_df"), "\n\n")
-
-# Show rowData with gene information
-rd <- as.data.frame(rowData(se_obj)[1:5, ])
-knitr::kable(rd, caption = "First 5 rows of rowData (gene information)", row.names = FALSE)
-```
-
-```{r examine-metadata, include=FALSE}
-# Display sample metadata (before mapping to colData)
-if (exists("metadata_df")) {
-  cat("\nSample metadata (metadata_df):\n")
-  cat("  Rows:", nrow(metadata_df), "samples\n")
-  cat("  Columns:", paste(colnames(metadata_df), collapse = ", "), "\n\n")
-  knitr::kable(metadata_df, caption = "Sample metadata (metadata_df)")
-}
-```
+counts and gene annotations extracted from the GFF3 file.
 
 Before computing the Tsallis diversity, you might want to
 filter out genes with a low overall expression or limit 
@@ -495,32 +465,6 @@ p_qcurve <- plot_tsallis_q_curve_s4(
 print(p_qcurve)
 ```
 
-### Interpreting Bootstrap CI Displacement at Low q-Values
-
-**Important observation:** Bootstrap confidence intervals at very low q-values (q < 0.5) may appear **displaced downward** relative to the point estimate (median). This is **expected behavior**, not a computational error. Here's why:
-
-**Root cause: Rare isoform sparsity and extreme skewness**
-
-At q < 0.5, the Tsallis entropy formula $S_q(p) = \frac{1-\sum p_i^q}{q-1}$ heavily emphasizes rare, low-abundance isoforms through the power term $p_i^q$. When q is small:
-
-1. **Amplification of rare variants:** For a rare isoform with p = 0.002 (0.2% abundance):
-   - At q = 1: contributes 0.002 to the computation
-   - At q = 0.1: contributes 0.002^0.1 ≈ 0.40 — a **200-fold amplification**
-
-2. **Random dropout in bootstrap resamples:** Multinomial resampling may randomly exclude rare isoforms (those with few reads). This creates:
-   - Many bootstrap replicates with reduced entropy (rare isoforms absent)
-   - Fewer replicates with elevated entropy (all rare isoforms present)
-   - **Highly skewed bootstrap distribution**, not normal
-
-3. **BCA adjustment reflects true asymmetry:** The Bias-Corrected and Accelerated (BCA) method correctly computes confidence intervals that reflect this asymmetry. The displacement is **statistically valid**—it indicates uncertainty in rare variant abundance.
-
-**Biological interpretation:** Downward-displaced confidence intervals at low q mean: "*We are confident the true rare isoform diversity is at least [CI lower bound], but rare isoforms are so variable across samples that upper bounds are uncertain.*"
-
-**Practical implications:**
-- **Wider CI bands at q < 0.5 are appropriate**: they reflect genuine sampling uncertainty
-- If CI bands seem too wide, consider increasing sample size or using a small pseudocount (see `filter_analysis_s4(..., min_isoform_abundance = 0.05)`)
-- For robust analysis, q ≥ 0.5 is recommended when sample sizes are small
-
 ## Quality Control: Sample Influence Assessment
 
 Before proceeding with group-level comparisons, we should assess whether individual samples exert disproportionate influence on our entropy estimates. To address this, we employ a leave-one-out influence assessment combined with robust M-estimation (iteratively re-weighted least squares with Huber loss). This approach quantifies how much each sample's removal affects the estimated location differences across the q-spectrum, providing a sample-level quality control metric independent of group assignment.
@@ -529,137 +473,43 @@ Samples with high influence scores exert disproportionate leverage on entropy es
 
 ```{r qc-sample-check-multiQ, echo=TRUE}
 # Perform multi-q sample influence analysis via S4 wrapper
-# m_estimate_s4 uses condition_col from @config set earlier
-
-cat("DEBUG: About to call m_estimate_s4\n")
-config <- getConfig(analysis)
-cat("DEBUG: condition_col in config:", config$condition_col, "\n")
-cat("DEBUG: condition_col class:", class(config$condition_col), "\n")
-
-tryCatch({
-  analysis <- m_estimate_s4(
-      analysis,
-      loss_type = "huber",
-      q_combine_method = "mean",
-      influence_threshold = 0.75
-  )
-  cat("DEBUG: m_estimate_s4 completed successfully\n")
-}, error = function(e) {
-  cat("ERROR in m_estimate_s4:", e$message, "\n")
-  stop(e)
-})
+analysis <- m_estimate_s4(
+    analysis,
+    loss_type = "huber",
+    q_combine_method = "mean",
+    influence_threshold = 0.75
+)
 
 # Extract results from metadata using accessor function
-cat("DEBUG: About to extract metadata\n")
 sample_qc <- metadata(analysis, "m_estimate_results")
-cat("DEBUG: Metadata extracted successfully\n")
 ```
 
 ```{r qc-sample-display, echo=FALSE, results="asis"}
-# Display QC results with condition, pair, influence, and centroid distance
-if (exists("sample_qc") && !is.null(sample_qc) && nrow(sample_qc) > 0) {
-  base_display_cols <- c("Sample", "Condition", "Proportion_Affected", 
-                         "Genes_Affected", "Distance_from_Centroid", "Status")
-
-  # Initialize with base columns
-  qc_table <- sample_qc[, base_display_cols]
-
-  # Add Pair_ID if available (check multiple possible column names)
-  pair_id_col <- NULL
-  if ("Pair_ID" %in% colnames(sample_qc)) {
-    pair_id_col <- "Pair_ID"
-  } else if ("Pair" %in% colnames(sample_qc)) {
-    pair_id_col <- "Pair"
-  } else if ("pair_id" %in% colnames(sample_qc)) {
-    pair_id_col <- "pair_id"
-  }
-
-  if (!is.null(pair_id_col)) {
-    qc_table <- sample_qc[, c("Sample", "Condition", pair_id_col, 
-                              "Proportion_Affected", "Genes_Affected", 
-                              "Distance_from_Centroid", "Status")]
-    colnames(qc_table)[which(colnames(qc_table) == pair_id_col)] <- "Pair"
-  }
-
+if (!is.null(sample_qc) && nrow(sample_qc) > 0) {
   # Round numeric columns for better readability
-  qc_table$Proportion_Affected <- round(qc_table$Proportion_Affected, 3)
-  qc_table$Genes_Affected <- round(qc_table$Genes_Affected, 1)
-  qc_table$Distance_from_Centroid <- round(qc_table$Distance_from_Centroid, 4)
-
-  # Create nice column headers
-  col_headers <- c(
-    "Sample" = "Sample",
-    "Condition" = "Condition",
-    "Pair" = "Pair ID",
-    "Proportion_Affected" = "Prop. Affected",
-    "Genes_Affected" = "Genes Affected",
-    "Distance_from_Centroid" = "Distance from Centroid",
-    "Status" = "Status"
-  )
-  display_headers <- col_headers[colnames(qc_table)]
-
-  # Display as formatted table with automatic width and alignment
+  sample_qc$Proportion_Affected <- round(sample_qc$Proportion_Affected, 3)
+  sample_qc$Genes_Affected <- round(sample_qc$Genes_Affected, 1)
+  sample_qc$Distance_from_Centroid <- round(sample_qc$Distance_from_Centroid, 4)
+  
   knitr::kable(
-      qc_table,
+      sample_qc,
       caption = "Sample Influence Assessment via M-estimation",
-      col.names = display_headers,
       digits = 4,
-      row.names = FALSE,
-      align = c("l", rep("c", ncol(qc_table) - 1))
+      row.names = FALSE
   )
-} else {
-  cat("Note: QC sample check skipped (m_estimate not available)\n")
 }
 ```
 
 ## Linear-Model interaction
 
-Once we have, we can test for interactions between `q` and
-sample groups across a sequence of `q` values (`q-sequence`), that is,
-whether the shape of the q-curve differs between groups.
-This approach is a powerful way to detect scale-dependent
-diversity differences that may not be apparent at a
-single `q` value.
-
-Compute **Tsallis entropy** across a sequence of `q` values 
-is important because `q` acts as a sensitivity lens that 
-shifts emphasis between rare and dominant events in data.
-Thus,  the resulting q-curve can help us identify at which 
-scales (i.e. for which `q` values) the **diversity** differences
-between groups are most pronounced. The Tsallis `q-sequence` can 
-also help with quality control and outlier detection. By 
-examining the q-curves of individual samples, we can 
-identify samples that deviate from expected patterns,
-which may indicate technical issues or biological outliers.
-
-
-Once we have the **q-spectrum** computed, we can test for interactions
-between `q` and sample groups using one of four methods implemented
-in `calculate_lm_interaction_s4()`:
-
-- linear: fits a simple linear model. This is
-fast and interpretable and is appropriate when the q–response is
-approximately linear and samples are independent.
-- lmm: fits a linear mixed model which accounts
-for subject-level random effects (paired or repeated measures).
-- gam: fits a generalized additive model. This method allows
-to capture nonlinear q–response shapes.
-- fpca: uses a functional-data approach to reduce each gene's
-q-curve to principal component scores. This is recommended when q
-is densely sampled or when q-curves exhibit complex, high-dimensional
-variation.
-
-Below we demonstrate a practical `gam` (Generalized Additive Model) example.
-This method flexibly captures nonlinear q-response patterns and is particularly
-useful when the relationship between q and entropy is not linear (for example,
-the q:group interaction with complex response shapes).
+We can test for interactions between `q` and sample groups across the q-sequence
+using one of four methods: linear, lmm (linear mixed model), gam (generalized additive model), 
+or fpca (functional principal component analysis). The gam method flexibly captures nonlinear 
+q-response patterns and is particularly useful for complex interaction structures.
 
 ```{r lm-interaction-before-qcurve}
-## Linear-model interaction test across q values using S4 wrapper: detect q x group interaction
-## with Hochberg FWER control (fast, closed-form procedure)
+# Linear-model interaction test across q values using S4 wrapper
 if (requireNamespace("mgcv", quietly = TRUE)) {
-    # Compute LM interaction using S4 wrapper
-    # Uses condition_col from @config
     analysis <- calculate_lm_interaction_s4(
         analysis,
         method = "gam",
@@ -670,55 +520,17 @@ if (requireNamespace("mgcv", quietly = TRUE)) {
 ```
 
 ```{r kable-lm-interaction-before-qcurve, echo = FALSE}
-# show the top entries with proper p-value formatting
-# Extract results from TSENATAnalysis using S4 accessor method
-lm_all <- lmResults(analysis)
-
-# Extract lm_interaction results - handle both data frame and list formats
-if (!is.null(lm_all) && "lm_interaction" %in% names(lm_all)) {
-    lm_res <- lm_all$lm_interaction
-    # If it's a list with $results, extract the data frame
-    if (is.list(lm_res) && "results" %in% names(lm_res)) {
-        lm_res <- lm_res$results
-    }
-    lm_res_display <- if (is.data.frame(lm_res)) head(lm_res, 6) else data.frame()
-} else {
-    lm_res_display <- data.frame()
-}
-
-if (nrow(lm_res_display) > 0) {
-    # Select columns: gene, test statistic, effect size, and p-values
-    col_select <- intersect(c("gene", "test_statistic", "effect_size", "p_interaction", "adj_p_interaction"), 
-                            colnames(lm_res_display))
-    lm_res_display <- lm_res_display[, col_select, drop = FALSE]
+lm_res <- lmResults(analysis)$lm_interaction
+if (!is.null(lm_res) && is.data.frame(lm_res) && nrow(lm_res) > 0) {
+    display <- head(lm_res, 6)
+    # Round numeric columns
+    numeric_cols <- sapply(display, is.numeric)
+    display[, numeric_cols] <- round(display[, numeric_cols], 4)
     
-    # Format numeric columns
-    if ("test_statistic" %in% colnames(lm_res_display)) {
-        lm_res_display$test_statistic <- round(as.numeric(lm_res_display$test_statistic), 3)
-    }
-    if ("effect_size" %in% colnames(lm_res_display)) {
-        lm_res_display$effect_size <- round(as.numeric(lm_res_display$effect_size), 4)
-    }
-    if ("p_interaction" %in% colnames(lm_res_display)) {
-        lm_res_display$p_interaction <- format(as.numeric(lm_res_display$p_interaction), scientific = TRUE, digits = 3)
-    }
-    if ("adj_p_interaction" %in% colnames(lm_res_display)) {
-        lm_res_display$adj_p_interaction <- format(as.numeric(lm_res_display$adj_p_interaction), scientific = TRUE, digits = 3)
-    }
-
-    # Create nice column headers
-    col_headers <- c("gene" = "Gene", 
-                     "effect_size" = "Effect Size",
-                     "test_statistic" = "Test Statistic",
-                     "p_interaction" = "P-value",
-                     "adj_p_interaction" = "Adj. P-value")
-    display_headers <- col_headers[colnames(lm_res_display)]
-
     knitr::kable(
-        lm_res_display,
+        display,
         caption = "Top q-interaction results from GAM analysis with Hochberg correction",
-        col.names = display_headers,
-        digits = 5,
+        digits = 4,
         row.names = FALSE
     )
 }
