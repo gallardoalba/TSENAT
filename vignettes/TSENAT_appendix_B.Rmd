@@ -32,8 +32,8 @@ knitr::opts_chunk$set(
 
 This vignette validates q-value × group interaction detection using two complementary statistical approaches:
 
-1. **Generalized Additive Model (GAM):** Generalized Additive Models with ARIMA(1,1,0) transformation for handling q-ordered measurements
-2. **Rank-Based (Friedman with Hochberg):** Friedman test for paired/blocked data with Hochberg step-up multiple testing correction
+1. **Generalized Additive Model (GAM):** Generalized Additive Models with ARIMA(1,1,0) transformation for handling q-ordered measurements [@C073]
+2. **Rank-Based (Friedman with Hochberg):** Friedman test for paired/blocked data [@S115; @S205] with Hochberg step-up multiple testing correction [@BenjaminiHochberg1995]
 
 Both methods now incorporate principled improvements to handle real-world data challenges:
 - Heteroscedasticity detection and weighting
@@ -124,7 +124,7 @@ analysis <- calculate_diversity_s4(
 
 ## Assumption Validation
 
-Before applying rank-based methods, we verify key assumptions for rank-based inference:
+Before applying rank-based methods, we verify key assumptions for rank-based inference [@S115; @S204]. The Friedman test is a non-parametric alternative to repeated-measures ANOVA, making fewer distributional assumptions while maintaining validity for paired designs [@S044]:
 
 ```{r rank-assumptions-calculation, message=FALSE}
 # Validate Friedman test assumptions using S4 wrapper
@@ -271,9 +271,9 @@ print(top_genes_plot)
 
 ## Friedman Test: Testing q × Condition Interactions
 
-The Friedman test evaluates whether entropy patterns across q-values differ between normal and tumor samples. It ranks observations within each subject, preserving the paired structure critical for valid inference in paired designs.
+The Friedman test evaluates whether entropy patterns across q-values differ between normal and tumor samples [@S205]. It ranks observations within each subject, preserving the paired structure critical for valid inference in paired designs [@S044]. This rank-based approach is particularly robust for skewed distributions like entropy values.
 
-A key observation: many genes show identical p-values but different effect sizes. This reflects the rank-based nature of the test. Effect size η² directly quantifies the strength of the q-value × condition dependence and serves as the practical ranking metric when p-values cluster:
+A key observation: many genes show identical p-values but different effect sizes. This reflects the rank-based nature of the test [@S115]. Effect size η² directly quantifies the strength of the q-value × condition dependence and serves as the practical ranking metric when p-values cluster [@S205]:
 
 $$\eta^2 = \frac{SS_\text{between}}{SS_\text{total}}$$
 
@@ -284,11 +284,11 @@ This represents the proportion of total variance in entropy explained by changes
 A key observation in this analysis is that **many genes share identical p-values** (e.g., 3.224e-43) despite dramatically different effect sizes (59.9%, 58.6%, 54.6%). This is **not a statistical error** but rather a fundamental property of the two-way Friedman test applied to q × condition interaction:
 
 **Why identical p-values occur in two-way Friedman:**
-The test statistic depends on the **rank patterns** of entropy values across q-levels within each condition and subject. When genes show similar interaction structure (e.g., Q-entropy consistently higher in tumors vs normals at all q-values), they produce identical test statistics despite different magnitudes of entropy change.
+The test statistic depends on the **rank patterns** of entropy values across q-levels within each condition and subject [@S205]. When genes show similar interaction structure (e.g., Q-entropy consistently higher in tumors vs normals at all q-values), they produce identical test statistics despite different magnitudes of entropy change. This property of rank statistics [@S115] is characteristic of non-parametric testing when distributions are heavily skewed or bounded.
 
 **How to rank genes when p-values cluster:**
-In this scenario, **effect size (η²) becomes the practical ranking metric** because it directly quantifies the strength of the q-value × entropy dependence:
-- η² captures the proportion of variance explained by q-values
+In this scenario, **effect size (η²) becomes the practical ranking metric** [@S205] because it directly quantifies the strength of the q-value × entropy dependence:
+- η² captures the proportion of variance explained by q-values [@S205]
 - Higher η² = stronger biological effect for that gene
 - Effect size properly reflects the magnitude of entropy change across q-values
 
