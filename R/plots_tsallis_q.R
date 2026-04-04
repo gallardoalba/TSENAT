@@ -367,7 +367,7 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
         color = "Group", fill = "Group")
 
     if (length(groups) == 1) {
-        p <- p + ggplot2::theme(legend.position = "none")
+        p <- .configure_legend(p, position = "none")
     }
 
     if (!is.null(output_file)) {
@@ -555,7 +555,7 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
     p <- p + ggplot2::labs(x = "q value", y = expression("Tsallis entropy (" * S[q] * ")"))
 
     if (length(unique(long$group)) == 1) {
-        p <- p + ggplot2::theme(legend.position = "none")
+        p <- .configure_legend(p, position = "none")
     }
 
     if (!is.null(output_file)) {

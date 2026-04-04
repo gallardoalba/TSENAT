@@ -1076,9 +1076,9 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
 
 
 .make_plot_for_genecombine_cowplot <- function(plots, output_file = NULL, agg_label_unique) {
-    p_for_legend <- plots[[1]] + ggplot2::theme(legend.position = "bottom")
+    p_for_legend <- .configure_legend(plots[[1]], position = "bottom")
     legend <- cowplot::get_legend(p_for_legend)
-    plots_nolegend <- lapply(plots, function(pp) pp + ggplot2::theme(legend.position = "none"))
+    plots_nolegend <- lapply(plots, function(pp) .configure_legend(pp, position = "none"))
 
     # Use 2 columns (2 genes per row), auto-calculate rows
     ncol <- 2
@@ -1103,7 +1103,7 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
 
 
 .make_plot_for_genecombine_grid <- function(plots, output_file = NULL, agg_label_unique) {
-    plots_nolegend <- lapply(plots, function(pp) pp + ggplot2::theme(legend.position = "none"))
+    plots_nolegend <- lapply(plots, function(pp) .configure_legend(pp, position = "none"))
     grobs <- lapply(plots_nolegend, ggplot2::ggplotGrob)
     g_full <- ggplot2::ggplotGrob(plots[[1]])
     legend_idx <- which(vapply(g_full$grobs, function(x) x$name, character(1)) ==

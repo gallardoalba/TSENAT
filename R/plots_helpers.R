@@ -110,12 +110,12 @@ NULL
     require_pkgs("cowplot")
 
     # Extract legend from first plot
-    p_for_legend <- plots[[1]] + ggplot2::theme(legend.position = "bottom")
+    p_for_legend <- .configure_legend(plots[[1]], position = "bottom")
     legend <- cowplot::get_legend(p_for_legend)
 
     # Remove legends from all plots
     plots_nolegend <- lapply(plots, function(pp) {
-        pp + ggplot2::theme(legend.position = "none")
+        .configure_legend(pp, position = "none")
     })
 
     # Compose in 2 columns
@@ -171,7 +171,7 @@ NULL
 
     # Remove legends from all plots
     plots_nolegend <- lapply(plots, function(pp) {
-        pp + ggplot2::theme(legend.position = "none")
+        .configure_legend(pp, position = "none")
     })
 
     # Convert to grobs
@@ -1980,8 +1980,10 @@ NULL
     })
 
     # Extract legend from first plot
-    legend <- cowplot::get_legend(plots[[1]] + ggplot2::theme(legend.position = "bottom",
-        legend.title = ggplot2::element_text(size = font_sizes$legend_title), legend.text = ggplot2::element_text(size = font_sizes$legend_text)))
+    p_for_legend <- .configure_legend(plots[[1]], position = "bottom", 
+                                      text_size = font_sizes$legend_text, 
+                                      title_size = font_sizes$legend_title)
+    legend <- cowplot::get_legend(p_for_legend)
 
     # Create grid without legends
     combined_plot <- cowplot::plot_grid(plotlist = plots_with_margins, nrow = n_rows,
@@ -2112,7 +2114,9 @@ NULL
         name = condition_col, breaks = group_levels) + ggplot2::scale_linetype_manual(values = c(`GAM fit` = 1),
         name = "") + ggplot2::labs(x = "q parameter", y = "Tsallis entropy",
         title = ifelse(gene_display_name != gene, sprintf("%s (%s)", gene_display_name,
-            gene), gene_display_name)) + .theme_spectrum(base_size = 11) + ggplot2::theme(legend.position = "none")
+            gene), gene_display_name)) + .theme_spectrum(base_size = 11)
+    
+    p <- .configure_legend(p, position = "none")
 
     p
 }
@@ -2643,7 +2647,7 @@ NULL
     
     # Remove legends from all plots
     plots_nolegend <- lapply(plots, function(p) {
-        p + ggplot2::theme(legend.position = "none")
+        .configure_legend(p, position = "none")
     })
     
     # Compose grid without legend

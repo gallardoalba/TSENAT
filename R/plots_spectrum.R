@@ -308,7 +308,7 @@
             ci_lower_col = "ci_lower", ci_upper_col = "ci_upper",
             ribbon_alpha = 0.1, line_width = 1.3, show_points = TRUE)
         p <- .apply_publication_theme(p, base_theme = "theme_base", base_size = 11,
-            title = expression("Global Divergence Spectrum: Average " * D[q]),
+            title = expression(bold("Global Divergence Spectrum: Average " * D[q])),
             subtitle = construct_subtitle("Mean", "Bootstrap (95%)", n_genes = nrow(div_mat_sorted)))
         p <- p + ggplot2::labs(x = "q value", y = expression("Divergence D[q]"))
         return(p)
@@ -350,7 +350,7 @@
     
     metric_label <- if (metric == "median") "Median" else "Mean"
     p <- .apply_publication_theme(p, base_theme = "theme_base", base_size = 11,
-        title = expression("Global Divergence Spectrum: Average " * D[q]),
+        title = expression(bold("Global Divergence Spectrum: Average " * D[q])),
         subtitle = construct_subtitle(metric_label, NULL, spread_label, nrow(div_mat_sorted)))
     p <- p + ggplot2::labs(x = "q value", y = expression("Divergence D[q]"))
     
