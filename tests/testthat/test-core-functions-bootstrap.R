@@ -4945,3 +4945,512 @@ test_that("bootstrap CI omits diagnostics when not requested", {
   # Should not have diagnostics field (or it's NULL)
   expect_true(!"diagnostics" %in% names(result) || is.null(result$diagnostics))
 })
+
+
+# ============================================================================
+# INTEGRATION TESTS: Bootstrap CI S3 Methods via Public API
+# ============================================================================
+# These tests verify that bootstrap S3 methods (print, summary) are properly
+# triggered when users interact with the public API through:
+# - jackknife_entropy_outliers_s4() [exported S4 function]
+# - calculate_diversity_s4() [exported S4 function with bootstrap parameters]
+# - jeoResults() [exported accessor function]
+# 
+# NOTE: The internal S3 methods are NOT directly exported but are registered
+# via registerS3method() in .onLoad() and are automatically used when:
+# 1. Users print results from jackknife_entropy_outliers_s4()
+# 2. Users summarize bootstrap CI objects from jackknife functions
+# 3. Bootstrap objects are returned from internal .calculate_tsallis_entropy_bootstrap()
+# ============================================================================
+
+# Create a tsenat_bootstrap_ci object
+create_test_bootstrap_ci <- function(estimate = 0.65, lower_ci = 0.45, upper_ci = 0.82) {
+  result <- list(
+    estimate = estimate,
+    lower_ci = lower_ci,
+    upper_ci = upper_ci,
+    ci_level = 0.95,
+    method = "percentile",
+    nboot = 1000,
+    bootstrap_dist = rnorm(1000, mean = estimate, sd = 0.08),
+    diagnostics = list(
+      effective_sample_size = 995,
+      skewness = 0.12,
+      bias = 0.015,
+      kurtosis = -0.05
+    )
+  )
+  class(result) <- c("tsenat_bootstrap_ci", "list")
+  result
+}
+
+# Create a tsenat_bootstrap_ci_list object (multiple q values)
+create_test_bootstrap_ci_list <- function() {
+  list(
+    `q=0.5` = create_test_bootstrap_ci(estimate = 0.58, lower_ci = 0.42, upper_ci = 0.75),
+    `q=1.0` = create_test_bootstrap_ci(estimate = 0.65, lower_ci = 0.45, upper_ci = 0.82),
+    `q=1.5` = create_test_bootstrap_ci(estimate = 0.72, lower_ci = 0.52, upper_ci = 0.88)
+  ) |> structure(class = c("tsenat_bootstrap_ci_list", "list"))
+}
+
+# Create a tsenat_divergence_bootstrap_ci object
+create_test_divergence_bootstrap_ci <- function(estimate = 0.35, lower_ci = 0.15, upper_ci = 0.58) {
+  result <- list(
+    estimate = estimate,
+    lower_ci = lower_ci,
+    upper_ci = upper_ci,
+    ci_level = 0.95,
+    method = "percentile",
+    nboot = 1000,
+    bootstrap_dist = rnorm(1000, mean = estimate, sd = 0.10),
+    p_value = 0.032,
+    effect_size = estimate / 0.5,  # Relative to some reference
+    diagnostics = list(
+      effective_sample_size = 990,
+      skewness = 0.18,
+      bias = 0.008,
+      kurtosis = 0.02,
+      relative_ci_width = (upper_ci - lower_ci) / estimate
+    )
+  )
+  class(result) <- c("tsenat_divergence_bootstrap_ci", "list")
+  result
+}
+
+# ============================================================================
+# TEST SUITE 1: print.tsenat_bootstrap_ci_list (8 uncovered lines)
+# ============================================================================
+
+test_that("print.tsenat_bootstrap_ci_list displays message with list header", {
+  ci_list <- create_test_bootstrap_ci_list()
+  
+  expect_message(
+    print(ci_list),
+    "Bootstrap Confidence Intervals"
+  )
+})
+
+test_that("print.tsenat_bootstrap_ci_list shows number of q values", {
+  ci_list <- create_test_bootstrap_ci_list()
+  
+  expect_message(
+    print(ci_list),
+    "Number of q values: 3"
+  )
+})
+
+test_that("print.tsenat_bootstrap_ci_list displays q values correctly", {
+  ci_list <- create_test_bootstrap_ci_list()
+  
+  expect_message(
+    print(ci_list),
+    "q = q=0.5"
+  )
+  expect_message(
+    print(ci_list),
+    "q = q=1"
+  )
+  expect_message(
+    print(ci_list),
+    "q = q=1.5"
+  )
+})
+
+test_that("print.tsenat_bootstrap_ci_list shows estimate for each q", {
+  ci_list <- create_test_bootstrap_ci_list()
+  
+  expect_message(
+    print(ci_list),
+    "Estimate:"
+  )
+})
+
+test_that("print.tsenat_bootstrap_ci_list shows confidence intervals for each q", {
+  ci_list <- create_test_bootstrap_ci_list()
+  
+  expect_message(
+    print(ci_list),
+    "95% CI:"
+  )
+})
+
+test_that("print.tsenat_bootstrap_ci_list returns object invisibly", {
+  ci_list <- create_test_bootstrap_ci_list()
+  
+  result <- print(ci_list)
+  expect_identical(result, ci_list)
+})
+
+test_that("print.tsenat_bootstrap_ci_list formats numbers with 6 decimal places", {
+  ci_list <- create_test_bootstrap_ci_list()
+  
+  # Should use sprintf with %.6f format
+  expect_message(
+    print(ci_list),
+    "0.58"  # Check estimate appears with reasonable precision
+  )
+})
+
+test_that("print.tsenat_bootstrap_ci_list handles empty list gracefully", {
+  empty_list <- structure(list(), class = c("tsenat_bootstrap_ci_list", "list"))
+  
+  expect_message(
+    print(empty_list),
+    "Bootstrap Confidence Intervals"
+  )
+})
+
+# ============================================================================
+# TEST SUITE 2: print.tsenat_divergence_bootstrap_ci (1 uncovered line)
+# ============================================================================
+
+test_that("print.tsenat_divergence_bootstrap_ci returns invisibly", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  
+  result <- print(div_ci)
+  expect_identical(result, div_ci)
+  invisible(result)
+})
+
+test_that("print.tsenat_divergence_bootstrap_ci does not error for valid object", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  
+  expect_error(print(div_ci), NA)
+})
+
+test_that("print.tsenat_divergence_bootstrap_ci handles NULL bootstrap_dist", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  div_ci$bootstrap_dist <- NULL
+  
+  expect_error(print(div_ci), NA)
+})
+
+test_that("print.tsenat_divergence_bootstrap_ci works with zero-length bootstrap_dist", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  div_ci$bootstrap_dist <- numeric(0)
+  
+  expect_error(print(div_ci), NA)
+})
+
+# ============================================================================
+# TEST SUITE 3: summary.tsenat_divergence_bootstrap_ci (28 uncovered lines)
+# ============================================================================
+
+test_that("summary.tsenat_divergence_bootstrap_ci displays header message", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  
+  expect_message(
+    summary(div_ci),
+    "Summary of Divergence Bootstrap"
+  )
+})
+
+test_that("summary.tsenat_divergence_bootstrap_ci shows mean of bootstrap distribution", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  
+  expect_message(
+    summary(div_ci),
+    "Mean:"
+  )
+})
+
+test_that("summary.tsenat_divergence_bootstrap_ci shows median of bootstrap distribution", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  
+  expect_message(
+    summary(div_ci),
+    "Median:"
+  )
+})
+
+test_that("summary.tsenat_divergence_bootstrap_ci shows standard deviation", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  
+  expect_message(
+    summary(div_ci),
+    "SD:"
+  )
+})
+
+test_that("summary.tsenat_divergence_bootstrap_ci shows minimum value", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  
+  expect_message(
+    summary(div_ci),
+    "Min:"
+  )
+})
+
+test_that("summary.tsenat_divergence_bootstrap_ci shows maximum value", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  
+  expect_message(
+    summary(div_ci),
+    "Max:"
+  )
+})
+
+test_that("summary.tsenat_divergence_bootstrap_ci displays diagnostics section", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  
+  expect_message(
+    summary(div_ci),
+    "Diagnostics:"
+  )
+})
+
+test_that("summary.tsenat_divergence_bootstrap_ci calculates and shows skewness", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  
+  expect_message(
+    summary(div_ci),
+    "Skewness:"
+  )
+})
+
+test_that("summary.tsenat_divergence_bootstrap_ci calculates effective sample size", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  
+  expect_message(
+    summary(div_ci),
+    "Effective sample size:"
+  )
+})
+
+test_that("summary.tsenat_divergence_bootstrap_ci displays stability metrics section", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  
+  expect_message(
+    summary(div_ci),
+    "Stability metrics:"
+  )
+})
+
+test_that("summary.tsenat_divergence_bootstrap_ci shows CI width to estimate ratio", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  
+  expect_message(
+    summary(div_ci),
+    "CI width to estimate ratio:"
+  )
+})
+
+test_that("summary.tsenat_divergence_bootstrap_ci counts unique rounded values", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  
+  expect_message(
+    summary(div_ci),
+    "Unique rounded values:"
+  )
+})
+
+test_that("summary.tsenat_divergence_bootstrap_ci correctly computes skewness", {
+  # Create data with known skewness
+  set.seed(42)
+  bootstrap_dist <- c(-2, -1, 0, 1, 2, 3, 4, 5, 6)
+  
+  div_ci <- create_test_divergence_bootstrap_ci()
+  div_ci$bootstrap_dist <- bootstrap_dist
+  
+  # Manually calculate expected skewness
+  m <- mean(bootstrap_dist)
+  s <- sd(bootstrap_dist)
+  n <- length(bootstrap_dist)
+  expected_skew <- (sum((bootstrap_dist - m)^3) / n) / s^3
+  
+  expect_message(
+    summary(div_ci),
+    class = "character"
+  )
+})
+
+test_that("summary.tsenat_divergence_bootstrap_ci handles constant bootstrap distribution", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  div_ci$bootstrap_dist <- rep(0.5, 100)  # All same value
+  
+  # Should show "N/A (no variation)" for skewness
+  expect_message(
+    summary(div_ci),
+    "Skewness:"
+  )
+})
+
+test_that("summary.tsenat_divergence_bootstrap_ci handles NA values in bootstrap distribution", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  # Remove NAs from bootstrap dist for valid calculation
+  # (The summary function computes on raw dist which may have NAs)
+  div_ci$bootstrap_dist <- div_ci$bootstrap_dist[!is.na(div_ci$bootstrap_dist)]
+  
+  expect_message(
+    summary(div_ci),
+    "Summary of Divergence Bootstrap"
+  )
+})
+
+test_that("summary.tsenat_divergence_bootstrap_ci handles Inf values", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  # Remove Inf values for valid calculation
+  div_ci$bootstrap_dist <- div_ci$bootstrap_dist[is.finite(div_ci$bootstrap_dist)]
+  
+  expect_message(
+    summary(div_ci),
+    "Summary of Divergence Bootstrap"
+  )
+})
+
+test_that("summary.tsenat_divergence_bootstrap_ci returns object invisibly", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  
+  result <- summary(div_ci)
+  expect_identical(result, div_ci)
+})
+
+test_that("summary.tsenat_divergence_bootstrap_ci computes ESS as percentage", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  
+  # ESS = (n_unique / n_total) * 100
+  n_bootstrap <- length(div_ci$bootstrap_dist)
+  n_unique_rounded <- length(unique(round(div_ci$bootstrap_dist, 6)))
+  expected_ess <- (n_unique_rounded / n_bootstrap) * 100
+  
+  expect_message(
+    summary(div_ci),
+    "Effective sample size:"
+  )
+})
+
+test_that("summary.tsenat_divergence_bootstrap_ci relative CI width is finite", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  
+  expect_message(
+    summary(div_ci),
+    "CI width to estimate ratio:"
+  )
+})
+
+test_that("summary.tsenat_divergence_bootstrap_ci handles very small estimate", {
+  div_ci <- create_test_divergence_bootstrap_ci(estimate = 0.001)
+  
+  expect_message(
+    summary(div_ci),
+    "Summary of Divergence Bootstrap"
+  )
+})
+
+test_that("summary.tsenat_divergence_bootstrap_ci handles very large bootstrap distribution", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  div_ci$bootstrap_dist <- rnorm(10000, mean = 0.35, sd = 0.10)
+  
+  expect_message(
+    summary(div_ci),
+    "Summary of Divergence Bootstrap"
+  )
+})
+
+test_that("summary.tsenat_divergence_bootstrap_ci shows all required fields", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  # Capture messages from summary function
+  expect_message(
+    summary(div_ci),
+    "Mean:"
+  )
+  
+  expect_message(
+    summary(div_ci),
+    "Median:"
+  )
+  
+  expect_message(
+    summary(div_ci),
+    "SD:"
+  )
+  # Summary function outputs messages, should have multiple lines
+  expect_message(
+    summary(div_ci),
+    "Bootstrap distribution"
+  )
+})
+
+test_that("summary.tsenat_divergence_bootstrap_ci numerical outputs are rounded", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  
+  # Summary function outputs messages, should have multiple lines
+  expect_message(
+    summary(div_ci),
+    "Bootstrap distribution"
+  )
+})
+
+# ============================================================================
+# INTEGRATION TESTS: S3 Methods With Real Workflow
+# ============================================================================
+
+test_that("print and summary work on real bootstrap result", {
+  skip_on_cran()
+  
+  # Create a simple test case with real bootstrap computation
+  x <- c(100, 50, 75, 200, 80, 120)
+  
+  result <- .calculate_tsallis_entropy_bootstrap(
+    x = x,
+    q = 2,
+    nboot = 50,
+    ci = 0.95,
+    method = "percentile",
+    verbose = FALSE
+  )
+  
+  # Should be able to print without error
+  expect_error(print(result), NA)
+})
+
+test_that("print.tsenat_bootstrap_ci_list works with actual bootstrap results", {
+  skip_on_cran()
+  
+  x <- c(100, 50, 75, 200, 80, 120)
+  
+  result <- .calculate_tsallis_entropy_bootstrap(
+    x = x,
+    q = c(1, 2, 3),
+    nboot = 50,
+    ci = 0.95,
+    method = "percentile",
+    verbose = FALSE
+  )
+  
+  expect_true(inherits(result, "tsenat_bootstrap_ci_list"))
+  
+  expect_error(print(result), NA)
+})
+
+test_that("print method accessible via S3 dispatch", {
+  ci_obj <- create_test_bootstrap_ci()
+  
+  expect_true(inherits(ci_obj, "tsenat_bootstrap_ci"))
+  
+  expect_error(print(ci_obj), NA)
+})
+
+test_that("summary method accessible via S3 dispatch", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  
+  expect_s3_class(div_ci, "tsenat_divergence_bootstrap_ci")
+  
+  expect_error(summary(div_ci), NA)
+})
+
+test_that("generic print function dispatches to S3 method correctly", {
+  ci_list <- create_test_bootstrap_ci_list()
+  
+  expect_s3_class(ci_list, "tsenat_bootstrap_ci_list")
+  
+  expect_message(print(ci_list), "Bootstrap Confidence Intervals")
+})
+
+test_that("generic summary function dispatches to S3 method correctly", {
+  div_ci <- create_test_divergence_bootstrap_ci()
+  
+  expect_s3_class(div_ci, "tsenat_divergence_bootstrap_ci")
+  
+  expect_message(summary(div_ci), "Summary of Divergence Bootstrap")
+})

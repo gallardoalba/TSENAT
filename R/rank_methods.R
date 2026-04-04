@@ -820,10 +820,9 @@ print.rank_correlation_ci <- function(x, ...) {
             bp_pvalue <- NA_real_  # Initialize with NA
             var_ratio <- NA_real_
 
-            if (!inherits(bp_anova, "try-error") && nrow(bp_anova) >= 2) {
-                # Extract p-value from second row (the predictor 'fitted')
-                # Handle both indexed and array access
-                pval_vec <- try(as.numeric(bp_anova[2, "Pr(>F)"]), silent = TRUE)
+            if (!inherits(bp_anova, "try-error") && nrow(bp_anova) >= 1) {
+                # Extract p-value from first row (the predictor 'fitted')
+                pval_vec <- try(as.numeric(bp_anova[1, "Pr(>F)"]), silent = TRUE)
 
                 if (!inherits(pval_vec, "try-error") && length(pval_vec) == 1 &&
                   !is.na(pval_vec)) {
@@ -965,31 +964,18 @@ print.rank_correlation_ci <- function(x, ...) {
         groups <- factor(groups)
     }
 
-    # Step 1: Calculate aligned values (residuals from main effect model)
-    # Remove group effect by fitting linear model
-    lin_mod <- try(lm(values ~ groups), silent = TRUE)
+    # Aligned Rank Transform: rank the original values (not residuals)
+    # NOTE: Do NOT remove group effect - the whole point is to test for it!
+    # Residuals from lm(values ~ groups) removes the signal we're testing for.
+    
+    # Step 1: Rank original values
+    ranks <- rank(values, na.last = "keep")
 
-    if (inherits(lin_mod, "try-error")) {
-        # Fallback to standard K-W if ART fails
-        return(tryCatch({
-            kw_test <- kruskal.test(values ~ groups)
-            list(statistic = as.numeric(kw_test$statistic), p_value = as.numeric(kw_test$p.value),
-                method = "Kruskal-Wallis (fallback)")
-        }, error = function(e) list(statistic = NA_real_, p_value = NA_real_, method = "test_failed")))
-    }
-
-    # Get residuals (alignment step)
-    aligned <- residuals(lin_mod)
-
-    # Step 2: Rank aligned values
-    ranks <- rank(aligned, na.last = "keep")
-
-    # Step 3: Apply van der Waerden normal scores (convert ranks to approximate
-    # normal)
+    # Step 2: Apply van der Waerden normal scores (convert ranks to approximate normal)
     n_vals <- sum(!is.na(ranks))
     normal_scores <- stats::qnorm(ranks/(n_vals + 1))
 
-    # Step 4: Test on normal scores using parametric ANOVA
+    # Step 3: Test on normal scores using parametric ANOVA
     score_data <- data.frame(scores = normal_scores, group = groups)
 
     score_mod <- try(lm(scores ~ group, data = score_data), silent = TRUE)

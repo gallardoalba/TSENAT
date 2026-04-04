@@ -88,8 +88,8 @@
             bp_pvalue <- NA_real_
             var_ratio <- NA_real_
 
-            if (!inherits(bp_anova, "try-error") && nrow(bp_anova) >= 2) {
-                pval_vec <- try(as.numeric(bp_anova[2, "Pr(>F)"]), silent = TRUE)
+            if (!inherits(bp_anova, "try-error") && nrow(bp_anova) >= 1) {
+                pval_vec <- try(as.numeric(bp_anova[1, "Pr(>F)"]), silent = TRUE)
 
                 if (!inherits(pval_vec, "try-error") && length(pval_vec) == 1 &&
                   !is.na(pval_vec)) {
@@ -227,11 +227,14 @@
 
     # Compute chi-squared test for independence H0: Probability of being above
     # median is same for all treatments
-    contingency_table <- table(above_median_matrix)
+    # Create contingency table: rows = above/below median, columns = treatments
+    above_below <- as.numeric(as.vector(above_median_matrix))  # Flatten: 1 = above, 0 = below
+    treatment_rep <- rep(colnames(block_ranks), each = nrow(block_ranks))  # Which treatment each row belongs to
+    contingency_table <- table(Above = above_below, Treatment = treatment_rep)
 
     # For robustness: Use exact or simulated p-value (Fisher's exact not
     # practical for large tables) Fallback: Chi-squared test
-    chi_test <- tryCatch(chisq.test(above_median_matrix), error = function(e) NULL)
+    chi_test <- tryCatch(chisq.test(contingency_table), error = function(e) NULL)
 
     if (is.null(chi_test)) {
         # If chi-squared fails, use simpler Friedman-like approach Compute sum

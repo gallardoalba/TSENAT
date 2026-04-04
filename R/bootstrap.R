@@ -270,34 +270,6 @@
 # C++ BOOTSTRAP WRAPPERS (Optimized resampling)
 # ============================================================================
 
-#' Hill Number (Effective Number of Species)
-#'
-#' @description
-#' C++ wrapper computing Hill numbers (effective number of species equivalent)
-#' for given diversity parameter q and proportions.
-#'
-#' @param p \code{numeric}. Vector of proportions (should sum to 1).
-#' @param q \code{numeric}. Diversity parameter. Default: 1.0.
-#' @param log_base \code{numeric}. Logarithm base. Default: e (natural log).
-#'
-#' @return \code{numeric}. Scalar Hill number value.
-#'
-#' @details
-#' Hill numbers provide intuitive species diversity metrics at different
-#' sensitivity levels via parameter q. Accelerated with C++ for performance.
-#'
-#' @noRd
-#' @noRd
-hill_number_cpp_wrapper <- function(p, q = 1, log_base = exp(1)) {
-    # p should be proportions (sum to 1)
-    if (!is.numeric(p)) {
-        stop("p must be numeric")
-    }
-
-    .Call("_TSENAT_hill_number_cpp", PACKAGE = "TSENAT", as.numeric(p), as.numeric(q),
-        as.numeric(log_base))
-}
-
 #' Block Bootstrap Entropy Computation
 #'
 #' @description
@@ -391,34 +363,6 @@ bootstrap_compute_cpp_wrapper <- function(x, q = 1, normalize = TRUE, nboot = 10
     .Call("_TSENAT_bootstrap_compute_cpp", PACKAGE = "TSENAT", as.numeric(x_adj),
         as.integer(nboot), as.numeric(q), as.logical(normalize), as.numeric(log_base),
         as.numeric(pseudocount_scalar))
-}
-
-#' Bootstrap Entropy Vector Computation
-#'
-#' @description
-#' C++ wrapper for vectorized entropy computation across pre-computed
-#' bootstrap sample matrices.
-#'
-#' @param bootstrap_samples \code{matrix}. Pre-computed bootstrap samples
-#'   (typically from \code{rmultinom()}).
-#' @param q \code{numeric}. Tsallis q parameter. Default: 1.0.
-#' @param normalize \code{logical}. Normalize entropy? Default: TRUE.
-#' @param log_base \code{numeric}. Logarithm base. Default: e (natural log).
-#'
-#' @return \code{numeric}.  Vector of entropy estimates for 
-#' each bootstrap sample.
-#'
-#' @details
-#' Efficiently computes entropy for multiple bootstrap samples using C++
-#' acceleration.
-#' Input must be a matrix of samples (typically from multinomial resampling).
-#'
-#' @noRd
-#' @noRd
-bootstrap_entropy_vec_cpp_wrapper <- function(bootstrap_samples, q = 1, normalize = TRUE,
-    log_base = exp(1)) {
-    .Call("_TSENAT_bootstrap_entropy_vec_cpp", PACKAGE = "TSENAT", as.matrix(bootstrap_samples),
-        as.numeric(q), as.logical(normalize), as.numeric(log_base))
 }
 
 #' Bootstrap Divergence Computation
