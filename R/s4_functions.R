@@ -2244,7 +2244,7 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(analysis, n_genes = 4, lm_re
 #' @export
 plot_lm_interaction_gam_s4 <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL,
     sig_alpha = 0.05, assay_name = "diversity", output_file = NULL, width = 12, height = NULL,
-    ...) {
+    verbose = FALSE, ...) {
     # Load visualization dependencies (ggplot2, cowplot, mgcv, etc.)
     .load_visualization_deps()
 
@@ -2301,12 +2301,6 @@ plot_lm_interaction_gam_s4 <- function(analysis, n_top = 6, genes = NULL, condit
 
     # Reconstruct combined diversity SE with all q-values
     diversity_combined <- tryCatch({
-        verbose <- if ("verbose" %in% names(analysis@config)) {
-            analysis@config$verbose
-        } else {
-            FALSE
-        }
-
         .calculate_diversity(x = analysis@se, q = sort(q_computed), norm = TRUE,
             verbose = verbose, bootstrap = FALSE)
     }, error = function(e) {
