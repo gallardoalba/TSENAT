@@ -10,14 +10,14 @@ calculate_lm_interaction_s4(
   formula = NULL,
   condition_col = NULL,
   method = NULL,
-  paired = FALSE,
+  paired = NULL,
   subject_col = NULL,
   nthreads = NULL,
   multicorr = NULL,
   corstr = NULL,
   pcorr = NULL,
-  verbose = FALSE,
-  return_model_data = TRUE,
+  verbose = NULL,
+  return_model_data = NULL,
   output_file = NULL,
   ...
 )
@@ -163,8 +163,7 @@ analysis <- TSENATAnalysis(se = se, config = list())
 # Compute diversity (prerequisite for LM interaction analysis)
 analysis <- calculate_diversity_s4(
   analysis, 
-  q = c(0.5, 1.0, 1.5), 
-  verbose = FALSE
+  q = c(0.5, 1.0, 1.5)
 )
 
 # Calculate q x condition interactions using GAM
@@ -172,8 +171,7 @@ analysis <- calculate_diversity_s4(
 analysis <- calculate_lm_interaction_s4(
   analysis,
   condition_col = 'condition',
-  method = 'gam',
-  verbose = FALSE
+  method = 'gam'
 )
 
 # View interaction test results

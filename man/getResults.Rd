@@ -34,25 +34,32 @@ from the TSENATAnalysis object, abstracting away internal storage details.
 # Load example data
 data(readcounts, package = "TSENAT")
 
-# Create minimal TSENATAnalysis object with mock results
-se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = readcounts))
-analysis <- TSENAT(se, min_samples = 2, verbose = FALSE)
+# Create SummarizedExperiment from counts
+se <- SummarizedExperiment::SummarizedExperiment(
+  assays = list(counts = readcounts),
+  rowData = data.frame(gene_id = rownames(readcounts)),
+  colData = data.frame(
+    sample_id = colnames(readcounts),
+    group = rep(c("A", "B"), length.out = ncol(readcounts))
+  )
+)
 
-# Run analysis to generate results
-analysis <- calculate_diversity_s4(analysis, q_vals = c(0.5, 1.0, 2.0), 
-                                   verbose = FALSE)
+# Create TSENATAnalysis object with configuration
+analysis <- TSENATAnalysis(
+  se = se,
+  config = list(
+    q_values = c(0.5, 1.0, 2.0),
+    condition_col = "group"
+  )
+)
+
+# Run analysis to generate diversity results
+analysis <- calculate_diversity_s4(analysis)
 
 # Extract diversity results
 div_results <- getResults(analysis, type = "diversity")
-head(div_results[1:3, 1:2])
-
-# Extract results for specific q-value
-div_q1.0 <- getResults(analysis, type = "diversity", q = 1.0)
-head(div_q1.0[1:5])
-
-# Check what result types are available
-if (!is.null(getResults(analysis, type = "diversity"))) {
-  cat("Diversity results available\n")
+if (!is.null(div_results)) {
+  head(div_results, n = 3)
 }
 
 }

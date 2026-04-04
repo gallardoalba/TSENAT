@@ -17,14 +17,6 @@ test_that("tsenat_config accepts custom q_values", {
   expect_equal(cfg$q_values, c(0.5, 1.0, 1.5))
 })
 
-test_that("tsenat_config generates q_values from q_range", {
-  cfg <- tsenat_config(q_range = c(1.0, 2.0))
-
-  expect_true(1.0 %in% cfg$q_values)
-  expect_true(2.0 %in% cfg$q_values)
-  expect_true(all(cfg$q_values >= 1.0 & cfg$q_values <= 2.0))
-})
-
 test_that("tsenat_config accepts custom thresholds", {
   cfg <- tsenat_config(p_threshold = 0.01, fdr_threshold = 0.001)
 

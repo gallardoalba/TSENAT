@@ -6,16 +6,20 @@
 \usage{
 tsenat_config(
   q_values = NULL,
-  q_range = NULL,
-  filter_genome = TRUE,
+  condition_col = "condition",
+  subject_col = NULL,
+  paired = FALSE,
+  control = NULL,
   formula = NULL,
   p_threshold = 0.05,
   fdr_threshold = 0.05,
+  significance_threshold = 0.05,
+  n_bootstrap = 1000,
+  bootstrap_method = "percentile",
   methods = NULL,
   generate_plots = TRUE,
   plot_types = NULL,
   seed = NULL,
-  condition_col = "condition",
   ...
 )
 }
@@ -23,37 +27,59 @@ tsenat_config(
 \item{q_values}{\code{numeric}. Q-values for Tsallis entropy spectrum.
 Default: \code{seq(0.5, 2.0, by = 0.5)}.}
 
-\item{q_range}{\code{numeric}.  Alternative to q_values:  lower and 
-upper bounds.}
+\item{condition_col}{\code{character}. Name of column in \code{colData(se)}
+containing experimental conditions/groups. Default: 'condition'.}
 
-\item{filter_genome}{\code{logical}. Remove zero rows before analysis.
-Default: TRUE.}
+\item{subject_col}{\code{character}. Name of column in \code{colData(se)}
+containing subject/sample identifiers for paired/repeated designs.
+If provided, enables paired analysis. Default: NULL (unpaired).}
 
-\item{formula}{\code{formula}.  Model formula for  LM interactions (e. g. ,
-\code{~ treatment}).}
+\item{paired}{\code{logical}. Whether samples are paired/repeated measures.
+Default: FALSE. Used by jackknife and difference analysis.}
 
-\item{p_threshold}{\code{numeric}. P-value threshold for significance.
-Default: 0.05.}
+\item{control}{\code{character}. Reference/control group label for difference
+analysis (e.g., 'control', 'wt'). Only used if 'difference' in methods.
+Default: NULL.}
 
-\item{fdr_threshold}{\code{numeric}. FDR threshold (Benjamini-Hochberg).
-Default: 0.05.}
+\item{formula}{\code{formula}. Optional model formula for LM interactions
+(e.g., \code{~ treatment + batch}). Default: NULL (uses condition_col).}
 
-\item{methods}{\code{character}. Analysis methods to run. Options:
-'diversity', 'lm_interaction', 'jackknife', 'divergence',
-'q_interactions', 'difference'. Default: all methods.}
+\item{p_threshold}{\code{numeric}. Raw p-value threshold for significance
+in LM interaction testing. Default: 0.05.}
+
+\item{fdr_threshold}{\code{numeric}. Adjusted p-value (FDR/Benjamini-Hochberg)
+threshold. Default: 0.05.}
+
+\item{significance_threshold}{\code{numeric}. Significance cutoff for effect
+sizes, assumptions testing, and result filtering. Default: 0.05.}
+
+\item{n_bootstrap}{\code{integer}. Number of bootstrap resamples for jackknife
+confidence intervals. Default: 1000.}
+
+\item{bootstrap_method}{\code{character}. Bootstrap CI method: 'percentile'
+(fast, assumes symmetric distribution) or 'bca' (bias-corrected, better for
+skewed data like bounded entropy). Default: 'percentile'.}
+
+\item{methods}{\code{character}. Analysis steps to run. Core (auto-required):
+'diversity', 'lm_interaction', 'jackknife', 'divergence', 'q_interactions'.
+Optional: 'jackknife_isoform_switching' (requires condition/subject info),
+'difference' (requires control parameter), 'effect_sizes', 'rankbased_assumptions',
+'method_concordance'. Default: core methods.}
 
 \item{generate_plots}{\code{logical}. Generate visualizations.
 Default: TRUE.}
 
-\item{plot_types}{\code{character}. Specific plots to generate.
-Default: all available types.}
+\item{plot_types}{\code{character}. Specific plot types to generate. Options:
+'q_curve', 'lm_interaction', 'divergence_distribution', 'divergence_spectrum',
+'influence_heatmap', 'volcano', 'method_concordance', 'multi_gene_q_spectrum',
+'top_transcripts', 'tsallis_violin_density'. Default: all available types.}
 
-\item{seed}{\code{numeric}. Random seed for reproducibility.}
+\item{seed}{\code{numeric}. Random seed for reproducibility (affects
+bootstrap resampling). Default: NULL (no fixed seed).}
 
-\item{condition_col}{\code{character}. Name of condition column in colData.
-Default: 'condition'.}
-
-\item{...}{Additional configuration parameters (stored as-is).}
+\item{...}{Additional configuration parameters (stored as-is in @config slot).
+Examples: \code{q_diff=1.0} (specific q for differences),
+\code{alpha=0.05} (significance for assumptions), etc.}
 }
 \value{
 \code{list} with class \code{TSENATConfig} containing all
@@ -72,11 +98,18 @@ by wrapper functions to configure analysis behavior.
 # Default config with standard parameters
 cfg <- tsenat_config()
 
-# Custom spectrum and formula
+# Custom with optional features: paired analysis, isoform switching, differences
 cfg <- tsenat_config(
   q_values = c(0.5, 1.0, 1.5, 2.0),
-  formula = ~ treatment + batch,
-  fdr_threshold = 0.01
+  condition_col = "treatment",
+  subject_col = "subject_id",
+  paired = TRUE,
+  control = "untreated",
+  methods = c("diversity", "lm_interaction", "jackknife", "jackknife_isoform_switching",
+              "divergence", "q_interactions", "difference", "effect_sizes"),
+  bootstrap_method = "bca",
+  n_bootstrap = 5000,
+  significance_threshold = 0.01
 )
 
 }

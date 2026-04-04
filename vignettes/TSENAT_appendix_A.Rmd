@@ -343,7 +343,7 @@ tsenat_analysis_q1 <- calculate_difference_s4(
   output_file = file.path("output", "appendix_a_difference_q1.tsv")
 )
 # Extract results for downstream functions
-tsenat_shannon_diff <- lmResults(tsenat_analysis_q1, component = "difference")
+tsenat_shannon_diff <- pairwiseResults(tsenat_analysis_q1, component = "difference")
 
 # TSENAT: Differential analysis for Tsallis q=2
 # Ensure the grouping column is set in config for the wrapper
@@ -357,7 +357,7 @@ tsenat_analysis_q2 <- calculate_difference_s4(
   output_file = file.path("output", "appendix_a_difference_q2.tsv")
 )
 # Extract results for downstream functions
-tsenat_simpson_diff <- lmResults(tsenat_analysis_q2, component = "difference")
+tsenat_simpson_diff <- pairwiseResults(tsenat_analysis_q2, component = "difference")
 ```
 
 

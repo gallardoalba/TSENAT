@@ -138,7 +138,7 @@ gff3_dataset, metadata = metadata_df,
 analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 = 200)
 analysis <- calculate_diversity_s4(analysis, q = seq(0.5, 2, by = 0.5),
-verbose = FALSE)
+)
 p <- plot_tsallis_q_curve_s4(analysis)
 if (!is.null(p)) print(p)
 

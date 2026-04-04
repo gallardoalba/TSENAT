@@ -2,14 +2,49 @@
 % Please edit documentation in R/methods-TSENATAnalysis.R
 \name{methods-TSENATAnalysis}
 \alias{methods-TSENATAnalysis}
+\alias{getSE,TSENATAnalysis-method}
+\alias{getMeta,TSENATAnalysis-method}
+\alias{getConfig,TSENATAnalysis-method}
+\alias{getPlot,TSENATAnalysis-method}
+\alias{addPlot,TSENATAnalysis-method}
 \title{TSENATAnalysis S4 Methods}
+\usage{
+\S4method{getSE}{TSENATAnalysis}(object)
+
+\S4method{getMeta}{TSENATAnalysis}(object, key = NULL)
+
+\S4method{getConfig}{TSENATAnalysis}(object)
+
+\S4method{getPlot}{TSENATAnalysis}(object, type = NULL)
+
+\S4method{addPlot}{TSENATAnalysis}(object, type, plot, replace = FALSE)
+}
+\arguments{
+\item{object}{TSENATAnalysis object}
+
+\item{key}{character. Config key to extract (e.g., 'q_values',
+'condition_col').
+  If NULL, returns entire config.}
+
+\item{type}{character. Plot type identifier}
+
+\item{plot}{ggplot or list. The plot object to cache}
+
+\item{replace}{logical. If TRUE, replace existing plot of same type.
+If FALSE (default), warn if plot already exists and do not overwrite.}
+
+\item{component}{character. Component name ('tsallis_divergence',
+'effect_sizes', etc.).
+  If NULL, returns all divergence results.
+Access metadata}
+}
 \value{
 Methods return different components of TSENATAnalysis:
 - getSE: SummarizedExperiment object with count data
-- divResults: data.frame or list of diversity values per gene
-- lmRes: list of linear model fitting results
-- jkResults: list of jackknife diagnostics
-- divRes: list of divergence analysis results
+- lmResults: list of linear model fitting results
+- jackKnife: list of jackknife diagnostics
+- diversity: list of SummarizedExperiments (one per q-value) or single SE for specific q
+- divergence: list of divergence analysis results
 - getMeta: list or atomic value of metadata
 - getConfig: list of analysis configuration
 - getPlot: ggplot object or NULL

@@ -171,7 +171,7 @@ gff3_file, metadata = metadata_df,
  effective_length = effective_length)
 analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 = 20, subset_n_samples = 8)
-analysis <- calculate_diversity_s4(analysis, q = 1, verbose = FALSE)
+analysis <- calculate_diversity_s4(analysis, q = 1)
 
 }
 \seealso{

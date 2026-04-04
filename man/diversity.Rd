@@ -3,17 +3,25 @@
 \name{diversity}
 \alias{diversity}
 \alias{diversity,TSENATAnalysis-method}
+\alias{diversity<-}
+\alias{diversity<-,TSENATAnalysis-method}
 \title{Extract diversity results}
 \usage{
 diversity(object, q = NULL)
 
 \S4method{diversity}{TSENATAnalysis}(object, q = NULL)
+
+diversity(object) <- value
+
+\S4method{diversity}{TSENATAnalysis}(object) <- value
 }
 \arguments{
-\item{object}{\code{TSENATAnalysis} object.}
+\item{object}{TSENATAnalysis object}
 
 \item{q}{\code{numeric}. Q-value to extract (e.g., 1.0, 2.0).
 If NULL (default), returns list of all q-values.}
+
+\item{value}{list. Named list of diversity results per q-value.}
 }
 \value{
 SummarizedExperiment or list of SummarizedExperiment objects
@@ -21,6 +29,8 @@ SummarizedExperiment or list of SummarizedExperiment objects
 }
 \description{
 Extract diversity results
+
+Setter for diversity results stored in @diversity_results
 }
 \details{
 Results stored in @diversity_results with names like 'q_0.5', 'q_1.0', etc.
@@ -40,7 +50,7 @@ gff3_file,
   effective_length = effective_length)
 analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 = 200)
-analysis <- calculate_diversity_s4(analysis, q = 1, verbose = FALSE)
+analysis <- calculate_diversity_s4(analysis, q = 1)
 diversity_results <- diversity(analysis)
 
 }

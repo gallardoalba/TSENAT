@@ -5,7 +5,7 @@
 \alias{lmResults,TSENATAnalysis-method}
 \alias{lmResults<-}
 \alias{lmResults<-,TSENATAnalysis-method}
-\title{Extract linear model results}
+\title{Extract linear model interaction results}
 \usage{
 lmResults(object, component = NULL)
 
@@ -19,22 +19,22 @@ lmResults(object) <- value
 \item{object}{\code{TSENATAnalysis} object.}
 
 \item{component}{\code{character}. Which result component to extract.
-Options: NULL (all), 'results', 'lm_interaction', 'q_interactions',
-'divergence_difference', etc.}
+Options: NULL (all LM interaction results), 'lm_interaction', 'lm_interaction_model_data',
+'results', 'p_value', 'effect_size', etc.}
 
-\item{value}{A list of LM results to assign to the object.}
+\item{value}{A list of LM interaction results to assign to the object.}
 }
 \value{
-List or data.frame depending on component requested.
+List or data.frame of LM interaction results depending on component requested.
 }
 \description{
-Extract linear model results
+Extract linear model interaction results
 }
 \details{
-The results stored in the \code{@lm_results} slot contain multiple analysis types.
-Use \code{lmResults(analysis)} to get all components,  or 
-specify component type
-for targeted extraction.
+Returns only LM interaction results stored in the \code{@lm_results} slot.
+Note: Rank test q-value interaction results are retrieved separately via \code{rankResults()}.
+Use \code{lmResults(analysis)} to get all LM interaction components,  or 
+specify component type for targeted extraction.
 }
 \examples{
 # Load example data and run LM interaction analysis
@@ -61,9 +61,9 @@ FALSE)
 
 # Calculate LM interaction
 analysis <- calculate_lm_interaction_s4(analysis, 
-  condition_col = 'condition', method = 'gam', verbose = FALSE)
+  condition_col = 'condition', method = 'gam')
 
-# Extract and view LM results
+# Extract and view LM interaction results
 res <- lmResults(analysis)
 if (!is.null(res)) head(res)
 

@@ -93,18 +93,17 @@
 #' = 200)
 #' 
 #' # Compute diversity first (required for divergence)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
-#' verbose = FALSE)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
 #' 
 #' # Calculate divergence across q-values
-#' analysis <- calculate_divergence_s4(analysis, verbose = FALSE)
+#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5))
 #' 
 #' # Check divergence results  
 #' head(divergence(analysis))
 #'
 #' @export
 #' @importFrom utils write.table
-calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads = NULL,
+calculate_divergence_s4 <- function(analysis, q = NULL, verbose = FALSE, nthreads = NULL,
     output_file = NULL, control_group = NULL, paired = FALSE, method = NULL, bootstrap = FALSE,
     nboot = NULL, seed = NULL, progress = FALSE, ...) {
     

@@ -15,7 +15,7 @@ plot_divergence_spectrum_s4(
   output_file = NULL,
   width = 12,
   height = NULL,
-  verbose = TRUE,
+  verbose = FALSE,
   ...
 )
 }

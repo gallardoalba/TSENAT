@@ -70,7 +70,8 @@
 #'     \item{\code{diversity(object,  q=NULL)}}{Extract diversity results for 
 #' q-value}
 #'     \item{\code{lmResults(object, component=NULL)}}{Extract LM results}
-#'     \item{\code{jackKnife(object, q=NULL)}}{Extract jackknife results}
+#'     \item{\code{jeoResults(object, q=NULL)}}{Extract jackknife entropy outlier results}
+#'     \item{\code{jisResults(object, q=NULL)}}{Extract jackknife isoform switching results}
 #'     \item{\code{divergence(object)}}{Extract divergence results}
 #'     \item{\code{getPlot(object, type=NULL)}}{Retrieve cached plot}
 #'     \item{\code{addPlot(object, type, plot)}}{Add/cache a new plot}
@@ -196,7 +197,7 @@ TSENATAnalysis <- function(se, config = list()) {
 #'   effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = 1, verbose = FALSE)
+#' analysis <- calculate_diversity_s4(analysis, q = 1)
 #' diversity_results <- diversity(analysis)
 #'
 #' @export
@@ -278,20 +279,20 @@ setMethod("diversity", "TSENATAnalysis", function(object, q = NULL) {
 # LM RESULTS ACCESSOR
 # ============================================================================
 
-#' Extract linear model results
+#' Extract linear model interaction results
 #'
 #' @param object \code{TSENATAnalysis} object.
 #' @param component \code{character}. Which result component to extract.
-#'   Options: NULL (all), 'results', 'lm_interaction', 'q_interactions',
-#'   'divergence_difference', etc.
+#'   Options: NULL (all LM interaction results), 'lm_interaction', 'lm_interaction_model_data',
+#'   'results', 'p_value', 'effect_size', etc.
 #'
-#' @return List or data.frame depending on component requested.
+#' @return List or data.frame of LM interaction results depending on component requested.
 #'
 #' @details
-#' The results stored in the \code{@@lm_results} slot contain multiple analysis types.
-#' Use \code{lmResults(analysis)} to get all components,  or 
-#' specify component type
-#' for targeted extraction.
+#' Returns only LM interaction results stored in the \code{@@lm_results} slot.
+#' Note: Rank test q-value interaction results are retrieved separately via \code{rankResults()}.
+#' Use \code{lmResults(analysis)} to get all LM interaction components,  or 
+#' specify component type for targeted extraction.
 #'
 #' @examples
 #' # Load example data and run LM interaction analysis
@@ -318,9 +319,9 @@ setMethod("diversity", "TSENATAnalysis", function(object, q = NULL) {
 #'
 #' # Calculate LM interaction
 #' analysis <- calculate_lm_interaction_s4(analysis, 
-#'   condition_col = 'condition', method = 'gam', verbose = FALSE)
+#'   condition_col = 'condition', method = 'gam')
 #'
-#' # Extract and view LM results
+#' # Extract and view LM interaction results
 #' res <- lmResults(analysis)
 #' if (!is.null(res)) head(res)
 #'
@@ -332,27 +333,33 @@ setGeneric("lmResults", function(object, component = NULL) {
 #' @rdname lmResults
 #' @export
 setMethod("lmResults", "TSENATAnalysis", function(object, component = NULL) {
-    if (length(object@lm_results) == 0) {
-        warning("No LM results found. Run calculate_lm_interaction_s4() first.")
+    # Filter out rank test results (q_interactions belongs to rankResults, not lmResults)
+    lm_only_results <- object@lm_results
+    if (is.list(lm_only_results) && "q_interactions" %in% names(lm_only_results)) {
+        lm_only_results$q_interactions <- NULL
+    }
+
+    if (length(lm_only_results) == 0) {
+        warning("No LM interaction results found. Run calculate_lm_interaction_s4() first.")
         return(NULL)
     }
 
     if (is.null(component)) {
-        # Return all LM results
-        return(object@lm_results)
+        # Return all LM interaction results (excluding rank test q_interactions)
+        return(lm_only_results)
     }
 
     # Try to extract specific component
-    if (component %in% names(object@lm_results)) {
-        return(object@lm_results[[component]])
+    if (component %in% names(lm_only_results)) {
+        return(lm_only_results[[component]])
     }
 
     # If component.results pattern, extract the $results subcomponent
     if (component %in% c("results", "p_value", "effect_size")) {
         # Search all subcomponents
-        for (name in names(object@lm_results)) {
-            if (is.list(object@lm_results[[name]]) && "results" %in% names(object@lm_results[[name]])) {
-                results_df <- object@lm_results[[name]]$results
+        for (name in names(lm_only_results)) {
+            if (is.list(lm_only_results[[name]]) && "results" %in% names(lm_only_results[[name]])) {
+                results_df <- lm_only_results[[name]]$results
                 if (is.data.frame(results_df) && component %in% colnames(results_df)) {
                   return(results_df[[component]])
                 }
@@ -360,8 +367,86 @@ setMethod("lmResults", "TSENATAnalysis", function(object, component = NULL) {
         }
     }
 
-    stop("Component '", component, "' not found in lm_results.\n", "Available: ",
-        paste(names(object@lm_results), collapse = ", "), call. = FALSE)
+    stop("Component '", component, "' not found in LM interaction results.\n", "Available: ",
+        paste(names(lm_only_results), collapse = ", "), call. = FALSE)
+})
+
+#' Extract pairwise differential comparison results
+#'
+#' @param object TSENATAnalysis object
+#' @param component character. Component name to extract ('difference').
+#'   If NULL, returns all pairwise results.
+#'
+#' @return List or data.frame of pairwise comparison results, or NULL if not computed.
+#' @export
+setGeneric("pairwiseResults", function(object, component = NULL) {
+    standardGeneric("pairwiseResults")
+})
+
+#' @rdname pairwiseResults
+#' @export
+setMethod("pairwiseResults", "TSENATAnalysis", function(object, component = NULL) {
+    if (length(object@pairwise_results) == 0) {
+        warning("No pairwise results found. Run calculate_difference_s4() first.")
+        return(NULL)
+    }
+
+    if (is.null(component)) {
+        return(object@pairwise_results)
+    }
+
+    if (component %in% names(object@pairwise_results)) {
+        return(object@pairwise_results[[component]])
+    }
+
+    stop("Component '", component, "' not found in pairwise results.", call. = FALSE)
+})
+
+# ============================================================================
+# RANK TEST Q-VALUE INTERACTION ACCESSOR
+# ============================================================================
+
+#' Extract rank test q-value interaction results
+#'
+#' @param object \code{TSENATAnalysis} object.
+#' @param component \code{character}. Component to extract (default: all results).
+#'
+#' @return List or data.frame of rank test q-value interaction results, or NULL if not computed.
+#'
+#' @details
+#' Rank test results from \code{rank_test_q_condition_s4()} are retrieved via this method.
+#' LM interaction results are retrieved separately with \code{lmResults()}.
+#'
+#' @export
+setGeneric("rankResults", function(object, component = NULL) {
+    standardGeneric("rankResults")
+})
+
+#' @rdname rankResults
+#' @export
+setMethod("rankResults", "TSENATAnalysis", function(object, component = NULL) {
+    if (length(object@lm_results) == 0 || !("q_interactions" %in% names(object@lm_results))) {
+        warning("No rank test q-value interaction results found. Run rank_test_q_condition_s4() first.")
+        return(NULL)
+    }
+
+    q_interactions <- object@lm_results$q_interactions
+
+    if (is.null(component)) {
+        # Return all rank test results
+        return(q_interactions)
+    }
+
+    # Try to extract specific component
+    if (is.data.frame(q_interactions) && component %in% colnames(q_interactions)) {
+        return(q_interactions[[component]])
+    }
+
+    if (is.list(q_interactions) && component %in% names(q_interactions)) {
+        return(q_interactions[[component]])
+    }
+
+    stop("Component '", component, "' not found in rank test results.", call. = FALSE)
 })
 
 #' @rdname lmResults
@@ -371,13 +456,96 @@ setGeneric("lmResults<-", function(object, value) {
 })
 
 #' @rdname lmResults
-#' @param value A list of LM results to assign to the object.
+#' @param value A list of LM interaction results to assign to the object.
 #' @export
 setMethod("lmResults<-", "TSENATAnalysis", function(object, value) {
     if (!is.list(value)) {
         stop("lmResults value must be a list", call. = FALSE)
     }
     object@lm_results <- value
+    object
+})
+
+#' Setter for diversity results stored in @diversity_results
+#'
+#' @rdname diversity
+#' @param object TSENATAnalysis object
+#' @param value list. Named list of diversity results per q-value.
+#' @export
+setGeneric("diversity<-", function(object, value) {
+    standardGeneric("diversity<-")
+})
+
+#' @rdname diversity
+#' @export
+setMethod("diversity<-", "TSENATAnalysis", function(object, value) {
+    if (!is.list(value)) {
+        stop("diversity value must be a list", call. = FALSE)
+    }
+    object@diversity_results <- value
+    object
+})
+
+#' Setter for divergence results stored in @divergence_results
+#'
+#' @rdname divergence
+#' @param object TSENATAnalysis object
+#' @param value list. Named list of divergence results.
+#' @export
+setGeneric("divergence<-", function(object, value) {
+    standardGeneric("divergence<-")
+})
+
+#' @rdname divergence
+#' @export
+setMethod("divergence<-", "TSENATAnalysis", function(object, value) {
+    if (!is.list(value)) {
+        stop("divergence value must be a list", call. = FALSE)
+    }
+    object@divergence_results <- value
+    object
+})
+
+#' Setter for pairwise comparison results stored in @pairwise_results
+#'
+#' @rdname pairwiseResults
+#' @param object TSENATAnalysis object
+#' @param value list. Named list of pairwise comparison results.
+#' @export
+setGeneric("pairwiseResults<-", function(object, value) {
+    standardGeneric("pairwiseResults<-")
+})
+
+#' @rdname pairwiseResults
+#' @export
+setMethod("pairwiseResults<-", "TSENATAnalysis", function(object, value) {
+    if (!is.list(value)) {
+        stop("pairwiseResults value must be a list", call. = FALSE)
+    }
+    object@pairwise_results <- value
+    object
+})
+
+#' Setter for rank test q-value interaction results stored in @lm_results$q_interactions
+#'
+#' @rdname rankResults
+#' @param object TSENATAnalysis object
+#' @param value list or data.frame. Rank test q-value interaction results.
+#' @export
+setGeneric("rankResults<-", function(object, value) {
+    standardGeneric("rankResults<-")
+})
+
+#' @rdname rankResults
+#' @export
+setMethod("rankResults<-", "TSENATAnalysis", function(object, value) {
+    if (!is.list(value) && !is.data.frame(value)) {
+        stop("rankResults value must be a list or data.frame", call. = FALSE)
+    }
+    if (!is.list(object@lm_results)) {
+        object@lm_results <- list()
+    }
+    object@lm_results$q_interactions <- value
     object
 })
 
@@ -414,37 +582,87 @@ setMethod("lmResults<-", "TSENATAnalysis", function(object, value) {
 #'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
-#' verbose = FALSE)
-#' analysis <- jackknife_entropy_outliers_s4(analysis, q = c(0.5, 1.0, 1.5),
-#' verbose = FALSE)
-#' jk_results <- jackKnife(analysis)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
+#' analysis <- jackknife_entropy_outliers_s4(analysis, q = c(0.5, 1.0, 1.5))
+#' jk_results <- jeoResults(analysis)
 #'
 #' @export
-setGeneric("jackKnife", function(object, q = NULL) {
-    standardGeneric("jackKnife")
+setGeneric("jeoResults", function(object, q = NULL) {
+    standardGeneric("jeoResults")
 })
 
-#' @rdname jackKnife
+#' @rdname jeoResults
 #' @export
-setMethod("jackKnife", "TSENATAnalysis", function(object, q = NULL) {
+setMethod("jeoResults", "TSENATAnalysis", function(object, q = NULL) {
     if (length(object@jackknife_results) == 0) {
-        warning("No jackknife results found. Run jackknife_isoform_switching_s4() first.")
+        warning("No jackknife entropy outlier results found. Run jackknife_entropy_outliers_s4() first.")
         return(NULL)
     }
 
     if (is.null(q)) {
-        # Return all results
+        # Return all entropy outlier results (exclude multi_q if present)
+        results <- object@jackknife_results
+        results[names(results) != "multi_q"]
+    } else {
+        # Format q-value key - must match storage format used by jackknife_entropy_outliers_s4()
+        # Storage uses formatC(..., digits = 3) format to create keys like 'q_1.000'
+        q_key <- paste0("q_", formatC(q, format = "f", digits = 3))
+
+        if (!(q_key %in% names(object@jackknife_results))) {
+            stop("Q-value ", q, " not found in jackknife entropy outlier results.\n", "Available q-values: ",
+                paste(names(object@jackknife_results), collapse = ", "), call. = FALSE)
+        }
+
+        object@jackknife_results[[q_key]]
+    }
+})
+
+# ============================================================================
+# JACKKNIFE ISOFORM SWITCHING ACCESSOR
+# ============================================================================
+
+#' Extract jackknife isoform switching results
+#'
+#' @param object \code{TSENATAnalysis} object.
+#' @param q \code{numeric} or NULL. Q-value for specific results.
+#'   If NULL, returns all isoform switching jackknife results.
+#'
+#' @return List of isoform switching jackknife results, or NULL if not computed.
+#'
+#' @details
+#' Jackknife isoform switching results are computed separately from entropy outliers.
+#' Use this to access isoform switching analysis results.
+#'
+#' @export
+setGeneric("jisResults", function(object, q = NULL) {
+    standardGeneric("jisResults")
+})
+
+#' @rdname jisResults
+#' @export
+setMethod("jisResults", "TSENATAnalysis", function(object, q = NULL) {
+    if (length(object@jackknife_results) == 0) {
+        warning("No jackknife isoform switching results found. Run jackknife_isoform_switching_s4() first.")
+        return(NULL)
+    }
+
+    # Check if multi_q key exists (indicates isoform switching data)
+    if (!"multi_q" %in% names(object@jackknife_results)) {
+        warning("No jackknife isoform switching results found (multi_q key missing). Run jackknife_isoform_switching_s4() first.")
+        return(NULL)
+    }
+
+    if (is.null(q)) {
+        # Return all isoform switching results
         return(object@jackknife_results)
     }
 
-    # Format q-value key - must match storage format used by base
-    # .jackknife_isoform_switching() Uses paste0('q_', gsub('\\.', '_',
-    # sprintf('%.2f', q))) to store (e.g., 'q_0_01', 'q_1_00')
+    # Format q-value key for isoform switching (uses different format than entropy outliers)
+    # isoform switching uses paste0('q_', gsub('\\.', '_', sprintf('%.2f', q))) format
     q_key <- paste0("q_", gsub("\\.", "_", sprintf("%.2f", q)))
 
     if (!(q_key %in% names(object@jackknife_results))) {
-        stop("Q-value ", q, " not found in jackknife_results.\n", "Available q-values: ",
+        stop("Q-value ", q, " not found in jackknife isoform switching results.\n", "Available q-values: ",
             paste(names(object@jackknife_results), collapse = ", "), call. = FALSE)
     }
 
@@ -485,9 +703,8 @@ setMethod("jackKnife", "TSENATAnalysis", function(object, q = NULL) {
 #'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
-#' verbose = FALSE)
-#' analysis <- calculate_divergence_s4(analysis, verbose = FALSE)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
+#' analysis <- calculate_divergence_s4(analysis)
 #' div_res <- divergence(analysis)
 #'
 #' @export
@@ -552,14 +769,14 @@ setGeneric("getPlot", function(object, type = NULL) {
 
 #' @noRd
 setMethod("getPlot", "TSENATAnalysis", function(object, type = NULL) {
+    if (is.null(type)) {
+        # Return all plots (empty list if none exist)
+        return(object@plots)
+    }
+
     if (length(object@plots) == 0) {
         warning("No plots found. Run tsenat() with generate_plots=TRUE.")
         return(NULL)
-    }
-
-    if (is.null(type)) {
-        # Return all plots
-        return(object@plots)
     }
 
     if (!(type %in% names(object@plots))) {
@@ -820,12 +1037,11 @@ setMethod("summary", "TSENATAnalysis", function(object) {
 # CONFIGURATION ACCESSORS (GAP 3 FIX)
 # ============================================================================
 
-#' @rdname divResults
+#' @export
 setGeneric("getConfig", function(object) {
     standardGeneric("getConfig")
 })
 
-#' @rdname divResults
 #' @export
 setMethod("getConfig", "TSENATAnalysis", function(object) {
     object@config

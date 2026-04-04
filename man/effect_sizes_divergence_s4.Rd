@@ -6,9 +6,9 @@
 \usage{
 effect_sizes_divergence_s4(
   analysis,
-  significance_threshold = 0.05,
-  enrich_per_q_pattern = TRUE,
-  verbose = FALSE,
+  significance_threshold = NULL,
+  enrich_per_q_pattern = NULL,
+  verbose = NULL,
   output_file = NULL,
   ...
 )
@@ -96,16 +96,13 @@ config <- tsenat_config(
 analysis <- setConfig(analysis, config)
 
 analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
-verbose = FALSE)
-analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5),
-verbose = FALSE)
-analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
-= FALSE)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
+analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5))
+analysis <- calculate_lm_interaction_s4(analysis, method = 'gam')
 
 # Compute effect sizes from divergence results
 analysis <- effect_sizes_divergence_s4(analysis,
-  significance_threshold = 0.05, verbose = FALSE)
+  significance_threshold = 0.05)
 
 # Access results using metadata accessor
 effect_size_results <- getMeta(analysis, 'effect_sizes_divergence')

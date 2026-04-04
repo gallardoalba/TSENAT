@@ -68,14 +68,12 @@
 #' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 #' 
 #' # Compute diversity first (required for jackknife)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
-#'   verbose = FALSE)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
 #' 
 #' # Run jackknife estimation
-#' analysis <- jackknife_entropy_outliers_s4(analysis, q = c(0.5, 1.0, 1.5),
-#'   verbose = FALSE)
+#' analysis <- jackknife_entropy_outliers_s4(analysis, q = c(0.5, 1.0, 1.5))
 #' # Check jackknife results
-#' names(jackKnife(analysis))
+#' names(jeoResults(analysis))
 #'
 #' @export
 #' @importFrom utils write.table
@@ -284,7 +282,7 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_b
 #'
 #' @return Returns the modified \code{analysis} object invisibly with 
 #' results stored in
-#'   \code{analysis@lm_results$difference}.
+#'   \code{analysis@pairwise_results$difference}.
 #'
 #' @details
 #' **IMPORTANT:
@@ -328,10 +326,8 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_b
 #'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
-#' verbose = FALSE)
-#' result <- calculate_difference_s4(analysis, control = 'normal', verbose =
-#' FALSE)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
+#' result <- calculate_difference_s4(analysis, control = 'normal')
 #'
 #' @export
 # ============================================================================
@@ -474,11 +470,11 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
         stop("Difference calculation failed:\n", e$message, call. = FALSE)
     })
 
-    # Store in lm_results under 'difference' key
-    if (is.list(analysis@lm_results)) {
-        analysis@lm_results$difference <- result
+    # Store in pairwise_results under 'difference' key
+    if (is.list(analysis@pairwise_results)) {
+        analysis@pairwise_results$difference <- result
     } else {
-        analysis@lm_results <- list(difference = result)
+        analysis@pairwise_results <- list(difference = result)
     }
 
     # Track metadata
@@ -487,10 +483,10 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
 
     # Save if output_file provided (using centralized output handler)
     if (!is.null(output_file)) {
-        diff_data <- if (!is.null(analysis@lm_results$difference$results)) {
-            analysis@lm_results$difference$results
+        diff_data <- if (!is.null(analysis@pairwise_results$difference$results)) {
+            analysis@pairwise_results$difference$results
         } else {
-            as.data.frame(analysis@lm_results$difference)
+            as.data.frame(analysis@pairwise_results$difference)
         }
         save_analysis_output(diff_data, output_file, object = analysis, verbose = verbose,
             func_name = "calculate_difference_s4")
@@ -552,8 +548,7 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
 #'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
-#' verbose = FALSE)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
 #' analysis <- test_rankbased_assumptions_s4(analysis, q = 1.0)
 #' # Access results using getMeta S4 accessor
 #' names(getMeta(analysis, 'rankbased_assumptions'))
@@ -720,13 +715,13 @@ setMethod("test_rankbased_assumptions_s4", signature(analysis = "TSENATAnalysis"
 #'
 #' @details
 #' This wrapper extracts the difference results data frame from
-#' \code{analysis@lm_results$difference} and passes it to the base
+#' \code{analysis@pairwise_results$difference} and passes it to the base
 #' \code{.plot_volcano_ma_grid()} function.
 #'
 #' **Required Data:**
 #' \itemize{
 #'   \item Differential analysis must be computed via \code{calculate_difference_s4()}
-#'   \item Results are stored in \code{analysis@lm_results$difference}
+#'   \item Results are stored in \code{analysis@pairwise_results$difference}
 #' }
 #'
 #' **Expected Columns in Difference Results:**
@@ -775,10 +770,8 @@ setMethod("test_rankbased_assumptions_s4", signature(analysis = "TSENATAnalysis"
 #'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
-#' verbose = FALSE)
-#' analysis <- calculate_difference_s4(analysis, control = 'normal', verbose
-#' = FALSE)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
+#' analysis <- calculate_difference_s4(analysis, control = 'normal')
 #'   
 #' # Plot volcano and MA plots
 #' p <- plot_volcano_ma_grid_s4(analysis, sig_alpha = 0.05, top_n = 3)
@@ -804,17 +797,17 @@ plot_volcano_ma_grid_s4 <- function(analysis, x_col = NULL, padj_col = "padj", l
     }
 
     # Extract difference results from S4 object
-    if (is.null(analysis@lm_results) || !is.list(analysis@lm_results)) {
-        stop("No LM results found in analysis@lm_results. ", "Run calculate_difference_s4() first.",
+    if (is.null(analysis@pairwise_results) || !is.list(analysis@pairwise_results)) {
+        stop("No pairwise results found in analysis@pairwise_results. ", "Run calculate_difference_s4() first.",
             call. = FALSE)
     }
 
-    if (!("difference" %in% names(analysis@lm_results))) {
-        stop("Difference results not found in analysis@lm_results$difference. ",
+    if (!("difference" %in% names(analysis@pairwise_results))) {
+        stop("Difference results not found in analysis@pairwise_results$difference. ",
             "Run calculate_difference_s4() first.", call. = FALSE)
     }
 
-    diff_df <- analysis@lm_results$difference
+    diff_df <- analysis@pairwise_results$difference
 
     if (!is.data.frame(diff_df) || nrow(diff_df) == 0) {
         stop("Difference results are empty or not a data frame", call. = FALSE)
@@ -928,12 +921,9 @@ plot_volcano_ma_grid_s4 <- function(analysis, x_col = NULL, padj_col = "padj", l
 #' analysis <- setConfig(analysis, config)
 #' 
 #' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
-#' verbose = FALSE)
-#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5),
-#' verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
-#' = FALSE)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
+#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5))
+#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam')
 #' # Note: compute_method_concordance_s4 requires results from both
 #' # rank_test_q_condition_s4 and test_rankbased_assumptions_s4
 #'
@@ -1140,7 +1130,7 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(analysis, 
 #' @export
 plot_divergence_spectrum_s4 <- function(analysis, gene = NULL, n_genes = 4, ncol = 2,
     metric = c("median", "mean"), variability_metric = c("iqr", "sd"), use_pvalue_ranking = FALSE,
-    output_file = NULL, width = 12, height = NULL, verbose = TRUE, ...) {
+    output_file = NULL, width = 12, height = NULL, verbose = FALSE, ...) {
 
     # Load visualization dependencies (ggplot2, cowplot, etc.)
     .load_visualization_deps()
@@ -1524,7 +1514,7 @@ plot_top_transcripts_s4 <- function(analysis, gene = NULL, condition_col = NULL,
         cd_cols <- colnames(colData(se))
         # Note: Always pass verbose=TRUE for condition_col to ensure users are aware of auto-detection
         condition_col <- auto_detect_column(cd_cols, analysis@config, "condition_col",
-            c("condition", "sample_type", "group", "treatment"), verbose = TRUE,
+            c("condition", "sample_type", "group", "treatment"), verbose = FALSE,
             param_name = "condition_col")
     }
 
@@ -1677,10 +1667,9 @@ plot_top_transcripts_s4 <- function(analysis, gene = NULL, condition_col = NULL,
 #' = FALSE)
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose
 #' = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
-#' = FALSE)
-#' analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE)
-#' p_dist <- plot_divergence_distribution_s4(analysis, verbose = FALSE)
+#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam')
+#' analysis <- effect_sizes_divergence_s4(analysis)
+#' p_dist <- plot_divergence_distribution_s4(analysis)
 #' print(p_dist)
 #'
 #' @seealso
@@ -1688,7 +1677,7 @@ plot_top_transcripts_s4 <- function(analysis, gene = NULL, condition_col = NULL,
 #'
 #' @export
 plot_divergence_distribution_s4 <- function(analysis, threshold = 0.1, output_file = NULL,
-    width = 12, height = 6, verbose = TRUE, ...) {
+    width = 12, height = 6, verbose = FALSE, ...) {
 
     # Load visualization dependencies (ggplot2, cowplot, etc.)
     .load_visualization_deps()
@@ -1815,12 +1804,9 @@ plot_divergence_distribution_s4 <- function(analysis, threshold = 0.1, output_fi
 #' analysis <- setConfig(analysis, config)
 #' 
 #' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
-#' verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
-#' = FALSE)
-#' analysis <- jackknife_isoform_switching_s4(analysis, n_bootstrap = 50,
-#'   verbose = FALSE)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
+#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam')
+#' analysis <- jackknife_isoform_switching_s4(analysis, n_bootstrap = 50)
 #' tables <- prepare_gene_switching_tables_s4(analysis)
 #' head(tables$summary_df)
 #'
@@ -2020,12 +2006,10 @@ prepare_gene_switching_tables_s4 <- function(analysis, n_top_genes = NULL, n_tra
 #' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose
 #' = FALSE)
-#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose
-#' = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
-#' = FALSE)
+#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5))
+#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam')
 #' analysis <- jackknife_isoform_switching_s4(analysis, q = c(0.5, 1, 1.5),
-#'   n_bootstrap = 50, verbose = FALSE)
+#'   n_bootstrap = 50)
 #' heatmap_file <- plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes
 #' = 2)
 #'
@@ -2208,9 +2192,8 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(analysis, n_genes = 4, lm_re
 #' 
 #' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 #' analysis <- calculate_diversity_s4(analysis, q = seq(0.2, 2.5, by =
-#' 0.15), verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
-#' = FALSE)
+#' 0.15))
+#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam')
 #' 
 #' p_gam <- plot_lm_interaction_gam_s4(analysis, n_top = 2, sig_alpha = 0.15)
 #' print(p_gam)
@@ -2448,13 +2431,11 @@ plot_lm_interaction_gam_s4 <- function(analysis, n_top = 6, genes = NULL, condit
 #'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
-#' verbose = FALSE)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
 #' analysis <- m_estimate_s4(
 #'   analysis,
 #'   condition_col = 'condition',
-#'   loss_type = 'huber',
-#'   verbose = FALSE
+#'   loss_type = 'huber'
 #' )
 #'
 #' @seealso
@@ -2974,7 +2955,7 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min
 #' @export
 build_analysis_s4 <- function(readcounts = NULL, salmon_dir = NULL, tx2gene, assay_name = "counts",
     metadata = NULL, tpm = NULL, effective_length = NULL, config = list(), skip = FALSE,
-    verbose = TRUE) {
+    verbose = FALSE) {
     # Handle salmon_dir parameter - auto-load Salmon quantification data
     if (!is.null(salmon_dir)) {
         # Detect Salmon samples

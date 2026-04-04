@@ -11,7 +11,7 @@ jackknife_entropy_outliers_s4(
   log_base = NULL,
   seed = NULL,
   top_n = NULL,
-  verbose = FALSE,
+  verbose = NULL,
   nthreads = NULL,
   pseudocount = NULL,
   output_file = NULL,
@@ -90,13 +90,11 @@ gff3_dataset, metadata = metadata_df,
 analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 
 # Compute diversity first (required for jackknife)
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
-  verbose = FALSE)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
 
 # Run jackknife estimation
-analysis <- jackknife_entropy_outliers_s4(analysis, q = c(0.5, 1.0, 1.5),
-  verbose = FALSE)
+analysis <- jackknife_entropy_outliers_s4(analysis, q = c(0.5, 1.0, 1.5))
 # Check jackknife results
-names(jackKnife(analysis))
+names(jeoResults(analysis))
 
 }

@@ -10,7 +10,7 @@ plot_multi_gene_q_spectrum_s4(
   divergence_results_se = NULL,
   n_genes = 9,
   ncol = 3,
-  verbose = TRUE,
+  verbose = FALSE,
   output_file = NULL
 )
 }
@@ -146,13 +146,13 @@ tx2gene_df$Gene[match(rownames(se),
 # Uncomment to run actual analysis:
 # analysis <- TSENATAnalysis(se)
 # analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), 
-#   verbose = FALSE, nboot = 50)
+#   nboot = 50)
 # analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), 
-#   verbose = FALSE, nboot = 50)
+#   nboot = 50)
 # analysis <- calculate_lm_interaction_s4(analysis,
-#   condition_col = 'condition', verbose = FALSE)
-# analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE)
-# p <- plot_multi_gene_q_spectrum_s4(analysis, n_genes = 4, verbose = FALSE)
+#   condition_col = 'condition')
+# analysis <- effect_sizes_divergence_s4(analysis)
+# p <- plot_multi_gene_q_spectrum_s4(analysis, n_genes = 4)
 # if (!is.null(p)) print(p)
 
 }

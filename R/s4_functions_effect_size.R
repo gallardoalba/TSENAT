@@ -6,10 +6,16 @@
     if (!is(analysis, "TSENATAnalysis")) {
         stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }
-    if (length(divRes(analysis)) == 0) {
+    # Check slots directly to avoid warnings from accessors
+    if (length(analysis@divergence_results) == 0) {
         stop("Divergence results required. Run calculate_divergence_s4() first.", call. = FALSE)
     }
-    if (is.null(lmRes(analysis)) || length(lmRes(analysis)) == 0) {
+    # Check for LM interaction results (exclude q_interactions which belongs to rankResults)
+    lm_only <- analysis@lm_results
+    if (is.list(lm_only) && "q_interactions" %in% names(lm_only)) {
+        lm_only$q_interactions <- NULL
+    }
+    if (length(lm_only) == 0) {
         stop("LM results required. Run calculate_lm_interaction_s4() first.", call. = FALSE)
     }
 }
@@ -19,7 +25,8 @@
 #' @keywords internal
 #' @noRd
 .extract_effect_sizes_data_s4 <- function(analysis, verbose = FALSE) {
-    analysis_divres <- divRes(analysis)
+    # Access slots directly to avoid accessor method warnings (validation already checked slots exist)
+    analysis_divres <- analysis@divergence_results
     divergence_se <- .extract_object_with_fallbacks(analysis_divres, "SummarizedExperiment",
         key_name = "divergence_se", verbose = verbose)
 
@@ -27,7 +34,12 @@
         stop("Could not extract divergence SummarizedExperiment from divergence results", call. = FALSE)
     }
 
-    analysis_lmres <- lmRes(analysis)
+    # Filter out q_interactions (rank test results) and access LM results
+    analysis_lmres <- analysis@lm_results
+    if (is.list(analysis_lmres) && "q_interactions" %in% names(analysis_lmres)) {
+        analysis_lmres$q_interactions <- NULL
+    }
+    
     lm_res <- .extract_object_with_fallbacks(analysis_lmres, "data.frame", key_name = "lm_interaction",
         verbose = verbose)
 
@@ -236,16 +248,13 @@
 #' analysis <- setConfig(analysis, config)
 #' 
 #' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
-#' verbose = FALSE)
-#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5),
-#' verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
-#' = FALSE)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
+#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5))
+#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam')
 #'
 #' # Compute effect sizes from divergence results
 #' analysis <- effect_sizes_divergence_s4(analysis,
-#'   significance_threshold = 0.05, verbose = FALSE)
+#'   significance_threshold = 0.05)
 #'
 #' # Access results using metadata accessor
 #' effect_size_results <- getMeta(analysis, 'effect_sizes_divergence')

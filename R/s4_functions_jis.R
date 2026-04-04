@@ -145,7 +145,7 @@
 #'  effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 20, subset_n_samples = 8)
-#' analysis <- calculate_diversity_s4(analysis, q = 1, verbose = FALSE)
+#' analysis <- calculate_diversity_s4(analysis, q = 1)
 #' 
 #' @export
 jackknife_isoform_switching_s4 <- function(analysis, condition_col = NULL, subject_col = NULL,
@@ -255,7 +255,7 @@ jackknife_isoform_switching_s4 <- function(analysis, condition_col = NULL, subje
                                                                    "sample_group"),
                                             default_fallback = if (length(cd_cols) > 0) 
                                                 cd_cols[1] else NULL, 
-                                            verbose = TRUE, param_name = "condition_col")
+                                            verbose = FALSE, param_name = "condition_col")
     } else {
         # Validate explicit condition_col exists
         if (!condition_col %in% cd_cols) {

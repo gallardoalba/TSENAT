@@ -123,8 +123,7 @@
 #' # Compute diversity (prerequisite for LM interaction analysis)
 #' analysis <- calculate_diversity_s4(
 #'   analysis, 
-#'   q = c(0.5, 1.0, 1.5), 
-#'   verbose = FALSE
+#'   q = c(0.5, 1.0, 1.5)
 #' )
 #' 
 #' # Calculate q x condition interactions using GAM
@@ -132,8 +131,7 @@
 #' analysis <- calculate_lm_interaction_s4(
 #'   analysis,
 #'   condition_col = 'condition',
-#'   method = 'gam',
-#'   verbose = FALSE
+#'   method = 'gam'
 #' )
 #' 
 #' # View interaction test results
@@ -256,7 +254,7 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
         cd_cols <- colnames(colData(analysis@se))
         condition_col <- auto_detect_column(cd_cols, config_list = analysis@config,
             config_key = "condition_col", priority_candidates = c("condition", "sample_type",
-                "group", "treatment"), default_fallback = NULL, verbose = TRUE,
+                "group", "treatment"), default_fallback = NULL, verbose = FALSE,
             param_name = "condition_col")
     }
 

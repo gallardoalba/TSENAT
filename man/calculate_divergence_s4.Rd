@@ -7,7 +7,7 @@
 calculate_divergence_s4(
   analysis,
   q = NULL,
-  verbose = TRUE,
+  verbose = FALSE,
   nthreads = NULL,
   output_file = NULL,
   control_group = NULL,
@@ -129,11 +129,10 @@ analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 = 200)
 
 # Compute diversity first (required for divergence)
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
-verbose = FALSE)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
 
 # Calculate divergence across q-values
-analysis <- calculate_divergence_s4(analysis, verbose = FALSE)
+analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5))
 
 # Check divergence results  
 head(divergence(analysis))

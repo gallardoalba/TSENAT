@@ -692,7 +692,6 @@
 #'   subject_col = 'patient_id',
 #'   multicorr = 'hochberg',
 #'   wy_randomizations = 100,
-#'   verbose = FALSE
 #' )
 #' head(results_paired)
 

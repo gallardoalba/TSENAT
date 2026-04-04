@@ -87,12 +87,10 @@ analysis <- setConfig(analysis, config)
 analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose
 = FALSE)
-analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose
-= FALSE)
-analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
-= FALSE)
+analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5))
+analysis <- calculate_lm_interaction_s4(analysis, method = 'gam')
 analysis <- jackknife_isoform_switching_s4(analysis, q = c(0.5, 1, 1.5),
-  n_bootstrap = 50, verbose = FALSE)
+  n_bootstrap = 50)
 heatmap_file <- plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes
 = 2)
 

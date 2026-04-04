@@ -30,6 +30,11 @@
 #'     \item{\code{divergence_difference}}{Differential divergence comparison}
 #'   }
 #'
+#' @slot pairwise_results \code{list}. Pairwise group comparison results.
+#'   Contains differential testing output computed by
+#'   \code{calculate_difference_s4()}, stored under the \code{difference}
+#'   component.
+#'
 #' @slot jackknife_results \code{list}. Resampling-based confidence intervals.
 #'   Names correspond to q-values (e.g., 'q_0.5', 'q_1.0'). Values are
 #'   jackknife result objects containing resamples, CI bounds, and diagnostics.
@@ -57,8 +62,8 @@
 #'
 #' @details
 #' Access results via accessor methods (recommended):
-#' \code{divResults(obj, q)} for diversity, \code{lmRes(obj)} for models,
-#' \code{jkResults(obj, q)} for jackknife, \code{divRes(obj)} for divergence,
+#' \code{diversity(obj, q)} for diversity, \code{lmResults(obj)} for models,
+#' \code{jeoResults(obj, q)} for entropy outlier jackknife, \code{jisResults(obj, q)} for isoform switching jackknife,
 #' \code{getMeta(obj)} for metadata.
 #'
 #' @rdname TSENATAnalysis-class
@@ -67,9 +72,9 @@
 #' @importFrom S4Vectors metadata
 #'
 setClass("TSENATAnalysis", slots = list(se = "SummarizedExperiment", config = "list",
-    diversity_results = "list", lm_results = "list", jackknife_results = "list",
-    divergence_results = "list", plots = "list", metadata = "list"), prototype = list(config = list(),
-    diversity_results = list(), lm_results = list(), jackknife_results = list(),
+    diversity_results = "list", lm_results = "list", pairwise_results = "list",
+    jackknife_results = "list", divergence_results = "list", plots = "list", metadata = "list"), prototype = list(config = list(),
+    diversity_results = list(), lm_results = list(), pairwise_results = list(), jackknife_results = list(),
     divergence_results = list(), plots = list(), metadata = list(function_calls = character(0),
         function_timestamps = character(0))), validity = function(object) {
     # Check @se is SummarizedExperiment
@@ -94,6 +99,9 @@ setClass("TSENATAnalysis", slots = list(se = "SummarizedExperiment", config = "l
     }
     if (!is.list(object@lm_results)) {
         return("@lm_results must be a list")
+    }
+    if (!is.list(object@pairwise_results)) {
+        return("@pairwise_results must be a list")
     }
     if (!is.list(object@jackknife_results)) {
         return("@jackknife_results must be a list")

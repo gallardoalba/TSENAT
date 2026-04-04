@@ -30,9 +30,14 @@
 #' \enumerate{
 #'   \item \code{calculate_diversity_s4()} - Tsallis entropy per q-value
 #'   \item \code{jackknife_entropy_outliers_s4()} - Confidence intervals
+#'   \item \code{jackknife_isoform_switching_s4()} - Transcript switching (optional)
 #'   \item \code{calculate_lm_interaction_s4()} - Statistical tests
+#'   \item \code{calculate_difference_s4()} - Pairwise group differences (optional)
 #'   \item \code{calculate_divergence_s4()} - Pairwise divergence metrics
+#'   \item \code{effect_sizes_divergence_s4()} - Effect sizes (optional)
 #'   \item \code{rank_test_q_condition_s4()} - Q-dependent interactions
+#'   \item \code{test_rankbased_assumptions_s4()} - Assumption validation (optional)
+#'   \item \code{compute_method_concordance_s4()} - Method comparison (optional)
 #'   \item Plot generation (if enabled)
 #' }
 #'
@@ -77,10 +82,16 @@ tsenat <- function(se, config = NULL, methods = NULL, q_values = NULL, generate_
 
     analysis <- .execute_diversity_step(analysis, q_vals, methods_to_run, verbose, ...)
     analysis <- .execute_jackknife_step(analysis, q_vals, methods_to_run, verbose, ...)
+    analysis <- .execute_jackknife_isoform_switching_step(analysis, q_vals, condition_col_name,
+        methods_to_run, verbose, ...)
     analysis <- .execute_lm_interaction_step(analysis, methods_to_run, verbose, ...)
+    analysis <- .execute_difference_step(analysis, q_vals, condition_col_name, methods_to_run, verbose, ...)
     analysis <- .execute_divergence_step(analysis, q_vals, methods_to_run, verbose, ...)
+    analysis <- .execute_effect_sizes_step(analysis, methods_to_run, verbose, ...)
     analysis <- .execute_q_interactions_step(analysis, q_vals, condition_col_name, 
         methods_to_run, verbose, ...)
+    analysis <- .execute_rankbased_assumptions_step(analysis, q_vals, methods_to_run, verbose, ...)
+    analysis <- .execute_method_concordance_step(analysis, methods_to_run, verbose, ...)
     analysis <- .execute_plot_generation(analysis, do_plots, verbose)
     
     # Track completion metadata
@@ -133,25 +144,32 @@ tsenat <- function(se, config = NULL, methods = NULL, q_values = NULL, generate_
 #' # Load example data
 #' data(readcounts, package = "TSENAT")
 #'
-#' # Create minimal TSENATAnalysis object with mock results
-#' se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = readcounts))
-#' analysis <- TSENAT(se, min_samples = 2, verbose = FALSE)
+#' # Create SummarizedExperiment from counts
+#' se <- SummarizedExperiment::SummarizedExperiment(
+#'   assays = list(counts = readcounts),
+#'   rowData = data.frame(gene_id = rownames(readcounts)),
+#'   colData = data.frame(
+#'     sample_id = colnames(readcounts),
+#'     group = rep(c("A", "B"), length.out = ncol(readcounts))
+#'   )
+#' )
 #'
-#' # Run analysis to generate results
-#' analysis <- calculate_diversity_s4(analysis, q_vals = c(0.5, 1.0, 2.0), 
-#'                                    verbose = FALSE)
+#' # Create TSENATAnalysis object with configuration
+#' analysis <- TSENATAnalysis(
+#'   se = se,
+#'   config = list(
+#'     q_values = c(0.5, 1.0, 2.0),
+#'     condition_col = "group"
+#'   )
+#' )
+#'
+#' # Run analysis to generate diversity results
+#' analysis <- calculate_diversity_s4(analysis)
 #'
 #' # Extract diversity results
 #' div_results <- getResults(analysis, type = "diversity")
-#' head(div_results[1:3, 1:2])
-#'
-#' # Extract results for specific q-value
-#' div_q1.0 <- getResults(analysis, type = "diversity", q = 1.0)
-#' head(div_q1.0[1:5])
-#'
-#' # Check what result types are available
-#' if (!is.null(getResults(analysis, type = "diversity"))) {
-#'   cat("Diversity results available\n")
+#' if (!is.null(div_results)) {
+#'   head(div_results, n = 3)
 #' }
 #'
 #' @export
@@ -203,27 +221,45 @@ getResults <- function(analysis, type = "diversity", q = NULL, simplify = TRUE) 
 #'
 #' @param q_values \code{numeric}. Q-values for Tsallis entropy spectrum.
 #'   Default: \code{seq(0.5, 2.0, by = 0.5)}.
-#' @param q_range \code{numeric}.  Alternative to q_values:  lower and 
-#' upper bounds.
-#' @param filter_genome \code{logical}. Remove zero rows before analysis.
-#'   Default: TRUE.
-#' @param formula \code{formula}.  Model formula for  LM interactions (e. g. ,
-#'  \code{~ treatment}).
-#' @param p_threshold \code{numeric}. P-value threshold for significance.
-#'   Default: 0.05.
-#' @param fdr_threshold \code{numeric}. FDR threshold (Benjamini-Hochberg).
-#'   Default: 0.05.
-#' @param methods \code{character}. Analysis methods to run. Options:
-#'   'diversity', 'lm_interaction', 'jackknife', 'divergence',
-#'   'q_interactions', 'difference'. Default: all methods.
+#' @param condition_col \code{character}. Name of column in \code{colData(se)}
+#'   containing experimental conditions/groups. Default: 'condition'.
+#' @param subject_col \code{character}. Name of column in \code{colData(se)}
+#'   containing subject/sample identifiers for paired/repeated designs.
+#'   If provided, enables paired analysis. Default: NULL (unpaired).
+#' @param paired \code{logical}. Whether samples are paired/repeated measures.
+#'   Default: FALSE. Used by jackknife and difference analysis.
+#' @param control \code{character}. Reference/control group label for difference
+#'   analysis (e.g., 'control', 'wt'). Only used if 'difference' in methods.
+#'   Default: NULL.
+#' @param formula \code{formula}. Optional model formula for LM interactions
+#'   (e.g., \code{~ treatment + batch}). Default: NULL (uses condition_col).
+#' @param p_threshold \code{numeric}. Raw p-value threshold for significance
+#'   in LM interaction testing. Default: 0.05.
+#' @param fdr_threshold \code{numeric}. Adjusted p-value (FDR/Benjamini-Hochberg)
+#'   threshold. Default: 0.05.
+#' @param significance_threshold \code{numeric}. Significance cutoff for effect
+#'   sizes, assumptions testing, and result filtering. Default: 0.05.
+#' @param n_bootstrap \code{integer}. Number of bootstrap resamples for jackknife
+#'   confidence intervals. Default: 1000.
+#' @param bootstrap_method \code{character}. Bootstrap CI method: 'percentile'
+#'   (fast, assumes symmetric distribution) or 'bca' (bias-corrected, better for
+#'   skewed data like bounded entropy). Default: 'percentile'.
+#' @param methods \code{character}. Analysis steps to run. Core (auto-required):
+#'   'diversity', 'lm_interaction', 'jackknife', 'divergence', 'q_interactions'.
+#'   Optional: 'jackknife_isoform_switching' (requires condition/subject info),
+#'   'difference' (requires control parameter), 'effect_sizes', 'rankbased_assumptions',
+#'   'method_concordance'. Default: core methods.
 #' @param generate_plots \code{logical}. Generate visualizations.
 #'   Default: TRUE.
-#' @param plot_types \code{character}. Specific plots to generate.
-#'   Default: all available types.
-#' @param seed \code{numeric}. Random seed for reproducibility.
-#' @param condition_col \code{character}. Name of condition column in colData.
-#'   Default: 'condition'.
-#' @param ... Additional configuration parameters (stored as-is).
+#' @param plot_types \code{character}. Specific plot types to generate. Options:
+#'   'q_curve', 'lm_interaction', 'divergence_distribution', 'divergence_spectrum',
+#'   'influence_heatmap', 'volcano', 'method_concordance', 'multi_gene_q_spectrum',
+#'   'top_transcripts', 'tsallis_violin_density'. Default: all available types.
+#' @param seed \code{numeric}. Random seed for reproducibility (affects
+#'   bootstrap resampling). Default: NULL (no fixed seed).
+#' @param ... Additional configuration parameters (stored as-is in @config slot).
+#'   Examples: \code{q_diff=1.0} (specific q for differences),
+#'   \code{alpha=0.05} (significance for assumptions), etc.
 #'
 #' @return \code{list} with class \code{TSENATConfig} containing all
 #'   specified parameters.
@@ -236,29 +272,26 @@ getResults <- function(analysis, type = "diversity", q = NULL, simplify = TRUE) 
 #' # Default config with standard parameters
 #' cfg <- tsenat_config()
 #'
-#' # Custom spectrum and formula
+#' # Custom with optional features: paired analysis, isoform switching, differences
 #' cfg <- tsenat_config(
 #'   q_values = c(0.5, 1.0, 1.5, 2.0),
-#'   formula = ~ treatment + batch,
-#'   fdr_threshold = 0.01
+#'   condition_col = "treatment",
+#'   subject_col = "subject_id",
+#'   paired = TRUE,
+#'   control = "untreated",
+#'   methods = c("diversity", "lm_interaction", "jackknife", "jackknife_isoform_switching",
+#'               "divergence", "q_interactions", "difference", "effect_sizes"),
+#'   bootstrap_method = "bca",
+#'   n_bootstrap = 5000,
+#'   significance_threshold = 0.01
 #' )
 #'
 #' @export
-tsenat_config <- function(q_values = NULL, q_range = NULL, filter_genome = TRUE,
-    formula = NULL, p_threshold = 0.05, fdr_threshold = 0.05, methods = NULL, generate_plots = TRUE,
-    plot_types = NULL, seed = NULL, condition_col = "condition", ...) {
+tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_col = NULL,
+    paired = FALSE, control = NULL, formula = NULL, p_threshold = 0.05, fdr_threshold = 0.05,
+    significance_threshold = 0.05, n_bootstrap = 1000, bootstrap_method = "percentile",
+    methods = NULL, generate_plots = TRUE, plot_types = NULL, seed = NULL, ...) {
     # Build q_values if range specified
-    if (!is.null(q_range)) {
-        if (length(q_range) != 2) {
-            stop("'q_range' must be c(lower, upper)", call. = FALSE)
-        }
-        if (!is.finite(q_range[1]) || !is.finite(q_range[2])) {
-            stop("'q_range' values must be finite", call. = FALSE)
-        }
-        q_values <- seq(q_range[1], q_range[2], by = 0.5)
-    }
-
-    # Default q_values
     if (is.null(q_values)) {
         q_values <- seq(0.5, 2, by = 0.5)
     }
@@ -269,18 +302,36 @@ tsenat_config <- function(q_values = NULL, q_range = NULL, filter_genome = TRUE,
     }
 
     # Validate methods
-    valid_methods <- c("diversity", "lm_interaction", "jackknife", "divergence",
-        "q_interactions", "difference")
+    valid_methods <- c("diversity", "lm_interaction", "jackknife", "jackknife_isoform_switching",
+        "divergence", "q_interactions", "difference", "rankbased_assumptions",
+        "method_concordance", "effect_sizes")
     invalid_methods <- setdiff(methods, valid_methods)
     if (length(invalid_methods) > 0) {
         stop("Invalid methods: ", paste(invalid_methods, collapse = ", "), "\n",
             "Valid: ", paste(valid_methods, collapse = ", "), call. = FALSE)
     }
 
-    # Build config list
-    config <- list(q_values = q_values, filter_genome = filter_genome, p_threshold = p_threshold,
-        fdr_threshold = fdr_threshold, methods = methods, generate_plots = generate_plots,
-        condition_col = condition_col)
+    # Validate bootstrap_method
+    valid_bootstrap_methods <- c("percentile", "bca")
+    if (!bootstrap_method %in% valid_bootstrap_methods) {
+        stop("'bootstrap_method' must be 'percentile' or 'bca'", call. = FALSE)
+    }
+
+    # Build config list with all parameters
+    config <- list(
+        q_values = q_values,
+        condition_col = condition_col,
+        subject_col = subject_col,
+        paired = paired,
+        control = control,
+        p_threshold = p_threshold,
+        fdr_threshold = fdr_threshold,
+        significance_threshold = significance_threshold,
+        n_bootstrap = n_bootstrap,
+        bootstrap_method = bootstrap_method,
+        methods = methods,
+        generate_plots = generate_plots
+    )
 
     # Add optional parameters
     if (!is.null(formula))
@@ -391,12 +442,44 @@ tsenat_config <- function(q_values = NULL, q_range = NULL, filter_genome = TRUE,
 .execute_lm_interaction_step <- function(analysis, methods_to_run, verbose, ...) {
     if (!("lm_interaction" %in% methods_to_run)) return(analysis)
     
-    if (verbose) message("Step 3: Testing LM interactions...")
+    if (verbose) message("Step 4: Testing LM interactions...")
     tryCatch({
         fdr <- if (is.null(analysis@config$fdr_threshold)) 0.05 else analysis@config$fdr_threshold
         analysis <- calculate_lm_interaction_s4(analysis, fdr_threshold = fdr, ...)
         if (verbose) message("  [OK] LM analysis complete")
     }, error = function(e) warning("LM failed:\n", e$message, call. = FALSE))
+    analysis
+}
+
+#' Execute difference step
+#' @noRd
+.execute_difference_step <- function(analysis, q_vals, condition_col_name, methods_to_run, verbose, ...) {
+    if (!("difference" %in% methods_to_run)) return(analysis)
+    
+    if (length(analysis@diversity_results) == 0) {
+        if (verbose) message("Step 5: Skipping difference (requires diversity)")
+        return(analysis)
+    }
+    
+    if (verbose) message("Step 5: Testing pairwise differences...")
+    tryCatch({
+        control <- if (!is.null(analysis@config$control)) {
+            analysis@config$control
+        } else {
+            if (verbose) message("  [SKIP] No 'control' group specified in config")
+            return(analysis)
+        }
+        
+        q_to_use <- if (!is.null(analysis@config$q_diff)) {
+            analysis@config$q_diff
+        } else {
+            NULL  # Will use first available from diversity_results
+        }
+        
+        analysis <- calculate_difference_s4(analysis, control = control, q = q_to_use, 
+            condition_col = condition_col_name, ...)
+        if (verbose) message("  [OK] Difference analysis complete")
+    }, error = function(e) warning("Difference failed:\n", e$message, call. = FALSE))
     analysis
 }
 
@@ -406,11 +489,11 @@ tsenat_config <- function(q_values = NULL, q_range = NULL, filter_genome = TRUE,
     if (!("divergence" %in% methods_to_run)) return(analysis)
     
     if (length(analysis@diversity_results) == 0) {
-        if (verbose) message("Step 4: Skipping divergence (requires diversity)")
+        if (verbose) message("Step 6: Skipping divergence (requires diversity)")
         return(analysis)
     }
     
-    if (verbose) message("Step 4: Calculating divergence metrics...")
+    if (verbose) message("Step 6: Calculating divergence metrics...")
     tryCatch({
         analysis <- calculate_divergence_s4(analysis, q = q_vals[1])
         if (verbose) message("  [OK] Divergence computed")
@@ -425,11 +508,11 @@ tsenat_config <- function(q_values = NULL, q_range = NULL, filter_genome = TRUE,
     if (!("q_interactions" %in% methods_to_run)) return(analysis)
     
     if (length(analysis@diversity_results) == 0) {
-        if (verbose) message("Step 5: Skipping Q-interactions (requires diversity)")
+        if (verbose) message("Step 7: Skipping Q-interactions (requires diversity)")
         return(analysis)
     }
     
-    if (verbose) message("Step 5: Detecting Q-dependent interactions...")
+    if (verbose) message("Step 7: Detecting Q-dependent interactions...")
     tryCatch({
         analysis <- rank_test_q_condition_s4(analysis, condition_col = condition_col_name,
             q = q_vals, ...)
@@ -438,16 +521,99 @@ tsenat_config <- function(q_values = NULL, q_range = NULL, filter_genome = TRUE,
     analysis
 }
 
+#' Execute jackknife isoform switching step
+#' @noRd
+.execute_jackknife_isoform_switching_step <- function(analysis, q_vals, condition_col_name, 
+                                                       methods_to_run, verbose, ...) {
+    if (!("jackknife_isoform_switching" %in% methods_to_run)) return(analysis)
+    
+    if (length(analysis@diversity_results) == 0) {
+        if (verbose) message("Step 3: Skipping isoform switching (requires diversity)")
+        return(analysis)
+    }
+    
+    if (verbose) message("Step 3: Computing isoform switching jackknife...")
+    tryCatch({
+        analysis <- jackknife_isoform_switching_s4(analysis, q = q_vals, 
+            condition_col = condition_col_name, verbose = FALSE, ...)
+        if (verbose) message("  [OK] Isoform switching jackknife complete")
+    }, error = function(e) {
+        if (verbose) message("  [WARNING] Isoform switching jackknife skipped: ", e$message)
+    })
+    analysis
+}
+
+#' Execute additional LM step helpers
+#' @noRd
+.execute_effect_sizes_step <- function(analysis, methods_to_run, verbose, ...) {
+    if (!("effect_sizes" %in% methods_to_run)) return(analysis)
+    
+    if (length(analysis@divergence_results) == 0 || length(analysis@lm_results) == 0) {
+        if (verbose) message("Step 8: Skipping effect sizes (requires divergence and LM)")
+        return(analysis)
+    }
+    
+    if (verbose) message("Step 8: Computing effect sizes...")
+    tryCatch({
+        analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE, ...)
+        if (verbose) message("  [OK] Effect sizes computed")
+    }, error = function(e) {
+        if (verbose) message("  [WARNING] Effect size computation skipped: ", e$message)
+    })
+    analysis
+}
+
+#' Execute rankbased assumptions testing
+#' @noRd
+.execute_rankbased_assumptions_step <- function(analysis, q_vals, methods_to_run, verbose, ...) {
+    if (!("rankbased_assumptions" %in% methods_to_run)) return(analysis)
+    
+    if (length(analysis@diversity_results) == 0) {
+        if (verbose) message("Step 9: Skipping rankbased assumptions (requires diversity)")
+        return(analysis)
+    }
+    
+    if (verbose) message("Step 9: Testing rankbased method assumptions...")
+    tryCatch({
+        analysis <- test_rankbased_assumptions_s4(analysis, q = q_vals[1], verbose = FALSE, ...)
+        if (verbose) message("  [OK] Assumption tests complete")
+    }, error = function(e) {
+        if (verbose) message("  [WARNING] Assumption testing skipped: ", e$message)
+    })
+    analysis
+}
+
+#' Execute method concordance computation
+#' @noRd
+.execute_method_concordance_step <- function(analysis, methods_to_run, verbose, ...) {
+    if (!("method_concordance" %in% methods_to_run)) return(analysis)
+    
+    if (length(analysis@lm_results) < 2) {
+        if (verbose) message("Step 10: Skipping method concordance (requires multiple LM methods)")
+        return(analysis)
+    }
+    
+    if (verbose) message("Step 10: Computing method concordance...")
+    tryCatch({
+        analysis <- compute_method_concordance_s4(analysis, verbose = FALSE, ...)
+        if (verbose) message("  [OK] Method concordance computed")
+    }, error = function(e) {
+        if (verbose) message("  [WARNING] Method concordance skipped: ", e$message)
+    })
+    analysis
+}
+
 #' Execute plot generation
 #' @noRd
 .execute_plot_generation <- function(analysis, do_plots, verbose) {
     if (!do_plots || length(analysis@diversity_results) == 0) return(analysis)
     
-    if (verbose) message("Step 6: Generating plots...")
+    if (verbose) message("Step 11: Generating plots...")
     tryCatch({
         `%||%` <- function(x, y) if (is.null(x)) y else x
         plot_types <- analysis@config$plot_types %||% c("q_curve", "lm_interaction",
-            "divergence_distribution", "divergence_spectrum", "influence_heatmap", "volcano")
+            "divergence_distribution", "divergence_spectrum", "influence_heatmap", "volcano",
+            "method_concordance", "multi_gene_q_spectrum", "top_transcripts", "tsallis_violin_density")
         
         for (ptype in plot_types) {
             tryCatch({
@@ -481,6 +647,14 @@ tsenat_config <- function(q_values = NULL, q_range = NULL, filter_genome = TRUE,
         volcano = if ("lm_interaction" %in% names(analysis@lm_results)) {
             .plot_volcano_ma_grid(analysis@lm_results$lm_interaction, 
                 analysis@divergence_results) } else NULL,
+        method_concordance = if (!is.null(analysis@metadata$method_concordance)) {
+            plot_method_concordance_s4(analysis, verbose = FALSE) } else NULL,
+        multi_gene_q_spectrum = if (length(analysis@lm_results) > 0 && length(analysis@diversity_results) > 0) {
+            plot_multi_gene_q_spectrum_s4(analysis, verbose = FALSE) } else NULL,
+        top_transcripts = if (length(analysis@diversity_results) > 0) {
+            plot_top_transcripts_s4(analysis, verbose = FALSE) } else NULL,
+        tsallis_violin_density = if (length(analysis@diversity_results) > 0) {
+            plot_tsallis_violin_density_grid_s4(analysis) } else NULL,
         NULL)
 }
 

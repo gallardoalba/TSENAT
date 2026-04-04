@@ -102,7 +102,7 @@ Default: NULL (no file output).}
 \value{
 Returns the modified \code{analysis} object invisibly with 
 results stored in
-  \code{analysis@lm_results$difference}.
+  \code{analysis@pairwise_results$difference}.
 }
 \description{
 S4 wrapper that operates on TSENATAnalysis objects to calculate differences
@@ -149,10 +149,8 @@ gff3_dataset, metadata = metadata_df,
   tpm = tpm, effective_length = effective_length)
 analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 = 200)
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
-verbose = FALSE)
-result <- calculate_difference_s4(analysis, control = 'normal', verbose =
-FALSE)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
+result <- calculate_difference_s4(analysis, control = 'normal')
 
 }
 \seealso{

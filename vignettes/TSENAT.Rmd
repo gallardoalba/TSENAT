@@ -130,7 +130,7 @@ analysis <- calculate_diversity_s4(analysis, q = 1, norm = TRUE)
 
 All analysis results are organized into a **TSENATAnalysis** S4 object, which encapsulates the input `SummarizedExperiment`, analysis configuration, and all computed results (diversity, divergence, LM interactions, etc.). This unified structure facilitates seamless integration with Bioconductor and provides a clean object-oriented interface. The underlying `SummarizedExperiment` (accessible via `se(analysis)`) stores transcript counts and metadata as per Bioconductor standards. For more details on the `SummarizedExperiment` class and its capabilities, refer to the [SummarizedExperiment documentation](https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html).
 
-The **TSENATAnalysis** object organizes all results in dedicated slots: `@diversity_results` stores entropy values across q-values; `@jackknife_results` contains confidence intervals; `@lm_results` holds interaction test statistics; `@divergence_results` stores pairwise divergence metrics; and `@plots` contains generated visualizations. Access methods (`diversity()`, `divergence()`, `lmResults()`, etc.) provide convenient interfaces to these results.
+The **TSENATAnalysis** object organizes all results in dedicated slots: `@diversity_results` stores entropy values across q-values; `@jackknife_results` contains jackknife confidence intervals and isoform switching results; `@lm_results` holds LM interaction test statistics and rank test q-value interactions; `@divergence_results` stores pairwise divergence metrics; and `@plots` contains generated visualizations. Access methods (`diversity()`, `divergence()`, `lmResults()`, `rankResults()`, `jeoResults()`, `jisResults()`, etc.) provide convenient type-safe interfaces to these results.
 
 # What is Entropy and Tsallis entropy?
 
@@ -1149,7 +1149,7 @@ TSENAT provides an integrated S4-based workflow for coordinated analysis. The re
 
 1. **Configure once**: Use `tsenat_config()` to specify analysis parameters (q-values, metadata columns)
 2. **Run pipeline**: Use `tsenat()` to orchestrate all analysis steps
-3. **Access results**: Use S4 accessor methods (`diversity()`, `lmResults()`, `divergence()`, etc.)
+3. **Access results**: Use S4 accessor methods (`diversity()`, `lmResults()`, `jeoResults()`, `jisResults()`, `rankResults()`, `divergence()`, etc.)
 
 This approach ensures metadata consistency, reduces boilerplate, and provides type-safe result access.
 
@@ -1170,10 +1170,19 @@ analysis <- tsenat(
 )
 
 # Access results via consistent S4 methods (instead of nested list indexing)
-diversity_results <- diversity(analysis)      # Get diversity across q values
-lm_table <- lmResults(analysis)                # Get LM interaction results
-jackknife_results <- jackKnife(analysis)       # Get jackknife diagnostics
-divergence_table <- divergence(analysis)       # Get divergence metrics
+diversity_results <- diversity(analysis)           # Get diversity across q values
+lm_table <- lmResults(analysis)                    # Get LM interaction results
+jk_entropy <- jeoResults(analysis, q = 1.0)     # Get jackknife entropy outlier CIs
+jk_iso <- jisResults(analysis, q = 1.0)         # Get jackknife isoform switching (if computed)
+rank_test <- rankResults(analysis)                    # Get rank test q-value interactions (if computed)
+divergence_table <- divergence(analysis)           # Get divergence metrics
+
+# Note on accessor methods:
+# - `lmResults()` retrieves only LM interaction results (from calculate_lm_interaction_s4)
+# - `rankResults()` retrieves only rank test q-value interaction results (from rank_test_q_condition_s4)
+# - `jeoResults()` retrieves entropy outlier jackknife CIs (from jackknife_entropy_outliers_s4)
+# - `jisResults()` retrieves isoform switching jackknife results (from jackknife_isoform_switching_s4)
+# These methods provide type-safe, mutually-exclusive access to results.
 ```
 
 For detailed workflow examples and troubleshooting, see the vignette sections below. This section demonstrates the implementation step-by-step for didactic purposes.

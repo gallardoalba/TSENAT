@@ -54,7 +54,7 @@ gff3_dataset, metadata = metadata_df,
   tpm = tpm, effective_length = effective_length)
 analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 = 200)
-analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
+analysis <- calculate_diversity_s4(analysis, q = 1.0)
 p <- plot_tsallis_violin_density_grid_s4(analysis)
 if (!is.null(p)) print(p)
 

@@ -151,8 +151,7 @@ gff3_dataset, metadata = metadata_df,
   tpm = tpm, effective_length = effective_length)
 analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 = 200)
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
-verbose = FALSE)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
 
 # Test Q×Condition interaction (condition_col is REQUIRED)
 analysis <- rank_test_q_condition_s4(analysis, condition_col = 'condition', 

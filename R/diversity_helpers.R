@@ -440,7 +440,7 @@
 #' rownames(counts) <- paste0('gene_', 1:60)
 #'
 #' # Suggest threshold at median
-#' min_cnt <- .suggest_min_count(counts, percentile = 0.5, verbose = FALSE)
+#' min_cnt <- .suggest_min_count(counts, percentile = 0.5)
 #' # Result: ~50 (median of [100, 100, ..., 1, 1, ...])
 #'
 #' @noRd
@@ -534,7 +534,7 @@
 #' genes <- rep(paste0('gene_', 1:5), each = 3)
 #' 
 #' # Estimate pseudocount
-#' result <- .estimate_pseudocount(counts, verbose = FALSE)
+#' result <- .estimate_pseudocount(counts)
 #' pseudocount <- result$scalar_pseudocount
 #' 
 #' # Use with calculate_diversity

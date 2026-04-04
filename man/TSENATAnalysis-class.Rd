@@ -29,8 +29,8 @@ retrieval.
 
 
 Access results via accessor methods (recommended):
-\code{divResults(obj, q)} for diversity, \code{lmRes(obj)} for models,
-\code{jkResults(obj, q)} for jackknife, \code{divRes(obj)} for divergence,
+\code{diversity(obj, q)} for diversity, \code{lmResults(obj)} for models,
+\code{jeoResults(obj, q)} for entropy outlier jackknife, \code{jisResults(obj, q)} for isoform switching jackknife,
 \code{getMeta(obj)} for metadata.
 
 The \code{TSENATAnalysis} class encapsulates all components of a complete
@@ -63,6 +63,11 @@ statistical testing. Top-level names identify analysis type:
   \item{\code{q_interactions}}{Friedman/rank-based test results}
   \item{\code{divergence_difference}}{Differential divergence comparison}
 }}
+
+\item{\code{pairwise_results}}{\code{list}. Pairwise group comparison results.
+Contains differential testing output computed by
+\code{calculate_difference_s4()}, stored under the \code{difference}
+component.}
 
 \item{\code{jackknife_results}}{\code{list}. Resampling-based confidence intervals.
 Names correspond to q-values (e.g., 'q_0.5', 'q_1.0'). Values are
@@ -143,7 +148,8 @@ Automatically maintained by wrapper functions. Includes:
     \item{\code{diversity(object,  q=NULL)}}{Extract diversity results for 
 q-value}
     \item{\code{lmResults(object, component=NULL)}}{Extract LM results}
-    \item{\code{jackKnife(object, q=NULL)}}{Extract jackknife results}
+    \item{\code{jeoResults(object, q=NULL)}}{Extract jackknife entropy outlier results}
+    \item{\code{jisResults(object, q=NULL)}}{Extract jackknife isoform switching results}
     \item{\code{divergence(object)}}{Extract divergence results}
     \item{\code{getPlot(object, type=NULL)}}{Retrieve cached plot}
     \item{\code{addPlot(object, type, plot)}}{Add/cache a new plot}

@@ -10,7 +10,7 @@ plot_divergence_distribution_s4(
   output_file = NULL,
   width = 12,
   height = 6,
-  verbose = TRUE,
+  verbose = FALSE,
   ...
 )
 }
@@ -88,10 +88,9 @@ analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose
 = FALSE)
 analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose
 = FALSE)
-analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
-= FALSE)
-analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE)
-p_dist <- plot_divergence_distribution_s4(analysis, verbose = FALSE)
+analysis <- calculate_lm_interaction_s4(analysis, method = 'gam')
+analysis <- effect_sizes_divergence_s4(analysis)
+p_dist <- plot_divergence_distribution_s4(analysis)
 print(p_dist)
 
 }

@@ -128,13 +128,13 @@
 #' # Uncomment to run actual analysis:
 #' # analysis <- TSENATAnalysis(se)
 #' # analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), 
-#' #   verbose = FALSE, nboot = 50)
+#' #   nboot = 50)
 #' # analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), 
-#' #   verbose = FALSE, nboot = 50)
+#' #   nboot = 50)
 #' # analysis <- calculate_lm_interaction_s4(analysis,
-#' #   condition_col = 'condition', verbose = FALSE)
-#' # analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE)
-#' # p <- plot_multi_gene_q_spectrum_s4(analysis, n_genes = 4, verbose = FALSE)
+#' #   condition_col = 'condition')
+#' # analysis <- effect_sizes_divergence_s4(analysis)
+#' # p <- plot_multi_gene_q_spectrum_s4(analysis, n_genes = 4)
 #' # if (!is.null(p)) print(p)
 #'
 #' @seealso \code{\link{calculate_divergence_s4}} for 
@@ -142,7 +142,7 @@
 #'
 #' @export
 plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL, lm_res = NULL, divergence_results_se = NULL,
-    n_genes = 9, ncol = 3, verbose = TRUE, output_file = NULL) {
+    n_genes = 9, ncol = 3, verbose = FALSE, output_file = NULL) {
     
     .load_visualization_deps()
     
@@ -189,7 +189,7 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL, lm_res = NULL, diverge
 }
 
 #' @keywords internal
-.extract_s4_components <- function(analysis, verbose = TRUE) {
+.extract_s4_components <- function(analysis, verbose = FALSE) {
     # Extract lm_results and divergence_results from TSENATAnalysis object
     lm_res <- NULL
     divergence_results_se <- NULL
@@ -214,7 +214,7 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL, lm_res = NULL, diverge
 }
 
 #' @keywords internal
-.select_genes_from_eff_res <- function(eff_res, n_genes, verbose = TRUE) {
+.select_genes_from_eff_res <- function(eff_res, n_genes, verbose = FALSE) {
     # Mode 1: Extract from eff_res$interaction_results
     if (is.null(eff_res) || !is.list(eff_res)) {
         if (verbose) message("[plot_multi_gene_q_spectrum_s4] Mode 1 failed: eff_res is NULL or not a list")
@@ -263,7 +263,7 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL, lm_res = NULL, diverge
 }
 
 #' @keywords internal
-.select_genes_fallback <- function(lm_res, divergence_results_se, n_genes, verbose = TRUE) {
+.select_genes_fallback <- function(lm_res, divergence_results_se, n_genes, verbose = FALSE) {
     # Mode 2: Use lm_res + divergence_results_se
     if (is.null(lm_res) || is.null(divergence_results_se)) return(NULL)
     if (nrow(lm_res) == 0 || nrow(divergence_results_se) == 0) return(NULL)
@@ -295,7 +295,7 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL, lm_res = NULL, diverge
 }
 
 #' @keywords internal
-.create_gene_q_plots <- function(genes, patterns, p_values, verbose = TRUE) {
+.create_gene_q_plots <- function(genes, patterns, p_values, verbose = FALSE) {
     # Create individual q-spectrum plots for each gene
     plot_list <- list()
     

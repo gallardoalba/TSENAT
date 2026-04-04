@@ -98,12 +98,9 @@ config <- tsenat_config(
 analysis <- setConfig(analysis, config)
 
 analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
-verbose = FALSE)
-analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5),
-verbose = FALSE)
-analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
-= FALSE)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
+analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5))
+analysis <- calculate_lm_interaction_s4(analysis, method = 'gam')
 # Note: compute_method_concordance_s4 requires results from both
 # rank_test_q_condition_s4 and test_rankbased_assumptions_s4
 

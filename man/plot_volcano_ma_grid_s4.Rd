@@ -75,13 +75,13 @@ and treatment groups.
 }
 \details{
 This wrapper extracts the difference results data frame from
-\code{analysis@lm_results$difference} and passes it to the base
+\code{analysis@pairwise_results$difference} and passes it to the base
 \code{.plot_volcano_ma_grid()} function.
 
 **Required Data:**
 \itemize{
   \item Differential analysis must be computed via \code{calculate_difference_s4()}
-  \item Results are stored in \code{analysis@lm_results$difference}
+  \item Results are stored in \code{analysis@pairwise_results$difference}
 }
 
 **Expected Columns in Difference Results:**
@@ -130,10 +130,8 @@ gff3_dataset, metadata = metadata_df,
   tpm = tpm, effective_length = effective_length)
 analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 = 200)
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
-verbose = FALSE)
-analysis <- calculate_difference_s4(analysis, control = 'normal', verbose
-= FALSE)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
+analysis <- calculate_difference_s4(analysis, control = 'normal')
   
 # Plot volcano and MA plots
 p <- plot_volcano_ma_grid_s4(analysis, sig_alpha = 0.05, top_n = 3)

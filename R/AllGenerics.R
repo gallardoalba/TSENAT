@@ -36,41 +36,21 @@ NULL
 #' se_retrieved <- getSE(example_analysis)
 #' 
 #' # These accessor methods follow Bioconductor conventions
-#' # divResults, lmRes, jkResults, divRes, getMeta provide structured access
-#' @export
-setGeneric("divResults", function(object, ...) standardGeneric("divResults"))
+#' # lmResults, jeoResults, jisResults, getMeta provide structured access
 
-#' @rdname divResults
-#' @return list containing linear model interaction test results
-#' @export
-setGeneric("lmRes", function(object, ...) standardGeneric("lmRes"))
-
-#' @rdname divResults
-#' @return list containing jackknife diagnostics and confidence intervals
-#' @export
-setGeneric("jkResults", function(object, ...) standardGeneric("jkResults"))
-
-#' @rdname divResults
-#' @return list containing divergence analysis results (effect sizes, p-values)
-#' @export
-setGeneric("divRes", function(object, ...) standardGeneric("divRes"))
-
-#' @rdname divResults
-#' @return list or value containing stored metadata
 #' @export
 setGeneric("getMeta", function(object, ...) standardGeneric("getMeta"))
 
-#' @rdname divResults
-#' @return list containing analysis configuration parameters
 #' @export
 setGeneric("getConfig", function(object, ...) standardGeneric("getConfig"))
 
-#' @rdname divResults
-#' @return ggplot object or NULL if no plot cached
 #' @export
 setGeneric("getPlot", function(object, ...) standardGeneric("getPlot"))
 
-#' @rdname divResults
+#' Add or cache a plot in TSENATAnalysis object
+#'
+#' Cache plots for later retrieval, maintaining analysis visualization history.
+#'
 #' @param type character. Plot type identifier
 #' @param plot ggplot or list. The plot object to cache
 #' @param replace logical. If TRUE, replace existing plot of same type.
@@ -79,7 +59,11 @@ setGeneric("getPlot", function(object, ...) standardGeneric("getPlot"))
 #' @export
 setGeneric("addPlot", function(object, type, plot, replace = FALSE) standardGeneric("addPlot"))
 
-#' @rdname divResults
+#' Extract SummarizedExperiment from TSENATAnalysis
+#'
+#' Retrieve the underlying SummarizedExperiment object containing count data
+#' and sample metadata.
+#'
 #' @return SummarizedExperiment containing count matrix and sample metadata
 #' @export
 setGeneric("getSE", function(object, ...) standardGeneric("getSE"))

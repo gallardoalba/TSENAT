@@ -6,10 +6,10 @@
 #' @return
 #' Methods return different components of TSENATAnalysis:
 #' - getSE: SummarizedExperiment object with count data
-#' - divResults: data.frame or list of diversity values per gene
-#' - lmRes: list of linear model fitting results
-#' - jkResults: list of jackknife diagnostics
-#' - divRes: list of divergence analysis results
+#' - lmResults: list of linear model fitting results
+#' - jackKnife: list of jackknife diagnostics
+#' - diversity: list of SummarizedExperiments (one per q-value) or single SE for specific q
+#' - divergence: list of divergence analysis results
 #' - getMeta: list or atomic value of metadata
 #' - getConfig: list of analysis configuration
 #' - getPlot: ggplot object or NULL
@@ -21,71 +21,24 @@ NULL
 
 #' Access SummarizedExperiment data
 #' @param object TSENATAnalysis object
-#' @rdname divResults
+#' @rdname methods-TSENATAnalysis
 setMethod("getSE", "TSENATAnalysis", function(object) {
     object@se
 })
 
-#' Access diversity results
-#' @param object TSENATAnalysis object
-#' @param q numeric or character. Q-value to extract (e.g., 'q_0.5').
-#'   If NULL, returns all diversity results.
-#' @rdname divResults
-setMethod("divResults", "TSENATAnalysis", function(object, q = NULL) {
-    if (is.null(q)) {
-        return(object@diversity_results)
-    }
-    q_name <- if (is.numeric(q))
-        paste0("q_", q) else q
-    object@diversity_results[[q_name]]
-})
-
 #' Access linear model results
 #' @param object TSENATAnalysis object
-#' @param component character. Component name ('lm_interaction',
-#' 'q_interactions', etc.).
-#'   If NULL, returns all LM results.
-#' @rdname divResults
-setMethod("lmRes", "TSENATAnalysis", function(object, component = NULL) {
-    if (is.null(component)) {
-        return(object@lm_results)
-    }
-    object@lm_results[[component]]
-})
-
-#' Access jackknife results
-#' @param object TSENATAnalysis object
-#' @param q numeric or character. Q-value to extract (e.g., 'q_0.5').
-#'   If NULL, returns all jackknife results.
-#' @rdname divResults
-setMethod("jkResults", "TSENATAnalysis", function(object, q = NULL) {
-    if (is.null(q)) {
-        return(object@jackknife_results)
-    }
-    q_name <- if (is.numeric(q))
-        paste0("q_", q) else q
-    object@jackknife_results[[q_name]]
-})
-
 #' Access divergence results
 #' @param object TSENATAnalysis object
 #' @param component character. Component name ('tsallis_divergence',
 #' 'effect_sizes', etc.).
 #'   If NULL, returns all divergence results.
-#' @rdname divResults
-setMethod("divRes", "TSENATAnalysis", function(object, component = NULL) {
-    if (is.null(component)) {
-        return(object@divergence_results)
-    }
-    object@divergence_results[[component]]
-})
-
 #' Access metadata
 #' @param object TSENATAnalysis object
 #' @param key character. Metadata key to extract (e.g., 'function_calls',
 #' 'effect_sizes_divergence').
 #'   If NULL, returns all metadata.
-#' @rdname divResults
+#' @rdname methods-TSENATAnalysis
 setMethod("getMeta", "TSENATAnalysis", function(object, key = NULL) {
     if (is.null(key)) {
         return(object@metadata)
@@ -98,7 +51,7 @@ setMethod("getMeta", "TSENATAnalysis", function(object, key = NULL) {
 #' @param key character. Config key to extract (e.g., 'q_values',
 #' 'condition_col').
 #'   If NULL, returns entire config.
-#' @rdname divResults
+#' @rdname methods-TSENATAnalysis
 setMethod("getConfig", "TSENATAnalysis", function(object, key = NULL) {
     if (is.null(key)) {
         return(object@config)
@@ -110,7 +63,7 @@ setMethod("getConfig", "TSENATAnalysis", function(object, key = NULL) {
 #' @param object TSENATAnalysis object
 #' @param type character. Plot type (e.g., 'q_curve', 'lm_interaction').
 #'   If NULL, returns all plots.
-#' @rdname divResults
+#' @rdname methods-TSENATAnalysis
 setMethod("getPlot", "TSENATAnalysis", function(object, type = NULL) {
     if (is.null(type)) {
         return(object@plots)
@@ -124,7 +77,7 @@ setMethod("getPlot", "TSENATAnalysis", function(object, type = NULL) {
 #' @param plot ggplot or list. The plot object to cache
 #' @param replace logical. If TRUE, replace existing plot of same type.
 #'   If FALSE (default), warn if plot already exists and do not overwrite.
-#' @rdname divResults
+#' @rdname methods-TSENATAnalysis
 setMethod("addPlot", "TSENATAnalysis", function(object, type, plot, replace = FALSE) {
     if (!replace && type %in% names(object@plots)) {
         warning("Plot type '", type, "' already exists. Set replace=TRUE to overwrite.",

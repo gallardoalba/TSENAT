@@ -14,7 +14,7 @@ build_analysis_s4(
   effective_length = NULL,
   config = list(),
   skip = FALSE,
-  verbose = TRUE
+  verbose = FALSE
 )
 }
 \arguments{
