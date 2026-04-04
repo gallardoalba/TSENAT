@@ -1,0 +1,47 @@
+=== ENGLISH EXPRESSION & GRAMMAR REVIEW ===
+
+POSITIVE FINDINGS:
+✅ Consistent present tense usage for descriptions
+✅ Proper mathematical notation and LaTeX formatting
+✅ Clear section organization with logical flow
+✅ Appropriate academic vocabulary
+✅ Sentences generally well-structured
+✅ Proper citation format ([@Citation] style)
+✅ Code comments are explanatory and clear
+
+FINDINGS TO CHECK:
+1. Line 953-994: Multiple spaces in comments/code (MINOR - code formatting, not prose)
+2. Line 114 (Appendix A): Multiple spaces (MINOR - alignment in data operation)
+
+GRAMMAR SAMPLES TO REVIEW (from first 400 lines):
+
+Line 41: "TSENAT (Tsallis Entropy Analysis Toolbox) quantifies isoform heterogeneity 
+in RNA-seq data using Tsallis entropy—a scale-dependent diversity measure..."
+✅ Good structure, appropriate em-dash
+
+Lines 46-47: "While powerful, these approaches can obscure an important biological 
+phenomenon: genes often change which isoforms they express..."
+✅ Good sentence structure, appropriate colon usage
+
+Line 52: "TSENAT fills this gap by providing a scale-dependent diversity framework..."
+✅ Clear problem-solution flow
+
+Line 55: "By varying `q`, researchers can examine whether changes are driven by..."
+✅ Proper emphasis on key parameter
+
+Line 131: "This unified structure facilitates seamless integration with Bioconductor 
+and provides a clean object-oriented interface."
+✅ Clear, professional language
+
+Line 137: "Tsallis entropy is a one-parameter family of diversity measures that 
+generalizes Shannon entropy via a sensitivity parameter `q`."
+✅ Good technical explanation using proper terms
+
+Line 169: "This Tsallis entropy scale-dependent nature is the key innovation..."
+✅ Clear emphasis of main contribution
+
+Line 230-260: Numbered application sections (Disease biomarker discovery, Cell state 
+transitions, Adaptive responses, Tissue-specific regulation, Precision medicine)
+✅ Clear examples with proper citations
+✅ Good paragraph structure
+

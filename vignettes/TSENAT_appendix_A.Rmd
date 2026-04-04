@@ -7,6 +7,11 @@ output:
         toc: true
         fig_width: 10
         fig_height: 6.5
+    rmarkdown::pdf_document:
+        toc: true
+        fig_width: 10
+        fig_height: 6.5
+        latex_engine: xelatex
 bibliography: TSENAT.bib
 vignette: |
     %\VignetteIndexEntry{TSENAT Validation: SplicingFactory Equivalence}
@@ -84,9 +89,12 @@ Analysis pipeline:
 ### Importing example data
 
 ```{r setup, message=FALSE, warning=FALSE}
-library("SplicingFactory")
-library(TSENAT)
-library("SummarizedExperiment")
+suppressPackageStartupMessages({
+    library("SplicingFactory")
+    library(TSENAT)
+    library("SummarizedExperiment")
+})
+set.seed(12345)
 
 # Load dataset
 data(tcga_brca_luma_dataset)
@@ -420,7 +428,7 @@ shannon_tsenat_top <- format_top_genes(
 knitr::kable(shannon_tsenat_top, row.names = FALSE, caption = "TSENAT (Tsallis q=1) - Top 10 Significant Genes", align = c("l", "r", "r", "r", "r", "r", "r"))
 ```
 
-```{r comparison_volcano_ma_plots, fig.width=14, fig.height=7, message=FALSE, warning=FALSE}
+```{r comparison_volcano_ma_plots, fig.width=14, fig.height=7, message=FALSE, warning=FALSE, fig.cap="Volcano and MA plots comparing Shannon entropy (q=1) equivalence between TSENAT and SplicingFactory. Volcano plots (left) show log-fold change on X-axis and -log10(p-value) on Y-axis, with significant genes highlighted. MA plots (right) display log-average abundance versus log-fold change. Each row compares one method to the other (top: SplicingFactory method, bottom: TSENAT method). Diagonal concordance indicates equivalent statistical testing and effect size estimation between packages."}
 # Create comparison plots: Volcano and MA plots side-by-side for each method
 library(cowplot)
 
@@ -520,7 +528,7 @@ knitr::kable(simpson_tsenat_top, row.names = FALSE, caption = "TSENAT (Tsallis q
 ```
 
 
-```{r comparison_ma_plots, fig.width=14, fig.height=7, message=FALSE, warning=FALSE}
+```{r comparison_ma_plots, fig.width=14, fig.height=7, message=FALSE, warning=FALSE, fig.cap="Volcano and MA plots comparing Simpson index (q=2) equivalence between TSENAT and SplicingFactory. These plots validate that TSENAT's Tsallis entropy at q=2 produces statistically identical results to SplicingFactory's Simpson index implementation. Volcano plots show significance thresholds; MA plots reveal how effect sizes scale with average abundance. Overlapping point clouds and identical significance calls demonstrate mathematical equivalence."}
 # Create individual volcano and MA plots for Simpson/q=2
 # SplicingFactory method for comparison
 simpson_sf <- TSENAT:::.plot_volcano_ma_grid(

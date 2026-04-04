@@ -8,6 +8,12 @@ output:
     fig_width: 10
     fig_height: 6.5
     toc_depth: 2
+  rmarkdown::pdf_document:
+    toc: true
+    fig_width: 10
+    fig_height: 6.5
+    toc_depth: 2
+    latex_engine: xelatex
 bibliography: TSENAT.bib
 vignette: |
   %\VignetteIndexEntry{TSENAT Appendix B: GAM vs Rank-Based Comparison}
@@ -263,7 +269,7 @@ if (nrow(rank_sig) > 0) {
 
 Visualize q-curves for top genes:
 
-```{r friedman-top-genes-qcurve, fig.width=12, fig.height=8, message=FALSE}
+```{r friedman-top-genes-qcurve, fig.width=12, fig.height=8, message=FALSE, fig.cap="Top 4 genes identified by Friedman rank-based test, showing q-curves (Tsallis entropy vs sensitivity parameter q). Curves depict entropy across q-values (0-2) for each group (typically control vs treatment). Friedman test identifies genes where rank patterns differ significantly between paired samples. Q-curves reveal whether group differences manifest uniformly across all diversity scales or are scale-specific (more pronounced at low q or high q)."}
 top_genes_plot <- plot_tsallis_q_curve_s4(analysis, lm_res = friedman_results, n_top = 4)
 print(top_genes_plot)
 ```
@@ -511,7 +517,7 @@ if (!is.null(high_conf) && nrow(high_conf) > 0) {
 
 ## Visualization: Method Comparison
 
-```{r concordance-plot, fig.width=10, fig.height=8}
+```{r concordance-plot, fig.width=10, fig.height=8, fig.cap="Method concordance visualization comparing Friedman rank-based and GAM approaches for detecting q×condition interactions. Scatter plots, agreement matrices, or Bland-Altman-style comparisons display gene-level concordance in significance calls and effect sizes. Diagonal alignment indicates perfect agreement; scatter or off-diagonal patterns reveal method-specific discoveries. Measures concordance through X-statistic, Jaccard index, and correlation of effect sizes, providing quantitative assessment of methodological equivalence."}
 # Create comparison plot using S4 wrapper
 if (!is.null(comparison_df) && nrow(comparison_df) > 0) {
   p <- plot_method_concordance_s4(analysis_with_concordance, verbose = TRUE)
