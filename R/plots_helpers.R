@@ -2235,7 +2235,7 @@ NULL
 #' @param data Data frame with plot data
 #' @param x_col Character: name of x column (default: "q")
 #' @param y_col Character: name of y column (default: "median")
-#' @param group_col Character: name of grouping column (default: "group")
+#' @param group_col Character: optional grouping column (NULL = single series, default: NULL)
 #' @param ci_lower_col Character: name of CI lower column (default: "ci_lower")
 #' @param ci_upper_col Character: name of CI upper column (default: "ci_upper")
 #' @param ribbon_alpha Numeric: ribbon transparency (default: 0.15)
@@ -2243,36 +2243,42 @@ NULL
 #' @param point_size Numeric: point size (default: 3.5)
 #' @param show_points Logical: include geom_point layer? (default: TRUE)
 #'
-#' @return Base ggplot2 object with ribbon/line/point layers
+#' @return Base ggplot2 object with ribbon/line/point layers (unthemed)
 #'
 #' @noRd
 .create_ci_ribbon_plot <- function(data, x_col = "q", y_col = "median",
-                                  group_col = "group",
+                                  group_col = NULL,
                                   ci_lower_col = "ci_lower", 
                                   ci_upper_col = "ci_upper",
                                   ribbon_alpha = 0.15, line_width = 1.2, 
                                   point_size = 3.5, show_points = TRUE) {
     require_pkgs("ggplot2")
     
-    # Build base plot with aesthetics
-    p <- ggplot2::ggplot(data, 
-                        ggplot2::aes(x = .data[[x_col]], y = .data[[y_col]],
-                                    color = .data[[group_col]], 
-                                    fill = .data[[group_col]]))
+    # Build base aesthetics - include group color/fill only if group_col provided and exists
+    if (!is.null(group_col) && group_col %in% colnames(data)) {
+        p <- ggplot2::ggplot(data, 
+                            ggplot2::aes(x = .data[[x_col]], y = .data[[y_col]],
+                                        color = .data[[group_col]], 
+                                        fill = .data[[group_col]]))
+    } else {
+        # No grouping - simple x/y aesthetics
+        p <- ggplot2::ggplot(data, 
+                            ggplot2::aes(x = .data[[x_col]], y = .data[[y_col]]))
+    }
     
     # Add ribbon layer (CI bounds)
     p <- p + ggplot2::geom_ribbon(
         ggplot2::aes(ymin = .data[[ci_lower_col]], 
                     ymax = .data[[ci_upper_col]]),
-        alpha = ribbon_alpha, color = NA
+        alpha = ribbon_alpha, fill = "#4575B4", color = NA
     )
     
     # Add line layer
-    p <- p + ggplot2::geom_line(linewidth = line_width)
+    p <- p + ggplot2::geom_line(linewidth = line_width, color = "#4575B4")
     
     # Add point layer if requested
     if (show_points) {
-        p <- p + ggplot2::geom_point(size = point_size, alpha = 0.8)
+        p <- p + ggplot2::geom_point(size = point_size, alpha = 0.8, color = "#4575B4")
     }
     
     p
@@ -2551,4 +2557,162 @@ NULL
     }
     
     do.call(ggplot2::theme, theme_list)
+}
+
+# ============================================================================
+# PHASE 3 HELPERS: ADVANCED PATTERN CONSOLIDATION
+# ============================================================================
+
+#' Normalize Plot Scales for MA/Volcano Plots
+#'
+#' Consolidates complex scale detection and normalization logic (7x occurrences).
+#' Handles variable column naming conventions and computes normalized positions.
+#'
+#' @param df Data frame with potential fold-change and mean columns
+#' @param fold_col_candidates Character vector of possible fold-change column names
+#' @param mean_col_pattern Character pattern to match mean columns (default: "_mean$|_median$")
+#' @param scale_type Character: "log2fold" (default) or "effect_size"
+#'
+#' @return Data frame with normalized columns: $x_norm, $y_norm, $fold_col, $mean_cols
+#'
+#' @noRd
+.normalize_plot_scales <- function(df, fold_col_candidates = c("log2_fold_change", "logFC", "fold"),
+                                  mean_col_pattern = "_mean$|_median$", scale_type = "log2fold") {
+    require_pkgs(c("dplyr", "rlang"))
+    
+    # Find fold-change column
+    fold_col <- intersect(fold_col_candidates, colnames(df))[1]
+    if (is.na(fold_col)) {
+        warning("No fold-change column found in candidates: ", paste(fold_col_candidates, collapse = ", "))
+        return(NULL)
+    }
+    
+    # Find mean/median columns
+    mean_cols <- grep(mean_col_pattern, colnames(df), value = TRUE, perl = TRUE)
+    if (length(mean_cols) < 2) {
+        warning("Expected 2+ mean/median columns, found: ", length(mean_cols))
+        return(NULL)
+    }
+    
+    # Compute normalized positions
+    df$x_norm <- rowMeans(df[, mean_cols[1:2], drop = FALSE], na.rm = TRUE)
+    df$y_norm <- df[[fold_col]]
+    
+    list(df = df, fold_col = fold_col, mean_cols = mean_cols[1:2])
+}
+
+#' Create Publication-Ready Line Plot
+#'
+#' Consolidates simple line + point layer patterns (8x occurrences).
+#' Creates line + point layers with optional grouping.
+#'
+#' @param data Data frame with x and y columns
+#' @param x_col Character: x-axis column name
+#' @param y_col Character: y-axis column name
+#' @param group_col Character: optional grouping column (NULL = single series with fixed color)
+#' @param points Logical: add point layer (default: TRUE)
+#' @param line_width Numeric: line width (default: 1.2)
+#' @param point_size Numeric: point size (default: 2.5)
+#' @param alpha Numeric: transparency (default: 0.8)
+#' @param line_color Character: fixed line color when no grouping (default: "#4575B4")
+#'
+#' @return ggplot2 object with line and optional point layers (unthemed)
+#'
+#' @noRd
+.create_simple_line_plot <- function(data, x_col, y_col, group_col = NULL,
+                                    points = TRUE, line_width = 1.2, point_size = 2.5,
+                                    alpha = 0.8, line_color = "#4575B4") {
+    require_pkgs("ggplot2")
+    
+    # NO grouping: simple single-series plot with fixed color
+    if (is.null(group_col)) {
+        p <- ggplot2::ggplot(data, ggplot2::aes(x = !!rlang::sym(x_col), 
+                                               y = !!rlang::sym(y_col))) +
+            ggplot2::geom_line(linewidth = line_width, alpha = alpha, color = line_color)
+        
+        if (isTRUE(points)) {
+            p <- p + ggplot2::geom_point(size = point_size, alpha = alpha, color = line_color)
+        }
+        return(p)
+    }
+    
+    # WITH grouping: map color to group column
+    if (!(group_col %in% colnames(data))) {
+        stop("Column '", group_col, "' not found in data")
+    }
+    
+    p <- ggplot2::ggplot(data, ggplot2::aes(x = !!rlang::sym(x_col), 
+                                           y = !!rlang::sym(y_col),
+                                           color = !!rlang::sym(group_col))) +
+        ggplot2::geom_line(linewidth = line_width, alpha = alpha)
+    
+    if (isTRUE(points)) {
+        p <- p + ggplot2::geom_point(size = point_size, alpha = alpha)
+    }
+    
+    p
+}
+
+#' Prepare Grouped Long Format Data with Aggregation
+#'
+#' Consolidates data aggregation + IQR/SD calculation patterns (6x occurrences).
+#' Transforms data from wide format with groups into long format with statistics.
+#'
+#' @param se SummarizedExperiment: input data
+#' @param assay_name Character: assay to transform
+#' @param group_by_col Character: column to group by
+#' @param stat_funcs List of functions: functions to apply (default: median, IQR)
+#'   Named list like list(median = median, iqr = function(x) diff(quantile(x, c(0.25, 0.75))))
+#'
+#' @return Data frame in long format with grouped statistics
+#'   Columns: q (from rownames or metadata), group, value, lower, upper
+#'
+#' @noRd
+.prepare_grouped_long_format <- function(se, assay_name = "diversity", 
+                                        group_by_col = "condition",
+                                        stat_funcs = list(
+                                            median = median,
+                                            iqr = function(x) diff(quantile(x, c(0.25, 0.75), na.rm = TRUE))
+                                        )) {
+    require_pkgs(c("SummarizedExperiment", "dplyr"))
+    
+    # Extract assay
+    assay_mat <- SummarizedExperiment::assay(se, assay_name)
+    
+    # Get group info
+    coldata <- SummarizedExperiment::colData(se)
+    if (!group_by_col %in% colnames(coldata)) {
+        stop("Column '", group_by_col, "' not found in colData")
+    }
+    groups <- coldata[[group_by_col]]
+    
+    # Aggregate by group
+    long_list <- list()
+    
+    for (i in seq_len(nrow(assay_mat))) {
+        gene_name <- rownames(assay_mat)[i]
+        gene_data <- assay_mat[i, ]
+        
+        for (grp in unique(groups)) {
+            grp_indices <- which(groups == grp)
+            grp_values <- gene_data[grp_indices]
+            grp_values <- grp_values[!is.na(grp_values)]
+            
+            if (length(grp_values) > 0) {
+                median_val <- stat_funcs$median(grp_values)
+                iqr_val <- stat_funcs$iqr(grp_values)
+                
+                long_list[[paste0(gene_name, "_", grp)]] <- data.frame(
+                    Gene = gene_name,
+                    group = grp,
+                    value = median_val,
+                    lower = median_val - (iqr_val / 2),
+                    upper = median_val + (iqr_val / 2),
+                    stringsAsFactors = FALSE
+                )
+            }
+        }
+    }
+    
+    do.call(rbind, long_list)
 }
