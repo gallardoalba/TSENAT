@@ -83,10 +83,9 @@ test_that("validObject() catches invalid condition_col", {
         )
     )
     
-    obj <- new("TSENATAnalysis", se = se, config = list(condition_col = "invalid"))
-    
+    # new() calls validObject() automatically, so error is thrown during construction
     expect_error(
-        validObject(obj),
+        new("TSENATAnalysis", se = se, config = list(condition_col = "invalid")),
         "condition_col.*not found"
     )
 })
@@ -103,14 +102,13 @@ test_that("validObject() catches invalid subject_col", {
         )
     )
     
-    obj <- new("TSENATAnalysis", se = se, config = list(
-        condition_col = "condition",
-        paired = TRUE,
-        subject_col = "invalid_subject"
-    ))
-    
+    # new() calls validObject() automatically, so error is thrown during construction
     expect_error(
-        validObject(obj),
+        new("TSENATAnalysis", se = se, config = list(
+            condition_col = "condition",
+            paired = TRUE,
+            subject_col = "invalid_subject"
+        )),
         "subject_col.*not found"
     )
 })
@@ -217,9 +215,16 @@ test_that("Real vignette metadata works with correct config", {
     if (file.exists(metadata_file)) {
         metadata_df <- read.table(metadata_file, header = TRUE, sep = "\t")
         
-        # Create SE with real metadata
+        # Add required sample_id column if not present
+        if (!"sample_id" %in% colnames(metadata_df)) {
+            metadata_df$sample_id <- metadata_df$sample
+        }
+        
+        # Create SE with real metadata matching sample count
+        # Metadata has nrow(metadata_df) samples, so assay must have matching ncol
+        n_samples <- nrow(metadata_df)
         se <- SummarizedExperiment(
-            assays = list(counts = matrix(rpois(1000, 10), nrow = 100, ncol = 10)),
+            assays = list(counts = matrix(rpois(100 * n_samples, 10), nrow = 100, ncol = n_samples)),
             colData = metadata_df
         )
         

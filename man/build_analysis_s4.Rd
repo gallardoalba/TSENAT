@@ -42,8 +42,9 @@ quantification
 \item{assay_name}{Character. Name for the assay (default: 'counts').}
 
 \item{metadata}{Optional data.frame with sample metadata. Should have sample
-names as row names and metadata columns (e.g., sample_type, condition,
-etc.).}
+names as row names and metadata columns (e.g., sample_type, condition, etc.).
+If NULL, will attempt to read from \code{config$metadata}.
+Priority: explicit \code{metadata} argument > \code{config$metadata} > NULL.}
 
 \item{tpm}{Optional matrix of transcript-level TPM values. If provided,
 will be
@@ -54,7 +55,12 @@ lengths
   (e.g., from SALMON). Length should match nrow(readcounts).}
 
 \item{config}{Optional list of configuration parameters to store in the
-TSENATAnalysis object. Useful for tracking analysis parameters.}
+TSENATAnalysis object. Can also contain \code{config$metadata} which will be
+used if the \code{metadata} argument is NULL. Following Bioconductor best practices
+(fail-fast principle), create configuration via \code{\link{tsenat_config}()} FIRST,
+then pass to \code{build_analysis_s4()} at object construction time. This ensures
+invalid parameters are caught immediately, before analysis proceeds.
+See examples below for recommended usage pattern.}
 
 \item{skip}{Logical. If TRUE, allow unmapped transcripts (transcripts not
 found
@@ -176,7 +182,29 @@ print(dim(analysis))
 #   tx2gene = tx2gene,  # data.frame instead of file
 #   metadata = salmon_metadata
 # )
+#
+# Method 4: Pass metadata via config (parameter resolution pattern)
+# cfg <- tsenat_config()
+# cfg$metadata <- metadata
+# analysis_with_config <- build_analysis_s4(
+#   readcounts = counts,
+#   tx2gene = tx2gene,
+#   config = cfg
+#   # Note: metadata argument omitted - will be read from config$metadata
+# )
 }
+
+# Advanced: Assigning metadata to assays after object creation
+# When adding metadata to SummarizedExperiment assays, always use the
+# S4Vectors namespace to ensure proper method dispatch:
+#   
+#   se <- getSE(analysis)
+#   assay_with_ci <- SummarizedExperiment::assay(se, "log2fc_ci")
+#   S4Vectors::metadata(assay_with_ci)$lower <- ci_lower_bounds
+#   S4Vectors::metadata(assay_with_ci)$upper <- ci_upper_bounds
+#
+# Note: Avoid using metadata(assay) without the namespace - this can
+# cause silent failures in S4 object metadata assignment.
 
 }
 \seealso{

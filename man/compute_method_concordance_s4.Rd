@@ -82,12 +82,7 @@ metadata_df <- read.table(
 gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 'TSENAT')
 
-# Build analysis from vignette data (matching TSENAT.Rmd workflow)
-analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
-gff3_dataset, metadata = metadata_df,
-  tpm = tpm, effective_length = effective_length)
-
-# Configure analysis parameters (best practice for reproducibility)
+# Configure analysis parameters first (fail-fast principle)
 config <- tsenat_config(
   condition_col = 'condition',
   subject_col = 'paired_samples',
@@ -95,7 +90,15 @@ config <- tsenat_config(
   control = 'normal',
   metadata = metadata_df
 )
-analysis <- setConfig(analysis, config)
+
+# Build analysis with configured parameters
+analysis <- build_analysis_s4(
+  readcounts = readcounts,
+  tx2gene = gff3_dataset,
+  config = config,
+  tpm = tpm,
+  effective_length = effective_length
+)
 
 analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))

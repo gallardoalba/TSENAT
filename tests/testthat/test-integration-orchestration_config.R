@@ -335,7 +335,7 @@ test_that(".setup_tsenat_parameters overrides config with parameters", {
 
 test_that(".setup_tsenat_parameters uses config condition_col", {
   se <- make_test_se()
-  custom_col <- "my_condition"
+  custom_col <- "condition"  # Use actual column from test data
   analysis <- TSENATAnalysis(se, config = tsenat_config(condition_col = custom_col))
   
   params <- .setup_tsenat_parameters(analysis, NULL, NULL, TRUE, FALSE)
@@ -720,13 +720,13 @@ test_that(".track_analysis_metadata preserves existing metadata", {
 
 test_that(".track_analysis_metadata stores condition_col from config", {
   se <- make_test_se()
-  config <- tsenat_config(condition_col = "treatment")
+  config <- tsenat_config(condition_col = "condition")  # Use actual column from test data
   analysis <- TSENATAnalysis(se, config = config)
   methods_run <- c("diversity")
   
   analysis_tracked <- .track_analysis_metadata(analysis, methods_run, config)
   
-  expect_equal(analysis_tracked@metadata$methods_parameters$condition_col, "treatment")
+  expect_equal(analysis_tracked@metadata$methods_parameters$condition_col, "condition")
 })
 
 # ============================================================================
