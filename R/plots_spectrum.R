@@ -238,22 +238,26 @@
     gene_order <- gene_order[order(gene_order$p_value), ]$gene
     multi_gene_df$gene <- factor(multi_gene_df$gene, levels = gene_order)
 
-    # Build plot with optional bootstrap CI ribbon
-    p <- ggplot2::ggplot(multi_gene_df, ggplot2::aes(x = q, y = divergence))
+    # Use CI ribbon helper for consistent layer styling
+    has_valid_ci <- has_ci_assays && "ci_lower" %in% colnames(multi_gene_df) &&
+        !all(is.na(multi_gene_df$ci_lower)) && !all(is.na(multi_gene_df$ci_upper))
 
-    # Add confidence ribbon if bootstrap CIs are available and valid
-    if (has_ci_assays && "ci_lower" %in% colnames(multi_gene_df) && !all(is.na(multi_gene_df$ci_lower)) &&
-        !all(is.na(multi_gene_df$ci_upper))) {
-        p <- p + ggplot2::geom_ribbon(ggplot2::aes(ymin = ci_lower, ymax = ci_upper),
-            alpha = 0.15, fill = "#4575B4", color = NA)
+    # Build plot using helper - only passes CI columns if they exist and are valid
+    if (has_valid_ci) {
+        p <- .create_ci_ribbon_plot(multi_gene_df, x_col = "q", y_col = "divergence",
+            group_col = NULL, ci_lower_col = "ci_lower", ci_upper_col = "ci_upper",
+            show_points = TRUE)
+    } else {
+        # No CI assays - use simple line plot helper instead
+        p <- .create_simple_line_plot(multi_gene_df, x_col = "q", y_col = "divergence",
+            group_col = NULL, points = TRUE)
     }
 
-    p <- .apply_facet_styling(p, ncol = ncol, facet_var = "gene", scales = "free_y") +
-        ggplot2::geom_line(color = "#4575B4", linewidth = 1.2, alpha = 0.8) +
-        ggplot2::geom_point(color = "#4575B4", size = 3, alpha = 0.8)
+    # Apply faceting and styling
+    p <- .apply_facet_styling(p, ncol = ncol, facet_var = "gene", scales = "free_y")
     p <- .apply_publication_theme(p, base_theme = "theme_base", base_size = 11,
         title = "Divergence Spectra: Per-gene Comparisons",
-        subtitle = if (has_ci_assays && "ci_lower" %in% colnames(multi_gene_df)) {
+        subtitle = if (has_valid_ci) {
             paste0("Ranked by interaction significance (", metric, ") | Bootstrap CI (95%)")
         } else {
             paste0("Ranked by interaction significance (", metric, ")")

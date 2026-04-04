@@ -311,13 +311,16 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL, lm_res = NULL, diverge
             plot_df <- data.frame(q = q_vals, divergence = per_q_vals, stringsAsFactors = FALSE)
             
             p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = q, y = divergence)) +
-                .theme_base(base_size = 11) + ggplot2::geom_line(color = "#4575B4", linewidth = 1.2) +
+                .theme_base(base_size = 11) +
+                ggplot2::geom_line(color = "#4575B4", linewidth = 1.2) +
                 ggplot2::geom_point(color = "#4575B4", size = 2.8, alpha = 0.8) +
                 ggplot2::geom_vline(xintercept = 1, linetype = 3, color = "gray60", linewidth = 0.8, alpha = 0.7) +
                 ggplot2::labs(title = genes[i], subtitle = sprintf("adj p = %.2e", p_values[i]),
                     x = "q (Tsallis parameter)", y = "Tsallis Divergence D[q]") +
-                ggplot2::theme(plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 10, color = "gray40",
-                    margin = ggplot2::margin(b = 8)), plot.margin = ggplot2::margin(t = 8, b = 8, l = 6, r = 6),
+                ggplot2::theme(plot.title = ggplot2::element_text(size = .font_sizes$title, face = "bold", hjust = 0.5),
+                    plot.subtitle = ggplot2::element_text(hjust = 0.5, size = .font_sizes$subtitle, color = "gray40",
+                        margin = ggplot2::margin(b = 8)),
+                    plot.margin = ggplot2::margin(t = 8, b = 8, l = 6, r = 6),
                     panel.grid.major = ggplot2::element_line(color = "gray92", linewidth = 0.25),
                     axis.text = ggplot2::element_text(size = .font_sizes$axis_text),
                     axis.title = ggplot2::element_text(size = .font_sizes$axis_title, face = "plain"))

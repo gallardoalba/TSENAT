@@ -58,33 +58,39 @@
 
     # Create comparison plot
     p1 <- ggplot2::ggplot(comparison_df, ggplot2::aes(x = -log10(p_gam), y = -log10(p_friedman),
-        color = agreement)) + ggplot2::geom_point(size = 2.5, alpha = 0.6) + ggplot2::geom_vline(xintercept = -log10(0.05),
-        linetype = "dashed", color = "gray50") + ggplot2::geom_hline(yintercept = -log10(0.05),
-        linetype = "dashed", color = "gray50") + ggplot2::scale_color_manual(values = c(`Both significant` = "#2ecc71",
-        `GAM only` = "#3498db", `Friedman only` = "#e74c3c", `Neither significant` = "#95a5a6"),
-        breaks = c("Both significant", "GAM only", "Friedman only", "Neither significant")) +
-        ggplot2::labs(title = "Method Concordance", x = "-log10(p-value, GAM)", y = "-log10(p-value, Friedman)",
-            color = "Significance") + ggplot2::theme_minimal() + ggplot2::theme(plot.title = ggplot2::element_text(face = "plain",
-        size = 14), legend.position = "bottomright", panel.grid.major = ggplot2::element_line(color = "gray90"))
+        color = agreement)) +
+        ggplot2::geom_point(size = 2.5, alpha = 0.6) +
+        ggplot2::geom_vline(xintercept = -log10(0.05), linetype = "dashed", color = "gray50") +
+        ggplot2::geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "gray50") +
+        ggplot2::scale_color_manual(values = c(`Both significant` = "#2ecc71", `GAM only` = "#3498db",
+            `Friedman only` = "#e74c3c", `Neither significant` = "#95a5a6"),
+            breaks = c("Both significant", "GAM only", "Friedman only", "Neither significant")) +
+        ggplot2::labs(title = "Method Concordance", x = "-log10(p-value, GAM)", y = "-log10(p-value, Friedman)", color = "Significance") +
+        .theme_base(base_size = 11) +
+        ggplot2::theme(plot.title = ggplot2::element_text(size = 12, face = "plain", hjust = 0.5),
+            legend.position = "bottomright", panel.grid.major = ggplot2::element_line(color = "gray90"))
 
     # P-value distribution comparison
     p_long <- data.frame(p_value = c(comparison_df$p_gam, comparison_df$p_friedman),
         method = c(rep("GAM", nrow(comparison_df)), rep("Friedman", nrow(comparison_df))),
         stringsAsFactors = FALSE)
 
-    p2 <- ggplot2::ggplot(p_long, ggplot2::aes(x = p_value, fill = method)) + ggplot2::geom_histogram(bins = 30,
-        alpha = 0.6, position = "identity") + ggplot2::scale_fill_manual(values = c(GAM = "#3498db",
-        Friedman = "#e74c3c")) + ggplot2::labs(title = "P-value Distributions", x = "P-value",
-        y = "Frequency", fill = "Method") + ggplot2::theme_minimal() + ggplot2::theme(plot.title = ggplot2::element_text(face = "plain",
-        size = 12))
+    p2 <- ggplot2::ggplot(p_long, ggplot2::aes(x = p_value, fill = method)) +
+        ggplot2::geom_histogram(bins = 30, alpha = 0.6, position = "identity") +
+        ggplot2::scale_fill_manual(values = c(GAM = "#3498db", Friedman = "#e74c3c")) +
+        ggplot2::labs(title = "P-value Distributions", x = "P-value", y = "Frequency", fill = "Method") +
+        .theme_base(base_size = 11) +
+        ggplot2::theme(plot.title = ggplot2::element_text(size = 12, face = "plain", hjust = 0.5))
 
     # Combine plots with global title using cowplot approach
     main_grid <- gridExtra::arrangeGrob(p1, p2, ncol = 2)
 
     # Add global title with subtitle
-    title_gg <- cowplot::ggdraw() + cowplot::draw_label("Comparing interaction detection across two statistical methods",
-        fontface = "bold", size = 16, x = 0.5, y = 0.75) + cowplot::draw_label("Concordance analysis between GAM and Friedman tests",
-        fontface = "italic", size = 12, x = 0.5, y = 0.45, color = "gray40")
+    title_gg <- cowplot::ggdraw() +
+        cowplot::draw_label("Comparing interaction detection across two statistical methods",
+            fontface = "bold", size = .font_sizes$title, x = 0.5, y = 0.75) +
+        cowplot::draw_label("Concordance analysis between GAM and Friedman tests",
+            fontface = "italic", size = .font_sizes$subtitle, x = 0.5, y = 0.45, color = "gray40")
 
     # Combine all elements and convert to grob
     final_plot <- cowplot::plot_grid(title_gg, main_grid, nrow = 2, rel_heights = c(0.15,

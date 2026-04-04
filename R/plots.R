@@ -185,22 +185,18 @@ if (getRversion() >= "2.15.1") {
     require_pkgs(c("ggplot2"))
 
     df <- as.data.frame(x, stringsAsFactors = FALSE)
-    # ensure a gene identifier column exists Support both new 'gene_id' and
-    # legacy 'genes' column names
+    # Ensure gene identifier column exists
     if (!("genes" %in% colnames(df))) {
         if ("gene_id" %in% colnames(df)) {
-            # Rename gene_id to genes for backward compatibility with plotting
-            # code
             df$genes <- df$gene_id
         } else if (!is.null(rownames(df))) {
             df$genes <- rownames(df)
         }
     }
 
-    # If an external fc_df is provided, merge fold values into df
+    # If external fc_df provided, merge fold values
     if (!is.null(fc_df)) {
         fdf <- as.data.frame(fc_df, stringsAsFactors = FALSE)
-        # Support both 'gene_id' and 'genes' column names
         if (!("genes" %in% colnames(fdf))) {
             if ("gene_id" %in% colnames(fdf)) {
                 fdf$genes <- fdf$gene_id
@@ -213,68 +209,55 @@ if (getRversion() >= "2.15.1") {
         }
         df <- merge(df, fdf[, c("genes", "log2_fold_change")], by = "genes", all.x = TRUE,
             suffixes = c("", ".fc"))
-        # prefer fc_df fold values when present
         if ("log2_fold_change.fc" %in% colnames(df))
             df$log2_fold_change <- ifelse(!is.na(df$log2_fold_change.fc), df$log2_fold_change.fc,
                 df$log2_fold_change)
     }
 
-    # Detect fold-change column
-    fold_candidates <- c("log2_fold_change", "logFC", "fold", "estimate_interaction",
-        "fold_change")
-    fold_col <- intersect(fold_candidates, colnames(df))
-    if (length(fold_col) == 0)
-        stop("Could not find a fold-change column in input")
+    # Use helper for fold/mean column detection
+    fold_col_candidates <- c("log2_fold_change", "logFC", "fold", "estimate_interaction", "fold_change")
+    fold_col <- intersect(fold_col_candidates, colnames(df))
+    if (length(fold_col) == 0) stop("Could not find a fold-change column in input")
     fold_col <- fold_col[1]
 
-    # Detect mean/average columns for x-axis
-    mean_cols <- grep("_mean$|_median$", colnames(df), value = TRUE)
-    if (length(mean_cols) >= 2) {
-        # ensure the two chosen columns are consistent (both _mean or both
-        # _median)
-        c1 <- mean_cols[1]
-        c2 <- mean_cols[2]
-        is_mean1 <- grepl("_mean$", c1)
-        is_mean2 <- grepl("_mean$", c2)
-        is_med1 <- grepl("_median$", c1)
-        is_med2 <- grepl("_median$", c2)
-        if (!((is_mean1 && is_mean2) || (is_med1 && is_med2))) {
-            stop("Could not find two mean or two median columns")
-        }
-        xvals <- rowMeans(df[, mean_cols[seq_len(2)], drop = FALSE], na.rm = TRUE)
-        x_label <- x_label %||% paste0(mean_cols[1], " vs ", mean_cols[2])
-    } else if (length(mean_cols) == 1) {
-        xvals <- as.numeric(df[[mean_cols[1]]])
-        x_label <- x_label %||% mean_cols[1]
-    } else if ("mean" %in% colnames(df)) {
-        xvals <- as.numeric(df$mean)
-        x_label <- x_label %||% "Mean"
-    } else {
-        # fallback: use rank or index
-        xvals <- seq_len(nrow(df))
-        x_label <- x_label %||% "Index"
-    }
-
-    yvals <- as.numeric(df[[fold_col]])
-
-    # p-value / adjusted p-value detection
+    # Detect p-value column for significance flagging
     padj_candidates <- c("padj", "adjusted_p_values", "adj_p_value", "adj_p", "p.adjust")
     padj_col <- intersect(padj_candidates, colnames(df))
-    padj_col <- if (length(padj_col))
-        padj_col[1] else NULL
-
-    padj <- if (!is.null(padj_col))
-        as.numeric(df[[padj_col]]) else rep(1, length(yvals))
+    padj_col <- if (length(padj_col)) padj_col[1] else NULL
+    padj <- if (!is.null(padj_col)) as.numeric(df[[padj_col]]) else rep(1, nrow(df))
     padj[is.na(padj)] <- 1
 
-    sig_flag <- ifelse(abs(yvals) > 0 & padj < sig_alpha, "significant", "non-significant")
+    # Validate mean/median column consistency
+    mean_cols <- grep("_mean$", colnames(df), ignore.case = TRUE, value = TRUE)
+    median_cols <- grep("_median$", colnames(df), ignore.case = TRUE, value = TRUE)
+    
+    if (length(mean_cols) > 0 && length(median_cols) > 0) {
+        stop("Could not find two mean or two median columns - found both mean and median columns. ",
+            "Ensure input contains either mean columns (e.g., A_mean, B_mean) OR median columns (e.g., A_median, B_median), not both.")
+    }
+    
+    if (length(mean_cols) > 0 && length(mean_cols) < 2) {
+        stop("Could not find two mean or two median columns - found ", length(mean_cols), " mean column(s). ",
+            "Ensure input contains at least two mean columns (e.g., A_mean, B_mean).")
+    }
+    
+    if (length(median_cols) > 0 && length(median_cols) < 2) {
+        stop("Could not find two mean or two median columns - found ", length(median_cols), " median column(s). ",
+            "Ensure input contains at least two median columns (e.g., A_median, B_median).")
+    }
+    
+    # Determine which columns to use for mean calculation
+    mean_cols_to_use <- if (length(mean_cols) > 0) mean_cols else if (length(median_cols) > 0) median_cols else NULL
 
-    plot_df <- data.frame(genes = df$genes, x = xvals, y = yvals, padj = padj, significant = sig_flag,
-        stringsAsFactors = FALSE)
-
-    prep <- .prepare_ma_plot_df(df, fold_col = fold_col, mean_cols = mean_cols, x_label = x_label,
+    # Prepare MA plot data with label formatting
+    prep <- .prepare_ma_plot_df(df, fold_col = fold_col, mean_cols = mean_cols_to_use, x_label = x_label,
         y_label = y_label)
     plot_df <- prep$plot_df
+    plot_df$padj <- padj[match(plot_df$genes, df$genes)]
+    plot_df$significant <- ifelse(abs(plot_df$y) > 0 & plot_df$padj < sig_alpha,
+        "significant", "non-significant")
+
+    # Format labels
     x_label_formatted <- .format_label(prep$x_label)
     y_label_raw <- prep$y_label %||% fold_col
     y_label_formatted <- .format_label(y_label_raw)
@@ -282,10 +265,15 @@ if (getRversion() >= "2.15.1") {
         y_label_formatted <- sub("\\blog2\\b", "log10", y_label_formatted, ignore.case = TRUE)
     }
 
+    # Build plot with significance coloring
     p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = x, y = y, color = significant)) +
-        ggplot2::geom_point(alpha = 0.75, size = 3.2) + ggplot2::scale_color_manual(values = .significance_colors(),
-        guide = "none") + ggplot2::labs(title = title %||% "MA plot: mean vs log10 fold-change",
-        x = x_label_formatted, y = y_label_formatted) + .theme_base(base_size = 11) +
+        ggplot2::geom_point(alpha = 0.75, size = 3.2) +
+        ggplot2::scale_color_manual(values = .significance_colors(), guide = "none") +
+        ggplot2::labs(x = x_label_formatted, y = y_label_formatted)
+
+    # Apply publication theme and settings
+    p <- .apply_publication_theme(p, title = title %||% "MA plot: mean vs log10 fold-change",
+        base_size = 11) +
         ggplot2::theme(axis.title = ggplot2::element_text(face = "bold"))
 
     p
@@ -340,13 +328,16 @@ if (getRversion() >= "2.15.1") {
     # Set title
     title_use <- title %||% sprintf("Violin plot: Tsallis entropy at q = %g", q_val)
 
-    # Create violin plot
-    ggplot2::ggplot(long, ggplot2::aes(x = group, y = tsallis, fill = group)) + ggplot2::geom_violin(alpha = 0.5,
-        width = 0.7, position = ggplot2::position_dodge(width = 0.8)) + ggplot2::geom_boxplot(width = 0.2,
-        position = ggplot2::position_dodge(width = 0.8), outlier.shape = NA, alpha = 0.8) +
-        .theme_base(base_size = 11) + ggplot2::scale_fill_manual(values = .palette_blue_red(),
-        name = "Group", guide = "none") + ggplot2::labs(title = title_use, x = "Group",
-        y = "Tsallis entropy", fill = "Group") + ggplot2::theme(axis.title = ggplot2::element_text(size = .font_sizes$axis_title))
+    # Create violin plot with publication theme
+    ggplot2::ggplot(long, ggplot2::aes(x = group, y = tsallis, fill = group)) +
+        ggplot2::geom_violin(alpha = 0.5, width = 0.7, position = ggplot2::position_dodge(width = 0.8)) +
+        ggplot2::geom_boxplot(width = 0.2, position = ggplot2::position_dodge(width = 0.8),
+            outlier.shape = NA, alpha = 0.8) +
+        ggplot2::scale_fill_manual(values = .palette_blue_red(), name = "Group", guide = "none") +
+        .theme_base(base_size = 11) +
+        ggplot2::labs(title = title_use, x = "Group", y = "Tsallis entropy", fill = "Group") +
+        ggplot2::theme(plot.title = ggplot2::element_text(size = .font_sizes$title, face = "bold", hjust = 0.5),
+            axis.title = ggplot2::element_text(size = .font_sizes$axis_title, face = "bold"))
 }
 
 
@@ -398,13 +389,16 @@ if (getRversion() >= "2.15.1") {
     # Set title
     title_use <- title %||% sprintf("Density plot: Tsallis entropy at q = %g", q_val)
 
-    # Create density plot
+    # Create density plot with publication theme
     ggplot2::ggplot(long, ggplot2::aes(x = tsallis, color = group, fill = group)) +
-        ggplot2::geom_density(alpha = 0.3, linewidth = 1) + .theme_base(base_size = 11) +
+        ggplot2::geom_density(alpha = 0.3, linewidth = 1) +
         ggplot2::scale_color_manual(values = .palette_blue_red(), name = "Group") +
         ggplot2::scale_fill_manual(values = .palette_blue_red(), name = "Group") +
+        .theme_base(base_size = 11) +
         ggplot2::labs(title = title_use, x = "Tsallis entropy", y = "Density", color = "Group",
-            fill = "Group") + ggplot2::theme(axis.title = ggplot2::element_text(size = .font_sizes$axis_title))
+            fill = "Group") +
+        ggplot2::theme(plot.title = ggplot2::element_text(size = .font_sizes$title, face = "bold", hjust = 0.5),
+            axis.title = ggplot2::element_text(size = .font_sizes$axis_title, face = "bold"))
 }
 
 
@@ -555,12 +549,15 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
     title_use <- prep_volcano$title_use
 
     p <- ggplot2::ggplot(df, ggplot2::aes(x = xval, y = -log10(padj), color = significant)) +
-        ggplot2::geom_point(alpha = 0.75, size = 3.4) + ggplot2::scale_color_manual(values = .significance_colors(),
-        guide = "none") + ggplot2::geom_hline(yintercept = -log10(sig_alpha), linetype = "dashed",
-        color = "gray50") + ggplot2::geom_vline(xintercept = c(-label_thresh, label_thresh),
-        linetype = "dashed", color = "gray50") + ggplot2::labs(title = title_use,
-        x = x_label_formatted, y = paste0("-Log10(", padj_label_formatted, ")")) +
-        .theme_base(base_size = 11) + ggplot2::theme(axis.title = ggplot2::element_text(face = "bold"))
+        ggplot2::geom_point(alpha = 0.75, size = 3.4) +
+        ggplot2::scale_color_manual(values = .significance_colors(), guide = "none") +
+        ggplot2::geom_hline(yintercept = -log10(sig_alpha), linetype = "dashed", color = "gray50") +
+        ggplot2::geom_vline(xintercept = c(-label_thresh, label_thresh), linetype = "dashed",
+            color = "gray50") +
+        ggplot2::labs(title = title_use, x = x_label_formatted, y = paste0("-Log10(", padj_label_formatted, ")")) +
+        .theme_base(base_size = 11) +
+        ggplot2::theme(plot.title = ggplot2::element_text(size = .font_sizes$title, face = "bold", hjust = 0.5),
+            axis.title = ggplot2::element_text(size = .font_sizes$axis_title, face = "bold"))
 
     p
 }
@@ -1373,21 +1370,24 @@ if (getRversion() >= "2.15.1") {
         return(invisible(NULL))
     }
 
-    # Create visualization of effect size distribution
+    # Create visualization of effect size distribution with publication theme
     p_effect <- ggplot2::ggplot(plot_data, ggplot2::aes(x = .data[[median_col]])) +
         ggplot2::geom_histogram(binwidth = 0.02, fill = .palette_blue_red()[1], alpha = 0.7,
-            color = "black") + ggplot2::geom_vline(xintercept = threshold, linetype = "dashed",
-        color = "red", linewidth = 1) + ggplot2::labs(title = expression("Distribution of Tsallis Divergence (" ~
-        D[q] ~ ") effect sizes across genes"), subtitle = "Information-theoretic measure respecting Tsallis multi-q entropy properties",
-        x = bquote("Effect size (Tsallis Divergence" ~ D[q] ~ "; D >" ~ .(threshold) ~
-            "= meaningful information separation)"), y = "Number of genes", caption = paste("Red dashed line: D =",
-            threshold, "filtering threshold (information-theoretic significance for q-dependent entropy)")) +
-        .theme_base(base_size = 11) + ggplot2::theme(plot.title = ggplot2::element_text(size = .font_sizes$title,
-        face = "bold", hjust = 0.5), plot.subtitle = ggplot2::element_text(face = "italic",
-        size = .font_sizes$subtitle, hjust = 0.5), panel.grid.major = ggplot2::element_line(color = "gray90")) +
+            color = "black") +
+        ggplot2::geom_vline(xintercept = threshold, linetype = "dashed", color = "red", linewidth = 1) +
+        ggplot2::labs(title = expression("Distribution of Tsallis Divergence (" ~
+            D[q] ~ ") effect sizes across genes"),
+            subtitle = "Information-theoretic measure respecting Tsallis multi-q entropy properties",
+            x = bquote("Effect size (Tsallis Divergence" ~ D[q] ~ "; D >" ~ .(threshold) ~
+                "= meaningful information separation)"),
+            y = "Number of genes",
+            caption = paste("Red dashed line: D =", threshold, "filtering threshold (information-theoretic significance for q-dependent entropy)")) +
+        .theme_base(base_size = 11) +
+        ggplot2::theme(plot.title = ggplot2::element_text(size = .font_sizes$title, face = "bold", hjust = 0.5),
+            plot.subtitle = ggplot2::element_text(size = .font_sizes$subtitle, face = "italic", hjust = 0.5),
+            panel.grid.major = ggplot2::element_line(color = "gray90")) +
         ggplot2::annotate("text", x = threshold, y = Inf, label = paste("Information\nthreshold\n(D=",
-            threshold, ")", sep = ""), vjust = 1.5, hjust = -0.1, color = "red",
-            size = 3.5)
+            threshold, ")", sep = ""), vjust = 1.5, hjust = -0.1, color = "red", size = 3.5)
 
     return(p_effect)
 }
