@@ -170,7 +170,7 @@
 #' described in papers S004-S006 (Bayesian shrinkage methods), improving
 #' stability
 #'   for genes with few expressed isoforms.
-#' [OK] Bootstrap properties: Papers C030, S018, S030 show that entropy
+#' [OK] Bootstrap properties: Papers Li (2023), R Package 'hillR', S018, S030 show that entropy
 #' estimates with
 #' pseudocount >= 0.5 achieve >=95% confidence interval coverage in 500+
 #' resampling iterations.

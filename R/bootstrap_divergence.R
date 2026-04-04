@@ -119,7 +119,7 @@
 #' - **S063-S067** (Power analysis): Empirical validation of divergence-based
 #' statistical power. Bootstrap methodology confirmed to maintain Type I
 #' error control.
-#' - **C016, C030, S018, S030** (Bootstrap methodology): Percentile and BCa
+#' - **Ramsay (2005), Springer Series in Statistics, Li (2023), R Package 'hillR', S018, S030** (Bootstrap methodology): Percentile and BCa
 #' bootstrap
 #' performance validated. Coverage probabilities for entropy/divergence
 #' estimates
@@ -131,7 +131,7 @@
 #'
 #' This function's implementation (percentile and BCa methods) aligns with
 #' approaches
-#' validated in papers C016, S018, S030. Effect sizes from divergence are robust
+#' validated in papers Ramsay (2005), Springer Series in Statistics, S018, S030. Effect sizes from divergence are robust
 #' across q-values and reproducible in bootstrap resampling (papers S063-S067).
 #'
 #' @examples

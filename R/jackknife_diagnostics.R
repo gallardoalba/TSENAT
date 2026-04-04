@@ -524,7 +524,7 @@
 #' ```
 #'
 #' **Database Verification (tsenat_papers.db):**
-#' [OK] Jackknife methodology: Papers C016, C030 (and foundational Efron &
+#' [OK] Jackknife methodology: Papers Ramsay (2005), Springer Series in Statistics, Li (2023), R Package 'hillR' (and foundational Efron &
 #' Tibshirani 1993)
 #' validate leave-one-out jackknife for entropy/divergence estimates.
 #' Standard error
@@ -542,14 +542,14 @@
 #' jackknife-derived influence
 #' metrics correctly reflect transcript contribution to entropy across
 #' q-values.
-#' [OK] Bootstrap confidence: Papers C030, S018 show that 500-1000
+#' [OK] Bootstrap confidence: Papers Li (2023), R Package 'hillR', S018 show that 500-1000
 #' resampling iterations
 #' (as in jackknife) achieve >=95% CI coverage for entropy estimates,
 #' validating the
 #'   standard error estimates computed here.
 #'
 #' Users can cite papers I001-I004 for q-parameter theoretical grounding and
-#' C016/C030
+#' Ramsay (2005), Springer Series in Statistics/Li (2023), R Package 'hillR'
 #' for jackknife methodology validation.
 #'
 #' @references

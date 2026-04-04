@@ -30,7 +30,7 @@
 #                     * "spline": Controlled smoothness with manual constraints
 #   bias_correction - Logical. If TRUE, applies small-sample adjustment for
 #                     n_observations < 20. Accounts for ARIMA(1,1,0) structure
-#                     when subject is provided. Reference: C071 (GAM smoothing bias)
+#                     when subject is provided. Reference: Hastie & Tibshirani (2015), Generalized Additive Models (GAM smoothing bias)
 #   adaptive_knots  - Logical. If TRUE, adapts spline basis dimension (k) based
 #                     on sample size and q-value complexity. Default TRUE.
 #   weights         - Optional numeric vector of observation weights. Useful for:
@@ -116,9 +116,9 @@
 #   * AR(1) formula: Uses D_eff = (1+rho)/(1-rho), NOT Kish exchangeable formula
 #
 # REFERENCES:
-#   C071: GAM smoothing bias in small samples (Hastie & Tibshirani)
-#   C042-C043: mgcv documentation and GAMM tutorial
-#   S223: Information entropy of generalized beta distribution (for Beta regression)
+#   Hastie & Tibshirani (2015), Generalized Additive Models: GAM smoothing bias in small samples (Hastie & Tibshirani)
+#   Wood (2024), Package 'mgcv': Mixed GAM Computation Vehicle-Wood (2024), CRAN R Package 'mgcv': mgcv documentation and GAMM tutorial
+#   Lambadaris et al. (2023), ITM Web of Conferences: Information entropy of generalized beta distribution (for Beta regression)
 #
 .gam_interaction <- function(df, q_vals, g, min_obs = 10, subject = NULL, 
                              regularization = c("pca", "gamsel", "spline"),
@@ -337,7 +337,7 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
     # GAMM COMPATIBILITY FIX (March 2026): mgcv::gamm() does NOT support
     # extended families (beta, gamma, Tweedie, etc.). For paired designs
     # (subject != NULL -> uses gamm), fall back to gaussian family instead of
-    # extended families.  Reference: C042/C043 (GAMM Tutorial, mgcv
+    # extended families.  Reference: Wood (2024), Package 'mgcv': Mixed GAM Computation Vehicle/Wood (2024), CRAN R Package 'mgcv' (GAMM Tutorial, mgcv
     # Documentation)
 
     use_bounded_family <- bounded_result$use_gamma
@@ -1014,7 +1014,7 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
 
 
 # GAM bias correction helper: adjusts for smoothing bias in small samples
-# (C071) When n_samples < 20, small sample smoothing can inflate Type I error
+# (Hastie & Tibshirani (2015), Generalized Additive Models) When n_samples < 20, small sample smoothing can inflate Type I error
 # rates Applies degrees of freedom adjustment based on sample size
 .gam_bias_correct <- function(p_value, n_observations = NULL, n_samples = NULL, n_subjects = NULL,
     ar1_correlation = TRUE, bias_correction = TRUE, entropy_data = NULL, subject_data = NULL) {
@@ -1105,7 +1105,7 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
     }
 
     # Bias correction decision: use raw observation count rather than
-    # ARIMA-adjusted effective units.  Historical tests (and published C071
+    # ARIMA-adjusted effective units.  Historical tests (and published Hastie & Tibshirani (2015), Generalized Additive Models
     # guidance) trigger correction when the number of samples is small (<20);
     # the original implementation compared against n_eff, which under AR(1)
     # dependency could fall below 20 even for reasonably large datasets and
@@ -1121,7 +1121,7 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
                 if (data_driven_rho) "[data-driven]" else "[default]")))
     }
 
-    # For small samples (n_eff < 20), smoothing bias can affect p-values (C071)
+    # For small samples (n_eff < 20), smoothing bias can affect p-values (Hastie & Tibshirani (2015), Generalized Additive Models)
     # Apply conservative adjustment accounting for ARIMA(1,1,0) structure
 
     if (is.na(p_value)) {
@@ -1137,7 +1137,7 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
     adjustment_factor <- 1 + (20 - n_eff)/20
 
     # Apply multiplicative adjustment (Bonferroni-style, conservative for GAM
-    # smoothing bias) Reference: C071 (empirical correction for GAM smoothing
+    # smoothing bias) Reference: Hastie & Tibshirani (2015), Generalized Additive Models (empirical correction for GAM smoothing
     # bias in small samples) This is more conservative than K-C correction but
     # appropriate for GAM bias
     p_corrected <- min(p_value * adjustment_factor, 1)
@@ -1153,8 +1153,8 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
 
 # GAM regularization helper: applies spline constraints or GAMSEL for variable
 # selection Supports pca (no regularization), gamsel (automatic variable
-# selection), and spline (controlled smoothness) modes. Based on papers C057,
-# C063, C065, C082, C083.
+# selection), and spline (controlled smoothness) modes. Based on papers Chouldechova & Hastie (2015), Annals of Applied Statistics,
+# C063, C065, CRAN R Package 'gamsel' (2023), Chouldechova & Hastie (1986), Annals of Applied Statistics.
 .gam_regularization <- function(entropy_vals, q_vals, group_vec, regularization = c("pca",
     "gamsel", "spline")) {
     regularization <- match.arg(regularization)
@@ -1201,8 +1201,8 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
 # Helper: Handle bounded support for Tsallis entropy via appropriate GAM family
 # selection Tsallis entropy is bounded [0, log(m)] where m = number of isoforms
 # Priority: Beta (if [0,1]) > Gamma (if heteroscedastic) > Gaussian (default)
-# Database Support (March 2026): - S223: 'Information entropy of generalized
-# beta distribution' - S220-S222: Beta regression applications with robustness
+# Database Support (March 2026): - Lambadaris et al. (2023), ITM Web of Conferences: 'Information entropy of generalized
+# beta distribution' - Capelletti et al. (2024), Beta regression for wind power modeling-Lasso Penalization for High-Dimensional Beta Regression (2023): Beta regression applications with robustness
 # validation
 .handle_bounded_support <- function(df, q_vals, group_vec = NULL, verbose = FALSE) {
     # ========================================================================
@@ -1271,12 +1271,12 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
     reasons <- c()
 
     # *** PRIORITY 1: Use Beta if data is [0,1] bounded *** Beta regression is
-    # mathematically ideal for bounded (0,1) data Database paper S223:
+    # mathematically ideal for bounded (0,1) data Database paper Lambadaris et al. (2023), ITM Web of Conferences:
     # 'Information entropy of the generalized beta distribution'
     if (is_bounded_01) {
         use_beta <- TRUE
         family_choice <- "beta"
-        reasons <- c(reasons, "Data bounded in [0,1] - Beta regression ideal (S223)")
+        reasons <- c(reasons, "Data bounded in [0,1] - Beta regression ideal (Lambadaris et al. (2023), ITM Web of Conferences)")
     } else {
         # *** PRIORITY 2: Use Gamma if strong evidence of non-Gaussian behavior
         # *** Criterion 1: Strong heteroscedasticity (p < 0.05) AND variance

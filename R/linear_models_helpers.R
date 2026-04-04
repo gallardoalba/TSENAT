@@ -226,8 +226,8 @@
 # ===============================================================================
 # RESIDUAL DIAGNOSTICS: Shapiro-Wilk Normality Testing
 # ===============================================================================
-# DATABASE EVIDENCE (March 2026): * B001 (2001) - Foundations of Systems
-# Biology * B004 (2008) - LINEAR MODELS IN [Systems Biology] * C017 (2006) -
+# DATABASE EVIDENCE (March 2026): * Alberghina & Westerhoff (2001), Systems Biology (2001) - Foundations of Systems
+# Biology * B004 (2008) - LINEAR MODELS IN [Systems Biology] * Springer Handbook (2006) (2006) -
 # Springer Handbook of Statistical Methods Purpose: Verify that residuals from
 # GAM/LMM/GEE models satisfy normality assumption Method: Shapiro-Wilk test on
 # model residuals (tests H0: residuals are normal) Standard Practice: Applied

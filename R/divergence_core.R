@@ -315,7 +315,7 @@
 #' 'pair_samples',
 #' 'subject_id', 'patient_id') and applies pair-respecting bootstrap
 #' resampling
-#'               to preserve within-pair correlations (Papers C016, S102-S109).
+#'               to preserve within-pair correlations (Papers Ramsay (2005), Springer Series in Statistics, S102-S109).
 #'               (default: FALSE)
 #' @param bootstrap Logical; if TRUE, computes bootstrap confidence
 #' intervals (~2-3 sec/gene).
@@ -388,7 +388,7 @@
 #' bootstrap with warning
 #' 
 #' **Scientific Justification (Papers validating auto-detection):**
-#' - Papers C016: Bootstrap for confidence intervals requires preserving
+#' - Papers Ramsay (2005), Springer Series in Statistics: Bootstrap for confidence intervals requires preserving
 #' data structure
 #' - Papers S102-S109: Paired design standards and statistical methods
 #' - Papers I002-I004: Tsallis divergence mathematical foundation
@@ -415,7 +415,7 @@
 #' **Database Verification (tsenat_papers.db):**
 #' - Tsallis divergence mathematical foundation: Papers I001-I004 validate
 #'   divergence formula and q-parameter effects
-#' - Bootstrap methodology: Papers C016, S018, S030 validate percentile and BCa
+#' - Bootstrap methodology: Papers Ramsay (2005), Springer Series in Statistics, S018, S030 validate percentile and BCa
 #'   bootstrap for entropy/divergence estimates with confidence level >= 0.95
 #' - Transcript aggregation: Paper C105 validates gene-level aggregation
 #' - Divergence normalization: Papers C112, S196, S201 validate normalization

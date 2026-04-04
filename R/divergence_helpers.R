@@ -195,8 +195,8 @@
 #' - For each drawn pair i, include both samples from pair i
 #' - This maintains pairing structure across bootstrap replicates
 #'
-#' **Statistical Justification (Papers C016, S102-S109):**
-#' - C016: Bootstrap for confidence intervals requires preserving data structure
+#' **Statistical Justification (Papers Ramsay (2005), Springer Series in Statistics, S102-S109):**
+#' - Ramsay (2005), Springer Series in Statistics: Bootstrap for confidence intervals requires preserving data structure
 #' - S102: 'Paired Design' - paired resampling required for matched samples
 #' - S107: 'Related Sample Designs' - within-pair correlation invalidates
 #' independent resampling

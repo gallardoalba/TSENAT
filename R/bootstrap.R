@@ -758,7 +758,7 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
     }
 
     # Regenerate invalid replicates until min_valid_frac is met Database
-    # validation (C016, 2005): Bootstrap must operate on raw data with
+    # validation (Ramsay (2005), Springer Series in Statistics, 2005): Bootstrap must operate on raw data with
     # consistency checks
     max_attempts <- 10
     attempt <- 1
@@ -969,7 +969,7 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
 #'             across genes using \code{parallel::mclapply} (Unix/Mac only).
 #'             Recommended:  nthreads = detectCores() - 1 for 
 #' optimal performance.
-#'             Paper C017 discusses computational optimization for 
+#'             Paper Springer Handbook (2006) discusses computational optimization for 
 #' multi-gene analysis.
 #' @param q Tsallis entropy parameter (q > 0). Scalar or vector of values
 #' (default: 2).
@@ -1066,7 +1066,7 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
 #'   If \code{nthreads > 1},
 #'  uses parallel processing (Unix/Mac via \code{parallel: : mclapply}).
 #' Computational speedup: typically 5-10* for multi-gene analysis (paper
-#' C017).
+#' Springer Handbook (2006)).
 #'
 #'   For multiple q values, returns a list of above structures, one per q value,
 #'   of class \code{tsenat_bootstrap_ci_list}.
@@ -1573,7 +1573,7 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
 #' @return Integer: Recommended number of bootstrap replicates.
 #'
 #' @details
-#' **Rationale (from paper C017 - Bootstrap computational methods):**
+#' **Rationale (from paper Springer Handbook (2006) - Bootstrap computational methods):**
 #'
 #' The BCa (bias-corrected and accelerated) method is more accurate but requires
 #' higher computational cost due to jackknife calculations. For datasets
@@ -1597,7 +1597,7 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
 #' ```
 #'
 #' @references
-#' Paper C017: Bootstrap computational methods and efficiency trade-offs.
+#' Paper Springer Handbook (2006): Bootstrap computational methods and efficiency trade-offs.
 #' Discusses how sample size affects accuracy and speed of bootstrap inference.
 #'
 #' @examples
@@ -1622,7 +1622,7 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
     }
 
     # Base recommendations with smooth scaling (avoids discontinuous jumps)
-    # Recommendations follow C017 (Bootstrap computational methods) efficiency
+    # Recommendations follow Springer Handbook (2006) (Bootstrap computational methods) efficiency
     # guidelines
     base_nboot <- if (n_genes == 1) {
         # Single gene: detailed inference justified

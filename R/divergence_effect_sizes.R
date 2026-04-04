@@ -107,7 +107,7 @@
 #'
 #' **Database References:**
 #' - Papers I002-I004: Tsallis divergence mathematical foundation
-#' - Papers C016: Bootstrap CI computation respecting data structure
+#' - Papers Ramsay (2005), Springer Series in Statistics: Bootstrap CI computation respecting data structure
 #' - Papers S197: Quality filtering and effect size thresholds
 #'
 #' @noRd
