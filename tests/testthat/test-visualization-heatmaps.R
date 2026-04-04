@@ -561,6 +561,8 @@ describe(".create_pheatmap_grob()", {
   test_that("creates valid pheatmap object", {
     mat <- matrix(rnorm(50), nrow = 5, ncol = 10)
     
+    grDevices::pdf(file = NULL)
+    on.exit(if (grDevices::dev.cur() > 1) grDevices::dev.off())
     grob <- TSENAT:::.create_pheatmap_grob(mat, title = "Test Heatmap")
     
     expect_is(grob, "pheatmap")
@@ -571,6 +573,8 @@ describe(".create_pheatmap_grob()", {
     rownames(mat) <- paste0("Row", 1:5)
     colnames(mat) <- paste0("Col", 1:10)
     
+    grDevices::pdf(file = NULL)
+    on.exit(if (grDevices::dev.cur() > 1) grDevices::dev.off())
     grob <- TSENAT:::.create_pheatmap_grob(mat, title = "Test")
     
     expect_is(grob, "pheatmap")
@@ -579,6 +583,8 @@ describe(".create_pheatmap_grob()", {
   test_that("respects custom cell dimensions", {
     mat <- matrix(rnorm(50), nrow = 5, ncol = 10)
     
+    grDevices::pdf(file = NULL)
+    on.exit(if (grDevices::dev.cur() > 1) grDevices::dev.off())
     grob <- TSENAT:::.create_pheatmap_grob(
       mat, cellw = 50, cellh = 20
     )
@@ -589,6 +595,8 @@ describe(".create_pheatmap_grob()", {
   test_that("respects fontsize parameter", {
     mat <- matrix(rnorm(50), nrow = 5, ncol = 10)
     
+    grDevices::pdf(file = NULL)
+    on.exit(if (grDevices::dev.cur() > 1) grDevices::dev.off())
     grob <- TSENAT:::.create_pheatmap_grob(mat, fontsize = 10)
     
     expect_is(grob, "pheatmap")
@@ -597,6 +605,8 @@ describe(".create_pheatmap_grob()", {
   test_that("handles cluster_rows = FALSE", {
     mat <- matrix(rnorm(50), nrow = 5, ncol = 10)
     
+    grDevices::pdf(file = NULL)
+    on.exit(if (grDevices::dev.cur() > 1) grDevices::dev.off())
     grob <- TSENAT:::.create_pheatmap_grob(mat, cluster_rows = FALSE)
     
     expect_is(grob, "pheatmap")

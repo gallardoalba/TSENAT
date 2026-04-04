@@ -29,9 +29,15 @@ vignette/*html
 vignette/*pdf
 vignettes/ts_debug.R
 .vscode/
+Rplots.pdf
 # Coverage analysis files
 *.gcda
 *.gcno
+# Compiled C/C++ binaries (platform-specific, should be rebuilt locally)
+src/*.o
+src/*.so
+src/*.dll
+src/*.dylib
 tools/
 # Generated site
 docs/
