@@ -2819,8 +2819,9 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min
 #' @param assay_name Character. Name for the assay (default: 'counts').
 #'
 #' @param metadata Optional data.frame with sample metadata. Should have sample
-#' names as row names and metadata columns (e.g., sample_type, condition,
-#' etc.).
+#' names as row names and metadata columns (e.g., sample_type, condition, etc.).
+#' If NULL, will attempt to read from \code{config$metadata}.
+#' Priority: explicit \code{metadata} argument > \code{config$metadata} > NULL.
 #'
 #' @param tpm Optional matrix of transcript-level TPM values. If provided,
 #' will be
@@ -2831,7 +2832,12 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min
 #'   (e.g., from SALMON). Length should match nrow(readcounts).
 #'
 #' @param config Optional list of configuration parameters to store in the
-#'   TSENATAnalysis object. Useful for tracking analysis parameters.
+#'   TSENATAnalysis object. Can also contain \code{config$metadata} which will be
+#'   used if the \code{metadata} argument is NULL. Following Bioconductor best practices
+#'   (fail-fast principle), create configuration via \code{\link{tsenat_config}()} FIRST,
+#'   then pass to \code{build_analysis_s4()} at object construction time. This ensures
+#'   invalid parameters are caught immediately, before analysis proceeds.
+#'   See examples below for recommended usage pattern.
 #'
 #' @param skip Logical. If TRUE, allow unmapped transcripts (transcripts not
 #' found
@@ -2950,12 +2956,41 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min
 #' #   tx2gene = tx2gene,  # data.frame instead of file
 #' #   metadata = salmon_metadata
 #' # )
+#' #
+#' # Method 4: Pass metadata via config (parameter resolution pattern)
+#' # cfg <- tsenat_config()
+#' # cfg$metadata <- metadata
+#' # analysis_with_config <- build_analysis_s4(
+#' #   readcounts = counts,
+#' #   tx2gene = tx2gene,
+#' #   config = cfg
+#' #   # Note: metadata argument omitted - will be read from config$metadata
+#' # )
 #' }
+#'
+#' # Advanced: Assigning metadata to assays after object creation
+#' # When adding metadata to SummarizedExperiment assays, always use the
+#' # S4Vectors namespace to ensure proper method dispatch:
+#' #   
+#' #   se <- getSE(analysis)
+#' #   assay_with_ci <- SummarizedExperiment::assay(se, "log2fc_ci")
+#' #   S4Vectors::metadata(assay_with_ci)$lower <- ci_lower_bounds
+#' #   S4Vectors::metadata(assay_with_ci)$upper <- ci_upper_bounds
+#' #
+#' # Note: Avoid using metadata(assay) without the namespace - this can
+#' # cause silent failures in S4 object metadata assignment.
 #'
 #' @export
 build_analysis_s4 <- function(readcounts = NULL, salmon_dir = NULL, tx2gene, assay_name = "counts",
     metadata = NULL, tpm = NULL, effective_length = NULL, config = list(), skip = FALSE,
     verbose = FALSE) {
+    # Parameter resolution: explicit argument takes priority, then config
+    if (is.null(metadata) && !is.null(config$metadata)) {
+        metadata <- config$metadata
+        if (verbose)
+            message("[build_analysis_s4] Reading metadata from config$metadata")
+    }
+    
     # Handle salmon_dir parameter - auto-load Salmon quantification data
     if (!is.null(salmon_dir)) {
         # Detect Salmon samples

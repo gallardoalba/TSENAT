@@ -70,10 +70,6 @@ data(readcounts)
 readcounts <- as.matrix(readcounts)
 mode(readcounts) <- "numeric"
 
-# Explicitly load TPM and effective length
-tpm <- tpm  # TPM-normalized values
-effective_length <- effective_length  # Length-corrected values
-
 # Load metadata
 metadata_df <- read.table(
     system.file("extdata", "metadata.tsv", package = "TSENAT"),
@@ -82,26 +78,26 @@ metadata_df <- read.table(
 
 gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 
-# Build analysis object: creates SummarizedExperiment and initializes TSENATAnalysis
-analysis <- build_analysis_s4(
-    readcounts = readcounts,
-    tx2gene = gff3_dataset,
-    metadata = metadata_df,
-    tpm = tpm,
-    effective_length = effective_length
-)
-
-## Configure analysis parameters once (best practice for reproducibility)
-## This eliminates the need to pass condition_col, subject_col, etc. to each function
+# Configure analysis parameters first (best practice: fail-fast validation)
 config <- tsenat_config(
-  condition_col = "sample_type",
+  condition_col = "condition",
   subject_col = "paired_samples",
   q_values = seq(0, 2, by = 0.05),
   nthreads = 3,
   paired = TRUE,
   control = "normal"
 )
-analysis <- setConfig(analysis, config)
+
+# Build analysis object: creates SummarizedExperiment and initializes TSENATAnalysis
+# Pass config at construction (Bioconductor pattern)
+analysis <- build_analysis_s4(
+    readcounts = readcounts,
+    tx2gene = gff3_dataset,
+    metadata = metadata_df,
+    tpm = tpm,
+    effective_length = effective_length,
+    config = config
+)
 
 # Apply filtering for quality control
 analysis <- filter_analysis_s4(
@@ -128,7 +124,7 @@ analysis <- calculate_diversity_s4(
 
 ## Assumption Validation
 
-Before applying rank-based methods, we verify that the entropy data meets the key assumptions for robust non-parametric inference for **q × condition interaction testing** (determining if the q-effect differs between normal and tumor samples).
+Before applying rank-based methods, we verify key assumptions for rank-based inference:
 
 ```{r rank-assumptions-calculation, message=FALSE}
 # Validate Friedman test assumptions using S4 wrapper
@@ -171,31 +167,18 @@ knitr::kable(entropy_summary,
 
 cat("\n")
 
-# Create rigorous assumption checks table
+# Create assumption checks table
 exchangeability_check <- check_results$exchangeability
 monotonicity_check <- check_results$monotonicity
 consistency_check <- check_results$consistency
 
 data_characteristics <- data.frame(
-  Characteristic = c(
-    "Design Appropriateness",
-    "Gene Heterogeneity",
-    "Subject Heterogeneity"
-  ),
-  Test = c(
-    "Permutation test",
-    "Spearman correlation (across genes)",
-    "Kendall's W + ICC(3,1)"
-  ),
+  Characteristic = c("Paired Structure", "Gene Heterogeneity", "Subject Consistency"),
+  Test = c("Permutation test", "Spearman r", "Kendall's W"),
   Result = c(
     sprintf("p=%.3f", exchangeability_check$p_value),
-    sprintf("r=%.3f (±%.3f)", monotonicity_check$mean_correlation, monotonicity_check$sd_correlation),
-    sprintf("W=%.3f, ICC=%.3f", consistency_check$kendall_w, consistency_check$icc_simplified)
-  ),
-  Interpretation = c(
-    "Paired structure validated",
-    "Genes rank q-values heterogeneously",
-    "Subject agreement very low"
+    sprintf("r=%.3f", monotonicity_check$mean_correlation),
+    sprintf("W=%.3f", consistency_check$kendall_w)
   )
 )
 
@@ -267,136 +250,30 @@ if (nrow(rank_sig) > 0) {
   if (length(cols_to_show) > 0) {
     rank_display <- rank_sig[, cols_to_show, drop = FALSE]
     
-    # Format p-values in scientific notation for readability
-    for (col in c("p_value", "adj_p_value")) {
-      if (col %in% colnames(rank_display)) {
-        rank_display[[col]] <- sapply(rank_display[[col]], function(x) {
-          if (is.na(x)) "NA" else sprintf("%.3e", x)
-        })
-      }
-    }
-    
-    # Format f-statistic with 2 decimal places
-    if ("f_statistic" %in% colnames(rank_display)) {
-      rank_display$f_statistic <- sapply(rank_display$f_statistic, function(x) {
-        if (is.na(x)) "NA" else sprintf("%.2f", x)
-      })
-    }
-    
-    # Format effect size as percentage if available
-    if ("effect_size_eta2" %in% colnames(rank_display)) {
-      rank_display$effect_size_eta2 <- sapply(rank_display$effect_size_eta2, function(x) {
-        if (is.na(x)) "NA" else sprintf("%.1f%%", x * 100)
-      })
-    }
-    
-    # Format test_method with descriptive labels
-    if ("test_method" %in% colnames(rank_display)) {
-      rank_display$test_method <- sapply(rank_display$test_method, function(x) {
-        if (is.na(x)) "NA" else switch(x,
-          "friedman" = "Standard Friedman",
-          "art_friedman" = "Aligned Rank Transform",
-          "robust_friedman" = "Robust Median",
-          x  # Return original if no match
-        )
-      })
-    }
-    
-    # Rename columns for better readability
-    colnames(rank_display) <- c("Gene", "p value", "Adjusted p", "F statistic", "Effect size (η²)", "Test Method", "Class")
+    # Format numeric columns
+    numeric_cols <- sapply(rank_display, is.numeric)
+    rank_display[, numeric_cols] <- round(rank_display[, numeric_cols], 3)
     
     knitr::kable(rank_display, 
-                 caption = "Top 10 Genes by Friedman Test p-value (with Test Variant and Effect Size)",
-                 align = c("l", "r", "r", "r", "r", "l", "l"),
-                 format.args = list(big.mark = ","))
+                 caption = "Top 10 Genes by Friedman Test",
+                 digits = 3)
   }
 }
 ```
 
-Now let's visualize the q-curves for the top 4 genes identified by the Friedman test:
+Visualize q-curves for top genes:
 
-```{r friedman-top-genes-qcurve, fig.width=14, fig.height=10, message=FALSE}
-# Plot q-curves for top 4 genes from Friedman test
-# plot_tsallis_q_curve_s4 accepts TSENATAnalysis objects and extracts diversity_results
-top_genes_plot <- plot_tsallis_q_curve_s4(
-    analysis,
-    lm_res = friedman_results,
-    n_top = 4
-)
+```{r friedman-top-genes-qcurve, fig.width=12, fig.height=8, message=FALSE}
+top_genes_plot <- plot_tsallis_q_curve_s4(analysis, lm_res = friedman_results, n_top = 4)
 print(top_genes_plot)
 ```
-
-These q-curve profiles show how Tsallis entropy changes across the diversity parameter q for the most significant genes identified by the Friedman test. The median line represents the central tendency, while the shaded IQR ribbon indicates the variability across samples within each group.
 
 
 ## Friedman Test: Testing q × Condition Interactions
 
-The Friedman test here tests whether the **pattern of entropy across q-values DIFFERS between normal and tumor conditions**. This is the biologically relevant q × condition interaction, not merely whether entropy varies across q-values (the old main effect test).
+The Friedman test evaluates whether entropy patterns across q-values differ between normal and tumor samples. It ranks observations within each subject, preserving the paired structure critical for valid inference in paired designs.
 
-**Important statistical note (March 2026):** This implementation uses proper **within-subject ranking** for two-way repeated-measures designs. The ranking procedure preserves the pairing structure between conditions within each subject, which is critical for valid statistical inference in paired designs.
-
-Key insight: We're testing if genes show different q-dependent patterns in normal vs tumor samples. For example:
-- Gene A: Shows strong q-dependence in tumor but weak in normal → significant interaction
-- Gene B: Shows equally strong q-dependence in both → no interaction (q main effect)
-- Gene C: Shows q-dependence only in tumor → significant interaction
-
-The Friedman test achieves this by:
-1. Ranking ALL entropy values for each subject together (across all q-values and conditions)
-2. Computing mean ranks per (q-level, condition) combination
-3. Testing whether rank patterns differ between conditions using two-way ANOVA
-
-This approach respects:
-- Within-subject pairing (8 paired tumor-normal samples)
-- q-values as a repeated measure
-- Condition (normal vs tumor) as another repeated-measures factor
-- The dependence between observations from the same subject
-
-**Mathematical basis:** Conover & Iman (1981), Puri & Sen (1985)
-
-- Gene A: Entropy normal = 2.5, entropy tumor = 2.8 (difference: 0.3) → η² = 97.8%, p < 0.0001
-- Gene B: Entropy normal = 2.6, entropy tumor = 2.8 (difference: 0.2) → η² = 59.4%, p < 0.0001
-- Gene C: Entropy normal = 2.5, entropy tumor = 2.7 (difference: 0.2) → η² = 34.2%, p < 0.0001
-
-The curves appear visually similar (all show modest increases from normal to tumor), yet their effect sizes differ by nearly 3-fold. This occurs because the **Friedman test is sensitive to the consistency of the ranking pattern across subjects, not just the magnitude of the difference.**
-
-### How Consistency Drives Effect Size
-
-The Friedman test ranks entropy values **within each subject** separately. When a gene shows a **consistent monotonic pattern** across subjects (e.g., entropy is always higher in tumor than in normal for every subject), the test detects this with high statistical power.
-
-The effect size η² quantifies the strength of this monotonic pattern:
-
-- **η² = 97.8%**: Nearly all variance in entropy is explained by the normal/tumor distinction. Entropy change is steep or consistent across subjects with minimal within-group variability.
-- **η² = 59.4%**: About 60% of entropy variance is explained by normal/tumor. More variability exists within groups, but the average difference is still substantial.
-- **η² = 34.2%**: About 34% of entropy variance is explained by normal/tumor. The within-group variability limits how much of the overall variation is due to the condition difference.
-
-### Ranking by Effect Size When P-values Cluster
-
-When multiple genes show identical p-values (all < 0.0001), they represent genes with similarly consistent monotonic patterns across subjects. The **effect size becomes the practical ranking metric** distinguishing:
-
-- How much entropy change across conditions is "true signal" vs. random noise
-- Which genes show the most reliable, reproducible q-value dependence
-- Which genes warrant highest priority for downstream validation
-
-**Bottom line:** Two genes can look visually similar yet have very different effect sizes because effect size captures the **proportion of variance explained** by the condition effect, accounting for the within-subject and between-subject variability at each condition level.
-
-***
-
-A striking observation in the Friedman results is that many genes share identical p-values despite having dramatically different effect sizes. This is not a statistical error, but rather reflects a fundamental mathematical property of the Friedman test when applied to entropy data.
-
-The Friedman test is a **rank-based test** that operates on the ranks of observations within each block (subject), not their raw values. The test statistic is:
-
-$$Q = \frac{12}{Nk(k+1)} \sum_{j=1}^{k} R_j^2 - 3N(k+1)$$
-
-where:
-
-- $N$ = number of blocks (subjects, $N=8$ in our data)
-- $k$ = number of treatments (q-values, $k=39$ in our data)
-- $R_j$ = sum of ranks for treatment $j$ across all subjects
-- $Q \sim \chi^2_{k-1}$ under the null hypothesis
-
-Tsallis entropy is typically monotonic across q-values. That is, for most genes, entropy either consistently increases or consistently decreases (usually decreases) as q-values increase. This means genes with monotonically decreasing entropy will all have **identical rank sums** $R_j$ across all subjects, regardless of whether entropy drops sharply (η² = 97.8%) or gently (η² = 59.4%). 
-
-When the Friedman test cannot discriminate between genes statistically, the **effect size η²** becomes the practical and biological ranking metric. The effect size directly quantifies the strength of the q-value × group dependence:
+A key observation: many genes show identical p-values but different effect sizes. This reflects the rank-based nature of the test. Effect size η² directly quantifies the strength of the q-value × condition dependence and serves as the practical ranking metric when p-values cluster:
 
 $$\eta^2 = \frac{SS_\text{between}}{SS_\text{total}}$$
 
@@ -490,14 +367,9 @@ if ("p_interaction" %in% colnames(gam_results)) {
     if (length(cols_to_show) > 0) {
       gam_display <- gam_sig[, cols_to_show, drop = FALSE]
       
-      # Format p-values in scientific notation
-      for (col in c("p_interaction", "adj_p_interaction")) {
-        if (col %in% colnames(gam_display)) {
-          gam_display[[col]] <- sapply(gam_display[[col]], function(x) {
-            if (is.na(x)) "NA" else sprintf("%.3e", x)
-          })
-        }
-      }
+      # Format numeric columns
+      numeric_cols <- sapply(gam_display, is.numeric)
+      gam_display[, numeric_cols] <- round(gam_display[, numeric_cols], 3)
       
       # Format effect size as percentage
       if ("effect_size" %in% colnames(gam_display)) {
@@ -691,7 +563,7 @@ rank_assumptions <- test_rankbased_assumptions_s4(analysis, verbose = TRUE)
 # 4. Friedman test (rank-based)
 analysis <- rank_test_q_condition_s4(
     analysis,
-    condition_col = "sample_type",
+    condition_col = "condition",
     paired = TRUE,
     subject_col = "paired_samples",
     multicorr = "hochberg",
@@ -716,7 +588,7 @@ plot_method_concordance_s4(analysis, verbose = TRUE)
 # 8. Plot top genes (optional)
 plot_tsallis_q_curve_s4(
     analysis,
-    condition_col = "sample_type",
+    condition_col = "condition",
     rank_res = rankResults(analysis),
     n_top = 4
 )

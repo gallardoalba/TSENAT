@@ -328,23 +328,14 @@ along with associated metadata). You can read more about it in the [Bioconductor
 
 We will use the GFF3.gz annotation file for extracting the transcript-to-gene 
 mapping and building the analysis object. We'll also include sample metadata for 
-improved analysis:
+improved analysis. Following Bioconductor best practices, we create the configuration 
+FIRST, then pass it to the builder function (fail-fast principle):
 
 ```{r build-analysis}
-## Build a complete `TSENATAnalysis` object from readcounts + GFF3.gz annotation
-## Include TPM and effective length for filtering and QC purposes
-analysis <- build_analysis_s4(
-  readcounts = readcounts, 
-  tx2gene = gff3_dataset, 
-  metadata = metadata_df,
-  tpm = tpm,
-  effective_length = effective_length
-)
-
-## Configure analysis parameters once (best practice for reproducibility)
-## This eliminates the need to pass condition_col, subject_col, etc. to each function
+## Configure analysis parameters first (best practice: fail-fast principle)
+## This validates all parameters against metadata before object creation
 config <- tsenat_config(
-  condition_col = "sample_type",
+  condition_col = "condition",
   subject_col = "paired_samples",
   q_values = seq(0, 2, by = 0.05),
   nthreads = 2,
@@ -352,7 +343,16 @@ config <- tsenat_config(
   control = "normal",
   metadata = metadata_df
 )
-analysis <- setConfig(analysis, config)
+
+## Build a complete `TSENATAnalysis` object from readcounts + GFF3.gz annotation
+## Pass config at construction (Bioconductor pattern): immutable object creation
+analysis <- build_analysis_s4(
+  config = config,
+  readcounts = readcounts, 
+  tx2gene = gff3_dataset, 
+  tpm = tpm,
+  effective_length = effective_length
+)
 
 ```
 
@@ -389,9 +389,6 @@ isoform diversity for meaningful entropy calculations.
 Now we will compute Tsallis entropy.
 
 ```{r tsallis-calc-sequence}
-# Compute Tsallis entropy for a sequence of q values using S4 wrapper
-
-
 # Compute diversity using S4 wrapper with bootstrap confidence intervals
 analysis <- calculate_diversity_s4(
     analysis,
@@ -457,8 +454,7 @@ groups indicate **scale-dependent** **diversity** differences: separation at low
 signals differences in dominant isoforms.
 
 ```{r tsallis-q-curve, fig.width=10, fig.height=5.2}
-# Plot overall q-curve with median ± IQR bands using S4 wrapper function
-# Uses condition_col from @config (no need to specify explicitly)
+# Plot overall q-curve
 p_qcurve <- plot_tsallis_q_curve_s4(
     se = analysis
 )
@@ -491,8 +487,13 @@ if (!is.null(sample_qc) && nrow(sample_qc) > 0) {
   sample_qc$Genes_Affected <- round(sample_qc$Genes_Affected, 1)
   sample_qc$Distance_from_Centroid <- round(sample_qc$Distance_from_Centroid, 4)
   
+  # Select columns: exclude Robustness_Weight and Pair_ID
+  cols_to_show <- c("Sample", "Condition", "Proportion_Affected", "Genes_Affected", 
+                    "Entropy_Mean", "Entropy_SD", "Distance_from_Centroid", "Status")
+  cols_to_show <- cols_to_show[cols_to_show %in% colnames(sample_qc)]
+  
   knitr::kable(
-      sample_qc,
+      sample_qc[, cols_to_show],
       caption = "Sample Influence Assessment via M-estimation",
       digits = 4,
       row.names = FALSE
@@ -513,8 +514,7 @@ if (requireNamespace("mgcv", quietly = TRUE)) {
     analysis <- calculate_lm_interaction_s4(
         analysis,
         method = "gam",
-        multicorr = "hochberg",
-        nthreads = 2
+        multicorr = "hochberg"
     )
 }
 ```
@@ -523,6 +523,13 @@ if (requireNamespace("mgcv", quietly = TRUE)) {
 lm_res <- lmResults(analysis)$lm_interaction
 if (!is.null(lm_res) && is.data.frame(lm_res) && nrow(lm_res) > 0) {
     display <- head(lm_res, 6)
+    
+    # Select only most informative columns
+    key_cols <- c("gene", "gene_name", "p_interaction", "adj_p_interaction", 
+                  "effect_size", "test_statistic", "model_converged", "heteroscedasticity_detected")
+    key_cols <- key_cols[key_cols %in% colnames(display)]
+    display <- display[, key_cols]
+    
     # Round numeric columns
     numeric_cols <- sapply(display, is.numeric)
     display[, numeric_cols] <- round(display[, numeric_cols], 4)

@@ -146,6 +146,35 @@ TSENATAnalysis <- function(se, config = list()) {
         config <- unclass(config)
     }
 
+    # NEW: Validate config parameters early (before object creation)
+    if (length(config) > 0 && !is.null(config)) {
+        cdata <- SummarizedExperiment::colData(se)
+        
+        # Validate condition_col
+        if ("condition_col" %in% names(config)) {
+            col <- config$condition_col
+            if (!is.null(col) && !col %in% colnames(cdata)) {
+                stop(sprintf(
+                    "Invalid condition_col '%s': column not found in colData.\\nAvailable columns: %s",
+                    col, paste(colnames(cdata), collapse = ", ")
+                ), call. = FALSE)
+            }
+        }
+        
+        # Validate subject_col if paired
+        if ("paired" %in% names(config) && isTRUE(config$paired)) {
+            if ("subject_col" %in% names(config)) {
+                col <- config$subject_col
+                if (!is.null(col) && !col %in% colnames(cdata)) {
+                    stop(sprintf(
+                        "Invalid subject_col '%s': column not found in colData.\\nAvailable columns: %s",
+                        col, paste(colnames(cdata), collapse = ", ")
+                    ), call. = FALSE)
+                }
+            }
+        }
+    }
+
     # Ensure sample_id column exists in colData (required by validator)
     if (!"sample_id" %in% colnames(SummarizedExperiment::colData(se))) {
         SummarizedExperiment::colData(se)$sample_id <- colnames(se)

@@ -132,6 +132,35 @@ setClass("TSENATAnalysis", slots = list(se = "SummarizedExperiment", config = "l
         }
     }
 
+    # NEW: Validate config parameters against SE metadata
+    if (length(object@config) > 0) {
+        cdata <- colData(object@se)
+        
+        # Validate condition_col if specified
+        if ("condition_col" %in% names(object@config)) {
+            col <- object@config$condition_col
+            if (!is.null(col) && !col %in% colnames(cdata)) {
+                return(sprintf(
+                    "@config$condition_col '%s' not found in colData. Available: %s",
+                    col, paste(colnames(cdata), collapse = ", ")
+                ))
+            }
+        }
+        
+        # Validate subject_col if specified and paired=TRUE
+        if ("subject_col" %in% names(object@config)) {
+            if (isTRUE(object@config$paired)) {
+                col <- object@config$subject_col
+                if (!is.null(col) && !col %in% colnames(cdata)) {
+                    return(sprintf(
+                        "@config$subject_col '%s' not found in colData. Available: %s",
+                        col, paste(colnames(cdata), collapse = ", ")
+                    ))
+                }
+            }
+        }
+    }
+
     TRUE
 })
 

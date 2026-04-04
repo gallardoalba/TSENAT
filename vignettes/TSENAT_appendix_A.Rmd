@@ -276,13 +276,12 @@ colData(simpson_index)$sample_type <- sample_group
 colData(simpson_index)$group <- sample_group
 
 # TSENAT: Create TSENATAnalysis objects for S4 wrapper approach
-# This maintains consistent workflow with S4 infrastructure
-tsenat_analysis_q1 <- TSENATAnalysis(se_data)
-tsenat_analysis_q2 <- TSENATAnalysis(se_data)
+# Following Bioconductor pattern: create config first, then pass to constructor
+config_q1 <- tsenat_config(condition_col = "group")
+config_q2 <- tsenat_config(condition_col = "group")
 
-# Set condition column in config for downstream differential analysis
-tsenat_analysis_q1 <- setConfigValue(tsenat_analysis_q1, "condition_col", "group")
-tsenat_analysis_q2 <- setConfigValue(tsenat_analysis_q2, "condition_col", "group")
+tsenat_analysis_q1 <- TSENATAnalysis(se_data, config = config_q1)
+tsenat_analysis_q2 <- TSENATAnalysis(se_data, config = config_q2)
 
 # TSENAT: Tsallis entropy at q=1 (equals Shannon entropy) - using S4 wrapper
 tsenat_analysis_q1 <- calculate_diversity_s4(
@@ -332,8 +331,7 @@ simpson_significance <- SplicingFactory::calculate_difference(
 )
 
 # TSENAT: Differential analysis for Tsallis q=1
-# Ensure the grouping column is set in config for the wrapper
-tsenat_analysis_q1 <- setConfigValue(tsenat_analysis_q1, "condition_col", "group")
+# Config already set at object construction, no need to reset
 tsenat_analysis_q1 <- calculate_difference_s4(
   analysis = tsenat_analysis_q1,
   control = "Normal",
@@ -346,8 +344,7 @@ tsenat_analysis_q1 <- calculate_difference_s4(
 tsenat_shannon_diff <- pairwiseResults(tsenat_analysis_q1, component = "difference")
 
 # TSENAT: Differential analysis for Tsallis q=2
-# Ensure the grouping column is set in config for the wrapper
-tsenat_analysis_q2 <- setConfigValue(tsenat_analysis_q2, "condition_col", "group")
+# Config already set at object construction, no need to reset
 tsenat_analysis_q2 <- calculate_difference_s4(
   analysis = tsenat_analysis_q2,
   control = "Normal",
