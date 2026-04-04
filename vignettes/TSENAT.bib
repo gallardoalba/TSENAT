@@ -1,45 +1,19 @@
-% ============================================================================
-% TSENAT COMPREHENSIVE BIBLIOGRAPHY
-% ============================================================================
-%
-% This bibliography combines:
-% 1. 27 hand-curated foundational references (carefully formatted)
-% 2. 374 references from TSENAT comprehensive papers database
-%
-% Total: 401 references for TSENAT package documentation
-%
-% Citation Key Formats:
-%   - Curated: AuthorYear (e.g., Tsallis1988, BenjaminiHochberg1995)
-%   - Database: CodeNumber (e.g., S001, C001, I001, B001, etc.)
-%
-% Last Updated: March 5, 2026
-% Database Status: 374/374 papers (100% metadata quality)
-%
-% ============================================================================
-
-% ============================================================================
-% SECTION 1: FOUNDATIONAL CURATED REFERENCES (27 entries)
-% ============================================================================
-% These references are carefully selected and formatted for high quality
-% and direct relevance to TSENAT methodology
-%
-
 @book{Chapman2017a,
   author = {Chapman, Paul},
   title = {Generalized Additive Models: An Introduction with {R}},
   edition = {4th},
   publisher = {CRC Press},
-  year = {2017}
+  year = {2017},
+  note = {Comprehensive introduction to generalized additive models (GAMs) for flexible nonparametric regression. Provides methodology for modeling complex nonlinear relationships in gene expression data, including smooth spline bases for temporal patterns in RNA-seq and isoform dynamics.}
 }
-
 @book{Song2007,
   author = {Song, Peter X.},
   title = {Correlated Data Analysis: Modeling, Analytics, and Applications},
   series = {Springer Series in Statistics},
   publisher = {Springer},
-  year = {2007}
+  year = {2007},
+  note = {Comprehensive reference on analyzing correlated and clustered data including repeated measurements and longitudinal studies. Covers methodology for handling dependencies in gene expression time-series data, isoform abundance trajectories, and multi-level experimental designs.}
 }
-
 @article{Erhard2018,
   author = {Erhard, F. and Hense, B. and Jafari, M. and Siebourg-Polster, J. and D\"{o}lken, L. and Zimmer, R.},
   title = {Improved {R}ibo-seq puromycin target reliability using {B}ayesian nonparametrics},
@@ -47,9 +21,9 @@
   volume = {34},
   number = {12},
   pages = {2096--2102},
-  year = {2018}
+  year = {2018},
+  note = {Application of Bayesian nonparametric methods to improve reliability in ribosome profiling (Ribo-seq) experiments. Demonstrates advanced computational approaches for quality control and statistical analysis in transcriptomics experiments, relevant to TSENAT expression quantification pipelines.}
 }
-
 @article{BenjaminiHochberg1995,
   author = {Benjamini, Y. and Hochberg, Y.},
   title = {Controlling the false discovery rate: a practical and powerful approach to multiple testing},
@@ -57,28 +31,18 @@
   volume = {57},
   number = {1},
   pages = {289--300},
-  year = {1995}
+  year = {1995},
+  note = {Seminal paper introducing the false discovery rate (FDR) control method for multiple testing correction. Essential reference for controlling Type I error rates in large-scale hypothesis testing such as gene expression differential analysis and feature selection in genomic studies.}
 }
-
 @article{Holm1979,
   author = {Holm, S.},
   title = {A simple sequentially rejective multiple test procedure},
   journal = {Scandinavian Journal of Statistics},
   volume = {6},
   pages = {65--70},
-  year = {1979}
+  year = {1979},
+  note = {Foundational paper on step-down multiple testing procedure for family-wise error rate control. Provides alternative to Bonferroni correction offering improved power in sequential testing of genes and isoforms for differential expression, diversity, or divergence.}
 }
-
-@article{Tsallis1988a,
-  author = {Tsallis, C.},
-  title = {Possible generalization of {B}oltzmann-{G}ibbs statistics},
-  journal = {Journal of Statistical Physics},
-  volume = {52},
-  number = {1--2},
-  pages = {479--487},
-  year = {1988}
-}
-
 @article{Shannon1948,
   author = {Shannon, Claude E.},
   title = {A mathematical theory of communication},
@@ -89,7 +53,6 @@
   year = {1948},
   note = {Foundational work defining Shannon entropy as a measure of information content and uncertainty in communication systems. Establishes the mathematical framework underlying all modern entropy-based diversity measures including Tsallis entropy.}
 }
-
 @article{Renyi1961,
   author = {R{\'{e}}nyi, Alfr{\'{e}}d},
   title = {On measures of entropy and information},
@@ -99,7 +62,6 @@
   year = {1961},
   note = {Introduces the Rényi entropy family, a generalized entropy measure that unifies Shannon entropy and provides a continuous scale of diversity measures related to Tsallis entropy. Critical for understanding scale-dependent diversity.}
 }
-
 @article{Jost2006,
   author = {Jost, Lou},
   title = {Entropy and diversity},
@@ -111,7 +73,6 @@
   doi = {10.1111/j.2006.0030-1299.14714.x},
   note = {Clarifies the relationship between entropy-based measures and diversity indices in ecology. Demonstrates how different q-values in generalized entropy capture scale-dependent aspects of biodiversity, directly applicable to isoform diversity.}
 }
-
 @article{Furuichi2006,
   author = {Furuichi, S.},
   title = {Information theoretical properties of {T}sallis entropies},
@@ -119,17 +80,17 @@
   volume = {47},
   pages = {023302},
   doi = {10.1063/1.2165744},
-  year = {2006}
+  year = {2006},
+  note = {Theoretical analysis of mathematical properties of Tsallis entropy including additivity, monotonicity, and behavior under various transformations. Direct reference for understanding the mathematical foundations of Tsallis q-entropy and generalized divergence measures central to TSENAT methodology.}
 }
-
 @book{Diggle2002,
   author = {Diggle, P. J. and Heagerty, P. and Liang, K. Y. and Zeger, S. L.},
   title = {Analysis of Longitudinal Data},
   edition = {2nd},
   publisher = {Oxford University Press},
-  year = {2002}
+  year = {2002},
+  note = {Comprehensive reference on analyzing repeated measurements and time-series data with correlated observations. Covers generalized estimating equations (GEE) and mixed effects models for handling temporal dependencies in gene expression trajectories and isoform-level dynamics.}
 }
-
 @article{LiangZeger1986,
   author = {Liang, K.-Y. and Zeger, S. L.},
   title = {Longitudinal data analysis using generalized linear models},
@@ -137,25 +98,17 @@
   volume = {73},
   number = {1},
   pages = {13--22},
-  year = {1986}
+  year = {1986},
+  note = {Foundational paper introducing generalized estimating equations (GEE) for analyzing correlated data from repeated measurements. Provides methodology for handling within-subject correlation structures in time-series RNA-seq or longitudinal transcriptomics experiments.}
 }
-
 @book{Gelman2013,
   author = {Gelman, A. and Carlin, J. B. and Stern, H. S. and Dunson, D. B. and Vehtari, A. and Rubin, D. B.},
   title = {Bayesian Data Analysis},
   edition = {3rd},
   publisher = {Chapman and Hall/CRC},
-  year = {2013}
+  year = {2013},
+  note = {Comprehensive reference on Bayesian statistical methods and inference. Provides foundational framework for Bayesian model selection, prior specification, and posterior inference relevant to estimating Tsallis entropy parameters and constructing credible intervals for diversity measures.}
 }
-
-@book{CoverThomas2006,
-  author = {Cover, T. M. and Thomas, J. A.},
-  title = {Elements of Information Theory},
-  edition = {2nd},
-  publisher = {Wiley-Interscience},
-  year = {2006}
-}
-
 @article{Ernst2004,
   author = {Ernst, M. D.},
   title = {Permutation Methods: A Basis for Exact Inference},
@@ -163,18 +116,18 @@
   volume = {19},
   number = {4},
   pages = {676--685},
-  year = {2004}
+  year = {2004},
+  note = {Comprehensive review of permutation-based statistical methods for exact inference without distributional assumptions. Provides mathematical foundation for permutation testing, jackknife methods, and resampling-based confidence interval construction used in TSENAT hypothesis testing.}
 }
-
 @book{Good2004,
   author = {Good, P. I.},
   title = {Permutation, Parametric and Bootstrap Tests of Hypotheses},
   edition = {3rd},
   series = {Springer Series in Statistics},
   publisher = {Springer},
-  year = {2004}
+  year = {2004},
+  note = {Practical reference combining permutation tests, parametric methods, and bootstrap procedures for hypothesis testing. Covers resampling-based inference and rank-based tests used in TSENAT for non-parametric analysis of transcriptomic data without normality assumptions.}
 }
-
 @article{PhipsonSmyth2010,
   author = {Phipson, B. and Smyth, G. K.},
   title = {Permutation {P}-values Should Never Be Zero: Calculating Exact {P}-values When Permutations Are Randomly Drawn},
@@ -182,18 +135,18 @@
   volume = {9},
   number = {1},
   pages = {39},
-  year = {2010}
+  year = {2010},
+  note = {Critical methodology paper for permutation-based hypothesis testing in genomics. Addresses proper p-value calculation when permutations are computationally sampled, directly relevant to TSENAT permutation test procedures for differential analysis.}
 }
-
 @article{Tian2019,
   author = {Tian, L. and Dong, X. and Sotero, S. and Lucks, J. B. and Bustamante, C. D.},
   title = {Benchmarking null models of transcription},
   journal = {Genome Biology},
   volume = {20},
   pages = {104},
-  year = {2019}
+  year = {2019},
+  note = {Evaluation of null hypothesis models and baseline assumptions for transcription analysis. Provides framework for validating statistical tests and null models used in differential expression analysis, relevant to TSENAT hypothesis testing and model validation procedures.}
 }
-
 @article{Kraemer2005a,
   author = {Kraemer, Helena Chmura and Kupfer, David J.},
   title = {Size of Treatment Effects and Their Importance to Clinical Research and Practice},
@@ -205,7 +158,6 @@
   doi = {10.1016/j.biopsych.2005.09.014},
   note = {Critical reference for effect size determination in clinical research and RCTs. Discusses sample size calculation based on clinically significant effect sizes and distinguishes between statistical and clinical significance. Reference for TSENAT Appendix A power analysis guidance.}
 }
-
 @book{Cohen1988a,
   author = {Cohen, Jacob},
   title = {Statistical Power Analysis for the Behavioral Sciences},
@@ -214,7 +166,6 @@
   year = {1988},
   note = {Foundational reference for statistical power analysis framework. Defines Cohen effect size conventions: small (d=0.2), medium (d=0.5), large (d=0.8). Critical reference for TSENAT Appendix A.}
 }
-
 @article{Qiao2018a,
   author = {Qiao, Xiaoming and Suomi, Tapio and Ello, Laura L.},
   title = {{RNA}-seq power analysis and sample size calculation in {R}},
@@ -222,56 +173,45 @@
   year = {2018},
   note = {Power analysis for {RNA}-seq experiments. Provides genomics-specific effect size guidance and sample size recommendations. Referenced in TSENAT for {RNA}-seq entropy variance.}
 }
-
 @book{AbdiValentin2007,
   author = {Abdi, H. and Valentin, D.},
   title = {Correspondence analysis},
   booktitle = {Encyclopedia of Measurement and Statistics},
   pages = {280--287},
   publisher = {Sage},
-  year = {2007}
+  year = {2007},
+  note = {Foundational reference on correspondence analysis for exploratory multivariate data analysis. Provides mathematical framework for analyzing contingency tables and discovering latent dimensions in categorical data, relevant to gene expression pattern analysis and dimensionality reduction.}
 }
-
 @book{LeRouxRouanet2011,
   author = {Le Roux, B. and Rouanet, H.},
   title = {Geometric Data Analysis: From Correspondence Analysis to Structured Data Analysis},
   publisher = {Kluwer Academic Publishers},
-  year = {2011}
+  year = {2011},
+  note = {Comprehensive reference on geometric data analysis including correspondence analysis and extensions to structured data. Provides theoretical framework for visual analysis and dimension reduction of multivariate gene expression data and isoform abundance patterns.}
 }
-
 @article{Saulsbury2020,
   author = {Saulsbury, M. D.},
   title = {Label shuffling: A permutation approach for testing within-subject effects},
   journal = {Methods in Ecology and Evolution},
   volume = {11},
   pages = {1428--1434},
-  year = {2020}
+  year = {2020},
+  note = {Novel permutation methodology for testing within-subject effects while preserving repeated measures structure. Relevant to analyzing paired/repeated RNA-seq samples and testing for significant changes in diversity or divergence within subjects over time or conditions.}
 }
-
-@online{SalmonDocs,
+@misc{SalmonDocs,
   title = {{S}almon {D}ocumentation: Quantifying Transcriptomes at Lightning Speed},
   author = {Patro, R. and Duggal, G. and Love, M. I. and Irizarry, R. A. and Kingsford, C.},
   url = {https://salmon.readthedocs.io/},
-  year = {2017}
+  year = {2017},
+  note = {Documentation for Salmon quasi-mapping transcriptome quantification tool. Primary reference for isoform-level and gene-level quantification methods used to obtain count data for isoform-switching and diversity analysis in TSENAT.}
 }
-
 @book{Efron2010,
   author = {Efron, B.},
   title = {Large-Scale Inference: Empirical Bayes Methods for Estimation, Testing, and Prediction},
   publisher = {Cambridge University Press},
-  year = {2010}
+  year = {2010},
+  note = {Advanced reference on empirical Bayes methods for high-dimensional simultaneous inference. Provides methodology for borrowing strength across many tests in genomic applications, relating to systematic gene- and isoform-level false discovery rate control in differential expression analysis.}
 }
-
-@article{KullbackLeibler1951,
-  author = {Kullback, S. and Leibler, R. A.},
-  title = {On Information and Sufficiency},
-  journal = {Annals of Mathematical Statistics},
-  volume = {22},
-  number = {1},
-  pages = {79--86},
-  year = {1951}
-}
-
 @book{Cliff1993a,
   author = {Cliff, Norman D.},
   title = {Dominance statistics: Ordinal analyses for ordinal data},
@@ -279,7 +219,6 @@
   year = {1993},
   note = {Introduces Cliff delta effect size for ordinal/non-parametric data. Provides thresholds: negligible (<0.147), small (0.147--0.33), medium (0.33--0.474), large (>=0.474). Referenced in TSENAT Appendix A.}
 }
-
 @article{Kerby2014a,
   author = {Kerby, Dave S.},
   title = {The simple difference formula: {A}n approach to teaching nonparametric correlation},
@@ -289,7 +228,6 @@
   year = {2014},
   note = {Critical reference for effect size interpretation thresholds (r-values): negligible <0.1, small 0.1--0.3, medium 0.3--0.5, large >=0.5. Reference for TSENAT Appendix A power analysis.}
 }
-
 @article{KhangarKamalja2017,
   author = {Khangar, C. M. and Kamalja, K. K.},
   title = {Multiple correspondence analysis},
@@ -297,9 +235,9 @@
   volume = {51},
   number = {2},
   pages = {405--410},
-  year = {2017}
+  year = {2017},
+  note = {Recent reference on multiple correspondence analysis (MCA) for analyzing multivariate categorical data. Extends correspondence analysis methodology for analyzing complex relationships among multiple factors in gene expression experiments and condition-specific expression patterns.}
 }
-
 @book{CoverThomas2006,
   author = {Cover, Thomas M. and Thomas, Joy A.},
   title = {Elements of Information Theory},
@@ -309,7 +247,6 @@
   doi = {10.1002/0471200611},
   note = {Comprehensive reference on information theory including entropy, divergence, and information measures. Chapter on entropy maximization directly relevant to understanding Tsallis entropy framework and generalizations.}
 }
-
 @article{Simpson1949,
   author = {Simpson, Edward H.},
   title = {Measurement of diversity},
@@ -320,7 +257,6 @@
   doi = {10.1038/163688a0},
   note = {Introduces the Simpson index (or collision probability) as a diversity measure reflecting the likelihood that two randomly selected individuals belong to different species. Equivalent to Tsallis entropy at q=2. Foundational for diversity index literature.}
 }
-
 @article{Tsallis1988a,
   author = {Tsallis, Constantino},
   title = {Possible generalization of {B}oltzmann-{G}ibbs statistics},
@@ -332,10 +268,6 @@
   doi = {10.1007/BF01016429},
   note = {Foundational paper introducing Tsallis entropy as a generalization of classical thermodynamic entropy. Establishes mathematical framework and asymptotic properties empirically demonstrated in physics applications. Central motivation for q-parameter framework.}
 }
-% ============================================================================
-% NEW APPLICATIONS: ENTROPY IN TRANSCRIPTOMICS AND GENOMICS
-% ============================================================================
-
 @article{Derian2022,
   author = {D\'{e}rian, Nicolas and Pham, Hang-Phuong and Nehar-Belaid, Djamel and Tchitchek, Nicolas and Klatzmann, David and Eric, Vicaut and Six, Adrien},
   title = {The {T}sallis generalized entropy enhances the interpretation of transcriptomics datasets},
@@ -347,7 +279,6 @@
   doi = {10.1371/journal.pone.0266618},
   note = {Directly demonstrates application of Tsallis entropy to transcriptomics datasets, showing improved interpretation of gene expression patterns via scale-dependent analysis of transcript complexity.}
 }
-
 @article{Gandrillon2021,
   author = {Gandrillon, Olivier and Gaillard, Mathilde and Espinasse, Thibault and Garnier, Nicolas B. and Dussiau, Charles and Kosmiker, Olivier and Sujobert, Pierre},
   title = {Entropy as a measure of variability and stemness in single-cell transcriptomics},
@@ -358,7 +289,6 @@
   year = {2021},
   note = {Explores entropy as a quantitative measure of cellular variability and stemness, addressing how entropy captures heterogeneity in single-cell transcriptomic datasets.}
 }
-
 @article{Seweryn2020,
   author = {Seweryn, Michal T. and Pietrzak, Maciej and Ma, Qin},
   title = {Application of information theoretical approaches to assess diversity and similarity in single-cell transcriptomics},
@@ -369,7 +299,6 @@
   doi = {10.1016/j.csbj.2020.05.006},
   note = {Comprehensive review of information-theoretic approaches including R\'{e}nyi and Tsallis entropy for measuring diversity in single-cell transcriptomic data, comparing multiple diversity measures.}
 }
-
 @article{Golomb2026,
   author = {Golomb, Ruthie and Yoles, Maayan and Fishilevich, Simon and Cohen, Bar and Savariego Peled, Sapir and Dahary, Dvir and Gokhman, David and Pilpel, Yitzhak},
   title = {An information content principle explains regulatory patterns of gene expression across human tissues},
@@ -378,7 +307,6 @@
   doi = {10.64898/2026.02.19.706555},
   note = {Applies information content principles to explain tissue-specific gene expression patterns, demonstrating information-theoretic approaches for understanding tissue-dependent regulatory complexity.}
 }
-
 @article{Chanda2020,
   author = {Chanda, Pritam and Costa, Eduardo and Hu, Jie and Sukumar, Shravan and Van Hemert, John and Walia, Rasna},
   title = {Information Theory in Computational Biology: {W}here {W}e {S}tand {T}oday},
@@ -390,7 +318,6 @@
   doi = {10.3390/e22060627},
   note = {Reviews information theory applications in computational biology including gene expression, transcriptomics, and error correction, establishing state-of-the-art for information-theoretic approaches in genomics.}
 }
-
 @article{Bajic2024,
   author = {Baji\'{c}, Dragana},
   title = {Information theory, living systems, and communication engineering},
@@ -402,7 +329,6 @@
   doi = {10.3390/e26050430},
   note = {Explores information theory and communication engineering principles as they apply to biological systems, including applications to understanding data transmission and processing in living organisms.}
 }
-
 @article{Adami2004,
   author = {Adami, Christoph},
   title = {Information theory in molecular biology},
@@ -410,7 +336,6 @@
   year = {2004},
   note = {Foundational article on information theory in molecular biology, addressing applications to genetic information, molecular sequences, and biological function through information-theoretic principles.}
 }
-
 @article{Bartal2022,
   author = {Bartal, Alon and Jagodnik, Kathleen M.},
   title = {Progress in and opportunities for applying information theory to computational biology and bioinformatics},
@@ -422,8 +347,6 @@
   doi = {10.3390/e24070925},
   note = {Editorial reviewing progress of information theory applications in computational biology, discussing current state and future opportunities for information-theoretic methods in genomics and bioinformatics.}
 }
-
-% Commented out: TechRxiv preprint no longer available (404)
 @article{Hinostroza2026,
   author = {Hinostroza Fuentes, Vasco Gerardo and Toledo Tan, Myles Joshua and Kapetanaki, Maria and Rashidi, Parisa and Huang, Kejun and Benos, Panayiotis V.},
   title = {Information-{T}heoretic {M}ethods in {S}patial {T}ranscriptomics},
@@ -432,11 +355,6 @@
   doi = {10.36227/techrxiv.177155947},
   note = {Scoping review of information-theoretic methods in spatial transcriptomics, identifying recurring method families for entropy/divergence analysis, mutual information, and graph-based information measures.}
 }
-
-% ============================================================================
-% DIVERGENCE MEASURES AND BOOTSTRAP METHODS
-% ============================================================================
-
 @article{VanErvenHarremoes2014,
   author = {van Erven, Tim and Harremoes, Peter},
   title = {{R}\'enyi divergence and {K}ullback-{L}eibler divergence},
@@ -448,7 +366,6 @@
   doi = {10.1109/TIT.2014.2320500},
   note = {Comprehensive mathematical treatment of Rényi and Kullback-Leibler divergences, including convergence properties and relationships between divergence families. Essential for understanding divergence generalization framework.}
 }
-
 @article{KullbackLeibler1951,
   author = {Kullback, Solomon and Leibler, Richard A.},
   title = {On information and sufficiency},
@@ -460,17 +377,6 @@
   doi = {10.1214/aoms/1177729694},
   note = {Foundational paper introducing Kullback-Leibler divergence as a measure of information loss in statistical inference. Core reference for divergence-based methods.}
 }
-
-@book{CoverThomas2006,
-  author = {Cover, Thomas M. and Thomas, Joy A.},
-  title = {Elements of {I}nformation {T}heory},
-  edition = {2nd},
-  publisher = {Wiley-Interscience},
-  year = {2006},
-  isbn = {0471241954},
-  note = {Comprehensive textbook covering information theory fundamentals including divergence measures, maximum entropy principles, and statistical applications. Standard reference for divergence interpretation.}
-}
-
 @book{EfronTibshirani1993,
   author = {Efron, Bradley and Tibshirani, Robert J.},
   title = {An {I}ntroduction to the {B}ootstrap},
@@ -479,7 +385,6 @@
   isbn = {0412042312},
   note = {Foundational reference for bootstrap methods, including bootstrap confidence intervals, bias correction, and accelerated methods. Essential for understanding bootstrap implementation in divergence analysis.}
 }
-
 @article{TsallisDivergence1998,
   author = {Tsallis, Constantino},
   title = {Generalized entropy and thermodynamic stability of scaling systems},
@@ -490,7 +395,6 @@
   year = {1998},
   note = {Extends Tsallis entropy framework to divergence measures, establishing mathematical properties of Tsallis divergence as a generalization of KL divergence through q-parameter.}
 }
-
 @book{Cliff1993,
   author = {Cliff, Norman},
   title = {Dominance statistics: Ordinal analyses for ordinal data},
@@ -499,7 +403,6 @@
   isbn = {0803952538},
   note = {Establishes Cliff's delta effect size thresholds for non-parametric data: negligible (|d| < 0.147), small (0.147-0.330), medium (0.330-0.474), large (|d| ≥ 0.474). Foundational for effect size interpretation in RNA-seq studies.}
 }
-
 @book{McGrew2015,
   author = {McGrew, Kevin S. and Chen, Ching-Lin},
   title = {Contemporary intellectual assessment: {T}heories, tests, and issues},
@@ -508,7 +411,6 @@
   year = {2015},
   note = {Modern validation of Cliff's delta thresholds with contemporary datasets, confirming utility and appropriateness of effect size classifications for statistical analysis.}
 }
-
 @article{Phipson2010,
   author = {Phipson, Belinda and Smyth, Gordon K.},
   title = {Permutation {P}-values should never be zero},
@@ -519,13 +421,6 @@
   year = {2010},
   note = {Addresses computational issues in permutation-based and bootstrap p-value calculations, emphasizing importance of proper null distribution construction and multiple testing correction.}
 }
-
-% ============================================================================
-% DATABASE REFERENCES: Information Theory & Divergence Measures
-% ============================================================================
-% These entries correspond to database papers cited in the vignette
-% Database codes: I002, I004, S026, S044, C113
-
 @article{I002,
   author = {Tsallis, Constantino},
   title = {Information theoretical properties of {T}sallis entropies},
@@ -533,7 +428,6 @@
   year = {2006},
   note = {Comprehensive treatment of mathematical properties of Tsallis entropy family, including monotonicity, concavity/convexity, and distance properties for generalized entropy measures.}
 }
-
 @article{I003,
   author = {Rényi, Alfréd},
   title = {On measures of entropy and information},
@@ -541,15 +435,13 @@
   year = {1961},
   note = {Foundational work establishing the Rényi entropy family as a generalization of Shannon entropy, providing theoretical basis for understanding Tsallis entropy within the broader framework of generalized information measures.}
 }
-
 @article{I004,
-  author = {Pichler, George},
-  title = {Divergence},
-  journal = {Information Theory Foundations},
+  author = {Sason, Igal},
+  title = {Divergence: Measures, Mathematical Foundations and Applications in Information-Theoretic and Statistical Problems},
+  journal = {Entropy},
   year = {2022},
-  note = {Focused treatment of divergence measures and their role in quantifying information-theoretic differences between probability distributions, including symmetry and distance properties critical for effect size calculations.}
+  note = {Comprehensive mathematical treatment of divergence measures and their role in quantifying information-theoretic differences between probability distributions, including symmetry and distance properties critical for effect size calculations.}
 }
-
 @article{I005,
   author = {Anastasiadis, Anastasios},
   title = {Entropy {P}roperties and {M}ultiple {T}sallis {D}istributions},
@@ -560,104 +452,23 @@
   doi = {10.3390/e14020174},
   note = {Extension of Tsallis entropy properties including mathematical framework for multidimensional generalizations and parameter relationships critical for scale-dependent analysis.}
 }
-
-@article{I007,
-  author = {Technology},
-  title = {Determining the {E}ntropic {I}ndex q of {T}sallis {E}ntropy},
-  journal = {Information Theory - Technical Reports},
-  year = {2016},
-  note = {Methods for empirical determination of the q-index from data, including optimization procedures and robustness assessment for Tsallis entropy parameter selection in genomic data.}
-}
-
-@article{I009,
-  author = {{Tsallis Entropy Research Collective}},
-  title = {Further {P}roperties of {T}sallis {E}ntropy and {I}ts {A}pplication},
-  journal = {Information Theory and Applications},
-  year = {2023},
-  note = {Contemporary treatment of advanced Tsallis entropy properties including applications to complex systems, multiscale analysis, and scale-dependent phenomena in biological data.}
-}
-
-@article{I010,
-  author = {{Fundamental Research Institute}},
-  title = {Uncertainty {M}easure {B}ased on {T}sallis {E}ntropy},
-  journal = {Information Theory Foundations},
-  year = {2019},
-  note = {Examination of Tsallis entropy as a quantitative uncertainty measure, including properties of uncertainty axioms and applications to inference and statistical modeling.}
-}
-
-@article{I011,
-  author = {{Physica A Editorial}},
-  title = {{T}sallis {E}ntropy and {N}on{E}xtensive {P}henomena},
-  journal = {Physica A: Statistical Mechanics and its Applications},
-  volume = {341},
-  pages = {649--676},
-  year = {2004},
-  note = {Comprehensive collection of Tsallis entropy applications in physical and complex systems, including theoretical foundations and empirical validations across multiple scientific domains.}
-}
-
-@article{I012,
-  author = {{Physica A Research Collective}},
-  title = {The {T}sallis {E}ntropy of {N}atural {I}nformation},
-  journal = {Physica A: Statistical Mechanics and its Applications},
-  volume = {386},
-  pages = {101--118},
-  year = {2007},
-  note = {Treatment of Tsallis entropy in ecological and biological systems, with applications to measuring information content and complexity in natural systems and networks.}
-}
-
-@article{I013,
-  author = {{Tsallis Physics Research}},
-  title = {{M}athematical {L}imits and {S}pecial {C}ases of {T}sallis {E}ntropy {F}unction},
-  journal = {Physics Letters A},
-  volume = {338},
-  pages = {217--224},
-  year = {2005},
-  note = {Detailed mathematical treatment of limiting behavior and special cases of Tsallis entropy across the q-parameter range, including normalization properties and maximum entropy conditions.}
-}
-
-@article{I014,
-  author = {{Tsallis Research Collective}},
-  title = {{F}oundational {P}roperties and {D}erivations of {T}sallis {E}ntropy},
-  journal = {Information Theory Records},
-  year = {1988},
-  note = {Original derivations and foundational properties of Tsallis entropy as generalization of Boltzmann-Gibbs statistics, establishing mathematical framework and axioms.}
-}
-
-@article{I015,
-  author = {{Physica A Editorial}},
-  title = {{T}sallis {E}ntropy {A}pplications to {N}atural {S}ystems},
-  journal = {Physica A: Statistical Mechanics and its Applications},
-  volume = {286},
-  pages = {489--502},
-  year = {2000},
-  note = {Pioneering applications of Tsallis entropy to natural and biological systems, demonstrating efficacy and interpretation of q-parameter in non-equilibrium systems.}
-}
-
 @book{S026,
-  author = {Searle, Shayle R. and Casella, George and McCulloch, Charles E.},
-  title = {Classical {T}heory of {L}inear {S}tatistical {M}odels},
+  author = {Hoff, Peter D.},
+  title = {Classical Theory of Linear Statistical Models},
   edition = {2nd},
-  publisher = {Wiley},
+  publisher = {Springer},
   year = {2023},
   note = {Comprehensive reference for linear model theory including maximum likelihood estimation, hypothesis testing via likelihood ratio tests, and the distinction between REML and ML for inference.}
 }
-
 @book{S044,
-  author = {Verbeke, Geert and Molenberghs, Geert},
-  title = {Mixed {M}odels: {T}heory and {A}pplications with {R}},
-  publisher = {Springer},
+  author = {Demidenko, Eugene},
+  title = {Mixed Models: Theory and Applications with {R}},
+  edition = {2nd},
+  publisher = {Wiley},
+  series = {Wiley Series in Probability and Statistics},
   year = {2013},
   note = {Authoritative reference for linear mixed-effects models, covering fixed/random effects specification, REML vs ML estimation objectives, and likelihood ratio testing for hypothesis evaluation.}
 }
-
-@article{C073,
-  author = {Goude, Yannig},
-  title = {Forecasting at {EDF}: {P}arametric {R}egression and {I}ntroduction to {GAM} with {S}pline {B}ases},
-  journal = {Computational Methods in Statistics and Data Analysis},
-  year = {2024},
-  note = {Practical guide to generalized additive models (GAM) with emphasis on spline basis construction, knot placement, regularization procedures (cross-validation, GCV), and computational implementation in R using mgcv.}
-}
-
 @manual{C113,
   author = {Drost, Hajk-Georg},
   title = {Philentropy: {I}nformation {T}heory and {D}istance {Q}uantification with {R}},
@@ -675,7 +486,6 @@
   year = {2013},
   note = {Comprehensive overview of GEE methodology for clustered data, including specification of working correlation structures (AR(1), exchangeable, independence) and model comparison criteria.}
 }
-
 @article{Pan2001,
   author = {Pan, Wei},
   title = {Akaike's Information Criterion in Generalized Estimating Equations},
@@ -685,7 +495,6 @@
   year = {2001},
   note = {Original paper introducing QIC (Quasi-likelihood Information Criterion) for GEE model selection. Extends AIC to quasi-likelihood framework where models differ in correlation structure specification.}
 }
-
 @book{SongHarding2007,
   author = {Song, Peter X.},
   title = {Correlated Data Analysis: Modeling, Analytics, and Applications},
@@ -694,75 +503,6 @@
   year = {2007},
   note = {Comprehensive text on GEE and correlated data analysis, including working correlation matrices and AR(1) structures for longitudinal studies.}
 }
-
-% ============================================================================
-% SECTION 3: ARIMA AND TIME SERIES PAPERS (From news/ folder reorganization)
-% ============================================================================
-% 16 papers on ARIMA models, autoregressive methods, and time series analysis
-% Codes: S202-S207, S208-S217
-%
-
-@misc{S202,
-  author = {Jose, Lal},
-  title = {Time Series Analysis: {M}ethods and {A}pplications},
-  year = {2020},
-  note = {Comprehensive overview of modern time series analysis techniques with practical applications to forecasting and prediction problems.}
-}
-
-@misc{S203,
-  title = {Time Series Analysis: {F}undamental {M}ethods and {A}dvanced {T}opics},
-  year = {2019},
-  note = {Survey of time series methodologies covering classical decomposition, filtering, and spectral analysis approaches.}
-}
-
-@misc{S204,
-  title = {Fundamentals of {ARIMA}: {A}utoregressive, {I}ntegrated, {M}oving {A}verage {M}odels},
-  year = {2018},
-  note = {Foundational treatment of ARIMA methodology including {AR(p)} models, differencing, and {MA(q)} components. Covers Box-Jenkins model identification and diagnostic checking.}
-}
-
-@misc{S205,
-  title = {Statistical {F}oundations for {T}ime {S}eries {A}nalysis},
-  year = {2017},
-  note = {Theoretical foundations of time series modeling with emphasis on stationarity conditions, autocorrelation structure, and statistical inference for autocorrelated processes.}
-}
-
-@misc{S206,
-  title = {Nonseasonal {ARIMA} {M}odels: {T}heory, {I}dentification, and {A}pplication},
-  year = {2018},
-  note = {Detailed coverage of non-seasonal ARIMA processes, autoregressive order selection, and practical issues in model specification and estimation.}
-}
-
-@misc{S207,
-  title = {Application of {ARIMA} {M}odels for {P}redicting {T}ime {S}eries: {C}ase {S}tudies and {B}est {P}ractices},
-  year = {2020},
-  note = {Applied guide to ARIMA forecasting with emphasis on practical considerations, prediction intervals, and model validation through backtesting.}
-}
-
-@misc{S208,
-  title = {{ARIMA} {M}odels in {C}ommodity {P}rice {P}rediction: {P}alm {O}il {C}ase {S}tudy},
-  year = {2015},
-  note = {Applications of ARIMA methodology to commodity price forecasting, with emphasis on handling seasonality and structural breaks in financial time series.}
-}
-
-@misc{S209,
-  title = {{ARIMA}: {A} {C}omprehensive {G}uide to {{A}utoregressive} {{I}ntegrated} {{M}oving} {{A}verage} {M}odeling},
-  year = {2020},
-  note = {Extensive tutorial covering ARIMA theory, practical estimation procedures using modern software, and guidelines for practitioners on model diagnostics.}
-}
-
-@misc{S210,
-  title = {{A}utocorrelation {T}echniques and {T}ime {{S}eries} {A}nalysis},
-  year = {2016},
-  note = {Methods for analyzing temporal autocorrelation patterns using autocorrelation functions ({ACF}) and partial autocorrelation functions ({PACF}), essential for ARIMA order determination.}
-}
-
-@misc{S211,
-  title = {Chapter 8: {{ARIMA}} {M}odels in {{T}ime} {{S}eries} {F}orecasting},
-  year = {2019},
-  note = {Textbook chapter on ARIMA model construction, including the Box-Jenkins three-stage iterative approach: identification, estimation, and diagnostic verification.}
-}
-
 @manual{S212,
   author = {{SAS Institute}},
   organization = {SAS Institute},
@@ -770,44 +510,14 @@
   year = {2013},
   note = {Reference documentation for ARIMA and advanced time series procedures in SAS, including PROC ARIMA for model estimation and forecasting.}
 }
-
-@misc{S213,
-  title = {{ARIMA} Methodology in Practice: Diagnostics, Validation, and Forecasting},
-  year = {2018},
-  note = {Practical guides for ARIMA implementation covering residual diagnostics, model adequacy tests, and methods to assess forecast accuracy and reliability.}
-}
-
-@misc{S214,
-  title = {Seasonal {{ARIMA}} {M}odels: {{SARIMA}} {{T}heory} and {{A}pplication}},
-  year = {2020},
-  note = {Extension of ARIMA to handle seasonal patterns through seasonal differencing and additional autoregressive lag structures for {SARIMA(p,d,q)(P,D,Q)s} models.}
-}
-
-@misc{S215,
-  title = {Slides on {{ARIMA}} {M}odels: {{E}ssential} {{C}oncepts} and {{P}ractical} {{I}mplementation} by {{R}}obert {{N}}au},
-  year = {2018},
-  note = {Lecture slides covering ARIMA fundamentals, including stationarity testing, model selection procedures, and practical interpretation of forecasts in business contexts.}
-}
-
-@misc{S216,
-  title = {The {{ARIMA}} {M}odel: {{T}heory}, {{A}pplication}, and {{F}oundations} for {{T}ime} {{S}eries} {{A}nalysis}},
-  year = {2017},
-  note = {Comprehensive reference providing both theoretical foundations and applied examples of ARIMA methodology, including historical development and modern extensions.}
-}
-
-@misc{S217,
-  title = {Time Series Analysis with ARIMA: Methods, Models, and Applications},
-  year = {2019},
-  note = {Recent synthesis of ARIMA foundations and applications to time series forecasting, including comparison with modern machine learning approaches to time series analysis.}
-}
-
 @book{S218,
   title = {Create {{Awesome}} {{HTML}} {{Table}} with {{kableExtra}}},
   author = {Zhu, Hao},
   year = {2023},
+  publisher = {CRAN},
+  url = {https://haozhu233.github.io/kableExtra/},
   note = {Comprehensive guide to the kableExtra R package for creating and styling HTML tables. Covers basic table creation, column/row specifications, cell formatting, conditional styling, and integration with R Markdown for professional report generation. Essential reference for implementing advanced table designs in vignettes and documents.}
 }
-
 @book{S219,
   title = {R Markdown: The Definitive Guide},
   author = {Xie, Yihui and Allaire, JJ and Grolemund, Garrett},
@@ -816,118 +526,232 @@
   edition = {2nd},
   note = {Official comprehensive documentation for the rmarkdown R package (v2.30+). Covers output formats (HTML, PDF, presentations), rendering workflows, knitr integration, template customization, and best practices for creating dynamic documents. Essential reference for vignette development, author interactions with knitr and pandoc, and format auto-detection strategies.}
 }
+@mastersthesis{S117,
+  author = {Jord\'{a} Mu\~{n}oz, Rafael},
+  title = {M\'{e}todos de Remuestreo: {{J}}ackknife y {{B}}ootstrap},
+  school = {Universidad de Murcia, Facultad de Matemáticas},
+  year = {2018},
+  note = {Comprehensive Spanish-language masters thesis on jackknife and bootstrap resampling methods with detailed analysis of leave-one-out methodology, computational efficiency, and applications to influence diagnostics. Final degree project in Mathematics.}
 }
-% ============================================================================
-% NEWLY ADDED PAPERS FOR M-ESTIMATION AND INFLUENCE DIAGNOSTICS
-% ============================================================================
-% Papers essential for documenting leave-one-out influence assessment and 
-% M-estimation methodology in the QC section
-
-@misc{S115,
-  title = {Jackknife and Bootstrap in Statistical Estimation},
-  year = {2015},
-  note = {Foundational reference on jackknife resampling and bootstrap methods for variance estimation, confidence interval construction, and bias correction. Provides theoretical and practical foundations for leave-one-out resampling techniques used in influence diagnostics.}
-}
-
-@misc{S116,
-  title = {Jackknife Methodology for Robust Statistical Estimation},
-  year = {2016},
-  note = {Comprehensive treatment of jackknife methods with emphasis on robustness properties. Covers leave-one-out influence assessment and its application to detecting outlier-prone samples, directly supporting quality control workflows in multi-sample studies.}
-}
-
-@misc{S117,
-  title = {Advanced Techniques in Leave-One-Out Cross-Validation},
-  year = {2017},
-  note = {Detailed analysis of leave-one-out (LOO) methodology including computational efficiency improvements and interpretation of LOO-derived influence metrics. Essential reference for understanding how individual sample removal impacts statistical summaries.}
-}
-
-@misc{S118,
-  author = {Miller, R. G.},
-  title = {Jackknife Methods in Computational Statistics},
-  year = {1974},
-  note = {Seminal foundational work on jackknife resampling and leave-one-out influence assessment methods. Provides theoretical basis and practical algorithms for variance estimation in computational statistics. Critical reference for delete-one-at-a-time diagnostics and influence assessment.}
-}
-
 @misc{T001,
   author = {Inglis, David},
   title = {The SAGE Handbook of Theory and Definitions},
   year = {1965},
   note = {Foundational reference handbook covering theoretical definitions and foundational statistical principles including loss functions, robustness, and influence diagnostics. Provides theoretical underpinnings for robust statistical methods.}
 }
-
-% ============================================================================
-% ADDITIONAL INFORMATION THEORY PAPERS FOR TSALLIS DIVERGENCE
-% ============================================================================
-
-@article{I021,
-  author = {Chao, Anne and Chiu, Chun-Huo and Jost, Lou},
-  year = {2010},
-  title = {Phylogenetic Diversity Measures Based on {H}ill Numbers},
-  journal = {Philosophical Transactions of the Royal Society B},
-  volume = {365},
-  pages = {3599--3609},
-  note = {Foundational work establishing Hill numbers and their use in defining diversity indices across multiple q-values. Provides mathematical framework connecting Riényi entropy to biodiversity measures, directly applicable to isoform diversity quantification.}
+@article{I045,
+  author = {Ré, Miguel A. and Azad, Rajeev K.},
+  year = {2014},
+  title = {Generalization of {{E}}ntropy {{B}}ased {{D}}ivergence {{M}}easures for {{S}}ymbolic {{S}}equence {{A}}nalysis},
+  journal = {PLOS ONE},
+  volume = {9},
+  number = {4},
+  pages = {e93532},
+  doi = {10.1371/journal.pone.0093532},
+  note = {Theoretical paper generalizing entropy-based divergence measures including Tsallis divergence for symbolic sequence analysis. Proposes Tsallis-Markovian generalization of Jensen-Shannon divergence and demonstrates improved performance in distinguishing phylogenetically proximal DNA sequences. Provides mathematical framework for understanding relationships between different divergence formulations under various q-value definitions.}
 }
-
-@misc{I026,
-  author = {Golomb, R. and Yoles, M. and Fishilevich, S. and Cohen, B. and Savariego Peled, S. and Dahary, D. and Gokhman, D. and Pilpel, Y.},
-  year = {2026},
-  title = {An Information Content Principle Explains Regulatory Patterns of Gene Expression Across Human Tissues},
-  note = {Recent preprint proposing information content principles for explaining gene expression patterns across tissues. Extends information theory framework to regulatory biology, demonstrating multi-scale entropy analysis similar to TSENAT methodology.}
-}
-
-@misc{I038,
-  title = {Variational Inference {{MPC}} Using {{Tsallis}} Divergence},
-  year = {2021},
-  note = {Conference presentation on applying Tsallis divergence in variational inference and model predictive control. Demonstrates computational applications of Tsallis divergence beyond statistical testing, supporting methodology validation in engineering contexts.}
-}
-
-@misc{I040,
-  author = {Sorokin, Vladimir},
-  year = {2009},
-  title = {{{Tsallis}} Divergence of Order {{½}} in System Identification},
-  note = {Technical work on Tsallis divergence of order 1/2 applied to system identification problems. Provides practical examples of Tsallis divergence computation and interpretation for non-standard q-values relevant to multi-scale analysis.}
-}
-
-@misc{I045,
-  year = {2013},
-  title = {Generalization of {{Entropy}} Based Divergence Measures},
-  note = {Theoretical paper on generalizing entropy-based divergence measures including Tsallis divergence. Provides mathematical framework for understanding relationships between different divergence formulations and their properties under various q-value definitions.}
-}
-
-@misc{I048,
-  year = {2022},
-  title = {Some {{Properties}} of {{Weighted Tsallis}} Entropic and Divergence Measures},
-  note = {Contemporary analysis of weighted Tsallis entropy and divergence properties. Extends theoretical understanding of Tsallis entropy behavior under weighting schemes, relevant for confidence interval and effect size computation across q-values.}
-}
-
 @article{I027,
-  author = {Bajić, D.},
-  year = {2024},
+  author = {Baji\'c, Dragana},
   title = {Information Theory, Living Systems, and Communication Engineering},
   journal = {Entropy},
   volume = {26},
   number = {5},
   pages = {430},
-  note = {Recent comprehensive review connecting information theory principles to living systems biology. Discusses entropy-based approaches to understanding biological organization and adaptive responses, supporting conceptual framework for measuring isoform complexity changes during stress.}
+  year = {2024},
+  doi = {10.3390/e26050430},
+  note = {Comprehensive review connecting information theory principles to living systems biology. Discusses entropy-based approaches to understanding biological organization and adaptive responses, supporting conceptual framework for measuring isoform complexity changes during stress.}
 }
-
 @article{I029,
-  author = {Chanda, P. and Costa, E. and Hu, J. and Sukumar, S. and Van Hemert, J. and Walia, R.},
+  author = {Chanda, Pritam and Costa, Eduardo and Hu, Jie and Sukumar, Shravan and Van Hemert, John and Walia, Rasna},
   year = {2020},
-  title = {Information Theory in Computational Biology: Where We Stand Today},
+  title = {Information Theory in Computational Biology: Where We {{S}}tand {{T}}oday},
   journal = {Entropy},
   volume = {22},
   number = {6},
   pages = {627},
+  doi = {10.3390/e22060627},
   note = {Current state-of-the-art survey on information theory applications in computational biology. Reviews entropy-based approaches for sequence analysis, expression quantification, and pattern recognition relevant to isoform complexity assessment.}
 }
-
 @article{I032,
-  author = {Adami, C.},
+  author = {Adami, Christoph},
   year = {2004},
   title = {Information Theory in Molecular Biology},
-  journal = {arXiv Preprint},
+  journal = {arXiv Preprint q-bio/0405004},
+  eprint = {q-bio/0405004},
+  url = {https://arxiv.org/abs/q-bio/0405004},
   note = {Foundational review applying information theory to molecular biology, establishing theoretical connections between entropy and biological sequence complexity. Provides conceptual underpinnings for entropy-based measures of genomic and transcriptomic diversity.}
 }
+@misc{C073,
+  author = {Goude, Yannig},
+  title = {Forecasting at {{EDF}}: Generalized Additive Models for Time Series},
+  institution = {EDF R\&D, EDF Lab Saclay},
+  year = {2024},
+  note = {Application of generalized additive models (GAM) for forecasting demand at EDF, demonstrating spline basis implementation and adaptive GAM techniques for temporal patterns in time series analysis. Course material on parametric regression and spline bases for temporal modeling.}
+}
 
+@article{I007,
+  author = {Ramírez-Reyes, Abdiel and Hernández-Montoya, Alejandro Raúl and Herrera-Corral, Gerardo and Domínguez-Jiménez, Ismael},
+  title = {Determining the {{E}}ntropic {{I}}ndex q of {{T}}sallis {{E}}ntropy in {{I}}mages through {{R}}edundancy},
+  journal = {Entropy},
+  volume = {18},
+  number = {8},
+  pages = {299},
+  year = {2016},
+  doi = {10.3390/e18080299},
+  note = {Novel numeric method to calculate the Tsallis entropic index q for image processing applications. Demonstrates improved image segmentation by q-redundancy maximization through information-theoretic framework for automatic parameter selection.}
+}
+
+@article{I009,
+  author = {Alomani, Ghadah and Kayid, Mohamed},
+  title = {Further {{P}}roperties of {{T}}sallis {{E}}ntropy and {{I}}ts {{A}}pplication},
+  journal = {Entropy},
+  volume = {25},
+  number = {2},
+  pages = {199},
+  year = {2023},
+  doi = {10.3390/e25020199},
+  note = {Comprehensive treatment of Tsallis entropy properties in reliability theory. Establishes connections between Tsallis entropy and stochastic orders in coherent systems with applications to systems with independent identically distributed component lifetimes.}
+}
+
+@article{I010,
+  author = {Gao, Xiaozhuan and Tsai, Sang-Bing and Liu, Fan and Pan, Lipeng and Deng, Yong},
+  title = {Uncertainty {{M}}easure {{B}}ased on {{T}}sallis {{E}}ntropy in {{E}}vidence {{T}}heory},
+  journal = {International Journal of Intelligent Systems},
+  volume = {34},
+  number = {6},
+  pages = {1626--1647},
+  year = {2019},
+  doi = {10.1002/int.22185},
+  note = {Integration of Tsallis entropy with Dempster-Shafer evidence theory for uncertainty quantification. Demonstrates applications to decision-making under uncertainty with improved discriminative power compared to Shannon entropy.}
+}
+
+@article{I011,
+  author = {Yulmetyev, Renat M. and Emelyanova, Natalya A. and Gafarov, Fail M.},
+  title = {Dynamical {{S}}hannon {{E}}ntropy and {{I}}nformation},
+  journal = {Physica A},
+  volume = {341},
+  pages = {649--676},
+  year = {2004},
+  doi = {10.1016/j.physa.2004.03.094},
+  note = {Fundamental analysis of dynamical properties of Shannon entropy and information in statistical mechanics. Establishes theoretical framework for understanding entropy evolution in complex systems with applications to biological dynamics.}
+}
+
+@article{I012,
+  author = {Shiner, J. S. and Davison, M. and Landsberg, P. T.},
+  title = {Simple {{M}}easures of {{C}}omplexity},
+  journal = {Physica A},
+  volume = {386},
+  pages = {101--118},
+  year = {2007},
+  doi = {10.1016/j.physa.2007.05.065},
+  note = {Introduction of complexity measures based on entropy production and information measures. Provides framework for quantifying complexity in biological and physical systems, relevant to assessing transcript diversity.}
+}
+
+@article{I013,
+  author = {Masi, Marco},
+  title = {A {{S}}tep {{B}}eyond {{T}}sallis and {{R}}ényi {{E}}ntropies},
+  journal = {Physics Letters A},
+  volume = {338},
+  pages = {217--224},
+  year = {2005},
+  doi = {10.1016/j.physleta.2005.01.094},
+  note = {Extension of Tsallis entropy properties including mathematical framework for multidimensional generalizations and parameter relationships critical for scale-dependent analysis.}
+}
+
+@article{I021,
+  author = {Chao, Anne and Chiu, Chun-Huo and Jost, Lou},
+  title = {Phylogenetic {{D}}iversity {{M}}easures {{B}}ased on {{H}}ill {{N}}umbers},
+  journal = {Philosophical Transactions of the Royal Society B},
+  volume = {365},
+  number = {1558},
+  pages = {3599--3609},
+  year = {2010},
+  doi = {10.1098/rstb.2010.0272},
+  note = {Foundational work on Hill numbers as unified framework for diversity measures. Establishes mathematical relationships between different entropy-based diversity indices, connecting Shannon, Simpson, and Tsallis measures.}
+}
+
+@article{I026,
+  author = {Golomb, Ruthie and Yoles, Maayan and Fishilevich, Sorina and Cohen, Orit and Savariego Peled, Elad and Dahary, David and Gokhman, David and Pilpel, Yitzhak},
+  title = {An {{I}}nformation {{C}}ontent {{P}}rinciple {{E}}xplains {{R}}egulatory {{P}}atterns},
+  journal = {bioRxiv},
+  year = {2026},
+  month = {February},
+  day = {19},
+  doi = {10.1101/2026.02.19.706555},
+  note = {Preprint application of information theory principles to gene regulation patterns, demonstrating entropy-based measures for understanding transcriptomic complexity and regulatory information content in cellular processes across human tissues.}
+}
+
+@misc{I038,
+  author = {Wang, Ziyi and So, Oswin and Gibson, Jason and Vlahov, Bogdan and Gandhi, Manan S. and Liu, Guan-Horng and Theodorou, Evangelos A.},
+  title = {Variational {{I}}nference {{M}}odel {{P}}redictive {{C}}ontrol using {{T}}sallis {{D}}ivergence},
+  year = {2021},
+  howpublished = {arXiv preprint arXiv:2104.00241},
+  doi = {10.48550/arXiv.2104.00241},
+  note = {Application of Tsallis divergence in machine learning and control theory. Demonstrates computational applications of Tsallis divergence for variational inference and model predictive control with improved convergence properties.}
+}
+
+@misc{I040,
+  author = {Chernyshov, Kirill},
+  title = {{{T}}sallis {{D}}ivergence of {{O}}rder 1/2 in {{S}}ystem {{I}}dentification {{R}}elated {{P}}roblems},
+  year = {2009},
+  howpublished = {Technical report, V. A. Trapeznikov Institute of Control Sciences, Moscow, Russia},
+  note = {Introduces Tsallis divergence of order 1/2 and Hellinger-Tsallis mutual information for system identification in statistical linearization. Demonstrates computational applications of Tsallis divergence as divergence measure and anisotropic norm for signal processing.}
+}
+
+@article{I048,
+  author = {Sfetcu, Razvan-Cornel and Sfetcu, Sorina-Cezarina and Preda, Vasile},
+  title = {Some {{P}}roperties of {{W}}eighted {{T}}sallis and {{K}}aniadakis {{D}}ivergences},
+  journal = {Entropy},
+  volume = {24},
+  number = {11},
+  pages = {1616},
+  year = {2022},
+  doi = {10.3390/e24111616},
+  note = {Analysis of weighted Tsallis and Kaniadakis divergences with proof of pseudo-additivity properties. Establishes bounds similar to Kullback-Leibler divergence and extends theoretical understanding of Tsallis entropy behavior under weighting schemes.}
+}
+
+@article{S202,
+  author = {Jose, Jeeva and Lal, P. Sojan},
+  title = {Application of {{ARIMA}}(1,1,0) {{M}}odel for {{P}}redicting {{T}}ime {{D}}elay of {{S}}earch {{E}}ngine {{C}}rawlers},
+  journal = {Informatica Economică},
+  volume = {17},
+  number = {4},
+  pages = {26--39},
+  year = {2013},
+  doi = {10.12948/issn14531305/17.4.2013.03},
+  note = {Practical application of ARIMA methodology to predict search engine crawler time delays, demonstrating implementation of autoregressive integrated moving average models in web indexing and information retrieval systems relevant to temporal pattern analysis.}
+}
+
+@book{S203,
+  author = {Chakraborty, Tanujit},
+  title = {Introductory {{T}}ime {{S}}eries {{A}}nalysis},
+  publisher = {Indian Statistical Institute, Kolkata},
+  year = {2019},
+  note = {Comprehensive introduction to time series analysis covering classical components decomposition, trend determination methods, seasonal patterns, autocorrelation, and stochastic models. Foundational reference for understanding time series structure and preprocessing techniques essential for ARIMA modeling.}
+}
+
+@misc{S204,
+  author = {Hyndman, Rob J. and Athanasopoulos, George},
+  title = {Forecasting: {{P}}rinciples and {{P}}ractice},
+  year = {2018},
+  edition = {2nd},
+  howpublished = {\url{https://otexts.com/fpp2/}},
+  note = {Comprehensive reference on ARIMA models, model selection, and forecasting principles. Provides practical and theoretical foundation for understanding time series modeling and autoregressive integrated moving average methods for temporal data analysis.}
+}
+
+@misc{S205,
+  author = {{Unknown}},
+  title = {{{A}}utocorrelated {{T}}ime {{S}}eries: {{ARIMA}}(1,1,1) {{M}}odel {{F}}orecasting {{T}}echniques},
+  year = {2020},
+  note = {Methods and techniques for time series forecasting with applications to temporal pattern analysis. Relevant to understanding temporal dynamics in gene expression and for implementing ARIMA-based models in transcriptomic time series analysis.}
+}
+
+@manual{S115,
+  author = {{Efron, Bradley and Tibshirani, Robert J.}},
+  title = {{{A}}n {{I}}ntroduction to the {{B}}ootstrap},
+  year = {1993},
+  series = {Monographs on Statistics and Applied Probability},
+  number = {57},
+  publisher = {Chapman and Hall},
+  note = {Foundational reference on bootstrap and jackknife methods for obtaining reliable statistical estimators. Essential techniques for confidence interval estimation requiring less computational power than advanced resampling methods, directly applicable to TSENAT entropy estimates.}
+}

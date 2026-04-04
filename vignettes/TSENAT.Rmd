@@ -144,9 +144,10 @@ S_q(p) = \frac{1-\sum_{i=1}^n p_i^q}{q-1}.
 \]
 
 This parametric family unites diverse **entropy** concepts under a single framework:
-- Generalization: Extends beyond classical Shannon **entropy** to capture **scale-dependent** phenomena
-- Mathematical elegance: Reduces to well-known indices at specific `q`-values
-- Practical flexibility: Allows data-driven exploration via **q-spectrum** curves
+
+- Generalization: Extends beyond classical Shannon **entropy** to capture **scale-dependent** phenomena.
+- Mathematical elegance: Reduces to well-known indices at specific `q`-values.
+- Practical flexibility: Allows data-driven exploration via **q-spectrum** curves.
 
 ## Information-Theoretic Interpretation
 
@@ -159,10 +160,11 @@ is crucial: two genes may have identical total abundance but dramatically differ
 isoform complexity.
 
 **Tsallis entropy** generalizes this concept by introducing the `q` parameter as a sensitivity dial for **scale-dependent** emphasis:
-- q < 1: Emphasizes rare, low-abundance isoforms
-- q = 1: Recovers Shannon entropy (balanced across all abundance scales)
-- q = 2: Yields the Gini-Simpson index, emphasizing dominant isoforms
-- q > 2: Focuses almost exclusively on the most abundant species
+
+- q < 1: Emphasizes rare, low-abundance isoforms.
+- q = 1: Recovers Shannon entropy (balanced across all abundance scales).
+- q = 2: Yields the Gini-Simpson index, emphasizing dominant isoforms.
+- q > 2: Focuses almost exclusively on the most abundant species.
 
 This **Tsallis entropy** **scale-dependent** nature is the key innovation: by computing $S_q$ across a range of 
 q-values (a "q-curve"), you obtain a complete picture of isoform heterogeneity 
