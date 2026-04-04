@@ -329,15 +329,18 @@ if (getRversion() >= "2.15.1") {
     title_use <- title %||% sprintf("Violin plot: Tsallis entropy at q = %g", q_val)
 
     # Create violin plot with publication theme
-    ggplot2::ggplot(long, ggplot2::aes(x = group, y = tsallis, fill = group)) +
+    p <- ggplot2::ggplot(long, ggplot2::aes(x = group, y = tsallis, fill = group)) +
         ggplot2::geom_violin(alpha = 0.5, width = 0.7, position = ggplot2::position_dodge(width = 0.8)) +
         ggplot2::geom_boxplot(width = 0.2, position = ggplot2::position_dodge(width = 0.8),
-            outlier.shape = NA, alpha = 0.8) +
-        ggplot2::scale_fill_manual(values = .palette_blue_red(), name = "Group", guide = "none") +
-        .theme_base(base_size = 11) +
-        ggplot2::labs(title = title_use, x = "Group", y = "Tsallis entropy", fill = "Group") +
-        ggplot2::theme(plot.title = ggplot2::element_text(size = .font_sizes$title, face = "bold", hjust = 0.5),
-            axis.title = ggplot2::element_text(size = .font_sizes$axis_title, face = "bold"))
+            outlier.shape = NA, alpha = 0.8)
+
+    p <- .apply_group_aesthetics(p, palette = "palette_blue_red", legend_name = "Group",
+        legend_position = "none")
+    
+    p <- .apply_publication_theme(p, title = title_use, base_size = 11) +
+        ggplot2::labs(x = "Group", y = "Tsallis entropy")
+
+    p
 }
 
 
@@ -390,15 +393,15 @@ if (getRversion() >= "2.15.1") {
     title_use <- title %||% sprintf("Density plot: Tsallis entropy at q = %g", q_val)
 
     # Create density plot with publication theme
-    ggplot2::ggplot(long, ggplot2::aes(x = tsallis, color = group, fill = group)) +
-        ggplot2::geom_density(alpha = 0.3, linewidth = 1) +
-        ggplot2::scale_color_manual(values = .palette_blue_red(), name = "Group") +
-        ggplot2::scale_fill_manual(values = .palette_blue_red(), name = "Group") +
-        .theme_base(base_size = 11) +
-        ggplot2::labs(title = title_use, x = "Tsallis entropy", y = "Density", color = "Group",
-            fill = "Group") +
-        ggplot2::theme(plot.title = ggplot2::element_text(size = .font_sizes$title, face = "bold", hjust = 0.5),
-            axis.title = ggplot2::element_text(size = .font_sizes$axis_title, face = "bold"))
+    p <- ggplot2::ggplot(long, ggplot2::aes(x = tsallis, color = group, fill = group)) +
+        ggplot2::geom_density(alpha = 0.3, linewidth = 1)
+
+    p <- .apply_group_aesthetics(p, palette = "palette_blue_red", legend_name = "Group")
+    
+    p <- .apply_publication_theme(p, title = title_use, base_size = 11) +
+        ggplot2::labs(x = "Tsallis entropy", y = "Density")
+
+    p
 }
 
 
@@ -550,14 +553,16 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
 
     p <- ggplot2::ggplot(df, ggplot2::aes(x = xval, y = -log10(padj), color = significant)) +
         ggplot2::geom_point(alpha = 0.75, size = 3.4) +
-        ggplot2::scale_color_manual(values = .significance_colors(), guide = "none") +
-        ggplot2::geom_hline(yintercept = -log10(sig_alpha), linetype = "dashed", color = "gray50") +
-        ggplot2::geom_vline(xintercept = c(-label_thresh, label_thresh), linetype = "dashed",
-            color = "gray50") +
-        ggplot2::labs(title = title_use, x = x_label_formatted, y = paste0("-Log10(", padj_label_formatted, ")")) +
-        .theme_base(base_size = 11) +
-        ggplot2::theme(plot.title = ggplot2::element_text(size = .font_sizes$title, face = "bold", hjust = 0.5),
-            axis.title = ggplot2::element_text(size = .font_sizes$axis_title, face = "bold"))
+        ggplot2::scale_color_manual(values = .significance_colors(), guide = "none")
+    
+    # Add reference lines using Phase 5 helper
+    p <- .add_reference_lines(p,
+        h_intercept = -log10(sig_alpha),
+        v_intercept = c(-label_thresh, label_thresh),
+        h_color = "gray50", v_color = "gray50")
+    
+    p <- .apply_publication_theme(p, title = title_use, base_size = 11) +
+        ggplot2::labs(x = x_label_formatted, y = paste0("-Log10(", padj_label_formatted, ")"))
 
     p
 }
@@ -996,11 +1001,14 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
         0)) + ggplot2::scale_fill_distiller(palette = "Blues", na.value = "lightgray",
         limits = fill_limits, name = "log2(expr)") + .theme_base(base_size = base_font) +
         ggplot2::labs(title = agg_label_unique, x = NULL, y = NULL, fill = "log2(expr)") +
-        ggplot2::theme(axis.text.y = ggplot2::element_text(size = y_axis_font, face = "plain"),
-            axis.text.x = ggplot2::element_text(size = x_axis_font), plot.title = ggplot2::element_text(size = title_font,
-                hjust = 0.5, face = "bold"), legend.position = "bottom", legend.justification = "center",
-            legend.key.width = ggplot2::unit(2, "cm"), legend.text = ggplot2::element_text(size = legend_font),
-            plot.margin = ggplot2::margin(4, 4, 4, 4)) + ggplot2::guides(fill = ggplot2::guide_colorbar(title.position = "top",
+        ggplot2::theme(plot.title = ggplot2::element_text(size = title_font, hjust = 0.5, face = "bold"),
+            plot.margin = ggplot2::margin(4, 4, 4, 4))
+    
+    # Apply axis label formatting and legend configuration using Phase 5 helpers
+    p <- .format_axis_labels(p, x_size = x_axis_font, y_size = y_axis_font, 
+                            y_face = "plain", bold_title = FALSE)
+    p <- .configure_legend(p, position = "bottom", width_cm = 2, text_size = legend_font)
+    p <- p + ggplot2::guides(fill = ggplot2::guide_colorbar(title.position = "top",
         barwidth = 10, barheight = 0.5, title.theme = ggplot2::element_text(size = title_font)))
     p
 }
@@ -1374,7 +1382,6 @@ if (getRversion() >= "2.15.1") {
     p_effect <- ggplot2::ggplot(plot_data, ggplot2::aes(x = .data[[median_col]])) +
         ggplot2::geom_histogram(binwidth = 0.02, fill = .palette_blue_red()[1], alpha = 0.7,
             color = "black") +
-        ggplot2::geom_vline(xintercept = threshold, linetype = "dashed", color = "red", linewidth = 1) +
         ggplot2::labs(title = expression("Distribution of Tsallis Divergence (" ~
             D[q] ~ ") effect sizes across genes"),
             subtitle = "Information-theoretic measure respecting Tsallis multi-q entropy properties",
@@ -1383,10 +1390,13 @@ if (getRversion() >= "2.15.1") {
             y = "Number of genes",
             caption = paste("Red dashed line: D =", threshold, "filtering threshold (information-theoretic significance for q-dependent entropy)")) +
         .theme_base(base_size = 11) +
-        ggplot2::theme(plot.title = ggplot2::element_text(size = .font_sizes$title, face = "bold", hjust = 0.5),
-            plot.subtitle = ggplot2::element_text(size = .font_sizes$subtitle, face = "italic", hjust = 0.5),
-            panel.grid.major = ggplot2::element_line(color = "gray90")) +
-        ggplot2::annotate("text", x = threshold, y = Inf, label = paste("Information\nthreshold\n(D=",
+        ggplot2::theme(panel.grid.major = ggplot2::element_line(color = "gray90"))
+    
+    # Add reference line using Phase 5 helper
+    p_effect <- .add_reference_lines(p_effect, v_intercept = threshold, v_color = "red", v_size = 1)
+    
+    # Add threshold annotation
+    p_effect <- p_effect + ggplot2::annotate("text", x = threshold, y = Inf, label = paste("Information\nthreshold\n(D=",
             threshold, ")", sep = ""), vjust = 1.5, hjust = -0.1, color = "red", size = 3.5)
 
     return(p_effect)

@@ -2174,6 +2174,304 @@ NULL
     result
 }
 
+# ============================================================================
+# PHASE 5: LEGEND & FORMATTING HELPERS
+# ============================================================================
+
+#' Configure Legend Positioning, Sizing, and Styling
+#'
+#' Consolidated helper that standardizes legend appearance across all plots.
+#' Replaces repeated 20+ occurrences of legend.position, legend.key.width, 
+#' legend.text, etc. customizations throughout the codebase.
+#'
+#' @param plot ggplot2 object to modify
+#' @param position Character: "bottom", "right", "left", "top", or "none" (default: "bottom")
+#' @param width_cm Numeric: width of legend key in cm (default: NULL = don't override)
+#' @param height_cm Numeric: height of legend key in cm (default: NULL)
+#' @param text_size Numeric: font size for legend text (default: NULL = use plot theme)
+#' @param title_size Numeric: font size for legend title (default: NULL)
+#' @param justification Character: "left", "center", "right" (default: NULL = auto)
+#' @param background_color Character: fill color for legend background (default: NULL)
+#' @param border_color Character: border color for legend box (default: NULL)
+#' @param spacing_lines Numeric: line spacing in legend (default: 2)
+#'
+#' @return Modified ggplot2 object with configured legend
+#'
+#' @examples
+#' \dontrun{
+#' # Simple usage: position and width
+#' p <- ggplot2::ggplot(mtcars, ggplot2::aes(x = wt, y = mpg, color = factor(cyl))) +
+#'     ggplot2::geom_point()
+#' p_leg <- .configure_legend(p, position = "bottom", width_cm = 2)
+#'
+#' # With text sizing
+#' p_leg <- .configure_legend(p, position = "right", text_size = 10, title_size = 11)
+#'
+#' # No legend
+#' p_leg <- .configure_legend(p, position = "none")
+#' }
+#'
+#' @noRd
+
+.configure_legend <- function(plot, position = "bottom", width_cm = NULL,
+                             height_cm = NULL, text_size = NULL,
+                             title_size = NULL, justification = NULL,
+                             background_color = NULL, border_color = NULL,
+                             spacing_lines = 2) {
+    require_pkgs("ggplot2")
+    
+    theme_list <- list()
+    
+    # Handle legend positioning
+    if (!is.null(position) && position != "none") {
+        theme_list$legend.position <- position
+    } else if (position == "none") {
+        theme_list$legend.position <- "none"
+    }
+    
+    # Handle legend justification
+    if (!is.null(justification)) {
+        theme_list$legend.justification <- justification
+    } else if (!is.null(position) && position == "bottom") {
+        theme_list$legend.justification <- "center"
+    }
+    
+    # Handle legend key dimensions
+    if (!is.null(width_cm)) {
+        theme_list$legend.key.width <- ggplot2::unit(width_cm, "cm")
+    }
+    if (!is.null(height_cm)) {
+        theme_list$legend.key.height <- ggplot2::unit(height_cm, "cm")
+    }
+    
+    # Handle text sizes
+    if (!is.null(text_size)) {
+        theme_list$legend.text <- ggplot2::element_text(size = text_size)
+    }
+    if (!is.null(title_size)) {
+        theme_list$legend.title <- ggplot2::element_text(size = title_size, face = "bold")
+    }
+    
+    # Handle legend background
+    if (!is.null(background_color)) {
+        theme_list$legend.background <- ggplot2::element_rect(fill = background_color,
+                                                              color = border_color %||% "black")
+    } else if (!is.null(border_color)) {
+        theme_list$legend.background <- ggplot2::element_rect(fill = NA,
+                                                              color = border_color)
+    }
+    
+    # Handle spacing
+    theme_list$legend.spacing.y <- ggplot2::unit(spacing_lines, "mm")
+    
+    if (length(theme_list) > 0) {
+        plot <- plot + do.call(ggplot2::theme, theme_list)
+    }
+    
+    return(plot)
+}
+
+#' Add Reference Lines (Horizontal and Vertical)
+#'
+#' Consolidated helper for adding reference/threshold lines to plots.
+#' Replaces repeated 12+ occurrences of geom_hline + geom_vline patterns.
+#'
+#' @param plot ggplot2 object to modify
+#' @param h_intercept Numeric vector: y-coordinates for horizontal lines (default: NULL)
+#' @param v_intercept Numeric vector: x-coordinates for vertical lines (default: NULL)
+#' @param h_color Character: color for horizontal lines (default: "gray50")
+#' @param v_color Character: color for vertical lines (default: "gray50")
+#' @param h_linetype Character: linetype for horizontal lines (default: "dashed")
+#' @param v_linetype Character: linetype for vertical lines (default: "dashed")
+#' @param h_size Numeric: line width for horizontal lines (default: 0.8)
+#' @param v_size Numeric: line width for vertical lines (default: 0.8)
+#' @param h_alpha Numeric: transparency for horizontal lines (default: 0.7)
+#' @param v_alpha Numeric: transparency for vertical lines (default: 0.7)
+#'
+#' @return Modified ggplot2 object with reference lines
+#'
+#' @examples
+#' \dontrun{
+#' p <- ggplot2::ggplot(mtcars, ggplot2::aes(x = wt, y = mpg)) +
+#'     ggplot2::geom_point()
+#'
+#' # Add threshold lines
+#' p_ref <- .add_reference_lines(p, h_intercept = 20, v_intercept = 3)
+#'
+#' # Customized colors
+#' p_ref <- .add_reference_lines(p, h_intercept = 20, h_color = "red",
+#'                               v_intercept = c(2.5, 3.5), v_color = "blue")
+#' }
+#'
+#' @noRd
+
+.add_reference_lines <- function(plot, h_intercept = NULL, v_intercept = NULL,
+                                h_color = "gray50", v_color = "gray50",
+                                h_linetype = "dashed", v_linetype = "dashed",
+                                h_size = 0.8, v_size = 0.8,
+                                h_alpha = 0.7, v_alpha = 0.7) {
+    require_pkgs("ggplot2")
+    
+    # Add horizontal reference lines
+    if (!is.null(h_intercept)) {
+        for (yint in h_intercept) {
+            plot <- plot + ggplot2::geom_hline(
+                yintercept = yint,
+                color = h_color,
+                linetype = h_linetype,
+                linewidth = h_size,
+                alpha = h_alpha
+            )
+        }
+    }
+    
+    # Add vertical reference lines
+    if (!is.null(v_intercept)) {
+        for (xint in v_intercept) {
+            plot <- plot + ggplot2::geom_vline(
+                xintercept = xint,
+                color = v_color,
+                linetype = v_linetype,
+                linewidth = v_size,
+                alpha = v_alpha
+            )
+        }
+    }
+    
+    return(plot)
+}
+
+#' Format Axis Labels and Titles
+#'
+#' Consolidated helper for axis label styling including rotation, sizing, and face.
+#' Replaces repeated 8+ occurrences of axis.text.x/y + axis.title customizations.
+#'
+#' @param plot ggplot2 object to modify
+#' @param x_angle Numeric: rotation angle for x-axis labels (default: 0)
+#' @param y_angle Numeric: rotation angle for y-axis labels (default: 0)
+#' @param x_hjust Numeric: horizontal justification for x-axis (default: NULL = auto)
+#' @param y_hjust Numeric: horizontal justification for y-axis (default: NULL = auto)
+#' @param x_size Numeric: font size for x-axis labels (default: NULL = no override)
+#' @param y_size Numeric: font size for y-axis labels (default: NULL = no override)
+#' @param x_face Character: font face ("plain", "bold", "italic") for x-axis
+#' @param y_face Character: font face for y-axis
+#' @param x_color Character: text color for x-axis (default: "black")
+#' @param y_color Character: text color for y-axis (default: "black")
+#' @param bold_title Logical: make axis titles bold (default: TRUE)
+#'
+#' @return Modified ggplot2 object with formatted axis labels
+#'
+#' @examples
+#' \dontrun{
+#' p <- ggplot2::ggplot(mtcars, ggplot2::aes(x = factor(cyl), y = mpg)) +
+#'     ggplot2::geom_point()
+#'
+#' # Horizontal x-axis labels at 90 degrees
+#' p_fmt <- .format_axis_labels(p, x_angle = 90, x_size = 12, y_size = 11)
+#'
+#' # Bold axis titles only
+#' p_fmt <- .format_axis_labels(p, bold_title = TRUE)
+#' }
+#'
+#' @noRd
+
+.format_axis_labels <- function(plot, x_angle = 0, y_angle = 0,
+                               x_hjust = NULL, y_hjust = NULL,
+                               x_size = NULL, y_size = NULL,
+                               x_face = "plain", y_face = "plain",
+                               x_color = "black", y_color = "black",
+                               bold_title = TRUE) {
+    require_pkgs("ggplot2")
+    
+    theme_list <- list()
+    
+    # X-axis label formatting
+    if (x_angle != 0 || !is.null(x_size) || x_face != "plain" || x_color != "black") {
+        x_hjust_use <- x_hjust %||% (if (x_angle != 0) 1 else 0.5)
+        x_vjust_use <- if (x_angle != 0) 0.5 else 1
+        theme_list$axis.text.x <- ggplot2::element_text(
+            angle = x_angle,
+            hjust = x_hjust_use,
+            vjust = x_vjust_use,
+            size = x_size,
+            face = x_face,
+            color = x_color
+        )
+    }
+    
+    # Y-axis label formatting
+    if (y_angle != 0 || !is.null(y_size) || y_face != "plain" || y_color != "black") {
+        y_hjust_use <- y_hjust %||% (if (y_angle != 0) 1 else 0.5)
+        theme_list$axis.text.y <- ggplot2::element_text(
+            angle = y_angle,
+            hjust = y_hjust_use,
+            size = y_size,
+            face = y_face,
+            color = y_color
+        )
+    }
+    
+    # Axis titles
+    if (bold_title) {
+        theme_list$axis.title <- ggplot2::element_text(face = "bold")
+    }
+    
+    if (length(theme_list) > 0) {
+        plot <- plot + do.call(ggplot2::theme, theme_list)
+    }
+    
+    return(plot)
+}
+
+#' Calculate Scaled Font Sizes
+#'
+#' Standardized font size calculation for proportional scaling across output dimensions.
+#' Used when plots need to scale font sizes relative to output size (e.g., for heatmaps).
+#'
+#' @param base_size Numeric: base font size (default: 11)
+#' @param scale_factor Numeric: overall scaling multiplier (default: 1)
+#' @param font_multipliers List: named ratios relative to base size
+#'
+#' @return List with named elements: base, scaled, axis_text, axis_title, title, legend, subtitle, caption
+#'
+#' @examples
+#' \dontrun{
+#' # Standard font scaling
+#' fonts <- .calculate_scaled_fonts(base_size = 11, scale_factor = 1.2)
+#' # Use: fonts$title, fonts$axis_text, fonts$legend, etc.
+#'
+#' # Custom multipliers
+#' custom_mult <- list(axis_text = 1.0, title = 1.8, legend = 0.8)
+#' fonts <- .calculate_scaled_fonts(scale_factor = 2, font_multipliers = custom_mult)
+#' }
+#'
+#' @noRd
+
+.calculate_scaled_fonts <- function(base_size = 11, scale_factor = 1,
+                                   font_multipliers = list(
+                                       axis_text = 12/11,
+                                       axis_title = 14/11,
+                                       title = 16/11,
+                                       legend = 9/11
+                                   )) {
+    
+    scaling <- base_size * scale_factor
+    
+    result <- list(
+        base = base_size,
+        scaled = scaling,
+        axis_text = round(scaling * font_multipliers$axis_text),
+        axis_title = round(scaling * font_multipliers$axis_title),
+        title = round(scaling * font_multipliers$title),
+        legend = round(scaling * font_multipliers$legend),
+        # Additional common sizes
+        subtitle = round(scaling * 0.9),
+        caption = round(scaling * 0.8)
+    )
+    
+    return(result)
+}
+
 #' Apply Group Aesthetic Scales (Color + Fill + Legend)
 #'
 #' Consolidated helper for color palette + manual scales + legend styling.

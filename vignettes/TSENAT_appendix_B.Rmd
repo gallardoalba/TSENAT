@@ -582,12 +582,8 @@ if (!is.null(high_conf) && nrow(high_conf) > 0) {
 
 ```{r concordance-plot, fig.width=10, fig.height=8, out.width="98%", fig.pos="H", fig.cap="Method concordance visualization comparing Friedman rank-based and GAM approaches for detecting q×condition interactions. Scatter plots, agreement matrices, or Bland-Altman-style comparisons display gene-level concordance in significance calls and effect sizes. Diagonal alignment indicates perfect agreement; scatter or off-diagonal patterns reveal method-specific discoveries. Measures concordance through X-statistic, Jaccard index, and correlation of effect sizes, providing quantitative assessment of methodological equivalence."}
 # Create comparison plot using S4 wrapper
-if (!is.null(comparison_df) && nrow(comparison_df) > 0) {
-  p <- plot_method_concordance_s4(analysis_with_concordance, verbose = TRUE)
+p <- plot_method_concordance_s4(analysis_with_concordance, verbose = TRUE)
   print(p)
-} else {
-  cat("No data available for concordance visualization. Ensure both GAM and Friedman results have sufficient genes for comparison.")
-}
 ```
 
 ***

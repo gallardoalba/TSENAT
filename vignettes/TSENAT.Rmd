@@ -676,7 +676,6 @@ Interpretation:
 
 ```{r reads-transcripts-median, echo=TRUE, results='hide', fig.width=12, fig.height=10, eval=TRUE, out.width="98%", fig.pos="H", fig.cap = "Hierarchically clustered heatmap of transcript abundance patterns in top genes identified by linear model interaction analysis. Rows: individual transcripts within each gene (clustered by expression similarity). Columns: experimental conditions or condition aggregates. Color scale: blue (low abundance), white (medium), red (high abundance). Hierarchical clustering reveals transcript expression modules and condition-preferential isoform usage patterns. Log-normalized for comparability across genes with varying isoform counts."}
 # Generate top transcripts heatmaps (pheatmap with hierarchical clustering)
-
 plot_top_transcripts_s4(
     analysis, 
     top_n = 4, 
