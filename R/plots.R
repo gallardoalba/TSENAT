@@ -476,8 +476,8 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
         }
     }
 
-    # Fallback: use prepare_tsallis_long for data transformation
-    long <- .prepare_tsallis_long(se, assay_name = assay_name)
+    # Fallback: use prepare_long_format for data transformation
+    long <- .prepare_long_format(se, assay_name = assay_name)
 
     # If still no q, extract from data
     if (is.na(q_val)) {
@@ -502,10 +502,10 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
         axis = "b")
 
     # Add overall title and subtitle above the grid
-    grid_with_title <- cowplot::plot_grid(cowplot::ggdraw() + cowplot::draw_label("Tsallis Entropy Distribution by Group",
-        fontface = "bold", size = 19, x = 0.5, y = 0.75) + cowplot::draw_label("Violin and density plots across samples",
-        fontface = "italic", size = 15, x = 0.5, y = 0.25, color = "gray40"), grid,
-        nrow = 2, rel_heights = c(0.08, 1))
+    title_grob <- .create_title_grob("Tsallis Entropy Distribution by Group",
+        subtitle = "Violin and density plots across samples",
+        title_size = 19, subtitle_size = 15)
+    grid_with_title <- cowplot::plot_grid(title_grob, grid, nrow = 2, rel_heights = c(0.08, 1))
 
     # Save to file if output_file is provided
     if (!is.null(output_file)) {
@@ -1081,15 +1081,13 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
 
     grid <- cowplot::plot_grid(plotlist = plots_nolegend, ncol = ncol, nrow = nrow_val,
         align = "hv")
-    title_grob <- cowplot::ggdraw() + cowplot::draw_label("Transcript level expression",
-        fontface = "bold", x = 0.5, hjust = 0.5, size = 18)
-    subtitle_grob <- cowplot::ggdraw() + cowplot::draw_label(paste0("Top genes with metric ",
-        agg_label_unique), fontface = "italic", x = 0.5, hjust = 0.5, size = 14,
-        color = "gray40")
+    title_grob <- .create_title_grob("Transcript level expression",
+        subtitle = paste0("Top genes with metric ", agg_label_unique),
+        title_size = 18, subtitle_size = 14)
     # Add spacer between title and plots
     spacer_grob <- cowplot::ggdraw() + ggplot2::theme_void()
-    result_plot <- cowplot::plot_grid(title_grob, subtitle_grob, spacer_grob, grid,
-        legend, ncol = 1, rel_heights = c(0.05, 0.04, 0.0015, 1, 0.08), align = "h",
+    result_plot <- cowplot::plot_grid(title_grob, spacer_grob, grid,
+        legend, ncol = 1, rel_heights = c(0.09, 0.0015, 1, 0.08), align = "h",
         axis = "l")
     if (!is.null(output_file)) {
         ggplot2::ggsave(output_file, result_plot)

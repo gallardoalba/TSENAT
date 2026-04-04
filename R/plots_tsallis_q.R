@@ -205,7 +205,7 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
     n_top, metric, output_file) {
     require_pkgs(c("ggplot2", "dplyr", "cowplot", "SummarizedExperiment"))
 
-    long <- .prepare_tsallis_long(se, assay_name = assay_name, condition_col = condition_col)
+    long <- .prepare_long_format(se, assay_name = assay_name, condition_col = condition_col)
 
     # Check if bootstrap CIs are available
     has_bootstrap_ci <- "ci_lower" %in% SummarizedExperiment::assayNames(se) && "ci_upper" %in%

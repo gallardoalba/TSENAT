@@ -1988,9 +1988,8 @@ NULL
         ncol = n_cols, align = "hv", axis = "lr")
 
     # Add main title and subtitle above the grid
-    title_plot <- cowplot::ggdraw() + cowplot::draw_label("GAM q-curve: Top genes with group interaction",
-        fontface = "bold", size = 20, x = 0.5, y = 0.8) + cowplot::draw_label("Fitted smooth curves by group",
-        fontface = "italic", size = 16, x = 0.5, y = 0.25, color = "gray40")
+    title_plot <- .create_title_grob("GAM q-curve: Top genes with group interaction",
+        subtitle = "Fitted smooth curves by group", title_size = 20, subtitle_size = 16)
 
     # Combine title, plots, and single legend at bottom
     final_plot <- cowplot::plot_grid(title_plot, combined_plot, legend, nrow = 3,
@@ -2386,4 +2385,170 @@ NULL
     } else {
         return(grid_plot)
     }
+}
+
+# ============================================================================
+# PHASE 2 HELPERS: MEDIUM-IMPACT PATTERN CONSOLIDATION
+# ============================================================================
+
+#' Create Cowplot Title Grob with Optional Subtitle
+#'
+#' Consolidates cowplot::ggdraw() + draw_label() pattern (7x occurrences).
+#' Creates a title-only or title+subtitle grob for use in grid layouts.
+#'
+#' @param title Character: main title text
+#' @param subtitle Character: optional subtitle text
+#' @param title_size Numeric: title font size (default: .font_sizes$title)
+#' @param subtitle_size Numeric: subtitle font size (default: .font_sizes$subtitle)
+#' @param title_face Character: title font face ("bold", "italic", etc.)
+#' @param subtitle_face Character: subtitle font face
+#' @param title_color Character: title color (default: "black")
+#' @param subtitle_color Character: subtitle color (default: "gray40")
+#'
+#' @return cowplot/ggplot2 grob object ready for plot_grid assembly
+#'
+#' @noRd
+.create_title_grob <- function(title, subtitle = NULL, 
+                              title_size = .font_sizes$title,
+                              subtitle_size = .font_sizes$subtitle,
+                              title_face = "bold", subtitle_face = "italic",
+                              title_color = "black", subtitle_color = "gray40") {
+    require_pkgs("cowplot")
+    
+    # Start with title grob
+    title_grob <- cowplot::ggdraw() +
+        cowplot::draw_label(title, fontface = title_face, size = title_size,
+                          x = 0.5, hjust = 0.5, color = title_color)
+    
+    # Add subtitle if provided
+    if (!is.null(subtitle)) {
+        subtitle_grob <- cowplot::ggdraw() +
+            cowplot::draw_label(subtitle, fontface = subtitle_face, 
+                              size = subtitle_size, x = 0.5, hjust = 0.5, 
+                              color = subtitle_color)
+        
+        # Combine title + subtitle
+        title_grob <- cowplot::plot_grid(title_grob, subtitle_grob,
+                                        nrow = 2, rel_heights = c(1, 0.6))
+    }
+    
+    title_grob
+}
+
+#' Apply Facet Styling with Panel Spacing and Strip Text
+#'
+#' Consolidates facet_wrap() + panel.spacing + strip.text pattern (8x occurrences).
+#' Applies consistent faceting and panel styling across all plot types.
+#'
+#' @param plot ggplot2 object
+#' @param ncol Integer: number of columns for facet layout
+#' @param nrow Integer: number of rows (optional, usually auto-calculated)
+#' @param facet_var Character: variable name to facet by (unquoted expression as string)
+#' @param scales Character: "fixed", "free_x", "free_y", or "free" (default: "free_y")
+#' @param strip_text_size Numeric: font size for strip labels (default: .font_sizes$subtitle)
+#' @param panel_spacing_lines Numeric: spacing between panels in lines (default: 1.5)
+#'
+#' @return Modified ggplot2 object with faceting and styling applied
+#'
+#' @noRd
+.apply_facet_styling <- function(plot, ncol = 2, nrow = NULL, facet_var = NULL,
+                                scales = "free_y", strip_text_size = .font_sizes$subtitle,
+                                panel_spacing_lines = 1.5) {
+    require_pkgs("ggplot2")
+    
+    # Apply facet wrap if variable specified
+    if (!is.null(facet_var)) {
+        facet_formula <- stats::as.formula(paste0("~", facet_var))
+        plot <- plot + ggplot2::facet_wrap(facet_formula, ncol = ncol, 
+                                          nrow = nrow, scales = scales)
+    }
+    
+    # Apply panel and strip styling
+    plot <- plot + ggplot2::theme(
+        panel.spacing = ggplot2::unit(panel_spacing_lines, "lines"),
+        strip.text = ggplot2::element_text(face = "bold", 
+                                          size = strip_text_size)
+    )
+    
+    plot
+}
+
+#' Prepare Long Format Data with Metadata Validation
+#'
+#' Wrapper around .prepare_tsallis_long() that adds validation and 
+#' consistent parameter handling. Consolidates 10x data preparation pattern.
+#'
+#' @param se SummarizedExperiment: diversity/entropy assay object
+#' @param assay_name Character: name of assay to use (default: "diversity")
+#' @param condition_col Character: column name for condition/group variable
+#'   (optional, uses metadata config if NULL)
+#' @param validate Logical: validate output structure (default: TRUE)
+#'
+#' @return Data frame in long format with columns: q, tsallis, group, Gene
+#'
+#' @noRd
+.prepare_long_format <- function(se, assay_name = "diversity", 
+                               condition_col = NULL, validate = TRUE) {
+    require_pkgs(c("SummarizedExperiment", "dplyr"))
+    
+    # Use condition_col from metadata config if not provided
+    if (is.null(condition_col)) {
+        if (!is.null(S4Vectors::metadata(se)$condition_col)) {
+            condition_col <- S4Vectors::metadata(se)$condition_col
+        } else {
+            condition_col <- "sample_type"  # TSENAT default
+        }
+    }
+    
+    # Prepare long format
+    long <- .prepare_tsallis_long(se, assay_name = assay_name, 
+                                 condition_col = condition_col)
+    
+    # Validate structure
+    if (validate) {
+        required_cols <- c("q", "tsallis", "group", "Gene")
+        missing_cols <- setdiff(required_cols, colnames(long))
+        if (length(missing_cols) > 0) {
+            warning("Prepared data missing columns: ", paste(missing_cols, collapse = ", "))
+        }
+    }
+    
+    long
+}
+
+#' Create Centered Theme Element Components
+#'
+#' Helper for extracting and applying centered/bolded title/subtitle styling.
+#' Consolidates 12x centering + bolding theme pattern.
+#'
+#' @param include_title Logical: include title element (default: TRUE)
+#' @param include_subtitle Logical: include subtitle element (default: TRUE)
+#' @param title_size Numeric: title size (default: .font_sizes$title)
+#' @param subtitle_size Numeric: subtitle size (default: .font_sizes$subtitle)
+#' @param hjust Numeric: horizontal justification (default: 0.5 = centered)
+#'
+#' @return ggplot2::theme() object with centering/styling
+#'
+#' @noRd
+.create_centered_theme <- function(include_title = TRUE, include_subtitle = TRUE,
+                                  title_size = .font_sizes$title,
+                                  subtitle_size = .font_sizes$subtitle,
+                                  hjust = 0.5) {
+    require_pkgs("ggplot2")
+    
+    theme_list <- list()
+    
+    if (include_title) {
+        theme_list$plot.title <- ggplot2::element_text(
+            hjust = hjust, size = title_size, face = "bold"
+        )
+    }
+    
+    if (include_subtitle) {
+        theme_list$plot.subtitle <- ggplot2::element_text(
+            hjust = hjust, size = subtitle_size, face = "italic"
+        )
+    }
+    
+    do.call(ggplot2::theme, theme_list)
 }

@@ -238,9 +238,9 @@
             alpha = 0.15, fill = "#4575B4", color = NA)
     }
 
-    p <- p + ggplot2::facet_wrap(~gene, ncol = ncol, scales = "free_y") + ggplot2::geom_line(color = "#4575B4",
-        linewidth = 1.2, alpha = 0.8) + ggplot2::geom_point(color = "#4575B4", size = 3,
-        alpha = 0.8)
+    p <- .apply_facet_styling(p, ncol = ncol, facet_var = "gene", scales = "free_y") +
+        ggplot2::geom_line(color = "#4575B4", linewidth = 1.2, alpha = 0.8) +
+        ggplot2::geom_point(color = "#4575B4", size = 3, alpha = 0.8)
     p <- .apply_publication_theme(p, base_theme = "theme_base", base_size = 11,
         title = "Divergence Spectra: Per-gene Comparisons",
         subtitle = if (has_ci_assays && "ci_lower" %in% colnames(multi_gene_df)) {
@@ -249,8 +249,6 @@
             paste0("Ranked by interaction significance (", metric, ")")
         })
     p <- p + ggplot2::labs(x = "q value", y = expression("Divergence D[q]"))
-    p <- p + ggplot2::theme(panel.spacing = ggplot2::unit(1.5,
-        "lines"), strip.text = ggplot2::element_text(face = "bold", size = .font_sizes$subtitle))
 
     return(p)
 }
