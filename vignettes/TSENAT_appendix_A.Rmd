@@ -500,7 +500,11 @@ simpson_summary <- create_summary_stats(
   padj_col1 = "adjusted_p_values", padj_col2 = "padj"
 )
 
-knitr::kable(simpson_summary, caption = "Simpson Index Analysis Summary Statistics", align = c("l", "r", "r", "r", "r", "r", "r"))
+knitr::kable(simpson_summary, caption = "Simpson Index Analysis Summary Statistics", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
+kableExtra::kable_styling(
+  bootstrap_options = c("striped", "hover", "condensed"),
+  latex_options = c("scale_down")
+)
 ```
 
 **Interpretation**: Simpson index results parallel Shannon entropy findings, with both methods identifying similar numbers of significantly different isoform dominance patterns. The agreement across both diversity measures provides strong evidence for TSENAT's mathematical and statistical equivalence to SplicingFactory.
@@ -516,7 +520,11 @@ simpson_sf_top <- format_top_genes(
   select_cols = c("genes", "Normal_mean", "Tumor_mean", "mean_difference", "log2_fold_change", "raw_p_values", "adjusted_p_values"),
   col_names = c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
 )
-knitr::kable(simpson_sf_top, row.names = FALSE, caption = "SplicingFactory (Simpson) - Top 10 Significant Genes", align = c("l", "r", "r", "r", "r", "r", "r"))
+knitr::kable(simpson_sf_top, row.names = FALSE, caption = "SplicingFactory (Simpson) - Top 10 Significant Genes", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
+kableExtra::kable_styling(
+  bootstrap_options = c("striped", "hover", "condensed"),
+  latex_options = c("scale_down")
+)
 ```
 
 #### Top 10 Significant Genes - TSENAT (Tsallis q=2)
@@ -530,7 +538,11 @@ simpson_tsenat_top <- format_top_genes(
   select_cols = c("gene_id", "Normal_mean", "Tumor_mean", "mean_difference", "log2_fold_change", "pvalue", "padj"),
   col_names = c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
 )
-knitr::kable(simpson_tsenat_top, row.names = FALSE, caption = "TSENAT (Tsallis q=2) - Top 10 Significant Genes", align = c("l", "r", "r", "r", "r", "r", "r"))
+knitr::kable(simpson_tsenat_top, row.names = FALSE, caption = "TSENAT (Tsallis q=2) - Top 10 Significant Genes", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
+kableExtra::kable_styling(
+  bootstrap_options = c("striped", "hover", "condensed"),
+  latex_options = c("scale_down")
+)
 ```
 
 

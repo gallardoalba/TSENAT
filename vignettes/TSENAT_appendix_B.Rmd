@@ -174,8 +174,13 @@ knitr::kable(entropy_summary,
              caption = "Rank-Based Entropy Data Summary",
              label = "tab:rank-entropy-summary",
              align = c("l", "r"),
-             format = "latex",
-             linesep = "")
+             format = if (knitr::is_latex_output()) "latex" else "html",
+             longtable = knitr::is_latex_output(),
+             linesep = "") %>%
+  kableExtra::kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    latex_options = c("scale_down")
+  )
 
 cat("\n")
 
@@ -197,8 +202,13 @@ data_characteristics <- data.frame(
 knitr::kable(data_characteristics, 
              caption = "Data Characteristics: Three Properties of the Entropy Matrix",
              align = c("l", "l", "r", "l"),
-             format = "latex",
-             linesep = "")
+             format = if (knitr::is_latex_output()) "latex" else "html",
+             longtable = knitr::is_latex_output(),
+             linesep = "") %>%
+  kableExtra::kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    latex_options = c("scale_down")
+  )
 ```
 
  
@@ -249,7 +259,11 @@ rank_summary_stats <- data.frame(
   )
 )
 
-knitr::kable(rank_summary_stats, caption = "Friedman Test Results Summary", label = "tab:friedman-test-summary", align = c("l", "r"), format = "latex", linesep = "")
+knitr::kable(rank_summary_stats, caption = "Friedman Test Results Summary", label = "tab:friedman-test-summary", align = c("l", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
+  kableExtra::kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    latex_options = c("scale_down")
+  )
 
 # Show top genes results
 rank_sig <- friedman_results[!is.na(friedman_results$p_value), ]
@@ -270,6 +284,8 @@ if (nrow(rank_sig) > 0) {
     
     knitr::kable(rank_display, 
                  caption = "Top 10 Genes by Friedman Test",
+                 col.names = c("Gene", "P-value", "Adj. P-value", "F-Statistic", 
+                               "Effect Size (η²)", "Test Method", "Interaction Class")[1:ncol(rank_display)],
                  digits = 3,
                  format = if (knitr::is_latex_output()) "latex" else "html",
                  longtable = knitr::is_latex_output(),
@@ -371,7 +387,11 @@ summary_stats <- data.frame(
   )
 )
 
-knitr::kable(summary_stats, caption = "GAM Results Summary", align = c("l", "r"), format = "latex", linesep = "")
+knitr::kable(summary_stats, caption = "GAM Results Summary", align = c("l", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
+  kableExtra::kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    latex_options = c("scale_down")
+  )
 
 # Show top genes with additional information
 if ("p_interaction" %in% colnames(gam_results)) {
@@ -418,7 +438,14 @@ if ("p_interaction" %in% colnames(gam_results)) {
       
       knitr::kable(gam_display, 
                    caption = "Top 10 Genes by GAM p-value (with Effect Size & Test Statistics)",
-                   align = c("l", "r", "r", "r", "r", "r"))
+                   align = c("l", "r", "r", "r", "r", "r"),
+                   format = if (knitr::is_latex_output()) "latex" else "html",
+                   longtable = knitr::is_latex_output(),
+                   linesep = "") %>%
+      kableExtra::kable_styling(
+        bootstrap_options = c("striped", "hover", "condensed"),
+        latex_options = c("scale_down")
+      )
     }
   }
 } else {
@@ -484,8 +511,13 @@ concordance_metrics <- data.frame(
 knitr::kable(concordance_metrics, 
              caption = "Global Concordance Metrics: GAM vs Friedman Methods",
              align = c("l", "r"),
-             format = "latex",
-             linesep = "")
+             format = if (knitr::is_latex_output()) "latex" else "html",
+             longtable = knitr::is_latex_output(),
+             linesep = "") %>%
+  kableExtra::kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    latex_options = c("scale_down")
+  )
 ```
 
 ```{r concordance-agreement, message=FALSE, echo=FALSE}
@@ -503,8 +535,13 @@ if (!is.null(agreement_table) && length(agreement_table) > 0) {
   knitr::kable(agreement_breakdown,
                caption = "Method Agreement Distribution",
                align = c("l", "r", "r"),
-               format = "latex",
-               linesep = "")
+               format = if (knitr::is_latex_output()) "latex" else "html",
+               longtable = knitr::is_latex_output(),
+               linesep = "") %>%
+  kableExtra::kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    latex_options = c("scale_down")
+  )
 } else {
   cat("No agreement table available from concordance analysis.")
 }

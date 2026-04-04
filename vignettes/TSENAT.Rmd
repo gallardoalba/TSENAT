@@ -548,6 +548,8 @@ if (!is.null(lm_res) && is.data.frame(lm_res) && nrow(lm_res) > 0) {
     knitr::kable(
         display,
         caption = "Top q-interaction results from GAM analysis with Hochberg correction [@BenjaminiHochberg1995]",
+        col.names = c("Gene", "Gene Name", "P-value", "Adj. P-value", "Effect Size", 
+                      "Test Statistic", "Model Converged", "Heteroscedasticity"),
         digits = 4,
         row.names = FALSE,
         format = if (knitr::is_latex_output()) "latex" else "html",
@@ -627,7 +629,16 @@ if (exists("tables_result") && is.list(tables_result) &&
         "Direction Consistency"
       )
       
-      print(knitr::kable(comparison_data, digits = 3, col.names = col_display, format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = ""))
+      print(knitr::kable(comparison_data, 
+                         digits = 3, 
+                         col.names = col_display, 
+                         format = if (knitr::is_latex_output()) "latex" else "html", 
+                         longtable = knitr::is_latex_output(), 
+                         linesep = "") %>%
+            kableExtra::kable_styling(
+              bootstrap_options = c("striped", "hover", "condensed"),
+              latex_options = c("scale_down")
+            ))
     }
     
     cat("\n")
@@ -748,7 +759,14 @@ if (exists("analysis")) {
             div_table,
             caption = "Tsallis divergence estimates for first genes",
             digits = 5,
-            row.names = TRUE
+            row.names = TRUE,
+            format = if (knitr::is_latex_output()) "latex" else "html",
+            longtable = knitr::is_latex_output(),
+            linesep = ""
+        ) %>%
+        kableExtra::kable_styling(
+          bootstrap_options = c("striped", "hover", "condensed"),
+          latex_options = c("scale_down")
         )
     } else if (is.list(div_results) && length(div_results) > 0) {
         # If stored as list per q-value, extract first q-value results
@@ -764,6 +782,10 @@ if (exists("analysis")) {
                 format = if (knitr::is_latex_output()) "latex" else "html",
                 longtable = knitr::is_latex_output(),
                 linesep = ""
+            ) %>%
+            kableExtra::kable_styling(
+              bootstrap_options = c("striped", "hover", "condensed"),
+              latex_options = c("scale_down")
             )
         }
     }
@@ -870,7 +892,14 @@ if (!is.null(lm_res_results) && nrow(lm_res_results) > 0) {
                         
                         print(knitr::kable(div_df,
                             caption = "Top 10 genes by LM significance with effect sizes",
-                            row.names = FALSE))
+                            row.names = FALSE,
+                            format = if (knitr::is_latex_output()) "latex" else "html",
+                            longtable = knitr::is_latex_output(),
+                            linesep = "") %>%
+                        kableExtra::kable_styling(
+                          bootstrap_options = c("striped", "hover", "condensed"),
+                          latex_options = c("scale_down")
+                        ))
                     } else {
                         cat("No valid divergence results to display.\n")
                     }
