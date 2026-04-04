@@ -19,12 +19,26 @@ jobs:
               libxml2-dev libssl-dev libcurl4-openssl-dev libgit2-dev \
               pandoc openssh-client git python3-pip \
               libharfbuzz-dev libfribidi-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev \
-              fontconfig libfontconfig1-dev pkg-config
+              fontconfig libfontconfig1-dev pkg-config \
+              gcov
             rm -rf /var/lib/apt/lists/*
       - save_cache:
           paths:
             - /var/cache/apt
           key: v1-os-deps-{{ .Branch }}
+      - run:
+          name: Configure compiler environment
+          command: |
+            # Ensure system C/C++ compilers are used (not conda-bundled versions)
+            # This prevents GCC version mismatch warnings in coverage collection
+            export CC=$(which gcc)
+            export CXX=$(which g++)
+            export FC=$(which gfortran)
+            export F77=$(which gfortran)
+            echo "Compiler versions:"
+            gcc --version | head -1
+            g++ --version | head -1
+            gfortran --version | head -1
       - restore_cache:
           keys:
             - v1-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.2
@@ -87,6 +101,11 @@ jobs:
             R CMD check --no-manual --ignore-vignettes *.tar.gz
       - run:
           name: Generate coverage report and upload to Codecov
+          environment:
+            CC: /usr/bin/gcc
+            CXX: /usr/bin/g++
+            FC: /usr/bin/gfortran
+            F77: /usr/bin/gfortran
           command: |
             if [ -f tools/run_coverage.R ]; then
               # Use covr::codecov() to upload directly (includes --upload flag)

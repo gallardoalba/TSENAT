@@ -310,8 +310,7 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' - Wider plot margins for axis labels
 #'
 #' Used by: plot_tsallis_q_curve_s4(), .plot_lm_interaction_gam(),
-#'          . plot_tsallis_divergence_profile() and 
-#' similar spectrum/profile plots.
+#' and similar spectrum/profile plots.
 #'
 
 #' @noRd

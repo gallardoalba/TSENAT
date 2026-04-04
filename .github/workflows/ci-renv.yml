@@ -14,6 +14,21 @@ jobs:
         uses: r-lib/actions/setup-r@v2
         with:
           r-version: '4.5'
+      - name: Configure compiler environment
+        run: |
+          # Ensure system C/C++ compilers are used (not conda-bundled versions)
+          # This prevents GCC version mismatch warnings in coverage collection
+          echo "CC=$(which gcc)" >> $GITHUB_ENV
+          echo "CXX=$(which g++)" >> $GITHUB_ENV
+          echo "FC=$(which gfortran)" >> $GITHUB_ENV
+          echo "F77=$(which gfortran)" >> $GITHUB_ENV
+          echo "Compiler versions:"
+          gcc --version | head -1
+          g++ --version | head -1
+      - name: Install system dependencies for coverage
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends gcov
       - name: Cache renv library
         uses: actions/cache@v3
         with:

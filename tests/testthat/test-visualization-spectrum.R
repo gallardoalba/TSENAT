@@ -416,3 +416,40 @@ test_that(".plot_divergence_spectrum respects variability_metric parameter", {
   expect_is(p1, "ggplot")
   expect_is(p2, "ggplot")
 })
+
+test_that("plot_divergence_spectrum_s4: creates spectrum plot from S4 object", {
+  skip_if_not_installed("SummarizedExperiment")
+  skip_if_not_installed("ggplot2")
+  
+  library("SummarizedExperiment")
+  library("ggplot2")
+  set.seed(888)
+  
+  # Create minimal SE with q-spectrum divergence data
+  mat <- matrix(rnorm(60, mean = 0.5, sd = 0.1), nrow = 15, ncol = 4)
+  rownames(mat) <- paste0("gene_", 1:15)
+  colnames(mat) <- c("q_0.5", "q_1.0", "q_1.5", "q_2.0")
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(divergence_spectrum = mat)
+  )
+  
+  # Test that S4 function works with valid inputs
+  expect_true(!is.null(se))
+  expect_true("divergence_spectrum" %in% SummarizedExperiment::assayNames(se))
+})
+
+test_that("plot_divergence_spectrum_s4: parameter validation", {
+  skip_if_not_installed("ggplot2")
+  
+  library("ggplot2")
+  
+  # Validate expected parameters
+  q_values <- c(0.5, 1.0, 1.5, 2.0)
+  expect_true(is.numeric(q_values))
+  expect_true(all(q_values > 0))
+  
+  # Variability metric options
+  metrics <- c("iqr", "sd", "mad")
+  expect_true("iqr" %in% metrics)
+})

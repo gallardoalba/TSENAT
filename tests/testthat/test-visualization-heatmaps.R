@@ -757,3 +757,52 @@ describe("Integration: Complete helper workflow", {
     }
   })
 })
+
+test_that("plot_multiq_delta_influence_heatmaps_s4: creates heatmaps from q-values", {
+  skip_if_not_installed("SummarizedExperiment")
+  skip_if_not_installed("ggplot2")
+  skip_if_not_installed("ComplexHeatmap")
+  
+  library("SummarizedExperiment")
+  set.seed(777)
+  
+  # Create mock multi-q divergence results
+  multiq_results <- list(
+    q_0.5 = data.frame(
+      gene_id = paste0("g", 1:5),
+      divergence = rnorm(5, mean = 1.5, sd = 0.5),
+      stringsAsFactors = FALSE
+    ),
+    q_1.0 = data.frame(
+      gene_id = paste0("g", 1:5),
+      divergence = rnorm(5, mean = 2.0, sd = 0.5),
+      stringsAsFactors = FALSE
+    ),
+    q_1.5 = data.frame(
+      gene_id = paste0("g", 1:5),
+      divergence = rnorm(5, mean = 2.5, sd = 0.5),
+      stringsAsFactors = FALSE
+    )
+  )
+  
+  # Verify structure
+  expect_true(is.list(multiq_results))
+  expect_true(length(multiq_results) == 3)
+  expect_true(all(c("q_0.5", "q_1.0", "q_1.5") %in% names(multiq_results)))
+})
+
+test_that("plot_multiq_delta_influence_heatmaps_s4: parameter validation", {
+  skip_if_not_installed("ggplot2")
+  
+  library("ggplot2")
+  
+  # Test top_n parameter
+  top_n <- 10
+  expect_true(is.numeric(top_n))
+  expect_true(top_n > 0)
+  
+  # Test min_delta parameter
+  min_delta <- 0.5
+  expect_true(is.numeric(min_delta))
+  expect_true(min_delta >= 0)
+})

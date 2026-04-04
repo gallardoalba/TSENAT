@@ -14,6 +14,8 @@ output:
     fig_height: 6.5
     toc_depth: 2
     latex_engine: xelatex
+header-includes:
+  - \usepackage{float}
 bibliography: TSENAT.bib
 suppress-bibliography: true
 vignette: |
@@ -34,6 +36,7 @@ knitr::opts_chunk$set(
     message = TRUE,
     warning = TRUE
 )
+suppressPackageStartupMessages(library(kableExtra))
 ```
 
 # Overview
@@ -433,7 +436,14 @@ if (!is.null(sample_data) && nrow(sample_data) > 0) {
         caption = paste0("Tsallis entropy for first 4 genes across three diversity scales (sample: ", 
                          first_sample_name, ")"),
         digits = 5,
-        row.names = FALSE
+        row.names = FALSE,
+        format = if (knitr::is_latex_output()) "latex" else "html",
+        longtable = knitr::is_latex_output(),
+        linesep = ""
+    ) %>%
+    kableExtra::kable_styling(
+      bootstrap_options = c("striped", "hover", "condensed"),
+      latex_options = c("scale_down")
     )
 }
 ```
@@ -447,7 +457,7 @@ groups indicate scale-dependent diversity differences: separation at low
 `q` implies differences in rare isoforms, while separation at high `q`
 signals differences in dominant isoforms.
 
-```{r tsallis-q-curve, fig.width=10, fig.height=5.2, fig.cap = "Tsallis entropy q-curve showing scale-dependent diversity across all samples. X-axis: sensitivity parameter q (0-2). Y-axis: normalized Tsallis entropy. Lines represent individual samples colored by condition. Separation between conditions indicates q-dependent group differences or scale-dependent isoform heterogeneity."}
+```{r tsallis-q-curve, fig.width=10, fig.height=5.2, out.width="98%", fig.pos="H", fig.cap = "Tsallis entropy q-curve showing scale-dependent diversity across all samples. X-axis: sensitivity parameter q (0-2). Y-axis: normalized Tsallis entropy. Lines represent individual samples colored by condition. Separation between conditions indicates q-dependent group differences or scale-dependent isoform heterogeneity."}
 # Plot overall q-curve
 p_qcurve <- plot_tsallis_q_curve_s4(
     se = analysis
@@ -490,7 +500,14 @@ if (!is.null(sample_qc) && nrow(sample_qc) > 0) {
       sample_qc[, cols_to_show],
       caption = "Sample Influence Assessment via M-estimation",
       digits = 4,
-      row.names = FALSE
+      row.names = FALSE,
+      format = if (knitr::is_latex_output()) "latex" else "html",
+      longtable = knitr::is_latex_output(),
+      linesep = ""
+  ) %>%
+  kableExtra::kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    latex_options = c("scale_down")
   )
 }
 ```
@@ -532,7 +549,14 @@ if (!is.null(lm_res) && is.data.frame(lm_res) && nrow(lm_res) > 0) {
         display,
         caption = "Top q-interaction results from GAM analysis with Hochberg correction [@BenjaminiHochberg1995]",
         digits = 4,
-        row.names = FALSE
+        row.names = FALSE,
+        format = if (knitr::is_latex_output()) "latex" else "html",
+        longtable = knitr::is_latex_output(),
+        linesep = ""
+    ) %>%
+    kableExtra::kable_styling(
+      bootstrap_options = c("striped", "hover", "condensed"),
+      latex_options = c("scale_down")
     )
 }
 ```
@@ -540,7 +564,7 @@ if (!is.null(lm_res) && is.data.frame(lm_res) && nrow(lm_res) > 0) {
 Now we will plot the q-curve profile for the top genes identified 
 by the linear-model interaction test.
 
-```{r top-gene-qprofile, fig.width=14, fig.height=12, fig.cap = "Q-curve profiles for top 4 genes with significant q×condition interactions from GAM analysis. Each facet displays one gene with entropy on the y-axis and diversity sensitivity parameter q on the x-axis (0-2). Lines colored by condition (typically blue for control, red for treatment) show how entropy differences between groups vary across diversity scales. Diverging curves indicate that the same gene exhibits different interaction patterns at low q (rare isoforms) versus high q (dominant isoforms)."}
+```{r top-gene-qprofile, fig.width=14, fig.height=12, out.width="98%", fig.pos="H", fig.cap = "Q-curve profiles for top 4 genes with significant q×condition interactions from GAM analysis. Each facet displays one gene with entropy on the y-axis and diversity sensitivity parameter q on the x-axis (0-2). Lines colored by condition (typically blue for control, red for treatment) show how entropy differences between groups vary across diversity scales. Diverging curves indicate that the same gene exhibits different interaction patterns at low q (rare isoforms) versus high q (dominant isoforms)."}
 # Plot q-curve profiles for the top 4 genes using the S4 wrapper
 combined_plot <- plot_lm_interaction_gam_s4(
     analysis,
@@ -603,7 +627,7 @@ if (exists("tables_result") && is.list(tables_result) &&
         "Direction Consistency"
       )
       
-      print(knitr::kable(comparison_data, digits = 3, col.names = col_display))
+      print(knitr::kable(comparison_data, digits = 3, col.names = col_display, format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = ""))
     }
     
     cat("\n")
@@ -622,7 +646,7 @@ the **jackknife** delta influence (a measure of transcript switching robustness 
 across different q-values (rows: 0.01 to 2.0, representing increasing diversity
 scales) and transcripts (columns) for each gene.
 
-```{r multi-q-heatmap, echo=TRUE, results='hide', fig.width=12, fig.height=12, eval=TRUE, out.width="100%", fig.cap = "Heatmap of jackknife delta influence (transcript switching metric) across diversity scales and transcripts for top genes with significant q×condition interactions. Rows: q-values from 0.01 to 2.0 (low to high diversity sensitivity). Columns: individual transcripts. Red color indicates transcript more influential/expressed in condition 1; blue indicates condition 2. Consistent column coloring suggests scale-independent switching; mixed colors indicate q-dependent (scale-dependent) switching patterns."}
+```{r multi-q-heatmap, echo=TRUE, results='hide', fig.width=12, fig.height=12, eval=TRUE, out.width="98%", fig.pos="H", fig.cap = "Heatmap of jackknife delta influence (transcript switching metric) across diversity scales and transcripts for top genes with significant q×condition interactions. Rows: q-values from 0.01 to 2.0 (low to high diversity sensitivity). Columns: individual transcripts. Red color indicates transcript more influential/expressed in condition 1; blue indicates condition 2. Consistent column coloring suggests scale-independent switching; mixed colors indicate q-dependent (scale-dependent) switching patterns."}
 # Generate multi-Q heatmaps using the S4 wrapper
 # Rendered directly to knitr graphics device (DESeq2 pattern)
 plot_multiq_delta_influence_heatmaps_s4(
@@ -639,7 +663,7 @@ Interpretation:
 - Blue cells: Transcript more influential in the second condition
 - Column patterns: Consistent color down a column indicates stable switching; varied colors indicate q-dependent switching
 
-```{r reads-transcripts-median, echo=TRUE, results='hide', fig.width=12, fig.height=10, eval=TRUE, out.width="100%", fig.cap = "Hierarchically clustered heatmap of transcript abundance patterns in top genes identified by linear model interaction analysis. Rows: individual transcripts within each gene (clustered by expression similarity). Columns: experimental conditions or condition aggregates. Color scale: blue (low abundance), white (medium), red (high abundance). Hierarchical clustering reveals transcript expression modules and condition-preferential isoform usage patterns. Log-normalized for comparability across genes with varying isoform counts."}
+```{r reads-transcripts-median, echo=TRUE, results='hide', fig.width=12, fig.height=10, eval=TRUE, out.width="98%", fig.pos="H", fig.cap = "Hierarchically clustered heatmap of transcript abundance patterns in top genes identified by linear model interaction analysis. Rows: individual transcripts within each gene (clustered by expression similarity). Columns: experimental conditions or condition aggregates. Color scale: blue (low abundance), white (medium), red (high abundance). Hierarchical clustering reveals transcript expression modules and condition-preferential isoform usage patterns. Log-normalized for comparability across genes with varying isoform counts."}
 # Generate top transcripts heatmaps (pheatmap with hierarchical clustering)
 
 plot_top_transcripts_s4(
@@ -736,7 +760,10 @@ if (exists("analysis")) {
                 div_table,
                 caption = "Tsallis divergence estimates for first genes",
                 digits = 5,
-                row.names = TRUE
+                row.names = TRUE,
+                format = if (knitr::is_latex_output()) "latex" else "html",
+                longtable = knitr::is_latex_output(),
+                linesep = ""
             )
         }
     }
@@ -886,7 +913,7 @@ abundant isoforms) in another, revealing scale-dependent regulatory mechanisms. 
 for investigation of condition-specific splicing architecture and dynamic isoform switching.
 
 
-```{r effect-size-plot-multiq, fig.width=10, fig.height=6, out.width='100%', fig.align='center'}
+```{r effect-size-plot-multiq, fig.width=10, fig.height=6, out.width="98%", fig.align='center', fig.pos="H"}
 # Visualize the distribution of Tsallis divergence effect sizes across genes
 # The red dashed line marks D = 0.1 (information-theoretic significance threshold)
 # Generate divergence distribution plot (returns plot object)

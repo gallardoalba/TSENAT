@@ -17,6 +17,15 @@ jobs:
         with:
           r-version: '4.2'
 
+      - name: Configure compiler environment
+        run: |
+          # Ensure system C/C++ compilers are used (not conda-bundled versions)
+          # This prevents GCC version mismatch warnings in coverage collection
+          echo "CC=$(which gcc)" >> $GITHUB_ENV
+          echo "CXX=$(which g++)" >> $GITHUB_ENV
+          echo "FC=$(which gfortran)" >> $GITHUB_ENV
+          echo "F77=$(which gfortran)" >> $GITHUB_ENV
+
       - name: Install system dependencies
         run: |
           sudo apt-get update -qq
@@ -25,7 +34,8 @@ jobs:
             libcurl4-openssl-dev libssl-dev libxml2-dev libgit2-dev \
             libfontconfig1-dev libfreetype6-dev libharfbuzz-dev libfribidi-dev \
             libpng-dev libjpeg-dev \
-            libcairo2-dev libx11-dev libxrender-dev libxcb1-dev
+            libcairo2-dev libx11-dev libxrender-dev libxcb1-dev \
+            gcov
 
       - name: Install R package dependencies (including Suggests)
         run: |

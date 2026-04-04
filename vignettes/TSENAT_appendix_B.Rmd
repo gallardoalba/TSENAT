@@ -14,6 +14,8 @@ output:
     fig_height: 6.5
     toc_depth: 2
     latex_engine: xelatex
+header-includes:
+  - \usepackage{float}
 bibliography: TSENAT.bib
 vignette: |
   %\VignetteIndexEntry{TSENAT Appendix B: GAM vs Rank-Based Comparison}
@@ -30,6 +32,7 @@ knitr::opts_chunk$set(
     message = FALSE,
     warning = FALSE
 )
+suppressPackageStartupMessages(library(kableExtra))
 ```
 
 # Overview: Comparing Generalized Additive Model and Rank-Based Methods
@@ -169,7 +172,10 @@ entropy_summary <- data.frame(
 
 knitr::kable(entropy_summary, 
              caption = "Rank-Based Entropy Data Summary",
-             align = c("l", "r"))
+             label = "tab:rank-entropy-summary",
+             align = c("l", "r"),
+             format = "latex",
+             linesep = "")
 
 cat("\n")
 
@@ -190,7 +196,9 @@ data_characteristics <- data.frame(
 
 knitr::kable(data_characteristics, 
              caption = "Data Characteristics: Three Properties of the Entropy Matrix",
-             align = c("l", "l", "r", "l"))
+             align = c("l", "l", "r", "l"),
+             format = "latex",
+             linesep = "")
 ```
 
  
@@ -241,7 +249,7 @@ rank_summary_stats <- data.frame(
   )
 )
 
-knitr::kable(rank_summary_stats, caption = "Friedman Test Results Summary", align = c("l", "r"))
+knitr::kable(rank_summary_stats, caption = "Friedman Test Results Summary", label = "tab:friedman-test-summary", align = c("l", "r"), format = "latex", linesep = "")
 
 # Show top genes results
 rank_sig <- friedman_results[!is.na(friedman_results$p_value), ]
@@ -262,14 +270,21 @@ if (nrow(rank_sig) > 0) {
     
     knitr::kable(rank_display, 
                  caption = "Top 10 Genes by Friedman Test",
-                 digits = 3)
+                 digits = 3,
+                 format = if (knitr::is_latex_output()) "latex" else "html",
+                 longtable = knitr::is_latex_output(),
+                 linesep = "") %>%
+    kableExtra::kable_styling(
+      bootstrap_options = c("striped", "hover", "condensed"),
+      latex_options = c("scale_down")
+    )
   }
 }
 ```
 
 Visualize q-curves for top genes:
 
-```{r friedman-top-genes-qcurve, fig.width=12, fig.height=8, message=FALSE, fig.cap="Top 4 genes identified by Friedman rank-based test, showing q-curves (Tsallis entropy vs sensitivity parameter q). Curves depict entropy across q-values (0-2) for each group (typically control vs treatment). Friedman test identifies genes where rank patterns differ significantly between paired samples. Q-curves reveal whether group differences manifest uniformly across all diversity scales or are scale-specific (more pronounced at low q or high q)."}
+```{r friedman-top-genes-qcurve, fig.width=12, fig.height=8, message=FALSE, out.width="98%", fig.pos="H", fig.cap="Top 4 genes identified by Friedman rank-based test, showing q-curves (Tsallis entropy vs sensitivity parameter q). Curves depict entropy across q-values (0-2) for each group (typically control vs treatment). Friedman test identifies genes where rank patterns differ significantly between paired samples. Q-curves reveal whether group differences manifest uniformly across all diversity scales or are scale-specific (more pronounced at low q or high q)."}
 top_genes_plot <- plot_tsallis_q_curve_s4(analysis, lm_res = friedman_results, n_top = 4)
 print(top_genes_plot)
 ```
@@ -356,7 +371,7 @@ summary_stats <- data.frame(
   )
 )
 
-knitr::kable(summary_stats, caption = "GAM Results Summary", align = c("l", "r"))
+knitr::kable(summary_stats, caption = "GAM Results Summary", align = c("l", "r"), format = "latex", linesep = "")
 
 # Show top genes with additional information
 if ("p_interaction" %in% colnames(gam_results)) {
@@ -468,7 +483,9 @@ concordance_metrics <- data.frame(
 
 knitr::kable(concordance_metrics, 
              caption = "Global Concordance Metrics: GAM vs Friedman Methods",
-             align = c("l", "r"))
+             align = c("l", "r"),
+             format = "latex",
+             linesep = "")
 ```
 
 ```{r concordance-agreement, message=FALSE, echo=FALSE}
@@ -485,7 +502,9 @@ if (!is.null(agreement_table) && length(agreement_table) > 0) {
   
   knitr::kable(agreement_breakdown,
                caption = "Method Agreement Distribution",
-               align = c("l", "r", "r"))
+               align = c("l", "r", "r"),
+               format = "latex",
+               linesep = "")
 } else {
   cat("No agreement table available from concordance analysis.")
 }
@@ -508,8 +527,15 @@ if (!is.null(high_conf) && nrow(high_conf) > 0) {
   rownames(hc_display) <- NULL
   
   knitr::kable(hc_display,
+               format = if (knitr::is_latex_output()) "latex" else "html",
+               longtable = knitr::is_latex_output(),
+               linesep = "",
                caption = sprintf("Robust q-value Interactions: High-Confidence Genes Detected by Both Methods (n=%d, ranked by statistical significance)", nrow(high_conf)),
-               align = c("l", "r", "r", "r", "r"))
+               align = c("l", "r", "r", "r", "r")) %>%
+  kableExtra::kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    latex_options = c("scale_down")
+  )
 } else {
   cat("No high-confidence genes detected by both methods (p < 0.05 in both GAM and Friedman tests).")
 }
@@ -517,7 +543,7 @@ if (!is.null(high_conf) && nrow(high_conf) > 0) {
 
 ## Visualization: Method Comparison
 
-```{r concordance-plot, fig.width=10, fig.height=8, fig.cap="Method concordance visualization comparing Friedman rank-based and GAM approaches for detecting q×condition interactions. Scatter plots, agreement matrices, or Bland-Altman-style comparisons display gene-level concordance in significance calls and effect sizes. Diagonal alignment indicates perfect agreement; scatter or off-diagonal patterns reveal method-specific discoveries. Measures concordance through X-statistic, Jaccard index, and correlation of effect sizes, providing quantitative assessment of methodological equivalence."}
+```{r concordance-plot, fig.width=10, fig.height=8, out.width="98%", fig.pos="H", fig.cap="Method concordance visualization comparing Friedman rank-based and GAM approaches for detecting q×condition interactions. Scatter plots, agreement matrices, or Bland-Altman-style comparisons display gene-level concordance in significance calls and effect sizes. Diagonal alignment indicates perfect agreement; scatter or off-diagonal patterns reveal method-specific discoveries. Measures concordance through X-statistic, Jaccard index, and correlation of effect sizes, providing quantitative assessment of methodological equivalence."}
 # Create comparison plot using S4 wrapper
 if (!is.null(comparison_df) && nrow(comparison_df) > 0) {
   p <- plot_method_concordance_s4(analysis_with_concordance, verbose = TRUE)

@@ -12,6 +12,8 @@ output:
         fig_width: 10
         fig_height: 6.5
         latex_engine: xelatex
+header-includes:
+    - \usepackage{float}
 bibliography: TSENAT.bib
 vignette: |
     %\VignetteIndexEntry{TSENAT Validation: SplicingFactory Equivalence}
@@ -26,6 +28,7 @@ knitr::opts_chunk$set(
     fig.width = 10,
     fig.height = 6.5
 )
+suppressPackageStartupMessages(library(kableExtra))
 ```
 
 
@@ -395,7 +398,8 @@ shannon_summary <- create_summary_stats(
   padj_col1 = "adjusted_p_values", padj_col2 = "padj"
 )
 
-knitr::kable(shannon_summary, caption = "Shannon Entropy Analysis Summary Statistics", align = c("l", "r", "r", "r", "r", "r", "r"))
+knitr::kable(shannon_summary, caption = "Shannon Entropy Analysis Summary Statistics", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
+kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed"), latex_options = c("scale_down"))
 ```
 
 **Interpretation**: Both methods similarly identify significantly different transcript diversity between Normal and Tumor samples. The comparable number of significant genes (padj<0.05) and mean log₂FC values demonstrate equivalent statistical power and effect size detection.
@@ -411,7 +415,8 @@ shannon_sf_top <- format_top_genes(
   select_cols = c("genes", "Normal_mean", "Tumor_mean", "mean_difference", "log2_fold_change", "raw_p_values", "adjusted_p_values"),
   col_names = c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
 )
-knitr::kable(shannon_sf_top, row.names = FALSE, caption = "SplicingFactory (Laplace) - Top 10 Significant Genes", align = c("l", "r", "r", "r", "r", "r", "r"))
+knitr::kable(shannon_sf_top, row.names = FALSE, caption = "SplicingFactory (Laplace) - Top 10 Significant Genes", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
+kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed"), latex_options = c("scale_down"))
 ```
 
 #### Top 10 Significant Genes - TSENAT (Tsallis q=1)
@@ -425,10 +430,11 @@ shannon_tsenat_top <- format_top_genes(
   select_cols = c("gene_id", "Normal_mean", "Tumor_mean", "mean_difference", "log2_fold_change", "pvalue", "padj"),
   col_names = c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
 )
-knitr::kable(shannon_tsenat_top, row.names = FALSE, caption = "TSENAT (Tsallis q=1) - Top 10 Significant Genes", align = c("l", "r", "r", "r", "r", "r", "r"))
+knitr::kable(shannon_tsenat_top, row.names = FALSE, caption = "TSENAT (Tsallis q=1) - Top 10 Significant Genes", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
+kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed"), latex_options = c("scale_down"))
 ```
 
-```{r comparison_volcano_ma_plots, fig.width=14, fig.height=7, message=FALSE, warning=FALSE, fig.cap="Volcano and MA plots comparing Shannon entropy (q=1) equivalence between TSENAT and SplicingFactory. Volcano plots (left) show log-fold change on X-axis and -log10(p-value) on Y-axis, with significant genes highlighted. MA plots (right) display log-average abundance versus log-fold change. Each row compares one method to the other (top: SplicingFactory method, bottom: TSENAT method). Diagonal concordance indicates equivalent statistical testing and effect size estimation between packages."}
+```{r comparison_volcano_ma_plots, fig.width=14, fig.height=7, message=FALSE, warning=FALSE, out.width="98%", fig.pos="H", fig.cap="Volcano and MA plots comparing Shannon entropy (q=1) equivalence between TSENAT and SplicingFactory. Volcano plots (left) show log-fold change on X-axis and -log10(p-value) on Y-axis, with significant genes highlighted. MA plots (right) display log-average abundance versus log-fold change. Each row compares one method to the other (top: SplicingFactory method, bottom: TSENAT method). Diagonal concordance indicates equivalent statistical testing and effect size estimation between packages."}
 # Create comparison plots: Volcano and MA plots side-by-side for each method
 library(cowplot)
 
@@ -528,7 +534,8 @@ knitr::kable(simpson_tsenat_top, row.names = FALSE, caption = "TSENAT (Tsallis q
 ```
 
 
-```{r comparison_ma_plots, fig.width=14, fig.height=7, message=FALSE, warning=FALSE, fig.cap="Volcano and MA plots comparing Simpson index (q=2) equivalence between TSENAT and SplicingFactory. These plots validate that TSENAT's Tsallis entropy at q=2 produces statistically identical results to SplicingFactory's Simpson index implementation. Volcano plots show significance thresholds; MA plots reveal how effect sizes scale with average abundance. Overlapping point clouds and identical significance calls demonstrate mathematical equivalence."}
+```{r comparison_ma_plots, fig.width=14, fig.height=7, message=FALSE, warning=FALSE, out.width="98%", fig.pos="H", fig.cap="Volcano and MA plots comparing Simpson index (q=2) equivalence between TSENAT and SplicingFactory. These plots validate that TSENAT's Tsallis entropy at q=2 produces statistically identical results to SplicingFactory's Simpson index implementation. Volcano plots show significance thresholds; MA plots reveal how effect sizes scale with average abundance. Overlapping point clouds and identical significance calls demonstrate mathematical equivalence."}
+
 # Create individual volcano and MA plots for Simpson/q=2
 # SplicingFactory method for comparison
 simpson_sf <- TSENAT:::.plot_volcano_ma_grid(
