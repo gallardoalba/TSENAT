@@ -313,8 +313,8 @@ run_preprocess_script() {
     local output_counts="${OUTPUT_DIR}/salmon_counts_filtered.tsv"
     local output_gff="${OUTPUT_DIR}/annotation.gff3.gz"
     
-    # Check if preprocess_salmon_output.R exists
-    if [ ! -f "./scripts/preprocess_salmon_output.R" ]; then
+    # Check if preprocess.R exists
+    if [ ! -f "./scripts/preprocess.R" ]; then
         log_message "WARNING: preprocess_salmon_output.R not found, skipping R preprocessing"
         return 1
     fi
@@ -326,7 +326,7 @@ run_preprocess_script() {
     log_message ""
     
     # Run the R script with arguments
-    if Rscript ./data-raw/scripts/preprocess_salmon_output.R \
+    if Rscript ./data-raw/scripts/preprocess.R \
         "${salmon_merged_dir}" \
         "${coldata_file}" \
         "${output_counts}" \

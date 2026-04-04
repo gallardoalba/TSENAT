@@ -6,6 +6,7 @@ database/
 output/
 coverage/
 .DS_Store
+.instructions.md
 inst/doc/
 /Meta/
 __pycache__/
