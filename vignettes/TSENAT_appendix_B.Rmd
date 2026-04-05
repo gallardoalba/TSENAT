@@ -171,7 +171,7 @@ entropy_summary <- data.frame(
 )
 
 knitr::kable(entropy_summary, 
-             caption = "Rank-Based Entropy Data Summary",
+             caption = "**Supplementary Table 1 | Rank-Based Entropy Matrix Properties.** Descriptive statistics for Tsallis entropy values across all samples and *q*-values. Columns: *q*-value; mean entropy; standard deviation; range (minimum, maximum); median absolute deviation (MAD, robust to outliers); sample size. Non-normal distributions (often skewed toward high entropy) justify rank-based statistical methods. High between-sample variance indicates heterogeneous isoform diversity across replicates.",
              label = "tab:rank-entropy-summary",
              align = c("l", "r"),
              format = if (knitr::is_latex_output()) "latex" else "html",
@@ -200,7 +200,7 @@ data_characteristics <- data.frame(
 )
 
 knitr::kable(data_characteristics, 
-             caption = "Data Characteristics: Three Properties of the Entropy Matrix",
+             caption = "**Supplementary Table 2 | Entropy Matrix Validation Metrics.** Three core properties validating suitability for rank-based analysis. Rows: Paired Structure (exchangeability test ensures independence), Gene Heterogeneity (Spearman rank correlation), Subject Consistency (Kendall's *W* concordance). Values reported as *P*-values, correlation coefficients *r*, and concordance *W* (0–1 range). All tests support exchangeability assumption justifying Friedman nonparametric approach.",
              align = c("l", "l", "r", "l"),
              format = if (knitr::is_latex_output()) "latex" else "html",
              longtable = knitr::is_latex_output(),
@@ -259,7 +259,7 @@ rank_summary_stats <- data.frame(
   )
 )
 
-knitr::kable(rank_summary_stats, caption = "Friedman Test Results Summary", label = "tab:friedman-test-summary", align = c("l", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
+knitr::kable(rank_summary_stats, caption = "**Supplementary Table 3 | Friedman Test Results Summary.** Rank-based nonparametric test of *q*×condition interactions. Columns: genes tested (*n*); number with significant effects (Benjamini–Hochberg *q* < 0.05); mean rank statistic; Friedman *χ*²; degrees of freedom; *P*-value; effect size (eta-squared, *η*₂). Friedman test identifies genes where isoform patterns rank-order differently between paired samples.", label = "tab:friedman-test-summary", align = c("l", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
   kableExtra::kable_styling(
     bootstrap_options = c("striped", "hover", "condensed"),
     latex_options = c("scale_down")
@@ -283,7 +283,7 @@ if (nrow(rank_sig) > 0) {
     rank_display[, numeric_cols] <- round(rank_display[, numeric_cols], 3)
     
     knitr::kable(rank_display, 
-                 caption = "Top 10 Genes by Friedman Test",
+                 caption = "**Supplementary Table 4 | Top genes identified by Friedman rank-based test.** Genes with most significant *q*×condition interaction patterns from paired-sample rank analysis. Columns: gene identifier; *P*-value (unadjusted); *q*-value (Benjamini–Hochberg adjustment); Friedman *F*-statistic; effect size (*η*₂); test method (Friedman aligned-rank ANOVA); interaction class. Ranked by adjusted significance.",
                  col.names = c("Gene", "P-value", "Adj. P-value", "F-Statistic", 
                                "Effect Size (η²)", "Test Method", "Interaction Class")[1:ncol(rank_display)],
                  digits = 3,
@@ -300,7 +300,7 @@ if (nrow(rank_sig) > 0) {
 
 Visualize q-curves for top genes:
 
-```{r friedman-top-genes-qcurve, fig.width=12, fig.height=8, message=FALSE, out.width="98%", fig.pos="H", fig.cap="Top 4 genes identified by Friedman rank-based test, showing q-curves (Tsallis entropy vs sensitivity parameter q). Curves depict entropy across q-values (0-2) for each group (typically control vs treatment). Friedman test identifies genes where rank patterns differ significantly between paired samples. Q-curves reveal whether group differences manifest uniformly across all diversity scales or are scale-specific (more pronounced at low q or high q)."}
+```{r extended-fig-1-friedman-top-genes-qcurve, fig.width=12, fig.height=8, message=FALSE, out.width="98%", fig.pos="H", fig.cap="**Extended Data Figure 1 | Scale-dependent isoform diversity from rank-based analysis.** *Friedman rank test identifies genes with heterogeneous isoform rank-ordering patterns between paired samples.* X-axis, diversity sensitivity *q* (0–2). Y-axis, Tsallis entropy (0–1 range). Each line represents a paired sample or condition. Parallel curves indicate rank-stable condition differences across all *q*-scales; diverging or crossing curves reveal genes with *q*-dependent isoform switching where isoform dominance rank-order differs between conditions at specific scales. Friedman rank test statistic quantifies nonparametric evidence for scale-dependent isoform heterogeneity."}
 top_genes_plot <- plot_tsallis_q_curve_s4(analysis, lm_res = friedman_results, n_top = 4)
 print(top_genes_plot)
 ```

@@ -41,7 +41,6 @@ List jackknife_resampling_cpp(NumericMatrix counts, double q, bool normalize, do
 RcppExport SEXP _TSENAT_jackknife_resampling_cpp(SEXP countsSEXP, SEXP qSEXP, SEXP normalizeSEXP, SEXP log_baseSEXP, SEXP pseudocountSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericMatrix >::type counts(countsSEXP);
     Rcpp::traits::input_parameter< double >::type q(qSEXP);
     Rcpp::traits::input_parameter< bool >::type normalize(normalizeSEXP);
@@ -56,7 +55,6 @@ NumericVector bootstrap_compute_cpp(NumericVector x, int nboot, double q, bool n
 RcppExport SEXP _TSENAT_bootstrap_compute_cpp(SEXP xSEXP, SEXP nbootSEXP, SEXP qSEXP, SEXP normalizeSEXP, SEXP log_baseSEXP, SEXP pseudocountSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
     Rcpp::traits::input_parameter< int >::type nboot(nbootSEXP);
     Rcpp::traits::input_parameter< double >::type q(qSEXP);
@@ -67,26 +65,11 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// bootstrap_entropy_vec_cpp
-NumericVector bootstrap_entropy_vec_cpp(NumericMatrix boot_samples, double q, bool normalize, double log_base);
-RcppExport SEXP _TSENAT_bootstrap_entropy_vec_cpp(SEXP boot_samplesSEXP, SEXP qSEXP, SEXP normalizeSEXP, SEXP log_baseSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericMatrix >::type boot_samples(boot_samplesSEXP);
-    Rcpp::traits::input_parameter< double >::type q(qSEXP);
-    Rcpp::traits::input_parameter< bool >::type normalize(normalizeSEXP);
-    Rcpp::traits::input_parameter< double >::type log_base(log_baseSEXP);
-    rcpp_result_gen = Rcpp::wrap(bootstrap_entropy_vec_cpp(boot_samples, q, normalize, log_base));
-    return rcpp_result_gen;
-END_RCPP
-}
 // block_bootstrap_compute_cpp
 NumericVector block_bootstrap_compute_cpp(NumericVector x, int nboot, double q, bool normalize, double log_base, double pseudocount);
 RcppExport SEXP _TSENAT_block_bootstrap_compute_cpp(SEXP xSEXP, SEXP nbootSEXP, SEXP qSEXP, SEXP normalizeSEXP, SEXP log_baseSEXP, SEXP pseudocountSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
     Rcpp::traits::input_parameter< int >::type nboot(nbootSEXP);
     Rcpp::traits::input_parameter< double >::type q(qSEXP);
@@ -94,69 +77,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type log_base(log_baseSEXP);
     Rcpp::traits::input_parameter< double >::type pseudocount(pseudocountSEXP);
     rcpp_result_gen = Rcpp::wrap(block_bootstrap_compute_cpp(x, nboot, q, normalize, log_base, pseudocount));
-    return rcpp_result_gen;
-END_RCPP
-}
-// check_rcpp_available
-bool check_rcpp_available();
-RcppExport SEXP _TSENAT_check_rcpp_available() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(check_rcpp_available());
-    return rcpp_result_gen;
-END_RCPP
-}
-// jis_tsallis_entropy_cpp
-NumericVector jis_tsallis_entropy_cpp(NumericMatrix counts, double q, bool normalize, double log_base, double pseudocount, int n_tx_fixed);
-RcppExport SEXP _TSENAT_jis_tsallis_entropy_cpp(SEXP countsSEXP, SEXP qSEXP, SEXP normalizeSEXP, SEXP log_baseSEXP, SEXP pseudocountSEXP, SEXP n_tx_fixedSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericMatrix >::type counts(countsSEXP);
-    Rcpp::traits::input_parameter< double >::type q(qSEXP);
-    Rcpp::traits::input_parameter< bool >::type normalize(normalizeSEXP);
-    Rcpp::traits::input_parameter< double >::type log_base(log_baseSEXP);
-    Rcpp::traits::input_parameter< double >::type pseudocount(pseudocountSEXP);
-    Rcpp::traits::input_parameter< int >::type n_tx_fixed(n_tx_fixedSEXP);
-    rcpp_result_gen = Rcpp::wrap(jis_tsallis_entropy_cpp(counts, q, normalize, log_base, pseudocount, n_tx_fixed));
-    return rcpp_result_gen;
-END_RCPP
-}
-// jis_jackknife_influences_cpp
-NumericVector jis_jackknife_influences_cpp(NumericMatrix counts, double q, bool normalize, double log_base, double pseudocount, int n_tx_fixed);
-RcppExport SEXP _TSENAT_jis_jackknife_influences_cpp(SEXP countsSEXP, SEXP qSEXP, SEXP normalizeSEXP, SEXP log_baseSEXP, SEXP pseudocountSEXP, SEXP n_tx_fixedSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericMatrix >::type counts(countsSEXP);
-    Rcpp::traits::input_parameter< double >::type q(qSEXP);
-    Rcpp::traits::input_parameter< bool >::type normalize(normalizeSEXP);
-    Rcpp::traits::input_parameter< double >::type log_base(log_baseSEXP);
-    Rcpp::traits::input_parameter< double >::type pseudocount(pseudocountSEXP);
-    Rcpp::traits::input_parameter< int >::type n_tx_fixed(n_tx_fixedSEXP);
-    rcpp_result_gen = Rcpp::wrap(jis_jackknife_influences_cpp(counts, q, normalize, log_base, pseudocount, n_tx_fixed));
-    return rcpp_result_gen;
-END_RCPP
-}
-// jis_bootstrap_delta_cpp
-List jis_bootstrap_delta_cpp(NumericMatrix counts_A, NumericMatrix counts_B, NumericVector delta_influence, double q, bool normalize, double log_base, double pseudocount, int n_bootstrap, double confidence, String method, int n_transcripts_fixed);
-RcppExport SEXP _TSENAT_jis_bootstrap_delta_cpp(SEXP counts_ASEXP, SEXP counts_BSEXP, SEXP delta_influenceSEXP, SEXP qSEXP, SEXP normalizeSEXP, SEXP log_baseSEXP, SEXP pseudocountSEXP, SEXP n_bootstrapSEXP, SEXP confidenceSEXP, SEXP methodSEXP, SEXP n_transcripts_fixedSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericMatrix >::type counts_A(counts_ASEXP);
-    Rcpp::traits::input_parameter< NumericMatrix >::type counts_B(counts_BSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type delta_influence(delta_influenceSEXP);
-    Rcpp::traits::input_parameter< double >::type q(qSEXP);
-    Rcpp::traits::input_parameter< bool >::type normalize(normalizeSEXP);
-    Rcpp::traits::input_parameter< double >::type log_base(log_baseSEXP);
-    Rcpp::traits::input_parameter< double >::type pseudocount(pseudocountSEXP);
-    Rcpp::traits::input_parameter< int >::type n_bootstrap(n_bootstrapSEXP);
-    Rcpp::traits::input_parameter< double >::type confidence(confidenceSEXP);
-    Rcpp::traits::input_parameter< String >::type method(methodSEXP);
-    Rcpp::traits::input_parameter< int >::type n_transcripts_fixed(n_transcripts_fixedSEXP);
-    rcpp_result_gen = Rcpp::wrap(jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q, normalize, log_base, pseudocount, n_bootstrap, confidence, method, n_transcripts_fixed));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -178,7 +98,6 @@ NumericVector divergence_bootstrap_compute_cpp(NumericVector x, NumericVector y,
 RcppExport SEXP _TSENAT_divergence_bootstrap_compute_cpp(SEXP xSEXP, SEXP ySEXP, SEXP nbootSEXP, SEXP qSEXP, SEXP pairedSEXP, SEXP pseudocountSEXP, SEXP log_baseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type y(ySEXP);
     Rcpp::traits::input_parameter< int >::type nboot(nbootSEXP);
@@ -195,7 +114,6 @@ NumericVector divergence_bootstrap_paired_cpp(NumericVector x, NumericVector y, 
 RcppExport SEXP _TSENAT_divergence_bootstrap_paired_cpp(SEXP xSEXP, SEXP ySEXP, SEXP pair_idsSEXP, SEXP nbootSEXP, SEXP qSEXP, SEXP pseudocountSEXP, SEXP log_baseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type y(ySEXP);
     Rcpp::traits::input_parameter< IntegerVector >::type pair_ids(pair_idsSEXP);
@@ -230,12 +148,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_TSENAT_hill_number_cpp", (DL_FUNC) &_TSENAT_hill_number_cpp, 3},
     {"_TSENAT_jackknife_resampling_cpp", (DL_FUNC) &_TSENAT_jackknife_resampling_cpp, 5},
     {"_TSENAT_bootstrap_compute_cpp", (DL_FUNC) &_TSENAT_bootstrap_compute_cpp, 6},
-    {"_TSENAT_bootstrap_entropy_vec_cpp", (DL_FUNC) &_TSENAT_bootstrap_entropy_vec_cpp, 4},
     {"_TSENAT_block_bootstrap_compute_cpp", (DL_FUNC) &_TSENAT_block_bootstrap_compute_cpp, 6},
-    {"_TSENAT_check_rcpp_available", (DL_FUNC) &_TSENAT_check_rcpp_available, 0},
-    {"_TSENAT_jis_tsallis_entropy_cpp", (DL_FUNC) &_TSENAT_jis_tsallis_entropy_cpp, 6},
-    {"_TSENAT_jis_jackknife_influences_cpp", (DL_FUNC) &_TSENAT_jis_jackknife_influences_cpp, 6},
-    {"_TSENAT_jis_bootstrap_delta_cpp", (DL_FUNC) &_TSENAT_jis_bootstrap_delta_cpp, 11},
     {"_TSENAT_tsallis_divergence_cpp", (DL_FUNC) &_TSENAT_tsallis_divergence_cpp, 4},
     {"_TSENAT_divergence_bootstrap_compute_cpp", (DL_FUNC) &_TSENAT_divergence_bootstrap_compute_cpp, 7},
     {"_TSENAT_divergence_bootstrap_paired_cpp", (DL_FUNC) &_TSENAT_divergence_bootstrap_paired_cpp, 7},

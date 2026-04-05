@@ -206,6 +206,7 @@ double hill_number_cpp(NumericVector p, double q = 1.0, double log_base = 2.7182
 // Internal C++ function (registered but not exported to R NAMESPACE)
 // Leave-one-out jackknife with vectorized Armadillo implementation
 // Callable via .Call("_TSENAT_jackknife_resampling_cpp") but not in user namespace
+// [[Rcpp::export(rng = false)]]
 List jackknife_resampling_cpp(NumericMatrix counts, double q = 1.0, 
                               bool normalize = true, double log_base = 2.718281828,
                               double pseudocount = 0.0) {
@@ -338,6 +339,7 @@ List jackknife_resampling_cpp(NumericMatrix counts, double q = 1.0,
 // The bottleneck in R is: apply(bootstrap_samples, 2, entropy_calc)
 // This eliminates R function call overhead and vectorizes the entropy loop.
 
+// [[Rcpp::export(rng = false)]]
 NumericVector bootstrap_compute_cpp(NumericVector x, int nboot = 1000, 
                                     double q = 1.0, bool normalize = true, 
                                     double log_base = 2.718281828,
@@ -465,6 +467,7 @@ NumericVector bootstrap_entropy_vec_cpp(NumericMatrix boot_samples,
 // Input x has pairs (x[0],x[1]), (x[2],x[3]), ..., (x[2n-2],x[2n-1])
 // Each bootstrap replicate resamples n_pairs pairs with replacement.
 
+// [[Rcpp::export(rng = false)]]
 NumericVector block_bootstrap_compute_cpp(NumericVector x, int nboot = 1000, 
                                           double q = 1.0, bool normalize = true, 
                                           double log_base = 2.718281828,
@@ -1073,6 +1076,7 @@ double tsallis_divergence_cpp(NumericVector p, NumericVector r, double q = 1.0,
 }
 
 // Main divergence bootstrap function
+// [[Rcpp::export(rng = false)]]
 NumericVector divergence_bootstrap_compute_cpp(NumericVector x, NumericVector y, 
                                               int nboot = 1000, double q = 1.0,
                                               bool paired = false,
@@ -1199,6 +1203,7 @@ NumericVector divergence_bootstrap_compute_cpp(NumericVector x, NumericVector y,
 // ============================================================================
 // Paired Divergence Bootstrap with Explicit Pair Structure
 // ============================================================================
+// [[Rcpp::export(rng = false)]]
 NumericVector divergence_bootstrap_paired_cpp(
     NumericVector x,          // Control group counts (length = n_pairs)
     NumericVector y,          // Treatment group counts (length = n_pairs)
