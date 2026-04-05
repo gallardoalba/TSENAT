@@ -7,6 +7,8 @@
 addPlot(object, type, plot, replace = FALSE)
 }
 \arguments{
+\item{object}{TSENATAnalysis object}
+
 \item{type}{character. Plot type identifier}
 
 \item{plot}{ggplot or list. The plot object to cache}

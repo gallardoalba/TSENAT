@@ -93,6 +93,7 @@ setGeneric("getPlot", function(object, ...) standardGeneric("getPlot"))
 #'
 #' Cache plots for later retrieval, maintaining analysis visualization history.
 #'
+#' @param object TSENATAnalysis object
 #' @param type character. Plot type identifier
 #' @param plot ggplot or list. The plot object to cache
 #' @param replace logical. If TRUE, replace existing plot of same type.
@@ -131,5 +132,33 @@ setGeneric("addPlot", function(object, type, plot, replace = FALSE) standardGene
 #' @param ... Additional arguments (for method compatibility)
 #'
 #' @return SummarizedExperiment containing count matrix and sample metadata
+#' 
+#' @details
+#' The SummarizedExperiment object returned by getSE() contains:
+#' - assays: count matrices (transcript-level read counts)
+#' - rowData: transcript information and gene assignments
+#' - colData: sample metadata (sample types, conditions, etc.)
+#'
+#' @examples
+#' # Load example data and build analysis object
+#' data(readcounts, package = "TSENAT")
+#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
+#'   header = TRUE, sep = "\t")
+#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#'
+#' # Build TSENATAnalysis object
+#' analysis <- build_analysis_s4(readcounts = readcounts, 
+#'                              tx2gene = gff3_file, 
+#'                              metadata = metadata_df)
+#'
+#' # Extract the underlying SummarizedExperiment
+#' se <- getSE(analysis)
+#' 
+#' # Explore the SummarizedExperiment structure
+#' nrow(se)  # Number of transcripts
+#' ncol(se)  # Number of samples
+#' SummarizedExperiment::assayNames(se)  # Available assay matrices
+#' SummarizedExperiment::colData(se)  # Sample metadata
+#' 
 #' @export
 setGeneric("getSE", function(object, ...) standardGeneric("getSE"))

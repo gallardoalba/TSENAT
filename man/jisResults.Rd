@@ -24,4 +24,35 @@ Extract jackknife isoform switching results
 \details{
 Jackknife isoform switching results are computed separately from entropy outliers.
 Use this to access isoform switching analysis results.
+
+Results include leave-one-out diagnostics for detecting genes with
+condition-specific isoform switching patterns across q-values.
+}
+\examples{
+# Load data and build analysis 
+data(readcounts, package = "TSENAT")
+metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
+  header = TRUE, sep = "\t")
+gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+
+# Build analysis object
+analysis <- build_analysis_s4(readcounts = readcounts,
+                             tx2gene = gff3_file,
+                             metadata = metadata_df)
+
+# Filter low-abundance transcripts
+analysis <- filter_analysis_s4(analysis, stringency = "medium")
+
+# Calculate diversity
+analysis <- calculate_diversity_s4(analysis, q = c(1.0, 2.0), norm = TRUE)
+
+# Run jackknife isoform switching analysis
+analysis <- jackknife_isoform_switching_s4(analysis, q = 1.0)
+
+# Extract isoform switching results for q = 1.0
+jis_results <- jisResults(analysis, q = 1.0)
+
+# Extract all isoform switching results
+all_jis <- jisResults(analysis)
+
 }
