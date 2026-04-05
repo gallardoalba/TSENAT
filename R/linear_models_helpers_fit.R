@@ -228,6 +228,13 @@
             stringsAsFactors = FALSE)
     })
     
+    # Ensure 'gene' column exists in result before returning
+    if (is.data.frame(result) && nrow(result) > 0) {
+        if (!("gene" %in% colnames(result))) {
+            result$gene <- g
+        }
+    }
+    
     result
 
 }

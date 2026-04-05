@@ -63,3 +63,25 @@ suppressPackageStartupMessages({
   library(testthat)
   library(SummarizedExperiment)
 })
+
+# ============================================================================
+# VIGNETTE DATA LOADING - Load exactly as in TSENAT.Rmd (Lines 310-320)
+# ============================================================================
+# Load built-in vignette data (readcounts, tpm, effective_length all load together)
+data(readcounts, package = "TSENAT", envir = environment())
+readcounts <- as.matrix(readcounts)
+mode(readcounts) <- "numeric"
+
+# tpm and effective_length are auto-loaded with readcounts data() call
+tpm <- as.matrix(tpm)
+mode(tpm) <- "numeric"
+effective_length <- as.numeric(effective_length)
+
+# Load metadata
+metadata_df <- read.table(
+  system.file("extdata", "metadata.tsv", package = "TSENAT"),
+  header = TRUE, sep = "\t"
+)
+
+# Get the GFF3.gz annotation file path
+gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")

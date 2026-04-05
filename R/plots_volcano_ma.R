@@ -68,7 +68,7 @@
 #' @noRd
 .plot_ma_core <- function(x, fc_df = NULL, diff_res = NULL, sig_alpha = 0.05, x_label = NULL,
     y_label = NULL, title = NULL, ...) {
-    library(ggplot2)
+    suppressPackageStartupMessages(library(ggplot2))
 
     df <- as.data.frame(x, stringsAsFactors = FALSE)
     # Ensure gene identifier column exists

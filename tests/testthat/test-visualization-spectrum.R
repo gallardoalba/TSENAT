@@ -492,87 +492,91 @@ test_that("plot_divergence_spectrum_s4: requires divergence results", {
 
 test_that("plot_divergence_spectrum_s4: creates plot with valid divergence data", {
   skip_if_not_installed("ggplot2")
+  skip_if_not_installed("cowplot")
   
-  set.seed(305)
-  
-  # Create analysis WITH divergence results
-  analysis <- TSENAT:::.create_test_analysis(
-    n_genes = 10,
-    n_samples_per_group = 3,
-    q_values = c(0.5, 1.0, 1.5),
-    include_divergence = TRUE,  # Key: include divergence
-    include_lm_results = FALSE,
-    seed = 305,
-    verbose = FALSE
+  # Build analysis from vignette data
+  config <- tsenat_config(
+    condition_col = "condition",
+    subject_col = "paired_samples",
+    paired = TRUE,
+    control = "normal",
+    metadata = metadata_df
   )
+  analysis <- build_analysis_s4(config = config, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
+  analysis <- filter_analysis_s4(analysis, stringency = "medium")
+  
+  # Add diversity and divergence calculations
+  analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+  analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
   
   # Should create plot successfully with default parameters
-  result <- tryCatch(
-    TSENAT:::plot_divergence_spectrum_s4(analysis, n_genes = 2, verbose = FALSE),
-    error = function(e) {
-      cat("Error:", e$message, "\n")
-      NULL
-    }
-  )
+  result <- TSENAT:::plot_divergence_spectrum_s4(analysis, n_genes = 2, verbose = FALSE)
   
-  # Result should be ggplot object or list (or NULL if dependencies missing)
-  expect_true(is.null(result) || inherits(result, "ggplot") || is.list(result))
+  # Result should NOT be NULL - actual plot code must run
+  expect_false(is.null(result))
+  expect_true(inherits(result, "ggplot") || is.list(result))
 })
 
 test_that("plot_divergence_spectrum_s4: handles single gene mode", {
   skip_if_not_installed("ggplot2")
+  skip_if_not_installed("cowplot")
   
-  set.seed(306)
-  
-  analysis <- TSENAT:::.create_test_analysis(
-    n_genes = 10,
-    n_samples_per_group = 3,
-    q_values = c(0.5, 1.0, 1.5),
-    include_divergence = TRUE,
-    include_lm_results = FALSE,
-    seed = 306,
-    verbose = FALSE
+  # Build analysis from vignette data
+  config <- tsenat_config(
+    condition_col = "condition",
+    subject_col = "paired_samples",
+    paired = TRUE,
+    control = "normal",
+    metadata = metadata_df
   )
+  analysis <- build_analysis_s4(config = config, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
+  analysis <- filter_analysis_s4(analysis, stringency = "medium")
   
-  # Test with single gene specified
-  result <- tryCatch(
-    TSENAT:::plot_divergence_spectrum_s4(analysis, gene = "gene_1", verbose = FALSE),
-    error = function(e) NULL
-  )
+  # Add diversity and divergence calculations
+  analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+  analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
   
-  expect_true(is.null(result) || inherits(result, "ggplot") || is.list(result))
+  # Test with single gene specified (use actual gene name from analysis)
+  genes <- rownames(analysis@divergence_results$divergence_se)
+  gene_to_plot <- genes[1]
+  
+  result <- TSENAT:::plot_divergence_spectrum_s4(analysis, gene = gene_to_plot, verbose = FALSE)
+  
+  expect_false(is.null(result))
+  expect_true(inherits(result, "ggplot") || is.list(result))
 })
 
 test_that("plot_divergence_spectrum_s4: respects metric and variability parameters", {
   skip_if_not_installed("ggplot2")
+  skip_if_not_installed("cowplot")
   
-  set.seed(307)
-  
-  analysis <- TSENAT:::.create_test_analysis(
-    n_genes = 10,
-    n_samples_per_group = 3,
-    q_values = c(0.5, 1.0, 1.5),
-    include_divergence = TRUE,
-    include_lm_results = FALSE,
-    seed = 307,
-    verbose = FALSE
+  # Build analysis from vignette data
+  config <- tsenat_config(
+    condition_col = "condition",
+    subject_col = "paired_samples",
+    paired = TRUE,
+    control = "normal",
+    metadata = metadata_df
   )
+  analysis <- build_analysis_s4(config = config, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
+  analysis <- filter_analysis_s4(analysis, stringency = "medium")
+  
+  # Add diversity and divergence calculations
+  analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+  analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
   
   # Test different metric combinations
-  result_median_iqr <- tryCatch(
-    TSENAT:::plot_divergence_spectrum_s4(
-      analysis, n_genes = 2, metric = "median", variability_metric = "iqr", verbose = FALSE
-    ),
-    error = function(e) NULL
+  result_median_iqr <- TSENAT:::plot_divergence_spectrum_s4(
+    analysis, n_genes = 2, metric = "median", variability_metric = "iqr", verbose = FALSE
   )
   
-  result_mean_sd <- tryCatch(
-    TSENAT:::plot_divergence_spectrum_s4(
-      analysis, n_genes = 2, metric = "mean", variability_metric = "sd", verbose = FALSE
-    ),
-    error = function(e) NULL
+  result_mean_sd <- TSENAT:::plot_divergence_spectrum_s4(
+    analysis, n_genes = 2, metric = "mean", variability_metric = "sd", verbose = FALSE
   )
   
-  expect_true(is.null(result_median_iqr) || inherits(result_median_iqr, "ggplot") || is.list(result_median_iqr))
-  expect_true(is.null(result_mean_sd) || inherits(result_mean_sd, "ggplot") || is.list(result_mean_sd))
+  expect_false(is.null(result_median_iqr))
+  expect_true(inherits(result_median_iqr, "ggplot") || is.list(result_median_iqr))
+  
+  expect_false(is.null(result_mean_sd))
+  expect_true(inherits(result_mean_sd, "ggplot") || is.list(result_mean_sd))
 })

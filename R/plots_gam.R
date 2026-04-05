@@ -97,12 +97,14 @@
     n_top = 6, sig_alpha = 0.05, assay_name = "diversity", model_data = NULL, output_file = NULL,
     width = NULL, height = NULL) {
 
-    library(ggplot2)
-    library(mgcv)
-    library(SummarizedExperiment)
-    library(dplyr)
-    library(tidyr)
-    library(cowplot)
+    suppressPackageStartupMessages({
+        library(ggplot2)
+        library(mgcv)
+        library(SummarizedExperiment)
+        library(dplyr)
+        library(tidyr)
+        library(cowplot)
+    })
 
     # Validate and extract inputs
     validated <- .plot_gam_handle_inputs(se, lm_res)

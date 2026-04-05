@@ -153,7 +153,7 @@
 #' @noRd
 .spectrum_plot_single_gene <- function(gene_name, div_mat_sorted, q_vals_sorted,
     gene_names) {
-    library(ggplot2)
+    suppressPackageStartupMessages(library(ggplot2))
     
     gene_idx <- which(gene_names == gene_name)[1]
     if (is.na(gene_idx)) {
@@ -270,8 +270,10 @@
 #' @noRd
 .spectrum_plot_global <- function(div_mat_sorted, q_vals_sorted, metric, variability_metric,
     divergence_results_se = NULL) {
-    library(ggplot2)
-    library(SummarizedExperiment)
+    suppressPackageStartupMessages({
+        library(ggplot2)
+        library(SummarizedExperiment)
+    })
     
     # Check if bootstrap CI assays are available
     has_ci_assays <- FALSE

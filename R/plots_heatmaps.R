@@ -140,7 +140,24 @@
 
     for (gene_idx in seq_along(top_genes)) {
         gene_id <- top_genes[gene_idx]
-        mat <- .heatmap_prepare_multiq_data(switching_results, gene_id, q_result_keys)
+        
+        # Try to find the gene in any of the q-value results
+        # Build list of all available gene names from all q-values
+        available_genes <- unique(unlist(lapply(switching_results[q_result_keys], function(qres) {
+            if (!is.null(qres$results_per_gene)) names(qres$results_per_gene) else NULL
+        })))
+        
+        # Check if gene_id matches - if not, try to find a match by partial match or case-insensitive match
+        actual_gene_id <- gene_id
+        if (!(gene_id %in% available_genes) && length(available_genes) > 0) {
+            # Try case-insensitive match
+            matches <- grep(paste0("^", tolower(gene_id), "$"), tolower(available_genes))
+            if (length(matches) > 0) {
+                actual_gene_id <- available_genes[matches[1]]
+            }
+        }
+        
+        mat <- .heatmap_prepare_multiq_data(switching_results, actual_gene_id, q_result_keys)
 
         if (is.null(mat) || nrow(mat) == 0 || ncol(mat) == 0) {
             all_gene_matrices[[gene_idx]] <- NULL
@@ -149,21 +166,34 @@
         }
 
         # Get gene name
-        gene_name_idx <- which(gene_ids == gene_id)[1]
+        gene_name_idx <- which(gene_ids == actual_gene_id)[1]
         gene_name <- if (!is.na(gene_name_idx) && !is.na(gene_name_map[gene_name_idx])) {
             gene_name_map[gene_name_idx]
         } else {
-            gene_id
+            actual_gene_id
         }
 
         all_gene_matrices[[gene_idx]] <- mat
-        all_gene_info[[gene_idx]] <- list(gene_id = gene_id, gene_name = gene_name,
+        all_gene_info[[gene_idx]] <- list(gene_id = actual_gene_id, gene_name = gene_name,
             n_transcripts = ncol(mat))
     }
 
-    # Security check: if all matrices are NULL...
-    if (all(vapply(all_gene_matrices, is.null, logical(1)))) {
-        warning("No valid heatmap data generated for any genes", call. = FALSE)
+    # Security check: if all matrices are NULL, we can't proceed
+    # BUT: Allow partial data - if at least SOME genes have data, continue
+    non_null_count <- sum(!vapply(all_gene_matrices, is.null, logical(1)))
+    if (non_null_count == 0) {
+        available_genes <- unique(unlist(lapply(switching_results[q_result_keys], function(qres) {
+            if (!is.null(qres$results_per_gene)) names(qres$results_per_gene) else NULL
+        })))
+        
+        error_msg <- paste0(
+            "No valid heatmap data generated for any genes. ",
+            "Requested genes: ", paste(top_genes, collapse = ", "), ". ",
+            "Available genes: ", paste(head(available_genes, 5), collapse = ", "),
+            if (length(available_genes) > 5) "..." else ""
+        )
+        
+        warning(error_msg, call. = FALSE)
         return(invisible(NULL))
     }
 
@@ -197,11 +227,20 @@
     }
 
     # Phase 7: Render grid
+    # Filter to only non-NULL heatmaps for rendering
+    non_null_idx <- !vapply(heatmap_plots, is.null, logical(1))
+    heatmap_plots_filtered <- heatmap_plots[non_null_idx]
+    gene_layout_filtered <- if (!is.null(gene_layout) && length(gene_layout) > 0) {
+        gene_layout[non_null_idx]
+    } else {
+        NULL
+    }
+    
     tryCatch({
         .plot_grid_setup(n_layout_rows, output_file, dims$png_width, dims$png_height,
             title = "Delta Influence Across Diversity Scales", subtitle = "Jackknife weights across q-spectrum for selected genes")
 
-        .render_heatmaps_to_grid(heatmap_plots, gene_layout, layout_ncol)
+        .render_heatmaps_to_grid(heatmap_plots_filtered, gene_layout_filtered, layout_ncol)
 
         .plot_grid_finalize(output_file, verbose = verbose)
     }, error = function(e) {
@@ -577,8 +616,8 @@
     p_values[matched_idx] <- lm_results[[p_col]][matches[matched_idx]]
 
     gene_order <- order(p_values)
-    gene_ids_sorted <- gene_ids[gene_order]
-    gene_ids_sorted[seq_len(min(n_genes, length(gene_ids_sorted)))]
+    genes_sorted <- gene_ids[gene_order]
+    genes_sorted[seq_len(min(n_genes, length(genes_sorted)))]
 }
 
 #' Select Top Genes from Results DataFrame

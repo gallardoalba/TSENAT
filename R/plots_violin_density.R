@@ -122,9 +122,11 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
 #'
 #' @noRd
 .plot_tsallis_density_singleq <- function(se, assay_name = "diversity", title = NULL) {
-    library(ggplot2)
-    library(tidyr)
-    library(dplyr)
+    suppressPackageStartupMessages({
+        library(ggplot2)
+        library(tidyr)
+        library(dplyr)
+    })
 
     # Try to extract q from SE metadata first (best source for single-q SE)
     q_val <- NA
@@ -183,9 +185,11 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
 #'  
 #' @noRd
 .plot_tsallis_violin_singleq <- function(se, assay_name = "diversity", title = NULL) {
-    library(ggplot2)
-    library(tidyr)
-    library(dplyr)
+    suppressPackageStartupMessages({
+        library(ggplot2)
+        library(tidyr)
+        library(dplyr)
+    })
 
     # Try to extract q from SE metadata first (best source for single-q SE)
     q_val <- NA

@@ -203,10 +203,12 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
 
 .plot_tsallis_gene_specific <- function(se, assay_name, condition_col, gene, lm_res,
     n_top, metric, output_file) {
-    library(ggplot2)
-    library(dplyr)
-    library(cowplot)
-    library(SummarizedExperiment)
+    suppressPackageStartupMessages({
+        library(ggplot2)
+        library(dplyr)
+        library(cowplot)
+        library(SummarizedExperiment)
+    })
 
     long <- .prepare_long_format(se, assay_name = assay_name, condition_col = condition_col)
 
@@ -329,8 +331,10 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
 # ============================================================================
 
 .plot_tsallis_bootstrap_ci <- function(se, long, output_file) {
-    library(ggplot2)
-    library(SummarizedExperiment)
+    suppressPackageStartupMessages({
+        library(ggplot2)
+        library(SummarizedExperiment)
+    })
 
     # Bootstrap CI Visualization Methodology (From Literature: S115, S018)
     # =================================================================== Point
@@ -384,10 +388,12 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
 # ============================================================================
 
 .plot_tsallis_gene_bootstrap_ci <- function(se, long, genes, output_file) {
-    library(ggplot2)
-    library(dplyr)
-    library(cowplot)
-    library(SummarizedExperiment)
+    suppressPackageStartupMessages({
+        library(ggplot2)
+        library(dplyr)
+        library(cowplot)
+        library(SummarizedExperiment)
+    })
 
     # Filter long data to selected genes
     long$q <- as.numeric(as.character(long$q))

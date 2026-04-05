@@ -541,9 +541,17 @@ if (!is.null(lm_res) && is.data.frame(lm_res) && nrow(lm_res) > 0) {
     key_cols <- key_cols[key_cols %in% colnames(display)]
     display <- display[, key_cols]
     
-    # Round numeric columns
+    # Round numeric columns (but NOT p-value columns to preserve significance)
     numeric_cols <- sapply(display, is.numeric)
-    display[, numeric_cols] <- round(display[, numeric_cols], 4)
+    pval_cols <- grepl("^p_|^adj_p_", colnames(display))
+    display[, numeric_cols & !pval_cols] <- round(display[, numeric_cols & !pval_cols], 4)
+    
+    # Format p-values to show more precision (scientific notation for very small values)
+    for (col in colnames(display)) {
+        if (is.numeric(display[[col]]) && grepl("^p_|^adj_p_", col)) {
+            display[[col]] <- format(display[[col]], scientific = TRUE, digits = 3)
+        }
+    }
     
     knitr::kable(
         display,

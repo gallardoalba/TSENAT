@@ -906,122 +906,77 @@ create_mock_jackknife_multiq <- function(n_genes = 10, n_transcripts_per_gene = 
 test_that("plot_multiq_delta_influence_heatmaps_s4: creates heatmap with mock jackknife data", {
   skip_if_not_installed("pheatmap")
   
-  set.seed(309)
-  
-  # Create analysis with minimal structure
-  analysis <- TSENAT:::.create_test_analysis(
-    n_genes = 10,
-    n_samples_per_group = 3,
-    q_values = c(0.5, 1.0, 1.5),
-    include_divergence = FALSE,
-    include_lm_results = FALSE,
-    seed = 309,
-    verbose = FALSE
+  # Build analysis from vignette data
+  config <- tsenat_config(
+    condition_col = "condition",
+    subject_col = "paired_samples",
+    paired = TRUE,
+    control = "normal",
+    metadata = metadata_df
   )
+  analysis <- build_analysis_s4(config = config, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
+  analysis <- filter_analysis_s4(analysis, stringency = "medium")
   
-  # Create properly-structured mock jackknife results with correct class
-  analysis@jackknife_results <- list(
-    multi_q = create_mock_jackknife_multiq(n_genes = 10, q_values = c("q_0_50", "q_1_00"))
-  )
+  # Add required calculations
+  analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0), verbose = FALSE)
+  analysis <- jackknife_isoform_switching_s4(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
   
-  # Should not error on input validation
-  # (heatmap generation may fail due to data structure, but that's ok for this test)
-  result <- tryCatch(
-    TSENAT:::plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 4, verbose = FALSE),
-    error = function(e) {
-      # Acceptable if heatmap fails: we're testing S4 wrapper validates input
-      if (grepl("No valid heatmap data", e$message)) {
-        return("expected_warning")
-      }
-      stop(e)  # Re-throw unexpected errors
-    }
-  )
-  
-  # Result can be valid output or expected warning
-  expect_true(is.null(result) || result == "expected_warning" || 
-              is.list(result) || is.matrix(result) || inherits(result, "pheatmap"))
+  # Function should execute without error (renders to graphics device, returns invisible NULL)
+  expect_silent({
+    TSENAT:::plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 4, verbose = FALSE)
+  })
 })
 
 test_that("plot_multiq_delta_influence_heatmaps_s4: ranks genes by LM results when provided", {
   skip_if_not_installed("pheatmap")
   
-  set.seed(310)
-  
-  analysis <- TSENAT:::.create_test_analysis(
-    n_genes = 10,
-    n_samples_per_group = 3,
-    q_values = c(0.5, 1.0, 1.5),
-    include_divergence = FALSE,
-    include_lm_results = TRUE,   # Include LM results
-    seed = 310,
-    verbose = FALSE
+  # Build analysis from vignette data
+  config <- tsenat_config(
+    condition_col = "condition",
+    subject_col = "paired_samples",
+    paired = TRUE,
+    control = "normal",
+    metadata = metadata_df
   )
+  analysis <- build_analysis_s4(config = config, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
+  analysis <- filter_analysis_s4(analysis, stringency = "medium")
   
-  # Add properly-structured jackknife results
-  analysis@jackknife_results <- list(
-    multi_q = create_mock_jackknife_multiq(n_genes = 10, q_values = c("q_0_50", "q_1_00"))
-  )
+  # Add required calculations
+  analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0), verbose = FALSE)
+  analysis <- jackknife_isoform_switching_s4(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
   
-  # Should handle LM results for gene ranking
-  result <- tryCatch(
-    TSENAT:::plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 3, verbose = FALSE),
-    error = function(e) {
-      if (grepl("No valid heatmap data", e$message)) {
-        return("expected_warning")
-      }
-      stop(e)
-    }
-  )
-  
-  expect_true(is.null(result) || result == "expected_warning" || 
-              is.list(result) || is.matrix(result) || inherits(result, "pheatmap"))
+  # Function should execute without error
+  expect_silent({
+    TSENAT:::plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 3, verbose = FALSE)
+  })
 })
 
 test_that("plot_multiq_delta_influence_heatmaps_s4: respects n_genes parameter", {
   skip_if_not_installed("pheatmap")
   
-  set.seed(311)
-  
-  analysis <- TSENAT:::.create_test_analysis(
-    n_genes = 20,
-    n_samples_per_group = 3,
-    q_values = c(0.5, 1.0),
-    include_divergence = FALSE,
-    include_lm_results = FALSE,
-    seed = 311,
-    verbose = FALSE
+  # Build analysis from vignette data
+  config <- tsenat_config(
+    condition_col = "condition",
+    subject_col = "paired_samples",
+    paired = TRUE,
+    control = "normal",
+    metadata = metadata_df
   )
+  analysis <- build_analysis_s4(config = config, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
+  analysis <- filter_analysis_s4(analysis, stringency = "medium")
   
-  # Add properly-structured jackknife results
-  analysis@jackknife_results <- list(
-    multi_q = create_mock_jackknife_multiq(n_genes = 20, q_values = c("q_0_50", "q_1_00"))
-  )
+  # Add required calculations
+  analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0), verbose = FALSE)
+  analysis <- jackknife_isoform_switching_s4(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
   
-  # Test with different n_genes values - both should either succeed or fail consistently
-  result_small <- tryCatch(
-    TSENAT:::plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 2, verbose = FALSE),
-    error = function(e) {
-      if (grepl("No valid heatmap data", e$message)) {
-        return("expected_warning")
-      }
-      stop(e)
-    }
-  )
+  # Test with different n_genes values - should execute without error
+  expect_silent({
+    TSENAT:::plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 2, verbose = FALSE)
+  })
   
-  result_large <- tryCatch(
-    TSENAT:::plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 10, verbose = FALSE),
-    error = function(e) {
-      if (grepl("No valid heatmap data", e$message)) {
-        return("expected_warning")
-      }
-      stop(e)
-    }
-  )
-  
-  expect_true(is.null(result_small) || result_small == "expected_warning" || 
-              is.list(result_small) || is.matrix(result_small) || inherits(result_small, "pheatmap"))
-  expect_true(is.null(result_large) || result_large == "expected_warning" || 
-              is.list(result_large) || is.matrix(result_large) || inherits(result_large, "pheatmap"))
+  expect_silent({
+    TSENAT:::plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 10, verbose = FALSE)
+  })
 })
 
 # ============================================================================
@@ -1032,59 +987,33 @@ test_that("S4 plotting functions work on complete analysis object", {
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("pheatmap")
   
-  set.seed(312)
-  
-  # Create comprehensive analysis with all components
-  analysis <- TSENAT:::.create_test_analysis(
-    n_genes = 8,
-    n_samples_per_group = 3,
-    q_values = c(0.5, 1.0, 1.5),
-    include_divergence = TRUE,
-    include_lm_results = TRUE,
-    seed = 312,
-    verbose = FALSE
+  # Build analysis from vignette data
+  config <- tsenat_config(
+    condition_col = "condition",
+    subject_col = "paired_samples",
+    paired = TRUE,
+    control = "normal",
+    metadata = metadata_df
   )
+  analysis <- build_analysis_s4(config = config, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
+  analysis <- filter_analysis_s4(analysis, stringency = "medium")
   
-  # Add pairwise results for volcano plot
-  analysis@pairwise_results <- list(
-    difference = data.frame(
-      gene_id = paste0("gene_", 1:8),
-      padj = c(0.001, 0.01, 0.05, 0.1, 0.5, 0.8, 0.95, 0.99),
-      mean_difference = rnorm(8, 0, 1),
-      log2_fold_change = rnorm(8, 0, 1)
-    )
-  )
+  # Add all required calculations
+  analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0), verbose = FALSE)
+  analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0), verbose = FALSE)
+  analysis <- calculate_difference_s4(analysis, method = "median", verbose = FALSE)
+  analysis <- jackknife_isoform_switching_s4(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
   
-  # Add properly-structured jackknife results for heatmap
-  analysis@jackknife_results <- list(
-    multi_q = create_mock_jackknife_multiq(n_genes = 8, q_values = c("q_0_50", "q_1_00", "q_1_50"))
-  )
+  # All three should execute successfully without error
+  expect_silent({
+    TSENAT:::plot_volcano_ma_grid_s4(analysis, verbose = FALSE)
+  })
   
-  # All three should execute without critical errors
-  p_volcano <- tryCatch(
-    TSENAT:::plot_volcano_ma_grid_s4(analysis, verbose = FALSE),
-    error = function(e) NULL
-  )
+  expect_silent({
+    TSENAT:::plot_divergence_spectrum_s4(analysis, n_genes = 2, verbose = FALSE)
+  })
   
-  p_spectrum <- tryCatch(
-    TSENAT:::plot_divergence_spectrum_s4(analysis, n_genes = 2, verbose = FALSE),
-    error = function(e) NULL
-  )
-  
-  p_heatmap <- tryCatch(
-    TSENAT:::plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 3, verbose = FALSE),
-    error = function(e) {
-      # Heatmap may fail with mock data - that's acceptable
-      if (grepl("No valid heatmap data", e$message)) {
-        return("expected_warning")
-      }
-      stop(e)
-    }
-  )
-  
-  # All results should be valid output types or expected warnings
-  expect_true(is.null(p_volcano) || inherits(p_volcano, c("ggplot", "list")))
-  expect_true(is.null(p_spectrum) || inherits(p_spectrum, c("ggplot", "list")))
-  expect_true(is.null(p_heatmap) || p_heatmap == "expected_warning" || 
-              is.list(p_heatmap) || is.matrix(p_heatmap) || inherits(p_heatmap, "pheatmap"))
+  expect_silent({
+    TSENAT:::plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 3, verbose = FALSE)
+  })
 })

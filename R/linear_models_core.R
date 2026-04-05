@@ -392,6 +392,15 @@
     # Map gene identifiers to annotations
     res <- .map_gene_annotations(res = res, se = se, verbose = verbose)
 
+    # Ensure 'gene' column exists - required by jackknife and validation functions
+    if (!("gene" %in% colnames(res))) {
+        if ("gene_id" %in% colnames(res)) {
+            res$gene <- res$gene_id
+        } else if ("gene_name" %in% colnames(res)) {
+            res$gene <- res$gene_name
+        }
+    }
+
     # Optionally return model data alongside results
     if (return_model_data) {
         model_data <- .assemble_model_metadata(se = se, res = res, mat = mat, metadata = metadata,

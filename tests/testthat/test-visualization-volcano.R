@@ -540,77 +540,59 @@ test_that("plot_volcano_ma_grid_s4: requires pairwise results", {
 
 test_that("plot_volcano_ma_grid_s4: creates plot with valid pairwise data", {
   skip_if_not_installed("ggplot2")
+  skip_if_not_installed("cowplot")
   
-  set.seed(302)
-  
-  # Create analysis with pairwise results
-  analysis <- TSENAT:::.create_test_analysis(
-    n_genes = 10,
-    n_samples_per_group = 3,
-    q_values = c(1.0),
-    include_divergence = FALSE,
-    include_lm_results = FALSE,
-    seed = 302,
-    verbose = FALSE
+  # Build analysis from vignette data
+  config <- tsenat_config(
+    condition_col = "condition",
+    subject_col = "paired_samples",
+    paired = TRUE,
+    control = "normal",
+    metadata = metadata_df
   )
+  analysis <- build_analysis_s4(config = config, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
+  analysis <- filter_analysis_s4(analysis, stringency = "medium")
   
-  # Manually add pairwise results
-  diff_df <- data.frame(
-    gene_id = paste0("gene_", 1:10),
-    padj = c(0.001, 0.01, 0.05, 0.1, 0.5, 0.8, 0.9, 0.95, 0.99, 0.999),
-    mean_difference = c(2.5, 1.8, -1.2, 0.8, -0.3, 0.1, -0.05, 0.02, -0.01, 0.005),
-    log2_fold_change = c(2.5, 1.8, -1.2, 0.8, -0.3, 0.1, -0.05, 0.02, -0.01, 0.005)
-  )
+  # Add required calculations
+  analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
+  analysis <- calculate_difference_s4(analysis, method = "median", verbose = FALSE)
   
-  analysis@pairwise_results <- list(difference = diff_df)
+  # Create plot - should actually execute plotting code
+  result <- TSENAT:::plot_volcano_ma_grid_s4(analysis, verbose = FALSE)
   
-  # Should create plot successfully
-  result <- tryCatch(
-    TSENAT:::plot_volcano_ma_grid_s4(analysis, verbose = FALSE),
-    error = function(e) NULL
-  )
-  
-  # Result should be ggplot object or list of plots (from cowplot)
-  expect_true(is.null(result) || inherits(result, "ggplot") || is.list(result))
+  # Result must be a valid plot object (ggplot or combined via cowplot)
+  expect_true(inherits(result, "ggplot") || is.list(result))
+  expect_false(is.null(result))
 })
 
 test_that("plot_volcano_ma_grid_s4: respects sig_alpha and top_n parameters", {
   skip_if_not_installed("ggplot2")
+  skip_if_not_installed("cowplot")
   
-  set.seed(303)
-  
-  analysis <- TSENAT:::.create_test_analysis(
-    n_genes = 15,
-    n_samples_per_group = 3,
-    q_values = c(1.0),
-    include_divergence = FALSE,
-    include_lm_results = FALSE,
-    seed = 303,
-    verbose = FALSE
+  # Build analysis from vignette data
+  config <- tsenat_config(
+    condition_col = "condition",
+    subject_col = "paired_samples",
+    paired = TRUE,
+    control = "normal",
+    metadata = metadata_df
   )
+  analysis <- build_analysis_s4(config = config, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
+  analysis <- filter_analysis_s4(analysis, stringency = "medium")
   
-  # Add pairwise results with varying significance
-  diff_df <- data.frame(
-    gene_id = paste0("gene_", 1:15),
-    padj = c(0.0001, 0.001, 0.005, 0.01, 0.05, 0.1, 0.2, 0.5, 0.7, 0.8, 0.85, 0.9, 0.95, 0.99, 0.999),
-    mean_difference = rnorm(15, 0, 1.5),
-    log2_fold_change = rnorm(15, 0, 1.5)
-  )
+  # Add required calculations
+  analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
+  analysis <- calculate_difference_s4(analysis, method = "median", verbose = FALSE)
   
-  analysis@pairwise_results <- list(difference = diff_df)
+  # Test with strict significance threshold
+  result_strict <- TSENAT:::plot_volcano_ma_grid_s4(analysis, sig_alpha = 0.01, top_n = 3, verbose = FALSE)
   
-  # Test with different significance thresholds
-  result_strict <- tryCatch(
-    TSENAT:::plot_volcano_ma_grid_s4(analysis, sig_alpha = 0.01, top_n = 3, verbose = FALSE),
-    error = function(e) NULL
-  )
+  expect_true(inherits(result_strict, "ggplot") || is.list(result_strict))
+  expect_false(is.null(result_strict))
   
-  result_lenient <- tryCatch(
-    TSENAT:::plot_volcano_ma_grid_s4(analysis, sig_alpha = 0.05, top_n = 5, verbose = FALSE),
-    error = function(e) NULL
-  )
+  # Test with lenient significance threshold
+  result_lenient <- TSENAT:::plot_volcano_ma_grid_s4(analysis, sig_alpha = 0.05, top_n = 5, verbose = FALSE)
   
-  # Both should produce valid output
-  expect_true(is.null(result_strict) || inherits(result_strict, "ggplot") || is.list(result_strict))
-  expect_true(is.null(result_lenient) || inherits(result_lenient, "ggplot") || is.list(result_lenient))
+  expect_true(inherits(result_lenient, "ggplot") || is.list(result_lenient))
+  expect_false(is.null(result_lenient))
 })
