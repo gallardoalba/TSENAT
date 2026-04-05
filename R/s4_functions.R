@@ -2179,6 +2179,9 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(analysis, n_genes = 4, lm_re
 #'   Default: NULL (automatically calculated based on width and aspect ratio).
 #'   Only used if output_file is not NULL.
 #'
+#' @param verbose \code{logical}. If TRUE, print diagnostic messages during processing.
+#'   (default: FALSE).
+#'
 #' @param ... Additional arguments passed to the base function.
 #'
 #' @return A single \code{ggplot} object with all selected genes arranged in a 

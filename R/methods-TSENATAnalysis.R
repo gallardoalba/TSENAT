@@ -19,25 +19,11 @@
 #' @keywords internal
 NULL
 
-#' Access SummarizedExperiment data
-#' @param object TSENATAnalysis object
 #' @rdname methods-TSENATAnalysis
 setMethod("getSE", "TSENATAnalysis", function(object) {
     object@se
 })
 
-#' Access linear model results
-#' @param object TSENATAnalysis object
-#' Access divergence results
-#' @param object TSENATAnalysis object
-#' @param component character. Component name ('tsallis_divergence',
-#' 'effect_sizes', etc.).
-#'   If NULL, returns all divergence results.
-#' Access metadata
-#' @param object TSENATAnalysis object
-#' @param key character. Metadata key to extract (e.g., 'function_calls',
-#' 'effect_sizes_divergence').
-#'   If NULL, returns all metadata.
 #' @rdname methods-TSENATAnalysis
 setMethod("getMeta", "TSENATAnalysis", function(object, key = NULL) {
     if (is.null(key)) {
@@ -46,11 +32,6 @@ setMethod("getMeta", "TSENATAnalysis", function(object, key = NULL) {
     object@metadata[[key]]
 })
 
-#' Access configuration
-#' @param object TSENATAnalysis object
-#' @param key character. Config key to extract (e.g., 'q_values',
-#' 'condition_col').
-#'   If NULL, returns entire config.
 #' @rdname methods-TSENATAnalysis
 setMethod("getConfig", "TSENATAnalysis", function(object, key = NULL) {
     if (is.null(key)) {
@@ -59,10 +40,6 @@ setMethod("getConfig", "TSENATAnalysis", function(object, key = NULL) {
     object@config[[key]]
 })
 
-#' Access cached plots
-#' @param object TSENATAnalysis object
-#' @param type character. Plot type (e.g., 'q_curve', 'lm_interaction').
-#'   If NULL, returns all plots.
 #' @rdname methods-TSENATAnalysis
 setMethod("getPlot", "TSENATAnalysis", function(object, type = NULL) {
     if (is.null(type)) {
@@ -71,12 +48,6 @@ setMethod("getPlot", "TSENATAnalysis", function(object, type = NULL) {
     object@plots[[type]]
 })
 
-#' Add or update a cached plot
-#' @param object TSENATAnalysis object
-#' @param type character. Plot type identifier
-#' @param plot ggplot or list. The plot object to cache
-#' @param replace logical. If TRUE, replace existing plot of same type.
-#'   If FALSE (default), warn if plot already exists and do not overwrite.
 #' @rdname methods-TSENATAnalysis
 setMethod("addPlot", "TSENATAnalysis", function(object, type, plot, replace = FALSE) {
     if (!replace && type %in% names(object@plots)) {
@@ -87,6 +58,8 @@ setMethod("addPlot", "TSENATAnalysis", function(object, type, plot, replace = FA
     object@plots[[type]] <- plot
     object
 })
+
+# Remove duplicate definitions below - all are now in consolidated form
 
 #' Show method for TSENATAnalysis
 #' @param object TSENATAnalysis object

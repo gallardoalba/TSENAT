@@ -13,6 +13,25 @@
 #' @rdname AllGenerics
 NULL
 
+# ============================================================================
+# GLOBAL VARIABLES DECLARATION
+# ============================================================================
+# Declare variables used in data.table and ggplot2 non-standard evaluation (NSE)
+# across the package to suppress R CMD check NOTEs about undefined global variables
+if (getRversion() >= "2.15.1") {
+    utils::globalVariables(c(
+        # Data manipulation columns (data.table NSE)
+        "Gene", "group", "tsallis", "tx",
+        # Model-related variables
+        "df_model",
+        # Plot aesthetics and settings
+        "legend_name", "legend_position", "log2expr",
+        # PCA/dimension reduction
+        "dimension", "variable", "contribution", "dim1", "dim2",
+        "type", "coord_x", "coord_y"
+    ))
+}
+
 #' Access analysis results via recommended accessor methods
 #'
 #' @param object TSENATAnalysis object
@@ -56,6 +75,27 @@ setGeneric("getPlot", function(object, ...) standardGeneric("getPlot"))
 #' @param replace logical. If TRUE, replace existing plot of same type.
 #'   If FALSE (default), warn if plot already exists and do not overwrite.
 #' @return invisible(object) for method chaining
+#'
+#' @examples
+#' # Create a simple plot and add to analysis
+#' data(readcounts, package = "TSENAT")
+#' metadata <- read.table(
+#'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
+#'   header = TRUE, sep = "\t"
+#' )
+#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' 
+#' config <- tsenat_config(q_values = c(0.5, 1.0), generate_plots = FALSE)
+#' analysis <- build_analysis_s4(readcounts, tx2gene = gff3_file,
+#'     metadata = metadata, tpm = tpm, effective_length = effective_length,
+#'     config = config)
+#' analysis <- filter_analysis_s4(analysis, stringency = "severe")
+#' analysis <- calculate_diversity_s4(analysis, norm = TRUE)
+#' 
+#' # Create and cache a plot
+#' p <- plot_tsallis_q_curve_s4(analysis)
+#' analysis <- addPlot(analysis, type = "tsallis_q_curve", plot = p)
+#'
 #' @export
 setGeneric("addPlot", function(object, type, plot, replace = FALSE) standardGeneric("addPlot"))
 
@@ -63,6 +103,9 @@ setGeneric("addPlot", function(object, type, plot, replace = FALSE) standardGene
 #'
 #' Retrieve the underlying SummarizedExperiment object containing count data
 #' and sample metadata.
+#'
+#' @param object TSENATAnalysis object
+#' @param ... Additional arguments (for method compatibility)
 #'
 #' @return SummarizedExperiment containing count matrix and sample metadata
 #' @export

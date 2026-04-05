@@ -211,6 +211,11 @@
     pair_indices <- .prepare_pair_indices(pairs, unique_pairs)
     n_pairs <- length(unique_pairs)
     
+    # Set seed for reproducibility if provided
+    if (!is.null(seed)) {
+        set.seed(seed)
+    }
+    
     # OPTIMIZATION: Pre-generate all random decisions for all randomizations at once
     # This avoids repeated sample() calls inside the loop
     if (paired_method == "swap") {
@@ -259,6 +264,11 @@
     randomizations, pseudocount_val, robust_loss_type, robust_scale_method, seed = NULL) {
     
     perm_mat <- matrix(NA_real_, nrow = nrow(x), ncol = randomizations)
+    
+    # Set seed for reproducibility if provided
+    if (!is.null(seed)) {
+        set.seed(seed)
+    }
 
     for (r in seq_len(randomizations)) {
         perm_samples <- sample(samples)

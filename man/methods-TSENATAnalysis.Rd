@@ -19,25 +19,6 @@
 
 \S4method{addPlot}{TSENATAnalysis}(object, type, plot, replace = FALSE)
 }
-\arguments{
-\item{object}{TSENATAnalysis object}
-
-\item{key}{character. Config key to extract (e.g., 'q_values',
-'condition_col').
-  If NULL, returns entire config.}
-
-\item{type}{character. Plot type identifier}
-
-\item{plot}{ggplot or list. The plot object to cache}
-
-\item{replace}{logical. If TRUE, replace existing plot of same type.
-If FALSE (default), warn if plot already exists and do not overwrite.}
-
-\item{component}{character. Component name ('tsallis_divergence',
-'effect_sizes', etc.).
-  If NULL, returns all divergence results.
-Access metadata}
-}
 \value{
 Methods return different components of TSENATAnalysis:
 - getSE: SummarizedExperiment object with count data

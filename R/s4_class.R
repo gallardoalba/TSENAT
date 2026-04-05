@@ -446,6 +446,27 @@ setMethod("pairwiseResults", "TSENATAnalysis", function(object, component = NULL
 #' Rank test results from \code{rank_test_q_condition_s4()} are retrieved via this method.
 #' LM interaction results are retrieved separately with \code{lmResults()}.
 #'
+#' @examples
+#' # Extract rank test results from TSENATAnalysis object
+#' data(readcounts, package = "TSENAT")
+#' metadata <- read.table(
+#'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
+#'   header = TRUE, sep = "\t"
+#' )
+#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' 
+#' config <- tsenat_config(q_values = c(0.5, 1.0), generate_plots = FALSE)
+#' analysis <- build_analysis_s4(readcounts, tx2gene = gff3_file,
+#'     metadata = metadata, tpm = tpm, effective_length = effective_length,
+#'     config = config)
+#' analysis <- filter_analysis_s4(analysis, stringency = "severe")
+#' analysis <- calculate_diversity_s4(analysis, norm = TRUE)
+#' analysis <- rank_test_q_condition_s4(analysis, q = 1.0)
+#' 
+#' # Retrieve all rank test results
+#' results <- rankResults(analysis)
+#' head(results)
+#'
 #' @export
 setGeneric("rankResults", function(object, component = NULL) {
     standardGeneric("rankResults")
@@ -824,7 +845,7 @@ setMethod("getPlot", "TSENATAnalysis", function(object, type = NULL) {
 #' @param plot Object to cache (ggplot, etc.).
 #' @param replace \code{logical}. If TRUE, replace existing plot of same type.
 #'
-#' @return Modified TSENATAnalysis object.
+#' @return Modified TSENATAnalysis object with plot cached.
 #'
 #' @examples
 #' # Demonstrates adding a plot to analysis object (requires ggplot2)
@@ -1066,6 +1087,36 @@ setMethod("summary", "TSENATAnalysis", function(object) {
 # CONFIGURATION ACCESSORS (GAP 3 FIX)
 # ============================================================================
 
+#' Get configuration from TSENATAnalysis
+#'
+#' Retrieve the configuration parameters stored in a TSENATAnalysis object.
+#' These parameters control analysis behavior including q-values, normalization,
+#' and output settings.
+#'
+#' @param object \code{TSENATAnalysis} object.
+#'
+#' @return \code{list} containing configuration parameters (q_values, method, etc.)
+#'
+#' @details
+#' Configuration is stored in the @config slot and controls how downstream
+#' analyses are performed. Use \code{\link{setConfig}} to replace the entire
+#' configuration or \code{\link{setConfigValue}} for targeted updates.
+#'
+#' @seealso
+#' \code{\link{setConfig}} for replacing configuration,
+#' \code{\link{setConfigValue}} for single value updates,
+#' \code{\link{tsenat_config}} for creating configuration objects
+#'
+#' @examples
+#' data(readcounts)
+#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', 
+#'   package = 'TSENAT'), header = TRUE, sep = '\t')
+#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_file,
+#'   metadata = metadata_df, tpm = tpm, effective_length = effective_length)
+#' config <- getConfig(analysis)
+#' print(config$q_values)
+#'
 #' @export
 setGeneric("getConfig", function(object) {
     standardGeneric("getConfig")

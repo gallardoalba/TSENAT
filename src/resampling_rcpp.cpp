@@ -206,7 +206,6 @@ double hill_number_cpp(NumericVector p, double q = 1.0, double log_base = 2.7182
 // Internal C++ function (registered but not exported to R NAMESPACE)
 // Leave-one-out jackknife with vectorized Armadillo implementation
 // Callable via .Call("_TSENAT_jackknife_resampling_cpp") but not in user namespace
-// [[Rcpp::export]]
 List jackknife_resampling_cpp(NumericMatrix counts, double q = 1.0, 
                               bool normalize = true, double log_base = 2.718281828,
                               double pseudocount = 0.0) {
@@ -339,7 +338,6 @@ List jackknife_resampling_cpp(NumericMatrix counts, double q = 1.0,
 // The bottleneck in R is: apply(bootstrap_samples, 2, entropy_calc)
 // This eliminates R function call overhead and vectorizes the entropy loop.
 
-// [[Rcpp::export]]
 NumericVector bootstrap_compute_cpp(NumericVector x, int nboot = 1000, 
                                     double q = 1.0, bool normalize = true, 
                                     double log_base = 2.718281828,
@@ -431,7 +429,6 @@ NumericVector bootstrap_compute_cpp(NumericVector x, int nboot = 1000,
 //          for each column (replicate).
 // Use case: When bootstrap samples are generated at R level.
 
-// [[Rcpp::export]]
 NumericVector bootstrap_entropy_vec_cpp(NumericMatrix boot_samples, 
                                         double q = 1.0, 
                                         bool normalize = true, 
@@ -468,7 +465,6 @@ NumericVector bootstrap_entropy_vec_cpp(NumericMatrix boot_samples,
 // Input x has pairs (x[0],x[1]), (x[2],x[3]), ..., (x[2n-2],x[2n-1])
 // Each bootstrap replicate resamples n_pairs pairs with replacement.
 
-// [[Rcpp::export]]
 NumericVector block_bootstrap_compute_cpp(NumericVector x, int nboot = 1000, 
                                           double q = 1.0, bool normalize = true, 
                                           double log_base = 2.718281828,
@@ -559,7 +555,6 @@ NumericVector block_bootstrap_compute_cpp(NumericVector x, int nboot = 1000,
 
 // Fallback: R wrapper for graceful degradation if Rcpp not available
 //' @keywords internal
-// [[Rcpp::export]]
 bool check_rcpp_available() {
   return true;  // If this function exists, Rcpp compilation succeeded
 }
@@ -575,7 +570,6 @@ bool check_rcpp_available() {
 //   2. jis_jackknife_influences_cpp() - Leave-one-out for all transcripts
 //   3. jis_bootstrap_delta_cpp() - Bootstrap delta statistics
 
-// [[Rcpp::export]]
 NumericVector jis_tsallis_entropy_cpp(NumericMatrix counts, 
                                       double q = 1.0, 
                                       bool normalize = true, 
@@ -695,7 +689,6 @@ NumericVector jis_tsallis_entropy_cpp(NumericMatrix counts,
   return entropy_result;
 }
 
-// [[Rcpp::export]]
 NumericVector jis_jackknife_influences_cpp(NumericMatrix counts, 
                                            double q = 1.0, 
                                            bool normalize = true, 
@@ -787,7 +780,6 @@ NumericVector jis_jackknife_influences_cpp(NumericMatrix counts,
   return influences;
 }
 
-// [[Rcpp::export]]
 List jis_bootstrap_delta_cpp(NumericMatrix counts_A, 
                              NumericMatrix counts_B,
                              NumericVector delta_influence,
@@ -1081,7 +1073,6 @@ double tsallis_divergence_cpp(NumericVector p, NumericVector r, double q = 1.0,
 }
 
 // Main divergence bootstrap function
-// [[Rcpp::export]]
 NumericVector divergence_bootstrap_compute_cpp(NumericVector x, NumericVector y, 
                                               int nboot = 1000, double q = 1.0,
                                               bool paired = false,
@@ -1208,7 +1199,6 @@ NumericVector divergence_bootstrap_compute_cpp(NumericVector x, NumericVector y,
 // ============================================================================
 // Paired Divergence Bootstrap with Explicit Pair Structure
 // ============================================================================
-// [[Rcpp::export]]
 NumericVector divergence_bootstrap_paired_cpp(
     NumericVector x,          // Control group counts (length = n_pairs)
     NumericVector y,          // Treatment group counts (length = n_pairs)

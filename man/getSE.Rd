@@ -6,6 +6,11 @@
 \usage{
 getSE(object, ...)
 }
+\arguments{
+\item{object}{TSENATAnalysis object}
+
+\item{...}{Additional arguments (for method compatibility)}
+}
 \value{
 SummarizedExperiment containing count matrix and sample metadata
 }

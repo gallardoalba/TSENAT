@@ -1231,9 +1231,8 @@ if (getOption("TSENAT.memoization", TRUE)) {
 
     # VALIDATION: Ensure critical columns exist after rbind
     if (nrow(res) == 0) {
-        warning("[calculate_lm_interaction] No genes analyzed (all filtered out)",
+        stop("[calculate_lm_interaction] No genes analyzed (all filtered out)",
             call. = FALSE)
-        return(res)
     }
 
     critical_cols <- c("p_interaction", "gene")

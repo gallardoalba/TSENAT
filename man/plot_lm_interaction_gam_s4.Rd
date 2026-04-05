@@ -14,6 +14,7 @@ plot_lm_interaction_gam_s4(
   output_file = NULL,
   width = 12,
   height = NULL,
+  verbose = FALSE,
   ...
 )
 }
@@ -52,6 +53,9 @@ Only used if output_file is not NULL.}
 \item{height}{\code{numeric} or \code{NULL}. Height of the plot in inches.
 Default: NULL (automatically calculated based on width and aspect ratio).
 Only used if output_file is not NULL.}
+
+\item{verbose}{\code{logical}. If TRUE, print diagnostic messages during processing.
+(default: FALSE).}
 
 \item{...}{Additional arguments passed to the base function.}
 }

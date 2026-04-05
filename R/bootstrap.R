@@ -611,9 +611,10 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
             x_for_bootstrap <- x
         }
     } else if (!is.null(effective_length)) {
-        message("[WARN] effective_length provided but length mismatch: length(effective_length)=",
+        warning("effective_length provided but length mismatch: length(effective_length)=",
             if (!is.null(effective_length))
-                length(effective_length) else "NULL", " vs length(x)=", length(x))
+                length(effective_length) else "NULL", " vs length(x)=", length(x),
+            call. = FALSE)
     }
 
     # Dispatch to C++ block bootstrap for paired samples
@@ -2079,7 +2080,7 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
                 pair_metadata <- rbind(pair_metadata, data.frame(gene = g, sample_idx = s))
             }, error = function(e) {
                 if (verbose && show_messages)
-                  message("  [WARN] Bootstrap failed for ", g, " sample ", s, ": ",
+                  warning("Bootstrap failed for ", g, " sample ", s, ": ",
                     conditionMessage(e))
             })
         }

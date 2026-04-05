@@ -1,14 +1,3 @@
-#' Plot Composition & Theme Helpers for TSENAT Visualization
-#'
-#' This module provides utilities for combining multiple plots,
-#' managing themes, and creating consistent ggplot2 scales.
-#' Enables modular, reusable visualization composition.
-#'
-#' @name plot_helpers
-
-#' @noRd
-NULL
-
 # ============================================================================
 # UTILITY FUNCTIONS
 # ============================================================================
@@ -4795,12 +4784,6 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
 #' @importFrom ggplot2 scale_color_manual scale_shape_manual geom_tile
 #' scale_fill_gradient2
 NULL
-
-if (getRversion() >= "2.15.1") {
-    utils::globalVariables(c("dimension", "variable", "contribution", "dim1", "dim2",
-        "type", "coord_x", "coord_y"))
-}
-
 
 
 # Internal plot helpers

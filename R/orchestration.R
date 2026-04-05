@@ -538,7 +538,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
             condition_col = condition_col_name, verbose = FALSE, ...)
         if (verbose) message("  [OK] Isoform switching jackknife complete")
     }, error = function(e) {
-        if (verbose) message("  [WARNING] Isoform switching jackknife skipped: ", e$message)
+        if (verbose) warning("Isoform switching jackknife skipped: ", e$message, call. = FALSE)
     })
     analysis
 }
@@ -558,7 +558,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
         analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE, ...)
         if (verbose) message("  [OK] Effect sizes computed")
     }, error = function(e) {
-        if (verbose) message("  [WARNING] Effect size computation skipped: ", e$message)
+        if (verbose) warning("Effect size computation skipped: ", e$message, call. = FALSE)
     })
     analysis
 }
@@ -578,7 +578,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
         analysis <- test_rankbased_assumptions_s4(analysis, q = q_vals[1], verbose = FALSE, ...)
         if (verbose) message("  [OK] Assumption tests complete")
     }, error = function(e) {
-        if (verbose) message("  [WARNING] Assumption testing skipped: ", e$message)
+        if (verbose) warning("Assumption testing skipped: ", e$message, call. = FALSE)
     })
     analysis
 }
@@ -598,7 +598,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
         analysis <- compute_method_concordance_s4(analysis, verbose = FALSE, ...)
         if (verbose) message("  [OK] Method concordance computed")
     }, error = function(e) {
-        if (verbose) message("  [WARNING] Method concordance skipped: ", e$message)
+        if (verbose) warning("Method concordance skipped: ", e$message, call. = FALSE)
     })
     analysis
 }
@@ -622,7 +622,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
                     analysis <- addPlot(analysis, type = ptype, plot = plot_obj, replace = TRUE)
                 }
             }, error = function(e) {
-                if (verbose) message(sprintf("  [WARNING] Plot '%s' failed: %s", ptype, e$message))
+                if (verbose) warning(sprintf("Plot '%s' failed: %s", ptype, e$message), call. = FALSE)
             })
         }
         if (verbose) message(sprintf("  [OK] %d plot(s) generated", length(analysis@plots)))
