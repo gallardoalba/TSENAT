@@ -19,7 +19,6 @@ calculate_difference_s4(
   exact = FALSE,
   pseudocount = NULL,
   nthreads = NULL,
-  seed = NULL,
   robust_loss_type = NULL,
   robust_scale_method = NULL,
   pairs = NULL,
@@ -74,9 +73,6 @@ If NULL, reads from \code{@config$pseudocount} if available.}
 parallel processing.
   If NULL, reads from \code{@config$nthreads} (or defaults to 1).}
 
-\item{seed}{\code{numeric} or \code{NULL}. Random seed. Default: NULL.
-If NULL, reads from \code{@config$seed} if available.}
-
 \item{robust_loss_type}{\code{character}.  Robust regression loss type.
 Default:  'huber'.
  If NULL, reads from \code{@config$robust_loss_type} if available.}
@@ -98,6 +94,9 @@ Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables).
 Default: NULL (no file output).}
 
 \item{...}{Additional arguments passed to the base function.}
+
+\item{seed}{\code{numeric} or \code{NULL}. Random seed. Default: NULL.
+If NULL, reads from \code{@config$seed} if available.}
 }
 \value{
 Returns the modified \code{analysis} object invisibly with 

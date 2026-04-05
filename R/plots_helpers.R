@@ -2868,7 +2868,8 @@ require_pkgs <- function(pkgs) {
                                   ci_lower_col = "ci_lower", 
                                   ci_upper_col = "ci_upper",
                                   ribbon_alpha = 0.15, line_width = 1.2, 
-                                  point_size = 3.5, show_points = TRUE) {
+                                  point_size = 2.8, show_points = TRUE,
+                                  default_color = "#4575B4") {
     
     # Build base aesthetics - include group color/fill only if group_col provided and exists
     if (!is.null(group_col) && group_col %in% colnames(data)) {
@@ -2876,25 +2877,36 @@ require_pkgs <- function(pkgs) {
                             ggplot2::aes(x = .data[[x_col]], y = .data[[y_col]],
                                         color = .data[[group_col]], 
                                         fill = .data[[group_col]]))
+        has_grouping <- TRUE
     } else {
-        # No grouping - simple x/y aesthetics
+        # No grouping - simple x/y aesthetics (color applied as fixed aesthetic)
         p <- ggplot2::ggplot(data, 
                             ggplot2::aes(x = .data[[x_col]], y = .data[[y_col]]))
+        has_grouping <- FALSE
     }
     
     # Add ribbon layer (CI bounds)
+    # If group_col is provided, aesthetics already include fill mapping
+    # Otherwise, apply default fill color
+    ribbon_fill <- if (has_grouping) NA else default_color
     p <- p + ggplot2::geom_ribbon(
         ggplot2::aes(ymin = .data[[ci_lower_col]], 
                     ymax = .data[[ci_upper_col]]),
-        alpha = ribbon_alpha, fill = "#4575B4", color = NA
+        alpha = ribbon_alpha, color = NA, fill = ribbon_fill
     )
     
     # Add line layer
-    p <- p + ggplot2::geom_line(linewidth = line_width, color = "#4575B4")
+    # If group_col is provided, color aesthetic from aes() applies it
+    # Otherwise, apply default color (consistency with .create_simple_line_plot)
+    line_color <- if (has_grouping) NA else default_color
+    p <- p + ggplot2::geom_line(linewidth = line_width, color = line_color)
     
     # Add point layer if requested
+    # If group_col is provided, color aesthetic from aes() applies it
+    # Otherwise, apply default color
     if (show_points) {
-        p <- p + ggplot2::geom_point(size = point_size, alpha = 0.8, color = "#4575B4")
+        point_color <- if (has_grouping) NA else default_color
+        p <- p + ggplot2::geom_point(size = point_size, alpha = 0.8, color = point_color)
     }
     
     p
@@ -3230,7 +3242,7 @@ require_pkgs <- function(pkgs) {
 #'
 #' @noRd
 .create_simple_line_plot <- function(data, x_col, y_col, group_col = NULL,
-                                    points = TRUE, line_width = 1.2, point_size = 2.5,
+                                    points = TRUE, line_width = 1.2, point_size = 2.0,
                                     alpha = 0.8, line_color = "#4575B4") {
     
     # NO grouping: simple single-series plot with fixed color

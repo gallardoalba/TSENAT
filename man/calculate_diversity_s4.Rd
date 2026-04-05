@@ -27,7 +27,6 @@ calculate_diversity_s4(
   bootstrap_method = NULL,
   bootstrap_ci = NULL,
   bootstrap_include_diagnostics = NULL,
-  seed = NULL,
   output_file = NULL,
   ...
 )
@@ -127,10 +126,6 @@ Bootstrap confidence interval level (0-1).  Default:  0. 95.
   If NULL,  reads from \code{@config$bootstrap_include_diagnostics} if 
 available.}
 
-\item{seed}{\code{numeric} or  \code{NULL}.  Random seed for 
-bootstrap reproducibility.  Default:  NULL.
-  If NULL, reads from \code{@config$seed} if available.}
-
 \item{output_file}{\code{character} or  \code{NULL}.
 Optional file path to save results.
  When provided, generates TWO files:
@@ -150,6 +145,10 @@ Optional file path to save results.
 
 \item{...}{Additional arguments passed to underlying functions for
 extensibility.}
+
+\item{seed}{\code{numeric} or  \code{NULL}.  Random seed for 
+bootstrap reproducibility.  Default:  NULL.
+  If NULL, reads from \code{@config$seed} if available.}
 }
 \value{
 Modified TSENATAnalysis object with diversity results stored

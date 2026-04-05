@@ -19,7 +19,6 @@ tsenat_config(
   methods = NULL,
   generate_plots = TRUE,
   plot_types = NULL,
-  seed = NULL,
   ...
 )
 }
@@ -74,12 +73,12 @@ Default: TRUE.}
 'influence_heatmap', 'volcano', 'method_concordance', 'multi_gene_q_spectrum',
 'top_transcripts', 'tsallis_violin_density'. Default: all available types.}
 
-\item{seed}{\code{numeric}. Random seed for reproducibility (affects
-bootstrap resampling). Default: NULL (no fixed seed).}
-
 \item{...}{Additional configuration parameters (stored as-is in @config slot).
 Examples: \code{q_diff=1.0} (specific q for differences),
 \code{alpha=0.05} (significance for assumptions), etc.}
+
+\item{seed}{\code{numeric}. Random seed for reproducibility (affects
+bootstrap resampling). Default: NULL (no fixed seed).}
 }
 \value{
 \code{list} with class \code{TSENATConfig} containing all

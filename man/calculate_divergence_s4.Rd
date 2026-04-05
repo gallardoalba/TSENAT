@@ -15,7 +15,6 @@ calculate_divergence_s4(
   method = NULL,
   bootstrap = FALSE,
   nboot = NULL,
-  seed = NULL,
   progress = FALSE,
   ...
 )
@@ -57,14 +56,14 @@ Whether to compute bootstrap confidence intervals.  Default:  FALSE.
 Number of bootstrap replicates.  Default:  NULL.
  If NULL, reads from \code{@config$nboot} if available.}
 
-\item{seed}{\code{numeric} or  \code{NULL}.  Random seed for 
-reproducibility.  Default:  NULL.
-  If NULL, reads from \code{@config$seed} if available.}
-
 \item{progress}{\code{logical}.  Show progress bar during computation.
 Default:  FALSE.}
 
 \item{...}{Additional arguments passed to the base divergence function.}
+
+\item{seed}{\code{numeric} or  \code{NULL}.  Random seed for 
+reproducibility.  Default:  NULL.
+  If NULL, reads from \code{@config$seed} if available.}
 }
 \value{
 Modified TSENATAnalysis with divergence metrics in

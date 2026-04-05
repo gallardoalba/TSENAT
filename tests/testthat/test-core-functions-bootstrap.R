@@ -3914,15 +3914,18 @@ test_that("paired bootstrap with SummarizedExperiment integration", {
 })
 
 test_that("paired with different confidence intervals", {
+    set.seed(123)
     paired_data <- simulate_paired_data(n_pairs = 12)
     
     # 90% CI
+    set.seed(124)
     result_90 <- .calculate_tsallis_entropy_bootstrap(
         paired_data, q = 2, nboot = 150, ci = 0.90, paired = TRUE,
         verbose = FALSE
     )
     
     # 95% CI
+    set.seed(124)
     result_95 <- .calculate_tsallis_entropy_bootstrap(
         paired_data, q = 2, nboot = 150, ci = 0.95, paired = TRUE,
         verbose = FALSE

@@ -349,55 +349,6 @@ NumericVector bootstrap_compute_cpp(NumericVector x, int nboot = 1000,
 }
 
 // ============================================================================
-// BOOTSTRAP ENTROPY VECTORIZATION (for pre-generated samples)
-// ============================================================================
-// Purpose: Fast entropy computation across multiple bootstrap samples
-//          Takes pre-computed bootstrap samples matrix and returns entropy
-//          for each column (replicate).
-// Use case: When bootstrap samples are generated at R level.
-
-// [[Rcpp::export(rng = false)]]
-NumericVector bootstrap_entropy_vec_cpp(NumericMatrix boot_samples, 
-                                        double q = 1.0, 
-                                        bool normalize = true, 
-                                        double log_base = 2.718281828) {
-  int nboot = boot_samples.ncol();
-  
-  if (nboot < 1) {
-    Rcpp::stop("bootstrap_samples matrix must have at least 1 column");
-  }
-  
-  NumericVector boot_dist(nboot);
-  
-  // Vectorized entropy computation across all bootstrap replicates
-  // Each column = one bootstrap sample
-  for (size_t b = 0; b < static_cast<size_t>(nboot); b++) {  // BUG FIX: Type consistency
-    NumericVector boot_sample = boot_samples(_, (int)b);  // Cast back for indexing
-    
-    // CRITICAL: Normalize bootstrap sample from counts to proportions
-    // entropy_cpp() expects proportions, not counts (same as bootstrap_compute_cpp)
-    double boot_total = sum(boot_sample);
-    
-    // Safety check: avoid division by zero
-    if (boot_total <= 0) {
-      boot_dist[b] = NA_REAL;
-      continue;
-    }
-    
-    NumericVector boot_props = boot_sample / boot_total;
-    
-    // Compute Tsallis entropy for this bootstrap replicate
-    boot_dist[b] = entropy_cpp(boot_props, q, normalize, log_base);
-    
-    if (!std::isfinite(boot_dist[b])) {
-      boot_dist[b] = NA_REAL;
-    }
-  }
-  
-  return boot_dist;
-}
-
-// ============================================================================
 // BLOCK BOOTSTRAP FOR PAIRED SAMPLES (C++ OPTIMIZATION)
 // ============================================================================
 // Purpose: Accelerate block bootstrap (paired sample resampling) by generating

@@ -9,7 +9,6 @@ jackknife_entropy_outliers_s4(
   q = NULL,
   norm = NULL,
   log_base = NULL,
-  seed = NULL,
   top_n = NULL,
   verbose = NULL,
   nthreads = NULL,
@@ -28,9 +27,6 @@ NULL (uses @config$norm or  TRUE).}
 
 \item{log_base}{\code{numeric}.  Logarithm base for  entropy normalization.
 Default:  NULL (uses e).}
-
-\item{seed}{\code{numeric} or  \code{NULL}.  Random seed for 
-reproducibility.  Default:  NULL.}
 
 \item{top_n}{\code{numeric}.  Number of top outlier samples to report.
 Default:  5.}
@@ -53,6 +49,9 @@ estimates, influence, outliers),
   .rds (for entire S4 object). Default: NULL (no file output).}
 
 \item{...}{Additional arguments passed to the base function.}
+
+\item{seed}{\code{numeric} or  \code{NULL}.  Random seed for 
+reproducibility.  Default:  NULL.}
 }
 \value{
 Modified TSENATAnalysis with jackknife results in @jackknife_results.

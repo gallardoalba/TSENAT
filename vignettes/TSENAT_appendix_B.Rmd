@@ -23,7 +23,7 @@ vignette: |
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r setup-global, include = FALSE}
+```{r global-setup, include = FALSE}
 knitr::opts_chunk$set(
     collapse = TRUE,
     comment = "#>",
@@ -42,7 +42,7 @@ suppressPackageStartupMessages(library(kableExtra))
 This vignette validates q-value × group interaction detection using two complementary statistical approaches:
 
 1. **Generalized Additive Model (GAM):** Generalized Additive Models with ARIMA(1,1,0) transformation for handling q-ordered measurements [@C073]
-2. **Rank-Based (Friedman with Hochberg):** Friedman test for paired/blocked data [@S115; @S205] with Hochberg step-up multiple testing correction [@BenjaminiHochberg1995]
+2. **Rank-Based (Friedman with Hochberg):** Friedman test for paired/blocked data [@S115; @S205] with Hochberg step-up multiple testing correction [@S190]
 
 Both methods now incorporate principled improvements to handle real-world data challenges:
 - Heteroscedasticity detection and weighting
@@ -61,7 +61,7 @@ Both methods now incorporate principled improvements to handle real-world data c
 
 # Setup
 
-```{r setup-packages, message=FALSE}
+```{r load-packages, message=FALSE}
 suppressPackageStartupMessages({
     library(TSENAT)
     library(ggplot2)
@@ -73,7 +73,7 @@ suppressPackageStartupMessages({
 set.seed(42)
 ```
 
-```{r setup-data, message=FALSE}
+```{r load-and-prepare-data, message=FALSE}
 # Load preprocessed dataset
 data(readcounts)
 readcounts <- as.matrix(readcounts)
@@ -120,7 +120,7 @@ analysis <- filter_analysis_s4(
 
 For robust entropy estimation on sparse count data, we normalize pseudocounts by library size. This approach is principled and recommended in edgeR and DESeq2, as it ensures regularization strength adapts to overall sequencing depth.
 
-```{r calculate-tsallis, message=FALSE}
+```{r compute-tsallis-entropy, message=FALSE}
 # Compute diversity using S4 wrapper with bootstrap confidence intervals
 analysis <- calculate_diversity_s4(
   analysis, 
@@ -133,9 +133,9 @@ analysis <- calculate_diversity_s4(
 
 ## Assumption Validation
 
-Before applying rank-based methods, we verify key assumptions for rank-based inference [@S115; @S204]. The Friedman test is a non-parametric alternative to repeated-measures ANOVA, making fewer distributional assumptions while maintaining validity for paired designs [@S044]:
+Before applying rank-based methods, we verify key assumptions for rank-based inference [@S115; @S204]. The Friedman test is a non-parametric alternative to repeated-measures ANOVA, making fewer distributional assumptions while maintaining validity for paired designs [@S019]:
 
-```{r rank-assumptions-calculation, message=FALSE}
+```{r validate-friedman-assumptions, message=FALSE}
 # Validate Friedman test assumptions using S4 wrapper
 analysis <- test_rankbased_assumptions_s4(
     analysis
@@ -145,7 +145,7 @@ analysis <- test_rankbased_assumptions_s4(
 rank_assumptions <- metadata(analysis, "rankbased_assumptions")$result
 ```
 
-```{r rank-assumptions-output, message=FALSE, echo=FALSE}
+```{r display-assumption-results, message=FALSE, echo=FALSE}
 # Extract summary statistics and test results from rank_assumptions object
 summary_stats <- attr(rank_assumptions, "summary_stats")
 check_results <- attr(rank_assumptions, "checks")
@@ -214,7 +214,7 @@ knitr::kable(data_characteristics,
  
 
 
-```{r rank-based-analysis, message=TRUE}
+```{r friedman-rank-test-analysis, message=TRUE}
 # Run Friedman test for q × condition INTERACTION (FIXED - March 2026)
 # IMPORTANT: Now tests whether q-effect differs between conditions (tumor vs normal)
 # PREVIOUS BEHAVIOR (INCORRECT): Tested only q main effect, ignoring condition
@@ -232,7 +232,7 @@ analysis <- rank_test_q_condition_s4(
 friedman_results <- rankResults(analysis)
 ```
 
-```{r rank-summary, message=FALSE, echo=FALSE}
+```{r friedman-results-summary, message=FALSE, echo=FALSE}
 # Create summary statistics table with additional metrics
 # Handle NA and NaN values properly
 mean_effect <- mean(friedman_results$effect_size_eta2, na.rm = TRUE)
@@ -300,7 +300,7 @@ if (nrow(rank_sig) > 0) {
 
 Visualize q-curves for top genes:
 
-```{r extended-fig-1-friedman-top-genes-qcurve, fig.width=12, fig.height=8, message=FALSE, out.width="98%", fig.pos="H", fig.cap="**Extended Data Figure 1 | Scale-dependent isoform diversity from rank-based analysis.** *Friedman rank test identifies genes with heterogeneous isoform rank-ordering patterns between paired samples.* X-axis, diversity sensitivity *q* (0–2). Y-axis, Tsallis entropy (0–1 range). Each line represents a paired sample or condition. Parallel curves indicate rank-stable condition differences across all *q*-scales; diverging or crossing curves reveal genes with *q*-dependent isoform switching where isoform dominance rank-order differs between conditions at specific scales. Friedman rank test statistic quantifies nonparametric evidence for scale-dependent isoform heterogeneity."}
+```{r extended-fig-1-friedman-q-curves, fig.width=12, fig.height=8, message=FALSE, out.width="98%", fig.pos="H", fig.cap="**Extended Data Figure 1 | Scale-dependent isoform diversity from rank-based analysis.** *Friedman rank test identifies genes with heterogeneous isoform rank-ordering patterns between paired samples.* X-axis, diversity sensitivity *q* (0–2). Y-axis, Tsallis entropy (0–1 range). Each line represents a paired sample or condition. Parallel curves indicate rank-stable condition differences across all *q*-scales; diverging or crossing curves reveal genes with *q*-dependent isoform switching where isoform dominance rank-order differs between conditions at specific scales. Friedman rank test statistic quantifies nonparametric evidence for scale-dependent isoform heterogeneity."}
 top_genes_plot <- plot_tsallis_q_curve_s4(analysis, lm_res = friedman_results, n_top = 4)
 print(top_genes_plot)
 ```
@@ -308,7 +308,7 @@ print(top_genes_plot)
 
 ## Friedman Test: Testing q × Condition Interactions
 
-The Friedman test evaluates whether entropy patterns across q-values differ between normal and tumor samples [@S205]. It ranks observations within each subject, preserving the paired structure critical for valid inference in paired designs [@S044]. This rank-based approach is particularly robust for skewed distributions like entropy values [@S019], and the Westfall-Young permutation correction used here is asymptotically optimal for dependent test statistics [@S166].
+The Friedman test evaluates whether entropy patterns across q-values differ between normal and tumor samples [@S205]. It ranks observations within each subject, preserving the paired structure critical for valid inference in paired designs [@S019]. This rank-based approach is particularly robust for skewed distributions like entropy values [@S019], and the Westfall-Young permutation correction used here is asymptotically optimal for dependent test statistics [@S166].
 
 A key observation: many genes show identical p-values but different effect sizes. This reflects the rank-based nature of the test [@S115]. Effect size η² directly quantifies the strength of the q-value × condition dependence and serves as the practical ranking metric when p-values cluster [@S205]:
 
@@ -350,7 +350,7 @@ This section loads precomputed GAM results **generated in the main vignette** ([
 
 The precomputed results include effect sizes, model convergence diagnostics, and heteroscedasticity detection. Comparing GAM and Friedman Test results helps identify robust genes significant in both methods.
 
-```{r gam-analysis, message=FALSE}
+```{r generalized-additive-model-analysis, message=FALSE}
 # Load precomputed GAM results from TSV file
 gam_results <- read.delim(
     system.file("extdata", "lm_interaction_results.tsv", package = "TSENAT"),
@@ -358,7 +358,7 @@ gam_results <- read.delim(
 )
 ```
 
-```{r gam-summary, message=FALSE, echo=FALSE}
+```{r gam-results-summary, message=FALSE, echo=FALSE}
 # Create summary statistics table with additional metrics
 # Handle NA and NaN values properly
 mean_effect <- mean(gam_results$effect_size, na.rm = TRUE)
@@ -458,7 +458,7 @@ if ("p_interaction" %in% colnames(gam_results)) {
 
 # Method Concordance Analysis
 
-```{r concordance-summary, message=FALSE}
+```{r compare-friedman-gam-methods, message=FALSE}
 # Compute concordance analysis using S4 wrapper
 # Pass GAM results directly - the function handles storage automatically
 analysis_with_concordance <- compute_method_concordance_s4(
@@ -477,7 +477,7 @@ high_conf <- concordance_result$high_confidence
 agreement_table <- concordance_result$agreement_table
 ```
 
-```{r concordance-metrics, message=FALSE, echo=FALSE}
+```{r compute-concordance-metrics, message=FALSE, echo=FALSE}
 # === GLOBAL CONCORDANCE METRICS ===
 total_genes <- nrow(comparison_df)
 both_sig <- sum(comparison_df$agreement == "Both significant")
@@ -520,7 +520,7 @@ knitr::kable(concordance_metrics,
   )
 ```
 
-```{r concordance-agreement, message=FALSE, echo=FALSE}
+```{r display-agreement-results, message=FALSE, echo=FALSE}
 # === AGREEMENT CATEGORY BREAKDOWN ===
 if (!is.null(agreement_table) && length(agreement_table) > 0) {
   agreement_breakdown <- data.frame(
@@ -547,7 +547,7 @@ if (!is.null(agreement_table) && length(agreement_table) > 0) {
 }
 ```
 
-```{r concordance-highconf, message=FALSE, echo=FALSE}
+```{r high-confidence-calls, message=FALSE, echo=FALSE}
 # === HIGH-CONFIDENCE GENES (BOTH METHODS SIGNIFICANT) ===
 if (!is.null(high_conf) && nrow(high_conf) > 0) {
   # Sort by GAM adjusted p-value, then by Friedman adjusted p-value (both ascending)
@@ -580,7 +580,7 @@ if (!is.null(high_conf) && nrow(high_conf) > 0) {
 
 ## Visualization: Method Comparison
 
-```{r concordance-plot, fig.width=10, fig.height=8, out.width="98%", fig.pos="H", fig.cap="Method concordance visualization comparing Friedman rank-based and GAM approaches for detecting q×condition interactions. Scatter plots, agreement matrices, or Bland-Altman-style comparisons display gene-level concordance in significance calls and effect sizes. Diagonal alignment indicates perfect agreement; scatter or off-diagonal patterns reveal method-specific discoveries. Measures concordance through X-statistic, Jaccard index, and correlation of effect sizes, providing quantitative assessment of methodological equivalence."}
+```{r visualize-method-concordance, fig.width=10, fig.height=8, out.width="98%", fig.pos="H", fig.cap="Method concordance visualization comparing Friedman rank-based and GAM approaches for detecting q×condition interactions. Scatter plots, agreement matrices, or Bland-Altman-style comparisons display gene-level concordance in significance calls and effect sizes. Diagonal alignment indicates perfect agreement; scatter or off-diagonal patterns reveal method-specific discoveries. Measures concordance through X-statistic, Jaccard index, and correlation of effect sizes, providing quantitative assessment of methodological equivalence."}
 # Create comparison plot using S4 wrapper
 p <- plot_method_concordance_s4(analysis_with_concordance, verbose = TRUE)
   print(p)
@@ -615,7 +615,7 @@ This vignette demonstrates the modern S4-based analysis workflow for method comp
 
 If needed, this complete workflow can be recreated step-by-step:
 
-```{r workflow-reconstruction, eval=FALSE}
+```{r appendix-workflow-code, eval=FALSE}
 # 1. Initialize analysis
 analysis <- TSENATAnalysis(se = se, config = list())
 
@@ -692,7 +692,7 @@ We recommend a **complementary two-method approach** for robust detection of q-v
 
 # Session Information
 
-```{r session-info}
+```{r session-information}
 sessionInfo()
 ```
 
