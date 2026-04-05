@@ -56,6 +56,5 @@ div_res <- divergence(analysis)
 }
 \seealso{
 Other TSENATAnalysis accessors:  \code{\link{diversity}},
- \code{\link{jackKnife}},
 \code{\link{lmResults}}, \code{\link{se}}, \code{\link[S4Vectors]{metadata}}
 }

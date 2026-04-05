@@ -75,7 +75,7 @@ isoform-level complexity that are inaccessible to existing DTU or abundance-focu
 2. Compute relative transcript proportions within each gene and evaluate
 Tsallis entropy across one or more `q` values.
 3. Summarize per-gene values across samples (mean/median) and test for
-differences between groups (Wilcoxon or permutations).
+differences between groups (Wilcoxon or permutations) [@K002; @K003].
 4. Visualize q-curves and inspect transcript-level counts for top genes.
 
 Design assumption: This vignette assumes paired or longitudinal study designs
@@ -720,7 +720,7 @@ isoforms (low q), dominant isoforms (high q), or uniformly across scales.
 
 The approach uses linear mixed-effects regression (LMM) with q as continuous predictor to assess 
 slope differences in entropy change across q-spectrum between treatment groups, with effect size computed 
-as Tsallis divergence $D_q$(control||treatment) [@I002; @I003; @I004]. This information-theoretic measure 
+as Tsallis divergence $D_q$(control||treatment) [@K001; @I002; @I003; @I004]. This information-theoretic measure 
 automatically respects Tsallis entropy properties and adapts to each q value.
 
 Theoretical Justification: Tsallis entropy theory [@I002, @I004] demonstrates that 
@@ -982,7 +982,7 @@ Interpreting the Q-Spectrum Curve:
   A flat curve (BALANCED) vs. declining curve (RARE_DRIVEN) vs. rising curve (ABUNDANT_DRIVEN) 
   encode fundamentally different mechanisms.
 
-- q=1 (KL divergence): The middle point corresponds to ordinary Kullback-Leibler divergence, 
+- q=1 (KL divergence): The middle point corresponds to ordinary Kullback-Leibler divergence [@K001], 
   which weights all isoforms equally. This is the "average" effect.
 
 - q < 1 (rare isoforms): Emphasizes how much low-abundance transcripts differ between 

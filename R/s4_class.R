@@ -211,7 +211,6 @@ TSENATAnalysis <- function(se, config = list()) {
 #'
 #' @seealso
 #' Other TSENATAnalysis accessors:  \code{\link{divergence}},
-#'  \code{\link{jackKnife}},
 #' \code{\link{lmResults}}, \code{\link{se}}, \code{\link[S4Vectors]{metadata}}
 #' @examples
 #' # Load real TSENAT data
@@ -739,7 +738,6 @@ setMethod("jisResults", "TSENATAnalysis", function(object, q = NULL) {
 #'
 #' @seealso
 #' Other TSENATAnalysis accessors:  \code{\link{diversity}},
-#'  \code{\link{jackKnife}},
 #' \code{\link{lmResults}}, \code{\link{se}}, \code{\link[S4Vectors]{metadata}}
 #' @examples
 #' # Load real TSENAT data and calculate divergence
@@ -1316,7 +1314,7 @@ setMethod("setConfigValue", "TSENATAnalysis", function(object, key, value) {
 #' @seealso
 #' Other TSENATAnalysis accessors:  \code{\link{diversity}},
 #'  \code{\link{divergence}},
-#' \code{\link{jackKnife}},  \code{\link{lmResults}},
+#' \code{\link{lmResults}},
 #'  \code{\link[S4Vectors]{metadata}}
 #'
 #' @examples
@@ -1365,7 +1363,7 @@ setMethod("se", "TSENATAnalysis", function(object) {
 #' @seealso
 #' Other TSENATAnalysis accessors:  \code{\link{diversity}},
 #'  \code{\link{divergence}},
-#' \code{\link{jackKnife}}, \code{\link{lmResults}}, \code{\link{se}}
+#' \code{\link{lmResults}}, \code{\link{se}}
 #'
 #' @examples
 #' # Load real TSENAT data

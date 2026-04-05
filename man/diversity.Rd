@@ -56,6 +56,5 @@ diversity_results <- diversity(analysis)
 }
 \seealso{
 Other TSENATAnalysis accessors:  \code{\link{divergence}},
- \code{\link{jackKnife}},
 \code{\link{lmResults}}, \code{\link{se}}, \code{\link[S4Vectors]{metadata}}
 }
