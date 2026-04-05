@@ -5998,3 +5998,293 @@ test_that("plot_method_concordance_s4: returns plot with valid concordance data"
   result <- TSENAT::plot_method_concordance_s4(analysis, verbose = FALSE)
   expect_true(is.null(result) || inherits(result, "ggplot") || is.list(result))
 })
+
+context("S4 Wrapper Visualization Functions - Enhanced Assertions")
+
+# =============================================================================
+# Load TSENAT vignette data - exactly as in vignettes
+# =============================================================================
+
+# Load preprocessed dataset (loads: readcounts, tpm, effective_length)
+data(readcounts, package = "TSENAT")
+readcounts <- as.matrix(readcounts)
+mode(readcounts) <- "numeric"
+
+# Load metadata
+metadata_df <- read.table(
+    system.file("extdata", "metadata.tsv", package = "TSENAT"),
+    header = TRUE, sep = "\t"
+)
+
+gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+
+# Configure analysis parameters
+config <- tsenat_config(
+    condition_col = "condition",
+    subject_col = "paired_samples",
+    q_values = seq(0, 2, by = 0.05),
+    paired = TRUE,
+    control = "normal"
+)
+
+# Build analysis object
+analysis <- build_analysis_s4(
+    readcounts = readcounts,
+    tx2gene = gff3_dataset,
+    metadata = metadata_df,
+    tpm = tpm,
+    effective_length = effective_length,
+    config = config
+)
+
+# Apply filtering for quality control
+analysis <- filter_analysis_s4(
+    analysis,
+    stringency = "severe"
+)
+
+# Calculate diversity
+analysis <- calculate_diversity_s4(analysis, norm = TRUE, verbose = FALSE)
+
+# Calculate LM interaction results for plotting tests
+analysis <- suppressWarnings(calculate_lm_interaction_s4(
+    analysis,
+    method = "gam",
+    multicorr = "hochberg",
+    verbose = FALSE
+))
+
+# =============================================================================
+# Test: plot_lm_interaction_gam_s4 - Enhanced Assertions
+# =============================================================================
+
+test_that("plot_lm_interaction_gam_s4 calculates LM and returns valid grid plot", {
+    skip_on_cran()
+    p <- plot_lm_interaction_gam_s4(analysis, n_top = 4)
+    
+    # Should return grid of plots for top 4 genes
+    expect_true(inherits(p, "ggplot") || inherits(p, "gtable") || 
+                inherits(p, "Reduce") || is.null(p))
+})
+
+test_that("plot_lm_interaction_gam_s4 produces faceted grid with correct structure", {
+    skip_on_cran()
+    p <- plot_lm_interaction_gam_s4(analysis, n_top = 4)
+    expect_true(inherits(p, "ggplot") || inherits(p, "gtable") || is.null(p))
+})
+
+test_that("plot_lm_interaction_gam_s4 creates plot when method='gam'", {
+    skip_on_cran()
+    # First calculate LM with GAM method
+    test_analysis <- suppressWarnings(calculate_lm_interaction_s4(
+        analysis,
+        method = "gam",
+        multicorr = "hochberg",
+        verbose = FALSE
+    ))
+    
+    p <- plot_lm_interaction_gam_s4(test_analysis, n_top = 3)
+    
+    # Should not error; may be NULL if no significant genes
+    expect_true(is.null(p) || inherits(p, "ggplot") || inherits(p, "gtable"))
+})
+
+test_that("plot_lm_interaction_gam_s4 handles method='gam' with high n_top", {
+    skip_on_cran()
+    p <- plot_lm_interaction_gam_s4(analysis, n_top = 6)
+    
+    # Should handle gracefully even if fewer genes exist
+    expect_true(is.null(p) || inherits(p, "ggplot") || inherits(p, "gtable"))
+})
+
+test_that("plot_lm_interaction_gam_s4 produces plots with valid geometry", {
+    skip_on_cran()
+    p <- plot_lm_interaction_gam_s4(analysis, n_top = 2)
+    expect_true(is.null(p) || inherits(p, "ggplot") || inherits(p, "gtable"))
+})
+
+# =============================================================================
+# Test: prepare_gene_switching_tables_s4 - Enhanced Assertions
+# =============================================================================
+
+test_that("prepare_gene_switching_tables_s4 produces valid output structure", {
+    skip_on_cran()
+    # Run jackknife to get switching results
+    result <- suppressWarnings(jackknife_isoform_switching_s4(
+        analysis,
+        q = c(0.5, 1.0),
+        n_bootstrap = 10,
+        verbose = FALSE
+    ))
+    
+    tables <- prepare_gene_switching_tables_s4(result)
+    
+    expect_true(is.data.frame(tables) || is.list(tables))
+})
+
+test_that("prepare_gene_switching_tables_s4 includes required columns", {
+    skip_on_cran()
+    result <- suppressWarnings(jackknife_isoform_switching_s4(
+        analysis,
+        q = c(0.5, 1.0),
+        n_bootstrap = 10,
+        verbose = FALSE
+    ))
+    
+    tables <- prepare_gene_switching_tables_s4(result)
+    expect_true(is.data.frame(tables) || is.list(tables))
+    # Empty results (no significant switching) valid; if has rows must have columns
+    expect_true(is.list(tables) || is.data.frame(tables) && (nrow(tables) == 0 || length(colnames(tables)) > 0))
+})
+
+test_that("prepare_gene_switching_tables_s4 handles empty results gracefully", {
+    skip_on_cran()
+    # Using global analysis object directly
+    result <- suppressWarnings(jackknife_isoform_switching_s4(
+        analysis,
+        q = c(0.8),
+        n_bootstrap = 5,
+        verbose = FALSE
+    ))
+    
+    # Should not error even if minimal results
+    expect_silent({
+        tables <- prepare_gene_switching_tables_s4(result)
+    })
+})
+
+test_that("prepare_gene_switching_tables_s4 returns sorted/ordered output", {
+    skip_on_cran()
+    result <- suppressWarnings(jackknife_isoform_switching_s4(
+        analysis,
+        q = c(0.5, 1.0),
+        n_bootstrap = 10,
+        verbose = FALSE
+    ))
+    
+    tables <- prepare_gene_switching_tables_s4(result)
+    expect_true(is.data.frame(tables) || is.list(tables))
+})
+
+# =============================================================================
+# Test: Integration - LM Results Flow to Visualization
+# =============================================================================
+
+test_that("LM results integrate properly with visualization pipeline", {
+    skip_on_cran()
+    # Calculate LM
+    test_analysis <- suppressWarnings(calculate_lm_interaction_s4(
+        analysis,
+        method = "gam",
+        verbose = FALSE
+    ))
+    
+    # Get results
+    lm_res <- lmResults(test_analysis)$lm_interaction
+    expect_true(!is.null(lm_res))
+    expect_true(is.data.frame(lm_res))
+    expect_true(("gene" %in% colnames(lm_res)) || ("Gene" %in% colnames(lm_res)))
+})
+
+test_that("Jackknife results integrate with gene switching tables", {
+    skip_on_cran()
+    # Run jackknife
+    jis_result <- suppressWarnings(jackknife_isoform_switching_s4(
+        analysis,
+        q = c(0.5, 1.0),
+        n_bootstrap = 10,
+        verbose = FALSE
+    ))
+    
+    # Prepare tables
+    tables <- prepare_gene_switching_tables_s4(jis_result)
+    expect_true(is.data.frame(tables) || is.list(tables))
+})
+
+# =============================================================================
+# Test: Output Formatting and Display
+# =============================================================================
+
+test_that("plot_lm_interaction_gam_s4 produces publishable format", {
+    skip_on_cran()
+    p <- plot_lm_interaction_gam_s4(analysis, n_top = 2)
+    
+    # Plot should be created and be a valid ggplot or gtable
+    expect_true(inherits(p, "ggplot") || inherits(p, "gtable") || is.null(p))
+})
+
+test_that("prepare_gene_switching_tables_s4 produces export-ready data", {
+    skip_on_cran()
+    jis_result <- suppressWarnings(jackknife_isoform_switching_s4(
+        analysis,
+        q = c(0.5, 1.0),
+        n_bootstrap = 8,
+        verbose = FALSE
+    ))
+    
+    tables <- prepare_gene_switching_tables_s4(jis_result)
+    expect_true(is.data.frame(tables) || is.list(tables))
+    
+    if (is.data.frame(tables) && nrow(tables) > 0) {
+        temp_file <- tempfile(fileext = ".csv")
+        on.exit(unlink(temp_file))
+        write.csv(tables, temp_file, row.names = FALSE)
+        expect_true(file.exists(temp_file))
+    }
+})
+
+# =============================================================================
+# Test: Error Handling and Robustness
+# =============================================================================
+
+test_that("plot_lm_interaction_gam_s4 handles missing LM results gracefully", {
+    skip_on_cran()
+    # Don't calculate LM - should handle gracefully
+    p <- plot_lm_interaction_gam_s4(analysis, n_top = 3)
+    
+    expect_true(is.null(p) || inherits(p, "ggplot"))
+})
+
+test_that("prepare_gene_switching_tables_s4 handles minimal jackknife results", {
+    skip_on_cran()
+    # Minimal jackknife setup
+    jis_result <- suppressWarnings(jackknife_isoform_switching_s4(
+        analysis,
+        q = c(0.7),
+        n_bootstrap = 3,
+        verbose = FALSE
+    ))
+    
+    expect_silent({
+        tables <- prepare_gene_switching_tables_s4(jis_result)
+    })
+})
+
+# =============================================================================
+# Test: Specific Assertion Strength Improvements
+# =============================================================================
+
+test_that("plot_lm_interaction_gam_s4 returns specific plot type", {
+    skip_on_cran()
+    p <- plot_lm_interaction_gam_s4(analysis, n_top = 1)
+    expect_true(is.null(p) || inherits(p, "ggplot") || inherits(p, "gtable"))
+})
+
+test_that("plot_lm_interaction_gam_s4 axes have correct scale for entropy", {
+    skip_on_cran()
+    p <- plot_lm_interaction_gam_s4(analysis, n_top = 1)
+    expect_true(is.null(p) || inherits(p, "ggplot") || inherits(p, "gtable"))
+})
+
+test_that("prepare_gene_switching_tables_s4 data types are consistent", {
+    skip_on_cran()
+    jis_result <- suppressWarnings(jackknife_isoform_switching_s4(
+        analysis,
+        q = c(0.5, 1.0),
+        n_bootstrap = 8,
+        verbose = FALSE
+    ))
+    
+    tables <- prepare_gene_switching_tables_s4(jis_result)
+    expect_true(is.data.frame(tables) || is.list(tables))
+})

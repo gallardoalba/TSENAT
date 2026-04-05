@@ -1708,3 +1708,415 @@ testthat::test_that("Font scaling + theme creation workflow", {
   
   testthat::expect_is(theme, "theme")
 })
+
+context("Plot Helper Functions - Critical Coverage Fixes")
+
+# =============================================================================
+# PRIORITY 1: Foundation CI Extraction (Critical blocker for all CI plots)
+# =============================================================================
+
+test_that(".extract_bootstrap_ci_assays works with standard CI naming", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    # Create test SE with diversity and CI assays
+    mat_base <- matrix(rnorm(20), nrow = 5)
+    rownames(mat_base) <- paste0("gene", 1:5)
+    colnames(mat_base) <- paste0("sample", 1:4)
+    
+    mat_ci_lower <- matrix(rnorm(20, mean = -0.5), nrow = 5)
+    rownames(mat_ci_lower) <- rownames(mat_base)
+    colnames(mat_ci_lower) <- colnames(mat_base)
+    
+    mat_ci_upper <- matrix(rnorm(20, mean = 0.5), nrow = 5)
+    rownames(mat_ci_upper) <- rownames(mat_base)
+    colnames(mat_ci_upper) <- colnames(mat_base)
+    
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(
+            diversity = mat_base,
+            diversity_ci_lower = mat_ci_lower,
+            diversity_ci_upper = mat_ci_upper
+        )
+    )
+    
+    # Test extraction
+    result <- TSENAT:::.extract_bootstrap_ci_assays(se, assay_name = "diversity")
+    
+    expect_true(is.list(result))
+    expect_true(result$has_ci)
+    expect_equal(dim(result$assay_base), c(5, 4))
+    expect_equal(dim(result$ci_lower), c(5, 4))
+    expect_equal(dim(result$ci_upper), c(5, 4))
+    expect_null(result$fallback_metric)
+})
+
+test_that(".extract_bootstrap_ci_assays handles missing CI assays with IQR fallback", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    mat <- matrix(rnorm(20), nrow = 5)
+    rownames(mat) <- paste0("gene", 1:5)
+    colnames(mat) <- paste0("sample", 1:4)
+    
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(diversity = mat)
+    )
+    
+    # Extract with fallback enabled
+    result <- TSENAT:::.extract_bootstrap_ci_assays(se, assay_name = "diversity", 
+                                                      fallback_to_iqr = TRUE)
+    
+    expect_false(result$has_ci)
+    expect_null(result$ci_lower)
+    expect_null(result$ci_upper)
+    expect_equal(result$fallback_metric, "iqr")
+})
+
+test_that(".extract_bootstrap_ci_assays throws error for missing assay", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = matrix(1:10, nrow = 2))
+    )
+    
+    expect_error(
+        TSENAT:::.extract_bootstrap_ci_assays(se, assay_name = "nonexistent"),
+        "not found"
+    )
+})
+
+test_that(".extract_bootstrap_ci_assays handles custom assay names", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    mat_base <- matrix(rnorm(20), nrow = 5)
+    rownames(mat_base) <- paste0("gene", 1:5)
+    
+    mat_ci_lower <- matrix(rnorm(20, mean = -0.5), nrow = 5)
+    rownames(mat_ci_lower) <- rownames(mat_base)
+    
+    mat_ci_upper <- matrix(rnorm(20, mean = 0.5), nrow = 5)
+    rownames(mat_ci_upper) <- rownames(mat_base)
+    
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(
+            divergence = mat_base,
+            divergence_ci_lower = mat_ci_lower,
+            divergence_ci_upper = mat_ci_upper
+        )
+    )
+    
+    result <- TSENAT:::.extract_bootstrap_ci_assays(se, assay_name = "divergence")
+    
+    expect_true(result$has_ci)
+    expect_equal(dim(result$assay_base), dim(mat_base))
+})
+
+# =============================================================================
+# CI Data Preparation for Plotting
+# =============================================================================
+
+test_that(".prepare_gene_ci_data extracts CI data correctly", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    # Create sample long format data with required columns: Gene, group, q, tsallis, sample
+    long_data <- data.frame(
+        Gene = c("gene1", "gene1", "gene1", "gene1", "gene2", "gene2", "gene2", "gene2"),
+        group = c("A", "A", "B", "B", "A", "A", "B", "B"),
+        q = c(0.5, 1.0, 0.5, 1.0, 0.5, 1.0, 0.5, 1.0),
+        tsallis = c(1.0, 1.5, 1.2, 1.7, 2.0, 2.5, 2.2, 2.7),
+        sample = c("s1", "s1", "s2", "s2", "s1", "s1", "s2", "s2"),
+        stringsAsFactors = FALSE
+    )
+    
+    # Create CI matrices with column names matching sample_q=value format
+    ci_lower <- matrix(c(0.9, 1.4, 1.9, 2.4), nrow = 2, byrow = TRUE)
+    rownames(ci_lower) <- c("gene1", "gene2")
+    colnames(ci_lower) <- c("s1_q=0.5", "s1_q=1.0")
+    
+    ci_upper <- matrix(c(1.1, 1.6, 2.1, 2.6), nrow = 2, byrow = TRUE)
+    rownames(ci_upper) <- c("gene1", "gene2")
+    colnames(ci_upper) <- c("s1_q=0.5", "s1_q=1.0")
+    
+    # Test extraction
+    result <- TSENAT:::.prepare_gene_ci_data(long_data, ci_lower, ci_upper, 
+                                              genes = c("gene1", "gene2"))
+    
+    expect_true(is.data.frame(result))
+    expect_true("ci_lower" %in% colnames(result))
+    expect_true("ci_upper" %in% colnames(result))
+    # Result groups by gene, group, q: 2 genes × 2 groups × 2 q values = 8 groups
+    expect_equal(nrow(result), 8)
+})
+
+test_that(".prepare_gene_ci_data handles single gene correctly", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    long_data <- data.frame(
+        Gene = c("gene1", "gene1"),
+        group = c("A", "B"),
+        q = c(0.5, 0.5),
+        tsallis = c(1.0, 1.5),
+        sample = c("s1", "s2"),
+        stringsAsFactors = FALSE
+    )
+    
+    ci_lower <- matrix(c(0.9, 1.4), nrow = 1)
+    rownames(ci_lower) <- "gene1"
+    colnames(ci_lower) <- c("s1_q=0.5", "s2_q=0.5")
+    
+    ci_upper <- matrix(c(1.1, 1.6), nrow = 1)
+    rownames(ci_upper) <- "gene1"
+    colnames(ci_upper) <- c("s1_q=0.5", "s2_q=0.5")
+    
+    result <- TSENAT:::.prepare_gene_ci_data(long_data, ci_lower, ci_upper, 
+                                              genes = "gene1")
+    
+    expect_equal(nrow(result), 2)
+    expect_equal(unique(result$Gene), "gene1")
+})
+
+# =============================================================================
+# Distribution Statistics Computation
+# =============================================================================
+
+test_that(".compute_distribution_stats calculates median and IQR", {
+    df <- data.frame(
+        group = c("A", "A", "A", "B", "B", "B"),
+        value = c(1, 2, 3, 4, 5, 6),
+        stringsAsFactors = FALSE
+    )
+    
+    result <- TSENAT:::.compute_distribution_stats(df, "group", "value", 
+                                                     metric = "median", 
+                                                     spread_metric = "iqr")
+    
+    expect_true(is.data.frame(result))
+    expect_true("group" %in% colnames(result))
+    expect_true("value" %in% colnames(result))
+    expect_true("lower" %in% colnames(result))
+    expect_true("upper" %in% colnames(result))
+    
+    # Group A: median = 2, IQR from 1-3 is 1 (Q3 - Q1 = 3 - 2 = 1)
+    grp_a <- result[result$group == "A", ]
+    expect_equal(grp_a$value, 2)
+})
+
+test_that(".compute_distribution_stats calculates mean and SD", {
+    df <- data.frame(
+        group = c("A", "A", "A", "B", "B", "B"),
+        value = c(1, 2, 3, 4, 5, 6),
+        stringsAsFactors = FALSE
+    )
+    
+    result <- TSENAT:::.compute_distribution_stats(df, "group", "value",
+                                                     metric = "mean",
+                                                     spread_metric = "sd")
+    
+    expect_true(is.data.frame(result))
+    
+    # Group A: mean = 2, lower/upper = mean ± sd
+    grp_a <- result[result$group == "A", ]
+    expect_equal(grp_a$value, 2)
+    expect_true(grp_a$upper > grp_a$value)
+})
+
+test_that(".compute_distribution_stats handles NA values", {
+    df <- data.frame(
+        group = c("A", "A", "A", "B", "B", "B"),
+        value = c(1, NA, 3, 4, NA, 6),
+        stringsAsFactors = FALSE
+    )
+    
+    result <- TSENAT:::.compute_distribution_stats(df, "group", "value",
+                                                     metric = "median",
+                                                     spread_metric = "iqr")
+    
+    expect_true(is.data.frame(result))
+    expect_equal(nrow(result), 2)
+    # Group A: median of c(1,3) = 2
+    grp_a <- result[result$group == "A", ]
+    expect_equal(grp_a$value, 2)
+})
+
+# =============================================================================
+# Data Format Preparation for Grouped Visualization
+# =============================================================================
+
+test_that(".prepare_grouped_long_format converts wide to long with groups", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    # Create proper SummarizedExperiment input
+    # Create 3 genes x 12 samples matrix
+    mat <- matrix(rnorm(36), nrow = 3, ncol = 12)
+    rownames(mat) <- c("gene1", "gene2", "gene3")
+    colnames(mat) <- paste0("s", 1:12)
+    
+    # Create colData with matching number of columns
+    coldata <- data.frame(
+        condition = rep(c("A", "A", "B"), 4),
+        row.names = colnames(mat)
+    )
+    
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(diversity = mat),
+        colData = coldata
+    )
+    
+    # Call function - it takes SummarizedExperiment, not separate mat/samples
+    result <- TSENAT:::.prepare_grouped_long_format(se, assay_name = "diversity",
+                                                      group_by_col = "condition")
+    
+    expect_true(is.data.frame(result))
+    expect_true("Gene" %in% colnames(result))
+    expect_true("value" %in% colnames(result))
+    expect_true("group" %in% colnames(result))
+    expect_true(nrow(result) > 0)
+})
+
+# =============================================================================
+# Transcript Input Preparation
+# =============================================================================
+
+test_that(".prepare_transcript_inputs handles matrix input", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    # Create simple count matrix with required metadata
+    counts <- matrix(c(100, 50, 200, 75), nrow = 2)
+    rownames(counts) <- c("tx1", "tx2")
+    colnames(counts) <- c("sample1", "sample2")
+    
+    # Provide required samples parameter
+    samples <- c("condition_A", "condition_B")
+    
+    # Create mock tx2gene mapping (must use 'Transcript' and 'Gen' column names)
+    tx2gene <- data.frame(
+        Transcript = c("tx1", "tx2"),
+        Gen = c("gene1", "gene1")
+    )
+    
+    result <- TSENAT:::.prepare_transcript_inputs(counts = counts, samples = samples, tx2gene = tx2gene)
+    
+    # Function returns a list, not a data.frame or matrix
+    expect_true(is.list(result))
+    expect_true("counts" %in% names(result))
+    expect_true("samples" %in% names(result))
+    expect_true("mapping" %in% names(result))
+})
+
+test_that(".prepare_transcript_inputs throws error for missing rownames", {
+    counts <- matrix(c(100, 50, 200, 75), nrow = 2)
+    colnames(counts) <- c("sample1", "sample2")
+    
+    samples <- c("condition_A", "condition_B")
+    tx2gene <- data.frame(Transcript = c("tx1", "tx2"), Gen = c("gene1", "gene1"))
+    
+    expect_error(
+        TSENAT:::.prepare_transcript_inputs(counts = counts, samples = samples, tx2gene = tx2gene),
+        "rownames|transcript"
+    )
+})
+
+test_that(".prepare_transcript_inputs validates input type", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    # Try passing invalid input (list)
+    samples <- c("condition_A", "condition_B")
+    tx2gene <- data.frame(Transcript = c("tx1", "tx2"), Gen = c("gene1", "gene1"))
+    
+    expect_error(
+        TSENAT:::.prepare_transcript_inputs(counts = list(data = 1:10), samples = samples, tx2gene = tx2gene),
+        "matrix|data.frame|SummarizedExperiment"
+    )
+})
+
+test_that(".prepare_transcript_inputs requires samples or coldata", {
+    counts <- matrix(c(100, 50, 200, 75), nrow = 2)
+    rownames(counts) <- c("tx1", "tx2")
+    colnames(counts) <- c("sample1", "sample2")
+    
+    tx2gene <- data.frame(Transcript = c("tx1", "tx2"), Gen = c("gene1", "gene1"))
+    
+    # Neither samples nor coldata provided
+    expect_error(
+        TSENAT:::.prepare_transcript_inputs(counts = counts, tx2gene = tx2gene),
+        "samples|coldata"
+    )
+})
+
+# =============================================================================
+# Theme and Plotting Utilities
+# =============================================================================
+
+test_that(".create_centered_theme creates valid ggplot2 theme", {
+    skip_if_not_installed("ggplot2")
+    
+    theme_obj <- TSENAT:::.create_centered_theme(include_title = TRUE, 
+                                                   title_size = 14)
+    
+    expect_true(inherits(theme_obj, "theme"))
+})
+
+test_that(".save_plot_standard handles file output", {
+    skip_if_not_installed("ggplot2")
+    
+    p <- ggplot2::ggplot(data.frame(x = 1:10, y = 1:10), 
+                         ggplot2::aes(x = x, y = y)) +
+         ggplot2::geom_point()
+    
+    temp_file <- tempfile(fileext = ".png")
+    on.exit(unlink(temp_file))
+    
+    # Should complete without error
+    expect_silent(
+        TSENAT:::.save_plot_standard(p, temp_file, width_inches = 8, 
+                                      dpi_output = 100)
+    )
+    
+    # File should exist after save
+    expect_true(file.exists(temp_file))
+})
+
+# =============================================================================
+# Infer Samples from SummarizedExperiment
+# =============================================================================
+
+test_that(".infer_samples_from_se detects condition column", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = matrix(1:20, nrow = 5)),
+        colData = data.frame(
+            condition = c("A", "A", "B", "B"),
+            sample_id = c("s1", "s2", "s3", "s4")
+        )
+    )
+    
+    result <- TSENAT:::.infer_samples_from_se(se, condition_col = "condition")
+    
+    expect_equal(result, c("A", "A", "B", "B"))
+})
+
+test_that(".infer_samples_from_se returns explicit samples if provided", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = matrix(1:20, nrow = 5))
+    )
+    
+    explicit_samples <- c("X", "Y", "X", "Y")
+    result <- TSENAT:::.infer_samples_from_se(se, samples = explicit_samples)
+    
+    expect_equal(result, explicit_samples)
+})
+
+test_that(".infer_samples_from_se returns NULL for empty SE", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = matrix(1:20, nrow = 5))
+    )
+    
+    result <- TSENAT:::.infer_samples_from_se(se, samples = NULL, 
+                                               condition_col = "nonexistent")
+    
+    expect_null(result)
+})
