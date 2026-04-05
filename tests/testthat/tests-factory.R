@@ -171,13 +171,16 @@ create_test_analysis <- function(
     # Create a simple placeholder LM result (empty data frame structure)
     # This prevents "No LM results found" warnings in tests
     lm_placeholder <- list(
-      overall = data.frame(
-        gene = character(0),
-        term = character(0),
-        estimate = numeric(0),
-        std.error = numeric(0),
-        statistic = numeric(0),
-        p.value = numeric(0)
+      lm_interaction = list(
+        results = data.frame(
+          gene = character(0),
+          term = character(0),
+          estimate = numeric(0),
+          std.error = numeric(0),
+          statistic = numeric(0),
+          p.value = numeric(0)
+        ),
+        model_data = NULL
       )
     )
     analysis@lm_results <- lm_placeholder
@@ -1562,9 +1565,11 @@ suppress_loess_warnings <- function(expr) {
     if (include_lm_results) {
         # Create a simple placeholder LM result (empty data frame structure)
         # This prevents 'No LM results found' warnings in tests
-        lm_placeholder <- list(overall = data.frame(gene = character(0), term = character(0),
-            estimate = numeric(0), std.error = numeric(0), statistic = numeric(0),
-            p.value = numeric(0)))
+        lm_placeholder <- list(lm_interaction = list(
+            results = data.frame(gene = character(0), term = character(0),
+                estimate = numeric(0), std.error = numeric(0), statistic = numeric(0),
+                p.value = numeric(0)),
+            model_data = NULL))
         analysis@lm_results <- lm_placeholder
     }
 

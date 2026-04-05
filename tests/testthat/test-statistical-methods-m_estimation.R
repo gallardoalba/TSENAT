@@ -1624,7 +1624,7 @@ test_that("m_estimate_s4: returns TSENATAnalysis with m_estimation results", {
   set.seed(3017)
   
   # Create test analysis with counts
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 5,
     n_samples_per_group = 3,
     q_values = c(0.5, 1.0),
@@ -1654,7 +1654,7 @@ test_that("m_estimate_s4: handles different loss functions", {
   
   set.seed(3018)
   
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 3,
     n_samples_per_group = 2,
     q_values = c(0.5, 1.0),
@@ -1692,7 +1692,7 @@ test_that("prepare_gene_switching_tables_s4: requires isoform switching results"
   set.seed(3019)
   
   # Create test analysis without isoform switching results
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 5,
     n_samples_per_group = 2,
     q_values = c(0.5, 1.0),
@@ -1718,7 +1718,7 @@ test_that("prepare_gene_switching_tables_s4: returns data structure", {
   
   set.seed(3020)
   
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 3,
     n_samples_per_group = 2,
     q_values = c(0.5, 1.0),

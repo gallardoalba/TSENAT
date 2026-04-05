@@ -635,24 +635,24 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 .generate_plot_by_type <- function(ptype, analysis) {
     switch(ptype,
         q_curve = if (length(analysis@diversity_results) > 0) {
-            plot_tsallis_q_curve_s4(analysis@se, analysis@diversity_results) } else NULL,
-        lm_interaction = if ("lm_interaction" %in% names(analysis@lm_results)) {
-            .plot_lm_interaction_gam(analysis@lm_results$lm_interaction) } else NULL,
-        divergence_distribution = if (length(analysis@divergence_results) > 0) {
-            .plot_divergence_distribution(analysis@divergence_results) } else NULL,
+            plot_tsallis_q_curve_s4(analysis) } else NULL,
+        lm_interaction = if (length(analysis@lm_results) > 0 && "lm_interaction" %in% names(analysis@lm_results) &&
+                              !is.null(analysis@lm_results$lm_interaction$results) && nrow(analysis@lm_results$lm_interaction$results) > 0) {
+            plot_lm_interaction_gam_s4(analysis) } else NULL,
+        divergence_distribution = if (!is.null(analysis@metadata$effect_sizes_divergence)) {
+            plot_divergence_distribution_s4(analysis) } else NULL,
         divergence_spectrum = if (length(analysis@divergence_results) > 0) {
-            .plot_divergence_spectrum(analysis@divergence_results) } else NULL,
-        influence_heatmap = if ("q_interactions" %in% names(analysis@lm_results)) {
-            .plot_multiq_delta_influence_heatmaps(analysis@lm_results$q_interactions) } else NULL,
-        volcano = if ("lm_interaction" %in% names(analysis@lm_results)) {
-            .plot_volcano_ma_grid(analysis@lm_results$lm_interaction, 
-                analysis@divergence_results) } else NULL,
+            plot_divergence_spectrum_s4(analysis) } else NULL,
+        influence_heatmap = if (length(analysis@lm_results) > 0 && "q_interactions" %in% names(analysis@lm_results)) {
+            plot_multiq_delta_influence_heatmaps_s4(analysis) } else NULL,
+        volcano = if (!is.null(analysis@pairwise_results$difference) && length(analysis@divergence_results) > 0) {
+            plot_volcano_ma_grid_s4(analysis) } else NULL,
         method_concordance = if (!is.null(analysis@metadata$method_concordance)) {
-            plot_method_concordance_s4(analysis, verbose = FALSE) } else NULL,
+            plot_method_concordance_s4(analysis) } else NULL,
         multi_gene_q_spectrum = if (length(analysis@lm_results) > 0 && length(analysis@diversity_results) > 0) {
-            plot_multi_gene_q_spectrum_s4(analysis, verbose = FALSE) } else NULL,
-        top_transcripts = if (length(analysis@diversity_results) > 0) {
-            plot_top_transcripts_s4(analysis, verbose = FALSE) } else NULL,
+            plot_multi_gene_q_spectrum_s4(analysis) } else NULL,
+        top_transcripts = if (length(analysis@diversity_results) > 0 && length(analysis@lm_results) > 0) {
+            plot_top_transcripts_s4(analysis) } else NULL,
         tsallis_violin_density = if (length(analysis@diversity_results) > 0) {
             plot_tsallis_violin_density_grid_s4(analysis) } else NULL,
         NULL)

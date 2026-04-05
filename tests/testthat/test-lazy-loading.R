@@ -77,7 +77,7 @@ test_that("Plot functions trigger visualization loading", {
   skip_if_not_installed("ggplot2")
   
   # Create minimal test data
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 4, 
     n_samples_per_group = 5
   )
@@ -107,7 +107,7 @@ test_that("Multiple plot functions work after lazy-loading", {
   skip_if_not_installed("ggplot2")
   
   # Create test analysis with required computations
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 4,
     n_samples_per_group = 5
   )
@@ -142,7 +142,7 @@ test_that("Lazy-loading doesn't affect non-plot functions", {
   # Core computational functions should work regardless of viz loading state
   # This test verifies that lazy-loading is orthogonal to computation
   
-  analysis <- TSENAT:::.create_test_analysis(n_genes = 4, n_samples_per_group = 5)
+  analysis <- .create_test_analysis(n_genes = 4, n_samples_per_group = 5)
   
   # These should work fine without any plot functions
   analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
@@ -160,7 +160,7 @@ test_that("Lazy-loading maintains backward compatibility", {
   skip_if_not_installed("ggplot2")
   
   # Users expecting visualizations to just work should not be affected
-  analysis <- TSENAT:::.create_test_analysis(n_genes = 4, n_samples_per_group = 5)
+  analysis <- .create_test_analysis(n_genes = 4, n_samples_per_group = 5)
   analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
   
   # Calling plot functions should work as before

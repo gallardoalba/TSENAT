@@ -195,7 +195,7 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL, lm_res = NULL, diverge
     divergence_results_se <- NULL
     
     if (length(analysis@lm_results) > 0) {
-        lm_res <- analysis@lm_results[[1]]
+        lm_res <- analysis@lm_results[[1]]$results
         if (verbose) message("[plot_multi_gene_q_spectrum_s4] Extracted lm_results with ",
             nrow(lm_res), " rows")
     } else {
@@ -304,7 +304,7 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL, lm_res = NULL, diverge
             per_q_vals <- as.numeric(strsplit(patterns[i], ",")[[1]])
             if (length(per_q_vals) == 0 || all(is.na(per_q_vals))) {
                 if (verbose) message(sprintf("  Skipping %s: no valid per-q values", genes[i]))
-                return(NULL)
+                next
             }
             
             q_vals <- seq(0.1, by = 0.05, length.out = length(per_q_vals))

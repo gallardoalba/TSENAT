@@ -690,7 +690,7 @@ testthat::test_that("select_genesselect_genes prioritizes adj_p_lmm over adj_p_i
 testthat::test_that(".extract_diversity_objects extracts SummarizedExperiment and metadata", {
   
   # Create test analysis
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 5, n_samples_per_group = 3,
     q_values = c(1, 2, 3), seed = 42
   )
@@ -830,7 +830,7 @@ testthat::test_that(".create_q_suffixed_colnames removes existing q= suffixes", 
 testthat::test_that(".build_combined_coldata combines metadata across q-values", {
   
   # Create test analysis
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 4, n_samples_per_group = 2,
     q_values = c(1, 2), seed = 42
   )
@@ -881,7 +881,7 @@ testthat::test_that(".extract_bootstrap_ci_matrices returns NULL for non-SE", {
 testthat::test_that(".extract_bootstrap_ci_matrices extracts CI matrices from SE", {
   
   # Create test analysis
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 3, n_samples_per_group = 2,
     q_values = c(1), seed = 42
   )
@@ -914,7 +914,7 @@ testthat::test_that(".extract_bootstrap_ci_matrices extracts CI matrices from SE
 testthat::test_that(".prepare_q_value_for_combining processes q-value data correctly", {
   
   # Create test analysis
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 3, n_samples_per_group = 2,
     q_values = c(1.5), seed = 42
   )
@@ -950,7 +950,7 @@ testthat::test_that(".prepare_q_value_for_combining processes q-value data corre
 testthat::test_that(".fill_combined_assays combines multiple q-values", {
   
   # Create test analysis with multiple q-values
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 3, n_samples_per_group = 2,
     q_values = c(1, 2), seed = 42
   )
@@ -1057,7 +1057,7 @@ testthat::test_that(".create_combined_se_object includes CI assays when provided
 testthat::test_that(".prepare_combined_se integration test with all helpers", {
   
   # Create test analysis
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 5, n_samples_per_group = 3,
     q_values = c(1, 2, 3), seed = 42
   )

@@ -7,7 +7,7 @@ context("S4 Diversity Calculation: Output File Generation and Numerical Correctn
 # Helper to create test analysis using the established .create_test_analysis function
 make_test_analysis_diversity <- function(n_genes = 8, n_samples_per_group = 4, 
                                          q_values = c(0.5, 1.0), seed = 123) {
-  TSENAT:::.create_test_analysis(
+  .create_test_analysis(
     n_genes = n_genes,
     n_samples_per_group = n_samples_per_group,
     q_values = q_values,
@@ -1093,7 +1093,7 @@ context("S4 Diversity Calculator: Helper Function Unit Tests")
 # ===========================================================================
 
 make_test_analysis_helpers <- function(n_genes = 8, n_samples_per_group = 2, seed = 999) {
-  TSENAT:::.create_test_analysis(
+  .create_test_analysis(
     n_genes = n_genes,
     n_samples_per_group = n_samples_per_group,
     q_values = c(0.5, 1.0, 1.5),
@@ -1463,7 +1463,7 @@ test_that("Helper functions produce consistent results across runs", {
 test_that("Helper functions handle edge case: single sample", {
   
   # Create test with minimal samples
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 3,
     n_samples_per_group = 1,
     q_values = c(1.0),
@@ -1487,7 +1487,7 @@ test_that("Helper functions handle edge case: single sample", {
 test_that("Helper functions handle edge case: single q-value", {
   
   # Create analysis with a single q-value in config
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 5,
     n_samples_per_group = 2,
     q_values = c(0.5),  # Single q-value
@@ -1512,7 +1512,7 @@ test_that("Helper functions handle edge case: single q-value", {
 test_that("Helper functions handle edge case: many q-values", {
   
   # Create analysis without pre-configured q_values  
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 5,
     n_samples_per_group = 2,
     q_values = c(0.5),  # Default config

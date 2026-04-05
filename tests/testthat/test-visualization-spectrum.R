@@ -473,7 +473,7 @@ test_that("plot_divergence_spectrum_s4: requires divergence results", {
   set.seed(304)
   
   # Create minimal analysis without divergence results
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 10,
     n_samples_per_group = 3,
     q_values = c(1.0),

@@ -521,7 +521,7 @@ test_that("plot_volcano_ma_grid_s4: requires pairwise results", {
   set.seed(301)
   
   # Create minimal analysis without pairwise results
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 10,
     n_samples_per_group = 3,
     q_values = c(1.0),

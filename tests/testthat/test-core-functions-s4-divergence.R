@@ -7,7 +7,7 @@ context("S4 Divergence Calculation: Output File Generation and Numerical Correct
 # Helper to create test analysis using the established .create_test_analysis function
 make_test_analysis_divergence <- function(n_genes = 8, n_samples_per_group = 4, 
                                           q_values = c(0.5, 1.0), seed = 123) {
-  TSENAT:::.create_test_analysis(
+  .create_test_analysis(
     n_genes = n_genes,
     n_samples_per_group = n_samples_per_group,
     q_values = q_values,

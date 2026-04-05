@@ -5890,7 +5890,7 @@ test_that("plot_divergence_distribution_s4: requires effect_sizes_divergence in 
   set.seed(5555)
   
   # Create minimal TSENATAnalysis object without effect sizes
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 5,
     n_samples_per_group = 2,
     q_values = c(0.5, 1.0),
@@ -5914,7 +5914,7 @@ test_that("plot_divergence_distribution_s4: returns plot or NULL gracefully", {
   set.seed(5556)
   
   # Create analysis with mock effect_sizes_divergence
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 5,
     n_samples_per_group = 2,
     q_values = c(0.5, 1.0),
@@ -5948,7 +5948,7 @@ test_that("plot_method_concordance_s4: requires method_concordance in metadata",
   set.seed(5557)
   
   # Create minimal TSENATAnalysis object without concordance
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 5,
     n_samples_per_group = 2,
     q_values = c(0.5, 1.0),
@@ -5972,7 +5972,7 @@ test_that("plot_method_concordance_s4: returns plot with valid concordance data"
   set.seed(5558)
   
   # Create analysis with mock method_concordance
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 5,
     n_samples_per_group = 2,
     q_values = c(0.5, 1.0),

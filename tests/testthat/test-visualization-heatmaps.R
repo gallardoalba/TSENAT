@@ -840,7 +840,7 @@ test_that("plot_multiq_delta_influence_heatmaps_s4: requires jackknife results",
   set.seed(308)
   
   # Create analysis without jackknife results
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 10,
     n_samples_per_group = 3,
     q_values = c(1.0),

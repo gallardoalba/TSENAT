@@ -270,7 +270,7 @@
         long <- long[!invalid_q, ]
     }
 
-    if (!is.null(condition_col) && (condition_col %in% colnames(SummarizedExperiment::colData(se)))) {
+    if (!is.null(condition_col) && length(condition_col) == 1 && (condition_col %in% colnames(SummarizedExperiment::colData(se)))) {
         # Get colData which should have been populated by map_metadata()
         col_data <- SummarizedExperiment::colData(se)
         col_st <- as.character(col_data[, condition_col])

@@ -479,7 +479,7 @@ testthat::test_that("select_genes_from_results errors on missing genes column", 
 
 testthat::test_that(".prepare_combined_se converts TSENATAnalysis to SE", {
   # Create test TSENATAnalysis object
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 5, n_samples_per_group = 3,
     q_values = c(1, 2, 3), seed = 42
   )
@@ -504,7 +504,7 @@ testthat::test_that(".prepare_combined_se converts TSENATAnalysis to SE", {
 })
 
 testthat::test_that(".prepare_combined_se creates colData with q column", {
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 3, n_samples_per_group = 2,
     q_values = c(1, 2), seed = 42
   )
@@ -522,7 +522,7 @@ testthat::test_that(".prepare_combined_se creates colData with q column", {
 })
 
 testthat::test_that(".prepare_combined_se creates rowData with gene_id", {
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 4, n_samples_per_group = 2,
     q_values = c(1, 2), seed = 42
   )
@@ -537,7 +537,7 @@ testthat::test_that(".prepare_combined_se creates rowData with gene_id", {
 
 testthat::test_that(".prepare_combined_se handles dimension mismatches", {
   # Create small test analysis with 2 q values
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 3, n_samples_per_group = 2,
     q_values = c(1, 2), seed = 42
   )

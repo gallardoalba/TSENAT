@@ -15,7 +15,7 @@ test_that("plot_lm_interaction_gam_s4: requires LM interaction results", {
   set.seed(123)
   
   # Create analysis without LM results
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 5,
     n_samples_per_group = 2,
     q_values = c(0.5, 1.0),
@@ -38,7 +38,7 @@ test_that("plot_lm_interaction_gam_s4: requires diversity results", {
   set.seed(124)
   
   # Create analysis with LM results but no diversity
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 5,
     n_samples_per_group = 2,
     q_values = c(0.5, 1.0),
@@ -69,7 +69,7 @@ test_that("plot_lm_interaction_gam_s4: auto-detects condition column", {
   
   set.seed(125)
   
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 5,
     n_samples_per_group = 2,
     q_values = c(0.5, 1.0),
@@ -93,7 +93,7 @@ test_that("plot_lm_interaction_gam_s4: handles n_top parameter", {
   
   set.seed(126)
   
-  analysis <- TSENAT:::.create_test_analysis(
+  analysis <- .create_test_analysis(
     n_genes = 5,
     n_samples_per_group = 2,
     q_values = c(0.5, 1.0),
