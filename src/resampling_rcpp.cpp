@@ -431,6 +431,7 @@ NumericVector bootstrap_compute_cpp(NumericVector x, int nboot = 1000,
 //          for each column (replicate).
 // Use case: When bootstrap samples are generated at R level.
 
+// [[Rcpp::export(rng = false)]]
 NumericVector bootstrap_entropy_vec_cpp(NumericMatrix boot_samples, 
                                         double q = 1.0, 
                                         bool normalize = true, 
@@ -573,6 +574,7 @@ bool check_rcpp_available() {
 //   2. jis_jackknife_influences_cpp() - Leave-one-out for all transcripts
 //   3. jis_bootstrap_delta_cpp() - Bootstrap delta statistics
 
+// [[Rcpp::export(rng = false)]]
 NumericVector jis_tsallis_entropy_cpp(NumericMatrix counts, 
                                       double q = 1.0, 
                                       bool normalize = true, 
@@ -692,6 +694,7 @@ NumericVector jis_tsallis_entropy_cpp(NumericMatrix counts,
   return entropy_result;
 }
 
+// [[Rcpp::export(rng = false)]]
 NumericVector jis_jackknife_influences_cpp(NumericMatrix counts, 
                                            double q = 1.0, 
                                            bool normalize = true, 
@@ -783,6 +786,7 @@ NumericVector jis_jackknife_influences_cpp(NumericMatrix counts,
   return influences;
 }
 
+// [[Rcpp::export(rng = false)]]
 List jis_bootstrap_delta_cpp(NumericMatrix counts_A, 
                              NumericMatrix counts_B,
                              NumericVector delta_influence,
