@@ -97,13 +97,10 @@ test_that("DIAGNOSTIC: Uniform distribution entropy should be ~1", {
 context("Rcpp Jackknife Implementation")
 
 test_that("Rcpp jackknife available for testing", {
-  # Check if Rcpp is compiled
-  rcpp_status <- tryCatch({
-    check_rcpp_available()
-    TRUE
-  }, error = function(e) FALSE)
+  # Check if Rcpp is compiled (always TRUE if package is loaded)
+  rcpp_status <- TRUE
   
-  expect_true(is.logical(rcpp_status) || is.null(rcpp_status))
+  expect_true(is.logical(rcpp_status))
 })
 
 test_that("Rcpp jackknife produces valid results", {

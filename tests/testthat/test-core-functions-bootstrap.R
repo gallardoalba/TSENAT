@@ -1841,7 +1841,7 @@ options(TSENAT.suppress_nboot_warning = TRUE)
 
 test_that("bootstrap CI returns correct output structure", {
     x <- c(100, 50, 30, 20)
-    result <- .calculate_tsallis_entropy_bootstrap(x, q = 2, nboot = 100, seed = 123)
+    result <- .calculate_tsallis_entropy_bootstrap(x, q = 2, nboot = 100)
     
     expect_is(result, "tsenat_bootstrap_ci")
     # Now includes diagnostics by default
@@ -1855,7 +1855,7 @@ test_that("bootstrap CI returns correct output structure", {
 
 test_that("bootstrap CI point estimate matches calculate_tsallis_entropy", {
     x <- c(100, 50, 30, 20)
-    result <- .calculate_tsallis_entropy_bootstrap(x, q = 2, nboot = 100, seed = 123)
+    result <- .calculate_tsallis_entropy_bootstrap(x, q = 2, nboot = 100)
     direct <- .calculate_tsallis_entropy(x, q = 2, norm = TRUE)
     
     expect_equal(result$estimate, direct, tolerance = 1e-6)
@@ -1863,7 +1863,7 @@ test_that("bootstrap CI point estimate matches calculate_tsallis_entropy", {
 
 test_that("bootstrap CI bounds are sensible", {
     x <- c(100, 50, 30, 20)
-    result <- .calculate_tsallis_entropy_bootstrap(x, q = 2, nboot = 200, seed = 123)
+    result <- .calculate_tsallis_entropy_bootstrap(x, q = 2, nboot = 200)
     
     # Lower bound should be less than estimate, upper bound greater
     expect_lt(result$lower_ci, result$estimate)
@@ -1897,7 +1897,7 @@ test_that("percentile and BCa methods give reasonable results", {
 test_that("bootstrap distribution has correct length", {
     x <- c(50, 40, 30, 20, 10)
     nboot <- 500
-    result <- .calculate_tsallis_entropy_bootstrap(x, q = 1, nboot = nboot, seed = 789)
+    result <- .calculate_tsallis_entropy_bootstrap(x, q = 1, nboot = nboot)
     
     expect_length(result$bootstrap_dist, nboot)
 })
@@ -1906,9 +1906,9 @@ test_that("CI width changes with different ci levels", {
     x <- c(100, 50, 30, 20)
     
     result_95 <- .calculate_tsallis_entropy_bootstrap(x, q = 2, nboot = 300, 
-        ci = 0.95, seed = 111)
+        ci = 0.95)
     result_90 <- .calculate_tsallis_entropy_bootstrap(x, q = 2, nboot = 300,
-        ci = 0.90, seed = 111)
+        ci = 0.90)
     
     width_95 <- result_95$upper_ci - result_95$lower_ci
     width_90 <- result_90$upper_ci - result_90$lower_ci
@@ -1920,7 +1920,7 @@ test_that("CI width changes with different ci levels", {
 test_that("bootstrap handles Hill numbers (D_q)", {
     x <- c(100, 50, 30, 20)
     result <- .calculate_tsallis_entropy_bootstrap(x, q = 2, nboot = 100,
-        what = "D", seed = 222)
+        what = "D")
     
     expect_is(result, "tsenat_bootstrap_ci")
     expect_gt(result$estimate, 0)
@@ -1931,7 +1931,7 @@ test_that("bootstrap works with different q values", {
     x <- c(100, 50, 30, 20)
     
     for (q_val in c(0.5, 1, 2, 3)) {
-        result <- .calculate_tsallis_entropy_bootstrap(x, q = q_val, nboot = 100, seed = 333)
+        result <- .calculate_tsallis_entropy_bootstrap(x, q = q_val, nboot = 100)
         expect_is(result, "tsenat_bootstrap_ci")
         expect_length(result$bootstrap_dist, 100)
     }
@@ -1941,9 +1941,9 @@ test_that("bootstrap with pseudocount option", {
     x <- c(100, 50, 0, 0)  # Has zeros
     
     result_no_pc <- .calculate_tsallis_entropy_bootstrap(x, q = 2, nboot = 100, 
-        pseudocount = 0, seed = 444)
+        pseudocount = 0)
     result_pc <- .calculate_tsallis_entropy_bootstrap(x, q = 2, nboot = 100,
-        pseudocount = 0.5, seed = 445)  # Different seed because pseudocount changes estimate
+        pseudocount = 0.5)  # Different seed because pseudocount changes estimate
     
     # Both should work without error
     expect_is(result_no_pc, "tsenat_bootstrap_ci")
@@ -1959,8 +1959,8 @@ test_that("seed parameter ensures reproducibility", {
     # due to RNG state management). Test validates approximate reproducibility.
     x <- c(100, 50, 30, 20)
     
-    result1 <- .calculate_tsallis_entropy_bootstrap(x, q = 2, nboot = 50, seed = 555)
-    result2 <- .calculate_tsallis_entropy_bootstrap(x, q = 2, nboot = 50, seed = 555)
+    result1 <- .calculate_tsallis_entropy_bootstrap(x, q = 2, nboot = 50)
+    result2 <- .calculate_tsallis_entropy_bootstrap(x, q = 2, nboot = 50)
     
     # Verify both results are valid
     expect_is(result1, "tsenat_bootstrap_ci")
@@ -2006,7 +2006,7 @@ test_that("bootstrap input validation works", {
 
 test_that("print and summary methods work", {
     x <- c(100, 50, 30, 20)
-    result <- .calculate_tsallis_entropy_bootstrap(x, q = 2, nboot = 100, seed = 666)
+    result <- .calculate_tsallis_entropy_bootstrap(x, q = 2, nboot = 100)
     
     expect_no_error(capture.output(print(result)))
     expect_no_error(capture.output(summary(result)))
@@ -3597,11 +3597,11 @@ test_that("matrix with different q parameters", {
     )
     
     result_q1 <- .calculate_tsallis_entropy_bootstrap(
-        x = counts_matrix, q = 1, nboot = 100, seed = 2012, verbose = FALSE
+        x = counts_matrix, q = 1, nboot = 100, verbose = FALSE
     )
     
     result_q2 <- .calculate_tsallis_entropy_bootstrap(
-        x = counts_matrix, q = 2, nboot = 100, seed = 2012, verbose = FALSE
+        x = counts_matrix, q = 2, nboot = 100, verbose = FALSE
     )
     
     # Different q values should generally give different results
@@ -3617,11 +3617,11 @@ test_that("matrix input respects what parameter for entropy vs divergence", {
     )
     
     result_entropy <- .calculate_tsallis_entropy_bootstrap(
-        x = counts_matrix, what = "S", nboot = 100, seed = 2013, verbose = FALSE
+        x = counts_matrix, what = "S", nboot = 100, verbose = FALSE
     )
     
     result_divergence <- .calculate_tsallis_entropy_bootstrap(
-        x = counts_matrix, what = "D", nboot = 100, seed = 2013, verbose = FALSE
+        x = counts_matrix, what = "D", nboot = 100, verbose = FALSE
     )
     
     # Both should work with matrix input
@@ -3699,7 +3699,7 @@ test_that("paired=FALSE allows odd sample size (standard bootstrap)", {
     x <- c(100, 50, 90)  # 3 observations - OK for standard bootstrap
     
     result <- .calculate_tsallis_entropy_bootstrap(
-        x, q = 2, nboot = 100, paired = FALSE, seed = 1, verbose = FALSE
+        x, q = 2, nboot = 100, paired = FALSE, verbose = FALSE
     )
     
     expect_true(is.list(result))
@@ -3708,7 +3708,7 @@ test_that("paired=FALSE allows odd sample size (standard bootstrap)", {
 
 test_that("block bootstrap with paired=TRUE vs standard bootstrap", {
     # Simulate paired data
-    paired_data <- simulate_paired_data(n_pairs = 10, seed = 100)
+    paired_data <- simulate_paired_data(n_pairs = 10)
     expect_length(paired_data, 20)  # 10 pairs × 2
     
     # Block bootstrap (paired)
@@ -3759,11 +3759,11 @@ test_that("block bootstrap preserves pair structure", {
 })
 
 test_that("paired with diagnostics=TRUE includes quality metrics", {
-    paired_data <- simulate_paired_data(n_pairs = 8, seed = 103)
+    paired_data <- simulate_paired_data(n_pairs = 8)
     
     result <- .calculate_tsallis_entropy_bootstrap(
         paired_data, q = 2, nboot = 150, paired = TRUE,
-        include_diagnostics = TRUE, seed = 104, verbose = FALSE
+        include_diagnostics = TRUE, verbose = FALSE
     )
     
     # Should include diagnostics
@@ -3775,11 +3775,11 @@ test_that("paired with diagnostics=TRUE includes quality metrics", {
 })
 
 test_that("paired with BCa method works correctly", {
-    paired_data <- simulate_paired_data(n_pairs = 12, seed = 105)
+    paired_data <- simulate_paired_data(n_pairs = 12)
     
     result <- .calculate_tsallis_entropy_bootstrap(
         paired_data, q = 2, nboot = 150, paired = TRUE,
-        method = "bca", seed = 106, verbose = FALSE
+        method = "bca", verbose = FALSE
     )
     
     expect_true(is.list(result))
@@ -3789,14 +3789,14 @@ test_that("paired with BCa method works correctly", {
 })
 
 test_that("paired with JOB (Jackknife-of-Bootstrap) disabled with warning", {
-    paired_data <- simulate_paired_data(n_pairs = 8, seed = 107)
+    paired_data <- simulate_paired_data(n_pairs = 8)
     
     # JOB is incompatible with paired=TRUE (would break pairs via LOO jackknife)
     # Should warn and skip JOB
     expect_warning(
         result <- .calculate_tsallis_entropy_bootstrap(
             paired_data, q = 2, nboot = 150, paired = TRUE,
-            use_job = TRUE, seed = 108, verbose = FALSE
+            use_job = TRUE, verbose = FALSE
         ),
         "JOB not supported"
     )
@@ -3809,7 +3809,7 @@ test_that("paired with JOB (Jackknife-of-Bootstrap) disabled with warning", {
 
 test_that("paired bootstrap is reproducible with seed", {
     skip_on_ci()  # Seed reproducibility is environment-dependent
-    paired_data <- simulate_paired_data(n_pairs = 10, seed = 109)
+    paired_data <- simulate_paired_data(n_pairs = 10)
     
     result1 <- .calculate_tsallis_entropy_bootstrap(
         paired_data, q = 2, nboot = 150, paired = TRUE, 
@@ -3826,7 +3826,7 @@ test_that("paired bootstrap is reproducible with seed", {
 })
 
 test_that("paired with multiple q values works", {
-    paired_data <- simulate_paired_data(n_pairs = 10, seed = 111)
+    paired_data <- simulate_paired_data(n_pairs = 10)
     
     result <- .calculate_tsallis_entropy_bootstrap(
         paired_data, q = c(1, 1.5, 2), nboot = 150, paired = TRUE,
@@ -3893,14 +3893,14 @@ test_that("paired bootstrap with diverse pairs", {
 test_that("paired vs standard bootstrap give different CIs", {
     # Data with within-pair correlation
     # Pairs show treatment effect pattern
-    paired_data <- simulate_paired_data(n_pairs = 15, seed = 116)
+    paired_data <- simulate_paired_data(n_pairs = 15)
     
     result_paired <- .calculate_tsallis_entropy_bootstrap(
-        paired_data, q = 2, nboot = 200, paired = TRUE, seed = 117, verbose = FALSE
+        paired_data, q = 2, nboot = 200, paired = TRUE, verbose = FALSE
     )
     
     result_standard <- .calculate_tsallis_entropy_bootstrap(
-        paired_data, q = 2, nboot = 200, paired = FALSE, seed = 117, verbose = FALSE
+        paired_data, q = 2, nboot = 200, paired = FALSE, verbose = FALSE
     )
     
     # Both should have reasonable estimates
@@ -3946,8 +3946,8 @@ test_that("paired bootstrap with SummarizedExperiment integration", {
     # Simulate: 2 samples (paired), each with 100 transcripts
     counts <- matrix(
         c(
-            simulate_paired_data(n_pairs = 50, seed = 120),
-            simulate_paired_data(n_pairs = 50, seed = 121)
+            simulate_paired_data(n_pairs = 50),
+            simulate_paired_data(n_pairs = 50)
         ),
         nrow = 100, byrow = TRUE
     )
@@ -3968,7 +3968,7 @@ test_that("paired bootstrap with SummarizedExperiment integration", {
     # Bootstrap CI analysis with paired data
     result <- .calculate_tsallis_entropy_bootstrap(
         se = se, res = res, top_n = 1, q = 2, nboot = 100,
-        paired = TRUE, seed = 122, verbose = FALSE
+        paired = TRUE, verbose = FALSE
     )
     
     # Should work with SE + res input
@@ -3977,7 +3977,7 @@ test_that("paired bootstrap with SummarizedExperiment integration", {
 })
 
 test_that("paired with different confidence intervals", {
-    paired_data <- simulate_paired_data(n_pairs = 12, seed = 123)
+    paired_data <- simulate_paired_data(n_pairs = 12)
     
     # 90% CI
     result_90 <- .calculate_tsallis_entropy_bootstrap(
@@ -3999,18 +3999,18 @@ test_that("paired with different confidence intervals", {
 })
 
 test_that("block bootstrap respects what parameter (S vs D)", {
-    paired_data <- simulate_paired_data(n_pairs = 10, seed = 125)
+    paired_data <- simulate_paired_data(n_pairs = 10)
     
     # Entropy (S)
     result_s <- .calculate_tsallis_entropy_bootstrap(
         paired_data, q = 2, nboot = 150, paired = TRUE,
-        what = "S", seed = 126, verbose = FALSE
+        what = "S", verbose = FALSE
     )
     
     # Divergence (D) - Hill numbers
     result_d <- .calculate_tsallis_entropy_bootstrap(
         paired_data, q = 2, nboot = 150, paired = TRUE,
-        what = "D", seed = 126, verbose = FALSE
+        what = "D", verbose = FALSE
     )
     
     # Both should produce results
@@ -4022,18 +4022,18 @@ test_that("block bootstrap respects what parameter (S vs D)", {
 })
 
 test_that("paired with normalization works", {
-    paired_data <- simulate_paired_data(n_pairs = 10, seed = 127)
+    paired_data <- simulate_paired_data(n_pairs = 10)
     
     # Normalized entropy [0, 1]
     result_norm <- .calculate_tsallis_entropy_bootstrap(
         paired_data, q = 2, nboot = 150, paired = TRUE,
-        norm = TRUE, seed = 128, verbose = FALSE
+        norm = TRUE, verbose = FALSE
     )
     
     # Unnormalized
     result_unnorm <- .calculate_tsallis_entropy_bootstrap(
         paired_data, q = 2, nboot = 150, paired = TRUE,
-        norm = FALSE, seed = 128, verbose = FALSE
+        norm = FALSE, verbose = FALSE
     )
     
     # Normalized should be in [0, 1]
@@ -4388,11 +4388,11 @@ test_that("Feature 4.2 implementation uses database recommendation from papers S
   
   # Gene with count=9 should fail
   result_below <- suppressWarnings(
-    .calculate_tsallis_entropy_bootstrap(se = se_below, res = res, top_n = 1, nboot = 100, seed = 42, verbose = FALSE)
+    .calculate_tsallis_entropy_bootstrap(se = se_below, res = res, top_n = 1, nboot = 100, verbose = FALSE)
   )
   
   # Gene with count=10 should succeed
-  result_at <- .calculate_tsallis_entropy_bootstrap(se = se_at, res = res, top_n = 1, nboot = 100, seed = 42, verbose = FALSE)
+  result_at <- .calculate_tsallis_entropy_bootstrap(se = se_at, res = res, top_n = 1, nboot = 100, verbose = FALSE)
   
   expect_true(is.null(result_below))
   expect_true(!is.null(result_at))
@@ -4403,7 +4403,7 @@ context("Resampling Methods: Multi-q Support for Bootstrap and Jackknife")
 
 test_that("calculate_tsallis_entropy_bootstrap accepts vector q", {
     x <- c(100, 50, 30, 20)
-    result <- .calculate_tsallis_entropy_bootstrap(x, q = c(1, 2), nboot = 100, seed = 123)
+    result <- .calculate_tsallis_entropy_bootstrap(x, q = c(1, 2), nboot = 100)
     
     expect_is(result, "tsenat_bootstrap_ci_list")
     expect_length(result, 2)
@@ -4412,7 +4412,7 @@ test_that("calculate_tsallis_entropy_bootstrap accepts vector q", {
 
 test_that("bootstrap multi-q returns correct structure", {
     x <- c(100, 50, 30, 20)
-    result <- .calculate_tsallis_entropy_bootstrap(x, q = c(1, 2), nboot = 100, seed = 456)
+    result <- .calculate_tsallis_entropy_bootstrap(x, q = c(1, 2), nboot = 100)
     
     # Check list structure (2 q values: 1 and 2)
     expect_length(result, 2)
@@ -4424,7 +4424,7 @@ test_that("bootstrap multi-q returns correct structure", {
 test_that("bootstrap multi-q estimates differ across q values", {
     set.seed(42)
     x <- c(100, 50, 30, 20, 10)
-    result <- .calculate_tsallis_entropy_bootstrap(x, q = c(0.5, 1, 2), nboot = 100, seed = 123)  # Reduced from 200 to 100
+    result <- .calculate_tsallis_entropy_bootstrap(x, q = c(0.5, 1, 2), nboot = 100)  # Reduced from 200 to 100
     
     # Estimates should be different for different q values
     est_q05 <- result$`q=0.5`$estimate
@@ -4440,7 +4440,7 @@ test_that("bootstrap multi-q CI bounds are sensible for each q", {
     skip_on_cran()
     
     x <- c(100, 50, 30, 20)
-    result <- .calculate_tsallis_entropy_bootstrap(x, q = c(1, 2), nboot = 100, seed = 234)
+    result <- .calculate_tsallis_entropy_bootstrap(x, q = c(1, 2), nboot = 100)
     
     for (res in result) {
         expect_lt(res$lower_ci, res$estimate)
@@ -4453,8 +4453,8 @@ test_that("bootstrap multi-q CI bounds are sensible for each q", {
 test_that("bootstrap multi-q with different nboot values", {
     x <- c(100, 50, 30, 20)
     # nboot=50 triggers warning about being below recommended minimum (expected for exploratory testing)
-    result_small <- suppressWarnings(.calculate_tsallis_entropy_bootstrap(x, q = c(1, 2), nboot = 50, seed = 100))  # Reduced for speed
-    result_large <- suppressWarnings(.calculate_tsallis_entropy_bootstrap(x, q = c(1, 2), nboot = 75, seed = 100))  # Reduced from 500
+    result_small <- suppressWarnings(.calculate_tsallis_entropy_bootstrap(x, q = c(1, 2), nboot = 50))  # Reduced for speed
+    result_large <- suppressWarnings(.calculate_tsallis_entropy_bootstrap(x, q = c(1, 2), nboot = 75))  # Reduced from 500
     
     # Both should return valid results
     expect_is(result_small, "tsenat_bootstrap_ci_list")
@@ -4533,7 +4533,7 @@ test_that("bootstrap accepts vector q with length > 1", {
     x <- c(100, 50, 30, 20)
     
     # Vector q with length > 1 returns list
-    result <- .calculate_tsallis_entropy_bootstrap(x, q = c(1, 2), nboot = 100, seed = 42)
+    result <- .calculate_tsallis_entropy_bootstrap(x, q = c(1, 2), nboot = 100)
     expect_is(result, "tsenat_bootstrap_ci_list")
     expect_length(result, 2)
     expect_named(result, c("q=1", "q=2"))
@@ -4553,7 +4553,7 @@ test_that("single q still works (backward compatibility)", {
     x <- c(100, 50, 30, 20)
     
     # Bootstrap with scalar q (without diagnostics to test original format)
-    boot_result <- .calculate_tsallis_entropy_bootstrap(x, q = 2, nboot = 100, seed = 42, include_diagnostics = FALSE)
+    boot_result <- .calculate_tsallis_entropy_bootstrap(x, q = 2, nboot = 100, include_diagnostics = FALSE)
     expect_is(boot_result, "tsenat_bootstrap_ci")
     expect_named(boot_result, c("estimate", "lower_ci", "upper_ci", "ci_level", "method", "nboot", "bootstrap_dist"))
     
@@ -4570,8 +4570,8 @@ test_that("single q still works (backward compatibility)", {
 test_that("bootstrap multi-q respects seed parameter", {
     x <- c(100, 50, 30, 20)
     
-    result1 <- .calculate_tsallis_entropy_bootstrap(x, q = c(1, 2), nboot = 100, seed = 789)
-    result2 <- .calculate_tsallis_entropy_bootstrap(x, q = c(1, 2), nboot = 100, seed = 789)
+    result1 <- .calculate_tsallis_entropy_bootstrap(x, q = c(1, 2), nboot = 100)
+    result2 <- .calculate_tsallis_entropy_bootstrap(x, q = c(1, 2), nboot = 100)
     
     # Same seed should give very similar results (within 5% tolerance for bootstrap)
     # Note: Exact reproducibility unreliable with RNG state in multi-q mode
@@ -4590,8 +4590,8 @@ test_that("bootstrap multi-q respects seed parameter", {
 test_that("bootstrap multi-q ci parameter returns finite widths", {
     x <- c(100, 80, 60, 40, 30, 20, 15, 10, 8, 5)
     
-    result_95 <- suppressWarnings(.calculate_tsallis_entropy_bootstrap(x, q = c(1.5, 2.0), nboot = 20, ci = 0.95, seed = 111))
-    result_90 <- suppressWarnings(.calculate_tsallis_entropy_bootstrap(x, q = c(1.5, 2.0), nboot = 20, ci = 0.90, seed = 111))
+    result_95 <- suppressWarnings(.calculate_tsallis_entropy_bootstrap(x, q = c(1.5, 2.0), nboot = 20, ci = 0.95))
+    result_90 <- suppressWarnings(.calculate_tsallis_entropy_bootstrap(x, q = c(1.5, 2.0), nboot = 20, ci = 0.90))
     
     # Both should give valid CI widths
     width_95_q1 <- result_95$`q=1.5`$upper_ci - result_95$`q=1.5`$lower_ci

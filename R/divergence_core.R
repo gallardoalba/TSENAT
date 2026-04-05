@@ -760,7 +760,7 @@
         q_val <- q_vals[j]
 
         bootstrap_args <- .bootstrap_build_args(x, y, q_val, nboot, ci, method, log_base,
-            pseudocount, gene_name, seed, pair_ids)
+            pseudocount, gene_name, pair_ids)
 
         result <- do.call(.calculate_divergence_bootstrap, bootstrap_args)
 

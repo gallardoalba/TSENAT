@@ -6,12 +6,11 @@
 // Target speedup: 2-3x~ compared to pure R implementation
 // 
 // This file contains:
-//   1. Entropy computations: entropy_cpp, hill_number_cpp
+//   1. Entropy computations: entropy_cpp
 //   2. Jackknife resampling: jackknife_resampling_cpp, jis_jackknife_influences_cpp
 //   3. Bootstrap resampling: bootstrap_compute_cpp, block_bootstrap_compute_cpp
 //   4. Bootstrap entropy: bootstrap_entropy_vec_cpp, jis_bootstrap_delta_cpp
 //   5. Divergence computations: tsallis_divergence_cpp, divergence_bootstrap_compute_cpp
-//   6. Utility functions: check_rcpp_available
 //
 // Implementation uses Armadillo (via RcppArmadillo) for efficient matrix operations
 // and vectorized computation to replace R's row-by-row loops.
@@ -129,80 +128,6 @@ double entropy_cpp(NumericVector p, double q = 1.0, bool normalize = true, doubl
   return entropy;
 }
 
-// ============================================================================
-// HILL NUMBERS (Diversity indices derived from entropy)
-// ============================================================================
-// Hill numbers (D_q) convert Tsallis entropy to effective number of species
-// Formula: D_q = (Σp^q)^(1/(1-q))
-// Special cases:
-//   D_0 = count(p > 0)  [true species richness]
-//   D_1 = exp(H_1)      [exponential of Shannon entropy]
-//   D_q = general form for q ≠ 1
-// [[Rcpp::export(rng = false)]]
-double hill_number_cpp(NumericVector p, double q = 1.0, double log_base = 2.718281828) {
-  // BUG FIX: Validate log_base parameter (see entropy_cpp for details)
-  if (log_base <= 0 || std::abs(log_base - 1.0) < 1e-10) {
-    Rcpp::warning("Invalid log_base (must be > 1, not equal to 1)");
-    return NA_REAL;
-  }
-  
-  // q must be non-negative
-  if (q < 0) {
-    Rcpp::warning("Invalid q parameter (must be non-negative)");
-    return NA_REAL;
-  }
-  
-  // Remove NA and filter invalid values
-  LogicalVector not_na = !is_na(p);
-  NumericVector p_clean = p[not_na];
-  
-  if (p_clean.size() == 0) return NA_REAL;
-  
-  LogicalVector valid = (p_clean > 1e-10);
-  NumericVector p_valid = p_clean[valid];
-  
-  if (p_valid.size() == 0) return NA_REAL;
-  
-  double q_tol = 1e-6;
-  int n = p_valid.size();
-  
-  if (q < q_tol) {
-    // D_0: true richness = number of nonzero species
-    return static_cast<double>(n);
-  } else if (std::abs(q - 1.0) < q_tol) {
-    // D_1 = exp(Shannon entropy)
-    double shannon = 0.0;
-    for (int i = 0; i < n; i++) {
-      double pi = p_valid[i];
-      if (pi > 1e-15) {  // BUG FIX: Use machine epsilon threshold not arbitrary 0
-        shannon -= pi * std::log(pi) / std::log(log_base);
-      }
-    }
-    return std::pow(log_base, shannon);
-  } else {
-    // D_q = (Σp^q)^(1/(1-q))
-    double sum_pq = 0.0;
-    for (int i = 0; i < n; i++) {
-      sum_pq += std::pow(p_valid[i], q);
-    }
-    
-    // BUG FIX: Check for numerical stability - avoid log domain if not needed
-    // Also validate sum_pq is in valid range (0, infinity)
-    if (sum_pq <= 0 || !std::isfinite(sum_pq)) {
-      return NA_REAL;
-    }
-    
-    double exponent = 1.0 / (1.0 - q);
-    
-    // For very large exponents, use log-domain computation to avoid overflow
-    // log(result) = exponent * log(sum_pq)
-    double log_result = exponent * std::log(sum_pq);
-    if (std::abs(log_result) > 700) {  // 700 ~ ln(DBL_MAX), avoid overflow
-      return std::exp(log_result);  // Let overflow be handled by exp()
-    }
-    return std::pow(sum_pq, exponent);
-  }
-}
 // Internal C++ function (registered but not exported to R NAMESPACE)
 // Leave-one-out jackknife with vectorized Armadillo implementation
 // Callable via .Call("_TSENAT_jackknife_resampling_cpp") but not in user namespace
@@ -448,7 +373,21 @@ NumericVector bootstrap_entropy_vec_cpp(NumericMatrix boot_samples,
   // Each column = one bootstrap sample
   for (size_t b = 0; b < static_cast<size_t>(nboot); b++) {  // BUG FIX: Type consistency
     NumericVector boot_sample = boot_samples(_, (int)b);  // Cast back for indexing
-    boot_dist[b] = entropy_cpp(boot_sample, q, normalize, log_base);
+    
+    // CRITICAL: Normalize bootstrap sample from counts to proportions
+    // entropy_cpp() expects proportions, not counts (same as bootstrap_compute_cpp)
+    double boot_total = sum(boot_sample);
+    
+    // Safety check: avoid division by zero
+    if (boot_total <= 0) {
+      boot_dist[b] = NA_REAL;
+      continue;
+    }
+    
+    NumericVector boot_props = boot_sample / boot_total;
+    
+    // Compute Tsallis entropy for this bootstrap replicate
+    boot_dist[b] = entropy_cpp(boot_props, q, normalize, log_base);
     
     if (!std::isfinite(boot_dist[b])) {
       boot_dist[b] = NA_REAL;
@@ -555,12 +494,6 @@ NumericVector block_bootstrap_compute_cpp(NumericVector x, int nboot = 1000,
   PutRNGstate();
   
   return boot_dist;
-}
-
-// Fallback: R wrapper for graceful degradation if Rcpp not available
-//' @keywords internal
-bool check_rcpp_available() {
-  return true;  // If this function exists, Rcpp compilation succeeded
 }
 
 // ============================================================================

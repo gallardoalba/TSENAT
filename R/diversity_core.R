@@ -231,7 +231,7 @@
     # Optional: Compute bootstrap CIs
     bootstrap_ci_results <- .bootstrap_diversity_ci(bootstrap, result, genes, se_assay_mat,
         bootstrap_method, bootstrap_ci, bootstrap_nboot, q, pseudocount, nthreads,
-        bootstrap_include_diagnostics, verbose, seed, effective_length, show_messages,
+        bootstrap_include_diagnostics, verbose, effective_length, show_messages,
         min_valid_frac)
 
     # Prepare output structure

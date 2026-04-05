@@ -3,14 +3,9 @@
 # Pure R version available if Rcpp unavailable
 
 # Check if Rcpp implementation is available
+# Since the package compiles successfully, Rcpp is always available
 .rcpp_available <- function() {
-    tryCatch({
-        # Try to call the Rcpp check function
-        check_rcpp_available()
-        TRUE
-    }, error = function(e) {
-        FALSE
-    })
+    TRUE
 }
 
 # Initialize Rcpp check on first use (cached via options)
