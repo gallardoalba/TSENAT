@@ -218,8 +218,6 @@ require_pkgs <- function(pkgs) {
     # focuses on normalizing counts, samples and tx2gene mapping and preparing
     # agg functions
     if (inherits(counts, "SummarizedExperiment")) {
-        library(SummarizedExperiment)
-        library(S4Vectors)
         se <- counts
         counts_mat <- .get_readcounts_from_se(se, readcounts)
         counts <- as.matrix(counts_mat)
@@ -332,8 +330,6 @@ require_pkgs <- function(pkgs) {
 
 .make_plot_for_genemake_plot_for_gene <- function(gene_single, mapping, counts, samples,
     top_n, agg_fun, pseudocount, agg_label_unique, fill_limits = NULL, font_scale = 1) {
-    library(ggplot2)
-    library(tidyr)
     built <- .make_plot_for_genebuild_tx_long(gene_single, mapping, counts, samples,
         NULL)
     df_summary <- .make_plot_for_geneaggregate_df_long(built$df_long, agg_fun, pseudocount)
@@ -353,7 +349,6 @@ require_pkgs <- function(pkgs) {
 #' @noRd
 
 .make_plot_for_genecombine_plots <- function(plots, output_file = NULL, agg_label_unique = NULL) {
-    library(ggplot2)
     # Allow callers to pass a single character second argument as the
     # `agg_label_unique` for convenience (legacy test call patterns).
     if (is.null(agg_label_unique) && !is.null(output_file) && is.character(output_file) &&
@@ -388,7 +383,6 @@ require_pkgs <- function(pkgs) {
 #' @noRd
 
 .combine_plots_patchwork <- function(plots, agg_label_unique) {
-    library(patchwork)
 
     # Use 2 columns (2 genes per row) with controlled spacing
     n_cols <- 2
@@ -468,7 +462,6 @@ require_pkgs <- function(pkgs) {
 #' @noRd
 
 .combine_plots_cowplot <- function(plots, output_file = NULL, agg_label_unique) {
-    library(cowplot)
 
     # Extract legend from first plot
     p_for_legend <- .configure_legend(plots[[1]], position = "bottom")
@@ -528,7 +521,6 @@ require_pkgs <- function(pkgs) {
 #' @noRd
 
 .combine_plots_grid <- function(plots, output_file = NULL, agg_label_unique) {
-    library(grid)
 
     # Remove legends from all plots
     plots_nolegend <- lapply(plots, function(pp) {
@@ -600,7 +592,6 @@ require_pkgs <- function(pkgs) {
 
 .draw_transcript_grid <- function(grobs, agg_label_unique, legend_grob, ncol, heights,
     to_file = NULL) {
-    library(grid)
 
     nrow <- ceiling(length(grobs)/ncol)
 
@@ -647,7 +638,6 @@ require_pkgs <- function(pkgs) {
 #' @noRd
 
 .create_color_scale <- function(palette = "blue_red", direction = 1, name = NULL) {
-    library(ggplot2)
 
     if (palette == "blue_red") {
         colors <- .palette_blue_red()
@@ -686,7 +676,6 @@ require_pkgs <- function(pkgs) {
 
 .create_fill_scale <- function(palette = "blue_red", direction = 1, name = NULL,
     breaks = 50) {
-    library(ggplot2)
 
     if (palette == "continuous_diverging") {
         colors <- .palette_continuous_diverging(n = breaks)
@@ -719,7 +708,6 @@ require_pkgs <- function(pkgs) {
 #' @noRd
 
 .apply_tsenat_theme <- function(base_size = 11, color_palette = "blue_red") {
-    library(ggplot2)
 
     theme_result <- .theme_base(base_size = base_size) + ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5,
         size = .font_sizes$title, face = "bold"), plot.subtitle = ggplot2::element_text(hjust = 0.5,
@@ -745,7 +733,6 @@ require_pkgs <- function(pkgs) {
 
 .set_plot_title <- function(plot, title = NULL, subtitle = NULL, title_size = .font_sizes$title,
     subtitle_size = .font_sizes$subtitle) {
-    library(ggplot2)
 
     if (!is.null(title)) {
         plot <- plot + ggplot2::labs(title = title)
@@ -785,7 +772,6 @@ require_pkgs <- function(pkgs) {
 
 .create_tsenat_heatmap <- function(mat, title = NULL, colors = NULL, breaks = NULL,
     fontsize_row = 11, fontsize_col = 11, ...) {
-    library(pheatmap)
 
     if (is.null(colors)) {
         colors <- .palette_continuous_diverging(n = 100)
@@ -825,8 +811,6 @@ require_pkgs <- function(pkgs) {
 .compute_diversity_spectrum <- function(se, q_values = NULL, metric = c("median",
     "mean"), variability_metric = c("iqr", "sd"), condition_col = NULL) {
 
-        library(SummarizedExperiment)
-    library(dplyr)
 
     # Validate input
     if (!inherits(se, "SummarizedExperiment")) {
@@ -906,7 +890,6 @@ require_pkgs <- function(pkgs) {
 
 .select_top_genes <- function(results, p_col = NULL, gene_col = NULL, n_genes = 4) {
 
-    library(dplyr)
 
     if (!is.data.frame(results) || nrow(results) == 0) {
         stop("results must be a non-empty data frame", call. = FALSE)
@@ -961,7 +944,6 @@ require_pkgs <- function(pkgs) {
 
 .filter_genes_by_pvalue <- function(results, p_threshold = 0.05, p_col = NULL, gene_col = NULL) {
 
-    library(dplyr)
 
     if (!is.data.frame(results) || nrow(results) == 0) {
         stop("results must be a non-empty data frame", call. = FALSE)
@@ -1218,8 +1200,6 @@ require_pkgs <- function(pkgs) {
     pseudocount = 0, output_file = NULL, metric = c("median", "mean", "variance",
         "iqr")) {
 
-        library(SummarizedExperiment)
-    library(S4Vectors)
 
     # Handle SummarizedExperiment input
     if (inherits(counts, "SummarizedExperiment")) {
@@ -1431,7 +1411,6 @@ require_pkgs <- function(pkgs) {
     df_all <- as.data.frame(mat)
     df_all$tx <- rownames(mat)
 
-    library(tidyr)
     df_long <- tidyr::pivot_longer(df_all, -tx, names_to = "sample", values_to = "expr")
     df_long$group <- rep(samples, times = length(txs))
 
@@ -1506,7 +1485,6 @@ require_pkgs <- function(pkgs) {
 
 #' @noRd
 .extract_diversity_objects <- function(div_list) {
-        library(SummarizedExperiment)
     
     combined_assays_dict <- list()
     first_se <- NULL
@@ -1579,7 +1557,6 @@ require_pkgs <- function(pkgs) {
 
 #' @noRd
 .extract_bootstrap_ci_matrices <- function(se_obj, target_genes, target_n_cols, assay_names) {
-    library(SummarizedExperiment)
     
     if (!methods::is(se_obj, "SummarizedExperiment")) {
         return(NULL)
@@ -1626,7 +1603,6 @@ require_pkgs <- function(pkgs) {
 
 #' @noRd
 .build_combined_coldata <- function(div_list, q_names, unique_colnames_list) {
-    library(SummarizedExperiment)
     
     combined_coldata_list <- list()
     
@@ -1662,8 +1638,6 @@ require_pkgs <- function(pkgs) {
 #' @noRd
 .create_combined_se_object <- function(combined_assay, combined_ci_lower, combined_ci_upper,
                                         combined_coldata, first_se) {
-        library(SummarizedExperiment)
-    library(S4Vectors)
     
     # Extract or create rowData, ensuring dimensions match combined_assay
     rd_combined <- tryCatch({
@@ -1747,7 +1721,6 @@ require_pkgs <- function(pkgs) {
 #' @noRd
 .prepare_q_value_for_combining <- function(q_name, combined_assays_dict, target_genes,
                                             target_n_cols, bootstrap_ci_available) {
-    library(SummarizedExperiment)
     
     mat <- combined_assays_dict[[q_name]]$matrix
     q_val <- combined_assays_dict[[q_name]]$q_val
@@ -1852,8 +1825,6 @@ require_pkgs <- function(pkgs) {
 
 #' @noRd
 .prepare_combined_se <- function(analysis) {
-        library(SummarizedExperiment)
-    library(S4Vectors)
 
     div_list <- analysis@diversity_results
     
@@ -1897,7 +1868,6 @@ require_pkgs <- function(pkgs) {
 
 #' @noRd
 .compute_gene_group_stats <- function(long_data, metric = "iqr") {
-    library(dplyr)
 
     metric <- match.arg(tolower(metric), c("iqr", "sd"))
     long_data$qnum <- as.numeric(as.character(long_data$q))
@@ -1995,8 +1965,6 @@ require_pkgs <- function(pkgs) {
 
 #' @noRd
 .plot_gam_fit_group <- function(plot_df) {
-        library(mgcv)
-    library(dplyr)
 
     unique_groups <- unique(plot_df$group)
 
@@ -2101,7 +2069,6 @@ require_pkgs <- function(pkgs) {
 #'
 #' @noRd
 .prepare_gene_ci_data <- function(long_data, ci_lower_mat, ci_upper_mat, genes) {
-    library(dplyr)
 
     # Aggregate to get median per gene, group, q
     stats_df <- dplyr::summarise(dplyr::group_by(long_data, Gene, group, q), median = median(tsallis,
@@ -2328,7 +2295,6 @@ require_pkgs <- function(pkgs) {
 #'
 #' @noRd
 .plot_gam_arrange_grid <- function(plots, condition_col, font_sizes) {
-    library(cowplot)
 
     n_plots <- length(plots)
     n_cols <- 2
@@ -2436,7 +2402,6 @@ require_pkgs <- function(pkgs) {
 #' @noRd
 .plot_gam_make_plot <- function(gene, gene_display_name = NULL, gene_name_map,
     mat, sample_to_group, condition_col) {
-        library(ggplot2)
 
     # Use provided gene name, or look it up from mapping, or default to gene ID
     if (is.null(gene_display_name)) {
@@ -2516,7 +2481,6 @@ require_pkgs <- function(pkgs) {
                                      base_theme = "theme_base", base_size = 11,
                                      title_size = .font_sizes$title,
                                      subtitle_size = .font_sizes$subtitle) {
-    library(ggplot2)
     
     # Apply base theme (either .theme_base or .theme_spectrum)
     # Add dot prefix if not already present
@@ -2588,7 +2552,6 @@ require_pkgs <- function(pkgs) {
                              title_size = NULL, justification = NULL,
                              background_color = NULL, border_color = NULL,
                              spacing_lines = 2) {
-    library(ggplot2)
     
     theme_list <- list()
     
@@ -2680,7 +2643,6 @@ require_pkgs <- function(pkgs) {
                                 h_linetype = "dashed", v_linetype = "dashed",
                                 h_size = 0.8, v_size = 0.8,
                                 h_alpha = 0.7, v_alpha = 0.7) {
-    library(ggplot2)
     
     # Add horizontal reference lines
     if (!is.null(h_intercept)) {
@@ -2751,7 +2713,6 @@ require_pkgs <- function(pkgs) {
                                x_face = "plain", y_face = "plain",
                                x_color = "black", y_color = "black",
                                bold_title = TRUE) {
-    library(ggplot2)
     
     theme_list <- list()
     
@@ -2864,7 +2825,6 @@ require_pkgs <- function(pkgs) {
 .apply_group_aesthetics <- function(plot, palette = "palette_blue_red",
                                    legend_name = "Group", legend_position = "bottom",
                                    direction = 1) {
-    library(ggplot2)
     
     # Get palette colors - handle both string (function name) and vector cases
     if (is.character(palette) && length(palette) == 1) {
@@ -2920,7 +2880,6 @@ require_pkgs <- function(pkgs) {
                                   ci_upper_col = "ci_upper",
                                   ribbon_alpha = 0.15, line_width = 1.2, 
                                   point_size = 3.5, show_points = TRUE) {
-    library(ggplot2)
     
     # Build base aesthetics - include group color/fill only if group_col provided and exists
     if (!is.null(group_col) && group_col %in% colnames(data)) {
@@ -2991,8 +2950,6 @@ require_pkgs <- function(pkgs) {
                                legend_position = "bottom",
                                extract_legend = TRUE,
                                rel_heights = c(0.08, 1, 0.08)) {
-        library(ggplot2)
-    library(cowplot)
     
     if (length(plots) == 0) {
         stop("plots list cannot be empty", call. = FALSE)
@@ -3088,7 +3045,6 @@ require_pkgs <- function(pkgs) {
                               subtitle_size = .font_sizes$subtitle,
                               title_face = "bold", subtitle_face = "italic",
                               title_color = "black", subtitle_color = "gray40") {
-    library(cowplot)
     
     # Start with title grob
     title_grob <- cowplot::ggdraw() +
@@ -3129,7 +3085,6 @@ require_pkgs <- function(pkgs) {
 .apply_facet_styling <- function(plot, ncol = 2, nrow = NULL, facet_var = NULL,
                                 scales = "free_y", strip_text_size = .font_sizes$subtitle,
                                 panel_spacing_lines = 1.5) {
-    library(ggplot2)
     
     # Apply facet wrap if variable specified
     if (!is.null(facet_var)) {
@@ -3164,8 +3119,6 @@ require_pkgs <- function(pkgs) {
 #' @noRd
 .prepare_long_format <- function(se, assay_name = "diversity", 
                                condition_col = NULL, validate = TRUE) {
-        library(SummarizedExperiment)
-    library(dplyr)
     
     # Use condition_col from metadata config if not provided
     if (is.null(condition_col)) {
@@ -3210,7 +3163,6 @@ require_pkgs <- function(pkgs) {
                                   title_size = .font_sizes$title,
                                   subtitle_size = .font_sizes$subtitle,
                                   hjust = 0.5) {
-    library(ggplot2)
     
     theme_list <- list()
     
@@ -3248,8 +3200,6 @@ require_pkgs <- function(pkgs) {
 #' @noRd
 .normalize_plot_scales <- function(df, fold_col_candidates = c("log2_fold_change", "logFC", "fold"),
                                   mean_col_pattern = "_mean$|_median$", scale_type = "log2fold") {
-        library(dplyr)
-    library(rlang)
     
     # Find fold-change column
     fold_col <- intersect(fold_col_candidates, colnames(df))[1]
@@ -3266,10 +3216,10 @@ require_pkgs <- function(pkgs) {
     }
     
     # Compute normalized positions
-    df$x_norm <- rowMeans(df[, mean_cols[1:2], drop = FALSE], na.rm = TRUE)
+    df$x_norm <- rowMeans(df[, mean_cols[seq_len(2)], drop = FALSE], na.rm = TRUE)
     df$y_norm <- df[[fold_col]]
     
-    list(df = df, fold_col = fold_col, mean_cols = mean_cols[1:2])
+    list(df = df, fold_col = fold_col, mean_cols = mean_cols[seq_len(2)])
 }
 
 #' Create Publication-Ready Line Plot
@@ -3293,7 +3243,6 @@ require_pkgs <- function(pkgs) {
 .create_simple_line_plot <- function(data, x_col, y_col, group_col = NULL,
                                     points = TRUE, line_width = 1.2, point_size = 2.5,
                                     alpha = 0.8, line_color = "#4575B4") {
-    library(ggplot2)
     
     # NO grouping: simple single-series plot with fixed color
     if (is.null(group_col)) {
@@ -3345,8 +3294,6 @@ require_pkgs <- function(pkgs) {
                                             median = median,
                                             iqr = function(x) diff(quantile(x, c(0.25, 0.75), na.rm = TRUE))
                                         )) {
-        library(SummarizedExperiment)
-    library(dplyr)
     
     # Extract assay
     assay_mat <- SummarizedExperiment::assay(se, assay_name)
@@ -3433,7 +3380,6 @@ require_pkgs <- function(pkgs) {
                                          base_theme = "theme_base",
                                          group_col = NULL, palette = "blue_red",
                                          group_levels = NULL, subtitle = NULL) {
-    library(ggplot2)
 
     # Apply publication theme first
     p <- .apply_publication_theme(plot, title = title, base_size = base_size,
@@ -3489,7 +3435,6 @@ require_pkgs <- function(pkgs) {
 .save_plot_standard <- function(plot, filename, width_inches = 12,
                                aspect_type = "standard", dpi_output = 100,
                                width_cm = NULL, height_cm = NULL) {
-    library(ggplot2)
 
     # Calculate dimensions
     plot_dims <- .calculate_plot_dims(width_inches = width_inches,
@@ -3560,7 +3505,6 @@ require_pkgs <- function(pkgs) {
 #' @noRd
 .compute_distribution_stats <- function(df, group_col, value_col,
                                        metric = "median", spread_metric = "iqr") {
-        library(dplyr)
 
     # Validate inputs
     if (!is.data.frame(df)) {
@@ -3673,7 +3617,6 @@ require_pkgs <- function(pkgs) {
 #' @noRd
 .extract_bootstrap_ci_assays <- function(se, assay_name = "diversity",
                                         fallback_to_iqr = TRUE) {
-        library(SummarizedExperiment)
 
     # Validate base assay exists
     if (!assay_name %in% SummarizedExperiment::assayNames(se)) {
@@ -3876,7 +3819,6 @@ require_pkgs <- function(pkgs) {
 #' @noRd
 .plot_ma_core <- function(x, fc_df = NULL, diff_res = NULL, sig_alpha = 0.05, x_label = NULL,
     y_label = NULL, title = NULL, ...) {
-    library(ggplot2)
 
     df <- as.data.frame(x, stringsAsFactors = FALSE)
     # Ensure gene identifier column exists
@@ -3992,9 +3934,6 @@ require_pkgs <- function(pkgs) {
 #' @noRd
 
 .plot_tsallis_violin_singleq <- function(se, assay_name = "diversity", title = NULL) {
-    library(ggplot2)
-    library(tidyr)
-    library(dplyr)
 
     # Try to extract q from SE metadata first (best source for single-q SE)
     q_val <- NA
@@ -4058,9 +3997,6 @@ require_pkgs <- function(pkgs) {
 #' @noRd
 
 .plot_tsallis_density_singleq <- function(se, assay_name = "diversity", title = NULL) {
-    library(ggplot2)
-    library(tidyr)
-    library(dplyr)
 
     # Try to extract q from SE metadata first (best source for single-q SE)
     q_val <- NA
@@ -4419,8 +4355,6 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
 
 .make_plot_for_genemake_plot_for_gene <- function(gene_single, mapping, counts, samples,
     top_n, agg_fun, pseudocount, agg_label_unique, fill_limits = NULL, font_scale = 1) {
-    library(ggplot2)
-    library(tidyr)
     built <- .make_plot_for_genebuild_tx_long(gene_single, mapping, counts, samples,
         NULL)
     df_summary <- .make_plot_for_geneaggregate_df_long(built$df_long, agg_fun, pseudocount)
@@ -4430,7 +4364,6 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
 
 
 .make_plot_for_genecombine_plots <- function(plots, output_file = NULL, agg_label_unique = NULL) {
-    library(ggplot2)
     # Allow callers to pass a single character second argument as the
     # `agg_label_unique` for convenience (legacy test call patterns).
     if (is.null(agg_label_unique) && !is.null(output_file) && is.character(output_file) &&
@@ -4457,8 +4390,6 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
     # focuses on normalizing counts, samples and tx2gene mapping and preparing
     # agg functions
     if (inherits(counts, "SummarizedExperiment")) {
-        library(SummarizedExperiment)
-        library(S4Vectors)
         se <- counts
         counts_mat <- .get_readcounts_from_se(se, readcounts)
         counts <- as.matrix(counts_mat)

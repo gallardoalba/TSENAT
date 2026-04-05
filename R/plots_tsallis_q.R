@@ -211,10 +211,6 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
 .plot_tsallis_gene_specific <- function(se, assay_name, condition_col, gene, lm_res,
     n_top, metric, output_file) {
     suppressPackageStartupMessages({
-        library(ggplot2)
-        library(dplyr)
-        library(cowplot)
-        library(SummarizedExperiment)
     })
 
     long <- .prepare_long_format(se, assay_name = assay_name, condition_col = condition_col)
@@ -339,8 +335,6 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
 
 .plot_tsallis_bootstrap_ci <- function(se, long, output_file) {
     suppressPackageStartupMessages({
-        library(ggplot2)
-        library(SummarizedExperiment)
     })
 
     # Bootstrap CI Visualization Methodology (From Literature: S115, S018)
@@ -395,20 +389,20 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
 # ============================================================================
 
 .plot_tsallis_gene_bootstrap_ci <- function(se, long, genes, output_file) {
-    suppressPackageStartupMessages({
-        library(ggplot2)
-        library(dplyr)
-        library(cowplot)
-        library(SummarizedExperiment)
-    })
+    # Extract bootstrap CI bounds from assays
+    ci_lower_assay <- SummarizedExperiment::assays(se)[["ci_lower"]]
+    ci_upper_assay <- SummarizedExperiment::assays(se)[["ci_upper"]]
+
+    # Validate that CI assays exist
+    if (is.null(ci_lower_assay) || is.null(ci_upper_assay)) {
+        stop("Bootstrap CI assays 'ci_lower' and 'ci_upper' not found in SummarizedExperiment. ",
+            "Available assays: ", paste(names(SummarizedExperiment::assays(se)), collapse = ", "),
+            call. = FALSE)
+    }
 
     # Filter long data to selected genes
     long$q <- as.numeric(as.character(long$q))
     long_subset <- long[as.character(long$Gene) %in% genes, ]
-
-    # Extract bootstrap CI bounds from assays
-    ci_lower_assay <- SummarizedExperiment::assays(se)[["ci_lower"]]
-    ci_upper_assay <- SummarizedExperiment::assays(se)[["ci_upper"]]
 
     # Get row indices for selected genes
     gene_indices <- match(genes, rownames(se))
@@ -481,9 +475,6 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
 # ============================================================================
 
 .plot_tsallis_basic_gene <- function(long, genes, metric = "iqr", output_file) {
-    library(ggplot2)
-    library(dplyr)
-    library(cowplot)
 
     metric <- match.arg(tolower(metric), c("iqr", "sd"))
 
@@ -544,7 +535,6 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
 # ============================================================================
 
 .plot_tsallis_basic <- function(long, metric = "iqr", output_file) {
-    library(ggplot2)
 
     metric <- match.arg(tolower(metric), c("iqr", "sd"))
     long$q <- as.numeric(as.character(long$q))

@@ -206,11 +206,6 @@
 .generate_paired_permutations <- function(x, samples, control, case_group, method, 
     randomizations, pairs, paired_method, pseudocount_val, robust_loss_type, robust_scale_method, seed = NULL) {
     
-    # Set seed if provided
-    if (!is.null(seed)) {
-        set.seed(seed)
-    }
-    
     perm_mat <- matrix(NA_real_, nrow = nrow(x), ncol = randomizations)
     unique_pairs <- unique(pairs)
     pair_indices <- .prepare_pair_indices(pairs, unique_pairs)
@@ -262,11 +257,6 @@
 #' @noRd
 .generate_unpaired_permutations <- function(x, samples, control, case_group, method, 
     randomizations, pseudocount_val, robust_loss_type, robust_scale_method, seed = NULL) {
-    
-    # Set seed if provided
-    if (!is.null(seed)) {
-        set.seed(seed)
-    }
     
     perm_mat <- matrix(NA_real_, nrow = nrow(x), ncol = randomizations)
 

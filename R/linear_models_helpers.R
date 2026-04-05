@@ -1180,7 +1180,7 @@ if (getOption("TSENAT.memoization", TRUE)) {
     res <- try(do.call(rbind, all_results), silent = FALSE)
     if (inherits(res, "try-error")) {
         # Debug: Check column mismatch details
-        col_counts <- sapply(all_results, ncol)
+        col_counts <- vapply(all_results, ncol, FUN.VALUE = integer(1))
         col_names_list <- lapply(all_results, colnames)
         unique_col_counts <- unique(col_counts)
         
@@ -1217,7 +1217,7 @@ if (getOption("TSENAT.memoization", TRUE)) {
         
         # Convert all factor columns to character to allow rbind
         all_results_char <- lapply(all_results, function(df) {
-            factor_cols <- sapply(df, is.factor)
+            factor_cols <- vapply(df, is.factor, FUN.VALUE = logical(1))
             df[factor_cols] <- lapply(df[factor_cols], as.character)
             df
         })

@@ -1453,8 +1453,6 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
 .compute_bootstrap_qcurve_cis <- function(long, unique_q, groups, ci_level = 0.95,
     n_bootstrap = 500) {
 
-    library(dplyr)
-
     bootstrap_results <- list()
 
     # For each group and q-value, compute bootstrap CI
@@ -1854,8 +1852,6 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
 #' @noRd
 # From compute_stats.R: Aggregate bootstrap CIs
 .bootstrap_aggregate_ci <- function(se, long) {
-    library(SummarizedExperiment)
-    library(dplyr)
 
     ci_lower_mat <- SummarizedExperiment::assay(se, "ci_lower")
     ci_upper_mat <- SummarizedExperiment::assay(se, "ci_upper")

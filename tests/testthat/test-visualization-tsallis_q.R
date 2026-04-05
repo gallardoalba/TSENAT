@@ -236,7 +236,7 @@ test_that(".plot_tsallis_gene_bootstrap_ci handles missing CI assay gracefully",
   # Should error: requires CI assays
   expect_error(
     TSENAT:::.plot_tsallis_gene_bootstrap_ci(se, long, genes = genes, output_file = NULL),
-    "'data' debe ser de tipo vector"  # Expected error from missing CI matrices
+    "Bootstrap CI assays.*not found in SummarizedExperiment"
   )
 })
 
