@@ -193,8 +193,8 @@ test_that("calculate_difference serial and parallel produce identical results", 
     
     core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
     max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
-    res_wilcox_par_4 <- .calculate_difference(data_df, condition_col = samples
-                                             control = "Normal", test = "wilcoxon"
+    res_wilcox_par_4 <- .calculate_difference(data_df, condition_col = samples,
+                                             control = "Normal", test = "wilcoxon",
                                              nthreads = max_threads, verbose = FALSE)
     
     # Should produce identical results
@@ -220,17 +220,17 @@ test_that("calculate_difference label_shuffling produces valid results", {
     
     # Label shuffling, serial
     res_shuffle_serial <- suppressWarnings(
-        .calculate_difference(data_df, condition_col = samples
-                           control = "Ctrl", test = "shuffle"
-                           randomizations = 30, nthreads = 1
+        .calculate_difference(data_df, condition_col = samples,
+                           control = "Ctrl", test = "shuffle",
+                           randomizations = 30, nthreads = 1,
                            verbose = FALSE)
     )
     
     # Label shuffling, parallel
     res_shuffle_par <- suppressWarnings(
-        .calculate_difference(data_df, condition_col = samples
-                            control = "Ctrl", test = "shuffle"
-                            randomizations = 30, nthreads = 2
+        .calculate_difference(data_df, condition_col = samples,
+                            control = "Ctrl", test = "shuffle",
+                            randomizations = 30, nthreads = 2,
                             verbose = FALSE)
     )
     
@@ -718,6 +718,7 @@ context("Parallelization: calculate_divergence with nthreads")
 context("Parallelization: calculate_divergence with nthreads")
 
 test_that("calculate_divergence sequential execution produces valid results", {
+    library(SummarizedExperiment)
     set.seed(42)
     
     # Create test SummarizedExperiment: 30 genes, 8 samples
@@ -729,23 +730,24 @@ test_that("calculate_divergence sequential execution produces valid results", {
     colnames(counts) <- paste0("Sample_", 1:n_samples)
     
     metadata <- data.frame(
-        group = factor(c(rep("Normal", n_samples/2), rep("Tumor", n_samples/2)))
+        group = factor(c(rep("Normal", n_samples/2), rep("Tumor", n_samples/2))),
         row.names = colnames(counts)
     )
     
     se <- SummarizedExperiment(
-        assays = list(counts = counts)
+        assays = list(counts = counts),
         colData = metadata
     )
     
     # Run sequential calculation (no res or top_n parameters - processes all genes)
+    set.seed(42)
     result_seq <- .calculate_divergence(
-        se = se
-        q = 1
-        nboot = 100
-        ci = 0.95
-        method = "percentile"
-        nthreads = 1
+        se = se,
+        q = 1,
+        nboot = 100,
+        ci = 0.95,
+        method = "percentile",
+        nthreads = 1,
         progress = FALSE
     )
     
@@ -766,6 +768,7 @@ test_that("calculate_divergence sequential execution produces valid results", {
 })
 
 test_that("calculate_divergence sequential vs parallel produce consistent results", {
+    library(SummarizedExperiment)
     set.seed(42)
     
     # Create test data
@@ -777,37 +780,37 @@ test_that("calculate_divergence sequential vs parallel produce consistent result
     colnames(counts) <- paste0("Sample_", 1:n_samples)
     
     metadata <- data.frame(
-        group = factor(c(rep("Normal", n_samples/2), rep("Tumor", n_samples/2)))
+        group = factor(c(rep("Normal", n_samples/2), rep("Tumor", n_samples/2))),
         row.names = colnames(counts)
     )
     
     se <- SummarizedExperiment(
-        assays = list(counts = counts)
+        assays = list(counts = counts),
         colData = metadata
     )
     
     # Run sequential (nthreads=1)
     set.seed(42)
     result_seq <- .calculate_divergence(
-        se = se
-        q = 1
-        nboot = 100
-        ci = 0.95
-        method = "percentile"
-        nthreads = 1
-        progress = FALSE
+        se = se,
+        q = 1,
+        nboot = 100,
+        ci = 0.95,
+        method = "percentile",
+        nthreads = 1,
+        progress = FALSE,
     )
     
     # Run parallel with 2 threads
     set.seed(42)
     result_par2 <- .calculate_divergence(
-        se = se
-        q = 1
-        nboot = 100
-        ci = 0.95
-        method = "percentile"
-        nthreads = 2
-        progress = FALSE
+        se = se,
+        q = 1,
+        nboot = 100,
+        ci = 0.95,
+        method = "percentile",
+        nthreads = 2,
+        progress = FALSE,
     )
     
     # Both should return SummarizedExperiment
@@ -831,6 +834,7 @@ test_that("calculate_divergence sequential vs parallel produce consistent result
 })
 
 test_that("calculate_divergence multiple thread levels produce consistent nrows", {
+    library(SummarizedExperiment)
     set.seed(99)
     
     # Create test data
@@ -842,30 +846,30 @@ test_that("calculate_divergence multiple thread levels produce consistent nrows"
     colnames(counts) <- paste0("Sample_", 1:n_samples)
     
     metadata <- data.frame(
-        group = factor(c(rep("Control", n_samples/2), rep("Treatment", n_samples/2)))
+        group = factor(c(rep("Control", n_samples/2), rep("Treatment", n_samples/2))),
         row.names = colnames(counts)
     )
     
     se <- SummarizedExperiment(
-        assays = list(counts = counts)
+        assays = list(counts = counts),
         colData = metadata
     )
     
     # Run with different thread counts
     result_1t <- .calculate_divergence(
-        se = se, q = 1, nboot = 100
+        se = se, q = 1, nboot = 100,
         nthreads = 1, progress = FALSE
     )
     
     result_2t <- .calculate_divergence(
-        se = se, q = 1, nboot = 100
+        se = se, q = 1, nboot = 100,
         nthreads = 2, progress = FALSE
     )
     
     core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
     max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
     result_3t <- .calculate_divergence(
-        se = se, q = 1, nboot = 100
+        se = se, q = 1, nboot = 100,
         nthreads = max_threads, progress = FALSE
     )
     
@@ -890,6 +894,7 @@ test_that("calculate_divergence multiple thread levels produce consistent nrows"
 })
 
 test_that("calculate_divergence handles small gene count correctly", {
+    library(SummarizedExperiment)
     set.seed(55)
     
     # Create very small dataset: only 3 genes
@@ -901,22 +906,22 @@ test_that("calculate_divergence handles small gene count correctly", {
     colnames(counts) <- paste0("Sample_", 1:n_samples)
     
     metadata <- data.frame(
-        group = factor(c(rep("A", n_samples/2), rep("B", n_samples/2)))
+        group = factor(c(rep("A", n_samples/2), rep("B", n_samples/2))),
         row.names = colnames(counts)
     )
     
     se <- SummarizedExperiment(
-        assays = list(counts = counts)
+        assays = list(counts = counts),
         colData = metadata
     )
     
     # Request parallel computation (should work even though few genes)
     result <- .calculate_divergence(
-        se = se
-        q = 1
-        nboot = 100
+        se = se,
+        q = 1,
+        nboot = 100,
         nthreads = min(3, parallel::detectCores()),  # Request parallel
-        progress = FALSE
+        progress = FALSE,
     )
     
     # Should process all genes
@@ -929,6 +934,7 @@ test_that("calculate_divergence handles small gene count correctly", {
 })
 
 test_that("calculate_divergence auto-detects cores when nthreads=NULL", {
+    library(SummarizedExperiment)
     set.seed(77)
     
     # Create test data
@@ -940,12 +946,12 @@ test_that("calculate_divergence auto-detects cores when nthreads=NULL", {
     colnames(counts) <- paste0("Sample_", 1:n_samples)
     
     metadata <- data.frame(
-        group = factor(c(rep("G1", n_samples/2), rep("G2", n_samples/2)))
+        group = factor(c(rep("G1", n_samples/2), rep("G2", n_samples/2))),
         row.names = colnames(counts)
     )
     
     se <- SummarizedExperiment(
-        assays = list(counts = counts)
+        assays = list(counts = counts),
         colData = metadata
     )
     
@@ -954,11 +960,11 @@ test_that("calculate_divergence auto-detects cores when nthreads=NULL", {
     core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
     max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
     result_auto <- .calculate_divergence(
-        se = se
-        q = 1
-        nboot = 100
-        nthreads = max_threads
-        progress = FALSE
+        se = se,
+        q = 1,
+        nboot = 100,
+        nthreads = max_threads,
+        progress = FALSE,
     )
     
     # Should produce valid results as SummarizedExperiment
@@ -971,6 +977,7 @@ test_that("calculate_divergence auto-detects cores when nthreads=NULL", {
 })
 
 test_that("calculate_divergence processes all genes (top_n no longer used)", {
+    library(SummarizedExperiment)
     set.seed(88)
     
     # Create test data with many genes
@@ -982,18 +989,18 @@ test_that("calculate_divergence processes all genes (top_n no longer used)", {
     colnames(counts) <- paste0("Sample_", 1:n_samples)
     
     metadata <- data.frame(
-        group = factor(c(rep("X", n_samples/2), rep("Y", n_samples/2)))
+        group = factor(c(rep("X", n_samples/2), rep("Y", n_samples/2))),
         row.names = colnames(counts)
     )
     
     se <- SummarizedExperiment(
-        assays = list(counts = counts)
+        assays = list(counts = counts),
         colData = metadata
     )
     
     # New API processes all genes provided, no top_n filtering
     result <- .calculate_divergence(
-        se = se, q = 1, nboot = 100
+        se = se, q = 1, nboot = 100,
         nthreads = 1, progress = FALSE
     )
     
@@ -1007,13 +1014,14 @@ test_that("calculate_divergence processes all genes (top_n no longer used)", {
 })
 
 test_that("calculate_divergence error handling for invalid input", {
+    library(SummarizedExperiment)
     
     # Invalid SE (not SummarizedExperiment)
     expect_error(
         .calculate_divergence(
-            se = data.frame(x = 1:4)
+            se = data.frame(x = 1:4),
             q = 1, nthreads = 1
-        )
+        ),
         "SummarizedExperiment|class"
     )
     
@@ -1026,25 +1034,26 @@ test_that("calculate_divergence error handling for invalid input", {
     colnames(counts) <- paste0("Sample_", 1:n_samples)
     
     metadata <- data.frame(
-        group = factor(c("A", "A", "B", "B"))
+        group = factor(c("A", "A", "B", "B")),
         row.names = colnames(counts)
     )
     
     se <- SummarizedExperiment(
-        assays = list(counts = counts)
+        assays = list(counts = counts),
         colData = metadata
     )
     
     # Valid SE should not error
     expect_no_error(
         .calculate_divergence(
-            se = se
+            se = se,
             q = 1, nthreads = 1, progress = FALSE
         )
     )
 })
 
 test_that("calculate_divergence output includes required columns", {
+    library(SummarizedExperiment)
     set.seed(33)
     
     # Create small dataset
@@ -1056,17 +1065,17 @@ test_that("calculate_divergence output includes required columns", {
     colnames(counts) <- paste0("Sample_", 1:n_samples)
     
     metadata <- data.frame(
-        group = factor(c(rep("Ctrl", 3), rep("Trt", 3)))
+        group = factor(c(rep("Ctrl", 3), rep("Trt", 3))),
         row.names = colnames(counts)
     )
     
     se <- SummarizedExperiment(
-        assays = list(counts = counts)
+        assays = list(counts = counts),
         colData = metadata
     )
     
     result <- .calculate_divergence(
-        se = se, q = 1, nboot = 100
+        se = se, q = 1, nboot = 100,
         nthreads = 1, progress = FALSE
     )
     
@@ -1088,12 +1097,12 @@ context("Parallelization - Phase 1: BiocParallel Integration")
 # Helper function to pass through bootstrap parameters to calculate_divergence_s4
 silent_calculate_divergence <- function(analysis, nthreads = 1, bootstrap = FALSE, nboot = NULL, ...) {
   calculate_divergence_s4(
-    analysis = analysis
-    nthreads = nthreads
-    bootstrap = bootstrap
-    nboot = nboot
-    progress = FALSE
-    verbose = FALSE
+    analysis = analysis,
+    nthreads = nthreads,
+    bootstrap = bootstrap,
+    nboot = nboot,
+    progress = FALSE,
+    verbose = FALSE,
     ...
   )
 }
@@ -1103,10 +1112,10 @@ test_that("Serial (nthreads=1) produces valid divergence results", {
     {
       analysis <- create_test_analysis()
       result_serial <- silent_calculate_divergence(
-        analysis
+        analysis,
         nthreads = 1
       )
-    }
+    },
     NA  # Expect NO error
   )
   
@@ -1121,7 +1130,7 @@ test_that("Serial (nthreads=1) produces valid divergence results", {
   # Check computation mode metadata
   expect_true("computation_mode" %in% colnames(SummarizedExperiment::colData(div_se)))
   expect_equal(
-    SummarizedExperiment::colData(div_se)$computation_mode[1]
+    SummarizedExperiment::colData(div_se)$computation_mode[1],
     "sequential"
   )
 })
@@ -1133,10 +1142,10 @@ test_that("Parallel (nthreads=2) produces valid divergence results", {
     {
       analysis <- create_test_analysis()
       result_parallel <- silent_calculate_divergence(
-        analysis
+        analysis,
         nthreads = 2
       )
-    }
+    },
     NA  # Expect NO error
   )
   
@@ -1151,7 +1160,7 @@ test_that("Parallel (nthreads=2) produces valid divergence results", {
   # Check computation mode metadata
   expect_true("computation_mode" %in% colnames(SummarizedExperiment::colData(div_se)))
   expect_equal(
-    SummarizedExperiment::colData(div_se)$computation_mode[1]
+    SummarizedExperiment::colData(div_se)$computation_mode[1],
     "parallel"
   )
 })
@@ -1163,14 +1172,14 @@ test_that("Serial vs Parallel: Estimates are numerically identical", {
   
   # Run serial computation
   result_serial <- silent_calculate_divergence(
-    analysis
+    analysis,
     nthreads = 1
   )
   
   # Run parallel computation on fresh analysis object
   analysis <- create_test_analysis()
   result_parallel <- silent_calculate_divergence(
-    analysis
+    analysis,
     nthreads = 2
   )
   
@@ -1184,8 +1193,8 @@ test_that("Serial vs Parallel: Estimates are numerically identical", {
   
   # Compare dimensions
   expect_equal(
-    dim(assay_serial)
-    dim(assay_parallel)
+    dim(assay_serial),
+    dim(assay_parallel),
     info = "Dimensions must match"
   )
   
@@ -1204,18 +1213,18 @@ test_that("Serial vs Parallel: CI bounds are numerically identical", {
   
   # Run serial computation with bootstrap CI
   result_serial <- silent_calculate_divergence(
-    analysis
-    nthreads = 1
-    bootstrap = TRUE
+    analysis,
+    nthreads = 1,
+    bootstrap = TRUE,
     nboot = 100
   )
   
   # Run parallel computation with bootstrap CI
   analysis <- create_test_analysis()
   result_parallel <- silent_calculate_divergence(
-    analysis
-    nthreads = 2
-    bootstrap = TRUE
+    analysis,
+    nthreads = 2,
+    bootstrap = TRUE,
     nboot = 100
   )
   
@@ -1261,13 +1270,13 @@ test_that("Serial vs Parallel: Row metadata identical", {
   
   analysis <- create_test_analysis()
   result_serial <- silent_calculate_divergence(
-    analysis
+    analysis,
     nthreads = 1
   )
   
   analysis <- create_test_analysis()
   result_parallel <- silent_calculate_divergence(
-    analysis
+    analysis,
     nthreads = 2
   )
   
@@ -1280,15 +1289,15 @@ test_that("Serial vs Parallel: Row metadata identical", {
   
   # Compare gene names (primary identifiers)
   expect_equal(
-    rd_serial$gene_name
-    rd_parallel$gene_name
+    rd_serial$gene_name,
+    rd_parallel$gene_name,
     info = "Gene names must match"
   )
   
   # Compare error statuses
   expect_equal(
-    is.na(rd_serial$error)
-    is.na(rd_parallel$error)
+    is.na(rd_serial$error),
+    is.na(rd_parallel$error),
     info = "Error status must match"
   )
 })
@@ -1299,7 +1308,7 @@ test_that("Increasing threads maintains numerical stability", {
   analysis <- create_test_analysis()
   # Run with 1 thread
   result_1thread <- silent_calculate_divergence(
-    analysis
+    analysis,
     nthreads = 1
   )
   
@@ -1308,7 +1317,7 @@ test_that("Increasing threads maintains numerical stability", {
   if (max_threads >= 4) {
     analysis <- create_test_analysis()
     result_4threads <- silent_calculate_divergence(
-      analysis
+      analysis,
       nthreads = 4
     )
     
@@ -1333,7 +1342,7 @@ test_that("nthreads parameter is properly validated", {
   
   # Test with negative nthreads (should coerce to 1)
   result <- silent_calculate_divergence(
-    analysis
+    analysis,
     nthreads = -5
   )
   expect_is(result, "TSENATAnalysis")
@@ -1342,7 +1351,7 @@ test_that("nthreads parameter is properly validated", {
   # Test with zero (should coerce to 1)
   analysis <- create_test_analysis()
   result <- silent_calculate_divergence(
-    analysis
+    analysis,
     nthreads = 0
   )
   expect_is(result, "TSENATAnalysis")
@@ -1352,9 +1361,9 @@ test_that("nthreads parameter is properly validated", {
   analysis <- create_test_analysis()
   result <- expect_warning(
     silent_calculate_divergence(
-      analysis
+      analysis,
       nthreads = 999
-    )
+    ),
     "worker number limited"  # BiocParallel warns when limiting workers
   )
   expect_is(result, "TSENATAnalysis")
@@ -1366,13 +1375,13 @@ test_that("Computation mode is correctly reported in colData", {
   
   analysis <- create_test_analysis()
   result_serial <- silent_calculate_divergence(
-    analysis
+    analysis,
     nthreads = 1
   )
   
   analysis <- create_test_analysis()
   result_parallel <- silent_calculate_divergence(
-    analysis
+    analysis,
     nthreads = 2
   )
   
