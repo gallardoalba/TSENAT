@@ -86,7 +86,7 @@
 #' @noRd
 .calculate_difference <- function(x, condition_col = NULL, control, method = "mean",
     test = "wilcoxon", randomizations = 100, pcorr = "BH", assayno = 1, verbose = TRUE,
-    paired = FALSE, exact = FALSE, pseudocount = 0, nthreads = 1, seed = NULL, robust_loss_type = "huber",
+    paired = FALSE, exact = FALSE, pseudocount = 0, nthreads = 1, robust_loss_type = "huber",
     robust_scale_method = "mad", pairs = NULL) {    
     # STAGE 1: Validate input
     .validate_input_type(x)
@@ -117,7 +117,7 @@
     
     # STAGE 6: Run statistical tests using dispatcher
     result_list <- .run_statistical_tests_dispatcher(df_keep, df_small, samples, control,
-        method, test, randomizations, pcorr, paired, exact, nthreads, seed,
+        method, test, randomizations, pcorr, paired, exact, nthreads,
         robust_loss_type, robust_scale_method, pairs, pseudocount, verbose)
     
     # STAGE 7: Combine results and finalize
@@ -262,12 +262,12 @@
 # Helper: Extract p-values from shuffling test result
 .extract_shuffling_pvalues <- function(ymat, samples, control, method, 
     randomizations, pcorr, paired, nthreads, pairs, robust_loss_type, 
-    robust_scale_method, seed) {
+    robust_scale_method) {
     
     shuffling_result <- .label_shuffling(ymat, samples, control, method,
         randomizations = randomizations, pcorr = pcorr, paired = paired,
         nthreads = nthreads, pairs = pairs, robust_loss_type = robust_loss_type,
-        robust_scale_method = robust_scale_method, seed = seed)
+        robust_scale_method = robust_scale_method)
     
     # FIXED: Ensure all p-value columns exist, fill missing with NA
     expected_cols <- c("pvalue", "padj", "r", "U")
@@ -358,7 +358,7 @@
 
 # Helper: Run statistical tests dispatcher
 .run_statistical_tests_dispatcher <- function(df_keep, df_small, samples, control, 
-    method, test, randomizations, pcorr, paired, exact, nthreads, seed,
+    method, test, randomizations, pcorr, paired, exact, nthreads,
     robust_loss_type, robust_scale_method, pairs, pseudocount, verbose) {
     
     result_list <- list()
@@ -379,7 +379,7 @@
         } else {
             ptab <- .extract_shuffling_pvalues(ymat, samples, control, method, 
                 randomizations, pcorr, paired, nthreads, pairs, 
-                robust_loss_type, robust_scale_method, seed)
+                robust_loss_type, robust_scale_method)
         }
         
         # Combine with fold-change estimates

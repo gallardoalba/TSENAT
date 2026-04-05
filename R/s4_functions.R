@@ -85,7 +85,7 @@
 #' @export
 #' @importFrom utils write.table
 jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
-    seed = NULL, top_n = NULL, verbose = NULL, nthreads = NULL, pseudocount = NULL,
+    top_n = NULL, verbose = NULL, nthreads = NULL, pseudocount = NULL,
     output_file = NULL, ...) {
     if (!is(analysis, "TSENATAnalysis")) {
         stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
@@ -100,7 +100,6 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_b
     q <- resolve_slot_param(q, analysis@config, "q_values", 1)
     norm <- resolve_slot_param(norm, analysis@config, "norm", TRUE)
     log_base <- resolve_slot_param(log_base, analysis@config, "log_base", exp(1))
-    seed <- resolve_slot_param(seed, analysis@config, "seed", NULL)
     top_n <- resolve_slot_param(top_n, analysis@config, "top_n", 5)
     nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
     pseudocount <- resolve_slot_param(pseudocount, analysis@config, "pseudocount",
@@ -130,7 +129,7 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_b
             counts_matrix <- SummarizedExperiment::assay(analysis@se, "counts")
 
             result <- .jackknife_entropy_outliers(x = counts_matrix, q = q_val, norm = norm,
-                log_base = log_base, seed = seed, top_n = top_n, pseudocount = pseudocount,
+                log_base = log_base, top_n = top_n, pseudocount = pseudocount,
                 verbose = verbose, nthreads = nthreads, ...)
 
             # Store with key 'q_X.XXX' (consistent 3 decimal formatting)
@@ -400,7 +399,7 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_b
 calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, condition_col = NULL,
     method = NULL, test = NULL, randomizations = NULL, pcorr = NULL, assayno = NULL,
     verbose = NULL, paired = FALSE, exact = FALSE, pseudocount = NULL, nthreads = NULL,
-    seed = NULL, robust_loss_type = NULL, robust_scale_method = NULL, pairs = NULL, output_file = NULL,
+    robust_loss_type = NULL, robust_scale_method = NULL, pairs = NULL, output_file = NULL,
     ...) {
     if (!is(analysis, "TSENATAnalysis")) {
         stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
@@ -468,7 +467,6 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
     }
 
     # Optional parameters (may be NULL)
-    seed <- resolve_slot_param(seed, analysis@config, "seed", NULL)
     pairs <- resolve_slot_param(pairs, analysis@config, "pairs", NULL)
 
     # Run difference calculation on diversity results Note: diversity_se and
@@ -477,7 +475,7 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
         .calculate_difference(x = diversity_se, condition_col = condition_col, control = control,
             method = method, test = test, randomizations = randomizations, pcorr = pcorr,
             assayno = assayno, verbose = verbose, paired = paired, exact = exact,
-            pseudocount = pseudocount, nthreads = nthreads, seed = seed, robust_loss_type = robust_loss_type,
+            pseudocount = pseudocount, nthreads = nthreads, robust_loss_type = robust_loss_type,
             robust_scale_method = robust_scale_method, pairs = pairs, ...)
     }, error = function(e) {
         stop("Difference calculation failed:\n", e$message, call. = FALSE)

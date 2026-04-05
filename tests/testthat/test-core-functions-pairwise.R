@@ -341,7 +341,7 @@ test_that("Providing multiple samples column names to SummarizedExperiment error
 
 context("Difference Calculation: Seed Reproducibility for Permutation Tests")
 
-test_that("Seed parameter produces reproducible shuffle results", {
+test_that("Reproducible shuffle results with set.seed()", {
     # Create test data
     set.seed(123)
     genes <- paste0("g", seq_len(8))
@@ -349,7 +349,8 @@ test_that("Seed parameter produces reproducible shuffle results", {
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- rep(c("A", "B"), each = 6)
 
-    # Run shuffle test twice with same seed
+    # Run shuffle test twice with same seed set before each call
+    set.seed(999)
     res1 <- .calculate_difference(
         df,
         condition_col = samples,
@@ -357,10 +358,10 @@ test_that("Seed parameter produces reproducible shuffle results", {
         method = "mean",
         test = "shuffle",
         randomizations = 50,
-        pcorr = "BH",
-        seed = 42
+        pcorr = "BH"
     )
 
+    set.seed(999)  # Use same seed
     res2 <- .calculate_difference(
         df,
         condition_col = samples,
@@ -368,17 +369,16 @@ test_that("Seed parameter produces reproducible shuffle results", {
         method = "mean",
         test = "shuffle",
         randomizations = 50,
-        pcorr = "BH",
-        seed = 42
+        pcorr = "BH"
     )
 
-    # Results should be identical when using same seed
+    # Results should be identical when set.seed() is called with same value before each call
     expect_equal(res1$pvalue, res2$pvalue)
     expect_equal(res1$padj, res2$padj)
 })
 
 
-test_that("Different seeds produce different shuffle results", {
+test_that("Different set.seed() values produce different shuffle results", {
     # Create test data
     set.seed(123)
     genes <- paste0("g", seq_len(8))
@@ -386,7 +386,8 @@ test_that("Different seeds produce different shuffle results", {
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- rep(c("A", "B"), each = 6)
 
-    # Run shuffle test with different seeds
+    # Run shuffle test with different seeds set before each call
+    set.seed(111)
     res1 <- .calculate_difference(
         df,
         condition_col = samples,
@@ -394,10 +395,10 @@ test_that("Different seeds produce different shuffle results", {
         method = "mean",
         test = "shuffle",
         randomizations = 50,
-        pcorr = "BH",
-        seed = 42
+        pcorr = "BH"
     )
 
+    set.seed(222)  # Different seed
     res_other_seed <- .calculate_difference(
         df,
         condition_col = samples,
@@ -405,19 +406,19 @@ test_that("Different seeds produce different shuffle results", {
         method = "mean",
         test = "shuffle",
         randomizations = 50,
-        pcorr = "BH",
-        seed = 99
+        pcorr = "BH"
     )
 
-    # Results should differ when using different seeds (with high probability)
+    # Results should differ when using different set.seed() values (with high probability)
     # We check that at least some p-values differ
     p_value_diffs <- abs(res1$pvalue - res_other_seed$pvalue)
     expect_true(sum(p_value_diffs > 0, na.rm = TRUE) > 0)
 })
 
 
-test_that("Seed parameter is ignored for wilcoxon test", {
+test_that("Wilcoxon test produces deterministic results", {
     # Create test data
+    set.seed(456)
     genes <- paste0("g", seq_len(8))
     mat <- matrix(rnorm(8 * 12), nrow = 8)
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
@@ -431,7 +432,6 @@ test_that("Seed parameter is ignored for wilcoxon test", {
         method = "mean",
         test = "wilcoxon",
         pcorr = "BH",
-        seed = 42
     ))
 
     res2 <- suppressWarnings(.calculate_difference(
@@ -441,7 +441,6 @@ test_that("Seed parameter is ignored for wilcoxon test", {
         method = "mean",
         test = "wilcoxon",
         pcorr = "BH",
-        seed = 99
     ))
 
     # Wilcoxon results should be identical (seed doesn't affect deterministic test)
@@ -588,7 +587,6 @@ test_that("shuffle method also includes effect size columns when available", {
         method = "mean",
         test = "shuffle",
         randomizations = 50,
-        seed = 999
     )
 
     # Shuffle should return at least pvalue and padj
@@ -779,7 +777,6 @@ test_that("shuffle method preserves r and U structure", {
         method = "median",
         test = "shuffle",
         randomizations = 100,
-        seed = 123
     )
     
     # Result should have standard columns

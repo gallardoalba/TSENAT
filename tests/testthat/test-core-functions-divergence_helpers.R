@@ -192,7 +192,7 @@ test_that(".bootstrap_build_args builds arguments correctly", {
     y <- rnorm(10)
     
     result <- .bootstrap_build_args(x, y, 1.0, 100, 0.95, "percentile",
-                                     exp(1), 0.5, "GENE1", 42, NULL)
+                                     exp(1), 0.5, "GENE1", NULL)
     
     expect_equal(result$x, x)
     expect_equal(result$y, y)
@@ -207,7 +207,7 @@ test_that(".bootstrap_build_args includes pair_ids when provided", {
     pair_ids <- c(1, 1, 2, 2, 3)
     
     result <- .bootstrap_build_args(x, y, 1.0, 100, 0.95, "percentile",
-                                     exp(1), 0.5, "GENE1", 42, pair_ids)
+                                     exp(1), 0.5, "GENE1", pair_ids)
     
     expect_equal(result$pair_ids, pair_ids)
     expect_equal(result$paired, TRUE)

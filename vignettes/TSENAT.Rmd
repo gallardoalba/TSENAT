@@ -463,7 +463,7 @@ groups indicate scale-dependent diversity differences: separation at low
 `q` implies differences in rare isoforms, while separation at high `q`
 signals differences in dominant isoforms.
 
-```{r fig-1-tsallis-q-curve, fig.width=10, fig.height=5.2, out.width="98%", fig.pos="H", fig.cap = "**Figure 1 | Isoform diversity profiles across parametric sensitivity scales.** *Tsallis entropy reveals heterogeneous q-dependent diversity structures.* X-axis, diversity sensitivity parameter *q* (0–2 scale; *q*→0 emphasizes rare isoforms, *q*→2 emphasizes abundant isoforms). Y-axis, normalized Tsallis entropy (0–1 range). Each line represents one sample (blue, control; red, treatment). Condition separation indicates significant differences in functional isoform diversity. Parallel lines suggest scale-independent effects; diverging lines reveal *q*-dependent isoform switching."
+```{r fig-1-tsallis-q-curve, fig.width=10, fig.height=5.2, out.width="98%", fig.pos="H", fig.cap = "Figure 1: Isoform diversity profiles across q-values. Lines show normalized Tsallis entropy (0–1) for each sample, blue control and red treatment."}
 # Plot overall q-curve
 p_qcurve <- plot_tsallis_q_curve_s4(
     se = analysis
@@ -580,7 +580,7 @@ if (!is.null(lm_res) && is.data.frame(lm_res) && nrow(lm_res) > 0) {
 Now we will plot the q-curve profile for the top genes identified 
 by the linear-model interaction test.
 
-```{r fig-2-top-gene-qprofile, fig.width=14, fig.height=12, out.width="98%", fig.pos="H", fig.cap = "**Figure 2 | Scale-dependent gene-by-condition interaction analysis.** *Generalized additive models reveal genes with heterogeneous q-dependent effects.* Each facet shows one of four leading genes with significant *q*×condition interaction terms (Benjamini–Hochberg *q* < 0.05). X-axis, parametric sensitivity *q* (0–2). Y-axis, normalized Tsallis entropy. Coloured lines represent conditions (blue, control; red, treatment). Parallel curves indicate scale-independent effects; diverging curves reveal *q*-dependent patterns where condition differences amplify at specific *q*-ranges."}
+```{r fig-2-top-gene-qprofile, fig.width=14, fig.height=12, out.width="98%", fig.pos="H", fig.cap = "Figure 2: Scale-dependent interaction analysis. GAM-identified genes showing significant q×condition effects (Benjamini–Hochberg q < 0.05)."}
 # Plot q-curve profiles for the top 4 genes using the S4 wrapper
 combined_plot <- plot_lm_interaction_gam_s4(
     analysis,
@@ -671,7 +671,7 @@ the **jackknife** delta influence (a measure of transcript switching robustness 
 across different q-values (rows: 0.01 to 2.0, representing increasing diversity
 scales) and transcripts (columns) for each gene.
 
-```{r fig-3-multi-q-heatmap, echo=TRUE, results='hide', fig.width=12, fig.height=12, eval=TRUE, out.width="98%", fig.pos="H", fig.cap = "**Figure 3 | Transcript-level switching patterns across parametric scales.** *Jackknife resampling reveals q-dependent isoform dominance hierarchies.* Heatmap of jackknife delta-influence values for four leading genes. Rows, ordered *q*-values (0.01–2.0). Columns, individual transcripts. **Legend:** Red, transcript more influential in control condition; blue, treatment; white, neutral. Vertical colour consistency indicates scale-independent dominance; colour alternation reveals *q*-dependent switching where distinct transcripts alternate in dominance depending on parametric sensitivity."}
+```{r fig-3-multi-q-heatmap, echo=TRUE, results='hide', fig.width=12, fig.height=12, eval=TRUE, out.width="98%", fig.pos="H", fig.cap = "Figure 3: Transcript-level switching patterns via jackknife resampling. Rows q-values (0.01–2.0), columns transcripts. Red/blue indicates condition influence."}
 # Generate multi-Q heatmaps using the S4 wrapper
 # Rendered directly to knitr graphics device (DESeq2 pattern)
 plot_multiq_delta_influence_heatmaps_s4(
@@ -688,7 +688,7 @@ Interpretation:
 - Blue cells: Transcript more influential in the second condition
 - Column patterns: Consistent color down a column indicates stable switching; varied colors indicate q-dependent switching
 
-```{r fig-4-reads-transcripts-median, echo=TRUE, results='hide', fig.width=12, fig.height=10, eval=TRUE, out.width="98%", fig.pos="H", fig.cap = "**Figure 5 | Condition-preferential isoform usage patterns.** *Hierarchical clustering reveals modular transcript coexpression and condition-specific dominance.* Heatmap of log-normalized transcript abundance for top four genes. Rows, individual transcripts (hierarchically clustered by expression similarity). Columns, experimental conditions. Colour gradient: blue (low/absent), white (intermediate), red (high expression). Row dendrogram reveals transcript expression modules; block-wise colour patterns suggest coordinated isoform switching (sets of related transcripts shifting together) between conditions."}
+```{r fig-4-reads-transcripts-median, echo=TRUE, results='hide', fig.width=12, fig.height=10, eval=TRUE, out.width="98%", fig.pos="H", fig.cap = "Figure 4: Transcript abundance heatmap with hierarchical clustering. Rows are transcripts, columns are conditions. Blue low, red high expression."}
 # Generate top transcripts heatmaps (pheatmap with hierarchical clustering)
 plot_top_transcripts_s4(
     analysis, 

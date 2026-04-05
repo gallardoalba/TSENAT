@@ -652,7 +652,7 @@
 #' @noRd
 
 .compute_delta_statistics <- function(counts_A, counts_B, delta_influence, q = 1,
-    norm = TRUE, log_base = exp(1), pseudocount = 0, n_bootstrap = 1000, seed = 42,
+    norm = TRUE, log_base = exp(1), pseudocount = 0, n_bootstrap = 1000,
     confidence = 0.95, n_transcripts = NULL) {
     .calculate_tsallis <- function(counts, q, norm, log_base, pseudocount, n_transcripts_fixed) {
         if (is.vector(counts))

@@ -388,7 +388,7 @@
 
 .calculate_divergence_bootstrap <- function(x, y, q = 1, nboot = 1000, ci = 0.95,
     method = "percentile", log_base = exp(1), pseudocount = 0.5, gene_name = NA_character_,
-    verbose = FALSE, seed = NULL, paired = FALSE, pair_ids = NULL) {
+    verbose = FALSE, paired = FALSE, pair_ids = NULL) {
 
     # Seed handling left to caller for Bioconductor compliance
 

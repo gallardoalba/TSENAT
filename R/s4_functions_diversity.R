@@ -219,7 +219,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     what = NULL, nthreads = NULL, pseudocount = NULL, min_valid_frac = NULL, shrinkage = NULL,
     genes = NULL, effective_length = NULL, metadata = NULL, bootstrap = NULL, nboot = NULL,
     bootstrap_method = NULL, bootstrap_ci = NULL, bootstrap_include_diagnostics = NULL,
-    seed = NULL, output_file = NULL, ...) {
+    output_file = NULL, ...) {
     # Validate input
     .validate_diversity_analysis_input(analysis)
 
@@ -227,7 +227,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     params <- .prepare_diversity_params(analysis, q, norm, norm_method, reference_group,
         tpm, assayno, verbose, what, nthreads, pseudocount, min_valid_frac, shrinkage,
         genes, effective_length, metadata, bootstrap, nboot, bootstrap_method, bootstrap_ci,
-        bootstrap_include_diagnostics, seed, show_messages)
+        bootstrap_include_diagnostics, show_messages)
     .validate_norm_method(params$norm_method)
 
     # Execute diversity calculation
@@ -733,7 +733,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     nthreads = NULL, pseudocount = NULL, min_valid_frac = NULL, shrinkage = NULL,
     genes = NULL, effective_length = NULL, metadata = NULL, bootstrap = NULL, nboot = NULL,
     bootstrap_method = NULL, bootstrap_ci = NULL, bootstrap_include_diagnostics = NULL,
-    seed = NULL, show_messages = FALSE) {
+    show_messages = FALSE) {
     # Extract q parameter with default range
     if (is.null(q)) {
         q <- if ("q_values" %in% names(analysis@config)) {
@@ -784,8 +784,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
         1), shrinkage = resolve_slot_param(shrinkage, analysis@config, "shrinkage",
         "none"), bootstrap_method = resolve_slot_param(bootstrap_method, analysis@config,
         "bootstrap_method", "percentile"), bootstrap_ci = resolve_slot_param(bootstrap_ci,
-        analysis@config, "bootstrap_ci", 0.95), seed = resolve_slot_param(seed, analysis@config,
-        "seed", NULL), tpm = tpm, genes = resolve_slot_param(genes, analysis@config,
+        analysis@config, "bootstrap_ci", 0.95), tpm = tpm, genes = resolve_slot_param(genes, analysis@config,
         "genes", NULL), effective_length = resolve_slot_param(effective_length, analysis@config,
         "effective_length", NULL), nboot = resolve_slot_param(nboot, analysis@config,
         "nboot", NULL), bootstrap_include_diagnostics = resolve_slot_param(bootstrap_include_diagnostics,
@@ -805,8 +804,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
         what = params$what, nthreads = params$nthreads, pseudocount = params$pseudocount,
         min_valid_frac = params$min_valid_frac, shrinkage = params$shrinkage, bootstrap = params$bootstrap,
         bootstrap_nboot = params$nboot, bootstrap_method = params$bootstrap_method,
-        bootstrap_ci = params$bootstrap_ci, bootstrap_include_diagnostics = params$bootstrap_include_diagnostics,
-        seed = params$seed)
+        bootstrap_ci = params$bootstrap_ci, bootstrap_include_diagnostics = params$bootstrap_include_diagnostics)
 
     # Add optional parameters
     if (!is.null(params$genes)) {

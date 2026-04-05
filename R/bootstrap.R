@@ -1855,6 +1855,17 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
 
 #' @noRd
 .compute_effective_n <- function(x) {
+    # Compute effective sample size accounting for autocorrelation
+    # Based on Kish (1965) design effect formula: n_eff = n / (1 + 2*rho)
+    # where rho is lag-1 autocorrelation
+    #
+    # Mathematical basis:
+    # - Positive autocorr (rho > 0): reduces effective sample size → n_eff < n
+    # - Negative autocorr (rho < 0): increases information → n_eff unaffected
+    #
+    # Reference: Efron & Tibshirani (1993) "An Introduction to the Bootstrap"
+    # and design effect literature in survey methodology
+    
     n <- length(x)
     if (n < 2)
         return(n)
@@ -1865,10 +1876,12 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
         na.rm = TRUE)
     acf_1 <- max(-0.999, min(0.999, acf_1))  # Bound to (-1, 1)
 
-    # Effective sample size accounting for positive autocorrelation
-    n_eff <- n/(1 + 2 * acf_1)
+    # Effective sample size: only positive autocorrelation reduces n_eff
+    # Negative autocorrelation does not reduce effective sample size
+    # (it improves sample independence, no loss of information)
+    n_eff <- n/(1 + 2 * max(0, acf_1))
 
-    return(max(1, n_eff))  # At least 1
+    return(max(1, n_eff))  # Ensure at least 1
 }
 
 

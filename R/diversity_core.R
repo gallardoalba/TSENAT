@@ -205,7 +205,7 @@
     verbose = FALSE, show_messages = FALSE, q = 2, what = c("S", "D"), nthreads = 1,
     pseudocount = 0, min_valid_frac = 0.75, shrinkage = "none", effective_length = NULL,
     metadata = NULL, bootstrap = FALSE, bootstrap_nboot = NULL, bootstrap_method = "percentile",
-    bootstrap_ci = 0.95, bootstrap_include_diagnostics = TRUE, seed = NULL) {
+    bootstrap_ci = 0.95, bootstrap_include_diagnostics = TRUE) {
 
     # Store original input and validate parameters
     original_x <- x

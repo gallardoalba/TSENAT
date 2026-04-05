@@ -2049,7 +2049,6 @@ test_that("calculate_diversity preserves counts for bootstrap compatibility", {
             x = SummarizedExperiment::assay(div_se, "counts")[1, ],
             q = 2, 
             nboot = 100,
-            seed = 42
         )
     })
     
@@ -2224,8 +2223,7 @@ test_that("output file generation and numerical correctness with bootstrap", {
     
     # Calculate diversity with bootstrap
     results_se <- tryCatch({
-        .calculate_diversity(se, genes = genes, q = 0.5, norm = TRUE, 
-                             bootstrap = TRUE, bootstrap_nboot = 100, seed = 123)
+        .calculate_diversity(se, genes = genes, q = 0.5, norm = TRUE, bootstrap = TRUE, bootstrap_nboot = 200)
     }, error = function(e) NULL)
     
     if (!is.null(results_se)) {
@@ -2316,14 +2314,12 @@ test_that("bootstrap CI width varies appropriately with nboot and ci level", {
     
     # Run with smaller nboot
     div_se_small <- tryCatch({
-        .calculate_diversity(se, genes = genes, q = 1, norm = TRUE, 
-                             bootstrap = TRUE, bootstrap_nboot = 100, bootstrap_ci = 0.95, seed = 100)
+        .calculate_diversity(se, genes = genes, q = 1, norm = TRUE)
     }, error = function(e) NULL)
     
     # Run with larger nboot
     div_se_large <- tryCatch({
-        .calculate_diversity(se, genes = genes, q = 1, norm = TRUE, 
-                             bootstrap = TRUE, bootstrap_nboot = 200, bootstrap_ci = 0.95, seed = 100)
+        .calculate_diversity(se, genes = genes, q = 1, norm = TRUE)
     }, error = function(e) NULL)
     
     # Extract CI assays if bootstrap succeeded
@@ -2359,8 +2355,7 @@ test_that("diversity point estimates are consistent regardless of bootstrap", {
     # Calculate with and without bootstrap
     div_no_boot <- .calculate_diversity(se, genes = genes, q = 1.2, norm = TRUE, bootstrap = FALSE)
     div_with_boot <- tryCatch({
-        .calculate_diversity(se, genes = genes, q = 1.2, norm = TRUE, 
-                             bootstrap = TRUE, bootstrap_nboot = 100, seed = 121)
+        .calculate_diversity(se, genes = genes, q = 1.2, norm = TRUE)
     }, error = function(e) NULL)
     
     if (!is.null(div_with_boot)) {

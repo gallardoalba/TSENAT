@@ -172,7 +172,7 @@
 .bootstrap_divergence <- function(x = NULL, y = NULL, se = NULL, res = NULL, top_n = 1,
     group_col = "group", control_group = "Normal", q = 1, norm = FALSE, nboot = 1000,
     ci = 0.95, method = c("percentile", "bca"), log_base = exp(1), pseudocount = 0,
-    seed = NULL, gene_name = NULL, verbose = TRUE, paired = FALSE, pair_id_col = NULL) {
+    gene_name = NULL, verbose = TRUE, paired = FALSE, pair_id_col = NULL) {
 
     method <- match.arg(method)
     
@@ -189,7 +189,7 @@
     # Handle multiple q values
     if (length(q) > 1) {
         return(.bootstrap_divergence_handle_multiple_q(x, y, q, norm, nboot, ci,
-            method, log_base, pseudocount, seed, gene_name, verbose, paired, 
+            method, log_base, pseudocount, gene_name, verbose, paired,
             pair_id_col, se))
     }
     
@@ -285,12 +285,12 @@
 
 #' @noRd
 .bootstrap_divergence_handle_multiple_q <- function(x, y, q, norm, nboot, ci, 
-    method, log_base, pseudocount, seed, gene_name, verbose, paired, pair_id_col, 
+    method, log_base, pseudocount, gene_name, verbose, paired, pair_id_col, 
     se) {
     results_list <- lapply(q, function(qi) {
         .bootstrap_divergence(x = x, y = y, se = NULL, res = NULL, q = qi, norm = norm,
             nboot = nboot, ci = ci, method = method, log_base = log_base, 
-            pseudocount = pseudocount, seed = seed, gene_name = gene_name, 
+            pseudocount = pseudocount, gene_name = gene_name, 
             verbose = FALSE, paired = paired, pair_id_col = pair_id_col)
     })
     names(results_list) <- paste0("q_", q)

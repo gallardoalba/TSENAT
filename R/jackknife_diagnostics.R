@@ -22,7 +22,7 @@
 
 #' @noRd
 .jackknife_process_multiq <- function(x, se, res, top_n, q, norm, log_base, pseudocount,
-    threshold, seed, verbose, nthreads, .cluster) {
+    threshold, verbose, nthreads, .cluster) {
     n_cores <- .get_nthreads_auto_detect(nthreads)
     create_cluster <- is.null(.cluster) && n_cores > 1 && length(q) > 2 && requireNamespace("parallel",
         quietly = TRUE)
@@ -50,13 +50,13 @@
         results_list <- parallel::parLapply(.cluster, q, function(q_val) {
             .jackknife_entropy_outliers(x = x, se = se, res = res, top_n = top_n,
                 q = q_val, norm = norm, log_base = log_base, pseudocount = pseudocount,
-                threshold = threshold, seed = seed, verbose = FALSE, .cluster = NULL)
+                threshold = threshold, verbose = FALSE, .cluster = NULL)
         })
     } else {
         results_list <- lapply(q, function(q_val) {
             .jackknife_entropy_outliers(x = x, se = se, res = res, top_n = top_n,
                 q = q_val, norm = norm, log_base = log_base, pseudocount = pseudocount,
-                threshold = threshold, seed = seed, verbose = FALSE, .cluster = NULL)
+                threshold = threshold, verbose = FALSE, .cluster = NULL)
         })
     }
 
@@ -84,7 +84,7 @@
 
 #' @noRd
 .jackknife_process_se <- function(se, res, top_n, q, norm, log_base, pseudocount,
-    threshold, seed, verbose, nthreads, .cluster) {
+    threshold, verbose, nthreads, .cluster) {
     if (!methods::is(se, "SummarizedExperiment")) {
         stop("'se' must be a SummarizedExperiment object")
     }
@@ -153,7 +153,7 @@
     rownames(counts_matrix) <- vapply(valid_results, "[[", "name", FUN.VALUE = character(1))
 
     .jackknife_entropy_outliers(x = counts_matrix, q = q, norm = norm, log_base = log_base,
-        pseudocount = pseudocount, threshold = threshold, seed = seed, verbose = verbose,
+        pseudocount = pseudocount, threshold = threshold, verbose = verbose,
         nthreads = nthreads, .cluster = .cluster)
 }
 
@@ -161,7 +161,7 @@
 
 #' @noRd
 .jackknife_process_matrix <- function(x, q, norm, log_base, pseudocount, threshold,
-    seed, verbose) {
+    verbose) {
     # Guard against empty matrices
     if (nrow(x) == 0) {
         stop("Cannot compute jackknife on empty matrix (0 genes). ", "All genes may have been filtered during diversity calculation. ",
@@ -611,7 +611,7 @@
 #' @noRd
 
 .jackknife_entropy_outliers <- function(x = NULL, se = NULL, res = NULL, top_n = 5,
-    q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0, threshold = 90, seed = NULL,
+    q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0, threshold = 90,
     verbose = FALSE, nthreads = 1, .cluster = NULL) {
     # Input validation
     .jackknife_validate_params(q, threshold)
@@ -619,13 +619,13 @@
     # Phase 1: Handle multiple q values
     if (length(q) > 1) {
         return(.jackknife_process_multiq(x, se, res, top_n, q, norm, log_base, pseudocount,
-            threshold, seed, verbose, nthreads, .cluster))
+            threshold, verbose, nthreads, .cluster))
     }
 
     # Phase 2: Handle SummarizedExperiment input
     if (!is.null(se) && !is.null(res)) {
         return(.jackknife_process_se(se, res, top_n, q, norm, log_base, pseudocount,
-            threshold, seed, verbose, nthreads, .cluster))
+            threshold, verbose, nthreads, .cluster))
     }
 
     # Phase 3: Validate basic input
@@ -637,7 +637,7 @@
     if (is.matrix(x) || is.data.frame(x)) {
         x <- as.matrix(x)
         return(.jackknife_process_matrix(x, q, norm, log_base, pseudocount, threshold,
-            seed, verbose))
+            verbose))
     }
 
     # Phase 5: Handle vector input (core jackknife)

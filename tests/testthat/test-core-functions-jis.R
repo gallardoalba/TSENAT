@@ -785,7 +785,6 @@ test_that("jackknife_entropy_outliers with seed for reproducibility", {
     x = x,
     q = 2,
     norm = TRUE,
-    seed = 456,
     verbose = FALSE
   )
   
@@ -793,7 +792,6 @@ test_that("jackknife_entropy_outliers with seed for reproducibility", {
     x = x,
     q = 2,
     norm = TRUE,
-    seed = 456,
     verbose = FALSE
   )
   

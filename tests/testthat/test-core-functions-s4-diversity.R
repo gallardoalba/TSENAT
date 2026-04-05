@@ -333,7 +333,6 @@ test_that("CI width decreases with higher bootstrap replicates (nboot)", {
     q = c(1.0),
     bootstrap = TRUE,
     nboot = 20,
-    seed = 111,
     output_file = output_file_low,
     verbose = FALSE
   ))
@@ -344,7 +343,6 @@ test_that("CI width decreases with higher bootstrap replicates (nboot)", {
     q = c(1.0),
     bootstrap = TRUE,
     nboot = 50,
-    seed = 111,
     output_file = output_file_high,
     verbose = FALSE
   ))

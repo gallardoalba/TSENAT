@@ -105,7 +105,7 @@
 #' @importFrom utils write.table
 calculate_divergence_s4 <- function(analysis, q = NULL, verbose = FALSE, nthreads = NULL,
     output_file = NULL, control_group = NULL, paired = FALSE, method = NULL, bootstrap = FALSE,
-    nboot = NULL, seed = NULL, progress = FALSE, ...) {
+    nboot = NULL, progress = FALSE, ...) {
     
     # Step 1: Validate input
     .validate_divergence_input(analysis)
@@ -116,7 +116,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = FALSE, nthread
     progress <- resolve_slot_param(progress, analysis@config, "progress", FALSE)
 
     # Step 3: Resolve and process parameters
-    params <- .resolve_divergence_parameters(q, control_group, method, nthreads, nboot, seed,
+    params <- .resolve_divergence_parameters(q, control_group, method, nthreads, nboot,
         paired, bootstrap, analysis)
 
     # Step 4: Build arguments for computation
@@ -176,7 +176,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = FALSE, nthread
 #'
 #' @noRd
 #' @noRd
-.resolve_divergence_parameters <- function(q, control_group, method, nthreads, nboot, seed,
+.resolve_divergence_parameters <- function(q, control_group, method, nthreads, nboot,
     paired, bootstrap, analysis) {
     # Extract parameters using utility functions
     q <- resolve_slot_param(q, analysis@config, "q_values", 1)
@@ -184,7 +184,6 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = FALSE, nthread
     method <- resolve_slot_param(method, analysis@config, "method", "percentile")
     nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
     nboot <- resolve_slot_param(nboot, analysis@config, "nboot", NULL)
-    seed <- resolve_slot_param(seed, analysis@config, "seed", NULL)
 
     # Replace q=0 with q=0.01 (q=0 always returns 0, which is uninformative)
     if (is.vector(q)) {
@@ -214,7 +213,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = FALSE, nthread
     }
 
     list(q = q, control_group = control_group, method = method, nthreads = nthreads,
-        nboot = nboot, seed = seed, paired = paired, bootstrap = bootstrap)
+        nboot = nboot, paired = paired, bootstrap = bootstrap)
 }
 
 #' Build arguments list for divergence calculation

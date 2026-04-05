@@ -115,7 +115,7 @@
 
 #' @noRd
 .compute_divergence_worker <- function(gene_indices, all_gene_names, se, gene_col,
-    rd, group_col, control_group, q, nboot, ci, method, log_base, pseudocount, seed,
+    rd, group_col, control_group, q, nboot, ci, method, log_base, pseudocount,
     pair_ids, nthreads, use_parallel, progress) {
     start_time <- Sys.time()
     num_genes <- length(gene_indices)
@@ -125,7 +125,7 @@
         gene_idx <- gene_indices[i]
 
         .process_single_gene_div(gene_idx, all_gene_names, se, gene_col, rd, group_col,
-            control_group, q, nboot, ci, method, log_base, pseudocount, seed, pair_ids)
+            control_group, q, nboot, ci, method, log_base, pseudocount, pair_ids)
     }
 
     # Execute using BiocParallel infrastructure
@@ -423,11 +423,21 @@
 #' filtering)
 
 #' @noRd
+#' @details
+#' **Reproducibility and RNG (Bioconductor-compliant):**
+#' For reproducible results with bootstrap CIs, use `set.seed()` before calling
+#' this function, following Bioconductor guidelines for RNG control.
+#' The function does NOT accept a `seed` parameter; RNG state is managed by the caller.
+#' This approach ensures compatibility with BiocParallel parallel backends:
+#' when `nthreads > 1`, BiocParallel automatically distributes seeds to worker threads.
+#' Example:
+#'   set.seed(42)
+#'   result <- .calculate_divergence(se, q=1, nboot=100, nthreads=2)
 
 .calculate_divergence <- function(se, group_col = NULL, control_group = NULL, q = 1,
     paired = FALSE, bootstrap = FALSE, nboot = "auto", ci = 0.95, method = "percentile",
     norm = TRUE, log_base = exp(1), pseudocount = 0.5, nthreads = 1, progress = FALSE,
-    verbose = TRUE, seed = NULL) {
+    verbose = TRUE) {
 
     # =========================================================================
     # INPUT VALIDATION - Must be done BEFORE implementation Following
@@ -463,8 +473,7 @@
 
     # Call implementation directly - errors will propagate clearly
     .calculate_divergence_impl(se, group_col, control_group, q, paired, bootstrap,
-        nboot, ci, method, norm, log_base, pseudocount, nthreads, progress, verbose,
-        seed)
+        nboot, ci, method, norm, log_base, pseudocount, nthreads, progress, verbose)
 }
 
 #' Implementation of calculate_divergence with parameter validation
@@ -473,7 +482,7 @@
 .calculate_divergence_impl <- function(se, group_col = NULL, control_group = NULL,
     q = 1, paired = FALSE, bootstrap = FALSE, nboot = "auto", ci = 0.95, method = "percentile",
     norm = TRUE, log_base = exp(1), pseudocount = 0.5, nthreads = 1, progress = FALSE,
-    verbose = TRUE, seed = NULL) {
+    verbose = TRUE) {
 
     # =========================================================================
     # =========================================================================
@@ -557,7 +566,7 @@
 
     comp_result <- .compute_divergence_worker(gene_indices, all_gene_names, se, gene_col,
         rd, group_col, control_group, q, nboot, ci, method, log_base, pseudocount,
-        seed, pair_ids, nthreads, use_parallel, progress)
+        pair_ids, nthreads, use_parallel, progress)
     results_list <- comp_result$results
     elapsed <- comp_result$elapsed
 
@@ -740,7 +749,7 @@
 
 #' @noRd
 .compute_divergence_q <- function(x, y, q_vals, nboot, ci, method, log_base, pseudocount,
-    gene_name, seed, pair_ids = NULL) {
+    gene_name, pair_ids = NULL) {
     gene_results <- list()
 
     # OPTIMIZATION (March 2026): Vectorize point estimate computation for
@@ -1072,7 +1081,7 @@
 #' Consolidates logic shared between sequential and parallel processing
 #' @noRd
 .process_single_gene_div <- function(gene_idx, all_gene_names, se, gene_col, rd,
-    group_col, control_group, q, nboot, ci, method, log_base, pseudocount, seed,
+    group_col, control_group, q, nboot, ci, method, log_base, pseudocount,
     pair_ids, groups_cached = NULL, transcript_map_cache = NULL) {
     target_gene <- all_gene_names[gene_idx]
     gene_name <- target_gene
@@ -1112,7 +1121,7 @@
 
         # Compute divergence for each q value (with vectorization optimization)
         gene_results <- .compute_divergence_q(x, y, q, nboot, ci, method, log_base,
-            pseudocount, gene_name, seed, pair_ids)
+            pseudocount, gene_name, pair_ids)
 
         gene_elapsed <- as.numeric(Sys.time() - gene_start, units = "secs")
 
