@@ -144,7 +144,7 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
             if ("condition_col" %in% names(se@config)) {
                 condition_col <- se@config$condition_col
             } else {
-                condition_col <- "sample_type"
+                condition_col <- "condition"  # Default to "condition" for new code
             }
         }
 
@@ -153,8 +153,15 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
     }
 
     # Default condition_col if still NULL (for direct SE input)
+    # Try "condition" first (standard), then "sample_type" (legacy)
     if (is.null(condition_col)) {
-        condition_col <- "sample_type"
+        if ("condition" %in% colnames(SummarizedExperiment::colData(se))) {
+            condition_col <- "condition"
+        } else if ("sample_type" %in% colnames(SummarizedExperiment::colData(se))) {
+            condition_col <- "sample_type"  # Fallback for backwards compatibility
+        } else {
+            stop("No condition column found. Expected 'condition' or 'sample_type' in colData.")
+        }
     }
 
     # Validate input
