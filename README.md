@@ -58,14 +58,14 @@ remotes::install_github("gallardoalba/TSENAT")
 library(TSENAT)
 library(SummarizedExperiment)
 
-# Load example dataset
+# Load example dataset (includes readcounts, tpm, and effective_length)
 data(readcounts)
 readcounts <- as.matrix(readcounts)
 
 # Load sample metadata and annotation
 metadata_df <- read.table(
   system.file("extdata", "metadata.tsv",
-  package = "TSENAT"), header = TRUE,
+  package = "TSENAT"), header = TRUE, row.names = 1,
   sep = "\t")
 
 gff3_file <- system.file("extdata",
@@ -111,7 +111,7 @@ For customization at each stage, use individual functions:
 
 ```r
 # Remove low-abundance transcripts
-analysis <- filter_analysis_s4(analysis, stringency = "severe")
+analysis <- filter_analysis_s4(analysis, stringency = "medium")
 
 # Compute Tsallis entropy across q-spectrum
 analysis <- calculate_diversity_s4(analysis, norm = TRUE)
@@ -135,9 +135,9 @@ p_qcurve <- plot_tsallis_q_curve_s4(analysis)
 print(p_qcurve)
 ```
 
-## Core Features
 
-### Statistical Inference  
+## Statistical Inference Methods
+
 - **Paired designs**: Account for repeated measures with subject random effects (via LMM)
 - **Multiple testing methods**:
     - *Wilcoxon/Permutation*: Distribution-free testing for pairwise comparisons
@@ -151,16 +151,6 @@ print(p_qcurve)
     - Percentile bootstrap for symmetric distributions
     - Jackknife leave-one-out for identifying outlier-influential samples
 
-### Confidence Intervals & Effect Sizes
-- **Bootstrap confidence intervals**: Automatic BCA correction for asymmetric entropy distributions
-- **Effect size interpretation**: Standardized measures enabling cross-study comparison
-- **Jackknife diagnostics**: Identify which samples drive isoform switching signals
-
-### Advanced Analysis
-- **Divergence metrics**: Pairwise Kullback-Leibler and Jensen-Shannon divergence with effect sizes
-- **Qxcondition interactions**: Detect scale-dependent group differences via GAM (smooth nonlinear patterns) or Friedman rank tests (maximal robustness)
-- **Isoform switching**: Jackknife-based diagnostics identifying transcript shifts and influence plots
-- **Robust methods**: M-estimation (Huber, Tukey) for outlier-resistant analysis
 
 ### Data Integration
 - **Unified object**: `TSENATAnalysis` encapsulates data, config, and all results
@@ -203,7 +193,7 @@ analysis <- build_analysis_s4(
 )
 
 # Run analysis pipeline
-analysis <- filter_analysis_s4(analysis, stringency = "medium")
+analysis <- filter_analysis_s4(analysis, stringency = "severe")
 analysis <- calculate_diversity_s4(analysis)  # Salmon-informed length-normalized entropy
 ```
 
@@ -225,52 +215,30 @@ salmon_output/
 
 **Critical requirement**: Folder names (e.g., `Sample_1`, `Sample_2`) must **exactly match** the row names in your metadata file (case-sensitive).
 
-### Metadata File Structure
-
-The metadata file must be a data frame with:
-- **Row names**: Sample identifiers that exactly match Salmon folder names
-- **Columns**: Experimental factors and sample information
+## Metadata File Structure
 
 Example metadata structure:
 
 ```r
 # Load metadata from TSV file
 metadata_df <- read.table("metadata.tsv", header = TRUE, sep = "\t", row.names = 1)
-
-# Or create manually:
-metadata_df <- data.frame(
-  treatment = c("control", "control", "treated", "treated"),
-  batch = c("batch1", "batch1", "batch2", "batch2"),
-  patient_id = c("P001", "P002", "P001", "P002"),
-  row.names = c("Sample_1", "Sample_2", "Sample_3", "Sample_4")  # Must match folder names!
-)
 ```
 
 Expected TSV file format (`metadata.tsv`):
 
 ```
-sample_id    treatment    batch       patient_id
-Sample_1     control      batch1      P001
-Sample_2     control      batch1      P002
-Sample_3     treated      batch2      P001
-Sample_4     treated      batch2      P002
+sample        condition    paired_samples
+SRR14800481   normal       A
+SRR14800480   normal       B
+SRR14800479   tumor        A
+SRR14800478   tumor        B
 ```
 
-When reading from TSV:
-```r
-metadata_df <- read.table("metadata.tsv", header = TRUE, sep = "\t", row.names = 1)
-# row.names = 1 uses first column (sample IDs) as row names
-```
+**Key requirements:**
+- First column: `sample` (must match Salmon folder names exactly)
+- Second column: `condition` (experimental groups: normal, tumor, treated, control, etc.)
+- Third column: `paired_samples` (required if using paired designs; identifier for matched samples)
 
-### Key Design Principles
-
-- **Configure first**: Use `tsenat_config()` BEFORE `build_analysis_s4()` for fail-fast validation
-- **Folder-metadata matching**: Sample folder names MUST exactly match metadata row names (case-sensitive); no auto-mapping
-- **Row names in metadata**: Use `read.table(..., row.names = 1)` when reading TSV to set sample identifiers as row names
-- **Salmon auto-discovery**: Function discovers all `quant.sf` files recursively; ensure one per sample subdirectory
-- **Condition column**: Specify the metadata column containing experimental groups in `tsenat_config(condition_col = "...")`
-
-See `build_analysis_s4()` documentation for complete parameter details.
 
 ## Tests coverage
 
@@ -294,18 +262,11 @@ Interactive help for functions and classes:
 ?TSENATAnalysis-class
 ```
 
-### Online Documentation
-Full documentation and examples: [gallardoalba.github.io/TSENAT](https://gallardoalba.github.io/TSENAT)
-
-### Complementary Validation Methods
-
-For users interested in validating results across statistical frameworks:
+For methodology details and a comprehensive bibliography with 50+ peer-reviewed citations, see the [TSENAT vignette](vignettes/TSENAT.Rmd):
 
 ```r
-vignette("TSENAT_appendix_B")  # Compares linear models vs GAM vs Friedman rank-based tests
+vignette("TSENAT")
 ```
-
-Appendix B demonstrates that discoveries generalize across non-parametric alternatives, providing critical validation that findings are robust to modeling assumptions.
 
 ## Citation
 
@@ -327,47 +288,7 @@ This command displays the recommended bibliographic entry. A machine-readable `C
 }
 ```
 
-## Contributing
-
-We welcome contributions! Please follow these guidelines:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/your-feature-name`)
-3. Make your changes and test locally with `R CMD check`
-4. Commit with clear messages (`git commit -m 'Add feature: description'`)
-5. Push to your fork (`git push origin feature/your-feature-name`)
-6. Open a Pull Request describing your changes
-
-### Local Testing
-
-Ensure all checks pass before submitting:
-
-```r
-devtools::check()
-devtools::test()
-```
-
-## CI and Local Checks
-
-Continuous integration is configured with CircleCI to install all suggested packages for comprehensive testing. To reproduce a CI-like environment locally:
-
-```r
-# Install all suggested dependencies
-remotes::install_deps(dependencies = c("Suggests"))
-
-# Run checks
-R CMD check --as-cran
-```
-## Learn More
-
-For methodology details and a comprehensive bibliography with 50+ peer-reviewed citations, see the [TSENAT vignette](vignettes/TSENAT.Rmd):
-
-```r
-vignette("TSENAT")
-```
-
 ## License and Attribution
-
 
 This project is licensed under the GNU General Public License v3.0 (GPL-3). See [LICENSE](LICENSE) for details.
 
