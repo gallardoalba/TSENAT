@@ -138,7 +138,6 @@ print(p_qcurve)
 
 ## Statistical Inference Methods
 
-- **Paired designs**: Account for repeated measures with subject random effects (via LMM)
 - **Multiple testing methods**:
     - *Wilcoxon/Permutation*: Distribution-free testing for pairwise comparisons
     - *Linear Mixed Models (LMM)*: Parametric testing with AR(1) correlation structure for repeated measures; ideal when residuals are approximately normal
@@ -166,13 +165,10 @@ TSENAT answers a unique question: **How do isoforms reorganize, independent of a
 | **DESeq2, edgeR, limma** | Which genes change in *total abundance*? | TSENAT detects isoform diversity changes **independent of total abundance** |
 | **DRIMSeq, SplicingFactory** | Which *individual transcripts* shift usage? | TSENAT quantifies **overall heterogeneity** as a unified complexity measure |
 | **Kallisto, Salmon** | How many reads per transcript? | TSENAT uses their quantification as input; adds diversity analysis layer |
-| **All Bioconductor tools** | Various RNA-seq questions | TSENAT integrates via `SummarizedExperiment` for seamless multi-tool workflows |
 
 ## Loading Salmon Quantification Data
 
 TSENAT automatically discovers and reads Salmon output when you provide a directory:
-
-**Note**: When using `salmon_dir`, the parameter must be explicitly named (not positional) because `salmon_dir` is optional and comes before the required `tx2gene` parameter.
 
 ```r
 library(TSENAT)
