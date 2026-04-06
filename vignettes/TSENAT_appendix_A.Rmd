@@ -1,6 +1,6 @@
 ---
 title: "Appendix A: Equivalence Validation - TSENAT vs SplicingFactory"
-author: "Cristóbal Gallardo <gallardoalba@pm.me>"
+author: "Cristobal Gallardo <gallardoalba@pm.me>"
 date: "`r Sys.Date()`"
 output:
     rmarkdown::html_document:
@@ -21,7 +21,7 @@ vignette: |
     %\VignetteEncoding{UTF-8}
 ---
 
-```{r global-setup, include = FALSE}
+```{r global-setup-appendix-a, include = FALSE}
 knitr::opts_chunk$set(
     collapse = TRUE,
     comment = "#>",
@@ -36,8 +36,8 @@ suppressPackageStartupMessages(library(kableExtra))
 
 This appendix validates that **TSENAT's transcript diversity measures (Shannon entropy, Simpson index) are mathematically equivalent to SplicingFactory's implementations**. We benchmark both packages on TCGA BRCA RNA-seq data to demonstrate:
 
-- Shannon equivalence: TSENAT Tsallis q=1 ≈ SplicingFactory Shannon
-- Simpson equivalence: TSENAT Tsallis q=2 ≈ SplicingFactory Simpson  
+- Shannon equivalence: TSENAT Tsallis q=1 ~ SplicingFactory Shannon
+- Simpson equivalence: TSENAT Tsallis q=2 ~ SplicingFactory Simpson  
 - Identical statistical results: Same gene rankings, p-values, fold changes
 
 **Who needs this appendix?** Anyone evaluating TSENAT for transcript diversity analysis or validating cross-package comparisons.
@@ -111,7 +111,7 @@ readcounts <- tcga_brca_luma_dataset[, -1]
 
 ### Data filtering and preprocessing
 
-```{r filter-and-validate-counts}
+```{r filter-validate-appendix-a}
 tokeep <- rowSums(readcounts > 5) > 5
 readcounts <- readcounts[tokeep, ]
 genes      <- genes[tokeep]
@@ -197,11 +197,11 @@ create_summary_stats <- function(method1_results, method2_results,
       sum(method1_results[[padj_col1]] < 0.01, na.rm = TRUE),
       sum(method2_results[[padj_col2]] < 0.01, na.rm = TRUE)
     ),
-    "Mean log₂FC" = c(
+    "Mean log2FC" = c(
       round(mean(method1_results$log2_fold_change, na.rm = TRUE), 3),
       round(mean(method2_results$log2_fold_change, na.rm = TRUE), 3)
     ),
-    "Median log₂FC" = c(
+    "Median log2FC" = c(
       round(median(method1_results$log2_fold_change, na.rm = TRUE), 3),
       round(median(method2_results$log2_fold_change, na.rm = TRUE), 3)
     ),
@@ -296,8 +296,7 @@ for (q in q_values) {
     analysis = tsenat_results[[paste0("q", q)]],
     q = q,
     norm = TRUE,
-    verbose = FALSE,
-    output_file = file.path("output", sprintf("appendix_a_diversity_q%d.tsv", q))
+    verbose = FALSE
   )
 }
 
@@ -341,8 +340,7 @@ tsenat_analysis_q1 <- calculate_difference_s4(
   control = "Normal",
   method = "mean",
   test = "wilcoxon",
-  verbose = FALSE,
-  output_file = file.path("output", "appendix_a_difference_q1.tsv")
+  verbose = FALSE
 )
 # Extract results for downstream functions
 tsenat_shannon_diff <- pairwiseResults(tsenat_analysis_q1, component = "difference")
@@ -354,8 +352,7 @@ tsenat_analysis_q2 <- calculate_difference_s4(
   control = "Normal",
   method = "mean",
   test = "wilcoxon",
-  verbose = FALSE,
-  output_file = file.path("output", "appendix_a_difference_q2.tsv")
+  verbose = FALSE
 )
 # Extract results for downstream functions
 tsenat_simpson_diff <- pairwiseResults(tsenat_analysis_q2, component = "difference")
@@ -391,11 +388,11 @@ shannon_summary <- create_summary_stats(
   padj_col1 = "adjusted_p_values", padj_col2 = "padj"
 )
 
-knitr::kable(shannon_summary, caption = "**Supplementary Table 5 | Shannon Entropy Analysis Summary Statistics.** Descriptive statistics for differential analysis comparing Normal (N=8) vs Tumor (N=8) samples. Columns: method identifier; genes analyzed (*n*); genes with significant effects (adjusted *P* < 0.05); mean log₂ fold-change; standard deviation of effect sizes. Both SplicingFactory (Laplace approximation to Shannon) and TSENAT (Tsallis *q*=1) show comparable statistical power and effect size detection, validating mathematical equivalence. Convergence of results confirms Tsallis framework encompasses classical Shannon entropy.", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
+knitr::kable(shannon_summary, caption = "**Supplementary Table 5 | Shannon Entropy Analysis Summary Statistics.** Descriptive statistics for differential analysis comparing Normal (N=8) vs Tumor (N=8) samples. Columns: method identifier; genes analyzed (*n*); genes with significant effects (adjusted *P* < 0.05); mean log2 fold-change; standard deviation of effect sizes. Both SplicingFactory (Laplace approximation to Shannon) and TSENAT (Tsallis *q*=1) show comparable statistical power and effect size detection, validating mathematical equivalence. Convergence of results confirms Tsallis framework encompasses classical Shannon entropy.", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
 kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed"), latex_options = c("scale_down"))
 ```
 
-**Interpretation**: Both methods similarly identify significantly different transcript diversity between Normal and Tumor samples. The comparable number of significant genes (padj<0.05) and mean log₂FC values demonstrate equivalent statistical power and effect size detection.
+**Interpretation**: Both methods similarly identify significantly different transcript diversity between Normal and Tumor samples. The comparable number of significant genes (padj<0.05) and mean log2FC values demonstrate equivalent statistical power and effect size detection.
 
 #### Top 10 Significant Genes - SplicingFactory (Laplace)
 ```{r shannon-splicing-factory-genes, message=FALSE, warning=FALSE, echo=FALSE}
@@ -408,7 +405,7 @@ shannon_sf_top <- format_top_genes(
   select_cols = c("genes", "Normal_mean", "Tumor_mean", "mean_difference", "log2_fold_change", "raw_p_values", "adjusted_p_values"),
   col_names = c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
 )
-knitr::kable(shannon_sf_top, row.names = FALSE, caption = "**Supplementary Table 6 | SplicingFactory method — Top 10 genes identified by Shannon entropy (Laplace approximation).** Ranked by adjusted *P*-value (ascending). Columns: gene identifier; Normal condition mean (log-scale); Tumor condition mean; mean difference; log₂ fold-change effect size; unadjusted *P*-value; Benjamini–Hochberg adjusted *P*-value. Validation reference: SplicingFactory is an established R package for isoform diversity analysis using classical Shannon entropy.", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
+knitr::kable(shannon_sf_top, row.names = FALSE, caption = "**Supplementary Table 6 | SplicingFactory method - Top 10 genes identified by Shannon entropy (Laplace approximation).** Ranked by adjusted *P*-value (ascending). Columns: gene identifier; Normal condition mean (log-scale); Tumor condition mean; mean difference; log2 fold-change effect size; unadjusted *P*-value; Benjamini-Hochberg adjusted *P*-value. Validation reference: SplicingFactory is an established R package for isoform diversity analysis using classical Shannon entropy.", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
 kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed"), latex_options = c("scale_down"))
 ```
 
@@ -423,11 +420,11 @@ shannon_tsenat_top <- format_top_genes(
   select_cols = c("gene_id", "Normal_mean", "Tumor_mean", "mean_difference", "log2_fold_change", "pvalue", "padj"),
   col_names = c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
 )
-knitr::kable(shannon_tsenat_top, row.names = FALSE, caption = "**Supplementary Table 7 | TSENAT method — Top 10 genes identified by Tsallis entropy at *q*=1 (Shannon equivalence).** Ranked by adjusted *P*-value (ascending). Columns: gene identifier; Normal mean (log-scale); Tumor mean; mean difference; log₂ fold-change; unadjusted *P*; adjuste d *P*-value. Validation: Tsallis entropy at *q*→1 converges to Shannon entropy (classical diversity metric), demonstrating TSENAT encompasses established methods as special cases.", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
+knitr::kable(shannon_tsenat_top, row.names = FALSE, caption = "**Supplementary Table 7 | TSENAT method - Top 10 genes identified by Tsallis entropy at *q*=1 (Shannon equivalence).** Ranked by adjusted *P*-value (ascending). Columns: gene identifier; Normal mean (log-scale); Tumor mean; mean difference; log2 fold-change; unadjusted *P*; adjuste d *P*-value. Validation: Tsallis entropy at *q*->1 converges to Shannon entropy (classical diversity metric), demonstrating TSENAT encompasses established methods as special cases.", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
 kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed"), latex_options = c("scale_down"))
 ```
 
-```{r extended-fig-2-shannon-validation, fig.width=14, fig.height=7, message=FALSE, warning=FALSE, out.width="98%", fig.pos="H", fig.cap="**Extended Data Figure 2 | Method validation: Shannon entropy equivalence between TSENAT and SplicingFactory.** *Tsallis entropy at q→1 recovers classical Shannon diversity results.* Volcano plots (left panels) display log₂ fold-change (X-axis) vs −log₁₀(*P*-value, Y-axis) comparing Normal vs Tumor samples. MA plots (right panels) show log-average abundance vs log₂ fold-change. Top row, SplicingFactory (established Shannon implementation using Laplace approximation); bottom row, TSENAT using Tsallis *q*=1. Diagonal concordance and identical significance calls (shaded region: *P* < 0.05 threshold) demonstrate mathematical equivalence. Overlapping point clouds validate that TSENAT framework encompasses classical entropy as special case."}
+```{r extended-fig-2-shannon-validation, fig.width=14, fig.height=7, message=FALSE, warning=FALSE, out.width="98%", fig.pos="H", fig.cap="**Extended Data Figure 2 | Method validation: Shannon entropy equivalence between TSENAT and SplicingFactory.** *Tsallis entropy at q->1 recovers classical Shannon diversity results.* Volcano plots (left panels) display log2 fold-change (X-axis) vs -log10(*P*-value, Y-axis) comparing Normal vs Tumor samples. MA plots (right panels) show log-average abundance vs log2 fold-change. Top row, SplicingFactory (established Shannon implementation using Laplace approximation); bottom row, TSENAT using Tsallis *q*=1. Diagonal concordance and identical significance calls (shaded region: *P* < 0.05 threshold) demonstrate mathematical equivalence. Overlapping point clouds validate that TSENAT framework encompasses classical entropy as special case."}
 # Create comparison plots: Volcano and MA plots side-by-side for each method
 library(cowplot)
 
@@ -493,7 +490,7 @@ simpson_summary <- create_summary_stats(
   padj_col1 = "adjusted_p_values", padj_col2 = "padj"
 )
 
-knitr::kable(simpson_summary, caption = "**Supplementary Table 8 | Simpson Index Analysis Summary Statistics.** Descriptive statistics for differential analysis using Simpson diversity metric (Gini-Simpson index). Columns: method identifier; genes analyzed (*n*); genes with significant effects (adjusted *P* < 0.05); mean log₂ fold-change; standard deviation. Both SplicingFactory (Simpson index) and TSENAT (Tsallis *q*=2) show equivalent statistical power. Simpson index emphasizes common (dominant) isoforms; mathematically equivalent to Tsallis *q*=2, validating multi-*q* framework.", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
+knitr::kable(simpson_summary, caption = "**Supplementary Table 8 | Simpson Index Analysis Summary Statistics.** Descriptive statistics for differential analysis using Simpson diversity metric (Gini-Simpson index). Columns: method identifier; genes analyzed (*n*); genes with significant effects (adjusted *P* < 0.05); mean log2 fold-change; standard deviation. Both SplicingFactory (Simpson index) and TSENAT (Tsallis *q*=2) show equivalent statistical power. Simpson index emphasizes common (dominant) isoforms; mathematically equivalent to Tsallis *q*=2, validating multi-*q* framework.", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
 kableExtra::kable_styling(
   bootstrap_options = c("striped", "hover", "condensed"),
   latex_options = c("scale_down")
@@ -513,7 +510,7 @@ simpson_sf_top <- format_top_genes(
   select_cols = c("genes", "Normal_mean", "Tumor_mean", "mean_difference", "log2_fold_change", "raw_p_values", "adjusted_p_values"),
   col_names = c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
 )
-knitr::kable(simpson_sf_top, row.names = FALSE, caption = "**Supplementary Table 9 | SplicingFactory method — Top 10 genes by Simpson index (Gini-Simpson, emphasizes dominant isoforms).** Ranked by adjusted *P*-value (ascending). Columns: gene identifier; Normal mean; Tumor mean; mean difference; log₂ fold-change; unadjusted *P*; adjusted *P*-value. Simpson index differs from Shannon by emphasizing abundant/dominant transcripts (low parameter sensitivity to rare isoforms).", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
+knitr::kable(simpson_sf_top, row.names = FALSE, caption = "**Supplementary Table 9 | SplicingFactory method - Top 10 genes by Simpson index (Gini-Simpson, emphasizes dominant isoforms).** Ranked by adjusted *P*-value (ascending). Columns: gene identifier; Normal mean; Tumor mean; mean difference; log2 fold-change; unadjusted *P*; adjusted *P*-value. Simpson index differs from Shannon by emphasizing abundant/dominant transcripts (low parameter sensitivity to rare isoforms).", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
 kableExtra::kable_styling(
   bootstrap_options = c("striped", "hover", "condensed"),
   latex_options = c("scale_down")
@@ -531,7 +528,7 @@ simpson_tsenat_top <- format_top_genes(
   select_cols = c("gene_id", "Normal_mean", "Tumor_mean", "mean_difference", "log2_fold_change", "pvalue", "padj"),
   col_names = c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
 )
-knitr::kable(simpson_tsenat_top, row.names = FALSE, caption = "**Supplementary Table 10 | TSENAT method — Top 10 genes by Tsallis entropy at *q*=2 (Simpson equivalence).** Ranked by adjusted *P*-value (ascending). Columns: gene identifier; Normal mean; Tumor mean; mean difference; log₂ fold-change; unadjusted *P*; adjusted *P*-value. Validation: Tsallis *q*=2 produces Gini-Simpson index (emphasizes dominant isoforms), demonstrating TSENAT multi-*q* framework recovers classical diversity metrics as special cases.", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
+knitr::kable(simpson_tsenat_top, row.names = FALSE, caption = "**Supplementary Table 10 | TSENAT method - Top 10 genes by Tsallis entropy at *q*=2 (Simpson equivalence).** Ranked by adjusted *P*-value (ascending). Columns: gene identifier; Normal mean; Tumor mean; mean difference; log2 fold-change; unadjusted *P*; adjusted *P*-value. Validation: Tsallis *q*=2 produces Gini-Simpson index (emphasizes dominant isoforms), demonstrating TSENAT multi-*q* framework recovers classical diversity metrics as special cases.", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
 kableExtra::kable_styling(
   bootstrap_options = c("striped", "hover", "condensed"),
   latex_options = c("scale_down")
@@ -615,7 +612,7 @@ This explains observed differences like *C1orf213* Normal: 0.3852 (SplicingFacto
 
 2. P-values and rankings: Wilcoxon rank-sum tests depend only on gene ranks, not absolute values, so both methods identify the same significant genes
 
-3. Statistical validity: Both approaches are correct—SplicingFactory favors unbounded diversity, TSENAT favors interpretable [0,1] scaling
+3. Statistical validity: Both approaches are correct-SplicingFactory favors unbounded diversity, TSENAT favors interpretable [0,1] scaling
 
 ***
 
@@ -640,7 +637,7 @@ if (test == "wilcoxon") {
 }
 ```
 
-The problematic line uses `sum(x$cond_1, x$cond_2)`, which sums ALL values in both column vectors together, producing a single scalar (approximately 1,040 in our case). Since this global sum is always ≥ 8, the condition is essentially always TRUE, and the filtering is ineffective.
+The problematic line uses `sum(x$cond_1, x$cond_2)`, which sums ALL values in both column vectors together, producing a single scalar (approximately 1,040 in our case). Since this global sum is always >= 8, the condition is essentially always TRUE, and the filtering is ineffective.
 
 TSENAT's Implementation:
 ```{r tsenat-filtering-example, eval=FALSE}
@@ -669,7 +666,7 @@ This appendix has demonstrated that TSENAT's implementation of transcript divers
 
 ## Session Information
 
-```{r session-information, include=TRUE}
+```{r session-info-appendix-a, include=TRUE}
 sessionInfo()
 ```
 

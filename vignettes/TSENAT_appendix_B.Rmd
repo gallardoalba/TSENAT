@@ -1,6 +1,6 @@
 ---
 title: "TSENAT Appendix B: Non-Parametric Validation of Linear Model Results via GAM and Rank-Based Methods"
-author: "Cristóbal Gallardo <gallardoalba@pm.me>"
+author: "Cristobal Gallardo <gallardoalba@pm.me>"
 date: "`r Sys.Date()`"
 output:
   rmarkdown::html_document:
@@ -23,7 +23,7 @@ vignette: |
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r global-setup, include = FALSE}
+```{r global-setup-appendix-b, include = FALSE}
 knitr::opts_chunk$set(
     collapse = TRUE,
     comment = "#>",
@@ -35,13 +35,13 @@ knitr::opts_chunk$set(
 suppressPackageStartupMessages(library(kableExtra))
 ```
 
-# Overview: Non-Parametric Validation of q-Value × Group Interactions
+# Overview: Non-Parametric Validation of q-Value * Group Interactions
 
 ## Purpose and Rationale
 
-**Primary Goal**: Validate that discoveries of scale-dependent q-value × group interactions from linear models generalize to non-parametric statistical frameworks with minimal assumptions.
+**Primary Goal**: Validate that discoveries of scale-dependent q-value * group interactions from linear models generalize to non-parametric statistical frameworks with minimal assumptions.
 
-TSENAT's default approach employs **linear models** (via `calculate_difference_s4()`) to test for q-value × group effects in Tsallis entropy. While computationally efficient and well-characterized, linear models assume:
+TSENAT's default approach employs **linear models** (via `calculate_difference_s4()`) to test for q-value * group effects in Tsallis entropy. While computationally efficient and well-characterized, linear models assume:
 - Normally distributed residuals (reasonable after appropriate transformation)
 - Homogeneous variance across q-values (often violated in diversity metrics)
 - Additive effects of group and q-value on entropy (may oversimplify nonlinear relationships)
@@ -60,7 +60,7 @@ This appendix provides **two independent, non-parametric alternatives** that:
 - **Distributional assumption**: None required; uses non-parametric basis functions (thin-plate splines)
 - **Treatment of q-ordering**: Treats q-values as time-like ordered measurements, applies ARIMA(1,1,0) differencing for autocorrelation
 - **Heteroscedasticity handling**: Automatically detects variance heterogeneity; applies optimal weighting
-- **Key advantage**: Captures smooth nonlinear q × group effects with computational efficiency
+- **Key advantage**: Captures smooth nonlinear q * group effects with computational efficiency
 - **Reference**: Goude (2024)
 
 ### **Method 2: Rank-Based Tests (Friedman with Hochberg Step-Up Correction)**
@@ -240,7 +240,7 @@ data_characteristics <- data.frame(
 )
 
 knitr::kable(data_characteristics, 
-             caption = "**Supplementary Table 2 | Entropy Matrix Validation Metrics.** Three core properties validating suitability for rank-based analysis. Rows: Paired Structure (exchangeability test ensures independence), Gene Heterogeneity (Spearman rank correlation), Subject Consistency (Kendall's *W* concordance). Values reported as *P*-values, correlation coefficients *r*, and concordance *W* (0–1 range). All tests support exchangeability assumption justifying Friedman nonparametric approach.",
+             caption = "**Supplementary Table 2 | Entropy Matrix Validation Metrics.** Three core properties validating suitability for rank-based analysis. Rows: Paired Structure (exchangeability test ensures independence), Gene Heterogeneity (Spearman rank correlation), Subject Consistency (Kendall's *W* concordance). Values reported as *P*-values, correlation coefficients *r*, and concordance *W* (0-1 range). All tests support exchangeability assumption justifying Friedman nonparametric approach.",
              align = c("l", "l", "r", "l"),
              format = if (knitr::is_latex_output()) "latex" else "html",
              longtable = knitr::is_latex_output(),
@@ -255,7 +255,7 @@ knitr::kable(data_characteristics,
 
 
 ```{r friedman-rank-test-analysis, message=TRUE}
-# Run Friedman test for q × condition INTERACTION (FIXED - March 2026)
+# Run Friedman test for q * condition INTERACTION (FIXED - March 2026)
 # IMPORTANT: Now tests whether q-effect differs between conditions (tumor vs normal)
 # PREVIOUS BEHAVIOR (INCORRECT): Tested only q main effect, ignoring condition
 # NEW BEHAVIOR (CORRECT): Tests if entropy pattern across q-values differs by condition
@@ -284,9 +284,9 @@ rank_summary_stats <- data.frame(
     "Significant (p < 0.05)", 
     "Significant (adj_p < 0.05, FWER-controlled)", 
     "NAs",
-    "Mean effect size (η²)",
-    "Median effect size (η²)",
-    "Strong effect genes (η² > 10%)"
+    "Mean effect size (eta^2)",
+    "Median effect size (eta^2)",
+    "Strong effect genes (eta^2 > 10%)"
   ),
   Value = c(
     nrow(friedman_results),
@@ -299,7 +299,7 @@ rank_summary_stats <- data.frame(
   )
 )
 
-knitr::kable(rank_summary_stats, caption = "**Supplementary Table 3 | Friedman Test Results Summary.** Rank-based nonparametric test of *q*$\\times$condition interactions. Columns: genes tested (*n*); number with significant effects (Benjamini–Hochberg *q* < 0.05); mean rank statistic; Friedman *χ*²; degrees of freedom; *P*-value; effect size (eta-squared, *η*₂). Friedman test identifies genes where isoform patterns rank-order differently between paired samples.", label = "tab:friedman-test-summary", align = c("l", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
+knitr::kable(rank_summary_stats, caption = "**Supplementary Table 3 | Friedman Test Results Summary.** Rank-based nonparametric test of *q* * condition interactions. Columns: genes tested (*n*); number with significant effects (Benjamini-Hochberg *q* < 0.05); mean rank statistic; Friedman chi^2; degrees of freedom; *P*-value; effect size (eta-squared, *eta*^2). Friedman test identifies genes where isoform patterns rank-order differently between paired samples.", label = "tab:friedman-test-summary", align = c("l", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
   kableExtra::kable_styling(
     bootstrap_options = c("striped", "hover", "condensed"),
     latex_options = c("scale_down")
@@ -323,9 +323,9 @@ if (nrow(rank_sig) > 0) {
     rank_display[, numeric_cols] <- round(rank_display[, numeric_cols], 3)
     
     knitr::kable(rank_display, 
-                 caption = "**Supplementary Table 4 | Top genes identified by Friedman rank-based test.** Genes with most significant *q*$\\times$condition interaction patterns from paired-sample rank analysis. Columns: gene identifier; *P*-value (unadjusted); *q*-value (Benjamini–Hochberg adjustment); Friedman *F*-statistic; effect size (*η*₂); test method (Friedman aligned-rank ANOVA); interaction class. Ranked by adjusted significance.",
+                 caption = "**Supplementary Table 4 | Top genes identified by Friedman rank-based test.** Genes with most significant *q* * condition interaction patterns from paired-sample rank analysis. Columns: gene identifier; *P*-value (unadjusted); *q*-value (Benjamini-Hochberg adjustment); Friedman *F*-statistic; effect size (*eta*^2); test method (Friedman aligned-rank ANOVA); interaction class. Ranked by adjusted significance.",
                  col.names = c("Gene", "P-value", "Adj. P-value", "F-Statistic", 
-                               "Effect Size (η²)", "Test Method", "Interaction Class")[1:ncol(rank_display)],
+                               "Effect Size (eta^2)", "Test Method", "Interaction Class")[1:ncol(rank_display)],
                  digits = 3,
                  format = if (knitr::is_latex_output()) "latex" else "html",
                  longtable = knitr::is_latex_output(),
@@ -340,7 +340,7 @@ if (nrow(rank_sig) > 0) {
 
 Visualize q-curves for top genes:
 
-```{r extended-fig-1-friedman-q-curves, fig.width=12, fig.height=8, message=FALSE, out.width="98%", fig.pos="H", fig.cap="**Extended Data Figure 1 | Scale-dependent isoform diversity from rank-based analysis.** *Friedman rank test identifies genes with heterogeneous isoform rank-ordering patterns between paired samples.* X-axis, diversity sensitivity *q* (0–2). Y-axis, Tsallis entropy (0–1 range). Each line represents a paired sample or condition. Parallel curves indicate rank-stable condition differences across all *q*-scales; diverging or crossing curves reveal genes with *q*-dependent isoform switching where isoform dominance rank-order differs between conditions at specific scales. Friedman rank test statistic quantifies nonparametric evidence for scale-dependent isoform heterogeneity."}
+```{r extended-fig-1-friedman-q-curves, fig.width=12, fig.height=8, message=FALSE, out.width="98%", fig.pos="H", fig.cap="**Extended Data Figure 1 | Scale-dependent isoform diversity from rank-based analysis.** *Friedman rank test identifies genes with heterogeneous isoform rank-ordering patterns between paired samples.* X-axis, diversity sensitivity *q* (0-2). Y-axis, Tsallis entropy (0-1 range). Each line represents a paired sample or condition. Parallel curves indicate rank-stable condition differences across all *q*-scales; diverging or crossing curves reveal genes with *q*-dependent isoform switching where isoform dominance rank-order differs between conditions at specific scales. Friedman rank test statistic quantifies nonparametric evidence for scale-dependent isoform heterogeneity."}
 top_genes_plot <- plot_tsallis_q_curve_s4(analysis, lm_res = friedman_results, n_top = 4)
 print(top_genes_plot)
 ```
@@ -350,11 +350,11 @@ print(top_genes_plot)
 
 The Friedman test evaluates whether entropy patterns across q-values differ between normal and tumor samples [@S205]. It ranks observations within each subject, preserving the paired structure critical for valid inference in paired designs [@S019]. This rank-based approach is particularly robust for skewed distributions like entropy values [@S019], and the Westfall-Young permutation correction used here is asymptotically optimal for dependent test statistics [@S166].
 
-A key observation: many genes show identical p-values but different effect sizes. This reflects the rank-based nature of the test [@S115]. Effect size η² directly quantifies the strength of the q-value $\times$ condition dependence and serves as the practical ranking metric when p-values cluster [@S205]:
+A key observation: many genes show identical p-values but different effect sizes. This reflects the rank-based nature of the test [@S115]. Effect size eta^2 directly quantifies the strength of the q-value * condition dependence and serves as the practical ranking metric when p-values cluster [@S205]:
 
 $$\eta^2 = \frac{SS_\text{between}}{SS_\text{total}}$$
 
-This represents the proportion of total variance in entropy explained by changes in q-values. Genes with η² = 96.1% (e.g., PNRC2) show dramatic entropy variation across q-values, while genes with η² = 57.6% (e.g., HDAC2) show moderate variation.
+This represents the proportion of total variance in entropy explained by changes in q-values. Genes with eta^2 = 96.1% (e.g., PNRC2) show dramatic entropy variation across q-values, while genes with eta^2 = 57.6% (e.g., HDAC2) show moderate variation.
 
 ## Interpreting Identical p-values and Effect Size Ranking
 
@@ -364,15 +364,15 @@ A key observation in this analysis is that **many genes share identical p-values
 The test statistic depends on the **rank patterns** of entropy values across q-levels within each condition and subject [@S205]. When genes show similar interaction structure (e.g., Q-entropy consistently higher in tumors vs normals at all q-values), they produce identical test statistics despite different magnitudes of entropy change. This property of rank statistics [@S115] is characteristic of non-parametric testing when distributions are heavily skewed or bounded. For multifactorial designs, aligned rank transform methods [@S187] provide robust alternatives to traditional ANOVA.
 
 **How to rank genes when p-values cluster:**
-In this scenario, **effect size (η²) becomes the practical ranking metric** [@S205] because it directly quantifies the strength of the q-value $\times$ entropy dependence:
-- η² captures the proportion of variance explained by q-values [@S205]
-- Higher η² = stronger biological effect for that gene
+In this scenario, **effect size (eta^2) becomes the practical ranking metric** [@S205] because it directly quantifies the strength of the q-value * entropy dependence:
+- eta^2 captures the proportion of variance explained by q-values [@S205]
+- Higher eta^2 = stronger biological effect for that gene
 - Effect size properly reflects the magnitude of entropy change across q-values
 
 The vignette table sorts genes by (1) p-value and (2) effect size as tiebreaker. This strategy ensures that statistically significant genes are listed first, with effect size distinguishing between genes with identical statistical significance.
 
 **Recommendations:**
-- Focus on genes with η² > 0.3 for robust biological findings
+- Focus on genes with eta^2 > 0.3 for robust biological findings
 - Cross-validate significant genes using complementary methods (e.g., GAM section below)
 - Remember that statistical significance (p-value) indicates q-dependence exists, while effect size says how strong it is
 
@@ -538,7 +538,7 @@ concordance_metrics <- data.frame(
   ),
   Value = c(
     sprintf("%d", total_genes),
-    sprintf("ρ = %.4f", spearman_rho),
+    sprintf("rho = %.4f", spearman_rho),
     sprintf("%d (%.1f%%)", both_sig, 100 * both_sig / total_genes),
     sprintf("%d (%.1f%%)", gam_only, 100 * gam_only / total_genes),
     sprintf("%d (%.1f%%)", friedman_only, 100 * friedman_only / total_genes),
@@ -600,7 +600,7 @@ if (!is.null(high_conf) && nrow(high_conf) > 0) {
   hc_display$effect_gam <- sprintf("%.1f%%", hc_display$effect_gam * 100)
   hc_display$effect_friedman <- sprintf("%.3f", hc_display$effect_friedman)
   
-  colnames(hc_display) <- c("Gene", "GAM adj p", "Friedman adj p", "GAM Effect", "Friedman η²")
+  colnames(hc_display) <- c("Gene", "GAM adj p", "Friedman adj p", "GAM Effect", "Friedman eta^2")
   rownames(hc_display) <- NULL
   
   knitr::kable(hc_display,
@@ -726,13 +726,13 @@ We recommend a **complementary two-method approach** for robust detection of q-v
 
 **Validation step:** Confirm findings with GAM to validate against parametric assumptions and identify condition-specific nonlinear q-entropy patterns that may be missed by rank-based methods.
 
-**High-confidence genes** are those significant in *both* methods—these provide the strongest evidence of genuine q $\times$ condition interactions and are recommended for downstream biological validation. The Friedman Test is particularly appropriate for paired designs and provides distribution-free inference without requiring assumptions about data normality, while properly accounting for the q $\times$ condition interaction structure.
+**High-confidence genes** are those significant in *both* methods-these provide the strongest evidence of genuine q $\times$ condition interactions and are recommended for downstream biological validation. The Friedman Test is particularly appropriate for paired designs and provides distribution-free inference without requiring assumptions about data normality, while properly accounting for the q $\times$ condition interaction structure.
 
 ***
 
 # Session Information
 
-```{r session-information}
+```{r session-info-appendix-b}
 sessionInfo()
 ```
 
