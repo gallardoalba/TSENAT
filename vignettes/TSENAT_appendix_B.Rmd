@@ -39,7 +39,7 @@ suppressPackageStartupMessages(library(kableExtra))
 
 ## Purpose
 
-This vignette validates q-value × group interaction detection using two complementary statistical approaches:
+This vignette validates q-value $\times$ group interaction detection using two complementary statistical approaches:
 
 1. **Generalized Additive Model (GAM):** Generalized Additive Models with ARIMA(1,1,0) transformation for handling q-ordered measurements [@C073]
 2. **Rank-Based (Friedman with Hochberg):** Friedman test for paired/blocked data [@S115; @S205] with Hochberg step-up multiple testing correction [@S190]
@@ -154,7 +154,7 @@ check_results <- attr(rank_assumptions, "checks")
 entropy_summary <- data.frame(
   Metric = c(
     "Genes tested",
-    "Samples (q-values × groups)",
+    "Samples (q-values $\\times$ groups)",
     "Entropy range",
     "Mean entropy",
     "Median entropy",
@@ -259,7 +259,7 @@ rank_summary_stats <- data.frame(
   )
 )
 
-knitr::kable(rank_summary_stats, caption = "**Supplementary Table 3 | Friedman Test Results Summary.** Rank-based nonparametric test of *q*×condition interactions. Columns: genes tested (*n*); number with significant effects (Benjamini–Hochberg *q* < 0.05); mean rank statistic; Friedman *χ*²; degrees of freedom; *P*-value; effect size (eta-squared, *η*₂). Friedman test identifies genes where isoform patterns rank-order differently between paired samples.", label = "tab:friedman-test-summary", align = c("l", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
+knitr::kable(rank_summary_stats, caption = "**Supplementary Table 3 | Friedman Test Results Summary.** Rank-based nonparametric test of *q*$\\times$condition interactions. Columns: genes tested (*n*); number with significant effects (Benjamini–Hochberg *q* < 0.05); mean rank statistic; Friedman *χ*²; degrees of freedom; *P*-value; effect size (eta-squared, *η*₂). Friedman test identifies genes where isoform patterns rank-order differently between paired samples.", label = "tab:friedman-test-summary", align = c("l", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
   kableExtra::kable_styling(
     bootstrap_options = c("striped", "hover", "condensed"),
     latex_options = c("scale_down")
@@ -283,7 +283,7 @@ if (nrow(rank_sig) > 0) {
     rank_display[, numeric_cols] <- round(rank_display[, numeric_cols], 3)
     
     knitr::kable(rank_display, 
-                 caption = "**Supplementary Table 4 | Top genes identified by Friedman rank-based test.** Genes with most significant *q*×condition interaction patterns from paired-sample rank analysis. Columns: gene identifier; *P*-value (unadjusted); *q*-value (Benjamini–Hochberg adjustment); Friedman *F*-statistic; effect size (*η*₂); test method (Friedman aligned-rank ANOVA); interaction class. Ranked by adjusted significance.",
+                 caption = "**Supplementary Table 4 | Top genes identified by Friedman rank-based test.** Genes with most significant *q*$\\times$condition interaction patterns from paired-sample rank analysis. Columns: gene identifier; *P*-value (unadjusted); *q*-value (Benjamini–Hochberg adjustment); Friedman *F*-statistic; effect size (*η*₂); test method (Friedman aligned-rank ANOVA); interaction class. Ranked by adjusted significance.",
                  col.names = c("Gene", "P-value", "Adj. P-value", "F-Statistic", 
                                "Effect Size (η²)", "Test Method", "Interaction Class")[1:ncol(rank_display)],
                  digits = 3,
@@ -306,11 +306,11 @@ print(top_genes_plot)
 ```
 
 
-## Friedman Test: Testing q × Condition Interactions
+## Friedman Test: Testing q $\times$ Condition Interactions
 
 The Friedman test evaluates whether entropy patterns across q-values differ between normal and tumor samples [@S205]. It ranks observations within each subject, preserving the paired structure critical for valid inference in paired designs [@S019]. This rank-based approach is particularly robust for skewed distributions like entropy values [@S019], and the Westfall-Young permutation correction used here is asymptotically optimal for dependent test statistics [@S166].
 
-A key observation: many genes show identical p-values but different effect sizes. This reflects the rank-based nature of the test [@S115]. Effect size η² directly quantifies the strength of the q-value × condition dependence and serves as the practical ranking metric when p-values cluster [@S205]:
+A key observation: many genes show identical p-values but different effect sizes. This reflects the rank-based nature of the test [@S115]. Effect size η² directly quantifies the strength of the q-value $\times$ condition dependence and serves as the practical ranking metric when p-values cluster [@S205]:
 
 $$\eta^2 = \frac{SS_\text{between}}{SS_\text{total}}$$
 
@@ -318,13 +318,13 @@ This represents the proportion of total variance in entropy explained by changes
 
 ## Interpreting Identical p-values and Effect Size Ranking
 
-A key observation in this analysis is that **many genes share identical p-values** (e.g., 3.224e-43) despite dramatically different effect sizes (59.9%, 58.6%, 54.6%). This is **not a statistical error** but rather a fundamental property of the two-way Friedman test applied to q × condition interaction:
+A key observation in this analysis is that **many genes share identical p-values** (e.g., 3.224e-43) despite dramatically different effect sizes (59.9%, 58.6%, 54.6%). This is **not a statistical error** but rather a fundamental property of the two-way Friedman test applied to q $\times$ condition interaction:
 
 **Why identical p-values occur in two-way Friedman:**
 The test statistic depends on the **rank patterns** of entropy values across q-levels within each condition and subject [@S205]. When genes show similar interaction structure (e.g., Q-entropy consistently higher in tumors vs normals at all q-values), they produce identical test statistics despite different magnitudes of entropy change. This property of rank statistics [@S115] is characteristic of non-parametric testing when distributions are heavily skewed or bounded. For multifactorial designs, aligned rank transform methods [@S187] provide robust alternatives to traditional ANOVA.
 
 **How to rank genes when p-values cluster:**
-In this scenario, **effect size (η²) becomes the practical ranking metric** [@S205] because it directly quantifies the strength of the q-value × entropy dependence:
+In this scenario, **effect size (η²) becomes the practical ranking metric** [@S205] because it directly quantifies the strength of the q-value $\times$ entropy dependence:
 - η² captures the proportion of variance explained by q-values [@S205]
 - Higher η² = stronger biological effect for that gene
 - Effect size properly reflects the magnitude of entropy change across q-values
@@ -340,7 +340,7 @@ The vignette table sorts genes by (1) p-value and (2) effect size as tiebreaker.
 
 # Generalized Additive Model Approach (GAM)
 
-This section loads precomputed GAM results **generated in the main vignette** ([TSENAT.Rmd](TSENAT.Rmd)). The GAM analysis provides a complementary parametric approach to detect q-value × group interactions. Results are integrated into the TSENATAnalysis object for S4 workflow consistency:
+This section loads precomputed GAM results **generated in the main vignette** ([TSENAT.Rmd](TSENAT.Rmd)). The GAM analysis provides a complementary parametric approach to detect q-value $\times$ group interactions. Results are integrated into the TSENATAnalysis object for S4 workflow consistency:
 
 - **Model:** Generalized Additive Models (GAM) with ARIMA(1,1,0) transformations (can be combined with rank-based quasi-likelihood regularization) [@C073; @C077]
 - **Approach:** Smooth functions fit across q-values for each gene
@@ -358,7 +358,7 @@ gam_results <- read.delim(
 )
 ```
 
-```{r gam-results-summary, message=FALSE, echo=FALSE}
+```{r gam-results-summary-table, message=FALSE, echo=FALSE}
 # Create summary statistics table with additional metrics
 # Handle NA and NaN values properly
 mean_effect <- mean(gam_results$effect_size, na.rm = TRUE)
@@ -437,7 +437,7 @@ if ("p_interaction" %in% colnames(gam_results)) {
       colnames(gam_display) <- c("Gene", "p (interaction)", "Adjusted p", "Effect size", "Test statistic", "df")
       
       knitr::kable(gam_display, 
-                   caption = "Top 10 Genes by GAM p-value (with Effect Size & Test Statistics)",
+                   caption = "Top 10 Genes by GAM p-value (with Effect Size \\& Test Statistics)",
                    align = c("l", "r", "r", "r", "r", "r"),
                    format = if (knitr::is_latex_output()) "latex" else "html",
                    longtable = knitr::is_latex_output(),
@@ -580,7 +580,7 @@ if (!is.null(high_conf) && nrow(high_conf) > 0) {
 
 ## Visualization: Method Comparison
 
-```{r visualize-method-concordance, fig.width=10, fig.height=8, out.width="98%", fig.pos="H", fig.cap="Method concordance visualization comparing Friedman rank-based and GAM approaches for detecting q×condition interactions. Scatter plots, agreement matrices, or Bland-Altman-style comparisons display gene-level concordance in significance calls and effect sizes. Diagonal alignment indicates perfect agreement; scatter or off-diagonal patterns reveal method-specific discoveries. Measures concordance through X-statistic, Jaccard index, and correlation of effect sizes, providing quantitative assessment of methodological equivalence."}
+```{r visualize-method-concordance, fig.width=10, fig.height=8, out.width="98%", fig.pos="H", fig.cap="Method concordance visualization comparing Friedman rank-based and GAM approaches for detecting q$\\times$condition interactions. Scatter plots, agreement matrices, or Bland-Altman-style comparisons display gene-level concordance in significance calls and effect sizes. Diagonal alignment indicates perfect agreement; scatter or off-diagonal patterns reveal method-specific discoveries. Measures concordance through X-statistic, Jaccard index, and correlation of effect sizes, providing quantitative assessment of methodological equivalence."}
 # Create comparison plot using S4 wrapper
 p <- plot_method_concordance_s4(analysis_with_concordance, verbose = TRUE)
   print(p)
@@ -598,7 +598,7 @@ This vignette demonstrates the modern S4-based analysis workflow for method comp
 |----------|---------|-------|--------|
 | `calculate_diversity_s4()` | Compute Tsallis entropy across multiple q-values | TSENATAnalysis + `q`, `norm` params | Updated analysis with diversity results |
 | `test_rankbased_assumptions_s4()` | Validate Friedman test assumptions | TSENATAnalysis | Stores results in metadata via `metadata(analysis, "rankbased_assumptions")` |
-| `rank_test_q_condition_s4()` | Run Friedman test for q×group interactions | TSENATAnalysis + design params | Updated analysis with results via `rankResults()` |
+| `rank_test_q_condition_s4()` | Run Friedman test for q$\times$group interactions | TSENATAnalysis + design params | Updated analysis with results via `rankResults()` |
 | `plot_tsallis_q_curve_s4()` | Plot q-curves for significant genes | TSENATAnalysis + `lm_res` | ggplot2 visualization |
 | `compute_method_concordance_s4()` | Compare GAM and Friedman results | TSENATAnalysis with LM results via `lmResults()` and rank test results via `rankResults()` | Updated analysis with results via `metadata()` |
 | `plot_method_concordance_s4()` | Visualize method concordance | TSENATAnalysis (after concordance computed) | ggplot2 comparison plot |
@@ -675,9 +675,9 @@ For standard (non-S4) analyses, the original functions (`compute_method_concorda
 
 ## Best Practices for Analysis
 
-We recommend a **complementary two-method approach** for robust detection of q-value × group interactions:
+We recommend a **complementary two-method approach** for robust detection of q-value $\times$ group interactions:
 
-**Primary analysis:** Start with the Friedman Test for q × condition interaction, which provides correct statistical inference for paired/blocked designs by:
+**Primary analysis:** Start with the Friedman Test for q $\times$ condition interaction, which provides correct statistical inference for paired/blocked designs by:
 1. **Testing the interaction**: Does the q-effect differ between conditions? (Not just whether entropy varies across q-values)
 2. **Respecting the repeated-measures structure**: 8 paired tumor-normal samples, testing if entropy patterns across q-values differ by condition
 3. **Accounting for within-subject correlation**: Friedman test properly handles paired structure
@@ -686,7 +686,7 @@ We recommend a **complementary two-method approach** for robust detection of q-v
 
 **Validation step:** Confirm findings with GAM to validate against parametric assumptions and identify condition-specific nonlinear q-entropy patterns that may be missed by rank-based methods.
 
-**High-confidence genes** are those significant in *both* methods—these provide the strongest evidence of genuine q × condition interactions and are recommended for downstream biological validation. The Friedman Test is particularly appropriate for paired designs and provides distribution-free inference without requiring assumptions about data normality, while properly accounting for the q × condition interaction structure.
+**High-confidence genes** are those significant in *both* methods—these provide the strongest evidence of genuine q $\times$ condition interactions and are recommended for downstream biological validation. The Friedman Test is particularly appropriate for paired designs and provides distribution-free inference without requiring assumptions about data normality, while properly accounting for the q $\times$ condition interaction structure.
 
 ***
 

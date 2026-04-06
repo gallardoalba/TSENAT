@@ -51,10 +51,22 @@ jobs:
           keys:
             - v1-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.2
       - run:
+          name: Configure R for faster package installation
+          command: |
+            mkdir -p ~/.config/R
+            cat >> ~/.Rprofile \<<'EOF'
+            # Prefer binary packages over source compilation (speeds up installation)
+            options(install.packages.check.source = "no")
+            # Use parallel compilation (faster vignette & package builds)
+            options(Ncpus = 8)
+            # Increase timeout for slow CRAN mirrors
+            options(timeout = 300)
+            EOF
+            cat ~/.Rprofile
+      - run:
           name: Install package dependencies
           command: |
             Rscript - \<<'EOF'
-            options(Ncpus = 8)
             if (!requireNamespace("BiocManager", quietly = TRUE)) {
               install.packages("BiocManager", repos = "https://cloud.r-project.org")
             }
@@ -62,6 +74,7 @@ jobs:
             install.packages(cran_pkgs, repos = "https://cloud.r-project.org")
             remotes::install_deps(dependencies = TRUE, upgrade = "never")
             EOF
+          no_output_timeout: 30m
       - save_cache:
           paths:
             - /usr/local/lib/R/site-library
@@ -107,6 +120,7 @@ jobs:
           command: |
             export _R_CHECK_FORCE_SUGGESTS_=false
             R CMD check --no-manual --ignore-vignettes *.tar.gz
+          no_output_timeout: 30m
       - run:
           name: Generate coverage report and upload to Codecov
           environment:
@@ -121,6 +135,7 @@ jobs:
             else
               echo "Warning: tools/run_coverage.R not found"
             fi
+          no_output_timeout: 30m
       - store_artifacts:
           path: coverage
           destination: coverage
