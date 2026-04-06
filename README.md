@@ -163,7 +163,8 @@ TSENAT answers a unique question: **How do isoforms reorganize, independent of a
 | Tool | Answers | TSENAT Difference |
 |------|---------|-------------------|
 | **DESeq2, edgeR, limma** | Which genes change in *total abundance*? | TSENAT detects isoform diversity changes **independent of total abundance** |
-| **DRIMSeq, SplicingFactory** | Which *individual transcripts* shift usage? | TSENAT quantifies **overall heterogeneity** as a unified complexity measure |
+| **DRIMSeq** | Which *individual transcripts* shift usage? | TSENAT measures overall isoform diversity, not individual transcript shifts |
+| **SplicingFactory** | What is the overall isoform diversity? | TSENAT extends with **scale-dependent diversity** (q-spectrum) vs fixed measures |
 | **Kallisto, Salmon** | How many reads per transcript? | TSENAT uses their quantification as input; adds diversity analysis layer |
 
 ## Loading Salmon Quantification Data
