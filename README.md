@@ -50,7 +50,9 @@ remotes::install_github("gallardoalba/TSENAT")
 
 # Quick Start
 
-## Load Data & Configure
+### Load Example Data
+
+Start by loading the built-in example dataset from TSENAT, which includes transcript-level read counts, TPM values, and effective lengths from Salmon quantification. Then load the sample metadata and annotation file that describe your experimental design.
 
 ```r
 library(TSENAT)
@@ -68,7 +70,13 @@ metadata_df <- read.table(
 
 gff3_file <- system.file("extdata",
   "annotation.gff3.gz", package = "TSENAT")
+```
 
+### Create configuration file
+
+Create a configuration object that specifies your analysis parameters (q-values, experimental conditions, sample grouping) before building the analysis object. This fail-fast pattern ensures invalid parameters are caught immediately before processing begins.
+
+```r
 ## Configure analysis parameters first (best practice: fail-fast principle)
 ## This validates all parameters against metadata before object creation
 config <- tsenat_config(
@@ -80,7 +88,13 @@ config <- tsenat_config(
   control = "normal",
   metadata = metadata_df
 )
+```
 
+### Build TSENAT Analysis Object
+
+Combine the read counts, annotation file, metadata, and configuration into a single TSENATAnalysis S4 object that serves as the central container for all downstream analysis. This immutable object design follows Bioconductor best practices and ensures consistency throughout your analysis pipeline.
+
+```r
 ## Build a complete `TSENATAnalysis` object from readcounts + GFF3.gz annotation
 ## Pass config at construction (Bioconductor pattern): immutable object creation
 analysis <- build_analysis_s4(
@@ -101,11 +115,13 @@ For a complete analysis with default parameters, use the `tsenat()` orchestratio
 analysis <- tsenat(se, config = cfg)
 ```
 
-### Detailed Step-by-Step Workflow
+## Detailed Step-by-Step Workflow
 
 For customization at each stage, use individual functions:
 
 ### 1. Filter & Compute Diversity
+
+Remove low-abundance transcripts that may contribute noise to entropy calculations, then compute Tsallis entropy across your specified q-spectrum. This produces normalized diversity scores for each gene across all samples and q-values.
 
 ```r
 # Remove low-abundance transcripts
@@ -117,6 +133,8 @@ analysis <- calculate_diversity_s4(analysis, norm = TRUE)
 
 ### 2. Statistical Testing
 
+Test for significant differences in entropy between experimental groups by fitting linear models that detect interactions between q-values and sample conditions. This identifies which scales of isoform diversity (which q-values) show the strongest biological signals.
+
 ```r
 # Fit linear models to detect qxcondition interactions
 analysis <- calculate_lm_interaction_s4(
@@ -125,6 +143,8 @@ analysis <- calculate_lm_interaction_s4(
 ```
 
 ### 3. Visualize Results
+
+Generate publication-quality plots showing how entropy changes across the q-spectrum for each sample and group. The q-curve visualization reveals scale-dependent diversity patterns that distinguish biologically meaningful isoform reorganization from noise.
 
 ```r
 # Plot overall q-curve
@@ -136,18 +156,15 @@ print(p_qcurve)
 
 ## Statistical Inference Methods
 
-- **Multiple testing methods**:
-    - *Wilcoxon/Permutation*: Distribution-free testing for pairwise comparisons
-    - *Linear Mixed Models (LMM)*: Parametric testing with AR(1) correlation structure for repeated measures; ideal when residuals are approximately normal
-    - *Friedman rank tests*: Maximal robustness for paired designs; ideal for bounded distributions like entropy
-    - *M-estimation*: Outlier-resistant effect size calculations (Huber, Tukey weights)
-- **Confidence intervals**:
-    - BCA (bias-corrected and accelerated) bootstrap correction for skewed distributions like Tsallis entropy
-    - Percentile bootstrap for symmetric distributions
-    - Jackknife leave-one-out for identifying outlier-influential samples
+- *Wilcoxon/Permutation*: Distribution-free testing for pairwise comparisons
+- *Linear Mixed Models (LMM)*: Parametric testing with AR(1) correlation structure for repeated measures; ideal when residuals are approximately normal
+- *Friedman rank tests*: Maximal robustness for paired designs; ideal for bounded distributions like entropy
+- *M-estimation*: Outlier-resistant effect size calculations (Huber, Tukey weights)
+- Jackknife leave-one-out for identifying outlier-influential samples
 
 
 ### Data Integration
+
 - **Unified object**: `TSENATAnalysis` encapsulates data, config, and all results
 - `SummarizedExperiment` foundation: Full Bioconductor ecosystem compatibility
 - Accessor functions: `diversity()`, `divergence()`, `lmResults()`, etc.
@@ -164,6 +181,8 @@ TSENAT answers a unique question: **How do isoforms reorganize, independent of a
 | **Kallisto, Salmon** | How many reads per transcript? | TSENAT uses their quantification as input; adds diversity analysis layer |
 
 ## Loading Salmon Quantification Data
+
+TSENAT can read Salmon quantification output directly by automatically discovering all quant.sf files in a directory structure, eliminating manual file parsing. This streamlined workflow accepts the raw output from Salmon without requiring intermediate format conversions.
 
 TSENAT automatically discovers and reads Salmon output when you provide a directory:
 
@@ -191,6 +210,8 @@ analysis <- calculate_diversity_s4(analysis)  # Salmon-informed length-normalize
 ```
 
 ### Salmon Directory Structure
+
+Your Salmon output must be organized with one folder per sample, each containing a quant.sf file with transcript-level quantification. Sample folder names must exactly match the row names in your metadata file (case-sensitive) to ensure correct sample attribution.
 
 TSENAT expects Salmon output organized with one subdirectory per sample:
 
@@ -240,6 +261,9 @@ Testing is vital in research as it ensures the validity and reliability of resul
 ## Learn More
 
 ### Comprehensive Workflow
+
+For a complete walkthrough of the analysis pipeline with real biological examples, see the main package vignette. This includes theory background, step-by-step explanations of each analysis function, and interpretation guidance for understanding your results.
+
 See the package vignette for detailed examples, theory background, and typical workflows:
 
 ```r
@@ -247,6 +271,9 @@ vignette("TSENAT")
 ```
 
 ### Function Reference
+
+Use R's built-in help system to explore detailed documentation for individual TSENAT functions and S4 classes. Each help page includes function arguments, return values, and practical examples of usage.
+
 Interactive help for functions and classes:
 
 ```r
