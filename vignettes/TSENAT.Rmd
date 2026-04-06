@@ -116,12 +116,12 @@ analysis <- calculate_diversity_s4(analysis, q = 1, norm = TRUE)
 
 - `@se` — `SummarizedExperiment` storing counts and metadata (access via `se(analysis)`)
 - `@diversity_results` — Entropy values across q-values (accessor: `diversity(analysis)`)
-- `@jackknife_results` — Jackknife confidence intervals [@S115] and isoform switching results
+- `@jackknife_results` — Jackknife confidence intervals and isoform switching results
 - `@lm_results` — LM interaction statistics and rank test q-value effects (accessor: `lmResults(analysis)`)
 - `@divergence_results` — Pairwise divergence metrics (accessor: `divergence(analysis)`)
 - `@plots` — Generated visualizations
 
-**Access Methods**: Use accessor functions like `diversity()`, `divergence()`, `lmResults()`, `rankResults()`, `jeoResults()`, `jisResults()` for type-safe result extraction without direct slot manipulation.
+Use **accessor functions** like `diversity()`, `divergence()`, `lmResults()`, etc. for type-safe result extraction without direct slot manipulation.
 
 For more details on the SummarizedExperiment class, see [SummarizedExperiment documentation](https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html).
 
@@ -1004,11 +1004,17 @@ TSENAT provides an integrated S4-based workflow for coordinated analysis followi
 The `tsenat()` function accepts a configured `TSENATConfig` object and orchestrates a complete pipeline: diversity computation → quality control → statistical testing → effect sizes (as specified by the `methods` parameter). Parameter `verbose = TRUE` outputs progress messages showing data filtering steps and method completion. This single-function approach ensures consistency between preprocessing and analysis steps, eliminating boilerplate and reducing risk of parameter mismatches.
 
 **Accessor methods return types:** Most accessors return `SummarizedExperiment` objects (following Bioconductor conventions) containing results as assays and metadata:
+
 - `diversity(analysis)` → SummarizedExperiment (genes × samples, multiple assays for each q-value)
+
 - `lmResults(analysis)` → list containing data.frame of LM interaction results (or NULL if method not run)
+
 - `jeoResults(analysis, q = 1.0)` → SummarizedExperiment of jackknife entropy outlier confidence intervals (or NULL)
+
 - `jisResults(analysis, q = 1.0)` → list of jackknife isoform switching results (or NULL)
+
 - `rankResults(analysis)` → data.frame of rank test results (or NULL)
+
 - `divergence(analysis)` → SummarizedExperiment of pairwise divergence metrics
 
 If a requested method was not run during `tsenat()` orchestration, the accessor returns NULL—users should check results before downstream use.
@@ -1058,15 +1064,40 @@ Validates that TSENAT's Shannon and Simpson entropy implementations are mathemat
 
 **[View Appendix A →](TSENAT_appendix_A.html)**
 
-### Appendix B: Comparing Generalized Additive Model (GAM) and Rank-Based (Friedman) Methods
+### Appendix B: Non-Parametric Validation of Scale-Dependent Interactions
 
-Compares two complementary statistical approaches for detecting q-value $\times$ group interactions. Covers:
+**Objective**: Validate q-value × group interaction detection results from linear models using complementary non-parametric statistical approaches.
 
-- GAM methodology with ARIMA(1,1,0) transformation for q-ordered measurements
-- Rank-based (Friedman test) approach with Hochberg step-up correction
-- Heteroscedasticity detection and weighting
-- Boundary condition handling and automatic test selection
-- Concordance analysis and method recommendations
+TSENAT's default linear modeling approach (via `calculate_difference_s4()`) provides parametric tests for detecting scale-dependent differences in Tsallis entropy across q-values and experimental groups. To ensure robustness and generalization, Appendix B presents two independent, non-parametric alternatives that serve as validation methods:
+
+**Approach 1: Generalized Additive Model (GAM) with ARIMA-Ordered Time Series**
+- Treats q-values as explicit sequential measurements (ordered from low to high)
+- Applies ARIMA(1,1,0) differencing to account for autocorrelation between adjacent q-points
+- Fits smooth additive functions of q and group effects (non-parametric basis functions)
+- Automatically detects heteroscedasticity and applies optimal weighting
+- Reference: Goude (2024)
+
+**Approach 2: Rank-Based Friedman Test with Hochberg Correction**
+- Non-parametric alternative requiring no distributional assumptions
+- Friedman test for detecting differences across multiple q-values within each group
+- Accounts for paired/blocked structure in q-ordered measurements
+- Hochberg step-up procedure for controlling family-wise error rate (FWER)
+- References: Efron & Tibshirani (1993); Benjamini & Hochberg (1995)
+
+Both methods incorporate principled advances to handle real-world RNA-seq data:
+- **Heteroscedasticity detection and weighting**: Entropy variance often increases with q-value; both approaches adaptively weight measurements
+- **Boundary condition handling**: Low and high q-values exhibit different variance properties; explicit boundary adaptation improves reliability
+- **Automatic test selection**: Model diagnostics trigger appropriate method switches based on data structure
+
+Appendix B provides:
+- Detailed statistical methodology for both approaches
+- Step-by-step implementation examples
+- Comparison of linear model results vs. GAM vs. rank-based findings
+- Concordance tables showing agreement across methods
+- Recommendations for when each method is most appropriate
+- Power analysis and sample size guidance for different designs
+
+**Key Finding**: High concordance (typically >90% agreement) across methods validates that linear model discoveries are robust to model assumptions and generalize to non-parametric frameworks.
 
 **[View Appendix B →](TSENAT_appendix_B.html)**
 

@@ -262,57 +262,50 @@ sample_group <- ifelse(grepl("_N$", colnames(se_data)), "Normal", "Tumor")
 # Add group metadata to se_data for all downstream analyses
 colData(se_data)$group <- sample_group
 
-# SplicingFactory: Shannon entropy (Laplace method)
-# Note: SplicingFactory extracts genes from rownames(se_data) automatically
-shannon_entropy <- SplicingFactory::calculate_diversity(
-  x = se_data,
-  method = "naive",
-  norm = TRUE,
-  verbose = FALSE
-)
+# SplicingFactory: Calculate diversity for both Shannon (naive) and Simpson methods
+sf_methods <- c("naive", "simpson")
+splicing_results <- setNames(vector("list", length(sf_methods)), sf_methods)
 
-# SplicingFactory: Simpson index
-simpson_index <- SplicingFactory::calculate_diversity(
-  x = se_data,
-  method = "simpson",
-  norm = TRUE,
-  verbose = FALSE
-)
+for (method in sf_methods) {
+  splicing_results[[method]] <- SplicingFactory::calculate_diversity(
+    x = se_data,
+    method = method,
+    norm = TRUE,
+    verbose = FALSE
+  )
+  # Add sample_type and group metadata to SplicingFactory objects
+  # (sample_type matches SplicingFactory naming; group matches TSENAT naming for consistency)
+  colData(splicing_results[[method]])$sample_type <- sample_group
+  colData(splicing_results[[method]])$group <- sample_group
+}
 
-# Add sample_type and group metadata to SplicingFactory objects
-# (sample_type matches SplicingFactory naming; group matches TSENAT naming for consistency)
-colData(shannon_entropy)$sample_type <- sample_group
-colData(shannon_entropy)$group <- sample_group
-colData(simpson_index)$sample_type <- sample_group
-colData(simpson_index)$group <- sample_group
+# TSENAT: Single config for q-value sweep
+# (Configuration is identical for all q-values)
+config <- tsenat_config(condition_col = "group")
 
-# TSENAT: Create TSENATAnalysis objects for S4 wrapper approach
-# Following Bioconductor pattern: create config first, then pass to constructor
-config_q1 <- tsenat_config(condition_col = "group")
-config_q2 <- tsenat_config(condition_col = "group")
+# TSENAT: Create analysis objects and compute diversity for q=1 and q=2
+q_values <- c(1, 2)
+tsenat_results <- setNames(vector("list", length(q_values)), paste0("q", q_values))
 
-tsenat_analysis_q1 <- TSENATAnalysis(se_data, config = config_q1)
-tsenat_analysis_q2 <- TSENATAnalysis(se_data, config = config_q2)
+for (q in q_values) {
+  # Create analysis object (following Bioconductor pattern: config first, then constructor)
+  tsenat_results[[paste0("q", q)]] <- TSENATAnalysis(se_data, config = config)
+  
+  # Compute diversity with dynamic output filename using sprintf
+  tsenat_results[[paste0("q", q)]] <- calculate_diversity_s4(
+    analysis = tsenat_results[[paste0("q", q)]],
+    q = q,
+    norm = TRUE,
+    verbose = FALSE,
+    output_file = file.path("output", sprintf("appendix_a_diversity_q%d.tsv", q))
+  )
+}
 
-# TSENAT: Tsallis entropy at q=1 (equals Shannon entropy) - using S4 wrapper
-tsenat_analysis_q1 <- calculate_diversity_s4(
-  analysis = tsenat_analysis_q1,
-  q = 1,
-  norm = TRUE,
-  verbose = FALSE,
-  output_file = file.path("output", "appendix_a_diversity_q1.tsv")
-)
-tsenat_q1_values <- diversity(tsenat_analysis_q1, q = 1)
-
-# TSENAT: Tsallis entropy at q=2 (equals Simpson) - using S4 wrapper
-tsenat_analysis_q2 <- calculate_diversity_s4(
-  analysis = tsenat_analysis_q2,
-  q = 2,
-  norm = TRUE,
-  verbose = FALSE,
-  output_file = file.path("output", "appendix_a_diversity_q2.tsv")
-)
-tsenat_q2_values <- diversity(tsenat_analysis_q2, q = 2)
+# Extract for downstream use (aliases maintain backward compatibility with existing code)
+shannon_entropy <- splicing_results$naive
+simpson_index <- splicing_results$simpson
+tsenat_analysis_q1 <- tsenat_results$q1
+tsenat_analysis_q2 <- tsenat_results$q2
 ```
 
 Both packages return a `SummarizedExperiment` object, that you can investigate further with the `assay` function.
