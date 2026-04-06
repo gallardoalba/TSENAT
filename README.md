@@ -141,8 +141,6 @@ print(p_qcurve)
 - **Multiple testing methods**:
     - *Wilcoxon/Permutation*: Distribution-free testing for pairwise comparisons
     - *Linear Mixed Models (LMM)*: Parametric testing with AR(1) correlation structure for repeated measures; ideal when residuals are approximately normal
-    - *GAM*: Non-parametric for detecting nonlinear scale-dependent q×condition interactions with adaptive smooth splines
-    - *GEE*: Semi-parametric for clustered data; robust to variance misspecification with sandwich standard errors
     - *Friedman rank tests*: Maximal robustness for paired designs; ideal for bounded distributions like entropy
     - *M-estimation*: Outlier-resistant effect size calculations (Huber, Tukey weights)
 - **Confidence intervals**:
@@ -177,7 +175,7 @@ library(TSENAT)
 # Prepare configuration FIRST
 config <- tsenat_config(
   q_values = seq(0, 2, by = 0.1),
-  condition_col = "treatment"
+  condition_col = "condition"
 )
 
 # Build analysis directly from Salmon output directory
