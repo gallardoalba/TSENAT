@@ -2061,8 +2061,9 @@ require_pkgs <- function(pkgs) {
 .prepare_gene_ci_data <- function(long_data, ci_lower_mat, ci_upper_mat, genes) {
 
     # Aggregate to get median per gene, group, q
-    stats_df <- dplyr::summarise(dplyr::group_by(long_data, Gene, group, q), median = median(tsallis,
-        na.rm = TRUE), .groups = "drop")
+    stats_df <- dplyr::summarise(dplyr::group_by(long_data, Gene, group, q), 
+                                 median = median(tsallis, na.rm = TRUE), 
+                                 .groups = "drop")
 
     # Extract CI values for each gene, group, q combination
     plot_df <- stats_df
@@ -2073,34 +2074,37 @@ require_pkgs <- function(pkgs) {
     if (nrow(ci_lower_mat) > 0) {
         colnames_ci <- colnames(ci_lower_mat)
 
-        # Parse column names (e.g., 'Sample_q=0.01')
+        # Parse column names (e.g., 'sample1_q=1.000')
         ci_samples <- sub("_q=.*", "", colnames_ci)
         ci_q_values <- as.numeric(sub(".*_q=", "", colnames_ci))
 
         for (i in seq_len(nrow(plot_df))) {
-            g <- plot_df$Gene[i]
+            g <- as.character(plot_df$Gene[i])
             gr <- as.character(plot_df$group[i])
-            q_val <- plot_df$q[i]
+            q_val <- as.numeric(plot_df$q[i])
 
             # Find indices in long_data for this gene/group/q
-            matching_rows <- which(as.character(long_data$Gene) == g & as.character(long_data$group) ==
-                gr & as.numeric(as.character(long_data$q)) == q_val)
+            matching_rows <- which(as.character(long_data$Gene) == g & 
+                                   as.character(long_data$group) == gr & 
+                                   abs(as.numeric(as.character(long_data$q)) - q_val) < 1e-06)
 
             if (length(matching_rows) > 0) {
                 # Get samples for this group from long_data
                 samples_for_group <- unique(as.character(long_data$sample[matching_rows]))
 
                 # Find CI columns for these samples at this q
-                ci_col_mask <- (ci_samples %in% samples_for_group) & (abs(ci_q_values -
-                  q_val) < 1e-06)
+                ci_col_mask <- (ci_samples %in% samples_for_group) & 
+                               (abs(ci_q_values - q_val) < 1e-06)
                 ci_col_indices <- which(ci_col_mask)
 
                 if (length(ci_col_indices) > 0) {
                   # Get CI bounds for these columns
                   gene_idx <- which(rownames(ci_lower_mat) == g)
                   if (length(gene_idx) > 0) {
-                    ci_lower_vals <- ci_lower_mat[gene_idx, ci_col_indices]
-                    ci_upper_vals <- ci_upper_mat[gene_idx, ci_col_indices]
+                    # Use only first match (shouldn't have duplicates but be safe)
+                    gene_idx <- gene_idx[1]
+                    ci_lower_vals <- as.numeric(ci_lower_mat[gene_idx, ci_col_indices])
+                    ci_upper_vals <- as.numeric(ci_upper_mat[gene_idx, ci_col_indices])
 
                     # Use median of CI values across samples in this group
                     plot_df$ci_lower[i] <- median(ci_lower_vals, na.rm = TRUE)
@@ -2872,11 +2876,29 @@ require_pkgs <- function(pkgs) {
                                   point_size = 2.8, show_points = TRUE,
                                   default_color = "#4575B4") {
     
+    # Check if we have valid CI data to plot ribbons
+    has_valid_ci <- FALSE
+    if (ci_lower_col %in% colnames(data) && ci_upper_col %in% colnames(data)) {
+        has_valid_ci <- any(!is.na(data[[ci_lower_col]]) & !is.infinite(data[[ci_lower_col]]) &
+                           !is.na(data[[ci_upper_col]]) & !is.infinite(data[[ci_upper_col]]))
+    }
+    
+    # Only keep rows with valid CI data for ribbon layer to avoid ggplot warnings
+    # But keep data as-is for line/point layers (they use median values, not CI bounds)
+    data_ci <- data
+    if (has_valid_ci) {
+        # Filter to rows with valid CI for ribbon layer only
+        valid_ci_rows <- which(!is.na(data[[ci_lower_col]]) & !is.infinite(data[[ci_lower_col]]) &
+                              !is.na(data[[ci_upper_col]]) & !is.infinite(data[[ci_upper_col]]))
+        data_ci <- data[valid_ci_rows, ]
+    }
+    
     # Build base aesthetics - include group color/fill only if group_col provided and exists
     if (!is.null(group_col) && group_col %in% colnames(data)) {
         p <- ggplot2::ggplot(data, 
                             ggplot2::aes(x = .data[[x_col]], y = .data[[y_col]],
                                         color = .data[[group_col]], 
+                                        fill = .data[[group_col]],
                                         group = .data[[group_col]]))
         has_grouping <- TRUE
     } else {
@@ -2886,44 +2908,52 @@ require_pkgs <- function(pkgs) {
         has_grouping <- FALSE
     }
     
-    # Add ribbon layer (CI bounds) with fill aesthetic
-    # Include fill mapping only for grouped data where fill will be used
-    if (has_grouping) {
-        p <- p + ggplot2::geom_ribbon(
-            ggplot2::aes(ymin = .data[[ci_lower_col]], 
-                        ymax = .data[[ci_upper_col]],
-                        fill = .data[[group_col]]),
-            alpha = ribbon_alpha, color = NA
-        )
-    } else {
-        # No grouping - apply default fill color
-        p <- p + ggplot2::geom_ribbon(
-            ggplot2::aes(ymin = .data[[ci_lower_col]], 
-                        ymax = .data[[ci_upper_col]]),
-            alpha = ribbon_alpha, color = NA, fill = default_color
-        )
+    # Check if we have valid CI data to plot
+    has_valid_ci <- FALSE
+    if (ci_lower_col %in% colnames(data) && ci_upper_col %in% colnames(data)) {
+        has_valid_ci <- any(!is.na(data[[ci_lower_col]]) & !is.infinite(data[[ci_lower_col]]) &
+                           !is.na(data[[ci_upper_col]]) & !is.infinite(data[[ci_upper_col]]))
+    }
+    
+    # Add ribbon layer (CI bounds) only if we have valid CI data
+    if (has_valid_ci) {
+        if (has_grouping) {
+            # When grouping, fill aesthetic is inherited from base aes
+            p <- p + ggplot2::geom_ribbon(
+                ggplot2::aes(ymin = .data[[ci_lower_col]], 
+                            ymax = .data[[ci_upper_col]]),
+                alpha = ribbon_alpha, color = NA
+            )
+        } else {
+            # No grouping - apply default fill color
+            p <- p + ggplot2::geom_ribbon(
+                ggplot2::aes(ymin = .data[[ci_lower_col]], 
+                            ymax = .data[[ci_upper_col]]),
+                alpha = ribbon_alpha, color = NA, fill = default_color
+            )
+        }
     }
     
     # Add line layer
-    # If group_col is provided, color aesthetic from base aes() applies it automatically
+    # If group_col is provided, color aesthetic from aes() applies it
     # Otherwise, apply default color (consistency with .create_simple_line_plot)
     if (has_grouping) {
-        # Grouped data: use inherited color from base aes(), don't override
+        # When grouping, color aesthetic is inherited from base aes
         p <- p + ggplot2::geom_line(linewidth = line_width)
     } else {
-        # No grouping: apply default color
+        # No grouping - apply default color
         p <- p + ggplot2::geom_line(linewidth = line_width, color = default_color)
     }
     
     # Add point layer if requested
-    # If group_col is provided, color aesthetic from base aes() applies it automatically
+    # If group_col is provided, color aesthetic from aes() applies it
     # Otherwise, apply default color
     if (show_points) {
         if (has_grouping) {
-            # Grouped data: use inherited color from base aes()
+            # When grouping, color aesthetic is inherited from base aes
             p <- p + ggplot2::geom_point(size = point_size, alpha = 0.8)
         } else {
-            # No grouping: apply default color
+            # No grouping - apply default color
             p <- p + ggplot2::geom_point(size = point_size, alpha = 0.8, color = default_color)
         }
     }
