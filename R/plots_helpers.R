@@ -2789,7 +2789,6 @@ require_pkgs <- function(pkgs) {
         axis_title = round(scaling * font_multipliers$axis_title),
         title = round(scaling * font_multipliers$title),
         legend = round(scaling * font_multipliers$legend),
-        # Additional common sizes
         subtitle = round(scaling * 0.9),
         caption = round(scaling * 0.8)
     )

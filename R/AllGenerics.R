@@ -21,14 +21,25 @@ NULL
 if (getRversion() >= "2.15.1") {
     utils::globalVariables(c(
         # Data manipulation columns (data.table NSE)
-        "Gene", "group", "tsallis", "tx",
+        "Gene",
+        "group",
+        "tsallis",
+        "tx",
         # Model-related variables
         "df_model",
         # Plot aesthetics and settings
-        "legend_name", "legend_position", "log2expr",
+        "legend_name",
+        "legend_position",
+        "log2expr",
         # PCA/dimension reduction
-        "dimension", "variable", "contribution", "dim1", "dim2",
-        "type", "coord_x", "coord_y"
+        "dimension",
+        "variable",
+        "contribution",
+        "dim1",
+        "dim2",
+        "type",
+        "coord_x",
+        "coord_y"
     ))
 }
 

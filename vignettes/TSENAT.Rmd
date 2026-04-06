@@ -108,18 +108,45 @@ analysis <- calculate_diversity_s4(analysis, q = 1, norm = TRUE)
 
 ## Data Structure Overview
 
-`TSENAT` operates on transcript-level read counts rather than pre-aggregated gene-level summaries. Input data should be organized as a matrix with transcript IDs as rows and samples as columns, typically derived from quantification tools such as SALMON or kallisto. This matrix must be accompanied by transcript-to-gene mapping information, conventionally provided through a GFF3 annotation file.
+**Input Data**: TSENAT expects transcript-level read counts (rows = transcripts, columns = samples) from quantification tools like SALMON or kallisto. A GFF3 annotation file maps transcripts to genes.
 
-All analysis results are organized into a **TSENATAnalysis** S4 object, which encapsulates the input `SummarizedExperiment`, analysis configuration, and all computed results (diversity, divergence, LM interactions, etc.). This unified structure facilitates seamless integration with Bioconductor and provides a clean object-oriented interface. The underlying `SummarizedExperiment` (accessible via `se(analysis)`) stores transcript counts and metadata as per Bioconductor standards. For more details on the `SummarizedExperiment` class and its capabilities, refer to the [SummarizedExperiment documentation](https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html).
+**Processing**: The `build_analysis_s4()` function accepts these inputs and creates a **TSENATAnalysis** S4 object, which is the central data container throughout your analysis.
 
-The TSENATAnalysis object organizes all results in dedicated slots: `@diversity_results` stores entropy values across q-values; `@jackknife_results` contains jackknife confidence intervals [@S115] and isoform switching results; `@lm_results` holds LM interaction test statistics and rank test q-value interactions; `@divergence_results` stores pairwise divergence metrics; and `@plots` contains generated visualizations. Access methods (`diversity()`, `divergence()`, `lmResults()`, `rankResults()`, `jeoResults()`, `jisResults()`, etc.) provide convenient type-safe interfaces to these results.
+**Organization**: The TSENATAnalysis object encapsulates:
 
-# What is Entropy and Tsallis entropy?
+- `@se` — `SummarizedExperiment` storing counts and metadata (access via `se(analysis)`)
+- `@diversity_results` — Entropy values across q-values (accessor: `diversity(analysis)`)
+- `@jackknife_results` — Jackknife confidence intervals [@S115] and isoform switching results
+- `@lm_results` — LM interaction statistics and rank test q-value effects (accessor: `lmResults(analysis)`)
+- `@divergence_results` — Pairwise divergence metrics (accessor: `divergence(analysis)`)
+- `@plots` — Generated visualizations
 
-**Tsallis entropy** is a one-parameter family of **diversity** measures that generalizes Shannon **entropy** [@I051] via a sensitivity parameter `q` [@I002]. Unlike Shannon entropy,
-which treats all isoforms equally, Tsallis entropy lets you zoom in on rare isoforms (low q) or focus on dominant species (high q), capturing scale-dependent isoform
-variation that ordinary summaries miss. For a discrete probability vector 
-$p=(p_1,\dots,p_n)$ it is defined as:
+**Access Methods**: Use accessor functions like `diversity()`, `divergence()`, `lmResults()`, `rankResults()`, `jeoResults()`, `jisResults()` for type-safe result extraction without direct slot manipulation.
+
+For more details on the SummarizedExperiment class, see [SummarizedExperiment documentation](https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html).
+
+# What is Entropy and Tsallis Entropy?
+
+## The Problem: Measuring Isoform Complexity
+
+Standard RNA-seq analysis measures *whether* transcript abundance changes between conditions. But a critical complementary question remains underexplored: *how* does the diversity of isoforms change? A gene may show little change in total abundance while dramatically reshuffling its isoform repertoire—a phenomenon that current methods largely miss.
+
+**Entropy** quantifies precisely this: the complexity, richness, and balance of isoform heterogeneity. By measuring entropy across different biological scales, researchers can detect whether changes are driven by shifts in rare variants or reorganization of dominant isoforms.
+
+## Tsallis Entropy: A Scale-Dependent Diversity Measure
+
+**Tsallis entropy** [@I002] is a one-parameter family of diversity measures that generalizes Shannon entropy [@I051]. Unlike Shannon entropy (which treats all isoforms equally), Tsallis entropy lets you tune a sensitivity parameter `q` to zoom into different aspects of isoform complexity:
+
+- **q < 1**: Emphasizes rare, low-abundance isoforms (discovery mode)
+- **q = 1**: Recovers Shannon entropy (balanced across all abundance scales)
+- **q = 2**: Emphasizes dominant isoforms (robustness mode)
+- **q > 2**: Focuses almost exclusively on the most abundant species
+
+This is the key innovation: by computing entropy across a range of q-values (a "q-curve"), you obtain a complete picture of isoform heterogeneity [@I003]. In TSENAT, you'll explore multiple q-values using `calculate_diversity_s4()` and visualize results with `plot_tsallis_q_curve_s4()`.
+
+## Mathematical Definition
+
+For a discrete probability vector $p = (p_1, \ldots, p_n)$ representing isoform proportions within a gene, Tsallis entropy is:
 
 \[
 S_q(p) = \frac{1-\sum_{i=1}^n p_i^q}{q-1}.
@@ -127,88 +154,35 @@ S_q(p) = \frac{1-\sum_{i=1}^n p_i^q}{q-1}.
 
 This parametric family unites diverse entropy concepts under a single framework:
 
-- Generalization: Extends beyond classical Shannon entropy to capture scale-dependent phenomena.
-- Mathematical elegance: Reduces to well-known indices at specific `q`-values.
-- Practical flexibility: Allows data-driven exploration via q-spectrum curves.
+- **Generalization**: Extends beyond Shannon entropy to capture scale-dependent phenomena
+- **Mathematical elegance**: Reduces to well-known diversity indices at specific q-values
+- **Practical flexibility**: Enables data-driven exploration across the full diversity spectrum
 
 ## Information-Theoretic Interpretation
 
-In information theory terms [@I051, @I002], entropy measures the 
-uncertainty or surprise when drawing a single item (transcript) from a probabilistic 
-ensemble (isoform distribution). Higher entropy means the draw is less predictable 
-(many similarly abundant isoforms contribute equally), while lower entropy means the 
-distribution is dominated by one or a few highly abundant transcripts. This distinction 
-is crucial: two genes may have identical total abundance but dramatically different 
-isoform complexity.
+From an information theory perspective [@I051; @I002], entropy measures the uncertainty or surprise when drawing a single transcript from an isoform distribution. Higher entropy means the draw is less predictable (many similarly abundant isoforms), while lower entropy means one or a few isoforms dominate. This distinction is crucial: two genes with identical total abundance may have dramatically different isoform complexity.
 
-**Tsallis entropy** generalizes this concept by introducing the `q` parameter as a sensitivity dial for scale-dependent emphasis:
+The q parameter acts as a **sensitivity dial**. Consider a simple example:
+- A gene with 5 equally abundant isoforms: all q-values give high entropy
+- A gene where 1 isoform dominates: low-q entropy stays high (rare variants matter), while high-q entropy drops (rare variants ignored)
 
-- q < 1: Emphasizes rare, low-abundance isoforms.
-- q = 1: Recovers Shannon entropy (balanced across all abundance scales).
-- q = 2: Yields the Gini-Simpson index, emphasizing dominant isoforms.
-- q > 2: Focuses almost exclusively on the most abundant species.
+This scale-dependent nature reveals biological signal invisible to abundance- or proportion-based summaries alone.
 
-This Tsallis entropy scale-dependent nature is the key innovation: by computing $S_q$ across a range of 
-q-values (a "q-curve"), you obtain a complete picture of isoform heterogeneity 
-across biological scales [@I003, @I002]. In practice, combining q-curves 
-with resampling or paired designs yields a concise, statistically rigorous summary 
-of isoform complexity.
+### Special Cases and Limiting Behavior
 
-### Essential Limiting Cases
+Tsallis entropy exhibits important special cases [@I013] that appear when you set specific q-values:
 
-Tsallis entropy exhibits several important mathematical limits and special cases [@I013]:
+- **q = 0 (Richness)**: $S_0 = m - 1$ (number of expressed isoforms). Pure species count, most minimal assumption.
+- **q → 1 (Shannon)**: $S_1(p) = -\sum_i p_i \log p_i$. Standard information entropy [@I051]; optimal estimator of information content.
+- **q = 2 (Gini-Simpson)**: $S_2 = 1 - \sum_i p_i^2$. Probability that two randomly drawn transcripts differ [@I022]; robust to rare variants.
 
-- q->1 (Shannon entropy): \(\lim_{q\to1} S_q(p) = H(p) = -\sum_i p_i\log p_i\)
-  - Classical information entropy (measured in bits if log base 2, or nats if natural log)
-  - Treats all isoforms with equal weight regardless of abundance
+**Normalized entropy**: For genes with different isoform counts, normalize by maximum possible entropy: $\tilde{S}_q = \frac{S_q(p)}{S_{q,\max}(m)}$ where $S_{q,\max}(m) = \frac{1-m^{1-q}}{q-1}$. This enables fair comparison across genes.
 
-- q = 0 (Richness): \(S_0 = m - 1\) where $m$ = number of observed isoforms
-  - Counts expressed isoforms (pure species richness, log-scale)
-  - Minimum assumption: just presence/absence
+## Biological Potentiality: Why TSENAT Matters
 
-- q = 1 (Shannon): \(S_1(p) = -\sum_i p_i\log p_i\)
-  - Standard information entropy [@I051]
-  - Optimal estimator of information content and predictability
+Tsallis entropy is grounded in Shannon's foundational information theory [@I051], generalized by Rényi [@I003], and extended by Tsallis [@I002]. The key innovation is a tunable parameter `q` that controls which aspects of diversity are emphasized [@I005; @I007; @I009]:
 
-- q = 2 (Gini–Simpson / collision index): \(S_2 = 1 - \sum_i p_i^2\)
-  - Probability that two randomly drawn transcripts differ [@I022]
-  - Robust to rare variants (insensitive to very low-abundance isoforms)
-  - Range: [0, 1 - 1/m] for m isoforms
-
-- Uniform maximum: For $m$ equally expressed isoforms, maximum entropy is:
-  \[S_{q,\max}(m) = \frac{1-m^{1-q}}{q-1}\]
-  - Normalized Tsallis entropy: \(\tilde S_q = \frac{S_q(p)}{S_{q,\max}(m)} \in [0,1]\)
-  - Enables comparison across genes with different isoform counts
-  - Essential for distinguishing true biological heterogeneity from annotation artifacts
-
-### Biological Potentiality: Why Tsallis Entropy Matters for Isoform Analysis
-
-Standard RNA-seq analysis measures *whether* transcript abundance changes between 
-conditions (fold change, differential expression). However, a critical complementary 
-question remains underexplored: *how* does the diversity of isoforms change? 
-
-A gene may show little change in total abundance while dramatically reshuffling its 
-isoform repertoire—a phenomenon that current methods largely miss. Tsallis entropy captures precisely this: the complexity, richness, and balance of the isoform heterogeneity landscape. 
-By varying `q`, researchers can examine whether changes are driven by shifts in rare variants or reorganization of dominant isoforms from scale-dependent analysis.
-
-Tsallis entropy is grounded in Shannon's foundational information theory [@I051], 
-which quantifies uncertainty. Rényi [@I003] generalized this concept into a 
-parametrized family of entropy measures, and Tsallis entropy extends this framework 
-further. The key innovation is a tunable parameter `q` that controls which aspects of 
-diversity are emphasized [@I005; @I007; @I009]:
-
-- **$q \to 1$**: Approaches Shannon entropy, balancing all species equally
-- **$q = 2$**: Yields the Gini-Simpson index, emphasizing common species
-- **$q \to 0$**: Approaches species richness, emphasizing rare species
-
-This flexibility is crucial for isoform analysis. Jost [@I003] demonstrated that 
-entropy measures separate "true diversity" (how many distinct isoforms) from "abundance 
-structure" (how evenly distributed they are). Two genes can have identical Shannon entropy 
-yet very different functional diversity: one might be dominated by a single abundant isoform 
-(low `q` sensitivity reveals functional homogeneity), while another distributes transcripts 
-across many isoforms (high `q` sensitivity reveals functional complexity). TSENAT's 
-multi-*q* approach captures this full spectrum of isoform diversity, enabling researchers 
-to detect both rare isoform innovations and robust isoform usage patterns [@C113].
+The flexibility is crucial for isoform analysis. Jost [@I003] demonstrated that entropy measures separate "true diversity" (how many distinct isoforms) from "abundance structure" (how evenly distributed they are). Two genes can have identical Shannon entropy yet very different functional diversity: one might be dominated by a single abundant isoform (low `q` sensitivity reveals functional homogeneity), while another distributes transcripts across many isoforms (high `q` sensitivity reveals functional complexity). TSENAT's multi-*q* approach captures this full spectrum of isoform diversity, enabling researchers to detect both rare isoform innovations and robust isoform usage patterns [@C113].
 
 ### Applications of Tsallis Entropy in Genomics
 

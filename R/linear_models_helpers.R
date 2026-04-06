@@ -685,7 +685,8 @@
             entropy_diff = diff(subj_data$entropy),
             q = subj_data$q[-1],
             q_prev = subj_data$q[-nrow(subj_data)],
-            group = as.character(subj_data$group[-nrow(subj_data)]),  # Convert to character first!
+            # Convert group to character first to avoid factor level issues
+            group = as.character(subj_data$group[-nrow(subj_data)]),
             subject = rep(subj, n_diff),
             stringsAsFactors = FALSE
         )
