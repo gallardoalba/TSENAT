@@ -79,6 +79,8 @@ library(TSENAT)
 
 ## Quick Start
 
+**⚠️ Important Parameter Note**: The `build_analysis_s4()` function has an optional `salmon_dir` parameter that comes before the required `tx2gene` parameter. Always use **named parameters** (`readcounts =`, `tx2gene =`, etc.) when calling this function. Using positional arguments may cause the annotation file to be misinterpreted as a Salmon directory, resulting in an error.
+
 For users who want to see results quickly, here is a minimal workflow:
 
 ```{r quick-start-example, eval = FALSE}
@@ -97,7 +99,12 @@ metadata_df <- read.table(
 gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 
 # Create analysis object with transcript counts, annotation, and metadata
-analysis <- build_analysis_s4(readcounts, gff3_file, metadata = metadata_df)
+# IMPORTANT: Use named parameters to avoid confusion with optional salmon_dir parameter
+analysis <- build_analysis_s4(
+  readcounts = readcounts,
+  tx2gene = gff3_file,
+  metadata = metadata_df
+)
 
 # Filter low-abundance transcripts
 analysis <- filter_analysis_s4(analysis, stringency = "medium")

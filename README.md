@@ -84,17 +84,24 @@ analysis <- tsenat(se, config = cfg)
 
 For customization at each stage, use individual functions:
 
+**⚠️ Important**: Always use **named parameters** when calling `build_analysis_s4()`. The optional `salmon_dir` parameter comes before the required `tx2gene` parameter, so positional arguments may be misinterpreted. Use `tx2gene = ` and `salmon_dir = ` explicitly.
+
 ### 1. Load Data & Configure
 
 ```r
 library(TSENAT)
 
 # Load transcript counts, annotation (GFF3), and sample metadata
+# CORRECT: Use named parameters
 analysis <- build_analysis_s4(
   readcounts = readcounts,
   tx2gene = gff3_file,
   metadata = metadata_df
 )
+
+# WRONG: Do not use positional arguments
+# analysis <- build_analysis_s4(readcounts, gff3_file, metadata = metadata_df)
+# The above would fail because gff3_file is interpreted as salmon_dir
 
 # Configure analysis parameters once (used throughout pipeline)
 analysis <- tsenat_config(
@@ -189,6 +196,8 @@ TSENAT answers a unique question: **How do isoforms reorganize, independent of a
 
 TSENAT automatically discovers and reads Salmon output when you provide a directory:
 
+**Note**: When using `salmon_dir`, the parameter must be explicitly named (not positional) because `salmon_dir` is optional and comes before the required `tx2gene` parameter.
+
 ```r
 library(TSENAT)
 
@@ -199,6 +208,7 @@ config <- tsenat_config(
 )
 
 # Build analysis directly from Salmon output directory
+# IMPORTANT: Use named parameters (salmon_dir=, tx2gene=)
 analysis <- build_analysis_s4(
   salmon_dir = "path/to/salmon_output",  # Auto-discovers all quant.sf files
   tx2gene = "path/to/annotation.gff3.gz",  # Transcript-to-gene mapping
