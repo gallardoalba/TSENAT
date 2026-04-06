@@ -4924,12 +4924,14 @@ NULL
     # Create visualization of effect size distribution with publication theme
     p_effect <- ggplot2::ggplot(plot_data, ggplot2::aes(x = .data[[median_col]])) +
         ggplot2::geom_histogram(binwidth = 0.02, fill = .palette_blue_red()[1], alpha = 0.7,
-            color = "black") + ggplot2::labs(title = expression("Distribution of Tsallis Divergence (" ~
-        D[q] ~ ") effect sizes across genes"), subtitle = "Information-theoretic measure respecting Tsallis multi-q entropy properties",
+            color = "black") + ggplot2::labs(title = expression(bold("Distribution of Tsallis Divergence (" ~
+        D[q] ~ ") effect sizes across genes")), subtitle = "Information-theoretic measure respecting Tsallis multi-q entropy properties",
         x = bquote("Effect size (Tsallis Divergence" ~ D[q] ~ "; D >" ~ .(threshold) ~
             "= meaningful information separation)"), y = "Number of genes", caption = paste("Red dashed line: D =",
             threshold, "filtering threshold (information-theoretic significance for q-dependent entropy)")) +
-        .theme_base(base_size = 11) + ggplot2::theme(panel.grid.major = ggplot2::element_line(color = "gray90"))
+        .theme_base(base_size = 11) + ggplot2::theme(panel.grid.major = ggplot2::element_line(color = "gray90"),
+            plot.title = ggplot2::element_text(size = 14, hjust = 0.5),
+            plot.subtitle = ggplot2::element_text(size = 11, hjust = 0.5))
 
     # Add reference line using Phase 5 helper
     p_effect <- .add_reference_lines(p_effect, v_intercept = threshold, v_color = "red",

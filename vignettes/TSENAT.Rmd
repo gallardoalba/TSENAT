@@ -180,57 +180,50 @@ Tsallis entropy exhibits important special cases [@I013] that appear when you se
 
 ## Biological Potentiality: Why TSENAT Matters
 
-Tsallis entropy is grounded in Shannon's foundational information theory [@I051], generalized by Rényi [@I003], and extended by Tsallis [@I002]. The key innovation is a tunable parameter `q` that controls which aspects of diversity are emphasized [@I005; @I007; @I009]:
+Tsallis entropy is grounded in Shannon's foundational information theory [@I051], generalized by Rényi's family of entropies [@I003], and extended by Tsallis [@I002]. The key innovation is a tunable parameter `q` that controls sensitivity to different aspects of the diversity distribution—which aspects of isoform heterogeneity become visible depends on the q-value chosen [@I005; @I007; @I009].
 
-The flexibility is crucial for isoform analysis. Jost [@I003] demonstrated that entropy measures separate "true diversity" (how many distinct isoforms) from "abundance structure" (how evenly distributed they are). Two genes can have identical Shannon entropy yet very different functional diversity: one might be dominated by a single abundant isoform (low `q` sensitivity reveals functional homogeneity), while another distributes transcripts across many isoforms (high `q` sensitivity reveals functional complexity). TSENAT's multi-*q* approach captures this full spectrum of isoform diversity, enabling researchers to detect both rare isoform innovations and robust isoform usage patterns [@C113].
+As stated explicitly in the mathematical literature [@I013]: "This introduces the formal possibility not to set rare and common events on the same footing, as in BG or Shannon statistics, but it enhances or depresses them according to the parameter chosen." This principle is formalized in the Hill numbers framework [@I021], which unifies diverse entropy-based measures (richness, Shannon, Simpson) as different manifestations of the same parametric family with varying sensitivity to abundance scales.
 
-### Applications of Tsallis Entropy in Genomics
+The flexibility is crucial for isoform analysis. The concept of "true diversity" [@I021] emphasizes that diversity can be decomposed into two independent components: species richness (how many distinct isoforms exist) and evenness (how evenly distributed they are across the population). Two genes can have identical Shannon entropy yet differ dramatically in isoform structure: one might be dominated by a single abundant isoform (maximizing apparent heterogeneity at low `q` where rare variants matter), while another distributes transcripts across many isoforms equally (maximizing heterogeneity across all `q` values). By tuning the q-parameter, we operationalize what Masi (2005) describes: depressing the weight on rare events (high q) reveals dominant isoform patterns, while enhancing rare-event weight (low q) reveals cryptic isoform complexity. TSENAT's multi-*q* approach captures this full spectrum of isoform diversity, enabling researchers to detect both rare isoform innovations and robust isoform usage patterns [@C113] by exploring the q-curve across multiple scales.
 
-Tsallis entropy has emerged as a powerful tool for analyzing isoform complexity across diverse
-biological contexts, from single-cell transcriptomics [@I010, @C113] to 
-spatial transcriptomics [@C113]. Recent applications demonstrate its value:
+### Potential Applications in Genomics
 
-**1. Disease biomarker discovery and cancer diagnosis**: Dysregulated isoform heterogeneity 
-often precedes or accompanies disease phenotypes [@I029]. Cancer cells frequently exhibit 
-abnormal splicing entropy signatures [@C113, @I029], which may be detectable 
-before bulk transcriptional changes. The ability to measure isoform complexity via Tsallis 
-entropy at different q-values reveals whether disease-associated changes affect rare variants 
-(low q) or dominant isoforms (high q), providing mechanistic insight into splicing dysregulation 
-in malignant transformation.
+The multi-scale nature of Tsallis entropy makes it suited for exploring isoform complexity across diverse biological contexts. By measuring information content at different q-values, researchers can detect patterns invisible to traditional transcript abundance measures alone:
 
-**2. Cell state transitions and differentiation**: Developmental and differentiation processes 
-involve systematic shifts in isoform complexity [@I010, @I026]. Maturation typically increases 
-dominant isoform usage (lower entropy), while dedifferentiation or proliferation may raise entropy 
-through stress-induced isoform switching. Single-cell transcriptomics with entropy measures 
-[@I026, @I021] reveals how individual cells navigate state transitions, capturing both the 
-deterministic aspects (dominant isoform selection) and stochastic heterogeneity (rare variant 
-exploration) that define cellular plasticity.
+**Isoform complexity as a biological signal**: Isoform switching—reorganization of the isoform landscape without necessarily changing total gene abundance—reflects strategic shifts in protein function driven by splicing regulation. Evidence from single-cell transcriptomics demonstrates that transcript-level complexity varies systematically across cell types and developmental states [@ISO010], validating that isoform heterogeneity is a genuine biological phenomenon rather than noise. Increased entropy in gene regulatory networks drives phenotypic heterogeneity and cellular plasticity [@Y006], suggesting that transcript-level entropy captures similar organizational principles. TSENAT enables detection of these changes through entropy-based approaches, which capture whether complexity is increasing (diversity spreading across isoforms) or decreasing (consolidation onto dominant isoforms).
 
-**3. Adaptive and stress responses**: Rapid environmental challenges (heat stress, nutrient 
-starvation, infection) trigger coordinated changes in splicing entropy [@I027, @I027] as cells 
-modulate protein isoform ratios to meet functional demands. By measuring entropy at multiple 
-q-values, researchers can distinguish between adaptive responses (systematic entropy changes) 
-and noise, revealing the biological strategies [@I029] cells employ for stress resilience.
+**Scale-dependent organization**: Different biological processes may prioritize different scales of organization [@Y005]:
+- Changes in rare isoform usage (revealed through low `q` sensitivity) might reflect exploratory or error-correction mechanisms
+- Shifts in dominant isoform selection (revealed through high `q` sensitivity) might reflect functional specialization or robustness demands
+- The full q-curve reveals whether cellular transitions involve wholesale reorganization or targeted adjustments, paralleling how systems biology approaches dissect biological disorder and organization at multiple scales
 
-**4. Tissue-specific regulation and functional specialization**: Different tissues maintain 
-distinct entropy "set points" reflecting their functional requirements [@I026]. Brain tissues, 
-for example, show higher isoform complexity than liver [@I026], reflecting the protein 
-functional diversity needed for neural circuit complexity. Spatial transcriptomics now enables 
-mapping of isoform entropy patterns within tissues [@C113], revealing how splicing 
-regulation supports tissue architecture and function.
+**Beyond abundance measures**: Traditional analysis focuses on fold-changes and differential abundance. Since isoform reorganization can occur independently of total abundance changes, entropy-based approaches complement classical methods by detecting complexity shifts that transcript-level statistics alone cannot reveal.
+
+#### Evidence from Literature
+
+The recent emphasis on information-theoretic approaches in computational biology [@I029, @I034] reflects broader recognition that complex biological systems encode information across multiple organizational scales. Peer-reviewed literature provides strong empirical support for these applications:
+
+**Entropy and cancer biology**: Cancer cells accumulate genetic and epigenetic perturbations that systematically increase disorder in gene regulatory networks. As Tarabichi and colleagues demonstrate, "Increased entropy of signaling (or gene interaction networks) has been well studied as a cancer characteristic: Network entropy increases along with cancer progresses" [@Y005]. Systems biology approaches reveal that this entropy increase, rather than being an incidental feature, actively drives cancer progression through selection of cells with greater network flexibility and adaptability.
+
+**Perturbation-driven mechanisms of heterogeneity**: Nijman's analysis of perturbation-driven entropy proposes a complementary mechanism: "cancer-associated perturbations collectively disrupt normal gene regulatory networks by increasing their entropy. Importantly, in this model both somatic driver and passenger alterations contribute to 'perturbation-driven entropy', thereby increasing phenotypic heterogeneity and evolvability" [@Y006]. This framework elegantly explains observed cancer heterogeneity without requiring that every genetic change confers a selective advantage—some mutations contribute entropy directly through network disruption.
+
+**Single-cell validation of transcript diversity**: Cao and colleagues' landmark single-cell transcriptomics study provided empirical validation that transcript-level organization varies systematically across cell types: "expression levels of mRNA species are linked to cellular function and therefore can be used to classify cell types" [@ISO010]. Their comprehensive profiling of C. elegans demonstrates that individual cells maintain specific, consistent isoform compositions reflecting cellular identity—establishing that isoform complexity is not noise but a fundamental aspect of cellular differentiation and function.
+
+These three perspectives—entropy as driver of cancer evolution, perturbations as network disruption mechanisms, and single-cell evidence for systematic isoform organization—converge on a framework where measuring entropy at multiple scales (via TSENAT's multi-*q* approach) captures biologically meaningful variation in cellular organization and adaptation. In cancer biology specifically, entropy-driven mechanisms explain how perturbations increase heterogeneity and plasticity [@Y006], demonstrating that entropy concepts have mechanistic relevance beyond abstract information theory. Tsallis entropy, through the parametric q-spectrum, provides a systematic framework for exploring this multi-scale organization at the transcript and isoform level.
 
 
+# Isoform Switching Workflow
 
-The recent emphasis on information theory in computational biology [@I029, @I032, 
-@I034] reflects growing recognition that traditional measures (fold change, p-values) 
-miss key aspects of biological organization. Tsallis entropy, by allowing exploration across 
-the q-spectrum, captures organization at multiple biological scales simultaneously—a capability 
-essential for unpacking the complexity of gene regulation in health and disease.
+We now demonstrate a complete workflow for detecting **isoform switching**—when cells reorganize their isoform landscape without necessarily changing total gene abundance. This often reflects strategic shifts in protein function driven by splicing regulation.
 
+In this workflow, you will:
 
-# Isoform switching workflow
+1. Load transcript counts and sample metadata
+2. Identify genes with significant scale-dependent isoform complexity changes (using linear model interaction testing)
+3. Assess which individual transcripts drive those changes (using jackknife resampling [@S232])
+4. Interpret results in the context of paired experimental designs
 
-Having established the mathematical and biological foundations of Tsallis entropy, we now demonstrate a complete workflow for detecting and characterizing **isoform switching**—the coordinated changes in transcript usage patterns between experimental conditions. Isoform switching occurs when cells reorganize their isoform landscape without necessarily changing total gene abundance, often reflecting strategic shifts in protein function driven by splicing regulation. This section walks through a practical analysis pipeline: from raw transcript counts to identifying genes with significant scale-dependent isoform complexity changes (via linear model interaction testing) and dissecting the specific transcripts driving those changes (via jackknife-based resampling for influence assessment [@S232]). We'll use a paired experimental design where treated and control samples are linked, enabling detection of robust biological signals while controlling for subject-level variability. By the end of this workflow, you'll be able to identify not just *which genes* undergo isoform switching, but *which transcripts* are responsible and *at which diversity scales* the switching occurs.
+We'll work with a paired experimental design where treated and control samples are linked, enabling detection of robust biological signals while controlling for subject-level variability. By the end, you'll know not just *which genes* undergo isoform switching, but *which transcripts* are responsible and *at which diversity scales* the switching occurs.
 
 ## Load data and metadata
 
@@ -260,16 +253,13 @@ Now we will load the example dataset and associated metadata:
 data(readcounts)
 
 readcounts <- as.matrix(readcounts)
-mode(readcounts) <- "numeric"
 
-# Load sample metadata
 metadata_df <- read.table(
     system.file("extdata", "metadata.tsv", package = "TSENAT"),
     header = TRUE, sep = "\t"
 )
 
-# Get the GFF3.gz annotation file path
-gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 ```
 
 ## Data preprocessing and filtering
@@ -301,7 +291,7 @@ config <- tsenat_config(
 analysis <- build_analysis_s4(
   config = config,
   readcounts = readcounts, 
-  tx2gene = gff3_dataset, 
+  tx2gene = gff3_file, 
   tpm = tpm,
   effective_length = effective_length
 )
@@ -311,34 +301,25 @@ analysis <- build_analysis_s4(
 The `TSENATAnalysis` object contains a `SummarizedExperiment` with transcript-level 
 counts and gene annotations extracted from the GFF3 file.
 
-Before computing the Tsallis diversity, you might want to
-filter out genes with a low overall expression or limit 
-the analysis to transcripts with a sufficient minimum 
-expression level. Expression estimates of transcript isoforms 
-with zero or low expression might be highly variable [@S202; @S203].
-For more details on the effect of transcript isoform
-prefiltering on differential transcript usage, see 
-[this paper](https://doi.org/10.1186/s13059-015-0862-3).
+To reduce noise and improve statistical power, we filter out lowly-expressed transcripts. 
+Expression estimates of transcript isoforms with zero or low expression might be highly 
+variable [@S202; @S203]. For more details on the effect of transcript isoform prefiltering 
+on differential transcript usage, see [this paper](https://doi.org/10.1186/s13059-015-0862-3).
 
 ```{r filter-and-validate-counts}
-## Filter lowly-expressed transcripts and report counts
-# Filter analysis using stringency parameter
-# Medium stringency keeps transcripts present in >= 50% of samples
-analysis <- filter_analysis_s4(
-    analysis, 
-    stringency = "medium"
-)
+analysis <- filter_analysis_s4(analysis, stringency = "medium")
+cat("Retained", nrow(se(analysis)), "transcripts after filtering\n")
 ```
 
-The `stringency = "medium"` parameter automatically determines filtering thresholds
-based on your paired study design. It keeps transcripts present in at least 50% of 
-samples with TPM values above the median of mean gene TPM. This balanced approach 
-filters out low-abundance transcripts that contribute noise while retaining sufficient 
-isoform diversity for meaningful entropy calculations.
+The `stringency = "medium"` parameter keeps transcripts present in ≥50% of samples 
+with TPM values above the median of mean gene TPM. This balances noise reduction with 
+preservation of isoform diversity needed for meaningful entropy calculations.
 
-## Compute Tsallis entropy
+## Compute Tsallis Entropy
 
-Now we will compute Tsallis entropy. Diversity measures provide a comprehensive framework for assessing isoform heterogeneity across the q-spectrum [@I007; @I010].
+We now compute Tsallis entropy across your configured q-spectrum. Diversity measures 
+provide a comprehensive framework for assessing isoform heterogeneity at multiple scales [@I007; @I010].
+We normalize entropy to [0,1] range (`norm = TRUE`) for comparable cross-q assessment.
 
 ```{r tsallis-entropy-computation}
 # Compute diversity using S4 wrapper with bootstrap confidence intervals [@S232; @S115]
@@ -353,7 +334,7 @@ analysis <- calculate_diversity_s4(
 # Show entropy values for ONE sample across three q values (0.05, 1, 2)
 # Note: q=0 (richness) is computed deterministically outside bootstrap to avoid discrete data artifacts
 
-q_values_to_show <- c(0, 1, 2)
+q_values_to_show <- c(0, 0.5, 1, 1.5, 2)
 sample_data <- NULL
 first_sample_name <- NULL
 
@@ -388,7 +369,7 @@ for (q_val in q_values_to_show) {
 if (!is.null(sample_data) && nrow(sample_data) > 0) {
     knitr::kable(
         sample_data,
-        caption = paste0("Tsallis entropy for first 4 genes across three diversity scales (sample: ", 
+        caption = paste0("**Table 1:** Tsallis entropy for first 4 genes across three diversity scales (sample: ", 
                          first_sample_name, ")"),
         digits = 5,
         row.names = FALSE,
@@ -412,7 +393,7 @@ groups indicate scale-dependent diversity differences: separation at low
 `q` implies differences in rare isoforms, while separation at high `q`
 signals differences in dominant isoforms.
 
-```{r fig-1-isoform-diversity-profiles, fig.width=10, fig.height=5.2, out.width="98%", fig.pos="H", fig.cap = "Figure 1: Isoform diversity profiles across q-values. Lines show normalized Tsallis entropy (0–1) for each sample, blue control and red treatment."}
+```{r fig-1-isoform-diversity-profiles, fig.width=10, fig.height=5.2, out.width="98%", fig.pos="H", fig.cap = "**Figure 1:** Isoform diversity profiles across q-values. Lines show normalized Tsallis entropy (0–1) for each sample, blue control and red treatment."}
 # Plot overall q-curve
 p_qcurve <- plot_tsallis_q_curve_s4(
     se = analysis
@@ -425,6 +406,8 @@ print(p_qcurve)
 Before proceeding with group-level comparisons, we should assess whether individual samples exert disproportionate influence on our entropy estimates [@S115]. To address this, we employ a leave-one-out influence assessment combined with robust M-estimation [@S019] (iteratively re-weighted least squares with Huber loss). This approach quantifies how much each sample's removal affects the estimated location differences across the q-spectrum, providing a sample-level quality control metric independent of group assignment.
 
 Samples with high influence scores exert disproportionate leverage on entropy estimates and may warrant deeper investigation for technical quality issues, subject-specific outliers, or genuine biological signals that require careful interpretation.
+
+We configure three key parameters: `loss_type = "huber"` employs Huber M-estimation (robust to outliers with bounded influence), `q_combine_method = "mean"` averages influence metrics across the entire q-spectrum for a single score per sample, and `influence_threshold = 0.75` designates the percentile cutoff above which samples are flagged (such that the top 25% most influential samples are reviewed).
 
 ```{r qc-entropy-outlier-detection, echo=TRUE}
 # Perform multi-q sample influence analysis via S4 wrapper
@@ -453,7 +436,7 @@ if (!is.null(sample_qc) && nrow(sample_qc) > 0) {
   
   knitr::kable(
       sample_qc[, cols_to_show],
-      caption = "**Table 1 | Sample Influence Assessment via M-estimation.** Ranked by magnitude of resampling-based influence values. Columns: Sample identifier; mean and standard deviation of Tsallis entropy; distance from centroid; outlier status. M-estimation identifies influential samples for sensitivity analysis.",
+      caption = "**Table 2 | Sample Influence Assessment via M-estimation.** Ranked by magnitude of resampling-based influence values. Columns: Sample identifier; mean and standard deviation of Tsallis entropy; distance from centroid; outlier status. M-estimation identifies influential samples for sensitivity analysis.",
       digits = 4,
       row.names = FALSE,
       format = if (knitr::is_latex_output()) "latex" else "html",
@@ -466,6 +449,8 @@ if (!is.null(sample_qc) && nrow(sample_qc) > 0) {
   )
 }
 ```
+
+**Interpretation:** Samples with distance from centroid >1.5 or proportion of affected genes >0.85 are flagged for quality control review. Flagged samples may reflect genuine biological heterogeneity or technical artifacts requiring careful examination before proceeding with downstream analysis.
 
 ## Linear-Model interaction
 
@@ -510,7 +495,7 @@ if (!is.null(lm_res) && is.data.frame(lm_res) && nrow(lm_res) > 0) {
     
     knitr::kable(
         display,
-        caption = "**Table 2 | Leading genes with scale-dependent condition effects from generalized additive models.** Benjamini–Hochberg correction (*q* < 0.05). Columns: gene identifier; transcripts; *q*-range tested; edf (estimated degrees of freedom); *F*-statistic; *P* and *q*-values. Methods: GAMs with *q* and condition as smooth predictors [@S190].",
+        caption = "**Table 3 | Leading genes with scale-dependent condition effects from generalized additive models.** We display the 6 genes with lowest adjusted p-values (*q* < 0.05). Benjamini–Hochberg correction applied; columns show gene identifier, effect size, test statistic, convergence status, and heteroscedasticity detection. Methods: GAMs with *q* and condition as smooth predictors [@S190].",
         col.names = c("Gene", "Gene Name", "P-value", "Adj. P-value", "Effect Size", 
                       "Test Statistic", "Model Converged", "Heteroscedasticity"),
         digits = 4,
@@ -526,10 +511,12 @@ if (!is.null(lm_res) && is.data.frame(lm_res) && nrow(lm_res) > 0) {
 }
 ```
 
+**Interpretation:** TRUE in the Heteroscedasticity column indicates that the model satisfies homogeneity-of-variance assumptions across the q-spectrum; FALSE values suggest variance heterogeneity and warrant caution in result interpretation.
+
 Now we will plot the q-curve profile for the top genes identified 
 by the linear-model interaction test.
 
-```{r fig-2-scale-dependent-genes, fig.width=14, fig.height=12, out.width="98%", fig.pos="H", fig.cap = "Figure 2: Scale-dependent interaction analysis. GAM-identified genes showing significant q$\\times$condition effects (Benjamini–Hochberg q < 0.05)."}
+```{r fig-2-scale-dependent-genes, fig.width=14, fig.height=12, out.width="98%", fig.pos="H", fig.cap = "**Figure 2:** Scale-dependent interaction analysis. GAM-identified genes showing significant q$\\times$condition effects (Benjamini–Hochberg q < 0.05)."}
 # Plot q-curve profiles for the top 4 genes using the S4 wrapper
 combined_plot <- plot_lm_interaction_gam_s4(
     analysis,
@@ -540,11 +527,35 @@ print(combined_plot)
 
 ## Transcript Switching Across Diversity Scales
 
-The LM interaction test revealed that condition effects vary across the
-diversity scale (q parameter). Here we assess whether these switching
-patterns are consistent across different q values or vary by scale. This
-bridges the gap between the multi-q LM test and the single-q jackknife
-resampling-based analysis [@S232].
+### Why Scale-Dependent Analysis Matters
+
+Biological systems operate through processes at fundamentally different organizational scales. A single gene's expression can be viewed through different "lenses"—from the perspective of dominant isoforms (high *q*, emphasizing abundant variants) to rare isoforms that may carry functional significance in specific contexts (low *q*, emphasizing rare variants). The LM interaction test revealed that condition effects vary across these diversity scales (q parameter), reflecting how biological reorganization can manifest differently depending on which aspect of isoform complexity we examine.
+
+The theoretical foundation for scale-dependent analysis comes from generalized entropy measures. Rényi's entropy family [@I003] introduced a continuous spectrum of diversity measures parameterized by a sensitivity index, which Tsallis later extended and popularized [@I009]. Unlike Shannon entropy (which represents a single point on this spectrum), Tsallis entropy provides a family of measures where the parameter *q* acts as a "magnifying glass"—adjusting what organizational scales become visible. Mathematically, different *q*-values weight rare versus abundant isoforms differently:
+- Low *q* (0-0.5): Emphasized rare isoforms, revealing exploratory or conditional splicing programs
+- Mid *q* (0.5-1.5): Balanced sensitivity across the full isoform distribution  
+- High *q* (1.5-2.0): Emphasized abundant isoforms, revealing core splicing decisions
+
+In biological systems, these different scales often correspond to different regulatory mechanisms. A transcript may be consistently rare across conditions (no switching at low *q*) while being stably abundant at high *q*. Detecting such scale-specific switching patterns reveals the mechanistic structure of splicing regulation [@Y005].
+
+### Bridging Theory: Multi-*q* Analysis to Fine-Scale Jackknife Testing
+
+The current analysis bridges two complementary approaches:
+
+1. **Multi-*q* LM interaction test**: Tests whether the condition effect on divergence depends on *q* (overall pattern across diversity scales)
+
+2. **Single-*q* jackknife resampling**: Tests which individual transcripts drive those patterns at each *q*-value, with robustness assessment
+
+This two-stage approach combines hypothesis testing with robustness validation [@S115]. The LM test identifies *where* (at which *q*-values) significant switching occurs. The jackknife-based delta influence then identifies *which transcripts* contribute to those patterns, weighting confidence by operational stability rather than simple frequency.
+
+### Interpreting Scale-Dependent Switching Patterns
+
+Here we assess whether these switching patterns are consistent across different q values or vary by scale. The key question is: **Do the same transcripts switch across all diversity scales, or does the identity of switching transcripts depend on which scale we examine?**
+
+- **Consistent switching**: The same transcripts show significant delta influence across *q*-values → suggests a robust, scale-independent splicing shift
+- **Mixed/scale-dependent switching**: Different transcripts show importance at different *q*-values → suggests regulatory complexity where the mechanism differs by scale
+
+This classification reveals whether isoform reorganization is a coordinated, global phenomenon (same transcripts across scales) or a layered process where different regulatory inputs dominate at different organizational scales.
 
 ```{r identify-isoform-switching-transcripts, echo=TRUE, results='hide'}
 # Multi-Q analysis: Test switching at different q values
@@ -557,8 +568,9 @@ analysis <- jackknife_isoform_switching_s4(
 )
 ```
 
-The tables below examine how transcript switching patterns vary across different diversity scales (q-values) for the four genes with the strongest q$\times$condition interactions. The delta influence metric quantifies the difference in transcript importance between the two conditions: positive values indicate a transcript is more influential under the first condition, negative values indicate greater importance in the second condition. By comparing these values across q-values (0.01 to 2.0), we identify whether transcript switching is consistent across all scales or scale-dependent. The "Direction Consistency" column classifies each transcript's behavior: "Consistent positive/negative" indicates robust, scale-independent switching; "Mixed directions" indicates scale-dependent switching where the same transcript switches direction depending on the diversity scale analyzed. This analysis reveals whether isoform shifts are driven by the same transcripts across all q-values or whether different q-values emphasize switching in different transcripts.
+We configure three key parameters for the switching analysis: `nboot = 100` specifies 100 bootstrap resamples to estimate robust confidence intervals for delta influence values [@S115]; `lm_p_threshold = 0.05` filters genes to those with significant q$\times$condition interaction effects (p < 0.05) before assessing transcript switching; and `threshold = 90` designates transcripts with support $\geq$ 90% across bootstrap samples as robust switches. These parameters balance sensitivity (detecting switching) with specificity (avoiding false positives from noise).
 
+The tables below examine transcript switching patterns for the top genes with strongest q$\times$condition interactions. Delta influence, derived from jackknife resampling [@S115], quantifies how each transcript's relative importance changes between conditions, weighted by stability across bootstrap iterations (positive = more influential in first condition; negative = second condition). The `Direction Consistency` column classifies each transcript: "Consistent" indicates stable switching across q-values, while "Mixed" indicates scale-dependent switching. This reveals whether isoform shifts involve the same transcripts across scales or whether different q-values emphasize different transcripts.
 
 ```{r extract-switching-results, echo=TRUE, results='hide'}
 # Prepare comparison tables for top genes across q-values using S4 accessor
@@ -613,32 +625,29 @@ if (exists("tables_result") && is.list(tables_result) &&
 
 ### Delta Influence Across Diversity Scales
 
-Visualize switching patterns for the top genes identified by the LM
-interaction test. This shows which transcripts are switching in genes 
-with significant q$\times$condition interaction effects. The heatmaps below display
-the **jackknife** delta influence (a measure of transcript switching robustness [@S115; @S232])
-across different q-values (rows: 0.01 to 2.0, representing increasing diversity
-scales) and transcripts (columns) for each gene.
+Visualize switching patterns for the top genes identified by the LM interaction test. This shows which transcripts are switching in genes with significant q×condition interaction effects. The heatmaps below display **jackknife delta influence** [@S232]—a resampling-based measure of how robustly each transcript's relative contribution changes between conditions—across different q-values (rows: 0 to 2.0, representing increasing diversity scales from rare to abundant isoforms) and transcripts (columns) for each gene. Delta influence values are computed from bootstrap resampling iterations, providing robust, non-parametric estimates of transcript switching significance weighted by consistency across replicates.
 
-```{r fig-3-transcript-jackknife-influence, echo=TRUE, results='hide', fig.width=12, fig.height=12, eval=TRUE, out.width="98%", fig.pos="H", fig.cap = "Figure 3: Transcript-level switching patterns via jackknife resampling. Rows q-values (0.01–2.0), columns transcripts. Red/blue indicates condition influence."}
-# Generate multi-Q heatmaps using the S4 wrapper
-# Rendered directly to knitr graphics device (DESeq2 pattern)
+```{r fig-3-transcript-jackknife-influence, echo=TRUE, results='hide', fig.width=12, fig.height=12, eval=TRUE, out.width="98%", fig.pos="H", fig.cap = "**Figure 3:** Transcript-level switching patterns via jackknife resampling. Rows q-values (0–2.0), columns transcripts. Red/blue indicates condition influence."}
+# Generate multi-Q heatmaps for top 4 genes using S4 wrapper
 plot_multiq_delta_influence_heatmaps_s4(
     analysis, 
     n_genes = 4
 )
 ```
 
-Interpretation:
+**Interpretation:** Rows represent q-values across the diversity spectrum (0 to 2.0, with low q emphasizing rare isoforms and high q emphasizing abundant isoforms). Red cells indicate transcripts with strong positive delta influence in the first condition (meaning their relative importance increased); blue indicates negative influence in the second condition (meaning their importance decreased). **Patterns to look for:**
 
-- Rows: q-values from low (0.01) to high (2.0) diversity, showing scale-dependent effects
-- Columns: Each transcript for the gene
-- Red cells: Transcript more influential in the first condition
-- Blue cells: Transcript more influential in the second condition
-- Column patterns: Consistent color down a column indicates stable switching; varied colors indicate q-dependent switching
+- **Strong color intensity (bright red or blue)**: Robust switching signal, consistently observed across bootstrap resamples
+- **Weak color intensity (pale/white)**: Uncertain or noisy switching signal, high variability across resamples
+- **Consistent colors down a column**: That transcript switches stably across all q-values (scale-independent switching)
+- **Varied colors down a column**: That transcript shows scale-dependent switching (different roles at rare vs. abundant scales)
+- **Color differences across rows**: Different q-values emphasize different transcripts, revealing how regulatory mechanisms vary by topological scale
 
-```{r fig-4-transcript-abundance-heatmap, echo=TRUE, results='hide', fig.width=12, fig.height=9, eval=TRUE, out.width="98%", fig.pos="H", fig.cap = "Figure 4: Transcript abundance heatmap with hierarchical clustering. Rows are transcripts, columns are conditions. Blue low, red high expression."}
-# Generate top transcripts heatmaps (pheatmap with hierarchical clustering)
+This robustness-weighted visualization reveals not just *which* transcripts switch, but *how reliably* they switch, allowing distinction between robust biological signals and artifacts of sampling variation.
+
+```{r fig-4-transcript-abundance-heatmap, echo=TRUE, results='hide', fig.width=12, fig.height=9, eval=TRUE, out.width="98%", fig.pos="H", fig.cap = "**Figure 4:** Transcript abundance heatmap with hierarchical clustering. Rows are transcripts, columns are conditions. Blue low, red high expression."}
+# Generate transcript abundance heatmap for top 4 transcripts using hierarchical clustering
+# metric = "median" aggregates expression values across paired conditions
 plot_top_transcripts_s4(
     analysis, 
     top_n = 4, 
@@ -646,21 +655,7 @@ plot_top_transcripts_s4(
 )
 ```
 
-The heatmap displays transcript abundance across experimental conditions for the top genes
-identified by linear model interaction analysis. This visualization reveals which isoforms
-(rows) show differential expression patterns between conditions (columns).
-
-- Rows: Individual transcripts within each gene, hierarchically clustered by expression similarity
-- Columns: Experimental conditions (e.g., Control, Treatment), aggregated using the specified metric (median by default)
-- Color scale: Blue = low expression, White = medium expression, Red = high expression
-- Hierarchical clustering: Transcripts and conditions are grouped by expression similarity, revealing isoform expression modules
-
-Biological interpretation:
-
-- Distinct horizontal bands indicate transcripts with condition-specific expression patterns
-- Strong red in one condition suggests condition-preferential expression
-- Strong blue in one condition suggests condition-suppressed expression
-- Uniform coloring across conditions suggests constitutive expression
+**Interpretation:** Transcripts (rows) are hierarchically clustered by expression similarity. Red indicates high expression, blue indicates low expression. Distinct horizontal bands reveal condition-specific isoforms; uniform coloring suggests constitutive expression. Clustering reveals which transcripts co-vary in expression patterns across conditions.
 
 ### Effect size analysis
 
@@ -670,30 +665,34 @@ isoforms (low q), dominant isoforms (high q), or uniformly across scales.
 
 The approach uses linear mixed-effects regression (LMM) with q as continuous predictor to assess 
 slope differences in entropy change across q-spectrum between treatment groups, with effect size computed 
-as Tsallis divergence $D_q$(control||treatment) [@K001; @I002; @I003; @I004]. This information-theoretic measure 
-automatically respects Tsallis entropy properties and adapts to each q value.
+as Tsallis divergence $D_q$(control||treatment) [@K001; @I002; @I003; @I004; @I059]. This information-theoretic measure 
+automatically respects Tsallis entropy properties and adapts to each q value [@I061].
 
-Theoretical Justification: Tsallis entropy theory [@I002, @I004] demonstrates that 
+**Theoretical Justification**
+
+Tsallis entropy theory [@I002, @I004; @I058] demonstrates that 
 different q values reveal fundamentally different aspects of the isoform distribution. 
-As documented in the foundational divergence literature [@I004; @I045], $D_{0.5}(P||Q)$ often differs 
+As documented in the foundational divergence literature [@I004; @I045; @I059; @I060], $D_{0.5}(P||Q)$ often differs 
 substantially from $D_{2}(P||Q)$, with q=0.5 emphasizing rare variants and q=2 emphasizing 
 abundant isoforms. Computing effect sizes independently at each q value thus captures 
 which diversity scales (rare vs. dominant isoforms) show the strongest biological 
-differentiation between conditions [@I048].
+differentiation between conditions [@I048; @I060]. Ré and Azad (2014) demonstrated that Tsallis divergence generalizations improve discrimination of genomic sequences, validating the multi-scale divergence approach for biological applications [@I060].
 
-Effect Size Interpretation: **Tsallis divergence** $D_q$ quantifies the information-theoretic distance between 
-two distributions' entropy patterns across the q-spectrum [@I011; @I012; @I038; @I040]. For paired designs, divergence is computed 
+**Effect Size Interpretation**
+
+**Tsallis divergence** $D_q$ quantifies the information-theoretic distance between 
+two distributions' entropy patterns across the q-spectrum [@I011; @I012; @I038; @I040; @I059]. For paired designs, divergence is computed 
 separately for each pair and then averaged, accounting for within-pair correlation and reducing noise from 
-between-pair variation. The mean divergence across q values serves as the effect size, automatically 
+between-pair variation [@I057]. The mean divergence across q values serves as the effect size, automatically 
 capturing how entropy distributions differ between control and treatment groups at all scales (rare to 
-abundant isoforms). Values D > 0.1 indicate meaningful divergence, following information-theoretic 
-thresholds [@I021]. Genes with D > 0.1 demonstrate significant information-theoretic separation between conditions, 
+abundant isoforms). Values D > 0.1 indicate meaningful divergence, following effect size classification 
+thresholds [@K002; @I021; @I059]. Genes with D > 0.1 demonstrate significant information-theoretic separation between conditions, 
 revealing that isoform complexity patterns (captured by multi-q Tsallis entropy) fundamentally differ between 
-treatment groups across all q-dependent scales.
+treatment groups across all q-dependent scales [@I060].
 
 ```{r effect-size-multiq}
-# Calculate divergence using q values from config with bootstrap confidence intervals
-# q_values should be in getConfig(analysis)$q_values (set during build_analysis or before)
+# Calculate divergence: computes pairwise information-theoretic distance (Tsallis divergence) between conditions
+# using bootstrap confidence intervals across all configured q-values from getConfig(analysis)$q_values
 analysis <- calculate_divergence_s4(
     analysis)
 ```
@@ -746,7 +745,8 @@ if (exists("analysis")) {
 ```
 
 ```{r effect-size-merge}
-# Compute effect sizes for divergence results
+# Compute effect sizes: significance_threshold = 0.05 filters genes to those with q×condition interaction p < 0.05;
+# enrich_per_q_pattern = TRUE classifies each gene by its divergence pattern (Rare-driven/Balanced/Abundant-driven)
 analysis <- effect_sizes_divergence_s4(
     analysis,
     significance_threshold = 0.05,
@@ -930,11 +930,10 @@ plot_obj <- plot_divergence_distribution_s4(
     threshold = 0.05
 )
 
-# Rendered directly by knitr (no file dependency)
 print(plot_obj)
 ```
 
-```{r compare-q-spectra-plot, fig.width=10, fig.height=6, out.width='100%', fig.align='center'}
+```{r compare-q-spectra-plot, fig.width=10, fig.height=6, out.width='100%', fig.align='center', fig.cap='**Figure 5:** Q-spectrum curves for top genes by significance. Each line represents divergence as a function of q-value; shape reveals biological pattern (rare-driven, balanced, or abundant-driven).'}
 # Visualize q-spectrum curves for top 4 genes by significance
 # Plot is rendered directly by knitr (no file dependency)
 p_multi <- plot_divergence_spectrum_s4(
@@ -950,11 +949,12 @@ print(p_multi)
 Interpreting the Q-Spectrum Curve:
 
 - Shape matters more than single value: The **q-spectrum** curve is the complete biological story. 
-  A flat curve (BALANCED) vs. declining curve (RARE_DRIVEN) vs. rising curve (ABUNDANT_DRIVEN) 
+  A flat curve (balanced) vs. declining curve (rare driven) vs. rising curve (abundant driven) 
   encode fundamentally different mechanisms.
 
-- q=1 (KL divergence): The middle point corresponds to ordinary Kullback-Leibler divergence [@K001], 
-  which weights all isoforms equally. This is the "average" effect.
+- q=1 (KL divergence): The middle point corresponds to ordinary Kullback-Leibler divergence [@K001; @I060], 
+  where in the limit q→1 the Tsallis divergence reduces to standard KL divergence [@I060]. 
+  This weights all isoforms equally. This is the "average" effect.
 
 - q < 1 (rare isoforms): Emphasizes how much low-abundance transcripts differ between 
   groups. If D(q=0.5) >> D(q=1), the divergence is driven by changes in rare variants.
@@ -967,11 +967,11 @@ Interpreting the Q-Spectrum Curve:
 
 
 
-Whe can also plot the global divergence spectrum across all genes. 
+We can also plot the global divergence spectrum across all genes. 
 This curve is the full biological signature of **isoform switching**—the pattern encodes which 
 abundance scales (rare vs. abundant) are affected.
 
-```{r visualize-q-spectrum, fig.width=10, fig.height=5, out.width='100%', fig.align='center'}
+```{r visualize-q-spectrum, fig.width=10, fig.height=5, out.width='100%', fig.align='center', fig.cap='**Figure 6:** Global divergence spectrum across all genes. Aggregated q-spectrum pattern shows which abundance scales (rare vs. abundant isoforms) are affected genome-wide.'}
 # Visualize global divergence q-spectrum across all genes (aggregated)
 # Plot is rendered directly by knitr (no file dependency)
 p <- plot_divergence_spectrum_s4(
@@ -981,12 +981,12 @@ p <- plot_divergence_spectrum_s4(
 print(p)
 ```
 
-**Statistical Validation During Interpretation:**
+Statistical Validation During Interpretation:
 
-1. Bootstrap CI validity: Per-q CIs should narrow as q increases (higher q = aggregation 
+1. Bootstrap CI validity: Per-q CIs should narrow as q increases [@S115] (higher q = aggregation 
    effect, less variance). If CIs grow with q, check for data quality issues.
 
-2. Monotonicity check: By **Tsallis entropy** theory, entropy is monotone decreasing in q. Divergence 
+2. Monotonicity check: By **Tsallis entropy** theory [@I002], entropy is monotone decreasing in q. Divergence 
    should NOT show erratic increases with q. Small fluctuations are normal, but large spikes 
    indicate numerical instability.
 
@@ -995,13 +995,23 @@ print(p)
 
 ## S4 Workflow: Unified Analysis via TSENATAnalysis Objects
 
-TSENAT provides an integrated S4-based workflow for coordinated analysis. The recommended approach:
+TSENAT provides an integrated S4-based workflow for coordinated analysis following three principles:
 
 1. **Configure once**: Use `tsenat_config()` to specify analysis parameters (q-values, metadata columns)
-2. **Run pipeline**: Use `tsenat()` to orchestrate all analysis steps
-3. **Access results**: Use S4 accessor methods (`diversity()`, `lmResults()`, `jeoResults()`, `jisResults()`, `rankResults()`, `divergence()`, etc.)
+2. **Run pipeline**: Use `tsenat()` to orchestrate all analysis steps in sequence
+3. **Access results**: Use S4 accessor methods for type-safe result retrieval
 
-This approach ensures metadata consistency, reduces boilerplate, and provides type-safe result access.
+The `tsenat()` function accepts a configured `TSENATConfig` object and orchestrates a complete pipeline: diversity computation → quality control → statistical testing → effect sizes (as specified by the `methods` parameter). Parameter `verbose = TRUE` outputs progress messages showing data filtering steps and method completion. This single-function approach ensures consistency between preprocessing and analysis steps, eliminating boilerplate and reducing risk of parameter mismatches.
+
+**Accessor methods return types:** Most accessors return `SummarizedExperiment` objects (following Bioconductor conventions) containing results as assays and metadata:
+- `diversity(analysis)` → SummarizedExperiment (genes × samples, multiple assays for each q-value)
+- `lmResults(analysis)` → list containing data.frame of LM interaction results (or NULL if method not run)
+- `jeoResults(analysis, q = 1.0)` → SummarizedExperiment of jackknife entropy outlier confidence intervals (or NULL)
+- `jisResults(analysis, q = 1.0)` → list of jackknife isoform switching results (or NULL)
+- `rankResults(analysis)` → data.frame of rank test results (or NULL)
+- `divergence(analysis)` → SummarizedExperiment of pairwise divergence metrics
+
+If a requested method was not run during `tsenat()` orchestration, the accessor returns NULL—users should check results before downstream use.
 
 ```{r s4-workflow-demo, include = TRUE, echo = TRUE, eval = FALSE}
 # Configure analysis parameters once (best practice for reproducibility)
@@ -1011,7 +1021,9 @@ tsenat_config <- tsenat_config(
   subject_col = "paired_samples"
 )
 
-# Run complete pipeline with one function call
+# Run complete pipeline with one function call orchestrating all specified methods
+# methods parameter: vector of analysis steps to execute ("diversity", "lm_interaction", "jackknife", "divergence")
+# verbose = TRUE: prints progress messages showing gene filtering, step completion, and result summaries
 analysis <- tsenat(
   se = se,
   config = tsenat_config,
@@ -1019,30 +1031,23 @@ analysis <- tsenat(
   verbose = TRUE
 )
 
-# Access results via consistent S4 methods (instead of nested list indexing)
-diversity_results <- diversity(analysis)           # Get diversity across q values
-lm_table <- lmResults(analysis)                    # Get LM interaction results
-jk_entropy <- jeoResults(analysis, q = 1.0)     # Get jackknife entropy outlier CIs
-jk_iso <- jisResults(analysis, q = 1.0)         # Get jackknife isoform switching (if computed)
-rank_test <- rankResults(analysis)                    # Get rank test q-value interactions (if computed)
-divergence_table <- divergence(analysis)           # Get divergence metrics
-
-# Note on accessor methods:
-# - `lmResults()` retrieves only LM interaction results (from calculate_lm_interaction_s4)
-# - `rankResults()` retrieves only rank test q-value interaction results (from rank_test_q_condition_s4)
-# - `jeoResults()` retrieves entropy outlier jackknife CIs (from jackknife_entropy_outliers_s4)
-# - `jisResults()` retrieves isoform switching jackknife results (from jackknife_isoform_switching_s4)
-# These methods provide type-safe, mutually-exclusive access to results.
+# Access results via consistent S4 methods (type-safe, mutually-exclusive access instead of nested list indexing)
+diversity_results <- diversity(analysis)
+lm_table <- lmResults(analysis)
+jk_entropy <- jeoResults(analysis, q = 1.0)
+jk_iso <- jisResults(analysis, q = 1.0)
+rank_test <- rankResults(analysis)
+divergence_table <- divergence(analysis)
 ```
 
-For detailed workflow examples and troubleshooting, see the vignette sections below. This section demonstrates the implementation step-by-step for didactic purposes.
+For detailed step-by-step implementation, see the sections above demonstrating each analysis component and its accessor patterns.
 
 
 # Appendices
 
 This main vignette is complemented by two comprehensive appendices:
 
-## Appendix A: Equivalence Validation — TSENAT vs SplicingFactory
+### Appendix A: Equivalence Validation — TSENAT vs SplicingFactory
 
 Validates that TSENAT's Shannon and Simpson entropy implementations are mathematically equivalent to SplicingFactory. Includes:
 
@@ -1053,7 +1058,7 @@ Validates that TSENAT's Shannon and Simpson entropy implementations are mathemat
 
 **[View Appendix A →](TSENAT_appendix_A.html)**
 
-## Appendix B: Comparing Generalized Additive Model (GAM) and Rank-Based (Friedman) Methods
+### Appendix B: Comparing Generalized Additive Model (GAM) and Rank-Based (Friedman) Methods
 
 Compares two complementary statistical approaches for detecting q-value $\times$ group interactions. Covers:
 
