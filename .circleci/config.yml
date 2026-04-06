@@ -7,25 +7,27 @@ jobs:
     working_directory: ~/repo
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - v1-os-deps-{{ .Branch }}
-            - v1-os-deps-
       - run:
-          name: Install OS dependencies (cached)
+          name: Install OS dependencies
           command: |
-            apt-get update && apt-get install -y --no-install-recommends \
+            # Clear any stale apt cache before updating
+            apt-get clean
+            rm -rf /var/lib/apt/lists/*
+            
+            # Update package lists and install dependencies with retry logic
+            for i in {1..3}; do
+              apt-get update && break || if [ $i -lt 3 ]; then sleep 10; fi
+            done
+            
+            apt-get install -y --no-install-recommends \
               build-essential gfortran liblapack-dev libblas-dev \
               libxml2-dev libssl-dev libcurl4-openssl-dev libgit2-dev \
               pandoc openssh-client git python3-pip \
               libharfbuzz-dev libfribidi-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev \
               fontconfig libfontconfig1-dev pkg-config \
               gcov
+            
             rm -rf /var/lib/apt/lists/*
-      - save_cache:
-          paths:
-            - /var/cache/apt
-          key: v1-os-deps-{{ .Branch }}
       - run:
           name: Configure compiler environment
           command: |
