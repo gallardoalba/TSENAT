@@ -47,8 +47,6 @@ Or the development version from GitHub:
 ```r
 remotes::install_github("gallardoalba/TSENAT")
 ```
-## Quick Start
-
 
 # Quick Start
 
