@@ -49,9 +49,6 @@ estimates, influence, outliers),
   .rds (for entire S4 object). Default: NULL (no file output).}
 
 \item{...}{Additional arguments passed to the base function.}
-
-\item{seed}{\code{numeric} or  \code{NULL}.  Random seed for 
-reproducibility.  Default:  NULL.}
 }
 \value{
 Modified TSENATAnalysis with jackknife results in @jackknife_results.

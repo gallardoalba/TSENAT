@@ -255,8 +255,6 @@ getResults <- function(analysis, type = "diversity", q = NULL, simplify = TRUE) 
 #'   'q_curve', 'lm_interaction', 'divergence_distribution', 'divergence_spectrum',
 #'   'influence_heatmap', 'volcano', 'method_concordance', 'multi_gene_q_spectrum',
 #'   'top_transcripts', 'tsallis_violin_density'. Default: all available types.
-#' @param seed \code{numeric}. Random seed for reproducibility (affects
-#'   bootstrap resampling). Default: NULL (no fixed seed).
 #' @param ... Additional configuration parameters (stored as-is in @config slot).
 #'   Examples: \code{q_diff=1.0} (specific q for differences),
 #'   \code{alpha=0.05} (significance for assumptions), etc.
@@ -290,7 +288,7 @@ getResults <- function(analysis, type = "diversity", q = NULL, simplify = TRUE) 
 tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_col = NULL,
     paired = FALSE, control = NULL, formula = NULL, p_threshold = 0.05, fdr_threshold = 0.05,
     significance_threshold = 0.05, n_bootstrap = 1000, bootstrap_method = "percentile",
-    methods = NULL, generate_plots = TRUE, plot_types = NULL, seed = NULL, ...) {
+    methods = NULL, generate_plots = TRUE, plot_types = NULL, ...) {
     # Build q_values if range specified
     if (is.null(q_values)) {
         q_values <- seq(0.5, 2, by = 0.5)

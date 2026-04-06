@@ -94,9 +94,6 @@ Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables).
 Default: NULL (no file output).}
 
 \item{...}{Additional arguments passed to the base function.}
-
-\item{seed}{\code{numeric} or \code{NULL}. Random seed. Default: NULL.
-If NULL, reads from \code{@config$seed} if available.}
 }
 \value{
 Returns the modified \code{analysis} object invisibly with 

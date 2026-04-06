@@ -28,6 +28,7 @@ calculate_diversity_s4(
   bootstrap_ci = NULL,
   bootstrap_include_diagnostics = NULL,
   output_file = NULL,
+  seed = NULL,
   ...
 )
 }
@@ -145,10 +146,6 @@ Optional file path to save results.
 
 \item{...}{Additional arguments passed to underlying functions for
 extensibility.}
-
-\item{seed}{\code{numeric} or  \code{NULL}.  Random seed for 
-bootstrap reproducibility.  Default:  NULL.
-  If NULL, reads from \code{@config$seed} if available.}
 }
 \value{
 Modified TSENATAnalysis object with diversity results stored

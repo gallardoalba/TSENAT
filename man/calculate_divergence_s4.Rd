@@ -60,10 +60,6 @@ Number of bootstrap replicates.  Default:  NULL.
 Default:  FALSE.}
 
 \item{...}{Additional arguments passed to the base divergence function.}
-
-\item{seed}{\code{numeric} or  \code{NULL}.  Random seed for 
-reproducibility.  Default:  NULL.
-  If NULL, reads from \code{@config$seed} if available.}
 }
 \value{
 Modified TSENATAnalysis with divergence metrics in

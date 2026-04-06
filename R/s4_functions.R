@@ -17,8 +17,6 @@
 #'  NULL (uses @config$norm or  TRUE).
 #' @param log_base \code{numeric}.  Logarithm base for  entropy normalization.
 #'  Default:  NULL (uses e).
-#' @param seed \code{numeric} or  \code{NULL}.  Random seed for 
-#' reproducibility.  Default:  NULL.
 #' @param top_n \code{numeric}.  Number of top outlier samples to report.
 #'  Default:  5.
 #' @param pseudocount \code{numeric}.  Pseudocount value for 
@@ -86,7 +84,7 @@
 #' @importFrom utils write.table
 jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
     top_n = NULL, verbose = NULL, nthreads = NULL, pseudocount = NULL,
-    output_file = NULL, seed = NULL, ...) {
+    output_file = NULL, ...) {
     if (!is(analysis, "TSENATAnalysis")) {
         stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }
@@ -272,8 +270,6 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_b
 #' @param nthreads \code{numeric} or  \code{NULL}.  Number of CPU threads for 
 #' parallel processing.
 #'   If NULL, reads from \code{@config$nthreads} (or defaults to 1).
-#' @param seed \code{numeric} or \code{NULL}. Random seed. Default: NULL.
-#'   If NULL, reads from \code{@config$seed} if available.
 #' @param robust_loss_type \code{character}.  Robust regression loss type.
 #'  Default:  'huber'.
 #'   If NULL, reads from \code{@config$robust_loss_type} if available.
@@ -400,7 +396,7 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
     method = NULL, test = NULL, randomizations = NULL, pcorr = NULL, assayno = NULL,
     verbose = NULL, paired = FALSE, exact = FALSE, pseudocount = NULL, nthreads = NULL,
     robust_loss_type = NULL, robust_scale_method = NULL, pairs = NULL, output_file = NULL,
-    seed = NULL, ...) {
+    ...) {
     if (!is(analysis, "TSENATAnalysis")) {
         stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }

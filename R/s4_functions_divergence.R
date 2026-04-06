@@ -40,9 +40,6 @@
 #' @param nboot \code{numeric} or  \code{NULL}.
 #'  Number of bootstrap replicates.  Default:  NULL.
 #'   If NULL, reads from \code{@config$nboot} if available.
-#' @param seed \code{numeric} or  \code{NULL}.  Random seed for 
-#' reproducibility.  Default:  NULL.
-#'   If NULL, reads from \code{@config$seed} if available.
 #' @param progress \code{logical}.  Show progress bar during computation.
 #'  Default:  FALSE.
 #' @param ... Additional arguments passed to the base divergence function.
@@ -105,7 +102,7 @@
 #' @importFrom utils write.table
 calculate_divergence_s4 <- function(analysis, q = NULL, verbose = FALSE, nthreads = NULL,
     output_file = NULL, control_group = NULL, paired = FALSE, method = NULL, bootstrap = FALSE,
-    nboot = NULL, progress = FALSE, seed = NULL, ...) {
+    nboot = NULL, progress = FALSE, ...) {
     
     # Step 1: Validate input
     .validate_divergence_input(analysis)
@@ -243,9 +240,6 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = FALSE, nthread
         args$bootstrap <- params$bootstrap
         if (!is.null(params$nboot)) {
             args$nboot <- params$nboot
-        }
-        if (!is.null(params$seed)) {
-            args$seed <- params$seed
         }
     }
 

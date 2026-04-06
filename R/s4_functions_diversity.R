@@ -98,9 +98,6 @@
 #'   \item Gene with m equally abundant isoforms: H_q = 1.0 (maximum diversity)
 #' }
 #'
-#' @param seed \code{numeric} or  \code{NULL}.  Random seed for 
-#' bootstrap reproducibility.  Default:  NULL.
-#'   If NULL, reads from \code{@config$seed} if available.
 #' @param reference_group \code{character}.
 #'  For \code{norm_method = 'relative_reference'},  
 #' the reference group column name (e.g., from colData). If NULL, uses first

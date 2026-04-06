@@ -76,9 +76,6 @@ Default: TRUE.}
 \item{...}{Additional configuration parameters (stored as-is in @config slot).
 Examples: \code{q_diff=1.0} (specific q for differences),
 \code{alpha=0.05} (significance for assumptions), etc.}
-
-\item{seed}{\code{numeric}. Random seed for reproducibility (affects
-bootstrap resampling). Default: NULL (no fixed seed).}
 }
 \value{
 \code{list} with class \code{TSENATConfig} containing all
