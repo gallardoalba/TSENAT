@@ -550,7 +550,7 @@ test_that("classify_q_pattern performs basic classification", {
   
   result <- .classify_q_pattern(per_q_divs)
   
-  expect_true(result %in% c("RARE_DRIVEN", "ABUNDANT_DRIVEN", "BALANCED", NA_character_))
+  expect_true(result$pattern %in% c("Rare driven", "Abundant driven", "Balanced", NA_character_))
 })
 
 test_that("classify_q_pattern classifies RARE_DRIVEN correctly", {
@@ -563,7 +563,7 @@ test_that("classify_q_pattern classifies RARE_DRIVEN correctly", {
   
   result <- .classify_q_pattern(per_q_divs)
   
-  expect_equal(result, "RARE_DRIVEN")
+  expect_equal(result$pattern, "Rare driven")
 })
 
 test_that("classify_q_pattern classifies ABUNDANT_DRIVEN correctly", {
@@ -576,7 +576,7 @@ test_that("classify_q_pattern classifies ABUNDANT_DRIVEN correctly", {
   
   result <- .classify_q_pattern(per_q_divs)
   
-  expect_equal(result, "ABUNDANT_DRIVEN")
+  expect_equal(result$pattern, "Abundant driven")
 })
 
 # =====================================================================

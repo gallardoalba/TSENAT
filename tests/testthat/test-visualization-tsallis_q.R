@@ -107,21 +107,32 @@ test_that(".plot_tsallis_bootstrap_ci requires exactly 2 groups", {
 test_that(".plot_tsallis_bootstrap_ci saves plot to file when output_file specified", {
   skip_if_not_installed("ggplot2")
   
-  # Create test data
+  # Create test data with matching q-values in SE and long formats
+  q_values <- c(0.5, 1.0, 1.5)
+  n_q <- length(q_values)
+  
+  # SE needs CI assays with columns for each q-value
+  # CRITICAL: formatC(digits=3) formats as "X.XXX", so 0.5 becomes 0.500
+  # IMPORTANT: CI bounds must bracket the median values (ci_lower <= median <= ci_upper)
+  col_names <- c("A_q=0.500", "B_q=0.500", "A_q=1.000", "B_q=1.000", "A_q=1.500", "B_q=1.500")
+  
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(
-      tsallis = matrix(c(2.1, 2.3, 1.8, 2.0), nrow = 2, ncol = 2),
-      ci_lower = matrix(c(1.9, 2.1, 1.6, 1.8), nrow = 2, ncol = 2),
-      ci_upper = matrix(c(2.3, 2.5, 2.0, 2.2), nrow = 2, ncol = 2)
+      tsallis = matrix(c(2.1, 1.8, 2.0, 1.6, 1.95, 1.75), nrow = 1, ncol = 6),
+      ci_lower = matrix(c(1.9, 1.6, 1.8, 1.4, 1.75, 1.55), nrow = 1, ncol = 6),
+      ci_upper = matrix(c(2.3, 2.0, 2.2, 1.8, 2.15, 1.95), nrow = 1, ncol = 6)
     ),
-    colData = data.frame(group = c("A", "B"))
+    colData = data.frame(group = rep(c("A", "B"), times = n_q), q = rep(q_values, each = 2))
   )
+  colnames(se) <- col_names
   
+  # Long data must have matching q-values and sample names
+  # Sample names must match what SE column names parse to: "A" from "A_q=0.500"
   long <- data.frame(
-    q = c(0.5, 1.0, 1.5, 0.5, 1.0, 1.5),
-    group = c("A", "A", "A", "B", "B", "B"),
-    tsallis = c(2.1, 2.3, 2.0, 1.8, 2.0, 1.9),
-    sample = c("S1", "S1", "S1", "S2", "S2", "S2"),
+    q = rep(q_values, 2),
+    group = rep(c("A", "B"), each = n_q),
+    tsallis = c(2.1, 2.0, 1.95, 1.8, 1.6, 1.75),
+    sample = rep(c("A", "B"), each = n_q),  # Match SE column name parsing
     stringsAsFactors = FALSE
   )
   
@@ -157,21 +168,37 @@ test_that(".plot_tsallis_gene_bootstrap_ci creates per-gene faceted plots", {
   
   # SE: each gene has q-value measurements with CIs
   # Columns represent different q values with groups alternating
-  # CRITICAL: Column names MUST follow format "Sample_q=X" for .prepare_gene_ci_data() parsing
-  col_names <- c("A_q=0.5", "B_q=0.5", "A_q=1.0", "B_q=1.0", "A_q=1.5", "B_q=1.5", "A_q=2.0", "B_q=2.0")
+  # CRITICAL: Column names MUST follow format "Sample_q=X.XXX" for .prepare_gene_ci_data() parsing
+  # formatC(digits=3) formats q-values with exactly 3 decimal places
+  col_names <- c("A_q=0.500", "B_q=0.500", "A_q=1.000", "B_q=1.000", "A_q=1.500", "B_q=1.500", "A_q=2.000", "B_q=2.000")
   
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(
       tsallis = matrix(
-        c(2.0, 1.95, 1.9, 1.85, 1.8, 1.75, 1.7, 1.65),  # Gene1 q=0.5,1.0,1.5,2.0 groups A,B
+        c(
+          # Gene1: q=0.5,1.0,1.5,2.0 groups A,B (8 values)
+          2.0, 1.95, 1.9, 1.85, 1.8, 1.75, 1.7, 1.65,
+          # Gene2: different values to ensure proper mapping
+          2.1, 2.05, 2.0, 1.95, 1.9, 1.85, 1.8, 1.75
+        ),
         nrow = n_genes, ncol = 2 * n_q, byrow = TRUE
       ),
       ci_lower = matrix(
-        c(1.8, 1.75, 1.7, 1.65, 1.6, 1.55, 1.5, 1.45),
+        c(
+          # Gene1
+          1.8, 1.75, 1.7, 1.65, 1.6, 1.55, 1.5, 1.45,
+          # Gene2
+          1.9, 1.85, 1.8, 1.75, 1.7, 1.65, 1.6, 1.55
+        ),
         nrow = n_genes, ncol = 2 * n_q, byrow = TRUE
       ),
       ci_upper = matrix(
-        c(2.2, 2.15, 2.1, 2.05, 2.0, 1.95, 1.9, 1.85),
+        c(
+          # Gene1
+          2.2, 2.15, 2.1, 2.05, 2.0, 1.95, 1.9, 1.85,
+          # Gene2
+          2.3, 2.25, 2.2, 2.15, 2.1, 2.05, 2.0, 1.95
+        ),
         nrow = n_genes, ncol = 2 * n_q, byrow = TRUE
       )
     ),
@@ -182,22 +209,40 @@ test_that(".plot_tsallis_gene_bootstrap_ci creates per-gene faceted plots", {
   rownames(se) <- genes
   
   # Long format: per-sample bootstrap replicates for each gene
-  # CRITICAL: sample names must match what SE column names parse to
-  # If SE has "A_q=0.5", function parses sample="A", so long_data needs sample="A"
+  # CRITICAL: SE columns are INTERLEAVED: A_q=0.5, B_q=0.5, A_q=1.0, B_q=1.0, A_q=1.5, B_q=1.5, A_q=2.0, B_q=2.0
+  # So: group A indices = odd (1, 3, 5, 7), group B indices = even (2, 4, 6, 8)
   long_list <- lapply(genes, function(g) {
     gene_idx <- match(g, genes)
-    se_tsallis <- SummarizedExperiment::assays(se)[["tsallis"]][gene_idx, ]
+    se_assays <- SummarizedExperiment::assays(se)[["tsallis"]][gene_idx, ]
     
-    # Create bootstrap replicates: use A/B as sample names to match SE column parsing
-    # Generate 3 bootstrap replicates for each gene-group-q combination
-    data.frame(
-      q = rep(q_values, 6),
-      group = rep(rep(c("A", "B"), each = n_q), 3),
+    # Extract values: columns alternate A, B, A, B, ...
+    a_indices <- seq(1, 2*n_q, by=2)  # Odd positions for group A
+    b_indices <- seq(2, 2*n_q, by=2)  # Even positions for group B
+    
+    vals_a <- se_assays[a_indices]
+    vals_b <- se_assays[b_indices]
+    
+    # Create data: group A has samples from "A", group B has samples from "B"
+    # Generate bootstrap replicates: 3 replicates × q-values
+    data_a <- data.frame(
+      q = rep(q_values, 3),
+      group = "A",
       Gene = g,
-      tsallis = rep(se_tsallis, 3),
-      sample = rep(rep(c("A", "B"), times = n_q), 3),  # Match SE column name parsing
+      tsallis = rep(vals_a, 3),
+      sample = "A",  # Consistent with SE column parsing
       stringsAsFactors = FALSE
     )
+    
+    data_b <- data.frame(
+      q = rep(q_values, 3),
+      group = "B",
+      Gene = g,
+      tsallis = rep(vals_b, 3),
+      sample = "B",  # Consistent with SE column parsing
+      stringsAsFactors = FALSE
+    )
+    
+    rbind(data_a, data_b)
   })
   long <- do.call(rbind, long_list)
   
@@ -244,13 +289,41 @@ test_that(".plot_tsallis_gene_bootstrap_ci with only existing genes succeeds", {
   skip_if_not_installed("ggplot2")
   
   # Create SE with proper column naming for CI parsing
-  col_names_2gene <- c("A_q=0.5", "B_q=0.5", "A_q=1.0", "B_q=1.0")
+  # formatC(digits=3) formats 0.5 as 0.500, 1.0 as 1.000
+  col_names_2gene <- c("A_q=0.500", "B_q=0.500", "A_q=1.000", "B_q=1.000")
+  
+  # Set seed for reproducibility
+  set.seed(123)
   
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(
-      tsallis = matrix(rnorm(8, mean = 2), nrow = 2, ncol = 4),
-      ci_lower = matrix(rnorm(8, mean = 1.5), nrow = 2, ncol = 4),
-      ci_upper = matrix(rnorm(8, mean = 2.5), nrow = 2, ncol = 4)
+      tsallis = matrix(
+        c(
+          # Gene1
+          rnorm(4, mean = 2, sd = 0.1),
+          # Gene2
+          rnorm(4, mean = 2.1, sd = 0.1)
+        ),
+        nrow = 2, ncol = 4, byrow = TRUE
+      ),
+      ci_lower = matrix(
+        c(
+          # Gene1
+          rnorm(4, mean = 1.5, sd = 0.1),
+          # Gene2
+          rnorm(4, mean = 1.6, sd = 0.1)
+        ),
+        nrow = 2, ncol = 4, byrow = TRUE
+      ),
+      ci_upper = matrix(
+        c(
+          # Gene1
+          rnorm(4, mean = 2.5, sd = 0.1),
+          # Gene2
+          rnorm(4, mean = 2.6, sd = 0.1)
+        ),
+        nrow = 2, ncol = 4, byrow = TRUE
+      )
     ),
     rowData = data.frame(gene_name = c("Gene1", "Gene2")),
     colData = data.frame(group = rep(c("A", "B"), 2), q = rep(c(0.5, 1.0), each = 2))
@@ -258,12 +331,17 @@ test_that(".plot_tsallis_gene_bootstrap_ci with only existing genes succeeds", {
   colnames(se) <- col_names_2gene
   rownames(se) <- c("Gene1", "Gene2")
   
+  # Reset seed for consistent long data generation
+  set.seed(456)
+  # SE columns are interleaved: "A_q=0.500", "B_q=0.500", "A_q=1.000", "B_q=1.000"
+  # So group A uses odd indices and group B uses even indices
+  # Create properly matched group-to-sample data
   long <- data.frame(
-    q = rep(c(0.5, 1.0), 4),
-    group = rep(c("A", "B"), each = 2),
-    Gene = c("Gene1", "Gene1", "Gene2", "Gene2", "Gene1", "Gene1", "Gene2", "Gene2"),
-    tsallis = rnorm(8, mean = 2),
-    sample = rep(c("A", "B"), 4),  # Match SE column parsing
+    q = c(0.5, 1.0, 0.5, 1.0, 0.5, 1.0, 0.5, 1.0),
+    group = c("A", "A", "B", "B", "A", "A", "B", "B"),
+    Gene = c("Gene1", "Gene1", "Gene1", "Gene1", "Gene2", "Gene2", "Gene2", "Gene2"),
+    tsallis = rnorm(8, mean = 2, sd = 0.15),
+    sample = c("A", "A", "B", "B", "A", "A", "B", "B"),  # Match group
     stringsAsFactors = FALSE
   )
   

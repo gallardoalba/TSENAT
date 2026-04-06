@@ -188,7 +188,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = FALSE, nthread
     # Replace q=0 with q=0.01 (q=0 always returns 0, which is uninformative)
     if (is.vector(q)) {
         q[q == 0] <- 0.01
-    } else if (is.numeric(q) && q == 0) {
+    } else if (is.numeric(q) && length(q) == 1 && q == 0) {
         q <- 0.01
     }
 

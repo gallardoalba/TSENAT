@@ -681,6 +681,9 @@
         
         # OPTIMIZATION: Vectorized classification - classify all genes at once
         per_q_patterns <- character(nrow(interaction_results))
+        rare_median_vals <- numeric(nrow(interaction_results))
+        abundant_median_vals <- numeric(nrow(interaction_results))
+        q_ratio_vals <- numeric(nrow(interaction_results))
         
         for (i in seq_len(nrow(interaction_results))) {
             gene_idx <- gene_idx_map[i]
@@ -688,7 +691,12 @@
             if (!is.na(gene_idx)) {
                 # Get divergence values for this gene across q values
                 divs <- div_assay[gene_idx, ]
-                per_q_patterns[i] <- .classify_q_pattern(divs)
+                # .classify_q_pattern now returns list with pattern + metrics
+                class_result <- .classify_q_pattern(divs)
+                per_q_patterns[i] <- class_result$pattern
+                rare_median_vals[i] <- class_result$rare_median
+                abundant_median_vals[i] <- class_result$abundant_median
+                q_ratio_vals[i] <- class_result$ratio
                 
                 # If classification failed, mark as UNCLASSIFIED
                 if (is.na(per_q_patterns[i])) {
@@ -696,43 +704,54 @@
                 }
             } else {
                 per_q_patterns[i] <- "UNCLASSIFIED"
+                rare_median_vals[i] <- NA_real_
+                abundant_median_vals[i] <- NA_real_
+                q_ratio_vals[i] <- NA_real_
             }
         }
         interaction_results$per_q_pattern <- per_q_patterns
+        interaction_results$div_rare_median <- rare_median_vals
+        interaction_results$div_abundant_median <- abundant_median_vals
+        interaction_results$q_ratio <- q_ratio_vals
     }
 
     return(interaction_results)
 }
 
 
-
 #' @noRd
 .classify_q_pattern <- function(per_q_divs, ratio_threshold = 1.3) {
     # Classify q-value divergence pattern based on median divergence
+    # Returns list with: pattern (classification), rare_median, abundant_median, ratio
     # OPTIMIZATION: Early exit for invalid inputs
     if (length(per_q_divs) == 0 || all(is.na(per_q_divs))) {
-        return(NA_character_)
+        return(list(pattern = NA_character_, rare_median = NA_real_,
+                    abundant_median = NA_real_, ratio = NA_real_))
     }
 
     divs_numeric <- as.numeric(per_q_divs)
     if (all(is.na(divs_numeric))) {
-        return(NA_character_)
+        return(list(pattern = NA_character_, rare_median = NA_real_,
+                    abundant_median = NA_real_, ratio = NA_real_))
     }
 
     # OPTIMIZATION: Consolidate name validation in single pass
     has_names <- !is.null(names(per_q_divs)) && length(names(per_q_divs)) > 0
     if (has_names && any(is.na(names(per_q_divs)))) {
-        return(NA_character_)
+        return(list(pattern = NA_character_, rare_median = NA_real_,
+                    abundant_median = NA_real_, ratio = NA_real_))
     }
 
     # OPTIMIZATION: Quick first-element check before all(grepl())
     pattern_names <- if (has_names) names(per_q_divs) else character(0)
-    has_q_names <- has_names && (length(pattern_names) > 0 && substr(pattern_names[1], 1, 2) == "q_")
+    has_q_names <- has_names && (length(pattern_names) > 0 &&
+                                 substr(pattern_names[1], 1, 2) == "q_")
 
     # Case 1: Named vector with q-value names
     if (has_q_names) {
         if (length(per_q_divs) < 2) {
-            return(NA_character_)
+            return(list(pattern = NA_character_, rare_median = NA_real_,
+                        abundant_median = NA_real_, ratio = NA_real_))
         }
 
         # OPTIMIZATION: Single pass to extract q-values and classify
@@ -742,7 +761,8 @@
         q_values <- as.numeric(name_parts_normalized)
 
         if (all(is.na(q_values))) {
-            return(NA_character_)
+            return(list(pattern = NA_character_, rare_median = NA_real_,
+                        abundant_median = NA_real_, ratio = NA_real_))
         }
 
         # OPTIMIZATION: Vectorized filtering in single pass
@@ -754,7 +774,8 @@
 
         # Need at least one valid value in EACH region
         if (length(valid_rare) == 0 || length(valid_abundant) == 0) {
-            return(NA_character_)
+            return(list(pattern = NA_character_, rare_median = NA_real_,
+                        abundant_median = NA_real_, ratio = NA_real_))
         }
 
         # Calculate medians
@@ -762,19 +783,27 @@
         abundant_median <- median(valid_abundant, na.rm = TRUE)
 
         # OPTIMIZATION: Single ratio calculation
-        if (!is.na(rare_median) && !is.na(abundant_median) && abundant_median != 0) {
+        if (!is.na(rare_median) && !is.na(abundant_median) &&
+            abundant_median != 0) {
             ratio <- rare_median / abundant_median
             if (!is.na(ratio)) {
-                if (ratio > ratio_threshold) return("RARE_DRIVEN")
-                if (ratio < 1 / ratio_threshold) return("ABUNDANT_DRIVEN")
-                return("BALANCED")
+                pattern <- if (ratio > ratio_threshold) {
+                    "Rare driven"
+                } else if (ratio < 1 / ratio_threshold) {
+                    "Abundant driven"
+                } else {
+                    "Balanced"
+                }
+                return(list(pattern = pattern, rare_median = rare_median,
+                            abundant_median = abundant_median, ratio = ratio))
             }
         }
-        return(NA_character_)
+        return(list(pattern = NA_character_, rare_median = NA_real_,
+                    abundant_median = NA_real_, ratio = NA_real_))
     }
 
     # Case 2: Unnamed vector
-    return(NA_character_)
+    return(list(pattern = NA_character_, rare_median = NA_real_,
+                abundant_median = NA_real_, ratio = NA_real_))
 }
-
 

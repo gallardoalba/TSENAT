@@ -1103,38 +1103,44 @@ context("Tsallis Q Visualization Functions - Critical Coverage")
     
     q_vals <- seq(0.5, 2, length.out = n_q)
     
-    # Create diversity matrix: genes x samples (columns = samples, not q-values!)
-    # Use consistent seed for reproducible values
+    # Create diversity matrix with shape: n_genes x (n_samples * n_q)
+    # Each actual sample is repeated for each q-value
     set.seed(42)
-    diversity_mat <- matrix(
-        rnorm(n_genes * n_samples, mean = 1.5, sd = 0.25),
-        nrow = n_genes,
-        ncol = n_samples
-    )
+    div_data <- rnorm(n_genes * n_samples * n_q, mean = 1.5, sd = 0.25)
+    diversity_mat <- matrix(div_data, nrow = n_genes, ncol = n_samples * n_q)
     rownames(diversity_mat) <- paste0("gene", 1:n_genes)
     
-    # Create CI matrices with same base values
+    # Create column names combining sample and q-value
+    # Format: sample1_q=0.500, sample1_q=0.875, ..., sample2_q=0.500, sample2_q=0.875, ...
+    col_names <- c()
+    for (sample_idx in 1:n_samples) {
+        for (q_idx in seq_along(q_vals)) {
+            q_formatted <- sprintf("%.3f", q_vals[q_idx])
+            col_names <- c(col_names, paste0("sample", sample_idx, "_q=", q_formatted))
+        }
+    }
+    colnames(diversity_mat) <- col_names
+    
+    # Create CI matrices with same structure
     ci_lower_mat <- pmax(diversity_mat * 0.85, 0.5)  # 85% of value, min 0.5
     ci_upper_mat <- diversity_mat * 1.15  # 115% of value
     rownames(ci_lower_mat) <- rownames(diversity_mat)
     rownames(ci_upper_mat) <- rownames(diversity_mat)
+    colnames(ci_lower_mat) <- col_names
+    colnames(ci_upper_mat) <- col_names
     
-    # Use consistent column names WITH q-value encoding for all assays
-    # Format: "sampleN_q=VALUE" as expected by .prepare_gene_ci_data()
-    # IMPORTANT: Use 3 decimal places to match formatC(digits=3) in CI mapping code
-    q_val <- 1.0
-    sample_names <- paste0("sample", 1:n_samples)
-    col_names_with_q <- paste0(sample_names, "_q=", sprintf("%.3f", q_val))
+    # Create sample metadata with one row per COLUMN in the assays
+    # SummarizedExperiment requires colData to have one row per column in assays
+    n_cols <- ncol(diversity_mat)  # This is n_samples * n_q
     
-    colnames(diversity_mat) <- col_names_with_q
-    colnames(ci_lower_mat) <- col_names_with_q
-    colnames(ci_upper_mat) <- col_names_with_q
+    # Create clear condition assignment: first half of samples → control, second half → treatment
+    sample_indices <- rep(1:n_samples, each = n_q)  # Which sample each column belongs to
+    conditions <- ifelse(sample_indices <= n_samples/2, "control", "treatment")
     
-    # Create sample metadata with matching rownames
     coldata <- data.frame(
-        sample = paste0("s", 1:n_samples),
-        condition = rep(c("control", "treatment"), each = n_samples/2),
-        row.names = col_names_with_q  # Match assay colnames
+        sample = rep(paste0("sample", 1:n_samples), each = n_q),
+        condition = conditions,
+        row.names = col_names  # rownames must match colnames of assays
     )
     
     se <- SummarizedExperiment::SummarizedExperiment(

@@ -616,7 +616,7 @@ test_that(".classify_q_pattern identifies RARE_DRIVEN pattern", {
   
   result <- TSENAT:::.classify_q_pattern(per_q_divs, ratio_threshold = 1.3)
   
-  expect_equal(result, "RARE_DRIVEN")
+  expect_equal(result$pattern, "Rare driven")
 })
 
 test_that(".classify_q_pattern identifies ABUNDANT_DRIVEN pattern", {
@@ -630,7 +630,7 @@ test_that(".classify_q_pattern identifies ABUNDANT_DRIVEN pattern", {
   
   result <- TSENAT:::.classify_q_pattern(per_q_divs, ratio_threshold = 1.3)
   
-  expect_equal(result, "ABUNDANT_DRIVEN")
+  expect_equal(result$pattern, "Abundant driven")
 })
 
 test_that(".classify_q_pattern identifies BALANCED pattern", {
@@ -644,7 +644,7 @@ test_that(".classify_q_pattern identifies BALANCED pattern", {
   
   result <- TSENAT:::.classify_q_pattern(per_q_divs, ratio_threshold = 1.3)
   
-  expect_equal(result, "BALANCED")
+  expect_equal(result$pattern, "Balanced")
 })
 
 test_that(".classify_q_pattern returns NA for empty input", {
@@ -652,7 +652,7 @@ test_that(".classify_q_pattern returns NA for empty input", {
   
   result <- TSENAT:::.classify_q_pattern(per_q_divs)
   
-  expect_true(is.na(result))
+  expect_true(is.na(result$pattern))
 })
 
 test_that(".classify_q_pattern returns NA for all NAs", {
@@ -660,7 +660,7 @@ test_that(".classify_q_pattern returns NA for all NAs", {
   
   result <- TSENAT:::.classify_q_pattern(per_q_divs)
   
-  expect_true(is.na(result))
+  expect_true(is.na(result$pattern))
 })
 
 test_that(".classify_q_pattern handles mixed NA values", {
@@ -677,7 +677,7 @@ test_that(".classify_q_pattern handles mixed NA values", {
   # Should classify based on available values with strict boundaries
   # With q < 1 and q > 1 (no q=1 fallback), needs values in both regions
   # This test only has rare region (q_0.01), so should return NA
-  expect_true(is.na(result))
+  expect_true(is.na(result$pattern))
 })
 
 test_that(".classify_q_pattern respects ratio_threshold", {
@@ -693,8 +693,8 @@ test_that(".classify_q_pattern respects ratio_threshold", {
   result_high <- TSENAT:::.classify_q_pattern(per_q_divs, ratio_threshold = 2.0)
   
   # Results might differ based on threshold
-  expect_true(result_low %in% c("RARE_DRIVEN", "ABUNDANT_DRIVEN", "BALANCED"))
-  expect_true(result_high %in% c("RARE_DRIVEN", "ABUNDANT_DRIVEN", "BALANCED"))
+  expect_true(result_low$pattern %in% c("Rare driven", "Abundant driven", "Balanced"))
+  expect_true(result_high$pattern %in% c("Rare driven", "Abundant driven", "Balanced"))
 })
 
 # =====================================================================
@@ -754,7 +754,7 @@ test_that(".classify_q_pattern rejects non-numeric input", {
   # suppressWarnings for expected coercion of non-numeric strings to NA
   result <- suppressWarnings(TSENAT:::.classify_q_pattern(per_q_divs))
   
-  expect_true(is.na(result))
+  expect_true(is.na(result$pattern))
 })
 
 test_that(".classify_q_pattern rejects input with length < 2", {
@@ -763,7 +763,7 @@ test_that(".classify_q_pattern rejects input with length < 2", {
   
   result <- TSENAT:::.classify_q_pattern(per_q_divs)
   
-  expect_true(is.na(result))
+  expect_true(is.na(result$pattern))
 })
 
 test_that(".classify_q_pattern rejects NA names", {
@@ -773,7 +773,7 @@ test_that(".classify_q_pattern rejects NA names", {
   
   result <- TSENAT:::.classify_q_pattern(per_q_divs)
   
-  expect_true(is.na(result))
+  expect_true(is.na(result$pattern))
 })
 
 test_that(".classify_q_pattern extracts q values from names", {
@@ -787,8 +787,8 @@ test_that(".classify_q_pattern extracts q values from names", {
   
   result <- TSENAT:::.classify_q_pattern(per_q_divs, ratio_threshold = 1.3)
   
-  expect_true(is.character(result))
-  expect_true(result %in% c("RARE_DRIVEN", "ABUNDANT_DRIVEN", "BALANCED", NA_character_))
+  expect_true(is.character(result$pattern))
+  expect_true(result$pattern %in% c("Rare driven", "Abundant driven", "Balanced", NA_character_))
 })
 
 test_that(".classify_q_pattern handles alternative name format q_0_5", {
@@ -803,7 +803,7 @@ test_that(".classify_q_pattern handles alternative name format q_0_5", {
   result <- TSENAT:::.classify_q_pattern(per_q_divs, ratio_threshold = 1.3)
   
   # Should handle this format
-  expect_true(is.character(result))
+  expect_true(is.character(result$pattern))
 })
 
 test_that(".classify_q_pattern rejects unparseable q names", {
@@ -816,7 +816,7 @@ test_that(".classify_q_pattern rejects unparseable q names", {
   
   result <- TSENAT:::.classify_q_pattern(per_q_divs)
   
-  expect_true(is.na(result))
+  expect_true(is.na(result$pattern))
 })
 
 test_that(".classify_q_pattern has only rare-region values", {
@@ -831,7 +831,7 @@ test_that(".classify_q_pattern has only rare-region values", {
   result <- TSENAT:::.classify_q_pattern(per_q_divs)
   
   # Should return NA when only one region available
-  expect_true(is.na(result))
+  expect_true(is.na(result$pattern))
 })
 
 test_that(".classify_q_pattern has only abundant-region values", {
@@ -846,7 +846,7 @@ test_that(".classify_q_pattern has only abundant-region values", {
   result <- TSENAT:::.classify_q_pattern(per_q_divs)
   
   # Should return NA when only one region available
-  expect_true(is.na(result))
+  expect_true(is.na(result$pattern))
 })
 
 test_that(".classify_q_pattern handles zero divergence in abundant region", {
@@ -861,7 +861,7 @@ test_that(".classify_q_pattern handles zero divergence in abundant region", {
   result <- TSENAT:::.classify_q_pattern(per_q_divs)
   
   # Should handle zero without crashing
-  expect_true(is.na(result) || is.character(result))
+  expect_true(is.na(result$pattern) || is.character(result$pattern))
 })
 
 test_that(".classify_q_pattern classifies RARE_DRIVEN correctly", {
@@ -876,7 +876,7 @@ test_that(".classify_q_pattern classifies RARE_DRIVEN correctly", {
   result <- TSENAT:::.classify_q_pattern(per_q_divs, ratio_threshold = 1.3)
   
   # Rare median (0.975) / abundant median (0.45) = 2.17 > 1.3
-  expect_equal(result, "RARE_DRIVEN")
+  expect_equal(result$pattern, "Rare driven")
 })
 
 test_that(".classify_q_pattern classifies ABUNDANT_DRIVEN correctly", {
@@ -891,7 +891,7 @@ test_that(".classify_q_pattern classifies ABUNDANT_DRIVEN correctly", {
   result <- TSENAT:::.classify_q_pattern(per_q_divs, ratio_threshold = 1.3)
   
   # Rare median (0.175) / abundant median (0.85) = 0.206 < (1/1.3) = 0.769
-  expect_equal(result, "ABUNDANT_DRIVEN")
+  expect_equal(result$pattern, "Abundant driven")
 })
 
 test_that(".classify_q_pattern classifies BALANCED correctly", {
@@ -907,7 +907,7 @@ test_that(".classify_q_pattern classifies BALANCED correctly", {
   
   # Rare median (0.625) / abundant median (0.575) = 1.087
   # 1.087 is between 1/1.3 (0.769) and 1.3, so BALANCED
-  expect_equal(result, "BALANCED")
+  expect_equal(result$pattern, "Balanced")
 })
 
 test_that(".classify_q_pattern returns NA when no valid divergence data", {
@@ -922,7 +922,7 @@ test_that(".classify_q_pattern returns NA when no valid divergence data", {
   result <- TSENAT:::.classify_q_pattern(per_q_divs)
   
   # Only one valid value in abundant region, zero in rare
-  expect_true(is.na(result))
+  expect_true(is.na(result$pattern))
 })
 
 test_that(".classify_q_pattern handles single valid pair in each region", {
@@ -938,7 +938,7 @@ test_that(".classify_q_pattern handles single valid pair in each region", {
   
   # With strict boundaries (q < 1 and q > 1), no abundant region values exist,
   # so classification should return NA
-  expect_true(is.na(result))
+  expect_true(is.na(result$pattern))
 })
 
 # Test coverage for calc_div_for_gene_q function

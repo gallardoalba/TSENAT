@@ -195,9 +195,9 @@
             names(per_q_divs) <- paste0("q_", q)
 
             if (sum(!is.na(per_q_divs)) >= 2) {
-                pattern <- .classify_q_pattern(per_q_divs)
-                row_data_df$per_q_pattern[i] <- if (is.na(pattern))
-                  "UNCLASSIFIED" else pattern
+                pattern_result <- .classify_q_pattern(per_q_divs)
+                row_data_df$per_q_pattern[i] <- if (is.na(pattern_result$pattern))
+                  "UNCLASSIFIED" else pattern_result$pattern
             }
         }
     }

@@ -571,7 +571,7 @@ test_that(".classify_q_pattern classifies RARE_DRIVEN pattern", {
   
   result <- TSENAT:::.classify_q_pattern(divs)
   
-  expect_equal(result, "RARE_DRIVEN")
+  expect_equal(result$pattern, "Rare driven")
 })
 
 test_that(".classify_q_pattern classifies ABUNDANT_DRIVEN pattern", {
@@ -580,7 +580,7 @@ test_that(".classify_q_pattern classifies ABUNDANT_DRIVEN pattern", {
   
   result <- TSENAT:::.classify_q_pattern(divs)
   
-  expect_equal(result, "ABUNDANT_DRIVEN")
+  expect_equal(result$pattern, "Abundant driven")
 })
 
 test_that(".classify_q_pattern classifies BALANCED pattern", {
@@ -590,7 +590,7 @@ test_that(".classify_q_pattern classifies BALANCED pattern", {
   
   result <- TSENAT:::.classify_q_pattern(divs)
   
-  expect_equal(result, "BALANCED")
+  expect_equal(result$pattern, "Balanced")
 })
 
 test_that(".classify_q_pattern requires named q-values for classification", {
@@ -599,7 +599,7 @@ test_that(".classify_q_pattern requires named q-values for classification", {
   
   result <- TSENAT:::.classify_q_pattern(divs)
   
-  expect_true(is.na(result))
+  expect_true(is.na(result$pattern))
 })
 
 test_that(".classify_q_pattern returns NA for all-NA input", {
@@ -607,7 +607,7 @@ test_that(".classify_q_pattern returns NA for all-NA input", {
   
   result <- TSENAT:::.classify_q_pattern(divs)
   
-  expect_true(is.na(result))
+  expect_true(is.na(result$pattern))
 })
 
 test_that(".classify_q_pattern returns NA for empty input", {
@@ -615,7 +615,7 @@ test_that(".classify_q_pattern returns NA for empty input", {
   
   result <- TSENAT:::.classify_q_pattern(divs)
   
-  expect_true(is.na(result))
+  expect_true(is.na(result$pattern))
 })
 
 # ============================================================================
@@ -776,16 +776,16 @@ per_q_short <- c(q_0.5 = 0.2)
 per_q_noname <- c(0.1, 0.2, 0.3)  # unnamed vector should return NA
 
 test_that("patterns are classified correctly", {
-  expect_equal(.classify_q_pattern(per_q1), "RARE_DRIVEN")
-  expect_equal(.classify_q_pattern(per_q2), "ABUNDANT_DRIVEN")
-  expect_equal(.classify_q_pattern(per_q3), "BALANCED")
+  expect_equal(.classify_q_pattern(per_q1)$pattern, "Rare driven")
+  expect_equal(.classify_q_pattern(per_q2)$pattern, "Abundant driven")
+  expect_equal(.classify_q_pattern(per_q3)$pattern, "Balanced")
 })
 
 test_that("NA or invalid input returns NA", {
-  expect_true(is.na(.classify_q_pattern(per_q_na)))
-  expect_true(is.na(.classify_q_pattern(per_q_short)))
-  expect_true(is.na(.classify_q_pattern(per_q_noname)))
-  expect_true(is.na(.classify_q_pattern(NULL)))
+  expect_true(is.na(.classify_q_pattern(per_q_na)$pattern))
+  expect_true(is.na(.classify_q_pattern(per_q_short)$pattern))
+  expect_true(is.na(.classify_q_pattern(per_q_noname)$pattern))
+  expect_true(is.na(.classify_q_pattern(NULL)$pattern))
 })
 
 # ============================================================================
@@ -1543,21 +1543,21 @@ test_that("classify_q_pattern produces numerically correct ratio thresholds", {
   # Case 1: Ratio strictly greater than threshold (rare_median = 1.5 * abundant_median)
   # Should be RARE_DRIVEN
   divs_above_rare <- c(q_0.5 = 1.5, q_1.0 = 1.0, q_2.0 = 1.0)
-  expect_equal(.classify_q_pattern(divs_above_rare), "RARE_DRIVEN")
+  expect_equal(.classify_q_pattern(divs_above_rare)$pattern, "Rare driven")
   
   # Case 2: Ratio exactly at threshold - should be BALANCED (not >= but strictly >)
   divs_at_threshold <- c(q_0.5 = 1.3, q_1.0 = 1.0, q_2.0 = 1.0)
-  expect_equal(.classify_q_pattern(divs_at_threshold), "BALANCED")
+  expect_equal(.classify_q_pattern(divs_at_threshold)$pattern, "Balanced")
   
   # Case 3: Ratio strictly below ABUNDANT threshold (ratio < 1/1.3 ≈ 0.769)
   # rare_median = 0.5, abundant_median = 1.0 → ratio = 0.5 < 0.769
   divs_below_abundant <- c(q_0.5 = 0.5, q_1.0 = 1.0, q_2.0 = 1.0)
-  expect_equal(.classify_q_pattern(divs_below_abundant), "ABUNDANT_DRIVEN")
+  expect_equal(.classify_q_pattern(divs_below_abundant)$pattern, "Abundant driven")
   
   # Case 4: Ratio exactly at ABUNDANT threshold - should be BALANCED (not <= but strictly <)
   # rare_median = 0.769, abundant_median = 1.0 → ratio ≈ 0.769
   divs_at_abundant_boundary <- c(q_0.5 = 1.0 / 1.3, q_1.0 = 1.0, q_2.0 = 1.0)
-  expect_equal(.classify_q_pattern(divs_at_abundant_boundary), "BALANCED")
+  expect_equal(.classify_q_pattern(divs_at_abundant_boundary)$pattern, "Balanced")
 })
 
 test_that("classify_q_pattern correctly computes median for classification", {
@@ -1569,7 +1569,7 @@ test_that("classify_q_pattern correctly computes median for classification", {
   result <- .classify_q_pattern(divs_multi)
   
   # Verify it correctly identified median and ratio
-  expect_equal(result, "ABUNDANT_DRIVEN")
+  expect_equal(result$pattern, "Abundant driven")
 })
 
 test_that("Effect size calculation preserves full precision through pipeline", {

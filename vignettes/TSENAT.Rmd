@@ -884,18 +884,32 @@ if (!is.null(lm_res_results) && nrow(lm_res_results) > 0) {
                             div_df$Mean_Effect_Size <- round(as.numeric(div_df$Mean_Effect_Size), 4)
                         }
                         
+                        # Format q-pattern metrics for clarity
+                        if ("div_rare_median" %in% colnames(div_df)) {
+                            div_df$div_rare_median <- round(as.numeric(div_df$div_rare_median), 4)
+                        }
+                        if ("div_abundant_median" %in% colnames(div_df)) {
+                            div_df$div_abundant_median <- round(as.numeric(div_df$div_abundant_median), 4)
+                        }
+                        if ("q_ratio" %in% colnames(div_df)) {
+                            div_df$q_ratio <- round(as.numeric(div_df$q_ratio), 2)
+                        }
+                        
                         # Rename columns for display
                         names(div_df)[names(div_df) == "p_adj"] <- "LM adj. p-value"
                         names(div_df)[names(div_df) == "Mean_Effect_Size"] <- "Mean Divergence"
                         names(div_df)[names(div_df) == "Q_Pattern"] <- "Q-Pattern"
+                        names(div_df)[names(div_df) == "div_rare_median"] <- "D_rare"
+                        names(div_df)[names(div_df) == "div_abundant_median"] <- "D_abundant"
+                        names(div_df)[names(div_df) == "q_ratio"] <- "Ratio"
                         
-                        # Reorder columns for better readability: Gene -> Effect -> Pattern -> Significance
-                        col_order <- c("Gene", "Mean Divergence", "Q-Pattern", "LM adj. p-value")
+                        # Reorder columns: Gene -> Effect -> Pattern details -> Significance
+                        col_order <- c("Gene", "Mean Divergence", "Q-Pattern", "D_rare", "D_abundant", "Ratio", "LM adj. p-value")
                         col_order <- col_order[col_order %in% colnames(div_df)]
                         div_df <- div_df[, col_order, drop = FALSE]
                         
                         print(knitr::kable(div_df,
-                            caption = "**Table 5 | Top genes by linear model significance with effect sizes.** Ranked by statistical significance (ascending *P*-values, Benjamini–Hochberg *q*-value < 0.05). Columns: gene identifier; effect size (log2 fold-change or Cohen's *d*); *P*-value; adjusted *q*-value; test statistic; model convergence. Positive effect size indicates greater diversity in condition 1; negative indicates condition 2 dominance.",
+                            caption = "**Table 5 | Top genes by linear model significance with effect sizes and q-spectrum patterns.** Ranked by statistical significance (ascending *P*-values, Benjamini–Hochberg *q*-value < 0.05). Columns: gene identifier; effect size (mean divergence across q-spectrum); pattern classification (RARE_DRIVEN/BALANCED/ABUNDANT_DRIVEN); pattern metrics—D_rare: median divergence for rare isoforms (q<1), D_abundant: median divergence for abundant isoforms (q>1), Ratio: D_rare/D_abundant (>1.3 indicates rare-driven, <0.77 indicates abundant-driven); adjusted P-value for linear model interaction test.",
                             row.names = FALSE,
                             format = if (knitr::is_latex_output()) "latex" else "html",
                             longtable = knitr::is_latex_output(),

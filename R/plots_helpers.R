@@ -56,8 +56,9 @@ require_pkgs <- function(pkgs) {
 #'
 #' @noRd
 
-.prepare_volcano_df <- function(diff_df, x_col = NULL, padj_col = "adjusted_p_values",
-    label_thresh = 0.1, sig_alpha = 0.05, title = NULL) {
+.prepare_volcano_df <- function(diff_df, x_col = NULL,
+    padj_col = "adjusted_p_values", label_thresh = 0.1,
+    sig_alpha = 0.05, title = NULL) {
     df <- as.data.frame(diff_df)
     cn <- colnames(df)
 
@@ -2876,7 +2877,7 @@ require_pkgs <- function(pkgs) {
         p <- ggplot2::ggplot(data, 
                             ggplot2::aes(x = .data[[x_col]], y = .data[[y_col]],
                                         color = .data[[group_col]], 
-                                        fill = .data[[group_col]]))
+                                        group = .data[[group_col]]))
         has_grouping <- TRUE
     } else {
         # No grouping - simple x/y aesthetics (color applied as fixed aesthetic)
@@ -2885,28 +2886,46 @@ require_pkgs <- function(pkgs) {
         has_grouping <- FALSE
     }
     
-    # Add ribbon layer (CI bounds)
-    # If group_col is provided, aesthetics already include fill mapping
-    # Otherwise, apply default fill color
-    ribbon_fill <- if (has_grouping) NA else default_color
-    p <- p + ggplot2::geom_ribbon(
-        ggplot2::aes(ymin = .data[[ci_lower_col]], 
-                    ymax = .data[[ci_upper_col]]),
-        alpha = ribbon_alpha, color = NA, fill = ribbon_fill
-    )
+    # Add ribbon layer (CI bounds) with fill aesthetic
+    # Include fill mapping only for grouped data where fill will be used
+    if (has_grouping) {
+        p <- p + ggplot2::geom_ribbon(
+            ggplot2::aes(ymin = .data[[ci_lower_col]], 
+                        ymax = .data[[ci_upper_col]],
+                        fill = .data[[group_col]]),
+            alpha = ribbon_alpha, color = NA
+        )
+    } else {
+        # No grouping - apply default fill color
+        p <- p + ggplot2::geom_ribbon(
+            ggplot2::aes(ymin = .data[[ci_lower_col]], 
+                        ymax = .data[[ci_upper_col]]),
+            alpha = ribbon_alpha, color = NA, fill = default_color
+        )
+    }
     
     # Add line layer
-    # If group_col is provided, color aesthetic from aes() applies it
+    # If group_col is provided, color aesthetic from base aes() applies it automatically
     # Otherwise, apply default color (consistency with .create_simple_line_plot)
-    line_color <- if (has_grouping) NA else default_color
-    p <- p + ggplot2::geom_line(linewidth = line_width, color = line_color)
+    if (has_grouping) {
+        # Grouped data: use inherited color from base aes(), don't override
+        p <- p + ggplot2::geom_line(linewidth = line_width)
+    } else {
+        # No grouping: apply default color
+        p <- p + ggplot2::geom_line(linewidth = line_width, color = default_color)
+    }
     
     # Add point layer if requested
-    # If group_col is provided, color aesthetic from aes() applies it
+    # If group_col is provided, color aesthetic from base aes() applies it automatically
     # Otherwise, apply default color
     if (show_points) {
-        point_color <- if (has_grouping) NA else default_color
-        p <- p + ggplot2::geom_point(size = point_size, alpha = 0.8, color = point_color)
+        if (has_grouping) {
+            # Grouped data: use inherited color from base aes()
+            p <- p + ggplot2::geom_point(size = point_size, alpha = 0.8)
+        } else {
+            # No grouping: apply default color
+            p <- p + ggplot2::geom_point(size = point_size, alpha = 0.8, color = default_color)
+        }
     }
     
     p
