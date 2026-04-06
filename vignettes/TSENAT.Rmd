@@ -1064,7 +1064,7 @@ Validates that TSENAT's Shannon and Simpson entropy implementations are mathemat
 
 **[View Appendix A →](TSENAT_appendix_A.html)**
 
-### Appendix B: Non-Parametric Validation of Scale-Dependent Interactions
+### TSENAT Appendix B: Non-Parametric Validation of Linear Model Results via GAM and Rank-Based Methods
 
 **Objective**: Validate q-value × group interaction detection results from linear models using complementary non-parametric statistical approaches.
 
@@ -1100,9 +1100,6 @@ Appendix B provides:
 **Key Finding**: High concordance (typically >90% agreement) across methods validates that linear model discoveries are robust to model assumptions and generalize to non-parametric frameworks.
 
 **[View Appendix B →](TSENAT_appendix_B.html)**
-
----
-
 
 ## References
 

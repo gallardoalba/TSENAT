@@ -17,6 +17,16 @@ TSENAT captures **isoform complexity** independently of which specific isoforms 
 
 By examining diversity across multiple q-values, you identify **scale-dependent** diversity changes—the hallmark of coordinate isoform switching.
 
+## The Mathematics Behind Tsallis Entropy
+
+Tsallis entropy is defined as: **S_q = (1 - Σp_i^q) / (q-1)**, where p_i represents isoform proportions within a gene. This elegant equation generalizes Shannon entropy (which is recovered when q→1) and enables tuning sensitivity to different scales of isoform organization:
+
+- **q = 0**: Richness (count of expressed isoforms)
+- **q = 1**: Shannon entropy (balanced view across all abundance scales)
+- **q = 2**: Gini-Simpson index (robust to rare variants, focuses on dominant isoforms)
+
+This parametric family is the key innovation: by sliding q across scales, you zoom from rare isoform variants to dominant transcript patterns, capturing biological signal invisible to fixed-scale methods. See **vignette("TSENAT")** for the complete mathematical treatment and information-theoretic interpretation.
+
 ## Installation
 
 **Requirements:** R >= 4.5.0
@@ -140,12 +150,24 @@ plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 4)
 ### Statistical Inference  
 - **Paired designs**: Account for repeated measures, subject random effects (via LMM/GEE)
 - **Multiple testing methods**: Wilcoxon, permutation, linear models, GAM, robust M-estimation
+    - *Wilcoxon/Permutation*: Distribution-free testing for pairwise comparisons
+    - *Linear models*: Fast parametric testing; ideal when residuals are approximately normal
+    - *GAM*: Non-parametric for detecting nonlinear scale-dependent patterns (q×condition interactions)
+    - *Friedman rank tests*: Maximal robustness for paired designs; ideal for bounded distributions like entropy
+    - *M-estimation*: Outlier-resistant effect size calculations (Huber, Tukey weights)
 - **Confidence intervals**: Bootstrap (percentile, BCA) and jackknife resampling
+    - BCA correction for skewed distributions like Tsallis entropy (handles bounded 0-1 range)
+    - Jackknife for identifying outlier-influential samples
+
+### Confidence Intervals & Effect Sizes
+- **Bootstrap confidence intervals**: Automatic BCA correction for asymmetric entropy distributions
+- **Effect size interpretation**: Standardized measures enabling cross-study comparison
+- **Jackknife diagnostics**: Identify which samples drive isoform switching signals
 
 ### Advanced Analysis
-- **Divergence metrics**: Pairwise information-theoretic distance with effect sizes
-- **Q×condition interactions**: Detect scale-dependent group differences via GAM/GEE
-- **Isoform switching**: Jackknife-based diagnostics identifying transcript shifts
+- **Divergence metrics**: Pairwise Kullback-Leibler and Jensen-Shannon divergence with effect sizes
+- **Q×condition interactions**: Detect scale-dependent group differences via GAM (smooth nonlinear patterns) or Friedman rank tests (maximal robustness)
+- **Isoform switching**: Jackknife-based diagnostics identifying transcript shifts and influence plots
 - **Robust methods**: M-estimation (Huber, Tukey) for outlier-resistant analysis
 
 ### Data Integration
@@ -155,11 +177,14 @@ plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 4)
 
 ## Related Packages
 
-TSENAT complements other Bioconductor RNA-seq analysis tools:
+TSENAT answers a unique question: **How do isoforms reorganize, independent of abundance changes?** It complements other Bioconductor tools:
 
-- **DESeq2, edgeR, limma**: These tools detect *abundance* differences. TSENAT detects **isoform diversity** changes independent of total abundance.
-- **SplicingFactory, DRIMSeq**: These tools test for shifts in *individual transcript proportions* (differential transcript usage). TSENAT quantifies **overall isoform heterogeneity/complexity** as a unified measure.
-- **Bioconductor standard**: All tools use `SummarizedExperiment`, enabling seamless integration in multi-tool workflows.
+| Tool | Answers | TSENAT Difference |
+|------|---------|-------------------|
+| **DESeq2, edgeR, limma** | Which genes change in *total abundance*? | TSENAT detects isoform diversity changes **independent of total abundance** |
+| **DRIMSeq, SplicingFactory** | Which *individual transcripts* shift usage? | TSENAT quantifies **overall heterogeneity** as a unified complexity measure |
+| **Kallisto, Salmon** | How many reads per transcript? | TSENAT uses their quantification as input; adds diversity analysis layer |
+| **All Bioconductor tools** | Various RNA-seq questions | TSENAT integrates via `SummarizedExperiment` for seamless multi-tool workflows |
 
 ## Example Data
 
@@ -257,6 +282,42 @@ Interactive help for functions and classes:
 
 ### Online Documentation
 Full documentation and examples: [gallardoalba.github.io/TSENAT](https://gallardoalba.github.io/TSENAT)
+
+### Complementary Validation Methods
+
+For users interested in validating results across statistical frameworks:
+
+```r
+vignette("TSENAT_appendix_B")  # Compares linear models vs GAM vs Friedman rank-based tests
+```
+
+Appendix B demonstrates that discoveries generalize across non-parametric alternatives, providing critical validation that findings are robust to modeling assumptions.
+
+## Troubleshooting
+
+**Q: My entropy values show high variability between samples**
+
+A: This is expected and reflects genuine isoform heterogeneity changes. The `norm=TRUE` parameter in `calculate_diversity_s4()` applies library-size normalization. If variability remains high after normalization, check for batch effects or contamination.
+
+**Q: How many q-values should I use?**
+
+A: `seq(0, 2, by=0.1)` (21 q-values) is a good default, providing smooth resolution of the q-spectrum. Finer grids (`by=0.05`) reveal more detail but increase computation time and multiple testing burden. For quick exploration, try `seq(0, 2, by=0.2)`.
+
+**Q: Which statistical test should I use for my study design?**
+
+A: 
+- **Paired design (repeated measures)**: Use `rank_test_q_condition_s4()` (Friedman test) for maximum robustness, or `calculate_lm_interaction_s4(method="gam")` if you expect nonlinear scale-dependent patterns
+- **Unpaired design**: Use `calculate_difference_s4(test="wilcox")` or `calculate_lm_interaction_s4()` depending on whether you expect scale-dependence
+- **Small sample size (<10/group)**: Prefer rank-based tests; avoid standard linear models
+- **Large sample size (>20/group)**: Linear models or GAM are fast and powerful
+
+**Q: How do I interpret identical p-values with different effect sizes?**
+
+A: This is a hallmark of rank-based tests when genes show similar interaction structure. Effect size (η²) becomes the practical ranking metric: genes with η² > 0.30 show robust biological effects. See vignette section "Interpreting Identical p-values and Effect Size Ranking" for details.
+
+**Q: Are my results sensitive to filtering stringency?**
+
+A: TSENAT includes sensitivity analysis in jackknife diagnostics. Check `jackknife_isoform_switching_s4()` results; if a gene's signal depends heavily on a single sample, interpret with caution.
 
 ## Citation
 
