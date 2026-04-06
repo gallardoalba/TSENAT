@@ -47,110 +47,92 @@ Or the development version from GitHub:
 ```r
 remotes::install_github("gallardoalba/TSENAT")
 ```
+## Quick Start
 
-## Workflow
 
-TSENAT follows a streamlined pipeline:
+# Quick Start
 
+## Load Data & Configure
+
+```r
+library(TSENAT)
+library(SummarizedExperiment)
+
+# Load example dataset
+data(readcounts)
+readcounts <- as.matrix(readcounts)
+
+# Load sample metadata and annotation
+metadata_df <- read.table(
+  system.file("extdata", "metadata.tsv",
+  package = "TSENAT"), header = TRUE,
+  sep = "\t")
+
+gff3_file <- system.file("extdata",
+  "annotation.gff3.gz", package = "TSENAT")
+
+## Configure analysis parameters first (best practice: fail-fast principle)
+## This validates all parameters against metadata before object creation
+config <- tsenat_config(
+  condition_col = "condition",
+  subject_col = "paired_samples",
+  q_values = seq(0, 2, by = 0.05),
+  nthreads = 2,
+  paired = TRUE,
+  control = "normal",
+  metadata = metadata_df
+)
+
+## Build a complete `TSENATAnalysis` object from readcounts + GFF3.gz annotation
+## Pass config at construction (Bioconductor pattern): immutable object creation
+analysis <- build_analysis_s4(
+  config = config,
+  readcounts = readcounts, 
+  tx2gene = gff3_file, 
+  tpm = tpm,
+  effective_length = effective_length
+)
 ```
-Transcript Counts -> Build Analysis -> Filter -> Configure -> Compute Diversity -> Test Differences -> Visualize
-```
 
-### Quick Start: Orchestration Function
+### Orchestration Function
 
 For a complete analysis with default parameters, use the `tsenat()` orchestration function:
 
 ```r
-library(TSENAT)
-
-# Build SummarizedExperiment from raw counts
-se <- build_analysis_s4(
-  readcounts = readcounts,
-  tx2gene = gff3_file,
-  metadata = metadata_df,
-  tpm = tpm_matrix,
-  effective_length = tx_lengths
-)
-
-# Configure and run complete pipeline
-cfg <- tsenat_config(
-  q_values = seq(0, 2, by = 0.1),
-  condition_col = "treatment"
-)
-
-analysis <- tsenat(se, config = cfg)
 # Returns: Fully configured TSENATAnalysis object with diversity, testing, and plots
+analysis <- tsenat(se, config = cfg)
 ```
 
 ### Detailed Step-by-Step Workflow
 
 For customization at each stage, use individual functions:
 
-**⚠️ Important**: Always use **named parameters** when calling `build_analysis_s4()`. The optional `salmon_dir` parameter comes before the required `tx2gene` parameter, so positional arguments may be misinterpreted. Use `tx2gene = ` and `salmon_dir = ` explicitly.
-
-### 1. Load Data & Configure
-
-```r
-library(TSENAT)
-
-# Load transcript counts, annotation (GFF3), and sample metadata
-# CORRECT: Use named parameters
-analysis <- build_analysis_s4(
-  readcounts = readcounts,
-  tx2gene = gff3_file,
-  metadata = metadata_df,
-  tpm = tpm_matrix,
-  effective_length = tx_lengths
-)
-
-# WRONG: Do not use positional arguments
-# analysis <- build_analysis_s4(readcounts, gff3_file, metadata = metadata_df)
-# The above would fail because gff3_file is interpreted as salmon_dir
-
-# Configure analysis parameters once (used throughout pipeline)
-analysis <- tsenat_config(
-  analysis,
-  q_values = seq(0, 2, by = 0.1),       # q-spectrum for scale analysis
-  condition_col = "treatment",          # experimental groups
-  subject_col = "patient",              # for paired designs
-  control = "control"
-)
-```
-
-### 2. Filter & Compute Diversity
+### 1. Filter & Compute Diversity
 
 ```r
 # Remove low-abundance transcripts
-analysis <- filter_analysis_s4(analysis, stringency = "medium")
+analysis <- filter_analysis_s4(analysis, stringency = "severe")
 
 # Compute Tsallis entropy across q-spectrum
 analysis <- calculate_diversity_s4(analysis, norm = TRUE)
 ```
 
-### 3. Statistical Testing
+### 2. Statistical Testing
 
 ```r
-# Test for diversity differences between groups
-analysis <- calculate_difference_s4(analysis, test = "wilcox")
-
 # Fit linear models to detect qxcondition interactions
-analysis <- calculate_lm_interaction_s4(analysis, method = "gam")
-
-# Identify isoform switching via jackknife diagnostics
-analysis <- jackknife_isoform_switching_s4(analysis)
+analysis <- calculate_lm_interaction_s4(
+  analysis,
+  method = "lmm")
 ```
 
-### 4. Visualize Results
+### 3. Visualize Results
 
 ```r
-# Q-curve profile (how diversity changes across q-spectrum)
-plot_tsallis_q_curve(analysis, gene = "your_gene")
+# Plot overall q-curve
+p_qcurve <- plot_tsallis_q_curve_s4(analysis)
 
-# Volcano plot (significance vs. effect size)
-plot_volcano_ma_grid_s4(analysis)
-
-# Isoform switching heatmaps
-plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 4)
+print(p_qcurve)
 ```
 
 ## Core Features

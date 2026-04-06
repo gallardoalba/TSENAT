@@ -79,8 +79,6 @@ library(TSENAT)
 
 ## Quick Start
 
-**⚠️ Important Parameter Note**: The `build_analysis_s4()` function has an optional `salmon_dir` parameter that comes before the required `tx2gene` parameter. Always use **named parameters** (`readcounts =`, `tx2gene =`, etc.) when calling this function. Using positional arguments may cause the annotation file to be misinterpreted as a Salmon directory, resulting in an error.
-
 For users who want to see results quickly, here is a minimal workflow:
 
 ```{r quick-start-example, eval = FALSE}
@@ -402,9 +400,8 @@ signals differences in dominant isoforms.
 
 ```{r fig-1-isoform-diversity-profiles, fig.width=10, fig.height=5.2, out.width="98%", fig.pos="H", fig.cap = "**Figure 1:** Isoform diversity profiles across q-values. Lines show normalized Tsallis entropy (0-1) for each sample, blue control and red treatment."}
 # Plot overall q-curve
-p_qcurve <- plot_tsallis_q_curve_s4(
-    se = analysis
-)
+p_qcurve <- plot_tsallis_q_curve_s4(analysis)
+
 print(p_qcurve)
 ```
 
