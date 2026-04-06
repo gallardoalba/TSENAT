@@ -295,9 +295,8 @@ If you use TSENAT in your research, please cite:
 citation("TSENAT")
 ```
 
-This command displays the recommended bibliographic entry. A machine-readable `CITATION` file is included with the package for easy export to reference managers.
+BibTeX entry:
 
-**BibTeX entry:**
 ```bibtex
 @software{gallardo2026tsenat,
   title={TSENAT: Tsallis Entropy Analysis Toolbox},

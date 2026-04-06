@@ -204,7 +204,7 @@ The multi-scale nature of Tsallis entropy makes it suited for exploring isoform 
 
 **Beyond abundance measures**: Traditional analysis focuses on fold-changes and differential abundance. Since isoform reorganization can occur independently of total abundance changes, entropy-based approaches complement classical methods by detecting complexity shifts that transcript-level statistics alone cannot reveal.
 
-#### Evidence from Literature
+### Evidence from Literature
 
 The recent emphasis on information-theoretic approaches in computational biology [@I029, @I034] reflects broader recognition that complex biological systems encode information across multiple organizational scales. Peer-reviewed literature provides strong empirical support for these applications:
 
@@ -536,6 +536,7 @@ print(combined_plot)
 Biological systems operate through processes at fundamentally different organizational scales. A single gene's expression can be viewed through different "lenses"-from the perspective of dominant isoforms (high *q*, emphasizing abundant variants) to rare isoforms that may carry functional significance in specific contexts (low *q*, emphasizing rare variants). The LM interaction test revealed that condition effects vary across these diversity scales (q parameter), reflecting how biological reorganization can manifest differently depending on which aspect of isoform complexity we examine.
 
 The theoretical foundation for scale-dependent analysis comes from generalized entropy measures. Renyi's entropy family [@I003] introduced a continuous spectrum of diversity measures parameterized by a sensitivity index, which Tsallis later extended and popularized [@I009]. Unlike Shannon entropy (which represents a single point on this spectrum), Tsallis entropy provides a family of measures where the parameter *q* acts as a "magnifying glass"-adjusting what organizational scales become visible. Mathematically, different *q*-values weight rare versus abundant isoforms differently:
+
 - Low *q* (0-0.5): Emphasized rare isoforms, revealing exploratory or conditional splicing programs
 - Mid *q* (0.5-1.5): Balanced sensitivity across the full isoform distribution  
 - High *q* (1.5-2.0): Emphasized abundant isoforms, revealing core splicing decisions
@@ -1074,14 +1075,15 @@ Validates that TSENAT's Shannon and Simpson entropy implementations are mathemat
 
 TSENAT's default linear modeling approach (via `calculate_difference_s4()`) provides parametric tests for detecting scale-dependent differences in Tsallis entropy across q-values and experimental groups. To ensure robustness and generalization, Appendix B presents two independent, non-parametric alternatives that serve as validation methods:
 
-**Approach 1: Generalized Additive Model (GAM) with ARIMA-Ordered Time Series**
+**Approach 1: Generalized Additive Model (GAM) with ARIMA-Ordered Time Series:**
+
 - Treats q-values as explicit sequential measurements (ordered from low to high)
 - Applies ARIMA(1,1,0) differencing to account for autocorrelation between adjacent q-points
 - Fits smooth additive functions of q and group effects (non-parametric basis functions)
 - Automatically detects heteroscedasticity and applies optimal weighting
-- Reference: Goude (2024)
 
-**Approach 2: Rank-Based Friedman Test with Hochberg Correction**
+**Approach 2: Rank-Based Friedman Test with Hochberg Correction:**
+
 - Non-parametric alternative requiring no distributional assumptions
 - Friedman test for detecting differences across multiple q-values within each group
 - Accounts for paired/blocked structure in q-ordered measurements
@@ -1092,16 +1094,6 @@ Both methods incorporate principled advances to handle real-world RNA-seq data:
 - **Heteroscedasticity detection and weighting**: Entropy variance often increases with q-value; both approaches adaptively weight measurements
 - **Boundary condition handling**: Low and high q-values exhibit different variance properties; explicit boundary adaptation improves reliability
 - **Automatic test selection**: Model diagnostics trigger appropriate method switches based on data structure
-
-Appendix B provides:
-- Detailed statistical methodology for both approaches
-- Step-by-step implementation examples
-- Comparison of linear model results vs. GAM vs. rank-based findings
-- Concordance tables showing agreement across methods
-- Recommendations for when each method is most appropriate
-- Power analysis and sample size guidance for different designs
-
-**Key Finding**: High concordance (typically >90% agreement) across methods validates that linear model discoveries are robust to model assumptions and generalize to non-parametric frameworks.
 
 **[View Appendix B](TSENAT_appendix_B.html)**
 
