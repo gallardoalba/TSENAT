@@ -28,7 +28,6 @@ calculate_diversity_s4(
   bootstrap_ci = NULL,
   bootstrap_include_diagnostics = NULL,
   output_file = NULL,
-  seed = NULL,
   ...
 )
 }

@@ -216,7 +216,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     what = NULL, nthreads = NULL, pseudocount = NULL, min_valid_frac = NULL, shrinkage = NULL,
     genes = NULL, effective_length = NULL, metadata = NULL, bootstrap = NULL, nboot = NULL,
     bootstrap_method = NULL, bootstrap_ci = NULL, bootstrap_include_diagnostics = NULL,
-    output_file = NULL, seed = NULL, ...) {
+    output_file = NULL, ...) {
     # Validate input
     .validate_diversity_analysis_input(analysis)
 
