@@ -4,70 +4,96 @@
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TSENAT: Tsallis Entropy Analysis Toolbox • TSENAT</title>
-<script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
-<link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="TSENAT: Tsallis Entropy Analysis Toolbox">
+<!-- jquery --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script><!-- Bootstrap --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha256-bZLfwXAP04zRMK2BjiO8iu9pf4FbLqX6zitd+tIvLhE=" crossorigin="anonymous">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha256-nuL8/2cJ5NDSSwnKD8VqreErSWHtnEP9E7AySL+1ev4=" crossorigin="anonymous"></script><!-- bootstrap-toc --><link rel="stylesheet" href="../bootstrap-toc.css">
+<script src="../bootstrap-toc.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous">
+<!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- pkgdown --><link href="../pkgdown.css" rel="stylesheet">
+<script src="../pkgdown.js"></script><meta property="og:title" content="TSENAT: Tsallis Entropy Analysis Toolbox">
+<!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
+<script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+<script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+<![endif]-->
 </head>
-<body>
-    <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
+<body data-spy="scroll" data-target="#toc">
 
 
-    <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
+    <div class="container template-article">
+      <header><div class="navbar navbar-default navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <span class="navbar-brand">
+        <a class="navbar-link" href="../index.html">TSENAT</a>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.99.0</span>
+      </span>
+    </div>
 
-    <a class="navbar-brand me-2" href="../index.html">TSENAT</a>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+<li>
+  <a href="../articles/TSENAT.html">Get started</a>
+</li>
+<li>
+  <a href="../reference/index.html">Reference</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    Articles
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.99.0</small>
-
-
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-
-    <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto">
-<li class="nav-item"><a class="nav-link" href="../index.html"><span class="fa fas fa-home fa-lg"></span></a></li>
-<li class="nav-item"><a class="nav-link" href="../reference/index.html"><span class="fa far fa-file-code fa-lg"></span> Functions</a></li>
-<li class="nav-item"><a class="nav-link" href="../coverage/coverage.html"><span class="fa fas fa-chart-bar fa-lg"></span> Coverage</a></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT"><span class="fa fab fa-github fa-lg"></span> Source Code</a></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-question-circle fa-lg"></span> Issues</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/index.html"><span class="fa fas fa-file-contract fa-lg"></span> Vignettes</a></li>
-<li class="active nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-vignette-files" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-book fa-lg"></span> Vignette Files</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-vignette-files">
-<li><a class="dropdown-item" href="../articles/TSENAT.pdf">PDF (vignette)</a></li>
-    <li><a class="dropdown-item" href="../articles/TSENAT.html">HTML (vignette)</a></li>
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+<li>
+      <a href="../articles/TSENAT_appendix_A.html">Appendix A: Equivalence Validation - TSENAT vs SplicingFactory</a>
+    </li>
+    <li>
+      <a href="../articles/TSENAT_appendix_B.html">TSENAT Appendix B: Non-Parametric Validation of Linear Model Results via GAM and Rank-Based Methods</a>
+    </li>
   </ul>
 </li>
-<li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
+<li>
+  <a href="../news/index.html">Changelog</a>
+</li>
       </ul>
-<ul class="navbar-nav">
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
+<ul class="nav navbar-nav navbar-right">
+<li>
+  <a href="https://github.com/gallardoalba/TSENAT/" class="external-link">
+    <span class="fab fa-github fa-lg"></span>
+
+  </a>
+</li>
       </ul>
 </div>
-
-
+<!--/.nav-collapse -->
   </div>
-</nav><div class="container template-article">
+<!--/.container -->
+</div>
+<!--/.navbar -->
 
 
 
-
+      </header><script src="TSENAT_files/kePrint-0.0.1/kePrint.js"></script><link href="TSENAT_files/lightable-0.0.1/lightable.css" rel="stylesheet">
 <div class="row">
-  <main id="main" class="col-md-9"><div class="page-header">
-
-      <h1>TSENAT: Tsallis Entropy Analysis Toolbox</h1>
-                        <h4 data-toc-skip class="author">Cristóbal
+  <div class="col-md-9 contents">
+    <div class="page-header toc-ignore">
+      <h1 data-toc-skip>TSENAT: Tsallis Entropy Analysis Toolbox</h1>
+                        <h4 data-toc-skip class="author">Cristobal
 Gallardo <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2026-02-15</h4>
+            <h4 data-toc-skip class="date">2026-04-06</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gallardoalba/TSENAT/blob/HEAD/vignettes/TSENAT.Rmd" class="external-link"><code>vignettes/TSENAT.Rmd</code></a></small>
-      <div class="d-none name"><code>TSENAT.Rmd</code></div>
+      <div class="hidden name"><code>TSENAT.Rmd</code></div>
+
     </div>
 
     
@@ -75,502 +101,2458 @@ Gallardo <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>This vignette shows how to compute and apply Tsallis entropy to
-transcript-level expression data with <code>TSENAT</code>. It focuses on
-three practical goals: (1) computing per-sample, per-gene diversity
-measures across a range of sensitivity parameters <code>q</code>; (2)
-comparing those measures between sample groups; and (3) visualizing and
-inspecting transcript-level patterns that explain observed
-differences.</p>
+<p>TSENAT (Tsallis Entropy Analysis Toolbox) quantifies <strong>isoform
+heterogeneity</strong> in RNA-seq data using Tsallis entropy-a
+scale-dependent diversity measure distinct from abundance-focused tools
+(DESeq2, Salmon) and differential transcript usage packages
+(<em>SplicingFactory</em>). By tuning a sensitivity parameter
+<code>q</code>, users examine diversity at different scales: rare
+variants (low <code>q</code>) or dominant isoforms (high
+<code>q</code>). This package enables computing Tsallis entropy from
+transcript-level abundance estimates, comparing measures between groups,
+and visualizing scale-dependent differences via q-curves. Results
+integrate seamlessly with Bioconductor’s
+<code>SummarizedExperiment</code>, capturing scale-dependent isoform
+complexity that often signals cellular state changes independent of
+total abundance shifts.</p>
 <div class="section level3">
-<h3 id="motivation">Motivation<a class="anchor" aria-label="anchor" href="#motivation"></a>
+<h3 id="motivation-and-bioconductor-contribution">Motivation and Bioconductor Contribution<a class="anchor" aria-label="anchor" href="#motivation-and-bioconductor-contribution"></a>
 </h3>
-<p>Common RNA-seq tools, such as DESEQ2 o SALMON, focus on changes in
-total gene abundance. While powerful, that view can obscure an important
-biological phenomenon: genes often change <em>which</em> isoforms they
-express without large changes in overall expression. Tsallis entropy
-gives you a single, coherent framework to describe those changes. By
-tuning the parameter <code>q</code> you slide a lens across abundance
-scales—zooming in on rare variants or zooming out to the dominant
-isoforms—so you can capture scale-dependent isoform switching that
-ordinary summaries overlook.</p>
+<p>Common RNA-seq tools focus on either total gene abundance changes or
+individual transcript usage shifts. Yet genes often remodel their
+isoform landscapes without changing overall expression-a phenomenon
+missed by these approaches. TSENAT quantifies this <em>isoform
+complexity</em> directly via Tsallis entropy, a scale-dependent
+diversity framework tuned by parameter <code>q</code>. By sliding
+<code>q</code> across scales, researchers zoom between rare variants
+(low <code>q</code>) and dominant isoforms (high <code>q</code>),
+capturing biological signal invisible to abundance- or proportion-based
+summaries.</p>
+<p>In this guide, we demonstrate the complete workflow: preprocessing
+transcript counts, computing entropy across q-values, testing for
+between-group differences, and visualizing scale-dependent complexity.
+All results integrate seamlessly with Bioconductor’s
+<code>SummarizedExperiment</code>, making TSENAT a natural complement to
+existing DTU and abundance-focused tools in the ecosystem.</p>
 </div>
 <div class="section level3">
 <h3 id="high-level-workflow">High-level workflow<a class="anchor" aria-label="anchor" href="#high-level-workflow"></a>
 </h3>
 <ol style="list-style-type: decimal">
-<li>Preprocess counts and filter low-abundance transcripts.</li>
-<li>Compute relative transcript proportions within each gene and
-evaluate Tsallis entropy across one or more <code>q</code> values.</li>
-<li>Summarize per-gene values across samples (mean/median) and test for
-differences between groups (Wilcoxon or permutations).</li>
-<li>Visualize q-curves and inspect transcript-level counts for top
-genes.</li>
+<li>
+<strong>Load and preprocess</strong> transcript counts using
+<code><a href="../reference/build_analysis_s4.html">build_analysis_s4()</a></code>, then filter low-abundance transcripts
+with <code><a href="../reference/filter_analysis_s4.html">filter_analysis_s4()</a></code>.</li>
+<li>
+<strong>Select q-values</strong> tuned to your research question:
+low q (rare isoforms) vs. high q (dominant isoforms). Compute Tsallis
+entropy across these scales with
+<code><a href="../reference/calculate_diversity_s4.html">calculate_diversity_s4()</a></code>.</li>
+<li>
+<strong>Test for differences</strong> in entropy between groups
+using <code><a href="../reference/rank_test_q_condition_s4.html">rank_test_q_condition_s4()</a></code> (Wilcoxon or permutation
+tests) <span class="citation">(Kerby 2014; Saulsbury 2020)</span>.</li>
+<li>
+<strong>Visualize results</strong> as q-curves and inspect
+transcript counts for genes with the strongest entropy shifts using
+<code><a href="../reference/plot_tsallis_q_curve_s4.html">plot_tsallis_q_curve_s4()</a></code> and related functions.</li>
 </ol>
+<p><strong>Design assumptions</strong>: This guide assumes paired or
+longitudinal designs with &gt;=6-8 samples per group for adequate power
+to detect entropy shifts while controlling false discovery rate. Smaller
+sample sizes may be underpowered to detect subtle isoform complexity
+changes.</p>
+</div>
+<div class="section level3">
+<h3 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
+</h3>
+<p>To install <code>TSENAT</code> from Bioconductor:</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">require</a></span><span class="op">(</span><span class="st"><a href="https://bioconductor.github.io/BiocManager/" class="external-link">"BiocManager"</a></span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"BiocManager"</span>, repos <span class="op">=</span> <span class="st">"http://cran.us.r-project.org"</span><span class="op">)</span></span>
+<span><span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://bioconductor.github.io/BiocManager/reference/install.html" class="external-link">install</a></span><span class="op">(</span><span class="st">"TSENAT"</span><span class="op">)</span></span></code></pre></div>
+<p>Then load the package:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gallardoalba.github.io/TSENAT" class="external-link">TSENAT</a></span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="quick-start">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
+</h3>
+<p>For users who want to see results quickly, here is a minimal
+workflow:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gallardoalba.github.io/TSENAT" class="external-link">TSENAT</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bioconductor.org/packages/SummarizedExperiment" class="external-link">SummarizedExperiment</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Load example data</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"readcounts"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span>
+<span><span class="va">readcounts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Load sample metadata and annotation</span></span>
+<span><span class="va">metadata_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.table</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"metadata.tsv"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span>,</span>
+<span>  header <span class="op">=</span> <span class="cn">TRUE</span>, sep <span class="op">=</span> <span class="st">"\t"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">gff3_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"annotation.gff3.gz"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Create analysis object with transcript counts, annotation, and metadata</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_analysis_s4.html">build_analysis_s4</a></span><span class="op">(</span><span class="va">readcounts</span>, <span class="va">gff3_file</span>, metadata <span class="op">=</span> <span class="va">metadata_df</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Filter low-abundance transcripts</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/filter_analysis_s4.html">filter_analysis_s4</a></span><span class="op">(</span><span class="va">analysis</span>, stringency <span class="op">=</span> <span class="st">"medium"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Compute Tsallis entropy using S4 wrapper (using single q value for quick start)</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity_s4.html">calculate_diversity_s4</a></span><span class="op">(</span><span class="va">analysis</span>, q <span class="op">=</span> <span class="fl">1</span>, norm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="data-structure-overview">Data Structure Overview<a class="anchor" aria-label="anchor" href="#data-structure-overview"></a>
+</h3>
+<p><strong>Input Data</strong>: TSENAT expects transcript-level read
+counts (rows = transcripts, columns = samples) from quantification tools
+like SALMON or kallisto. A GFF3 annotation file maps transcripts to
+genes.</p>
+<p><strong>Processing</strong>: The <code><a href="../reference/build_analysis_s4.html">build_analysis_s4()</a></code>
+function accepts these inputs and creates a
+<strong>TSENATAnalysis</strong> S4 object, which is the central data
+container throughout your analysis.</p>
+<p><strong>Organization</strong>: The TSENATAnalysis object
+encapsulates:</p>
+<ul>
+<li>
+<code>@se</code> - <code>SummarizedExperiment</code> storing counts
+and metadata (access via <code>se(analysis)</code>)</li>
+<li>
+<code>@diversity_results</code> - Entropy values across q-values
+(accessor: <code>diversity(analysis)</code>)</li>
+<li>
+<code>@jackknife_results</code> - Jackknife confidence intervals and
+isoform switching results</li>
+<li>
+<code>@lm_results</code> - LM interaction statistics and rank test
+q-value effects (accessor: <code>lmResults(analysis)</code>)</li>
+<li>
+<code>@divergence_results</code> - Pairwise divergence metrics
+(accessor: <code>divergence(analysis)</code>)</li>
+<li>
+<code>@plots</code> - Generated visualizations</li>
+</ul>
+<p>Use <strong>accessor functions</strong> like
+<code><a href="../reference/diversity.html">diversity()</a></code>, <code><a href="../reference/divergence.html">divergence()</a></code>,
+<code><a href="../reference/lmResults.html">lmResults()</a></code>, etc. for type-safe result extraction without
+direct slot manipulation.</p>
+<p>For more details on the SummarizedExperiment class, see <a href="https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html" class="external-link">SummarizedExperiment
+documentation</a>.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="what-is-tsallis-entropy">What is Tsallis entropy?<a class="anchor" aria-label="anchor" href="#what-is-tsallis-entropy"></a>
+<h2 id="what-is-entropy-and-tsallis-entropy">What is Entropy and Tsallis Entropy?<a class="anchor" aria-label="anchor" href="#what-is-entropy-and-tsallis-entropy"></a>
 </h2>
-<p>Tsallis entropy is a one-parameter family of diversity measures that
-generalizes Shannon entropy via a sensitivity parameter <code>q</code>.
-For a discrete probability vector
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>=</mo><mo stretchy="false" form="prefix">(</mo><msub><mi>p</mi><mn>1</mn></msub><mo>,</mo><mi>…</mi><mo>,</mo><msub><mi>p</mi><mi>n</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">p=(p_1,\dots,p_n)</annotation></semantics></math>
-it is defined as</p>
+<div class="section level3">
+<h3 id="the-problem-measuring-isoform-complexity">The Problem: Measuring Isoform Complexity<a class="anchor" aria-label="anchor" href="#the-problem-measuring-isoform-complexity"></a>
+</h3>
+<p>Standard RNA-seq analysis measures <em>whether</em> transcript
+abundance changes between conditions. But a critical complementary
+question remains underexplored: <em>how</em> does the diversity of
+isoforms change? A gene may show little change in total abundance while
+dramatically reshuffling its isoform repertoire-a phenomenon that
+current methods largely miss.</p>
+<p><strong>Entropy</strong> quantifies precisely this: the complexity,
+richness, and balance of isoform heterogeneity. By measuring entropy
+across different biological scales, researchers can detect whether
+changes are driven by shifts in rare variants or reorganization of
+dominant isoforms.</p>
+</div>
+<div class="section level3">
+<h3 id="tsallis-entropy-a-scale-dependent-diversity-measure">Tsallis Entropy: A Scale-Dependent Diversity Measure<a class="anchor" aria-label="anchor" href="#tsallis-entropy-a-scale-dependent-diversity-measure"></a>
+</h3>
+<p><strong>Tsallis entropy</strong> <span class="citation">(Tsallis
+2006)</span> is a one-parameter family of diversity measures that
+generalizes Shannon entropy <span class="citation">(Shannon
+1948)</span>. Unlike Shannon entropy (which treats all isoforms
+equally), Tsallis entropy lets you tune a sensitivity parameter
+<code>q</code> to zoom into different aspects of isoform complexity:</p>
+<ul>
+<li>
+<strong>q &lt; 1</strong>: Emphasizes rare, low-abundance isoforms
+(discovery mode)</li>
+<li>
+<strong>q = 1</strong>: Recovers Shannon entropy (balanced across
+all abundance scales)</li>
+<li>
+<strong>q = 2</strong>: Emphasizes dominant isoforms (robustness
+mode)</li>
+<li>
+<strong>q &gt; 2</strong>: Focuses almost exclusively on the most
+abundant species</li>
+</ul>
+<p>This is the key innovation: by computing entropy across a range of
+q-values (a “q-curve”), you obtain a complete picture of isoform
+heterogeneity <span class="citation">(Rényi 1961)</span>. In TSENAT,
+you’ll explore multiple q-values using
+<code><a href="../reference/calculate_diversity_s4.html">calculate_diversity_s4()</a></code> and visualize results with
+<code><a href="../reference/plot_tsallis_q_curve_s4.html">plot_tsallis_q_curve_s4()</a></code>.</p>
+</div>
+<div class="section level3">
+<h3 id="mathematical-definition">Mathematical Definition<a class="anchor" aria-label="anchor" href="#mathematical-definition"></a>
+</h3>
+<p>For a discrete probability vector
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>=</mo><mo stretchy="false" form="prefix">(</mo><msub><mi>p</mi><mn>1</mn></msub><mo>,</mo><mi>…</mi><mo>,</mo><msub><mi>p</mi><mi>n</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">p = (p_1, \ldots, p_n)</annotation></semantics></math>
+representing isoform proportions within a gene, Tsallis entropy is:</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mi>q</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>p</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mfrac><mrow><mn>1</mn><mo>−</mo><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><msubsup><mi>p</mi><mi>i</mi><mi>q</mi></msubsup></mrow><mrow><mi>q</mi><mo>−</mo><mn>1</mn></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
 S_q(p) = \frac{1-\sum_{i=1}^n p_i^q}{q-1}.
 </annotation></semantics></math></p>
-<p>In information theory terms, entropy measures the uncertainty when
-drawing a single transcript from the gene’s isoform frequency
-distribution: higher entropy means the choice is less predictable (many
-similarly abundant isoforms), while lower entropy means the distribution
-is dominated by one or a few transcripts.</p>
-<p>Tsallis entropy allows, throught the <code>q</code> parameter, shifts
-emphasis between rare and abundant isoforms: small values of
-<code>q</code> make the measure sensitive to low-abundance variants,
-while larger <code>q</code> focus on the dominant species. In practice,
-computing <code>S_q</code> across a short grid of <code>q</code> values
-(a “q-curve”) and combining this with resampling or paired designs
-yields a concise, interpretable summary of isoform heterogeneity.</p>
-<p><strong>Essential limiting cases</strong>:</p>
+<p>This parametric family unites diverse entropy concepts under a single
+framework:</p>
 <ul>
-<li>Limit
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>→</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q\to 1</annotation></semantics></math>:
-Shannon entropy,
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">lim</mi><mo>⁡</mo></mrow><mrow><mi>q</mi><mo>→</mo><mn>1</mn></mrow></msub><msub><mi>S</mi><mi>q</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>p</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>−</mi><msub><mo>∑</mo><mi>i</mi></msub><msub><mi>p</mi><mi>i</mi></msub><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><msub><mi>p</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">\lim_{q\to1} S_q(p) = -\sum_i p_i\log
-p_i</annotation></semantics></math>.</li>
 <li>
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">q=0</annotation></semantics></math>:
-richness-like (number of expressed isoforms minus one).</li>
+<strong>Generalization</strong>: Extends beyond Shannon entropy to
+capture scale-dependent phenomena</li>
 <li>
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>=</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">q=2</annotation></semantics></math>:
-Gini–Simpson / collision index,
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mn>2</mn></msub><mo>=</mo><mn>1</mn><mo>−</mo><msub><mo>∑</mo><mi>i</mi></msub><msubsup><mi>p</mi><mi>i</mi><mn>2</mn></msubsup></mrow><annotation encoding="application/x-tex">S_2 = 1-\sum_i p_i^2</annotation></semantics></math>.</li>
-<li>Uniform maximum: for
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math>
-expressed isoforms,
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mrow><mi>q</mi><mo>,</mo><mi mathvariant="normal">max</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mfrac><mrow><mn>1</mn><mo>−</mo><msup><mi>m</mi><mrow><mn>1</mn><mo>−</mo><mi>q</mi></mrow></msup></mrow><mrow><mi>q</mi><mo>−</mo><mn>1</mn></mrow></mfrac></mrow><annotation encoding="application/x-tex">S_{q,\max}(m)=\frac{1-m^{1-q}}{q-1}</annotation></semantics></math>
-and normalized
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mover><mi>S</mi><mo accent="true">̃</mo></mover><mi>q</mi></msub><mo>=</mo><msub><mi>S</mi><mi>q</mi></msub><mi>/</mi><msub><mi>S</mi><mrow><mi>q</mi><mo>,</mo><mi mathvariant="normal">max</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\tilde S_q = S_q / S_{q,\max}(m)</annotation></semantics></math>.</li>
+<strong>Mathematical elegance</strong>: Reduces to well-known
+diversity indices at specific q-values</li>
+<li>
+<strong>Practical flexibility</strong>: Enables data-driven
+exploration across the full diversity spectrum</li>
 </ul>
 </div>
+<div class="section level3">
+<h3 id="information-theoretic-interpretation">Information-Theoretic Interpretation<a class="anchor" aria-label="anchor" href="#information-theoretic-interpretation"></a>
+</h3>
+<p>From an information theory perspective <span class="citation">(Shannon 1948; Tsallis 2006)</span>, entropy measures
+the uncertainty or surprise when drawing a single transcript from an
+isoform distribution. Higher entropy means the draw is less predictable
+(many similarly abundant isoforms), while lower entropy means one or a
+few isoforms dominate. This distinction is crucial: two genes with
+identical total abundance may have dramatically different isoform
+complexity.</p>
+<p>The q parameter acts as a <strong>sensitivity dial</strong>. Consider
+a simple example: - A gene with 5 equally abundant isoforms: all
+q-values give high entropy - A gene where 1 isoform dominates: low-q
+entropy stays high (rare variants matter), while high-q entropy drops
+(rare variants ignored)</p>
+<p>This scale-dependent nature reveals biological signal invisible to
+abundance- or proportion-based summaries alone.</p>
+<div class="section level4">
+<h4 id="special-cases-and-limiting-behavior">Special Cases and Limiting Behavior<a class="anchor" aria-label="anchor" href="#special-cases-and-limiting-behavior"></a>
+</h4>
+<p>Tsallis entropy exhibits important special cases <span class="citation">(Masi 2005)</span> that appear when you set specific
+q-values:</p>
+<ul>
+<li>
+<strong>q = 0 (Richness)</strong>:
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mn>0</mn></msub><mo>=</mo><mi>m</mi><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">S_0 = m - 1</annotation></semantics></math>
+(number of expressed isoforms). Pure species count, most minimal
+assumption.</li>
+<li>
+<strong>q = 1 (Shannon)</strong>:
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mn>1</mn></msub><mo stretchy="false" form="prefix">(</mo><mi>p</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>−</mi><msub><mo>∑</mo><mi>i</mi></msub><msub><mi>p</mi><mi>i</mi></msub><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><msub><mi>p</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">S_1(p) = -\sum_i p_i \log p_i</annotation></semantics></math>.
+Standard information entropy <span class="citation">(Shannon
+1948)</span>; optimal estimator of information content.</li>
+<li>
+<strong>q = 2 (Gini-Simpson)</strong>:
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mn>2</mn></msub><mo>=</mo><mn>1</mn><mo>−</mo><msub><mo>∑</mo><mi>i</mi></msub><msubsup><mi>p</mi><mi>i</mi><mn>2</mn></msubsup></mrow><annotation encoding="application/x-tex">S_2 = 1 - \sum_i p_i^2</annotation></semantics></math>.
+Probability that two randomly drawn transcripts differ <span class="citation">(Simpson 1949)</span>; robust to rare variants.</li>
+</ul>
+<p><strong>Normalized entropy</strong>: For genes with different isoform
+counts, normalize by maximum possible entropy:
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mover><mi>S</mi><mo accent="true">̃</mo></mover><mi>q</mi></msub><mo>=</mo><mfrac><mrow><msub><mi>S</mi><mi>q</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>p</mi><mo stretchy="false" form="postfix">)</mo></mrow><mrow><msub><mi>S</mi><mrow><mi>q</mi><mo>,</mo><mi mathvariant="normal">max</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo></mrow></mfrac></mrow><annotation encoding="application/x-tex">\tilde{S}_q = \frac{S_q(p)}{S_{q,\max}(m)}</annotation></semantics></math>
+where
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mrow><mi>q</mi><mo>,</mo><mi mathvariant="normal">max</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mfrac><mrow><mn>1</mn><mo>−</mo><msup><mi>m</mi><mrow><mn>1</mn><mo>−</mo><mi>q</mi></mrow></msup></mrow><mrow><mi>q</mi><mo>−</mo><mn>1</mn></mrow></mfrac></mrow><annotation encoding="application/x-tex">S_{q,\max}(m) = \frac{1-m^{1-q}}{q-1}</annotation></semantics></math>.
+This enables fair comparison across genes.</p>
+</div>
+</div>
+<div class="section level3">
+<h3 id="biological-potentiality-why-tsenat-matters">Biological Potentiality: Why TSENAT Matters<a class="anchor" aria-label="anchor" href="#biological-potentiality-why-tsenat-matters"></a>
+</h3>
+<p>Tsallis entropy is grounded in Shannon’s foundational information
+theory <span class="citation">(Shannon 1948)</span>, generalized by
+Renyi’s family of entropies <span class="citation">(Rényi 1961)</span>,
+and extended by Tsallis <span class="citation">(Tsallis 2006)</span>.
+The key innovation is a tunable parameter <code>q</code> that controls
+sensitivity to different aspects of the diversity distribution-which
+aspects of isoform heterogeneity become visible depends on the q-value
+chosen <span class="citation">(Anastasiadis 2012; Ramírez-Reyes et al.
+2016; Alomani and Kayid 2023)</span>.</p>
+<p>As stated explicitly in the mathematical literature <span class="citation">(Masi 2005)</span>: “This introduces the formal
+possibility not to set rare and common events on the same footing, as in
+BG or Shannon statistics, but it enhances or depresses them according to
+the parameter chosen.” This principle is formalized in the Hill numbers
+framework <span class="citation">(Chao et al. 2010)</span>, which
+unifies diverse entropy-based measures (richness, Shannon, Simpson) as
+different manifestations of the same parametric family with varying
+sensitivity to abundance scales.</p>
+<p>The flexibility is crucial for isoform analysis. The concept of “true
+diversity” <span class="citation">(Chao et al. 2010)</span> emphasizes
+that diversity can be decomposed into two independent components:
+species richness (how many distinct isoforms exist) and evenness (how
+evenly distributed they are across the population). Two genes can have
+identical Shannon entropy yet differ dramatically in isoform structure:
+one might be dominated by a single abundant isoform (maximizing apparent
+heterogeneity at low <code>q</code> where rare variants matter), while
+another distributes transcripts across many isoforms equally (maximizing
+heterogeneity across all <code>q</code> values). By tuning the
+q-parameter, we operationalize what Masi (2005) describes: depressing
+the weight on rare events (high q) reveals dominant isoform patterns,
+while enhancing rare-event weight (low q) reveals cryptic isoform
+complexity. TSENAT’s multi-<em>q</em> approach captures this full
+spectrum of isoform diversity, enabling researchers to detect both rare
+isoform innovations and robust isoform usage patterns <span class="citation">(Drost 2018)</span> by exploring the q-curve across
+multiple scales.</p>
+<div class="section level4">
+<h4 id="potential-applications-in-genomics">Potential Applications in Genomics<a class="anchor" aria-label="anchor" href="#potential-applications-in-genomics"></a>
+</h4>
+<p>The multi-scale nature of Tsallis entropy makes it suited for
+exploring isoform complexity across diverse biological contexts. By
+measuring information content at different q-values, researchers can
+detect patterns invisible to traditional transcript abundance measures
+alone:</p>
+<p><strong>Isoform complexity as a biological signal</strong>: Isoform
+switching-reorganization of the isoform landscape without necessarily
+changing total gene abundance-reflects strategic shifts in protein
+function driven by splicing regulation. Evidence from single-cell
+transcriptomics demonstrates that transcript-level complexity varies
+systematically across cell types and developmental states <span class="citation">(Cao et al. 2017)</span>, validating that isoform
+heterogeneity is a genuine biological phenomenon rather than noise.
+Increased entropy in gene regulatory networks drives phenotypic
+heterogeneity and cellular plasticity <span class="citation">(Nijman
+2020)</span>, suggesting that transcript-level entropy captures similar
+organizational principles. TSENAT enables detection of these changes
+through entropy-based approaches, which capture whether complexity is
+increasing (diversity spreading across isoforms) or decreasing
+(consolidation onto dominant isoforms).</p>
+<p><strong>Scale-dependent organization</strong>: Different biological
+processes may prioritize different scales of organization <span class="citation">(Tarabichi et al. 2013)</span>: - Changes in rare
+isoform usage (revealed through low <code>q</code> sensitivity) might
+reflect exploratory or error-correction mechanisms - Shifts in dominant
+isoform selection (revealed through high <code>q</code> sensitivity)
+might reflect functional specialization or robustness demands - The full
+q-curve reveals whether cellular transitions involve wholesale
+reorganization or targeted adjustments, paralleling how systems biology
+approaches dissect biological disorder and organization at multiple
+scales</p>
+<p><strong>Beyond abundance measures</strong>: Traditional analysis
+focuses on fold-changes and differential abundance. Since isoform
+reorganization can occur independently of total abundance changes,
+entropy-based approaches complement classical methods by detecting
+complexity shifts that transcript-level statistics alone cannot
+reveal.</p>
+<div class="section level5">
+<h5 id="evidence-from-literature">Evidence from Literature<a class="anchor" aria-label="anchor" href="#evidence-from-literature"></a>
+</h5>
+<p>The recent emphasis on information-theoretic approaches in
+computational biology <span class="citation">Bajić (2024)</span>
+reflects broader recognition that complex biological systems encode
+information across multiple organizational scales. Peer-reviewed
+literature provides strong empirical support for these applications:</p>
+<p><strong>Entropy and cancer biology</strong>: Cancer cells accumulate
+genetic and epigenetic perturbations that systematically increase
+disorder in gene regulatory networks. As Tarabichi and colleagues
+demonstrate, “Increased entropy of signaling (or gene interaction
+networks) has been well studied as a cancer characteristic: Network
+entropy increases along with cancer progresses” <span class="citation">(Tarabichi et al. 2013)</span>. Systems biology
+approaches reveal that this entropy increase, rather than being an
+incidental feature, actively drives cancer progression through selection
+of cells with greater network flexibility and adaptability.</p>
+<p><strong>Perturbation-driven mechanisms of heterogeneity</strong>:
+Nijman’s analysis of perturbation-driven entropy proposes a
+complementary mechanism: “cancer-associated perturbations collectively
+disrupt normal gene regulatory networks by increasing their entropy.
+Importantly, in this model both somatic driver and passenger alterations
+contribute to ‘perturbation-driven entropy’, thereby increasing
+phenotypic heterogeneity and evolvability” <span class="citation">(Nijman 2020)</span>. This framework elegantly explains
+observed cancer heterogeneity without requiring that every genetic
+change confers a selective advantage-some mutations contribute entropy
+directly through network disruption.</p>
+<p><strong>Single-cell validation of transcript diversity</strong>: Cao
+and colleagues’ landmark single-cell transcriptomics study provided
+empirical validation that transcript-level organization varies
+systematically across cell types: “expression levels of mRNA species are
+linked to cellular function and therefore can be used to classify cell
+types” <span class="citation">(Cao et al. 2017)</span>. Their
+comprehensive profiling of C. elegans demonstrates that individual cells
+maintain specific, consistent isoform compositions reflecting cellular
+identity-establishing that isoform complexity is not noise but a
+fundamental aspect of cellular differentiation and function.</p>
+<p>These three perspectives-entropy as driver of cancer evolution,
+perturbations as network disruption mechanisms, and single-cell evidence
+for systematic isoform organization-converge on a framework where
+measuring entropy at multiple scales (via TSENAT’s multi-<em>q</em>
+approach) captures biologically meaningful variation in cellular
+organization and adaptation. In cancer biology specifically,
+entropy-driven mechanisms explain how perturbations increase
+heterogeneity and plasticity <span class="citation">(Nijman
+2020)</span>, demonstrating that entropy concepts have mechanistic
+relevance beyond abstract information theory. Tsallis entropy, through
+the parametric q-spectrum, provides a systematic framework for exploring
+this multi-scale organization at the transcript and isoform level.</p>
+</div>
+</div>
+</div>
+</div>
 <div class="section level2">
-<h2 id="example-dataset">Example dataset<a class="anchor" aria-label="anchor" href="#example-dataset"></a>
+<h2 id="isoform-switching-workflow">Isoform Switching Workflow<a class="anchor" aria-label="anchor" href="#isoform-switching-workflow"></a>
 </h2>
-<p>An example dataset is included for demonstration.</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Load packages</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressPackageStartupMessages</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gallardoalba.github.io/TSENAT">TSENAT</a></span><span class="op">)</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bioconductor.org/packages/SummarizedExperiment" class="external-link">SummarizedExperiment</a></span><span class="op">)</span></span>
-<span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
+<p>We now demonstrate a complete workflow for detecting <strong>isoform
+switching</strong>-when cells reorganize their isoform landscape without
+necessarily changing total gene abundance. This often reflects strategic
+shifts in protein function driven by splicing regulation.</p>
+<p>In this workflow, you will:</p>
+<ol style="list-style-type: decimal">
+<li>Load transcript counts and sample metadata</li>
+<li>Identify genes with significant scale-dependent isoform complexity
+changes (using linear model interaction testing)</li>
+<li>Assess which individual transcripts drive those changes (using
+jackknife resampling <span class="citation">(Efron and Tibshirani
+1993)</span>)</li>
+<li>Interpret results in the context of paired experimental designs</li>
+</ol>
+<p>We’ll work with a paired experimental design where treated and
+control samples are linked, enabling detection of robust biological
+signals while controlling for subject-level variability. By the end,
+you’ll know not just <em>which genes</em> undergo isoform switching, but
+<em>which transcripts</em> are responsible and <em>at which diversity
+scales</em> the switching occurs.</p>
 <div class="section level3">
 <h3 id="load-data-and-metadata">Load data and metadata<a class="anchor" aria-label="anchor" href="#load-data-and-metadata"></a>
 </h3>
-<p>Now we will load the example dataset and associated metadata:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Load example dataset</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"tcga_brca_luma"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span>
-<span><span class="va">readcounts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">tcga_brca_luma</span><span class="op">[</span>, <span class="op">-</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">tcga_brca_luma</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span></span>
+<p>An example dataset is included for demonstration.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Load packages</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressPackageStartupMessages</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gallardoalba.github.io/TSENAT" class="external-link">TSENAT</a></span><span class="op">)</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bioconductor.org/packages/SummarizedExperiment" class="external-link">SummarizedExperiment</a></span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Load sample metadata</span></span>
-<span><span class="va">coldata_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.table</a></span><span class="op">(</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"coldata.tsv"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span>,</span>
+<span><span class="co"># Setup random seed for reproducibility</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span></code></pre></div>
+<p>Now we will load the example dataset and associated metadata:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Load example dataset (lazy-loaded as 'readcounts' by default)</span></span>
+<span><span class="co"># This includes SALMON preprocessing outputs:</span></span>
+<span><span class="co"># - readcounts: transcript-level NumReads (raw fragment counts)</span></span>
+<span><span class="co"># - tpm: TPM matrix (length- and library-normalized estimates)</span></span>
+<span><span class="co"># - effective_length: EffectiveLength vector (read-length corrected)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">readcounts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">metadata_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.table</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"metadata.tsv"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span>,</span>
 <span>    header <span class="op">=</span> <span class="cn">TRUE</span>, sep <span class="op">=</span> <span class="st">"\t"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Get the GFF3.gz annotation file path</span></span>
-<span><span class="va">gff3_dataset</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"gencode_subset.gff3.gz"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span></code></pre></div>
-<p>The next step is to inspect the loaded data to ensure it looks
-correct.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Check transcript IDs and read count dataset</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "MXRA8.1"   "MXRA8.2"   "MXRA8.3"   "MXRA8.4"   "MXRA8.5"   "C1orf86.1"</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 1100   40</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt;         TCGA-A7-A0CH_N TCGA-A7-A0CH_T TCGA-A7-A0D9_N</span></span>
-<span><span class="co">#&gt; MXRA8.1        2858.04         743.56         812.59</span></span>
-<span><span class="co">#&gt; MXRA8.2         127.82          21.28          50.87</span></span>
-<span><span class="co">#&gt; MXRA8.3         370.22          94.38         368.76</span></span>
-<span><span class="co">#&gt; MXRA8.4        7472.00        3564.87        7647.76</span></span>
-<span></span>
-<span><span class="co"># Check the metadata</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">coldata_df</span><span class="op">)</span></span>
-<span><span class="co">#&gt;           Sample Condition</span></span>
-<span><span class="co">#&gt; 1 TCGA-A7-A0CH_N    Normal</span></span>
-<span><span class="co">#&gt; 2 TCGA-A7-A0D9_N    Normal</span></span>
-<span><span class="co">#&gt; 3 TCGA-A7-A0DB_N    Normal</span></span>
-<span><span class="co">#&gt; 4 TCGA-A7-A0DC_N    Normal</span></span>
-<span><span class="co">#&gt; 5 TCGA-A7-A13G_N    Normal</span></span>
-<span><span class="co">#&gt; 6 TCGA-AC-A2FB_N    Normal</span></span></code></pre></div>
+<span><span class="va">gff3_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"annotation.gff3.gz"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="data-preprocessing-and-filtering">Data preprocessing and filtering<a class="anchor" aria-label="anchor" href="#data-preprocessing-and-filtering"></a>
 </h3>
-<p>Next, we will create a <code>SummarizedExperiment</code> data
-container, a standard Bioconductor class for storing high-throughput
-assay data along with associated metadata. You can read more about it in
-the [Bioconductor documentation] (<a href="https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html" class="external-link uri">https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html</a>).</p>
-<p>Now will use a GFF3.gz annotation file for performing the
-transcript-to-gene mapping.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co">## Build a `SummarizedExperiment` from readcounts + GFF3.gz annotation</span></span>
-<span><span class="co"># The gff3_path variable contains the path to gencode_subset.gff3.gz</span></span>
-<span><span class="va">se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_se.html">build_se</a></span><span class="op">(</span><span class="va">readcounts</span>, <span class="va">gff3_dataset</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Detected GFF3 format. Extracting transcript-to-gene mapping...</span></span></code></pre></div>
-<p>Before computing the Tsallis diversity, you might want to filter out
-genes with a low overall expression or limit the analysis to transcripts
-with a sufficient minimum expression level. Expression estimates of
-transcript isoforms with zero or low expression might be highly
-variable. For more details on the effect of transcript isoform
-prefiltering on differential transcript usage, see <a href="https://doi.org/10.1186/s13059-015-0862-3" class="external-link">this paper</a>.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co">## Filter lowly-expressed transcripts and report counts</span></span>
-<span><span class="co"># Keep transcripts with &gt;5 reads in more than 5 samples using `filter_se()`</span></span>
-<span><span class="va">se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/filter_se.html">filter_se</a></span><span class="op">(</span><span class="va">se</span>, min_count <span class="op">=</span> <span class="fl">5</span>, min_samples <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Transcripts: before = 1100, after = 848</span></span></code></pre></div>
-<p>We filtered lowly-expressed transcripts to reduce noise and improve
-the stability of diversity estimates.</p>
-</div>
-</div>
-<div class="section level2">
-<h2 id="compute-normalized-tsallis-entropy-">Compute normalized Tsallis entropy.<a class="anchor" aria-label="anchor" href="#compute-normalized-tsallis-entropy-"></a>
-</h2>
-<p>Now we will compute Tsallis entropy for a single <code>q</code>, and
-inspect the resulting assay.</p>
-<p>Note: For single‑condition studies (no comparison groups), Tsallis
-entropy can still be computed and used for descriptive analyses and
-quality control; formal group‑comparison tests are not applicable in
-this setting.</p>
+<p>Next, we will create a <code>TSENATAnalysis</code> object containing
+a <code>SummarizedExperiment</code> data container (a standard
+Bioconductor class for storing high-throughput assay data along with
+associated metadata). You can read more about it in the <a href="https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html" class="external-link">Bioconductor
+documentation</a>.</p>
+<p>We will use the GFF3.gz annotation file for extracting the
+transcript-to-gene mapping and building the analysis object. We’ll also
+include sample metadata for improved analysis. Following Bioconductor
+best practices, we create the configuration FIRST, then pass it to the
+builder function (fail-fast principle):</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># compute Tsallis entropy for a single q value (normalized)</span></span>
-<span><span class="va">q</span> <span class="op">&lt;-</span> <span class="fl">0.1</span></span>
-<span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">se</span>, q <span class="op">=</span> <span class="va">q</span>, norm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt;         TCGA-A7-A0CH_N TCGA-A7-A0CH_T TCGA-A7-A0D9_N</span></span>
-<span><span class="co">#&gt; MXRA8        0.8616275      0.6609111      0.8156972</span></span>
-<span><span class="co">#&gt; C1orf86      0.0000000      0.0000000      0.0000000</span></span>
-<span><span class="co">#&gt; PDPN         0.2657489      0.2588286      0.0000000</span></span>
-<span><span class="co">#&gt; ALDH4A1      0.8111864      0.4667361      0.8621495</span></span></code></pre></div>
-<p>An additional important technical factor is the data normalization,
-which makes values comparable across genes with different numbers of
-isoforms.</p>
-<p>Now we should map the sample metadata into the
-<code>SummarizedExperiment</code> object (ts_se), so plotting functions
-and downstream helpers can rely on it.</p>
+<code class="sourceCode R"><span><span class="co">## Configure analysis parameters first (best practice: fail-fast principle)</span></span>
+<span><span class="co">## This validates all parameters against metadata before object creation</span></span>
+<span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/tsenat_config.html">tsenat_config</a></span><span class="op">(</span></span>
+<span>  condition_col <span class="op">=</span> <span class="st">"condition"</span>,</span>
+<span>  subject_col <span class="op">=</span> <span class="st">"paired_samples"</span>,</span>
+<span>  q_values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span>,</span>
+<span>  nthreads <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  paired <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  control <span class="op">=</span> <span class="st">"normal"</span>,</span>
+<span>  metadata <span class="op">=</span> <span class="va">metadata_df</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co">## Build a complete `TSENATAnalysis` object from readcounts + GFF3.gz annotation</span></span>
+<span><span class="co">## Pass config at construction (Bioconductor pattern): immutable object creation</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_analysis_s4.html">build_analysis_s4</a></span><span class="op">(</span></span>
+<span>  config <span class="op">=</span> <span class="va">config</span>,</span>
+<span>  readcounts <span class="op">=</span> <span class="va">readcounts</span>, </span>
+<span>  tx2gene <span class="op">=</span> <span class="va">gff3_file</span>, </span>
+<span>  tpm <span class="op">=</span> <span class="va">tpm</span>,</span>
+<span>  effective_length <span class="op">=</span> <span class="va">effective_length</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The <code>TSENATAnalysis</code> object contains a
+<code>SummarizedExperiment</code> with transcript-level counts and gene
+annotations extracted from the GFF3 file.</p>
+<p>To reduce noise and improve statistical power, we filter out
+lowly-expressed transcripts. Expression estimates of transcript isoforms
+with zero or low expression might be highly variable <span class="citation">(Jose and Lal 2013; Chakraborty 2019)</span>. For more
+details on the effect of transcript isoform prefiltering on differential
+transcript usage, see <a href="https://doi.org/10.1186/s13059-015-0862-3" class="external-link">this paper</a>.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/map_metadata.html">map_metadata</a></span><span class="op">(</span><span class="va">ts_se</span>, <span class="va">coldata_df</span>, paired <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/filter_analysis_s4.html">filter_analysis_s4</a></span><span class="op">(</span><span class="va">analysis</span>, stringency <span class="op">=</span> <span class="st">"medium"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Retained"</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="fu"><a href="../reference/se.html">se</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span><span class="op">)</span>, <span class="st">"transcripts after filtering\n"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Retained 341 transcripts after filtering</span></span></code></pre></div>
+<p>The <code>stringency = "medium"</code> parameter keeps transcripts
+present in &gt;=50% of samples with TPM values above the median of mean
+gene TPM. This balances noise reduction with preservation of isoform
+diversity needed for meaningful entropy calculations.</p>
 </div>
-<div class="section level2">
-<h2 id="differential-analysis">Differential analysis<a class="anchor" aria-label="anchor" href="#differential-analysis"></a>
-</h2>
-<p>This section summarizes practical guidance for hypothesis testing and
-reporting when comparing diversity measures across sample groups.</p>
-<p>The package integrate diverse tests for comparing per-gene diversity
-summaries between two groups. Two common choices are Wilcoxon-based
-tests and label-shuffle tests.</p>
-<p>Here we will use the <strong>Wilcoxon test</strong>; it is the
-appropriate choice for speed when sample sizes support asymptotic
-approximations, and it is robust to non-normality. The
-<strong>label-shuffling test</strong> is a non-parametric alternative
-that does not rely on distributional assumptions and can be more
-accurate for small sample sizes, but it is computationally
-intensive.</p>
-<p>For the analyses shown in this vignette we recommend using the
-<strong>median</strong> in the <strong>Wilcoxon</strong> rank-sum test
-for comparisons. The reason is that Tsallis entropy values are often
-skewed and sensitive to outliers, and the median provides in this
-condition a more robust summary of central tendency than the mean.</p>
+<div class="section level3">
+<h3 id="compute-tsallis-entropy">Compute Tsallis Entropy<a class="anchor" aria-label="anchor" href="#compute-tsallis-entropy"></a>
+</h3>
+<p>We now compute Tsallis entropy across your configured q-spectrum.
+Diversity measures provide a comprehensive framework for assessing
+isoform heterogeneity at multiple scales <span class="citation">(Ramírez-Reyes et al. 2016; Gao et al. 2019)</span>. We
+normalize entropy to [0,1] range (<code>norm = TRUE</code>) for
+comparable cross-q assessment.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Compute differences between groups using the Wilcoxon test</span></span>
-<span><span class="co"># with median aggregation</span></span>
-<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_difference.html">calculate_difference</a></span><span class="op">(</span></span>
-<span>    <span class="va">ts_se</span>,</span>
-<span>    control <span class="op">=</span> <span class="st">"Normal"</span>,</span>
-<span>    method <span class="op">=</span> <span class="st">"median"</span>,</span>
-<span>    test <span class="op">=</span> <span class="st">"wilcoxon"</span>,</span>
-<span>    paired <span class="op">=</span> <span class="cn">TRUE</span></span>
+<code class="sourceCode R"><span><span class="co"># Compute diversity using S4 wrapper with bootstrap confidence intervals [@S232; @S115]</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity_s4.html">calculate_diversity_s4</a></span><span class="op">(</span></span>
+<span>    <span class="va">analysis</span>,</span>
+<span>    norm <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co"># sort results by adjusted p-value</span></span>
-<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="va">res</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="va">res</span><span class="op">$</span><span class="va">adjusted_p_values</span><span class="op">)</span>, <span class="op">]</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
-<span><span class="co">#&gt;        genes Tumor_median Normal_median median_difference log2_fold_change</span></span>
-<span><span class="co">#&gt; 6   C1orf213   0.07256896    0.98702527       -0.91445631     -3.765662496</span></span>
-<span><span class="co">#&gt; 17     S1PR1   0.99315946    0.99930867       -0.00614921     -0.008904999</span></span>
-<span><span class="co">#&gt; 88      MBD2   0.55929534    0.07256896        0.48672638      2.946185792</span></span>
-<span><span class="co">#&gt; 99      OSR1   0.79339202    0.66364511        0.12974692      0.257621943</span></span>
-<span><span class="co">#&gt; 102    GFPT1   0.07256896    0.58345094       -0.51088198     -3.007186825</span></span>
-<span><span class="co">#&gt; 128     KIF9   0.58141625    0.37105427        0.21036198      0.647941169</span></span>
-<span><span class="co">#&gt;     raw_p_values adjusted_p_values</span></span>
-<span><span class="co">#&gt; 6   0.0002357454        0.02721101</span></span>
-<span><span class="co">#&gt; 17  0.0007285418        0.02721101</span></span>
-<span><span class="co">#&gt; 88  0.0006535852        0.02721101</span></span>
-<span><span class="co">#&gt; 99  0.0005801974        0.02721101</span></span>
-<span><span class="co">#&gt; 102 0.0008919014        0.02721101</span></span>
-<span><span class="co">#&gt; 128 0.0006356242        0.02721101</span></span></code></pre></div>
-<p>After the statistical test, in order to visualize the results and
-inspect the most significant genes, we can generate two kind of
-diagnostic plots: MA and volcano plots.</p>
-<p>First we will plot a <strong>Tsallis-based MA</strong>, which uses
-the Tsallis entropy values directly to compute fold changes and mean
-expression. This plot provides a direct view of how diversity
-differences relate to overall expression levels.</p>
+<span><span class="co">#&gt; Note: 12 genes excluded (&lt; 75% valid values).</span></span></code></pre></div>
+<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;">
+<caption>
+<strong>Table 1:</strong> Tsallis entropy for first 4 genes across three
+diversity scales (sample: SRR14800481)
+</caption>
+<thead><tr>
+<th style="text-align:left;">
+Gene
+</th>
+<th style="text-align:right;">
+q=0.0
+</th>
+<th style="text-align:right;">
+q=0.5
+</th>
+<th style="text-align:right;">
+q=1.0
+</th>
+<th style="text-align:right;">
+q=1.5
+</th>
+<th style="text-align:right;">
+q=2.0
+</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+FOXJ2
+</td>
+<td style="text-align:right;">
+0.66667
+</td>
+<td style="text-align:right;">
+0.53796
+</td>
+<td style="text-align:right;">
+0.48150
+</td>
+<td style="text-align:right;">
+0.46975
+</td>
+<td style="text-align:right;">
+0.48518
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+TMEM38A
+</td>
+<td style="text-align:right;">
+1.00000
+</td>
+<td style="text-align:right;">
+0.82704
+</td>
+<td style="text-align:right;">
+0.72526
+</td>
+<td style="text-align:right;">
+0.66965
+</td>
+<td style="text-align:right;">
+0.64401
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+CCNE1
+</td>
+<td style="text-align:right;">
+0.33333
+</td>
+<td style="text-align:right;">
+0.32256
+</td>
+<td style="text-align:right;">
+0.32749
+</td>
+<td style="text-align:right;">
+0.34571
+</td>
+<td style="text-align:right;">
+0.37418
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+MCOLN1
+</td>
+<td style="text-align:right;">
+1.00000
+</td>
+<td style="text-align:right;">
+0.39297
+</td>
+<td style="text-align:right;">
+0.21567
+</td>
+<td style="text-align:right;">
+0.16305
+</td>
+<td style="text-align:right;">
+0.15195
+</td>
+</tr>
+</tbody>
+</table>
+<p>With the q-spectrum we can produce a q-curve per sample and gene.
+These curves show how diversity emphasis shifts from rare to dominant
+isoforms as <code>q</code> increases and form the basis for interaction
+tests. The q-curve shows entropy as a function of <code>q</code>.
+Diverging curves between groups indicate scale-dependent diversity
+differences: separation at low <code>q</code> implies differences in
+rare isoforms, while separation at high <code>q</code> signals
+differences in dominant isoforms.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># MA plot (Tsallis-based)</span></span>
-<span><span class="va">p_ma</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_ma_tsallis.html">plot_ma_tsallis</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_ma</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/ma-tsallis-1.png" class="r-plt" alt="" width="960"></p>
-<p>Second, we will plot an <strong>expression/readcount-based
-MA</strong>, which uses the original read counts to compute fold changes
-and mean expression. This plot helps to contextualize diversity
-differences in terms of overall gene expression levels.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># MA plot (expression/readcount-based)</span></span>
-<span><span class="va">p_ma_read</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_ma_expression.html">plot_ma_expression</a></span><span class="op">(</span></span>
-<span>    <span class="va">res</span>,</span>
-<span>    se <span class="op">=</span> <span class="va">ts_se</span>,</span>
-<span>    control <span class="op">=</span> <span class="st">"Normal"</span></span>
+<code class="sourceCode R"><span><span class="co"># Plot overall q-curve</span></span>
+<span><span class="va">p_qcurve</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_q_curve_s4.html">plot_tsallis_q_curve_s4</a></span><span class="op">(</span></span>
+<span>    se <span class="op">=</span> <span class="va">analysis</span></span>
 <span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_ma_read</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/ma-readcounts-1.png" class="r-plt" alt="" width="960"></p>
-<p>On the other hands, the <strong>volcano plot</strong> displays the
-relationship between the magnitude of diversity differences (mean
-difference) and their statistical significance (adjusted p-value). This
-plot helps to identify genes with both large effect sizes and strong
-statistical support.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Volcano plot: mean difference vs -log10(adjusted p-value)</span></span>
-<span><span class="va">p_volcano</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_volcano.html">plot_volcano</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_volcano</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/volcanoplot-1.png" class="r-plt" alt="" width="960"></p>
-<div class="section level3">
-<h3 id="plot-top-3-genes-from-the-single-q-differential-analysis">Plot top 3 genes from the single-q differential analysis<a class="anchor" aria-label="anchor" href="#plot-top-3-genes-from-the-single-q-differential-analysis"></a>
-</h3>
-<p>Here we will visualize the transcript-level expression for the most
-significant genes identified in the previous step.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Plot using median aggregation; let the function pick top genes from `res`</span></span>
-<span><span class="va">p_median</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_top_transcripts.html">plot_top_transcripts</a></span><span class="op">(</span><span class="va">ts_se</span>,</span>
-<span>    res <span class="op">=</span> <span class="va">res</span>, top_n <span class="op">=</span> <span class="fl">3</span>, metric <span class="op">=</span> <span class="st">"median"</span></span>
-<span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_median</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/top-transcripts-singleq-1.png" class="r-plt" alt="" width="960"></p>
-<p>We can also plot the same top genes but using variance aggregation
-instead of median. This allows us to see how transcript-level expression
-variability differs between groups for these genes.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Plot using variance aggregation</span></span>
-<span><span class="va">p_var</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_top_transcripts.html">plot_top_transcripts</a></span><span class="op">(</span><span class="va">ts_se</span>,</span>
-<span>    res <span class="op">=</span> <span class="va">res</span>, top_n <span class="op">=</span> <span class="fl">3</span>, metric <span class="op">=</span> <span class="st">"variance"</span></span>
-<span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_var</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/top-transcripts-singleq-variance-1.png" class="r-plt" alt="" width="960"></p>
-</div>
-</div>
-<div class="section level2">
-<h2 id="compare-between-q-values">Compare between q values<a class="anchor" aria-label="anchor" href="#compare-between-q-values"></a>
-</h2>
-<p>Now we are going to try a different approach. In instead of evaluate
-the sificant estatistical differences by using single Tsalis
-<code>q</code> values, we will compute the normalized Tsallis entropy
-for two <code>q</code> values (0.1 and 2) to studiy potential
-scale-dependent patterns.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># compute Tsallis entropy for q = 1 (normalized)</span></span>
-<span><span class="va">q</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">2</span><span class="op">)</span></span>
-<span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">se</span>,</span>
-<span>    q <span class="op">=</span> <span class="va">q</span>, norm <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt;         TCGA-A7-A0CH_N_q=0.1 TCGA-A7-A0CH_N_q=2 TCGA-A7-A0CH_T_q=0.1</span></span>
-<span><span class="co">#&gt; MXRA8              0.8616275          0.6063802            0.6609111</span></span>
-<span><span class="co">#&gt; C1orf86            0.0000000          0.0000000            0.0000000</span></span>
-<span><span class="co">#&gt; PDPN               0.2657489          0.6205367            0.2588286</span></span>
-<span><span class="co">#&gt; ALDH4A1            0.8111864          0.7478309            0.4667361</span></span></code></pre></div>
-<p>Once again, we should map the sample metadata into the multi-q
-<code>SummarizedExperiment</code>. This step is important to ensure that
-functions located downstream in the workflow can access the sample
-metadata correctly.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/map_metadata.html">map_metadata</a></span><span class="op">(</span><span class="va">ts_se</span>, <span class="va">coldata_df</span><span class="op">)</span></span></code></pre></div>
-<p>In order to show the distributional differences between groups, we
-are going to create <strong>violin and density plots</strong>.</p>
-<p>The violin plot shows the distribution of Tsallis entropy values for
-each group and q value, allowing us to visually assess differences in
-diversity patterns between groups at different sensitivity levels.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">p_violin</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_violin_multq.html">plot_tsallis_violin_multq</a></span><span class="op">(</span><span class="va">ts_se</span>, assay_name <span class="op">=</span> <span class="st">"diversity"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_violin</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/plots-violin-1.png" class="r-plt" alt="" width="960"></p>
-<p>The density plot provides a equivalent view of the distribution of
-Tsallis entropy values, showing the density of samples across the range
-of diversity values for each group and q value.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">p_density</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_density_multq.html">plot_tsallis_density_multq</a></span><span class="op">(</span><span class="va">ts_se</span>, assay_name <span class="op">=</span> <span class="st">"diversity"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_density</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/plots-density-1.png" class="r-plt" alt="" width="960"></p>
-</div>
-<div class="section level2">
-<h2 id="tsallis-q-sequence-and-linear-model-interaction-tests">Tsallis q-sequence and linear-model interaction tests<a class="anchor" aria-label="anchor" href="#tsallis-q-sequence-and-linear-model-interaction-tests"></a>
-</h2>
-<p>FInally, we can test for interactions between <code>q</code> and
-sample groups across a sequence of <code>q</code> values
-(<code>q-sequence</code>), that is, whether the shape of the q-curve
-differs between groups. This approach is a powerful way to detect
-scale-dependent diversity differences that may not be apparent at a
-single <code>q</code> value.</p>
-<p>Computing Tsallis entropy across a sequence of <code>q</code> values
-is important because <code>q</code> acts as a sensitivity lens that
-shifts emphasis between rare and dominant events in data. Thus, the
-resulting <strong>q-curve</strong> can help us identify at which scales
-(i.e. for which <code>q</code> values) the diversity differences between
-groups are most pronounced. The Tsallis <code>q-sequence</code> can also
-help with quality control and outlier detection. By examining the
-q-curves of individual samples, we can identify samples that deviate
-from expected patterns, which may indicate technical issues or
-biological outliers.</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># compute Tsallis entropy for a sequence of values (normalized)</span></span>
-<span><span class="va">qvec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
-<span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">se</span>,</span>
-<span>    q <span class="op">=</span> <span class="va">qvec</span>, norm <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt;         TCGA-A7-A0CH_N_q=0.1 TCGA-A7-A0CH_N_q=0.15 TCGA-A7-A0CH_N_q=0.2</span></span>
-<span><span class="co">#&gt; MXRA8              0.8616275             0.8073925            0.7611249</span></span>
-<span><span class="co">#&gt; C1orf86            0.0000000             0.0000000            0.0000000</span></span>
-<span><span class="co">#&gt; PDPN               0.2657489             0.2738368            0.2820625</span></span>
-<span><span class="co">#&gt; ALDH4A1            0.8111864             0.7506492            0.7056995</span></span></code></pre></div>
-<p>Map once again the sample metadata into the multi-q
-<code>SummarizedExperiment</code> as before.</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># For paired designs ensure sample_base is created so LMMs can use it</span></span>
-<span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/map_metadata.html">map_metadata</a></span><span class="op">(</span><span class="va">ts_se</span>, <span class="va">coldata_df</span>, paired <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
-<p>Once we have the <strong>q-sequence</strong> computed, we can test
-for interactions between <code>q</code> and sample groups using one of
-four methods implemented in <code><a href="../reference/calculate_lm_interaction.html">calculate_lm_interaction()</a></code>:</p>
-<ul>
-<li>
-<strong>linear</strong>: fits a simple linear model. This is fast
-and interpretable and is appropriate when the q–response is
-approximately linear and samples are independent.</li>
-<li>
-<strong>lmm</strong>: fits a linear mixed model which accounts for
-subject-level random effects (paired or repeated measures).</li>
-<li>
-<strong>gam</strong>: fits a generalized additive model. This method
-allows to capture nonlinear q–response shapes.</li>
-<li>
-<strong>fpca</strong>: uses a functional-data approach to reduce
-each gene’s q-curve to principal component scores. This is recommended
-when q is densely sampled or when q-curves exhibit complex,
-high-dimensional variation.</li>
-</ul>
-<p>Below we demonstrate a practical <code>lmm</code> example using the
-<strong>Satterthwaite</strong> approximation for per-term inference.
-This method is preferable for small or moderately sized paired RNA‑seq
-studies when per-term inference is required (for example, the q:group
-interaction).</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co">## Linear-model interaction test across q values: detect q x group interaction</span></span>
-<span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"lme4"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="co"># Compute and show top hits (by adjusted p-value)</span></span>
-<span>    <span class="va">lm_res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_lm_interaction.html">calculate_lm_interaction</a></span><span class="op">(</span><span class="va">ts_se</span>,</span>
-<span>        sample_type_col <span class="op">=</span> <span class="st">"sample_type"</span>, method <span class="op">=</span> <span class="st">"lmm"</span>,</span>
-<span>        pvalue <span class="op">=</span> <span class="st">"satterthwaite"</span>,</span>
-<span>        subject_col <span class="op">=</span> <span class="st">"sample_base"</span></span>
-<span>    <span class="op">)</span></span>
-<span>    <span class="co"># show the top entries</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">lm_res</span>, <span class="fl">6</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span><span class="co">#&gt;      gene p_interaction         p_lrt p_satterthwaite fit_method singular</span></span>
-<span><span class="co">#&gt; 1  HAPLN3 2.319271e-111 2.139688e-111   2.319271e-111       lmer    FALSE</span></span>
-<span><span class="co">#&gt; 2  COL1A2  8.713853e-97  8.123588e-97    8.713853e-97       lmer    FALSE</span></span>
-<span><span class="co">#&gt; 3   EEF2K  3.093021e-87  2.903439e-87    3.093021e-87       lmer    FALSE</span></span>
-<span><span class="co">#&gt; 4 C1orf86  8.733394e-83  8.224552e-83    8.733394e-83       lmer    FALSE</span></span>
-<span><span class="co">#&gt; 5  LRRC15  7.474347e-79  7.058969e-79    7.474347e-79       lmer    FALSE</span></span>
-<span><span class="co">#&gt; 6    PI16  5.493773e-73  5.210643e-73    5.493773e-73       lmer    FALSE</span></span>
-<span><span class="co">#&gt;   adj_p_interaction</span></span>
-<span><span class="co">#&gt; 1     4.615350e-109</span></span>
-<span><span class="co">#&gt; 2      8.670284e-95</span></span>
-<span><span class="co">#&gt; 3      2.051704e-85</span></span>
-<span><span class="co">#&gt; 4      4.344863e-81</span></span>
-<span><span class="co">#&gt; 5      2.974790e-77</span></span>
-<span><span class="co">#&gt; 6      1.822101e-71</span></span></code></pre></div>
-<div class="section level3">
-<h3 id="tsallis-q-sequence-plot">Tsallis q-sequence plot<a class="anchor" aria-label="anchor" href="#tsallis-q-sequence-plot"></a>
-</h3>
-<p>With the <strong>Tsallis q-sequence</strong> we can produce a q-curve
-per sample and gene. These curves show how diversity emphasis shifts
-from rare to dominant isoforms as <code>q</code> increases and form the
-basis for interaction tests. The q-curve shows entropy as a function of
-<code>q</code>. Diverging curves between groups indicate
-<strong>scale-dependent diversity differences</strong>: separation at
-low <code>q</code> implies differences in rare isoforms, while
-separation at high <code>q</code> signals differences in dominant
-isoforms.</p>
-<p>Now we will plot the q-curve profile for the top gene identified by
-the linear-model interaction test. We will start with
-<code>HAPLN3</code>, which codifies member of the hyaluronan and
-proteoglycan link protein family expressed in the extracellular matrix,
-and closely associated with the development and occurrence of various
-malignant tumors (<a href="https://doi.org/10.1007/s00432-022-04421-3" class="external-link">source</a>).</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Plot q-curve profile for top linear-model gene</span></span>
-<span><span class="va">plot_target</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_gene_profile.html">plot_tsallis_gene_profile</a></span><span class="op">(</span><span class="va">ts_se</span>, gene <span class="op">=</span> <span class="st">"HAPLN3"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">plot_target</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/hapln3-gene-qprofile-1.png" class="r-plt" alt="" width="960"></p>
-<p>Now let’s look at <code>COL1A2</code>, encodes the pro-alpha2 chain
-of type I collagen, a fibril-forming collagen found in most connective
-tissues.</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Plot q-curve profile for top linear-model gene</span></span>
-<span><span class="va">plot_target</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_gene_profile.html">plot_tsallis_gene_profile</a></span><span class="op">(</span><span class="va">ts_se</span>, gene <span class="op">=</span> <span class="st">"COL1A2"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">plot_target</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/colia2-gene-qprofile-1.png" class="r-plt" alt="" width="960"></p>
-<p>Finally, we can visualize the gene <code>PI16</code>, which is
-emerging as an important regulator in the vascular system.</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Plot q-curve profile for top linear-model gene</span></span>
-<span><span class="va">plot_target</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_gene_profile.html">plot_tsallis_gene_profile</a></span><span class="op">(</span><span class="va">ts_se</span>, gene <span class="op">=</span> <span class="st">"PI16"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">plot_target</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/pi16-gene-qprofile-1.png" class="r-plt" alt="" width="960"></p>
-<p>We can also plot the <strong>overall Tsallis q-curve for all
-genes</strong>. This plot provides a global view of how diversity
-changes across the <code>q</code> spectrum for the entire dataset and
-can reveal general trends in isoform diversity.</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Plot top tsallis q curve</span></span>
-<span><span class="va">p_qcurve</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_q_curve.html">plot_tsallis_q_curve</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_qcurve</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/tsallis-q-curve-1.png" class="r-plt" alt="" width="960"></p>
+<div class="figure">
+<img src="TSENAT_files/figure-html/fig-1-isoform-diversity-profiles-1.png" class="r-plt" alt="**Figure 1:** Isoform diversity profiles across q-values. Lines show normalized Tsallis entropy (0-1) for each sample, blue control and red treatment." width="98%"><p class="caption">
+<strong>Figure 1:</strong> Isoform diversity profiles across q-values.
+Lines show normalized Tsallis entropy (0-1) for each sample, blue
+control and red treatment.
+</p>
+</div>
+</div>
+<div class="section level3">
+<h3 id="quality-control-sample-influence-assessment">Quality Control: Sample Influence Assessment<a class="anchor" aria-label="anchor" href="#quality-control-sample-influence-assessment"></a>
+</h3>
+<p>Before proceeding with group-level comparisons, we should assess
+whether individual samples exert disproportionate influence on our
+entropy estimates <span class="citation">(Efron, Bradley and Tibshirani,
+Robert J. 1993)</span>. To address this, we employ a leave-one-out
+influence assessment combined with robust M-estimation <span class="citation">(Phipson and Smyth 2010)</span> (iteratively
+re-weighted least squares with Huber loss). This approach quantifies how
+much each sample’s removal affects the estimated location differences
+across the q-spectrum, providing a sample-level quality control metric
+independent of group assignment.</p>
+<p>Samples with high influence scores exert disproportionate leverage on
+entropy estimates and may warrant deeper investigation for technical
+quality issues, subject-specific outliers, or genuine biological signals
+that require careful interpretation.</p>
+<p>We configure three key parameters: <code>loss_type = "huber"</code>
+employs Huber M-estimation (robust to outliers with bounded influence),
+<code>q_combine_method = "mean"</code> averages influence metrics across
+the entire q-spectrum for a single score per sample, and
+<code>influence_threshold = 0.75</code> designates the percentile cutoff
+above which samples are flagged (such that the top 25% most influential
+samples are reviewed).</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Perform multi-q sample influence analysis via S4 wrapper</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/m_estimate_s4.html">m_estimate_s4</a></span><span class="op">(</span></span>
+<span>    <span class="va">analysis</span>,</span>
+<span>    loss_type <span class="op">=</span> <span class="st">"huber"</span>,</span>
+<span>    q_combine_method <span class="op">=</span> <span class="st">"mean"</span>,</span>
+<span>    influence_threshold <span class="op">=</span> <span class="fl">0.75</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Extract results from metadata using accessor function</span></span>
+<span><span class="va">sample_qc</span> <span class="op">&lt;-</span> <span class="fu">metadata</span><span class="op">(</span><span class="va">analysis</span>, <span class="st">"m_estimate_results"</span><span class="op">)</span></span></code></pre></div>
+<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;">
+<caption>
+<strong>Table 2 | Sample Influence Assessment via M-estimation.</strong>
+Ranked by magnitude of resampling-based influence values. Columns:
+Sample identifier; mean and standard deviation of Tsallis entropy;
+distance from centroid; outlier status. M-estimation identifies
+influential samples for sensitivity analysis.
+</caption>
+<thead><tr>
+<th style="text-align:left;">
+Sample
+</th>
+<th style="text-align:left;">
+Condition
+</th>
+<th style="text-align:right;">
+Proportion_Affected
+</th>
+<th style="text-align:right;">
+Genes_Affected
+</th>
+<th style="text-align:right;">
+Entropy_Mean
+</th>
+<th style="text-align:right;">
+Entropy_SD
+</th>
+<th style="text-align:right;">
+Distance_from_Centroid
+</th>
+<th style="text-align:left;">
+Status
+</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+SRR14800481
+</td>
+<td style="text-align:left;">
+normal
+</td>
+<td style="text-align:right;">
+0.847
+</td>
+<td style="text-align:right;">
+64.4
+</td>
+<td style="text-align:right;">
+0.6936
+</td>
+<td style="text-align:right;">
+0.2364
+</td>
+<td style="text-align:right;">
+1.7930
+</td>
+<td style="text-align:left;">
+OK
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SRR14800480
+</td>
+<td style="text-align:left;">
+normal
+</td>
+<td style="text-align:right;">
+0.806
+</td>
+<td style="text-align:right;">
+61.2
+</td>
+<td style="text-align:right;">
+0.7345
+</td>
+<td style="text-align:right;">
+0.1972
+</td>
+<td style="text-align:right;">
+1.2384
+</td>
+<td style="text-align:left;">
+OK
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SRR14800477
+</td>
+<td style="text-align:left;">
+normal
+</td>
+<td style="text-align:right;">
+0.833
+</td>
+<td style="text-align:right;">
+63.3
+</td>
+<td style="text-align:right;">
+0.6896
+</td>
+<td style="text-align:right;">
+0.2852
+</td>
+<td style="text-align:right;">
+1.5809
+</td>
+<td style="text-align:left;">
+OK
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SRR14800476
+</td>
+<td style="text-align:left;">
+normal
+</td>
+<td style="text-align:right;">
+0.889
+</td>
+<td style="text-align:right;">
+67.6
+</td>
+<td style="text-align:right;">
+0.7310
+</td>
+<td style="text-align:right;">
+0.2329
+</td>
+<td style="text-align:right;">
+0.9118
+</td>
+<td style="text-align:left;">
+OK
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SRR14800475
+</td>
+<td style="text-align:left;">
+normal
+</td>
+<td style="text-align:right;">
+0.861
+</td>
+<td style="text-align:right;">
+65.4
+</td>
+<td style="text-align:right;">
+0.6774
+</td>
+<td style="text-align:right;">
+0.2435
+</td>
+<td style="text-align:right;">
+1.6796
+</td>
+<td style="text-align:left;">
+OK
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SRR14800490
+</td>
+<td style="text-align:left;">
+normal
+</td>
+<td style="text-align:right;">
+0.849
+</td>
+<td style="text-align:right;">
+64.5
+</td>
+<td style="text-align:right;">
+0.6843
+</td>
+<td style="text-align:right;">
+0.2357
+</td>
+<td style="text-align:right;">
+1.3522
+</td>
+<td style="text-align:left;">
+OK
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SRR14800489
+</td>
+<td style="text-align:left;">
+normal
+</td>
+<td style="text-align:right;">
+0.875
+</td>
+<td style="text-align:right;">
+66.5
+</td>
+<td style="text-align:right;">
+0.7339
+</td>
+<td style="text-align:right;">
+0.2426
+</td>
+<td style="text-align:right;">
+1.0969
+</td>
+<td style="text-align:left;">
+OK
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SRR14800488
+</td>
+<td style="text-align:left;">
+normal
+</td>
+<td style="text-align:right;">
+0.861
+</td>
+<td style="text-align:right;">
+65.4
+</td>
+<td style="text-align:right;">
+0.6738
+</td>
+<td style="text-align:right;">
+0.2649
+</td>
+<td style="text-align:right;">
+1.6536
+</td>
+<td style="text-align:left;">
+OK
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SRR14800479
+</td>
+<td style="text-align:left;">
+tumor
+</td>
+<td style="text-align:right;">
+0.861
+</td>
+<td style="text-align:right;">
+65.4
+</td>
+<td style="text-align:right;">
+0.6842
+</td>
+<td style="text-align:right;">
+0.2721
+</td>
+<td style="text-align:right;">
+2.2114
+</td>
+<td style="text-align:left;">
+OK
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SRR14800478
+</td>
+<td style="text-align:left;">
+tumor
+</td>
+<td style="text-align:right;">
+0.903
+</td>
+<td style="text-align:right;">
+68.6
+</td>
+<td style="text-align:right;">
+0.7345
+</td>
+<td style="text-align:right;">
+0.2440
+</td>
+<td style="text-align:right;">
+1.5721
+</td>
+<td style="text-align:left;">
+Flag for QC
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SRR14800487
+</td>
+<td style="text-align:left;">
+tumor
+</td>
+<td style="text-align:right;">
+0.861
+</td>
+<td style="text-align:right;">
+65.4
+</td>
+<td style="text-align:right;">
+0.7257
+</td>
+<td style="text-align:right;">
+0.2193
+</td>
+<td style="text-align:right;">
+1.2201
+</td>
+<td style="text-align:left;">
+OK
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SRR14800486
+</td>
+<td style="text-align:left;">
+tumor
+</td>
+<td style="text-align:right;">
+0.903
+</td>
+<td style="text-align:right;">
+68.6
+</td>
+<td style="text-align:right;">
+0.7207
+</td>
+<td style="text-align:right;">
+0.2497
+</td>
+<td style="text-align:right;">
+1.4798
+</td>
+<td style="text-align:left;">
+Flag for QC
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SRR14800485
+</td>
+<td style="text-align:left;">
+tumor
+</td>
+<td style="text-align:right;">
+0.861
+</td>
+<td style="text-align:right;">
+65.4
+</td>
+<td style="text-align:right;">
+0.7334
+</td>
+<td style="text-align:right;">
+0.2131
+</td>
+<td style="text-align:right;">
+1.4140
+</td>
+<td style="text-align:left;">
+OK
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SRR14800484
+</td>
+<td style="text-align:left;">
+tumor
+</td>
+<td style="text-align:right;">
+0.889
+</td>
+<td style="text-align:right;">
+67.6
+</td>
+<td style="text-align:right;">
+0.7382
+</td>
+<td style="text-align:right;">
+0.2095
+</td>
+<td style="text-align:right;">
+1.1499
+</td>
+<td style="text-align:left;">
+OK
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SRR14800483
+</td>
+<td style="text-align:left;">
+tumor
+</td>
+<td style="text-align:right;">
+0.861
+</td>
+<td style="text-align:right;">
+65.4
+</td>
+<td style="text-align:right;">
+0.7425
+</td>
+<td style="text-align:right;">
+0.2283
+</td>
+<td style="text-align:right;">
+1.6020
+</td>
+<td style="text-align:left;">
+OK
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SRR14800482
+</td>
+<td style="text-align:left;">
+tumor
+</td>
+<td style="text-align:right;">
+0.917
+</td>
+<td style="text-align:right;">
+69.7
+</td>
+<td style="text-align:right;">
+0.7186
+</td>
+<td style="text-align:right;">
+0.2446
+</td>
+<td style="text-align:right;">
+1.6711
+</td>
+<td style="text-align:left;">
+Flag for QC
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Interpretation:</strong> Samples with distance from centroid
+&gt;1.5 or proportion of affected genes &gt;0.85 are flagged for quality
+control review. Flagged samples may reflect genuine biological
+heterogeneity or technical artifacts requiring careful examination
+before proceeding with downstream analysis.</p>
+</div>
+<div class="section level3">
+<h3 id="linear-model-interaction">Linear-Model interaction<a class="anchor" aria-label="anchor" href="#linear-model-interaction"></a>
+</h3>
+<p>We can test for interactions between <code>q</code> and sample groups
+across the q-sequence using one of five methods: linear, lmm (linear
+mixed model <span class="citation">(Le Roux and Rouanet 2011; Phipson
+and Smyth 2010)</span>), gam (generalized additive model <span class="citation">(Chapman 2017; Goude 2024)</span>), gee (generalized
+estimating equations for paired data), or fpca (functional principal
+component analysis). The gam method flexibly captures nonlinear
+q-response patterns and is particularly useful for complex interaction
+structures.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Linear-model interaction test across q values using S4 wrapper</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"mgcv"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_lm_interaction_s4.html">calculate_lm_interaction_s4</a></span><span class="op">(</span></span>
+<span>        <span class="va">analysis</span>,</span>
+<span>        method <span class="op">=</span> <span class="st">"gam"</span>,</span>
+<span>        multicorr <span class="op">=</span> <span class="st">"hochberg"</span></span>
+<span>    <span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;">
+<caption>
+<strong>Table 3 | Leading genes with scale-dependent condition effects
+from generalized additive models.</strong> We display the 6 genes with
+lowest adjusted p-values (<em>q</em> &lt; 0.05). Benjamini-Hochberg
+correction applied; columns show gene identifier, effect size, test
+statistic, convergence status, and heteroscedasticity detection.
+Methods: GAMs with <em>q</em> and condition as smooth predictors <span class="citation">(Benjamini and Hochberg 1995)</span>.
+</caption>
+<thead><tr>
+<th style="text-align:left;">
+Gene
+</th>
+<th style="text-align:left;">
+Gene Name
+</th>
+<th style="text-align:left;">
+P-value
+</th>
+<th style="text-align:left;">
+Adj. P-value
+</th>
+<th style="text-align:right;">
+Effect Size
+</th>
+<th style="text-align:right;">
+Test Statistic
+</th>
+<th style="text-align:left;">
+Model Converged
+</th>
+<th style="text-align:left;">
+Heteroscedasticity
+</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+CXCL12
+</td>
+<td style="text-align:left;">
+CXCL12
+</td>
+<td style="text-align:left;">
+3.93e-164
+</td>
+<td style="text-align:left;">
+2.99e-162
+</td>
+<td style="text-align:right;">
+0.8127
+</td>
+<td style="text-align:right;">
+752.5086
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+THY1
+</td>
+<td style="text-align:left;">
+THY1
+</td>
+<td style="text-align:left;">
+9.80e-97
+</td>
+<td style="text-align:left;">
+7.35e-95
+</td>
+<td style="text-align:right;">
+0.6008
+</td>
+<td style="text-align:right;">
+442.1369
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ING3
+</td>
+<td style="text-align:left;">
+ING3
+</td>
+<td style="text-align:left;">
+2.72e-77
+</td>
+<td style="text-align:left;">
+2.02e-75
+</td>
+<td style="text-align:right;">
+0.3533
+</td>
+<td style="text-align:right;">
+352.5945
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SNHG10
+</td>
+<td style="text-align:left;">
+SNHG10
+</td>
+<td style="text-align:left;">
+9.81e-75
+</td>
+<td style="text-align:left;">
+7.16e-73
+</td>
+<td style="text-align:right;">
+0.0515
+</td>
+<td style="text-align:right;">
+340.8200
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+LINC03040
+</td>
+<td style="text-align:left;">
+LINC03040
+</td>
+<td style="text-align:left;">
+1.87e-57
+</td>
+<td style="text-align:left;">
+1.35e-55
+</td>
+<td style="text-align:right;">
+0.7380
+</td>
+<td style="text-align:right;">
+261.2380
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+HDAC2
+</td>
+<td style="text-align:left;">
+HDAC2
+</td>
+<td style="text-align:left;">
+2.61e-51
+</td>
+<td style="text-align:left;">
+1.85e-49
+</td>
+<td style="text-align:right;">
+0.2844
+</td>
+<td style="text-align:right;">
+232.9431
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+<td style="text-align:left;">
+TRUE
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Interpretation:</strong> TRUE in the Heteroscedasticity
+column indicates that the model satisfies homogeneity-of-variance
+assumptions across the q-spectrum; FALSE values suggest variance
+heterogeneity and warrant caution in result interpretation.</p>
+<p>Now we will plot the q-curve profile for the top genes identified by
+the linear-model interaction test.</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Plot q-curve profiles for the top 4 genes using the S4 wrapper</span></span>
+<span><span class="va">combined_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_lm_interaction_gam_s4.html">plot_lm_interaction_gam_s4</a></span><span class="op">(</span></span>
+<span>    <span class="va">analysis</span>,</span>
+<span>    n_top <span class="op">=</span> <span class="fl">4</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">combined_plot</span><span class="op">)</span></span></code></pre></div>
+<div class="figure">
+<img src="TSENAT_files/figure-html/fig-2-scale-dependent-genes-1.png" class="r-plt" alt="**Figure 2:** Scale-dependent interaction analysis. GAM-identified genes showing significant q$\times$condition effects (Benjamini-Hochberg q &lt; 0.05)." width="98%"><p class="caption">
+<strong>Figure 2:</strong> Scale-dependent interaction analysis.
+GAM-identified genes showing significant
+q<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>condition
+effects (Benjamini-Hochberg q &lt; 0.05).
+</p>
+</div>
+</div>
+<div class="section level3">
+<h3 id="transcript-switching-across-diversity-scales">Transcript Switching Across Diversity Scales<a class="anchor" aria-label="anchor" href="#transcript-switching-across-diversity-scales"></a>
+</h3>
+<div class="section level4">
+<h4 id="why-scale-dependent-analysis-matters">Why Scale-Dependent Analysis Matters<a class="anchor" aria-label="anchor" href="#why-scale-dependent-analysis-matters"></a>
+</h4>
+<p>Biological systems operate through processes at fundamentally
+different organizational scales. A single gene’s expression can be
+viewed through different “lenses”-from the perspective of dominant
+isoforms (high <em>q</em>, emphasizing abundant variants) to rare
+isoforms that may carry functional significance in specific contexts
+(low <em>q</em>, emphasizing rare variants). The LM interaction test
+revealed that condition effects vary across these diversity scales (q
+parameter), reflecting how biological reorganization can manifest
+differently depending on which aspect of isoform complexity we
+examine.</p>
+<p>The theoretical foundation for scale-dependent analysis comes from
+generalized entropy measures. Renyi’s entropy family <span class="citation">(Rényi 1961)</span> introduced a continuous spectrum of
+diversity measures parameterized by a sensitivity index, which Tsallis
+later extended and popularized <span class="citation">(Alomani and Kayid
+2023)</span>. Unlike Shannon entropy (which represents a single point on
+this spectrum), Tsallis entropy provides a family of measures where the
+parameter <em>q</em> acts as a “magnifying glass”-adjusting what
+organizational scales become visible. Mathematically, different
+<em>q</em>-values weight rare versus abundant isoforms differently: -
+Low <em>q</em> (0-0.5): Emphasized rare isoforms, revealing exploratory
+or conditional splicing programs - Mid <em>q</em> (0.5-1.5): Balanced
+sensitivity across the full isoform distribution<br>
+- High <em>q</em> (1.5-2.0): Emphasized abundant isoforms, revealing
+core splicing decisions</p>
+<p>In biological systems, these different scales often correspond to
+different regulatory mechanisms. A transcript may be consistently rare
+across conditions (no switching at low <em>q</em>) while being stably
+abundant at high <em>q</em>. Detecting such scale-specific switching
+patterns reveals the mechanistic structure of splicing regulation <span class="citation">(Tarabichi et al. 2013)</span>.</p>
+</div>
+<div class="section level4">
+<h4 id="bridging-theory-multi-q-analysis-to-fine-scale-jackknife-testing">Bridging Theory: Multi-<em>q</em> Analysis to Fine-Scale Jackknife
+Testing<a class="anchor" aria-label="anchor" href="#bridging-theory-multi-q-analysis-to-fine-scale-jackknife-testing"></a>
+</h4>
+<p>The current analysis bridges two complementary approaches:</p>
+<ol style="list-style-type: decimal">
+<li><p><strong>Multi-<em>q</em> LM interaction test</strong>: Tests
+whether the condition effect on divergence depends on <em>q</em>
+(overall pattern across diversity scales)</p></li>
+<li><p><strong>Single-<em>q</em> jackknife resampling</strong>: Tests
+which individual transcripts drive those patterns at each
+<em>q</em>-value, with robustness assessment</p></li>
+</ol>
+<p>This two-stage approach combines hypothesis testing with robustness
+validation <span class="citation">(Efron, Bradley and Tibshirani, Robert
+J. 1993)</span>. The LM test identifies <em>where</em> (at which
+<em>q</em>-values) significant switching occurs. The jackknife-based
+delta influence then identifies <em>which transcripts</em> contribute to
+those patterns, weighting confidence by operational stability rather
+than simple frequency.</p>
+</div>
+<div class="section level4">
+<h4 id="interpreting-scale-dependent-switching-patterns">Interpreting Scale-Dependent Switching Patterns<a class="anchor" aria-label="anchor" href="#interpreting-scale-dependent-switching-patterns"></a>
+</h4>
+<p>Here we assess whether these switching patterns are consistent across
+different q values or vary by scale. The key question is: <strong>Do the
+same transcripts switch across all diversity scales, or does the
+identity of switching transcripts depend on which scale we
+examine?</strong></p>
+<ul>
+<li>
+<strong>Consistent switching</strong>: The same transcripts show
+significant delta influence across <em>q</em>-values suggests a robust,
+scale-independent splicing shift</li>
+<li>
+<strong>Mixed/scale-dependent switching</strong>: Different
+transcripts show importance at different <em>q</em>-values suggests
+regulatory complexity where the mechanism differs by scale</li>
+</ul>
+<p>This classification reveals whether isoform reorganization is a
+coordinated, global phenomenon (same transcripts across scales) or a
+layered process where different regulatory inputs dominate at different
+organizational scales.</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Multi-Q analysis: Test switching at different q values</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/jackknife_isoform_switching_s4.html">jackknife_isoform_switching_s4</a></span><span class="op">(</span></span>
+<span>    <span class="va">analysis</span>,</span>
+<span>    q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.5</span>, <span class="fl">1</span>, <span class="fl">1.5</span>, <span class="fl">2</span><span class="op">)</span>,</span>
+<span>    nboot <span class="op">=</span> <span class="fl">100</span>,</span>
+<span>    lm_p_threshold <span class="op">=</span> <span class="fl">0.05</span>,</span>
+<span>    threshold <span class="op">=</span> <span class="fl">90</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>We configure three key parameters for the switching analysis:
+<code>nboot = 100</code> specifies 100 bootstrap resamples to estimate
+robust confidence intervals for delta influence values <span class="citation">(Efron, Bradley and Tibshirani, Robert J. 1993)</span>;
+<code>lm_p_threshold = 0.05</code> filters genes to those with
+significant
+q<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>condition
+interaction effects (p &lt; 0.05) before assessing transcript switching;
+and <code>threshold = 90</code> designates transcripts with support
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>≥</mo><annotation encoding="application/x-tex">\geq</annotation></semantics></math>
+90% across bootstrap samples as robust switches. These parameters
+balance sensitivity (detecting switching) with specificity (avoiding
+false positives from noise).</p>
+<p>The tables below examine transcript switching patterns for the top
+genes with strongest
+q<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>condition
+interactions. Delta influence, derived from jackknife resampling <span class="citation">(Efron, Bradley and Tibshirani, Robert J. 1993)</span>,
+quantifies how each transcript’s relative importance changes between
+conditions, weighted by stability across bootstrap iterations (positive
+= more influential in first condition; negative = second condition). The
+<code>Direction Consistency</code> column classifies each transcript:
+“Consistent” indicates stable switching across q-values, while “Mixed”
+indicates scale-dependent switching. This reveals whether isoform shifts
+involve the same transcripts across scales or whether different q-values
+emphasize different transcripts.</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Prepare comparison tables for top genes across q-values using S4 accessor</span></span>
+<span><span class="va">tables_result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_gene_switching_tables_s4.html">prepare_gene_switching_tables_s4</a></span><span class="op">(</span></span>
+<span>    <span class="va">analysis</span>, </span>
+<span>    n_top_genes <span class="op">=</span> <span class="fl">2</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<div class="section level5">
+<h5 id="gene-cxcl12-ensg00000107562-18">Gene: CXCL12 (ENSG00000107562.18)<a class="anchor" aria-label="anchor" href="#gene-cxcl12-ensg00000107562-18"></a>
+</h5>
+<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;">
+<thead><tr>
+<th style="text-align:left;">
+Transcript
+</th>
+<th style="text-align:right;">
+q=0.00
+</th>
+<th style="text-align:right;">
+q=0.50
+</th>
+<th style="text-align:right;">
+q=1.00
+</th>
+<th style="text-align:right;">
+q=1.50
+</th>
+<th style="text-align:right;">
+q=2.00
+</th>
+<th style="text-align:left;">
+</th>
+<th style="text-align:left;">
+Direction Consistency
+</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+ENST00000343575.11
+</td>
+<td style="text-align:right;">
+-0.033
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+<td style="text-align:right;">
+0.041
+</td>
+<td style="text-align:right;">
+0.062
+</td>
+<td style="text-align:right;">
+0.073
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Mixed directions
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ENST00000374426.6
+</td>
+<td style="text-align:right;">
+0.046
+</td>
+<td style="text-align:right;">
+-0.063
+</td>
+<td style="text-align:right;">
+-0.051
+</td>
+<td style="text-align:right;">
+-0.040
+</td>
+<td style="text-align:right;">
+-0.035
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Mixed directions
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ENST00000374429.6
+</td>
+<td style="text-align:right;">
+-0.033
+</td>
+<td style="text-align:right;">
+0.164
+</td>
+<td style="text-align:right;">
+0.156
+</td>
+<td style="text-align:right;">
+0.123
+</td>
+<td style="text-align:right;">
+0.112
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Mixed directions
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level5">
+<h5 id="gene-thy1-ensg00000154096-15">Gene: THY1 (ENSG00000154096.15)<a class="anchor" aria-label="anchor" href="#gene-thy1-ensg00000154096-15"></a>
+</h5>
+<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;">
+<thead><tr>
+<th style="text-align:left;">
+Transcript
+</th>
+<th style="text-align:right;">
+q=0.00
+</th>
+<th style="text-align:right;">
+q=0.50
+</th>
+<th style="text-align:right;">
+q=1.00
+</th>
+<th style="text-align:right;">
+q=1.50
+</th>
+<th style="text-align:right;">
+q=2.00
+</th>
+<th style="text-align:left;">
+</th>
+<th style="text-align:left;">
+Direction Consistency
+</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+ENST00000524970.5
+</td>
+<td style="text-align:right;">
+-0.198
+</td>
+<td style="text-align:right;">
+-0.046
+</td>
+<td style="text-align:right;">
+0.002
+</td>
+<td style="text-align:right;">
+0.014
+</td>
+<td style="text-align:right;">
+0.020
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Mixed directions
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ENST00000900758.1
+</td>
+<td style="text-align:right;">
+0.196
+</td>
+<td style="text-align:right;">
+0.045
+</td>
+<td style="text-align:right;">
+0.031
+</td>
+<td style="text-align:right;">
+0.019
+</td>
+<td style="text-align:right;">
+0.016
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Consistent positive
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ENST00000956364.1
+</td>
+<td style="text-align:right;">
+0.118
+</td>
+<td style="text-align:right;">
+-0.075
+</td>
+<td style="text-align:right;">
+-0.092
+</td>
+<td style="text-align:right;">
+-0.102
+</td>
+<td style="text-align:right;">
+-0.108
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Mixed directions
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section level4">
+<h4 id="delta-influence-across-diversity-scales">Delta Influence Across Diversity Scales<a class="anchor" aria-label="anchor" href="#delta-influence-across-diversity-scales"></a>
+</h4>
+<p>Visualize switching patterns for the top genes identified by the LM
+interaction test. This shows which transcripts are switching in genes
+with significant q * condition interaction effects. The heatmaps below
+display <strong>jackknife delta influence</strong> <span class="citation">(Efron and Tibshirani 1993)</span>-a resampling-based
+measure of how robustly each transcript’s relative contribution changes
+between conditions-across different q-values (rows: 0 to 2.0,
+representing increasing diversity scales from rare to abundant isoforms)
+and transcripts (columns) for each gene. Delta influence values are
+computed from bootstrap resampling iterations, providing robust,
+non-parametric estimates of transcript switching significance weighted
+by consistency across replicates.</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Generate multi-Q heatmaps for top 4 genes using S4 wrapper</span></span>
+<span><span class="fu"><a href="../reference/plot_multiq_delta_influence_heatmaps_s4.html">plot_multiq_delta_influence_heatmaps_s4</a></span><span class="op">(</span></span>
+<span>    <span class="va">analysis</span>, </span>
+<span>    n_genes <span class="op">=</span> <span class="fl">4</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<div class="figure">
+<img src="TSENAT_files/figure-html/fig-3-transcript-jackknife-influence-1.png" class="r-plt" alt="**Figure 3:** Transcript-level switching patterns via jackknife resampling. Rows q-values (0-2.0), columns transcripts. Red/blue indicates condition influence." width="98%"><p class="caption">
+<strong>Figure 3:</strong> Transcript-level switching patterns via
+jackknife resampling. Rows q-values (0-2.0), columns transcripts.
+Red/blue indicates condition influence.
+</p>
+</div>
+<p><strong>Interpretation:</strong> Rows represent q-values across the
+diversity spectrum (0 to 2.0, with low q emphasizing rare isoforms and
+high q emphasizing abundant isoforms). Red cells indicate transcripts
+with strong positive delta influence in the first condition (meaning
+their relative importance increased); blue indicates negative influence
+in the second condition (meaning their importance decreased).
+<strong>Patterns to look for:</strong></p>
+<ul>
+<li>
+<strong>Strong color intensity (bright red or blue)</strong>: Robust
+switching signal, consistently observed across bootstrap resamples</li>
+<li>
+<strong>Weak color intensity (pale/white)</strong>: Uncertain or
+noisy switching signal, high variability across resamples</li>
+<li>
+<strong>Consistent colors down a column</strong>: That transcript
+switches stably across all q-values (scale-independent switching)</li>
+<li>
+<strong>Varied colors down a column</strong>: That transcript shows
+scale-dependent switching (different roles at rare vs. abundant
+scales)</li>
+<li>
+<strong>Color differences across rows</strong>: Different q-values
+emphasize different transcripts, revealing how regulatory mechanisms
+vary by topological scale</li>
+</ul>
+<p>This robustness-weighted visualization reveals not just
+<em>which</em> transcripts switch, but <em>how reliably</em> they
+switch, allowing distinction between robust biological signals and
+artifacts of sampling variation.</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Generate transcript abundance heatmap for top 4 transcripts using hierarchical clustering</span></span>
+<span><span class="co"># metric = "median" aggregates expression values across paired conditions</span></span>
+<span><span class="fu"><a href="../reference/plot_top_transcripts_s4.html">plot_top_transcripts_s4</a></span><span class="op">(</span></span>
+<span>    <span class="va">analysis</span>, </span>
+<span>    top_n <span class="op">=</span> <span class="fl">4</span>, </span>
+<span>    metric <span class="op">=</span> <span class="st">"median"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<div class="figure">
+<img src="TSENAT_files/figure-html/fig-4-transcript-abundance-heatmap-1.png" class="r-plt" alt="**Figure 4:** Transcript abundance heatmap with hierarchical clustering. Rows are transcripts, columns are conditions. Blue low, red high expression." width="98%"><p class="caption">
+<strong>Figure 4:</strong> Transcript abundance heatmap with
+hierarchical clustering. Rows are transcripts, columns are conditions.
+Blue low, red high expression.
+</p>
+</div>
+<p><strong>Interpretation:</strong> Transcripts (rows) are
+hierarchically clustered by expression similarity. Red indicates high
+expression, blue indicates low expression. Distinct horizontal bands
+reveal condition-specific isoforms; uniform coloring suggests
+constitutive expression. Clustering reveals which transcripts co-vary in
+expression patterns across conditions.</p>
+</div>
+<div class="section level4">
+<h4 id="effect-size-analysis">Effect size analysis<a class="anchor" aria-label="anchor" href="#effect-size-analysis"></a>
+</h4>
+<p>To understand which diversity scales show the most pronounced
+biological differences between groups, we compute effect size metrics
+(Tsallis divergence
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>D</mi><mi>q</mi></msub><annotation encoding="application/x-tex">D_q</annotation></semantics></math>)
+across the q-spectrum while respecting the paired sample design. This
+reveals whether group differences are driven by rare isoforms (low q),
+dominant isoforms (high q), or uniformly across scales.</p>
+<p>The approach uses linear mixed-effects regression (LMM) with q as
+continuous predictor to assess slope differences in entropy change
+across q-spectrum between treatment groups, with effect size computed as
+Tsallis divergence
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>D</mi><mi>q</mi></msub><annotation encoding="application/x-tex">D_q</annotation></semantics></math>(control||treatment)
+<span class="citation">(Kullback and Leibler 1951; Tsallis 2006; Rényi
+1961; Sason 2022b, 2022a)</span>. This information-theoretic measure
+automatically respects Tsallis entropy properties and adapts to each q
+value <span class="citation">(<span class="nocase">Shiner et al.</span>
+2002)</span>.</p>
+<p><strong>Theoretical Justification</strong></p>
+<p>Tsallis entropy theory <span class="citation">Sason (2022b)</span>
+demonstrates that different q values reveal fundamentally different
+aspects of the isoform distribution. As documented in the foundational
+divergence literature <span class="citation">(Sason 2022b, 2022a; Ré and
+Azad 2014; R0̆0e9 and Azad 2014)</span>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>D</mi><mn>0.5</mn></msub><mo stretchy="false" form="prefix">(</mo><mi>P</mi><mo stretchy="false" form="prefix">|</mo><mo stretchy="false" form="prefix">|</mo><mi>Q</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">D_{0.5}(P||Q)</annotation></semantics></math>
+often differs substantially from
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>D</mi><mn>2</mn></msub><mo stretchy="false" form="prefix">(</mo><mi>P</mi><mo stretchy="false" form="prefix">|</mo><mo stretchy="false" form="prefix">|</mo><mi>Q</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">D_{2}(P||Q)</annotation></semantics></math>,
+with q=0.5 emphasizing rare variants and q=2 emphasizing abundant
+isoforms. Computing effect sizes independently at each q value thus
+captures which diversity scales (rare vs. dominant isoforms) show the
+strongest biological differentiation between conditions <span class="citation">(Sfetcu et al. 2022; R0̆0e9 and Azad 2014)</span>. Re
+and Azad (2014) demonstrated that Tsallis divergence generalizations
+improve discrimination of genomic sequences, validating the multi-scale
+divergence approach for biological applications <span class="citation">(R0̆0e9 and Azad 2014)</span>.</p>
+<p><strong>Effect Size Interpretation</strong></p>
+<p><strong>Tsallis divergence</strong>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>D</mi><mi>q</mi></msub><annotation encoding="application/x-tex">D_q</annotation></semantics></math>
+quantifies the information-theoretic distance between two distributions’
+entropy patterns across the q-spectrum <span class="citation">(Yulmetyev
+et al. 2004a; Shiner et al. 2007; Wang et al. 2021; Chernyshov 2009;
+Sason 2022a)</span>. For paired designs, divergence is computed
+separately for each pair and then averaged, accounting for within-pair
+correlation and reducing noise from between-pair variation <span class="citation">(Yulmetyev et al. 2004b)</span>. The mean divergence
+across q values serves as the effect size, automatically capturing how
+entropy distributions differ between control and treatment groups at all
+scales (rare to abundant isoforms). Values D &gt; 0.1 indicate
+meaningful divergence, following effect size classification thresholds
+<span class="citation">(Kerby 2014; Chao et al. 2010; Sason
+2022a)</span>. Genes with D &gt; 0.1 demonstrate significant
+information-theoretic separation between conditions, revealing that
+isoform complexity patterns (captured by multi-q Tsallis entropy)
+fundamentally differ between treatment groups across all q-dependent
+scales <span class="citation">(R0̆0e9 and Azad 2014)</span>.</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Calculate divergence: computes pairwise information-theoretic distance (Tsallis divergence) between conditions</span></span>
+<span><span class="co"># using bootstrap confidence intervals across all configured q-values from getConfig(analysis)$q_values</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_divergence_s4.html">calculate_divergence_s4</a></span><span class="op">(</span></span>
+<span>    <span class="va">analysis</span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Compute effect sizes: significance_threshold = 0.05 filters genes to those with q*condition interaction p &lt; 0.05;</span></span>
+<span><span class="co"># enrich_per_q_pattern = TRUE classifies each gene by its divergence pattern (Rare-driven/Balanced/Abundant-driven)</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/effect_sizes_divergence_s4.html">effect_sizes_divergence_s4</a></span><span class="op">(</span></span>
+<span>    <span class="va">analysis</span>,</span>
+<span>    significance_threshold <span class="op">=</span> <span class="fl">0.05</span>,</span>
+<span>    enrich_per_q_pattern <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;">
+<caption>
+<strong>Table 5 | Top genes by linear model significance with effect
+sizes and q-spectrum patterns.</strong> Ranked by statistical
+significance (ascending <em>P</em>-values, Benjamini-Hochberg
+<em>q</em>-value &lt; 0.05). Columns: gene identifier; effect size (mean
+divergence across q-spectrum); pattern classification
+(Rare-driven/Balanced/Abundant-driven); pattern metrics-D_rare: median
+divergence for rare isoforms (q&lt;1), D_abundant: median divergence for
+abundant isoforms (q&gt;1), Ratio: D_rare/D_abundant (&gt;1.3 indicates
+rare-driven, &lt;0.77 indicates abundant-driven); adjusted P-value for
+linear model interaction test.
+</caption>
+<thead><tr>
+<th style="text-align:left;">
+Gene
+</th>
+<th style="text-align:right;">
+Mean Divergence
+</th>
+<th style="text-align:left;">
+Q-Pattern
+</th>
+<th style="text-align:right;">
+D_rare
+</th>
+<th style="text-align:right;">
+D_abundant
+</th>
+<th style="text-align:right;">
+Ratio
+</th>
+<th style="text-align:left;">
+LM adj. p-value
+</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+CXCL12
+</td>
+<td style="text-align:right;">
+0.2846
+</td>
+<td style="text-align:left;">
+Balanced
+</td>
+<td style="text-align:right;">
+0.3063
+</td>
+<td style="text-align:right;">
+0.2712
+</td>
+<td style="text-align:right;">
+1.13
+</td>
+<td style="text-align:left;">
+3.0e-162
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+THY1
+</td>
+<td style="text-align:right;">
+0.1279
+</td>
+<td style="text-align:left;">
+Balanced
+</td>
+<td style="text-align:right;">
+0.1455
+</td>
+<td style="text-align:right;">
+0.1142
+</td>
+<td style="text-align:right;">
+1.27
+</td>
+<td style="text-align:left;">
+7.3e-95
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ING3
+</td>
+<td style="text-align:right;">
+0.0101
+</td>
+<td style="text-align:left;">
+Rare driven
+</td>
+<td style="text-align:right;">
+0.0120
+</td>
+<td style="text-align:right;">
+0.0085
+</td>
+<td style="text-align:right;">
+1.42
+</td>
+<td style="text-align:left;">
+2.0e-75
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SNHG10
+</td>
+<td style="text-align:right;">
+0.0714
+</td>
+<td style="text-align:left;">
+Rare driven
+</td>
+<td style="text-align:right;">
+0.0861
+</td>
+<td style="text-align:right;">
+0.0591
+</td>
+<td style="text-align:right;">
+1.46
+</td>
+<td style="text-align:left;">
+7.2e-73
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+LINC03040
+</td>
+<td style="text-align:right;">
+0.2398
+</td>
+<td style="text-align:left;">
+Rare driven
+</td>
+<td style="text-align:right;">
+0.2813
+</td>
+<td style="text-align:right;">
+0.2057
+</td>
+<td style="text-align:right;">
+1.37
+</td>
+<td style="text-align:left;">
+1.3e-55
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+HDAC2
+</td>
+<td style="text-align:right;">
+0.0525
+</td>
+<td style="text-align:left;">
+Rare driven
+</td>
+<td style="text-align:right;">
+0.0642
+</td>
+<td style="text-align:right;">
+0.0425
+</td>
+<td style="text-align:right;">
+1.51
+</td>
+<td style="text-align:left;">
+1.9e-49
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ENSG00000274322
+</td>
+<td style="text-align:right;">
+0.1506
+</td>
+<td style="text-align:left;">
+Rare driven
+</td>
+<td style="text-align:right;">
+0.1852
+</td>
+<td style="text-align:right;">
+0.1206
+</td>
+<td style="text-align:right;">
+1.54
+</td>
+<td style="text-align:left;">
+3.3e-46
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+MEF2A
+</td>
+<td style="text-align:right;">
+0.0298
+</td>
+<td style="text-align:left;">
+Rare driven
+</td>
+<td style="text-align:right;">
+0.0382
+</td>
+<td style="text-align:right;">
+0.0225
+</td>
+<td style="text-align:right;">
+1.70
+</td>
+<td style="text-align:left;">
+9.5e-42
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+RAP1GDS1
+</td>
+<td style="text-align:right;">
+0.0139
+</td>
+<td style="text-align:left;">
+Rare driven
+</td>
+<td style="text-align:right;">
+0.0168
+</td>
+<td style="text-align:right;">
+0.0114
+</td>
+<td style="text-align:right;">
+1.47
+</td>
+<td style="text-align:left;">
+5.2e-36
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PDE7A
+</td>
+<td style="text-align:right;">
+0.0419
+</td>
+<td style="text-align:left;">
+Rare driven
+</td>
+<td style="text-align:right;">
+0.0490
+</td>
+<td style="text-align:right;">
+0.0360
+</td>
+<td style="text-align:right;">
+1.36
+</td>
+<td style="text-align:left;">
+1.1e-35
+</td>
+</tr>
+</tbody>
+</table>
+<p>Interpretation of Pattern Types:</p>
+<table class="table">
+<colgroup>
+<col width="31%">
+<col width="25%">
+<col width="43%">
+</colgroup>
+<thead><tr class="header">
+<th>Pattern Type</th>
+<th>Signature</th>
+<th>Biological Meaning</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>Rare driven</td>
+<td>D(q=0.5) &gt;&gt; D(q=2.0)</td>
+<td>Low-abundance isoforms are condition-specific; treatment group
+preferentially expresses rare transcripts not seen in control</td>
+</tr>
+<tr class="even">
+<td>Abundant driver</td>
+<td>D(q=0.5) &lt;&lt; D(q=2.0)</td>
+<td>High-abundance isoforms shift between conditions; treatment remodels
+the dominant transcript landscape without rare variants changing</td>
+</tr>
+<tr class="odd">
+<td>Balanced</td>
+<td>D(q=0.5) ~= D(q=2.0)</td>
+<td>All isoforms shift proportionally; no preferential weighting to rare
+or abundant forms; suggests systematic rebalancing</td>
+</tr>
+</tbody>
+</table>
+<p>The effect sizes reveal which genes show the most
+information-theoretic separation across the q-spectrum <strong>between
+paired treatment groups</strong>. Genes with Tsallis divergence D &gt;
+0.1 show substantial divergence, indicating that entropy distributions
+differ fundamentally between conditions across the full q-spectrum.</p>
+<p><strong>Biological Interpretation:</strong> Following Tsallis entropy
+theory and information-theoretic principles <span class="citation">(Tsallis 2006; Rényi 1961; Sason 2022b; Hyndman and
+Athanasopoulos 2018)</span>, effect size quantification <span class="citation">(Unknown 2020)</span> genes with large D values are
+those where isoform complexity distributions differ qualitatively
+between conditions when examined at all sensitivity scales (q = rare
+-&gt; abundant isoforms). For example, a gene might show high entropy at
+low q (emphasizing rare isoforms) in one condition but low entropy at
+high q (emphasizing abundant isoforms) in another, revealing
+scale-dependent regulatory mechanisms. These genes are candidates for
+investigation of condition-specific splicing architecture and dynamic
+isoform switching.</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Visualize the distribution of Tsallis divergence effect sizes across genes</span></span>
+<span><span class="co"># The red dashed line marks D = 0.1 (information-theoretic significance threshold)</span></span>
+<span><span class="co"># Generate divergence distribution plot (returns plot object)</span></span>
+<span><span class="co"># Optionally save to file for external use</span></span>
+<span><span class="va">plot_obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_divergence_distribution_s4.html">plot_divergence_distribution_s4</a></span><span class="op">(</span></span>
+<span>    <span class="va">analysis</span>, </span>
+<span>    threshold <span class="op">=</span> <span class="fl">0.05</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">plot_obj</span><span class="op">)</span></span></code></pre></div>
+<p><img src="TSENAT_files/figure-html/effect-size-plot-multiq-1.png" class="r-plt" alt="" width="98%" style="display: block; margin: auto;"></p>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Visualize q-spectrum curves for top 4 genes by significance</span></span>
+<span><span class="co"># Plot is rendered directly by knitr (no file dependency)</span></span>
+<span><span class="va">p_multi</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_divergence_spectrum_s4.html">plot_divergence_spectrum_s4</a></span><span class="op">(</span></span>
+<span>    <span class="va">analysis</span>, </span>
+<span>    n_genes <span class="op">=</span> <span class="fl">4</span>, </span>
+<span>    use_pvalue_ranking <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_multi</span><span class="op">)</span></span></code></pre></div>
+<div class="figure" style="text-align: center">
+<img src="TSENAT_files/figure-html/compare-q-spectra-plot-1.png" class="r-plt" alt="**Figure 5:** Q-spectrum curves for top genes by significance. Each line represents divergence as a function of q-value; shape reveals biological pattern (rare-driven, balanced, or abundant-driven)." width="100%"><p class="caption">
+<strong>Figure 5:</strong> Q-spectrum curves for top genes by
+significance. Each line represents divergence as a function of q-value;
+shape reveals biological pattern (rare-driven, balanced, or
+abundant-driven).
+</p>
+</div>
+<p>Interpreting the Q-Spectrum Curve:</p>
+<ul>
+<li><p>Shape matters more than single value: The
+<strong>q-spectrum</strong> curve is the complete biological story. A
+flat curve (balanced) vs. declining curve (rare driven) vs. rising curve
+(abundant driven) encode fundamentally different mechanisms.</p></li>
+<li><p>q=1 (KL divergence): The middle point corresponds to ordinary
+Kullback-Leibler divergence <span class="citation">(Kullback and Leibler
+1951; R0̆0e9 and Azad 2014)</span>, where in the limit q-&gt;1 the
+Tsallis divergence reduces to standard KL divergence <span class="citation">(R0̆0e9 and Azad 2014)</span>. This weights all isoforms
+equally. This is the “average” effect.</p></li>
+<li><p>q &lt; 1 (rare isoforms): Emphasizes how much low-abundance
+transcripts differ between groups. If D(q=0.5) &gt;&gt; D(q=1), the
+divergence is driven by changes in rare variants.</p></li>
+<li><p>q &gt; 1 (abundant isoforms): Emphasizes dominant transcripts. If
+D(q=2) &gt;&gt; D(q=1), major isoforms rebalance while rare ones stay
+similar.</p></li>
+<li><p>Bootstrap CI bands: Shaded region shows 95% confidence limits on
+per-q estimates. Narrow bands indicate robust estimates; wide bands
+suggest noisy data or small sample sizes.</p></li>
+</ul>
+<p>We can also plot the global divergence spectrum across all genes.
+This curve is the full biological signature of <strong>isoform
+switching</strong>-the pattern encodes which abundance scales (rare
+vs. abundant) are affected.</p>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Visualize global divergence q-spectrum across all genes (aggregated)</span></span>
+<span><span class="co"># Plot is rendered directly by knitr (no file dependency)</span></span>
+<span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_divergence_spectrum_s4.html">plot_divergence_spectrum_s4</a></span><span class="op">(</span></span>
+<span>    <span class="va">analysis</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span></span></code></pre></div>
+<div class="figure" style="text-align: center">
+<img src="TSENAT_files/figure-html/visualize-q-spectrum-1.png" class="r-plt" alt="**Figure 6:** Global divergence spectrum across all genes. Aggregated q-spectrum pattern shows which abundance scales (rare vs. abundant isoforms) are affected genome-wide." width="100%"><p class="caption">
+<strong>Figure 6:</strong> Global divergence spectrum across all genes.
+Aggregated q-spectrum pattern shows which abundance scales (rare
+vs. abundant isoforms) are affected genome-wide.
+</p>
+</div>
+<p>Statistical Validation During Interpretation:</p>
+<ol style="list-style-type: decimal">
+<li><p>Bootstrap CI validity: Per-q CIs should narrow as q increases
+<span class="citation">(Efron, Bradley and Tibshirani, Robert J.
+1993)</span> (higher q = aggregation effect, less variance). If CIs grow
+with q, check for data quality issues.</p></li>
+<li><p>Monotonicity check: By <strong>Tsallis entropy</strong> theory
+<span class="citation">(Tsallis 2006)</span>, entropy is monotone
+decreasing in q. Divergence should NOT show erratic increases with q.
+Small fluctuations are normal, but large spikes indicate numerical
+instability.</p></li>
+<li><p><strong>Comparison with genome-wide patterns</strong>: Compute
+q-spectra for housekeeping genes (GAPDH, ACTB, etc.). These should show
+BALANCED patterns. If not, revisit normalization parameters.</p></li>
+</ol>
+</div>
+</div>
+<div class="section level3">
+<h3 id="s4-workflow-unified-analysis-via-tsenatanalysis-objects">S4 Workflow: Unified Analysis via TSENATAnalysis Objects<a class="anchor" aria-label="anchor" href="#s4-workflow-unified-analysis-via-tsenatanalysis-objects"></a>
+</h3>
+<p>TSENAT provides an integrated S4-based workflow for coordinated
+analysis following three principles:</p>
+<ol style="list-style-type: decimal">
+<li>
+<strong>Configure once</strong>: Use <code><a href="../reference/tsenat_config.html">tsenat_config()</a></code> to
+specify analysis parameters (q-values, metadata columns)</li>
+<li>
+<strong>Run pipeline</strong>: Use <code><a href="../reference/tsenat.html">tsenat()</a></code> to
+orchestrate all analysis steps in sequence</li>
+<li>
+<strong>Access results</strong>: Use S4 accessor methods for
+type-safe result retrieval</li>
+</ol>
+<p>The <code><a href="../reference/tsenat.html">tsenat()</a></code> function accepts a configured
+<code>TSENATConfig</code> object and orchestrates a complete pipeline:
+diversity computation -&gt; quality control -&gt; statistical testing
+-&gt; effect sizes (as specified by the <code>methods</code> parameter).
+Parameter <code>verbose = TRUE</code> outputs progress messages showing
+data filtering steps and method completion. This single-function
+approach ensures consistency between preprocessing and analysis steps,
+eliminating boilerplate and reducing risk of parameter mismatches.</p>
+<p><strong>Accessor methods return types:</strong> Most accessors return
+<code>SummarizedExperiment</code> objects (following Bioconductor
+conventions) containing results as assays and metadata:</p>
+<ul>
+<li><p><code>diversity(analysis)</code> -&gt; SummarizedExperiment
+(genes x samples, multiple assays for each q-value)</p></li>
+<li><p><code>lmResults(analysis)</code> -&gt; list containing data.frame
+of LM interaction results (or NULL if method not run)</p></li>
+<li><p><code>jeoResults(analysis, q = 1.0)</code> -&gt;
+SummarizedExperiment of jackknife entropy outlier confidence intervals
+(or NULL)</p></li>
+<li><p><code>jisResults(analysis, q = 1.0)</code> -&gt; list of
+jackknife isoform switching results (or NULL)</p></li>
+<li><p><code>rankResults(analysis)</code> -&gt; data.frame of rank test
+results (or NULL)</p></li>
+<li><p><code>divergence(analysis)</code> -&gt; SummarizedExperiment of
+pairwise divergence metrics</p></li>
+</ul>
+<p>If a requested method was not run during <code><a href="../reference/tsenat.html">tsenat()</a></code>
+orchestration, the accessor returns NULL-users should check results
+before downstream use.</p>
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Configure analysis parameters once (best practice for reproducibility)</span></span>
+<span><span class="va">tsenat_config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/tsenat_config.html">tsenat_config</a></span><span class="op">(</span></span>
+<span>  q_values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span>,</span>
+<span>  sample_type_col <span class="op">=</span> <span class="st">"sample_type"</span>,</span>
+<span>  subject_col <span class="op">=</span> <span class="st">"paired_samples"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Run complete pipeline with one function call orchestrating all specified methods</span></span>
+<span><span class="co"># methods parameter: vector of analysis steps to execute ("diversity", "lm_interaction", "jackknife", "divergence")</span></span>
+<span><span class="co"># verbose = TRUE: prints progress messages showing gene filtering, step completion, and result summaries</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/tsenat.html">tsenat</a></span><span class="op">(</span></span>
+<span>  se <span class="op">=</span> <span class="va">se</span>,</span>
+<span>  config <span class="op">=</span> <span class="va">tsenat_config</span>,</span>
+<span>  methods <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"diversity"</span>, <span class="st">"lm_interaction"</span>, <span class="st">"jackknife"</span>, <span class="st">"divergence"</span><span class="op">)</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Access results via consistent S4 methods (type-safe, mutually-exclusive access instead of nested list indexing)</span></span>
+<span><span class="va">diversity_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/diversity.html">diversity</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span>
+<span><span class="va">lm_table</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/lmResults.html">lmResults</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span>
+<span><span class="va">jk_entropy</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/jeoResults.html">jeoResults</a></span><span class="op">(</span><span class="va">analysis</span>, q <span class="op">=</span> <span class="fl">1.0</span><span class="op">)</span></span>
+<span><span class="va">jk_iso</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/jisResults.html">jisResults</a></span><span class="op">(</span><span class="va">analysis</span>, q <span class="op">=</span> <span class="fl">1.0</span><span class="op">)</span></span>
+<span><span class="va">rank_test</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rankResults.html">rankResults</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span>
+<span><span class="va">divergence_table</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/divergence.html">divergence</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></code></pre></div>
+<p>For detailed step-by-step implementation, see the sections above
+demonstrating each analysis component and its accessor patterns.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="practical-notes-and-recommendations">Practical notes and recommendations<a class="anchor" aria-label="anchor" href="#practical-notes-and-recommendations"></a>
+<h2 id="appendices">Appendices<a class="anchor" aria-label="anchor" href="#appendices"></a>
 </h2>
-<p>Accurate isoform quantification is the foundation of reliable entropy
-analysis. Small counts introduce noise; missing data distorts
-proportions. Some important elements to keep in mind:</p>
+<p>This main vignette is complemented by two comprehensive
+appendices:</p>
+<div class="section level4">
+<h4 id="appendix-a-equivalence-validation---tsenat-vs-splicingfactory">Appendix A: Equivalence Validation - TSENAT vs SplicingFactory<a class="anchor" aria-label="anchor" href="#appendix-a-equivalence-validation---tsenat-vs-splicingfactory"></a>
+</h4>
+<p>Validates that TSENAT’s Shannon and Simpson entropy implementations
+are mathematically equivalent to SplicingFactory. Includes:</p>
 <ul>
-<li>
-<strong>Transcript abundance filtering</strong>: Remove very
-low-count transcripts to reduce technical noise (typical rule: drop
-transcripts with &lt;5 reads in &gt;5 samples, but adjust to sequencing
-depth).</li>
-<li>
-<strong>Pseudocounts</strong>: If zeros create numerical issues, you
-coud add a small pseudocount (e.g. 1e-10). You can find more information
-about pseudocoints in this <a href="https://doi.org/10.1093/bioinformatics/bty471" class="external-link">paper</a>.</li>
-<li>
-<strong>Quantification &amp; normalization</strong>: use bias-aware
-quantifiers, such Salmon or kallisto.</li>
+<li>Mathematical proof of equivalence for q=1 (Shannon) and q=2
+(Simpson)</li>
+<li>Benchmarking on TCGA BRCA RNA-seq data</li>
+<li>Detailed comparison tables and visualizations</li>
+<li>When to use TSENAT vs SplicingFactory</li>
 </ul>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<p><strong><a href="TSENAT_appendix_A.html">View Appendix
+A</a></strong></p>
+</div>
+<div class="section level4">
+<h4 id="tsenat-appendix-b-non-parametric-validation-of-linear-model-results-via-gam-and-rank-based-methods">TSENAT Appendix B: Non-Parametric Validation of Linear Model Results
+via GAM and Rank-Based Methods<a class="anchor" aria-label="anchor" href="#tsenat-appendix-b-non-parametric-validation-of-linear-model-results-via-gam-and-rank-based-methods"></a>
+</h4>
+<p><strong>Objective</strong>: Validate q-value * group interaction
+detection results from linear models using complementary non-parametric
+statistical approaches.</p>
+<p>TSENAT’s default linear modeling approach (via
+<code><a href="../reference/calculate_difference_s4.html">calculate_difference_s4()</a></code>) provides parametric tests for
+detecting scale-dependent differences in Tsallis entropy across q-values
+and experimental groups. To ensure robustness and generalization,
+Appendix B presents two independent, non-parametric alternatives that
+serve as validation methods:</p>
+<p><strong>Approach 1: Generalized Additive Model (GAM) with
+ARIMA-Ordered Time Series</strong> - Treats q-values as explicit
+sequential measurements (ordered from low to high) - Applies
+ARIMA(1,1,0) differencing to account for autocorrelation between
+adjacent q-points - Fits smooth additive functions of q and group
+effects (non-parametric basis functions) - Automatically detects
+heteroscedasticity and applies optimal weighting - Reference: Goude
+(2024)</p>
+<p><strong>Approach 2: Rank-Based Friedman Test with Hochberg
+Correction</strong> - Non-parametric alternative requiring no
+distributional assumptions - Friedman test for detecting differences
+across multiple q-values within each group - Accounts for paired/blocked
+structure in q-ordered measurements - Hochberg step-up procedure for
+controlling family-wise error rate (FWER) - References: Efron &amp;
+Tibshirani (1993); Benjamini &amp; Hochberg (1995)</p>
+<p>Both methods incorporate principled advances to handle real-world
+RNA-seq data: - <strong>Heteroscedasticity detection and
+weighting</strong>: Entropy variance often increases with q-value; both
+approaches adaptively weight measurements - <strong>Boundary condition
+handling</strong>: Low and high q-values exhibit different variance
+properties; explicit boundary adaptation improves reliability -
+<strong>Automatic test selection</strong>: Model diagnostics trigger
+appropriate method switches based on data structure</p>
+<p>Appendix B provides: - Detailed statistical methodology for both
+approaches - Step-by-step implementation examples - Comparison of linear
+model results vs. GAM vs. rank-based findings - Concordance tables
+showing agreement across methods - Recommendations for when each method
+is most appropriate - Power analysis and sample size guidance for
+different designs</p>
+<p><strong>Key Finding</strong>: High concordance (typically &gt;90%
+agreement) across methods validates that linear model discoveries are
+robust to model assumptions and generalize to non-parametric
+frameworks.</p>
+<p><strong><a href="TSENAT_appendix_B.html">View Appendix
+B</a></strong></p>
+</div>
+<div class="section level3">
+<h3 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
+</h3>
+<ol style="list-style-type: decimal">
+<li><p>Adami, C. (2004). “Information Theory in Molecular Biology.”
+<em>arXiv Preprint q-Bio/0405004</em>.</p></li>
+<li><p>Bajic, D. (2024). “Information Theory, Living Systems, and
+Communication Engineering.” <em>Entropy</em>, 26(5), 430. <a href="https://doi.org/10.3390/e26050430" class="external-link uri">https://doi.org/10.3390/e26050430</a>.</p></li>
+<li><p>Bartal, A., &amp; Jagodnik, K. M. (2022). “Progress in and
+Opportunities for Applying Information Theory to Computational Biology
+and Bioinformatics.” <em>Entropy</em>, 24(7), 925. <a href="https://doi.org/10.3390/e24070925" class="external-link uri">https://doi.org/10.3390/e24070925</a>.</p></li>
+<li><p>Chanda, P., Costa, E., Hu, J., Sukumar, S., Van Hemert, J., &amp;
+Walia, R. (2020). “Information Theory in Computational Biology: Where We
+Stand Today.” <em>Entropy</em>, 22(6), 627. <a href="https://doi.org/10.3390/e22060627" class="external-link uri">https://doi.org/10.3390/e22060627</a>.</p></li>
+<li><p>Cover, T. M., &amp; Thomas, J. A. (2006). <em>Elements of
+Information Theory</em> (2nd ed.). Wiley-Interscience.</p></li>
+<li><p>Derian, N., Pham, H.-P., Nehar-Belaid, D., et al. (2022). “The
+Tsallis Generalized Entropy Enhances the Interpretation of
+Transcriptomics Datasets.” <em>PLOS ONE</em>, 17(4), e0266618. <a href="https://doi.org/10.1371/journal.pone.0266618" class="external-link uri">https://doi.org/10.1371/journal.pone.0266618</a>.</p></li>
+<li><p>Furuichi, S. (2006). “Information Theoretical Properties of
+Tsallis Entropies.” <em>Journal of Mathematical Physics</em>, 47,
+023302. <a href="https://doi.org/10.1063/1.2165744" class="external-link uri">https://doi.org/10.1063/1.2165744</a>.</p></li>
+<li><p>Gandrillon, O., Gaillard, M., Espinasse, T., et al. (2021).
+“Entropy as a Measure of Variability and Stemness in Single-Cell
+Transcriptomics.” <em>Entropy</em>, 21(5), 450.</p></li>
+<li><p>Golomb, R., Yoles, M., Fishilevich, S., et al. (2026). “An
+Information Content Principle Explains Regulatory Patterns of Gene
+Expression Across Human Tissues.” <em>bioRxiv</em>, ahead of print. <a href="https://doi.org/10.64898/2026.02.19.706555" class="external-link uri">https://doi.org/10.64898/2026.02.19.706555</a>.</p></li>
+</ol>
+<!-- Commented out: TechRxiv preprint no longer available (404)
+10. Hinostroza Fuentes, V. G., Toledo Tan, M. J., Kapetanaki, M., Rashidi, P., Huang, K., & Benos, P. V. (2026). "Information-Theoretic Methods in Spatial Transcriptomics." *TechRxiv*, ahead of print. https://doi.org/10.36227/techrxiv.177155947.
+--><ol start="11" style="list-style-type: decimal">
+<li><p>Jost, L. (2006). “Entropy and Diversity.” <em>Oikos</em>, 113(2),
+363-375. <a href="https://doi.org/10.1111/j.2006.0030-1299.14714.x" class="external-link uri">https://doi.org/10.1111/j.2006.0030-1299.14714.x</a>.</p></li>
+<li><p>Renyi, A. (1961). “On Measures of Entropy and Information.”
+<em>Proceedings of the Fourth Berkeley Symposium on Mathematical
+Statistics and Probability</em>, 1, 547-561.</p></li>
+<li><p>Seweryn, M. T., Pietrzak, M., &amp; Ma, Q. (2020). “Application
+of Information Theoretical Approaches to Assess Diversity and Similarity
+in Single-Cell Transcriptomics.” <em>Computational and Structural
+Biotechnology Journal</em>, 18, 1830-1837. <a href="https://doi.org/10.1016/j.csbj.2020.05.006" class="external-link uri">https://doi.org/10.1016/j.csbj.2020.05.006</a>.</p></li>
+<li><p>Shannon, C. E. (1948). “A Mathematical Theory of Communication.”
+<em>The Bell System Technical Journal</em>, 27(3-4), 379-423.</p></li>
+<li><p>Simpson, E. H. (1949). “Measurement of Diversity.”
+<em>Nature</em>, 163, 688. <a href="https://doi.org/10.1038/163688a0" class="external-link uri">https://doi.org/10.1038/163688a0</a>.</p></li>
+<li><p>Tsallis, C. (1988). “Possible Generalization of Boltzmann-Gibbs
+Statistics.” <em>Journal of Statistical Physics</em>, 52(1), 479-487. <a href="https://doi.org/10.1007/BF01016429" class="external-link uri">https://doi.org/10.1007/BF01016429</a>.</p></li>
+</ol>
+</div>
+<div class="section level3">
+<h3 id="session-information">Session Information<a class="anchor" aria-label="anchor" href="#session-information"></a>
+</h3>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; R version 4.5.2 (2025-10-31)</span></span>
 <span><span class="co">#&gt; Platform: x86_64-conda-linux-gnu</span></span>
@@ -601,48 +2583,57 @@ quantifiers, such Salmon or kallisto.</li>
 <span><span class="co">#&gt;  [7] BiocGenerics_0.56.0         generics_0.1.4             </span></span>
 <span><span class="co">#&gt;  [9] MatrixGenerics_1.22.0       matrixStats_1.5.0          </span></span>
 <span><span class="co">#&gt; [11] ggplot2_4.0.2               TSENAT_0.99.0              </span></span>
+<span><span class="co">#&gt; [13] kableExtra_1.4.0           </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
 <span><span class="co">#&gt;  [1] gtable_0.3.6        xfun_0.56           bslib_0.10.0       </span></span>
-<span><span class="co">#&gt;  [4] htmlwidgets_1.6.4   lattice_0.22-9      numDeriv_2016.8-1.1</span></span>
-<span><span class="co">#&gt;  [7] Rdpack_2.6.6        vctrs_0.7.1         tools_4.5.2        </span></span>
-<span><span class="co">#&gt; [10] tibble_3.3.1        pkgconfig_2.0.3     Matrix_1.7-4       </span></span>
+<span><span class="co">#&gt;  [4] htmlwidgets_1.6.4   lattice_0.22-9      vctrs_0.7.2        </span></span>
+<span><span class="co">#&gt;  [7] tools_4.5.2         parallel_4.5.2      tibble_3.3.1       </span></span>
+<span><span class="co">#&gt; [10] pkgconfig_2.0.3     pheatmap_1.0.13     Matrix_1.7-4       </span></span>
 <span><span class="co">#&gt; [13] RColorBrewer_1.1-3  S7_0.2.1            desc_1.4.3         </span></span>
 <span><span class="co">#&gt; [16] lifecycle_1.0.5     compiler_4.5.2      farver_2.1.2       </span></span>
-<span><span class="co">#&gt; [19] textshaping_1.0.4   lmerTest_3.2-0      htmltools_0.5.9    </span></span>
-<span><span class="co">#&gt; [22] sass_0.4.10         yaml_2.3.12         nloptr_2.2.1       </span></span>
+<span><span class="co">#&gt; [19] stringr_1.6.0       textshaping_1.0.5   codetools_0.2-20   </span></span>
+<span><span class="co">#&gt; [22] htmltools_0.5.9     sass_0.4.10         yaml_2.3.12        </span></span>
 <span><span class="co">#&gt; [25] pkgdown_2.2.0       pillar_1.11.1       jquerylib_0.1.4    </span></span>
-<span><span class="co">#&gt; [28] tidyr_1.3.2         MASS_7.3-65         DelayedArray_0.36.0</span></span>
-<span><span class="co">#&gt; [31] cachem_1.1.0        reformulas_0.4.4    boot_1.3-32        </span></span>
-<span><span class="co">#&gt; [34] abind_1.4-8         nlme_3.1-168        tidyselect_1.2.1   </span></span>
-<span><span class="co">#&gt; [37] digest_0.6.39       dplyr_1.2.0         purrr_1.2.1        </span></span>
-<span><span class="co">#&gt; [40] labeling_0.4.3      splines_4.5.2       fastmap_1.2.0      </span></span>
-<span><span class="co">#&gt; [43] grid_4.5.2          cli_3.6.5           SparseArray_1.10.8 </span></span>
-<span><span class="co">#&gt; [46] magrittr_2.0.4      patchwork_1.3.2     S4Arrays_1.10.1    </span></span>
-<span><span class="co">#&gt; [49] withr_3.0.2         scales_1.4.0        rmarkdown_2.30     </span></span>
-<span><span class="co">#&gt; [52] XVector_0.50.0      otel_0.2.0          lme4_1.1-38        </span></span>
-<span><span class="co">#&gt; [55] ragg_1.5.0          evaluate_1.0.5      knitr_1.51         </span></span>
-<span><span class="co">#&gt; [58] rbibutils_2.4.1     viridisLite_0.4.3   rlang_1.1.7        </span></span>
-<span><span class="co">#&gt; [61] Rcpp_1.1.1          glue_1.8.0          minqa_1.2.8        </span></span>
-<span><span class="co">#&gt; [64] jsonlite_2.0.0      R6_2.6.1            systemfonts_1.3.1  </span></span>
-<span><span class="co">#&gt; [67] fs_1.6.6</span></span></code></pre></div>
+<span><span class="co">#&gt; [28] tidyr_1.3.2         BiocParallel_1.44.0 cachem_1.1.0       </span></span>
+<span><span class="co">#&gt; [31] DelayedArray_0.36.0 abind_1.4-8         nlme_3.1-168       </span></span>
+<span><span class="co">#&gt; [34] tidyselect_1.2.1    digest_0.6.39       stringi_1.8.7      </span></span>
+<span><span class="co">#&gt; [37] dplyr_1.2.0         purrr_1.2.1         splines_4.5.2      </span></span>
+<span><span class="co">#&gt; [40] labeling_0.4.3      cowplot_1.2.0       fastmap_1.2.0      </span></span>
+<span><span class="co">#&gt; [43] grid_4.5.2          cli_3.6.5           SparseArray_1.10.9 </span></span>
+<span><span class="co">#&gt; [46] magrittr_2.0.4      S4Arrays_1.10.1     withr_3.0.2        </span></span>
+<span><span class="co">#&gt; [49] scales_1.4.0        rmarkdown_2.30      XVector_0.50.0     </span></span>
+<span><span class="co">#&gt; [52] otel_0.2.0          ragg_1.5.0          memoise_2.0.1      </span></span>
+<span><span class="co">#&gt; [55] evaluate_1.0.5      knitr_1.51          viridisLite_0.4.3  </span></span>
+<span><span class="co">#&gt; [58] mgcv_1.9-4          rlang_1.1.7         Rcpp_1.1.1         </span></span>
+<span><span class="co">#&gt; [61] glue_1.8.0          xml2_1.5.2          svglite_2.2.2      </span></span>
+<span><span class="co">#&gt; [64] rstudioapi_0.18.0   jsonlite_2.0.0      R6_2.6.1           </span></span>
+<span><span class="co">#&gt; [67] systemfonts_1.3.2   fs_1.6.7</span></span></code></pre></div>
 </div>
-  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
-    </nav></aside>
 </div>
+  </div>
 
+  <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
 
+      </div>
 
-    <footer><div class="pkgdown-footer-left">
-  <p>Developed by <a href="https://github.com/gallardoalba" class="external-link">Cristóbal Gallardo</a>.</p>
-</div>
-
-<div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
-    </footer>
+
+
+      <footer><div class="copyright">
+  <p></p>
+<p>Developed by Cristóbal Gallardo.</p>
 </div>
+
+<div class="pkgdown">
+  <p></p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+</div>
+
+      </footer>
+</div>
+
 
 
 
