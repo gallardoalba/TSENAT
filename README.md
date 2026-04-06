@@ -92,7 +92,7 @@ config <- tsenat_config(
 
 ### Build TSENAT Analysis Object
 
-Combine the read counts, annotation file, metadata, and configuration into a single TSENATAnalysis S4 object that serves as the central container for all downstream analysis. This immutable object design follows Bioconductor best practices and ensures consistency throughout your analysis pipeline.
+Combine the read counts, annotation file, metadata, and configuration into a single TSENATAnalysis S4 object that serves as the central container for all downstream analysis.
 
 ```r
 ## Build a complete `TSENATAnalysis` object from readcounts + GFF3.gz annotation
@@ -133,7 +133,7 @@ analysis <- calculate_diversity_s4(analysis, norm = TRUE)
 
 ### 2. Statistical Testing
 
-Test for significant differences in entropy between experimental groups by fitting linear models that detect interactions between q-values and sample conditions. This identifies which scales of isoform diversity (which q-values) show the strongest biological signals.
+Perform statistical testing to identify significant differences in entropy between experimental groups across your q-spectrum. TSENAT supports diverse statistical methods (linear models, rank-based tests, and more) to accommodate different study designs and data characteristics, ensuring you detect robust biological signals at the appropriate diversity scales.
 
 ```r
 # Fit linear models to detect qxcondition interactions
@@ -144,7 +144,7 @@ analysis <- calculate_lm_interaction_s4(
 
 ### 3. Visualize Results
 
-Generate publication-quality plots showing how entropy changes across the q-spectrum for each sample and group. The q-curve visualization reveals scale-dependent diversity patterns that distinguish biologically meaningful isoform reorganization from noise.
+Create diverse visualizations to explore and communicate your analysis results. TSENAT provides multiple plotting functions including q-curves, volcano plots, heatmaps, and interaction plots to reveal scale-dependent diversity patterns and statistical findings across different aspects of your data.
 
 ```r
 # Plot overall q-curve
@@ -161,7 +161,6 @@ print(p_qcurve)
 - *Friedman rank tests*: Maximal robustness for paired designs; ideal for bounded distributions like entropy
 - *M-estimation*: Outlier-resistant effect size calculations (Huber, Tukey weights)
 - Jackknife leave-one-out for identifying outlier-influential samples
-
 
 ### Data Integration
 
