@@ -441,9 +441,10 @@ reorganization can occur independently of total abundance changes,
 entropy-based approaches complement classical methods by detecting
 complexity shifts that transcript-level statistics alone cannot
 reveal.</p>
-<div class="section level5">
-<h5 id="evidence-from-literature">Evidence from Literature<a class="anchor" aria-label="anchor" href="#evidence-from-literature"></a>
-</h5>
+</div>
+<div class="section level4">
+<h4 id="evidence-from-literature">Evidence from Literature<a class="anchor" aria-label="anchor" href="#evidence-from-literature"></a>
+</h4>
 <p>The recent emphasis on information-theoretic approaches in
 computational biology <span class="citation">Bajić (2024)</span>
 reflects broader recognition that complex biological systems encode
@@ -490,7 +491,6 @@ heterogeneity and plasticity <span class="citation">(Nijman
 relevance beyond abstract information theory. Tsallis entropy, through
 the parametric q-spectrum, provides a systematic framework for exploring
 this multi-scale organization at the transcript and isoform level.</p>
-</div>
 </div>
 </div>
 </div>
@@ -1498,12 +1498,16 @@ later extended and popularized <span class="citation">(Alomani and Kayid
 this spectrum), Tsallis entropy provides a family of measures where the
 parameter <em>q</em> acts as a “magnifying glass”-adjusting what
 organizational scales become visible. Mathematically, different
-<em>q</em>-values weight rare versus abundant isoforms differently: -
-Low <em>q</em> (0-0.5): Emphasized rare isoforms, revealing exploratory
-or conditional splicing programs - Mid <em>q</em> (0.5-1.5): Balanced
-sensitivity across the full isoform distribution<br>
-- High <em>q</em> (1.5-2.0): Emphasized abundant isoforms, revealing
-core splicing decisions</p>
+<em>q</em>-values weight rare versus abundant isoforms differently:</p>
+<ul>
+<li>Low <em>q</em> (0-0.5): Emphasized rare isoforms, revealing
+exploratory or conditional splicing programs</li>
+<li>Mid <em>q</em> (0.5-1.5): Balanced sensitivity across the full
+isoform distribution<br>
+</li>
+<li>High <em>q</em> (1.5-2.0): Emphasized abundant isoforms, revealing
+core splicing decisions</li>
+</ul>
 <p>In biological systems, these different scales often correspond to
 different regulatory mechanisms. A transcript may be consistently rare
 across conditions (no switching at low <em>q</em>) while being stably
@@ -2469,20 +2473,30 @@ and experimental groups. To ensure robustness and generalization,
 Appendix B presents two independent, non-parametric alternatives that
 serve as validation methods:</p>
 <p><strong>Approach 1: Generalized Additive Model (GAM) with
-ARIMA-Ordered Time Series</strong> - Treats q-values as explicit
-sequential measurements (ordered from low to high) - Applies
-ARIMA(1,1,0) differencing to account for autocorrelation between
-adjacent q-points - Fits smooth additive functions of q and group
-effects (non-parametric basis functions) - Automatically detects
-heteroscedasticity and applies optimal weighting - Reference: Goude
-(2024)</p>
+ARIMA-Ordered Time Series:</strong></p>
+<ul>
+<li>Treats q-values as explicit sequential measurements (ordered from
+low to high)</li>
+<li>Applies ARIMA(1,1,0) differencing to account for autocorrelation
+between adjacent q-points</li>
+<li>Fits smooth additive functions of q and group effects
+(non-parametric basis functions)</li>
+<li>Automatically detects heteroscedasticity and applies optimal
+weighting</li>
+</ul>
 <p><strong>Approach 2: Rank-Based Friedman Test with Hochberg
-Correction</strong> - Non-parametric alternative requiring no
-distributional assumptions - Friedman test for detecting differences
-across multiple q-values within each group - Accounts for paired/blocked
-structure in q-ordered measurements - Hochberg step-up procedure for
-controlling family-wise error rate (FWER) - References: Efron &amp;
-Tibshirani (1993); Benjamini &amp; Hochberg (1995)</p>
+Correction:</strong></p>
+<ul>
+<li>Non-parametric alternative requiring no distributional
+assumptions</li>
+<li>Friedman test for detecting differences across multiple q-values
+within each group</li>
+<li>Accounts for paired/blocked structure in q-ordered measurements</li>
+<li>Hochberg step-up procedure for controlling family-wise error rate
+(FWER)</li>
+<li>References: Efron &amp; Tibshirani (1993); Benjamini &amp; Hochberg
+(1995)</li>
+</ul>
 <p>Both methods incorporate principled advances to handle real-world
 RNA-seq data: - <strong>Heteroscedasticity detection and
 weighting</strong>: Entropy variance often increases with q-value; both
@@ -2491,16 +2505,6 @@ handling</strong>: Low and high q-values exhibit different variance
 properties; explicit boundary adaptation improves reliability -
 <strong>Automatic test selection</strong>: Model diagnostics trigger
 appropriate method switches based on data structure</p>
-<p>Appendix B provides: - Detailed statistical methodology for both
-approaches - Step-by-step implementation examples - Comparison of linear
-model results vs. GAM vs. rank-based findings - Concordance tables
-showing agreement across methods - Recommendations for when each method
-is most appropriate - Power analysis and sample size guidance for
-different designs</p>
-<p><strong>Key Finding</strong>: High concordance (typically &gt;90%
-agreement) across methods validates that linear model discoveries are
-robust to model assumptions and generalize to non-parametric
-frameworks.</p>
 <p><strong><a href="TSENAT_appendix_B.html">View Appendix
 B</a></strong></p>
 </div>
