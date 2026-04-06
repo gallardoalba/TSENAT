@@ -16,31 +16,13 @@ NULL
 # ============================================================================
 # GLOBAL VARIABLES DECLARATION
 # ============================================================================
-# Declare variables used in data.table and ggplot2 non-standard evaluation (NSE)
-# across the package to suppress R CMD check NOTEs about undefined global variables
+# Declare variables used in data.table and ggplot2 non-standard evaluation
+# (NSE) across the package to suppress R CMD check NOTEs about undefined global
+# variables
 if (getRversion() >= "2.15.1") {
-    utils::globalVariables(c(
-        # Data manipulation columns (data.table NSE)
-        "Gene",
-        "group",
-        "tsallis",
-        "tx",
-        # Model-related variables
-        "df_model",
-        # Plot aesthetics and settings
-        "legend_name",
-        "legend_position",
-        "log2expr",
-        # PCA/dimension reduction
-        "dimension",
-        "variable",
-        "contribution",
-        "dim1",
-        "dim2",
-        "type",
-        "coord_x",
-        "coord_y"
-    ))
+    utils::globalVariables(c("Gene", "group", "tsallis", "tx", "df_model", "legend_name",
+        "legend_position", "log2expr", "dimension", "variable", "contribution", "dim1",
+        "dim2", "type", "coord_x", "coord_y"))
 }
 
 #' Access analysis results via recommended accessor methods
@@ -113,23 +95,23 @@ setGeneric("getPlot", function(object, ...) standardGeneric("getPlot"))
 #'
 #' @examples
 #' # Create a simple plot and add to analysis
-#' data(readcounts, package = "TSENAT")
+#' data(readcounts, package = 'TSENAT')
 #' metadata <- read.table(
-#'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t"
+#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t'
 #' )
-#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' 
 #' config <- tsenat_config(q_values = c(0.5, 1.0), generate_plots = FALSE)
 #' analysis <- build_analysis_s4(readcounts, tx2gene = gff3_file,
 #'     metadata = metadata, tpm = tpm, effective_length = effective_length,
 #'     config = config)
-#' analysis <- filter_analysis_s4(analysis, stringency = "severe")
+#' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 #' analysis <- calculate_diversity_s4(analysis, norm = TRUE)
 #' 
 #' # Create and cache a plot
 #' p <- plot_tsallis_q_curve_s4(analysis)
-#' analysis <- addPlot(analysis, type = "tsallis_q_curve", plot = p)
+#' analysis <- addPlot(analysis, type = 'tsallis_q_curve', plot = p)
 #'
 #' @export
 setGeneric("addPlot", function(object, type, plot, replace = FALSE) standardGeneric("addPlot"))
@@ -152,10 +134,10 @@ setGeneric("addPlot", function(object, type, plot, replace = FALSE) standardGene
 #'
 #' @examples
 #' # Load example data and build analysis object
-#' data(readcounts, package = "TSENAT")
-#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t")
-#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' data(readcounts, package = 'TSENAT')
+#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t')
+#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #'
 #' # Build TSENATAnalysis object
 #' analysis <- build_analysis_s4(readcounts = readcounts, 

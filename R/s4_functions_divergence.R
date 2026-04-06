@@ -103,18 +103,19 @@
 calculate_divergence_s4 <- function(analysis, q = NULL, verbose = FALSE, nthreads = NULL,
     output_file = NULL, control_group = NULL, paired = FALSE, method = NULL, bootstrap = FALSE,
     nboot = NULL, progress = FALSE, ...) {
-    
+
     # Step 1: Validate input
     .validate_divergence_input(analysis)
 
     # Step 2: Resolve all parameters from config
     verbose <- resolve_slot_param(verbose, analysis@config, "verbose", TRUE)
-    output_file <- resolve_slot_param(output_file, analysis@config, "output_file", NULL)
+    output_file <- resolve_slot_param(output_file, analysis@config, "output_file",
+        NULL)
     progress <- resolve_slot_param(progress, analysis@config, "progress", FALSE)
 
     # Step 3: Resolve and process parameters
-    params <- .resolve_divergence_parameters(q, control_group, method, nthreads, nboot,
-        paired, bootstrap, analysis)
+    params <- .resolve_divergence_parameters(q, control_group, method, nthreads,
+        nboot, paired, bootstrap, analysis)
 
     # Step 4: Build arguments for computation
     args <- .build_divergence_args(analysis, params, verbose, progress, ...)
@@ -177,7 +178,8 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = FALSE, nthread
     paired, bootstrap, analysis) {
     # Extract parameters using utility functions
     q <- resolve_slot_param(q, analysis@config, "q_values", 1)
-    control_group <- resolve_slot_param(control_group, analysis@config, "control_group", NULL)
+    control_group <- resolve_slot_param(control_group, analysis@config, "control_group",
+        NULL)
     method <- resolve_slot_param(method, analysis@config, "method", "percentile")
     nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
     nboot <- resolve_slot_param(nboot, analysis@config, "nboot", NULL)
@@ -191,14 +193,18 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = FALSE, nthread
 
     # Ensure paired is logical
     if (!isTRUE(paired) && !isFALSE(paired)) {
-        paired <- if ("paired" %in% names(analysis@config)) analysis@config$paired else FALSE
-        if (!is.logical(paired) || is.na(paired)) paired <- FALSE
+        paired <- if ("paired" %in% names(analysis@config))
+            analysis@config$paired else FALSE
+        if (!is.logical(paired) || is.na(paired))
+            paired <- FALSE
     }
 
     # Ensure bootstrap is logical
     if (!isTRUE(bootstrap) && !isFALSE(bootstrap)) {
-        bootstrap <- if ("bootstrap" %in% names(analysis@config)) analysis@config$bootstrap else FALSE
-        if (!is.logical(bootstrap) || is.na(bootstrap)) bootstrap <- FALSE
+        bootstrap <- if ("bootstrap" %in% names(analysis@config))
+            analysis@config$bootstrap else FALSE
+        if (!is.logical(bootstrap) || is.na(bootstrap))
+            bootstrap <- FALSE
     }
 
     # Sanitize method
@@ -309,10 +315,13 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = FALSE, nthread
         tryCatch({
             write_data <- .extract_divergence_write_data(analysis@divergence_results)
             if (!is.null(write_data)) {
-                sep <- if (grepl("\\.csv$", tolower(output_file))) "," else "\t"
-                write.table(write_data, file = output_file, sep = sep, quote = FALSE, row.names = TRUE)
+                sep <- if (grepl("\\.csv$", tolower(output_file)))
+                  "," else "\t"
+                write.table(write_data, file = output_file, sep = sep, quote = FALSE,
+                  row.names = TRUE)
             } else {
-                warning("[calculate_divergence_s4] No divergence results to save", call. = FALSE)
+                warning("[calculate_divergence_s4] No divergence results to save",
+                  call. = FALSE)
             }
         }, error = function(e) {
             warning("[calculate_divergence_s4] Could not write divergence results: ",
@@ -365,8 +374,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = FALSE, nthread
 #' @noRd
 .write_divergence_bootstrap_output <- function(analysis, output_file, verbose) {
     # Generate bootstrap filename (preserving original case)
-    bootstrap_file <- gsub("\\.(tsv|csv|txt)$", "_bootstrap.\\1", output_file,
-        ignore.case = TRUE)
+    bootstrap_file <- gsub("\\.(tsv|csv|txt)$", "_bootstrap.\\1", output_file, ignore.case = TRUE)
     if (basename(bootstrap_file) == basename(output_file)) {
         bootstrap_file <- sub("(\\.[^.]+)$", "_bootstrap\\1", output_file)
     }
@@ -389,18 +397,21 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = FALSE, nthread
         # Write if columns available
         if (length(bootstrap_cols) > 1) {
             bootstrap_data <- as.data.frame(rd[, bootstrap_cols])
-            sep <- if (grepl("\\.csv$", tolower(bootstrap_file))) "," else "\t"
-            
+            sep <- if (grepl("\\.csv$", tolower(bootstrap_file)))
+                "," else "\t"
+
             # Ensure parent directory exists
             parent_dir <- dirname(bootstrap_file)
             if (!dir.exists(parent_dir)) {
                 dir.create(parent_dir, recursive = TRUE, showWarnings = FALSE)
             }
-            
-            write.table(bootstrap_data, file = bootstrap_file, sep = sep, quote = FALSE, row.names = FALSE)
+
+            write.table(bootstrap_data, file = bootstrap_file, sep = sep, quote = FALSE,
+                row.names = FALSE)
 
             if (isTRUE(verbose)) {
-                message("[calculate_divergence_s4] Saved bootstrap results to: ", bootstrap_file)
+                message("[calculate_divergence_s4] Saved bootstrap results to: ",
+                  bootstrap_file)
             }
         }
     }, error = function(e) {

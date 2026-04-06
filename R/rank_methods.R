@@ -964,14 +964,15 @@ print.rank_correlation_ci <- function(x, ...) {
         groups <- factor(groups)
     }
 
-    # Aligned Rank Transform: rank the original values (not residuals)
-    # NOTE: Do NOT remove group effect - the whole point is to test for it!
-    # Residuals from lm(values ~ groups) removes the signal we're testing for.
-    
+    # Aligned Rank Transform: rank the original values (not residuals) NOTE: Do
+    # NOT remove group effect - the whole point is to test for it!  Residuals
+    # from lm(values ~ groups) removes the signal we're testing for.
+
     # Step 1: Rank original values
     ranks <- rank(values, na.last = "keep")
 
-    # Step 2: Apply van der Waerden normal scores (convert ranks to approximate normal)
+    # Step 2: Apply van der Waerden normal scores (convert ranks to approximate
+    # normal)
     n_vals <- sum(!is.na(ranks))
     normal_scores <- stats::qnorm(ranks/(n_vals + 1))
 
@@ -1337,14 +1338,15 @@ print.rank_correlation_ci <- function(x, ...) {
         stop("Column '", subject_col, "' not found in data (required for paired analysis)")
     }
 
-    # OPTIMIZATION: Skip ranking if pre_ranked=TRUE (speeds up permutation refits 30-40%)
-    # During permutations, only the factors are shuffled, not the rank values
+    # OPTIMIZATION: Skip ranking if pre_ranked=TRUE (speeds up permutation
+    # refits 30-40%) During permutations, only the factors are shuffled, not
+    # the rank values
     if (!pre_ranked) {
-        # For both paired and unpaired: Use Scheirer-Ray-Hare test (REVISED March
-        # 2026) The aggregation-then-ANOVA approach for paired designs has
-        # inadequate degrees of freedom Scheirer-Ray-Hare properly handles two-way
-        # designs by testing on ranked data directly References: Scheirer,
-        # Castellan, Wilkinson (1976); Conover & Iman (1981)
+        # For both paired and unpaired: Use Scheirer-Ray-Hare test (REVISED
+        # March 2026) The aggregation-then-ANOVA approach for paired designs
+        # has inadequate degrees of freedom Scheirer-Ray-Hare properly handles
+        # two-way designs by testing on ranked data directly References:
+        # Scheirer, Castellan, Wilkinson (1976); Conover & Iman (1981)
         if (paired && !is.null(subject_col)) {
             # Paired design: Rank within each subject ONLY (preserves
             # within-subject dependence) Then apply Scheirer-Ray-Hare on the
@@ -1360,7 +1362,8 @@ print.rank_correlation_ci <- function(x, ...) {
     # Apply Scheirer-Ray-Hare test for q * condition interaction Works for both
     # paired (within-subject ranks) and unpaired (global ranks) cases
     tryCatch({
-        # OPTIMIZATION: Skip factor conversion if pre_factored=TRUE (avoids 200+ factor() calls)
+        # OPTIMIZATION: Skip factor conversion if pre_factored=TRUE (avoids
+        # 200+ factor() calls)
         if (!pre_factored) {
             data[[q_col]] <- factor(data[[q_col]])
             data[[condition_col]] <- factor(data[[condition_col]])

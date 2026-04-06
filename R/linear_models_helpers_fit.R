@@ -147,14 +147,14 @@
             stop(sprintf("subject_col '%s' not found in colData(se)", subject_col))
         }
     }
-    
+
     if (paired && is.null(subject_col)) {
-        # If paired=TRUE without explicit subject_col, check for standard columns
+        # If paired=TRUE without explicit subject_col, check for standard
+        # columns
         if (!is.null(se)) {
             coldata_cols <- colnames(SummarizedExperiment::colData(se))
-            has_paired_info <- ("paired_samples" %in% coldata_cols) || 
-                               ("sample_base" %in% coldata_cols) ||
-                               (length(coldata_cols) >= 3)
+            has_paired_info <- ("paired_samples" %in% coldata_cols) || ("sample_base" %in%
+                coldata_cols) || (length(coldata_cols) >= 3)
             if (!has_paired_info) {
                 stop("paired = TRUE requires 'paired_samples' or 'sample_base' column in colData; supply subject_col explicitly")
             }
@@ -166,22 +166,24 @@
     df <- .apply_weights_to_df(df, weights, g, verbose)
 
     # Phase 15: Wrap all method fitting in tryCatch to handle edge case errors
-    # gracefully (e.g., "los nombres no coinciden" from factor level mismatches)
-    # CRITICAL: Must NOT use return() inside tryCatch - it bypasses error handler!
-    # Instead, assign to result variable so error handler can catch anything
+    # gracefully (e.g., 'los nombres no coinciden' from factor level
+    # mismatches) CRITICAL: Must NOT use return() inside tryCatch - it bypasses
+    # error handler!  Instead, assign to result variable so error handler can
+    # catch anything
     result <- tryCatch({
-        # Dispatch to method-specific helper (contains all details for that method)
+        # Dispatch to method-specific helper (contains all details for that
+        # method)
         if (method == "lmm") {
-            .lmm_interaction(df, mat, q_vals, sample_names, group_vec, g, se,
-                subject_col, paired, min_obs, verbose, suppress_lme4_warnings, progress,
-                regularization, weights)
+            .lmm_interaction(df, mat, q_vals, sample_names, group_vec, g, se, subject_col,
+                paired, min_obs, verbose, suppress_lme4_warnings, progress, regularization,
+                weights)
         } else if (method == "gam") {
             subject <- .get_subject_ids(se, subject_col, paired, mat, sample_names)
             df$subject <- if (!is.null(subject))
                 factor(subject) else factor(sample_names)
             .gam_interaction(df, q_vals, g, min_obs = min_obs, subject = subject,
-                regularization = regularization, bias_correction = bias_correction, adaptive_knots = adaptive_knots,
-                weights = weights)
+                regularization = regularization, bias_correction = bias_correction,
+                adaptive_knots = adaptive_knots, weights = weights)
         } else if (method == "fpca") {
             subject <- .get_subject_ids(se, subject_col, paired, mat, sample_names)
             .fpca_interaction(mat, q_vals, sample_names, group_vec, g, min_obs = min_obs,
@@ -196,45 +198,43 @@
             NULL  # Invalid method
         }
     }, error = function(e) {
-        # Phase 15: Log detailed error information for debugging
-        # Phase 16: Capture gene-specific error diagnostics
+        # Phase 15: Log detailed error information for debugging Phase 16:
+        # Capture gene-specific error diagnostics
         error_msg <- conditionMessage(e)
-        
+
         # Build diagnostic message with gene-specific details
         df_info <- if (exists("df_model") && is.data.frame(df_model)) {
-            sprintf("rows=%d, q-levels=%d, groups=%s, subjects=%d",
-                nrow(df_model), length(unique(df_model$q)),
-                paste(levels(df_model$group), collapse="/"),
+            sprintf("rows=%d, q-levels=%d, groups=%s, subjects=%d", nrow(df_model),
+                length(unique(df_model$q)), paste(levels(df_model$group), collapse = "/"),
                 length(levels(df_model$subject)))
         } else if (exists("df") && is.data.frame(df)) {
-            sprintf("rows=%d, q-levels=%d, groups=%s",
-                nrow(df), length(unique(df$q)),
-                paste(levels(df$group), collapse="/"))
+            sprintf("rows=%d, q-levels=%d, groups=%s", nrow(df), length(unique(df$q)),
+                paste(levels(df$group), collapse = "/"))
         } else {
             "data structure unavailable"
         }
-        
-        diag_msg <- sprintf("[.fit_one_interaction] Gene '%s' failed: %s [%s]",
-            g, error_msg, df_info)
-        
-        if (verbose) message(diag_msg)
-        
-        # Return NA results on any error instead of crashing
-        # This handles edge cases like "los nombres no coinciden" gracefully
-        data.frame(gene = g, p_interaction = NA_real_, p_lrt = NA_real_,
-            slope_diff = NA_real_, fit_method = "ERROR", singular = NA,
-            arima_transformation = NA, ci_weighted = NA, n_subjects = NA_integer_,
-            small_sample_flag = NA, message = error_msg,
+
+        diag_msg <- sprintf("[.fit_one_interaction] Gene '%s' failed: %s [%s]", g,
+            error_msg, df_info)
+
+        if (verbose)
+            message(diag_msg)
+
+        # Return NA results on any error instead of crashing This handles edge
+        # cases like 'los nombres no coinciden' gracefully
+        data.frame(gene = g, p_interaction = NA_real_, p_lrt = NA_real_, slope_diff = NA_real_,
+            fit_method = "ERROR", singular = NA, arima_transformation = NA, ci_weighted = NA,
+            n_subjects = NA_integer_, small_sample_flag = NA, message = error_msg,
             stringsAsFactors = FALSE)
     })
-    
+
     # Ensure 'gene' column exists in result before returning
     if (is.data.frame(result) && nrow(result) > 0) {
         if (!("gene" %in% colnames(result))) {
             result$gene <- g
         }
     }
-    
+
     result
 
 }
@@ -316,40 +316,35 @@
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # HETEROSCEDASTICITY DETECTION: Use varPower() if variance depends on q
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # NOTE: Fixed in linear_models_lmm.R - is.na() coercion error is now handled
-    # Variance structure detection is now enabled by default
+    # NOTE: Fixed in linear_models_lmm.R - is.na() coercion error is now
+    # handled Variance structure detection is now enabled by default
     use_var_structure <- TRUE
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # MODEL FITTING: nlme::lme with AR(1) covariance and optional variance
     # structure
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    
-    # Phase 16: Log factor structure before fitting to diagnose "nombres no coinciden" errors
+
+    # Phase 16: Log factor structure before fitting to diagnose 'nombres no
+    # coinciden' errors
     if (verbose) {
-        message(sprintf(
-            "[.lmm_interaction] Gene '%s' data: %d obs, q-levels=%d, group-levels=%s, subject-levels=%d",
-            g, nrow(df_model),
-            length(unique(df_model$q)),
-            paste(levels(df_model$group), collapse="/"),
-            length(levels(df_model$subject))
-        ))
+        message(sprintf("[.lmm_interaction] Gene '%s' data: %d obs, q-levels=%d, group-levels=%s, subject-levels=%d",
+            g, nrow(df_model), length(unique(df_model$q)), paste(levels(df_model$group),
+                collapse = "/"), length(levels(df_model$subject))))
     }
-    
+
     if (use_var_structure) {
         fit0 <- try(nlme::lme(formula_null, random = ~1 | subject, data = df_model,
-            method = "ML"),
-            silent = TRUE)
+            method = "ML"), silent = TRUE)
         fit1 <- try(nlme::lme(formula_alt, random = ~1 | subject, data = df_model,
-            method = "ML"),
-            silent = TRUE)
+            method = "ML"), silent = TRUE)
     } else {
         fit0 <- try(nlme::lme(formula_null, random = ~1 | subject, data = df_model,
             method = "ML"), silent = TRUE)
         fit1 <- try(nlme::lme(formula_alt, random = ~1 | subject, data = df_model,
             method = "ML"), silent = TRUE)
     }
-    
+
     # Phase 16: Log fit errors for diagnosis
     if (inherits(fit0, "try-error") && verbose) {
         message(sprintf("[.lmm_interaction] Gene '%s' fit0 error (null model): %s",

@@ -139,8 +139,8 @@
     # Generate plots for all top genes
     plots <- list()
     for (g in top_genes) {
-        p <- .plot_gam_make_plot(g, gene_name_map = gene_name_map, mat = mat,
-            sample_to_group = sample_to_group, condition_col = condition_col)
+        p <- .plot_gam_make_plot(g, gene_name_map = gene_name_map, mat = mat, sample_to_group = sample_to_group,
+            condition_col = condition_col)
         if (!is.null(p)) {
             plots[[g]] <- p
         }

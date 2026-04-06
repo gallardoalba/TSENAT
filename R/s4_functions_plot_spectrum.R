@@ -143,48 +143,58 @@
 #' @export
 plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL, lm_res = NULL, divergence_results_se = NULL,
     n_genes = 9, ncol = 3, verbose = FALSE, output_file = NULL) {
-    
+
     .load_visualization_deps()
-    
+
     # Handle TSENATAnalysis S4 object
     if (methods::is(eff_res, "TSENATAnalysis")) {
-        if (verbose) message("[plot_multi_gene_q_spectrum_s4] Detected TSENATAnalysis object, extracting lm_results and divergence_results...")
+        if (verbose)
+            message("[plot_multi_gene_q_spectrum_s4] Detected TSENATAnalysis object, extracting lm_results and divergence_results...")
         components <- .extract_s4_components(eff_res, verbose)
         lm_res <- components$lm_res
         divergence_results_se <- components$divergence_results_se
         eff_res <- NULL
     }
-    
+
     # Extract gene data from either mode
     gene_data <- .select_genes_from_eff_res(eff_res, n_genes, verbose)
     if (is.null(gene_data)) {
-        gene_data <- .select_genes_fallback(lm_res, divergence_results_se, n_genes, verbose)
+        gene_data <- .select_genes_fallback(lm_res, divergence_results_se, n_genes,
+            verbose)
     }
-    
+
     # Validate genes
     if (is.null(gene_data) || length(gene_data$genes) == 0) {
-        if (verbose) message("No valid genes to plot. Check input data and column names.")
+        if (verbose)
+            message("No valid genes to plot. Check input data and column names.")
         return(NULL)
     }
-    
-    if (verbose) message(sprintf("Plotting %d genes in %d-column grid", length(gene_data$genes), ncol))
-    
+
+    if (verbose)
+        message(sprintf("Plotting %d genes in %d-column grid", length(gene_data$genes),
+            ncol))
+
     # Create and assemble plots
-    plot_list <- .create_gene_q_plots(gene_data$genes, gene_data$patterns, gene_data$p_values, verbose)
-    
+    plot_list <- .create_gene_q_plots(gene_data$genes, gene_data$patterns, gene_data$p_values,
+        verbose)
+
     if (length(plot_list) == 0) {
-        if (verbose) message("No valid plots were created. Check per_q_pattern values and gene data.")
+        if (verbose)
+            message("No valid plots were created. Check per_q_pattern values and gene data.")
         return(NULL)
     }
-    
+
     combined_plot <- .assemble_plot_grid(plot_list, ncol)
-    
-    if (verbose) message(sprintf("[OK] Multi-gene q-spectrum plot created with %d genes", length(plot_list)))
-    
+
+    if (verbose)
+        message(sprintf("[OK] Multi-gene q-spectrum plot created with %d genes",
+            length(plot_list)))
+
     if (!is.null(output_file)) {
-        ggplot2::ggsave(output_file, plot = combined_plot, width = 12, height = 7.2, dpi = 100, create.dir = TRUE)
+        ggplot2::ggsave(output_file, plot = combined_plot, width = 12, height = 7.2,
+            dpi = 100, create.dir = TRUE)
     }
-    
+
     return(combined_plot)
 }
 
@@ -193,23 +203,25 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL, lm_res = NULL, diverge
     # Extract lm_results and divergence_results from TSENATAnalysis object
     lm_res <- NULL
     divergence_results_se <- NULL
-    
+
     if (length(analysis@lm_results) > 0) {
         lm_res <- analysis@lm_results[[1]]$results
-        if (verbose) message("[plot_multi_gene_q_spectrum_s4] Extracted lm_results with ",
-            nrow(lm_res), " rows")
+        if (verbose)
+            message("[plot_multi_gene_q_spectrum_s4] Extracted lm_results with ",
+                nrow(lm_res), " rows")
     } else {
         stop("TSENATAnalysis object has no lm_results. Run calculate_lm_interaction_s4() first.")
     }
-    
+
     if (length(analysis@diversity_results) > 0) {
         divergence_results_se <- analysis@diversity_results[[1]]
-        if (verbose) message("[plot_multi_gene_q_spectrum_s4] Extracted divergence_results with ",
-            nrow(divergence_results_se), " rows")
+        if (verbose)
+            message("[plot_multi_gene_q_spectrum_s4] Extracted divergence_results with ",
+                nrow(divergence_results_se), " rows")
     } else {
         stop("TSENATAnalysis object has no diversity_results. Run calculate_divergence_s4() first.")
     }
-    
+
     list(lm_res = lm_res, divergence_results_se = divergence_results_se)
 }
 
@@ -217,23 +229,28 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL, lm_res = NULL, diverge
 .select_genes_from_eff_res <- function(eff_res, n_genes, verbose = FALSE) {
     # Mode 1: Extract from eff_res$interaction_results
     if (is.null(eff_res) || !is.list(eff_res)) {
-        if (verbose) message("[plot_multi_gene_q_spectrum_s4] Mode 1 failed: eff_res is NULL or not a list")
+        if (verbose)
+            message("[plot_multi_gene_q_spectrum_s4] Mode 1 failed: eff_res is NULL or not a list")
         return(NULL)
     }
-    
-    if (is.null(eff_res$interaction_results) || nrow(eff_res$interaction_results) == 0) {
-        if (verbose) message("[plot_multi_gene_q_spectrum_s4] Mode 1 failed: eff_res$interaction_results is NULL or empty")
+
+    if (is.null(eff_res$interaction_results) || nrow(eff_res$interaction_results) ==
+        0) {
+        if (verbose)
+            message("[plot_multi_gene_q_spectrum_s4] Mode 1 failed: eff_res$interaction_results is NULL or empty")
         return(NULL)
     }
-    
+
     int_res <- eff_res$interaction_results
     has_gene <- "gene" %in% colnames(int_res)
     has_per_q <- "per_q_pattern" %in% colnames(int_res)
     has_p_adj <- "adj_p_interaction" %in% colnames(int_res)
     has_p_raw <- "p_value_interaction" %in% colnames(int_res)
-    
-    p_col <- if (has_p_adj) "adj_p_interaction" else if (has_p_raw) "p_value_interaction" else NA_character_
-    
+
+    p_col <- if (has_p_adj)
+        "adj_p_interaction" else if (has_p_raw)
+        "p_value_interaction" else NA_character_
+
     if (!(has_gene && has_per_q && (!is.na(p_col)))) {
         if (verbose) {
             message("[plot_multi_gene_q_spectrum_s4] Mode 1 failed: Missing required columns")
@@ -244,53 +261,64 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL, lm_res = NULL, diverge
         }
         return(NULL)
     }
-    
+
     int_res_sorted <- int_res[order(int_res[[p_col]], na.last = TRUE), ]
     int_res_subset <- head(int_res_sorted, n_genes)
-    valid_patterns <- !is.na(int_res_subset$per_q_pattern) & int_res_subset$per_q_pattern != "" & int_res_subset$per_q_pattern != "NA"
-    
+    valid_patterns <- !is.na(int_res_subset$per_q_pattern) & int_res_subset$per_q_pattern !=
+        "" & int_res_subset$per_q_pattern != "NA"
+
     if (!any(valid_patterns)) {
-        if (verbose) message("[plot_multi_gene_q_spectrum_s4] Mode 1 failed: per_q_pattern values are empty or invalid")
+        if (verbose)
+            message("[plot_multi_gene_q_spectrum_s4] Mode 1 failed: per_q_pattern values are empty or invalid")
         return(NULL)
     }
-    
-    if (verbose) message(sprintf("[plot_multi_gene_q_spectrum_s4] Mode 1: Using eff_res with %s column (%d valid genes)",
-        p_col, sum(valid_patterns)))
-    
-    list(genes = int_res_subset$gene[valid_patterns], 
-         patterns = int_res_subset$per_q_pattern[valid_patterns],
-         p_values = int_res_subset[[p_col]][valid_patterns])
+
+    if (verbose)
+        message(sprintf("[plot_multi_gene_q_spectrum_s4] Mode 1: Using eff_res with %s column (%d valid genes)",
+            p_col, sum(valid_patterns)))
+
+    list(genes = int_res_subset$gene[valid_patterns], patterns = int_res_subset$per_q_pattern[valid_patterns],
+        p_values = int_res_subset[[p_col]][valid_patterns])
 }
 
 #' @keywords internal
 .select_genes_fallback <- function(lm_res, divergence_results_se, n_genes, verbose = FALSE) {
     # Mode 2: Use lm_res + divergence_results_se
-    if (is.null(lm_res) || is.null(divergence_results_se)) return(NULL)
-    if (nrow(lm_res) == 0 || nrow(divergence_results_se) == 0) return(NULL)
-    if (!all(c("gene", "adj_p_interaction") %in% colnames(lm_res))) return(NULL)
-    
+    if (is.null(lm_res) || is.null(divergence_results_se))
+        return(NULL)
+    if (nrow(lm_res) == 0 || nrow(divergence_results_se) == 0)
+        return(NULL)
+    if (!all(c("gene", "adj_p_interaction") %in% colnames(lm_res)))
+        return(NULL)
+
     div_rd <- as.data.frame(rowData(divergence_results_se))
     div_assay <- assay(divergence_results_se)
-    div_gene_names <- if ("gene_name" %in% colnames(div_rd)) div_rd$gene_name else rownames(div_assay)
-    
-    if (length(div_gene_names) == 0 || nrow(div_assay) == 0) return(NULL)
-    
+    div_gene_names <- if ("gene_name" %in% colnames(div_rd))
+        div_rd$gene_name else rownames(div_assay)
+
+    if (length(div_gene_names) == 0 || nrow(div_assay) == 0)
+        return(NULL)
+
     lm_sorted <- lm_res[order(lm_res$adj_p_interaction, na.last = TRUE), ]
     top_genes <- head(lm_sorted$gene, n_genes)
     gene_indices <- match(top_genes, div_gene_names)
     valid_idx <- !is.na(gene_indices)
     valid_genes <- top_genes[valid_idx]
-    
-    if (length(valid_genes) == 0) return(NULL)
-    
+
+    if (length(valid_genes) == 0)
+        return(NULL)
+
     patterns <- character(length(valid_genes))
     for (i in seq_along(valid_genes)) {
         gene_idx <- which(div_gene_names == valid_genes[i])[1]
-        if (!is.na(gene_idx)) patterns[i] <- paste(div_assay[gene_idx, ][!is.na(div_assay[gene_idx, ])], collapse = ",")
+        if (!is.na(gene_idx))
+            patterns[i] <- paste(div_assay[gene_idx, ][!is.na(div_assay[gene_idx,
+                ])], collapse = ",")
     }
-    
-    if (verbose) message("[plot_multi_gene_q_spectrum_s4] Mode 2 (fallback): Using lm_res + divergence_results_se")
-    
+
+    if (verbose)
+        message("[plot_multi_gene_q_spectrum_s4] Mode 2 (fallback): Using lm_res + divergence_results_se")
+
     list(genes = valid_genes, patterns = patterns, p_values = lm_sorted$adj_p_interaction[seq_along(valid_genes)])
 }
 
@@ -298,69 +326,74 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL, lm_res = NULL, diverge
 .create_gene_q_plots <- function(genes, patterns, p_values, verbose = FALSE) {
     # Create individual q-spectrum plots for each gene
     plot_list <- list()
-    
+
     for (i in seq_along(genes)) {
         tryCatch({
             per_q_vals <- as.numeric(strsplit(patterns[i], ",")[[1]])
             if (length(per_q_vals) == 0 || all(is.na(per_q_vals))) {
-                if (verbose) message(sprintf("  Skipping %s: no valid per-q values", genes[i]))
+                if (verbose)
+                  message(sprintf("  Skipping %s: no valid per-q values", genes[i]))
                 next
             }
-            
+
             q_vals <- seq(0.1, by = 0.05, length.out = length(per_q_vals))
             plot_df <- data.frame(q = q_vals, divergence = per_q_vals, stringsAsFactors = FALSE)
-            
+
             p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = q, y = divergence)) +
-                .theme_base(base_size = 11) +
-                ggplot2::geom_line(color = "#4575B4", linewidth = 1.2) +
-                ggplot2::geom_point(color = "#4575B4", size = 2.8, alpha = 0.8) +
-                ggplot2::geom_vline(xintercept = 1, linetype = 3, color = "gray60", linewidth = 0.8, alpha = 0.7) +
-                ggplot2::labs(title = genes[i], subtitle = sprintf("adj p = %.2e", p_values[i]),
-                    x = "q (Tsallis parameter)", y = "Tsallis Divergence D[q]") +
-                ggplot2::theme(plot.title = ggplot2::element_text(size = .font_sizes$title, face = "bold", hjust = 0.5),
-                    plot.subtitle = ggplot2::element_text(hjust = 0.5, size = .font_sizes$subtitle, color = "gray40",
-                        margin = ggplot2::margin(b = 8)),
-                    plot.margin = ggplot2::margin(t = 8, b = 8, l = 6, r = 6),
-                    panel.grid.major = ggplot2::element_line(color = "gray92", linewidth = 0.25),
-                    axis.text = ggplot2::element_text(size = .font_sizes$axis_text),
-                    axis.title = ggplot2::element_text(size = .font_sizes$axis_title, face = "plain"))
-            
+                .theme_base(base_size = 11) + ggplot2::geom_line(color = "#4575B4",
+                linewidth = 1.2) + ggplot2::geom_point(color = "#4575B4", size = 2.8,
+                alpha = 0.8) + ggplot2::geom_vline(xintercept = 1, linetype = 3,
+                color = "gray60", linewidth = 0.8, alpha = 0.7) + ggplot2::labs(title = genes[i],
+                subtitle = sprintf("adj p = %.2e", p_values[i]), x = "q (Tsallis parameter)",
+                y = "Tsallis Divergence D[q]") + ggplot2::theme(plot.title = ggplot2::element_text(size = .font_sizes$title,
+                face = "bold", hjust = 0.5), plot.subtitle = ggplot2::element_text(hjust = 0.5,
+                size = .font_sizes$subtitle, color = "gray40", margin = ggplot2::margin(b = 8)),
+                plot.margin = ggplot2::margin(t = 8, b = 8, l = 6, r = 6), panel.grid.major = ggplot2::element_line(color = "gray92",
+                  linewidth = 0.25), axis.text = ggplot2::element_text(size = .font_sizes$axis_text),
+                axis.title = ggplot2::element_text(size = .font_sizes$axis_title,
+                  face = "plain"))
+
             plot_list[[i]] <- p
         }, error = function(e) {
-            if (verbose) message(sprintf("  Failed to plot %s: %s", genes[i], e$message))
+            if (verbose)
+                message(sprintf("  Failed to plot %s: %s", genes[i], e$message))
         })
     }
-    
+
     Filter(function(p) !is.null(p) && methods::is(p, "ggplot"), plot_list)
 }
 
 #' @keywords internal
 .assemble_plot_grid <- function(plot_list, ncol) {
     # Combine plots into grid using patchwork
-    if (length(plot_list) == 0) return(NULL)
-    
-    nrow <- ceiling(length(plot_list) / ncol)
+    if (length(plot_list) == 0)
+        return(NULL)
+
+    nrow <- ceiling(length(plot_list)/ncol)
     layout_plots <- list()
-    
+
     for (row_idx in seq_len(nrow)) {
         row_start <- (row_idx - 1) * ncol + 1
         row_end <- min(row_idx * ncol, length(plot_list))
-        row_plots <- Filter(function(p) !is.null(p) && methods::is(p, "ggplot"), plot_list[row_start:row_end])
-        
-        if (length(row_plots) == 0) next
-        
-        row_combined <- if (length(row_plots) == 1) row_plots[[1]] else Reduce(function(x, y) x + y, row_plots)
+        row_plots <- Filter(function(p) !is.null(p) && methods::is(p, "ggplot"),
+            plot_list[row_start:row_end])
+
+        if (length(row_plots) == 0)
+            next
+
+        row_combined <- if (length(row_plots) == 1)
+            row_plots[[1]] else Reduce(function(x, y) x + y, row_plots)
         layout_plots[[length(layout_plots) + 1]] <- row_combined
-        
-        if (row_idx < nrow) layout_plots[[length(layout_plots) + 1]] <- patchwork::plot_spacer()
+
+        if (row_idx < nrow)
+            layout_plots[[length(layout_plots) + 1]] <- patchwork::plot_spacer()
     }
-    
-    Reduce(function(x, y) x/y, layout_plots) + patchwork::plot_layout(heights = c(rep(c(1, 0.1), nrow - 1), 1), guides = "collect") +
-        patchwork::plot_annotation(title = "Tsallis Divergence q-Spectrum Profiles",
-            subtitle = "Per-q divergence curves for top-ranked genes",
-            theme = ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, face = "bold",
-                size = .font_sizes$title, margin = ggplot2::margin(b = 8)),
-                plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "italic", size = .font_sizes$subtitle,
-                    color = "gray40", margin = ggplot2::margin(b = 12))))
+
+    Reduce(function(x, y) x/y, layout_plots) + patchwork::plot_layout(heights = c(rep(c(1,
+        0.1), nrow - 1), 1), guides = "collect") + patchwork::plot_annotation(title = "Tsallis Divergence q-Spectrum Profiles",
+        subtitle = "Per-q divergence curves for top-ranked genes", theme = ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5,
+            face = "bold", size = .font_sizes$title, margin = ggplot2::margin(b = 8)),
+            plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "italic", size = .font_sizes$subtitle,
+                color = "gray40", margin = ggplot2::margin(b = 12))))
 }
 

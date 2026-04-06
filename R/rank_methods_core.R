@@ -143,13 +143,12 @@
     # Compute effect size
     overall_mean <- mean(gene_data$entropy, na.rm = TRUE)
     ss_total <- sum((gene_data$entropy - overall_mean)^2, na.rm = TRUE)
-    
+
     # Calculate per-q means and counts using tapply
-    q_means <- tapply(gene_data$entropy, gene_data$q, 
-                      function(x) mean(x, na.rm = TRUE), simplify = TRUE)
-    q_counts <- tapply(gene_data$entropy, gene_data$q, 
-                       function(x) length(x), simplify = TRUE)
-    
+    q_means <- tapply(gene_data$entropy, gene_data$q, function(x) mean(x, na.rm = TRUE),
+        simplify = TRUE)
+    q_counts <- tapply(gene_data$entropy, gene_data$q, function(x) length(x), simplify = TRUE)
+
     ss_q <- sum(q_counts * (q_means - overall_mean)^2, na.rm = TRUE)
     ss_residual <- ss_total - ss_q
 
@@ -173,9 +172,11 @@
         max_stats <- apply(perm_result$perm_stats_matrix, 2, max, na.rm = TRUE)
         H_obs <- interaction_results$f_statistic
         counts <- vapply(H_obs, function(h) {
-            if (is.na(h)) return(NA_real_) else sum(max_stats >= h, na.rm = TRUE)
+            if (is.na(h))
+                return(NA_real_) else sum(max_stats >= h, na.rm = TRUE)
         }, numeric(1))
-        interaction_results$adj_p_value <- pmin(1, (counts + 1)/(wy_randomizations + 1))
+        interaction_results$adj_p_value <- pmin(1, (counts + 1)/(wy_randomizations +
+            1))
 
         interaction_results <- interaction_results[order(interaction_results$p_value),
             , drop = FALSE]
@@ -222,14 +223,14 @@
 #' @noRd
 .detect_q_refit_permuted_tests <- function(interaction_results, data, paired, subject_col,
     has_condition) {
-    # OPTIMIZATION: Pre-compute ranks once for all permutations
-    # During permutation refits, we only shuffle condition/q factors,
-    # not the rank values. This saves 500+ re-ranking operations per gene (30-40% speedup)
+    # OPTIMIZATION: Pre-compute ranks once for all permutations During
+    # permutation refits, we only shuffle condition/q factors, not the rank
+    # values. This saves 500+ re-ranking operations per gene (30-40% speedup)
     data_with_ranks <- data
     if (!"ranks" %in% colnames(data_with_ranks)) {
         data_with_ranks$ranks <- rank(data_with_ranks$entropy, na.last = "keep")
     }
-    
+
     function(data_perm) {
         # OPTIMIZATION: Reuse pre-computed ranks - data_perm already has them
         # Just update the condition/q factors to permuted values
@@ -244,8 +245,9 @@
 
             if (!is.null(gene_data_perm) && nrow(gene_data_perm) > 0 && length(unique(gene_data_perm$q)) >=
                 2) {
-                # OPTIMIZATION: Pass pre_ranked=TRUE to skip re-ranking in test function
-                # Ranks are already computed from original data and shuffled with factors
+                # OPTIMIZATION: Pass pre_ranked=TRUE to skip re-ranking in test
+                # function Ranks are already computed from original data and
+                # shuffled with factors
                 test_result <- tryCatch(.test_q_condition_interaction(gene_data_perm,
                   "entropy", "q", "condition", paired, if (paired)
                     subject_col else NULL, pre_ranked = TRUE, pre_factored = TRUE), error = function(e) NULL)
@@ -714,9 +716,9 @@
     gene_col = "gene", condition_col = NULL, paired = FALSE, subject_col = "paired_samples",
     test = c("auto", "kruskal-wallis", "friedman", "art"), multicorr = c("hochberg",
         "benjamini-yekutieli", "westfall-young", "none"), wy_randomizations = 500,
-    nperm_mode = "standard", nthreads = 1, alpha = 0.05, p_threshold = 0.05, 
-    eta2_threshold_moderate = 0.01, eta2_threshold_strong = 0.1, min_nperm = 100, 
-    max_nperm = 10000, n_permutations = 5000, verbose = FALSE) {
+    nperm_mode = "standard", nthreads = 1, alpha = 0.05, p_threshold = 0.05, eta2_threshold_moderate = 0.01,
+    eta2_threshold_strong = 0.1, min_nperm = 100, max_nperm = 10000, n_permutations = 5000,
+    verbose = FALSE) {
 
     test <- match.arg(test)
     multicorr <- match.arg(multicorr)
@@ -735,7 +737,7 @@
 
     # PHASE 3: HANDLE AUTOMATIC PERMUTATION ESTIMATION
     if (identical(wy_randomizations, "auto")) {
-        wy_randomizations <- .estimate_nperm(data, "entropy", "q", "gene", nperm_mode, 
+        wy_randomizations <- .estimate_nperm(data, "entropy", "q", "gene", nperm_mode,
             min_nperm, max_nperm)
         if (verbose)
             message(sprintf("Estimated %d permutations", wy_randomizations))
@@ -745,7 +747,8 @@
     wy_randomizations <- as.integer(wy_randomizations)
 
     # PHASE 4: INITIALIZE RESULTS FRAME
-    all_genes <- if (is.factor(data$gene)) levels(data$gene) else unique(data$gene)
+    all_genes <- if (is.factor(data$gene))
+        levels(data$gene) else unique(data$gene)
     n_genes <- length(all_genes)
     interaction_results <- data.frame(gene = all_genes, n_q_values_tested = integer(n_genes),
         f_statistic = numeric(n_genes), p_value = numeric(n_genes), adj_p_value = numeric(n_genes),
@@ -754,10 +757,10 @@
         test_method = character(n_genes), heteroscedastic = logical(n_genes), boundary_clustered = logical(n_genes),
         highly_skewed = logical(n_genes), stringsAsFactors = FALSE)
 
-    # PHASE 5: PRE-COMPUTE RANKS AND COMPILE FORMULA ONCE
-    # OPTIMIZATION: Rank entire dataset once, reuse for all 200 genes
-    # This avoids 200 rank() calls (O(n log n) each) + 500 permutation refits
-    # Result: 30-40% speedup on permutation-based tests
+    # PHASE 5: PRE-COMPUTE RANKS AND COMPILE FORMULA ONCE OPTIMIZATION: Rank
+    # entire dataset once, reuse for all 200 genes This avoids 200 rank() calls
+    # (O(n log n) each) + 500 permutation refits Result: 30-40% speedup on
+    # permutation-based tests
     if (any(grepl("westfall-young", multicorr, ignore.case = TRUE))) {
         # Pre-compute global ranks for all data (used in initial tests)
         if (!"ranks" %in% colnames(data)) {
@@ -765,7 +768,8 @@
                 data$ranks <- rank(data$entropy, na.last = "keep")
             }
         }
-        # Pre-compile formula to avoid repeated as.formula() calls (100K+ times)
+        # Pre-compile formula to avoid repeated as.formula() calls (100K+
+        # times)
         lm_formula <- as.formula("ranks ~ q * condition")
     } else {
         lm_formula <- NULL

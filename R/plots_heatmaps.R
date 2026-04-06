@@ -140,14 +140,17 @@
 
     for (gene_idx in seq_along(top_genes)) {
         gene_id <- top_genes[gene_idx]
-        
-        # Try to find the gene in any of the q-value results
-        # Build list of all available gene names from all q-values
-        available_genes <- unique(unlist(lapply(switching_results[q_result_keys], function(qres) {
-            if (!is.null(qres$results_per_gene)) names(qres$results_per_gene) else NULL
-        })))
-        
-        # Check if gene_id matches - if not, try to find a match by partial match or case-insensitive match
+
+        # Try to find the gene in any of the q-value results Build list of all
+        # available gene names from all q-values
+        available_genes <- unique(unlist(lapply(switching_results[q_result_keys],
+            function(qres) {
+                if (!is.null(qres$results_per_gene))
+                  names(qres$results_per_gene) else NULL
+            })))
+
+        # Check if gene_id matches - if not, try to find a match by partial
+        # match or case-insensitive match
         actual_gene_id <- gene_id
         if (!(gene_id %in% available_genes) && length(available_genes) > 0) {
             # Try case-insensitive match
@@ -156,7 +159,7 @@
                 actual_gene_id <- available_genes[matches[1]]
             }
         }
-        
+
         mat <- .heatmap_prepare_multiq_data(switching_results, actual_gene_id, q_result_keys)
 
         if (is.null(mat) || nrow(mat) == 0 || ncol(mat) == 0) {
@@ -178,21 +181,21 @@
             n_transcripts = ncol(mat))
     }
 
-    # Security check: if all matrices are NULL, we can't proceed
-    # BUT: Allow partial data - if at least SOME genes have data, continue
+    # Security check: if all matrices are NULL, we can't proceed BUT: Allow
+    # partial data - if at least SOME genes have data, continue
     non_null_count <- sum(!vapply(all_gene_matrices, is.null, logical(1)))
     if (non_null_count == 0) {
-        available_genes <- unique(unlist(lapply(switching_results[q_result_keys], function(qres) {
-            if (!is.null(qres$results_per_gene)) names(qres$results_per_gene) else NULL
-        })))
-        
-        error_msg <- paste0(
-            "No valid heatmap data generated for any genes. ",
-            "Requested genes: ", paste(top_genes, collapse = ", "), ". ",
-            "Available genes: ", paste(head(available_genes, 5), collapse = ", "),
-            if (length(available_genes) > 5) "..." else ""
-        )
-        
+        available_genes <- unique(unlist(lapply(switching_results[q_result_keys],
+            function(qres) {
+                if (!is.null(qres$results_per_gene))
+                  names(qres$results_per_gene) else NULL
+            })))
+
+        error_msg <- paste0("No valid heatmap data generated for any genes. ", "Requested genes: ",
+            paste(top_genes, collapse = ", "), ". ", "Available genes: ", paste(head(available_genes,
+                5), collapse = ", "), if (length(available_genes) > 5)
+                "..." else "")
+
         warning(error_msg, call. = FALSE)
         return(invisible(NULL))
     }
@@ -226,8 +229,7 @@
             cluster_rows = FALSE)
     }
 
-    # Phase 7: Render grid
-    # Filter to only non-NULL heatmaps for rendering
+    # Phase 7: Render grid Filter to only non-NULL heatmaps for rendering
     non_null_idx <- !vapply(heatmap_plots, is.null, logical(1))
     heatmap_plots_filtered <- heatmap_plots[non_null_idx]
     gene_layout_filtered <- if (!is.null(gene_layout) && length(gene_layout) > 0) {
@@ -235,7 +237,7 @@
     } else {
         NULL
     }
-    
+
     tryCatch({
         .plot_grid_setup(n_layout_rows, output_file, dims$png_width, dims$png_height,
             title = "Delta Influence Across Diversity Scales", subtitle = "Jackknife weights across q-spectrum for selected genes")

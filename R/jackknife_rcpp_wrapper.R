@@ -2,8 +2,8 @@
 # Accelerate jackknife computation with optional C++ implementation Fallback:
 # Pure R version available if Rcpp unavailable
 
-# Check if Rcpp implementation is available
-# Since the package compiles successfully, Rcpp is always available
+# Check if Rcpp implementation is available Since the package compiles
+# successfully, Rcpp is always available
 .rcpp_available <- function() {
     TRUE
 }

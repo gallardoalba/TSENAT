@@ -294,10 +294,9 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
 # ============================================================================
 #' @noRd
 .cache_combined_diversity_result <- function(analysis, result_df, params, pseudocount_resolved) {
-    analysis@metadata$diversity_combined <- list(combined_result = result_df, 
-        combined_se = result_df, q_values_computed = params$q,
-        computation_params = list(norm = params$norm, verbose = params$verbose,
-            bootstrap = params$bootstrap, pseudocount = pseudocount_resolved,
+    analysis@metadata$diversity_combined <- list(combined_result = result_df, combined_se = result_df,
+        q_values_computed = params$q, computation_params = list(norm = params$norm,
+            verbose = params$verbose, bootstrap = params$bootstrap, pseudocount = pseudocount_resolved,
             pseudocount_original = params$pseudocount, nthreads = params$nthreads,
             what = params$what), timestamp = Sys.time())
     analysis@metadata$.diversity_lazily_computed <- TRUE
@@ -313,7 +312,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     col_q_values <- .extract_q_metadata_from_result(result_df, params$q)
     result_se_original <- result_df
     q_format_cache <- .build_q_format_cache(params$q, q_decimals)
-    
+
     for (q_val in params$q) {
         analysis <- .process_single_q_value(analysis, result_df, col_q_values, result_se_original,
             q_format_cache, q_val, q_decimals, params, pseudocount_resolved)
@@ -330,13 +329,12 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     for (q_val in q_values) {
         q_formatted <- formatC(q_val, format = "f", digits = q_decimals)
         q_pattern <- paste0("_q=", gsub("\\.", "\\\\.", q_formatted), "$")
-        q_format_cache[[as.character(q_val)]] <- list(formatted = q_formatted, 
-            pattern = q_pattern, patterns_alt = list(
-                paste0("_q=", gsub("\\.", "\\\\.", formatC(q_val, format = "f", digits = 3)), "$"),
-                paste0("_q=", gsub("\\.", "\\\\.", formatC(q_val, format = "f", digits = 2)), "$"),
-                paste0("_q=", gsub("\\.", "\\\\.", formatC(q_val, format = "f", digits = 1)), "$"),
-                paste0("_q=", gsub("\\.", "\\\\.", as.character(as.integer(q_val))), "$")
-            ))
+        q_format_cache[[as.character(q_val)]] <- list(formatted = q_formatted, pattern = q_pattern,
+            patterns_alt = list(paste0("_q=", gsub("\\.", "\\\\.", formatC(q_val,
+                format = "f", digits = 3)), "$"), paste0("_q=", gsub("\\.", "\\\\.",
+                formatC(q_val, format = "f", digits = 2)), "$"), paste0("_q=", gsub("\\.",
+                "\\\\.", formatC(q_val, format = "f", digits = 1)), "$"), paste0("_q=",
+                gsub("\\.", "\\\\.", as.character(as.integer(q_val))), "$")))
     }
     q_format_cache
 }
@@ -350,37 +348,37 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     tryCatch({
         # Extract columns for this q-value
         q_cols <- .extract_q_columns(result_df, col_q_values, q_val, q_format_cache)
-        
+
         # Extract and convert to SE, preserving CI assays
         result_subset <- result_df[, q_cols, drop = FALSE]
-        result_se <- .convert_result_to_se(result_subset, result_se_original, q_cols, q_val)
-        
+        result_se <- .convert_result_to_se(result_subset, result_se_original, q_cols,
+            q_val)
+
         # Validate and apply colData
         .validate_se_structure(result_se, q_val)
         result_se <- .apply_original_coldata(result_se, analysis@se)
-        
+
         # Apply post-hoc normalization
         result_se <- .apply_diversity_post_hoc_norm(result_se, params$norm_method,
             params, q_val, params$verbose)
-        
+
         # Store with audit trail
         key <- paste0("q_", formatC(q_val, format = "f", digits = q_decimals))
-        attr(result_se, "computed_with") <- list(q = q_val, norm = params$norm,
-            norm_method = params$norm_method, verbose = params$verbose, 
-            bootstrap = params$bootstrap, pseudocount = pseudocount_resolved,
+        attr(result_se, "computed_with") <- list(q = q_val, norm = params$norm, norm_method = params$norm_method,
+            verbose = params$verbose, bootstrap = params$bootstrap, pseudocount = pseudocount_resolved,
             pseudocount_original = params$pseudocount, nthreads = params$nthreads,
             what = params$what, timestamp = Sys.time())
         analysis@diversity_results[[key]] <- result_se
-        analysis@metadata$function_calls <- c(analysis@metadata$function_calls,
-            paste0("calculate_diversity[q=", q_val, "]"))
+        analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("calculate_diversity[q=",
+            q_val, "]"))
     }, error = function(e) {
         error_msg <- conditionMessage(e)
         if (params$bootstrap && grepl("bootstrap", error_msg, ignore.case = TRUE)) {
             stop("[calculate_diversity_s4] Bootstrap CI computation failed for q=",
                 q_val, ": ", error_msg, call. = FALSE)
         } else {
-            stop("[calculate_diversity_s4] Failed to compute diversity for q=",
-                q_val, ":\n", error_msg, call. = FALSE)
+            stop("[calculate_diversity_s4] Failed to compute diversity for q=", q_val,
+                ":\n", error_msg, call. = FALSE)
         }
     })
     analysis
@@ -398,7 +396,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
             q_cols <- as.numeric(names(col_q_values)[q_mask])
         }
     }
-    
+
     if (is.null(q_cols) || length(q_cols) == 0) {
         q_cache_entry <- q_format_cache[[as.character(q_val)]]
         for (pattern_idx in seq_along(q_cache_entry$patterns_alt)) {
@@ -410,10 +408,9 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
             }
         }
     }
-    
+
     if (length(q_cols) == 0) {
-        stop("[calculate_diversity_s4] No columns found for q=", q_val,
-            call. = FALSE)
+        stop("[calculate_diversity_s4] No columns found for q=", q_val, call. = FALSE)
     }
     q_cols
 }
@@ -426,19 +423,19 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     if (is(result_subset, "SummarizedExperiment")) {
         return(result_subset)
     }
-    
+
     if (!is.data.frame(result_subset)) {
         return(result_subset)
     }
-    
+
     numeric_cols <- vapply(result_subset, is.numeric, FUN.VALUE = logical(1))
     if (!any(numeric_cols)) {
         return(result_subset)
     }
-    
+
     assay_data <- as.matrix(result_subset[, numeric_cols, drop = FALSE])
     assays_list <- list(diversity = assay_data)
-    
+
     # Extract CI assays from original result if available
     if (is(result_se_original, "SummarizedExperiment")) {
         if ("ci_lower" %in% SummarizedExperiment::assayNames(result_se_original)) {
@@ -454,17 +451,17 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
             }
         }
     }
-    
+
     result_se <- SummarizedExperiment(assays = assays_list)
     rownames(result_se) <- rownames(result_subset)
-    
+
     metadata_mask <- !numeric_cols
     if (any(metadata_mask)) {
         cd <- result_subset[, metadata_mask, drop = FALSE]
         rownames(cd) <- colnames(assay_data)
         SummarizedExperiment::colData(result_se) <- cd
     }
-    
+
     result_se
 }
 
@@ -476,22 +473,21 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     if (!is(result_se, "SummarizedExperiment")) {
         return(TRUE)
     }
-    
+
     if (length(SummarizedExperiment::assays(result_se)) == 0) {
-        stop("[calculate_diversity_s4] Converted SE for q=", q_val, 
-            " has no assays", call. = FALSE)
+        stop("[calculate_diversity_s4] Converted SE for q=", q_val, " has no assays",
+            call. = FALSE)
     }
-    
+
     test_assay <- tryCatch({
         SummarizedExperiment::assay(result_se, 1)
     }, error = function(e) {
-        stop("[calculate_diversity_s4] Cannot access assay for q=", q_val,
-            ": ", conditionMessage(e), call. = FALSE)
+        stop("[calculate_diversity_s4] Cannot access assay for q=", q_val, ": ",
+            conditionMessage(e), call. = FALSE)
     })
-    
+
     if (is.null(test_assay) || nrow(test_assay) == 0) {
-        warning("[calculate_diversity_s4] Assay for q=", q_val, " is empty",
-            call. = FALSE)
+        warning("[calculate_diversity_s4] Assay for q=", q_val, " is empty", call. = FALSE)
     }
     TRUE
 }
@@ -504,7 +500,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     if (!is(result_se, "SummarizedExperiment") || ncol(result_se) == 0) {
         return(result_se)
     }
-    
+
     original_coldata <- SummarizedExperiment::colData(original_se)
     if (!is.null(original_coldata) && nrow(original_coldata) == ncol(result_se)) {
         SummarizedExperiment::colData(result_se) <- original_coldata
@@ -517,18 +513,16 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
 # ============================================================================
 #' @noRd
 .update_config_post_diversity <- function(analysis, params, pseudocount_resolved) {
-    analysis@config$last_diversity_run <- list(timestamp = Sys.time(),
-        q_values_computed = params$q, num_q_values = length(params$q),
-        parameters_used = list(norm = params$norm, norm_method = params$norm_method,
-            verbose = params$verbose, bootstrap = params$bootstrap,
+    analysis@config$last_diversity_run <- list(timestamp = Sys.time(), q_values_computed = params$q,
+        num_q_values = length(params$q), parameters_used = list(norm = params$norm,
+            norm_method = params$norm_method, verbose = params$verbose, bootstrap = params$bootstrap,
             pseudocount = pseudocount_resolved, pseudocount_original = params$pseudocount,
-            nthreads = params$nthreads, what = params$what),
-        note = "Actual parameters used (save object and check this)")
-    
+            nthreads = params$nthreads, what = params$what), note = "Actual parameters used (save object and check this)")
+
     if (params$nthreads > 1) {
         analysis@metadata$parallel_processing <- c(analysis@metadata$parallel_processing,
-            paste0("calculate_diversity_s4: nthreads=", params$nthreads,
-                " (", length(params$q), " q-values)"))
+            paste0("calculate_diversity_s4: nthreads=", params$nthreads, " (", length(params$q),
+                " q-values)"))
     }
     analysis
 }
@@ -541,7 +535,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     if (is.null(output_file)) {
         return(analysis)
     }
-    
+
     .compute_and_save_spectrum(analysis, params, output_file)
     .save_diversity_output(analysis, params, output_file)
     analysis
@@ -555,30 +549,28 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     tryCatch({
         spectrum_condition_col <- analysis@config$condition_col %||% "sample_type"
         combined_se <- analysis@metadata$diversity_combined$combined_se
-        
+
         if (is.null(combined_se) || nrow(combined_se) == 0) {
             return(analysis)
         }
-        
-        diversity_spectrum <- .compute_diversity_spectrum(se = combined_se,
-            metric = "median", variability_metric = "iqr",
-            condition_col = spectrum_condition_col)
-        
+
+        diversity_spectrum <- .compute_diversity_spectrum(se = combined_se, metric = "median",
+            variability_metric = "iqr", condition_col = spectrum_condition_col)
+
         if (is.null(diversity_spectrum) || nrow(diversity_spectrum) == 0) {
             return(analysis)
         }
-        
+
         spectrum_file <- sub("\\.[^.]+$", "_spectrum.tsv", output_file)
         if (spectrum_file == output_file) {
             spectrum_file <- paste0(output_file, "_spectrum.tsv")
         }
-        
+
         utils::write.table(diversity_spectrum, file = spectrum_file, sep = "\t",
             row.names = FALSE, quote = FALSE)
-        
+
         if (params$verbose) {
-            message("[calculate_diversity_s4] Saved diversity spectrum to: ",
-                spectrum_file)
+            message("[calculate_diversity_s4] Saved diversity spectrum to: ", spectrum_file)
         }
         analysis@metadata$diversity_spectrum <- diversity_spectrum
     }, error = function(e) {
@@ -595,21 +587,20 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
 .save_diversity_output <- function(analysis, params, output_file) {
     tryCatch({
         output_data <- .build_diversity_output_table(analysis, params)
-        
+
         if (is.null(output_data) || nrow(output_data) == 0) {
             return(analysis)
         }
-        
+
         save_analysis_output(output_data, output_file, verbose = params$verbose,
             func_name = "calculate_diversity_s4")
-        
+
         if (params$verbose) {
-            message("[calculate_diversity_s4] Saved diversity results to: ",
-                output_file)
+            message("[calculate_diversity_s4] Saved diversity results to: ", output_file)
         }
     }, error = function(e) {
-        warning("[calculate_diversity_s4] Could not save diversity results: ",
-            conditionMessage(e), call. = FALSE)
+        warning("[calculate_diversity_s4] Could not save diversity results: ", conditionMessage(e),
+            call. = FALSE)
     })
     analysis
 }
@@ -620,15 +611,15 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
 #' @noRd
 .build_diversity_output_table <- function(analysis, params) {
     output_data <- NULL
-    
+
     if (length(analysis@diversity_results) > 0) {
         output_data <- .build_output_from_diversity_results(analysis, params)
     }
-    
+
     if (is.null(output_data) || nrow(output_data) == 0) {
         output_data <- .build_output_from_combined_result(analysis)
     }
-    
+
     output_data
 }
 
@@ -638,26 +629,27 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
 #' @noRd
 .build_output_from_diversity_results <- function(analysis, params) {
     q_keys_to_use <- paste0("q_", formatC(params$q, format = "f", digits = 3))
-    
+
     # Get CI flags from first result
     first_key <- q_keys_to_use[1]
     if (!(first_key %in% names(analysis@diversity_results))) {
         first_key <- names(analysis@diversity_results)[1]
     }
-    
+
     se_first <- analysis@diversity_results[[first_key]]
     has_ci_lower <- "ci_lower" %in% SummarizedExperiment::assayNames(se_first)
     has_ci_upper <- "ci_upper" %in% SummarizedExperiment::assayNames(se_first)
-    
+
     all_data_list <- list()
     for (q_key in q_keys_to_use) {
         se <- analysis@diversity_results[[q_key]]
-        if (!is(se, "SummarizedExperiment")) next
-        
+        if (!is(se, "SummarizedExperiment"))
+            next
+
         current_data <- .extract_se_to_dataframe(se, q_key, has_ci_lower, has_ci_upper)
         all_data_list[[length(all_data_list) + 1]] <- current_data
     }
-    
+
     if (length(all_data_list) > 0) {
         do.call(rbind, all_data_list)
     } else {
@@ -671,32 +663,30 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
 #' @noRd
 .extract_se_to_dataframe <- function(se, q_key, has_ci_lower, has_ci_upper) {
     diversity_mat <- as.matrix(SummarizedExperiment::assay(se, 1))
-    
+
     ci_lower_mat <- if (has_ci_lower) {
-        tryCatch(as.matrix(SummarizedExperiment::assay(se, "ci_lower")),
-            error = function(e) NULL)
+        tryCatch(as.matrix(SummarizedExperiment::assay(se, "ci_lower")), error = function(e) NULL)
     } else NULL
-    
+
     ci_upper_mat <- if (has_ci_upper) {
-        tryCatch(as.matrix(SummarizedExperiment::assay(se, "ci_upper")),
-            error = function(e) NULL)
+        tryCatch(as.matrix(SummarizedExperiment::assay(se, "ci_upper")), error = function(e) NULL)
     } else NULL
-    
+
     gene_names <- rownames(diversity_mat)
     sample_names <- colnames(diversity_mat)
     n_genes <- length(gene_names)
-    
+
     current_data <- data.frame(gene = rep(gene_names, times = length(sample_names)),
-        sample = rep(sample_names, each = n_genes), q_value = q_key,
-        diversity = as.vector(diversity_mat), stringsAsFactors = FALSE)
-    
+        sample = rep(sample_names, each = n_genes), q_value = q_key, diversity = as.vector(diversity_mat),
+        stringsAsFactors = FALSE)
+
     if (has_ci_lower && !is.null(ci_lower_mat)) {
         current_data$ci_lower <- as.vector(ci_lower_mat)
     }
     if (has_ci_upper && !is.null(ci_upper_mat)) {
         current_data$ci_upper <- as.vector(ci_upper_mat)
     }
-    
+
     current_data
 }
 
@@ -709,7 +699,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     if (is.null(combined) || nrow(combined) == 0) {
         return(NULL)
     }
-    
+
     if (is(combined, "SummarizedExperiment")) {
         as.data.frame(SummarizedExperiment::assay(combined, 1))
     } else if (is.data.frame(combined)) {
@@ -781,10 +771,10 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
         1), shrinkage = resolve_slot_param(shrinkage, analysis@config, "shrinkage",
         "none"), bootstrap_method = resolve_slot_param(bootstrap_method, analysis@config,
         "bootstrap_method", "percentile"), bootstrap_ci = resolve_slot_param(bootstrap_ci,
-        analysis@config, "bootstrap_ci", 0.95), tpm = tpm, genes = resolve_slot_param(genes, analysis@config,
-        "genes", NULL), effective_length = resolve_slot_param(effective_length, analysis@config,
-        "effective_length", NULL), nboot = resolve_slot_param(nboot, analysis@config,
-        "nboot", NULL), bootstrap_include_diagnostics = resolve_slot_param(bootstrap_include_diagnostics,
+        analysis@config, "bootstrap_ci", 0.95), tpm = tpm, genes = resolve_slot_param(genes,
+        analysis@config, "genes", NULL), effective_length = resolve_slot_param(effective_length,
+        analysis@config, "effective_length", NULL), nboot = resolve_slot_param(nboot,
+        analysis@config, "nboot", NULL), bootstrap_include_diagnostics = resolve_slot_param(bootstrap_include_diagnostics,
         analysis@config, "bootstrap_include_diagnostics", TRUE), metadata = resolve_slot_param(metadata,
         analysis@config, "metadata", NULL), norm_method = resolve_slot_param(norm_method,
         analysis@config, "norm_method", NULL), reference_group = resolve_slot_param(reference_group,

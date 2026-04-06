@@ -115,8 +115,8 @@
 
 #' @noRd
 .compute_divergence_worker <- function(gene_indices, all_gene_names, se, gene_col,
-    rd, group_col, control_group, q, nboot, ci, method, log_base, pseudocount,
-    pair_ids, nthreads, use_parallel, progress) {
+    rd, group_col, control_group, q, nboot, ci, method, log_base, pseudocount, pair_ids,
+    nthreads, use_parallel, progress) {
     start_time <- Sys.time()
     num_genes <- length(gene_indices)
 
@@ -1081,8 +1081,8 @@
 #' Consolidates logic shared between sequential and parallel processing
 #' @noRd
 .process_single_gene_div <- function(gene_idx, all_gene_names, se, gene_col, rd,
-    group_col, control_group, q, nboot, ci, method, log_base, pseudocount,
-    pair_ids, groups_cached = NULL, transcript_map_cache = NULL) {
+    group_col, control_group, q, nboot, ci, method, log_base, pseudocount, pair_ids,
+    groups_cached = NULL, transcript_map_cache = NULL) {
     target_gene <- all_gene_names[gene_idx]
     gene_name <- target_gene
     gene_start <- Sys.time()

@@ -153,26 +153,25 @@
 #' @noRd
 .spectrum_plot_single_gene <- function(gene_name, div_mat_sorted, q_vals_sorted,
     gene_names) {
-    
+
     gene_idx <- which(gene_names == gene_name)[1]
     if (is.na(gene_idx)) {
         stop("Gene '", gene_name, "' not found. Available: ", paste(head(gene_names,
             5), collapse = ", "), call. = FALSE)
     }
-    
-    plot_df <- data.frame(q = q_vals_sorted, divergence = as.numeric(div_mat_sorted[gene_idx, ]),
-        stringsAsFactors = FALSE)
-    
+
+    plot_df <- data.frame(q = q_vals_sorted, divergence = as.numeric(div_mat_sorted[gene_idx,
+        ]), stringsAsFactors = FALSE)
+
     # Use helper to create line + point plot (fixed color, no grouping)
-    p <- .create_simple_line_plot(plot_df, x_col = "q", y_col = "divergence",
-        group_col = NULL, points = TRUE, line_width = 1.2, point_size = 3.5,
-        line_color = .palette_blue_red()[1])
-    
-    p <- .apply_publication_theme(p, base_theme = "theme_base", base_size = 11,
-        title = paste("Divergence Spectrum:", gene_name))
-    
+    p <- .create_simple_line_plot(plot_df, x_col = "q", y_col = "divergence", group_col = NULL,
+        points = TRUE, line_width = 1.2, point_size = 3.5, line_color = .palette_blue_red()[1])
+
+    p <- .apply_publication_theme(p, base_theme = "theme_base", base_size = 11, title = paste("Divergence Spectrum:",
+        gene_name))
+
     p <- p + ggplot2::labs(x = "q value", y = "Divergence D_q")
-    
+
     p
 }
 
@@ -238,10 +237,11 @@
     multi_gene_df$gene <- factor(multi_gene_df$gene, levels = gene_order)
 
     # Use CI ribbon helper for consistent layer styling
-    has_valid_ci <- has_ci_assays && "ci_lower" %in% colnames(multi_gene_df) &&
-        !all(is.na(multi_gene_df$ci_lower)) && !all(is.na(multi_gene_df$ci_upper))
+    has_valid_ci <- has_ci_assays && "ci_lower" %in% colnames(multi_gene_df) && !all(is.na(multi_gene_df$ci_lower)) &&
+        !all(is.na(multi_gene_df$ci_upper))
 
-    # Build plot using helper - only passes CI columns if they exist and are valid
+    # Build plot using helper - only passes CI columns if they exist and are
+    # valid
     if (has_valid_ci) {
         p <- .create_ci_ribbon_plot(multi_gene_df, x_col = "q", y_col = "divergence",
             group_col = NULL, ci_lower_col = "ci_lower", ci_upper_col = "ci_upper",
@@ -254,8 +254,7 @@
 
     # Apply faceting and styling
     p <- .apply_facet_styling(p, ncol = ncol, facet_var = "gene", scales = "free_y")
-    p <- .apply_publication_theme(p, base_theme = "theme_base", base_size = 11,
-        title = "Divergence Spectra: Per-gene Comparisons",
+    p <- .apply_publication_theme(p, base_theme = "theme_base", base_size = 11, title = "Divergence Spectra: Per-gene Comparisons",
         subtitle = if (has_valid_ci) {
             paste0("Ranked by interaction significance (", metric, ") | Bootstrap CI (95%)")
         } else {
@@ -271,7 +270,7 @@
     divergence_results_se = NULL) {
     suppressPackageStartupMessages({
     })
-    
+
     # Check if bootstrap CI assays are available
     has_ci_assays <- FALSE
     ci_lower_mat <- NULL
@@ -289,7 +288,8 @@
     }
 
     # Unified subtitle construction function to avoid duplication
-    construct_subtitle <- function(metric_label, ci_source, spread_label = NULL, n_genes) {
+    construct_subtitle <- function(metric_label, ci_source, spread_label = NULL,
+        n_genes) {
         if (!is.null(ci_source)) {
             paste0(metric_label, " with ", ci_source, " CI (", n_genes, " genes)")
         } else {
@@ -305,8 +305,8 @@
 
         # Use CI ribbon helper with publication theme
         p <- .create_ci_ribbon_plot(summary_stats, x_col = "q", y_col = "central",
-            ci_lower_col = "ci_lower", ci_upper_col = "ci_upper",
-            ribbon_alpha = 0.1, line_width = 1.3, show_points = TRUE)
+            ci_lower_col = "ci_lower", ci_upper_col = "ci_upper", ribbon_alpha = 0.1,
+            line_width = 1.3, show_points = TRUE)
         p <- .apply_publication_theme(p, base_theme = "theme_base", base_size = 11,
             title = expression(bold("Global Divergence Spectrum: Average " * D[q])),
             subtitle = construct_subtitle("Mean", "Bootstrap (95%)", n_genes = nrow(div_mat_sorted)))
@@ -316,21 +316,21 @@
 
     # Fallback to IQR/SD computation
     if (variability_metric == "iqr") {
-        summary_stats <- data.frame(q = q_vals_sorted, 
-            central = apply(div_mat_sorted, 2, function(x) {
-                if (metric == "median") median(x, na.rm = TRUE) else mean(x, na.rm = TRUE)
-            }), 
-            spread = apply(div_mat_sorted, 2, function(x) stats::IQR(x, na.rm = TRUE)),
+        summary_stats <- data.frame(q = q_vals_sorted, central = apply(div_mat_sorted,
+            2, function(x) {
+                if (metric == "median")
+                  median(x, na.rm = TRUE) else mean(x, na.rm = TRUE)
+            }), spread = apply(div_mat_sorted, 2, function(x) stats::IQR(x, na.rm = TRUE)),
             stringsAsFactors = FALSE)
         spread_factor <- 0.5
         spread_label <- "IQR"
     } else {
-        summary_stats <- data.frame(q = q_vals_sorted, 
-            central = apply(div_mat_sorted, 2, function(x) {
-                if (metric == "median") median(x, na.rm = TRUE) else mean(x, na.rm = TRUE)
-            }), 
-            spread = apply(div_mat_sorted, 2, function(x) sqrt(stats::var(x, na.rm = TRUE))),
-            stringsAsFactors = FALSE)
+        summary_stats <- data.frame(q = q_vals_sorted, central = apply(div_mat_sorted,
+            2, function(x) {
+                if (metric == "median")
+                  median(x, na.rm = TRUE) else mean(x, na.rm = TRUE)
+            }), spread = apply(div_mat_sorted, 2, function(x) sqrt(stats::var(x,
+            na.rm = TRUE))), stringsAsFactors = FALSE)
         spread_factor <- 1
         spread_label <- "SD"
     }
@@ -344,16 +344,15 @@
     summary_stats$ci_upper <- summary_stats$central + summary_stats$spread * spread_factor
 
     # Use unified CI ribbon approach
-    p <- .create_ci_ribbon_plot(summary_stats, x_col = "q", y_col = "central",
-        ci_lower_col = "ci_lower", ci_upper_col = "ci_upper",
-        ribbon_alpha = 0.1, line_width = 1.3, show_points = TRUE)
-    
-    metric_label <- if (metric == "median") "Median" else "Mean"
-    p <- .apply_publication_theme(p, base_theme = "theme_base", base_size = 11,
-        title = expression(bold("Global Divergence Spectrum: Average " * D[q])),
-        subtitle = construct_subtitle(metric_label, NULL, spread_label, nrow(div_mat_sorted)))
+    p <- .create_ci_ribbon_plot(summary_stats, x_col = "q", y_col = "central", ci_lower_col = "ci_lower",
+        ci_upper_col = "ci_upper", ribbon_alpha = 0.1, line_width = 1.3, show_points = TRUE)
+
+    metric_label <- if (metric == "median")
+        "Median" else "Mean"
+    p <- .apply_publication_theme(p, base_theme = "theme_base", base_size = 11, title = expression(bold("Global Divergence Spectrum: Average " *
+        D[q])), subtitle = construct_subtitle(metric_label, NULL, spread_label, nrow(div_mat_sorted)))
     p <- p + ggplot2::labs(x = "q value", y = expression("Divergence D[q]"))
-    
+
     return(p)
 }
 

@@ -99,43 +99,49 @@
     }
 
     # Use helper for fold/mean column detection
-    fold_col_candidates <- c("log2_fold_change", "logFC", "fold", "estimate_interaction", "fold_change")
+    fold_col_candidates <- c("log2_fold_change", "logFC", "fold", "estimate_interaction",
+        "fold_change")
     fold_col <- intersect(fold_col_candidates, colnames(df))
-    if (length(fold_col) == 0) stop("Could not find a fold-change column in input")
+    if (length(fold_col) == 0)
+        stop("Could not find a fold-change column in input")
     fold_col <- fold_col[1]
 
     # Detect p-value column for significance flagging
     padj_candidates <- c("padj", "adjusted_p_values", "adj_p_value", "adj_p", "p.adjust")
     padj_col <- intersect(padj_candidates, colnames(df))
-    padj_col <- if (length(padj_col)) padj_col[1] else NULL
-    padj <- if (!is.null(padj_col)) as.numeric(df[[padj_col]]) else rep(1, nrow(df))
+    padj_col <- if (length(padj_col))
+        padj_col[1] else NULL
+    padj <- if (!is.null(padj_col))
+        as.numeric(df[[padj_col]]) else rep(1, nrow(df))
     padj[is.na(padj)] <- 1
 
     # Validate mean/median column consistency
     mean_cols <- grep("_mean$", colnames(df), ignore.case = TRUE, value = TRUE)
     median_cols <- grep("_median$", colnames(df), ignore.case = TRUE, value = TRUE)
-    
+
     if (length(mean_cols) > 0 && length(median_cols) > 0) {
         stop("Could not find two mean or two median columns - found both mean and median columns. ",
             "Ensure input contains either mean columns (e.g., A_mean, B_mean) OR median columns (e.g., A_median, B_median), not both.")
     }
-    
+
     if (length(mean_cols) > 0 && length(mean_cols) < 2) {
-        stop("Could not find two mean or two median columns - found ", length(mean_cols), " mean column(s). ",
-            "Ensure input contains at least two mean columns (e.g., A_mean, B_mean).")
+        stop("Could not find two mean or two median columns - found ", length(mean_cols),
+            " mean column(s). ", "Ensure input contains at least two mean columns (e.g., A_mean, B_mean).")
     }
-    
+
     if (length(median_cols) > 0 && length(median_cols) < 2) {
-        stop("Could not find two mean or two median columns - found ", length(median_cols), " median column(s). ",
-            "Ensure input contains at least two median columns (e.g., A_median, B_median).")
+        stop("Could not find two mean or two median columns - found ", length(median_cols),
+            " median column(s). ", "Ensure input contains at least two median columns (e.g., A_median, B_median).")
     }
-    
+
     # Determine which columns to use for mean calculation
-    mean_cols_to_use <- if (length(mean_cols) > 0) mean_cols else if (length(median_cols) > 0) median_cols else NULL
+    mean_cols_to_use <- if (length(mean_cols) > 0)
+        mean_cols else if (length(median_cols) > 0)
+        median_cols else NULL
 
     # Prepare MA plot data with label formatting
-    prep <- .prepare_ma_plot_df(df, fold_col = fold_col, mean_cols = mean_cols_to_use, x_label = x_label,
-        y_label = y_label)
+    prep <- .prepare_ma_plot_df(df, fold_col = fold_col, mean_cols = mean_cols_to_use,
+        x_label = x_label, y_label = y_label)
     plot_df <- prep$plot_df
     plot_df$padj <- padj[match(plot_df$genes, df$genes)]
     plot_df$significant <- ifelse(abs(plot_df$y) > 0 & plot_df$padj < sig_alpha,
@@ -151,14 +157,12 @@
 
     # Build plot with significance coloring
     p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = x, y = y, color = significant)) +
-        ggplot2::geom_point(alpha = 0.75, size = 3.2) +
-        ggplot2::scale_color_manual(values = .significance_colors(), guide = "none") +
-        ggplot2::labs(x = x_label_formatted, y = y_label_formatted)
+        ggplot2::geom_point(alpha = 0.75, size = 3.2) + ggplot2::scale_color_manual(values = .significance_colors(),
+        guide = "none") + ggplot2::labs(x = x_label_formatted, y = y_label_formatted)
 
     # Apply publication theme and settings
     p <- .apply_publication_theme(p, title = title %||% "MA plot: mean vs log10 fold-change",
-        base_size = 11) +
-        ggplot2::theme(axis.title = ggplot2::element_text(face = "bold"))
+        base_size = 11) + ggplot2::theme(axis.title = ggplot2::element_text(face = "bold"))
 
     p
 }
@@ -200,17 +204,15 @@
     title_use <- prep_volcano$title_use
 
     p <- ggplot2::ggplot(df, ggplot2::aes(x = xval, y = -log10(padj), color = significant)) +
-        ggplot2::geom_point(alpha = 0.75, size = 3.4) +
-        ggplot2::scale_color_manual(values = .significance_colors(), guide = "none")
-    
+        ggplot2::geom_point(alpha = 0.75, size = 3.4) + ggplot2::scale_color_manual(values = .significance_colors(),
+        guide = "none")
+
     # Add reference lines using Phase 5 helper
-    p <- .add_reference_lines(p,
-        h_intercept = -log10(sig_alpha),
-        v_intercept = c(-label_thresh, label_thresh),
-        h_color = "gray50", v_color = "gray50")
-    
-    p <- .apply_publication_theme(p, title = title_use, base_size = 11) +
-        ggplot2::labs(x = x_label_formatted, y = paste0("-Log10(", padj_label_formatted, ")"))
+    p <- .add_reference_lines(p, h_intercept = -log10(sig_alpha), v_intercept = c(-label_thresh,
+        label_thresh), h_color = "gray50", v_color = "gray50")
+
+    p <- .apply_publication_theme(p, title = title_use, base_size = 11) + ggplot2::labs(x = x_label_formatted,
+        y = paste0("-Log10(", padj_label_formatted, ")"))
 
     p
 }

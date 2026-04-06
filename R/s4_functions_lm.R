@@ -160,19 +160,21 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
     analysis <- .sync_coldata_from_diversity(analysis, verbose = verbose)
 
     # Resolve parameters from config first
-    fdr_threshold <- resolve_slot_param(fdr_threshold, analysis@config, "fdr_threshold", NULL)
+    fdr_threshold <- resolve_slot_param(fdr_threshold, analysis@config, "fdr_threshold",
+        NULL)
     formula <- resolve_slot_param(formula, analysis@config, "formula", NULL)
-    output_file <- resolve_slot_param(output_file, analysis@config, "output_file", NULL)
+    output_file <- resolve_slot_param(output_file, analysis@config, "output_file",
+        NULL)
     verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
     paired <- resolve_slot_param(paired, analysis@config, "paired", FALSE)
-    return_model_data <- resolve_slot_param(return_model_data, analysis@config, "return_model_data", TRUE)
+    return_model_data <- resolve_slot_param(return_model_data, analysis@config, "return_model_data",
+        TRUE)
 
-    # Extract and resolve remaining parameters
-    # Note: .extract_lm_params() receives resolved paired value
-    params <- .extract_lm_params(analysis, condition_col = condition_col,
-        method = method, subject_col = subject_col, nthreads = nthreads,
-        multicorr = multicorr, corstr = corstr, pcorr = pcorr, paired = paired,
-        verbose = verbose)
+    # Extract and resolve remaining parameters Note: .extract_lm_params()
+    # receives resolved paired value
+    params <- .extract_lm_params(analysis, condition_col = condition_col, method = method,
+        subject_col = subject_col, nthreads = nthreads, multicorr = multicorr, corstr = corstr,
+        pcorr = pcorr, paired = paired, verbose = verbose)
 
     # Combine diversity results across q-values
     diversity_combined <- .combine_diversity_results_for_lm(analysis@diversity_results)
@@ -181,8 +183,8 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
     args <- .build_lm_args(diversity_combined, params, return_model_data = return_model_data,
         verbose = verbose, ...)
 
-    # Run LM analysis
-    # Phase 15: Catch errors gracefully - return empty results instead of crashing
+    # Run LM analysis Phase 15: Catch errors gracefully - return empty results
+    # instead of crashing
     result <- tryCatch({
         do.call(.calculate_lm_interaction, args)
     }, error = function(e) {
@@ -200,32 +202,28 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
     }
 
     # Store results in analysis object
-    analysis <- .store_lm_results_in_analysis(analysis, extracted$results,
-        extracted$model_data)
+    analysis <- .store_lm_results_in_analysis(analysis, extracted$results, extracted$model_data)
 
     # Save output if requested
     if (!is.null(output_file) && is.data.frame(extracted$results)) {
-        save_analysis_output(extracted$results, output_file, object = analysis,
-            verbose = verbose, func_name = "calculate_lm_interaction_s4")
+        save_analysis_output(extracted$results, output_file, object = analysis, verbose = verbose,
+            func_name = "calculate_lm_interaction_s4")
     }
 
     analysis
 }
 
-# Helper: Sync colData from diversity results to analysis@se
-#
-# @param analysis TSENATAnalysis object
-# @param verbose Logical: print messages
-#
-# @keywords internal
-#
+# Helper: Sync colData from diversity results to analysis@se @param analysis
+# TSENATAnalysis object @param verbose Logical: print messages @keywords
+# internal
 .sync_coldata_from_diversity <- function(analysis, verbose = FALSE) {
     if (length(analysis@diversity_results) == 0) {
         return(analysis)
     }
 
     first_diversity_se <- analysis@diversity_results[[1]]
-    if (!is(first_diversity_se, "SummarizedExperiment") || ncol(first_diversity_se) == 0) {
+    if (!is(first_diversity_se, "SummarizedExperiment") || ncol(first_diversity_se) ==
+        0) {
         return(analysis)
     }
 
@@ -242,14 +240,13 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
 }
 
 
-# Helper: Extract and resolve LM interaction parameters from config
-#
-# @param analysis TSENATAnalysis object
-.extract_lm_params <- function(analysis, condition_col = NULL, method = NULL,
-    subject_col = NULL, nthreads = NULL, multicorr = NULL, corstr = NULL, pcorr = NULL,
-    paired = FALSE, verbose = FALSE) {
-    # Auto-detect condition_col if not provided
-    # Note: Always pass verbose=TRUE for condition_col to ensure users are aware of auto-detection
+# Helper: Extract and resolve LM interaction parameters from config @param
+# analysis TSENATAnalysis object
+.extract_lm_params <- function(analysis, condition_col = NULL, method = NULL, subject_col = NULL,
+    nthreads = NULL, multicorr = NULL, corstr = NULL, pcorr = NULL, paired = FALSE,
+    verbose = FALSE) {
+    # Auto-detect condition_col if not provided Note: Always pass verbose=TRUE
+    # for condition_col to ensure users are aware of auto-detection
     if (is.null(condition_col)) {
         cd_cols <- colnames(colData(analysis@se))
         condition_col <- auto_detect_column(cd_cols, config_list = analysis@config,
@@ -260,14 +257,15 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
 
     # Resolve remaining parameters using centralized handler
     method <- resolve_slot_param(method, analysis@config, "method", "lmm")
-    subject_col <- resolve_slot_param(subject_col, analysis@config, "subject_col", NULL)
+    subject_col <- resolve_slot_param(subject_col, analysis@config, "subject_col",
+        NULL)
     multicorr <- resolve_slot_param(multicorr, analysis@config, "multicorr", NULL)
     corstr <- resolve_slot_param(corstr, analysis@config, "corstr", NULL)
     pcorr <- resolve_slot_param(pcorr, analysis@config, "pcorr", "BH")
     nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", NULL)
 
-    # Note: 'paired' is already resolved by calling function (calculate_lm_interaction_s4)
-    # to avoid duplicate resolution. Use as-is.
+    # Note: 'paired' is already resolved by calling function
+    # (calculate_lm_interaction_s4) to avoid duplicate resolution. Use as-is.
 
     # Log condition_col info
     if (is.null(condition_col)) {
@@ -276,8 +274,7 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
             message("condition_col not specified. Available columns: ", paste(cd_cols,
                 collapse = ", "))
         } else {
-            message("condition_col not specified and colData is empty. ",
-                "Will be determined by .calculate_lm_interaction().")
+            message("condition_col not specified and colData is empty. ", "Will be determined by .calculate_lm_interaction().")
         }
     }
 
@@ -288,7 +285,6 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
 
 
 # Helper: Combine per-q diversity results into single SE
-#
 .combine_diversity_results_for_lm <- function(diversity_results) {
     tryCatch({
         assay_list <- list()
@@ -345,9 +341,8 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
 
 
 # Helper: Build argument list for calculate_lm_interaction
-#
-.build_lm_args <- function(diversity_se, params, return_model_data = TRUE,
-    verbose = FALSE, ...) {
+.build_lm_args <- function(diversity_se, params, return_model_data = TRUE, verbose = FALSE,
+    ...) {
     args <- list(se = diversity_se)
 
     # Add resolved parameters if non-NULL
@@ -387,7 +382,6 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
 
 
 # Helper: Validate and extract LM results from raw output
-#
 .validate_and_extract_lm_result <- function(result) {
     lm_results_df <- result
     model_data <- NULL
@@ -407,8 +401,7 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
     # Check for empty results
     if (nrow(lm_results_df) == 0 || ncol(lm_results_df) == 0) {
         warning("[validate_and_extract_lm_result] Result is empty (", nrow(lm_results_df),
-            " rows, ", ncol(lm_results_df), " columns). ",
-            "This can occur with: low sample counts per condition, ",
+            " rows, ", ncol(lm_results_df), " columns). ", "This can occur with: low sample counts per condition, ",
             "insufficient signal, or model convergence issues.", call. = FALSE)
         return(list(results = data.frame(), model_data = NULL))
     }
@@ -417,9 +410,9 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
     required_cols <- c("gene", "adj_p_interaction")
     missing_cols <- setdiff(required_cols, colnames(lm_results_df))
     if (length(missing_cols) > 0) {
-        stop("[validate_and_extract_lm_result] Missing columns: ",
-            paste(missing_cols, collapse = ", "), ". Available: ",
-            paste(colnames(lm_results_df), collapse = ", "), call. = FALSE)
+        stop("[validate_and_extract_lm_result] Missing columns: ", paste(missing_cols,
+            collapse = ", "), ". Available: ", paste(colnames(lm_results_df), collapse = ", "),
+            call. = FALSE)
     }
 
     list(results = lm_results_df, model_data = model_data)
@@ -427,7 +420,6 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
 
 
 # Helper: Store LM results in analysis object
-#
 .store_lm_results_in_analysis <- function(analysis, lm_results_df, model_data = NULL) {
     if (is.list(analysis@lm_results) && "lm_interaction" %in% names(analysis@lm_results)) {
         analysis@lm_results$lm_interaction <- lm_results_df
@@ -442,8 +434,7 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
     }
 
     # Track function call
-    analysis@metadata$function_calls <- c(analysis@metadata$function_calls,
-        "calculate_lm_interaction")
+    analysis@metadata$function_calls <- c(analysis@metadata$function_calls, "calculate_lm_interaction")
 
     analysis
 }

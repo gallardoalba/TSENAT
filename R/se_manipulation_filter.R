@@ -95,9 +95,8 @@
     }
 
     # Phase 1: Consolidate parameter resolution (manual vs stringency-based)
-    params <- .resolve_filter_parameters(se, min_samples, min_tpm, stringency,
-        pair_col, tpm_assay_name, assay_name, min_tx_per_gene, min_isoform_abundance,
-        verbose = verbose)
+    params <- .resolve_filter_parameters(se, min_samples, min_tpm, stringency, pair_col,
+        tpm_assay_name, assay_name, min_tx_per_gene, min_isoform_abundance, verbose = verbose)
 
     # Set default min_isoform_abundance if still NULL
     if (is.null(params$min_isoform_abundance)) {
@@ -529,11 +528,10 @@
 # ============================================================================
 # HELPER: Consolidate parameter resolution (manual vs stringency-based)
 # Returns: list(min_samples, min_tpm, min_tx_per_gene, min_isoform_abundance,
-#              assay_mat, assay_source, genes_vec, pair_col_used)
-# OPTIMIZATION: Eliminates 100+ lines of redundant parameter discovery @noRd
-.resolve_filter_parameters <- function(se, min_samples, min_tpm, stringency,
-    pair_col, tpm_assay_name, assay_name, min_tx_per_gene, min_isoform_abundance,
-    verbose = FALSE) {
+# assay_mat, assay_source, genes_vec, pair_col_used) OPTIMIZATION: Eliminates
+# 100+ lines of redundant parameter discovery @noRd
+.resolve_filter_parameters <- function(se, min_samples, min_tpm, stringency, pair_col,
+    tpm_assay_name, assay_name, min_tx_per_gene, min_isoform_abundance, verbose = FALSE) {
     # Validate isoform_abundance parameter
     if (!is.null(min_isoform_abundance)) {
         if (!is.numeric(min_isoform_abundance) || length(min_isoform_abundance) !=
@@ -655,7 +653,7 @@
     if (!is.null(genes_vec) && length(genes_vec) > 0) {
         tokeep <- .filter_by_tx_per_gene(tokeep, genes_vec, min_tx_per_gene, verbose = FALSE)
         after_tx <- sum(tokeep)
-        
+
         tokeep <- .filter_by_isoform_abundance(tokeep, genes_vec, assay_mat, min_isoform_abundance,
             verbose = FALSE)
         after_iso <- sum(tokeep)
@@ -691,9 +689,9 @@
 }
 
 # ============================================================================
-# HELPER: Finalize filtered SE with synchronized assays and metadata
-# Returns: filtered SummarizedExperiment with all metadata synchronized
-# OPTIMIZATION: Consolidates post-filtering (20 lines) @noRd
+# HELPER: Finalize filtered SE with synchronized assays and metadata Returns:
+# filtered SummarizedExperiment with all metadata synchronized OPTIMIZATION:
+# Consolidates post-filtering (20 lines) @noRd
 .finalize_filtered_se <- function(se, tokeep, assays_list, genes_vec, min_samples,
     min_tpm, min_tx_per_gene, min_isoform_abundance, stringency) {
     # Subset all assays
@@ -1147,8 +1145,8 @@
         S4Vectors::metadata(analysis_se)$tpm <- tpm_subset
 
         if (verbose) {
-            message("[subset_analysis] Filtered tpm: ", nrow(tpm_full), " -> ",
-                nrow(tpm_subset), " transcripts")
+            message("[subset_analysis] Filtered tpm: ", nrow(tpm_full), " -> ", nrow(tpm_subset),
+                " transcripts")
         }
     }
 

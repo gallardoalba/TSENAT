@@ -134,9 +134,9 @@
         results_list <- parallel::mclapply(seq_len(nrow(x)), function(i) {
             .calculate_tsallis_entropy_bootstrap(x = x[i, ], se = NULL, res = NULL,
                 top_n = 1, q = q, norm = norm, nboot = nboot, ci = ci, method = method,
-                log_base = log_base, pseudocount = pseudocount, what = what,
-                gene_name = gene_names[i], verbose = FALSE, include_diagnostics = include_diagnostics,
-                use_job = use_job, nthreads = 1, paired = paired)
+                log_base = log_base, pseudocount = pseudocount, what = what, gene_name = gene_names[i],
+                verbose = FALSE, include_diagnostics = include_diagnostics, use_job = use_job,
+                nthreads = 1, paired = paired)
         }, mc.cores = nthreads)
     } else {
         if (nthreads > 1 && is_windows)
@@ -144,9 +144,9 @@
         results_list <- lapply(seq_len(nrow(x)), function(i) {
             .calculate_tsallis_entropy_bootstrap(x = x[i, ], se = NULL, res = NULL,
                 top_n = 1, q = q, norm = norm, nboot = nboot, ci = ci, method = method,
-                log_base = log_base, pseudocount = pseudocount, what = what,
-                gene_name = gene_names[i], verbose = FALSE, include_diagnostics = include_diagnostics,
-                use_job = use_job, nthreads = 1, paired = paired)
+                log_base = log_base, pseudocount = pseudocount, what = what, gene_name = gene_names[i],
+                verbose = FALSE, include_diagnostics = include_diagnostics, use_job = use_job,
+                nthreads = 1, paired = paired)
         })
     }
 
@@ -207,7 +207,8 @@
     top_genes <- head(res_genes, top_n)
 
     # For paired data, use lower threshold (pairs have less total count)
-    min_count_threshold <- if (isTRUE(paired)) 5 else 10
+    min_count_threshold <- if (isTRUE(paired))
+        5 else 10
     valid_genes <- character()
 
     for (gene in head(res_genes, top_n * 2)) {
@@ -231,9 +232,8 @@
             .calculate_tsallis_entropy_bootstrap(x = NULL, se = se, res = data.frame(gene_id = top_genes[i],
                 row.names = i), top_n = 1, q = q, norm = norm, nboot = nboot, ci = ci,
                 method = method, log_base = log_base, pseudocount = pseudocount,
-                what = what, gene_name = top_genes[i], verbose = FALSE,
-                include_diagnostics = include_diagnostics, use_job = use_job, nthreads = 1,
-                paired = paired)
+                what = what, gene_name = top_genes[i], verbose = FALSE, include_diagnostics = include_diagnostics,
+                use_job = use_job, nthreads = 1, paired = paired)
         })
         names(results_list) <- top_genes
         return(structure(results_list, class = c("tsenat_bootstrap_ci_list", "list")))
@@ -259,9 +259,9 @@
     results_list <- lapply(q, function(q_val) {
         .calculate_tsallis_entropy_bootstrap(x = x, se = NULL, res = NULL, top_n = 1,
             q = q_val, norm = norm, nboot = nboot, ci = ci, method = method, log_base = log_base,
-            pseudocount = pseudocount, what = what, gene_name = NULL,
-            verbose = FALSE, include_diagnostics = include_diagnostics, use_job = use_job,
-            paired = paired, effective_length = effective_length, min_valid_frac = min_valid_frac)
+            pseudocount = pseudocount, what = what, gene_name = NULL, verbose = FALSE,
+            include_diagnostics = include_diagnostics, use_job = use_job, paired = paired,
+            effective_length = effective_length, min_valid_frac = min_valid_frac)
     })
     names(results_list) <- paste0("q=", q)
     structure(results_list, class = c("tsenat_bootstrap_ci_list", "list"))
@@ -614,8 +614,7 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
     } else if (!is.null(effective_length)) {
         warning("effective_length provided but length mismatch: length(effective_length)=",
             if (!is.null(effective_length))
-                length(effective_length) else "NULL", " vs length(x)=", length(x),
-            call. = FALSE)
+                length(effective_length) else "NULL", " vs length(x)=", length(x), call. = FALSE)
     }
 
     # Dispatch to C++ block bootstrap for paired samples
@@ -704,8 +703,8 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
     }
 
     # Regenerate invalid replicates until min_valid_frac is met Database
-    # validation (Ramsay (2005), Springer Series in Statistics, 2005): Bootstrap must operate on raw data with
-    # consistency checks
+    # validation (Ramsay (2005), Springer Series in Statistics, 2005):
+    # Bootstrap must operate on raw data with consistency checks
     max_attempts <- 10
     attempt <- 1
     regenerated_total <- 0
@@ -1121,10 +1120,9 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
 #' @noRd
 .calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
     top_n = 1, q = 2, norm = TRUE, nboot = "auto", ci = 0.95, method = c("percentile",
-        "bca"), log_base = exp(1), pseudocount = 0, what = c("S", "D"),
-    gene_name = NULL, verbose = TRUE, include_diagnostics = TRUE, use_job = FALSE,
-    nthreads = 1, paired = FALSE, effective_length = NULL, show_messages = FALSE,
-    min_valid_frac = 0.75) {
+        "bca"), log_base = exp(1), pseudocount = 0, what = c("S", "D"), gene_name = NULL,
+    verbose = TRUE, include_diagnostics = TRUE, use_job = FALSE, nthreads = 1, paired = FALSE,
+    effective_length = NULL, show_messages = FALSE, min_valid_frac = 0.75) {
 
     method <- match.arg(method)
     what <- match.arg(what)
@@ -1566,8 +1564,8 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
     }
 
     # Base recommendations with smooth scaling (avoids discontinuous jumps)
-    # Recommendations follow Springer Handbook (2006) (Bootstrap computational methods) efficiency
-    # guidelines
+    # Recommendations follow Springer Handbook (2006) (Bootstrap computational
+    # methods) efficiency guidelines
     base_nboot <- if (n_genes == 1) {
         # Single gene: detailed inference justified
         1000
@@ -1620,10 +1618,11 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
         na.rm = TRUE)
     acf_1 <- max(-0.999, min(0.999, acf_1))  # Bound to (-1, 1)
 
-    # Effective sample size accounting for autocorrelation magnitude
-    # Uses absolute value following GEE standard (Liang & Zeger, 2001; S046)
-    # and modern variance estimation methodology (S127, S044, S051, S200, S041).
-    # Correlation magnitude (not sign) affects variance structure symmetrically.
+    # Effective sample size accounting for autocorrelation magnitude Uses
+    # absolute value following GEE standard (Liang & Zeger, 2001; S046) and
+    # modern variance estimation methodology (S127, S044, S051, S200, S041).
+    # Correlation magnitude (not sign) affects variance structure
+    # symmetrically.
     n_eff <- n/(1 + 2 * abs(acf_1))
 
     return(min(n, max(1, n_eff)))  # Ensure 1 <= n_eff <= n
@@ -2084,8 +2083,7 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
                 pair_metadata <- rbind(pair_metadata, data.frame(gene = g, sample_idx = s))
             }, error = function(e) {
                 if (verbose && show_messages)
-                  warning("Bootstrap failed for ", g, " sample ", s, ": ",
-                    conditionMessage(e))
+                  warning("Bootstrap failed for ", g, " sample ", s, ": ", conditionMessage(e))
             })
         }
     }

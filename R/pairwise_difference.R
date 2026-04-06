@@ -87,26 +87,27 @@
 .calculate_difference <- function(x, condition_col = NULL, control, method = "mean",
     test = "wilcoxon", randomizations = 100, pcorr = "BH", assayno = 1, verbose = TRUE,
     paired = FALSE, exact = FALSE, pseudocount = 0, nthreads = 1, robust_loss_type = "huber",
-    robust_scale_method = "mad", pairs = NULL) {    
+    robust_scale_method = "mad", pairs = NULL) {
     # STAGE 1: Validate input
     .validate_input_type(x)
-    
+
     # STAGE 2: Prepare data and extract samples/pairs
     prep_result <- .prepare_data_and_samples(x, condition_col, assayno)
     df <- prep_result$df
     samples <- prep_result$samples
-    # IMPORTANT: Preserve explicit pairs parameter; only use extracted pairs as fallback
+    # IMPORTANT: Preserve explicit pairs parameter; only use extracted pairs as
+    # fallback
     extracted_pairs <- prep_result$pairs
     if (is.null(pairs) && !is.null(extracted_pairs)) {
         pairs <- extracted_pairs
     }
-    
+
     # STAGE 3: Validate no multiple q-values
     .validate_no_multiple_q_values(colnames(df))
-    
+
     # STAGE 4: Validate paired requirements
     .validate_paired_requirements(paired, pairs)
-    
+
     # STAGE 5: Partition data by sample count
     part <- .calculate_difference_partition(df = df, samples = samples, control = control,
         method = method, test = test, pcorr = pcorr, randomizations = randomizations,
@@ -114,15 +115,15 @@
     df_keep <- part$df_keep
     df_small <- part$df_small
     samples <- part$samples
-    
+
     # STAGE 6: Run statistical tests using dispatcher
-    result_list <- .run_statistical_tests_dispatcher(df_keep, df_small, samples, control,
-        method, test, randomizations, pcorr, paired, exact, nthreads,
-        robust_loss_type, robust_scale_method, pairs, pseudocount, verbose)
-    
+    result_list <- .run_statistical_tests_dispatcher(df_keep, df_small, samples,
+        control, method, test, randomizations, pcorr, paired, exact, nthreads, robust_loss_type,
+        robust_scale_method, pairs, pseudocount, verbose)
+
     # STAGE 7: Combine results and finalize
     res <- .combine_and_finalize_results(result_list)
-    
+
     return(res)
 }
 
@@ -135,8 +136,8 @@
     if (is.matrix(x)) {
         stop("Input type unsupported; see ?calculate_difference.", call. = FALSE)
     }
-    if (!(is.data.frame(x) || inherits(x, "RangedSummarizedExperiment") || 
-          inherits(x, "SummarizedExperiment"))) {
+    if (!(is.data.frame(x) || inherits(x, "RangedSummarizedExperiment") || inherits(x,
+        "SummarizedExperiment"))) {
         stop("Input data type not supported; see ?calculate_difference.", call. = FALSE)
     }
     invisible(NULL)
@@ -149,14 +150,14 @@
             return("sample_type")
         } else {
             stop("When providing a SummarizedExperiment, supply 'condition_col' as a colData column ",
-                 "or call map_metadata() to populate 'sample_type'", call. = FALSE)
+                "or call map_metadata() to populate 'sample_type'", call. = FALSE)
         }
     }
-    
+
     if (length(condition_col) != 1) {
         stop("'condition_col' must be a single colData column.", call. = FALSE)
     }
-    
+
     # Check requested column, fallback to sample_type
     if (condition_col %in% colnames(SummarizedExperiment::colData(x))) {
         return(condition_col)
@@ -164,26 +165,25 @@
         return("sample_type")
     } else {
         stop(sprintf("Column '%s' not found in colData, and fallback 'sample_type' also missing.",
-                     condition_col), call. = FALSE)
+            condition_col), call. = FALSE)
     }
 }
 
 # Helper: Extract data.frame, samples vector, and pairing info
 .prepare_data_and_samples <- function(x, condition_col, assayno) {
     pairs_vec <- NULL
-    
-    if (inherits(x, "RangedSummarizedExperiment") || 
-        inherits(x, "SummarizedExperiment")) {
-        
+
+    if (inherits(x, "RangedSummarizedExperiment") || inherits(x, "SummarizedExperiment")) {
+
         # Resolve condition_col (with sample_type fallback)
         samples_col <- .resolve_condition_col(x, condition_col)
-        
+
         # Extract samples and pairs
         samples_vec <- SummarizedExperiment::colData(x)[[samples_col]]
         if ("sample_base" %in% colnames(SummarizedExperiment::colData(x))) {
             pairs_vec <- as.character(SummarizedExperiment::colData(x)$sample_base)
         }
-        
+
         # Validate and extract assay
         if (!is.numeric(assayno) || length(SummarizedExperiment::assays(x)) < assayno) {
             stop("Invalid 'assayno'.", call. = FALSE)
@@ -191,38 +191,33 @@
         df <- as.data.frame(SummarizedExperiment::assays(x)[[assayno]])
         genes <- rownames(df)
         df <- cbind(gene_id = genes, df)
-        
+
     } else {
         # data.frame input
         df <- as.data.frame(x)
         samples_vec <- condition_col
     }
-    
+
     list(df = df, samples = samples_vec, pairs = pairs_vec)
 }
 
 # Helper: Validate no multiple q-values
 .validate_no_multiple_q_values <- function(col_names) {
     has_q_tags <- grepl("_q=", col_names)
-    if (!any(has_q_tags)) return(invisible(NULL))
-    
+    if (!any(has_q_tags))
+        return(invisible(NULL))
+
     q_vals <- as.numeric(sub(".*_q=", "", col_names[has_q_tags]))
     unique_q <- unique(q_vals)
-    
+
     if (length(unique_q) > 1) {
-        stop(
-            ".calculate_difference() does not accept multiple q values ",
-            "(q-values are mathematically dependent via AR(1) covariance structure).\n",
+        stop(".calculate_difference() does not accept multiple q values ", "(q-values are mathematically dependent via AR(1) covariance structure).\n",
             "  Input has q values: ", paste(sort(unique_q), collapse = ", "), "\n",
-            "  For proper multi-q analysis that accounts for correlation:\n",
-            "    Use .calculate_lm_interaction() instead, which supports:\n",
+            "  For proper multi-q analysis that accounts for correlation:\n", "    Use .calculate_lm_interaction() instead, which supports:\n",
             "    - method='lmm': Linear mixed models with AR(1) covariance (recommended)\n",
-            "    - method='gam': Generalized additive models\n",
-            "    - method='fpca': Functional PCA (implicit AR(1) via ordered curves)\n",
-            "    - method='gee': Generalized estimating equations\n",
-            "  Or reduce to a single q value (e.g., q=1 for Shannon entropy).",
-            call. = FALSE
-        )
+            "    - method='gam': Generalized additive models\n", "    - method='fpca': Functional PCA (implicit AR(1) via ordered curves)\n",
+            "    - method='gee': Generalized estimating equations\n", "  Or reduce to a single q value (e.g., q=1 for Shannon entropy).",
+            call. = FALSE)
     }
     invisible(NULL)
 }
@@ -231,26 +226,27 @@
 .validate_paired_requirements <- function(paired, pairs) {
     if (isTRUE(paired) && is.null(pairs)) {
         stop("paired=TRUE requires `pairs` parameter. Samples must be explicitly paired ",
-             "to avoid silent bugs from implicit column ordering. Provide a character/numeric ",
-             "vector with pairing information (e.g., c(1,1,2,2,3,3)).",
-             call. = FALSE)
+            "to avoid silent bugs from implicit column ordering. Provide a character/numeric ",
+            "vector with pairing information (e.g., c(1,1,2,2,3,3)).", call. = FALSE)
     }
     invisible(NULL)
 }
 
-# Helper: Extract sample matrix by column index (robust for both SE and df input)
+# Helper: Extract sample matrix by column index (robust for both SE and df
+# input)
 .extract_sample_matrix <- function(dfr) {
-    # FIXED: Use column indices instead of names for robustness
-    # This works whether df has gene_id, Genes, or any other first column name
-    # Removes: column 1 (gene_id/Genes/etc), column ncol-1 (cond_2), column ncol (cond_1)
+    # FIXED: Use column indices instead of names for robustness This works
+    # whether df has gene_id, Genes, or any other first column name Removes:
+    # column 1 (gene_id/Genes/etc), column ncol-1 (cond_2), column ncol
+    # (cond_1)
     as.matrix(dfr[, -c(1, ncol(dfr) - 1, ncol(dfr)), drop = FALSE])
 }
 
 # Helper: Extract p-values from Wilcoxon test result
-.extract_wilcoxon_pvalues <- function(ymat, samples, pcorr, paired, exact, 
-                                      nthreads, pairs) {
-    wilcoxon_result <- .wilcoxon(ymat, samples, pcorr = pcorr, paired = paired,
-                                 exact = exact, nthreads = nthreads, pairs = pairs)
+.extract_wilcoxon_pvalues <- function(ymat, samples, pcorr, paired, exact, nthreads,
+    pairs) {
+    wilcoxon_result <- .wilcoxon(ymat, samples, pcorr = pcorr, paired = paired, exact = exact,
+        nthreads = nthreads, pairs = pairs)
     # VALIDATION: Ensure expected columns exist
     expected_cols <- c("pvalue", "padj", "r", "U")
     if (!all(expected_cols %in% colnames(wilcoxon_result))) {
@@ -260,15 +256,13 @@
 }
 
 # Helper: Extract p-values from shuffling test result
-.extract_shuffling_pvalues <- function(ymat, samples, control, method, 
-    randomizations, pcorr, paired, nthreads, pairs, robust_loss_type, 
-    robust_scale_method) {
-    
-    shuffling_result <- .label_shuffling(ymat, samples, control, method,
-        randomizations = randomizations, pcorr = pcorr, paired = paired,
-        nthreads = nthreads, pairs = pairs, robust_loss_type = robust_loss_type,
+.extract_shuffling_pvalues <- function(ymat, samples, control, method, randomizations,
+    pcorr, paired, nthreads, pairs, robust_loss_type, robust_scale_method) {
+
+    shuffling_result <- .label_shuffling(ymat, samples, control, method, randomizations = randomizations,
+        pcorr = pcorr, paired = paired, nthreads = nthreads, pairs = pairs, robust_loss_type = robust_loss_type,
         robust_scale_method = robust_scale_method)
-    
+
     # FIXED: Ensure all p-value columns exist, fill missing with NA
     expected_cols <- c("pvalue", "padj", "r", "U")
     for (col in expected_cols) {
@@ -285,16 +279,11 @@
     if (nrow(pvalue_table) != nrow(fc_results)) {
         stop("pvalue_table and fc_results have different row counts", call. = FALSE)
     }
-    
+
     # FIXED: Ensure pvalue_table has expected columns in order
     pvalue_table <- pvalue_table[, c("pvalue", "padj", "r", "U"), drop = FALSE]
-    
-    data.frame(
-        gene_id = gene_ids,
-        fc_results,
-        pvalue_table,
-        stringsAsFactors = FALSE
-    )
+
+    data.frame(gene_id = gene_ids, fc_results, pvalue_table, stringsAsFactors = FALSE)
 }
 
 # Helper: Build excluded results data.frame
@@ -304,17 +293,11 @@
     if (n_genes != nrow(fc_results)) {
         stop("gene_ids and fc_results have different lengths", call. = FALSE)
     }
-    
-    # FIXED: Use explicit column construction to match .build_test_results output
-    data.frame(
-        gene_id = gene_ids,
-        fc_results,
-        pvalue = rep(NA_real_, n_genes),
-        padj = rep(NA_real_, n_genes),
-        r = rep(NA_real_, n_genes),
-        U = rep(NA_real_, n_genes),
-        stringsAsFactors = FALSE
-    )
+
+    # FIXED: Use explicit column construction to match .build_test_results
+    # output
+    data.frame(gene_id = gene_ids, fc_results, pvalue = rep(NA_real_, n_genes), padj = rep(NA_real_,
+        n_genes), r = rep(NA_real_, n_genes), U = rep(NA_real_, n_genes), stringsAsFactors = FALSE)
 }
 
 # Helper: Combine and finalize results
@@ -322,80 +305,78 @@
     if (length(result_list) == 0) {
         return(data.frame())
     }
-    
+
     # VALIDATION: Ensure both tested and small have matching columns
     tested <- result_list$tested
     small <- result_list$small
-    
+
     if (!is.null(tested) && !is.null(small)) {
         tested_cols <- colnames(tested)
         small_cols <- colnames(small)
         if (!identical(tested_cols, small_cols)) {
-            stop("tested and small results have mismatched columns: ",
-                 "tested=[", paste(tested_cols, collapse=", "), "] vs ",
-                 "small=[", paste(small_cols, collapse=", "), "]",
-                 call. = FALSE)
+            stop("tested and small results have mismatched columns: ", "tested=[",
+                paste(tested_cols, collapse = ", "), "] vs ", "small=[", paste(small_cols,
+                  collapse = ", "), "]", call. = FALSE)
         }
     }
-    
+
     # Combine with tested results first (preserved order)
     res <- do.call(rbind, result_list)
-    
+
     # Preserve gene names as rownames
     if ("gene_id" %in% colnames(res)) {
         rownames(res) <- as.character(res$gene_id)
     } else {
         rownames(res) <- NULL
     }
-    
+
     # Standardize column naming (if needed)
     if (!("log2_fold_change" %in% colnames(res)) && ("log2FC" %in% colnames(res))) {
         res$log2_fold_change <- res$log2FC
     }
-    
+
     return(res)
 }
 
 # Helper: Run statistical tests dispatcher
-.run_statistical_tests_dispatcher <- function(df_keep, df_small, samples, control, 
-    method, test, randomizations, pcorr, paired, exact, nthreads,
-    robust_loss_type, robust_scale_method, pairs, pseudocount, verbose) {
-    
+.run_statistical_tests_dispatcher <- function(df_keep, df_small, samples, control,
+    method, test, randomizations, pcorr, paired, exact, nthreads, robust_loss_type,
+    robust_scale_method, pairs, pseudocount, verbose) {
+
     result_list <- list()
-    
+
     # Diagnostic message
     if (nrow(df_keep) > 0 && nrow(df_small) > 0 && verbose) {
         message(sprintf("Note: %d genes excluded due to low sample counts.", nrow(df_small)))
     }
-    
+
     # Process genes with sufficient samples
     if (nrow(df_keep) > 0) {
         ymat <- .extract_sample_matrix(df_keep)
-        
+
         # Run test and get results based on test type
         if (test == "wilcoxon") {
-            ptab <- .extract_wilcoxon_pvalues(ymat, samples, pcorr, paired, exact, 
-                                             nthreads, pairs)
+            ptab <- .extract_wilcoxon_pvalues(ymat, samples, pcorr, paired, exact,
+                nthreads, pairs)
         } else {
-            ptab <- .extract_shuffling_pvalues(ymat, samples, control, method, 
-                randomizations, pcorr, paired, nthreads, pairs, 
-                robust_loss_type, robust_scale_method)
+            ptab <- .extract_shuffling_pvalues(ymat, samples, control, method, randomizations,
+                pcorr, paired, nthreads, pairs, robust_loss_type, robust_scale_method)
         }
-        
+
         # Combine with fold-change estimates
         fc_results <- .calculate_fc(ymat, samples, control, method, pseudocount,
-                                    robust_loss_type, robust_scale_method, verbose)
+            robust_loss_type, robust_scale_method, verbose)
         result_list$tested <- .build_test_results(df_keep[, 1], fc_results, ptab)
     }
-    
+
     # Process small-sample genes
     if (nrow(df_small) > 0) {
         small_mat <- .extract_sample_matrix(df_small)
         fc_results <- .calculate_fc(small_mat, samples, control, method, pseudocount,
-                                    robust_loss_type, robust_scale_method, verbose)
+            robust_loss_type, robust_scale_method, verbose)
         result_list$small <- .build_excluded_results(df_small[, 1], fc_results)
     }
-    
+
     result_list
 }
 

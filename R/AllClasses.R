@@ -72,8 +72,8 @@
 #' @importFrom S4Vectors metadata
 #'
 setClass("TSENATAnalysis", slots = list(se = "SummarizedExperiment", config = "list",
-    diversity_results = "list", lm_results = "list", pairwise_results = "list",
-    jackknife_results = "list", divergence_results = "list", plots = "list", metadata = "list"), prototype = list(config = list(),
+    diversity_results = "list", lm_results = "list", pairwise_results = "list", jackknife_results = "list",
+    divergence_results = "list", plots = "list", metadata = "list"), prototype = list(config = list(),
     diversity_results = list(), lm_results = list(), pairwise_results = list(), jackknife_results = list(),
     divergence_results = list(), plots = list(), metadata = list(function_calls = character(0),
         function_timestamps = character(0))), validity = function(object) {
@@ -135,27 +135,23 @@ setClass("TSENATAnalysis", slots = list(se = "SummarizedExperiment", config = "l
     # NEW: Validate config parameters against SE metadata
     if (length(object@config) > 0) {
         cdata <- colData(object@se)
-        
+
         # Validate condition_col if specified
         if ("condition_col" %in% names(object@config)) {
             col <- object@config$condition_col
             if (!is.null(col) && !col %in% colnames(cdata)) {
-                return(sprintf(
-                    "@config$condition_col '%s' not found in colData. Available: %s",
-                    col, paste(colnames(cdata), collapse = ", ")
-                ))
+                return(sprintf("@config$condition_col '%s' not found in colData. Available: %s",
+                  col, paste(colnames(cdata), collapse = ", ")))
             }
         }
-        
+
         # Validate subject_col if specified and paired=TRUE
         if ("subject_col" %in% names(object@config)) {
             if (isTRUE(object@config$paired)) {
                 col <- object@config$subject_col
                 if (!is.null(col) && !col %in% colnames(cdata)) {
-                    return(sprintf(
-                        "@config$subject_col '%s' not found in colData. Available: %s",
-                        col, paste(colnames(cdata), collapse = ", ")
-                    ))
+                  return(sprintf("@config$subject_col '%s' not found in colData. Available: %s",
+                    col, paste(colnames(cdata), collapse = ", ")))
                 }
             }
         }

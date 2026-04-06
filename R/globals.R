@@ -241,8 +241,7 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 
 #' @noRd
 .theme_base <- function(base_size = 11) {
-    ggplot2::theme_minimal(base_size = base_size) +
-    ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5,
+    ggplot2::theme_minimal(base_size = base_size) + ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5,
         face = "bold", size = base_size * 1.3, margin = ggplot2::margin(b = 8)),
         plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "italic", size = base_size *
             0.95), axis.title = ggplot2::element_text(size = base_size * 1.1), axis.text = ggplot2::element_text(size = base_size *
@@ -316,8 +315,7 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 
 #' @noRd
 .theme_spectrum <- function(base_size = 11) {
-    .theme_base(base_size = base_size) +
-    ggplot2::theme(legend.position = "right",
+    .theme_base(base_size = base_size) + ggplot2::theme(legend.position = "right",
         panel.grid.major.y = ggplot2::element_line(color = "gray90", linewidth = 0.25),
         plot.margin = ggplot2::margin(t = 5, r = 8, b = 5, l = 5, unit = "mm"))
 }

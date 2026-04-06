@@ -154,44 +154,46 @@
 #' # se <- .build_se(readcounts, 'path/to/annotation.gff3.gz')
 #' @noRd
 .build_se <- function(readcounts, tx2gene, assay_name = "counts", skip = FALSE, tpm = NULL,
-                      effective_length = NULL, metadata = NULL, verbose = TRUE) {
+    effective_length = NULL, metadata = NULL, verbose = TRUE) {
     # Load and validate tx2gene
     tx2gene_data <- .load_tx2gene_data(tx2gene, verbose = verbose)
     tx2gene_df <- tx2gene_data$tx2gene_df
     gff3_data <- tx2gene_data$gff3_data
-    
+
     # Validate readcounts
     rc_data <- .validate_readcounts(readcounts)
     readcounts <- rc_data$readcounts
     tx_ids <- rc_data$tx_ids
-    
+
     # Map transcripts to genes
-    mapping <- .map_transcripts_to_genes(tx_ids, readcounts, tx2gene_df, tpm, effective_length, skip)
+    mapping <- .map_transcripts_to_genes(tx_ids, readcounts, tx2gene_df, tpm, effective_length,
+        skip)
     tx_ids <- mapping$tx_ids
     genes <- mapping$genes
     readcounts <- mapping$readcounts
     tpm <- mapping$tpm
     effective_length <- mapping$effective_length
-    
+
     # Create SummarizedExperiment
     assays_list <- S4Vectors::SimpleList()
     assays_list[[assay_name]] <- readcounts
     se <- SummarizedExperiment::SummarizedExperiment(assays = assays_list)
     S4Vectors::metadata(se)$tx2gene <- tx2gene_df
     S4Vectors::metadata(se)$readcounts <- readcounts
-    
+
     # Store SALMON metadata
     se <- .store_salmon_metadata(se, readcounts, tpm, effective_length)
-    
+
     # Build rowData
-    gene_names_df <- if (!is.null(gff3_data)) gff3_data$gene_names else NULL
+    gene_names_df <- if (!is.null(gff3_data))
+        gff3_data$gene_names else NULL
     se <- .build_rowdata_se(se, tx_ids, genes, gene_names_df)
-    
+
     # Apply optional metadata mapping
     if (!is.null(metadata)) {
         se <- .map_metadata_se(se, metadata)
     }
-    
+
     se
 }
 
@@ -318,7 +320,8 @@
             tx_attrs <- tx_attrs[has_both]
 
             if (length(tx_attrs) > 0) {
-                # Vectorized extraction using sub() - match up to semicolon or end of line
+                # Vectorized extraction using sub() - match up to semicolon or
+                # end of line
                 tx_ids <- sub(".*ID=([^;]+).*", "\\1", tx_attrs)
                 tx_ids <- trimws(tx_ids)  # Remove trailing whitespace
                 gene_ids <- sub(".*Parent=([^;]+).*", "\\1", tx_attrs)
@@ -430,14 +433,15 @@
 #' @noRd
 .load_tx2gene_data <- function(tx2gene, verbose = TRUE) {
     gff3_data <- NULL
-    
+
     if (is.character(tx2gene) && length(tx2gene) == 1) {
         if (!file.exists(tx2gene)) {
             stop("tx2gene file not found: ", tx2gene, call. = FALSE)
         }
-        
+
         if (grepl("\\.gff3(\\.gz)?$", tx2gene, ignore.case = TRUE)) {
-            if (verbose) message("Detected GFF3 format. Extracting transcript-to-gene mapping...")
+            if (verbose)
+                message("Detected GFF3 format. Extracting transcript-to-gene mapping...")
             gff3_data <- .extract_gff3_data(tx2gene, verbose = verbose)
             tx2gene_df <- gff3_data$tx2gene
         } else {
@@ -448,7 +452,7 @@
     } else {
         stop("'tx2gene' must be a path (TSV or GFF3) or a data.frame.", call. = FALSE)
     }
-    
+
     list(tx2gene_df = tx2gene_df, gff3_data = gff3_data)
 }
 
@@ -461,30 +465,34 @@
     if (!is.matrix(readcounts) || !is.numeric(readcounts)) {
         stop("'readcounts' must be a numeric matrix or numeric data.frame.", call. = FALSE)
     }
-    
+
     tx_ids <- rownames(readcounts)
     if (is.null(tx_ids)) {
         stop("'readcounts' must have transcript IDs as rownames.", call. = FALSE)
     }
-    
+
     list(readcounts = readcounts, tx_ids = tx_ids)
 }
 
 ## Helper 4: Map transcripts to genes and handle unmapped cases
 #' @noRd
-.map_transcripts_to_genes <- function(tx_ids, readcounts, tx2gene_df, tpm, effective_length, skip) {
-    tx_col <- if ("Transcript" %in% colnames(tx2gene_df)) "Transcript" else colnames(tx2gene_df)[1]
+.map_transcripts_to_genes <- function(tx_ids, readcounts, tx2gene_df, tpm, effective_length,
+    skip) {
+    tx_col <- if ("Transcript" %in% colnames(tx2gene_df))
+        "Transcript" else colnames(tx2gene_df)[1]
     genes <- tx2gene_df$Gene[match(tx_ids, tx2gene_df[[tx_col]])]
-    
+
     unmapped_idx <- which(is.na(genes))
     if (length(unmapped_idx) > 0) {
         unmapped_txs <- tx_ids[unmapped_idx]
         message(length(unmapped_txs), " transcript IDs were not found in tx2gene mapping.")
         message("Unmapped transcripts: ", paste(head(unmapped_txs, 10), collapse = ", "),
-                if (length(unmapped_txs) > 10) paste0(" ... and ", length(unmapped_txs) - 10, " more") else "")
-        
+            if (length(unmapped_txs) > 10)
+                paste0(" ... and ", length(unmapped_txs) - 10, " more") else "")
+
         if (!skip) {
-            stop("Unmapped transcripts detected. Set skip=TRUE to remove them and continue.", call. = FALSE)
+            stop("Unmapped transcripts detected. Set skip=TRUE to remove them and continue.",
+                call. = FALSE)
         } else {
             if (length(unmapped_idx) >= length(tx_ids) * 0.9) {
                 message("Note: >90% of transcripts unmapped. Using transcript IDs as gene identifiers.")
@@ -493,20 +501,21 @@
                 message("Removing unmapped transcripts from analysis (skip=TRUE).")
                 keep_idx <- which(!is.na(genes))
                 readcounts <- readcounts[keep_idx, , drop = FALSE]
-                if (!is.null(tpm)) tpm <- tpm[keep_idx, , drop = FALSE]
+                if (!is.null(tpm))
+                  tpm <- tpm[keep_idx, , drop = FALSE]
                 if (!is.null(effective_length)) {
-                    if (is.matrix(effective_length)) {
-                        effective_length <- effective_length[keep_idx, , drop = FALSE]
-                    } else {
-                        effective_length <- effective_length[keep_idx]
-                    }
+                  if (is.matrix(effective_length)) {
+                    effective_length <- effective_length[keep_idx, , drop = FALSE]
+                  } else {
+                    effective_length <- effective_length[keep_idx]
+                  }
                 }
                 tx_ids <- tx_ids[keep_idx]
                 genes <- genes[keep_idx]
             }
         }
     }
-    
+
     list(tx_ids = tx_ids, genes = genes, readcounts = readcounts, tpm = tpm, effective_length = effective_length)
 }
 
@@ -514,18 +523,19 @@
 #' @noRd
 .store_salmon_metadata <- function(se, readcounts, tpm, effective_length) {
     if (!is.null(tpm)) {
-        if (is.data.frame(tpm)) tpm <- as.matrix(tpm)
+        if (is.data.frame(tpm))
+            tpm <- as.matrix(tpm)
         if (!is.matrix(tpm) || !is.numeric(tpm)) {
             stop("'tpm' must be a numeric matrix or data.frame.", call. = FALSE)
         }
         if (nrow(tpm) != nrow(readcounts) || ncol(tpm) != ncol(readcounts)) {
             stop(sprintf("'tpm' dimensions (%d x %d) do not match 'readcounts' (%d x %d).",
-                         nrow(tpm), ncol(tpm), nrow(readcounts), ncol(readcounts)), call. = FALSE)
+                nrow(tpm), ncol(tpm), nrow(readcounts), ncol(readcounts)), call. = FALSE)
         }
         rownames(tpm) <- rownames(readcounts)
         S4Vectors::metadata(se)$tpm <- tpm
     }
-    
+
     if (!is.null(effective_length)) {
         if (is.matrix(effective_length) || is.data.frame(effective_length)) {
             effective_length <- as.numeric(effective_length[, 1])
@@ -535,7 +545,7 @@
         }
         if (length(effective_length) != nrow(readcounts)) {
             stop(sprintf("'effective_length' length (%d) does not match 'readcounts' rows (%d).",
-                         length(effective_length), nrow(readcounts)), call. = FALSE)
+                length(effective_length), nrow(readcounts)), call. = FALSE)
         }
         if (is.null(names(effective_length))) {
             names(effective_length) <- rownames(readcounts)
@@ -543,13 +553,14 @@
             if (all(rownames(readcounts) %in% names(effective_length))) {
                 effective_length <- effective_length[rownames(readcounts)]
             } else {
-                warning("Names in 'effective_length' do not match 'readcounts' rownames.", call. = FALSE)
+                warning("Names in 'effective_length' do not match 'readcounts' rownames.",
+                  call. = FALSE)
                 names(effective_length) <- rownames(readcounts)
             }
         }
         S4Vectors::metadata(se)$effective_length <- effective_length
     }
-    
+
     se
 }
 
@@ -560,21 +571,14 @@
         gene_name_idx <- match(genes, gene_names_df$GeneID)
         gene_names <- gene_names_df$GeneName[gene_name_idx]
         gene_names[is.na(gene_name_idx)] <- NA_character_
-        
-        SummarizedExperiment::rowData(se) <- S4Vectors::DataFrame(
-            transcript_id = tx_ids,
-            gene_id = genes,
-            gene_name = gene_names,
-            row.names = tx_ids
-        )
+
+        SummarizedExperiment::rowData(se) <- S4Vectors::DataFrame(transcript_id = tx_ids,
+            gene_id = genes, gene_name = gene_names, row.names = tx_ids)
     } else {
-        SummarizedExperiment::rowData(se) <- S4Vectors::DataFrame(
-            transcript_id = tx_ids,
-            gene_id = genes,
-            row.names = tx_ids
-        )
+        SummarizedExperiment::rowData(se) <- S4Vectors::DataFrame(transcript_id = tx_ids,
+            gene_id = genes, row.names = tx_ids)
     }
-    
+
     se
 }
 

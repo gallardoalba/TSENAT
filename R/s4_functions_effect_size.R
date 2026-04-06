@@ -8,9 +8,11 @@
     }
     # Check slots directly to avoid warnings from accessors
     if (length(analysis@divergence_results) == 0) {
-        stop("Divergence results required. Run calculate_divergence_s4() first.", call. = FALSE)
+        stop("Divergence results required. Run calculate_divergence_s4() first.",
+            call. = FALSE)
     }
-    # Check for LM interaction results (exclude q_interactions which belongs to rankResults)
+    # Check for LM interaction results (exclude q_interactions which belongs to
+    # rankResults)
     lm_only <- analysis@lm_results
     if (is.list(lm_only) && "q_interactions" %in% names(lm_only)) {
         lm_only$q_interactions <- NULL
@@ -25,13 +27,15 @@
 #' @keywords internal
 #' @noRd
 .extract_effect_sizes_data_s4 <- function(analysis, verbose = FALSE) {
-    # Access slots directly to avoid accessor method warnings (validation already checked slots exist)
+    # Access slots directly to avoid accessor method warnings (validation
+    # already checked slots exist)
     analysis_divres <- analysis@divergence_results
     divergence_se <- .extract_object_with_fallbacks(analysis_divres, "SummarizedExperiment",
         key_name = "divergence_se", verbose = verbose)
 
     if (is.null(divergence_se) || !is(divergence_se, "SummarizedExperiment")) {
-        stop("Could not extract divergence SummarizedExperiment from divergence results", call. = FALSE)
+        stop("Could not extract divergence SummarizedExperiment from divergence results",
+            call. = FALSE)
     }
 
     # Filter out q_interactions (rank test results) and access LM results
@@ -39,7 +43,7 @@
     if (is.list(analysis_lmres) && "q_interactions" %in% names(analysis_lmres)) {
         analysis_lmres$q_interactions <- NULL
     }
-    
+
     lm_res <- .extract_object_with_fallbacks(analysis_lmres, "data.frame", key_name = "lm_interaction",
         verbose = verbose)
 
@@ -73,7 +77,8 @@
     base_se <- getSE(analysis)
     tx2gene <- metadata(base_se)$tx2gene
     if (!is.null(tx2gene) && nrow(tx2gene) > 0) {
-        gene_names_expanded <- .map_tx_to_genes(tx2gene, rownames(divergence_se), verbose)
+        gene_names_expanded <- .map_tx_to_genes(tx2gene, rownames(divergence_se),
+            verbose)
         if (!is.null(gene_names_expanded)) {
             rd$gene_name <- gene_names_expanded
             rowData(divergence_se) <- rd
@@ -96,8 +101,8 @@
 
     rd_final <- rowData(divergence_se)
     if (!("gene_name" %in% colnames(rd_final)) || any(is.na(rd_final$gene_name))) {
-        stop("[effect_sizes_divergence_s4] Failed to add valid gene_name. ",
-            "Ensure tx2gene metadata is properly set.", call. = FALSE)
+        stop("[effect_sizes_divergence_s4] Failed to add valid gene_name. ", "Ensure tx2gene metadata is properly set.",
+            call. = FALSE)
     }
     divergence_se
 }
@@ -109,16 +114,20 @@
 .map_tx_to_genes <- function(tx2gene, tx_in_divergence, verbose = FALSE) {
     tx_col <- gene_col <- NULL
     for (cn in colnames(tx2gene)) {
-        if (tolower(cn) %in% c("transcript", "tx")) tx_col <- cn
-        if (tolower(cn) %in% c("gene", "gen")) gene_col <- cn
+        if (tolower(cn) %in% c("transcript", "tx"))
+            tx_col <- cn
+        if (tolower(cn) %in% c("gene", "gen"))
+            gene_col <- cn
     }
 
-    if (is.null(tx_col) || is.null(gene_col)) return(NULL)
+    if (is.null(tx_col) || is.null(gene_col))
+        return(NULL)
 
     match_idx <- match(tx_in_divergence, as.character(tx2gene[[tx_col]]))
     gene_names <- as.character(tx2gene[[gene_col]])[match_idx]
 
-    if (all(!is.na(gene_names))) gene_names else NULL
+    if (all(!is.na(gene_names)))
+        gene_names else NULL
 }
 
 #' Store Effect Sizes Results in Analysis Metadata
@@ -128,7 +137,8 @@
 .store_effect_sizes_results_in_metadata <- function(analysis, result, significance_threshold,
     verbose = FALSE) {
     current_meta <- getMeta(analysis)
-    if (is.null(current_meta)) analysis@metadata <- list()
+    if (is.null(current_meta))
+        analysis@metadata <- list()
     analysis@metadata$effect_sizes_divergence <- result
 
     current_calls <- getMeta(analysis, "function_calls") %||% character(0)
@@ -147,7 +157,8 @@
 #' @keywords internal
 #' @noRd
 .save_effect_sizes_output <- function(output_file, result, verbose = FALSE) {
-    if (is.null(output_file)) return()
+    if (is.null(output_file))
+        return()
 
     if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
         results_df <- as.data.frame(result$interaction_results)
@@ -279,14 +290,15 @@ effect_sizes_divergence_s4 <- function(analysis, significance_threshold = NULL, 
         "significance_threshold", 0.05)
     enrich_per_q_pattern <- resolve_slot_param(enrich_per_q_pattern, getConfig(analysis),
         "enrich_per_q_pattern", TRUE)
-    output_file <- resolve_slot_param(output_file, getConfig(analysis),
-        "output_file", NULL)
+    output_file <- resolve_slot_param(output_file, getConfig(analysis), "output_file",
+        NULL)
 
     data_list <- .extract_effect_sizes_data_s4(analysis, verbose)
     divergence_se <- data_list$divergence_se
     lm_res <- data_list$lm_res
 
-    divergence_se <- .add_gene_names_to_divergence_se(divergence_se, analysis, lm_res, verbose)
+    divergence_se <- .add_gene_names_to_divergence_se(divergence_se, analysis, lm_res,
+        verbose)
 
     if (verbose) {
         message("[effect_sizes_divergence_s4] Computing effect sizes...")

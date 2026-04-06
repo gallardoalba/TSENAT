@@ -467,14 +467,15 @@
 #' @noRd
 #' @noRd
 .replicate_counts_for_multi_q <- function(counts_assay, output_structure) {
-    n_q <- length(output_structure$col_ids) / ncol(counts_assay)
+    n_q <- length(output_structure$col_ids)/ncol(counts_assay)
 
     if (!is.finite(n_q) || n_q != as.integer(n_q) || n_q <= 1) {
         return(counts_assay)
     }
 
     n_q_int <- as.integer(n_q)
-    counts_assay_rep <- matrix(0, nrow = nrow(counts_assay), ncol = ncol(counts_assay) * n_q_int)
+    counts_assay_rep <- matrix(0, nrow = nrow(counts_assay), ncol = ncol(counts_assay) *
+        n_q_int)
 
     for (q_idx in seq_len(n_q_int)) {
         col_start <- (q_idx - 1) * ncol(counts_assay) + 1
@@ -570,9 +571,9 @@
             if (!is.null(q_result$lower_ci) && !is.null(q_result$upper_ci)) {
                 matching_q_idx <- which(col_q_values == q_val)
                 if (length(matching_q_idx) > 0) {
-                    target_col_indices <- col_indices[matching_q_idx]
-                    ci_lower[gene_row_idx, target_col_indices] <- as.numeric(q_result$lower_ci)[1]
-                    ci_upper[gene_row_idx, target_col_indices] <- as.numeric(q_result$upper_ci)[1]
+                  target_col_indices <- col_indices[matching_q_idx]
+                  ci_lower[gene_row_idx, target_col_indices] <- as.numeric(q_result$lower_ci)[1]
+                  ci_upper[gene_row_idx, target_col_indices] <- as.numeric(q_result$upper_ci)[1]
                 }
             }
         }

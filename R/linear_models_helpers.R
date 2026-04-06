@@ -226,15 +226,16 @@
 # ===============================================================================
 # RESIDUAL DIAGNOSTICS: Shapiro-Wilk Normality Testing
 # ===============================================================================
-# DATABASE EVIDENCE (March 2026): * Alberghina & Westerhoff (2001), Systems Biology (2001) - Foundations of Systems
-# Biology * B004 (2008) - LINEAR MODELS IN [Systems Biology] * Springer Handbook (2006) (2006) -
-# Springer Handbook of Statistical Methods Purpose: Verify that residuals from
-# GAM/LMM/GEE models satisfy normality assumption Method: Shapiro-Wilk test on
-# model residuals (tests H0: residuals are normal) Standard Practice: Applied
-# universally in statistical modeling literature Interpretation: * p > 0.05:
-# Fail to reject H0 -> Residuals appear normal [OK] * p <= 0.05: Reject H0 ->
-# Residuals show significant departure from normality ?  Implementation:
-# Extract residuals from fitted model, apply shapiro.test()
+# DATABASE EVIDENCE (March 2026): * Alberghina & Westerhoff (2001), Systems
+# Biology (2001) - Foundations of Systems Biology * B004 (2008) - LINEAR MODELS
+# IN [Systems Biology] * Springer Handbook (2006) (2006) - Springer Handbook of
+# Statistical Methods Purpose: Verify that residuals from GAM/LMM/GEE models
+# satisfy normality assumption Method: Shapiro-Wilk test on model residuals
+# (tests H0: residuals are normal) Standard Practice: Applied universally in
+# statistical modeling literature Interpretation: * p > 0.05: Fail to reject H0
+# -> Residuals appear normal [OK] * p <= 0.05: Reject H0 -> Residuals show
+# significant departure from normality ?  Implementation: Extract residuals
+# from fitted model, apply shapiro.test()
 
 .test_residual_normality <- function(model, model_type = c("gam", "gamm", "lme",
     "gee"), verbose = FALSE) {
@@ -676,20 +677,15 @@
         # Extract subject data (should already be sorted by q)
         subj_data <- df_full[subj_idx, ]
 
-        # Compute differences: DeltaH_q = H_q - H_{q-1}
-        # CRITICAL: Convert group to character BEFORE subsetting to avoid factor level issues
-        # When you subset a factor, R keeps ALL original levels, which causes rbind() problems later
+        # Compute differences: DeltaH_q = H_q - H_{q-1} CRITICAL: Convert group
+        # to character BEFORE subsetting to avoid factor level issues When you
+        # subset a factor, R keeps ALL original levels, which causes rbind()
+        # problems later
         n_diff <- nrow(subj_data) - 1
 
-        df_diff_list[[subj]] <- data.frame(
-            entropy_diff = diff(subj_data$entropy),
-            q = subj_data$q[-1],
-            q_prev = subj_data$q[-nrow(subj_data)],
-            # Convert group to character first to avoid factor level issues
-            group = as.character(subj_data$group[-nrow(subj_data)]),
-            subject = rep(subj, n_diff),
-            stringsAsFactors = FALSE
-        )
+        df_diff_list[[subj]] <- data.frame(entropy_diff = diff(subj_data$entropy),
+            q = subj_data$q[-1], q_prev = subj_data$q[-nrow(subj_data)], group = as.character(subj_data$group[-nrow(subj_data)]),
+            subject = rep(subj, n_diff), stringsAsFactors = FALSE)
     }
 
     if (length(df_diff_list) == 0) {
@@ -707,11 +703,12 @@
     # Rename entropy_diff to entropy for compatibility with model fitting
     names(df_diff)[names(df_diff) == "entropy_diff"] <- "entropy"
 
-    # CRITICAL FIX (Phase 15): Ensure factor consistency after ARIMA differencing
-    # Problem: Some subjects/groups may be completely dropped by differencing,
-    # leaving factor levels that don't exist in the data. nlme can't handle this.
-    # Solution: Convert to factor WITHOUT forcing unused original levels.
-    # Just let R infer the levels from the actual data present.
+    # CRITICAL FIX (Phase 15): Ensure factor consistency after ARIMA
+    # differencing Problem: Some subjects/groups may be completely dropped by
+    # differencing, leaving factor levels that don't exist in the data. nlme
+    # can't handle this.  Solution: Convert to factor WITHOUT forcing unused
+    # original levels.  Just let R infer the levels from the actual data
+    # present.
     df_diff$subject <- factor(as.character(df_diff$subject))
     df_diff$group <- factor(as.character(df_diff$group))
 
@@ -1154,18 +1151,18 @@ if (getOption("TSENAT.memoization", TRUE)) {
     if (length(all_results) == 0) {
         return(data.frame())
     }
-    
+
     # Ensure all results are data frames
     all_results <- Filter(function(x) is.data.frame(x), all_results)
     if (length(all_results) == 0) {
         return(data.frame())
     }
-    
-    # Normalize columns: collect all unique column names and ensure every result has them
-    # Use first result's column order as reference
+
+    # Normalize columns: collect all unique column names and ensure every
+    # result has them Use first result's column order as reference
     first_cols <- colnames(all_results[[1]])
     all_col_names <- unique(c(first_cols, unlist(lapply(all_results, colnames))))
-    
+
     all_results <- lapply(all_results, function(df) {
         # Add missing columns as NA
         missing_cols <- setdiff(all_col_names, colnames(df))
@@ -1175,65 +1172,65 @@ if (getOption("TSENAT.memoization", TRUE)) {
         # Keep columns in consistent order
         df[, all_col_names, drop = FALSE]
     })
-    
-    # Phase 15: Wrap rbind in try-error to catch "los nombres no coinciden" errors
-    # from factor level mismatches during result combination
+
+    # Phase 15: Wrap rbind in try-error to catch 'los nombres no coinciden'
+    # errors from factor level mismatches during result combination
     res <- try(do.call(rbind, all_results), silent = FALSE)
     if (inherits(res, "try-error")) {
         # Debug: Check column mismatch details
         col_counts <- vapply(all_results, ncol, FUN.VALUE = integer(1))
         col_names_list <- lapply(all_results, colnames)
         unique_col_counts <- unique(col_counts)
-        
+
         if (length(unique_col_counts) > 1) {
             # Column count mismatch
             msg <- sprintf("Column mismatch detected: %d results with varying columns [%s]",
-                length(all_results), paste(unique_col_counts, collapse=", "))
+                length(all_results), paste(unique_col_counts, collapse = ", "))
             warning("[calculate_lm_interaction] rbind failed with: ", conditionMessage(res),
                 "\n[", msg, "]\n[Attempting recovery: ensuring all results have same columns]",
                 call. = FALSE)
-            
+
             # Add/remove columns to match first result's structure
             first_cols <- col_names_list[[1]]
             all_results_aligned <- lapply(all_results, function(df) {
                 # Add missing columns as NA
                 missing_cols <- setdiff(first_cols, colnames(df))
                 for (col in missing_cols) {
-                    df[[col]] <- NA
+                  df[[col]] <- NA
                 }
                 # Keep only matching columns
                 df[, first_cols, drop = FALSE]
             })
-            
+
             res <- try(do.call(rbind, all_results_aligned), silent = FALSE)
             if (!inherits(res, "try-error")) {
                 # Successfully aligned, continue
                 return(res)
             }
         }
-        
-        # If rbind fails due to factor level issues, try converting factor columns to character
+
+        # If rbind fails due to factor level issues, try converting factor
+        # columns to character
         warning("[calculate_lm_interaction] rbind failed with: ", conditionMessage(res),
             "\n[Attempting recovery: converting factors to character]", call. = FALSE)
-        
+
         # Convert all factor columns to character to allow rbind
         all_results_char <- lapply(all_results, function(df) {
             factor_cols <- vapply(df, is.factor, FUN.VALUE = logical(1))
             df[factor_cols] <- lapply(df[factor_cols], as.character)
             df
         })
-        
+
         res <- try(do.call(rbind, all_results_char), silent = FALSE)
         if (inherits(res, "try-error")) {
-            stop("[calculate_lm_interaction] Could not combine results even after ", 
+            stop("[calculate_lm_interaction] Could not combine results even after ",
                 "factor conversion. Error: ", conditionMessage(res), call. = FALSE)
         }
     }
 
     # VALIDATION: Ensure critical columns exist after rbind
     if (nrow(res) == 0) {
-        stop("[calculate_lm_interaction] No genes analyzed (all filtered out)",
-            call. = FALSE)
+        stop("[calculate_lm_interaction] No genes analyzed (all filtered out)", call. = FALSE)
     }
 
     critical_cols <- c("p_interaction", "gene")

@@ -87,8 +87,8 @@
         df <- df[order(df$subject, df$q), ]
         df$time_idx <- sequence(rle(as.character(df$subject))$lengths)
 
-        # Phase 15: Ensure factor levels are properly set before fitting
-        # to prevent "los nombres no coinciden" errors in anova comparisons
+        # Phase 15: Ensure factor levels are properly set before fitting to
+        # prevent 'los nombres no coinciden' errors in anova comparisons
         if (!is.factor(df$subject)) {
             df$subject <- factor(df$subject)
         }
@@ -203,13 +203,14 @@
 
 .extract_lrt_p <- function(fit0, fit1, df = NULL) {
     # Extract LRT p-value and related statistics from nested model comparison
-    # NEW (Phase 14): Also return sample size info and power flags
-    # Phase 15: Handle NA models (from convergence failures)
-    # FIX: Check length before using is.na() to avoid "length = X in coercion to logical(1)" error
-    # This error occurred because is.na() on fitted model objects returns a vector, not a scalar
+    # NEW (Phase 14): Also return sample size info and power flags Phase 15:
+    # Handle NA models (from convergence failures) FIX: Check length before
+    # using is.na() to avoid 'length = X in coercion to logical(1)' error This
+    # error occurred because is.na() on fitted model objects returns a vector,
+    # not a scalar
     is_fit0_na <- length(fit0) == 1 && is.na(fit0)
     is_fit1_na <- length(fit1) == 1 && is.na(fit1)
-    
+
     if (is_fit0_na || is_fit1_na) {
         n_subjects <- NA_integer_
         if (!is.null(df) && "subject" %in% colnames(df)) {
@@ -218,16 +219,18 @@
         return(list(p_value = NA_real_, n_subjects = n_subjects, small_sample_flag = if (!is.na(n_subjects) &&
             n_subjects < 5) TRUE else FALSE))
     }
-    
-    # Phase 15: Wrap anova in tryCatch to handle factor level mismatches gracefully
-    # This prevents "los nombres no coinciden" errors from propagating and crashing the workflow
+
+    # Phase 15: Wrap anova in tryCatch to handle factor level mismatches
+    # gracefully This prevents 'los nombres no coinciden' errors from
+    # propagating and crashing the workflow
     an <- tryCatch({
         stats::anova(fit0, fit1)
     }, error = function(e) {
-        # Return NULL on anova error - will be handled as failed comparison below
+        # Return NULL on anova error - will be handled as failed comparison
+        # below
         return(NULL)
     })
-    
+
     if (!is.null(an) && nrow(an) >= 2) {
         pcol <- grep("Pr\\(>F\\)|Pr\\(>Chisq\\)|Pr\\(>Chi\\)", colnames(an), value = TRUE)
         pval <- if (length(pcol) == 0) {

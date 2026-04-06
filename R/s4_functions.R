@@ -83,8 +83,8 @@
 #' @export
 #' @importFrom utils write.table
 jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
-    top_n = NULL, verbose = NULL, nthreads = NULL, pseudocount = NULL,
-    output_file = NULL, ...) {
+    top_n = NULL, verbose = NULL, nthreads = NULL, pseudocount = NULL, output_file = NULL,
+    ...) {
     if (!is(analysis, "TSENATAnalysis")) {
         stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }
@@ -103,7 +103,8 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_b
     pseudocount <- resolve_slot_param(pseudocount, analysis@config, "pseudocount",
         0)
     verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
-    output_file <- resolve_slot_param(output_file, analysis@config, "output_file", NULL)
+    output_file <- resolve_slot_param(output_file, analysis@config, "output_file",
+        NULL)
 
     # Ensure q is numeric
     if (!is.numeric(q)) {
@@ -127,8 +128,8 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_b
             counts_matrix <- SummarizedExperiment::assay(analysis@se, "counts")
 
             result <- .jackknife_entropy_outliers(x = counts_matrix, q = q_val, norm = norm,
-                log_base = log_base, top_n = top_n, pseudocount = pseudocount,
-                verbose = verbose, nthreads = nthreads, ...)
+                log_base = log_base, top_n = top_n, pseudocount = pseudocount, verbose = verbose,
+                nthreads = nthreads, ...)
 
             # Store with key 'q_X.XXX' (consistent 3 decimal formatting)
             jk_key <- paste0("q_", formatC(q_val, format = "f", digits = 3))
@@ -341,56 +342,40 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_b
 # ============================================================================
 # CALCULATE DIFFERENCE WRAPPER
 # ============================================================================
-# Purpose:
-#   Wrapper around .calculate_difference() that tests for significant q-dependent
-#   differences between control and treatment conditions. Detects genes with
-#   condition-specific isoform remodeling patterns.
-#
-# Key Features:
-#   - Multiple test methods: Wilcoxon (unpaired), paired t-test, permutation tests
-#   - Multi-q support: Test across full q-spectrum simultaneously
-#   - Flexible control group: Compare any/all conditions pairwise
-#   - Multiple testing correction: Hochberg, Benjamini-Hochberg, or permutation-based
-#   - Bootstrap confidence intervals: Quantify uncertainty in effect sizes
-#   - Paired designs: Supports repeated measures/longitudinal data
-#
-# BASE FUNCTION ARGUMENTS EXPOSED IN S4 WRAPPER:
-#   All arguments from .calculate_difference() are exposed:
-#   - control: Group identifier for control samples
-#   - condition_col: Column name for sample grouping
-#   - method: Difference calculation method ('mean', 'median', 'm_estimate')
-#   - test: Statistical test ('wilcoxon', 'shuffle', 't-test')
-#   - randomizations: Number of permutations (for shuffle/bootstrap)
-#   - pcorr: P-value correction ('BH', 'bonferroni', 'hochberg', 'none')
-#   - assayno: Assay index in SummarizedExperiment (default: 1)
-#   - verbose: Print progress messages (logical)
-#   - paired: Paired/repeated measures design (logical)
-#   - pairs: Pairing structure (character/numeric vector or NULL)
-#   - exact: Exact p-value computation for tests (logical)
-#   - pseudocount: Small constant for zero-offset handling (numeric)
-#   - nthreads: CPU threads for parallel processing (numeric)
-#   - seed: Random seed for reproducibility (numeric or NULL)
-#   - robust_loss_type: Robust regression loss ('huber', 'lad', etc.)
-#   - robust_scale_method: Scale estimation ('mad', 'qn', etc.)
-#
-# S4-SPECIFIC ARGUMENTS:
-#   - analysis: TSENATAnalysis object with @diversity_results
-#   - q: Q-value for diversity analysis (if NULL, uses first available)
-#   - output_file: File path to save results (TSV, CSV, RDS formats)
-#
-# Mathematical Background:
-#   Tests null hypothesis:
-#     H0: Entropy distribution is IDENTICAL between control and treatment
-#   vs Alternative:
-#     H1: Entropy distribution differs (control != treatment at some q-value)
-#   
-#   Test statistic: Depends on method chosen (Wilcoxon U, t-statistic, etc.)
-#   Appropriate for non-normal data (rank-based tests preferred for entropy).
-#
-# Example:
-#   Normal samples: H_q ~0.3 (single dominant isoform per gene)
-#   Tumor samples: H_q ~0.7 (multiple isoforms expressed equally)
-#   Result: Significant divergence indicates isoform switching in disease.
+# Purpose: Wrapper around .calculate_difference() that tests for significant
+# q-dependent differences between control and treatment conditions. Detects
+# genes with condition-specific isoform remodeling patterns.  Key Features: -
+# Multiple test methods: Wilcoxon (unpaired), paired t-test, permutation tests
+# - Multi-q support: Test across full q-spectrum simultaneously - Flexible
+# control group: Compare any/all conditions pairwise - Multiple testing
+# correction: Hochberg, Benjamini-Hochberg, or permutation-based - Bootstrap
+# confidence intervals: Quantify uncertainty in effect sizes - Paired designs:
+# Supports repeated measures/longitudinal data BASE FUNCTION ARGUMENTS EXPOSED
+# IN S4 WRAPPER: All arguments from .calculate_difference() are exposed: -
+# control: Group identifier for control samples - condition_col: Column name
+# for sample grouping - method: Difference calculation method ('mean',
+# 'median', 'm_estimate') - test: Statistical test ('wilcoxon', 'shuffle',
+# 't-test') - randomizations: Number of permutations (for shuffle/bootstrap) -
+# pcorr: P-value correction ('BH', 'bonferroni', 'hochberg', 'none') - assayno:
+# Assay index in SummarizedExperiment (default: 1) - verbose: Print progress
+# messages (logical) - paired: Paired/repeated measures design (logical) -
+# pairs: Pairing structure (character/numeric vector or NULL) - exact: Exact
+# p-value computation for tests (logical) - pseudocount: Small constant for
+# zero-offset handling (numeric) - nthreads: CPU threads for parallel
+# processing (numeric) - seed: Random seed for reproducibility (numeric or
+# NULL) - robust_loss_type: Robust regression loss ('huber', 'lad', etc.)  -
+# robust_scale_method: Scale estimation ('mad', 'qn', etc.)  S4-SPECIFIC
+# ARGUMENTS: - analysis: TSENATAnalysis object with @diversity_results - q:
+# Q-value for diversity analysis (if NULL, uses first available) - output_file:
+# File path to save results (TSV, CSV, RDS formats) Mathematical Background:
+# Tests null hypothesis: H0: Entropy distribution is IDENTICAL between control
+# and treatment vs Alternative: H1: Entropy distribution differs (control !=
+# treatment at some q-value) Test statistic: Depends on method chosen (Wilcoxon
+# U, t-statistic, etc.)  Appropriate for non-normal data (rank-based tests
+# preferred for entropy).  Example: Normal samples: H_q ~0.3 (single dominant
+# isoform per gene) Tumor samples: H_q ~0.7 (multiple isoforms expressed
+# equally) Result: Significant divergence indicates isoform switching in
+# disease.
 # ============================================================================
 calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, condition_col = NULL,
     method = NULL, test = NULL, randomizations = NULL, pcorr = NULL, assayno = NULL,
@@ -1530,7 +1515,8 @@ plot_top_transcripts_s4 <- function(analysis, gene = NULL, condition_col = NULL,
     # =========================================================================
     if (is.null(condition_col)) {
         cd_cols <- colnames(colData(se))
-        # Note: Always pass verbose=TRUE for condition_col to ensure users are aware of auto-detection
+        # Note: Always pass verbose=TRUE for condition_col to ensure users are
+        # aware of auto-detection
         condition_col <- auto_detect_column(cd_cols, analysis@config, "condition_col",
             c("condition", "sample_type", "group", "treatment"), verbose = FALSE,
             param_name = "condition_col")
@@ -2753,28 +2739,21 @@ m_estimate_s4 <- function(analysis, condition_col = NULL, loss_type = "huber", s
 # ============================================================================
 # FILTER ANALYSIS WRAPPER
 # ============================================================================
-# Purpose:
-#   Wrapper that filters low-abundance transcripts and genes from
-#   TSENATAnalysis object. Removes noise before diversity/divergence analysis
-#   by applying multiple quality control criteria simultaneously.
-#
-# Key Features:
-#   - TPM-based abundance filtering: Remove transcripts with low expression
-#   - Sample coverage: Require genes present in minimum number of samples
-#   - Min transcripts per gene: Filter genes with too few isoforms
-#   - Isoform abundance thresholds: Exclude rare isoforms from analysis
-#   - Subsetting options: Random or variance-based gene/sample selection
-#   - Stringency presets: Easy 'light', 'medium', 'severe' filtering profiles
-#
-# Mathematical Background:
-#   QC filtering removes noise that would artificially inflate entropy/divergence.
-#   Genes with single isoform (H=0) or all absent samples contribute no signal.
-#   Rare transcripts have unreliable expression values -> exclude them.
-#
-# Example:
-#   Raw data: 88 genes × 12 samples (many genes expressed in <50% samples)
-#   After filter: 50 genes × 12 samples (multi-isoform, well-represented genes)
-#   Result: More reliable diversity estimates and smaller multiple-testing burden.
+# Purpose: Wrapper that filters low-abundance transcripts and genes from
+# TSENATAnalysis object. Removes noise before diversity/divergence analysis by
+# applying multiple quality control criteria simultaneously.  Key Features: -
+# TPM-based abundance filtering: Remove transcripts with low expression -
+# Sample coverage: Require genes present in minimum number of samples - Min
+# transcripts per gene: Filter genes with too few isoforms - Isoform abundance
+# thresholds: Exclude rare isoforms from analysis - Subsetting options: Random
+# or variance-based gene/sample selection - Stringency presets: Easy 'light',
+# 'medium', 'severe' filtering profiles Mathematical Background: QC filtering
+# removes noise that would artificially inflate entropy/divergence.  Genes with
+# single isoform (H=0) or all absent samples contribute no signal.  Rare
+# transcripts have unreliable expression values -> exclude them.  Example: Raw
+# data: 88 genes × 12 samples (many genes expressed in <50% samples) After
+# filter: 50 genes × 12 samples (multi-isoform, well-represented genes) Result:
+# More reliable diversity estimates and smaller multiple-testing burden.
 # ============================================================================
 filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min_samples = 5L,
     stringency = NULL, pair_col = NULL, min_tx_per_gene = 2L, min_isoform_abundance = NULL,
@@ -3007,7 +2986,7 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min
 #' # S4Vectors namespace to ensure proper method dispatch:
 #' #   
 #' #   se <- getSE(analysis)
-#' #   assay_with_ci <- SummarizedExperiment::assay(se, "log2fc_ci")
+#' #   assay_with_ci <- SummarizedExperiment::assay(se, 'log2fc_ci')
 #' #   S4Vectors::metadata(assay_with_ci)$lower <- ci_lower_bounds
 #' #   S4Vectors::metadata(assay_with_ci)$upper <- ci_upper_bounds
 #' #
@@ -3024,7 +3003,7 @@ build_analysis_s4 <- function(readcounts = NULL, salmon_dir = NULL, tx2gene, ass
         if (verbose)
             message("[build_analysis_s4] Reading metadata from config$metadata")
     }
-    
+
     # Handle salmon_dir parameter - auto-load Salmon quantification data
     if (!is.null(salmon_dir)) {
         # Detect Salmon samples

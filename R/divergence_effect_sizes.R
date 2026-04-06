@@ -119,7 +119,8 @@
     filter_list <- .filterSignificantGenes(align_list$lm_res, significance_threshold,
         align_list$q_values, align_list$use_generic, verbose)
     if (length(filter_list$significant_genes) == 0) {
-        if (verbose) message("No genes with significant q*group interaction detected.")
+        if (verbose)
+            message("No genes with significant q*group interaction detected.")
         return(list(interaction_results = filter_list$empty_results, validation_stats = list(total_genes = 0,
             passed_lmm = 0, failed_missing_divergence = 0, other_errors = 0, q_values = align_list$q_values)))
     }
@@ -162,8 +163,8 @@
 
 
 #' @noRd
-.mergeEffectSizesForGenes <- function(lm_res, rd, significant_genes, q_values,
-    use_generic, verbose) {
+.mergeEffectSizesForGenes <- function(lm_res, rd, significant_genes, q_values, use_generic,
+    verbose) {
     validation_stats <- list(total_genes = length(significant_genes), passed_lmm = 0,
         failed_missing_divergence = 0, other_errors = 0, q_values = q_values)
 
@@ -180,11 +181,13 @@
         message("  - gene_name column in lm_res:", use_gene_name_col)
         if (use_gene_name_col) {
             message("  - lm_res$gene (first 5):", paste(head(lm_res$gene, 5), collapse = ", "))
-            message("  - lm_res$gene_name (first 5):", paste(head(lm_res$gene_name, 5), collapse = ", "))
+            message("  - lm_res$gene_name (first 5):", paste(head(lm_res$gene_name,
+                5), collapse = ", "))
         } else {
             message("  - lm_res$gene (first 5):", paste(head(lm_res$gene, 5), collapse = ", "))
         }
-        message("  - divergence gene_name (first 5):", paste(head(rd$gene_name, 5), collapse = ", "))
+        message("  - divergence gene_name (first 5):", paste(head(rd$gene_name, 5),
+            collapse = ", "))
         message("\n[effect_sizes_divergence] MERGE STARTING")
         message("  - significant_genes count:", length(significant_genes))
         message("  - lm_res rows:", nrow(lm_res))
@@ -192,7 +195,8 @@
         message("  - use_gene_name_col:", use_gene_name_col)
     }
 
-    # OPTIMIZATION: Pre-compute gene name index map ONCE instead of searching per gene
+    # OPTIMIZATION: Pre-compute gene name index map ONCE instead of searching
+    # per gene
     gene_idx_map <- match(significant_genes, rd$gene_name)
     missing_idx <- which(is.na(gene_idx_map))
     if (length(missing_idx) > 0) {
@@ -206,18 +210,20 @@
         message("  - Genes found: ", n_found, "/", length(significant_genes))
     }
 
-    # OPTIMIZATION: Pre-allocate and pre-compute all q-metadata ONCE for all genes
+    # OPTIMIZATION: Pre-allocate and pre-compute all q-metadata ONCE for all
+    # genes
     result_list <- vector("list", length(significant_genes))
     debug_messages <- character(0)
-    verbose_threshold <- if (verbose) min(3, length(significant_genes)) else 0
-    
+    verbose_threshold <- if (verbose)
+        min(3, length(significant_genes)) else 0
+
     # Pre-compute q-labels that will be used for all genes (not per-gene)
     q_strs_precomp <- NULL
     q_labels_precomp <- NULL
     estimate_cols_precomp <- NULL
     lower_cols_precomp <- NULL
     upper_cols_precomp <- NULL
-    
+
     if (!use_generic) {
         q_strs_precomp <- as.character(q_values)
         q_labels_precomp <- gsub("\\.", "_", q_strs_precomp)
@@ -277,13 +283,15 @@
             # OPTIMIZATION: Reuse pre-computed columns if multi-q
             if (!use_generic) {
                 col_cache <- .buildColumnCache(div_data, q_values)
-                new_row <- .formatMultiQResult(match_name = lmm_data$match_name, p_interaction = lmm_data$p_interaction,
-                    slope_diff = lmm_data$slope_diff, div_data = div_data, q_values = q_values,
-                    col_cache = col_cache, q_strs = q_strs_precomp, q_labels = q_labels_precomp,
-                    estimate_cols = estimate_cols_precomp, lower_cols = lower_cols_precomp, upper_cols = upper_cols_precomp)
+                new_row <- .formatMultiQResult(match_name = lmm_data$match_name,
+                  p_interaction = lmm_data$p_interaction, slope_diff = lmm_data$slope_diff,
+                  div_data = div_data, q_values = q_values, col_cache = col_cache,
+                  q_strs = q_strs_precomp, q_labels = q_labels_precomp, estimate_cols = estimate_cols_precomp,
+                  lower_cols = lower_cols_precomp, upper_cols = upper_cols_precomp)
             } else {
-                new_row <- .formatSingleQResult(match_name = lmm_data$match_name, p_interaction = lmm_data$p_interaction,
-                    slope_diff = lmm_data$slope_diff, div_data = div_data)
+                new_row <- .formatSingleQResult(match_name = lmm_data$match_name,
+                  p_interaction = lmm_data$p_interaction, slope_diff = lmm_data$slope_diff,
+                  div_data = div_data)
             }
 
             if (is.null(new_row)) {
@@ -307,7 +315,8 @@
         }
     }
 
-    # OPTIMIZATION: Replace rbind loop with do.call(rbind) - converts O(n²) to O(n)
+    # OPTIMIZATION: Replace rbind loop with do.call(rbind) - converts O(n²) to
+    # O(n)
     result_list <- result_list[!vapply(result_list, is.null, logical(1))]
 
     if (length(result_list) > 0) {
@@ -341,15 +350,15 @@
     # OPTIMIZATION: Vectorized operations - pre-compute all column names once
     col_cache <- matrix(FALSE, nrow = length(q_values), ncol = 3)
     colnames(col_cache) <- c("estimate", "lower", "upper")
-    
+
     q_strs <- as.character(q_values)
     col_names <- colnames(div_data)
-    
+
     # Single pass with vectorized operations
     estimate_names <- paste0("estimate_q", q_strs)
     lower_names <- paste0("lower_ci_q", q_strs)
     upper_names <- paste0("upper_ci_q", q_strs)
-    
+
     col_cache[, "estimate"] <- !is.na(match(estimate_names, col_names))
     col_cache[, "lower"] <- !is.na(match(lower_names, col_names))
     col_cache[, "upper"] <- !is.na(match(upper_names, col_names))
@@ -386,7 +395,7 @@
     # OPTIMIZATION: Consolidate string conversions in single pass
     divergence_genes <- as.character(if ("gene_name" %in% colnames(rd)) rd$gene_name else rownames(rd))
     lm_res_genes <- as.character(if ("gene" %in% colnames(lm_res)) lm_res$gene else rownames(lm_res))
-    
+
     if (length(lm_res_genes) == 0 || all(is.na(lm_res_genes))) {
         stop("lm_res must have either a 'gene' column or valid gene names in rownames")
     }
@@ -448,24 +457,18 @@
 .createResultsDataFrame <- function(q_values, use_generic) {
     # OPTIMIZATION: Build entire df at once with vectorized column creation
     if (use_generic) {
-        interaction_results <- data.frame(
-            gene = character(0), 
-            p_value_interaction = numeric(0),
-            slope_diff = numeric(0),
-            effect_size_D = numeric(0),
-            D_lower_ci = numeric(0),
-            D_upper_ci = numeric(0),
-            stringsAsFactors = FALSE
-        )
+        interaction_results <- data.frame(gene = character(0), p_value_interaction = numeric(0),
+            slope_diff = numeric(0), effect_size_D = numeric(0), D_lower_ci = numeric(0),
+            D_upper_ci = numeric(0), stringsAsFactors = FALSE)
     } else {
         q_labels <- gsub("\\.", "_", sprintf("%.1f", q_values))
         estimate_cols <- paste0("effect_size_D_q", q_labels)
         lower_cols <- paste0("D_q", q_labels, "_lower_ci")
         upper_cols <- paste0("D_q", q_labels, "_upper_ci")
-        
+
         # All columns at once using setNames
-        col_list <- setNames(replicate(length(c(estimate_cols, lower_cols, upper_cols)), numeric(0)), 
-                           c(estimate_cols, lower_cols, upper_cols))
+        col_list <- setNames(replicate(length(c(estimate_cols, lower_cols, upper_cols)),
+            numeric(0)), c(estimate_cols, lower_cols, upper_cols))
         interaction_results <- data.frame(gene = character(0), p_value_interaction = numeric(0),
             slope_diff = numeric(0), stringsAsFactors = FALSE)
         interaction_results <- cbind(interaction_results, as.data.frame(col_list))
@@ -537,13 +540,14 @@
 
 #' @noRd
 .formatMultiQResult <- function(match_name, p_interaction, slope_diff, div_data,
-    q_values, col_cache = NULL, q_strs = NULL, q_labels = NULL, 
-    estimate_cols = NULL, lower_cols = NULL, upper_cols = NULL) {
-    # OPTIMIZATION: Accept pre-computed q-labels parameter for reuse across genes
+    q_values, col_cache = NULL, q_strs = NULL, q_labels = NULL, estimate_cols = NULL,
+    lower_cols = NULL, upper_cols = NULL) {
+    # OPTIMIZATION: Accept pre-computed q-labels parameter for reuse across
+    # genes
     if (is.null(col_cache)) {
         col_cache <- .buildColumnCache(div_data, q_values)
     }
-    
+
     if (is.null(q_strs)) {
         q_strs <- as.character(q_values)
         q_labels <- gsub("\\.", "_", q_strs)
@@ -562,9 +566,12 @@
 
     for (q_idx in seq_along(q_values)) {
         # Use pre-computed column names to avoid paste0() in loop
-        estimate_val <- if (col_cache[q_idx, "estimate"]) div_data[[estimate_cols[q_idx]]][1] else NA_real_
-        lower_val <- if (col_cache[q_idx, "lower"]) div_data[[lower_cols[q_idx]]][1] else NA_real_
-        upper_val <- if (col_cache[q_idx, "upper"]) div_data[[upper_cols[q_idx]]][1] else NA_real_
+        estimate_val <- if (col_cache[q_idx, "estimate"])
+            div_data[[estimate_cols[q_idx]]][1] else NA_real_
+        lower_val <- if (col_cache[q_idx, "lower"])
+            div_data[[lower_cols[q_idx]]][1] else NA_real_
+        upper_val <- if (col_cache[q_idx, "upper"])
+            div_data[[upper_cols[q_idx]]][1] else NA_real_
 
         if (!is.na(estimate_val) && is.finite(estimate_val)) {
             any_valid <- TRUE
@@ -642,13 +649,14 @@
             # OPTIMIZATION: Pre-compute q-value labels once instead of in loop
             q_labels <- gsub("\\.", "_", as.character(q_values))
             div_cols <- paste0("effect_size_D_q", q_labels)
-            
+
             for (i in seq_along(q_values)) {
                 if (div_cols[i] %in% colnames(interaction_results)) {
                   valid_vals <- interaction_results[[div_cols[i]]][!is.na(interaction_results[[div_cols[i]]])]
                   if (length(valid_vals) > 0) {
-                    message("- q=", q_values[i], ": mean=", round(mean(valid_vals, na.rm = TRUE),
-                      4), ", median=", round(median(valid_vals, na.rm = TRUE), 4))
+                    message("- q=", q_values[i], ": mean=", round(mean(valid_vals,
+                      na.rm = TRUE), 4), ", median=", round(median(valid_vals, na.rm = TRUE),
+                      4))
                   }
                 }
             }
@@ -678,13 +686,13 @@
 
         # OPTIMIZATION: Pre-compute gene index map ONCE with vectorized match()
         gene_idx_map <- match(interaction_results$gene, div_gene_names)
-        
+
         # OPTIMIZATION: Vectorized classification - classify all genes at once
         per_q_patterns <- character(nrow(interaction_results))
         rare_median_vals <- numeric(nrow(interaction_results))
         abundant_median_vals <- numeric(nrow(interaction_results))
         q_ratio_vals <- numeric(nrow(interaction_results))
-        
+
         for (i in seq_len(nrow(interaction_results))) {
             gene_idx <- gene_idx_map[i]
 
@@ -697,7 +705,7 @@
                 rare_median_vals[i] <- class_result$rare_median
                 abundant_median_vals[i] <- class_result$abundant_median
                 q_ratio_vals[i] <- class_result$ratio
-                
+
                 # If classification failed, mark as UNCLASSIFIED
                 if (is.na(per_q_patterns[i])) {
                   per_q_patterns[i] <- "UNCLASSIFIED"
@@ -721,37 +729,38 @@
 
 #' @noRd
 .classify_q_pattern <- function(per_q_divs, ratio_threshold = 1.3) {
-    # Classify q-value divergence pattern based on median divergence
-    # Returns list with: pattern (classification), rare_median, abundant_median, ratio
+    # Classify q-value divergence pattern based on median divergence Returns
+    # list with: pattern (classification), rare_median, abundant_median, ratio
     # OPTIMIZATION: Early exit for invalid inputs
     if (length(per_q_divs) == 0 || all(is.na(per_q_divs))) {
-        return(list(pattern = NA_character_, rare_median = NA_real_,
-                    abundant_median = NA_real_, ratio = NA_real_))
+        return(list(pattern = NA_character_, rare_median = NA_real_, abundant_median = NA_real_,
+            ratio = NA_real_))
     }
 
     divs_numeric <- as.numeric(per_q_divs)
     if (all(is.na(divs_numeric))) {
-        return(list(pattern = NA_character_, rare_median = NA_real_,
-                    abundant_median = NA_real_, ratio = NA_real_))
+        return(list(pattern = NA_character_, rare_median = NA_real_, abundant_median = NA_real_,
+            ratio = NA_real_))
     }
 
     # OPTIMIZATION: Consolidate name validation in single pass
     has_names <- !is.null(names(per_q_divs)) && length(names(per_q_divs)) > 0
     if (has_names && any(is.na(names(per_q_divs)))) {
-        return(list(pattern = NA_character_, rare_median = NA_real_,
-                    abundant_median = NA_real_, ratio = NA_real_))
+        return(list(pattern = NA_character_, rare_median = NA_real_, abundant_median = NA_real_,
+            ratio = NA_real_))
     }
 
     # OPTIMIZATION: Quick first-element check before all(grepl())
-    pattern_names <- if (has_names) names(per_q_divs) else character(0)
-    has_q_names <- has_names && (length(pattern_names) > 0 &&
-                                 substr(pattern_names[1], 1, 2) == "q_")
+    pattern_names <- if (has_names)
+        names(per_q_divs) else character(0)
+    has_q_names <- has_names && (length(pattern_names) > 0 && substr(pattern_names[1],
+        1, 2) == "q_")
 
     # Case 1: Named vector with q-value names
     if (has_q_names) {
         if (length(per_q_divs) < 2) {
-            return(list(pattern = NA_character_, rare_median = NA_real_,
-                        abundant_median = NA_real_, ratio = NA_real_))
+            return(list(pattern = NA_character_, rare_median = NA_real_, abundant_median = NA_real_,
+                ratio = NA_real_))
         }
 
         # OPTIMIZATION: Single pass to extract q-values and classify
@@ -761,8 +770,8 @@
         q_values <- as.numeric(name_parts_normalized)
 
         if (all(is.na(q_values))) {
-            return(list(pattern = NA_character_, rare_median = NA_real_,
-                        abundant_median = NA_real_, ratio = NA_real_))
+            return(list(pattern = NA_character_, rare_median = NA_real_, abundant_median = NA_real_,
+                ratio = NA_real_))
         }
 
         # OPTIMIZATION: Vectorized filtering in single pass
@@ -774,8 +783,8 @@
 
         # Need at least one valid value in EACH region
         if (length(valid_rare) == 0 || length(valid_abundant) == 0) {
-            return(list(pattern = NA_character_, rare_median = NA_real_,
-                        abundant_median = NA_real_, ratio = NA_real_))
+            return(list(pattern = NA_character_, rare_median = NA_real_, abundant_median = NA_real_,
+                ratio = NA_real_))
         }
 
         # Calculate medians
@@ -783,27 +792,27 @@
         abundant_median <- median(valid_abundant, na.rm = TRUE)
 
         # OPTIMIZATION: Single ratio calculation
-        if (!is.na(rare_median) && !is.na(abundant_median) &&
-            abundant_median != 0) {
-            ratio <- rare_median / abundant_median
+        if (!is.na(rare_median) && !is.na(abundant_median) && abundant_median !=
+            0) {
+            ratio <- rare_median/abundant_median
             if (!is.na(ratio)) {
                 pattern <- if (ratio > ratio_threshold) {
-                    "Rare driven"
-                } else if (ratio < 1 / ratio_threshold) {
-                    "Abundant driven"
+                  "Rare driven"
+                } else if (ratio < 1/ratio_threshold) {
+                  "Abundant driven"
                 } else {
-                    "Balanced"
+                  "Balanced"
                 }
-                return(list(pattern = pattern, rare_median = rare_median,
-                            abundant_median = abundant_median, ratio = ratio))
+                return(list(pattern = pattern, rare_median = rare_median, abundant_median = abundant_median,
+                  ratio = ratio))
             }
         }
-        return(list(pattern = NA_character_, rare_median = NA_real_,
-                    abundant_median = NA_real_, ratio = NA_real_))
+        return(list(pattern = NA_character_, rare_median = NA_real_, abundant_median = NA_real_,
+            ratio = NA_real_))
     }
 
     # Case 2: Unnamed vector
-    return(list(pattern = NA_character_, rare_median = NA_real_,
-                abundant_median = NA_real_, ratio = NA_real_))
+    return(list(pattern = NA_character_, rare_median = NA_real_, abundant_median = NA_real_,
+        ratio = NA_real_))
 }
 

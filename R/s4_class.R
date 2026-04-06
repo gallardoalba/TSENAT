@@ -149,27 +149,23 @@ TSENATAnalysis <- function(se, config = list()) {
     # NEW: Validate config parameters early (before object creation)
     if (length(config) > 0 && !is.null(config)) {
         cdata <- SummarizedExperiment::colData(se)
-        
+
         # Validate condition_col
         if ("condition_col" %in% names(config)) {
             col <- config$condition_col
             if (!is.null(col) && !col %in% colnames(cdata)) {
-                stop(sprintf(
-                    "Invalid condition_col '%s': column not found in colData.\\nAvailable columns: %s",
-                    col, paste(colnames(cdata), collapse = ", ")
-                ), call. = FALSE)
+                stop(sprintf("Invalid condition_col '%s': column not found in colData.\\nAvailable columns: %s",
+                  col, paste(colnames(cdata), collapse = ", ")), call. = FALSE)
             }
         }
-        
+
         # Validate subject_col if paired
         if ("paired" %in% names(config) && isTRUE(config$paired)) {
             if ("subject_col" %in% names(config)) {
                 col <- config$subject_col
                 if (!is.null(col) && !col %in% colnames(cdata)) {
-                    stop(sprintf(
-                        "Invalid subject_col '%s': column not found in colData.\\nAvailable columns: %s",
-                        col, paste(colnames(cdata), collapse = ", ")
-                    ), call. = FALSE)
+                  stop(sprintf("Invalid subject_col '%s': column not found in colData.\\nAvailable columns: %s",
+                    col, paste(colnames(cdata), collapse = ", ")), call. = FALSE)
                 }
             }
         }
@@ -361,7 +357,8 @@ setGeneric("lmResults", function(object, component = NULL) {
 #' @rdname lmResults
 #' @export
 setMethod("lmResults", "TSENATAnalysis", function(object, component = NULL) {
-    # Filter out rank test results (q_interactions belongs to rankResults, not lmResults)
+    # Filter out rank test results (q_interactions belongs to rankResults, not
+    # lmResults)
     lm_only_results <- object@lm_results
     if (is.list(lm_only_results) && "q_interactions" %in% names(lm_only_results)) {
         lm_only_results$q_interactions <- NULL
@@ -373,7 +370,8 @@ setMethod("lmResults", "TSENATAnalysis", function(object, component = NULL) {
     }
 
     if (is.null(component)) {
-        # Return all LM interaction results (excluding rank test q_interactions)
+        # Return all LM interaction results (excluding rank test
+        # q_interactions)
         return(lm_only_results)
     }
 
@@ -416,16 +414,16 @@ setMethod("lmResults", "TSENATAnalysis", function(object, component = NULL) {
 #'
 #' @examples
 #' # Load data and build analysis
-#' data(readcounts, package = "TSENAT")
-#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t")
-#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' data(readcounts, package = 'TSENAT')
+#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t')
+#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #'
 #' # Build and filter analysis
 #' analysis <- build_analysis_s4(readcounts = readcounts,
 #'                              tx2gene = gff3_file,
 #'                              metadata = metadata_df)
-#' analysis <- filter_analysis_s4(analysis, stringency = "medium")
+#' analysis <- filter_analysis_s4(analysis, stringency = 'medium')
 #'
 #' # Calculate diversity
 #' analysis <- calculate_diversity_s4(analysis, q = 1.0, norm = TRUE)
@@ -436,7 +434,7 @@ setMethod("lmResults", "TSENATAnalysis", function(object, component = NULL) {
 #'
 #' # Extract specific component
 #' if (!is.null(pairwise_results)) {
-#'   difference_comp <- pairwiseResults(analysis, component = "difference")
+#'   difference_comp <- pairwiseResults(analysis, component = 'difference')
 #' }
 #'
 #' @export
@@ -480,18 +478,18 @@ setMethod("pairwiseResults", "TSENATAnalysis", function(object, component = NULL
 #'
 #' @examples
 #' # Extract rank test results from TSENATAnalysis object
-#' data(readcounts, package = "TSENAT")
+#' data(readcounts, package = 'TSENAT')
 #' metadata <- read.table(
-#'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t"
+#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t'
 #' )
-#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' 
 #' config <- tsenat_config(q_values = c(0.5, 1.0), generate_plots = FALSE)
 #' analysis <- build_analysis_s4(readcounts, tx2gene = gff3_file,
 #'     metadata = metadata, tpm = tpm, effective_length = effective_length,
 #'     config = config)
-#' analysis <- filter_analysis_s4(analysis, stringency = "severe")
+#' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 #' analysis <- calculate_diversity_s4(analysis, norm = TRUE)
 #' analysis <- rank_test_q_condition_s4(analysis, q = 1.0)
 #' 
@@ -686,13 +684,15 @@ setMethod("jeoResults", "TSENATAnalysis", function(object, q = NULL) {
         results <- object@jackknife_results
         results[names(results) != "multi_q"]
     } else {
-        # Format q-value key - must match storage format used by jackknife_entropy_outliers_s4()
-        # Storage uses formatC(..., digits = 3) format to create keys like 'q_1.000'
+        # Format q-value key - must match storage format used by
+        # jackknife_entropy_outliers_s4() Storage uses formatC(..., digits = 3)
+        # format to create keys like 'q_1.000'
         q_key <- paste0("q_", formatC(q, format = "f", digits = 3))
 
         if (!(q_key %in% names(object@jackknife_results))) {
-            stop("Q-value ", q, " not found in jackknife entropy outlier results.\n", "Available q-values: ",
-                paste(names(object@jackknife_results), collapse = ", "), call. = FALSE)
+            stop("Q-value ", q, " not found in jackknife entropy outlier results.\n",
+                "Available q-values: ", paste(names(object@jackknife_results), collapse = ", "),
+                call. = FALSE)
         }
 
         object@jackknife_results[[q_key]]
@@ -720,10 +720,10 @@ setMethod("jeoResults", "TSENATAnalysis", function(object, q = NULL) {
 #'
 #' @examples
 #' # Load data and build analysis 
-#' data(readcounts, package = "TSENAT")
-#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t")
-#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' data(readcounts, package = 'TSENAT')
+#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t')
+#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #'
 #' # Build analysis object
 #' analysis <- build_analysis_s4(readcounts = readcounts,
@@ -731,7 +731,7 @@ setMethod("jeoResults", "TSENATAnalysis", function(object, q = NULL) {
 #'                              metadata = metadata_df)
 #'
 #' # Filter low-abundance transcripts
-#' analysis <- filter_analysis_s4(analysis, stringency = "medium")
+#' analysis <- filter_analysis_s4(analysis, stringency = 'medium')
 #'
 #' # Calculate diversity
 #' analysis <- calculate_diversity_s4(analysis, q = c(1.0, 2.0), norm = TRUE)
@@ -769,13 +769,15 @@ setMethod("jisResults", "TSENATAnalysis", function(object, q = NULL) {
         return(object@jackknife_results)
     }
 
-    # Format q-value key for isoform switching (uses different format than entropy outliers)
-    # isoform switching uses paste0('q_', gsub('\\.', '_', sprintf('%.2f', q))) format
+    # Format q-value key for isoform switching (uses different format than
+    # entropy outliers) isoform switching uses paste0('q_', gsub('\\.', '_',
+    # sprintf('%.2f', q))) format
     q_key <- paste0("q_", gsub("\\.", "_", sprintf("%.2f", q)))
 
     if (!(q_key %in% names(object@jackknife_results))) {
-        stop("Q-value ", q, " not found in jackknife isoform switching results.\n", "Available q-values: ",
-            paste(names(object@jackknife_results), collapse = ", "), call. = FALSE)
+        stop("Q-value ", q, " not found in jackknife isoform switching results.\n",
+            "Available q-values: ", paste(names(object@jackknife_results), collapse = ", "),
+            call. = FALSE)
     }
 
     object@jackknife_results[[q_key]]
@@ -998,7 +1000,8 @@ setMethod("show", "TSENATAnalysis", function(object) {
         message(sprintf("  [OK] Diversity: %d q-value(s)", length(object@diversity_results)))
     }
     if (length(object@lm_results) > 0) {
-        message(sprintf("  [OK] LM results: %s", paste(names(object@lm_results), collapse = ", ")))
+        message(sprintf("  [OK] LM results: %s", paste(names(object@lm_results),
+            collapse = ", ")))
     }
     if (length(object@jackknife_results) > 0) {
         message(sprintf("  [OK] Jackknife: %d q-value(s)", length(object@jackknife_results)))

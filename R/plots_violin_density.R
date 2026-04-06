@@ -92,14 +92,15 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
         axis = "b")
 
     # Add overall title and subtitle above the grid
-    title_grob <- .create_title_grob("Tsallis Entropy Distribution by Group",
-        subtitle = "Violin and density plots across samples",
+    title_grob <- .create_title_grob("Tsallis Entropy Distribution by Group", subtitle = "Violin and density plots across samples",
         title_size = 19, subtitle_size = 15)
-    grid_with_title <- cowplot::plot_grid(title_grob, grid, nrow = 2, rel_heights = c(0.08, 1))
+    grid_with_title <- cowplot::plot_grid(title_grob, grid, nrow = 2, rel_heights = c(0.08,
+        1))
 
     # Save to file if output_file is provided
     if (!is.null(output_file)) {
-        .save_plot_standard(grid_with_title, output_file, width_inches = 12, aspect_type = "standard", dpi_output = 100)
+        .save_plot_standard(grid_with_title, output_file, width_inches = 12, aspect_type = "standard",
+            dpi_output = 100)
     }
 
     return(grid_with_title)
@@ -158,9 +159,9 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
         ggplot2::geom_density(alpha = 0.3, linewidth = 1)
 
     p <- .apply_group_aesthetics(p, palette = "palette_blue_red", legend_name = "Group")
-    
-    p <- .apply_publication_theme(p, title = title_use, base_size = 11) +
-        ggplot2::labs(x = "Tsallis entropy", y = "Density")
+
+    p <- .apply_publication_theme(p, title = title_use, base_size = 11) + ggplot2::labs(x = "Tsallis entropy",
+        y = "Density")
 
     p
 }
@@ -221,9 +222,9 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
 
     p <- .apply_group_aesthetics(p, palette = "palette_blue_red", legend_name = "Group",
         legend_position = "none")
-    
-    p <- .apply_publication_theme(p, title = title_use, base_size = 11) +
-        ggplot2::labs(x = "Group", y = "Tsallis entropy")
+
+    p <- .apply_publication_theme(p, title = title_use, base_size = 11) + ggplot2::labs(x = "Group",
+        y = "Tsallis entropy")
 
     p
 }

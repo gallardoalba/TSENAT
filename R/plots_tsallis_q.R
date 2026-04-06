@@ -144,7 +144,7 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
             if ("condition_col" %in% names(se@config)) {
                 condition_col <- se@config$condition_col
             } else {
-                condition_col <- "condition"  # Default to "condition" for new code
+                condition_col <- "condition"  # Default to 'condition' for new code
             }
         }
 
@@ -152,8 +152,8 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
         assay_name <- "diversity"
     }
 
-    # Default condition_col if still NULL (for direct SE input)
-    # Try "condition" first (standard), then "sample_type" (legacy)
+    # Default condition_col if still NULL (for direct SE input) Try 'condition'
+    # first (standard), then 'sample_type' (legacy)
     if (is.null(condition_col)) {
         if ("condition" %in% colnames(SummarizedExperiment::colData(se))) {
             condition_col <- "condition"
@@ -315,15 +315,12 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
     names(plots) <- genes
 
     # Assemble grid with title and legend using helper
-    grid_with_legend <- .assemble_grid_plot(plots,
-        ncol = 2, nrow = 2,
-        title = "Tsallis Entropy q-Curve Profile",
-        subtitle = ci_subtitle,
-        legend_position = "bottom",
-        extract_legend = TRUE)
+    grid_with_legend <- .assemble_grid_plot(plots, ncol = 2, nrow = 2, title = "Tsallis Entropy q-Curve Profile",
+        subtitle = ci_subtitle, legend_position = "bottom", extract_legend = TRUE)
 
     if (!is.null(output_file)) {
-        .save_plot_standard(grid_with_legend, output_file, width_inches = 12, aspect_type = "tall", dpi_output = 100)
+        .save_plot_standard(grid_with_legend, output_file, width_inches = 12, aspect_type = "tall",
+            dpi_output = 100)
     }
 
     grid_with_legend
@@ -361,24 +358,25 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
 
     plot_df <- .bootstrap_aggregate_ci(se, long)
 
-    # REFACTORED: Using consolidated helpers (.create_ci_ribbon_plot + .apply_group_aesthetics + .apply_publication_theme)
-    # Preserves exact original aesthetics while reducing code duplication
-    p <- .create_ci_ribbon_plot(plot_df, x_col = "q", y_col = "median",
-        group_col = "group", ci_lower_col = "ci_lower", ci_upper_col = "ci_upper",
-        ribbon_alpha = 0.15, line_width = 1.2, show_points = FALSE)
+    # REFACTORED: Using consolidated helpers (.create_ci_ribbon_plot +
+    # .apply_group_aesthetics + .apply_publication_theme) Preserves exact
+    # original aesthetics while reducing code duplication
+    p <- .create_ci_ribbon_plot(plot_df, x_col = "q", y_col = "median", group_col = "group",
+        ci_lower_col = "ci_lower", ci_upper_col = "ci_upper", ribbon_alpha = 0.15,
+        line_width = 1.2, show_points = FALSE)
     p <- .apply_group_aesthetics(p, palette = "palette_blue_red", legend_name = "Group")
     p <- .apply_publication_theme(p, base_theme = "theme_spectrum", base_size = 11,
-        title = "Tsallis Entropy Across Diversity Scales (q-spectrum)",
-        subtitle = "Observed median (line) with bootstrap 95% percentile CI (shaded band)")
-    p <- p + ggplot2::labs(x = "q value", y = expression("Tsallis entropy (" * S[q] * ")"), 
-        color = "Group", fill = "Group")
+        title = "Tsallis Entropy Across Diversity Scales (q-spectrum)", subtitle = "Observed median (line) with bootstrap 95% percentile CI (shaded band)")
+    p <- p + ggplot2::labs(x = "q value", y = expression("Tsallis entropy (" * S[q] *
+        ")"), color = "Group", fill = "Group")
 
     if (length(groups) == 1) {
         p <- .configure_legend(p, position = "none")
     }
 
     if (!is.null(output_file)) {
-        .save_plot_standard(p, output_file, width_inches = 12, aspect_type = "standard", dpi_output = 100)
+        .save_plot_standard(p, output_file, width_inches = 12, aspect_type = "standard",
+            dpi_output = 100)
     }
 
     p
@@ -396,8 +394,8 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
     # Validate that CI assays exist
     if (is.null(ci_lower_assay) || is.null(ci_upper_assay)) {
         stop("Bootstrap CI assays 'ci_lower' and 'ci_upper' not found in SummarizedExperiment. ",
-            "Available assays: ", paste(names(SummarizedExperiment::assays(se)), collapse = ", "),
-            call. = FALSE)
+            "Available assays: ", paste(names(SummarizedExperiment::assays(se)),
+                collapse = ", "), call. = FALSE)
     }
 
     # Filter long data to selected genes
@@ -429,9 +427,9 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
             return(NULL)
         }
 
-        p <- .create_ci_ribbon_plot(plot_data, x_col = "q", y_col = "median",
-            group_col = "group", ci_lower_col = "ci_lower", ci_upper_col = "ci_upper",
-            ribbon_alpha = 0.15, line_width = 1.2, show_points = FALSE)
+        p <- .create_ci_ribbon_plot(plot_data, x_col = "q", y_col = "median", group_col = "group",
+            ci_lower_col = "ci_lower", ci_upper_col = "ci_upper", ribbon_alpha = 0.15,
+            line_width = 1.2, show_points = FALSE)
         p <- .apply_group_aesthetics(p, palette = "palette_blue_red", legend_name = "Group")
         p <- .apply_publication_theme(p, base_theme = "theme_spectrum", base_size = 11,
             title = g, title_size = 14)
@@ -456,15 +454,13 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
         stop("No valid genes found for plotting")
     }
 
-    grid_with_legend <- .assemble_grid_plot(plots,
-        ncol = 2, nrow = 2,
-        title = "Tsallis Entropy q-Curve Profile",
-        subtitle = "Median with Bootstrap 95% Confidence Intervals",
-        legend_position = "bottom",
+    grid_with_legend <- .assemble_grid_plot(plots, ncol = 2, nrow = 2, title = "Tsallis Entropy q-Curve Profile",
+        subtitle = "Median with Bootstrap 95% Confidence Intervals", legend_position = "bottom",
         extract_legend = TRUE)
 
     if (!is.null(output_file)) {
-        .save_plot_standard(grid_with_legend, output_file, width_inches = 12, aspect_type = "tall", dpi_output = 100)
+        .save_plot_standard(grid_with_legend, output_file, width_inches = 12, aspect_type = "tall",
+            dpi_output = 100)
     }
 
     grid_with_legend
@@ -516,15 +512,12 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
 
     plots <- lapply(genes, make_gene_plot)
 
-    grid_with_legend <- .assemble_grid_plot(plots,
-        ncol = 2, nrow = 2,
-        title = "Tsallis Entropy q-Curve Profile",
-        subtitle = subtitle,
-        legend_position = "bottom",
-        extract_legend = TRUE)
+    grid_with_legend <- .assemble_grid_plot(plots, ncol = 2, nrow = 2, title = "Tsallis Entropy q-Curve Profile",
+        subtitle = subtitle, legend_position = "bottom", extract_legend = TRUE)
 
     if (!is.null(output_file)) {
-        .save_plot_standard(grid_with_legend, output_file, width_inches = 12, aspect_type = "tall", dpi_output = 100)
+        .save_plot_standard(grid_with_legend, output_file, width_inches = 12, aspect_type = "tall",
+            dpi_output = 100)
     }
 
     grid_with_legend
@@ -555,16 +548,17 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
         spread, ymax = median + spread), alpha = 0.2, color = NA)
     p <- .apply_group_aesthetics(p, palette = "palette_blue_red", legend_name = "Group")
     p <- .apply_publication_theme(p, base_theme = "theme_spectrum", base_size = 11,
-        title = "Tsallis Entropy Across Diversity Scales (q-spectrum)",
-        subtitle = subtitle)
-    p <- p + ggplot2::labs(x = "q value", y = expression("Tsallis entropy (" * S[q] * ")"))
+        title = "Tsallis Entropy Across Diversity Scales (q-spectrum)", subtitle = subtitle)
+    p <- p + ggplot2::labs(x = "q value", y = expression("Tsallis entropy (" * S[q] *
+        ")"))
 
     if (length(unique(long$group)) == 1) {
         p <- .configure_legend(p, position = "none")
     }
 
     if (!is.null(output_file)) {
-        .save_plot_standard(p, output_file, width_inches = 12, aspect_type = "standard", dpi_output = 100)
+        .save_plot_standard(p, output_file, width_inches = 12, aspect_type = "standard",
+            dpi_output = 100)
     }
 
     p

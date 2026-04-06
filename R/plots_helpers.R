@@ -13,19 +13,20 @@
 #' @noRd
 
 require_pkgs <- function(pkgs) {
-    if (is.null(pkgs)) return(invisible(TRUE))
-    
+    if (is.null(pkgs))
+        return(invisible(TRUE))
+
     # If single string, convert to character vector
     if (is.character(pkgs) && length(pkgs) == 1) {
         pkgs <- c(pkgs)
     }
-    
+
     for (pkg in pkgs) {
         if (!requireNamespace(pkg, quietly = TRUE)) {
             stop(sprintf("%s required for this function", pkg), call. = FALSE)
         }
     }
-    
+
     invisible(TRUE)
 }
 
@@ -56,9 +57,8 @@ require_pkgs <- function(pkgs) {
 #'
 #' @noRd
 
-.prepare_volcano_df <- function(diff_df, x_col = NULL,
-    padj_col = "adjusted_p_values", label_thresh = 0.1,
-    sig_alpha = 0.05, title = NULL) {
+.prepare_volcano_df <- function(diff_df, x_col = NULL, padj_col = "adjusted_p_values",
+    label_thresh = 0.1, sig_alpha = 0.05, title = NULL) {
     df <- as.data.frame(diff_df)
     cn <- colnames(df)
 
@@ -1475,7 +1475,7 @@ require_pkgs <- function(pkgs) {
 
 #' @noRd
 .extract_diversity_objects <- function(div_list) {
-    
+
     combined_assays_dict <- list()
     first_se <- NULL
     bootstrap_ci_available <- FALSE
@@ -1497,7 +1497,7 @@ require_pkgs <- function(pkgs) {
         } else {
             as.matrix(obj)
         }
-        
+
         q_val <- as.numeric(sub("^q_", "", q_name))
         combined_assays_dict[[q_name]] <- list(matrix = mat, q_val = q_val, se_obj = obj)
     }
@@ -1506,12 +1506,8 @@ require_pkgs <- function(pkgs) {
         stop("No valid SummarizedExperiment found in analysis@diversity_results")
     }
 
-    list(
-        objects = combined_assays_dict,
-        q_names = names(combined_assays_dict),
-        first_se = first_se,
-        bootstrap_ci_available = bootstrap_ci_available
-    )
+    list(objects = combined_assays_dict, q_names = names(combined_assays_dict), first_se = first_se,
+        bootstrap_ci_available = bootstrap_ci_available)
 }
 
 #' Normalize matrix dimensions and row order
@@ -1532,7 +1528,7 @@ require_pkgs <- function(pkgs) {
             matrix <- cbind(matrix, matrix(0, nrow = nrow(matrix), ncol = pad_cols))
         }
     }
-    
+
     # Reorder rows to match target genes
     matrix[target_genes, , drop = FALSE]
 }
@@ -1547,23 +1543,23 @@ require_pkgs <- function(pkgs) {
 
 #' @noRd
 .extract_bootstrap_ci_matrices <- function(se_obj, target_genes, target_n_cols, assay_names) {
-    
+
     if (!methods::is(se_obj, "SummarizedExperiment")) {
         return(NULL)
     }
-    
+
     if (!("ci_lower" %in% assay_names && "ci_upper" %in% assay_names)) {
         return(NULL)
     }
-    
+
     # Extract ci_lower
     ci_lower <- SummarizedExperiment::assay(se_obj, "ci_lower")
     ci_lower <- .normalize_matrix_to_target(ci_lower, target_genes, target_n_cols)
-    
+
     # Extract ci_upper
     ci_upper <- SummarizedExperiment::assay(se_obj, "ci_upper")
     ci_upper <- .normalize_matrix_to_target(ci_upper, target_genes, target_n_cols)
-    
+
     list(ci_lower = ci_lower, ci_upper = ci_upper)
 }
 
@@ -1579,7 +1575,7 @@ require_pkgs <- function(pkgs) {
     if (is.null(colnames) || length(colnames) == 0) {
         colnames <- paste0("sample_", seq_len(n_cols))
     }
-    
+
     clean_colnames <- sub("_q=.*$", "", colnames)
     paste0(clean_colnames, "_q=", formatC(q_val, format = "f", digits = 3))
 }
@@ -1593,26 +1589,27 @@ require_pkgs <- function(pkgs) {
 
 #' @noRd
 .build_combined_coldata <- function(div_list, q_names, unique_colnames_list) {
-    
+
     combined_coldata_list <- list()
-    
+
     for (q_name in q_names) {
         q_val <- as.numeric(sub("^q_", "", q_name))
-        
-        # Access unique_colnames by q-value name (stored as list keys in .fill_combined_assays)
+
+        # Access unique_colnames by q-value name (stored as list keys in
+        # .fill_combined_assays)
         unique_colnames <- unique_colnames_list[[q_name]]
-        
+
         if (methods::is(div_list[[q_name]], "SummarizedExperiment")) {
             cd <- as.data.frame(SummarizedExperiment::colData(div_list[[q_name]]))
         } else {
             cd <- data.frame(row.names = unique_colnames)
         }
-        
+
         cd$q <- q_val
         rownames(cd) <- unique_colnames
         combined_coldata_list[[q_name]] <- cd
     }
-    
+
     do.call(rbind, combined_coldata_list)
 }
 
@@ -1627,8 +1624,8 @@ require_pkgs <- function(pkgs) {
 
 #' @noRd
 .create_combined_se_object <- function(combined_assay, combined_ci_lower, combined_ci_upper,
-                                        combined_coldata, first_se) {
-    
+    combined_coldata, first_se) {
+
     # Extract or create rowData, ensuring dimensions match combined_assay
     rd_combined <- tryCatch({
         rd_temp <- SummarizedExperiment::rowData(first_se)
@@ -1640,28 +1637,25 @@ require_pkgs <- function(pkgs) {
             NULL
         }
     }, error = function(e) NULL)
-    
+
     if (is.null(rd_combined) || nrow(rd_combined) != nrow(combined_assay)) {
-        rd_combined <- data.frame(
-            gene_id = rownames(combined_assay),
-            row.names = rownames(combined_assay),
-            stringsAsFactors = FALSE
-        )
+        rd_combined <- data.frame(gene_id = rownames(combined_assay), row.names = rownames(combined_assay),
+            stringsAsFactors = FALSE)
     } else {
         # Ensure rownames match even if we're using extracted rowData
         rownames(rd_combined) <- rownames(combined_assay)
     }
-    
+
     # Validate dimensions
     if (ncol(combined_assay) != nrow(combined_coldata)) {
-        stop("Column mismatch: assay has ", ncol(combined_assay),
-            " columns but colData has ", nrow(combined_coldata), " rows")
+        stop("Column mismatch: assay has ", ncol(combined_assay), " columns but colData has ",
+            nrow(combined_coldata), " rows")
     }
     if (nrow(combined_assay) != nrow(rd_combined)) {
-        stop("Row mismatch: assay has ", nrow(combined_assay),
-            " rows but rowData has ", nrow(rd_combined), " rows")
+        stop("Row mismatch: assay has ", nrow(combined_assay), " rows but rowData has ",
+            nrow(rd_combined), " rows")
     }
-    
+
     # Validate names match
     if (!identical(colnames(combined_assay), rownames(combined_coldata))) {
         stop("Column name mismatch between assay and colData")
@@ -1669,33 +1663,31 @@ require_pkgs <- function(pkgs) {
     if (!identical(rownames(combined_assay), rownames(rd_combined))) {
         stop("Row name mismatch between assay and rowData")
     }
-    
+
     # Build assays list
     assays_list <- list(diversity = combined_assay)
-    
+
     if (!is.null(combined_ci_lower) && !is.null(combined_ci_upper)) {
         ci_lower_valid <- sum(!is.na(combined_ci_lower)) > 0
         ci_upper_valid <- sum(!is.na(combined_ci_upper)) > 0
-        
+
         if (ci_lower_valid && ci_upper_valid) {
             assays_list$ci_lower <- combined_ci_lower
             assays_list$ci_upper <- combined_ci_upper
         }
     }
-    
+
     # Create SE
-    combined_se <- SummarizedExperiment::SummarizedExperiment(
-        assays = assays_list,
-        colData = combined_coldata,
-        rowData = rd_combined
-    )
-    
+    combined_se <- SummarizedExperiment::SummarizedExperiment(assays = assays_list,
+        colData = combined_coldata, rowData = rd_combined)
+
     # Add metadata if CI available
     if (!is.null(combined_ci_lower)) {
         S4Vectors::metadata(combined_se)$bootstrap_ci_count <- sum(!is.na(combined_ci_lower))
-        S4Vectors::metadata(combined_se)$has_bootstrap_ci <- (sum(!is.na(combined_ci_lower)) > 0)
+        S4Vectors::metadata(combined_se)$has_bootstrap_ci <- (sum(!is.na(combined_ci_lower)) >
+            0)
     }
-    
+
     combined_se
 }
 
@@ -1710,25 +1702,24 @@ require_pkgs <- function(pkgs) {
 
 #' @noRd
 .prepare_q_value_for_combining <- function(q_name, combined_assays_dict, target_genes,
-                                            target_n_cols, bootstrap_ci_available) {
-    
+    target_n_cols, bootstrap_ci_available) {
+
     mat <- combined_assays_dict[[q_name]]$matrix
     q_val <- combined_assays_dict[[q_name]]$q_val
     se_obj <- combined_assays_dict[[q_name]]$se_obj
-    
+
     # Normalize matrix dimensions
     mat <- .normalize_matrix_to_target(mat, target_genes, target_n_cols)
-    
+
     # Create q-suffixed column names
     unique_colnames <- .create_q_suffixed_colnames(colnames(mat), q_val, ncol(mat))
-    
+
     # Extract CI matrices if available
     ci_lower <- ci_upper <- NULL
     if (bootstrap_ci_available) {
         sim_names <- SummarizedExperiment::assayNames(se_obj)
-        ci_matrices <- .extract_bootstrap_ci_matrices(
-            se_obj, target_genes, target_n_cols, sim_names
-        )
+        ci_matrices <- .extract_bootstrap_ci_matrices(se_obj, target_genes, target_n_cols,
+            sim_names)
         if (!is.null(ci_matrices)) {
             ci_lower <- ci_matrices$ci_lower
             ci_upper <- ci_matrices$ci_upper
@@ -1737,14 +1728,9 @@ require_pkgs <- function(pkgs) {
             ci_upper <- matrix(NA, nrow = nrow(mat), ncol = ncol(mat))
         }
     }
-    
-    list(
-        matrix = mat,
-        unique_colnames = unique_colnames,
-        ncol_val = ncol(mat),
-        ci_lower = ci_lower,
-        ci_upper = ci_upper
-    )
+
+    list(matrix = mat, unique_colnames = unique_colnames, ncol_val = ncol(mat), ci_lower = ci_lower,
+        ci_upper = ci_upper)
 }
 
 #' Fill combined assay matrices with data from all q-values
@@ -1757,55 +1743,49 @@ require_pkgs <- function(pkgs) {
 #' @return List with: combined_assay, combined_ci_lower, combined_ci_upper, unique_colnames_list
 
 #' @noRd
-.fill_combined_assays <- function(combined_assays_dict, q_names, target_genes,
-                                   target_n_cols, bootstrap_ci_available) {
+.fill_combined_assays <- function(combined_assays_dict, q_names, target_genes, target_n_cols,
+    bootstrap_ci_available) {
     total_cols <- target_n_cols * length(q_names)
-    
+
     # Initialize matrices
     combined_assay <- matrix(0, nrow = length(target_genes), ncol = total_cols)
     rownames(combined_assay) <- target_genes
-    
+
     combined_ci_lower <- if (bootstrap_ci_available) {
         matrix(NA, nrow = length(target_genes), ncol = total_cols)
     } else NULL
     combined_ci_upper <- if (bootstrap_ci_available) {
         matrix(NA, nrow = length(target_genes), ncol = total_cols)
     } else NULL
-    
+
     unique_colnames_list <- list()
     col_idx <- 1
-    
+
     for (q_name in q_names) {
-        result <- .prepare_q_value_for_combining(
-            q_name, combined_assays_dict, target_genes,
-            target_n_cols, bootstrap_ci_available
-        )
-        
+        result <- .prepare_q_value_for_combining(q_name, combined_assays_dict, target_genes,
+            target_n_cols, bootstrap_ci_available)
+
         ncol_q <- result$ncol_val
         if (col_idx + ncol_q - 1 > total_cols) {
-            stop("Dimension mismatch: ", col_idx, " to ", col_idx + ncol_q - 1,
-                " exceeds total_cols=", total_cols)
+            stop("Dimension mismatch: ", col_idx, " to ", col_idx + ncol_q - 1, " exceeds total_cols=",
+                total_cols)
         }
-        
+
         # Fill main assay
         combined_assay[, col_idx:(col_idx + ncol_q - 1)] <- result$matrix
         unique_colnames_list[[q_name]] <- result$unique_colnames
-        
+
         # Fill CI matrices if available
         if (bootstrap_ci_available && !is.null(result$ci_lower)) {
             combined_ci_lower[, col_idx:(col_idx + ncol_q - 1)] <- result$ci_lower
             combined_ci_upper[, col_idx:(col_idx + ncol_q - 1)] <- result$ci_upper
         }
-        
+
         col_idx <- col_idx + ncol_q
     }
-    
-    list(
-        combined_assay = combined_assay,
-        combined_ci_lower = combined_ci_lower,
-        combined_ci_upper = combined_ci_upper,
-        unique_colnames_list = unique_colnames_list
-    )
+
+    list(combined_assay = combined_assay, combined_ci_lower = combined_ci_lower,
+        combined_ci_upper = combined_ci_upper, unique_colnames_list = unique_colnames_list)
 }
 
 #' Convert TSENATAnalysis to combined SummarizedExperiment
@@ -1817,25 +1797,22 @@ require_pkgs <- function(pkgs) {
 .prepare_combined_se <- function(analysis) {
 
     div_list <- analysis@diversity_results
-    
+
     # Step 1: Extract diversity objects and metadata
     extracted <- .extract_diversity_objects(div_list)
-    
+
     # Step 2: Get target dimensions
     target_genes <- rownames(extracted$first_se)
     target_n_cols <- ncol(extracted$first_se)
-    
+
     # Step 3: Fill combined assays
-    filled <- .fill_combined_assays(
-        extracted$objects, extracted$q_names, target_genes,
-        target_n_cols, extracted$bootstrap_ci_available
-    )
-    
-    # Step 4: Build combined colData (which defines the sample names via rownames)
-    combined_coldata_df <- .build_combined_coldata(
-        div_list, extracted$q_names, filled$unique_colnames_list
-    )
-    
+    filled <- .fill_combined_assays(extracted$objects, extracted$q_names, target_genes,
+        target_n_cols, extracted$bootstrap_ci_available)
+
+    # Step 4: Build combined colData (which defines the sample names via
+    # rownames)
+    combined_coldata_df <- .build_combined_coldata(div_list, extracted$q_names, filled$unique_colnames_list)
+
     # Step 5: Set column names on all assays to match colData rownames
     combined_colnames <- rownames(combined_coldata_df)
     colnames(filled$combined_assay) <- combined_colnames
@@ -1843,12 +1820,10 @@ require_pkgs <- function(pkgs) {
         colnames(filled$combined_ci_lower) <- combined_colnames
         colnames(filled$combined_ci_upper) <- combined_colnames
     }
-    
+
     # Step 6: Create and return combined SE
-    .create_combined_se_object(
-        filled$combined_assay, filled$combined_ci_lower, filled$combined_ci_upper,
-        combined_coldata_df, extracted$first_se
-    )
+    .create_combined_se_object(filled$combined_assay, filled$combined_ci_lower, filled$combined_ci_upper,
+        combined_coldata_df, extracted$first_se)
 }
 
 #' Compute gene-level statistics (median +/- SD) by group and q-value
@@ -2061,9 +2036,8 @@ require_pkgs <- function(pkgs) {
 .prepare_gene_ci_data <- function(long_data, ci_lower_mat, ci_upper_mat, genes) {
 
     # Aggregate to get median per gene, group, q
-    stats_df <- dplyr::summarise(dplyr::group_by(long_data, Gene, group, q), 
-                                 median = median(tsallis, na.rm = TRUE), 
-                                 .groups = "drop")
+    stats_df <- dplyr::summarise(dplyr::group_by(long_data, Gene, group, q), median = median(tsallis,
+        na.rm = TRUE), .groups = "drop")
 
     # Extract CI values for each gene, group, q combination
     plot_df <- stats_df
@@ -2084,24 +2058,24 @@ require_pkgs <- function(pkgs) {
             q_val <- as.numeric(plot_df$q[i])
 
             # Find indices in long_data for this gene/group/q
-            matching_rows <- which(as.character(long_data$Gene) == g & 
-                                   as.character(long_data$group) == gr & 
-                                   abs(as.numeric(as.character(long_data$q)) - q_val) < 1e-06)
+            matching_rows <- which(as.character(long_data$Gene) == g & as.character(long_data$group) ==
+                gr & abs(as.numeric(as.character(long_data$q)) - q_val) < 1e-06)
 
             if (length(matching_rows) > 0) {
                 # Get samples for this group from long_data
                 samples_for_group <- unique(as.character(long_data$sample[matching_rows]))
 
                 # Find CI columns for these samples at this q
-                ci_col_mask <- (ci_samples %in% samples_for_group) & 
-                               (abs(ci_q_values - q_val) < 1e-06)
+                ci_col_mask <- (ci_samples %in% samples_for_group) & (abs(ci_q_values -
+                  q_val) < 1e-06)
                 ci_col_indices <- which(ci_col_mask)
 
                 if (length(ci_col_indices) > 0) {
                   # Get CI bounds for these columns
                   gene_idx <- which(rownames(ci_lower_mat) == g)
                   if (length(gene_idx) > 0) {
-                    # Use only first match (shouldn't have duplicates but be safe)
+                    # Use only first match (shouldn't have duplicates but be
+                    # safe)
                     gene_idx <- gene_idx[1]
                     ci_lower_vals <- as.numeric(ci_lower_mat[gene_idx, ci_col_indices])
                     ci_upper_vals <- as.numeric(ci_upper_mat[gene_idx, ci_col_indices])
@@ -2144,8 +2118,8 @@ require_pkgs <- function(pkgs) {
 
     model_data <- NULL
 
-    # Handle flexible input: lm_res can be either: 1. A data.frame with
-    # results (traditional usage) 2. A list with $results and $model_data
+    # Handle flexible input: lm_res can be either: 1. A data.frame with results
+    # (traditional usage) 2. A list with $results and $model_data
     # (return_model_data = TRUE format)
     if (is.list(lm_res) && !is.data.frame(lm_res)) {
         # lm_res is a list with components
@@ -2292,7 +2266,7 @@ require_pkgs <- function(pkgs) {
 
     n_plots <- length(plots)
     n_cols <- 2
-    n_rows <- ceiling(n_plots / n_cols)
+    n_rows <- ceiling(n_plots/n_cols)
 
     # Add margins to plots for spacing, particularly between rows
     plots_with_margins <- lapply(seq_along(plots), function(i) {
@@ -2306,9 +2280,8 @@ require_pkgs <- function(pkgs) {
     })
 
     # Extract legend from first plot
-    p_for_legend <- .configure_legend(plots[[1]], position = "bottom", 
-                                      text_size = font_sizes$legend_text, 
-                                      title_size = font_sizes$legend_title)
+    p_for_legend <- .configure_legend(plots[[1]], position = "bottom", text_size = font_sizes$legend_text,
+        title_size = font_sizes$legend_title)
     legend <- cowplot::get_legend(p_for_legend)
 
     # Create grid without legends
@@ -2345,34 +2318,35 @@ require_pkgs <- function(pkgs) {
 .plot_gam_save_plot <- function(plot, output_file, width = NULL, height = NULL) {
     if (!is.null(output_file)) {
         # Use provided dimensions or defaults
-        save_width <- if (is.null(width)) 12 else width
-        save_height <- if (is.null(height)) 10.3 else height
-        
-        # Determine aspect type based on provided dimensions
-        # tall: height/width ratio > 0.8 (e.g., 10/12 = 0.833)
-        # standard: height/width ratio <= 0.8 (e.g., 7.2/12 = 0.6)
-        aspect_type <- if (save_height / save_width > 0.8) "tall" else "standard"
-        
+        save_width <- if (is.null(width))
+            12 else width
+        save_height <- if (is.null(height))
+            10.3 else height
+
+        # Determine aspect type based on provided dimensions tall: height/width
+        # ratio > 0.8 (e.g., 10/12 = 0.833) standard: height/width ratio <= 0.8
+        # (e.g., 7.2/12 = 0.6)
+        aspect_type <- if (save_height/save_width > 0.8)
+            "tall" else "standard"
+
         # Calculate dimensions via .calculate_plot_dims for consistency
-        plot_dims <- .calculate_plot_dims(width_inches = save_width, aspect_type = aspect_type, 
-                                         dpi_output = 100)
-        
+        plot_dims <- .calculate_plot_dims(width_inches = save_width, aspect_type = aspect_type,
+            dpi_output = 100)
+
         # Compute adaptive font scaling based on actual area
         font_scale <- .scale_font_by_area(plot_dims$width, plot_dims$height)
-        
-        # Apply adaptive font scaling if dimensions deviate significantly from reference (96 sq in)
-        # Only scale if deviation is >10% to avoid excessive changes
-        if (abs(font_scale - 1.0) > 0.1) {
-            plot <- plot + ggplot2::theme(
-                text = ggplot2::element_text(size = 11 * font_scale),
-                plot.title = ggplot2::element_text(size = 14 * font_scale),
-                axis.title = ggplot2::element_text(size = 12 * font_scale),
-                axis.text = ggplot2::element_text(size = 10 * font_scale),
-                legend.text = ggplot2::element_text(size = 10 * font_scale),
-                legend.title = ggplot2::element_text(size = 11 * font_scale)
-            )
+
+        # Apply adaptive font scaling if dimensions deviate significantly from
+        # reference (96 sq in) Only scale if deviation is >10% to avoid
+        # excessive changes
+        if (abs(font_scale - 1) > 0.1) {
+            plot <- plot + ggplot2::theme(text = ggplot2::element_text(size = 11 *
+                font_scale), plot.title = ggplot2::element_text(size = 14 * font_scale),
+                axis.title = ggplot2::element_text(size = 12 * font_scale), axis.text = ggplot2::element_text(size = 10 *
+                  font_scale), legend.text = ggplot2::element_text(size = 10 * font_scale),
+                legend.title = ggplot2::element_text(size = 11 * font_scale))
         }
-        
+
         ggplot2::ggsave(output_file, plot = plot, width = plot_dims$width, height = plot_dims$height,
             dpi = plot_dims$dpi, create.dir = TRUE)
     }
@@ -2394,8 +2368,8 @@ require_pkgs <- function(pkgs) {
 #' @return ggplot object or NULL if plot generation fails
 #'
 #' @noRd
-.plot_gam_make_plot <- function(gene, gene_display_name = NULL, gene_name_map,
-    mat, sample_to_group, condition_col) {
+.plot_gam_make_plot <- function(gene, gene_display_name = NULL, gene_name_map, mat,
+    sample_to_group, condition_col) {
 
     # Use provided gene name, or look it up from mapping, or default to gene ID
     if (is.null(gene_display_name)) {
@@ -2426,21 +2400,21 @@ require_pkgs <- function(pkgs) {
     palette_colors <- .palette_blue_red()
     color_mapping <- c()
     for (i in seq_along(group_levels)) {
-        color_idx <- ((i - 1) %% length(palette_colors)) + 1
+        color_idx <- ((i - 1)%%length(palette_colors)) + 1
         color_mapping[group_levels[i]] <- palette_colors[color_idx]
     }
 
     # Create plot with explicit color scale
     p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = q, y = entropy, color = group)) +
-        ggplot2::geom_point(data = plot_df, ggplot2::aes(x = q, y = entropy,
-            color = group), alpha = 0.5, size = 2) + ggplot2::geom_line(data = pred_df,
-        ggplot2::aes(x = q, y = entropy_fit, color = group, linetype = "GAM fit"),
-        linewidth = 1, alpha = 0.9) + ggplot2::scale_color_manual(values = color_mapping,
-        name = condition_col, breaks = group_levels) + ggplot2::scale_linetype_manual(values = c(`GAM fit` = 1),
-        name = "") + ggplot2::labs(x = "q parameter", y = "Tsallis entropy",
-        title = ifelse(gene_display_name != gene, sprintf("%s (%s)", gene_display_name,
-            gene), gene_display_name)) + .theme_spectrum(base_size = 11)
-    
+        ggplot2::geom_point(data = plot_df, ggplot2::aes(x = q, y = entropy, color = group),
+            alpha = 0.5, size = 2) + ggplot2::geom_line(data = pred_df, ggplot2::aes(x = q,
+        y = entropy_fit, color = group, linetype = "GAM fit"), linewidth = 1, alpha = 0.9) +
+        ggplot2::scale_color_manual(values = color_mapping, name = condition_col,
+            breaks = group_levels) + ggplot2::scale_linetype_manual(values = c(`GAM fit` = 1),
+        name = "") + ggplot2::labs(x = "q parameter", y = "Tsallis entropy", title = ifelse(gene_display_name !=
+        gene, sprintf("%s (%s)", gene_display_name, gene), gene_display_name)) +
+        .theme_spectrum(base_size = 11)
+
     p <- .configure_legend(p, position = "none")
 
     p
@@ -2463,7 +2437,7 @@ require_pkgs <- function(pkgs) {
 #' @param plot ggplot2 object to style
 #' @param title Character: plot title (optional)
 #' @param subtitle Character: plot subtitle (optional)
-#' @param base_theme Character: "theme_base" (default) or "theme_spectrum"
+#' @param base_theme Character: 'theme_base' (default) or 'theme_spectrum'
 #' @param base_size Integer: base font size (default: 11, matches .theme_base default)
 #' @param title_size Integer: title font size (default: from .font_sizes constants)
 #' @param subtitle_size Integer: subtitle font size (default: from .font_sizes constants)
@@ -2471,25 +2445,22 @@ require_pkgs <- function(pkgs) {
 #' @return Modified ggplot2 object with applied theme
 #'
 #' @noRd
-.apply_publication_theme <- function(plot, title = NULL, subtitle = NULL,
-                                     base_theme = "theme_base", base_size = 11,
-                                     title_size = .font_sizes$title,
-                                     subtitle_size = .font_sizes$subtitle) {
-    
-    # Apply base theme (either .theme_base or .theme_spectrum)
-    # Add dot prefix if not already present
-    theme_name <- if (startsWith(base_theme, ".")) base_theme else paste0(".", base_theme)
+.apply_publication_theme <- function(plot, title = NULL, subtitle = NULL, base_theme = "theme_base",
+    base_size = 11, title_size = .font_sizes$title, subtitle_size = .font_sizes$subtitle) {
+
+    # Apply base theme (either .theme_base or .theme_spectrum) Add dot prefix
+    # if not already present
+    theme_name <- if (startsWith(base_theme, "."))
+        base_theme else paste0(".", base_theme)
     theme_fn <- get(theme_name)
     result <- plot + theme_fn(base_size = base_size)
-    
-    # Apply title/subtitle styling (always centered, bold/italic as per TSENAT convention)
-    result <- result + ggplot2::theme(
-        plot.title = ggplot2::element_text(hjust = 0.5, size = title_size, 
-                                          face = "bold"),
-        plot.subtitle = ggplot2::element_text(hjust = 0.5, size = subtitle_size, 
-                                             face = "italic")
-    )
-    
+
+    # Apply title/subtitle styling (always centered, bold/italic as per TSENAT
+    # convention)
+    result <- result + ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5,
+        size = title_size, face = "bold"), plot.subtitle = ggplot2::element_text(hjust = 0.5,
+        size = subtitle_size, face = "italic"))
+
     # Add title/subtitle labels if provided
     if (!is.null(title) && !is.null(subtitle)) {
         result <- result + ggplot2::labs(title = title, subtitle = subtitle)
@@ -2498,7 +2469,7 @@ require_pkgs <- function(pkgs) {
     } else if (!is.null(subtitle)) {
         result <- result + ggplot2::labs(subtitle = subtitle)
     }
-    
+
     result
 }
 
@@ -2513,12 +2484,12 @@ require_pkgs <- function(pkgs) {
 #' legend.text, etc. customizations throughout the codebase.
 #'
 #' @param plot ggplot2 object to modify
-#' @param position Character: "bottom", "right", "left", "top", or "none" (default: "bottom")
+#' @param position Character: 'bottom', 'right', 'left', 'top', or 'none' (default: 'bottom')
 #' @param width_cm Numeric: width of legend key in cm (default: NULL = don't override)
 #' @param height_cm Numeric: height of legend key in cm (default: NULL)
 #' @param text_size Numeric: font size for legend text (default: NULL = use plot theme)
 #' @param title_size Numeric: font size for legend title (default: NULL)
-#' @param justification Character: "left", "center", "right" (default: NULL = auto)
+#' @param justification Character: 'left', 'center', 'right' (default: NULL = auto)
 #' @param background_color Character: fill color for legend background (default: NULL)
 #' @param border_color Character: border color for legend box (default: NULL)
 #' @param spacing_lines Numeric: line spacing in legend (default: 2)
@@ -2530,39 +2501,37 @@ require_pkgs <- function(pkgs) {
 #' # Simple usage: position and width
 #' p <- ggplot2::ggplot(mtcars, ggplot2::aes(x = wt, y = mpg, color = factor(cyl))) +
 #'     ggplot2::geom_point()
-#' p_leg <- .configure_legend(p, position = "bottom", width_cm = 2)
+#' p_leg <- .configure_legend(p, position = 'bottom', width_cm = 2)
 #'
 #' # With text sizing
-#' p_leg <- .configure_legend(p, position = "right", text_size = 10, title_size = 11)
+#' p_leg <- .configure_legend(p, position = 'right', text_size = 10, title_size = 11)
 #'
 #' # No legend
-#' p_leg <- .configure_legend(p, position = "none")
+#' p_leg <- .configure_legend(p, position = 'none')
 #' }
 #'
 #' @noRd
 
-.configure_legend <- function(plot, position = "bottom", width_cm = NULL,
-                             height_cm = NULL, text_size = NULL,
-                             title_size = NULL, justification = NULL,
-                             background_color = NULL, border_color = NULL,
-                             spacing_lines = 2) {
-    
+.configure_legend <- function(plot, position = "bottom", width_cm = NULL, height_cm = NULL,
+    text_size = NULL, title_size = NULL, justification = NULL, background_color = NULL,
+    border_color = NULL, spacing_lines = 2) {
+
     theme_list <- list()
-    
+
     # Handle legend positioning
     if (!is.null(position) && position != "none") {
         theme_list$legend.position <- position
     } else if (position == "none") {
         theme_list$legend.position <- "none"
     }
-    
+
     # Handle legend justification
     if (!is.null(justification)) {
         theme_list$legend.justification <- justification
     } else if (!is.null(position) && position == "bottom") {
         theme_list$legend.justification <- "center"
     }
-    
+
     # Handle legend key dimensions
     if (!is.null(width_cm)) {
         theme_list$legend.key.width <- ggplot2::unit(width_cm, "cm")
@@ -2570,7 +2539,7 @@ require_pkgs <- function(pkgs) {
     if (!is.null(height_cm)) {
         theme_list$legend.key.height <- ggplot2::unit(height_cm, "cm")
     }
-    
+
     # Handle text sizes
     if (!is.null(text_size)) {
         theme_list$legend.text <- ggplot2::element_text(size = text_size)
@@ -2578,23 +2547,22 @@ require_pkgs <- function(pkgs) {
     if (!is.null(title_size)) {
         theme_list$legend.title <- ggplot2::element_text(size = title_size, face = "bold")
     }
-    
+
     # Handle legend background
     if (!is.null(background_color)) {
         theme_list$legend.background <- ggplot2::element_rect(fill = background_color,
-                                                              color = border_color %||% "black")
+            color = border_color %||% "black")
     } else if (!is.null(border_color)) {
-        theme_list$legend.background <- ggplot2::element_rect(fill = NA,
-                                                              color = border_color)
+        theme_list$legend.background <- ggplot2::element_rect(fill = NA, color = border_color)
     }
-    
+
     # Handle spacing
     theme_list$legend.spacing.y <- ggplot2::unit(spacing_lines, "mm")
-    
+
     if (length(theme_list) > 0) {
         plot <- plot + do.call(ggplot2::theme, theme_list)
     }
-    
+
     return(plot)
 }
 
@@ -2606,10 +2574,10 @@ require_pkgs <- function(pkgs) {
 #' @param plot ggplot2 object to modify
 #' @param h_intercept Numeric vector: y-coordinates for horizontal lines (default: NULL)
 #' @param v_intercept Numeric vector: x-coordinates for vertical lines (default: NULL)
-#' @param h_color Character: color for horizontal lines (default: "gray50")
-#' @param v_color Character: color for vertical lines (default: "gray50")
-#' @param h_linetype Character: linetype for horizontal lines (default: "dashed")
-#' @param v_linetype Character: linetype for vertical lines (default: "dashed")
+#' @param h_color Character: color for horizontal lines (default: 'gray50')
+#' @param v_color Character: color for vertical lines (default: 'gray50')
+#' @param h_linetype Character: linetype for horizontal lines (default: 'dashed')
+#' @param v_linetype Character: linetype for vertical lines (default: 'dashed')
 #' @param h_size Numeric: line width for horizontal lines (default: 0.8)
 #' @param v_size Numeric: line width for vertical lines (default: 0.8)
 #' @param h_alpha Numeric: transparency for horizontal lines (default: 0.7)
@@ -2626,44 +2594,32 @@ require_pkgs <- function(pkgs) {
 #' p_ref <- .add_reference_lines(p, h_intercept = 20, v_intercept = 3)
 #'
 #' # Customized colors
-#' p_ref <- .add_reference_lines(p, h_intercept = 20, h_color = "red",
-#'                               v_intercept = c(2.5, 3.5), v_color = "blue")
+#' p_ref <- .add_reference_lines(p, h_intercept = 20, h_color = 'red',
+#'                               v_intercept = c(2.5, 3.5), v_color = 'blue')
 #' }
 #'
 #' @noRd
 
-.add_reference_lines <- function(plot, h_intercept = NULL, v_intercept = NULL,
-                                h_color = "gray50", v_color = "gray50",
-                                h_linetype = "dashed", v_linetype = "dashed",
-                                h_size = 0.8, v_size = 0.8,
-                                h_alpha = 0.7, v_alpha = 0.7) {
-    
+.add_reference_lines <- function(plot, h_intercept = NULL, v_intercept = NULL, h_color = "gray50",
+    v_color = "gray50", h_linetype = "dashed", v_linetype = "dashed", h_size = 0.8,
+    v_size = 0.8, h_alpha = 0.7, v_alpha = 0.7) {
+
     # Add horizontal reference lines
     if (!is.null(h_intercept)) {
         for (yint in h_intercept) {
-            plot <- plot + ggplot2::geom_hline(
-                yintercept = yint,
-                color = h_color,
-                linetype = h_linetype,
-                linewidth = h_size,
-                alpha = h_alpha
-            )
+            plot <- plot + ggplot2::geom_hline(yintercept = yint, color = h_color,
+                linetype = h_linetype, linewidth = h_size, alpha = h_alpha)
         }
     }
-    
+
     # Add vertical reference lines
     if (!is.null(v_intercept)) {
         for (xint in v_intercept) {
-            plot <- plot + ggplot2::geom_vline(
-                xintercept = xint,
-                color = v_color,
-                linetype = v_linetype,
-                linewidth = v_size,
-                alpha = v_alpha
-            )
+            plot <- plot + ggplot2::geom_vline(xintercept = xint, color = v_color,
+                linetype = v_linetype, linewidth = v_size, alpha = v_alpha)
         }
     }
-    
+
     return(plot)
 }
 
@@ -2679,10 +2635,10 @@ require_pkgs <- function(pkgs) {
 #' @param y_hjust Numeric: horizontal justification for y-axis (default: NULL = auto)
 #' @param x_size Numeric: font size for x-axis labels (default: NULL = no override)
 #' @param y_size Numeric: font size for y-axis labels (default: NULL = no override)
-#' @param x_face Character: font face ("plain", "bold", "italic") for x-axis
+#' @param x_face Character: font face ('plain', 'bold', 'italic') for x-axis
 #' @param y_face Character: font face for y-axis
-#' @param x_color Character: text color for x-axis (default: "black")
-#' @param y_color Character: text color for y-axis (default: "black")
+#' @param x_color Character: text color for x-axis (default: 'black')
+#' @param y_color Character: text color for y-axis (default: 'black')
 #' @param bold_title Logical: make axis titles bold (default: TRUE)
 #'
 #' @return Modified ggplot2 object with formatted axis labels
@@ -2701,50 +2657,39 @@ require_pkgs <- function(pkgs) {
 #'
 #' @noRd
 
-.format_axis_labels <- function(plot, x_angle = 0, y_angle = 0,
-                               x_hjust = NULL, y_hjust = NULL,
-                               x_size = NULL, y_size = NULL,
-                               x_face = "plain", y_face = "plain",
-                               x_color = "black", y_color = "black",
-                               bold_title = TRUE) {
-    
+.format_axis_labels <- function(plot, x_angle = 0, y_angle = 0, x_hjust = NULL, y_hjust = NULL,
+    x_size = NULL, y_size = NULL, x_face = "plain", y_face = "plain", x_color = "black",
+    y_color = "black", bold_title = TRUE) {
+
     theme_list <- list()
-    
+
     # X-axis label formatting
     if (x_angle != 0 || !is.null(x_size) || x_face != "plain" || x_color != "black") {
-        x_hjust_use <- x_hjust %||% (if (x_angle != 0) 1 else 0.5)
-        x_vjust_use <- if (x_angle != 0) 0.5 else 1
-        theme_list$axis.text.x <- ggplot2::element_text(
-            angle = x_angle,
-            hjust = x_hjust_use,
-            vjust = x_vjust_use,
-            size = x_size,
-            face = x_face,
-            color = x_color
-        )
+        x_hjust_use <- x_hjust %||% (if (x_angle != 0)
+            1 else 0.5)
+        x_vjust_use <- if (x_angle != 0)
+            0.5 else 1
+        theme_list$axis.text.x <- ggplot2::element_text(angle = x_angle, hjust = x_hjust_use,
+            vjust = x_vjust_use, size = x_size, face = x_face, color = x_color)
     }
-    
+
     # Y-axis label formatting
     if (y_angle != 0 || !is.null(y_size) || y_face != "plain" || y_color != "black") {
-        y_hjust_use <- y_hjust %||% (if (y_angle != 0) 1 else 0.5)
-        theme_list$axis.text.y <- ggplot2::element_text(
-            angle = y_angle,
-            hjust = y_hjust_use,
-            size = y_size,
-            face = y_face,
-            color = y_color
-        )
+        y_hjust_use <- y_hjust %||% (if (y_angle != 0)
+            1 else 0.5)
+        theme_list$axis.text.y <- ggplot2::element_text(angle = y_angle, hjust = y_hjust_use,
+            size = y_size, face = y_face, color = y_color)
     }
-    
+
     # Axis titles
     if (bold_title) {
         theme_list$axis.title <- ggplot2::element_text(face = "bold")
     }
-    
+
     if (length(theme_list) > 0) {
         plot <- plot + do.call(ggplot2::theme, theme_list)
     }
-    
+
     return(plot)
 }
 
@@ -2772,27 +2717,17 @@ require_pkgs <- function(pkgs) {
 #'
 #' @noRd
 
-.calculate_scaled_fonts <- function(base_size = 11, scale_factor = 1,
-                                   font_multipliers = list(
-                                       axis_text = 12/11,
-                                       axis_title = 14/11,
-                                       title = 16/11,
-                                       legend = 9/11
-                                   )) {
-    
+.calculate_scaled_fonts <- function(base_size = 11, scale_factor = 1, font_multipliers = list(axis_text = 12/11,
+    axis_title = 14/11, title = 16/11, legend = 9/11)) {
+
     scaling <- base_size * scale_factor
-    
-    result <- list(
-        base = base_size,
-        scaled = scaling,
-        axis_text = round(scaling * font_multipliers$axis_text),
-        axis_title = round(scaling * font_multipliers$axis_title),
-        title = round(scaling * font_multipliers$title),
-        legend = round(scaling * font_multipliers$legend),
-        subtitle = round(scaling * 0.9),
-        caption = round(scaling * 0.8)
-    )
-    
+
+    result <- list(base = base_size, scaled = scaling, axis_text = round(scaling *
+        font_multipliers$axis_text), axis_title = round(scaling * font_multipliers$axis_title),
+        title = round(scaling * font_multipliers$title), legend = round(scaling *
+            font_multipliers$legend), subtitle = round(scaling * 0.9), caption = round(scaling *
+            0.8))
+
     return(result)
 }
 
@@ -2803,22 +2738,21 @@ require_pkgs <- function(pkgs) {
 #'
 #' AESTHETIC PRESERVATION: Uses exact same colors and mappings as originals.
 #' - Palette: .palette_blue_red() by default (standard TSENAT convention)
-#' - Color/Fill Manual: with name="Group" (standard legend title)
+#' - Color/Fill Manual: with name='Group' (standard legend title)
 #'
 #' @param plot ggplot2 object
-#' @param palette Character: palette function name (e.g. "palette_blue_red") OR 
+#' @param palette Character: palette function name (e.g. 'palette_blue_red') OR 
 #'   a vector of colors. If character, will call the .palette_* function.
-#' @param legend_name Character: legend title (default: "Group")
-#' @param legend_position Character: legend position (default: "bottom")
+#' @param legend_name Character: legend title (default: 'Group')
+#' @param legend_position Character: legend position (default: 'bottom')
 #' @param direction Integer: 1 (normal) or -1 (reversed palette)
 #'
 #' @return Modified ggplot2 object with applied color scales
 #'
 #' @noRd
-.apply_group_aesthetics <- function(plot, palette = "palette_blue_red",
-                                   legend_name = "Group", legend_position = "bottom",
-                                   direction = 1) {
-    
+.apply_group_aesthetics <- function(plot, palette = "palette_blue_red", legend_name = "Group",
+    legend_position = "bottom", direction = 1) {
+
     # Get palette colors - handle both string (function name) and vector cases
     if (is.character(palette) && length(palette) == 1) {
         # palette is a function name string, call the function
@@ -2828,18 +2762,16 @@ require_pkgs <- function(pkgs) {
         # palette is already a vector of colors
         colors <- palette
     }
-    
+
     # Reverse if needed
     if (direction == -1) {
         colors <- rev(colors)
     }
-    
+
     # Apply color and fill scales (exact pattern from original code)
-    result <- plot +
-        ggplot2::scale_color_manual(values = colors, name = legend_name) +
-        ggplot2::scale_fill_manual(values = colors, name = legend_name) +
-        ggplot2::theme(legend.position = legend_position)
-    
+    result <- plot + ggplot2::scale_color_manual(values = colors, name = legend_name) +
+        ggplot2::scale_fill_manual(values = colors, name = legend_name) + ggplot2::theme(legend.position = legend_position)
+
     result
 }
 
@@ -2854,11 +2786,11 @@ require_pkgs <- function(pkgs) {
 #' - Point: size=3.5, alpha=0.8
 #'
 #' @param data Data frame with plot data
-#' @param x_col Character: name of x column (default: "q")
-#' @param y_col Character: name of y column (default: "median")
+#' @param x_col Character: name of x column (default: 'q')
+#' @param y_col Character: name of y column (default: 'median')
 #' @param group_col Character: optional grouping column (NULL = single series, default: NULL)
-#' @param ci_lower_col Character: name of CI lower column (default: "ci_lower")
-#' @param ci_upper_col Character: name of CI upper column (default: "ci_upper")
+#' @param ci_lower_col Character: name of CI lower column (default: 'ci_lower')
+#' @param ci_upper_col Character: name of CI upper column (default: 'ci_upper')
 #' @param ribbon_alpha Numeric: ribbon transparency (default: 0.15)
 #' @param line_width Numeric: line width (default: 1.2)
 #' @param point_size Numeric: point size (default: 3.5)
@@ -2867,75 +2799,65 @@ require_pkgs <- function(pkgs) {
 #' @return Base ggplot2 object with ribbon/line/point layers (unthemed)
 #'
 #' @noRd
-.create_ci_ribbon_plot <- function(data, x_col = "q", y_col = "median",
-                                  group_col = NULL,
-                                  ci_lower_col = "ci_lower", 
-                                  ci_upper_col = "ci_upper",
-                                  ribbon_alpha = 0.15, line_width = 1.2, 
-                                  point_size = 2.8, show_points = TRUE,
-                                  default_color = "#4575B4") {
-    
+.create_ci_ribbon_plot <- function(data, x_col = "q", y_col = "median", group_col = NULL,
+    ci_lower_col = "ci_lower", ci_upper_col = "ci_upper", ribbon_alpha = 0.15, line_width = 1.2,
+    point_size = 2.8, show_points = TRUE, default_color = "#4575B4") {
+
     # Check if we have valid CI data to plot ribbons
     has_valid_ci <- FALSE
     if (ci_lower_col %in% colnames(data) && ci_upper_col %in% colnames(data)) {
         has_valid_ci <- any(!is.na(data[[ci_lower_col]]) & !is.infinite(data[[ci_lower_col]]) &
-                           !is.na(data[[ci_upper_col]]) & !is.infinite(data[[ci_upper_col]]))
+            !is.na(data[[ci_upper_col]]) & !is.infinite(data[[ci_upper_col]]))
     }
-    
-    # Only keep rows with valid CI data for ribbon layer to avoid ggplot warnings
-    # But keep data as-is for line/point layers (they use median values, not CI bounds)
+
+    # Only keep rows with valid CI data for ribbon layer to avoid ggplot
+    # warnings But keep data as-is for line/point layers (they use median
+    # values, not CI bounds)
     data_ci <- data
     if (has_valid_ci) {
         # Filter to rows with valid CI for ribbon layer only
         valid_ci_rows <- which(!is.na(data[[ci_lower_col]]) & !is.infinite(data[[ci_lower_col]]) &
-                              !is.na(data[[ci_upper_col]]) & !is.infinite(data[[ci_upper_col]]))
+            !is.na(data[[ci_upper_col]]) & !is.infinite(data[[ci_upper_col]]))
         data_ci <- data[valid_ci_rows, ]
     }
-    
-    # Build base aesthetics - include group color/fill only if group_col provided and exists
+
+    # Build base aesthetics - include group color/fill only if group_col
+    # provided and exists
     if (!is.null(group_col) && group_col %in% colnames(data)) {
-        p <- ggplot2::ggplot(data, 
-                            ggplot2::aes(x = .data[[x_col]], y = .data[[y_col]],
-                                        color = .data[[group_col]], 
-                                        fill = .data[[group_col]],
-                                        group = .data[[group_col]]))
+        p <- ggplot2::ggplot(data, ggplot2::aes(x = .data[[x_col]], y = .data[[y_col]],
+            color = .data[[group_col]], fill = .data[[group_col]], group = .data[[group_col]]))
         has_grouping <- TRUE
     } else {
-        # No grouping - simple x/y aesthetics (color applied as fixed aesthetic)
-        p <- ggplot2::ggplot(data, 
-                            ggplot2::aes(x = .data[[x_col]], y = .data[[y_col]]))
+        # No grouping - simple x/y aesthetics (color applied as fixed
+        # aesthetic)
+        p <- ggplot2::ggplot(data, ggplot2::aes(x = .data[[x_col]], y = .data[[y_col]]))
         has_grouping <- FALSE
     }
-    
+
     # Check if we have valid CI data to plot
     has_valid_ci <- FALSE
     if (ci_lower_col %in% colnames(data) && ci_upper_col %in% colnames(data)) {
         has_valid_ci <- any(!is.na(data[[ci_lower_col]]) & !is.infinite(data[[ci_lower_col]]) &
-                           !is.na(data[[ci_upper_col]]) & !is.infinite(data[[ci_upper_col]]))
+            !is.na(data[[ci_upper_col]]) & !is.infinite(data[[ci_upper_col]]))
     }
-    
+
     # Add ribbon layer (CI bounds) only if we have valid CI data
     if (has_valid_ci) {
         if (has_grouping) {
             # When grouping, fill aesthetic is inherited from base aes
-            p <- p + ggplot2::geom_ribbon(
-                ggplot2::aes(ymin = .data[[ci_lower_col]], 
-                            ymax = .data[[ci_upper_col]]),
-                alpha = ribbon_alpha, color = NA
-            )
+            p <- p + ggplot2::geom_ribbon(ggplot2::aes(ymin = .data[[ci_lower_col]],
+                ymax = .data[[ci_upper_col]]), alpha = ribbon_alpha, color = NA)
         } else {
             # No grouping - apply default fill color
-            p <- p + ggplot2::geom_ribbon(
-                ggplot2::aes(ymin = .data[[ci_lower_col]], 
-                            ymax = .data[[ci_upper_col]]),
-                alpha = ribbon_alpha, color = NA, fill = default_color
-            )
+            p <- p + ggplot2::geom_ribbon(ggplot2::aes(ymin = .data[[ci_lower_col]],
+                ymax = .data[[ci_upper_col]]), alpha = ribbon_alpha, color = NA,
+                fill = default_color)
         }
     }
-    
-    # Add line layer
-    # If group_col is provided, color aesthetic from aes() applies it
-    # Otherwise, apply default color (consistency with .create_simple_line_plot)
+
+    # Add line layer If group_col is provided, color aesthetic from aes()
+    # applies it Otherwise, apply default color (consistency with
+    # .create_simple_line_plot)
     if (has_grouping) {
         # When grouping, color aesthetic is inherited from base aes
         p <- p + ggplot2::geom_line(linewidth = line_width)
@@ -2943,10 +2865,9 @@ require_pkgs <- function(pkgs) {
         # No grouping - apply default color
         p <- p + ggplot2::geom_line(linewidth = line_width, color = default_color)
     }
-    
-    # Add point layer if requested
-    # If group_col is provided, color aesthetic from aes() applies it
-    # Otherwise, apply default color
+
+    # Add point layer if requested If group_col is provided, color aesthetic
+    # from aes() applies it Otherwise, apply default color
     if (show_points) {
         if (has_grouping) {
             # When grouping, color aesthetic is inherited from base aes
@@ -2956,7 +2877,7 @@ require_pkgs <- function(pkgs) {
             p <- p + ggplot2::geom_point(size = point_size, alpha = 0.8, color = default_color)
         }
     }
-    
+
     p
 }
 
@@ -2966,9 +2887,9 @@ require_pkgs <- function(pkgs) {
 #' Replaces repeated 21x pattern of get_legend + plot_nolegend + plot_grid assembly.
 #'
 #' AESTHETIC PRESERVATION: Uses exact parameters from original code:
-#' - Legend position: "bottom" (default, customizable)
-#' - Legend direction: "horizontal" (standard for TSENAT)
-#' - Grid alignment: "hv" (both axes aligned)
+#' - Legend position: 'bottom' (default, customizable)
+#' - Legend direction: 'horizontal' (standard for TSENAT)
+#' - Grid alignment: 'hv' (both axes aligned)
 #' - Title/subtitle: uses .font_sizes constants
 #'
 #' @param plots List of ggplot2 objects (one per subplot)
@@ -2976,8 +2897,8 @@ require_pkgs <- function(pkgs) {
 #' @param nrow Integer: number of rows (default: auto-calculated)
 #' @param title Character: main title (optional)
 #' @param subtitle Character: subtitle under title (optional)
-#' @param legend_position Character: position for legend - "bottom", "top", "left", "right", "none" 
-#'   (default: "bottom")
+#' @param legend_position Character: position for legend - 'bottom', 'top', 'left', 'right', 'none' 
+#'   (default: 'bottom')
 #' @param extract_legend Logical: whether to extract and place legend separately 
 #'   (default: TRUE). If FALSE, plots retain their individual legends.
 #' @param rel_heights Numeric vector: relative heights for title/plots/legend
@@ -2994,75 +2915,68 @@ require_pkgs <- function(pkgs) {
 #' - Places shared legend at specified position
 #'
 #' @noRd
-.assemble_grid_plot <- function(plots, ncol = 2, nrow = NULL, 
-                               title = NULL, subtitle = NULL,
-                               legend_position = "bottom",
-                               extract_legend = TRUE,
-                               rel_heights = c(0.08, 1, 0.08)) {
-    
+.assemble_grid_plot <- function(plots, ncol = 2, nrow = NULL, title = NULL, subtitle = NULL,
+    legend_position = "bottom", extract_legend = TRUE, rel_heights = c(0.08, 1, 0.08)) {
+
     if (length(plots) == 0) {
         stop("plots list cannot be empty", call. = FALSE)
     }
-    
+
     # Calculate nrow if not provided
     if (is.null(nrow)) {
-        nrow <- ceiling(length(plots) / ncol)
+        nrow <- ceiling(length(plots)/ncol)
     }
-    
+
     # Extract legend from first plot if requested
     legend_obj <- NULL
     if (extract_legend) {
-        legend_obj <- cowplot::get_legend(
-            plots[[1]] + ggplot2::theme(legend.position = legend_position,
-                                       legend.direction = "horizontal")
-        )
+        legend_obj <- cowplot::get_legend(plots[[1]] + ggplot2::theme(legend.position = legend_position,
+            legend.direction = "horizontal"))
     }
-    
+
     # Remove legends from all plots
     plots_nolegend <- lapply(plots, function(p) {
         .configure_legend(p, position = "none")
     })
-    
+
     # Compose grid without legend
-    grid_plot <- cowplot::plot_grid(plotlist = plots_nolegend, 
-                                   ncol = ncol, nrow = nrow,
-                                   align = "hv")
-    
-    # If title/subtitle provided, create title grobs and assemble all 3 components
+    grid_plot <- cowplot::plot_grid(plotlist = plots_nolegend, ncol = ncol, nrow = nrow,
+        align = "hv")
+
+    # If title/subtitle provided, create title grobs and assemble all 3
+    # components
     if (!is.null(title) || !is.null(subtitle)) {
         title_plot <- cowplot::ggdraw()
-        
+
         if (!is.null(title)) {
-            title_plot <- title_plot + 
-                cowplot::draw_label(title, fontface = "bold", size = .font_sizes$title,
-                                  x = 0.5, hjust = 0.5)
+            title_plot <- title_plot + cowplot::draw_label(title, fontface = "bold",
+                size = .font_sizes$title, x = 0.5, hjust = 0.5)
         }
-        
+
         if (!is.null(subtitle)) {
-            y_pos <- if (is.null(title)) 0.5 else 0.25
-            subtitle_plot <- cowplot::ggdraw() + 
-                cowplot::draw_label(subtitle, fontface = "italic", 
-                                  size = .font_sizes$subtitle,
-                                  x = 0.5, hjust = 0.5, color = "gray40")
-            title_plot <- cowplot::plot_grid(title_plot, subtitle_plot, 
-                                           nrow = 2, rel_heights = c(1, 0.6))
+            y_pos <- if (is.null(title))
+                0.5 else 0.25
+            subtitle_plot <- cowplot::ggdraw() + cowplot::draw_label(subtitle, fontface = "italic",
+                size = .font_sizes$subtitle, x = 0.5, hjust = 0.5, color = "gray40")
+            title_plot <- cowplot::plot_grid(title_plot, subtitle_plot, nrow = 2,
+                rel_heights = c(1, 0.6))
         }
-        
+
         # Assemble title + grid + legend (if extracted)
         if (extract_legend && !is.null(legend_obj)) {
-            return(cowplot::plot_grid(title_plot, grid_plot, legend_obj, 
-                                     nrow = 3, rel_heights = rel_heights))
+            return(cowplot::plot_grid(title_plot, grid_plot, legend_obj, nrow = 3,
+                rel_heights = rel_heights))
         } else {
             # No legend: just title + grid
-            return(cowplot::plot_grid(title_plot, grid_plot, 
-                                     nrow = 2, rel_heights = rel_heights[c(1, 2)]))
+            return(cowplot::plot_grid(title_plot, grid_plot, nrow = 2, rel_heights = rel_heights[c(1,
+                2)]))
         }
     }
-    
+
     # No title/subtitle: just grid + legend (if extracted)
     if (extract_legend && !is.null(legend_obj)) {
-        return(cowplot::plot_grid(grid_plot, legend_obj, nrow = 2, 
-                          rel_heights = rel_heights[c(2, 3)]))
+        return(cowplot::plot_grid(grid_plot, legend_obj, nrow = 2, rel_heights = rel_heights[c(2,
+            3)]))
     } else {
         return(grid_plot)
     }
@@ -3081,37 +2995,32 @@ require_pkgs <- function(pkgs) {
 #' @param subtitle Character: optional subtitle text
 #' @param title_size Numeric: title font size (default: .font_sizes$title)
 #' @param subtitle_size Numeric: subtitle font size (default: .font_sizes$subtitle)
-#' @param title_face Character: title font face ("bold", "italic", etc.)
+#' @param title_face Character: title font face ('bold', 'italic', etc.)
 #' @param subtitle_face Character: subtitle font face
-#' @param title_color Character: title color (default: "black")
-#' @param subtitle_color Character: subtitle color (default: "gray40")
+#' @param title_color Character: title color (default: 'black')
+#' @param subtitle_color Character: subtitle color (default: 'gray40')
 #'
 #' @return cowplot/ggplot2 grob object ready for plot_grid assembly
 #'
 #' @noRd
-.create_title_grob <- function(title, subtitle = NULL, 
-                              title_size = .font_sizes$title,
-                              subtitle_size = .font_sizes$subtitle,
-                              title_face = "bold", subtitle_face = "italic",
-                              title_color = "black", subtitle_color = "gray40") {
-    
+.create_title_grob <- function(title, subtitle = NULL, title_size = .font_sizes$title,
+    subtitle_size = .font_sizes$subtitle, title_face = "bold", subtitle_face = "italic",
+    title_color = "black", subtitle_color = "gray40") {
+
     # Start with title grob
-    title_grob <- cowplot::ggdraw() +
-        cowplot::draw_label(title, fontface = title_face, size = title_size,
-                          x = 0.5, hjust = 0.5, color = title_color)
-    
+    title_grob <- cowplot::ggdraw() + cowplot::draw_label(title, fontface = title_face,
+        size = title_size, x = 0.5, hjust = 0.5, color = title_color)
+
     # Add subtitle if provided
     if (!is.null(subtitle)) {
-        subtitle_grob <- cowplot::ggdraw() +
-            cowplot::draw_label(subtitle, fontface = subtitle_face, 
-                              size = subtitle_size, x = 0.5, hjust = 0.5, 
-                              color = subtitle_color)
-        
+        subtitle_grob <- cowplot::ggdraw() + cowplot::draw_label(subtitle, fontface = subtitle_face,
+            size = subtitle_size, x = 0.5, hjust = 0.5, color = subtitle_color)
+
         # Combine title + subtitle
-        title_grob <- cowplot::plot_grid(title_grob, subtitle_grob,
-                                        nrow = 2, rel_heights = c(1, 0.6))
+        title_grob <- cowplot::plot_grid(title_grob, subtitle_grob, nrow = 2, rel_heights = c(1,
+            0.6))
     }
-    
+
     title_grob
 }
 
@@ -3124,31 +3033,27 @@ require_pkgs <- function(pkgs) {
 #' @param ncol Integer: number of columns for facet layout
 #' @param nrow Integer: number of rows (optional, usually auto-calculated)
 #' @param facet_var Character: variable name to facet by (unquoted expression as string)
-#' @param scales Character: "fixed", "free_x", "free_y", or "free" (default: "free_y")
+#' @param scales Character: 'fixed', 'free_x', 'free_y', or 'free' (default: 'free_y')
 #' @param strip_text_size Numeric: font size for strip labels (default: .font_sizes$subtitle)
 #' @param panel_spacing_lines Numeric: spacing between panels in lines (default: 1.5)
 #'
 #' @return Modified ggplot2 object with faceting and styling applied
 #'
 #' @noRd
-.apply_facet_styling <- function(plot, ncol = 2, nrow = NULL, facet_var = NULL,
-                                scales = "free_y", strip_text_size = .font_sizes$subtitle,
-                                panel_spacing_lines = 1.5) {
-    
+.apply_facet_styling <- function(plot, ncol = 2, nrow = NULL, facet_var = NULL, scales = "free_y",
+    strip_text_size = .font_sizes$subtitle, panel_spacing_lines = 1.5) {
+
     # Apply facet wrap if variable specified
     if (!is.null(facet_var)) {
         facet_formula <- stats::as.formula(paste0("~", facet_var))
-        plot <- plot + ggplot2::facet_wrap(facet_formula, ncol = ncol, 
-                                          nrow = nrow, scales = scales)
+        plot <- plot + ggplot2::facet_wrap(facet_formula, ncol = ncol, nrow = nrow,
+            scales = scales)
     }
-    
+
     # Apply panel and strip styling
-    plot <- plot + ggplot2::theme(
-        panel.spacing = ggplot2::unit(panel_spacing_lines, "lines"),
-        strip.text = ggplot2::element_text(face = "bold", 
-                                          size = strip_text_size)
-    )
-    
+    plot <- plot + ggplot2::theme(panel.spacing = ggplot2::unit(panel_spacing_lines,
+        "lines"), strip.text = ggplot2::element_text(face = "bold", size = strip_text_size))
+
     plot
 }
 
@@ -3158,7 +3063,7 @@ require_pkgs <- function(pkgs) {
 #' consistent parameter handling. Consolidates 10x data preparation pattern.
 #'
 #' @param se SummarizedExperiment: diversity/entropy assay object
-#' @param assay_name Character: name of assay to use (default: "diversity")
+#' @param assay_name Character: name of assay to use (default: 'diversity')
 #' @param condition_col Character: column name for condition/group variable
 #'   (optional, uses metadata config if NULL)
 #' @param validate Logical: validate output structure (default: TRUE)
@@ -3166,9 +3071,9 @@ require_pkgs <- function(pkgs) {
 #' @return Data frame in long format with columns: q, tsallis, group, Gene
 #'
 #' @noRd
-.prepare_long_format <- function(se, assay_name = "diversity", 
-                               condition_col = NULL, validate = TRUE) {
-    
+.prepare_long_format <- function(se, assay_name = "diversity", condition_col = NULL,
+    validate = TRUE) {
+
     # Use condition_col from metadata config if not provided
     if (is.null(condition_col)) {
         if (!is.null(S4Vectors::metadata(se)$condition_col)) {
@@ -3177,11 +3082,10 @@ require_pkgs <- function(pkgs) {
             condition_col <- "sample_type"  # TSENAT default
         }
     }
-    
+
     # Prepare long format
-    long <- .prepare_tsallis_long(se, assay_name = assay_name, 
-                                 condition_col = condition_col)
-    
+    long <- .prepare_tsallis_long(se, assay_name = assay_name, condition_col = condition_col)
+
     # Validate structure
     if (validate) {
         required_cols <- c("q", "tsallis", "group", "Gene")
@@ -3190,7 +3094,7 @@ require_pkgs <- function(pkgs) {
             warning("Prepared data missing columns: ", paste(missing_cols, collapse = ", "))
         }
     }
-    
+
     long
 }
 
@@ -3209,24 +3113,20 @@ require_pkgs <- function(pkgs) {
 #'
 #' @noRd
 .create_centered_theme <- function(include_title = TRUE, include_subtitle = TRUE,
-                                  title_size = .font_sizes$title,
-                                  subtitle_size = .font_sizes$subtitle,
-                                  hjust = 0.5) {
-    
+    title_size = .font_sizes$title, subtitle_size = .font_sizes$subtitle, hjust = 0.5) {
+
     theme_list <- list()
-    
+
     if (include_title) {
-        theme_list$plot.title <- ggplot2::element_text(
-            hjust = hjust, size = title_size, face = "bold"
-        )
+        theme_list$plot.title <- ggplot2::element_text(hjust = hjust, size = title_size,
+            face = "bold")
     }
-    
+
     if (include_subtitle) {
-        theme_list$plot.subtitle <- ggplot2::element_text(
-            hjust = hjust, size = subtitle_size, face = "italic"
-        )
+        theme_list$plot.subtitle <- ggplot2::element_text(hjust = hjust, size = subtitle_size,
+            face = "italic")
     }
-    
+
     do.call(ggplot2::theme, theme_list)
 }
 
@@ -3241,33 +3141,34 @@ require_pkgs <- function(pkgs) {
 #'
 #' @param df Data frame with potential fold-change and mean columns
 #' @param fold_col_candidates Character vector of possible fold-change column names
-#' @param mean_col_pattern Character pattern to match mean columns (default: "_mean$|_median$")
-#' @param scale_type Character: "log2fold" (default) or "effect_size"
+#' @param mean_col_pattern Character pattern to match mean columns (default: '_mean$|_median$')
+#' @param scale_type Character: 'log2fold' (default) or 'effect_size'
 #'
 #' @return Data frame with normalized columns: $x_norm, $y_norm, $fold_col, $mean_cols
 #'
 #' @noRd
-.normalize_plot_scales <- function(df, fold_col_candidates = c("log2_fold_change", "logFC", "fold"),
-                                  mean_col_pattern = "_mean$|_median$", scale_type = "log2fold") {
-    
+.normalize_plot_scales <- function(df, fold_col_candidates = c("log2_fold_change",
+    "logFC", "fold"), mean_col_pattern = "_mean$|_median$", scale_type = "log2fold") {
+
     # Find fold-change column
     fold_col <- intersect(fold_col_candidates, colnames(df))[1]
     if (is.na(fold_col)) {
-        warning("No fold-change column found in candidates: ", paste(fold_col_candidates, collapse = ", "))
+        warning("No fold-change column found in candidates: ", paste(fold_col_candidates,
+            collapse = ", "))
         return(NULL)
     }
-    
+
     # Find mean/median columns
     mean_cols <- grep(mean_col_pattern, colnames(df), value = TRUE, perl = TRUE)
     if (length(mean_cols) < 2) {
         warning("Expected 2+ mean/median columns, found: ", length(mean_cols))
         return(NULL)
     }
-    
+
     # Compute normalized positions
     df$x_norm <- rowMeans(df[, mean_cols[seq_len(2)], drop = FALSE], na.rm = TRUE)
     df$y_norm <- df[[fold_col]]
-    
+
     list(df = df, fold_col = fold_col, mean_cols = mean_cols[seq_len(2)])
 }
 
@@ -3284,41 +3185,38 @@ require_pkgs <- function(pkgs) {
 #' @param line_width Numeric: line width (default: 1.2)
 #' @param point_size Numeric: point size (default: 2.5)
 #' @param alpha Numeric: transparency (default: 0.8)
-#' @param line_color Character: fixed line color when no grouping (default: "#4575B4")
+#' @param line_color Character: fixed line color when no grouping (default: '#4575B4')
 #'
 #' @return ggplot2 object with line and optional point layers (unthemed)
 #'
 #' @noRd
-.create_simple_line_plot <- function(data, x_col, y_col, group_col = NULL,
-                                    points = TRUE, line_width = 1.2, point_size = 2.0,
-                                    alpha = 0.8, line_color = "#4575B4") {
-    
+.create_simple_line_plot <- function(data, x_col, y_col, group_col = NULL, points = TRUE,
+    line_width = 1.2, point_size = 2, alpha = 0.8, line_color = "#4575B4") {
+
     # NO grouping: simple single-series plot with fixed color
     if (is.null(group_col)) {
-        p <- ggplot2::ggplot(data, ggplot2::aes(x = !!rlang::sym(x_col), 
-                                               y = !!rlang::sym(y_col))) +
+        p <- ggplot2::ggplot(data, ggplot2::aes(x = !!rlang::sym(x_col), y = !!rlang::sym(y_col))) +
             ggplot2::geom_line(linewidth = line_width, alpha = alpha, color = line_color)
-        
+
         if (isTRUE(points)) {
             p <- p + ggplot2::geom_point(size = point_size, alpha = alpha, color = line_color)
         }
         return(p)
     }
-    
+
     # WITH grouping: map color to group column
     if (!(group_col %in% colnames(data))) {
         stop("Column '", group_col, "' not found in data")
     }
-    
-    p <- ggplot2::ggplot(data, ggplot2::aes(x = !!rlang::sym(x_col), 
-                                           y = !!rlang::sym(y_col),
-                                           color = !!rlang::sym(group_col))) +
-        ggplot2::geom_line(linewidth = line_width, alpha = alpha)
-    
+
+    p <- ggplot2::ggplot(data, ggplot2::aes(x = !!rlang::sym(x_col), y = !!rlang::sym(y_col),
+        color = !!rlang::sym(group_col))) + ggplot2::geom_line(linewidth = line_width,
+        alpha = alpha)
+
     if (isTRUE(points)) {
         p <- p + ggplot2::geom_point(size = point_size, alpha = alpha)
     }
-    
+
     p
 }
 
@@ -3337,60 +3235,50 @@ require_pkgs <- function(pkgs) {
 #'   Columns: q (from rownames or metadata), group, value, lower, upper
 #'
 #' @noRd
-.prepare_grouped_long_format <- function(se, assay_name = "diversity", 
-                                        group_by_col = "condition",
-                                        stat_funcs = list(
-                                            median = median,
-                                            iqr = function(x) diff(quantile(x, c(0.25, 0.75), na.rm = TRUE))
-                                        )) {
-    
+.prepare_grouped_long_format <- function(se, assay_name = "diversity", group_by_col = "condition",
+    stat_funcs = list(median = median, iqr = function(x) diff(quantile(x, c(0.25,
+        0.75), na.rm = TRUE)))) {
+
     # Extract assay
     assay_mat <- SummarizedExperiment::assay(se, assay_name)
-    
+
     # Get group info
     coldata <- SummarizedExperiment::colData(se)
     if (!group_by_col %in% colnames(coldata)) {
         stop("Column '", group_by_col, "' not found in colData")
     }
     groups <- coldata[[group_by_col]]
-    
+
     # Aggregate by group
     long_list <- list()
-    
+
     for (i in seq_len(nrow(assay_mat))) {
         gene_name <- rownames(assay_mat)[i]
         gene_data <- assay_mat[i, ]
-        
+
         for (grp in unique(groups)) {
             grp_indices <- which(groups == grp)
             grp_values <- gene_data[grp_indices]
             grp_values <- grp_values[!is.na(grp_values)]
-            
+
             if (length(grp_values) > 0) {
                 median_val <- stat_funcs$median(grp_values)
                 iqr_val <- stat_funcs$iqr(grp_values)
-                
-                long_list[[paste0(gene_name, "_", grp)]] <- data.frame(
-                    Gene = gene_name,
-                    group = grp,
-                    value = median_val,
-                    lower = median_val - (iqr_val / 2),
-                    upper = median_val + (iqr_val / 2),
-                    stringsAsFactors = FALSE
-                )
+
+                long_list[[paste0(gene_name, "_", grp)]] <- data.frame(Gene = gene_name,
+                  group = grp, value = median_val, lower = median_val - (iqr_val/2),
+                  upper = median_val + (iqr_val/2), stringsAsFactors = FALSE)
             }
         }
     }
-    
+
     do.call(rbind, long_list)
-}# ============================================================================
+}  # ============================================================================
 # PHASE 6: PLOT CONSOLIDATION HELPERS
 # ============================================================================
-# These helpers consolidate remaining high-value patterns identified in Phase 6:
-# - Theme + aesthetics merging
-# - Plot saving with unified dimensions
-# - Distribution statistics abstraction
-# - Bootstrap CI detection and extraction
+# These helpers consolidate remaining high-value patterns identified in Phase
+# 6: - Theme + aesthetics merging - Plot saving with unified dimensions -
+# Distribution statistics abstraction - Bootstrap CI detection and extraction
 
 #' Apply Publication Theme + Group Aesthetics Combined
 #'
@@ -3400,9 +3288,9 @@ require_pkgs <- function(pkgs) {
 #' @param plot ggplot2 object to modify
 #' @param title Character: plot title (optional)
 #' @param base_size Numeric: base font size (default: 11)
-#' @param base_theme Character: theme function name - "theme_base" or "theme_spectrum"
+#' @param base_theme Character: theme function name - 'theme_base' or 'theme_spectrum'
 #' @param group_col Character: column name for group mapping (optional)
-#' @param palette Character: palette name - "blue_red", custom function name (default: "blue_red")
+#' @param palette Character: palette name - 'blue_red', custom function name (default: 'blue_red')
 #' @param group_levels Character vector: ordered factor levels (optional)
 #' @param subtitle Character: plot subtitle (optional)
 #'
@@ -3419,27 +3307,23 @@ require_pkgs <- function(pkgs) {
 #' # Apply theme + group colors in one call
 #' p <- ggplot2::ggplot(df, ggplot2::aes(x = q, y = entropy, color = group)) +
 #'     ggplot2::geom_point()
-#' p <- .apply_publication_aesthetics(p, title = "Entropy Trend",
-#'                                    base_size = 11, base_theme = "theme_base",
-#'                                    group_col = "group", palette = "blue_red")
+#' p <- .apply_publication_aesthetics(p, title = 'Entropy Trend',
+#'                                    base_size = 11, base_theme = 'theme_base',
+#'                                    group_col = 'group', palette = 'blue_red')
 #' }
 #'
 #' @noRd
-.apply_publication_aesthetics <- function(plot, title = NULL, base_size = 11,
-                                         base_theme = "theme_base",
-                                         group_col = NULL, palette = "blue_red",
-                                         group_levels = NULL, subtitle = NULL) {
+.apply_publication_aesthetics <- function(plot, title = NULL, base_size = 11, base_theme = "theme_base",
+    group_col = NULL, palette = "blue_red", group_levels = NULL, subtitle = NULL) {
 
     # Apply publication theme first
-    p <- .apply_publication_theme(plot, title = title, base_size = base_size,
-                                 base_theme = base_theme, subtitle = subtitle)
+    p <- .apply_publication_theme(plot, title = title, base_size = base_size, base_theme = base_theme,
+        subtitle = subtitle)
 
     # Apply group aesthetics if group column specified
     if (!is.null(group_col)) {
-        p <- .apply_group_aesthetics(p,
-                                     palette = palette,
-                                     legend_name = legend_name,
-                                     legend_position = legend_position)
+        p <- .apply_group_aesthetics(p, palette = palette, legend_name = legend_name,
+            legend_position = legend_position)
     }
 
     return(p)
@@ -3455,8 +3339,8 @@ require_pkgs <- function(pkgs) {
 #' @param plot ggplot2 object to save
 #' @param filename Character: output file path (PNG, PDF, etc.)
 #' @param width_inches Numeric: chart width in inches (default: 12)
-#' @param aspect_type Character: aspect ratio - "standard" (16:9), "square" (1:1),
-#'   "wide" (21:9), "tall" (9:16). Default: "standard"
+#' @param aspect_type Character: aspect ratio - 'standard' (16:9), 'square' (1:1),
+#'   'wide' (21:9), 'tall' (9:16). Default: 'standard'
 #' @param dpi_output Numeric: resolution in DPI (default: 100)
 #' @param width_cm Numeric: override width in cm (optional)
 #' @param height_cm Numeric: override height in cm (optional)
@@ -3466,7 +3350,7 @@ require_pkgs <- function(pkgs) {
 #' @details
 #' This function eliminates the repetitive pattern:
 #' ```
-#' plot_dims <- .calculate_plot_dims(width_inches = 12, aspect_type = "standard")
+#' plot_dims <- .calculate_plot_dims(width_inches = 12, aspect_type = 'standard')
 #' ggplot2::ggsave(file, plot = p, width = plot_dims$width, height = plot_dims$height, dpi = plot_dims$dpi)
 #' ```
 #'
@@ -3477,32 +3361,28 @@ require_pkgs <- function(pkgs) {
 #' # Save plot with standard dimensions
 #' p <- ggplot2::ggplot(mtcars, ggplot2::aes(x = wt, y = mpg)) +
 #'     ggplot2::geom_point()
-#' .save_plot_standard(p, "output/my_plot.png", width_inches = 12)
+#' .save_plot_standard(p, 'output/my_plot.png', width_inches = 12)
 #' }
 #'
 #' @noRd
-.save_plot_standard <- function(plot, filename, width_inches = 12,
-                               aspect_type = "standard", dpi_output = 100,
-                               width_cm = NULL, height_cm = NULL) {
+.save_plot_standard <- function(plot, filename, width_inches = 12, aspect_type = "standard",
+    dpi_output = 100, width_cm = NULL, height_cm = NULL) {
 
     # Calculate dimensions
-    plot_dims <- .calculate_plot_dims(width_inches = width_inches,
-                                      aspect_type = aspect_type,
-                                      dpi_output = dpi_output)
+    plot_dims <- .calculate_plot_dims(width_inches = width_inches, aspect_type = aspect_type,
+        dpi_output = dpi_output)
 
     # Override with cm if provided (convert cm to inches)
     if (!is.null(width_cm)) {
-        plot_dims$width <- width_cm / 2.54
+        plot_dims$width <- width_cm/2.54
     }
     if (!is.null(height_cm)) {
-        plot_dims$height <- height_cm / 2.54
+        plot_dims$height <- height_cm/2.54
     }
 
     # Save plot
-    ggplot2::ggsave(filename, plot = plot,
-                   width = plot_dims$width,
-                   height = plot_dims$height,
-                   dpi = plot_dims$dpi)
+    ggplot2::ggsave(filename, plot = plot, width = plot_dims$width, height = plot_dims$height,
+        dpi = plot_dims$dpi)
 
     invisible(NULL)
 }
@@ -3515,10 +3395,10 @@ require_pkgs <- function(pkgs) {
 #' calculating central tendency and spread measures.
 #'
 #' @param df Data frame with data to summarize
-#' @param group_col Character: column name for grouping (e.g., "group", "condition")
-#' @param value_col Character: column name for values to summarize (e.g., "entropy")
-#' @param metric Character: central tendency - "median" (default) or "mean"
-#' @param spread_metric Character: spread measure - "iqr" (default), "sd"
+#' @param group_col Character: column name for grouping (e.g., 'group', 'condition')
+#' @param value_col Character: column name for values to summarize (e.g., 'entropy')
+#' @param metric Character: central tendency - 'median' (default) or 'mean'
+#' @param spread_metric Character: spread measure - 'iqr' (default), 'sd'
 #'
 #' @return Data frame with columns:
 #'   - group_col: group identifier
@@ -3537,14 +3417,14 @@ require_pkgs <- function(pkgs) {
 #'       value = median(col, na.rm = TRUE),
 #'       lower = quantile(col, 0.25, na.rm = TRUE),
 #'       upper = quantile(col, 0.75, na.rm = TRUE),
-#'       .groups = "drop"
+#'       .groups = 'drop'
 #'   )
 #' ```
 #'
 #' @examples
 #' \dontrun{
-#' df <- data.frame(group = rep(c("A", "B"), 50), value = rnorm(100))
-#' stats <- .compute_distribution_stats(df, "group", "value", "median", "iqr")
+#' df <- data.frame(group = rep(c('A', 'B'), 50), value = rnorm(100))
+#' stats <- .compute_distribution_stats(df, 'group', 'value', 'median', 'iqr')
 #' head(stats)
 #' #   group     value     lower     upper
 #' # 1     A -0.123456 -0.654321 0.234567
@@ -3552,8 +3432,8 @@ require_pkgs <- function(pkgs) {
 #' }
 #'
 #' @noRd
-.compute_distribution_stats <- function(df, group_col, value_col,
-                                       metric = "median", spread_metric = "iqr") {
+.compute_distribution_stats <- function(df, group_col, value_col, metric = "median",
+    spread_metric = "iqr") {
 
     # Validate inputs
     if (!is.data.frame(df)) {
@@ -3584,12 +3464,9 @@ require_pkgs <- function(pkgs) {
         groups <- unique(df[[group_col]])
         stats_list <- lapply(groups, function(grp) {
             grp_data <- df[[value_col]][df[[group_col]] == grp]
-            data.frame(
-                group = grp,
-                value = central_fn(grp_data),
-                lower = as.numeric(stats::quantile(grp_data, 0.25, na.rm = TRUE)),
-                upper = as.numeric(stats::quantile(grp_data, 0.75, na.rm = TRUE))
-            )
+            data.frame(group = grp, value = central_fn(grp_data), lower = as.numeric(stats::quantile(grp_data,
+                0.25, na.rm = TRUE)), upper = as.numeric(stats::quantile(grp_data,
+                0.75, na.rm = TRUE)))
         })
         names(stats_list) <- NULL
         stats_df <- do.call(rbind, stats_list)
@@ -3601,12 +3478,8 @@ require_pkgs <- function(pkgs) {
             grp_data <- df[[value_col]][df[[group_col]] == grp]
             val <- central_fn(grp_data)
             sd_val <- stats::sd(grp_data, na.rm = TRUE)
-            data.frame(
-                group = grp,
-                value = val,
-                lower = val - sd_val,
-                upper = val + sd_val
-            )
+            data.frame(group = grp, value = val, lower = val - sd_val, upper = val +
+                sd_val)
         })
         names(stats_list) <- NULL
         stats_df <- do.call(rbind, stats_list)
@@ -3626,7 +3499,7 @@ require_pkgs <- function(pkgs) {
 #' SummarizedExperiment objects.
 #'
 #' @param se SummarizedExperiment object
-#' @param assay_name Character: base assay name (default: "diversity")
+#' @param assay_name Character: base assay name (default: 'diversity')
 #' @param fallback_to_iqr Logical: if CIs missing, return fallback indicator
 #'   (default: TRUE)
 #'
@@ -3635,15 +3508,15 @@ require_pkgs <- function(pkgs) {
 #'   - ci_lower: Matrix or NULL if not found
 #'   - ci_upper: Matrix or NULL if not found
 #'   - assay_base: The base assay matrix
-#'   - fallback_metric: Character ("iqr" or NULL) indicating fallback method
+#'   - fallback_metric: Character ('iqr' or NULL) indicating fallback method
 #'
 #' @details
 #' **Consolidation Impact**: 5-6 occurrences × 5-6 lines = 25-36 LOC saved
 #'
 #' Replaces patterns like:
 #' ```
-#' ci_lower_name <- paste0(assay_name, "_ci_lower")
-#' ci_upper_name <- paste0(assay_name, "_ci_upper")
+#' ci_lower_name <- paste0(assay_name, '_ci_lower')
+#' ci_upper_name <- paste0(assay_name, '_ci_upper')
 #' has_ci <- all(c(ci_lower_name, ci_upper_name) %in% SummarizedExperiment::assayNames(se))
 #' if (has_ci) {
 #'     ci_lower <- SummarizedExperiment::assay(se, ci_lower_name)
@@ -3653,24 +3526,22 @@ require_pkgs <- function(pkgs) {
 #'
 #' @examples
 #' \dontrun{
-#' ci_result <- .extract_bootstrap_ci_assays(se, assay_name = "diversity")
+#' ci_result <- .extract_bootstrap_ci_assays(se, assay_name = 'diversity')
 #' if (ci_result$has_ci) {
 #'     ci_lower <- ci_result$ci_lower
 #'     ci_upper <- ci_result$ci_upper
 #'     # use CIs
-#' } else if (ci_result$fallback_metric == "iqr") {
+#' } else if (ci_result$fallback_metric == 'iqr') {
 #'     # fall back to IQR
 #' }
 #' }
 #'
 #' @noRd
-.extract_bootstrap_ci_assays <- function(se, assay_name = "diversity",
-                                        fallback_to_iqr = TRUE) {
+.extract_bootstrap_ci_assays <- function(se, assay_name = "diversity", fallback_to_iqr = TRUE) {
 
     # Validate base assay exists
     if (!assay_name %in% SummarizedExperiment::assayNames(se)) {
-        stop("Assay '", assay_name, "' not found in SummarizedExperiment",
-            call. = FALSE)
+        stop("Assay '", assay_name, "' not found in SummarizedExperiment", call. = FALSE)
     }
 
     # Get base assay
@@ -3698,15 +3569,11 @@ require_pkgs <- function(pkgs) {
     }
 
     # Determine fallback strategy if CIs missing
-    fallback_metric <- if (!has_ci && fallback_to_iqr) "iqr" else NULL
+    fallback_metric <- if (!has_ci && fallback_to_iqr)
+        "iqr" else NULL
 
-    return(list(
-        has_ci = has_ci,
-        ci_lower = ci_lower,
-        ci_upper = ci_upper,
-        assay_base = assay_base,
-        fallback_metric = fallback_metric
-    ))
+    return(list(has_ci = has_ci, ci_lower = ci_lower, ci_upper = ci_upper, assay_base = assay_base,
+        fallback_metric = fallback_metric))
 }
 .infer_samples_from_se <- function(se, samples = NULL, condition_col = "condition") {
     if (!is.null(samples)) {
@@ -3900,43 +3767,49 @@ require_pkgs <- function(pkgs) {
     }
 
     # Use helper for fold/mean column detection
-    fold_col_candidates <- c("log2_fold_change", "logFC", "fold", "estimate_interaction", "fold_change")
+    fold_col_candidates <- c("log2_fold_change", "logFC", "fold", "estimate_interaction",
+        "fold_change")
     fold_col <- intersect(fold_col_candidates, colnames(df))
-    if (length(fold_col) == 0) stop("Could not find a fold-change column in input")
+    if (length(fold_col) == 0)
+        stop("Could not find a fold-change column in input")
     fold_col <- fold_col[1]
 
     # Detect p-value column for significance flagging
     padj_candidates <- c("padj", "adjusted_p_values", "adj_p_value", "adj_p", "p.adjust")
     padj_col <- intersect(padj_candidates, colnames(df))
-    padj_col <- if (length(padj_col)) padj_col[1] else NULL
-    padj <- if (!is.null(padj_col)) as.numeric(df[[padj_col]]) else rep(1, nrow(df))
+    padj_col <- if (length(padj_col))
+        padj_col[1] else NULL
+    padj <- if (!is.null(padj_col))
+        as.numeric(df[[padj_col]]) else rep(1, nrow(df))
     padj[is.na(padj)] <- 1
 
     # Validate mean/median column consistency
     mean_cols <- grep("_mean$", colnames(df), ignore.case = TRUE, value = TRUE)
     median_cols <- grep("_median$", colnames(df), ignore.case = TRUE, value = TRUE)
-    
+
     if (length(mean_cols) > 0 && length(median_cols) > 0) {
         stop("Could not find two mean or two median columns - found both mean and median columns. ",
             "Ensure input contains either mean columns (e.g., A_mean, B_mean) OR median columns (e.g., A_median, B_median), not both.")
     }
-    
+
     if (length(mean_cols) > 0 && length(mean_cols) < 2) {
-        stop("Could not find two mean or two median columns - found ", length(mean_cols), " mean column(s). ",
-            "Ensure input contains at least two mean columns (e.g., A_mean, B_mean).")
+        stop("Could not find two mean or two median columns - found ", length(mean_cols),
+            " mean column(s). ", "Ensure input contains at least two mean columns (e.g., A_mean, B_mean).")
     }
-    
+
     if (length(median_cols) > 0 && length(median_cols) < 2) {
-        stop("Could not find two mean or two median columns - found ", length(median_cols), " median column(s). ",
-            "Ensure input contains at least two median columns (e.g., A_median, B_median).")
+        stop("Could not find two mean or two median columns - found ", length(median_cols),
+            " median column(s). ", "Ensure input contains at least two median columns (e.g., A_median, B_median).")
     }
-    
+
     # Determine which columns to use for mean calculation
-    mean_cols_to_use <- if (length(mean_cols) > 0) mean_cols else if (length(median_cols) > 0) median_cols else NULL
+    mean_cols_to_use <- if (length(mean_cols) > 0)
+        mean_cols else if (length(median_cols) > 0)
+        median_cols else NULL
 
     # Prepare MA plot data with label formatting
-    prep <- .prepare_ma_plot_df(df, fold_col = fold_col, mean_cols = mean_cols_to_use, x_label = x_label,
-        y_label = y_label)
+    prep <- .prepare_ma_plot_df(df, fold_col = fold_col, mean_cols = mean_cols_to_use,
+        x_label = x_label, y_label = y_label)
     plot_df <- prep$plot_df
     plot_df$padj <- padj[match(plot_df$genes, df$genes)]
     plot_df$significant <- ifelse(abs(plot_df$y) > 0 & plot_df$padj < sig_alpha,
@@ -3952,14 +3825,12 @@ require_pkgs <- function(pkgs) {
 
     # Build plot with significance coloring
     p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = x, y = y, color = significant)) +
-        ggplot2::geom_point(alpha = 0.75, size = 3.2) +
-        ggplot2::scale_color_manual(values = .significance_colors(), guide = "none") +
-        ggplot2::labs(x = x_label_formatted, y = y_label_formatted)
+        ggplot2::geom_point(alpha = 0.75, size = 3.2) + ggplot2::scale_color_manual(values = .significance_colors(),
+        guide = "none") + ggplot2::labs(x = x_label_formatted, y = y_label_formatted)
 
     # Apply publication theme and settings
     p <- .apply_publication_theme(p, title = title %||% "MA plot: mean vs log10 fold-change",
-        base_size = 11) +
-        ggplot2::theme(axis.title = ggplot2::element_text(face = "bold"))
+        base_size = 11) + ggplot2::theme(axis.title = ggplot2::element_text(face = "bold"))
 
     p
 }
@@ -4020,9 +3891,9 @@ require_pkgs <- function(pkgs) {
 
     p <- .apply_group_aesthetics(p, palette = "palette_blue_red", legend_name = "Group",
         legend_position = "none")
-    
-    p <- .apply_publication_theme(p, title = title_use, base_size = 11) +
-        ggplot2::labs(x = "Group", y = "Tsallis entropy")
+
+    p <- .apply_publication_theme(p, title = title_use, base_size = 11) + ggplot2::labs(x = "Group",
+        y = "Tsallis entropy")
 
     p
 }
@@ -4080,9 +3951,9 @@ require_pkgs <- function(pkgs) {
         ggplot2::geom_density(alpha = 0.3, linewidth = 1)
 
     p <- .apply_group_aesthetics(p, palette = "palette_blue_red", legend_name = "Group")
-    
-    p <- .apply_publication_theme(p, title = title_use, base_size = 11) +
-        ggplot2::labs(x = "Tsallis entropy", y = "Density")
+
+    p <- .apply_publication_theme(p, title = title_use, base_size = 11) + ggplot2::labs(x = "Tsallis entropy",
+        y = "Density")
 
     p
 }
@@ -4182,16 +4053,17 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
         axis = "b")
 
     # Add overall title and subtitle above the grid
-    title_grob <- .create_title_grob("Tsallis Entropy Distribution by Group",
-        subtitle = "Violin and density plots across samples",
+    title_grob <- .create_title_grob("Tsallis Entropy Distribution by Group", subtitle = "Violin and density plots across samples",
         title_size = 19, subtitle_size = 15)
-    grid_with_title <- cowplot::plot_grid(title_grob, grid, nrow = 2, rel_heights = c(0.08, 1))
+    grid_with_title <- cowplot::plot_grid(title_grob, grid, nrow = 2, rel_heights = c(0.08,
+        1))
 
     # Save to file if output_file is provided
     if (!is.null(output_file)) {
-        plot_dims <- .calculate_plot_dims(width_inches = 12, aspect_type = "standard", dpi_output = 100)
-        ggplot2::ggsave(output_file, plot = grid_with_title, width = plot_dims$width, height = plot_dims$height,
-            dpi = plot_dims$dpi, create.dir = TRUE)
+        plot_dims <- .calculate_plot_dims(width_inches = 12, aspect_type = "standard",
+            dpi_output = 100)
+        ggplot2::ggsave(output_file, plot = grid_with_title, width = plot_dims$width,
+            height = plot_dims$height, dpi = plot_dims$dpi, create.dir = TRUE)
     }
 
     return(grid_with_title)
@@ -4235,17 +4107,15 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
     title_use <- prep_volcano$title_use
 
     p <- ggplot2::ggplot(df, ggplot2::aes(x = xval, y = -log10(padj), color = significant)) +
-        ggplot2::geom_point(alpha = 0.75, size = 3.4) +
-        ggplot2::scale_color_manual(values = .significance_colors(), guide = "none")
-    
+        ggplot2::geom_point(alpha = 0.75, size = 3.4) + ggplot2::scale_color_manual(values = .significance_colors(),
+        guide = "none")
+
     # Add reference lines using Phase 5 helper
-    p <- .add_reference_lines(p,
-        h_intercept = -log10(sig_alpha),
-        v_intercept = c(-label_thresh, label_thresh),
-        h_color = "gray50", v_color = "gray50")
-    
-    p <- .apply_publication_theme(p, title = title_use, base_size = 11) +
-        ggplot2::labs(x = x_label_formatted, y = paste0("-Log10(", padj_label_formatted, ")"))
+    p <- .add_reference_lines(p, h_intercept = -log10(sig_alpha), v_intercept = c(-label_thresh,
+        label_thresh), h_color = "gray50", v_color = "gray50")
+
+    p <- .apply_publication_theme(p, title = title_use, base_size = 11) + ggplot2::labs(x = x_label_formatted,
+        y = paste0("-Log10(", padj_label_formatted, ")"))
 
     p
 }
@@ -4681,12 +4551,13 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
         0)) + ggplot2::scale_fill_distiller(palette = "Blues", na.value = "lightgray",
         limits = fill_limits, name = "log2(expr)") + .theme_base(base_size = base_font) +
         ggplot2::labs(title = agg_label_unique, x = NULL, y = NULL, fill = "log2(expr)") +
-        ggplot2::theme(plot.title = ggplot2::element_text(size = title_font, hjust = 0.5, face = "bold"),
-            plot.margin = ggplot2::margin(4, 4, 4, 4))
-    
-    # Apply axis label formatting and legend configuration using Phase 5 helpers
-    p <- .format_axis_labels(p, x_size = x_axis_font, y_size = y_axis_font, 
-                            y_face = "plain", bold_title = FALSE)
+        ggplot2::theme(plot.title = ggplot2::element_text(size = title_font, hjust = 0.5,
+            face = "bold"), plot.margin = ggplot2::margin(4, 4, 4, 4))
+
+    # Apply axis label formatting and legend configuration using Phase 5
+    # helpers
+    p <- .format_axis_labels(p, x_size = x_axis_font, y_size = y_axis_font, y_face = "plain",
+        bold_title = FALSE)
     p <- .configure_legend(p, position = "bottom", width_cm = 2, text_size = legend_font)
     p <- p + ggplot2::guides(fill = ggplot2::guide_colorbar(title.position = "top",
         barwidth = 10, barheight = 0.5, title.theme = ggplot2::element_text(size = title_font)))
@@ -4766,14 +4637,12 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
 
     grid <- cowplot::plot_grid(plotlist = plots_nolegend, ncol = ncol, nrow = nrow_val,
         align = "hv")
-    title_grob <- .create_title_grob("Transcript level expression",
-        subtitle = paste0("Top genes with metric ", agg_label_unique),
-        title_size = 18, subtitle_size = 14)
+    title_grob <- .create_title_grob("Transcript level expression", subtitle = paste0("Top genes with metric ",
+        agg_label_unique), title_size = 18, subtitle_size = 14)
     # Add spacer between title and plots
     spacer_grob <- cowplot::ggdraw() + ggplot2::theme_void()
-    result_plot <- cowplot::plot_grid(title_grob, spacer_grob, grid,
-        legend, ncol = 1, rel_heights = c(0.09, 0.0015, 1, 0.08), align = "h",
-        axis = "l")
+    result_plot <- cowplot::plot_grid(title_grob, spacer_grob, grid, legend, ncol = 1,
+        rel_heights = c(0.09, 0.0015, 1, 0.08), align = "h", axis = "l")
     if (!is.null(output_file)) {
         ggplot2::ggsave(output_file, result_plot)
         invisible(NULL)
@@ -5055,23 +4924,20 @@ NULL
     # Create visualization of effect size distribution with publication theme
     p_effect <- ggplot2::ggplot(plot_data, ggplot2::aes(x = .data[[median_col]])) +
         ggplot2::geom_histogram(binwidth = 0.02, fill = .palette_blue_red()[1], alpha = 0.7,
-            color = "black") +
-        ggplot2::labs(title = expression("Distribution of Tsallis Divergence (" ~
-            D[q] ~ ") effect sizes across genes"),
-            subtitle = "Information-theoretic measure respecting Tsallis multi-q entropy properties",
-            x = bquote("Effect size (Tsallis Divergence" ~ D[q] ~ "; D >" ~ .(threshold) ~
-                "= meaningful information separation)"),
-            y = "Number of genes",
-            caption = paste("Red dashed line: D =", threshold, "filtering threshold (information-theoretic significance for q-dependent entropy)")) +
-        .theme_base(base_size = 11) +
-        ggplot2::theme(panel.grid.major = ggplot2::element_line(color = "gray90"))
-    
+            color = "black") + ggplot2::labs(title = expression("Distribution of Tsallis Divergence (" ~
+        D[q] ~ ") effect sizes across genes"), subtitle = "Information-theoretic measure respecting Tsallis multi-q entropy properties",
+        x = bquote("Effect size (Tsallis Divergence" ~ D[q] ~ "; D >" ~ .(threshold) ~
+            "= meaningful information separation)"), y = "Number of genes", caption = paste("Red dashed line: D =",
+            threshold, "filtering threshold (information-theoretic significance for q-dependent entropy)")) +
+        .theme_base(base_size = 11) + ggplot2::theme(panel.grid.major = ggplot2::element_line(color = "gray90"))
+
     # Add reference line using Phase 5 helper
-    p_effect <- .add_reference_lines(p_effect, v_intercept = threshold, v_color = "red", v_size = 1)
-    
+    p_effect <- .add_reference_lines(p_effect, v_intercept = threshold, v_color = "red",
+        v_size = 1)
+
     # Add threshold annotation
     p_effect <- p_effect + ggplot2::annotate("text", x = threshold, y = Inf, label = paste("Information\nthreshold\n(D=",
-            threshold, ")", sep = ""), vjust = 1.5, hjust = -0.1, color = "red", size = 3.5)
+        threshold, ")", sep = ""), vjust = 1.5, hjust = -0.1, color = "red", size = 3.5)
 
     return(p_effect)
 }

@@ -75,7 +75,7 @@
 #' across the TSENAT package.
 #'
 #' @noRd
-# MAIN FUNCTION - Refactored  to ~45 lines using helper functions
+# MAIN FUNCTION - Refactored to ~45 lines using helper functions
 .jackknife_isoform_switching <- function(se = NULL, condition_col = "condition",
     subject_col = NULL, gene_col = NULL, isoform_col = NULL, q = 1, norm = TRUE,
     log_base = exp(1), pseudocount = 0, threshold = 90, n_bootstrap = 1000, verbose = TRUE,
@@ -105,9 +105,8 @@
     lm_gene_mapping <- lm_setup$lm_gene_mapping
 
     # 5. Process genes
-    gene_results <- .jis_process_all_genes(se, gene_ids, gene_col, isoform_col,
-        condition_col, conditions, paired_info, q, norm, log_base, pseudocount,
-        n_bootstrap, lm_gene_mapping)
+    gene_results <- .jis_process_all_genes(se, gene_ids, gene_col, isoform_col, condition_col,
+        conditions, paired_info, q, norm, log_base, pseudocount, n_bootstrap, lm_gene_mapping)
 
     # 6. Build results
     summary_results <- .jis_build_summary_results(se, gene_results$results_per_gene,
@@ -118,8 +117,8 @@
         sum(summary_results$all_transcript_stats$fdr < 0.05, na.rm = TRUE) else 0
 
     metadata <- list(q = q, is_paired = paired_info$is_paired, subject_col = if (paired_info$is_paired) paired_info$subject_col else NULL,
-        pair_info = paired_info$pair_info, norm = norm, log_base = log_base,
-        pseudocount = pseudocount, threshold = threshold, n_transcripts_tested = nrow(summary_results$all_transcript_stats),
+        pair_info = paired_info$pair_info, norm = norm, log_base = log_base, pseudocount = pseudocount,
+        threshold = threshold, n_transcripts_tested = nrow(summary_results$all_transcript_stats),
         n_fdr_significant = n_fdr_sig_total, lm_results_provided = !is.null(lm_results),
         lm_p_threshold = lm_p_threshold, lm_genes_filtered = lm_setup$lm_genes_filtered,
         gene_processing_log = gene_results$gene_processing_log)
@@ -128,9 +127,8 @@
     if (length(result_gene_names) == 0)
         result_gene_names <- rep(NA_character_, length(summary_results$results_per_gene))
 
-    result <- list(gene_names = names(summary_results$results_per_gene),
-        gene_ids = names(summary_results$results_per_gene), gene_name_map = result_gene_names,
-        conditions = conditions, results_per_gene = summary_results$results_per_gene,
+    result <- list(gene_names = names(summary_results$results_per_gene), gene_ids = names(summary_results$results_per_gene),
+        gene_name_map = result_gene_names, conditions = conditions, results_per_gene = summary_results$results_per_gene,
         summary_table = summary_results$summary_table, all_transcript_stats = summary_results$all_transcript_stats,
         metadata = metadata)
 
@@ -138,8 +136,7 @@
 
     # 8. Verbose output
     if (verbose)
-        .jis_print_results(result, paired_info, lm_results, lm_p_threshold,
-            lm_setup$lm_genes_filtered)
+        .jis_print_results(result, paired_info, lm_results, lm_p_threshold, lm_setup$lm_genes_filtered)
 
     return(invisible(result))
 }
@@ -300,8 +297,8 @@
 #' Setup LM filtering and gene mapping
 
 #' @noRd
-.jis_setup_lm_filtering <- function(se, lm_results, lm_p_threshold, use_lm_fdr,
-    gene_ids, gene_col) {
+.jis_setup_lm_filtering <- function(se, lm_results, lm_p_threshold, use_lm_fdr, gene_ids,
+    gene_col) {
     if (is.null(lm_results))
         return(list(lm_gene_mapping = NULL, filtered_genes = gene_ids, lm_genes_filtered = 0))
 
@@ -339,8 +336,7 @@
         lm_genes_filtered <- nrow(lm_results)
     }
 
-    list(lm_gene_mapping = lm_results, filtered_genes = filtered_genes,
-        lm_genes_filtered = lm_genes_filtered)
+    list(lm_gene_mapping = lm_results, filtered_genes = filtered_genes, lm_genes_filtered = lm_genes_filtered)
 }
 
 #' Process all genes for isoform switching analysis
@@ -359,8 +355,7 @@
 
         if (length(gene_isos) < 2) {
             gene_processing_log <- rbind(gene_processing_log, data.frame(gene = gene,
-                n_transcripts = length(gene_isos), has_2_transcripts = FALSE,
-                in_results = FALSE))
+                n_transcripts = length(gene_isos), has_2_transcripts = FALSE, in_results = FALSE))
             next
         }
 
@@ -395,23 +390,22 @@
 
         # Compute delta influence
         n_tx_original <- nrow(counts_A)
-        delta_influence <- .jis_jackknife_influences_fast(counts_A, q, norm,
-            log_base, pseudocount, n_tx_original) - .jis_jackknife_influences_fast(counts_B,
+        delta_influence <- .jis_jackknife_influences_fast(counts_A, q, norm, log_base,
+            pseudocount, n_tx_original) - .jis_jackknife_influences_fast(counts_B,
             q, norm, log_base, pseudocount, n_tx_original)
 
         # Get bootstrap statistics
-        delta_stats <- .jis_bootstrap_delta_fast(counts_A, counts_B,
-            delta_influence, q = q, norm = norm, log_base = log_base,
-            pseudocount = pseudocount, n_bootstrap = n_bootstrap, confidence = 0.95,
-            method = "percentile", n_transcripts = nrow(counts_A))
+        delta_stats <- .jis_bootstrap_delta_fast(counts_A, counts_B, delta_influence,
+            q = q, norm = norm, log_base = log_base, pseudocount = pseudocount, n_bootstrap = n_bootstrap,
+            confidence = 0.95, method = "percentile", n_transcripts = nrow(counts_A))
 
         # Determine switching status
         switching_status <- ifelse(delta_influence > 0, "up", ifelse(delta_influence <
             0, "down", "neutral"))
 
         # Compute effect size
-        max_abs_influence <- max(abs(c(.jis_jackknife_influences_fast(counts_A,
-            q, norm, log_base, pseudocount, nrow(counts_A)), .jis_jackknife_influences_fast(counts_B,
+        max_abs_influence <- max(abs(c(.jis_jackknife_influences_fast(counts_A, q,
+            norm, log_base, pseudocount, nrow(counts_A)), .jis_jackknife_influences_fast(counts_B,
             q, norm, log_base, pseudocount, nrow(counts_A)))), na.rm = TRUE)
         effect_size <- ifelse(max_abs_influence > 0, abs(delta_influence)/max_abs_influence,
             0)
@@ -430,8 +424,7 @@
         if (!is.null(lm_gene_mapping)) {
             lm_row <- lm_gene_mapping[lm_gene_mapping$gene == gene, ]
             if (nrow(lm_row) > 0) {
-                gene_result$lm_p_interaction <- if ("p_interaction" %in%
-                  colnames(lm_row))
+                gene_result$lm_p_interaction <- if ("p_interaction" %in% colnames(lm_row))
                   lm_row$p_interaction[1] else NA
                 gene_result$lm_adj_p_interaction <- if ("adj_p_interaction" %in%
                   colnames(lm_row))
@@ -450,8 +443,7 @@
         }
     }
 
-    list(results_per_gene = results_per_gene, all_pvalues = all_pvalues,
-        gene_processing_log = gene_processing_log)
+    list(results_per_gene = results_per_gene, all_pvalues = all_pvalues, gene_processing_log = gene_processing_log)
 }
 
 #' Build summary results from per-gene analysis
@@ -465,8 +457,7 @@
     # Build transcript-level statistics
     all_transcript_stats <- do.call(rbind, lapply(names(results_per_gene), function(gene) {
         res <- results_per_gene[[gene]]
-        fdr_vals <- if (!is.null(res$delta_fdr) && length(res$delta_fdr) >
-            0)
+        fdr_vals <- if (!is.null(res$delta_fdr) && length(res$delta_fdr) > 0)
             res$delta_fdr else rep(NA_real_, length(res$transcript_ids))
         pval_vals <- if (!is.null(res$delta_pvalue) && length(res$delta_pvalue) >
             0)
@@ -493,9 +484,9 @@
         }
         data.frame(gene = gene, gene_name = gene_name, n_transcripts = length(res$transcript_ids),
             max_delta_influence = if (length(delta_vals) > 0)
-                max(abs(delta_vals)) else 0, n_switching_transcripts = sum(res$switching_status !=
-                "neutral", na.rm = TRUE), n_fdr_significant = sum(res$delta_fdr <
-                0.05, na.rm = TRUE), stringsAsFactors = FALSE)
+                max(abs(delta_vals)) else 0, n_switching_transcripts = sum(res$switching_status != "neutral",
+                na.rm = TRUE), n_fdr_significant = sum(res$delta_fdr < 0.05, na.rm = TRUE),
+            stringsAsFactors = FALSE)
     })
 
     summary_table <- do.call(rbind, summary_rows)
@@ -616,8 +607,7 @@
 #' Print isoform switching analysis results
 
 #' @noRd
-.jis_print_results <- function(result, paired_info, lm_results, lm_p_threshold,
-    lm_genes_filtered) {
+.jis_print_results <- function(result, paired_info, lm_results, lm_p_threshold, lm_genes_filtered) {
     message("Isoform Switching Analysis Results")
     message("===================================")
     message(sprintf("Conditions: '%s' vs. '%s'", result$conditions[1], result$conditions[2]))
@@ -652,8 +642,8 @@
 #' @noRd
 
 .compute_delta_statistics <- function(counts_A, counts_B, delta_influence, q = 1,
-    norm = TRUE, log_base = exp(1), pseudocount = 0, n_bootstrap = 1000,
-    confidence = 0.95, n_transcripts = NULL) {
+    norm = TRUE, log_base = exp(1), pseudocount = 0, n_bootstrap = 1000, confidence = 0.95,
+    n_transcripts = NULL) {
     .calculate_tsallis <- function(counts, q, norm, log_base, pseudocount, n_transcripts_fixed) {
         if (is.vector(counts))
             counts <- t(as.matrix(counts))

@@ -153,8 +153,8 @@
     rownames(counts_matrix) <- vapply(valid_results, "[[", "name", FUN.VALUE = character(1))
 
     .jackknife_entropy_outliers(x = counts_matrix, q = q, norm = norm, log_base = log_base,
-        pseudocount = pseudocount, threshold = threshold, verbose = verbose,
-        nthreads = nthreads, .cluster = .cluster)
+        pseudocount = pseudocount, threshold = threshold, verbose = verbose, nthreads = nthreads,
+        .cluster = .cluster)
 }
 
 #' Internal: Process matrix input (multiple genes)
@@ -611,8 +611,8 @@
 #' @noRd
 
 .jackknife_entropy_outliers <- function(x = NULL, se = NULL, res = NULL, top_n = 5,
-    q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0, threshold = 90,
-    verbose = FALSE, nthreads = 1, .cluster = NULL) {
+    q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0, threshold = 90, verbose = FALSE,
+    nthreads = 1, .cluster = NULL) {
     # Input validation
     .jackknife_validate_params(q, threshold)
 

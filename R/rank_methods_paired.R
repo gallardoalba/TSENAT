@@ -48,7 +48,8 @@
 # Helper: Safe extraction with error handling
 .safe_extract <- function(expr, default = NA) {
     result <- try(expr, silent = TRUE)
-    if (inherits(result, "try-error")) default else result
+    if (inherits(result, "try-error"))
+        default else result
 }
 
 #' @noRd
@@ -59,9 +60,12 @@
     groups <- data[[group_col]]
     subjects <- data[[subject_col]]
 
-    # Ensure factors only if not already (avoid unnecessary conversion overhead)
-    groups <- if (!is.factor(groups)) factor(groups) else groups
-    subjects <- if (!is.factor(subjects)) factor(subjects) else subjects
+    # Ensure factors only if not already (avoid unnecessary conversion
+    # overhead)
+    groups <- if (!is.factor(groups))
+        factor(groups) else groups
+    subjects <- if (!is.factor(subjects))
+        factor(subjects) else subjects
 
     characteristics <- list(heteroscedastic = FALSE, boundary_clustered = FALSE,
         highly_skewed = FALSE, n_groups = nlevels(groups), n_subjects = nlevels(subjects),
@@ -100,10 +104,12 @@
                   # subjects)
                   group_vars <- tapply(values, groups, var, na.rm = TRUE)
                   finite_vars <- group_vars[is.finite(group_vars)]
-                  var_ratio <- if (length(finite_vars) > 1) max(finite_vars)/min(finite_vars) else 1
+                  var_ratio <- if (length(finite_vars) > 1)
+                    max(finite_vars)/min(finite_vars) else 1
 
-                  # Heteroscedasticity detected if p < 0.01 AND variance_ratio > 3
-                  # (stricter thresholds to reduce false positives on balanced data)
+                  # Heteroscedasticity detected if p < 0.01 AND variance_ratio
+                  # > 3 (stricter thresholds to reduce false positives on
+                  # balanced data)
                   if (!is.na(bp_pvalue) && !is.na(var_ratio) && bp_pvalue < 0.01 &&
                     var_ratio > 3) {
                     characteristics$heteroscedastic <- TRUE
@@ -191,12 +197,13 @@
 
     n_treatments <- nlevels(groups)
 
-    # OPTIMIZATION: Vectorized median calculation using by() instead of for-loop
-    # Compute all block-group medians in one operation (faster than sequential loops)
+    # OPTIMIZATION: Vectorized median calculation using by() instead of
+    # for-loop Compute all block-group medians in one operation (faster than
+    # sequential loops)
     block_list <- by(data.frame(values, groups), subjects, function(d) {
         tapply(d$values, d$groups, median, na.rm = TRUE)
     }, simplify = TRUE)
-    
+
     block_ranks <- do.call(rbind, block_list)
     colnames(block_ranks) <- levels(groups)
 
@@ -210,13 +217,12 @@
     mode(above_median_matrix) <- "numeric"  # Convert TRUE/FALSE to 1/0
 
     # Compute chi-squared test for independence H0: Probability of being above
-    # median is same for all treatments
-    # Create contingency table: rows = above/below median, columns = treatments
-    # OPTIMIZATION: Directly flatten matrix and create factors instead of intermediate vectors
-    contingency_table <- table(
-        Above = factor(c(above_median_matrix), levels = c(0, 1), labels = c("Below", "Above")),
-        Treatment = rep(colnames(block_ranks), each = nrow(block_ranks))
-    )
+    # median is same for all treatments Create contingency table: rows =
+    # above/below median, columns = treatments OPTIMIZATION: Directly flatten
+    # matrix and create factors instead of intermediate vectors
+    contingency_table <- table(Above = factor(c(above_median_matrix), levels = c(0,
+        1), labels = c("Below", "Above")), Treatment = rep(colnames(block_ranks),
+        each = nrow(block_ranks)))
 
     # For robustness: Use exact or simulated p-value (Fisher's exact not
     # practical for large tables) Fallback: Chi-squared test
