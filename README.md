@@ -67,7 +67,9 @@ library(TSENAT)
 se <- build_analysis_s4(
   readcounts = readcounts,
   tx2gene = gff3_file,
-  metadata = metadata_df
+  metadata = metadata_df,
+  tpm = tpm_matrix,
+  effective_length = tx_lengths
 )
 
 # Configure and run complete pipeline
@@ -96,7 +98,9 @@ library(TSENAT)
 analysis <- build_analysis_s4(
   readcounts = readcounts,
   tx2gene = gff3_file,
-  metadata = metadata_df
+  metadata = metadata_df,
+  tpm = tpm_matrix,
+  effective_length = tx_lengths
 )
 
 # WRONG: Do not use positional arguments
