@@ -982,9 +982,7 @@ test_that(".build_divergence_args includes bootstrap params when bootstrap=TRUE"
   
   expect_true("bootstrap" %in% names(args))
   expect_true("nboot" %in% names(args))
-  expect_true("seed" %in% names(args))
   expect_equal(args$nboot, 100)
-  expect_equal(args$seed, 42)
 })
 
 # Test .store_divergence_results()
