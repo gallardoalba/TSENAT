@@ -4,9 +4,8 @@ jobs:
   build:
     docker:
       - image: rocker/r-ver:4.5.2
-    working_directory: ~/repo
+    working_directory: /root/repo
     steps:
-      - checkout
       - run:
           name: Install OS dependencies
           command: |
@@ -20,14 +19,14 @@ jobs:
             done
             
             apt-get install -y --no-install-recommends \
-              build-essential gfortran liblapack-dev libblas-dev \
+              build-essential gfortran gcc-13 g++-13 liblapack-dev libblas-dev \
               libxml2-dev libssl-dev libcurl4-openssl-dev libgit2-dev \
               pandoc openssh-client git python3-pip \
               libharfbuzz-dev libfribidi-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev \
-              fontconfig libfontconfig1-dev pkg-config \
-              gcov
+              fontconfig libfontconfig1-dev pkg-config
             
             rm -rf /var/lib/apt/lists/*
+      - checkout
       - run:
           name: Configure compiler environment
           command: |
@@ -37,10 +36,17 @@ jobs:
             export CXX=$(which g++)
             export FC=$(which gfortran)
             export F77=$(which gfortran)
+            export GCOV=$(which gcov-13 || which gcov)
             echo "Compiler versions:"
             gcc --version | head -1
             g++ --version | head -1
             gfortran --version | head -1
+            echo "Coverage tool:"
+            $GCOV --version | head -1
+            # Create symlink for gcov if gcov-13 exists
+            if [ -f /usr/bin/gcov-13 ] && [ ! -f /usr/bin/gcov ]; then
+              ln -s /usr/bin/gcov-13 /usr/bin/gcov
+            fi
       - restore_cache:
           keys:
             - v1-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.2
