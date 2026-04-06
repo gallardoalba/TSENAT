@@ -290,7 +290,7 @@ getResults <- function(analysis, type = "diversity", q = NULL, simplify = TRUE) 
 tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_col = NULL,
     paired = FALSE, control = NULL, formula = NULL, p_threshold = 0.05, fdr_threshold = 0.05,
     significance_threshold = 0.05, n_bootstrap = 1000, bootstrap_method = "percentile",
-    methods = NULL, generate_plots = TRUE, plot_types = NULL, ...) {
+    methods = NULL, generate_plots = TRUE, plot_types = NULL, seed = NULL, ...) {
     # Build q_values if range specified
     if (is.null(q_values)) {
         q_values <- seq(0.5, 2, by = 0.5)

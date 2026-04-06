@@ -86,7 +86,7 @@
 #' @importFrom utils write.table
 jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
     top_n = NULL, verbose = NULL, nthreads = NULL, pseudocount = NULL,
-    output_file = NULL, ...) {
+    output_file = NULL, seed = NULL, ...) {
     if (!is(analysis, "TSENATAnalysis")) {
         stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }
@@ -400,7 +400,7 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
     method = NULL, test = NULL, randomizations = NULL, pcorr = NULL, assayno = NULL,
     verbose = NULL, paired = FALSE, exact = FALSE, pseudocount = NULL, nthreads = NULL,
     robust_loss_type = NULL, robust_scale_method = NULL, pairs = NULL, output_file = NULL,
-    ...) {
+    seed = NULL, ...) {
     if (!is(analysis, "TSENATAnalysis")) {
         stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }

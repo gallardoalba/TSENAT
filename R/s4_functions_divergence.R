@@ -105,7 +105,7 @@
 #' @importFrom utils write.table
 calculate_divergence_s4 <- function(analysis, q = NULL, verbose = FALSE, nthreads = NULL,
     output_file = NULL, control_group = NULL, paired = FALSE, method = NULL, bootstrap = FALSE,
-    nboot = NULL, progress = FALSE, ...) {
+    nboot = NULL, progress = FALSE, seed = NULL, ...) {
     
     # Step 1: Validate input
     .validate_divergence_input(analysis)
