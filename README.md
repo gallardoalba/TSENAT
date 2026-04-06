@@ -2,7 +2,7 @@
 
 # TSENAT: Tsallis Entropy Analysis Toolbox
 
-TSENAT is a Bioconductor package for quantifying and modeling **isoform-usage diversity** across RNA-seq samples using **Tsallis entropy**—a scale-dependent information-theoretic measure of transcript heterogeneity. 
+TSENAT is a Bioconductor package for quantifying and modeling **isoform-usage diversity** across RNA-seq samples using **Tsallis entropy** - a scale-dependent information-theoretic measure of transcript heterogeneity. 
 
 ## The Problem
 
@@ -11,15 +11,18 @@ Standard differential expression tools (DESeq2, edgeR) detect changes in total t
 ## The Solution
 
 TSENAT captures **isoform complexity** independently of which specific isoforms are abundant. The method uses **Tsallis entropy** with a sensitivity parameter `q` that acts like a lens:
-- **Low q** (e.g., 0.5): Focuses on rare isoforms—detects if diversity is maintained or collapsed
-- **Mid q** (e.g., 1.0): Balanced view (Shannon entropy)—overall isoform complexity
-- **High q** (e.g., 2.0): Focuses on dominant isoforms—detects dominance shifts
 
-By examining diversity across multiple q-values, you identify **scale-dependent** diversity changes—the hallmark of coordinate isoform switching.
+- **Low q** (e.g., 0.5): Focuses on rare isoforms - detects if diversity is maintained or collapsed
+
+- **Mid q** (e.g., 1.0): Balanced view (Shannon entropy) - overall isoform complexity
+
+- **High q** (e.g., 2.0): Focuses on dominant isoforms - detects dominance shifts
+
+By examining diversity across multiple q-values, you identify **scale-dependent** diversity changes - the hallmark of coordinate isoform switching.
 
 ## The Mathematics Behind Tsallis Entropy
 
-Tsallis entropy is defined as: **S_q = (1 - Σp_i^q) / (q-1)**, where p_i represents isoform proportions within a gene. This elegant equation generalizes Shannon entropy (which is recovered when q→1) and enables tuning sensitivity to different scales of isoform organization:
+Tsallis entropy is defined as: $S_q = (1 - \sum p_i^q) / (q-1)$, where $p_i$ represents isoform proportions within a gene. This elegant equation generalizes Shannon entropy (which is recovered when $q \to 1$) and enables tuning sensitivity to different scales of isoform organization:
 
 - **q = 0**: Richness (count of expressed isoforms)
 - **q = 1**: Shannon entropy (balanced view across all abundance scales)
@@ -50,8 +53,7 @@ remotes::install_github("gallardoalba/TSENAT")
 TSENAT follows a streamlined pipeline:
 
 ```
-Transcript Counts → Build Analysis → Filter → Configure → 
-Compute Diversity → Test Differences → Visualize
+Transcript Counts -> Build Analysis -> Filter -> Configure -> Compute Diversity -> Test Differences -> Visualize
 ```
 
 ### Quick Start: Orchestration Function
@@ -120,7 +122,7 @@ analysis <- calculate_diversity_s4(analysis, norm = TRUE)
 # Test for diversity differences between groups
 analysis <- calculate_difference_s4(analysis, test = "wilcox")
 
-# Fit linear models to detect q×condition interactions
+# Fit linear models to detect qxcondition interactions
 analysis <- calculate_lm_interaction_s4(analysis, method = "gam")
 
 # Identify isoform switching via jackknife diagnostics
@@ -142,22 +144,19 @@ plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 4)
 
 ## Core Features
 
-### Diversity Analysis
-- **Multi-scale q-curves**: Examine isoform heterogeneity from rare to dominant isoforms
-- **Tsallis entropy**: Scale-dependent complexity measure capturing beyond Shannon entropy
-- **Normalization options**: Account for gene-specific isoform potential
-
 ### Statistical Inference  
-- **Paired designs**: Account for repeated measures, subject random effects (via LMM/GEE)
-- **Multiple testing methods**: Wilcoxon, permutation, linear models, GAM, robust M-estimation
+- **Paired designs**: Account for repeated measures with subject random effects (via LMM)
+- **Multiple testing methods**:
     - *Wilcoxon/Permutation*: Distribution-free testing for pairwise comparisons
-    - *Linear models*: Fast parametric testing; ideal when residuals are approximately normal
-    - *GAM*: Non-parametric for detecting nonlinear scale-dependent patterns (q×condition interactions)
+    - *Linear Mixed Models (LMM)*: Parametric testing with AR(1) correlation structure for repeated measures; ideal when residuals are approximately normal
+    - *GAM*: Non-parametric for detecting nonlinear scale-dependent q×condition interactions with adaptive smooth splines
+    - *GEE*: Semi-parametric for clustered data; robust to variance misspecification with sandwich standard errors
     - *Friedman rank tests*: Maximal robustness for paired designs; ideal for bounded distributions like entropy
     - *M-estimation*: Outlier-resistant effect size calculations (Huber, Tukey weights)
-- **Confidence intervals**: Bootstrap (percentile, BCA) and jackknife resampling
-    - BCA correction for skewed distributions like Tsallis entropy (handles bounded 0-1 range)
-    - Jackknife for identifying outlier-influential samples
+- **Confidence intervals**:
+    - BCA (bias-corrected and accelerated) bootstrap correction for skewed distributions like Tsallis entropy
+    - Percentile bootstrap for symmetric distributions
+    - Jackknife leave-one-out for identifying outlier-influential samples
 
 ### Confidence Intervals & Effect Sizes
 - **Bootstrap confidence intervals**: Automatic BCA correction for asymmetric entropy distributions
@@ -166,7 +165,7 @@ plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 4)
 
 ### Advanced Analysis
 - **Divergence metrics**: Pairwise Kullback-Leibler and Jensen-Shannon divergence with effect sizes
-- **Q×condition interactions**: Detect scale-dependent group differences via GAM (smooth nonlinear patterns) or Friedman rank tests (maximal robustness)
+- **Qxcondition interactions**: Detect scale-dependent group differences via GAM (smooth nonlinear patterns) or Friedman rank tests (maximal robustness)
 - **Isoform switching**: Jackknife-based diagnostics identifying transcript shifts and influence plots
 - **Robust methods**: M-estimation (Huber, Tukey) for outlier-resistant analysis
 
@@ -186,77 +185,96 @@ TSENAT answers a unique question: **How do isoforms reorganize, independent of a
 | **Kallisto, Salmon** | How many reads per transcript? | TSENAT uses their quantification as input; adds diversity analysis layer |
 | **All Bioconductor tools** | Various RNA-seq questions | TSENAT integrates via `SummarizedExperiment` for seamless multi-tool workflows |
 
-## Example Data
-
-TSENAT includes a reproducible example dataset with transcript counts and sample metadata. Load it with:
-
-```r
-data("readcounts", package = "TSENAT")
-meta_file <- system.file("extdata", "metadata.tsv", package = "TSENAT")
-gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
-```
-
 ## Loading Salmon Quantification Data
 
-TSENAT supports raw **Salmon quantification results** for length-normalized diversity analysis. This is particularly important for accurate entropy calculations across transcripts of different lengths.
-
-### From Salmon Output Directory
-
-If you have Salmon quantification output (one `quant.sf` file per sample):
+TSENAT automatically discovers and reads Salmon output when you provide a directory:
 
 ```r
 library(TSENAT)
 
-# 1. Aggregate Salmon quant.sf files into a counts matrix
-readcounts <- tximport::tximport(
-  files = list.files("salmon_output", pattern = "quant.sf$", full.names = TRUE),
-  type = "salmon",
-  txOut = TRUE,  # Keep transcript-level (not gene-aggregated)
-  ignoreTxVersion = TRUE
-)
-
-# Extract count data (NumReads column)
-counts_matrix <- readcounts$counts
-
-# 2. Get TPM and effective length from Salmon
-tpm_matrix <- readcounts$abundance  # TPM values
-eff_length <- rowMeans(readcounts$length)  # Median effective length per transcript
-
-# 3. Load transcript annotation (GFF3) and sample metadata
-gff3_file <- "path/to/annotation.gff3.gz"  # or .gff3
-metadata_df <- read.table("metadata.tsv", header = TRUE, sep = "\t")
-
-# 4. Build analysis with Salmon data
-analysis <- build_analysis_s4(
-  readcounts = counts_matrix,
-  tx2gene = gff3_file,
-  metadata = metadata_df,
-  tpm = tpm_matrix,                # Salmon TPM for filtering
-  effective_length = eff_length     # Salmon effective length for normalization
-)
-
-# Configure and run analysis
-cfg <- tsenat_config(
+# Prepare configuration FIRST
+config <- tsenat_config(
   q_values = seq(0, 2, by = 0.1),
   condition_col = "treatment"
 )
-analysis <- setConfig(analysis, cfg)
+
+# Build analysis directly from Salmon output directory
+analysis <- build_analysis_s4(
+  salmon_dir = "path/to/salmon_output",  # Auto-discovers all quant.sf files
+  tx2gene = "path/to/annotation.gff3.gz",  # Transcript-to-gene mapping
+  metadata = metadata_df,  # Sample metadata (see structure below)
+  config = config
+)
+
+# Run analysis pipeline
 analysis <- filter_analysis_s4(analysis, stringency = "medium")
-analysis <- calculate_diversity_s4(analysis)  # TPM-informed filtering + length-normalized entropy
+analysis <- calculate_diversity_s4(analysis)  # Salmon-informed length-normalized entropy
 ```
 
-### Key Parameters for Salmon Data:
+### Salmon Directory Structure
 
-- **`tpm`**: Transcripts Per Million from Salmon (`abundance` column from `tximport`)
-  - Used for TPM-based filtering in `filter_analysis_s4()` to remove very low abundance transcripts
-  - Optional but recommended for improved filtering accuracy
+TSENAT expects Salmon output organized with one subdirectory per sample:
 
-- **`effective_length`**: Effective transcript length from Salmon (`length` column from `tximport`)
-  - Used for length-normalization in entropy calculations
-  - Accounts for transcript GC-bias and variable sequencing depth
-  - Optional but recommended for cross-study comparability
+```
+salmon_output/
+├── Sample_1/
+│   └── quant.sf
+├── Sample_2/
+│   └── quant.sf
+├── Sample_3/
+│   └── quant.sf
+└── Sample_4/
+    └── quant.sf
+```
 
-See `build_analysis_s4()` documentation for details on data format requirements.
+**Critical requirement**: Folder names (e.g., `Sample_1`, `Sample_2`) must **exactly match** the row names in your metadata file (case-sensitive).
+
+### Metadata File Structure
+
+The metadata file must be a data frame with:
+- **Row names**: Sample identifiers that exactly match Salmon folder names
+- **Columns**: Experimental factors and sample information
+
+Example metadata structure:
+
+```r
+# Load metadata from TSV file
+metadata_df <- read.table("metadata.tsv", header = TRUE, sep = "\t", row.names = 1)
+
+# Or create manually:
+metadata_df <- data.frame(
+  treatment = c("control", "control", "treated", "treated"),
+  batch = c("batch1", "batch1", "batch2", "batch2"),
+  patient_id = c("P001", "P002", "P001", "P002"),
+  row.names = c("Sample_1", "Sample_2", "Sample_3", "Sample_4")  # Must match folder names!
+)
+```
+
+Expected TSV file format (`metadata.tsv`):
+
+```
+sample_id    treatment    batch       patient_id
+Sample_1     control      batch1      P001
+Sample_2     control      batch1      P002
+Sample_3     treated      batch2      P001
+Sample_4     treated      batch2      P002
+```
+
+When reading from TSV:
+```r
+metadata_df <- read.table("metadata.tsv", header = TRUE, sep = "\t", row.names = 1)
+# row.names = 1 uses first column (sample IDs) as row names
+```
+
+### Key Design Principles
+
+- **Configure first**: Use `tsenat_config()` BEFORE `build_analysis_s4()` for fail-fast validation
+- **Folder-metadata matching**: Sample folder names MUST exactly match metadata row names (case-sensitive); no auto-mapping
+- **Row names in metadata**: Use `read.table(..., row.names = 1)` when reading TSV to set sample identifiers as row names
+- **Salmon auto-discovery**: Function discovers all `quant.sf` files recursively; ensure one per sample subdirectory
+- **Condition column**: Specify the metadata column containing experimental groups in `tsenat_config(condition_col = "...")`
+
+See `build_analysis_s4()` documentation for complete parameter details.
 
 ## Tests coverage
 
@@ -292,32 +310,6 @@ vignette("TSENAT_appendix_B")  # Compares linear models vs GAM vs Friedman rank-
 ```
 
 Appendix B demonstrates that discoveries generalize across non-parametric alternatives, providing critical validation that findings are robust to modeling assumptions.
-
-## Troubleshooting
-
-**Q: My entropy values show high variability between samples**
-
-A: This is expected and reflects genuine isoform heterogeneity changes. The `norm=TRUE` parameter in `calculate_diversity_s4()` applies library-size normalization. If variability remains high after normalization, check for batch effects or contamination.
-
-**Q: How many q-values should I use?**
-
-A: `seq(0, 2, by=0.1)` (21 q-values) is a good default, providing smooth resolution of the q-spectrum. Finer grids (`by=0.05`) reveal more detail but increase computation time and multiple testing burden. For quick exploration, try `seq(0, 2, by=0.2)`.
-
-**Q: Which statistical test should I use for my study design?**
-
-A: 
-- **Paired design (repeated measures)**: Use `rank_test_q_condition_s4()` (Friedman test) for maximum robustness, or `calculate_lm_interaction_s4(method="gam")` if you expect nonlinear scale-dependent patterns
-- **Unpaired design**: Use `calculate_difference_s4(test="wilcox")` or `calculate_lm_interaction_s4()` depending on whether you expect scale-dependence
-- **Small sample size (<10/group)**: Prefer rank-based tests; avoid standard linear models
-- **Large sample size (>20/group)**: Linear models or GAM are fast and powerful
-
-**Q: How do I interpret identical p-values with different effect sizes?**
-
-A: This is a hallmark of rank-based tests when genes show similar interaction structure. Effect size (η²) becomes the practical ranking metric: genes with η² > 0.30 show robust biological effects. See vignette section "Interpreting Identical p-values and Effect Size Ranking" for details.
-
-**Q: Are my results sensitive to filtering stringency?**
-
-A: TSENAT includes sensitivity analysis in jackknife diagnostics. Check `jackknife_isoform_switching_s4()` results; if a gene's signal depends heavily on a single sample, interpret with caution.
 
 ## Citation
 
@@ -387,4 +379,4 @@ Attribution: TSENAT builds upon the [SplicingFactory package](https://github.com
 
 > **“If I ever come back from the past, it's to create a cyclone.”**
 >
-> — Juan José Lozano
+> - Juan José Lozano
