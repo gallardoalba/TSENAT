@@ -196,7 +196,12 @@ workflow:</p>
 <span><span class="va">gff3_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"annotation.gff3.gz"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Create analysis object with transcript counts, annotation, and metadata</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_analysis_s4.html">build_analysis_s4</a></span><span class="op">(</span><span class="va">readcounts</span>, <span class="va">gff3_file</span>, metadata <span class="op">=</span> <span class="va">metadata_df</span><span class="op">)</span></span>
+<span><span class="co"># IMPORTANT: Use named parameters to avoid confusion with optional salmon_dir parameter</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_analysis_s4.html">build_analysis_s4</a></span><span class="op">(</span></span>
+<span>  readcounts <span class="op">=</span> <span class="va">readcounts</span>,</span>
+<span>  tx2gene <span class="op">=</span> <span class="va">gff3_file</span>,</span>
+<span>  metadata <span class="op">=</span> <span class="va">metadata_df</span></span>
+<span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Filter low-abundance transcripts</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/filter_analysis_s4.html">filter_analysis_s4</a></span><span class="op">(</span><span class="va">analysis</span>, stringency <span class="op">=</span> <span class="st">"medium"</span><span class="op">)</span></span>
@@ -729,9 +734,8 @@ rare isoforms, while separation at high <code>q</code> signals
 differences in dominant isoforms.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot overall q-curve</span></span>
-<span><span class="va">p_qcurve</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_q_curve_s4.html">plot_tsallis_q_curve_s4</a></span><span class="op">(</span></span>
-<span>    se <span class="op">=</span> <span class="va">analysis</span></span>
-<span><span class="op">)</span></span>
+<span><span class="va">p_qcurve</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_q_curve_s4.html">plot_tsallis_q_curve_s4</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span>
+<span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_qcurve</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
 <img src="TSENAT_files/figure-html/fig-1-isoform-diversity-profiles-1.png" class="r-plt" alt="**Figure 1:** Isoform diversity profiles across q-values. Lines show normalized Tsallis entropy (0-1) for each sample, blue control and red treatment." width="98%"><p class="caption">

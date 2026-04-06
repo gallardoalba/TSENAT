@@ -88,7 +88,7 @@
 <div class="section level1">
 <div class="page-header"><h1 id="tsenat-tsallis-entropy-analysis-toolbox">TSENAT: Tsallis Entropy Analysis Toolbox<a class="anchor" aria-label="anchor" href="#tsenat-tsallis-entropy-analysis-toolbox"></a>
 </h1></div>
-<p>TSENAT is a Bioconductor package for quantifying and modeling <strong>isoform-usage diversity</strong> across RNA-seq samples using <strong>Tsallis entropy</strong>—a scale-dependent information-theoretic measure of transcript heterogeneity.</p>
+<p>TSENAT is a Bioconductor package for quantifying and modeling <strong>isoform-usage diversity</strong> across RNA-seq samples using <strong>Tsallis entropy</strong> - a scale-dependent information-theoretic measure of transcript heterogeneity.</p>
 <div class="section level2">
 <h2 id="the-problem">The Problem<a class="anchor" aria-label="anchor" href="#the-problem"></a>
 </h2>
@@ -97,13 +97,18 @@
 <div class="section level2">
 <h2 id="the-solution">The Solution<a class="anchor" aria-label="anchor" href="#the-solution"></a>
 </h2>
-<p>TSENAT captures <strong>isoform complexity</strong> independently of which specific isoforms are abundant. The method uses <strong>Tsallis entropy</strong> with a sensitivity parameter <code>q</code> that acts like a lens: - <strong>Low q</strong> (e.g., 0.5): Focuses on rare isoforms—detects if diversity is maintained or collapsed - <strong>Mid q</strong> (e.g., 1.0): Balanced view (Shannon entropy)—overall isoform complexity - <strong>High q</strong> (e.g., 2.0): Focuses on dominant isoforms—detects dominance shifts</p>
-<p>By examining diversity across multiple q-values, you identify <strong>scale-dependent</strong> diversity changes—the hallmark of coordinate isoform switching.</p>
+<p>TSENAT captures <strong>isoform complexity</strong> independently of which specific isoforms are abundant. The method uses <strong>Tsallis entropy</strong> with a sensitivity parameter <code>q</code> that acts like a lens:</p>
+<ul>
+<li><p><strong>Low q</strong> (e.g., 0.5): Focuses on rare isoforms - detects if diversity is maintained or collapsed</p></li>
+<li><p><strong>Mid q</strong> (e.g., 1.0): Balanced view (Shannon entropy) - overall isoform complexity</p></li>
+<li><p><strong>High q</strong> (e.g., 2.0): Focuses on dominant isoforms - detects dominance shifts</p></li>
+</ul>
+<p>By examining diversity across multiple q-values, you identify <strong>scale-dependent</strong> diversity changes - the hallmark of coordinate isoform switching.</p>
 </div>
 <div class="section level2">
 <h2 id="the-mathematics-behind-tsallis-entropy">The Mathematics Behind Tsallis Entropy<a class="anchor" aria-label="anchor" href="#the-mathematics-behind-tsallis-entropy"></a>
 </h2>
-<p>Tsallis entropy is defined as: <strong>S_q = (1 - Σp_i^q) / (q-1)</strong>, where p_i represents isoform proportions within a gene. This elegant equation generalizes Shannon entropy (which is recovered when q→1) and enables tuning sensitivity to different scales of isoform organization:</p>
+<p>Tsallis entropy is defined as: <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mi>q</mi></msub><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mo>∑</mo><msubsup><mi>p</mi><mi>i</mi><mi>q</mi></msubsup><mo stretchy="false" form="postfix">)</mo><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mi>q</mi><mo>−</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">S_q = (1 - \sum p_i^q) / (q-1)</annotation></semantics></math>, where <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>p</mi><mi>i</mi></msub><annotation encoding="application/x-tex">p_i</annotation></semantics></math> represents isoform proportions within a gene. This elegant equation generalizes Shannon entropy (which is recovered when <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>→</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q \to 1</annotation></semantics></math>) and enables tuning sensitivity to different scales of isoform organization:</p>
 <ul>
 <li>
 <strong>q = 0</strong>: Richness (count of expressed isoforms)</li>
@@ -128,33 +133,61 @@
 <code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"gallardoalba/TSENAT"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="workflow">Workflow<a class="anchor" aria-label="anchor" href="#workflow"></a>
+<h2 id="quick-start">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
 </h2>
-<p>TSENAT follows a streamlined pipeline:</p>
-<pre><code>Transcript Counts → Build Analysis → Filter → Configure →
-Compute Diversity → Test Differences → Visualize</code></pre>
-<div class="section level3">
-<h3 id="quick-start-orchestration-function">Quick Start: Orchestration Function<a class="anchor" aria-label="anchor" href="#quick-start-orchestration-function"></a>
-</h3>
-<p>For a complete analysis with default parameters, use the <code><a href="reference/tsenat.html">tsenat()</a></code> orchestration function:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+</div>
+</div>
+<div class="section level1">
+<h1 id="quick-start-1">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start-1"></a>
+</h1>
+<div class="section level2">
+<h2 id="load-data--configure">Load Data &amp; Configure<a class="anchor" aria-label="anchor" href="#load-data--configure"></a>
+</h2>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gallardoalba.github.io/TSENAT" class="external-link">TSENAT</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bioconductor.org/packages/SummarizedExperiment" class="external-link">SummarizedExperiment</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Build SummarizedExperiment from raw counts</span></span>
-<span><span class="va">se</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/build_analysis_s4.html">build_analysis_s4</a></span><span class="op">(</span></span>
-<span>  readcounts <span class="op">=</span> <span class="va">readcounts</span>,</span>
-<span>  tx2gene <span class="op">=</span> <span class="va">gff3_file</span>,</span>
+<span><span class="co"># Load example dataset</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span></span>
+<span><span class="va">readcounts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Load sample metadata and annotation</span></span>
+<span><span class="va">metadata_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.table</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"metadata.tsv"</span>,</span>
+<span>  package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span>, header <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  sep <span class="op">=</span> <span class="st">"\t"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">gff3_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>,</span>
+<span>  <span class="st">"annotation.gff3.gz"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co">## Configure analysis parameters first (best practice: fail-fast principle)</span></span>
+<span><span class="co">## This validates all parameters against metadata before object creation</span></span>
+<span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/tsenat_config.html">tsenat_config</a></span><span class="op">(</span></span>
+<span>  condition_col <span class="op">=</span> <span class="st">"condition"</span>,</span>
+<span>  subject_col <span class="op">=</span> <span class="st">"paired_samples"</span>,</span>
+<span>  q_values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span>,</span>
+<span>  nthreads <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  paired <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  control <span class="op">=</span> <span class="st">"normal"</span>,</span>
 <span>  metadata <span class="op">=</span> <span class="va">metadata_df</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Configure and run complete pipeline</span></span>
-<span><span class="va">cfg</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/tsenat_config.html">tsenat_config</a></span><span class="op">(</span></span>
-<span>  q_values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span>,</span>
-<span>  condition_col <span class="op">=</span> <span class="st">"treatment"</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/tsenat.html">tsenat</a></span><span class="op">(</span><span class="va">se</span>, config <span class="op">=</span> <span class="va">cfg</span><span class="op">)</span></span>
-<span><span class="co"># Returns: Fully configured TSENATAnalysis object with diversity, testing, and plots</span></span></code></pre></div>
+<span><span class="co">## Build a complete `TSENATAnalysis` object from readcounts + GFF3.gz annotation</span></span>
+<span><span class="co">## Pass config at construction (Bioconductor pattern): immutable object creation</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/build_analysis_s4.html">build_analysis_s4</a></span><span class="op">(</span></span>
+<span>  config <span class="op">=</span> <span class="va">config</span>,</span>
+<span>  readcounts <span class="op">=</span> <span class="va">readcounts</span>, </span>
+<span>  tx2gene <span class="op">=</span> <span class="va">gff3_file</span>, </span>
+<span>  tpm <span class="op">=</span> <span class="va">tpm</span>,</span>
+<span>  effective_length <span class="op">=</span> <span class="va">effective_length</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="orchestration-function">Orchestration Function<a class="anchor" aria-label="anchor" href="#orchestration-function"></a>
+</h3>
+<p>For a complete analysis with default parameters, use the <code><a href="reference/tsenat.html">tsenat()</a></code> orchestration function:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Returns: Fully configured TSENATAnalysis object with diversity, testing, and plots</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/tsenat.html">tsenat</a></span><span class="op">(</span><span class="va">se</span>, config <span class="op">=</span> <span class="va">cfg</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="detailed-step-by-step-workflow">Detailed Step-by-Step Workflow<a class="anchor" aria-label="anchor" href="#detailed-step-by-step-workflow"></a>
@@ -162,94 +195,54 @@ Compute Diversity → Test Differences → Visualize</code></pre>
 <p>For customization at each stage, use individual functions:</p>
 </div>
 <div class="section level3">
-<h3 id="id_1-load-data--configure">1. Load Data &amp; Configure<a class="anchor" aria-label="anchor" href="#id_1-load-data--configure"></a>
+<h3 id="id_1-filter--compute-diversity">1. Filter &amp; Compute Diversity<a class="anchor" aria-label="anchor" href="#id_1-filter--compute-diversity"></a>
 </h3>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gallardoalba.github.io/TSENAT" class="external-link">TSENAT</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Load transcript counts, annotation (GFF3), and sample metadata</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/build_analysis_s4.html">build_analysis_s4</a></span><span class="op">(</span></span>
-<span>  readcounts <span class="op">=</span> <span class="va">readcounts</span>,</span>
-<span>  tx2gene <span class="op">=</span> <span class="va">gff3_file</span>,</span>
-<span>  metadata <span class="op">=</span> <span class="va">metadata_df</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Configure analysis parameters once (used throughout pipeline)</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/tsenat_config.html">tsenat_config</a></span><span class="op">(</span></span>
-<span>  <span class="va">analysis</span>,</span>
-<span>  q_values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span>,       <span class="co"># q-spectrum for scale analysis</span></span>
-<span>  condition_col <span class="op">=</span> <span class="st">"treatment"</span>,          <span class="co"># experimental groups</span></span>
-<span>  subject_col <span class="op">=</span> <span class="st">"patient"</span>,              <span class="co"># for paired designs</span></span>
-<span>  control <span class="op">=</span> <span class="st">"control"</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="id_2-filter--compute-diversity">2. Filter &amp; Compute Diversity<a class="anchor" aria-label="anchor" href="#id_2-filter--compute-diversity"></a>
-</h3>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Remove low-abundance transcripts</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/filter_analysis_s4.html">filter_analysis_s4</a></span><span class="op">(</span><span class="va">analysis</span>, stringency <span class="op">=</span> <span class="st">"medium"</span><span class="op">)</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/filter_analysis_s4.html">filter_analysis_s4</a></span><span class="op">(</span><span class="va">analysis</span>, stringency <span class="op">=</span> <span class="st">"severe"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Compute Tsallis entropy across q-spectrum</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/calculate_diversity_s4.html">calculate_diversity_s4</a></span><span class="op">(</span><span class="va">analysis</span>, norm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="id_3-statistical-testing">3. Statistical Testing<a class="anchor" aria-label="anchor" href="#id_3-statistical-testing"></a>
+<h3 id="id_2-statistical-testing">2. Statistical Testing<a class="anchor" aria-label="anchor" href="#id_2-statistical-testing"></a>
 </h3>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Test for diversity differences between groups</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/calculate_difference_s4.html">calculate_difference_s4</a></span><span class="op">(</span><span class="va">analysis</span>, test <span class="op">=</span> <span class="st">"wilcox"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Fit linear models to detect q×condition interactions</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/calculate_lm_interaction_s4.html">calculate_lm_interaction_s4</a></span><span class="op">(</span><span class="va">analysis</span>, method <span class="op">=</span> <span class="st">"gam"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Identify isoform switching via jackknife diagnostics</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/jackknife_isoform_switching_s4.html">jackknife_isoform_switching_s4</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Fit linear models to detect qxcondition interactions</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/calculate_lm_interaction_s4.html">calculate_lm_interaction_s4</a></span><span class="op">(</span></span>
+<span>  <span class="va">analysis</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"lmm"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="id_4-visualize-results">4. Visualize Results<a class="anchor" aria-label="anchor" href="#id_4-visualize-results"></a>
+<h3 id="id_3-visualize-results">3. Visualize Results<a class="anchor" aria-label="anchor" href="#id_3-visualize-results"></a>
 </h3>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Q-curve profile (how diversity changes across q-spectrum)</span></span>
-<span><span class="fu">plot_tsallis_q_curve</span><span class="op">(</span><span class="va">analysis</span>, gene <span class="op">=</span> <span class="st">"your_gene"</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Plot overall q-curve</span></span>
+<span><span class="va">p_qcurve</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/plot_tsallis_q_curve_s4.html">plot_tsallis_q_curve_s4</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Volcano plot (significance vs. effect size)</span></span>
-<span><span class="fu"><a href="reference/plot_volcano_ma_grid_s4.html">plot_volcano_ma_grid_s4</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Isoform switching heatmaps</span></span>
-<span><span class="fu"><a href="reference/plot_multiq_delta_influence_heatmaps_s4.html">plot_multiq_delta_influence_heatmaps_s4</a></span><span class="op">(</span><span class="va">analysis</span>, n_genes <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_qcurve</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
 <h2 id="core-features">Core Features<a class="anchor" aria-label="anchor" href="#core-features"></a>
 </h2>
 <div class="section level3">
-<h3 id="diversity-analysis">Diversity Analysis<a class="anchor" aria-label="anchor" href="#diversity-analysis"></a>
-</h3>
-<ul>
-<li>
-<strong>Multi-scale q-curves</strong>: Examine isoform heterogeneity from rare to dominant isoforms</li>
-<li>
-<strong>Tsallis entropy</strong>: Scale-dependent complexity measure capturing beyond Shannon entropy</li>
-<li>
-<strong>Normalization options</strong>: Account for gene-specific isoform potential</li>
-</ul>
-</div>
-<div class="section level3">
 <h3 id="statistical-inference">Statistical Inference<a class="anchor" aria-label="anchor" href="#statistical-inference"></a>
 </h3>
 <ul>
 <li>
-<strong>Paired designs</strong>: Account for repeated measures, subject random effects (via LMM/GEE)</li>
+<strong>Paired designs</strong>: Account for repeated measures with subject random effects (via LMM)</li>
 <li>
-<strong>Multiple testing methods</strong>: Wilcoxon, permutation, linear models, GAM, robust M-estimation
+<strong>Multiple testing methods</strong>:
 <ul>
 <li>
 <em>Wilcoxon/Permutation</em>: Distribution-free testing for pairwise comparisons</li>
 <li>
-<em>Linear models</em>: Fast parametric testing; ideal when residuals are approximately normal</li>
+<em>Linear Mixed Models (LMM)</em>: Parametric testing with AR(1) correlation structure for repeated measures; ideal when residuals are approximately normal</li>
 <li>
-<em>GAM</em>: Non-parametric for detecting nonlinear scale-dependent patterns (q×condition interactions)</li>
+<em>GAM</em>: Non-parametric for detecting nonlinear scale-dependent q×condition interactions with adaptive smooth splines</li>
+<li>
+<em>GEE</em>: Semi-parametric for clustered data; robust to variance misspecification with sandwich standard errors</li>
 <li>
 <em>Friedman rank tests</em>: Maximal robustness for paired designs; ideal for bounded distributions like entropy</li>
 <li>
@@ -257,10 +250,11 @@ Compute Diversity → Test Differences → Visualize</code></pre>
 </ul>
 </li>
 <li>
-<strong>Confidence intervals</strong>: Bootstrap (percentile, BCA) and jackknife resampling
+<strong>Confidence intervals</strong>:
 <ul>
-<li>BCA correction for skewed distributions like Tsallis entropy (handles bounded 0-1 range)</li>
-<li>Jackknife for identifying outlier-influential samples</li>
+<li>BCA (bias-corrected and accelerated) bootstrap correction for skewed distributions like Tsallis entropy</li>
+<li>Percentile bootstrap for symmetric distributions</li>
+<li>Jackknife leave-one-out for identifying outlier-influential samples</li>
 </ul>
 </li>
 </ul>
@@ -284,7 +278,7 @@ Compute Diversity → Test Differences → Visualize</code></pre>
 <li>
 <strong>Divergence metrics</strong>: Pairwise Kullback-Leibler and Jensen-Shannon divergence with effect sizes</li>
 <li>
-<strong>Q×condition interactions</strong>: Detect scale-dependent group differences via GAM (smooth nonlinear patterns) or Friedman rank tests (maximal robustness)</li>
+<strong>Qxcondition interactions</strong>: Detect scale-dependent group differences via GAM (smooth nonlinear patterns) or Friedman rank tests (maximal robustness)</li>
 <li>
 <strong>Isoform switching</strong>: Jackknife-based diagnostics identifying transcript shifts and influence plots</li>
 <li>
@@ -344,83 +338,90 @@ Compute Diversity → Test Differences → Visualize</code></pre>
 </table>
 </div>
 <div class="section level2">
-<h2 id="example-data">Example Data<a class="anchor" aria-label="anchor" href="#example-data"></a>
-</h2>
-<p>TSENAT includes a reproducible example dataset with transcript counts and sample metadata. Load it with:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"readcounts"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span>
-<span><span class="va">meta_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"metadata.tsv"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span>
-<span><span class="va">gff3_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"annotation.gff3.gz"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level2">
 <h2 id="loading-salmon-quantification-data">Loading Salmon Quantification Data<a class="anchor" aria-label="anchor" href="#loading-salmon-quantification-data"></a>
 </h2>
-<p>TSENAT supports raw <strong>Salmon quantification results</strong> for length-normalized diversity analysis. This is particularly important for accurate entropy calculations across transcripts of different lengths.</p>
-<div class="section level3">
-<h3 id="from-salmon-output-directory">From Salmon Output Directory<a class="anchor" aria-label="anchor" href="#from-salmon-output-directory"></a>
-</h3>
-<p>If you have Salmon quantification output (one <code>quant.sf</code> file per sample):</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<p>TSENAT automatically discovers and reads Salmon output when you provide a directory:</p>
+<p><strong>Note</strong>: When using <code>salmon_dir</code>, the parameter must be explicitly named (not positional) because <code>salmon_dir</code> is optional and comes before the required <code>tx2gene</code> parameter.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gallardoalba.github.io/TSENAT" class="external-link">TSENAT</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 1. Aggregate Salmon quant.sf files into a counts matrix</span></span>
-<span><span class="va">readcounts</span> <span class="op">&lt;-</span> <span class="fu">tximport</span><span class="fu">::</span><span class="fu">tximport</span><span class="op">(</span></span>
-<span>  files <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="st">"salmon_output"</span>, pattern <span class="op">=</span> <span class="st">"quant.sf$"</span>, full.names <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
-<span>  type <span class="op">=</span> <span class="st">"salmon"</span>,</span>
-<span>  txOut <span class="op">=</span> <span class="cn">TRUE</span>,  <span class="co"># Keep transcript-level (not gene-aggregated)</span></span>
-<span>  ignoreTxVersion <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Extract count data (NumReads column)</span></span>
-<span><span class="va">counts_matrix</span> <span class="op">&lt;-</span> <span class="va">readcounts</span><span class="op">$</span><span class="va">counts</span></span>
-<span></span>
-<span><span class="co"># 2. Get TPM and effective length from Salmon</span></span>
-<span><span class="va">tpm_matrix</span> <span class="op">&lt;-</span> <span class="va">readcounts</span><span class="op">$</span><span class="va">abundance</span>  <span class="co"># TPM values</span></span>
-<span><span class="va">eff_length</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">rowMeans</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">$</span><span class="va">length</span><span class="op">)</span>  <span class="co"># Median effective length per transcript</span></span>
-<span></span>
-<span><span class="co"># 3. Load transcript annotation (GFF3) and sample metadata</span></span>
-<span><span class="va">gff3_file</span> <span class="op">&lt;-</span> <span class="st">"path/to/annotation.gff3.gz"</span>  <span class="co"># or .gff3</span></span>
-<span><span class="va">metadata_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.table</a></span><span class="op">(</span><span class="st">"metadata.tsv"</span>, header <span class="op">=</span> <span class="cn">TRUE</span>, sep <span class="op">=</span> <span class="st">"\t"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># 4. Build analysis with Salmon data</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/build_analysis_s4.html">build_analysis_s4</a></span><span class="op">(</span></span>
-<span>  readcounts <span class="op">=</span> <span class="va">counts_matrix</span>,</span>
-<span>  tx2gene <span class="op">=</span> <span class="va">gff3_file</span>,</span>
-<span>  metadata <span class="op">=</span> <span class="va">metadata_df</span>,</span>
-<span>  tpm <span class="op">=</span> <span class="va">tpm_matrix</span>,                <span class="co"># Salmon TPM for filtering</span></span>
-<span>  effective_length <span class="op">=</span> <span class="va">eff_length</span>     <span class="co"># Salmon effective length for normalization</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Configure and run analysis</span></span>
-<span><span class="va">cfg</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/tsenat_config.html">tsenat_config</a></span><span class="op">(</span></span>
+<span><span class="co"># Prepare configuration FIRST</span></span>
+<span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/tsenat_config.html">tsenat_config</a></span><span class="op">(</span></span>
 <span>  q_values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span>,</span>
 <span>  condition_col <span class="op">=</span> <span class="st">"treatment"</span></span>
 <span><span class="op">)</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/setConfig.html">setConfig</a></span><span class="op">(</span><span class="va">analysis</span>, <span class="va">cfg</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Build analysis directly from Salmon output directory</span></span>
+<span><span class="co"># IMPORTANT: Use named parameters (salmon_dir=, tx2gene=)</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/build_analysis_s4.html">build_analysis_s4</a></span><span class="op">(</span></span>
+<span>  salmon_dir <span class="op">=</span> <span class="st">"path/to/salmon_output"</span>,  <span class="co"># Auto-discovers all quant.sf files</span></span>
+<span>  tx2gene <span class="op">=</span> <span class="st">"path/to/annotation.gff3.gz"</span>,  <span class="co"># Transcript-to-gene mapping</span></span>
+<span>  metadata <span class="op">=</span> <span class="va">metadata_df</span>,  <span class="co"># Sample metadata (see structure below)</span></span>
+<span>  config <span class="op">=</span> <span class="va">config</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Run analysis pipeline</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/filter_analysis_s4.html">filter_analysis_s4</a></span><span class="op">(</span><span class="va">analysis</span>, stringency <span class="op">=</span> <span class="st">"medium"</span><span class="op">)</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/calculate_diversity_s4.html">calculate_diversity_s4</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span>  <span class="co"># TPM-informed filtering + length-normalized entropy</span></span></code></pre></div>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/calculate_diversity_s4.html">calculate_diversity_s4</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span>  <span class="co"># Salmon-informed length-normalized entropy</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="salmon-directory-structure">Salmon Directory Structure<a class="anchor" aria-label="anchor" href="#salmon-directory-structure"></a>
+</h3>
+<p>TSENAT expects Salmon output organized with one subdirectory per sample:</p>
+<pre><code>salmon_output/
+├── Sample_1/
+│   └── quant.sf
+├── Sample_2/
+│   └── quant.sf
+├── Sample_3/
+│   └── quant.sf
+└── Sample_4/
+    └── quant.sf</code></pre>
+<p><strong>Critical requirement</strong>: Folder names (e.g., <code>Sample_1</code>, <code>Sample_2</code>) must <strong>exactly match</strong> the row names in your metadata file (case-sensitive).</p>
 </div>
 <div class="section level3">
-<h3 id="key-parameters-for-salmon-data">Key Parameters for Salmon Data:<a class="anchor" aria-label="anchor" href="#key-parameters-for-salmon-data"></a>
+<h3 id="metadata-file-structure">Metadata File Structure<a class="anchor" aria-label="anchor" href="#metadata-file-structure"></a>
+</h3>
+<p>The metadata file must be a data frame with: - <strong>Row names</strong>: Sample identifiers that exactly match Salmon folder names - <strong>Columns</strong>: Experimental factors and sample information</p>
+<p>Example metadata structure:</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Load metadata from TSV file</span></span>
+<span><span class="va">metadata_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.table</a></span><span class="op">(</span><span class="st">"metadata.tsv"</span>, header <span class="op">=</span> <span class="cn">TRUE</span>, sep <span class="op">=</span> <span class="st">"\t"</span>, row.names <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Or create manually:</span></span>
+<span><span class="va">metadata_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  treatment <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"control"</span>, <span class="st">"control"</span>, <span class="st">"treated"</span>, <span class="st">"treated"</span><span class="op">)</span>,</span>
+<span>  batch <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"batch1"</span>, <span class="st">"batch1"</span>, <span class="st">"batch2"</span>, <span class="st">"batch2"</span><span class="op">)</span>,</span>
+<span>  patient_id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"P001"</span>, <span class="st">"P002"</span>, <span class="st">"P001"</span>, <span class="st">"P002"</span><span class="op">)</span>,</span>
+<span>  row.names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Sample_1"</span>, <span class="st">"Sample_2"</span>, <span class="st">"Sample_3"</span>, <span class="st">"Sample_4"</span><span class="op">)</span>  <span class="co"># Must match folder names!</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Expected TSV file format (<code>metadata.tsv</code>):</p>
+<pre><code>sample_id    treatment    batch       patient_id
+Sample_1     control      batch1      P001
+Sample_2     control      batch1      P002
+Sample_3     treated      batch2      P001
+Sample_4     treated      batch2      P002</code></pre>
+<p>When reading from TSV:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">metadata_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.table</a></span><span class="op">(</span><span class="st">"metadata.tsv"</span>, header <span class="op">=</span> <span class="cn">TRUE</span>, sep <span class="op">=</span> <span class="st">"\t"</span>, row.names <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="co"># row.names = 1 uses first column (sample IDs) as row names</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="key-design-principles">Key Design Principles<a class="anchor" aria-label="anchor" href="#key-design-principles"></a>
 </h3>
 <ul>
 <li>
-<strong><code>tpm</code></strong>: Transcripts Per Million from Salmon (<code>abundance</code> column from <code>tximport</code>)
-<ul>
-<li>Used for TPM-based filtering in <code><a href="reference/filter_analysis_s4.html">filter_analysis_s4()</a></code> to remove very low abundance transcripts</li>
-<li>Optional but recommended for improved filtering accuracy</li>
-</ul>
-</li>
+<strong>Configure first</strong>: Use <code><a href="reference/tsenat_config.html">tsenat_config()</a></code> BEFORE <code><a href="reference/build_analysis_s4.html">build_analysis_s4()</a></code> for fail-fast validation</li>
 <li>
-<strong><code>effective_length</code></strong>: Effective transcript length from Salmon (<code>length</code> column from <code>tximport</code>)
-<ul>
-<li>Used for length-normalization in entropy calculations</li>
-<li>Accounts for transcript GC-bias and variable sequencing depth</li>
-<li>Optional but recommended for cross-study comparability</li>
-</ul>
+<strong>Folder-metadata matching</strong>: Sample folder names MUST exactly match metadata row names (case-sensitive); no auto-mapping</li>
+<li>
+<strong>Row names in metadata</strong>: Use <code>read.table(..., row.names = 1)</code> when reading TSV to set sample identifiers as row names</li>
+<li>
+<strong>Salmon auto-discovery</strong>: Function discovers all <code>quant.sf</code> files recursively; ensure one per sample subdirectory</li>
+<li>
+<strong>Condition column</strong>: Specify the metadata column containing experimental groups in <code>tsenat_config(condition_col = "...")</code>
 </li>
 </ul>
-<p>See <code><a href="reference/build_analysis_s4.html">build_analysis_s4()</a></code> documentation for details on data format requirements.</p>
+<p>See <code><a href="reference/build_analysis_s4.html">build_analysis_s4()</a></code> documentation for complete parameter details.</p>
 </div>
 </div>
 <div class="section level2">
@@ -435,14 +436,14 @@ Compute Diversity → Test Differences → Visualize</code></pre>
 <h3 id="comprehensive-workflow">Comprehensive Workflow<a class="anchor" aria-label="anchor" href="#comprehensive-workflow"></a>
 </h3>
 <p>See the package vignette for detailed examples, theory background, and typical workflows:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette</a></span><span class="op">(</span><span class="st">"TSENAT"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="function-reference">Function Reference<a class="anchor" aria-label="anchor" href="#function-reference"></a>
 </h3>
 <p>Interactive help for functions and classes:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="op">?</span><span class="va">build_analysis_s4</span></span>
 <span><span class="op">?</span><span class="va">calculate_diversity_s4</span></span>
 <span><span class="op">?</span><span class="va">TSENATAnalysis</span><span class="op">-</span><span class="va">class</span></span></code></pre></div>
@@ -456,39 +457,25 @@ Compute Diversity → Test Differences → Visualize</code></pre>
 <h3 id="complementary-validation-methods">Complementary Validation Methods<a class="anchor" aria-label="anchor" href="#complementary-validation-methods"></a>
 </h3>
 <p>For users interested in validating results across statistical frameworks:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette</a></span><span class="op">(</span><span class="st">"TSENAT_appendix_B"</span><span class="op">)</span>  <span class="co"># Compares linear models vs GAM vs Friedman rank-based tests</span></span></code></pre></div>
 <p>Appendix B demonstrates that discoveries generalize across non-parametric alternatives, providing critical validation that findings are robust to modeling assumptions.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="troubleshooting">Troubleshooting<a class="anchor" aria-label="anchor" href="#troubleshooting"></a>
-</h2>
-<p><strong>Q: My entropy values show high variability between samples</strong></p>
-<p>A: This is expected and reflects genuine isoform heterogeneity changes. The <code>norm=TRUE</code> parameter in <code><a href="reference/calculate_diversity_s4.html">calculate_diversity_s4()</a></code> applies library-size normalization. If variability remains high after normalization, check for batch effects or contamination.</p>
-<p><strong>Q: How many q-values should I use?</strong></p>
-<p>A: <code>seq(0, 2, by=0.1)</code> (21 q-values) is a good default, providing smooth resolution of the q-spectrum. Finer grids (<code>by=0.05</code>) reveal more detail but increase computation time and multiple testing burden. For quick exploration, try <code>seq(0, 2, by=0.2)</code>.</p>
-<p><strong>Q: Which statistical test should I use for my study design?</strong></p>
-<p>A: - <strong>Paired design (repeated measures)</strong>: Use <code><a href="reference/rank_test_q_condition_s4.html">rank_test_q_condition_s4()</a></code> (Friedman test) for maximum robustness, or <code>calculate_lm_interaction_s4(method="gam")</code> if you expect nonlinear scale-dependent patterns - <strong>Unpaired design</strong>: Use <code>calculate_difference_s4(test="wilcox")</code> or <code><a href="reference/calculate_lm_interaction_s4.html">calculate_lm_interaction_s4()</a></code> depending on whether you expect scale-dependence - <strong>Small sample size (&lt;10/group)</strong>: Prefer rank-based tests; avoid standard linear models - <strong>Large sample size (&gt;20/group)</strong>: Linear models or GAM are fast and powerful</p>
-<p><strong>Q: How do I interpret identical p-values with different effect sizes?</strong></p>
-<p>A: This is a hallmark of rank-based tests when genes show similar interaction structure. Effect size (η²) becomes the practical ranking metric: genes with η² &gt; 0.30 show robust biological effects. See vignette section “Interpreting Identical p-values and Effect Size Ranking” for details.</p>
-<p><strong>Q: Are my results sensitive to filtering stringency?</strong></p>
-<p>A: TSENAT includes sensitivity analysis in jackknife diagnostics. Check <code><a href="reference/jackknife_isoform_switching_s4.html">jackknife_isoform_switching_s4()</a></code> results; if a gene’s signal depends heavily on a single sample, interpret with caution.</p>
-</div>
-<div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
 <p>If you use TSENAT in your research, please cite:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/citation.html" class="external-link">citation</a></span><span class="op">(</span><span class="st">"TSENAT"</span><span class="op">)</span></span></code></pre></div>
 <p>This command displays the recommended bibliographic entry. A machine-readable <code>CITATION</code> file is included with the package for easy export to reference managers.</p>
 <p><strong>BibTeX entry:</strong></p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="co">@software{gallardo2026tsenat,</span></span>
-<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a><span class="co">  title={TSENAT: Tsallis Entropy Analysis Toolbox},</span></span>
-<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a><span class="co">  author={Gallardo Alba, Cristóbal},</span></span>
-<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a><span class="co">  url={https://github.com/gallardoalba/TSENAT},</span></span>
-<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a><span class="co">  year={2026}</span></span>
-<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb17"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a><span class="co">@software{gallardo2026tsenat,</span></span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a><span class="co">  title={TSENAT: Tsallis Entropy Analysis Toolbox},</span></span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a><span class="co">  author={Gallardo Alba, Cristóbal},</span></span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a><span class="co">  url={https://github.com/gallardoalba/TSENAT},</span></span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a><span class="co">  year={2026}</span></span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="contributing">Contributing<a class="anchor" aria-label="anchor" href="#contributing"></a>
@@ -507,7 +494,7 @@ Compute Diversity → Test Differences → Visualize</code></pre>
 <h3 id="local-testing">Local Testing<a class="anchor" aria-label="anchor" href="#local-testing"></a>
 </h3>
 <p>Ensure all checks pass before submitting:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/check.html" class="external-link">check</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/test.html" class="external-link">test</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -516,17 +503,17 @@ Compute Diversity → Test Differences → Visualize</code></pre>
 <h2 id="ci-and-local-checks">CI and Local Checks<a class="anchor" aria-label="anchor" href="#ci-and-local-checks"></a>
 </h2>
 <p>Continuous integration is configured with CircleCI to install all suggested packages for comprehensive testing. To reproduce a CI-like environment locally:</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a><span class="co"># Install all suggested dependencies</span></span>
-<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>remotes<span class="sc">::</span><span class="fu">install_deps</span>(<span class="at">dependencies =</span> <span class="fu">c</span>(<span class="st">"Suggests"</span>))</span>
-<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a></span>
-<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a><span class="co"># Run checks</span></span>
-<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a>R CMD check <span class="sc">--</span>as<span class="sc">-</span>cran</span></code></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="co"># Install all suggested dependencies</span></span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a>remotes<span class="sc">::</span><span class="fu">install_deps</span>(<span class="at">dependencies =</span> <span class="fu">c</span>(<span class="st">"Suggests"</span>))</span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a></span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a><span class="co"># Run checks</span></span>
+<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a>R CMD check <span class="sc">--</span>as<span class="sc">-</span>cran</span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="learn-more-1">Learn More<a class="anchor" aria-label="anchor" href="#learn-more-1"></a>
 </h2>
 <p>For methodology details and a comprehensive bibliography with 50+ peer-reviewed citations, see the <a href="vignettes/TSENAT.Rmd">TSENAT vignette</a>:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette</a></span><span class="op">(</span><span class="st">"TSENAT"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -536,7 +523,9 @@ Compute Diversity → Test Differences → Visualize</code></pre>
 <p>Attribution: TSENAT builds upon the <a href="https://github.com/esebesty/SplicingFactory" class="external-link">SplicingFactory package</a>, extending it with specialized focus on Tsallis entropy analysis.</p>
 <blockquote>
 <p><strong>“If I ever come back from the past, it’s to create a cyclone.”</strong></p>
-<p>— Juan José Lozano</p>
+<ul>
+<li>Juan José Lozano</li>
+</ul>
 </blockquote>
 </div>
 </div>
