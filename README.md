@@ -262,7 +262,7 @@ Interactive help for functions and classes:
 ?TSENATAnalysis-class
 ```
 
-For methodology details and a comprehensive bibliography with 50+ peer-reviewed citations, see the [TSENAT vignette](vignettes/TSENAT.Rmd):
+For methodology details and a comprehensive bibliography, see the [TSENAT vignette](vignettes/TSENAT.Rmd):
 
 ```r
 vignette("TSENAT")
