@@ -37,6 +37,7 @@
 #'   \item \code{calculate_lm_interaction_s4()} - LM interaction testing
 #'   \item \code{plot_lm_interaction_gam_s4()} - GAM visualization of LM results
 #'   \item \code{jackknife_isoform_switching_s4()} - Transcript switching detection
+#'   \item \code{prepare_gene_switching_tables_s4()} - Prepare gene switching summary tables
 #'   \item \code{plot_multiq_delta_influence_heatmaps_s4()} - Multi-q influence heatmap
 #'   \item \code{plot_top_transcripts_s4()} - Top transcript visualization
 #'   \item \code{calculate_divergence_s4()} - Pairwise divergence metrics
@@ -118,6 +119,7 @@ tsenat <- function(analysis, config = NULL, output_dir = "tsenat_outputs", verbo
     analysis <- .execute_lm_interaction_plot(analysis, verbose, output_dir)
     analysis <- .execute_jackknife_isoform_switching(analysis, q_vals, condition_col,
         verbose, output_dir)
+    analysis <- .execute_prepare_gene_switching_tables(analysis, verbose, output_dir)
     analysis <- .execute_influence_heatmap_plot(analysis, verbose, output_dir)
     analysis <- .execute_top_transcripts_plot(analysis, verbose, output_dir)
     analysis <- .execute_divergence_s4(analysis, q_vals, verbose, output_dir)
@@ -532,11 +534,32 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
     analysis
 }
 
-#' Step 8: Multi-q influence heatmap
+#' Step 8: Prepare gene switching tables
+#' @noRd
+.execute_prepare_gene_switching_tables <- function(analysis, verbose, output_dir) {
+    if (verbose)
+        message("Step 8: Preparing gene switching tables...")
+    tryCatch({
+        output_file <- if (!is.null(output_dir)) file.path(output_dir, "gene_switching_tables.rds") else NULL
+        tables_result <- prepare_gene_switching_tables_s4(analysis, output_file = output_file, verbose = FALSE)
+        if (!is.null(tables_result)) {
+            # Store tables in analysis metadata
+            S4Vectors::metadata(analysis)$gene_switching_tables <- tables_result
+            if (verbose)
+                message("  [OK] Gene switching tables prepared")
+        }
+    }, error = function(e) {
+        if (verbose)
+            warning("Gene switching tables failed: ", e$message, call. = FALSE)
+    })
+    analysis
+}
+
+#' Step 9: Multi-q influence heatmap
 #' @noRd
 .execute_influence_heatmap_plot <- function(analysis, verbose, output_dir) {
     if (verbose)
-        message("Step 8: Plotting multi-q influence heatmap...")
+        message("Step 9: Plotting multi-q influence heatmap...")
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "influence_heatmap.png") else NULL
         p_heatmap <- plot_multiq_delta_influence_heatmaps_s4(analysis, output_file = output_file)
@@ -553,11 +576,11 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
     analysis
 }
 
-#' Step 9: Top transcripts plot
+#' Step 10: Top transcripts plot
 #' @noRd
 .execute_top_transcripts_plot <- function(analysis, verbose, output_dir) {
     if (verbose)
-        message("Step 9: Plotting top transcript counts...")
+        message("Step 10: Plotting top transcript counts...")
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "top_transcripts.png") else NULL
         p_top_tx <- plot_top_transcripts_s4(analysis, output_file = output_file)
@@ -574,11 +597,11 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
     analysis
 }
 
-#' Step 10: Divergence calculation
+#' Step 11: Divergence calculation
 #' @noRd
 .execute_divergence_s4 <- function(analysis, q_vals, verbose, output_dir) {
     if (verbose)
-        message("Step 10: Computing divergence metrics...")
+        message("Step 11: Computing divergence metrics...")
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "divergence_results.tsv") else NULL
         analysis <- calculate_divergence_s4(analysis, q = q_vals, output_file = output_file)
@@ -591,11 +614,11 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
     analysis
 }
 
-#' Step 11: Effect sizes
+#' Step 12: Effect sizes
 #' @noRd
 .execute_effect_sizes_s4 <- function(analysis, verbose, output_dir) {
     if (verbose)
-        message("Step 11: Computing effect sizes for divergence...")
+        message("Step 12: Computing effect sizes for divergence...")
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "effect_sizes.tsv") else NULL
         analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE, output_file = output_file)
@@ -608,11 +631,11 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
     analysis
 }
 
-#' Step 12: Divergence distribution plot
+#' Step 13: Divergence distribution plot
 #' @noRd
 .execute_divergence_dist_plot <- function(analysis, verbose, output_dir) {
     if (verbose)
-        message("Step 12: Plotting divergence distribution...")
+        message("Step 13: Plotting divergence distribution...")
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "divergence_distribution_plot.png") else NULL
         p_div_dist <- plot_divergence_distribution_s4(analysis, output_file = output_file)
@@ -629,11 +652,11 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
     analysis
 }
 
-#' Step 13: Divergence spectrum plot
+#' Step 14: Divergence spectrum plot
 #' @noRd
 .execute_divergence_spectrum_plot <- function(analysis, verbose, output_dir) {
     if (verbose)
-        message("Step 13: Plotting divergence spectrum...")
+        message("Step 14: Plotting divergence spectrum...")
     tryCatch({
         # Plot 1: Global spectrum plot (all genes)
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "divergence_spectrum_plot.png") else NULL
