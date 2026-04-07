@@ -597,10 +597,13 @@ test_that(".gam_interaction handles edge case: too few observations", {
     df <- test_data$df
     
     result <- tryCatch({
-        .gam_interaction(
-            df = df,
-            q_vals = test_data$q_vals,
-            g = "test_gene_small"
+        expect_warning(
+            .gam_interaction(
+                df = df,
+                q_vals = test_data$q_vals,
+                g = "test_gene_small"
+            ),
+            "Insufficient"
         )
     }, error = function(e) NULL)
     

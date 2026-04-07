@@ -53,16 +53,22 @@
 #' )
 #' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 #' 
+#' config <- tsenat_config(
+#'   sample_col = "sample",
+#'   condition_col = "condition",
+#'   q_values = c(0.5, 1.0, 1.5, 2.0, 2.5),
+#'   generate_plots = FALSE
+#' )
 #' analysis <- build_analysis_s4(
 #'   readcounts = as.matrix(readcounts),
 #'   tx2gene = gff3_file,
 #'   metadata = metadata_df,
+#'   config = config,
 #'   tpm = tpm,
 #'   effective_length = effective_length
 #' )
 #' 
-#' cfg <- tsenat_config(q_values = c(0.5, 1.0), generate_plots = FALSE)
-#' result <- tsenat(analysis, config = cfg)
+#' result <- tsenat(analysis, config = config)
 #'
 #' @export
 tsenat <- function(analysis, config = NULL, output_dir = "tsenat_outputs", verbose = TRUE, ...) {
@@ -169,24 +175,19 @@ tsenat <- function(analysis, config = NULL, output_dir = "tsenat_outputs", verbo
 #' # Load example data
 #' data(readcounts, package = 'TSENAT')
 #'
-#' # Create SummarizedExperiment from counts
+#' # Create TSENATAnalysis from count matrix
+#' # For simple count matrices (no tx2gene mapping), use TSENATAnalysis directly
+#' config <- tsenat_config(
+#'   q_values = c(0.5, 1.0, 2.0),
+#'   condition_col = 'group'
+#' )
 #' se <- SummarizedExperiment::SummarizedExperiment(
 #'   assays = list(counts = readcounts),
-#'   rowData = data.frame(gene_id = rownames(readcounts)),
 #'   colData = data.frame(
-#'     sample_id = colnames(readcounts),
 #'     group = rep(c('A', 'B'), length.out = ncol(readcounts))
 #'   )
 #' )
-#'
-#' # Create TSENATAnalysis object with configuration
-#' analysis <- TSENATAnalysis(
-#'   se = se,
-#'   config = list(
-#'     q_values = c(0.5, 1.0, 2.0),
-#'     condition_col = 'group'
-#'   )
-#' )
+#' analysis <- TSENATAnalysis(se = se, config = config)
 #'
 #' # Run analysis to generate diversity results
 #' analysis <- calculate_diversity_s4(analysis)
@@ -293,7 +294,7 @@ getResults <- function(analysis, type = "diversity", q = NULL, simplify = TRUE) 
 #'
 #' # Custom with optional features: paired analysis, isoform switching, differences
 #' cfg <- tsenat_config(
-#'   q_values = c(0.5, 1.0, 1.5, 2.0),
+#'   q_values = seq(0, 2, by = 0.05),  # Recommended for paired designs: 41 values
 #'   condition_col = 'treatment',
 #'   subject_col = 'subject_id',
 #'   paired = TRUE,

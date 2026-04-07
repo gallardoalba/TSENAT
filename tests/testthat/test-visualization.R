@@ -168,7 +168,7 @@ test_that("plot_tsallis_q_curve_s4 returns ggplot with valid SE", {
         stringsAsFactors = FALSE
     )
 
-    ts_se <- TSENAT:::.map_metadata_se(ts_se, coldata_df)
+    ts_se <- TSENAT:::.map_metadata_se(ts_se, coldata_df, sample_col = "Sample", condition_col = "Condition")
 
     p <- plot_tsallis_q_curve_s4(ts_se)
     expect_true(inherits(p, "ggplot"))

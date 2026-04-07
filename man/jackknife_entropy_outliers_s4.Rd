@@ -79,7 +79,8 @@ gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 
 # Create config (metadata passed as explicit parameter to build_analysis_s4)
 config <- tsenat_config(
-  condition_col = "condition",
+  sample_col = 'sample',
+  condition_col = 'condition',
   q_values = seq(0, 2, by = 0.05),
   paired = FALSE
 )
@@ -87,8 +88,8 @@ config <- tsenat_config(
 # Build analysis from vignette data - metadata as explicit parameter
 analysis <- build_analysis_s4(
   readcounts = readcounts,
-  tx2gene = gff3_dataset,
   metadata = metadata_df,
+  tx2gene = gff3_dataset,
   config = config,
   tpm = tpm,
   effective_length = effective_length

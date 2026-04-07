@@ -256,8 +256,9 @@ gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 readcounts <- as.matrix(readcounts)
 mode(readcounts) <- 'numeric'
 
+config <- tsenat_config(sample_col = 'sample', condition_col = 'condition')
 analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
-gff3_dataset, metadata = metadata_df,
+gff3_dataset, metadata = metadata_df, config = config,
   tpm = tpm, effective_length = effective_length)
 
 # Filter to manageable size (use 200+ genes to survive diversity filtering)

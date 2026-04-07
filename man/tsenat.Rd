@@ -68,15 +68,21 @@ metadata_df <- read.table(
 )
 gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 
+config <- tsenat_config(
+  sample_col = "sample",
+  condition_col = "condition",
+  q_values = c(0.5, 1.0, 1.5, 2.0, 2.5),
+  generate_plots = FALSE
+)
 analysis <- build_analysis_s4(
   readcounts = as.matrix(readcounts),
   tx2gene = gff3_file,
   metadata = metadata_df,
+  config = config,
   tpm = tpm,
   effective_length = effective_length
 )
 
-cfg <- tsenat_config(q_values = c(0.5, 1.0), generate_plots = FALSE)
-result <- tsenat(analysis, config = cfg)
+result <- tsenat(analysis, config = config)
 
 }

@@ -72,39 +72,30 @@ gff3_file <- system.file("extdata",
   "annotation.gff3.gz", package = "TSENAT")
 ```
 
-### Create configuration file
+### Create configuration and build analysis
 
-Create a configuration object that specifies your analysis parameters (q-values, experimental conditions, sample grouping) before building the analysis object. This fail-fast pattern ensures invalid parameters are caught immediately before processing begins.
+Create a configuration object specifying your experimental design parameters (sample/condition columns from metadata) before building the analysis object. This fail-fast pattern ensures invalid parameters are caught immediately before processing begins.
 
 ```r
-## Configure analysis parameters first (best practice: fail-fast principle)
-## This validates all parameters against metadata before object creation
+## Create configuration with sample metadata column parameters
+## (Minimum required: sample_col and condition_col to identify samples and experimental groups)
 config <- tsenat_config(
-  condition_col = "condition",
-  subject_col = "paired_samples",
-  q_values = seq(0, 2, by = 0.05),
-  nthreads = 2,
-  paired = TRUE,
-  control = "normal",
-  metadata = metadata_df
+  sample_col = "sample",          # Column name with sample identifiers
+  condition_col = "condition"      # Column name with experimental conditions
 )
-```
 
-### Build TSENAT Analysis Object
-
-Build a TSENATAnalysis S4 object from the data, then apply the configuration with the orchestration function.
-
-```r
-## Build a complete `TSENATAnalysis` object from readcounts + GFF3.gz annotation
-## Data (counts, annotation) are passed directly; config is applied separately
+## Build analysis with counts, annotation, metadata, and config
 analysis <- build_analysis_s4(
   readcounts = readcounts, 
   tx2gene = gff3_file,
   metadata = metadata_df,
+  config = config,
   tpm = tpm,
   effective_length = effective_length
 )
 ```
+
+For more advanced analysis options (q-value spectrum, multiple testing corrections, paired designs), you can extend the config after building the initial analysis object.
 
 ### Orchestration Function
 

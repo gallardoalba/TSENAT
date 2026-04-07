@@ -98,10 +98,18 @@ gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 
 # Create analysis object with transcript counts, annotation, and metadata
 # IMPORTANT: Use named parameters to avoid confusion with optional salmon_dir parameter
+# First, create a configuration with column parameters
+config <- tsenat_config(
+  sample_col = "sample",
+  condition_col = "condition"
+)
+
+# Then build the analysis with the config and metadata
 analysis <- build_analysis_s4(
   readcounts = readcounts,
   tx2gene = gff3_file,
-  metadata = metadata_df
+  metadata = metadata_df,
+  config = config
 )
 
 # Filter low-abundance transcripts

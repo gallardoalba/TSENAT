@@ -123,19 +123,19 @@
 #' # Compute diversity (prerequisite for LM interaction analysis)
 #' analysis <- calculate_diversity_s4(
 #'   analysis, 
-#'   q = c(0.5, 1.0, 1.5)
+#'   q = c(0.5, 1.0, 1.5, 2.0, 2.5)
 #' )
 #' 
 #' # Calculate q x condition interactions using GAM
-#' # (avoids convergence issues with LMM)
 #' analysis <- calculate_lm_interaction_s4(
 #'   analysis,
 #'   condition_col = 'condition',
 #'   method = 'gam'
 #' )
 #' 
-#' # View interaction test results
-#' head(lmResults(analysis, 'lm_interaction'))
+#' # View top interaction results (first 3 genes)
+#' res <- lmResults(analysis, 'lm_interaction')
+#' if (!is.null(res)) head(res, 3)
 #'
 #' @export
 #' @importFrom utils write.table

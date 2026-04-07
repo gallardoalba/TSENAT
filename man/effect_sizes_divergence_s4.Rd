@@ -81,23 +81,23 @@ metadata_df <- read.table(
 )
 gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 'TSENAT')
-analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
-gff3_dataset, metadata = metadata_df,
-  tpm = tpm, effective_length = effective_length)
 
 # Configure analysis parameters (best practice for reproducibility)
 config <- tsenat_config(
+  sample_col = 'sample',
   condition_col = 'condition',
   subject_col = 'paired_samples',
   paired = TRUE,
   control = 'normal',
-  metadata = metadata_df
+  q_values = seq(0, 2, by = 0.05)  # Recommended: 41 q-values for paired designs
 )
-analysis <- setConfig(analysis, config)
+analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+gff3_dataset, metadata = metadata_df, config = config,
+  tpm = tpm, effective_length = effective_length)
 
 analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
-analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5))
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
+analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
 analysis <- calculate_lm_interaction_s4(analysis, method = 'gam')
 
 # Compute effect sizes from divergence results

@@ -261,7 +261,7 @@
 #' genes <- rep(paste0('gene_', 1:5), each = 3)
 #' 
 #' # Calculate diversity at multiple q values
-#' se <- .calculate_diversity(counts, genes = genes, q = c(0.5, 1.0, 1.5),
+#' se <- .calculate_diversity(counts, genes = genes, q = c(0.5, 1.0, 1.5, 2.0, 2.5),
 #' norm = TRUE)
 #' 
 #' # Add sample metadata

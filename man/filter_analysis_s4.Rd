@@ -9,7 +9,7 @@ filter_analysis_s4(
   min_tpm = 1,
   tpm_assay_name = NULL,
   min_samples = 5L,
-  stringency = "medium",
+  stringency = NULL,
   pair_col = NULL,
   min_tx_per_gene = 2L,
   min_isoform_abundance = NULL,
@@ -150,8 +150,9 @@ metadata_df <- read.table(
 )
 gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 'TSENAT')
+config <- tsenat_config(sample_col = 'sample', condition_col = 'condition')
 analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
-gff3_dataset, metadata = metadata_df,
+gff3_dataset, metadata = metadata_df, config = config,
   tpm = tpm, effective_length = effective_length)
 analysis <- filter_analysis_s4(analysis, stringency = 'medium')
 

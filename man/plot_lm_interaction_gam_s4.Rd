@@ -96,17 +96,19 @@ gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 
 # Configure analysis parameters first
 config <- tsenat_config(
+  sample_col = 'sample',
   condition_col = 'condition',
   subject_col = 'paired_samples',
   paired = TRUE,
   control = 'normal',
-  metadata = metadata_df
+  q_values = seq(0.2, 2.5, by = 0.15)
 )
 
 # Build analysis with configured parameters
 analysis <- build_analysis_s4(
   readcounts = readcounts,
   tx2gene = gff3_dataset,
+  metadata = metadata_df,
   config = config,
   tpm = tpm,
   effective_length = effective_length

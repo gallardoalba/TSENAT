@@ -1023,7 +1023,7 @@ testthat::test_that(".map_metadata_detect_columns uses case-insensitive matching
     condition = c("N", "T")
   )
   
-  col_idx <- TSENAT:::.map_metadata_detect_columns(coldata, "SAMPLE", "CONDITION")
+  col_idx <- TSENAT:::.map_metadata_detect_columns(coldata, "sample", "condition")
   
   testthat::expect_equal(col_idx$sample_col_idx, 1)
   testthat::expect_equal(col_idx$condition_col_idx, 2)
@@ -1037,7 +1037,7 @@ testthat::test_that(".map_metadata_detect_conditions identifies unique condition
   )
   
   col_idx <- TSENAT:::.map_metadata_detect_columns(coldata, "Sample", "Condition")
-  cond_info <- TSENAT:::.map_metadata_detect_conditions(coldata, col_idx$condition_col_idx, col_idx$sample_col_idx)
+  cond_info <- TSENAT:::.map_metadata_detect_conditions(coldata, col_idx$condition_col_idx, col_idx$sample_col_idx, subject_col = "Pairing")
   
   testthat::expect_equal(sort(cond_info$conds), c("Normal", "Tumor"))
   testthat::expect_true(cond_info$has_pairing)
@@ -1053,8 +1053,8 @@ testthat::test_that(".map_metadata_detect_conditions validates pairing structure
   col_idx <- TSENAT:::.map_metadata_detect_columns(coldata, "Sample", "Condition")
   
   testthat::expect_error(
-    TSENAT:::.map_metadata_detect_conditions(coldata, col_idx$condition_col_idx, col_idx$sample_col_idx),
-    "Unpaired samples found"
+    TSENAT:::.map_metadata_detect_conditions(coldata, col_idx$condition_col_idx, col_idx$sample_col_idx, subject_col = "Pairing"),
+    "Unpaired subjects found"
   )
 })
 
@@ -1068,7 +1068,7 @@ testthat::test_that(".map_metadata_detect_conditions detects pairing from sample
   cond_info <- TSENAT:::.map_metadata_detect_conditions(coldata, col_idx$condition_col_idx, col_idx$sample_col_idx)
   
   testthat::expect_false(cond_info$has_pairing)
-  testthat::expect_equal(cond_info$coldata_base, c("S1", "S1", "S2", "S2"))
+  testthat::expect_equal(cond_info$coldata_base, c("S1_N", "S1_T", "S2_N", "S2_T"))
 })
 
 testthat::test_that(".map_metadata_reorder_columns reorders by metadata order", {

@@ -193,10 +193,13 @@ test_that("gee method filters genes with min_obs", {
         colData = cd
     )
     
-    res <- .calculate_lm_interaction(se,
-        condition_col = "samples",
-        method = "gee",
-        min_obs = 15  # strict cutoff
+    res <- expect_warning(
+        .calculate_lm_interaction(se,
+            condition_col = "samples",
+            method = "gee",
+            min_obs = 15  # strict cutoff
+        ),
+        "validation failed"
     )
     
     if (is.data.frame(res)) {
@@ -1042,10 +1045,13 @@ test_that("GEE correctly filters genes below min_obs threshold", {
         colData = cd
     )
     
-    res <- .calculate_lm_interaction(se,
-        condition_col = "samples",
-        method = "gee",
-        min_obs = 15  # Strict threshold
+    res <- expect_warning(
+        .calculate_lm_interaction(se,
+            condition_col = "samples",
+            method = "gee",
+            min_obs = 15  # Strict threshold
+        ),
+        "validation failed"
     )
     
     if (is.data.frame(res)) {
@@ -2246,13 +2252,16 @@ test_that(".gee_interaction returns NULL for invalid inputs", {
     subject = c("S1")
   )
   
-  result <- TSENAT:::.gee_interaction(
-    df = df_invalid,
-    q_vals = "q",
-    g = NA_character_,
-    subject = "subject",
-    bias_correction = FALSE,
-    min_obs = 100  # More than available
+  result <- expect_warning(
+    TSENAT:::.gee_interaction(
+      df = df_invalid,
+      q_vals = "q",
+      g = NA_character_,
+      subject = "subject",
+      bias_correction = FALSE,
+      min_obs = 100  # More than available
+    ),
+    "validation failed"
   )
   
   expect_null(result)

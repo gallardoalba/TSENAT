@@ -415,13 +415,16 @@ test_that("gee method filters genes with insufficient observations", {
         colData = cd
     )
     
-    res <- .calculate_lm_interaction(
-        se,
-        condition_col = "sample_type",
-        method = "gee",
-        paired = TRUE,
-        subject_col = "sample_base",
-        min_obs = 8
+    res <- expect_warning(
+        .calculate_lm_interaction(
+            se,
+            condition_col = "sample_type",
+            method = "gee",
+            paired = TRUE,
+            subject_col = "sample_base",
+            min_obs = 8
+        ),
+        "validation failed"
     )
     
     if (is.data.frame(res)) {

@@ -8,6 +8,7 @@ tsenat_config(
   q_values = NULL,
   condition_col = "condition",
   subject_col = NULL,
+  sample_col = "sample",
   paired = FALSE,
   control = NULL,
   formula = NULL,
@@ -19,6 +20,7 @@ tsenat_config(
   methods = NULL,
   generate_plots = TRUE,
   plot_types = NULL,
+  nthreads = 1,
   ...
 )
 }
@@ -73,6 +75,10 @@ Default: TRUE.}
 'influence_heatmap', 'volcano', 'method_concordance', 'multi_gene_q_spectrum',
 'top_transcripts', 'tsallis_violin_density'. Default: all available types.}
 
+\item{nthreads}{\code{integer}. Number of threads for parallel computation
+where supported (diversity, divergence, LM fitting). Default: 1 (no parallelization).
+Use 2+ for multi-core systems to improve performance.}
+
 \item{...}{Additional configuration parameters (stored as-is in @config slot).
 Examples: \code{q_diff=1.0} (specific q for differences),
 \code{alpha=0.05} (significance for assumptions), etc.}
@@ -96,7 +102,7 @@ cfg <- tsenat_config()
 
 # Custom with optional features: paired analysis, isoform switching, differences
 cfg <- tsenat_config(
-  q_values = c(0.5, 1.0, 1.5, 2.0),
+  q_values = seq(0, 2, by = 0.05),  # Recommended for paired designs: 41 values
   condition_col = 'treatment',
   subject_col = 'subject_id',
   paired = TRUE,

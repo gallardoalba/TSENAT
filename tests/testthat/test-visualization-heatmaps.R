@@ -908,13 +908,13 @@ test_that("plot_multiq_delta_influence_heatmaps_s4: creates heatmap with mock ja
   
   # Build analysis from vignette data
   config <- tsenat_config(
+    q_values = seq(0, 2, by = 0.2),
     condition_col = "condition",
     subject_col = "paired_samples",
     paired = TRUE,
-    control = "normal",
-    metadata = metadata_df
+    control = "normal"
   )
-  analysis <- build_analysis_s4(config = config, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
+  analysis <- build_analysis_s4(config = config, metadata = metadata_df, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
   analysis <- filter_analysis_s4(analysis, stringency = "medium")
   
   # Add required calculations
@@ -932,13 +932,13 @@ test_that("plot_multiq_delta_influence_heatmaps_s4: ranks genes by LM results wh
   
   # Build analysis from vignette data
   config <- tsenat_config(
+    q_values = seq(0, 2, by = 0.2),
     condition_col = "condition",
     subject_col = "paired_samples",
     paired = TRUE,
-    control = "normal",
-    metadata = metadata_df
+    control = "normal"
   )
-  analysis <- build_analysis_s4(config = config, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
+  analysis <- build_analysis_s4(config = config, metadata = metadata_df, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
   analysis <- filter_analysis_s4(analysis, stringency = "medium")
   
   # Add required calculations
@@ -956,13 +956,13 @@ test_that("plot_multiq_delta_influence_heatmaps_s4: respects n_genes parameter",
   
   # Build analysis from vignette data
   config <- tsenat_config(
+    q_values = seq(0, 2, by = 0.2),
     condition_col = "condition",
     subject_col = "paired_samples",
     paired = TRUE,
-    control = "normal",
-    metadata = metadata_df
+    control = "normal"
   )
-  analysis <- build_analysis_s4(config = config, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
+  analysis <- build_analysis_s4(config = config, metadata = metadata_df, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
   analysis <- filter_analysis_s4(analysis, stringency = "medium")
   
   # Add required calculations
@@ -989,13 +989,13 @@ test_that("S4 plotting functions work on complete analysis object", {
   
   # Build analysis from vignette data
   config <- tsenat_config(
+    q_values = seq(0, 2, by = 0.2),
     condition_col = "condition",
     subject_col = "paired_samples",
     paired = TRUE,
-    control = "normal",
-    metadata = metadata_df
+    control = "normal"
   )
-  analysis <- build_analysis_s4(config = config, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
+  analysis <- build_analysis_s4(config = config, metadata = metadata_df, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
   analysis <- filter_analysis_s4(analysis, stringency = "medium")
   
   # Add all required calculations

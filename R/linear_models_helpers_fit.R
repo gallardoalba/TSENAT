@@ -451,8 +451,13 @@
     vals <- as.numeric(mat[g, ])
     
     # Extract sample names from column names (remove q-value suffix if present)
-    sample_names_extracted <- colnames(mat)
-    sample_names_extracted <- sub("_q=.*", "", sample_names_extracted)
+    # If colnames are NULL, generate generic sample names
+    if (is.null(colnames(mat))) {
+        sample_names_extracted <- paste0("S", seq_len(ncol(mat)))
+    } else {
+        sample_names_extracted <- colnames(mat)
+        sample_names_extracted <- sub("_q=.*", "", sample_names_extracted)
+    }
     
     df <- data.frame(
         entropy = vals, 

@@ -124,12 +124,24 @@ metadata_df <- read.table(
 gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 'TSENAT')
 
+# Create config (metadata passed as explicit parameter to build_analysis_s4)
+config <- tsenat_config(
+  sample_col = 'sample',
+  condition_col = 'condition',
+  q_values = seq(0, 2, by = 0.05),
+  paired = FALSE
+)
+
 # Build analysis from vignette data and create small subset
-analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
-gff3_dataset, metadata = metadata_df,
-  tpm = tpm, effective_length = effective_length)
-analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
-= 200)
+analysis <- build_analysis_s4(
+  readcounts = readcounts,
+  tx2gene = gff3_dataset,
+  metadata = metadata_df,
+  config = config,
+  tpm = tpm,
+  effective_length = effective_length
+)
+analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
 analysis <- calculate_difference_s4(analysis, control = 'normal')
   

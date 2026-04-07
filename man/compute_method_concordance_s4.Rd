@@ -84,25 +84,27 @@ gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 
 # Configure analysis parameters first (fail-fast principle)
 config <- tsenat_config(
+  sample_col = 'sample',
   condition_col = 'condition',
   subject_col = 'paired_samples',
   paired = TRUE,
   control = 'normal',
-  metadata = metadata_df
+  q_values = seq(0, 2, by = 0.1)
 )
 
-# Build analysis with configured parameters
+# Build analysis with configured parameters and metadata as explicit parameter
 analysis <- build_analysis_s4(
   readcounts = readcounts,
   tx2gene = gff3_dataset,
+  metadata = metadata_df,
   config = config,
   tpm = tpm,
   effective_length = effective_length
 )
 
 analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
-analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5))
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
+analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
 analysis <- calculate_lm_interaction_s4(analysis, method = 'gam')
 # Note: compute_method_concordance_s4 requires results from both
 # rank_test_q_condition_s4 and test_rankbased_assumptions_s4

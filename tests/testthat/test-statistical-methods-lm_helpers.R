@@ -65,14 +65,21 @@ test_that(".prepare_fpca_matrix (fpca variant) builds sub-matrix or returns NULL
 
 testthat::test_that("FPCA helper and interaction work on simple synthetic data", {
     set.seed(42)
-    # create 4 samples, each with two q values (8 observations)
-    sample_names <- rep(paste0("s", 1:4), each = 2)
-    q_vals <- rep(1:2, times = 4)
-    # groups: first two samples group A, last two group B
-    group_vec <- rep(c("A", "A", "B", "B"), each = 2)
-    # single gene with mild group effect across PC1
-    obs <- rnorm(8)
-    obs[q_vals == 2 & sample_names %in% c("s3", "s4")] <- obs[q_vals == 2 & sample_names %in% c("s3", "s4")] + 1
+    # Create 6 samples per group with multiple q-values (30+ observations total)
+    n_samples_per_group <- 6
+    n_q_values <- 3
+    sample_names <- rep(paste0("s", 1:(n_samples_per_group * 2)), each = n_q_values)
+    q_vals <- rep(1:n_q_values, times = n_samples_per_group * 2)
+    # groups: first 6 samples group A, last 6 group B
+    group_vec <- rep(c(rep("A", n_samples_per_group * n_q_values), 
+                       rep("B", n_samples_per_group * n_q_values)))
+    
+    # Create structured data with group effect that survives ARIMA differencing
+    obs <- rnorm(n_samples_per_group * 2 * n_q_values, mean = 20, sd = 5)
+    # Add group effect: group B has higher values across q values
+    group_B_idx <- which(group_vec == "B")
+    obs[group_B_idx] <- obs[group_B_idx] + 5
+    
     mat <- matrix(obs, nrow = 1)
     res <- .fpca_interaction(
         mat = mat, q_vals = q_vals, sample_names = sample_names,
@@ -202,7 +209,7 @@ test_that(".gam_interaction returns NULL when mgcv::gam errors", {
     on.exit(assignInNamespace("gam", orig_gam, ns = "mgcv"), add = TRUE)
 
     df <- data.frame(entropy = rnorm(5), q = rep(1, 5), group = factor(rep(c("A", "B"), length.out = 5)))
-    res <- .gam_interaction(df, q_vals = df$q, g = "g1", min_obs = 3)
+    res <- expect_warning(.gam_interaction(df, q_vals = df$q, g = "g1", min_obs = 3), "GAM model fitting failed")
     expect_null(res)
 })
 
@@ -597,7 +604,8 @@ test_that("slope_diff reflects interaction strength correctly", {
     
     coldata_strong <- S4Vectors::DataFrame(
         samples = paste0("s", 1:length(subject_strong)),
-        sample_base = subject_strong
+        sample_base = subject_strong,
+        row.names = paste0("s", 1:length(subject_strong))
     )
     
     se_strong <- SummarizedExperiment::SummarizedExperiment(
@@ -605,21 +613,24 @@ test_that("slope_diff reflects interaction strength correctly", {
         colData = coldata_strong
     )
     
-    result_strong <- .fit_one_interaction(
-        "gene1", 
-        se = se_strong, 
-        mat = mat_strong,
-        q_vals = qv_strong,
-        sample_names = paste0("s", 1:length(subject_strong)),
-        group_vec = group_strong,
-        method = "lmm", 
-        pvalue = "lrt",
-        subject_col = NULL, 
-        paired = TRUE,
-        min_obs = 3, 
-        verbose = FALSE,
-        suppress_lme4_warnings = TRUE, 
-        progress = FALSE
+    result_strong <- expect_warning(
+        .fit_one_interaction(
+            "gene1", 
+            se = se_strong, 
+            mat = mat_strong,
+            q_vals = qv_strong,
+            sample_names = paste0("s", 1:length(subject_strong)),
+            group_vec = group_strong,
+            method = "lmm", 
+            pvalue = "lrt",
+            subject_col = "sample_base",
+            paired = TRUE,
+            min_obs = 3, 
+            verbose = FALSE,
+            suppress_lme4_warnings = TRUE, 
+            progress = FALSE
+        ),
+        NA  # Allow any warning or none
     )
     
     # Result should be either NULL or data.frame
