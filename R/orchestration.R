@@ -16,6 +16,10 @@
 #'   \code{\link{tsenat_config}}. If NULL, uses configuration from analysis object.
 #' @param output_dir \code{character}. Directory to save results and plots.
 #'   Default: "tsenat_outputs". Set to NULL to disable automatic output saving.
+#' @param save_output \code{logical}. Whether to save output files (results tables).
+#'   Default: TRUE. If FALSE, no TSV/CSV output files are written to disk.
+#' @param output_format \code{character}. Format for output files: 'tsv' (tab-separated),
+#'   'csv' (comma-separated), 'txt' (text), or 'rds' (R serialized). Default: 'tsv'.
 #' @param verbose \code{logical}. Print progress messages. Default: TRUE.
 #' @param ... Additional arguments passed to individual wrapper functions.
 #'
@@ -67,7 +71,7 @@
 #' result <- tsenat(analysis, config = config)
 #'
 #' @export
-tsenat <- function(analysis, config = NULL, output_dir = "tsenat_outputs", verbose = TRUE, ...) {
+tsenat <- function(analysis, config = NULL, output_dir = "tsenat_outputs", save_output = TRUE, output_format = "tsv", verbose = TRUE, ...) {
     # Validate input
     if (!is(analysis, "TSENATAnalysis")) {
         stop("'analysis' must be a TSENATAnalysis object created by build_analysis_s4()",
@@ -75,6 +79,19 @@ tsenat <- function(analysis, config = NULL, output_dir = "tsenat_outputs", verbo
     }
     if (nrow(se(analysis)) == 0) {
         stop("TSENATAnalysis contains an empty SummarizedExperiment", call. = FALSE)
+    }
+    
+    # Validate output_format
+    valid_formats <- c("tsv", "csv", "txt", "rds")
+    if (!(output_format %in% valid_formats)) {
+        stop("'output_format' must be one of: ", paste(valid_formats, collapse = ", "),
+            call. = FALSE)
+    }
+    
+    # Disable output if save_output is FALSE
+    if (!save_output) {
+        output_dir <- NULL
+        if (verbose) message("[INFO] save_output = FALSE prevents file output")
     }
 
     # Create output directory if specified
@@ -91,7 +108,16 @@ tsenat <- function(analysis, config = NULL, output_dir = "tsenat_outputs", verbo
 
     # Extract parameters
     cfg <- getConfig(analysis)
-    q_vals <- cfg$q_values %||% seq(0.5, 2, by = 0.5)
+    
+    # Extract q_values from function arguments (...) if provided, otherwise from config
+    q_vals_from_args <- list(...)$q_values
+    q_vals <- if (!is.null(q_vals_from_args)) q_vals_from_args else (cfg$q_values %||% seq(0, 2, by = 0.5))
+    
+    # Inform user if using default q-values
+    if (is.null(q_vals_from_args) && is.null(cfg$q_values)) {
+        if (verbose) message("[INFO] Using default q-values: ", paste(q_vals, collapse = ", "))
+    }
+    
     condition_col <- cfg$condition_col %||% "condition"
 
     # Initialize timing
@@ -110,14 +136,16 @@ tsenat <- function(analysis, config = NULL, output_dir = "tsenat_outputs", verbo
         message(sprintf("[>] [%2d/14] Filtering low-abundance transcripts", 1))
     step_start <- Sys.time()
     tryCatch({
-        analysis <- filter_analysis_s4(analysis)
+        cfg <- getConfig(analysis)
+        stringency_level <- cfg$stringency %||% "medium"
+        analysis <- filter_analysis_s4(analysis, stringency = stringency_level)
         if (verbose)
             message("          [OK] Complete")
     }, error = function(e) warning("Filtering failed:\n", e$message, call. = FALSE))
     step_times[["filtering"]] <- Sys.time() - step_start
 
     step_start <- Sys.time()
-    analysis <- .execute_diversity_s4(analysis, q_vals, verbose, output_dir)
+    analysis <- .execute_diversity_s4(analysis, q_vals, verbose, output_dir, output_format)
     step_times[["diversity"]] <- Sys.time() - step_start
 
     step_start <- Sys.time()
@@ -125,11 +153,11 @@ tsenat <- function(analysis, config = NULL, output_dir = "tsenat_outputs", verbo
     step_times[["q_curve"]] <- Sys.time() - step_start
 
     step_start <- Sys.time()
-    analysis <- .execute_m_estimate_qc(analysis, condition_col, verbose, output_dir)
+    analysis <- .execute_m_estimate_qc(analysis, condition_col, verbose, output_dir, output_format)
     step_times[["m_estimate"]] <- Sys.time() - step_start
 
     step_start <- Sys.time()
-    analysis <- .execute_lm_interaction_s4(analysis, verbose, output_dir)
+    analysis <- .execute_lm_interaction_s4(analysis, verbose, output_dir, output_format)
     step_times[["lm_interaction"]] <- Sys.time() - step_start
 
     step_start <- Sys.time()
@@ -138,11 +166,11 @@ tsenat <- function(analysis, config = NULL, output_dir = "tsenat_outputs", verbo
 
     step_start <- Sys.time()
     analysis <- .execute_jackknife_isoform_switching(analysis, q_vals, condition_col,
-        verbose, output_dir)
+        verbose, output_dir, output_format)
     step_times[["jackknife"]] <- Sys.time() - step_start
 
     step_start <- Sys.time()
-    analysis <- .execute_prepare_gene_switching_tables(analysis, verbose, output_dir)
+    analysis <- .execute_prepare_gene_switching_tables(analysis, verbose, output_dir, output_format)
     step_times[["switching_tables"]] <- Sys.time() - step_start
 
     step_start <- Sys.time()
@@ -154,11 +182,11 @@ tsenat <- function(analysis, config = NULL, output_dir = "tsenat_outputs", verbo
     step_times[["top_transcripts"]] <- Sys.time() - step_start
 
     step_start <- Sys.time()
-    analysis <- .execute_divergence_s4(analysis, q_vals, verbose, output_dir)
+    analysis <- .execute_divergence_s4(analysis, q_vals, verbose, output_dir, output_format)
     step_times[["divergence"]] <- Sys.time() - step_start
 
     step_start <- Sys.time()
-    analysis <- .execute_effect_sizes_s4(analysis, verbose, output_dir)
+    analysis <- .execute_effect_sizes_s4(analysis, verbose, output_dir, output_format)
     step_times[["effect_sizes"]] <- Sys.time() - step_start
 
     step_start <- Sys.time()
@@ -357,7 +385,7 @@ getResults <- function(analysis, type = "diversity", q = NULL, simplify = TRUE) 
 #' analyses.
 #'
 #' @param q_values \code{numeric}. Q-values for Tsallis entropy spectrum.
-#'   Default: \code{seq(0.5, 2.0, by = 0.5)}.
+#'   Default: \code{seq(0, 2, by = 0.5)}.
 #' @param condition_col \code{character}. Name of column in \code{colData(se)}
 #'   containing experimental conditions/groups. Default: 'condition'.
 #' @param subject_col \code{character}. Name of column in \code{colData(se)}
@@ -370,30 +398,22 @@ getResults <- function(analysis, type = "diversity", q = NULL, simplify = TRUE) 
 #' @param control \code{character}. Reference/control group label for difference
 #'   analysis (e.g., 'control', 'wt'). Only used if 'difference' in methods.
 #'   Default: NULL.
-#' @param formula \code{formula}. Optional model formula for LM interactions
-#'   (e.g., \code{~ treatment + batch}). Default: NULL (uses condition_col).
 #' @param p_threshold \code{numeric}. Raw p-value threshold for significance
 #'   in LM interaction testing. Default: 0.05.
 #' @param fdr_threshold \code{numeric}. Adjusted p-value (FDR/Benjamini-Hochberg)
 #'   threshold. Default: 0.05.
 #' @param significance_threshold \code{numeric}. Significance cutoff for effect
 #'   sizes, assumptions testing, and result filtering. Default: 0.05.
-#' @param n_bootstrap \code{integer}. Number of bootstrap resamples for jackknife
+#' @param nboot \code{integer}. Number of bootstrap resamples for jackknife
 #'   confidence intervals. Default: 1000.
 #' @param bootstrap_method \code{character}. Bootstrap CI method: 'percentile'
 #'   (fast, assumes symmetric distribution) or 'bca' (bias-corrected, better for
 #'   skewed data like bounded entropy). Default: 'percentile'.
-#' @param methods \code{character}. Analysis steps to run. Core (auto-required):
-#'   'diversity', 'lm_interaction', 'jackknife', 'divergence', 'q_interactions'.
-#'   Optional: 'jackknife_isoform_switching' (requires condition/subject info),
-#'   'difference' (requires control parameter), 'effect_sizes', 'rankbased_assumptions',
-#'   'method_concordance'. Default: core methods.
-#' @param generate_plots \code{logical}. Generate visualizations.
-#'   Default: TRUE.
-#' @param plot_types \code{character}. Specific plot types to generate. Options:
-#'   'q_curve', 'lm_interaction', 'divergence_distribution', 'divergence_spectrum',
-#'   'influence_heatmap', 'volcano', 'method_concordance', 'multi_gene_q_spectrum',
-#'   'top_transcripts', 'tsallis_violin_density'. Default: all available types.
+#' @param stringency \code{character}. Transcript filtering stringency level.
+#'   Options: 'lenient' (minimal filtering), 'medium' (default, reasonable filtering),
+#'   'severe' (strict filtering, recommended for high-confidence results).
+#'   Controls which transcripts/genes are retained in initial filtering step.
+#'   Default: 'medium'.
 #' @param nthreads \code{integer}. Number of threads for parallel computation
 #'   where supported (diversity, divergence, LM fitting). Default: 1 (no parallelization).
 #'   Use 2+ for multi-core systems to improve performance.
@@ -412,43 +432,27 @@ getResults <- function(analysis, type = "diversity", q = NULL, simplify = TRUE) 
 #' # Default config with standard parameters
 #' cfg <- tsenat_config()
 #'
-#' # Custom with optional features: paired analysis, isoform switching, differences
+#' # Custom with paired analysis and strict filtering for high-confidence results
 #' cfg <- tsenat_config(
 #'   q_values = seq(0, 2, by = 0.05),  # Recommended for paired designs: 41 values
 #'   condition_col = 'treatment',
 #'   subject_col = 'subject_id',
 #'   paired = TRUE,
 #'   control = 'untreated',
-#'   methods = c('diversity', 'lm_interaction', 'jackknife', 'jackknife_isoform_switching',
-#'               'divergence', 'q_interactions', 'difference', 'effect_sizes'),
+#'   stringency = 'severe',
 #'   bootstrap_method = 'bca',
-#'   n_bootstrap = 5000,
+#'   nboot = 5000,
 #'   significance_threshold = 0.01
 #' )
 #'
 #' @export
 tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_col = NULL,
-    sample_col = "sample", paired = FALSE, control = NULL, formula = NULL, p_threshold = 0.05, fdr_threshold = 0.05,
-    significance_threshold = 0.05, n_bootstrap = 1000, bootstrap_method = "percentile",
-    methods = NULL, generate_plots = TRUE, plot_types = NULL, nthreads = 1, ...) {
+    sample_col = "sample", paired = FALSE, control = NULL, p_threshold = 0.05, fdr_threshold = 0.05,
+    significance_threshold = 0.05, nboot = 1000, bootstrap_method = "percentile",
+    stringency = "medium", nthreads = 1, ...) {
     # Build q_values if range specified
     if (is.null(q_values)) {
-        q_values <- seq(0.5, 2, by = 0.5)
-    }
-
-    # Default methods
-    if (is.null(methods)) {
-        methods <- c("diversity", "lm_interaction", "jackknife", "divergence", "q_interactions")
-    }
-
-    # Validate methods
-    valid_methods <- c("diversity", "lm_interaction", "jackknife", "jackknife_isoform_switching",
-        "divergence", "q_interactions", "difference", "rankbased_assumptions", "method_concordance",
-        "effect_sizes")
-    invalid_methods <- setdiff(methods, valid_methods)
-    if (length(invalid_methods) > 0) {
-        stop("Invalid methods: ", paste(invalid_methods, collapse = ", "), "\n",
-            "Valid: ", paste(valid_methods, collapse = ", "), call. = FALSE)
+        q_values <- seq(0, 2, by = 0.5)
     }
 
     # Validate bootstrap_method
@@ -460,14 +464,8 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
     # Build config list with all parameters
     config <- list(q_values = q_values, condition_col = condition_col, subject_col = subject_col,
         sample_col = sample_col, paired = paired, control = control, p_threshold = p_threshold, fdr_threshold = fdr_threshold,
-        significance_threshold = significance_threshold, n_bootstrap = n_bootstrap,
-        bootstrap_method = bootstrap_method, methods = methods, generate_plots = generate_plots, nthreads = nthreads)
-
-    # Add optional parameters
-    if (!is.null(formula))
-        config$formula <- formula
-    if (!is.null(plot_types))
-        config$plot_types <- plot_types
+        significance_threshold = significance_threshold, nboot = nboot,
+        bootstrap_method = bootstrap_method, stringency = stringency, nthreads = nthreads)
 
     # Add any additional parameters (except metadata - should be explicit to build_analysis_s4)
     extra_args <- list(...)
@@ -547,30 +545,71 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
         "  Transcripts ........... ", format(nrow(se), big.mark = ","), "\n",
         "  Samples .............. ", ncol(se), "\n",
         "  Conditions ........... ", n_conditions, "\n",
-        "  Q-spectrum range ...... ", format(round(min(q_vals), 2), width = 4), " to ",
-        format(round(max(q_vals), 2), width = 4), " (", length(q_vals), " values)\n",
+        sprintf("  Q-spectrum range ...... %g to %g (%d values)\n", 
+                round(min(q_vals), 2), round(max(q_vals), 2), length(q_vals)),
         "\n[CONFIG] Configuration\n",
         "  p-value threshold ..... ", format(cfg$p_threshold %||% 0.05, width = 6, nsmall = 3), "\n",
         "  FDR threshold ......... ", format(cfg$fdr_threshold %||% 0.05, width = 6, nsmall = 3), "\n"
     )
-    if (!is.null(cfg$n_bootstrap)) {
-        output <- paste0(output, "  Bootstrap samples ..... ", format(cfg$n_bootstrap, big.mark = ","), "\n")
+    if (!is.null(cfg$nboot)) {
+        output <- paste0(output, "  Bootstrap samples ..... ", format(cfg$nboot, big.mark = ","), "\n")
     }
     output <- paste0(output, "\n")
     message(output)
 }
 
+# ============================================================================
+# HELPER FUNCTION: Build output filenames
+# ============================================================================
+
+#' Build output filename with correct extension
+#'
+#' Creates output filenames with the appropriate extension based on format.
+#'
+#' @param base_name \code{character}. Base filename without extension.
+#' @param output_dir \code{character}. Output directory path or NULL.
+#' @param output_format \code{character}. Output format ('tsv', 'csv', 'txt', 'rds').
+#'
+#' @return \code{character} Full path to output file, or NULL if output_dir is NULL.
+#' @noRd
+.build_output_file <- function(base_name, output_dir, output_format) {
+    if (is.null(output_dir)) return(NULL)
+    ext <- switch(output_format,
+        "tsv" = "tsv",
+        "csv" = "csv",
+        "txt" = "txt",
+        "rds" = "rds",
+        "tsv"  # default
+    )
+    filename <- paste0(base_name, ".", ext)
+    file.path(output_dir, filename)
+}
+
 #' Step 2: Diversity calculation
 #' @noRd
-.execute_diversity_s4 <- function(analysis, q_vals, verbose, output_dir) {
+.execute_diversity_s4 <- function(analysis, q_vals, verbose, output_dir, output_format) {
     if (verbose)
         message(sprintf("[>] [%2d/14] Computing Tsallis diversity", 2))
     tryCatch({
-        output_file <- if (!is.null(output_dir)) file.path(output_dir, "diversity_results.tsv") else NULL
-        analysis <- calculate_diversity_s4(analysis, q = q_vals, output_file = output_file, show_messages = FALSE)
+        output_file <- .build_output_file("diversity_results", output_dir, output_format)
+        
+        # Extract bootstrap parameters from config to ensure consistency with vignette
+        cfg <- getConfig(analysis)
+        bootstrap_method <- cfg$bootstrap_method %||% "percentile"
+        nboot <- cfg$nboot %||% 1000
+        
+        analysis <- calculate_diversity_s4(
+            analysis,
+            q = q_vals,
+            norm = TRUE,
+            bootstrap_method = bootstrap_method,
+            nboot = nboot,
+            output_file = output_file,
+            show_messages = FALSE
+        )
         if (verbose)
             message(sprintf("          [OK] %d q-values processed", length(q_vals)))
-    }, error = function(e) stop("Diversity failed:\n", e$message, call. = FALSE))
+    }, error = function(e) warning("Diversity calculation failed:\n", e$message, call. = FALSE))
     analysis
 }
 
@@ -596,11 +635,11 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 
 #' Step 4: M-estimate QC analysis
 #' @noRd
-.execute_m_estimate_qc <- function(analysis, condition_col, verbose, output_dir) {
+.execute_m_estimate_qc <- function(analysis, condition_col, verbose, output_dir, output_format) {
     if (verbose)
         message("Step 4: Running sample influence QC analysis (m-estimator)...")
     tryCatch({
-        output_file <- if (!is.null(output_dir)) file.path(output_dir, "m_estimate_qc.tsv") else NULL
+        output_file <- .build_output_file("m_estimate_qc", output_dir, output_format)
         analysis <- m_estimate_s4(analysis, condition_col = condition_col, output_file = output_file)
         if (verbose)
             message("  [OK] M-estimate QC complete")
@@ -613,17 +652,17 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 
 #' Step 5: LM interaction testing
 #' @noRd
-.execute_lm_interaction_s4 <- function(analysis, verbose, output_dir) {
+.execute_lm_interaction_s4 <- function(analysis, verbose, output_dir, output_format) {
     if (verbose)
         message("Step 5: Testing LM interactions with GAM smoother...")
     tryCatch({
         cfg <- getConfig(analysis)
         fdr <- cfg$fdr_threshold %||% 0.05
-        output_file <- if (!is.null(output_dir)) file.path(output_dir, "lm_interaction_results.tsv") else NULL
+        output_file <- .build_output_file("lm_interaction_results", output_dir, output_format)
         analysis <- calculate_lm_interaction_s4(analysis, fdr_threshold = fdr, output_file = output_file)
         if (verbose)
             message("  [OK] LM interaction analysis complete")
-    }, error = function(e) stop("LM interaction failed:\n", e$message, call. = FALSE))
+    }, error = function(e) warning("LM interaction analysis failed:\n", e$message, call. = FALSE))
     analysis
 }
 
@@ -650,12 +689,12 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 #' Step 7: Jackknife isoform switching
 #' @noRd
 .execute_jackknife_isoform_switching <- function(analysis, q_vals, condition_col,
-    verbose, output_dir) {
+    verbose, output_dir, output_format) {
     if (verbose)
         message("Step 7: Computing jackknife isoform switching analysis...")
     tryCatch({
         cfg <- getConfig(analysis)
-        output_file <- if (!is.null(output_dir)) file.path(output_dir, "jackknife_isoform_switching.tsv") else NULL
+        output_file <- .build_output_file("jackknife_isoform_switching", output_dir, output_format)
         analysis <- jackknife_isoform_switching_s4(analysis, condition_col = condition_col,
             output_file = output_file, verbose = FALSE)
         if (verbose)
@@ -669,11 +708,11 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 
 #' Step 8: Prepare gene switching tables
 #' @noRd
-.execute_prepare_gene_switching_tables <- function(analysis, verbose, output_dir) {
+.execute_prepare_gene_switching_tables <- function(analysis, verbose, output_dir, output_format) {
     if (verbose)
         message("Step 8: Preparing gene switching tables...")
     tryCatch({
-        output_file <- if (!is.null(output_dir)) file.path(output_dir, "gene_switching_tables.rds") else NULL
+        output_file <- .build_output_file("gene_switching_tables", output_dir, output_format)
         tables_result <- prepare_gene_switching_tables_s4(analysis, output_file = output_file, verbose = FALSE)
         if (!is.null(tables_result)) {
             if (verbose)
@@ -730,11 +769,11 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 
 #' Step 11: Divergence calculation
 #' @noRd
-.execute_divergence_s4 <- function(analysis, q_vals, verbose, output_dir) {
+.execute_divergence_s4 <- function(analysis, q_vals, verbose, output_dir, output_format) {
     if (verbose)
         message("Step 11: Computing divergence metrics...")
     tryCatch({
-        output_file <- if (!is.null(output_dir)) file.path(output_dir, "divergence_results.tsv") else NULL
+        output_file <- .build_output_file("divergence_results", output_dir, output_format)
         analysis <- calculate_divergence_s4(analysis, q = q_vals, output_file = output_file)
         if (verbose)
             message("  [OK] Divergence computed")
@@ -747,11 +786,11 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 
 #' Step 12: Effect sizes
 #' @noRd
-.execute_effect_sizes_s4 <- function(analysis, verbose, output_dir) {
+.execute_effect_sizes_s4 <- function(analysis, verbose, output_dir, output_format) {
     if (verbose)
         message("Step 12: Computing effect sizes for divergence...")
     tryCatch({
-        output_file <- if (!is.null(output_dir)) file.path(output_dir, "effect_sizes.tsv") else NULL
+        output_file <- .build_output_file("effect_sizes", output_dir, output_format)
         analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE, output_file = output_file)
         if (verbose)
             message("  [OK] Effect sizes computed")
@@ -823,7 +862,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
     analysis@metadata$workflow <- list(workflow_type = "isoform_switching_vignette",
         completion_time = Sys.time(), tsenat_version = utils::packageVersion("TSENAT"))
     analysis@metadata$methods_parameters <- list(fdr_threshold = cfg$fdr_threshold %||%
-        0.05, q_values = cfg$q_values %||% seq(0.5, 2, by = 0.5), condition_col = cfg$condition_col %||%
+        0.05, q_values = cfg$q_values %||% seq(0, 2, by = 0.5), condition_col = cfg$condition_col %||%
         "condition", filter_stringency = cfg$filter_stringency %||% "medium")
     analysis
 }

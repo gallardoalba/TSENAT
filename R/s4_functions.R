@@ -2381,8 +2381,8 @@ plot_lm_interaction_gam_s4 <- function(analysis, n_top = 6, genes = NULL, condit
             n_top, ", condition_col=", condition_col, "]"))
     }
 
-    # Save plot to file if requested
-    if (!is.null(output_file)) {
+    # Save plot to file if requested (only if result is a valid ggplot)
+    if (!is.null(output_file) && inherits(result, "ggplot")) {
         save_analysis_output(result, output_file, object = analysis, verbose = verbose,
             func_name = "plot_lm_interaction_gam_s4", width = width, height = height)
     }
@@ -2682,7 +2682,7 @@ m_estimate_s4 <- function(analysis, condition_col = NULL, loss_type = "huber", s
 #' \code{min_isoform_abundance}
 #'   from data. Requires \code{pair_col} in colData for paired designs.
 #'   User-provided values for any parameter override stringency defaults.
-#'   Default: NULL (use explicit parameters).
+#'   Default: 'medium' (balanced filtering recommended for most analyses).
 #'
 #' @param pair_col Character; column name in colData containing pair IDs for
 #' paired designs.
@@ -2757,11 +2757,17 @@ m_estimate_s4 <- function(analysis, condition_col = NULL, loss_type = "huber", s
 #' The filtering and subsetting operations are applied in sequence:
 #'
 #' 1. Extracts the SE from \code{analysis@se}
-#' 2. Filters using \code{.filter_se()} with specified filtering parameters
+#' 2. Filters using \code{.filter_se()} with specified filtering parameters (default: 'medium' stringency)
 #' 3. If any subset parameters are provided, applies gene/sample selection
 #'    to select specific genes and/or samples
 #' 4. Stores the filtered/subsetted SE back in \code{analysis@se}
 #' 5. Returns the modified analysis object invisibly
+#'
+#' **Default Filtering (stringency = 'medium'):** By default, filtering applies
+#' balanced stringency: requires transcripts in ≥50% of samples with minimum
+#' isoform abundance of 5%, and genes with at least 2 transcripts. This balances
+#' noise reduction with preservation of isoform diversity for reliable entropy
+#' calculations.
 #'
 #' **Important:** Filtering should be performed BEFORE computing diversity,
 #' divergence, or LM interaction results. If called after analysis results
@@ -2799,17 +2805,18 @@ m_estimate_s4 <- function(analysis, condition_col = NULL, loss_type = "huber", s
 # Sample coverage: Require genes present in minimum number of samples - Min
 # transcripts per gene: Filter genes with too few isoforms - Isoform abundance
 # thresholds: Exclude rare isoforms from analysis - Subsetting options: Random
-# or variance-based gene/sample selection - Stringency presets: Easy 'light',
-# 'medium', 'severe' filtering profiles Mathematical Background: QC filtering
-# removes noise that would artificially inflate entropy/divergence.  Genes with
-# single isoform (H=0) or all absent samples contribute no signal.  Rare
-# transcripts have unreliable expression values -> exclude them.  Example: Raw
-# data: 88 genes × 12 samples (many genes expressed in <50% samples) After
-# filter: 50 genes × 12 samples (multi-isoform, well-represented genes) Result:
-# More reliable diversity estimates and smaller multiple-testing burden.
+# or variance-based gene/sample selection - Stringency presets: Default 'medium'
+# (balanced), 'soft' (permissive), or 'severe' (stringent) filtering profiles.
+# Mathematical Background: QC filtering removes noise that would artificially
+# inflate entropy/divergence. Genes with single isoform (H=0) or all absent
+# samples contribute no signal. Rare transcripts have unreliable expression
+# values -> exclude them. Example: Raw data: 88 genes × 12 samples (many genes
+# expressed in <50% samples) After filter: 50 genes × 12 samples (multi-isoform,
+# well-represented genes) Result: More reliable diversity estimates and smaller
+# multiple-testing burden.
 # ============================================================================
 filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min_samples = 5L,
-    stringency = NULL, pair_col = NULL, min_tx_per_gene = 2L, min_isoform_abundance = NULL,
+    stringency = "medium", pair_col = NULL, min_tx_per_gene = 2L, min_isoform_abundance = NULL,
     assay_name = "counts", subset_n_genes = NULL, subset_genes = NULL, subset_n_samples = NULL,
     subset_samples = NULL, subset_select_by = c("variance", "mean", "random"), subset_seed = 42,
     subset_min_count = NULL, verbose = FALSE) {
