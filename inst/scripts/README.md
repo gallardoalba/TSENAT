@@ -2,16 +2,6 @@
 
 The data files in `inst/extdata/` were generated using the preprocessing pipeline in `data-raw/scripts/preprocess.R`. This document explains the data sources, generation process, and file specifications.
 
-## Data Files in inst/extdata/
-
-| File | Description | Source | License |
-|------|---|---|---|
-| `gene_ids.tsv` | 300 selected gene identifiers (HGNC gene symbols) | GENCODE v49 + RNA-seq analysis | CC BY 4.0 |
-| `tx2gene.tsv` | Transcript-to-gene mapping (ENST → gene name) | GENCODE v49 | CC BY 4.0 |
-| `annotation.gff3.gz` | Filtered GFF3 annotations for selected genes | GENCODE v49 | CC BY 4.0 |
-| `gencode_subset_test.gff3.gz` | Small test GFF3 file (3 genes, 12 features, synthetic) | Synthetic | CC BY 4.0 |
-| `metadata.tsv` | Sample metadata (sample ID, condition, paired status) | PRJNA737203 | Public Domain |
-
 ## Source Data
 
 ### 1. colorectal Cancer RNA-seq
