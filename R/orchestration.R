@@ -104,15 +104,15 @@ tsenat <- function(analysis, config = NULL, output_dir = "tsenat_outputs", verbo
 
     # Execute vignette workflow (in order) with timing
     if (verbose)
-        cat("============================================================\n")
+        message("=============================================================")
     
     if (verbose)
-        cat(sprintf("[>] [%2d/14] Filtering low-abundance transcripts\n", 1))
+        message(sprintf("[>] [%2d/14] Filtering low-abundance transcripts", 1))
     step_start <- Sys.time()
     tryCatch({
         analysis <- filter_analysis_s4(analysis)
         if (verbose)
-            cat("          [OK] Complete\n")
+            message("          [OK] Complete")
     }, error = function(e) warning("Filtering failed:\n", e$message, call. = FALSE))
     step_times[["filtering"]] <- Sys.time() - step_start
 
@@ -170,7 +170,7 @@ tsenat <- function(analysis, config = NULL, output_dir = "tsenat_outputs", verbo
     step_times[["div_spectrum_plot"]] <- Sys.time() - step_start
     
     if (verbose)
-        cat("============================================================\n")
+        message("=============================================================")
 
     # Track completion metadata and timing
     total_time <- Sys.time() - workflow_start
@@ -537,39 +537,39 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 #' Log pipeline start
 #' @noRd
 .log_pipeline_start <- function(se, q_vals, cfg) {
-    # Use ANSI color codes for prettier output
-    cat("\n")
-    cat("+============================================================+\n")
-    cat("|          TSENAT: Tsallis Entropy Analysis Toolbox          |\n")
-    cat("+============================================================+\n\n")
-    
-    cat("[DATA] Data Summary\n")
-    cat("  Transcripts ........... ", format(nrow(se), big.mark = ","), "\n", sep = "")
-    cat("  Samples .............. ", ncol(se), "\n", sep = "")
     n_conditions <- length(unique(se[[cfg$condition_col %||% "condition"]]))
-    cat("  Conditions ........... ", n_conditions, "\n", sep = "")
-    cat("  Q-spectrum range ...... ", format(round(min(q_vals), 2), width = 4), " to ", 
-        format(round(max(q_vals), 2), width = 4), " (", length(q_vals), " values)\n", sep = "")
-    
-    cat("\n[CONFIG] Configuration\n")
-    cat("  p-value threshold ..... ", format(cfg$p_threshold %||% 0.05, width = 6, nsmall = 3), "\n", sep = "")
-    cat("  FDR threshold ......... ", format(cfg$fdr_threshold %||% 0.05, width = 6, nsmall = 3), "\n", sep = "")
+    output <- paste0(
+        "\n",
+        "+============================================================+\n",
+        "|          TSENAT: Tsallis Entropy Analysis Toolbox          |\n",
+        "+============================================================+\n\n",
+        "[DATA] Data Summary\n",
+        "  Transcripts ........... ", format(nrow(se), big.mark = ","), "\n",
+        "  Samples .............. ", ncol(se), "\n",
+        "  Conditions ........... ", n_conditions, "\n",
+        "  Q-spectrum range ...... ", format(round(min(q_vals), 2), width = 4), " to ",
+        format(round(max(q_vals), 2), width = 4), " (", length(q_vals), " values)\n",
+        "\n[CONFIG] Configuration\n",
+        "  p-value threshold ..... ", format(cfg$p_threshold %||% 0.05, width = 6, nsmall = 3), "\n",
+        "  FDR threshold ......... ", format(cfg$fdr_threshold %||% 0.05, width = 6, nsmall = 3), "\n"
+    )
     if (!is.null(cfg$n_bootstrap)) {
-        cat("  Bootstrap samples ..... ", format(cfg$n_bootstrap, big.mark = ","), "\n", sep = "")
+        output <- paste0(output, "  Bootstrap samples ..... ", format(cfg$n_bootstrap, big.mark = ","), "\n")
     }
-    cat("\n")
+    output <- paste0(output, "\n")
+    message(output)
 }
 
 #' Step 2: Diversity calculation
 #' @noRd
 .execute_diversity_s4 <- function(analysis, q_vals, verbose, output_dir) {
     if (verbose)
-        cat(sprintf("[>] [%2d/14] Computing Tsallis diversity\n", 2))
+        message(sprintf("[>] [%2d/14] Computing Tsallis diversity", 2))
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "diversity_results.tsv") else NULL
-        suppressMessages({analysis <- calculate_diversity_s4(analysis, q = q_vals, output_file = output_file)})
+        analysis <- calculate_diversity_s4(analysis, q = q_vals, output_file = output_file, show_messages = FALSE)
         if (verbose)
-            cat(sprintf("          [OK] %d q-values processed\n", length(q_vals)))
+            message(sprintf("          [OK] %d q-values processed", length(q_vals)))
     }, error = function(e) stop("Diversity failed:\n", e$message, call. = FALSE))
     analysis
 }
@@ -578,14 +578,14 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 #' @noRd
 .execute_q_curve_plot <- function(analysis, verbose, output_dir) {
     if (verbose)
-        cat(sprintf("[>] [%2d/14] Plotting q-spectrum curve\n", 3))
+        message(sprintf("[>] [%2d/14] Plotting q-spectrum curve", 3))
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "q_curve_plot.png") else NULL
         p_qcurve <- plot_tsallis_q_curve_s4(analysis, output_file = output_file)
         if (!is.null(p_qcurve)) {
             analysis <- addPlot(analysis, type = "q_curve", plot = p_qcurve, replace = TRUE)
             if (verbose)
-                cat("          [OK] Plot generated\n")
+                message("          [OK] Plot generated")
         }
     }, error = function(e) {
         if (verbose)
@@ -832,67 +832,69 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 #' @noRd
 .finalize_tsenat_analysis <- function(analysis, verbose, step_times = NULL, total_time = NULL, output_dir = NULL) {
     if (verbose) {
-        cat("\n")
-        cat("+============================================================+\n")
-        cat("|               [OK] ANALYSIS COMPLETE                        |\n")
-        cat("+============================================================+\n\n")
-        
-        # Extract statistics
         stats <- .extract_analysis_statistics(analysis)
         
-        cat("[RESULTS] Results Summary\n")
+        output <- paste0(
+            "\n",
+            "+============================================================+\n",
+            "|               [OK] ANALYSIS COMPLETE                        |\n",
+            "+============================================================+\n\n",
+            "[RESULTS] Results Summary\n"
+        )
         
         if (stats$n_transcripts > 0)
-            cat(sprintf("  [OK] Diversity ........... %d transcripts x %d q-values\n", 
+            output <- paste0(output, sprintf("  [OK] Diversity ........... %d transcripts x %d q-values\n",
                 stats$n_transcripts, stats$n_q_values))
         if (stats$n_lm_significant > 0)
-            cat(sprintf("  [OK] LM interactions ..... %d genes (p < 0.05)\n", 
+            output <- paste0(output, sprintf("  [OK] LM interactions ..... %d genes (p < 0.05)\n",
                 stats$n_lm_significant))
         if (stats$n_jackknife > 0)
-            cat(sprintf("  [OK] Isoform switching ... %d genes\n", 
+            output <- paste0(output, sprintf("  [OK] Isoform switching ... %d genes\n",
                 stats$n_jackknife))
         if (stats$n_divergence > 0)
-            cat(sprintf("  [OK] Divergence metrics .. %d pairwise comparisons\n", 
+            output <- paste0(output, sprintf("  [OK] Divergence metrics .. %d pairwise comparisons\n",
                 stats$n_divergence))
         if (!is.null(analysis@metadata$effect_sizes_divergence))
-            cat("  [OK] Effect sizes ........ computed\n")
+            output <- paste0(output, "  [OK] Effect sizes ........ computed\n")
         if (length(analysis@plots) > 0)
-            cat(sprintf("  [OK] Visualizations ...... %d plots\n", length(analysis@plots)))
+            output <- paste0(output, sprintf("  [OK] Visualizations ...... %d plots\n", length(analysis@plots)))
         
-        # Show timing
         if (!is.null(total_time)) {
             time_str <- .format_duration(total_time)
-            cat("\n[PERF] Performance\n")
-            cat(sprintf("  Total time ........... %s\n", time_str))
+            output <- paste0(output, "\n[PERF] Performance\n")
+            output <- paste0(output, sprintf("  Total time ........... %s\n", time_str))
             
             if (!is.null(step_times) && length(step_times) > 3) {
-                step_durations <- sapply(step_times, function(x) as.numeric(x, units = "secs"))
-                slow_steps <- names(sort(step_durations, decreasing = TRUE))[1:min(3, length(step_durations))]
-                cat("  Slowest steps:\n")
+                step_durations <- vapply(step_times, function(x) as.numeric(x, units = "secs"), numeric(1))
+                slow_steps <- names(sort(step_durations, decreasing = TRUE))[seq_len(min(3, length(step_durations)))]
+                output <- paste0(output, "  Slowest steps:\n")
                 for (i in seq_along(slow_steps)) {
                     sname <- slow_steps[i]
                     stime <- step_times[[sname]]
                     pct <- (as.numeric(stime, units = "secs") / as.numeric(total_time, units = "secs")) * 100
-                    cat(sprintf("    %d. %-20s %s (%.1f%%)\n", i, sname, 
+                    output <- paste0(output, sprintf("    %d. %-20s %s (%.1f%%)\n", i, sname,
                         .format_duration(stime), pct))
                 }
             }
         }
         
-        # Show output
         if (!is.null(output_dir) && dir.exists(output_dir)) {
             n_files <- length(list.files(output_dir, recursive = TRUE))
-            cat("[OUTPUT] Output\n")
-            cat(sprintf("  Directory ........... %s\n", output_dir))
-            cat(sprintf("  Files saved ......... %d\n", n_files))
+            output <- paste0(output, "[OUTPUT] Output\n")
+            output <- paste0(output, sprintf("  Directory ........... %s\n", output_dir))
+            output <- paste0(output, sprintf("  Files saved ......... %d\n", n_files))
         }
         
-        cat("\n")
-        cat("[TIPS] Next steps:\n")
-        cat("  show(analysis)      - View object structure and slots\n")
-        cat("  summary(analysis)   - Print detailed statistics\n")
-        cat("  getPlot(analysis)   - Extract visualization results\n")
-        cat("\n")
+        output <- paste0(output,
+            "\n",
+            "[TIPS] Next steps:\n",
+            "  show(analysis)      - View object structure and slots\n",
+            "  summary(analysis)   - Print detailed statistics\n",
+            "  getPlot(analysis)   - Extract visualization results\n",
+            "\n"
+        )
+        
+        message(output)
     }
     analysis@metadata$ended_at <- Sys.time()
     analysis

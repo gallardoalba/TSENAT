@@ -273,21 +273,16 @@ print.gtable <- function(x, ...) {
                         "log2_fold_change", "pvalue", padj_col)
     }
     
-    suppressMessages({
-        suppressWarnings({
-            top_genes <- results_df %>%
-                dplyr::arrange(dplyr::across(dplyr::all_of(padj_col))) %>%
-                dplyr::slice(1:min(n_top, nrow(results_df))) %>%
-                dplyr::select(dplyr::all_of(intersect(select_cols, colnames(results_df)))) %>%
-                dplyr::mutate(
-                    dplyr::across(dplyr::where(is.numeric) & !dplyr::matches("abundance|mean|fold|stat"), 
-                                 ~ format(., scientific = TRUE, digits = 3)),
-                    dplyr::across(dplyr::matches("_mean$|mean_"), ~ round(., 4)),
-                    dplyr::across(dplyr::matches("fold_change|difference"), ~ round(., 4))
-                )
-        })
-    })
-    
+    top_genes <- results_df %>%
+        dplyr::arrange(dplyr::across(dplyr::all_of(padj_col))) %>%
+        dplyr::slice(seq_len(min(n_top, nrow(results_df)))) %>%
+        dplyr::select(dplyr::all_of(intersect(select_cols, colnames(results_df)))) %>%
+        dplyr::mutate(
+            dplyr::across(dplyr::where(is.numeric) & !dplyr::matches("abundance|mean|fold|stat"), 
+                         ~ format(., scientific = TRUE, digits = 3)),
+            dplyr::across(dplyr::matches("_mean$|mean_"), ~ round(., 4)),
+            dplyr::across(dplyr::matches("fold_change|difference"), ~ round(., 4))
+        )
     # Rename columns if provided
     if (!is.null(col_names) && length(col_names) == ncol(top_genes)) {
         colnames(top_genes) <- col_names
