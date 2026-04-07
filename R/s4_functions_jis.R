@@ -38,7 +38,8 @@
 #'
 #' @param q \code{numeric}.  Tsallis entropy parameter(s) to analyze.
 #'  Can be single value 
-#'   or vector for multi-q analysis (default: 1).
+#'   or vector for multi-q analysis (default: c(0, 0.5, 1, 1.5, 2)).
+#'   If NULL, uses @config$q_values.
 #'
 #' @param norm \code{logical}. Whether to use normalized diversity values 
 #'   (default: TRUE).
@@ -85,6 +86,26 @@
 #'   For .rds format, saves only the full analysis object.
 #'   Default: NULL (no file output).
 #' @param ... Additional arguments for future extensibility.
+#'
+#' @details
+#' **Parameter Resolution from Config**
+#'
+#' The following parameters are resolved using a three-level priority system:
+#' \enumerate{
+#'   \item User-provided argument (if not NULL)
+#'   \item Value from \code{analysis@config} (if key exists)
+#'   \item Function default value
+#' }
+#'
+#' Affected parameters:
+#' \itemize{
+#'   \item \code{q}: Uses config's \code{q_values} if available, else c(0, 0.5, 1, 1.5, 2)
+#'   \item \code{n_bootstrap}: Uses config's \code{n_bootstrap} if available, else 1000
+#'   \item \code{threshold}: Uses config's \code{threshold} if available, else 90
+#'   \item \code{lm_p_threshold}: Uses config's \code{lm_p_threshold} if available, else 0.05
+#' }
+#'
+#' This allows setting defaults once in the config and reusing across multiple analyses.
 #'
 #' @return \code{TSENATAnalysis} object with 
 #' jackknife results stored in \code{@jackknife_results}
@@ -149,7 +170,7 @@
 #' 
 #' @export
 jackknife_isoform_switching_s4 <- function(analysis, condition_col = NULL, subject_col = NULL,
-    gene_col = NULL, isoform_col = NULL, q = 1, norm = NULL, log_base = NULL, threshold = 90,
+    gene_col = NULL, isoform_col = NULL, q = c(0, 0.5, 1, 1.5, 2), norm = NULL, log_base = NULL, threshold = 90,
     n_bootstrap = 1000, pseudocount = NULL, lm_results = NULL, lm_p_threshold = 0.05,
     use_lm_fdr = TRUE, output_file = NULL, verbose = FALSE, ...) {
     # Validate input and extract SummarizedExperiment
@@ -166,20 +187,17 @@ jackknife_isoform_switching_s4 <- function(analysis, condition_col = NULL, subje
     # Extract or validate LM results
     lm_results <- .extract_lm_results(analysis, lm_results, verbose)
 
-    # Validate q-values are available in diversity results
-    .validate_diversity_q_values(analysis, q, verbose)
-
-    # Resolve and validate all parameters
+    # Resolve and validate all parameters (including threshold and lm_p_threshold)
     params <- .resolve_and_validate_jis_params(q, norm, log_base, pseudocount, n_bootstrap,
-        analysis, verbose)
+        threshold, lm_p_threshold, analysis, verbose)
 
     # Call base jackknife function
     result <- tryCatch({
         .jackknife_isoform_switching(se = se, condition_col = condition_col, subject_col = subject_col,
             gene_col = gene_col, isoform_col = isoform_col, q = params$q, norm = params$norm,
-            log_base = params$log_base, threshold = threshold, n_bootstrap = params$n_bootstrap,
+            log_base = params$log_base, threshold = params$threshold, n_bootstrap = params$n_bootstrap,
             pseudocount = params$pseudocount, verbose = verbose, lm_results = lm_results,
-            lm_p_threshold = lm_p_threshold, use_lm_fdr = use_lm_fdr)
+            lm_p_threshold = params$lm_p_threshold, use_lm_fdr = use_lm_fdr)
     }, error = function(e) {
         stop("[jackknife_isoform_switching_s4] Jackknife analysis failed:\n", conditionMessage(e),
             call. = FALSE)
@@ -341,13 +359,17 @@ jackknife_isoform_switching_s4 <- function(analysis, condition_col = NULL, subje
 
     q_vals <- if (is.numeric(q))
         q else c(q)
-    missing_q <- setdiff(q_vals, available_q)
-
-    if (length(missing_q) > 0) {
-        warning("[jackknife_isoform_switching_s4] Missing q-values: ", paste(missing_q,
-            collapse = ", "), call. = FALSE)
+    
+    # Use intersection of requested and available q-values
+    # This allows jackknife to work with any set of q-values from diversity
+    usable_q <- intersect(q_vals, available_q)
+    
+    if (length(usable_q) == 0) {
+        warning("[jackknife_isoform_switching_s4] No matching q-values found.\n",
+                "  Requested: ", paste(q_vals, collapse = ", "), "\n",
+                "  Available: ", paste(available_q, collapse = ", "), call. = FALSE)
     } else if (verbose) {
-        message("[jackknife_isoform_switching_s4] All q-values available")
+        message("[jackknife_isoform_switching_s4] Using q-values: ", paste(usable_q, collapse = ", "))
     }
 
     invisible(NULL)
@@ -366,17 +388,25 @@ jackknife_isoform_switching_s4 <- function(analysis, condition_col = NULL, subje
 #' @return List with resolved parameters and q_vals (numeric vector)
 #'
 #' @noRd
-.resolve_and_validate_jis_params <- function(q, norm, log_base, pseudocount, n_bootstrap,
-    analysis, verbose) {
+.resolve_and_validate_jis_params <- function(q, norm = NULL, log_base = NULL, pseudocount = NULL, n_bootstrap = 1000,
+    threshold = NULL, lm_p_threshold = NULL, analysis, verbose = FALSE) {
+    # Resolve q: use config if available, otherwise use the provided value (which has function default)
+    if (is.null(q) && "q_values" %in% names(analysis@config)) {
+        q <- analysis@config$q_values
+    }
+    
     # Convert q to numeric vector
     q_vals <- if (is.numeric(q))
-        q else as.numeric(c(q))
+        q else as.numeric(q)
 
-    # Resolve parameters from config
+    # Resolve all parameters from config using standard resolver
+    # Defaults match TSENAT.Rmd vignette usage
     norm <- resolve_slot_param(norm, analysis@config, "norm", TRUE)
     log_base <- resolve_slot_param(log_base, analysis@config, "log_base", exp(1))
-    pseudocount <- resolve_slot_param(pseudocount, analysis@config, "pseudocount",
-        0)
+    pseudocount <- resolve_slot_param(pseudocount, analysis@config, "pseudocount", 0)
+    n_bootstrap <- resolve_slot_param(n_bootstrap, analysis@config, "n_bootstrap", 1000)
+    threshold <- resolve_slot_param(threshold, analysis@config, "threshold", 90)
+    lm_p_threshold <- resolve_slot_param(lm_p_threshold, analysis@config, "lm_p_threshold", 0.05)
 
     # Validate n_bootstrap
     if (!is.numeric(n_bootstrap) || length(n_bootstrap) != 1 || n_bootstrap < 1) {
@@ -388,8 +418,18 @@ jackknife_isoform_switching_s4 <- function(analysis, condition_col = NULL, subje
             call. = FALSE)
     }
 
+    # Validate threshold
+    if (!is.numeric(threshold) || length(threshold) != 1) {
+        stop("'threshold' must be a single numeric value", call. = FALSE)
+    }
+
+    # Validate lm_p_threshold
+    if (!is.numeric(lm_p_threshold) || length(lm_p_threshold) != 1) {
+        stop("'lm_p_threshold' must be a single numeric value", call. = FALSE)
+    }
+
     list(q = q, q_vals = q_vals, norm = norm, log_base = log_base, pseudocount = pseudocount,
-        n_bootstrap = n_bootstrap)
+        n_bootstrap = n_bootstrap, threshold = threshold, lm_p_threshold = lm_p_threshold)
 }
 
 #' Store jackknife results in analysis object

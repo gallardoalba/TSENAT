@@ -9,7 +9,7 @@ calculate_lm_interaction_s4(
   fdr_threshold = NULL,
   formula = NULL,
   condition_col = NULL,
-  method = NULL,
+  method = "gam",
   paired = NULL,
   subject_col = NULL,
   nthreads = NULL,

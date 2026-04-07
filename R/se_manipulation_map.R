@@ -58,18 +58,27 @@
 ## Helper: Map external coldata into a SummarizedExperiment
 
 #' @noRd
-.map_metadata_se <- function(ts_se, coldata, coldata_sample_col = "Sample", coldata_condition_col = "Condition") {
+.map_metadata_se <- function(ts_se, coldata, sample_col = "sample", condition_col = NULL,
+    subject_col = NULL) {
     if (is.null(coldata) || !is.data.frame(coldata)) {
-        return(ts_se)
+        stop("[.map_metadata_se] metadata must be a data.frame", call. = FALSE)
     }
 
     # Verify minimum columns required
     if (ncol(coldata) < 2) {
-        return(ts_se)
+        stop("[.map_metadata_se] metadata must have at least 2 columns (sample and condition)",
+            call. = FALSE)
+    }
+
+    # Validate explicit column names are provided
+    if (is.null(condition_col)) {
+        stop("[.map_metadata_se] condition_col (column name for sample conditions) must be provided explicitly.\n",
+            "  Example: condition_col = 'condition'\n",
+            "  Available columns: ", paste(colnames(coldata), collapse = ", "), call. = FALSE)
     }
 
     # Detect and validate column indices using helper
-    col_indices <- .map_metadata_detect_columns(coldata, coldata_sample_col, coldata_condition_col)
+    col_indices <- .map_metadata_detect_columns(coldata, sample_col, condition_col)
     sample_col_idx <- col_indices$sample_col_idx
     condition_col_idx <- col_indices$condition_col_idx
 
@@ -78,7 +87,8 @@
     coldata_condition_col_values <- as.character(coldata[[condition_col_idx]])
 
     # Detect conditions and pairing structure
-    cond_info <- .map_metadata_detect_conditions(coldata, condition_col_idx, sample_col_idx)
+    cond_info <- .map_metadata_detect_conditions(coldata, condition_col_idx, sample_col_idx,
+        subject_col = subject_col)
     coldata_base <- cond_info$coldata_base
     has_pairing <- cond_info$has_pairing
 
@@ -421,21 +431,27 @@
 #' @return List with indices: sample_col_idx, condition_col_idx
 #'
 #' @noRd
-.map_metadata_detect_columns <- function(coldata, coldata_sample_col, coldata_condition_col) {
-    # Position-based detection (PRIMARY)
-    sample_col_idx <- 1
-    condition_col_idx <- 2
-
-    # Named column detection (FALLBACK) with case-insensitive matching
-    named_sample_col <- which(tolower(colnames(coldata)) == tolower(coldata_sample_col))
-    named_condition_col <- which(tolower(colnames(coldata)) == tolower(coldata_condition_col))
-
-    if (length(named_sample_col) > 0) {
-        sample_col_idx <- named_sample_col[1]
+.map_metadata_detect_columns <- function(coldata, sample_col, condition_col) {
+    # Explicit column detection ONLY - no fallbacks, no position-based detection
+    # Both sample_col and condition_col must be provided and must exist in metadata
+    
+    # EXACT match required for sample column (case-sensitive)
+    if (!(sample_col %in% colnames(coldata))) {
+        stop("[.map_metadata_detect_columns] Sample column '", sample_col, "' not found in metadata.\n",
+             "  Available columns: ", paste(colnames(coldata), collapse = ", "),
+             "\n  Ensure sample_col parameter EXACTLY matches a column name in your metadata (case-sensitive).",
+             call. = FALSE)
     }
-    if (length(named_condition_col) > 0) {
-        condition_col_idx <- named_condition_col[1]
+    sample_col_idx <- which(colnames(coldata) == sample_col)[1]
+    
+    # EXACT match required for condition column (case-sensitive)
+    if (!(condition_col %in% colnames(coldata))) {
+        stop("[.map_metadata_detect_columns] Condition column '", condition_col, "' not found in metadata.\n",
+             "  Available columns: ", paste(colnames(coldata), collapse = ", "),
+             "\n  Ensure condition_col parameter EXACTLY matches a column name in your metadata (case-sensitive).",
+             call. = FALSE)
     }
+    condition_col_idx <- which(colnames(coldata) == condition_col)[1]
 
     list(sample_col_idx = sample_col_idx, condition_col_idx = condition_col_idx)
 }
@@ -452,19 +468,36 @@
 #'   has_pairing (TRUE if 3+ columns)
 #'
 #' @noRd
-.map_metadata_detect_conditions <- function(coldata, condition_col_idx, sample_col_idx) {
+.map_metadata_detect_conditions <- function(coldata, condition_col_idx, sample_col_idx,
+    subject_col = NULL) {
     coldata_condition_col_values <- as.character(coldata[[condition_col_idx]])
     coldata_sample_col_values <- as.character(coldata[[sample_col_idx]])
 
     # Sorted conditions for deterministic ordering
     conds <- sort(unique(coldata_condition_col_values))
 
-    # Auto-detect pairing from third column or extract from sample names
-    if (ncol(coldata) >= 3) {
-        coldata_base <- as.character(coldata[[3]])
+    # Warn if only one condition is present
+    if (length(conds) == 1) {
+        warning("[.map_metadata_detect_conditions] Only one condition detected: '", conds, "'\n",
+            "  Consider using multiple conditions for meaningful statistical analysis.",
+            call. = FALSE)
+    }
+
+    # Pairing structure: explicit subject_col required for paired analysis
+    if (!is.null(subject_col)) {
+        # subject_col explicitly provided - use it for pairing
+        if (!(subject_col %in% colnames(coldata))) {
+            stop("[.map_metadata_detect_conditions] Subject column '", subject_col,
+                "' not found in metadata.\n",
+                "  Available columns: ", paste(colnames(coldata), collapse = ", "),
+                "\n  Ensure subject_col parameter EXACTLY matches a column name in your metadata (case-sensitive).",
+                call. = FALSE)
+        }
+        subject_col_idx <- which(colnames(coldata) == subject_col)[1]
+        coldata_base <- as.character(coldata[[subject_col_idx]])
         has_pairing <- TRUE
 
-        # Validate pairing consistency
+        # Validate pairing consistency: each subject should have all conditions
         bases <- unique(coldata_base)
         if (length(conds) >= 2) {
             unpaired <- vapply(bases, function(b) {
@@ -474,14 +507,15 @@
             if (length(bad) > 0) {
                 bad_list <- paste(bad, collapse = ", ")
                 cond_list <- paste(conds, collapse = ", ")
-                msg <- paste0("Unpaired samples found in coldata for bases: ", bad_list,
-                  ". Ensure each base has all conditions: ", cond_list)
+                msg <- paste0("[.map_metadata_detect_conditions] Unpaired subjects found: ", bad_list,
+                  "\n  Each subject must have all conditions: ", cond_list)
                 stop(msg, call. = FALSE)
             }
         }
     } else {
-        # Extract base by removing trailing suffix
-        coldata_base <- sub("_[^_]+$", "", coldata_sample_col_values)
+        # No subject_col provided - unpaired analysis
+        # Do NOT auto-extract from sample names (no implicit fallback)
+        coldata_base <- coldata_sample_col_values
         has_pairing <- FALSE
     }
 

@@ -129,6 +129,7 @@ gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 
 # Configure analysis parameters first (best practice: fail-fast validation)
 config <- tsenat_config(
+  sample_col = "sample",
   condition_col = "condition",
   subject_col = "paired_samples",
   q_values = seq(0, 2, by = 0.05),

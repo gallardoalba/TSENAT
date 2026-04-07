@@ -272,7 +272,7 @@
 #' 
 #' # Run linear model interaction analysis
 #' results <- .calculate_lm_interaction(se, condition_col = 'condition')
-.calculate_lm_interaction <- function(se, condition_col = "condition", min_obs = 10,
+.calculate_lm_interaction <- function(se, condition_col = "condition", min_obs = 5,
     method = c("lmm", "gam", "fpca", "gee"), pvalue = c("satterthwaite", "lrt", "both"),
     subject_col = NULL, paired = FALSE, nthreads = 1, assay_name = "diversity", pcorr = "BH",
     verbose = FALSE, bias_correction = TRUE, regularization = c("pca", "lasso", "elasticnet",

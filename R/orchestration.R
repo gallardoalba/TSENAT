@@ -11,9 +11,11 @@
 #' Coordinates the full TSENAT workflow: diversity -> jackknife -> LM
 #' interactions -> divergence -> gene interactions -> visualizations.
 #'
-#' @param se \code{SummarizedExperiment} containing expression counts.
+#' @param analysis \code{TSENATAnalysis} object created by \code{\link{build_analysis_s4}}.
 #' @param config \code{list} or \code{TSENATConfig}. Configuration from
-#'   \code{\link{tsenat_config}}. If NULL, uses defaults.
+#'   \code{\link{tsenat_config}}. If NULL, uses configuration from analysis object.
+#' @param output_dir \code{character}. Directory to save results and plots.
+#'   Default: "tsenat_outputs". Set to NULL to disable automatic output saving.
 #' @param methods \code{character}. Specific methods to run (overrides config).
 #' @param q_values \code{numeric}. Specific q-values (overrides config).
 #' @param generate_plots \code{logical}. Create visualizations. Default: TRUE.
@@ -26,84 +28,99 @@
 #'   plots, and metadata.
 #'
 #' @details
-#' Pipeline execution order (enforced):
+#' Pipeline execution order (enforced, follows TSENAT.Rmd vignette):
 #' \enumerate{
+#'   \item \code{filter_analysis_s4()} - Filter low-abundance transcripts
 #'   \item \code{calculate_diversity_s4()} - Tsallis entropy per q-value
-#'   \item \code{jackknife_entropy_outliers_s4()} - Confidence intervals
-#'   \item \code{jackknife_isoform_switching_s4()} - Transcript switching (optional)
-#'   \item \code{calculate_lm_interaction_s4()} - Statistical tests
-#'   \item \code{calculate_difference_s4()} - Pairwise group differences (optional)
+#'   \item \code{plot_tsallis_q_curve_s4()} - Visualize q-spectrum
+#'   \item \code{m_estimate_s4()} - Sample influence QC analysis
+#'   \item \code{calculate_lm_interaction_s4()} - LM interaction testing
+#'   \item \code{plot_lm_interaction_gam_s4()} - GAM visualization of LM results
+#'   \item \code{jackknife_isoform_switching_s4()} - Transcript switching detection
+#'   \item \code{plot_multiq_delta_influence_heatmaps_s4()} - Multi-q influence heatmap
+#'   \item \code{plot_top_transcripts_s4()} - Top transcript visualization
 #'   \item \code{calculate_divergence_s4()} - Pairwise divergence metrics
-#'   \item \code{effect_sizes_divergence_s4()} - Effect sizes (optional)
-#'   \item \code{rank_test_q_condition_s4()} - Q-dependent interactions
-#'   \item \code{test_rankbased_assumptions_s4()} - Assumption validation (optional)
-#'   \item \code{compute_method_concordance_s4()} - Method comparison (optional)
-#'   \item Plot generation (if enabled)
+#'   \item \code{effect_sizes_divergence_s4()} - Effect size computation
+#'   \item \code{plot_divergence_distribution_s4()} - Divergence distribution plot
+#'   \item \code{plot_divergence_spectrum_s4()} - Divergence spectrum plot
 #' }
 #'
 #' @examples
-#' library(SummarizedExperiment)
-#' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10,
-#'                                  dimnames = list(sprintf('G%d', 1:10), NULL))),
-#'   colData = data.frame(
-#'     condition = rep(c('A', 'B'), 5),
-#'     sample_id = rep(c('S1', 'S2'), 5)
-#'   )
+#' data(readcounts, package = "TSENAT")
+#' metadata_df <- read.table(
+#'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
+#'   header = TRUE, sep = "\t"
 #' )
+#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' 
+#' analysis <- build_analysis_s4(
+#'   readcounts = as.matrix(readcounts),
+#'   tx2gene = gff3_file,
+#'   metadata = metadata_df,
+#'   tpm = tpm,
+#'   effective_length = effective_length
+#' )
+#' 
 #' cfg <- tsenat_config(q_values = c(0.5, 1.0), generate_plots = FALSE)
-#' analysis <- tsenat(se, config = cfg)
+#' result <- tsenat(analysis, config = cfg)
 #'
 #' @export
-tsenat <- function(se, config = NULL, methods = NULL, q_values = NULL, generate_plots = TRUE,
-    verbose = TRUE, parallel = FALSE, ...) {
+tsenat <- function(analysis, config = NULL, output_dir = "tsenat_outputs", verbose = TRUE, ...) {
     # Validate input
-    if (!is(se, "SummarizedExperiment")) {
-        stop("'se' must be a SummarizedExperiment object", call. = FALSE)
+    if (!is(analysis, "TSENATAnalysis")) {
+        stop("'analysis' must be a TSENATAnalysis object created by build_analysis_s4()",
+            call. = FALSE)
     }
-    if (nrow(se) == 0) {
-        stop("SummarizedExperiment is empty", call. = FALSE)
+    if (nrow(se(analysis)) == 0) {
+        stop("TSENATAnalysis contains an empty SummarizedExperiment", call. = FALSE)
     }
 
-    # Initialize and setup parameters
-    analysis <- TSENATAnalysis(se = se, config = config)
+    # Create output directory if specified
+    if (!is.null(output_dir) && !dir.exists(output_dir)) {
+        dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+        if (verbose) message("Created output directory: ", output_dir)
+    }
+
+    # Update config if provided
+    if (!is.null(config)) {
+        analysis <- setConfig(analysis, config)
+    }
     .validate_analysis_object(analysis)
 
-    params <- .setup_tsenat_parameters(analysis, methods, q_values, generate_plots,
-        parallel)
-    analysis <- params$analysis
-    methods_to_run <- params$methods_to_run
-    q_vals <- params$q_vals
-    condition_col_name <- params$condition_col_name
-    do_plots <- params$do_plots
+    # Extract parameters
+    cfg <- getConfig(analysis)
+    q_vals <- cfg$q_values %||% seq(0.5, 2, by = 0.5)
+    condition_col <- cfg$condition_col %||% "condition"
 
-    # Validate and execute pipeline
-    .validate_tsenat_methods(methods_to_run)
+    # Log pipeline start
     if (verbose)
-        .log_pipeline_start(se, methods_to_run, q_vals)
+        .log_pipeline_start(se(analysis), q_vals)
 
-    analysis <- .execute_diversity_step(analysis, q_vals, methods_to_run, verbose,
-        ...)
-    analysis <- .execute_jackknife_step(analysis, q_vals, methods_to_run, verbose,
-        ...)
-    analysis <- .execute_jackknife_isoform_switching_step(analysis, q_vals, condition_col_name,
-        methods_to_run, verbose, ...)
-    analysis <- .execute_lm_interaction_step(analysis, methods_to_run, verbose, ...)
-    analysis <- .execute_difference_step(analysis, q_vals, condition_col_name, methods_to_run,
-        verbose, ...)
-    analysis <- .execute_divergence_step(analysis, q_vals, methods_to_run, verbose,
-        ...)
-    analysis <- .execute_effect_sizes_step(analysis, methods_to_run, verbose, ...)
-    analysis <- .execute_q_interactions_step(analysis, q_vals, condition_col_name,
-        methods_to_run, verbose, ...)
-    analysis <- .execute_rankbased_assumptions_step(analysis, q_vals, methods_to_run,
-        verbose, ...)
-    analysis <- .execute_method_concordance_step(analysis, methods_to_run, verbose,
-        ...)
-    analysis <- .execute_plot_generation(analysis, do_plots, verbose)
+    # Execute vignette workflow (in order)
+    if (verbose)
+        message("Step 1: Filtering low-abundance transcripts...")
+    tryCatch({
+        analysis <- filter_analysis_s4(analysis)
+        if (verbose)
+            message("  [OK] Filtering complete")
+    }, error = function(e) warning("Filtering failed:\n", e$message, call. = FALSE))
+
+    analysis <- .execute_diversity_s4(analysis, q_vals, verbose, output_dir)
+    analysis <- .execute_q_curve_plot(analysis, verbose, output_dir)
+    analysis <- .execute_m_estimate_qc(analysis, condition_col, verbose, output_dir)
+    analysis <- .execute_lm_interaction_s4(analysis, verbose, output_dir)
+    analysis <- .execute_lm_interaction_plot(analysis, verbose, output_dir)
+    analysis <- .execute_jackknife_isoform_switching(analysis, q_vals, condition_col,
+        verbose, output_dir)
+    analysis <- .execute_influence_heatmap_plot(analysis, verbose, output_dir)
+    analysis <- .execute_top_transcripts_plot(analysis, verbose, output_dir)
+    analysis <- .execute_divergence_s4(analysis, q_vals, verbose, output_dir)
+    analysis <- .execute_effect_sizes_s4(analysis, verbose, output_dir)
+    analysis <- .execute_divergence_dist_plot(analysis, verbose, output_dir)
+    analysis <- .execute_divergence_spectrum_plot(analysis, verbose, output_dir)
 
     # Track completion metadata
-    analysis <- .track_analysis_metadata(analysis, methods_to_run, analysis@config)
+    analysis <- .track_analysis_metadata(analysis, analysis@config)
     analysis <- .finalize_tsenat_analysis(analysis, verbose)
 
     analysis
@@ -256,6 +273,9 @@ getResults <- function(analysis, type = "diversity", q = NULL, simplify = TRUE) 
 #'   'q_curve', 'lm_interaction', 'divergence_distribution', 'divergence_spectrum',
 #'   'influence_heatmap', 'volcano', 'method_concordance', 'multi_gene_q_spectrum',
 #'   'top_transcripts', 'tsallis_violin_density'. Default: all available types.
+#' @param nthreads \code{integer}. Number of threads for parallel computation
+#'   where supported (diversity, divergence, LM fitting). Default: 1 (no parallelization).
+#'   Use 2+ for multi-core systems to improve performance.
 #' @param ... Additional configuration parameters (stored as-is in @config slot).
 #'   Examples: \code{q_diff=1.0} (specific q for differences),
 #'   \code{alpha=0.05} (significance for assumptions), etc.
@@ -287,9 +307,9 @@ getResults <- function(analysis, type = "diversity", q = NULL, simplify = TRUE) 
 #'
 #' @export
 tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_col = NULL,
-    paired = FALSE, control = NULL, formula = NULL, p_threshold = 0.05, fdr_threshold = 0.05,
+    sample_col = "sample", paired = FALSE, control = NULL, formula = NULL, p_threshold = 0.05, fdr_threshold = 0.05,
     significance_threshold = 0.05, n_bootstrap = 1000, bootstrap_method = "percentile",
-    methods = NULL, generate_plots = TRUE, plot_types = NULL, ...) {
+    methods = NULL, generate_plots = TRUE, plot_types = NULL, nthreads = 1, ...) {
     # Build q_values if range specified
     if (is.null(q_values)) {
         q_values <- seq(0.5, 2, by = 0.5)
@@ -318,9 +338,9 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 
     # Build config list with all parameters
     config <- list(q_values = q_values, condition_col = condition_col, subject_col = subject_col,
-        paired = paired, control = control, p_threshold = p_threshold, fdr_threshold = fdr_threshold,
+        sample_col = sample_col, paired = paired, control = control, p_threshold = p_threshold, fdr_threshold = fdr_threshold,
         significance_threshold = significance_threshold, n_bootstrap = n_bootstrap,
-        bootstrap_method = bootstrap_method, methods = methods, generate_plots = generate_plots)
+        bootstrap_method = bootstrap_method, methods = methods, generate_plots = generate_plots, nthreads = nthreads)
 
     # Add optional parameters
     if (!is.null(formula))
@@ -328,10 +348,48 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
     if (!is.null(plot_types))
         config$plot_types <- plot_types
 
-    # Add any additional parameters
+    # Add any additional parameters (except metadata - should be explicit to build_analysis_s4)
     extra_args <- list(...)
+    # Reject metadata in config to enforce Bioconductor pattern (explicit data parameters)
+    if (!is.null(extra_args$metadata)) {
+        warning("[tsenat_config] Parameter 'metadata' should not be in config.\n",
+                "  Pass metadata directly to build_analysis_s4() as explicit parameter.\n",
+                "  Bioconductor pattern: data files are explicit, config is for analysis choices.",
+                call. = FALSE)
+        extra_args$metadata <- NULL
+    }
     if (length(extra_args) > 0) {
         config <- c(config, extra_args)
+    }
+
+    # Validate paired design configuration (fail-fast principle)
+    if (paired == TRUE) {
+        missing_paired_params <- c()
+        
+        if (is.null(subject_col)) {
+            missing_paired_params <- c(missing_paired_params, "subject_col")
+        }
+        if (is.null(control)) {
+            missing_paired_params <- c(missing_paired_params, "control")
+        }
+        if (is.null(q_values) || length(q_values) < 5) {
+            missing_paired_params <- c(missing_paired_params, "q_values (recommended: >= 5 values)")
+        }
+        
+        if (length(missing_paired_params) > 0) {
+            warning("[tsenat_config] Paired design (paired=TRUE) requires complete configuration.\n",
+                "  Missing or incomplete parameters: ", paste(missing_paired_params, collapse = ", "), "\n",
+                "  This will cause downstream analysis failure or empty results (LM interaction, plotting).\n",
+                "  Provide all parameters: \n",
+                "    config <- tsenat_config(\n",
+                "      q_values = seq(0, 2, by = 0.05),       # At least 5 q-values (41 recommended)\n",
+                "      condition_col = 'condition',\n",
+                "      subject_col = 'paired_samples',        # Required for paired analysis\n",
+                "      paired = TRUE,\n",
+                "      control = 'normal'                     # Reference group for comparisons\n",
+                "    )",
+                call. = FALSE)
+        }
     }
 
     # Mark as TSENATConfig (but keep as list for S4 slot)
@@ -343,382 +401,10 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 # HELPER FUNCTIONS (INTERNAL - NOT EXPORTED)
 # ============================================================================
 
-#' Setup TSENAT parameters from config
-#' @noRd
-.setup_tsenat_parameters <- function(analysis, methods, q_values, generate_plots,
-    parallel) {
-    `%||%` <- function(x, y) if (is.null(x))
-        y else x
-
-    if (!is.null(methods))
-        analysis@config$methods <- methods
-    if (!is.null(q_values))
-        analysis@config$q_values <- q_values
-
-    list(methods_to_run = analysis@config$methods %||% c("diversity", "lm_interaction",
-        "jackknife", "divergence", "q_interactions"), q_vals = analysis@config$q_values %||%
-        seq(0.5, 2, by = 0.5), condition_col_name = analysis@config$condition_col %||%
-        "condition", do_plots = generate_plots && (analysis@config$generate_plots %||%
-        TRUE), do_parallel = parallel && ("parallel" %in% rownames(utils::installed.packages())),
-        analysis = analysis)
-}
-
-#' Validate method dependencies
-#' @noRd
-.validate_tsenat_methods <- function(methods_requested) {
-    dependencies <- list(jackknife = "diversity", divergence = "diversity", q_interactions = "diversity",
-        lm_interaction = "diversity")
-
-    for (method in methods_requested) {
-        if (method %in% names(dependencies)) {
-            required <- dependencies[[method]]
-            if (!(required %in% methods_requested)) {
-                stop("Method '", method, "' requires '", required, "' to be in methods list.",
-                  call. = FALSE)
-            }
-        }
-    }
-}
-
-#' Log pipeline start
-#' @noRd
-.log_pipeline_start <- function(se, methods_to_run, q_vals) {
-    message("TSENAT Pipeline")
-    message("===============")
-    message(sprintf("Genes:   %d", nrow(se)))
-    message(sprintf("Samples: %d", ncol(se)))
-    message(sprintf("Methods: %s", paste(methods_to_run, collapse = ", ")))
-    message(sprintf("Q-values: %s", paste(q_vals, collapse = ", ")))
-}
-
-#' Execute diversity step
-#' @noRd
-.execute_diversity_step <- function(analysis, q_vals, methods_to_run, verbose, ...) {
-    if (!("diversity" %in% methods_to_run))
-        return(analysis)
-
-    if (verbose)
-        message("Step 1: Calculating diversity...")
-    tryCatch({
-        analysis <- calculate_diversity_s4(analysis, q = q_vals, ...)
-        if (verbose)
-            message(sprintf("  [OK] Diversity for q = %s", paste(q_vals, collapse = ", ")))
-    }, error = function(e) stop("Diversity failed:\n", e$message, call. = FALSE))
-    analysis
-}
-
-#' Execute jackknife step
-#' @noRd
-.execute_jackknife_step <- function(analysis, q_vals, methods_to_run, verbose, ...) {
-    if (!("jackknife" %in% methods_to_run))
-        return(analysis)
-
-    if (length(analysis@diversity_results) == 0) {
-        if (verbose)
-            message("Step 2: Skipping jackknife (requires diversity)")
-        return(analysis)
-    }
-
-    if (verbose)
-        message("Step 2: Running jackknife resampling...")
-    tryCatch({
-        analysis <- jackknife_entropy_outliers_s4(analysis, q = q_vals, verbose = FALSE,
-            ...)
-        if (verbose)
-            message("  [OK] Jackknife CIs computed")
-    }, error = function(e) warning("Jackknife failed:\n", e$message, call. = FALSE))
-    analysis
-}
-
-#' Execute LM interaction step
-#' @noRd
-.execute_lm_interaction_step <- function(analysis, methods_to_run, verbose, ...) {
-    if (!("lm_interaction" %in% methods_to_run))
-        return(analysis)
-
-    if (verbose)
-        message("Step 4: Testing LM interactions...")
-    tryCatch({
-        fdr <- if (is.null(analysis@config$fdr_threshold))
-            0.05 else analysis@config$fdr_threshold
-        analysis <- calculate_lm_interaction_s4(analysis, fdr_threshold = fdr, ...)
-        if (verbose)
-            message("  [OK] LM analysis complete")
-    }, error = function(e) warning("LM failed:\n", e$message, call. = FALSE))
-    analysis
-}
-
-#' Execute difference step
-#' @noRd
-.execute_difference_step <- function(analysis, q_vals, condition_col_name, methods_to_run,
-    verbose, ...) {
-    if (!("difference" %in% methods_to_run))
-        return(analysis)
-
-    if (length(analysis@diversity_results) == 0) {
-        if (verbose)
-            message("Step 5: Skipping difference (requires diversity)")
-        return(analysis)
-    }
-
-    if (verbose)
-        message("Step 5: Testing pairwise differences...")
-    tryCatch({
-        control <- if (!is.null(analysis@config$control)) {
-            analysis@config$control
-        } else {
-            if (verbose)
-                message("  [SKIP] No 'control' group specified in config")
-            return(analysis)
-        }
-
-        q_to_use <- if (!is.null(analysis@config$q_diff)) {
-            analysis@config$q_diff
-        } else {
-            NULL  # Will use first available from diversity_results
-        }
-
-        analysis <- calculate_difference_s4(analysis, control = control, q = q_to_use,
-            condition_col = condition_col_name, ...)
-        if (verbose)
-            message("  [OK] Difference analysis complete")
-    }, error = function(e) warning("Difference failed:\n", e$message, call. = FALSE))
-    analysis
-}
-
-#' Execute divergence step
-#' @noRd
-.execute_divergence_step <- function(analysis, q_vals, methods_to_run, verbose, ...) {
-    if (!("divergence" %in% methods_to_run))
-        return(analysis)
-
-    if (length(analysis@diversity_results) == 0) {
-        if (verbose)
-            message("Step 6: Skipping divergence (requires diversity)")
-        return(analysis)
-    }
-
-    if (verbose)
-        message("Step 6: Calculating divergence metrics...")
-    tryCatch({
-        analysis <- calculate_divergence_s4(analysis, q = q_vals[1])
-        if (verbose)
-            message("  [OK] Divergence computed")
-    }, error = function(e) warning("Divergence failed:\n", e$message, call. = FALSE))
-    analysis
-}
-
-#' Execute Q-interactions step
-#' @noRd
-.execute_q_interactions_step <- function(analysis, q_vals, condition_col_name, methods_to_run,
-    verbose, ...) {
-    if (!("q_interactions" %in% methods_to_run))
-        return(analysis)
-
-    if (length(analysis@diversity_results) == 0) {
-        if (verbose)
-            message("Step 7: Skipping Q-interactions (requires diversity)")
-        return(analysis)
-    }
-
-    if (verbose)
-        message("Step 7: Detecting Q-dependent interactions...")
-    tryCatch({
-        analysis <- rank_test_q_condition_s4(analysis, condition_col = condition_col_name,
-            q = q_vals, ...)
-        if (verbose)
-            message("  [OK] Q-interactions detected")
-    }, error = function(e) warning("Q-interactions failed:\n", e$message, call. = FALSE))
-    analysis
-}
-
-#' Execute jackknife isoform switching step
-#' @noRd
-.execute_jackknife_isoform_switching_step <- function(analysis, q_vals, condition_col_name,
-    methods_to_run, verbose, ...) {
-    if (!("jackknife_isoform_switching" %in% methods_to_run))
-        return(analysis)
-
-    if (length(analysis@diversity_results) == 0) {
-        if (verbose)
-            message("Step 3: Skipping isoform switching (requires diversity)")
-        return(analysis)
-    }
-
-    if (verbose)
-        message("Step 3: Computing isoform switching jackknife...")
-    tryCatch({
-        analysis <- jackknife_isoform_switching_s4(analysis, q = q_vals, condition_col = condition_col_name,
-            verbose = FALSE, ...)
-        if (verbose)
-            message("  [OK] Isoform switching jackknife complete")
-    }, error = function(e) {
-        if (verbose)
-            warning("Isoform switching jackknife skipped: ", e$message, call. = FALSE)
-    })
-    analysis
-}
-
-#' Execute additional LM step helpers
-#' @noRd
-.execute_effect_sizes_step <- function(analysis, methods_to_run, verbose, ...) {
-    if (!("effect_sizes" %in% methods_to_run))
-        return(analysis)
-
-    if (length(analysis@divergence_results) == 0 || length(analysis@lm_results) ==
-        0) {
-        if (verbose)
-            message("Step 8: Skipping effect sizes (requires divergence and LM)")
-        return(analysis)
-    }
-
-    if (verbose)
-        message("Step 8: Computing effect sizes...")
-    tryCatch({
-        analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE, ...)
-        if (verbose)
-            message("  [OK] Effect sizes computed")
-    }, error = function(e) {
-        if (verbose)
-            warning("Effect size computation skipped: ", e$message, call. = FALSE)
-    })
-    analysis
-}
-
-#' Execute rankbased assumptions testing
-#' @noRd
-.execute_rankbased_assumptions_step <- function(analysis, q_vals, methods_to_run,
-    verbose, ...) {
-    if (!("rankbased_assumptions" %in% methods_to_run))
-        return(analysis)
-
-    if (length(analysis@diversity_results) == 0) {
-        if (verbose)
-            message("Step 9: Skipping rankbased assumptions (requires diversity)")
-        return(analysis)
-    }
-
-    if (verbose)
-        message("Step 9: Testing rankbased method assumptions...")
-    tryCatch({
-        analysis <- test_rankbased_assumptions_s4(analysis, q = q_vals[1], verbose = FALSE,
-            ...)
-        if (verbose)
-            message("  [OK] Assumption tests complete")
-    }, error = function(e) {
-        if (verbose)
-            warning("Assumption testing skipped: ", e$message, call. = FALSE)
-    })
-    analysis
-}
-
-#' Execute method concordance computation
-#' @noRd
-.execute_method_concordance_step <- function(analysis, methods_to_run, verbose, ...) {
-    if (!("method_concordance" %in% methods_to_run))
-        return(analysis)
-
-    if (length(analysis@lm_results) < 2) {
-        if (verbose)
-            message("Step 10: Skipping method concordance (requires multiple LM methods)")
-        return(analysis)
-    }
-
-    if (verbose)
-        message("Step 10: Computing method concordance...")
-    tryCatch({
-        analysis <- compute_method_concordance_s4(analysis, verbose = FALSE, ...)
-        if (verbose)
-            message("  [OK] Method concordance computed")
-    }, error = function(e) {
-        if (verbose)
-            warning("Method concordance skipped: ", e$message, call. = FALSE)
-    })
-    analysis
-}
-
-#' Execute plot generation
-#' @noRd
-.execute_plot_generation <- function(analysis, do_plots, verbose) {
-    if (!do_plots || length(analysis@diversity_results) == 0)
-        return(analysis)
-
-    if (verbose)
-        message("Step 11: Generating plots...")
-    tryCatch({
-        `%||%` <- function(x, y) if (is.null(x))
-            y else x
-        plot_types <- analysis@config$plot_types %||% c("q_curve", "lm_interaction",
-            "divergence_distribution", "divergence_spectrum", "influence_heatmap",
-            "volcano", "method_concordance", "multi_gene_q_spectrum", "top_transcripts",
-            "tsallis_violin_density")
-
-        for (ptype in plot_types) {
-            tryCatch({
-                plot_obj <- .generate_plot_by_type(ptype, analysis)
-                if (!is.null(plot_obj)) {
-                  analysis <- addPlot(analysis, type = ptype, plot = plot_obj, replace = TRUE)
-                }
-            }, error = function(e) {
-                if (verbose)
-                  warning(sprintf("Plot '%s' failed: %s", ptype, e$message), call. = FALSE)
-            })
-        }
-        if (verbose)
-            message(sprintf("  [OK] %d plot(s) generated", length(analysis@plots)))
-    }, error = function(e) warning("Plot generation failed:\n", e$message, call. = FALSE))
-    analysis
-}
-
-#' Generate plot by type
-#' @noRd
-.generate_plot_by_type <- function(ptype, analysis) {
-    switch(ptype, q_curve = if (length(analysis@diversity_results) > 0) {
-        plot_tsallis_q_curve_s4(analysis)
-    } else NULL, lm_interaction = if (length(analysis@lm_results) > 0 && "lm_interaction" %in%
-        names(analysis@lm_results) && !is.null(analysis@lm_results$lm_interaction$results) &&
-        nrow(analysis@lm_results$lm_interaction$results) > 0) {
-        plot_lm_interaction_gam_s4(analysis)
-    } else NULL, divergence_distribution = if (!is.null(analysis@metadata$effect_sizes_divergence)) {
-        plot_divergence_distribution_s4(analysis)
-    } else NULL, divergence_spectrum = if (length(analysis@divergence_results) >
-        0) {
-        plot_divergence_spectrum_s4(analysis)
-    } else NULL, influence_heatmap = if (length(analysis@lm_results) > 0 && "q_interactions" %in%
-        names(analysis@lm_results)) {
-        plot_multiq_delta_influence_heatmaps_s4(analysis)
-    } else NULL, volcano = if (!is.null(analysis@pairwise_results$difference) &&
-        length(analysis@divergence_results) > 0) {
-        plot_volcano_ma_grid_s4(analysis)
-    } else NULL, method_concordance = if (!is.null(analysis@metadata$method_concordance)) {
-        plot_method_concordance_s4(analysis)
-    } else NULL, multi_gene_q_spectrum = if (length(analysis@lm_results) > 0 && length(analysis@diversity_results) >
-        0) {
-        plot_multi_gene_q_spectrum_s4(analysis)
-    } else NULL, top_transcripts = if (length(analysis@diversity_results) > 0 &&
-        length(analysis@lm_results) > 0) {
-        plot_top_transcripts_s4(analysis)
-    } else NULL, tsallis_violin_density = if (length(analysis@diversity_results) >
-        0) {
-        plot_tsallis_violin_density_grid_s4(analysis)
-    } else NULL, NULL)
-}
-
-#' Track analysis metadata
-#' @noRd
-.track_analysis_metadata <- function(analysis, methods_run, config) {
-    analysis@metadata$workflow <- list(steps_completed = methods_run, completion_time = Sys.time(),
-        tsenat_version = utils::packageVersion("TSENAT"))
-    analysis@metadata$methods_parameters <- list(fdr_threshold = config$fdr_threshold,
-        q_values = config$q_values, condition_col = config$condition_col %||% "condition")
-    analysis
-}
-
 #' Validate analysis object structure
 #' @noRd
 .validate_analysis_object <- function(analysis) {
-    checks <- list(se_valid = !is.null(analysis@se) && nrow(analysis@se) > 0, coldata_valid = all(c("condition") %in%
-        colnames(SummarizedExperiment::colData(analysis@se))), min_samples = ncol(analysis@se) >=
+    checks <- list(se_valid = !is.null(analysis@se) && nrow(analysis@se) > 0, min_samples = ncol(analysis@se) >=
         2, min_genes = nrow(analysis@se) >= 10)
 
     if (!all(unlist(checks))) {
@@ -727,24 +413,284 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
     }
 }
 
+#' Log pipeline start
+#' @noRd
+.log_pipeline_start <- function(se, q_vals) {
+    message("TSENAT Isoform Switching Workflow")
+    message("==================================")
+    message(sprintf("Transcripts: %d", nrow(se)))
+    message(sprintf("Samples: %d", ncol(se)))
+    message(sprintf("Q-spectrum: %s", paste(q_vals, collapse = ", ")))
+}
+
+#' Step 2: Diversity calculation
+#' @noRd
+.execute_diversity_s4 <- function(analysis, q_vals, verbose, output_dir) {
+    if (verbose)
+        message("Step 2: Computing Tsallis diversity across q-spectrum...")
+    tryCatch({
+        output_file <- if (!is.null(output_dir)) file.path(output_dir, "diversity_results.tsv") else NULL
+        analysis <- calculate_diversity_s4(analysis, q = q_vals, output_file = output_file)
+        if (verbose)
+            message(sprintf("  [OK] Diversity computed for q = %s", paste(q_vals,
+                collapse = ", ")))
+    }, error = function(e) stop("Diversity failed:\n", e$message, call. = FALSE))
+    analysis
+}
+
+#' Step 3: Q-curve plot
+#' @noRd
+.execute_q_curve_plot <- function(analysis, verbose, output_dir) {
+    if (verbose)
+        message("Step 3: Plotting q-spectrum curve...")
+    tryCatch({
+        output_file <- if (!is.null(output_dir)) file.path(output_dir, "q_curve_plot.png") else NULL
+        p_qcurve <- plot_tsallis_q_curve_s4(analysis, output_file = output_file)
+        if (!is.null(p_qcurve)) {
+            analysis <- addPlot(analysis, type = "q_curve", plot = p_qcurve, replace = TRUE)
+            if (verbose)
+                message("  [OK] Q-curve plot generated")
+        }
+    }, error = function(e) {
+        if (verbose)
+            warning("Q-curve plot failed: ", e$message, call. = FALSE)
+    })
+    analysis
+}
+
+#' Step 4: M-estimate QC analysis
+#' @noRd
+.execute_m_estimate_qc <- function(analysis, condition_col, verbose, output_dir) {
+    if (verbose)
+        message("Step 4: Running sample influence QC analysis (m-estimator)...")
+    tryCatch({
+        output_file <- if (!is.null(output_dir)) file.path(output_dir, "m_estimate_qc.tsv") else NULL
+        analysis <- m_estimate_s4(analysis, condition_col = condition_col, output_file = output_file)
+        if (verbose)
+            message("  [OK] M-estimate QC complete")
+    }, error = function(e) {
+        if (verbose)
+            warning("M-estimate QC failed: ", e$message, call. = FALSE)
+    })
+    analysis
+}
+
+#' Step 5: LM interaction testing
+#' @noRd
+.execute_lm_interaction_s4 <- function(analysis, verbose, output_dir) {
+    if (verbose)
+        message("Step 5: Testing LM interactions with GAM smoother...")
+    tryCatch({
+        cfg <- getConfig(analysis)
+        fdr <- cfg$fdr_threshold %||% 0.05
+        output_file <- if (!is.null(output_dir)) file.path(output_dir, "lm_interaction_results.tsv") else NULL
+        analysis <- calculate_lm_interaction_s4(analysis, fdr_threshold = fdr, output_file = output_file)
+        if (verbose)
+            message("  [OK] LM interaction analysis complete")
+    }, error = function(e) stop("LM interaction failed:\n", e$message, call. = FALSE))
+    analysis
+}
+
+#' Step 6: LM interaction GAM plot
+#' @noRd
+.execute_lm_interaction_plot <- function(analysis, verbose, output_dir) {
+    if (verbose)
+        message("Step 6: Plotting LM interaction GAM smoother...")
+    tryCatch({
+        output_file <- if (!is.null(output_dir)) file.path(output_dir, "lm_interaction_gam_plot.png") else NULL
+        p_lm <- plot_lm_interaction_gam_s4(analysis, output_file = output_file)
+        if (!is.null(p_lm)) {
+            analysis <- addPlot(analysis, type = "lm_interaction", plot = p_lm, replace = TRUE)
+            if (verbose)
+                message("  [OK] LM interaction plot generated")
+        }
+    }, error = function(e) {
+        if (verbose)
+            warning("LM interaction plot failed: ", e$message, call. = FALSE)
+    })
+    analysis
+}
+
+#' Step 7: Jackknife isoform switching
+#' @noRd
+.execute_jackknife_isoform_switching <- function(analysis, q_vals, condition_col,
+    verbose, output_dir) {
+    if (verbose)
+        message("Step 7: Computing jackknife isoform switching analysis...")
+    tryCatch({
+        cfg <- getConfig(analysis)
+        output_file <- if (!is.null(output_dir)) file.path(output_dir, "jackknife_isoform_switching.tsv") else NULL
+        analysis <- jackknife_isoform_switching_s4(analysis, condition_col = condition_col,
+            output_file = output_file, verbose = FALSE)
+        if (verbose)
+            message("  [OK] Jackknife isoform switching complete")
+    }, error = function(e) {
+        if (verbose)
+            warning("Jackknife isoform switching failed: ", e$message, call. = FALSE)
+    })
+    analysis
+}
+
+#' Step 8: Multi-q influence heatmap
+#' @noRd
+.execute_influence_heatmap_plot <- function(analysis, verbose, output_dir) {
+    if (verbose)
+        message("Step 8: Plotting multi-q influence heatmap...")
+    tryCatch({
+        output_file <- if (!is.null(output_dir)) file.path(output_dir, "influence_heatmap.png") else NULL
+        p_heatmap <- plot_multiq_delta_influence_heatmaps_s4(analysis, output_file = output_file)
+        if (!is.null(p_heatmap)) {
+            analysis <- addPlot(analysis, type = "influence_heatmap", plot = p_heatmap,
+                replace = TRUE)
+            if (verbose)
+                message("  [OK] Influence heatmap generated")
+        }
+    }, error = function(e) {
+        if (verbose)
+            warning("Influence heatmap failed: ", e$message, call. = FALSE)
+    })
+    analysis
+}
+
+#' Step 9: Top transcripts plot
+#' @noRd
+.execute_top_transcripts_plot <- function(analysis, verbose, output_dir) {
+    if (verbose)
+        message("Step 9: Plotting top transcript counts...")
+    tryCatch({
+        output_file <- if (!is.null(output_dir)) file.path(output_dir, "top_transcripts.png") else NULL
+        p_top_tx <- plot_top_transcripts_s4(analysis, output_file = output_file)
+        if (!is.null(p_top_tx)) {
+            analysis <- addPlot(analysis, type = "top_transcripts", plot = p_top_tx,
+                replace = TRUE)
+            if (verbose)
+                message("  [OK] Top transcripts plot generated")
+        }
+    }, error = function(e) {
+        if (verbose)
+            warning("Top transcripts plot failed: ", e$message, call. = FALSE)
+    })
+    analysis
+}
+
+#' Step 10: Divergence calculation
+#' @noRd
+.execute_divergence_s4 <- function(analysis, q_vals, verbose, output_dir) {
+    if (verbose)
+        message("Step 10: Computing divergence metrics...")
+    tryCatch({
+        output_file <- if (!is.null(output_dir)) file.path(output_dir, "divergence_results.tsv") else NULL
+        analysis <- calculate_divergence_s4(analysis, q = q_vals, output_file = output_file)
+        if (verbose)
+            message("  [OK] Divergence computed")
+    }, error = function(e) {
+        if (verbose)
+            warning("Divergence failed: ", e$message, call. = FALSE)
+    })
+    analysis
+}
+
+#' Step 11: Effect sizes
+#' @noRd
+.execute_effect_sizes_s4 <- function(analysis, verbose, output_dir) {
+    if (verbose)
+        message("Step 11: Computing effect sizes for divergence...")
+    tryCatch({
+        output_file <- if (!is.null(output_dir)) file.path(output_dir, "effect_sizes.tsv") else NULL
+        analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE, output_file = output_file)
+        if (verbose)
+            message("  [OK] Effect sizes computed")
+    }, error = function(e) {
+        if (verbose)
+            warning("Effect size computation failed: ", e$message, call. = FALSE)
+    })
+    analysis
+}
+
+#' Step 12: Divergence distribution plot
+#' @noRd
+.execute_divergence_dist_plot <- function(analysis, verbose, output_dir) {
+    if (verbose)
+        message("Step 12: Plotting divergence distribution...")
+    tryCatch({
+        output_file <- if (!is.null(output_dir)) file.path(output_dir, "divergence_distribution_plot.png") else NULL
+        p_div_dist <- plot_divergence_distribution_s4(analysis, output_file = output_file)
+        if (!is.null(p_div_dist)) {
+            analysis <- addPlot(analysis, type = "divergence_distribution", plot = p_div_dist,
+                replace = TRUE)
+            if (verbose)
+                message("  [OK] Divergence distribution plot generated")
+        }
+    }, error = function(e) {
+        if (verbose)
+            warning("Divergence distribution plot failed: ", e$message, call. = FALSE)
+    })
+    analysis
+}
+
+#' Step 13: Divergence spectrum plot
+#' @noRd
+.execute_divergence_spectrum_plot <- function(analysis, verbose, output_dir) {
+    if (verbose)
+        message("Step 13: Plotting divergence spectrum...")
+    tryCatch({
+        # Plot 1: Global spectrum plot (all genes)
+        output_file <- if (!is.null(output_dir)) file.path(output_dir, "divergence_spectrum_plot.png") else NULL
+        p_div_spec <- plot_divergence_spectrum_s4(analysis, output_file = output_file)
+        if (!is.null(p_div_spec)) {
+            analysis <- addPlot(analysis, type = "divergence_spectrum", plot = p_div_spec,
+                replace = TRUE)
+            if (verbose)
+                message("  [OK] Global divergence spectrum plot generated")
+        }
+        
+        # Plot 2: Multi-gene spectrum plot with top 4 genes by p-value
+        output_file_multi <- if (!is.null(output_dir)) file.path(output_dir, "divergence_spectrum_plot_top_genes.png") else NULL
+        p_multi <- plot_divergence_spectrum_s4(analysis, n_genes = 4, use_pvalue_ranking = TRUE,
+            output_file = output_file_multi)
+        if (!is.null(p_multi)) {
+            analysis <- addPlot(analysis, type = "divergence_spectrum_multi", plot = p_multi,
+                replace = TRUE)
+            if (verbose)
+                message("  [OK] Multi-gene divergence spectrum plot generated")
+        }
+    }, error = function(e) {
+        if (verbose)
+            warning("Divergence spectrum plot failed: ", e$message, call. = FALSE)
+    })
+    analysis
+}
+
+#' Track analysis metadata
+#' @noRd
+.track_analysis_metadata <- function(analysis, config) {
+    cfg <- getConfig(analysis)
+    analysis@metadata$workflow <- list(workflow_type = "isoform_switching_vignette",
+        completion_time = Sys.time(), tsenat_version = utils::packageVersion("TSENAT"))
+    analysis@metadata$methods_parameters <- list(fdr_threshold = cfg$fdr_threshold %||%
+        0.05, q_values = cfg$q_values %||% seq(0.5, 2, by = 0.5), condition_col = cfg$condition_col %||%
+        "condition", filter_stringency = cfg$filter_stringency %||% "medium")
+    analysis
+}
+
 #' Finalize analysis and print summary
 #' @noRd
 .finalize_tsenat_analysis <- function(analysis, verbose) {
     if (verbose) {
-        message("Analysis Complete")
+        message("\nWorkflow Complete")
         message("=================")
-        message("Results summary:")
+        message("Results generated:")
         if (length(analysis@diversity_results) > 0)
-            message("  [OK] Diversity")
+            message("  ✓ Diversity (Tsallis entropy)")
         if (length(analysis@lm_results) > 0)
-            message("  [OK] LM results")
-        if (length(analysis@jackknife_results) > 0)
-            message("  [OK] Jackknife CIs")
+            message("  ✓ LM interaction results (with GAM)")
         if (length(analysis@divergence_results) > 0)
-            message("  [OK] Divergence")
+            message("  ✓ Divergence metrics")
+        if (!is.null(analysis@metadata$effect_sizes_divergence))
+            message("  ✓ Effect sizes")
         if (length(analysis@plots) > 0)
-            message(sprintf("  [OK] Plots (%d)", length(analysis@plots)))
-        message("\nUse show(analysis) or summary(analysis) for details")
+            message(sprintf("  ✓ Visualizations (%d plots)", length(analysis@plots)))
+        message("\nUse show(analysis) or summary(analysis) for detailed information")
     }
     analysis@metadata$ended_at <- Sys.time()
     analysis

@@ -211,7 +211,7 @@
 #'
 #' @export
 #' @importFrom utils write.table
-calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method = NULL,
+calculate_diversity_s4 <- function(analysis, q = NULL, norm = TRUE, norm_method = NULL,
     reference_group = NULL, tpm = FALSE, assayno = NULL, verbose = NULL, show_messages = FALSE,
     what = NULL, nthreads = NULL, pseudocount = NULL, min_valid_frac = NULL, shrinkage = NULL,
     genes = NULL, effective_length = NULL, metadata = NULL, bootstrap = NULL, nboot = NULL,
@@ -803,6 +803,12 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     if (!is.null(params$metadata)) {
         calc_args$metadata <- params$metadata
     }
+    
+    # Extract and pass column mapping parameters from config (required for metadata mapping)
+    config <- getConfig(analysis)
+    calc_args$sample_col <- config$sample_col
+    calc_args$condition_col <- config$condition_col
+    calc_args$subject_col <- config$subject_col
 
     # Add any additional parameters from dots
     c(calc_args, dots)

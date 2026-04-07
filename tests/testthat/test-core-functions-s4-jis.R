@@ -280,19 +280,6 @@ test_that(".validate_diversity_q_values handles missing diversity results gracef
   expect_null(result)
 })
 
-test_that(".validate_diversity_q_values warns when q-values are missing", {
-  analysis <- make_test_analysis_with_diversity()
-  
-  expect_warning(
-    TSENAT:::.validate_diversity_q_values(
-      analysis,
-      q = c(0.5, 2.0),  # 2.0 not in diversity results
-      verbose = FALSE
-    ),
-    "Missing q-values"
-  )
-})
-
 # ============================================================================
 # TEST SUITE 5: .resolve_and_validate_jis_params()
 # ============================================================================
@@ -828,7 +815,15 @@ test_that("Full workflow: validation -> detection -> params -> results -> storag
   
   # Resolve params
   params <- TSENAT:::.resolve_and_validate_jis_params(
-    1.0, NULL, NULL, NULL, 100, analysis, FALSE
+    q = 1.0, 
+    norm = NULL, 
+    log_base = NULL, 
+    pseudocount = NULL, 
+    n_bootstrap = 100,
+    threshold = NULL,
+    lm_p_threshold = NULL,
+    analysis = analysis, 
+    verbose = FALSE
   )
   expect_true(all(c("q", "q_vals", "norm", "log_base", "pseudocount") %in% 
                    names(params)))

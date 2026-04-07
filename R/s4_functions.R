@@ -57,12 +57,18 @@
 #' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 #' 'TSENAT')
 #' 
-#' # Create config with metadata (best practice: configure first)
-#' config <- tsenat_config(metadata = metadata_df)
+#' # Create config (metadata passed as explicit parameter to build_analysis_s4)
+#' config <- tsenat_config(
+#'   sample_col = 'sample',
+#'   condition_col = 'condition',
+#'   q_values = seq(0, 2, by = 0.05),
+#'   paired = FALSE
+#' )
 #' 
-#' # Build analysis from vignette data (metadata read from config)
+#' # Build analysis from vignette data - metadata as explicit parameter
 #' analysis <- build_analysis_s4(
 #'   readcounts = readcounts,
+#'   metadata = metadata_df,
 #'   tx2gene = gff3_dataset,
 #'   config = config,
 #'   tpm = tpm,
@@ -323,12 +329,18 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_b
 #' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 #' 'TSENAT')
 #' 
-#' # Create config with metadata (best practice: configure first)
-#' config <- tsenat_config(metadata = metadata_df)
+#' # Create config (metadata passed as explicit parameter to build_analysis_s4)
+#' config <- tsenat_config(
+#'   sample_col = 'sample',
+#'   condition_col = 'condition',
+#'   q_values = seq(0, 2, by = 0.05),
+#'   paired = FALSE
+#' )
 #' 
 #' # Build analysis from vignette data and create small subset
 #' analysis <- build_analysis_s4(
 #'   readcounts = readcounts,
+#'   metadata = metadata_df,
 #'   tx2gene = gff3_dataset,
 #'   config = config,
 #'   tpm = tpm,
@@ -535,9 +547,15 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
 #' 'TSENAT')
 #' 
 #' # Build analysis from vignette data and create small subset
-#' config <- tsenat_config(metadata = metadata_df)
+#' config <- tsenat_config(
+#'   sample_col = 'sample',
+#'   condition_col = 'condition',
+#'   q_values = seq(0, 2, by = 0.05),
+#'   paired = FALSE
+#' )
 #' analysis <- build_analysis_s4(
 #'   readcounts = readcounts,
+#'   metadata = metadata_df,
 #'   tx2gene = gff3_dataset,
 #'   config = config,
 #'   tpm = tpm,
@@ -903,17 +921,18 @@ plot_volcano_ma_grid_s4 <- function(analysis, x_col = NULL, padj_col = "padj", l
 #' 
 #' # Configure analysis parameters first (fail-fast principle)
 #' config <- tsenat_config(
+#'   sample_col = 'sample',
 #'   condition_col = 'condition',
 #'   subject_col = 'paired_samples',
 #'   paired = TRUE,
-#'   control = 'normal',
-#'   metadata = metadata_df
+#'   control = 'normal'
 #' )
 #'
-#' # Build analysis with configured parameters
+#' # Build analysis with configured parameters and metadata as explicit parameter
 #' analysis <- build_analysis_s4(
 #'   readcounts = readcounts,
 #'   tx2gene = gff3_dataset,
+#'   metadata = metadata_df,
 #'   config = config,
 #'   tpm = tpm,
 #'   effective_length = effective_length
@@ -1459,17 +1478,16 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #' 'TSENAT')
 #' # Configure analysis parameters first
 #' config <- tsenat_config(
-#'   condition_col = 'condition',
-#'   subject_col = 'paired_samples',
+#'   sample_col = 'sample',
 #'   paired = TRUE,
-#'   control = 'normal',
-#'   metadata = metadata_df
+#'   control = 'normal'
 #' )
 #'
 #' # Build analysis with configured parameters
 #' analysis <- build_analysis_s4(
 #'   readcounts = readcounts,
 #'   tx2gene = gff3_dataset,
+#'   metadata = metadata_df,
 #'   config = config,
 #'   tpm = tpm,
 #'   effective_length = effective_length
@@ -1654,17 +1672,16 @@ plot_top_transcripts_s4 <- function(analysis, gene = NULL, condition_col = NULL,
 #' 'TSENAT')
 #' # Configure analysis parameters first
 #' config <- tsenat_config(
+#'   sample_col = 'sample',
 #'   condition_col = 'condition',
-#'   subject_col = 'paired_samples',
-#'   paired = TRUE,
-#'   control = 'normal',
-#'   metadata = metadata_df
+#'   control = 'normal'
 #' )
 #'
 #' # Build analysis with configured parameters
 #' analysis <- build_analysis_s4(
 #'   readcounts = readcounts,
 #'   tx2gene = gff3_dataset,
+#'   metadata = metadata_df,
 #'   config = config,
 #'   tpm = tpm,
 #'   effective_length = effective_length
@@ -1800,17 +1817,16 @@ plot_divergence_distribution_s4 <- function(analysis, threshold = 0.1, output_fi
 #' 
 #' # Configure analysis parameters first
 #' config <- tsenat_config(
+#'   sample_col = 'sample',
 #'   condition_col = 'condition',
-#'   subject_col = 'paired_samples',
-#'   paired = TRUE,
-#'   control = 'normal',
-#'   metadata = metadata_df
+#'   subject_col = 'paired_samples'
 #' )
 #'
 #' # Build analysis with configured parameters
 #' analysis <- build_analysis_s4(
 #'   readcounts = readcounts,
 #'   tx2gene = gff3_dataset,
+#'   metadata = metadata_df,
 #'   config = config,
 #'   tpm = tpm,
 #'   effective_length = effective_length
@@ -2005,17 +2021,17 @@ prepare_gene_switching_tables_s4 <- function(analysis, n_top_genes = NULL, n_tra
 #' 
 #' # Configure analysis parameters first
 #' config <- tsenat_config(
+#'   sample_col = 'sample',
 #'   condition_col = 'condition',
 #'   subject_col = 'paired_samples',
-#'   paired = TRUE,
-#'   control = 'normal',
-#'   metadata = metadata_df
+#'   paired = TRUE
 #' )
 #'
 #' # Build analysis with configured parameters
 #' analysis <- build_analysis_s4(
 #'   readcounts = readcounts,
 #'   tx2gene = gff3_dataset,
+#'   metadata = metadata_df,
 #'   config = config,
 #'   tpm = tpm,
 #'   effective_length = effective_length
@@ -2200,17 +2216,18 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(analysis, n_genes = 4, lm_re
 #' 
 #' # Configure analysis parameters first
 #' config <- tsenat_config(
+#'   sample_col = 'sample',
 #'   condition_col = 'condition',
 #'   subject_col = 'paired_samples',
 #'   paired = TRUE,
-#'   control = 'normal',
-#'   metadata = metadata_df
+#'   control = 'normal'
 #' )
 #'
 #' # Build analysis with configured parameters
 #' analysis <- build_analysis_s4(
 #'   readcounts = readcounts,
 #'   tx2gene = gff3_dataset,
+#'   metadata = metadata_df,
 #'   config = config,
 #'   tpm = tpm,
 #'   effective_length = effective_length
@@ -3064,9 +3081,41 @@ build_analysis_s4 <- function(readcounts = NULL, salmon_dir = NULL, tx2gene, ass
         stop("[build_analysis_s4] Either 'readcounts' or 'salmon_dir' must be provided\n",
             "  readcounts: matrix/data.frame of transcript counts\n", "  salmon_dir: path to Salmon quantification output directory")
     }
+    
+    # Validate column parameters when metadata is provided
+    if (!is.null(metadata)) {
+        missing_cols <- c()
+        
+        if (is.null(config$sample_col)) {
+            missing_cols <- c(missing_cols, "sample_col")
+        }
+        if (is.null(config$condition_col)) {
+            missing_cols <- c(missing_cols, "condition_col")
+        }
+        
+        if (length(missing_cols) > 0) {
+            stop("[build_analysis_s4] Metadata provided but required column parameters missing: ",
+                paste(missing_cols, collapse = ", "), "\n",
+                "  These parameters MUST be provided in tsenat_config():\n",
+                "    config <- tsenat_config(\n",
+                "      sample_col = 'sample',        # Column name with sample identifiers\n",
+                "      condition_col = 'condition', # Column name with condition/treatment labels\n",
+                "      ...\n",
+                "    )\n",
+                "    analysis <- build_analysis_s4(config = config, metadata = metadata_df, ...)",
+                call. = FALSE)
+        }
+    }
+    
     # Build SummarizedExperiment
+    # Extract column names from config
+    sample_col_value <- if (!is.null(config$sample_col)) config$sample_col else "sample"
+    condition_col_value <- config$condition_col  # May be NULL for non-paired analysis
+    subject_col_value <- config$subject_col      # Optional for paired analysis
+    
     se <- .build_se(readcounts = readcounts, tx2gene = tx2gene, assay_name = assay_name,
-        metadata = metadata, tpm = tpm, effective_length = effective_length, skip = skip,
+        metadata = metadata, sample_col = sample_col_value, condition_col = condition_col_value,
+        subject_col = subject_col_value, tpm = tpm, effective_length = effective_length, skip = skip,
         verbose = verbose)
 
     # Ensure sample_id column exists in colData (required by TSENATAnalysis)

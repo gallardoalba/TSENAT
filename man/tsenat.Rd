@@ -5,21 +5,25 @@
 \title{Run complete TSENAT analysis pipeline}
 \usage{
 tsenat(
-  se,
+  analysis,
   config = NULL,
-  methods = NULL,
-  q_values = NULL,
-  generate_plots = TRUE,
+  output_dir = "tsenat_outputs",
   verbose = TRUE,
-  parallel = FALSE,
   ...
 )
 }
 \arguments{
-\item{se}{\code{SummarizedExperiment} containing expression counts.}
+\item{analysis}{\code{TSENATAnalysis} object created by \code{\link{build_analysis_s4}}.}
 
 \item{config}{\code{list} or \code{TSENATConfig}. Configuration from
-\code{\link{tsenat_config}}. If NULL, uses defaults.}
+\code{\link{tsenat_config}}. If NULL, uses configuration from analysis object.}
+
+\item{output_dir}{\code{character}. Directory to save results and plots.
+Default: "tsenat_outputs". Set to NULL to disable automatic output saving.}
+
+\item{verbose}{\code{logical}. Print progress messages. Default: TRUE.}
+
+\item{...}{Additional arguments passed to individual wrapper functions.}
 
 \item{methods}{\code{character}. Specific methods to run (overrides config).}
 
@@ -27,12 +31,8 @@ tsenat(
 
 \item{generate_plots}{\code{logical}. Create visualizations. Default: TRUE.}
 
-\item{verbose}{\code{logical}. Print progress messages. Default: TRUE.}
-
 \item{parallel}{\code{logical}. Run independent q-values in parallel.
 Default: FALSE.}
-
-\item{...}{Additional arguments passed to individual wrapper functions.}
 }
 \value{
 \code{TSENATAnalysis} object containing complete analysis results,
@@ -43,32 +43,40 @@ Coordinates the full TSENAT workflow: diversity -> jackknife -> LM
 interactions -> divergence -> gene interactions -> visualizations.
 }
 \details{
-Pipeline execution order (enforced):
+Pipeline execution order (enforced, follows TSENAT.Rmd vignette):
 \enumerate{
+  \item \code{filter_analysis_s4()} - Filter low-abundance transcripts
   \item \code{calculate_diversity_s4()} - Tsallis entropy per q-value
-  \item \code{jackknife_entropy_outliers_s4()} - Confidence intervals
-  \item \code{jackknife_isoform_switching_s4()} - Transcript switching (optional)
-  \item \code{calculate_lm_interaction_s4()} - Statistical tests
-  \item \code{calculate_difference_s4()} - Pairwise group differences (optional)
+  \item \code{plot_tsallis_q_curve_s4()} - Visualize q-spectrum
+  \item \code{m_estimate_s4()} - Sample influence QC analysis
+  \item \code{calculate_lm_interaction_s4()} - LM interaction testing
+  \item \code{plot_lm_interaction_gam_s4()} - GAM visualization of LM results
+  \item \code{jackknife_isoform_switching_s4()} - Transcript switching detection
+  \item \code{plot_multiq_delta_influence_heatmaps_s4()} - Multi-q influence heatmap
+  \item \code{plot_top_transcripts_s4()} - Top transcript visualization
   \item \code{calculate_divergence_s4()} - Pairwise divergence metrics
-  \item \code{effect_sizes_divergence_s4()} - Effect sizes (optional)
-  \item \code{rank_test_q_condition_s4()} - Q-dependent interactions
-  \item \code{test_rankbased_assumptions_s4()} - Assumption validation (optional)
-  \item \code{compute_method_concordance_s4()} - Method comparison (optional)
-  \item Plot generation (if enabled)
+  \item \code{effect_sizes_divergence_s4()} - Effect size computation
+  \item \code{plot_divergence_distribution_s4()} - Divergence distribution plot
+  \item \code{plot_divergence_spectrum_s4()} - Divergence spectrum plot
 }
 }
 \examples{
-library(SummarizedExperiment)
-se <- SummarizedExperiment(
-  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10,
-                                 dimnames = list(sprintf('G\%d', 1:10), NULL))),
-  colData = data.frame(
-    condition = rep(c('A', 'B'), 5),
-    sample_id = rep(c('S1', 'S2'), 5)
-  )
+data(readcounts, package = "TSENAT")
+metadata_df <- read.table(
+  system.file("extdata", "metadata.tsv", package = "TSENAT"),
+  header = TRUE, sep = "\t"
 )
+gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+
+analysis <- build_analysis_s4(
+  readcounts = as.matrix(readcounts),
+  tx2gene = gff3_file,
+  metadata = metadata_df,
+  tpm = tpm,
+  effective_length = effective_length
+)
+
 cfg <- tsenat_config(q_values = c(0.5, 1.0), generate_plots = FALSE)
-analysis <- tsenat(se, config = cfg)
+result <- tsenat(analysis, config = cfg)
 
 }

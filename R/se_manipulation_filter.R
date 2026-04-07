@@ -247,7 +247,7 @@
 
     if (length(mean_tpm_nonzero) == 0) {
         warning("No non-zero values in assay. Using default min_tpm = 0.1", call. = FALSE)
-        return(0.1)
+        return(list(min_tpm = 0.1, quant_label = "default"))
     }
 
     # Select quantile based on stringency level
@@ -261,7 +261,7 @@
         quantile_prob <- 0.75
         quant_label <- "Q3"
     } else {
-        return(NULL)
+        return(list(min_tpm = 0.1, quant_label = "default"))
     }
 
     min_tpm_estimated <- as.numeric(quantile(mean_tpm_nonzero, probs = quantile_prob,
@@ -295,6 +295,9 @@
     } else {
         return(NULL)
     }
+
+    # Cap min_samples to n_samples to ensure filtering is possible
+    min_samples <- min(min_samples, n_samples)
 
     list(min_samples = min_samples, min_tx_per_gene = min_tx_per_gene, min_isoform_abundance = min_isoform_abundance)
 }
@@ -585,19 +588,20 @@
             }
 
             if (is.na(pair_col)) {
-                cols_str <- paste(colnames(col_data), collapse = ", ")
-                stop("Could not auto-detect pair column in colData or metadata. Available columns: ",
-                  cols_str, ". Please specify 'pair_col' parameter.", call. = FALSE)
-            }
-            if (verbose) {
+                # No pair column found - treat as unpaired design
+                if (verbose) {
+                    message("No pair column detected. Treating as unpaired design.")
+                }
+                pair_col <- NULL
+            } else if (verbose) {
                 message(sprintf("Auto-detected pair column: '%s'", pair_col))
             }
         } else {
             col_data <- SummarizedExperiment::colData(se)
         }
 
-        # Verify pair column exists
-        if (!(pair_col %in% colnames(col_data))) {
+        # Verify pair column exists if it was specified/detected
+        if (!is.null(pair_col) && !(pair_col %in% colnames(col_data))) {
             cols_str <- paste(colnames(col_data), collapse = ", ")
             stop(sprintf("Pair column '%s' not found. Available columns: %s", pair_col,
                 cols_str), call. = FALSE)
@@ -606,7 +610,7 @@
 
         # Calculate stringency-based thresholds
         n_samples <- ncol(se)
-        n_pairs <- length(unique(col_data[[pair_col]]))
+        n_pairs <- if (!is.null(pair_col)) length(unique(col_data[[pair_col]])) else NULL
         stringency_result <- .calculate_stringency_thresholds(stringency, n_samples,
             n_pairs)
         min_samples <- stringency_result$min_samples

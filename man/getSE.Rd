@@ -26,10 +26,10 @@ The SummarizedExperiment object returned by getSE() contains:
 }
 \examples{
 # Load example data and build analysis object
-data(readcounts, package = "TSENAT")
-metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-  header = TRUE, sep = "\t")
-gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+data(readcounts, package = 'TSENAT')
+metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t')
+gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 
 # Build TSENATAnalysis object
 analysis <- build_analysis_s4(readcounts = readcounts, 

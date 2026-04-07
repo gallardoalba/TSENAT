@@ -42,7 +42,7 @@
         helper_funcs <- c(".jackknife_entropy_outliers", ".entropy_single", ".jackknife_validate_params",
             ".jackknife_process_multiq", ".jackknife_process_se", ".jackknife_process_matrix",
             ".jackknife_process_vector_core", ".jackknife_compute_estimates", ".jackknife_calculate_influence_and_outliers",
-            ".jackknife_warn_on_q_parameters", ".jackknife_format_verbose_output_matrix")
+            ".jackknife_warn_on_total_count", ".jackknife_warn_on_q_parameters_q_only", ".jackknife_format_verbose_output_matrix")
         parallel::clusterExport(.cluster, helper_funcs, envir = asNamespace("TSENAT"))
     }
 
@@ -62,6 +62,14 @@
 
     names(results_list) <- paste0("q=", q)
     class(results_list) <- c("tsenat_jackknife_list_multiq", "list")
+
+    # Print q-parameter warnings once per q-value (Option 1: move outside per-gene loop)
+    # Only when verbose=TRUE (Option 2: respect verbose flag)
+    if (verbose) {
+        for (q_val in q) {
+            .jackknife_warn_on_q_parameters_q_only(q_val, verbose = TRUE)
+        }
+    }
 
     if (verbose && !is.null(x) && (is.vector(x) || length(q) > 1)) {
         output_lines <- c("Jackknife Stability Analysis for Multiple q Values", "====================================================")
@@ -194,7 +202,9 @@
     if (n < 2)
         stop("Need at least 2 transcripts")
 
-    .jackknife_warn_on_q_parameters(x, q, verbose)
+    # Only check total count warning (per-gene specific)
+    # q-parameter warnings moved to .jackknife_process_multiq() (Option 1)
+    .jackknife_warn_on_total_count(x)
 
     p <- (x + pseudocount)/(sum(x) + length(x) * pseudocount)
     jackknife_estimates <- .jackknife_compute_estimates(p, q, log_base, n)
@@ -297,34 +307,51 @@
     result
 }
 
-#' Internal: Warn on q parameters
-
+#' Internal: Warn on total count (per-gene specific)
+#'
 #' @noRd
-.jackknife_warn_on_q_parameters <- function(x, q, verbose = FALSE) {
+.jackknife_warn_on_total_count <- function(x) {
     total_count <- sum(x)
     if (total_count < 10) {
         warning("Total count (", total_count, ") below recommended minimum (10-20).\n",
             "Jackknife estimates may be unreliable (per papers S111, S114).\n", "Consider aggregating samples or filtering genes with low abundance.")
     }
+}
 
+#' Internal: Warn on q parameters (q-only, called once per q-value)
+#'
+#' @noRd
+.jackknife_warn_on_q_parameters_q_only <- function(q, verbose = FALSE) {
     # Guard against NA or non-scalar q values
     if (is.na(q) || length(q) != 1 || !is.numeric(q)) {
         return(invisible(NULL))
     }
 
-    if (q < 0.5) {
-        message("Low q (", q, ") heavily underweights rare isoforms and emphasizes common ones.\n",
-            "  -> Jackknife results may have large influence from abundant transcripts.\n",
-            "  -> Better for detecting changes in dominant isoforms (papers S111, I004).")
-    } else if (q > 2) {
-        message("High q (", q, ") may be insensitive to rare isoform diversity.\n",
-            "  -> Jackknife results focus on most abundant transcripts only.\n",
-            "  -> May miss important rare transcript contributions (papers S111, I004).\n",
-            "  -> Consider q in [0.5, 2] for balanced diversity assessment.")
-    } else if (verbose) {
-        message("q = ", q, " is in the recommended range [0.5, 2].\n", "  -> Balanced sensitivity to rare and abundant isoforms.\n",
-            "  -> Jackknife results should be reliable for diversity assessment (papers S111, I004).")
+    # Only print when verbose=TRUE (Option 2: respect verbose flag)
+    if (verbose) {
+        if (q < 0.5) {
+            message("Low q (", q, ") heavily underweights rare isoforms and emphasizes common ones.\n",
+                "  -> Jackknife results may have large influence from abundant transcripts.\n",
+                "  -> Better for detecting changes in dominant isoforms (papers S111, I004).")
+        } else if (q > 2) {
+            message("High q (", q, ") may be insensitive to rare isoform diversity.\n",
+                "  -> Jackknife results focus on most abundant transcripts only.\n",
+                "  -> May miss important rare transcript contributions (papers S111, I004).\n",
+                "  -> Consider q in [0.5, 2] for balanced diversity assessment.")
+        } else {
+            message("q = ", q, " is in the recommended range [0.5, 2].\n", "  -> Balanced sensitivity to rare and abundant isoforms.\n",
+                "  -> Jackknife results should be reliable for diversity assessment (papers S111, I004).")
+        }
     }
+}
+
+#' Internal: Warn on q parameters (legacy - for backward compatibility)
+#'
+#' @noRd
+.jackknife_warn_on_q_parameters <- function(x, q, verbose = FALSE) {
+    # Deprecated: use .jackknife_warn_on_total_count() and .jackknife_warn_on_q_parameters_q_only() instead
+    .jackknife_warn_on_total_count(x)
+    .jackknife_warn_on_q_parameters_q_only(q, verbose = verbose)
 }
 
 #' Internal: Format verbose output for matrix results

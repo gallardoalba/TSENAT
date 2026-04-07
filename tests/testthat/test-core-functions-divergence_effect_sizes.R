@@ -2000,27 +2000,29 @@ test_that("effect_sizes_divergence_s4 orchestrates helpers correctly", {
   effective_length <- rep(1000, nrow(readcounts))
   names(effective_length) <- rownames(readcounts)
   
+  # Create config FIRST with required metadata column parameters
+  config <- tsenat_config(
+    q_values = seq(0, 2, by = 0.05),
+    sample_col = 'sample',
+    condition_col = 'condition',
+    subject_col = 'paired_samples',
+    paired = TRUE,
+    control = 'normal'
+  )
+  
   analysis <- build_analysis_s4(
+    config = config,
     readcounts = readcounts,
-    tx2gene = gff3_dataset,
     metadata = metadata_df,
+    tx2gene = gff3_dataset,
     tpm = tpm,
     effective_length = effective_length,
     verbose = FALSE
   )
   
-  config <- tsenat_config(
-    condition_col = 'condition',
-    subject_col = 'paired_samples',
-    paired = TRUE,
-    control = 'normal',
-    metadata = metadata_df
-  )
-  analysis <- setConfig(analysis, config)
-  
   analysis <- filter_analysis_s4(analysis, stringency = 'severe', verbose = FALSE)
-  analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-  analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+  analysis <- calculate_diversity_s4(analysis, q = c(0.5, 0.75, 1.0, 1.5, 2.0), verbose = FALSE)
+  analysis <- calculate_divergence_s4(analysis, q = c(0.5, 0.75, 1.0, 1.5, 2.0), verbose = FALSE)
   analysis <- suppressWarnings(
     calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
   )
@@ -2059,27 +2061,29 @@ test_that("effect_sizes_divergence_s4 respects output_file parameter", {
   effective_length <- rep(1000, nrow(readcounts))
   names(effective_length) <- rownames(readcounts)
   
+  # Create config FIRST with required metadata column parameters
+  config <- tsenat_config(
+    q_values = seq(0, 2, by = 0.05),
+    sample_col = 'sample',
+    condition_col = 'condition',
+    subject_col = 'paired_samples',
+    paired = TRUE,
+    control = 'normal'
+  )
+  
   analysis <- build_analysis_s4(
+    config = config,
     readcounts = readcounts,
-    tx2gene = gff3_dataset,
     metadata = metadata_df,
+    tx2gene = gff3_dataset,
     tpm = tpm,
     effective_length = effective_length,
     verbose = FALSE
   )
   
-  config <- tsenat_config(
-    condition_col = 'condition',
-    subject_col = 'paired_samples',
-    paired = TRUE,
-    control = 'normal',
-    metadata = metadata_df
-  )
-  analysis <- setConfig(analysis, config)
-  
   analysis <- filter_analysis_s4(analysis, stringency = 'severe', verbose = FALSE)
-  analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-  analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+  analysis <- calculate_diversity_s4(analysis, q = c(0.5, 0.75, 1.0, 1.5, 2.0), verbose = FALSE)
+  analysis <- calculate_divergence_s4(analysis, q = c(0.5, 0.75, 1.0, 1.5, 2.0), verbose = FALSE)
   analysis <- suppressWarnings(
     calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
   )

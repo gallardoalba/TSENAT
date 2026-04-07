@@ -446,7 +446,13 @@ test_that("build_analysis_s4 works with salmon_dir parameter", {
   readr::write_tsv(tx2gene_df, tx2gene_file)
   
   # Build analysis using salmon_dir
+  config <- tsenat_config(
+    sample_col = "sample",
+    condition_col = "condition"
+  )
+  
   analysis <- build_analysis_s4(
+    config = config,
     salmon_dir = salmon_setup$salmon_dir,
     tx2gene = tx2gene_file,
     metadata = metadata,
@@ -470,7 +476,7 @@ test_that("build_analysis_s4 with salmon_dir stores TPM and effective_length", {
   
   metadata <- data.frame(
     sample = salmon_setup$sample_names,
-    condition = rep("control", 2),
+    condition = c("control", "treatment"),
     row.names = salmon_setup$sample_names
   )
   
@@ -482,7 +488,13 @@ test_that("build_analysis_s4 with salmon_dir stores TPM and effective_length", {
   )
   readr::write_tsv(tx2gene_df, tx2gene_file)
   
+  config <- tsenat_config(
+    sample_col = "sample",
+    condition_col = "condition"
+  )
+  
   analysis <- build_analysis_s4(
+    config = config,
     salmon_dir = salmon_setup$salmon_dir,
     tx2gene = tx2gene_file,
     metadata = metadata,
@@ -518,7 +530,7 @@ test_that("build_analysis_s4 with salmon direct parameters works", {
   
   metadata <- data.frame(
     sample = salmon_setup$sample_names,
-    condition = rep("control", 2),
+    condition = c("control", "treatment"),
     row.names = salmon_setup$sample_names
   )
   
@@ -537,7 +549,13 @@ test_that("build_analysis_s4 with salmon direct parameters works", {
     salmon_data$effective_length
   }
   
+  config <- tsenat_config(
+    sample_col = "sample",
+    condition_col = "condition"
+  )
+  
   analysis <- build_analysis_s4(
+    config = config,
     readcounts = salmon_data$counts,
     tx2gene = tx2gene_file,
     metadata = metadata,
@@ -578,12 +596,18 @@ test_that("build_analysis_s4 handles skip=TRUE for unmapped transcripts", {
   
   metadata <- data.frame(
     sample = c("S1", "S2"),
-    condition = rep("control", 2),
+    condition = c("control", "treatment"),
     row.names = c("S1", "S2")
   )
   
   # With skip=TRUE, should use only mapped transcripts
+  config <- tsenat_config(
+    sample_col = "sample",
+    condition_col = "condition"
+  )
+  
   analysis <- build_analysis_s4(
+    config = config,
     readcounts = salmon_data$counts,
     tx2gene = tx2gene_file,
     metadata = metadata,
@@ -607,7 +631,7 @@ test_that("build_analysis_s4 with verbose=TRUE shows progress", {
   
   metadata <- data.frame(
     sample = salmon_setup$sample_names,
-    condition = rep("control", 2),
+    condition = c("control", "treatment"),
     row.names = salmon_setup$sample_names
   )
   
@@ -621,8 +645,14 @@ test_that("build_analysis_s4 with verbose=TRUE shows progress", {
   
   # Test that verbose=TRUE produces messages
   # Use expect_message to verify messages are produced during execution
+  config <- tsenat_config(
+    sample_col = "sample",
+    condition_col = "condition"
+  )
+  
   expect_message(
     analysis <- build_analysis_s4(
+      config = config,
       salmon_dir = salmon_setup$salmon_dir,
       tx2gene = tx2gene_file,
       metadata = metadata,
@@ -690,7 +720,13 @@ test_that("Full Salmon workflow: detect → read → build_analysis creates corr
   }
   
   # Step 5: Build analysis
+  config <- tsenat_config(
+    sample_col = "sample",
+    condition_col = "condition"
+  )
+  
   analysis <- build_analysis_s4(
+    config = config,
     readcounts = salmon_data$counts,
     tx2gene = tx2gene_file,
     metadata = metadata,

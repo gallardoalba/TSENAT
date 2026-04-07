@@ -140,7 +140,7 @@
 #' @export
 #' @importFrom utils write.table
 calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula = NULL,
-    condition_col = NULL, method = NULL, paired = NULL, subject_col = NULL, nthreads = NULL,
+    condition_col = NULL, method = "gam", paired = NULL, subject_col = NULL, nthreads = NULL,
     multicorr = NULL, corstr = NULL, pcorr = NULL, verbose = NULL, return_model_data = NULL,
     output_file = NULL, ...) {
     # Validate input
@@ -178,6 +178,16 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
 
     # Combine diversity results across q-values
     diversity_combined <- .combine_diversity_results_for_lm(analysis@diversity_results)
+
+    # REQUIREMENT: Check that we have at least 5 unique q-values
+    # ARIMA(1,1,0) differencing removes 1 observation per subject, leaving (n_q - 1) unique values
+    # With 5 q-values: after ARIMA -> 4 unique q-values
+    # This provides sufficient degrees of freedom for GAM spline fitting (k=3 or k=4 works with 4 unique values)
+    q_values <- sort(as.numeric(unique(sub(".*q=", "", colnames(diversity_combined)))))
+    if (length(q_values) < 5) {
+        stop(sprintf("[calculate_lm_interaction_s4] At least 5 unique q-values are required for interaction analysis. Current data has only %d unique q-value(s). Ensure diversity_results contains >=5 distinct q values. After ARIMA(1,1,0) differencing, this leaves sufficient degrees of freedom for GAM fitting.", 
+                     length(q_values)), call. = FALSE)
+    }
 
     # Build arguments for LM calculation
     args <- .build_lm_args(diversity_combined, params, return_model_data = return_model_data,

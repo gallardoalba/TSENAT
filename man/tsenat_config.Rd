@@ -97,13 +97,13 @@ cfg <- tsenat_config()
 # Custom with optional features: paired analysis, isoform switching, differences
 cfg <- tsenat_config(
   q_values = c(0.5, 1.0, 1.5, 2.0),
-  condition_col = "treatment",
-  subject_col = "subject_id",
+  condition_col = 'treatment',
+  subject_col = 'subject_id',
   paired = TRUE,
-  control = "untreated",
-  methods = c("diversity", "lm_interaction", "jackknife", "jackknife_isoform_switching",
-              "divergence", "q_interactions", "difference", "effect_sizes"),
-  bootstrap_method = "bca",
+  control = 'untreated',
+  methods = c('diversity', 'lm_interaction', 'jackknife', 'jackknife_isoform_switching',
+              'divergence', 'q_interactions', 'difference', 'effect_sizes'),
+  bootstrap_method = 'bca',
   n_bootstrap = 5000,
   significance_threshold = 0.01
 )

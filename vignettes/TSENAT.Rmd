@@ -280,22 +280,24 @@ FIRST, then pass it to the builder function (fail-fast principle):
 
 ```{r initialize-analysis-object}
 ## Configure analysis parameters first (best practice: fail-fast principle)
-## This validates all parameters against metadata before object creation
+## This validates all parameters before object creation
 config <- tsenat_config(
+  sample_col = "sample",
   condition_col = "condition",
   subject_col = "paired_samples",
   q_values = seq(0, 2, by = 0.05),
   nthreads = 2,
   paired = TRUE,
-  control = "normal",
-  metadata = metadata_df
+  control = "normal"
 )
 
 ## Build a complete `TSENATAnalysis` object from readcounts + GFF3.gz annotation
 ## Pass config at construction (Bioconductor pattern): immutable object creation
+## Note: metadata is passed as explicit parameter (Bioconductor best practice)
 analysis <- build_analysis_s4(
   config = config,
-  readcounts = readcounts, 
+  readcounts = readcounts,
+  metadata = metadata_df,
   tx2gene = gff3_file, 
   tpm = tpm,
   effective_length = effective_length
@@ -632,7 +634,7 @@ if (exists("tables_result") && is.list(tables_result) &&
 
 Visualize switching patterns for the top genes identified by the LM interaction test. This shows which transcripts are switching in genes with significant q * condition interaction effects. The heatmaps below display **jackknife delta influence** [@S232]-a resampling-based measure of how robustly each transcript's relative contribution changes between conditions-across different q-values (rows: 0 to 2.0, representing increasing diversity scales from rare to abundant isoforms) and transcripts (columns) for each gene. Delta influence values are computed from bootstrap resampling iterations, providing robust, non-parametric estimates of transcript switching significance weighted by consistency across replicates.
 
-```{r fig-3-transcript-jackknife-influence, echo=TRUE, results='hide', fig.width=12, fig.height=12, eval=TRUE, out.width="98%", fig.pos="H", fig.cap = "**Figure 3:** Transcript-level switching patterns via jackknife resampling. Rows q-values (0-2.0), columns transcripts. Red/blue indicates condition influence."}
+```{r fig-3-transcript-jackknife-influence, echo=TRUE, results='hide', fig.width=12, fig.height=10, eval=TRUE, out.width="98%", fig.pos="H", fig.cap = "**Figure 3:** Transcript-level switching patterns via jackknife resampling. Rows q-values (0-2.0), columns transcripts. Red/blue indicates condition influence."}
 # Generate multi-Q heatmaps for top 4 genes using S4 wrapper
 plot_multiq_delta_influence_heatmaps_s4(
     analysis, 
@@ -650,7 +652,7 @@ plot_multiq_delta_influence_heatmaps_s4(
 
 This robustness-weighted visualization reveals not just *which* transcripts switch, but *how reliably* they switch, allowing distinction between robust biological signals and artifacts of sampling variation.
 
-```{r fig-4-transcript-abundance-heatmap, echo=TRUE, results='hide', fig.width=12, fig.height=9, eval=TRUE, out.width="98%", fig.pos="H", fig.cap = "**Figure 4:** Transcript abundance heatmap with hierarchical clustering. Rows are transcripts, columns are conditions. Blue low, red high expression."}
+```{r fig-4-transcript-abundance-heatmap, echo=TRUE, results='hide', fig.width=12, fig.height=8, eval=TRUE, out.width="98%", fig.pos="H", fig.cap = "**Figure 4:** Transcript abundance heatmap with hierarchical clustering. Rows are transcripts, columns are conditions. Blue low, red high expression."}
 # Generate transcript abundance heatmap for top 4 transcripts using hierarchical clustering
 # metric = "median" aggregates expression values across paired conditions
 plot_top_transcripts_s4(

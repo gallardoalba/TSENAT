@@ -7,7 +7,7 @@
 calculate_diversity_s4(
   analysis,
   q = NULL,
-  norm = NULL,
+  norm = TRUE,
   norm_method = NULL,
   reference_group = NULL,
   tpm = FALSE,

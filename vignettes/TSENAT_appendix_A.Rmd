@@ -129,18 +129,6 @@ rownames(se_data) <- genes
 
 ```{r define-validation-helpers, message=FALSE, warning=FALSE, include=FALSE}
 #' Format Top Genes Table
-#' 
-#' @description Extract and format top differentially expressed genes for display,
-#' with consistent column naming and numerical formatting.
-#'
-#' @param results_df Data frame containing differential analysis results
-#' @param gene_col Column name containing gene identifiers
-#' @param padj_col Column name containing adjusted p-values
-#' @param n_top Number of top genes to extract (default: 10)
-#' @param select_cols Vector of column names to select (default: standard columns)
-#' @param col_names Vector of display names for columns (for knitr::kable)
-#'
-#' @return Data frame with formatted top genes, ready for display
 format_top_genes <- function(results_df, gene_col, padj_col, n_top = 10, 
                             select_cols = NULL, col_names = NULL) {
   # Default columns to display
@@ -168,20 +156,6 @@ format_top_genes <- function(results_df, gene_col, padj_col, n_top = 10,
   top_genes
 }
 
-# Create summary statistics comparison table
-#' Create Summary Statistics Comparison
-#'
-#' @description Compare differential analysis results between two methods,
-#' computing concordance metrics and statistical thresholds.
-#'
-#' @param method1_results Data frame with first method's results
-#' @param method2_results Data frame with second method's results
-#' @param method1_name Display name for first method
-#' @param method2_name Display name for second method
-#' @param padj_col1 Adjusted p-value column name in method1 results
-#' @param padj_col2 Adjusted p-value column name in method2 results
-#'
-#' @return Data frame summarizing comparison statistics
 create_summary_stats <- function(method1_results, method2_results, 
                                method1_name, method2_name,
                                padj_col1 = "adjusted_p_values", 
@@ -213,41 +187,7 @@ create_summary_stats <- function(method1_results, method2_results,
   )
 }
 
-# Calculate gene overlap statistics (both in padj < threshold)
-#' Calculate Gene Overlap Statistics
-#'
-#' @description Quantify agreement between two differential analysis methods,
-#' showing genes detected by both, only by first, or only by second method.
-#'
-#' @param results1 Data frame with first method's results
-#' @param results2 Data frame with second method's results
-#' @param gene_col1 Column name for genes in results1
-#' @param gene_col2 Column name for genes in results2
-#' @param padj_col1 Adjusted p-value column in results1
-#' @param padj_col2 Adjusted p-value column in results2
-#' @param threshold Significance threshold (default: 0.05)
-#'
-#' @return Data frame showing overlap statistics with counts and percentages
-gene_overlap_stats <- function(results1, results2, gene_col1, gene_col2, 
-                              padj_col1, padj_col2, threshold = 0.05) {
-  sig1 <- results1[[gene_col1]][results1[[padj_col1]] < threshold]
-  sig2 <- results2[[gene_col2]][results2[[padj_col2]] < threshold]
-  
-  both <- length(intersect(sig1, sig2))
-  only1 <- length(setdiff(sig1, sig2))
-  only2 <- length(setdiff(sig2, sig1))
-  total <- length(union(sig1, sig2))
-  
-  data.frame(
-    Category = c("Detected by both methods", "Only by first method", "Only by second method"),
-    Count = c(both, only1, only2),
-    Percentage = c(
-      round(100 * both / total, 1),
-      round(100 * only1 / total, 1),
-      round(100 * only2 / total, 1)
-    )
-  )
-}
+
 ```
 
 ### Transcript diversity calculation

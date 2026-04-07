@@ -37,7 +37,14 @@ context("S4 Rank Test: rank_test_q_condition_s4")
     gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
     
     # Build analysis once (but NOT diversity calculation yet)
+    config <- tsenat_config(
+        sample_col = "sample",
+        condition_col = "condition",
+        subject_col = "paired_samples"
+    )
+    
     analysis <- build_analysis_s4(
+        config = config,
         readcounts = readcounts,
         tx2gene = gff3_file,
         metadata = metadata_df,

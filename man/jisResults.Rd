@@ -30,10 +30,10 @@ condition-specific isoform switching patterns across q-values.
 }
 \examples{
 # Load data and build analysis 
-data(readcounts, package = "TSENAT")
-metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-  header = TRUE, sep = "\t")
-gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+data(readcounts, package = 'TSENAT')
+metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t')
+gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 
 # Build analysis object
 analysis <- build_analysis_s4(readcounts = readcounts,
@@ -41,7 +41,7 @@ analysis <- build_analysis_s4(readcounts = readcounts,
                              metadata = metadata_df)
 
 # Filter low-abundance transcripts
-analysis <- filter_analysis_s4(analysis, stringency = "medium")
+analysis <- filter_analysis_s4(analysis, stringency = 'medium')
 
 # Calculate diversity
 analysis <- calculate_diversity_s4(analysis, q = c(1.0, 2.0), norm = TRUE)

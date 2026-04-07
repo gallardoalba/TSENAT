@@ -36,18 +36,18 @@ LM interaction results are retrieved separately with \code{lmResults()}.
 }
 \examples{
 # Extract rank test results from TSENATAnalysis object
-data(readcounts, package = "TSENAT")
+data(readcounts, package = 'TSENAT')
 metadata <- read.table(
-  system.file("extdata", "metadata.tsv", package = "TSENAT"),
-  header = TRUE, sep = "\t"
+  system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t'
 )
-gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 
 config <- tsenat_config(q_values = c(0.5, 1.0), generate_plots = FALSE)
 analysis <- build_analysis_s4(readcounts, tx2gene = gff3_file,
     metadata = metadata, tpm = tpm, effective_length = effective_length,
     config = config)
-analysis <- filter_analysis_s4(analysis, stringency = "severe")
+analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 analysis <- calculate_diversity_s4(analysis, norm = TRUE)
 analysis <- rank_test_q_condition_s4(analysis, q = 1.0)
 

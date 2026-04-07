@@ -9,7 +9,7 @@ filter_analysis_s4(
   min_tpm = 1,
   tpm_assay_name = NULL,
   min_samples = 5L,
-  stringency = NULL,
+  stringency = "medium",
   pair_col = NULL,
   min_tx_per_gene = 2L,
   min_isoform_abundance = NULL,

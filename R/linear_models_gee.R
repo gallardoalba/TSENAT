@@ -8,7 +8,7 @@
 # tests all three and selects best @param bias_correction logical; apply
 # Kenward-Roger correction for small clusters @return data.frame with gene,
 # p_interaction, correlation_structure, and bias correction status
-.gee_interaction <- function(df, q_vals, g, subject = NULL, min_obs = 10, corstr = "auto",
+.gee_interaction <- function(df, q_vals, g, subject = NULL, min_obs = 5, corstr = "auto",
     bias_correction = TRUE, weights = NULL) {
     if (!requireNamespace("geepack", quietly = TRUE)) {
         stop("Package 'geepack' is required for method = 'gee'")
@@ -23,6 +23,7 @@
     # Validate inputs
     validation <- .validate_gee_inputs(df, subject, min_obs, weights)
     if (!validation$valid) {
+        warning(sprintf(".gee_interaction (gene %s): GEE input validation failed. Check that min_obs=%d is met, sufficient groups present, and subject structure is valid.", g, min_obs), call. = FALSE)
         return(NULL)
     }
     df <- validation$df
@@ -47,6 +48,7 @@
 
     # Final validation
     if (sum(!is.na(df$entropy)) < 2) {
+        warning(sprintf(".gee_interaction (gene %s): Insufficient non-NA entropy values after preprocessing (<%d observations).", g, 2), call. = FALSE)
         return(NULL)
     }
 
@@ -61,6 +63,7 @@
     # Fit GEE models
     model_result <- .fit_gee_models(df, selected_corstr, gee_weights)
     if (is.null(model_result)) {
+        warning(sprintf(".gee_interaction (gene %s): GEE model fitting failed with correlation structure '%s'. May indicate singularity, separation, or convergence issues.", g, selected_corstr), call. = FALSE)
         return(NULL)
     }
     fit_null <- model_result$fit_null

@@ -41,6 +41,10 @@
 #' Following pheatmap best practices for publication-quality figures.
 #' Applies to
 #'   row labels (q-values) and column labels (transcript IDs).
+#' @param width Output image width in inches. If NULL, automatically
+#' calculated (12 inches).
+#' @param height Output image height in inches. If NULL, automatically
+#' calculated based on number of layout rows.
 #'
 #' @return Character path to saved PNG file containing the combined heatmaps.
 #'   The plot is automatically saved to a temporary file and can be displayed
@@ -107,7 +111,7 @@
 
 .plot_multiq_delta_influence_heatmaps <- function(switching_results, n_genes = 4,
     lm_results = NULL, verbose = FALSE, cellwidth = 0, cellheight = 0, fontsize = 18,
-    layout_ncol = 2, output_file = NULL) {
+    layout_ncol = 2, output_file = NULL, width = NULL, height = NULL) {
     # Phase 1: Validate input
     result_data <- .validate_multiq_input(switching_results)
     q_result_keys <- result_data$q_result_keys
@@ -132,7 +136,7 @@
         layout_ncol > 0, layout_ncol = layout_ncol)
     gene_layout <- layout_result$layout
     n_layout_rows <- layout_result$n_layout_rows
-    dims <- .calculate_heatmap_dimensions(n_layout_rows, length(q_result_keys))
+    dims <- .calculate_heatmap_dimensions(n_layout_rows, length(q_result_keys), width_in = if (is.null(width)) 12 else width, height_in = height)
 
     # Phase 5: Create heatmaps (using refactored loop)
     all_gene_matrices <- list()
@@ -803,7 +807,7 @@
 
     # Scale height: 3 inches per layout row + gaps
     height_per_layout_row <- 3 * (n_data_rows/5)
-    gap_between_rows <- 1.5
+    gap_between_rows <- 1.8
     heatmap_height <- height_per_layout_row * n_layout_rows + gap_between_rows *
         (n_layout_rows - 1)
 
@@ -870,6 +874,9 @@
         scale_factor_height <- max(0.7, 1.15 - n_rows_mat * 0.03)
         final_cellheight <- base_cellheight * scale_factor_height
     }
+
+    final_cellwidth <- final_cellwidth * 0.95
+    final_cellheight <- final_cellheight * 0.591
 
     list(cellwidth = final_cellwidth, cellheight = final_cellheight, fontsize_adj = fontsize *
         0.7)
@@ -961,9 +968,9 @@
     n_grid_rows <- n_layout_rows * 2 - 1
     row_heights <- rep(c(1, 0.15), n_layout_rows)[seq_len(n_grid_rows)]
 
-    grid::pushViewport(grid::viewport(x = 0.5, y = 0.48, width = 0.96, height = 0.85,
+    grid::pushViewport(grid::viewport(x = 0.5, y = 0.47, width = 0.99, height = 0.85,
         layout = grid::grid.layout(n_grid_rows, 3, heights = grid::unit(row_heights,
-            "null"), widths = c(1, 0.12, 1), respect = FALSE)))
+            "null"), widths = c(1, 0.08, 1), respect = FALSE)))
 
     invisible(NULL)
 }

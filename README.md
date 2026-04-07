@@ -65,7 +65,7 @@ readcounts <- as.matrix(readcounts)
 # Load sample metadata and annotation
 metadata_df <- read.table(
   system.file("extdata", "metadata.tsv",
-  package = "TSENAT"), header = TRUE, row.names = 1,
+  package = "TSENAT"), header = TRUE,
   sep = "\t")
 
 gff3_file <- system.file("extdata",
@@ -92,15 +92,15 @@ config <- tsenat_config(
 
 ### Build TSENAT Analysis Object
 
-Combine the read counts, annotation file, metadata, and configuration into a single TSENATAnalysis S4 object that serves as the central container for all downstream analysis.
+Build a TSENATAnalysis S4 object from the data, then apply the configuration with the orchestration function.
 
 ```r
 ## Build a complete `TSENATAnalysis` object from readcounts + GFF3.gz annotation
-## Pass config at construction (Bioconductor pattern): immutable object creation
+## Data (counts, annotation) are passed directly; config is applied separately
 analysis <- build_analysis_s4(
-  config = config,
   readcounts = readcounts, 
-  tx2gene = gff3_file, 
+  tx2gene = gff3_file,
+  metadata = metadata_df,
   tpm = tpm,
   effective_length = effective_length
 )
@@ -108,11 +108,11 @@ analysis <- build_analysis_s4(
 
 ### Orchestration Function
 
-For a complete analysis with default parameters, use the `tsenat()` orchestration function:
+For a complete analysis pipeline, pass the analysis object with configuration:
 
 ```r
 # Returns: Fully configured TSENATAnalysis object with diversity, testing, and plots
-analysis <- tsenat(se, config = cfg)
+result <- tsenat(analysis, config = config)
 ```
 
 ## Detailed Step-by-Step Workflow
@@ -234,7 +234,7 @@ Example metadata structure:
 
 ```r
 # Load metadata from TSV file
-metadata_df <- read.table("metadata.tsv", header = TRUE, sep = "\t", row.names = 1)
+metadata_df <- read.table("metadata.tsv", header = TRUE, sep = "\t")
 ```
 
 Expected TSV file format (`metadata.tsv`):

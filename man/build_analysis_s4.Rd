@@ -140,15 +140,22 @@ tx2gene <- data.frame(
 
 # Create sample metadata
 metadata <- data.frame(
-  condition = rep(c('control', 'treatment'), each = 5),
-  row.names = colnames(counts))
+  sample = colnames(counts),
+  condition = rep(c('control', 'treatment'), each = 5))
+
+# Create configuration with REQUIRED column specifications
+# Note: sample_col and condition_col MUST match column names in metadata (case-sensitive)
+config <- tsenat_config(
+  sample_col = 'sample',      # REQUIRED: column name with sample identifiers
+  condition_col = 'condition') # REQUIRED: column name with condition labels
 
 # Build analysis object - use NAMED parameters to avoid confusion
 # Method 1: With explicit tx2gene data.frame (most common)
 analysis <- build_analysis_s4(
   readcounts = counts,
   tx2gene = tx2gene,
-  metadata = metadata)
+  metadata = metadata,
+  config = config)
 
 # Verify the analysis object was created
 analysis
@@ -165,27 +172,48 @@ print(dim(analysis))
 # salmon_dir <- '/path/to/salmon/directory'
 # 
 # First create sample metadata matching Salmon sample names
+# IMPORTANT: Metadata REQUIRES explicit sample_col and condition_col
 # salmon_metadata <- data.frame(
-#   condition = c('control', 'control', 'treatment', 'treatment'),
-#   row.names = c('sample1', 'sample2', 'sample3', 'sample4')
+#   sample = c('sample1', 'sample2', 'sample3', 'sample4'),
+#   condition = c('control', 'control', 'treatment', 'treatment')
+# )
+# 
+# Create config with REQUIRED column specifications
+# salmon_config <- tsenat_config(
+#   sample_col = 'sample',
+#   condition_col = 'condition'
 # )
 # 
 # analysis_salmon <- build_analysis_s4(
 #   salmon_dir = salmon_dir,
 #   tx2gene = 'annotation.gff3.gz',  # Auto-parsed from GFF3
-#   metadata = salmon_metadata
+#   metadata = salmon_metadata,
+#   config = salmon_config
 # )
 #
-# Method 3: Hybrid - Salmon counts with manual tx2gene
-# analysis_hybrid <- build_analysis_s4(
-#   salmon_dir = salmon_dir,
-#   tx2gene = tx2gene,  # data.frame instead of file
-#   metadata = salmon_metadata
+# Method 3: Paired design (matched samples across conditions)
+# Paired designs REQUIRE: sample_col, condition_col, AND subject_col
+# 
+# paired_metadata <- data.frame(
+#   sample = c('s1_normal', 's1_tumor', 's2_normal', 's2_tumor'),
+#   condition = c('normal', 'tumor', 'normal', 'tumor'),
+#   subject = c('patient_1', 'patient_1', 'patient_2', 'patient_2')
 # )
-#
-# Method 4: Pass metadata via config (parameter resolution pattern)
-# cfg <- tsenat_config()
-# cfg$metadata <- metadata
+# 
+# paired_config <- tsenat_config(
+#   sample_col = 'sample',
+#   condition_col = 'condition',
+#   subject_col = 'subject',  # REQUIRED for paired analysis
+#   paired = TRUE,
+#   control = 'normal'  # Reference condition
+# )
+# 
+# analysis_paired <- build_analysis_s4(
+#   readcounts = counts,
+#   tx2gene = tx2gene,
+#   metadata = paired_metadata,
+#   config = paired_config
+# )
 # analysis_with_config <- build_analysis_s4(
 #   readcounts = counts,
 #   tx2gene = tx2gene,
@@ -199,7 +227,7 @@ print(dim(analysis))
 # S4Vectors namespace to ensure proper method dispatch:
 #   
 #   se <- getSE(analysis)
-#   assay_with_ci <- SummarizedExperiment::assay(se, "log2fc_ci")
+#   assay_with_ci <- SummarizedExperiment::assay(se, 'log2fc_ci')
 #   S4Vectors::metadata(assay_with_ci)$lower <- ci_lower_bounds
 #   S4Vectors::metadata(assay_with_ci)$upper <- ci_upper_bounds
 #

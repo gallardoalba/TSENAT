@@ -3,7 +3,7 @@
 # Setup: Local helper to create test analysis with optional diversity results
 .create_test_analysis <- function(
     precompute_diversity = TRUE, 
-    q_values = c(0.5, 1.0, 1.5),
+    q_values = c(0.5, 0.75, 1.0, 1.5, 2.0),
     include_divergence = TRUE) {
   set.seed(42)
   
