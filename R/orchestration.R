@@ -16,12 +16,7 @@
 #'   \code{\link{tsenat_config}}. If NULL, uses configuration from analysis object.
 #' @param output_dir \code{character}. Directory to save results and plots.
 #'   Default: "tsenat_outputs". Set to NULL to disable automatic output saving.
-#' @param methods \code{character}. Specific methods to run (overrides config).
-#' @param q_values \code{numeric}. Specific q-values (overrides config).
-#' @param generate_plots \code{logical}. Create visualizations. Default: TRUE.
 #' @param verbose \code{logical}. Print progress messages. Default: TRUE.
-#' @param parallel \code{logical}. Run independent q-values in parallel.
-#'   Default: FALSE.
 #' @param ... Additional arguments passed to individual wrapper functions.
 #'
 #' @return \code{TSENATAnalysis} object containing complete analysis results,
@@ -109,15 +104,15 @@ tsenat <- function(analysis, config = NULL, output_dir = "tsenat_outputs", verbo
 
     # Execute vignette workflow (in order) with timing
     if (verbose)
-        cat("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+        cat("============================================================\n")
     
     if (verbose)
-        cat(sprintf("▶ [%2d/14] Filtering low-abundance transcripts\n", 1))
+        cat(sprintf("[>] [%2d/14] Filtering low-abundance transcripts\n", 1))
     step_start <- Sys.time()
     tryCatch({
         analysis <- filter_analysis_s4(analysis)
         if (verbose)
-            cat("          ✓ Complete\n")
+            cat("          [OK] Complete\n")
     }, error = function(e) warning("Filtering failed:\n", e$message, call. = FALSE))
     step_times[["filtering"]] <- Sys.time() - step_start
 
@@ -175,7 +170,7 @@ tsenat <- function(analysis, config = NULL, output_dir = "tsenat_outputs", verbo
     step_times[["div_spectrum_plot"]] <- Sys.time() - step_start
     
     if (verbose)
-        cat("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+        cat("============================================================\n")
 
     # Track completion metadata and timing
     total_time <- Sys.time() - workflow_start
@@ -368,6 +363,8 @@ getResults <- function(analysis, type = "diversity", q = NULL, simplify = TRUE) 
 #' @param subject_col \code{character}. Name of column in \code{colData(se)}
 #'   containing subject/sample identifiers for paired/repeated designs.
 #'   If provided, enables paired analysis. Default: NULL (unpaired).
+#' @param sample_col \code{character}. Name of column in \code{colData(se)}
+#'   containing sample identifiers. Default: 'sample'.
 #' @param paired \code{logical}. Whether samples are paired/repeated measures.
 #'   Default: FALSE. Used by jackknife and difference analysis.
 #' @param control \code{character}. Reference/control group label for difference
@@ -542,11 +539,11 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 .log_pipeline_start <- function(se, q_vals, cfg) {
     # Use ANSI color codes for prettier output
     cat("\n")
-    cat("╔════════════════════════════════════════════════════════════╗\n")
-    cat("║          TSENAT: Tsallis Entropy Analysis Toolbox          ║\n")
-    cat("╚════════════════════════════════════════════════════════════╝\n\n")
+    cat("+============================================================+\n")
+    cat("|          TSENAT: Tsallis Entropy Analysis Toolbox          |\n")
+    cat("+============================================================+\n\n")
     
-    cat("📊 Data Summary\n")
+    cat("[DATA] Data Summary\n")
     cat("  Transcripts ........... ", format(nrow(se), big.mark = ","), "\n", sep = "")
     cat("  Samples .............. ", ncol(se), "\n", sep = "")
     n_conditions <- length(unique(se[[cfg$condition_col %||% "condition"]]))
@@ -554,7 +551,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
     cat("  Q-spectrum range ...... ", format(round(min(q_vals), 2), width = 4), " to ", 
         format(round(max(q_vals), 2), width = 4), " (", length(q_vals), " values)\n", sep = "")
     
-    cat("\n⚙️  Configuration\n")
+    cat("\n[CONFIG] Configuration\n")
     cat("  p-value threshold ..... ", format(cfg$p_threshold %||% 0.05, width = 6, nsmall = 3), "\n", sep = "")
     cat("  FDR threshold ......... ", format(cfg$fdr_threshold %||% 0.05, width = 6, nsmall = 3), "\n", sep = "")
     if (!is.null(cfg$n_bootstrap)) {
@@ -567,12 +564,12 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 #' @noRd
 .execute_diversity_s4 <- function(analysis, q_vals, verbose, output_dir) {
     if (verbose)
-        cat(sprintf("▶ [%2d/14] Computing Tsallis diversity\n", 2))
+        cat(sprintf("[>] [%2d/14] Computing Tsallis diversity\n", 2))
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "diversity_results.tsv") else NULL
         suppressMessages({analysis <- calculate_diversity_s4(analysis, q = q_vals, output_file = output_file)})
         if (verbose)
-            cat(sprintf("          ✓ %d q-values processed\n", length(q_vals)))
+            cat(sprintf("          [OK] %d q-values processed\n", length(q_vals)))
     }, error = function(e) stop("Diversity failed:\n", e$message, call. = FALSE))
     analysis
 }
@@ -581,14 +578,14 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 #' @noRd
 .execute_q_curve_plot <- function(analysis, verbose, output_dir) {
     if (verbose)
-        cat(sprintf("▶ [%2d/14] Plotting q-spectrum curve\n", 3))
+        cat(sprintf("[>] [%2d/14] Plotting q-spectrum curve\n", 3))
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "q_curve_plot.png") else NULL
         p_qcurve <- plot_tsallis_q_curve_s4(analysis, output_file = output_file)
         if (!is.null(p_qcurve)) {
             analysis <- addPlot(analysis, type = "q_curve", plot = p_qcurve, replace = TRUE)
             if (verbose)
-                cat("          ✓ Plot generated\n")
+                cat("          [OK] Plot generated\n")
         }
     }, error = function(e) {
         if (verbose)
@@ -836,36 +833,36 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 .finalize_tsenat_analysis <- function(analysis, verbose, step_times = NULL, total_time = NULL, output_dir = NULL) {
     if (verbose) {
         cat("\n")
-        cat("╔════════════════════════════════════════════════════════════╗\n")
-        cat("║               ✓ ANALYSIS COMPLETE                          ║\n")
-        cat("╚════════════════════════════════════════════════════════════╝\n\n")
+        cat("+============================================================+\n")
+        cat("|               [OK] ANALYSIS COMPLETE                        |\n")
+        cat("+============================================================+\n\n")
         
         # Extract statistics
         stats <- .extract_analysis_statistics(analysis)
         
-        cat("📈 Results Summary\n")
+        cat("[RESULTS] Results Summary\n")
         
         if (stats$n_transcripts > 0)
-            cat(sprintf("  ✓ Diversity ........... %d transcripts × %d q-values\n", 
+            cat(sprintf("  [OK] Diversity ........... %d transcripts x %d q-values\n", 
                 stats$n_transcripts, stats$n_q_values))
         if (stats$n_lm_significant > 0)
-            cat(sprintf("  ✓ LM interactions ..... %d genes (p < 0.05)\n", 
+            cat(sprintf("  [OK] LM interactions ..... %d genes (p < 0.05)\n", 
                 stats$n_lm_significant))
         if (stats$n_jackknife > 0)
-            cat(sprintf("  ✓ Isoform switching ... %d genes\n", 
+            cat(sprintf("  [OK] Isoform switching ... %d genes\n", 
                 stats$n_jackknife))
         if (stats$n_divergence > 0)
-            cat(sprintf("  ✓ Divergence metrics .. %d pairwise comparisons\n", 
+            cat(sprintf("  [OK] Divergence metrics .. %d pairwise comparisons\n", 
                 stats$n_divergence))
         if (!is.null(analysis@metadata$effect_sizes_divergence))
-            cat("  ✓ Effect sizes ........ computed\n")
+            cat("  [OK] Effect sizes ........ computed\n")
         if (length(analysis@plots) > 0)
-            cat(sprintf("  ✓ Visualizations ...... %d plots\n", length(analysis@plots)))
+            cat(sprintf("  [OK] Visualizations ...... %d plots\n", length(analysis@plots)))
         
         # Show timing
         if (!is.null(total_time)) {
             time_str <- .format_duration(total_time)
-            cat("\n⏱️  Performance\n")
+            cat("\n[PERF] Performance\n")
             cat(sprintf("  Total time ........... %s\n", time_str))
             
             if (!is.null(step_times) && length(step_times) > 3) {
@@ -885,13 +882,13 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
         # Show output
         if (!is.null(output_dir) && dir.exists(output_dir)) {
             n_files <- length(list.files(output_dir, recursive = TRUE))
-            cat("📁 Output\n")
+            cat("[OUTPUT] Output\n")
             cat(sprintf("  Directory ........... %s\n", output_dir))
             cat(sprintf("  Files saved ......... %d\n", n_files))
         }
         
         cat("\n")
-        cat("💡 Next steps:\n")
+        cat("[TIPS] Next steps:\n")
         cat("  show(analysis)      - View object structure and slots\n")
         cat("  summary(analysis)   - Print detailed statistics\n")
         cat("  getPlot(analysis)   - Extract visualization results\n")

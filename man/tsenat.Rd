@@ -24,15 +24,6 @@ Default: "tsenat_outputs". Set to NULL to disable automatic output saving.}
 \item{verbose}{\code{logical}. Print progress messages. Default: TRUE.}
 
 \item{...}{Additional arguments passed to individual wrapper functions.}
-
-\item{methods}{\code{character}. Specific methods to run (overrides config).}
-
-\item{q_values}{\code{numeric}. Specific q-values (overrides config).}
-
-\item{generate_plots}{\code{logical}. Create visualizations. Default: TRUE.}
-
-\item{parallel}{\code{logical}. Run independent q-values in parallel.
-Default: FALSE.}
 }
 \value{
 \code{TSENATAnalysis} object containing complete analysis results,

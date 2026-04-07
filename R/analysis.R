@@ -259,3 +259,71 @@ print.gtable <- function(x, ...) {
     list(comparison_df = comparison_df, spearman_rho = spearman_rho, high_conf = high_conf,
         agreement_table = agreement_table)
 }
+
+# ============================================================================
+# VALIDATION HELPER FUNCTIONS (used in vignettes)
+# ============================================================================
+
+#' @noRd
+.format_top_genes <- function(results_df, gene_col, padj_col, n_top = 10, 
+                             select_cols = NULL, col_names = NULL) {
+    # Default columns to display
+    if (is.null(select_cols)) {
+        select_cols <- c(gene_col, "Normal_mean", "Tumor_mean", "mean_difference", 
+                        "log2_fold_change", "pvalue", padj_col)
+    }
+    
+    suppressMessages({
+        suppressWarnings({
+            top_genes <- results_df %>%
+                dplyr::arrange(dplyr::across(dplyr::all_of(padj_col))) %>%
+                dplyr::slice(1:min(n_top, nrow(results_df))) %>%
+                dplyr::select(dplyr::all_of(intersect(select_cols, colnames(results_df)))) %>%
+                dplyr::mutate(
+                    dplyr::across(where(is.numeric) & !matches("abundance|mean|fold|stat"), 
+                                 ~ format(., scientific = TRUE, digits = 3)),
+                    dplyr::across(matches("_mean$|mean_"), ~ round(., 4)),
+                    dplyr::across(matches("fold_change|difference"), ~ round(., 4))
+                )
+        })
+    })
+    
+    # Rename columns if provided
+    if (!is.null(col_names) && length(col_names) == ncol(top_genes)) {
+        colnames(top_genes) <- col_names
+    }
+    
+    top_genes
+}
+
+#' @noRd
+.create_summary_stats <- function(method1_results, method2_results, 
+                                 method1_name, method2_name,
+                                 padj_col1 = "adjusted_p_values", 
+                                 padj_col2 = "padj") {
+    data.frame(
+        Method = c(method1_name, method2_name),
+        "Genes Tested" = c(nrow(method1_results), nrow(method2_results)),
+        "Significant padj<0.05" = c(
+            sum(method1_results[[padj_col1]] < 0.05, na.rm = TRUE),
+            sum(method2_results[[padj_col2]] < 0.05, na.rm = TRUE)
+        ),
+        "Significant padj<0.01" = c(
+            sum(method1_results[[padj_col1]] < 0.01, na.rm = TRUE),
+            sum(method2_results[[padj_col2]] < 0.01, na.rm = TRUE)
+        ),
+        "Mean log2FC" = c(
+            round(mean(method1_results$log2_fold_change, na.rm = TRUE), 3),
+            round(mean(method2_results$log2_fold_change, na.rm = TRUE), 3)
+        ),
+        "Median log2FC" = c(
+            round(median(method1_results$log2_fold_change, na.rm = TRUE), 3),
+            round(median(method2_results$log2_fold_change, na.rm = TRUE), 3)
+        ),
+        "Min padj" = c(
+            format(min(method1_results[[padj_col1]], na.rm = TRUE), scientific = TRUE, digits = 3),
+            format(min(method2_results[[padj_col2]], na.rm = TRUE), scientific = TRUE, digits = 3)
+        ),
+        stringsAsFactors = FALSE
+    )
+}

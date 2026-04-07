@@ -127,68 +127,7 @@ rownames(se_data) <- genes
 ```
 
 
-```{r define-validation-helpers, message=FALSE, warning=FALSE, include=FALSE}
-#' Format Top Genes Table
-format_top_genes <- function(results_df, gene_col, padj_col, n_top = 10, 
-                            select_cols = NULL, col_names = NULL) {
-  # Default columns to display
-  if (is.null(select_cols)) {
-    select_cols <- c(gene_col, "Normal_mean", "Tumor_mean", "mean_difference", 
-                    "log2_fold_change", "pvalue", padj_col)
-  }
-  
-  top_genes <- results_df %>%
-    arrange(across(all_of(padj_col))) %>%
-    slice(1:min(n_top, nrow(results_df))) %>%
-    select(all_of(intersect(select_cols, colnames(results_df)))) %>%
-    mutate(
-      across(where(is.numeric) & !matches("abundance|mean|fold|stat"), 
-             ~ format(., scientific = TRUE, digits = 3)),
-      across(matches("_mean$|mean_"), ~ round(., 4)),
-      across(matches("fold_change|difference"), ~ round(., 4))
-    )
-  
-  # Rename columns if provided
-  if (!is.null(col_names) && length(col_names) == ncol(top_genes)) {
-    colnames(top_genes) <- col_names
-  }
-  
-  top_genes
-}
 
-create_summary_stats <- function(method1_results, method2_results, 
-                               method1_name, method2_name,
-                               padj_col1 = "adjusted_p_values", 
-                               padj_col2 = "padj") {
-  data.frame(
-    Method = c(method1_name, method2_name),
-    "Genes Tested" = c(nrow(method1_results), nrow(method2_results)),
-    "Significant padj<0.05" = c(
-      sum(method1_results[[padj_col1]] < 0.05, na.rm = TRUE),
-      sum(method2_results[[padj_col2]] < 0.05, na.rm = TRUE)
-    ),
-    "Significant padj<0.01" = c(
-      sum(method1_results[[padj_col1]] < 0.01, na.rm = TRUE),
-      sum(method2_results[[padj_col2]] < 0.01, na.rm = TRUE)
-    ),
-    "Mean log2FC" = c(
-      round(mean(method1_results$log2_fold_change, na.rm = TRUE), 3),
-      round(mean(method2_results$log2_fold_change, na.rm = TRUE), 3)
-    ),
-    "Median log2FC" = c(
-      round(median(method1_results$log2_fold_change, na.rm = TRUE), 3),
-      round(median(method2_results$log2_fold_change, na.rm = TRUE), 3)
-    ),
-    "Min padj" = c(
-      format(min(method1_results[[padj_col1]], na.rm = TRUE), scientific = TRUE, digits = 3),
-      format(min(method2_results[[padj_col2]], na.rm = TRUE), scientific = TRUE, digits = 3)
-    ),
-    stringsAsFactors = FALSE
-  )
-}
-
-
-```
 
 ### Transcript diversity calculation
 
@@ -322,7 +261,7 @@ library(dplyr)
 library(knitr)
 
 # Summary statistics using helper function
-shannon_summary <- create_summary_stats(
+shannon_summary <- TSENAT:::.create_summary_stats(
   entropy_significance, tsenat_shannon_diff,
   "SplicingFactory (Laplace)", "TSENAT (Tsallis q=1)",
   padj_col1 = "adjusted_p_values", padj_col2 = "padj"
@@ -336,7 +275,7 @@ kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed")
 
 #### Top 10 Significant Genes - SplicingFactory (Laplace)
 ```{r shannon-splicing-factory-genes, message=FALSE, warning=FALSE, echo=FALSE}
-shannon_sf_top <- format_top_genes(
+shannon_sf_top <- TSENAT:::.format_top_genes(
   entropy_significance %>% select(genes, Normal_mean, Tumor_mean, mean_difference, 
                                   log2_fold_change, raw_p_values, adjusted_p_values),
   gene_col = "genes",
@@ -351,7 +290,7 @@ kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed")
 
 #### Top 10 Significant Genes - TSENAT (Tsallis q=1)
 ```{r shannon-tsenat-genes, message=FALSE, warning=FALSE, echo=FALSE}
-shannon_tsenat_top <- format_top_genes(
+shannon_tsenat_top <- TSENAT:::.format_top_genes(
   tsenat_shannon_diff %>% select(gene_id, Normal_mean, Tumor_mean, mean_difference, 
                                  log2_fold_change, pvalue, padj),
   gene_col = "gene_id",
@@ -424,7 +363,7 @@ print(shannon_comparison)
 
 ```{r simpson-index-summary, message=FALSE, warning=FALSE, echo=FALSE}
 # Summary statistics using helper function
-simpson_summary <- create_summary_stats(
+simpson_summary <- TSENAT:::.create_summary_stats(
   simpson_significance, tsenat_simpson_diff,
   "SplicingFactory (Simpson)", "TSENAT (Tsallis q=2)",
   padj_col1 = "adjusted_p_values", padj_col2 = "padj"
@@ -441,7 +380,7 @@ kableExtra::kable_styling(
 
 #### Top 10 Significant Genes - SplicingFactory (Simpson)
 ```{r simpson-splicing-factory-genes, message=FALSE, warning=FALSE, echo=FALSE}
-simpson_sf_top <- format_top_genes(
+simpson_sf_top <- TSENAT:::.format_top_genes(
   simpson_significance %>% select(genes, Normal_mean, Tumor_mean, mean_difference, 
                                   log2_fold_change, raw_p_values, adjusted_p_values),
   gene_col = "genes",
@@ -459,7 +398,7 @@ kableExtra::kable_styling(
 
 #### Top 10 Significant Genes - TSENAT (Tsallis q=2)
 ```{r simpson-tsenat-genes, message=FALSE, warning=FALSE, echo=FALSE}
-simpson_tsenat_top <- format_top_genes(
+simpson_tsenat_top <- TSENAT:::.format_top_genes(
   tsenat_simpson_diff %>% select(gene_id, Normal_mean, Tumor_mean, mean_difference, 
                                  log2_fold_change, pvalue, padj),
   gene_col = "gene_id",

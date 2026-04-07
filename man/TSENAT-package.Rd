@@ -127,7 +127,7 @@ TSENAT implements a complete analytical pipeline:
 \itemize{
   \item \strong{q-value sweeps reveal biological complexity}: Genes showing entropy 
     peaks at intermediate q-values (0.5-1.5) suggest balanced isoform distributions; 
-    peaks at q → ∞ indicate dominant-isoform architectures.
+    peaks at q \\to \\infty indicate dominant-isoform architectures.
   \item \strong{Interaction q-profiles}: q-dependent gene-by-condition interactions signal 
     condition-specific isoform switching; flat profiles indicate constitutive splicing.
   \item \strong{Divergence as biological distance}: Tsallis divergence quantifies 

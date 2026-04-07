@@ -35,6 +35,9 @@ containing experimental conditions/groups. Default: 'condition'.}
 containing subject/sample identifiers for paired/repeated designs.
 If provided, enables paired analysis. Default: NULL (unpaired).}
 
+\item{sample_col}{\code{character}. Name of column in \code{colData(se)}
+containing sample identifiers. Default: 'sample'.}
+
 \item{paired}{\code{logical}. Whether samples are paired/repeated measures.
 Default: FALSE. Used by jackknife and difference analysis.}
 
