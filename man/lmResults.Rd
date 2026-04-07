@@ -65,7 +65,7 @@ analysis <- calculate_lm_interaction_s4(analysis,
   condition_col = 'condition', method = 'gam')
 
 # Extract and view LM interaction results
-res <- lmResults(analysis)
-if (!is.null(res)) head(res)
+res <- lmResults(analysis, 'lm_interaction')
+if (!is.null(res)) head(res, 3)
 
 }

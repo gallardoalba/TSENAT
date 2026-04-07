@@ -52,6 +52,7 @@ Pipeline execution order (enforced, follows TSENAT.Rmd vignette):
   \item \code{calculate_lm_interaction_s4()} - LM interaction testing
   \item \code{plot_lm_interaction_gam_s4()} - GAM visualization of LM results
   \item \code{jackknife_isoform_switching_s4()} - Transcript switching detection
+  \item \code{prepare_gene_switching_tables_s4()} - Prepare gene switching summary tables
   \item \code{plot_multiq_delta_influence_heatmaps_s4()} - Multi-q influence heatmap
   \item \code{plot_top_transcripts_s4()} - Top transcript visualization
   \item \code{calculate_divergence_s4()} - Pairwise divergence metrics

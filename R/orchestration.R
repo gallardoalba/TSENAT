@@ -99,37 +99,88 @@ tsenat <- function(analysis, config = NULL, output_dir = "tsenat_outputs", verbo
     q_vals <- cfg$q_values %||% seq(0.5, 2, by = 0.5)
     condition_col <- cfg$condition_col %||% "condition"
 
-    # Log pipeline start
-    if (verbose)
-        .log_pipeline_start(se(analysis), q_vals)
+    # Initialize timing
+    workflow_start <- Sys.time()
+    step_times <- list()
 
-    # Execute vignette workflow (in order)
+    # Log pipeline start with configuration
     if (verbose)
-        message("Step 1: Filtering low-abundance transcripts...")
+        .log_pipeline_start(se(analysis), q_vals, cfg)
+
+    # Execute vignette workflow (in order) with timing
+    if (verbose)
+        cat("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+    
+    if (verbose)
+        cat(sprintf("▶ [%2d/14] Filtering low-abundance transcripts\n", 1))
+    step_start <- Sys.time()
     tryCatch({
         analysis <- filter_analysis_s4(analysis)
         if (verbose)
-            message("  [OK] Filtering complete")
+            cat("          ✓ Complete\n")
     }, error = function(e) warning("Filtering failed:\n", e$message, call. = FALSE))
+    step_times[["filtering"]] <- Sys.time() - step_start
 
+    step_start <- Sys.time()
     analysis <- .execute_diversity_s4(analysis, q_vals, verbose, output_dir)
+    step_times[["diversity"]] <- Sys.time() - step_start
+
+    step_start <- Sys.time()
     analysis <- .execute_q_curve_plot(analysis, verbose, output_dir)
+    step_times[["q_curve"]] <- Sys.time() - step_start
+
+    step_start <- Sys.time()
     analysis <- .execute_m_estimate_qc(analysis, condition_col, verbose, output_dir)
+    step_times[["m_estimate"]] <- Sys.time() - step_start
+
+    step_start <- Sys.time()
     analysis <- .execute_lm_interaction_s4(analysis, verbose, output_dir)
+    step_times[["lm_interaction"]] <- Sys.time() - step_start
+
+    step_start <- Sys.time()
     analysis <- .execute_lm_interaction_plot(analysis, verbose, output_dir)
+    step_times[["lm_plot"]] <- Sys.time() - step_start
+
+    step_start <- Sys.time()
     analysis <- .execute_jackknife_isoform_switching(analysis, q_vals, condition_col,
         verbose, output_dir)
-    analysis <- .execute_prepare_gene_switching_tables(analysis, verbose, output_dir)
-    analysis <- .execute_influence_heatmap_plot(analysis, verbose, output_dir)
-    analysis <- .execute_top_transcripts_plot(analysis, verbose, output_dir)
-    analysis <- .execute_divergence_s4(analysis, q_vals, verbose, output_dir)
-    analysis <- .execute_effect_sizes_s4(analysis, verbose, output_dir)
-    analysis <- .execute_divergence_dist_plot(analysis, verbose, output_dir)
-    analysis <- .execute_divergence_spectrum_plot(analysis, verbose, output_dir)
+    step_times[["jackknife"]] <- Sys.time() - step_start
 
-    # Track completion metadata
+    step_start <- Sys.time()
+    analysis <- .execute_prepare_gene_switching_tables(analysis, verbose, output_dir)
+    step_times[["switching_tables"]] <- Sys.time() - step_start
+
+    step_start <- Sys.time()
+    analysis <- .execute_influence_heatmap_plot(analysis, verbose, output_dir)
+    step_times[["influence_heatmap"]] <- Sys.time() - step_start
+
+    step_start <- Sys.time()
+    analysis <- .execute_top_transcripts_plot(analysis, verbose, output_dir)
+    step_times[["top_transcripts"]] <- Sys.time() - step_start
+
+    step_start <- Sys.time()
+    analysis <- .execute_divergence_s4(analysis, q_vals, verbose, output_dir)
+    step_times[["divergence"]] <- Sys.time() - step_start
+
+    step_start <- Sys.time()
+    analysis <- .execute_effect_sizes_s4(analysis, verbose, output_dir)
+    step_times[["effect_sizes"]] <- Sys.time() - step_start
+
+    step_start <- Sys.time()
+    analysis <- .execute_divergence_dist_plot(analysis, verbose, output_dir)
+    step_times[["div_dist_plot"]] <- Sys.time() - step_start
+
+    step_start <- Sys.time()
+    analysis <- .execute_divergence_spectrum_plot(analysis, verbose, output_dir)
+    step_times[["div_spectrum_plot"]] <- Sys.time() - step_start
+    
+    if (verbose)
+        cat("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+
+    # Track completion metadata and timing
+    total_time <- Sys.time() - workflow_start
     analysis <- .track_analysis_metadata(analysis, analysis@config)
-    analysis <- .finalize_tsenat_analysis(analysis, verbose)
+    analysis <- .finalize_tsenat_analysis(analysis, verbose, step_times, total_time, output_dir)
 
     analysis
 }
@@ -147,6 +198,76 @@ tsenat <- function(analysis, config = NULL, output_dir = "tsenat_outputs", verbo
 `%||%` <- function(x, y) {
     if (is.null(x))
         y else x
+}
+
+# ============================================================================
+# HELPER FUNCTIONS FOR REPORTING
+# ============================================================================
+
+#' Format duration for display
+#' @noRd
+.format_duration <- function(duration) {
+    seconds <- as.numeric(duration, units = "secs")
+    if (seconds < 60) {
+        return(sprintf("%.1fs", seconds))
+    } else if (seconds < 3600) {
+        mins <- seconds / 60
+        return(sprintf("%.1fm", mins))
+    } else {
+        hours <- seconds / 3600
+        return(sprintf("%.1fh", hours))
+    }
+}
+
+#' Extract result statistics from analysis
+#' @noRd
+.extract_analysis_statistics <- function(analysis) {
+    stats <- list(
+        n_transcripts = 0,
+        n_q_values = 0,
+        n_lm_significant = 0,
+        n_jackknife = 0,
+        n_divergence = 0
+    )
+    
+    # Diversity stats
+    if (length(analysis@diversity_results) > 0) {
+        div_res <- analysis@diversity_results
+        if (is.matrix(div_res)) {
+            stats$n_transcripts <- ncol(div_res)
+            stats$n_q_values <- nrow(div_res)
+        } else if (is.list(div_res)) {
+            stats$n_q_values <- length(div_res)
+        }
+    }
+    
+    # LM results stats
+    if (length(analysis@lm_results) > 0 && is.list(analysis@lm_results)) {
+        if (!is.null(analysis@lm_results$pvalue_results)) {
+            lm_pvals <- analysis@lm_results$pvalue_results
+            if (is.data.frame(lm_pvals) && nrow(lm_pvals) > 0) {
+                if ("p_value" %in% colnames(lm_pvals)) {
+                    stats$n_lm_significant <- sum(lm_pvals$p_value < 0.05, na.rm = TRUE)
+                } else if ("padj" %in% colnames(lm_pvals)) {
+                    stats$n_lm_significant <- sum(lm_pvals$padj < 0.05, na.rm = TRUE)
+                }
+            }
+        }
+    }
+    
+    # Jackknife stats
+    if (length(analysis@jackknife_results) > 0 && is.list(analysis@jackknife_results)) {
+        if (!is.null(analysis@jackknife_results$switching_summary)) {
+            stats$n_jackknife <- nrow(analysis@jackknife_results$switching_summary)
+        }
+    }
+    
+    # Divergence stats
+    if (length(analysis@divergence_results) > 0 && is.data.frame(analysis@divergence_results)) {
+        stats$n_divergence <- nrow(analysis@divergence_results)
+    }
+    
+    return(stats)
 }
 
 # ============================================================================
@@ -418,25 +539,40 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 
 #' Log pipeline start
 #' @noRd
-.log_pipeline_start <- function(se, q_vals) {
-    message("TSENAT Isoform Switching Workflow")
-    message("==================================")
-    message(sprintf("Transcripts: %d", nrow(se)))
-    message(sprintf("Samples: %d", ncol(se)))
-    message(sprintf("Q-spectrum: %s", paste(q_vals, collapse = ", ")))
+.log_pipeline_start <- function(se, q_vals, cfg) {
+    # Use ANSI color codes for prettier output
+    cat("\n")
+    cat("╔════════════════════════════════════════════════════════════╗\n")
+    cat("║          TSENAT: Tsallis Entropy Analysis Toolbox          ║\n")
+    cat("╚════════════════════════════════════════════════════════════╝\n\n")
+    
+    cat("📊 Data Summary\n")
+    cat("  Transcripts ........... ", format(nrow(se), big.mark = ","), "\n", sep = "")
+    cat("  Samples .............. ", ncol(se), "\n", sep = "")
+    n_conditions <- length(unique(se[[cfg$condition_col %||% "condition"]]))
+    cat("  Conditions ........... ", n_conditions, "\n", sep = "")
+    cat("  Q-spectrum range ...... ", format(round(min(q_vals), 2), width = 4), " to ", 
+        format(round(max(q_vals), 2), width = 4), " (", length(q_vals), " values)\n", sep = "")
+    
+    cat("\n⚙️  Configuration\n")
+    cat("  p-value threshold ..... ", format(cfg$p_threshold %||% 0.05, width = 6, nsmall = 3), "\n", sep = "")
+    cat("  FDR threshold ......... ", format(cfg$fdr_threshold %||% 0.05, width = 6, nsmall = 3), "\n", sep = "")
+    if (!is.null(cfg$n_bootstrap)) {
+        cat("  Bootstrap samples ..... ", format(cfg$n_bootstrap, big.mark = ","), "\n", sep = "")
+    }
+    cat("\n")
 }
 
 #' Step 2: Diversity calculation
 #' @noRd
 .execute_diversity_s4 <- function(analysis, q_vals, verbose, output_dir) {
     if (verbose)
-        message("Step 2: Computing Tsallis diversity across q-spectrum...")
+        cat(sprintf("▶ [%2d/14] Computing Tsallis diversity\n", 2))
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "diversity_results.tsv") else NULL
-        analysis <- calculate_diversity_s4(analysis, q = q_vals, output_file = output_file)
+        suppressMessages({analysis <- calculate_diversity_s4(analysis, q = q_vals, output_file = output_file)})
         if (verbose)
-            message(sprintf("  [OK] Diversity computed for q = %s", paste(q_vals,
-                collapse = ", ")))
+            cat(sprintf("          ✓ %d q-values processed\n", length(q_vals)))
     }, error = function(e) stop("Diversity failed:\n", e$message, call. = FALSE))
     analysis
 }
@@ -445,14 +581,14 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 #' @noRd
 .execute_q_curve_plot <- function(analysis, verbose, output_dir) {
     if (verbose)
-        message("Step 3: Plotting q-spectrum curve...")
+        cat(sprintf("▶ [%2d/14] Plotting q-spectrum curve\n", 3))
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "q_curve_plot.png") else NULL
         p_qcurve <- plot_tsallis_q_curve_s4(analysis, output_file = output_file)
         if (!is.null(p_qcurve)) {
             analysis <- addPlot(analysis, type = "q_curve", plot = p_qcurve, replace = TRUE)
             if (verbose)
-                message("  [OK] Q-curve plot generated")
+                cat("          ✓ Plot generated\n")
         }
     }, error = function(e) {
         if (verbose)
@@ -543,8 +679,6 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "gene_switching_tables.rds") else NULL
         tables_result <- prepare_gene_switching_tables_s4(analysis, output_file = output_file, verbose = FALSE)
         if (!is.null(tables_result)) {
-            # Store tables in analysis metadata
-            S4Vectors::metadata(analysis)$gene_switching_tables <- tables_result
             if (verbose)
                 message("  [OK] Gene switching tables prepared")
         }
@@ -699,22 +833,69 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 
 #' Finalize analysis and print summary
 #' @noRd
-.finalize_tsenat_analysis <- function(analysis, verbose) {
+.finalize_tsenat_analysis <- function(analysis, verbose, step_times = NULL, total_time = NULL, output_dir = NULL) {
     if (verbose) {
-        message("\nWorkflow Complete")
-        message("=================")
-        message("Results generated:")
-        if (length(analysis@diversity_results) > 0)
-            message("  ✓ Diversity (Tsallis entropy)")
-        if (length(analysis@lm_results) > 0)
-            message("  ✓ LM interaction results (with GAM)")
-        if (length(analysis@divergence_results) > 0)
-            message("  ✓ Divergence metrics")
+        cat("\n")
+        cat("╔════════════════════════════════════════════════════════════╗\n")
+        cat("║               ✓ ANALYSIS COMPLETE                          ║\n")
+        cat("╚════════════════════════════════════════════════════════════╝\n\n")
+        
+        # Extract statistics
+        stats <- .extract_analysis_statistics(analysis)
+        
+        cat("📈 Results Summary\n")
+        
+        if (stats$n_transcripts > 0)
+            cat(sprintf("  ✓ Diversity ........... %d transcripts × %d q-values\n", 
+                stats$n_transcripts, stats$n_q_values))
+        if (stats$n_lm_significant > 0)
+            cat(sprintf("  ✓ LM interactions ..... %d genes (p < 0.05)\n", 
+                stats$n_lm_significant))
+        if (stats$n_jackknife > 0)
+            cat(sprintf("  ✓ Isoform switching ... %d genes\n", 
+                stats$n_jackknife))
+        if (stats$n_divergence > 0)
+            cat(sprintf("  ✓ Divergence metrics .. %d pairwise comparisons\n", 
+                stats$n_divergence))
         if (!is.null(analysis@metadata$effect_sizes_divergence))
-            message("  ✓ Effect sizes")
+            cat("  ✓ Effect sizes ........ computed\n")
         if (length(analysis@plots) > 0)
-            message(sprintf("  ✓ Visualizations (%d plots)", length(analysis@plots)))
-        message("\nUse show(analysis) or summary(analysis) for detailed information")
+            cat(sprintf("  ✓ Visualizations ...... %d plots\n", length(analysis@plots)))
+        
+        # Show timing
+        if (!is.null(total_time)) {
+            time_str <- .format_duration(total_time)
+            cat("\n⏱️  Performance\n")
+            cat(sprintf("  Total time ........... %s\n", time_str))
+            
+            if (!is.null(step_times) && length(step_times) > 3) {
+                step_durations <- sapply(step_times, function(x) as.numeric(x, units = "secs"))
+                slow_steps <- names(sort(step_durations, decreasing = TRUE))[1:min(3, length(step_durations))]
+                cat("  Slowest steps:\n")
+                for (i in seq_along(slow_steps)) {
+                    sname <- slow_steps[i]
+                    stime <- step_times[[sname]]
+                    pct <- (as.numeric(stime, units = "secs") / as.numeric(total_time, units = "secs")) * 100
+                    cat(sprintf("    %d. %-20s %s (%.1f%%)\n", i, sname, 
+                        .format_duration(stime), pct))
+                }
+            }
+        }
+        
+        # Show output
+        if (!is.null(output_dir) && dir.exists(output_dir)) {
+            n_files <- length(list.files(output_dir, recursive = TRUE))
+            cat("📁 Output\n")
+            cat(sprintf("  Directory ........... %s\n", output_dir))
+            cat(sprintf("  Files saved ......... %d\n", n_files))
+        }
+        
+        cat("\n")
+        cat("💡 Next steps:\n")
+        cat("  show(analysis)      - View object structure and slots\n")
+        cat("  summary(analysis)   - Print detailed statistics\n")
+        cat("  getPlot(analysis)   - Extract visualization results\n")
+        cat("\n")
     }
     analysis@metadata$ended_at <- Sys.time()
     analysis
