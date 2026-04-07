@@ -280,10 +280,10 @@ print.gtable <- function(x, ...) {
                 dplyr::slice(1:min(n_top, nrow(results_df))) %>%
                 dplyr::select(dplyr::all_of(intersect(select_cols, colnames(results_df)))) %>%
                 dplyr::mutate(
-                    dplyr::across(where(is.numeric) & !matches("abundance|mean|fold|stat"), 
+                    dplyr::across(dplyr::where(is.numeric) & !dplyr::matches("abundance|mean|fold|stat"), 
                                  ~ format(., scientific = TRUE, digits = 3)),
-                    dplyr::across(matches("_mean$|mean_"), ~ round(., 4)),
-                    dplyr::across(matches("fold_change|difference"), ~ round(., 4))
+                    dplyr::across(dplyr::matches("_mean$|mean_"), ~ round(., 4)),
+                    dplyr::across(dplyr::matches("fold_change|difference"), ~ round(., 4))
                 )
         })
     })
