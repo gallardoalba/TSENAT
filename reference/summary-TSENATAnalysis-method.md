@@ -61,7 +61,7 @@ summary(analysis)
 #>     - Q-spectrum: 0.00 to 2.00 (5 values)
 #>     - Pseudocount: disabled
 #>   Statistical Methods:
-#>     - LM fitting: gam
+#>     - LM fitting: GAM
 #>     - P-value correction: BH
 #>     - Jackknife filtering: LM-based
 #> 
@@ -73,7 +73,7 @@ summary(analysis)
 #>   ✗ Visualizations: not generated
 #> 
 #> PROCESSING & METADATA:
-#>   Created: 2026-04-08 21:36:20
+#>   Created: 2026-04-08 23:40:42
 #>   Package version: 0.99.0
 #> 
 ```

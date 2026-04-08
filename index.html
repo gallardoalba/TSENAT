@@ -79,16 +79,19 @@
 <div class="section level2">
 <h2 id="the-mathematics-behind-tsallis-entropy">The Mathematics Behind Tsallis Entropy<a class="anchor" aria-label="anchor" href="#the-mathematics-behind-tsallis-entropy"></a>
 </h2>
-<p>Tsallis entropy is defined as: <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mi>q</mi></msub><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mo>∑</mo><msubsup><mi>p</mi><mi>i</mi><mi>q</mi></msubsup><mo stretchy="false" form="postfix">)</mo><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mi>q</mi><mo>−</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">S_q = (1 - \sum p_i^q) / (q-1)</annotation></semantics></math>, where <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>p</mi><mi>i</mi></msub><annotation encoding="application/x-tex">p_i</annotation></semantics></math> represents isoform proportions within a gene. This elegant equation generalizes Shannon entropy (which is recovered when <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>→</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q \to 1</annotation></semantics></math>) and enables tuning sensitivity to different scales of isoform organization:</p>
+<p>Tsallis entropy is a parametric family of diversity measures that generalizes Shannon entropy and enables tuning sensitivity to different scales of isoform organization.</p>
+<p><strong>Mathematical Definition</strong>: For a discrete probability vector <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>=</mo><mo stretchy="false" form="prefix">(</mo><msub><mi>p</mi><mn>1</mn></msub><mo>,</mo><mi>…</mi><mo>,</mo><msub><mi>p</mi><mi>n</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">p = (p_1, \ldots, p_n)</annotation></semantics></math> representing isoform proportions within a gene, Tsallis entropy is:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mi>q</mi></msub><mo>=</mo><mfrac><mrow><mn>1</mn><mo>−</mo><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><msubsup><mi>p</mi><mi>i</mi><mi>q</mi></msubsup></mrow><mrow><mi>q</mi><mo>−</mo><mn>1</mn></mrow></mfrac></mrow><annotation encoding="application/x-tex">S_q = \frac{1 - \sum_{i=1}^{n} p_i^q}{q - 1}</annotation></semantics></math></p>
+<p>This elegant formula unifies diverse diversity concepts at specific q-values:</p>
 <ul>
 <li>
-<strong>q = 0</strong>: Richness</li>
+<strong>q = 0</strong>: Richness — Simple count of expressed isoforms; emphasizes rare variants most strongly.</li>
 <li>
-<strong>q = 1</strong>: Shannon entropy</li>
+<strong>q = 1</strong>: Shannon entropy — Standard information-theoretic measure; balanced weighting across scales.</li>
 <li>
-<strong>q = 2</strong>: Gini-Simpson index</li>
+<strong>q = 2</strong>: Gini-Simpson index — Probability that two randomly-drawn transcripts are different; robust to rare variants.</li>
 </ul>
-<p>This parametric family is the key innovation: by sliding q across scales, you zoom from rare isoform variants to dominant transcript patterns, capturing biological signal invisible to fixed-scale methods. See <strong>vignette(“TSENAT”)</strong> for the complete mathematical treatment and information-theoretic interpretation.</p>
+<p>By examining diversity across multiple q-values, you identify <strong>scale-dependent</strong> diversity changes—the hallmark of coordinate isoform switching. See <strong>vignette(“TSENAT”)</strong> for the complete mathematical treatment and information-theoretic interpretation.</p>
 <div class="section level3">
 <h3 id="divergence-analysis-measuring-information-theoretic-distance-between-conditions">Divergence Analysis: Measuring Information-Theoretic Distance Between Conditions<a class="anchor" aria-label="anchor" href="#divergence-analysis-measuring-information-theoretic-distance-between-conditions"></a>
 </h3>
@@ -228,69 +231,32 @@
 <div class="section level2">
 <h2 id="statistical-inference-methods">Statistical Inference Methods<a class="anchor" aria-label="anchor" href="#statistical-inference-methods"></a>
 </h2>
-<p>TSENAT provides a flexible statistical framework optimized for entropy-based diversity analysis. The default configuration uses Generalized Additive Models (GAM) with Benjamini-Hochberg multiple testing correction and Friedman rank tests for paired designs. Users can adjust the statistical methodology via the <code>lm_method</code>, <code>lm_pcorr</code>, and <code>bootstrap_method</code> configuration parameters to suit their study design and data characteristics.</p>
+<p>TSENAT provides a flexible statistical framework optimized for entropy-based diversity analysis.</p>
 <div class="section level3">
-<h3 id="linear-modeling-approaches">Linear Modeling Approaches<a class="anchor" aria-label="anchor" href="#linear-modeling-approaches"></a>
+<h3 id="parametric-methods">Parametric methods:<a class="anchor" aria-label="anchor" href="#parametric-methods"></a>
 </h3>
-<p>TSENAT supports four distinct parametric/semi-parametric linear modeling frameworks, selectable via <code>lm_method</code>:</p>
 <ul>
-<li><p><strong>Generalized Additive Models (GAM/GAMM)</strong> [DEFAULT]: Flexible smoothing with locally-weighted basis functions. For unpaired designs, uses standard GAM with F-tests. For paired/repeated measures, automatically switches to GAMM with AR(1) autocorrelation structure. Automatically selects appropriate family (Beta for bounded [0,1] entropy values, Gamma for heteroscedastic data, Gaussian otherwise) with smoothing bias correction for small sample sizes.</p></li>
-<li><p><strong>Linear Mixed Models (LMM)</strong>: Parametric framework with AR(1) correlation structure for repeated measures designs. Appropriate when study design assumptions align with mixed model requirements and parametric inference is preferred. Supports multiple p-value computation methods (Satterthwaite, Likelihood Ratio Test, or both).</p></li>
-<li><p><strong>Functional Principal Component Analysis (FPCA)</strong>: Treats entropy curves across the q-spectrum as functional objects, extracting orthogonal functional principal components. Performs ANOVA on component scores. Ideal for investigations emphasizing scale-dependent (multi-q) diversity patterns.</p></li>
-<li><p><strong>Generalized Estimating Equations (GEE)</strong>: Semi-parametric approach using working correlation structures for correlated non-normal data. Provides robust alternative to mixed models when parametric distributional assumptions are uncertain.</p></li>
-</ul>
-<p><strong>Method Selection Guidance</strong>: GAM is recommended for entropy analysis due to its flexibility with bounded, non-normal distributions. Choose LMM if parametric assumptions are well-justified. Choose FPCA for multi-scale comparative analysis across the q-spectrum. Choose GEE for robustness to model misspecification. See <code><a href="articles/TSENAT.html">vignette("TSENAT")</a></code> for detailed method comparisons and examples.</p>
-</div>
-<div class="section level3">
-<h3 id="rank-based-tests-for-paired-designs">Rank-Based Tests for Paired Designs<a class="anchor" aria-label="anchor" href="#rank-based-tests-for-paired-designs"></a>
-</h3>
-<p>For paired study designs with non-normal data distributions:</p>
-<ul>
-<li><p><strong>Friedman Rank Test</strong> [DEFAULT for paired]: Non-parametric test comparing entropy distributions across conditions within matched pairs. Provides maximal robustness for bounded, non-normal distributions characteristic of entropy metrics.</p></li>
-<li><p><strong>Kendall Test</strong>: Non-parametric alternative with different power characteristics; useful as sensitivity analysis.</p></li>
-<li><p><strong>Conditioned Rank Tests</strong>: Stratified rank testing within experimental strata for complex designs.</p></li>
+<li><p><strong>Generalized Additive Models (GAM) with ARIMA Differencing</strong>: GAM is a semi-parametric approach using flexible smooth functions of <em>q</em> and group with ARIMA(1,1,0) first-differencing to remove monotone trend and achieve stationarity. Estimates fixed effect parameters via smooth basis functions; automatically detects heteroscedasticity and applies optimal variance weighting.</p></li>
+<li><p><strong>Linear Mixed Models (LMM) with AR(1)</strong>: Fits mixed-effects models using <code><a href="https://rdrr.io/pkg/nlme/man/lme.html" class="external-link">nlme::lme()</a></code> with random intercept by subject and AR(1) correlation structure for observation-level errors with explicit time-ordering by <em>q</em>-value.</p></li>
+<li><p><strong>Generalized Estimating Equations (GEE) with Multiple Correlation Structures</strong>: Fits marginal models with three selectable correlation structures: AR(1) for <em>q</em>-ordered data, exchangeable for unordered measurements, or independence. Includes Kauermann-Carroll bias correction for small number of clusters.</p></li>
+<li><p><strong>Functional Principal Component Analysis (FPCA) with Regularization</strong>: Treats entropy values as ordered curves across <em>q</em>-values; applies ARIMA differencing then performs PCA on the curve matrix to extract orthogonal smooth principal components.</p></li>
+<li><p><strong>Huber M-Estimation with Leave-One-Out Diagnostics</strong>: Iteratively re-weighted least squares (IRLS) using Huber loss function.</p></li>
 </ul>
 </div>
 <div class="section level3">
-<h3 id="distribution-free-and-permutation-methods">Distribution-Free and Permutation Methods<a class="anchor" aria-label="anchor" href="#distribution-free-and-permutation-methods"></a>
+<h3 id="non-parametric-methods">Non-parametric methods:<a class="anchor" aria-label="anchor" href="#non-parametric-methods"></a>
 </h3>
 <ul>
-<li><p><strong>Wilcoxon Signed-Rank Test</strong>: For paired pairwise comparisons of entropy between samples or conditions.</p></li>
-<li><p><strong>Permutation Testing</strong>: Distribution-free testing via sample permutation, implemented for pairwise comparisons.</p></li>
-<li><p><strong>Westfall-Young Permutation Correction</strong>: Advanced permutation-based multiple testing procedure controlling family-wise error rate with stepdown, more powerful than traditional Bonferroni correction. Useful for comprehensive hypothesis testing scenarios.</p></li>
+<li><p><strong>Friedman Rank-Based Test with Hochberg Correction</strong>: Non-parametric alternative to repeated-measures ANOVA that operates entirely on ranks, requiring no distributional assumptions.</p></li>
+<li><p><strong>Jackknife via Delta Influence</strong>: Leave-one-out resampling to identify transcript-level contributors to entropy changes via delta influence.</p></li>
+<li><p><strong>Wilcoxon Rank Sum Test with Multiple Hypothesis Correction</strong>: Unpaired or paired (Wilcoxon signed-rank) non-parametric alternative to t-tests.</p></li>
+<li><p><strong>Permutation/Label Shuffling Test with FDR Control</strong>: Non-parametric exact test via label shuffling.</p></li>
 </ul>
 </div>
-<div class="section level3">
-<h3 id="multiple-testing-corrections">Multiple Testing Corrections<a class="anchor" aria-label="anchor" href="#multiple-testing-corrections"></a>
-</h3>
-<ul>
-<li><p><strong>Benjamini-Hochberg (BH)</strong> [DEFAULT]: Controls False Discovery Rate (FDR) across multiple hypothesis tests. Appropriate for exploratory analysis where false positive control is balanced against power.</p></li>
-<li><p><strong>Bonferroni</strong>: Conservative family-wise error rate (FWER) control; use when strict false positive protection is required.</p></li>
-<li><p><strong>Holm Step-Down</strong>: Less conservative FWER control; compromise between Bonferroni and BH.</p></li>
-<li><p><strong>Westfall-Young Permutation</strong>: Permutation-based stepdown FWER procedure (see Permutation Methods).</p></li>
-</ul>
 </div>
-<div class="section level3">
-<h3 id="bootstrap-confidence-intervals">Bootstrap Confidence Intervals<a class="anchor" aria-label="anchor" href="#bootstrap-confidence-intervals"></a>
-</h3>
-<p>TSENAT incorporates bootstrap resampling for robust uncertainty quantification:</p>
-<ul>
-<li><p><strong>Percentile Bootstrap</strong> [DEFAULT]: Computes confidence intervals from empirical quantiles of bootstrap distribution. Fast and assumption-free but assumes symmetric sampling distribution.</p></li>
-<li><p><strong>Bias-Corrected and Accelerated (BCA) Bootstrap</strong> [RECOMMENDED for entropy]: Adjusts for distribution skewness and bias through acceleration factor computation. Ideal for bounded, skewed entropy distributions. Provides diagnostic output (skewness, acceleration) to assess bootstrap assumption satisfaction.</p></li>
-</ul>
-<p><strong>Bootstrap Recommendation for Entropy Data</strong>: Use <code>bootstrap_method = "bca"</code> (set via <code><a href="reference/tsenat_config.html">tsenat_config()</a></code>) for entropy analysis, as entropy metrics are inherently bounded [0, log N] and often exhibit positive skewness. The BCA correction is specifically designed to handle this scenario.</p>
-</div>
-<div class="section level3">
-<h3 id="transcript-level-switching-and-influence-assessment">Transcript-Level Switching and Influence Assessment<a class="anchor" aria-label="anchor" href="#transcript-level-switching-and-influence-assessment"></a>
-</h3>
-<ul>
-<li><p><strong>Jackknife Isoform Switching Analysis</strong>: Bootstrap-based leave-one-transcript-out resampling identifying which individual transcripts drive observed isoform complexity changes. Computes delta influence (transcript contribution shift between conditions) weighted by support frequency across bootstrap replicates. Identifies “robust switching”—transcripts showing consistent switching across ≥90% of bootstrap samples (configurable threshold). Complements group-level diversity tests by pinpointing mechanism.</p></li>
-<li><p><strong>M-Estimation Robustness Weighting</strong> (Tukey biweight, Huber weights): Provides outlier-resistant influence assessment and effect size calculations for divergence analysis. Identifies samples with disproportionate effect on results during quality control stage (incorporated as step 4/14 of automated workflow).</p></li>
-</ul>
-</div>
-<div class="section level3">
-<h3 id="data-integration">Data Integration<a class="anchor" aria-label="anchor" href="#data-integration"></a>
-</h3>
+<div class="section level2">
+<h2 id="data-integration">Data Integration<a class="anchor" aria-label="anchor" href="#data-integration"></a>
+</h2>
 <ul>
 <li>
 <strong>Unified object</strong>: <code>TSENATAnalysis</code> encapsulates sequencing data, configuration, and all statistical results</li>
@@ -298,7 +264,6 @@
 <code>SummarizedExperiment</code> foundation: Full Bioconductor ecosystem compatibility</li>
 <li>Accessor functions: <code><a href="reference/diversity.html">diversity()</a></code>, <code><a href="reference/divergence.html">divergence()</a></code>, <code><a href="reference/lmResults.html">lmResults()</a></code>, <code><a href="reference/jisResults.html">jisResults()</a></code>, etc.</li>
 </ul>
-</div>
 </div>
 <div class="section level2">
 <h2 id="related-packages">Related Packages<a class="anchor" aria-label="anchor" href="#related-packages"></a>
@@ -344,7 +309,6 @@
 </tr>
 </tbody>
 </table>
-<p><strong>Note on SplicingFactory:</strong> TSENAT shares Shannon and Simpson diversity metrics (identical mathematical definitions) with SplicingFactory but extends with <strong>scale-dependent analysis</strong> (q-spectrum 0≤q≤2) and advanced statistical inference. <strong>Important limitation:</strong> TSENAT cannot compute Gini index. Choose TSENAT for comprehensive q-spectrum analysis and robust inference; keep SplicingFactory if Gini index analysis is required. See <a href="#appendix-a-detailed-tsenat-vs-splicingfactory-comparison">Appendix A</a> for detailed comparison and migration guidance.</p>
 </div>
 <div class="section level2">
 <h2 id="native-salmon-integration">Native Salmon Integration<a class="anchor" aria-label="anchor" href="#native-salmon-integration"></a>

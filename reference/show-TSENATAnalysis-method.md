@@ -46,5 +46,12 @@ gff3_file, metadata = metadata_df, config = config,
 analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 = 200)
 show(analysis)
-#> Error in if (nchar(status_str) == 0) status_str <- "EMPTY": argument is of length zero
+#> TSENATAnalysis Object
+#> ====================
+#> Genes:       200
+#> Samples:     16
+#> Configuration: 26 parameters
+#> Analysis status: EMPTY
+#> Created: 2026-04-08 23:40:41.721532
+#> 
 ```

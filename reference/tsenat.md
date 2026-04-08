@@ -119,6 +119,7 @@ analysis <- build_analysis_s4(
 )
 
 result <- tsenat(analysis)
+#> Created output directory: tsenat_outputs
 #> 
 #> +============================================================+
 #> |          TSENAT: Tsallis Entropy Analysis Toolbox          |
@@ -134,11 +135,11 @@ result <- tsenat(analysis)
 #>   Design ................ unpaired
 #>   Filter stringency .... medium
 #>   Normalization ........ enabled [0-1]
-#>   Normalization method . none
+#>   Normalization method . NONE
 #>   Pseudocount .......... disabled
-#>   Shrinkage ............ none
+#>   Shrinkage ............ NONE
 #>   Significance ......... p < 0.050 | FDR < 0.050
-#>   LM method ............ gam
+#>   LM method ............ GAM
 #>   LM p-corr method ..... BH
 #>   Jackknife use_lm_fdr . TRUE
 #> 
@@ -181,22 +182,22 @@ result <- tsenat(analysis)
 #> [RESULTS] Results Summary
 #> 
 #> [PERF] Performance
-#>   Total time ........... 17.2s
+#>   Total time ........... 15.1s
 #>   Slowest steps:
-#>     1. lm_interaction       11.6s (67.7%)
-#>     2. jackknife            1.3s (7.8%)
-#>     3. div_spectrum_plot    1.2s (6.9%)
+#>     1. lm_interaction       10.3s (68.6%)
+#>     2. jackknife            1.2s (7.8%)
+#>     3. div_spectrum_plot    1.0s (6.6%)
 #> 
 #> [OUTPUT] Output
 #>   Directory ........... tsenat_outputs
 #>   Files saved ......... 15
 #> 
 #> [TIPS] Next steps:
-#>   show(analysis)           - View object structure and slots
-#>   summary(analysis)        - Print detailed statistics summary
-#>   getResults(analysis)     - Extract numerical results (diversity, divergence, etc.)
-#>   getPlot(analysis, type)  - Retrieve specific visualization (e.g., 'diversity', 'volcano')
-#>   getMeta(analysis)        - Access metadata and workflow parameters
-#>   getSE(analysis)          - Get SummarizedExperiment object for downstream analysis
+#>   show(result)             - View object structure and slots
+#>   summary(result)          - Print detailed statistics summary
+#>   getResults(result)       - Extract numerical results (diversity, divergence, etc.)
+#>   getPlot(result, type)    - Retrieve specific visualization (e.g., 'diversity', 'volcano')
+#>   getMeta(result)          - Access metadata and workflow parameters
+#>   getSE(result)            - Get SummarizedExperiment object for downstream analysis
 #> 
 ```

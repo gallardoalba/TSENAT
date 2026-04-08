@@ -134,6 +134,7 @@ Default: TRUE. If FALSE, no TSV/CSV output files are written to disk.</p></dd>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">tsenat</span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Created output directory: tsenat_outputs</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> +============================================================+</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> |          TSENAT: Tsallis Entropy Analysis Toolbox          |</span>
@@ -149,11 +150,11 @@ Default: TRUE. If FALSE, no TSV/CSV output files are written to disk.</p></dd>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Design ................ unpaired</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Filter stringency .... medium</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Normalization ........ enabled [0-1]</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   Normalization method . none</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Normalization method . NONE</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Pseudocount .......... disabled</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   Shrinkage ............ none</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Shrinkage ............ NONE</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Significance ......... p &lt; 0.050 | FDR &lt; 0.050</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   LM method ............ gam</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   LM method ............ GAM</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   LM p-corr method ..... BH</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Jackknife use_lm_fdr . TRUE</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
@@ -196,23 +197,23 @@ Default: TRUE. If FALSE, no TSV/CSV output files are written to disk.</p></dd>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [RESULTS] Results Summary</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [PERF] Performance</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   Total time ........... 17.2s</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Total time ........... 15.1s</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Slowest steps:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     1. lm_interaction       11.6s (67.7%)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     2. jackknife            1.3s (7.8%)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     3. div_spectrum_plot    1.2s (6.9%)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     1. lm_interaction       10.3s (68.6%)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     2. jackknife            1.2s (7.8%)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     3. div_spectrum_plot    1.0s (6.6%)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [OUTPUT] Output</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Directory ........... tsenat_outputs</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Files saved ......... 15</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [TIPS] Next steps:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   show(analysis)           - View object structure and slots</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   summary(analysis)        - Print detailed statistics summary</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   getResults(analysis)     - Extract numerical results (diversity, divergence, etc.)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   getPlot(analysis, type)  - Retrieve specific visualization (e.g., 'diversity', 'volcano')</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   getMeta(analysis)        - Access metadata and workflow parameters</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   getSE(analysis)          - Get SummarizedExperiment object for downstream analysis</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   show(result)             - View object structure and slots</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   summary(result)          - Print detailed statistics summary</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   getResults(result)       - Extract numerical results (diversity, divergence, etc.)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   getPlot(result, type)    - Retrieve specific visualization (e.g., 'diversity', 'volcano')</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   getMeta(result)          - Access metadata and workflow parameters</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   getSE(result)            - Get SummarizedExperiment object for downstream analysis</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

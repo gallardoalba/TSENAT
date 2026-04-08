@@ -7,9 +7,12 @@
   detection of splicing-driven regulatory changes orthogonal to
   count-based differential expression methods.
 
-- Core analysis via `calculate_diversity()` /
+- Core analysis via
+  [`calculate_diversity()`](https://rdrr.io/pkg/SplicingFactory/man/calculate_diversity.html)
+  /
   [`calculate_diversity_s4()`](https://gallardoalba.github.io/TSENAT/reference/calculate_diversity_s4.md),
-  `calculate_difference()` /
+  [`calculate_difference()`](https://rdrr.io/pkg/SplicingFactory/man/calculate_difference.html)
+  /
   [`calculate_difference_s4()`](https://gallardoalba.github.io/TSENAT/reference/calculate_difference_s4.md),
   `calculate_divergence()` /
   [`calculate_divergence_s4()`](https://gallardoalba.github.io/TSENAT/reference/calculate_divergence_s4.md),

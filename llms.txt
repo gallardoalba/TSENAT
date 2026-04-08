@@ -36,21 +36,32 @@ isoform switching.
 
 ## The Mathematics Behind Tsallis Entropy
 
-Tsallis entropy is defined as: $`S_q = (1 - \sum p_i^q) / (q-1)`$, where
-$`p_i`$ represents isoform proportions within a gene. This elegant
-equation generalizes Shannon entropy (which is recovered when
-$`q \to 1`$) and enables tuning sensitivity to different scales of
-isoform organization:
+Tsallis entropy is a parametric family of diversity measures that
+generalizes Shannon entropy and enables tuning sensitivity to different
+scales of isoform organization.
 
-- **q = 0**: Richness
-- **q = 1**: Shannon entropy
-- **q = 2**: Gini-Simpson index
+**Mathematical Definition**: For a discrete probability vector
+$`p = (p_1, \ldots, p_n)`$ representing isoform proportions within a
+gene, Tsallis entropy is:
 
-This parametric family is the key innovation: by sliding q across
-scales, you zoom from rare isoform variants to dominant transcript
-patterns, capturing biological signal invisible to fixed-scale methods.
-See **vignette(“TSENAT”)** for the complete mathematical treatment and
-information-theoretic interpretation.
+``` math
+S_q = \frac{1 - \sum_{i=1}^{n} p_i^q}{q - 1}
+```
+
+This elegant formula unifies diverse diversity concepts at specific
+q-values:
+
+- **q = 0**: Richness — Simple count of expressed isoforms; emphasizes
+  rare variants most strongly.
+- **q = 1**: Shannon entropy — Standard information-theoretic measure;
+  balanced weighting across scales.
+- **q = 2**: Gini-Simpson index — Probability that two randomly-drawn
+  transcripts are different; robust to rare variants.
+
+By examining diversity across multiple q-values, you identify
+**scale-dependent** diversity changes—the hallmark of coordinate isoform
+switching. See **vignette(“TSENAT”)** for the complete mathematical
+treatment and information-theoretic interpretation.
 
 ### Divergence Analysis: Measuring Information-Theoretic Distance Between Conditions
 
@@ -74,27 +85,6 @@ This measure unifies several well-known divergence concepts: - **q =
 0.5**: Emphasizes rare isoforms, sensitive to minority variants - **q =
 2**: Emphasizes dominant isoforms, robust to rare variants
 
-**Key Properties**: - **Scale-dependent sensitivity**: Different q
-values reveal whether diversity shifts occur in rare (low q) or abundant
-(high q) fractions of the transcriptome - **Non-symmetry**:
-$`D_q(P||Q) \ne D_q(Q||P)`$, reflecting the directional nature of
-information comparison (important for paired designs) - **Effect size
-interpretation**: Values $`D > 0.1`$ indicate meaningful biological
-separation between conditions; values near 0 suggest similar isoform
-complexity patterns
-
-**Application in TSENAT**: For paired study designs, TSENAT computes
-divergence separately for each pair, then averages to create a robust,
-paired-design-aware effect size. This respects within-pair correlation
-while accounting for between-pair variation. The multi-q divergence
-profile reveals whether group differences are concentrated at specific
-diversity scales (indicating mechanism-specific isoform shifts) or
-distributed uniformly (indicating broad-spectrum reorganization). See
-[`calculate_divergence_s4()`](https://gallardoalba.github.io/TSENAT/reference/calculate_divergence_s4.md)
-and
-[`effect_sizes_divergence_s4()`](https://gallardoalba.github.io/TSENAT/reference/effect_sizes_divergence_s4.md)
-for implementation details.
-
 ### Jackknife Isoform Switching: Identifying Robust Transcript-Level Contributors
 
 Beyond group-level diversity statistics, researchers often need to
@@ -116,45 +106,6 @@ where influence is computed across bootstrap replicates. Values are: -
 condition - **Negative**: Transcript more influential in second
 condition - **Magnitude**: Larger absolute values indicate more robust,
 consistent switching across replicates
-
-**Robustness Weighting**: To distinguish signal from noise, TSENAT
-weights delta influence by the **support frequency** across bootstrap
-iterations. A transcript switching identified in 95% of bootstrap
-samples receives higher confidence than one identified in only 60%, even
-if both have similar magnitude. This operationalizes the principle that
-robust signals persist across resampling, while artifacts disappear.
-
-**Scale-Dependent Switching Patterns**: By computing jackknife delta
-influence at each q-value, TSENAT reveals whether: - **Consistent
-switching**: The same transcripts dominate (high delta influence) across
-all q-values, indicating scale-independent isoform shifts -
-**Scale-dependent switching**: Different transcripts show high delta
-influence at different q-values (e.g., different transcripts drive
-changes in rare vs. abundant fractions), indicating complex regulatory
-mechanisms
-
-**Key Parameters**: - `nboot`: Number of bootstrap replicates (default
-100-1000; higher values increase stability assessment precision) -
-`threshold`: Minimum support frequency to classify a transcript as
-“robustly switching” (default 90%; e.g., must appear in ≥90% of
-bootstrap samples) - `lm_p_threshold`: Pre-filter genes before jackknife
-analysis (only test genes with significant q×condition interaction, p \<
-0.05)
-
-**Implementation**: See
-[`jackknife_isoform_switching_s4()`](https://gallardoalba.github.io/TSENAT/reference/jackknife_isoform_switching_s4.md)
-for details on compute;
-[`plot_multiq_delta_influence_heatmaps_s4()`](https://gallardoalba.github.io/TSENAT/reference/plot_multiq_delta_influence_heatmaps_s4.md)
-for visualization; and
-[`prepare_gene_switching_tables_s4()`](https://gallardoalba.github.io/TSENAT/reference/prepare_gene_switching_tables_s4.md)
-for extracting results as publication-ready tables.
-
-**Biological Interpretation**: Genes with robust jackknife switching
-signals (high support, large magnitude) represent high-confidence
-isoform reorganization events. These are candidate targets for
-functional validation, because they represent coordinate, reproducible
-transcript usage changes that are unlikely to be driven by experimental
-noise.
 
 ## Installation
 
@@ -329,134 +280,54 @@ print(combined_plot)
 ## Statistical Inference Methods
 
 TSENAT provides a flexible statistical framework optimized for
-entropy-based diversity analysis. The default configuration uses
-Generalized Additive Models (GAM) with Benjamini-Hochberg multiple
-testing correction and Friedman rank tests for paired designs. Users can
-adjust the statistical methodology via the `lm_method`, `lm_pcorr`, and
-`bootstrap_method` configuration parameters to suit their study design
-and data characteristics.
+entropy-based diversity analysis.
 
-### Linear Modeling Approaches
+### Parametric methods:
 
-TSENAT supports four distinct parametric/semi-parametric linear modeling
-frameworks, selectable via `lm_method`:
+- **Generalized Additive Models (GAM) with ARIMA Differencing**: GAM is
+  a semi-parametric approach using flexible smooth functions of *q* and
+  group with ARIMA(1,1,0) first-differencing to remove monotone trend
+  and achieve stationarity. Estimates fixed effect parameters via smooth
+  basis functions; automatically detects heteroscedasticity and applies
+  optimal variance weighting.
 
-- **Generalized Additive Models (GAM/GAMM)** \[DEFAULT\]: Flexible
-  smoothing with locally-weighted basis functions. For unpaired designs,
-  uses standard GAM with F-tests. For paired/repeated measures,
-  automatically switches to GAMM with AR(1) autocorrelation structure.
-  Automatically selects appropriate family (Beta for bounded \[0,1\]
-  entropy values, Gamma for heteroscedastic data, Gaussian otherwise)
-  with smoothing bias correction for small sample sizes.
+- **Linear Mixed Models (LMM) with AR(1)**: Fits mixed-effects models
+  using [`nlme::lme()`](https://rdrr.io/pkg/nlme/man/lme.html) with
+  random intercept by subject and AR(1) correlation structure for
+  observation-level errors with explicit time-ordering by *q*-value.
 
-- **Linear Mixed Models (LMM)**: Parametric framework with AR(1)
-  correlation structure for repeated measures designs. Appropriate when
-  study design assumptions align with mixed model requirements and
-  parametric inference is preferred. Supports multiple p-value
-  computation methods (Satterthwaite, Likelihood Ratio Test, or both).
+- **Generalized Estimating Equations (GEE) with Multiple Correlation
+  Structures**: Fits marginal models with three selectable correlation
+  structures: AR(1) for *q*-ordered data, exchangeable for unordered
+  measurements, or independence. Includes Kauermann-Carroll bias
+  correction for small number of clusters.
 
-- **Functional Principal Component Analysis (FPCA)**: Treats entropy
-  curves across the q-spectrum as functional objects, extracting
-  orthogonal functional principal components. Performs ANOVA on
-  component scores. Ideal for investigations emphasizing scale-dependent
-  (multi-q) diversity patterns.
+- **Functional Principal Component Analysis (FPCA) with
+  Regularization**: Treats entropy values as ordered curves across
+  *q*-values; applies ARIMA differencing then performs PCA on the curve
+  matrix to extract orthogonal smooth principal components.
 
-- **Generalized Estimating Equations (GEE)**: Semi-parametric approach
-  using working correlation structures for correlated non-normal data.
-  Provides robust alternative to mixed models when parametric
-  distributional assumptions are uncertain.
+- **Huber M-Estimation with Leave-One-Out Diagnostics**: Iteratively
+  re-weighted least squares (IRLS) using Huber loss function.
 
-**Method Selection Guidance**: GAM is recommended for entropy analysis
-due to its flexibility with bounded, non-normal distributions. Choose
-LMM if parametric assumptions are well-justified. Choose FPCA for
-multi-scale comparative analysis across the q-spectrum. Choose GEE for
-robustness to model misspecification. See
-[`vignette("TSENAT")`](https://gallardoalba.github.io/TSENAT/articles/TSENAT.md)
-for detailed method comparisons and examples.
+### Non-parametric methods:
 
-### Rank-Based Tests for Paired Designs
+- **Friedman Rank-Based Test with Hochberg Correction**: Non-parametric
+  alternative to repeated-measures ANOVA that operates entirely on
+  ranks, requiring no distributional assumptions.
 
-For paired study designs with non-normal data distributions:
+- **Jackknife via Delta Influence**: Leave-one-out resampling to
+  identify transcript-level contributors to entropy changes via delta
+  influence.
 
-- **Friedman Rank Test** \[DEFAULT for paired\]: Non-parametric test
-  comparing entropy distributions across conditions within matched
-  pairs. Provides maximal robustness for bounded, non-normal
-  distributions characteristic of entropy metrics.
+- **Wilcoxon Rank Sum Test with Multiple Hypothesis Correction**:
+  Unpaired or paired (Wilcoxon signed-rank) non-parametric alternative
+  to t-tests.
 
-- **Kendall Test**: Non-parametric alternative with different power
-  characteristics; useful as sensitivity analysis.
+- **Permutation/Label Shuffling Test with FDR Control**: Non-parametric
+  exact test via label shuffling.
 
-- **Conditioned Rank Tests**: Stratified rank testing within
-  experimental strata for complex designs.
-
-### Distribution-Free and Permutation Methods
-
-- **Wilcoxon Signed-Rank Test**: For paired pairwise comparisons of
-  entropy between samples or conditions.
-
-- **Permutation Testing**: Distribution-free testing via sample
-  permutation, implemented for pairwise comparisons.
-
-- **Westfall-Young Permutation Correction**: Advanced permutation-based
-  multiple testing procedure controlling family-wise error rate with
-  stepdown, more powerful than traditional Bonferroni correction. Useful
-  for comprehensive hypothesis testing scenarios.
-
-### Multiple Testing Corrections
-
-- **Benjamini-Hochberg (BH)** \[DEFAULT\]: Controls False Discovery Rate
-  (FDR) across multiple hypothesis tests. Appropriate for exploratory
-  analysis where false positive control is balanced against power.
-
-- **Bonferroni**: Conservative family-wise error rate (FWER) control;
-  use when strict false positive protection is required.
-
-- **Holm Step-Down**: Less conservative FWER control; compromise between
-  Bonferroni and BH.
-
-- **Westfall-Young Permutation**: Permutation-based stepdown FWER
-  procedure (see Permutation Methods).
-
-### Bootstrap Confidence Intervals
-
-TSENAT incorporates bootstrap resampling for robust uncertainty
-quantification:
-
-- **Percentile Bootstrap** \[DEFAULT\]: Computes confidence intervals
-  from empirical quantiles of bootstrap distribution. Fast and
-  assumption-free but assumes symmetric sampling distribution.
-
-- **Bias-Corrected and Accelerated (BCA) Bootstrap** \[RECOMMENDED for
-  entropy\]: Adjusts for distribution skewness and bias through
-  acceleration factor computation. Ideal for bounded, skewed entropy
-  distributions. Provides diagnostic output (skewness, acceleration) to
-  assess bootstrap assumption satisfaction.
-
-**Bootstrap Recommendation for Entropy Data**: Use
-`bootstrap_method = "bca"` (set via
-[`tsenat_config()`](https://gallardoalba.github.io/TSENAT/reference/tsenat_config.md))
-for entropy analysis, as entropy metrics are inherently bounded \[0, log
-N\] and often exhibit positive skewness. The BCA correction is
-specifically designed to handle this scenario.
-
-### Transcript-Level Switching and Influence Assessment
-
-- **Jackknife Isoform Switching Analysis**: Bootstrap-based
-  leave-one-transcript-out resampling identifying which individual
-  transcripts drive observed isoform complexity changes. Computes delta
-  influence (transcript contribution shift between conditions) weighted
-  by support frequency across bootstrap replicates. Identifies “robust
-  switching”—transcripts showing consistent switching across ≥90% of
-  bootstrap samples (configurable threshold). Complements group-level
-  diversity tests by pinpointing mechanism.
-
-- **M-Estimation Robustness Weighting** (Tukey biweight, Huber weights):
-  Provides outlier-resistant influence assessment and effect size
-  calculations for divergence analysis. Identifies samples with
-  disproportionate effect on results during quality control stage
-  (incorporated as step 4/14 of automated workflow).
-
-### Data Integration
+## Data Integration
 
 - **Unified object**: `TSENATAnalysis` encapsulates sequencing data,
   configuration, and all statistical results
@@ -488,16 +359,6 @@ TSENAT complements other Bioconductor tools:
 | **IsoformSwitchAnalyzeR** | Which *individual isoforms* switch; what are the *functional consequences*? | TSENAT measures overall isoform diversity and diversity **shifts** rather than cataloging individual transcript switches or predicting functional consequences; complements switch identification with diversity patterns |
 | **SplicingFactory** | What is the overall isoform diversity? | TSENAT extends with **scale-dependent diversity** (q-spectrum) vs fixed measures |
 | **Kallisto, Salmon** | How many reads per transcript? | TSENAT uses their quantification as input; adds diversity analysis layer |
-
-**Note on SplicingFactory:** TSENAT shares Shannon and Simpson diversity
-metrics (identical mathematical definitions) with SplicingFactory but
-extends with **scale-dependent analysis** (q-spectrum 0≤q≤2) and
-advanced statistical inference. **Important limitation:** TSENAT cannot
-compute Gini index. Choose TSENAT for comprehensive q-spectrum analysis
-and robust inference; keep SplicingFactory if Gini index analysis is
-required. See [Appendix
-A](#appendix-a-detailed-tsenat-vs-splicingfactory-comparison) for
-detailed comparison and migration guidance.
 
 ## Native Salmon Integration
 
