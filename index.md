@@ -67,10 +67,7 @@ treatment and information-theoretic interpretation.
 
 While Tsallis entropy quantifies diversity *within* a single
 distribution, **Tsallis divergence** $`D_q`$ measures the
-information-theoretic distance *between* two distributions. This enables
-quantification of how fundamentally different the isoform complexity
-patterns are between experimental conditions, automatically accounting
-for scale-dependent effects.
+information-theoretic distance *between* two distributions.
 
 **Mathematical Definition**: For two probability distributions $`P`$ and
 $`Q`$ representing isoform proportions in control and treatment
@@ -80,32 +77,9 @@ conditions, Tsallis divergence is:
 D_q(P||Q) = \frac{\sum_i p_i^q - \sum_i p_i \cdot q_i^{q-1}}{(q-1) \sum_i p_i}
 ```
 
-This measure unifies several well-known divergence concepts: - **q =
-1**: Recovers Kullback-Leibler divergence (relative entropy) - **q =
-0.5**: Emphasizes rare isoforms, sensitive to minority variants - **q =
-2**: Emphasizes dominant isoforms, robust to rare variants
-
-### Jackknife Isoform Switching: Identifying Robust Transcript-Level Contributors
-
-Beyond group-level diversity statistics, researchers often need to
-identify *which individual transcripts* drive observed isoform
-complexity changes. TSENAT uses **jackknife leave-one-out resampling**
-combined with **delta influence** weighting to robustly identify
-transcript-level switching with stability assessment.
-
-**Jackknife Delta Influence**: For each transcript $`i`$ in a gene, the
-delta influence quantifies how that transcript’s relative contribution
-to isoform diversity changes between conditions:
-
-``` math
-\Delta I_i = \text{Mean influence in condition 1} - \text{Mean influence in condition 2}
-```
-
-where influence is computed across bootstrap replicates. Values are: -
-**Positive**: Transcript more influential (abundant, stable) in first
-condition - **Negative**: Transcript more influential in second
-condition - **Magnitude**: Larger absolute values indicate more robust,
-consistent switching across replicates
+Tsallis divergence enables the quantification of how fundamentally
+different the isoform complexity patterns are between experimental
+conditions.
 
 ## Installation
 

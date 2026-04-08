@@ -124,6 +124,12 @@ result <- tsenat(analysis)
 #> +============================================================+
 #> |          TSENAT: Tsallis Entropy Analysis Toolbox          |
 #> +============================================================+
+#> |                                                            |
+#> |  Science is an essentially anarchic enterprise: theoretical |
+#> |  anarchism is more humanitarian and more likely to        |
+#> |  encourage progress than its law-and-order alternatives.  |
+#> |                          — Paul Feyerabend, *Against Method* |
+#> +============================================================+
 #> 
 #> [DATA] Data Summary
 #>   Transcripts ........... 3,089
@@ -182,11 +188,11 @@ result <- tsenat(analysis)
 #> [RESULTS] Results Summary
 #> 
 #> [PERF] Performance
-#>   Total time ........... 15.1s
+#>   Total time ........... 16.5s
 #>   Slowest steps:
-#>     1. lm_interaction       10.3s (68.6%)
-#>     2. jackknife            1.2s (7.8%)
-#>     3. div_spectrum_plot    1.0s (6.6%)
+#>     1. lm_interaction       11.6s (70.5%)
+#>     2. jackknife            1.2s (7.2%)
+#>     3. div_spectrum_plot    1.0s (6.0%)
 #> 
 #> [OUTPUT] Output
 #>   Directory ........... tsenat_outputs
