@@ -74,27 +74,6 @@ This measure unifies several well-known divergence concepts: - **q =
 0.5**: Emphasizes rare isoforms, sensitive to minority variants - **q =
 2**: Emphasizes dominant isoforms, robust to rare variants
 
-**Key Properties**: - **Scale-dependent sensitivity**: Different q
-values reveal whether diversity shifts occur in rare (low q) or abundant
-(high q) fractions of the transcriptome - **Non-symmetry**:
-$`D_q(P||Q) \ne D_q(Q||P)`$, reflecting the directional nature of
-information comparison (important for paired designs) - **Effect size
-interpretation**: Values $`D > 0.1`$ indicate meaningful biological
-separation between conditions; values near 0 suggest similar isoform
-complexity patterns
-
-**Application in TSENAT**: For paired study designs, TSENAT computes
-divergence separately for each pair, then averages to create a robust,
-paired-design-aware effect size. This respects within-pair correlation
-while accounting for between-pair variation. The multi-q divergence
-profile reveals whether group differences are concentrated at specific
-diversity scales (indicating mechanism-specific isoform shifts) or
-distributed uniformly (indicating broad-spectrum reorganization). See
-[`calculate_divergence_s4()`](https://gallardoalba.github.io/TSENAT/reference/calculate_divergence_s4.md)
-and
-[`effect_sizes_divergence_s4()`](https://gallardoalba.github.io/TSENAT/reference/effect_sizes_divergence_s4.md)
-for implementation details.
-
 ### Jackknife Isoform Switching: Identifying Robust Transcript-Level Contributors
 
 Beyond group-level diversity statistics, researchers often need to
@@ -116,45 +95,6 @@ where influence is computed across bootstrap replicates. Values are: -
 condition - **Negative**: Transcript more influential in second
 condition - **Magnitude**: Larger absolute values indicate more robust,
 consistent switching across replicates
-
-**Robustness Weighting**: To distinguish signal from noise, TSENAT
-weights delta influence by the **support frequency** across bootstrap
-iterations. A transcript switching identified in 95% of bootstrap
-samples receives higher confidence than one identified in only 60%, even
-if both have similar magnitude. This operationalizes the principle that
-robust signals persist across resampling, while artifacts disappear.
-
-**Scale-Dependent Switching Patterns**: By computing jackknife delta
-influence at each q-value, TSENAT reveals whether: - **Consistent
-switching**: The same transcripts dominate (high delta influence) across
-all q-values, indicating scale-independent isoform shifts -
-**Scale-dependent switching**: Different transcripts show high delta
-influence at different q-values (e.g., different transcripts drive
-changes in rare vs. abundant fractions), indicating complex regulatory
-mechanisms
-
-**Key Parameters**: - `nboot`: Number of bootstrap replicates (default
-100-1000; higher values increase stability assessment precision) -
-`threshold`: Minimum support frequency to classify a transcript as
-“robustly switching” (default 90%; e.g., must appear in ≥90% of
-bootstrap samples) - `lm_p_threshold`: Pre-filter genes before jackknife
-analysis (only test genes with significant q×condition interaction, p \<
-0.05)
-
-**Implementation**: See
-[`jackknife_isoform_switching_s4()`](https://gallardoalba.github.io/TSENAT/reference/jackknife_isoform_switching_s4.md)
-for details on compute;
-[`plot_multiq_delta_influence_heatmaps_s4()`](https://gallardoalba.github.io/TSENAT/reference/plot_multiq_delta_influence_heatmaps_s4.md)
-for visualization; and
-[`prepare_gene_switching_tables_s4()`](https://gallardoalba.github.io/TSENAT/reference/prepare_gene_switching_tables_s4.md)
-for extracting results as publication-ready tables.
-
-**Biological Interpretation**: Genes with robust jackknife switching
-signals (high support, large magnitude) represent high-confidence
-isoform reorganization events. These are candidate targets for
-functional validation, because they represent coordinate, reproducible
-transcript usage changes that are unlikely to be driven by experimental
-noise.
 
 ## Installation
 
