@@ -134,7 +134,6 @@ Default: TRUE. If FALSE, no TSV/CSV output files are written to disk.</p></dd>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">tsenat</span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Created output directory: tsenat_outputs</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> +============================================================+</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> |          TSENAT: Tsallis Entropy Analysis Toolbox          |</span>
@@ -146,45 +145,48 @@ Default: TRUE. If FALSE, no TSV/CSV output files are written to disk.</p></dd>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Conditions ........... 2</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Q-spectrum range ...... 0.5 to 2.5 (5 values)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [CONFIG] Configuration</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   p-value threshold .....  0.050</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   FDR threshold .........  0.050</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   Bootstrap samples ..... 1,000</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [CONFIG] Analysis Configuration</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Design ................ unpaired</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Filter stringency .... medium</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Normalization ........ enabled [0-1]</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Normalization method . none</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Pseudocount .......... disabled</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Shrinkage ............ none</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Significance ......... p &lt; 0.050 | FDR &lt; 0.050</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   LM method ............ gam</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   LM p-corr method ..... BH</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Jackknife use_lm_fdr . TRUE</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> =============================================================</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 1/14] Filtering low-abundance transcripts</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Complete</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 2/14] Computing Tsallis diversity</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Note: 12 genes excluded (&lt; 75% valid values).</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [calculate_diversity_s4] Saved diversity spectrum to: tsenat_outputs/diversity_results_spectrum.tsv</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [calculate_diversity_s4] Saved table to: tsenat_outputs/diversity_results.tsv</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [calculate_diversity_s4] Saved diversity results to: tsenat_outputs/diversity_results.tsv</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] 5 q-values processed</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 3/14] Plotting q-spectrum curve</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Plot generated</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 4: Running sample influence QC analysis (m-estimator)...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] M-estimate QC complete</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 5: Testing LM interactions with GAM smoother...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] LM interaction analysis complete</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 6: Plotting LM interaction GAM smoother...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 4/14] Running sample influence QC analysis (m-estimator)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] M-estimate QC complete</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 5/14] Testing LM interactions with GAM smoother</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] LM interaction analysis complete</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 6/14] Plotting LM interaction GAM smoother</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No valid plots generated</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 7: Computing jackknife isoform switching analysis...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Jackknife isoform switching complete</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 8: Preparing gene switching tables...</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Gene switching tables failed: arguments imply differing number of rows: 3, 2, 5, 6</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 9: Plotting multi-q influence heatmap...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Influence heatmap generated</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 10: Plotting top transcript counts...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Top transcripts plot generated</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 11: Computing divergence metrics...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Divergence computed</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 12: Computing effect sizes for divergence...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Effect sizes computed</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 13: Plotting divergence distribution...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Divergence distribution plot generated</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 14: Plotting divergence spectrum...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Global divergence spectrum plot generated</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Multi-gene divergence spectrum plot generated</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 7/14] Computing jackknife isoform switching analysis</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Jackknife isoform switching complete</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 8/14] Preparing gene switching tables</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Gene switching tables prepared</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 9/14] Plotting multi-q influence heatmap</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Influence heatmap generated</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [10/14] Plotting top transcript counts</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Top transcripts plot generated</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [11/14] Computing divergence metrics</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Divergence computed</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [12/14] Computing effect sizes for divergence</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Effect sizes computed</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [13/14] Plotting divergence distribution</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Divergence distribution plot generated</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [14/14] Plotting divergence spectrum</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Global divergence spectrum plot generated</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Multi-gene divergence spectrum plot generated</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> =============================================================</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> +============================================================+</span>
@@ -192,23 +194,25 @@ Default: TRUE. If FALSE, no TSV/CSV output files are written to disk.</p></dd>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> +============================================================+</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [RESULTS] Results Summary</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Effect sizes ........ computed</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Visualizations ...... 6 plots</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [PERF] Performance</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   Total time ........... 14.6s</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Total time ........... 17.2s</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Slowest steps:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     1. lm_interaction       10.0s (68.7%)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     2. jackknife            1.1s (7.8%)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     3. div_spectrum_plot    0.9s (6.4%)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     1. lm_interaction       11.6s (67.7%)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     2. jackknife            1.3s (7.8%)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     3. div_spectrum_plot    1.2s (6.9%)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [OUTPUT] Output</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Directory ........... tsenat_outputs</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   Files saved ......... 14</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Files saved ......... 15</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [TIPS] Next steps:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   show(analysis)      - View object structure and slots</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   summary(analysis)   - Print detailed statistics</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   getPlot(analysis)   - Extract visualization results</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   show(analysis)           - View object structure and slots</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   summary(analysis)        - Print detailed statistics summary</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   getResults(analysis)     - Extract numerical results (diversity, divergence, etc.)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   getPlot(analysis, type)  - Retrieve specific visualization (e.g., 'diversity', 'volcano')</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   getMeta(analysis)        - Access metadata and workflow parameters</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   getSE(analysis)          - Get SummarizedExperiment object for downstream analysis</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

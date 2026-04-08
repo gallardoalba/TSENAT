@@ -119,7 +119,6 @@ analysis <- build_analysis_s4(
 )
 
 result <- tsenat(analysis)
-#> Created output directory: tsenat_outputs
 #> 
 #> +============================================================+
 #> |          TSENAT: Tsallis Entropy Analysis Toolbox          |
@@ -131,45 +130,48 @@ result <- tsenat(analysis)
 #>   Conditions ........... 2
 #>   Q-spectrum range ...... 0.5 to 2.5 (5 values)
 #> 
-#> [CONFIG] Configuration
-#>   p-value threshold .....  0.050
-#>   FDR threshold .........  0.050
-#>   Bootstrap samples ..... 1,000
+#> [CONFIG] Analysis Configuration
+#>   Design ................ unpaired
+#>   Filter stringency .... medium
+#>   Normalization ........ enabled [0-1]
+#>   Normalization method . none
+#>   Pseudocount .......... disabled
+#>   Shrinkage ............ none
+#>   Significance ......... p < 0.050 | FDR < 0.050
+#>   LM method ............ gam
+#>   LM p-corr method ..... BH
+#>   Jackknife use_lm_fdr . TRUE
 #> 
 #> =============================================================
 #> [>] [ 1/14] Filtering low-abundance transcripts
 #>           [OK] Complete
 #> [>] [ 2/14] Computing Tsallis diversity
-#> Note: 12 genes excluded (< 75% valid values).
-#> [calculate_diversity_s4] Saved diversity spectrum to: tsenat_outputs/diversity_results_spectrum.tsv
-#> [calculate_diversity_s4] Saved table to: tsenat_outputs/diversity_results.tsv
-#> [calculate_diversity_s4] Saved diversity results to: tsenat_outputs/diversity_results.tsv
 #>           [OK] 5 q-values processed
 #> [>] [ 3/14] Plotting q-spectrum curve
 #>           [OK] Plot generated
-#> Step 4: Running sample influence QC analysis (m-estimator)...
-#>   [OK] M-estimate QC complete
-#> Step 5: Testing LM interactions with GAM smoother...
-#>   [OK] LM interaction analysis complete
-#> Step 6: Plotting LM interaction GAM smoother...
+#> [>] [ 4/14] Running sample influence QC analysis (m-estimator)
+#>           [OK] M-estimate QC complete
+#> [>] [ 5/14] Testing LM interactions with GAM smoother
+#>           [OK] LM interaction analysis complete
+#> [>] [ 6/14] Plotting LM interaction GAM smoother
 #> Warning: No valid plots generated
-#> Step 7: Computing jackknife isoform switching analysis...
-#>   [OK] Jackknife isoform switching complete
-#> Step 8: Preparing gene switching tables...
-#> Warning: Gene switching tables failed: arguments imply differing number of rows: 3, 2, 5, 6
-#> Step 9: Plotting multi-q influence heatmap...
-#>   [OK] Influence heatmap generated
-#> Step 10: Plotting top transcript counts...
-#>   [OK] Top transcripts plot generated
-#> Step 11: Computing divergence metrics...
-#>   [OK] Divergence computed
-#> Step 12: Computing effect sizes for divergence...
-#>   [OK] Effect sizes computed
-#> Step 13: Plotting divergence distribution...
-#>   [OK] Divergence distribution plot generated
-#> Step 14: Plotting divergence spectrum...
-#>   [OK] Global divergence spectrum plot generated
-#>   [OK] Multi-gene divergence spectrum plot generated
+#> [>] [ 7/14] Computing jackknife isoform switching analysis
+#>           [OK] Jackknife isoform switching complete
+#> [>] [ 8/14] Preparing gene switching tables
+#>           [OK] Gene switching tables prepared
+#> [>] [ 9/14] Plotting multi-q influence heatmap
+#>           [OK] Influence heatmap generated
+#> [>] [10/14] Plotting top transcript counts
+#>           [OK] Top transcripts plot generated
+#> [>] [11/14] Computing divergence metrics
+#>           [OK] Divergence computed
+#> [>] [12/14] Computing effect sizes for divergence
+#>           [OK] Effect sizes computed
+#> [>] [13/14] Plotting divergence distribution
+#>           [OK] Divergence distribution plot generated
+#> [>] [14/14] Plotting divergence spectrum
+#>           [OK] Global divergence spectrum plot generated
+#>           [OK] Multi-gene divergence spectrum plot generated
 #> =============================================================
 #> 
 #> +============================================================+
@@ -177,22 +179,24 @@ result <- tsenat(analysis)
 #> +============================================================+
 #> 
 #> [RESULTS] Results Summary
-#>   [OK] Effect sizes ........ computed
-#>   [OK] Visualizations ...... 6 plots
 #> 
 #> [PERF] Performance
-#>   Total time ........... 14.6s
+#>   Total time ........... 17.2s
 #>   Slowest steps:
-#>     1. lm_interaction       10.0s (68.7%)
-#>     2. jackknife            1.1s (7.8%)
-#>     3. div_spectrum_plot    0.9s (6.4%)
+#>     1. lm_interaction       11.6s (67.7%)
+#>     2. jackknife            1.3s (7.8%)
+#>     3. div_spectrum_plot    1.2s (6.9%)
+#> 
 #> [OUTPUT] Output
 #>   Directory ........... tsenat_outputs
-#>   Files saved ......... 14
+#>   Files saved ......... 15
 #> 
 #> [TIPS] Next steps:
-#>   show(analysis)      - View object structure and slots
-#>   summary(analysis)   - Print detailed statistics
-#>   getPlot(analysis)   - Extract visualization results
+#>   show(analysis)           - View object structure and slots
+#>   summary(analysis)        - Print detailed statistics summary
+#>   getResults(analysis)     - Extract numerical results (diversity, divergence, etc.)
+#>   getPlot(analysis, type)  - Retrieve specific visualization (e.g., 'diversity', 'volcano')
+#>   getMeta(analysis)        - Access metadata and workflow parameters
+#>   getSE(analysis)          - Get SummarizedExperiment object for downstream analysis
 #> 
 ```

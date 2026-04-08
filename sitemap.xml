@@ -1,13 +1,20 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://gallardoalba.github.io/TSENAT/404.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/CODE_OF_CONDUCT.html</loc></url>
+<url><loc>https://gallardoalba.github.io/TSENAT/IMPLEMENTATION_CODE_GUIDE.html</loc></url>
+<url><loc>https://gallardoalba.github.io/TSENAT/IMPLEMENTATION_SUMMARY.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/LICENSE-text.html</loc></url>
+<url><loc>https://gallardoalba.github.io/TSENAT/PARAMETER_AUDIT.html</loc></url>
+<url><loc>https://gallardoalba.github.io/TSENAT/PARAMETER_AUDIT_FINAL_REPORT.html</loc></url>
+<url><loc>https://gallardoalba.github.io/TSENAT/PARAMETER_REFERENCE_TABLES.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/PULL_REQUEST_TEMPLATE.html</loc></url>
+<url><loc>https://gallardoalba.github.io/TSENAT/UNDOCUMENTED_PARAMETERS_AUDIT.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/articles/TSENAT.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/articles/TSENAT_appendix_A.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/articles/TSENAT_appendix_B.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/articles/index.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/authors.html</loc></url>
+<url><loc>https://gallardoalba.github.io/TSENAT/coverage/index.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/index.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/news/index.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/AllGenerics.html</loc></url>

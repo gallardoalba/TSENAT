@@ -45,37 +45,35 @@ gff3_file, metadata = metadata_df, config = config,
 analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 = 200)
 summary(analysis)
-#> === TSENAT Analysis Summary ===
-#> DATA:
-#>   Genes:       200
+#> TSENAT Analysis Summary
+#> =======================
+#> DATA STRUCTURE:
+#>   Genes:        200
 #>   Samples:      16
-#>   Assays:        1 (counts)
+#>   Assays:       counts
 #> 
 #> CONFIGURATION:
-#>   q_values: 0, 0.5, 1, 1.5, 2
-#>   condition_col: condition
-#>   subject_col: <NULL>
-#>   sample_col: sample
-#>   paired: <logical>
-#>   control: <NULL>
-#>   p_threshold: 0.05
-#>   fdr_threshold: 0.05
-#>   significance_threshold: 0.05
-#>   nboot: 1000
-#>   bootstrap_method: percentile
-#>   stringency: medium
-#>   nthreads: 1
-#>   norm: <logical>
-#>   bootstrap: <logical>
-#>   bootstrap_ci: 0.95
-#>   norm_method: <NULL>
-#>   pseudocount: <NULL>
-#>   metadata: <data.frame>
+#>   Design & Filtering:
+#>     - Design: unpaired
+#>     - Stringency: medium
+#>     - Normalization: enabled
+#>   Diversity Metrics:
+#>     - Q-spectrum: 0.00 to 2.00 (5 values)
+#>     - Pseudocount: disabled
+#>   Statistical Methods:
+#>     - LM fitting: gam
+#>     - P-value correction: BH
+#>     - Jackknife filtering: LM-based
 #> 
-#> RESULTS:
+#> ANALYSIS RESULTS:
+#>   ✗ Diversity: not computed
+#>   ✗ LM Interaction: not computed
+#>   ✗ Jackknife Switching: not computed
+#>   ✗ Divergence Metrics: not computed
+#>   ✗ Visualizations: not generated
 #> 
-#> METADATA:
-#>   Created: 2026-04-08 04:30:24
-#>   Package: TSENAT 0.99.0
+#> PROCESSING & METADATA:
+#>   Created: 2026-04-08 21:36:20
+#>   Package version: 0.99.0
 #> 
 ```

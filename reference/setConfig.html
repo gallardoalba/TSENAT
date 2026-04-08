@@ -129,38 +129,36 @@ with those in the new value object.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Verify and display</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> === TSENAT Analysis Summary ===</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> DATA:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   Genes:       200</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> TSENAT Analysis Summary</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> =======================</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> DATA STRUCTURE:</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Genes:        200</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Samples:      16</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   Assays:        1 (counts)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Assays:       counts</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> CONFIGURATION:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   q_values: 0.5, 1, 1.5, 2</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   condition_col: condition</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   subject_col: &lt;NULL&gt;</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   sample_col: sample</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   paired: &lt;logical&gt;</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   control: &lt;NULL&gt;</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   p_threshold: 0.05</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   fdr_threshold: 0.05</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   significance_threshold: 0.05</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   nboot: 1000</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   bootstrap_method: percentile</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   stringency: medium</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   nthreads: 1</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   norm: &lt;logical&gt;</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   bootstrap: &lt;logical&gt;</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   bootstrap_ci: 0.95</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   norm_method: &lt;NULL&gt;</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   pseudocount: &lt;NULL&gt;</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   seed: 123</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Design &amp; Filtering:</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     - Design: unpaired</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     - Stringency: medium</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     - Normalization: enabled</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Diversity Metrics:</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     - Q-spectrum: 0.50 to 2.00 (4 values)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     - Pseudocount: disabled</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Statistical Methods:</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     - LM fitting: gam</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     - P-value correction: BH</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     - Jackknife filtering: LM-based</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> RESULTS:</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> ANALYSIS RESULTS:</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✗ Diversity: not computed</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✗ LM Interaction: not computed</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✗ Jackknife Switching: not computed</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✗ Divergence Metrics: not computed</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   ✗ Visualizations: not generated</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> METADATA:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   Created: 2026-04-08 04:30:22</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   Package: TSENAT 0.99.0</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> PROCESSING &amp; METADATA:</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Created: 2026-04-08 21:36:18</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Package version: 0.99.0</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 </code></pre></div>
     </div>

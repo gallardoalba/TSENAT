@@ -46,33 +46,5 @@ gff3_file, metadata = metadata_df, config = config,
 analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 = 200)
 show(analysis)
-#> TSENATAnalysis object
-#> =====================
-#> SummarizedExperiment:
-#>   Genes:   200
-#>   Samples: 16
-#> 
-#> Configuration:
-#>   q_values: 0, 0.5, 1, 1.5, 2
-#>   condition_col: condition
-#>   subject_col: NULL
-#>   sample_col: sample
-#>   paired: FALSE
-#>   control: NULL
-#>   p_threshold: 0.05
-#>   fdr_threshold: 0.05
-#>   significance_threshold: 0.05
-#>   nboot: 1000
-#>   bootstrap_method: percentile
-#>   stringency: medium
-#>   nthreads: 1
-#>   norm: TRUE
-#>   bootstrap: FALSE
-#>   bootstrap_ci: 0.95
-#>   norm_method: NULL
-#>   pseudocount: NULL
-#>   metadata: <data.frame>
-#> 
-#> Analysis Status:
-#> 
+#> Error in if (nchar(status_str) == 0) status_str <- "EMPTY": argument is of length zero
 ```
