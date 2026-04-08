@@ -103,7 +103,7 @@ For a complete analysis pipeline, pass the analysis object with configuration:
 
 ```r
 # Returns: Fully configured TSENATAnalysis object with diversity, testing, and plots
-result <- tsenat(analysis, config = config)
+result <- tsenat(analysis)
 ```
 
 ## Detailed Step-by-Step Workflow

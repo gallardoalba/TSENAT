@@ -12,8 +12,6 @@
 #' interactions -> divergence -> gene interactions -> visualizations.
 #'
 #' @param analysis \code{TSENATAnalysis} object created by \code{\link{build_analysis_s4}}.
-#' @param config \code{list} or \code{TSENATConfig}. Configuration from
-#'   \code{\link{tsenat_config}}. If NULL, uses configuration from analysis object.
 #' @param output_dir \code{character}. Directory to save results and plots.
 #'   Default: "tsenat_outputs". Set to NULL to disable automatic output saving.
 #' @param save_output \code{logical}. Whether to save output files (results tables).
@@ -21,7 +19,6 @@
 #' @param output_format \code{character}. Format for output files: 'tsv' (tab-separated),
 #'   'csv' (comma-separated), 'txt' (text), or 'rds' (R serialized). Default: 'tsv'.
 #' @param verbose \code{logical}. Print progress messages. Default: TRUE.
-#' @param ... Additional arguments passed to individual wrapper functions.
 #'
 #' @return \code{TSENATAnalysis} object containing complete analysis results,
 #'   plots, and metadata.
@@ -68,10 +65,10 @@
 #'   effective_length = effective_length
 #' )
 #' 
-#' result <- tsenat(analysis, config = config)
+#' result <- tsenat(analysis)
 #'
 #' @export
-tsenat <- function(analysis, config = NULL, output_dir = "tsenat_outputs", save_output = TRUE, output_format = "tsv", verbose = TRUE, ...) {
+tsenat <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, output_format = "tsv", verbose = TRUE) {
     # Validate input
     if (!is(analysis, "TSENATAnalysis")) {
         stop("'analysis' must be a TSENATAnalysis object created by build_analysis_s4()",
@@ -100,21 +97,17 @@ tsenat <- function(analysis, config = NULL, output_dir = "tsenat_outputs", save_
         if (verbose) message("Created output directory: ", output_dir)
     }
 
-    # Update config if provided
-    if (!is.null(config)) {
-        analysis <- setConfig(analysis, config)
-    }
+    # Validate input object
     .validate_analysis_object(analysis)
 
-    # Extract parameters
+    # Extract parameters from config (already embedded in analysis object from build_analysis_s4)
     cfg <- getConfig(analysis)
     
-    # Extract q_values from function arguments (...) if provided, otherwise from config
-    q_vals_from_args <- list(...)$q_values
-    q_vals <- if (!is.null(q_vals_from_args)) q_vals_from_args else (cfg$q_values %||% seq(0, 2, by = 0.5))
+    # Get q_values from config
+    q_vals <- cfg$q_values %||% seq(0, 2, by = 0.5)
     
     # Inform user if using default q-values
-    if (is.null(q_vals_from_args) && is.null(cfg$q_values)) {
+    if (is.null(cfg$q_values)) {
         if (verbose) message("[INFO] Using default q-values: ", paste(q_vals, collapse = ", "))
     }
     

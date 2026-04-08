@@ -179,10 +179,8 @@
         return(list(mat = as.matrix(assays_list[["abundance"]]), source = "assay 'abundance' (tximport format)"))
     }
 
-    # Fallback with warning
-    idx <- .resolve_assay_index(assay_name, names(assays_list))
-    return(list(mat = as.matrix(assays_list[[idx]]), source = sprintf("assay '%s' (fallback - NOT TPM!)",
-        names(assays_list)[idx]), is_fallback = TRUE))
+    # No TPM found - error instead of fallback
+    return(NULL)
 }
 
 # ============================================================================
@@ -547,16 +545,25 @@
     # Get assays and discover TPM source
     assays_list <- SummarizedExperiment::assays(se)
     tpm_result <- .get_assay_filtering(se, assays_list, tpm_assay_name, assay_name)
+    
+    # Validate that TPM was found
+    if (is.null(tpm_result)) {
+        stop("TPM data is required for diversity filtering but was not found.\n",
+             "To resolve this, ensure TPM is provided when building the analysis:\n\n",
+             "  analysis <- build_analysis_s4(\n",
+             "    readcounts = readcounts,\n",
+             "    metadata = metadata_df,\n",
+             "    tx2gene = gff3_file,\n",
+             "    tpm = tpm,                    # Required: TPM matrix from SALMON\n",
+             "    effective_length = effective_length,\n",
+             "    config = config\n",
+             "  )\n\n",
+             "TPM will be stored in metadata(se)$tpm and used for filtering.",
+             call. = FALSE)
+    }
+    
     assay_mat <- tpm_result$mat
     assay_source <- tpm_result$source
-
-    # Warn if fallback (not TPM)
-    if (!is.null(tpm_result$is_fallback) && tpm_result$is_fallback) {
-        warning("No TPM data found in assays or metadata. Falling back to assay '",
-            assay_name, "'.", "\nThis may produce INCORRECT results if '", assay_name,
-            "' contains raw counts.", "\nEnsure TPM data is added as an assay or in metadata with tpm/tpm.",
-            call. = FALSE)
-    }
 
     # Get gene IDs for downstream filtering
     genes_vec <- .get_gene_ids(se)

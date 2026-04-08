@@ -337,10 +337,14 @@ provide a comprehensive framework for assessing isoform heterogeneity at multipl
 We normalize entropy to [0,1] range (`norm = TRUE`) for comparable cross-q assessment.
 
 ```{r tsallis-entropy-computation}
+# Set random seed for reproducible bootstrap CI calculations
+set.seed(12345)
+
 # Compute diversity using S4 wrapper with bootstrap confidence intervals [@S232; @S115]
 analysis <- calculate_diversity_s4(
     analysis,
-    norm = TRUE
+    norm = TRUE,
+    output_file = "vignette_diversity_results.tsv"
 )
 ```
 
@@ -1022,13 +1026,13 @@ The `tsenat()` function accepts a configured `TSENATConfig` object and orchestra
 
 - `diversity(analysis)` -> SummarizedExperiment (genes x samples, multiple assays for each q-value)
 
-- `lmResults(analysis)` -> list containing data.frame of LM interaction results (or NULL if method not run)
+- `lmResults(analysis)` -> list containing data.frame of LM interaction results
 
-- `jeoResults(analysis, q = 1.0)` -> SummarizedExperiment of jackknife entropy outlier confidence intervals (or NULL)
+- `jeoResults(analysis, q = 1.0)` -> SummarizedExperiment of jackknife entropy outlier confidence intervals
 
-- `jisResults(analysis, q = 1.0)` -> list of jackknife isoform switching results (or NULL)
+- `jisResults(analysis, q = 1.0)` -> list of jackknife isoform switching results
 
-- `rankResults(analysis)` -> data.frame of rank test results (or NULL)
+- `rankResults(analysis)` -> data.frame of rank test results
 
 - `divergence(analysis)` -> SummarizedExperiment of pairwise divergence metrics
 
@@ -1038,19 +1042,26 @@ If a requested method was not run during `tsenat()` orchestration, the accessor 
 # Configure analysis parameters once (best practice for reproducibility)
 tsenat_config <- tsenat_config(
   q_values = seq(0, 2, by = 0.05),
-  sample_type_col = "sample_type",
-  subject_col = "paired_samples"
+  sample_col = "sample",
+  condition_col = "condition",
+  subject_col = "paired_samples",
+  nthreads = 2
+)
+
+## Build a complete `TSENATAnalysis` object
+analysis <- build_analysis_s4(
+  config = config,
+  readcounts = readcounts,
+  metadata = metadata_df,
+  tx2gene = gff3_file, 
+  tpm = tpm,
+  effective_length = effective_length
 )
 
 # Run complete pipeline with one function call orchestrating all specified methods
 # methods parameter: vector of analysis steps to execute ("diversity", "lm_interaction", "jackknife", "divergence")
 # verbose = TRUE: prints progress messages showing gene filtering, step completion, and result summaries
-analysis <- tsenat(
-  se = se,
-  config = tsenat_config,
-  methods = c("diversity", "lm_interaction", "jackknife", "divergence"),
-  verbose = TRUE
-)
+analysis <- tsenat(analysis)
 
 # Access results via consistent S4 methods (type-safe, mutually-exclusive access instead of nested list indexing)
 diversity_results <- diversity(analysis)

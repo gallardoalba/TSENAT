@@ -42,13 +42,13 @@ test_that(".prepare_diversity_params extracts q values from config", {
     shrinkage = NULL, genes = NULL, effective_length = NULL,
     metadata = NULL, bootstrap = NULL, nboot = NULL,
     bootstrap_method = NULL, bootstrap_ci = NULL,
-    bootstrap_include_diagnostics = NULL, seed = NULL
+    bootstrap_include_diagnostics = NULL
   )
   
   expect_equal(params$q, c(0.5, 1.0, 1.5))
   expect_named(params, c("q", "nthreads", "verbose", "show_messages", "bootstrap", "pseudocount", 
                          "min_valid_frac", "norm", "what", "assayno", "shrinkage",
-                         "bootstrap_method", "bootstrap_ci", "seed", "tpm", 
+                         "bootstrap_method", "bootstrap_ci", "tpm", 
                          "genes", "effective_length", "nboot", 
                          "bootstrap_include_diagnostics", "metadata", "norm_method", 
                          "reference_group"))
@@ -67,7 +67,7 @@ test_that(".prepare_diversity_params uses explicit q values over config", {
     shrinkage = NULL, genes = NULL, effective_length = NULL,
     metadata = NULL, bootstrap = NULL, nboot = NULL,
     bootstrap_method = NULL, bootstrap_ci = NULL,
-    bootstrap_include_diagnostics = NULL, seed = NULL
+    bootstrap_include_diagnostics = NULL
   )
   
   expect_equal(params$q, explicit_q)
@@ -86,7 +86,7 @@ test_that(".prepare_diversity_params uses default q when not in config", {
     shrinkage = NULL, genes = NULL, effective_length = NULL,
     metadata = NULL, bootstrap = NULL, nboot = NULL,
     bootstrap_method = NULL, bootstrap_ci = NULL,
-    bootstrap_include_diagnostics = NULL, seed = NULL
+    bootstrap_include_diagnostics = NULL
   )
   
   expect_equal(params$q, seq(0.01, 2, by = 0.05))
@@ -105,7 +105,7 @@ test_that(".prepare_diversity_params validates q is numeric", {
       shrinkage = NULL, genes = NULL, effective_length = NULL,
       metadata = NULL, bootstrap = NULL, nboot = NULL,
       bootstrap_method = NULL, bootstrap_ci = NULL,
-      bootstrap_include_diagnostics = NULL, seed = NULL
+      bootstrap_include_diagnostics = NULL
     )
   }, "q.*must be numeric")
 })
@@ -122,7 +122,7 @@ test_that(".prepare_diversity_params resolves default parameters", {
     shrinkage = NULL, genes = NULL, effective_length = NULL,
     metadata = NULL, bootstrap = NULL, nboot = NULL,
     bootstrap_method = NULL, bootstrap_ci = NULL,
-    bootstrap_include_diagnostics = NULL, seed = NULL
+    bootstrap_include_diagnostics = NULL
   )
   
   # Check defaults
@@ -153,7 +153,7 @@ test_that(".prepare_diversity_params prioritizes explicit parameters over config
     shrinkage = NULL, genes = NULL, effective_length = NULL,
     metadata = NULL, bootstrap = NULL, nboot = NULL,
     bootstrap_method = NULL, bootstrap_ci = NULL,
-    bootstrap_include_diagnostics = NULL, seed = NULL
+    bootstrap_include_diagnostics = NULL
   )
   
   expect_equal(params$verbose, TRUE)
@@ -179,7 +179,6 @@ test_that(".build_calc_diversity_args constructs valid argument list", {
     shrinkage = "none",
     bootstrap_method = "percentile",
     bootstrap_ci = 0.95,
-    seed = NULL,
     tpm = FALSE,
     genes = NULL,
     effective_length = NULL,
@@ -214,7 +213,6 @@ test_that(".build_calc_diversity_args includes optional parameters when present"
     shrinkage = "none",
     bootstrap_method = "percentile",
     bootstrap_ci = 0.95,
-    seed = NULL,
     tpm = FALSE,
     genes = c("gene1", "gene2"),  # Include
     effective_length = c(1000, 2000),  # Include
@@ -247,7 +245,6 @@ test_that(".build_calc_diversity_args includes ... arguments", {
     shrinkage = "none",
     bootstrap_method = "percentile",
     bootstrap_ci = 0.95,
-    seed = NULL,
     tpm = FALSE,
     genes = NULL,
     effective_length = NULL,
@@ -491,7 +488,7 @@ test_that("Helper functions integrate correctly in workflow", {
     shrinkage = "none", genes = c("gene1", "gene2"), effective_length = NULL,
     metadata = NULL, bootstrap = FALSE, nboot = NULL,
     bootstrap_method = "percentile", bootstrap_ci = 0.95,
-    bootstrap_include_diagnostics = TRUE, seed = 123
+    bootstrap_include_diagnostics = TRUE
   )
   
   expect_true(is.list(params))
@@ -522,7 +519,7 @@ test_that(".prepare_diversity_params rejects infinite q values", {
       shrinkage = NULL, genes = NULL, effective_length = NULL,
       metadata = NULL, bootstrap = NULL, nboot = NULL,
       bootstrap_method = NULL, bootstrap_ci = NULL,
-      bootstrap_include_diagnostics = NULL, seed = NULL
+      bootstrap_include_diagnostics = NULL
     )
   }, "finite")
 })
@@ -540,7 +537,7 @@ test_that(".prepare_diversity_params rejects NaN q values", {
       shrinkage = NULL, genes = NULL, effective_length = NULL,
       metadata = NULL, bootstrap = NULL, nboot = NULL,
       bootstrap_method = NULL, bootstrap_ci = NULL,
-      bootstrap_include_diagnostics = NULL, seed = NULL
+      bootstrap_include_diagnostics = NULL
     )
   }, "finite")
 })
@@ -557,7 +554,7 @@ test_that(".prepare_diversity_params handles zero q value", {
     shrinkage = NULL, genes = NULL, effective_length = NULL,
     metadata = NULL, bootstrap = NULL, nboot = NULL,
     bootstrap_method = NULL, bootstrap_ci = NULL,
-    bootstrap_include_diagnostics = NULL, seed = NULL
+    bootstrap_include_diagnostics = NULL
   )
   
   expect_true(0.0 %in% params$q)
@@ -575,7 +572,7 @@ test_that(".prepare_diversity_params handles very large q values", {
     shrinkage = NULL, genes = NULL, effective_length = NULL,
     metadata = NULL, bootstrap = NULL, nboot = NULL,
     bootstrap_method = NULL, bootstrap_ci = NULL,
-    bootstrap_include_diagnostics = NULL, seed = NULL
+    bootstrap_include_diagnostics = NULL
   )
   
   expect_equal(params$q, c(100.0, 1000.0))
@@ -596,7 +593,7 @@ test_that(".prepare_diversity_params validates nthreads is positive", {
       shrinkage = NULL, genes = NULL, effective_length = NULL,
       metadata = NULL, bootstrap = NULL, nboot = NULL,
       bootstrap_method = NULL, bootstrap_ci = NULL,
-      bootstrap_include_diagnostics = NULL, seed = NULL
+      bootstrap_include_diagnostics = NULL
     )
   }, "positive")
 })
@@ -623,8 +620,7 @@ test_that(".prepare_diversity_params handles logical parameters correctly", {
     nboot = NULL,
     bootstrap_method = NULL,
     bootstrap_ci = NULL,
-    bootstrap_include_diagnostics = NULL,
-    seed = NULL
+    bootstrap_include_diagnostics = NULL
   )
   
   expect_equal(params$norm, FALSE)
@@ -654,7 +650,7 @@ test_that(".prepare_diversity_params merges config with defaults", {
     shrinkage = NULL, genes = NULL, effective_length = NULL,
     metadata = NULL, bootstrap = NULL, nboot = NULL,
     bootstrap_method = NULL, bootstrap_ci = NULL,
-    bootstrap_include_diagnostics = NULL, seed = NULL
+    bootstrap_include_diagnostics = NULL
   )
   
   expect_equal(params$q, c(0.2, 0.8))
@@ -680,7 +676,6 @@ test_that(".build_calc_diversity_args handles all NULL optional parameters", {
     shrinkage = "none",
     bootstrap_method = "percentile",
     bootstrap_ci = 0.95,
-    seed = NULL,
     tpm = FALSE,
     genes = NULL,
     effective_length = NULL,
@@ -712,7 +707,6 @@ test_that(".build_calc_diversity_args combines params and dots without conflict"
     shrinkage = "none",
     bootstrap_method = "percentile",
     bootstrap_ci = 0.95,
-    seed = NULL,
     tpm = FALSE,
     genes = NULL,
     effective_length = NULL,
@@ -745,7 +739,6 @@ test_that(".build_calc_diversity_args preserves bootstrap parameters when bootst
     shrinkage = "none",
     bootstrap_method = "block",
     bootstrap_ci = 0.90,
-    seed = 42,
     tpm = FALSE,
     genes = NULL,
     effective_length = NULL,
@@ -973,8 +966,7 @@ test_that("Full workflow with bootstrap parameters", {
     nboot = 50,
     bootstrap_method = "percentile",
     bootstrap_ci = 0.95,
-    bootstrap_include_diagnostics = TRUE,
-    seed = 42
+    bootstrap_include_diagnostics = TRUE
   )
   
   expect_equal(params$bootstrap, TRUE)
@@ -1021,8 +1013,7 @@ test_that("Parameter resolution priority: explicit > config > default", {
     nboot = NULL,  # Should get from config
     bootstrap_method = NULL,
     bootstrap_ci = NULL,
-    bootstrap_include_diagnostics = NULL,
-    seed = NULL
+    bootstrap_include_diagnostics = NULL
   )
   
   # Verify priority order
@@ -1048,7 +1039,7 @@ test_that("Helper function error propagation", {
       shrinkage = NULL, genes = NULL, effective_length = NULL,
       metadata = NULL, bootstrap = NULL, nboot = NULL,
       bootstrap_method = NULL, bootstrap_ci = NULL,
-      bootstrap_include_diagnostics = NULL, seed = NULL
+      bootstrap_include_diagnostics = NULL
     )
   }, error = function(e) {
     return(e)

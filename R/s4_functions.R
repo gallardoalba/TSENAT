@@ -2896,13 +2896,18 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min
 #' If NULL, will attempt to read from \code{config$metadata}.
 #' Priority: explicit \code{metadata} argument > \code{config$metadata} > NULL.
 #'
-#' @param tpm Optional matrix of transcript-level TPM values. If provided,
-#' will be
-#'   stored in the SummarizedExperiment. Same dimensions as readcounts required.
+#' @param tpm REQUIRED matrix of transcript-level TPM values (Transcripts Per Million).
+#' Must be provided and will be stored in the SummarizedExperiment for use during
+#'   diverse filtering. Same dimensions as readcounts required (rows = transcripts, 
+#'   columns = samples). Typically from SALMON quantification output.
+#'   If not provided to build_analysis_s4(), subsequent filter_analysis_s4() calls 
+#'   will fail with an explicit error message.
 #'
-#' @param effective_length Optional numeric vector of transcript effective
-#' lengths
-#'   (e.g., from SALMON). Length should match nrow(readcounts).
+#' @param effective_length REQUIRED numeric vector of transcript effective lengths
+#'   (e.g., from SALMON EffectiveLength column). Length must match nrow(readcounts).
+#'   Typically obtained as the median effective length across all samples.
+#'   If not provided to build_analysis_s4(), the data will not be stored for later use
+#'   in length-normalized calculations.
 #'
 #' @param config Optional list of configuration parameters to store in the
 #'   TSENATAnalysis object. Can also contain \code{config$metadata} which will be
@@ -2947,20 +2952,42 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min
 #'   \item{@plots}{Empty list (populated by plotting functions)}
 #'   \item{@metadata}{Metadata with package version and creation timestamp}
 #'
-#' @details
+#'
+#' \strong{CRITICAL: TPM and effective_length Requirements}
+#'
+#' Both \code{tpm} and \code{effective_length} MUST be provided to ensure correct
+#' filtering and normalization in downstream analysis:
+#' \itemize{
+#'   \item \code{filter_analysis_s4()} requires TPM data (stored in metadata).
+#'     If TPM is missing, the function will fail with an explicit error message
+#'     that guides you to pass it to \code{build_analysis_s4()}.
+#'   \item \code{calculate_diversity_s4()} uses \code{effective_length} for 
+#'     length-normalized entropy calculations.
+#' }
+#'
+#' Following Bioconductor best practices (fail-fast principle), these are explicit
+#' parameters, not optional. They must be passed at object construction time:
+#' \preformatted{
+#' analysis <- build_analysis_s4(
+#'   readcounts = readcounts,
+#'   metadata = metadata_df,
+#'   tx2gene = gff3_file,
+#'   tpm = tpm,                    # REQUIRED from Salmon output
+#'   effective_length = effective_length,  # REQUIRED from Salmon output
+#'   config = config
+#' )
+#' }
+#'
 #' This wrapper combines two steps into one:
 #' \enumerate{
-#'   \item Call \code{.
-#' build_se()} to create a SummarizedExperiment from transcript counts
+#'   \item Call \code{.build_se()} to create a SummarizedExperiment from transcript counts
 #'   \item Wrap the result in \code{TSENATAnalysis()} to create the analysis object
 #' }
 #'
-#' The returned object is ready for 
-#' diversity analysis via \code{calculate_diversity_s4()}.
+#' The returned object is ready for diversity analysis via \code{calculate_diversity_s4()}.
 #'
 #' If you need to inspect or filter the SummarizedExperiment before creating the
-#' TSENATAnalysis object,  call \code{. build_se()} and 
-#' \code{TSENATAnalysis()} separately.
+#' TSENATAnalysis object, call \code{.build_se()} and \code{TSENATAnalysis()} separately.
 #'
 #' @seealso
 #' \code{\link{TSENATAnalysis}} for the S4 class structure

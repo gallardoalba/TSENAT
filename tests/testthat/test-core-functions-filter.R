@@ -2519,9 +2519,14 @@ test_that("Refactoring maintains isoform-level filtering behavior", {
 
 test_that("Refactored code handles empty results gracefully", {
   counts <- matrix(rep(0, 50), nrow = 5, ncol = 10)
+  tpm <- matrix(rep(0, 50), nrow = 5, ncol = 10)
+  
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(counts = counts)
   )
+  
+  # Add TPM to metadata (required for diversity filtering)
+  S4Vectors::metadata(se)$tpm <- tpm
   
   analysis <- TSENATAnalysis(se)
   
