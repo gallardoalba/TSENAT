@@ -52,6 +52,6 @@ show(analysis)
 #> Samples:     16
 #> Configuration: 26 parameters
 #> Analysis status: EMPTY
-#> Created: 2026-04-09 00:07:47.491723
+#> Created: 2026-04-09 01:14:15.067547
 #> 
 ```

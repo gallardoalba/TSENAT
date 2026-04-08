@@ -126,6 +126,5 @@ analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
 analysis <- test_rankbased_assumptions_s4(analysis, q = 1.0)
 # Access results using getMeta S4 accessor
 names(getMeta(analysis, 'rankbased_assumptions'))
-#> [1] "result"           "q_value_tested"   "checks_performed" "alpha_used"      
-#> [5] "timestamp"       
+#> NULL
 ```

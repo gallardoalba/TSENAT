@@ -102,7 +102,7 @@ Or the development version from GitHub:
 remotes::install_github("gallardoalba/TSENAT")
 ```
 
-# Quick Start
+## Quick Start
 
 ### Load Example Data
 
@@ -258,61 +258,47 @@ entropy-based diversity analysis.
 
 ### Parametric methods:
 
-- **Generalized Additive Models (GAM) with ARIMA Differencing**: GAM is
-  a semi-parametric approach using flexible smooth functions of *q* and
+- Generalized Additive Models (GAM) with ARIMA Differencing: GAM is a
+  semi-parametric approach using flexible smooth functions of *q* and
   group with ARIMA(1,1,0) first-differencing to remove monotone trend
   and achieve stationarity. Estimates fixed effect parameters via smooth
   basis functions; automatically detects heteroscedasticity and applies
   optimal variance weighting.
 
-- **Linear Mixed Models (LMM) with AR(1)**: Fits mixed-effects models
-  using [`nlme::lme()`](https://rdrr.io/pkg/nlme/man/lme.html) with
-  random intercept by subject and AR(1) correlation structure for
+- Linear Mixed Models (LMM) with AR(1): Fits mixed-effects models using
+  [`nlme::lme()`](https://rdrr.io/pkg/nlme/man/lme.html) with random
+  intercept by subject and AR(1) correlation structure for
   observation-level errors with explicit time-ordering by *q*-value.
 
-- **Generalized Estimating Equations (GEE) with Multiple Correlation
-  Structures**: Fits marginal models with three selectable correlation
+- Generalized Estimating Equations (GEE) with Multiple Correlation
+  Structures: Fits marginal models with three selectable correlation
   structures: AR(1) for *q*-ordered data, exchangeable for unordered
   measurements, or independence. Includes Kauermann-Carroll bias
   correction for small number of clusters.
 
-- **Functional Principal Component Analysis (FPCA) with
-  Regularization**: Treats entropy values as ordered curves across
-  *q*-values; applies ARIMA differencing then performs PCA on the curve
-  matrix to extract orthogonal smooth principal components.
+- Functional Principal Component Analysis (FPCA) with Regularization:
+  Treats entropy values as ordered curves across *q*-values; applies
+  ARIMA differencing then performs PCA on the curve matrix to extract
+  orthogonal smooth principal components.
 
-- **Huber M-Estimation with Leave-One-Out Diagnostics**: Iteratively
+- Huber M-Estimation with Leave-One-Out Diagnostics: Iteratively
   re-weighted least squares (IRLS) using Huber loss function.
 
 ### Non-parametric methods:
 
-- **Friedman Rank-Based Test with Hochberg Correction**: Non-parametric
+- Friedman Rank-Based Test with Hochberg Correction: Non-parametric
   alternative to repeated-measures ANOVA that operates entirely on
   ranks, requiring no distributional assumptions.
 
-- **Jackknife via Delta Influence**: Leave-one-out resampling to
-  identify transcript-level contributors to entropy changes via delta
-  influence.
+- Jackknife via Delta Influence: Leave-one-out resampling to identify
+  transcript-level contributors to entropy changes via delta influence.
 
-- **Wilcoxon Rank Sum Test with Multiple Hypothesis Correction**:
-  Unpaired or paired (Wilcoxon signed-rank) non-parametric alternative
-  to t-tests.
+- Wilcoxon Rank Sum Test with Multiple Hypothesis Correction: Unpaired
+  or paired (Wilcoxon signed-rank) non-parametric alternative to
+  t-tests.
 
-- **Permutation/Label Shuffling Test with FDR Control**: Non-parametric
+- Permutation/Label Shuffling Test with FDR Control: Non-parametric
   exact test via label shuffling.
-
-## Data Integration
-
-- **Unified object**: `TSENATAnalysis` encapsulates sequencing data,
-  configuration, and all statistical results
-- `SummarizedExperiment` foundation: Full Bioconductor ecosystem
-  compatibility
-- Accessor functions:
-  [`diversity()`](https://gallardoalba.github.io/TSENAT/reference/diversity.md),
-  [`divergence()`](https://gallardoalba.github.io/TSENAT/reference/divergence.md),
-  [`lmResults()`](https://gallardoalba.github.io/TSENAT/reference/lmResults.md),
-  [`jisResults()`](https://gallardoalba.github.io/TSENAT/reference/jisResults.md),
-  etc.
 
 ## Related Packages
 
@@ -328,11 +314,11 @@ TSENAT complements other Bioconductor tools:
 
 | Tool | Answers | TSENAT Difference |
 |----|----|----|
-| **DESeq2, edgeR, limma** | Which genes change in *total abundance*? | TSENAT detects isoform diversity changes **independent of total abundance** |
-| **DRIMSeq** | Which *individual transcripts* shift usage? | TSENAT measures overall isoform diversity, not individual transcript shifts |
-| **IsoformSwitchAnalyzeR** | Which *individual isoforms* switch; what are the *functional consequences*? | TSENAT measures overall isoform diversity and diversity **shifts** rather than cataloging individual transcript switches or predicting functional consequences; complements switch identification with diversity patterns |
-| **SplicingFactory** | What is the overall isoform diversity? | TSENAT extends with **scale-dependent diversity** (q-spectrum) vs fixed measures |
-| **Kallisto, Salmon** | How many reads per transcript? | TSENAT uses their quantification as input; adds diversity analysis layer |
+| DESeq2, edgeR, limma | Which genes change in *total abundance*? | TSENAT detects isoform diversity changes **independent of total abundance** |
+| DRIMSeq | Which *individual transcripts* shift usage? | TSENAT measures overall isoform diversity, not individual transcript shifts |
+| IsoformSwitchAnalyzeR | Which *individual isoforms* switch; what are the *functional consequences*? | TSENAT measures overall isoform diversity and diversity **shifts** rather than cataloging individual transcript switches or predicting functional consequences; complements switch identification with diversity patterns |
+| SplicingFactory | What is the overall isoform diversity? | TSENAT extends with **scale-dependent diversity** (q-spectrum) vs fixed measures |
+| Kallisto, Salmon | How many reads per transcript? | TSENAT uses their quantification as input; adds diversity analysis layer |
 
 ## Native Salmon Integration
 
@@ -393,21 +379,9 @@ TSENAT expects Salmon output organized with one subdirectory per sample:
     └── Sample_4/
         └── quant.sf
 
-**Critical requirement**: Folder names (e.g., `Sample_1`, `Sample_2`)
-must **exactly match** the row names in your metadata file
-(case-sensitive).
+### Metadata File Structure
 
-## Metadata File Structure
-
-Example metadata structure:
-
-``` r
-
-# Load metadata from TSV file
-metadata_df <- read.table("metadata.tsv", header = TRUE, sep = "\t")
-```
-
-Expected TSV file format (`metadata.tsv`):
+Expected TSV file format:
 
     sample        condition    paired_samples
     SRR14800481   normal       A
@@ -415,10 +389,12 @@ Expected TSV file format (`metadata.tsv`):
     SRR14800479   tumor        A
     SRR14800478   tumor        B
 
-**Key requirements:** - First column: `sample` (must match Salmon folder
-names exactly) - Second column: `condition` (experimental groups:
-normal, tumor, treated, control, etc.) - Third column: `paired_samples`
-(required if using paired designs; identifier for matched samples)
+Key requirements:
+
+- `sample` column: must match Salmon folder names exactly.
+- `condition` column: experimental groups.
+- `paired_samples` column: required if using paired designs; identifier
+  for matched samples.
 
 ## Tests coverage
 
@@ -429,55 +405,16 @@ report about the current testing coverage can be found
 
 ## Learn More
 
-### Comprehensive Workflow
-
 For a complete walkthrough of the analysis pipeline with real biological
-examples, see the main package vignette. This includes theory
-background, step-by-step explanations of each analysis function, and
-interpretation guidance for understanding your results.
-
-See the package vignette for detailed examples, theory background, and
-typical workflows:
-
-``` r
-
-vignette("TSENAT")
-```
-
-### Function Reference
-
-Use R’s built-in help system to explore detailed documentation for
-individual TSENAT functions and S4 classes. Each help page includes
-function arguments, return values, and practical examples of usage.
-
-Interactive help for functions and classes:
-
-``` r
-
-?build_analysis_s4
-?calculate_diversity_s4
-?TSENATAnalysis-class
-```
-
-For methodology details and a comprehensive bibliography, see the
-[TSENAT
-vignette](https://gallardoalba.github.io/TSENAT/vignettes/TSENAT.Rmd):
-
-``` r
-
-vignette("TSENAT")
-```
+examples, see the [main package
+vignette](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html).
+This includes theory background, step-by-step explanations of each
+analysis function, and interpretation guidance for understanding your
+results.
 
 ## Citation
 
 If you use TSENAT in your research, please cite:
-
-``` r
-
-citation("TSENAT")
-```
-
-BibTeX entry:
 
 ``` bibtex
 @software{gallardo2026tsenat,
@@ -494,7 +431,7 @@ This project is licensed under the GNU General Public License v3.0
 (GPL-3). See [LICENSE](https://gallardoalba.github.io/TSENAT/LICENSE)
 for details.
 
-Attribution: TSENAT builds upon the [SplicingFactory
+TSENAT builds upon the [SplicingFactory
 package](https://github.com/esebesty/SplicingFactory), extending it with
 specialized focus on Tsallis entropy analysis.
 

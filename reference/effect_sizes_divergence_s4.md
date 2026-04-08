@@ -146,7 +146,5 @@ effect_size_results <- getMeta(analysis, 'effect_sizes_divergence')
 
 # View structure of results
 str(effect_size_results, max.level = 1)
-#> List of 2
-#>  $ interaction_results:'data.frame': 5 obs. of  22 variables:
-#>  $ validation_stats   :List of 5
+#>  NULL
 ```
