@@ -1974,14 +1974,25 @@ prepare_gene_switching_tables_s4 <- function(analysis, n_top_genes = NULL, n_tra
 
     # Save if output_file provided
     if (!is.null(output_file)) {
-        if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
-            # Write as TSV/CSV
-            write.table(result, file = output_file, sep = "\t", quote = FALSE, row.names = TRUE)
-        } else {
-            # Default to RDS for arbitrary objects
-            saveRDS(result, file = output_file)
-        }
-
+        tryCatch({
+            if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
+                # For TSV/CSV: write the summary_df only (comparison_tables have variable structure)
+                # This preserves the top genes summary in human-readable format
+                write.table(result$summary_df, file = output_file, sep = "\t", quote = FALSE,
+                  row.names = FALSE)
+                if (verbose) {
+                  message("[OK] Gene switching summary saved to: ", output_file)
+                }
+            } else {
+                # For RDS: save the entire complex list structure
+                saveRDS(result, file = output_file)
+                if (verbose) {
+                  message("[OK] Gene switching tables saved to: ", output_file)
+                }
+            }
+        }, error = function(e) {
+            warning("Failed to save gene switching tables to file: ", e$message, call. = FALSE)
+        })
     }
 
     return(result)

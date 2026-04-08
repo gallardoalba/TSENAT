@@ -1009,63 +1009,39 @@ setMethod("addPlot", "TSENATAnalysis", function(object, type, plot, replace = FA
 #'
 #' @export
 setMethod("show", "TSENATAnalysis", function(object) {
-    message("TSENATAnalysis object")
-    message("=====================")
-
-    # Show SE info
-    message("SummarizedExperiment:")
-    message(sprintf("  Genes:   %d", nrow(object@se)))
-    message(sprintf("  Samples: %d", ncol(object@se)))
-
-    # Show config
-    if (length(object@config) > 0) {
-        message("\nConfiguration:")
-        for (name in names(object@config)) {
-            val <- object@config[[name]]
-            if (is.null(val)) {
-                message(sprintf("  %s: NULL", name))
-            } else if (is.logical(val) && length(val) == 1) {
-                message(sprintf("  %s: %s", name, val))
-            } else if (is.character(val) && length(val) == 1) {
-                message(sprintf("  %s: %s", name, val))
-            } else if (is.numeric(val) && length(val) <= 5) {
-                message(sprintf("  %s: %s", name, paste(val, collapse = ", ")))
-            } else {
-                # For complex objects, show type and summary
-                message(sprintf("  %s: <%s>", name, class(val)[1]))
-            }
-        }
+    n_genes <- nrow(object@se)
+    n_samples <- ncol(object@se)
+    
+    # Quick status check - all calculation functions populate their respective slots
+    has_diversity <- length(object@diversity_results) > 0
+    has_lm <- length(object@lm_results) > 0
+    has_jackknife <- length(object@jackknife_results) > 0
+    has_divergence <- length(object@divergence_results) > 0
+    
+    # Build status string
+    status_parts <- c()
+    if (has_diversity) status_parts <- c(status_parts, "DIVERSITY")
+    if (has_lm) status_parts <- c(status_parts, "LM")
+    if (has_jackknife) status_parts <- c(status_parts, "JACKKNIFE")
+    if (has_divergence) status_parts <- c(status_parts, "DIVERGENCE")
+    
+    status_str <- if (length(status_parts) > 0) {
+        paste(status_parts, collapse = " | ")
+    } else {
+        "EMPTY"
     }
-
-    # Show results
-    message("\nAnalysis Status:")
-    if (length(object@diversity_results) > 0) {
-        message(sprintf("  [OK] Diversity: %d q-value(s)", length(object@diversity_results)))
+    
+    message("TSENATAnalysis Object")
+    message("====================")
+    message(sprintf("Genes:       %d", n_genes))
+    message(sprintf("Samples:     %d", n_samples))
+    message(sprintf("Configuration: %d parameters", length(object@config)))
+    message(sprintf("Analysis status: %s", status_str))
+    
+    if (length(object@metadata) > 0 && !is.null(object@metadata$created_at)) {
+        message(sprintf("Created: %s", object@metadata$created_at))
     }
-    if (length(object@lm_results) > 0) {
-        message(sprintf("  [OK] LM results: %s", paste(names(object@lm_results),
-            collapse = ", ")))
-    }
-    if (length(object@jackknife_results) > 0) {
-        message(sprintf("  [OK] Jackknife: %d q-value(s)", length(object@jackknife_results)))
-    }
-    if (length(object@divergence_results) > 0) {
-        message(sprintf("  [OK] Divergence: %d component(s)", length(object@divergence_results)))
-    }
-    if (length(object@plots) > 0) {
-        message(sprintf("  [OK] Plots: %s", paste(names(object@plots), collapse = ", ")))
-    }
-
-    # Show metadata
-    if (length(object@metadata) > 0 && "function_calls" %in% names(object@metadata)) {
-        n_calls <- length(object@metadata$function_calls)
-        if (n_calls > 0) {
-            message("\nFunction History:")
-            message(sprintf("  Calls: %s", paste(object@metadata$function_calls,
-                collapse = " -> ")))
-        }
-    }
-
+    
     message("")
 })
 
@@ -1100,90 +1076,155 @@ setMethod("show", "TSENATAnalysis", function(object) {
 #'
 #' @export
 setMethod("summary", "TSENATAnalysis", function(object) {
-    message("=== TSENAT Analysis Summary ===")
+    message("TSENAT Analysis Summary")
+    message("=======================\n")
 
-    # Dimensions
-    message("DATA:")
-    message(sprintf("  Genes:    %6d", nrow(object@se)))
-    message(sprintf("  Samples:  %6d", ncol(object@se)))
-    message(sprintf("  Assays:   %6d (%s)", length(SummarizedExperiment::assays(object@se)),
-        paste(SummarizedExperiment::assayNames(object@se), collapse = ", ")))
+    # === DATA SECTION ===
+    message("DATA STRUCTURE:")
+    message(sprintf("  Genes:        %d", nrow(object@se)))
+    message(sprintf("  Samples:      %d", ncol(object@se)))
+    assay_names <- paste(SummarizedExperiment::assayNames(object@se), collapse = ", ")
+    message(sprintf("  Assays:       %s", assay_names))
 
-    # Configuration
+    # === CONFIGURATION SECTION (Grouped) ===
     message("\nCONFIGURATION:")
-    if (length(object@config) == 0) {
-        message("  (None set)")
-    } else {
-        for (name in names(object@config)) {
-            val <- object@config[[name]]
-            if (is.character(val)) {
-                if (length(val) == 1) {
-                  message(sprintf("  %s: %s", name, val))
-                } else {
-                  message(sprintf("  %s: <%d values>", name, length(val)))
-                }
-            } else if (is.numeric(val)) {
-                if (length(val) <= 5) {
-                  message(sprintf("  %s: %s", name, paste(round(val, 2), collapse = ", ")))
-                } else {
-                  message(sprintf("  %s: <%d values>", name, length(val)))
-                }
-            } else {
-                message(sprintf("  %s: <%s>", name, class(val)))
-            }
+    if (length(object@config) > 0) {
+        cfg <- object@config
+        
+        # Design and filtering
+        message("  Design & Filtering:")
+        if ("paired" %in% names(cfg)) {
+            message(sprintf("    - Design: %s", if (isTRUE(cfg$paired)) "paired" else "unpaired"))
+        }
+        if ("stringency" %in% names(cfg)) {
+            message(sprintf("    - Stringency: %s", cfg$stringency %||% "default"))
+        }
+        if ("norm" %in% names(cfg)) {
+            message(sprintf("    - Normalization: %s", if (isTRUE(cfg$norm)) "enabled" else "disabled"))
+        }
+        
+        # Diversity computation
+        message("  Diversity Metrics:")
+        if ("q_values" %in% names(cfg)) {
+            q_vals <- cfg$q_values
+            message(sprintf("    - Q-spectrum: %.2f to %.2f (%d values)", min(q_vals), max(q_vals), length(q_vals)))
+        }
+        if ("pseudocount" %in% names(cfg)) {
+            pc_val <- if (cfg$pseudocount == 0) "disabled" else as.character(cfg$pseudocount)
+            message(sprintf("    - Pseudocount: %s", pc_val))
+        }
+        
+        # Statistical methods
+        message("  Statistical Methods:")
+        if ("lm_method" %in% names(cfg)) {
+            message(sprintf("    - LM fitting: %s", toupper(cfg$lm_method %||% "GAM")))
+        }
+        if ("lm_pcorr" %in% names(cfg)) {
+            message(sprintf("    - P-value correction: %s", toupper(cfg$lm_pcorr %||% "BH")))
+        }
+        if ("jis_use_lm_fdr" %in% names(cfg)) {
+            message(sprintf("    - Jackknife filtering: %s", if (isTRUE(cfg$jis_use_lm_fdr)) "LM-based" else "all genes"))
+        }
+        
+        # Bootstrap configuration
+        if (isTRUE(cfg$bootstrap)) {
+            message("  Bootstrap & Confidence Intervals:")
+            message(sprintf("    - Method: %s", toupper(cfg$bootstrap_method %||% "PERCENTILE")))
+            message(sprintf("    - Replicates: %d", cfg$nboot %||% 1000))
+            message(sprintf("    - CI level: %.2f", cfg$bootstrap_ci %||% 0.95))
         }
     }
 
-    # Results Summary
-    message("\nRESULTS:")
-
+    # === ANALYSIS RESULTS SECTION ===
+    message("\nANALYSIS RESULTS:")
+    
+    # Check diversity results
     if (length(object@diversity_results) > 0) {
-        q_vals <- gsub("q_", "", names(object@diversity_results))
-        message(sprintf("  Diversity:   %d analyses at q = %s", length(object@diversity_results),
-            paste(q_vals, collapse = ", ")))
+        if (is.matrix(object@diversity_results)) {
+            n_genes <- ncol(object@diversity_results)
+            n_q <- nrow(object@diversity_results)
+            message(sprintf("  ✓ Diversity: %d genes × %d q-values", n_genes, n_q))
+        } else if (is.list(object@diversity_results) && length(object@diversity_results) > 0) {
+            message(sprintf("  ✓ Diversity: %d q-value(s)", length(object@diversity_results)))
+        }
+    } else {
+        message("  ✗ Diversity: not computed")
     }
-
+    
+    # Check LM results
     if (length(object@lm_results) > 0) {
-        message(sprintf("  LM/Stats:    %d result set(s) (%s)", length(object@lm_results),
-            paste(names(object@lm_results), collapse = ", ")))
-
-        # Show gene counts if results available
-        for (name in names(object@lm_results)) {
-            if (is.list(object@lm_results[[name]]) && "results" %in% names(object@lm_results[[name]]) &&
-                is.data.frame(object@lm_results[[name]]$results)) {
-                n_genes <- nrow(object@lm_results[[name]]$results)
-                message(sprintf("    - %s: %d genes", name, n_genes))
+        n_genes <- 0
+        for (component in names(object@lm_results)) {
+            if (is.list(object@lm_results[[component]]) && 
+                !is.null(object@lm_results[[component]]$pvalue_results)) {
+                pvals <- object@lm_results[[component]]$pvalue_results
+                if (is.data.frame(pvals) && nrow(pvals) > 0) {
+                    n_genes <- nrow(pvals)
+                    break
+                }
             }
         }
+        if (n_genes > 0) {
+            message(sprintf("  ✓ LM Interaction: %d genes", n_genes))
+        } else {
+            message("  ✓ LM Interaction: results stored")
+        }
+    } else {
+        message("  ✗ LM Interaction: not computed")
     }
-
+    
+    # Check jackknife results
     if (length(object@jackknife_results) > 0) {
-        q_vals <- gsub("q_", "", names(object@jackknife_results))
-        message(sprintf("  Jackknife:   %d analyses at q = %s", length(object@jackknife_results),
-            paste(q_vals, collapse = ", ")))
+        n_jackknife <- 0
+        if (is.list(object@jackknife_results)) {
+            if (!is.null(object@jackknife_results$switching_summary) &&
+                is.data.frame(object@jackknife_results$switching_summary)) {
+                n_jackknife <- nrow(object@jackknife_results$switching_summary)
+            }
+        }
+        if (n_jackknife > 0) {
+            message(sprintf("  ✓ Jackknife Switching: %d genes", n_jackknife))
+        } else {
+            message(sprintf("  ✓ Jackknife Switching: %d q-value(s)", length(object@jackknife_results)))
+        }
+    } else {
+        message("  ✗ Jackknife Switching: not computed")
     }
-
+    
+    # Check divergence results
     if (length(object@divergence_results) > 0) {
-        message(sprintf("  Divergence:  %d component(s) (%s)", length(object@divergence_results),
-            paste(names(object@divergence_results), collapse = ", ")))
+        if (is.data.frame(object@divergence_results)) {
+            n_div <- nrow(object@divergence_results)
+            message(sprintf("  ✓ Divergence Metrics: %d genes", n_div))
+        } else if (is.list(object@divergence_results)) {
+            message(sprintf("  ✓ Divergence Metrics: %s", paste(names(object@divergence_results), collapse = ", ")))
+        } else {
+            message("  ✓ Divergence Metrics: computed")
+        }
+    } else {
+        message("  ✗ Divergence Metrics: not computed")
     }
-
+    
+    # Check visualizations
     if (length(object@plots) > 0) {
-        message(sprintf("  Plots:       %d cached (%s)", length(object@plots), paste(names(object@plots),
-            collapse = ", ")))
+        message(sprintf("  ✓ Visualizations: %d plot(s)", length(object@plots)))
+    } else {
+        message("  ✗ Visualizations: not generated")
     }
 
-    # Metadata
-    message("\nMETADATA:")
-    if ("created_at" %in% names(object@metadata)) {
+    # === METADATA & PROCESSING SECTION ===
+    message("\nPROCESSING & METADATA:")
+    if (!is.null(object@metadata$created_at)) {
         message(sprintf("  Created: %s", format(object@metadata$created_at, "%Y-%m-%d %H:%M:%S")))
     }
-    if ("package_version" %in% names(object@metadata)) {
-        message(sprintf("  Package: TSENAT %s", object@metadata$package_version))
+    if (!is.null(object@metadata$ended_at)) {
+        message(sprintf("  Completed: %s", format(object@metadata$ended_at, "%Y-%m-%d %H:%M:%S")))
     }
-    if ("function_calls" %in% names(object@metadata) && length(object@metadata$function_calls) >
-        0) {
-        message(sprintf("  Workflow: %s", paste(object@metadata$function_calls, collapse = " -> ")))
+    if (!is.null(object@metadata$package_version)) {
+        message(sprintf("  Package version: %s", object@metadata$package_version))
+    }
+    if (length(object@metadata$function_calls) > 0) {
+        message(sprintf("  Workflow: %s", paste(object@metadata$function_calls, collapse = " → ")))
     }
 
     message("")

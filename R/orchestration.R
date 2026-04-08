@@ -397,16 +397,70 @@ getResults <- function(analysis, type = "diversity", q = NULL, simplify = TRUE) 
 #'   threshold. Default: 0.05.
 #' @param significance_threshold \code{numeric}. Significance cutoff for effect
 #'   sizes, assumptions testing, and result filtering. Default: 0.05.
-#' @param nboot \code{integer}. Number of bootstrap resamples for jackknife
-#'   confidence intervals. Default: 1000.
-#' @param bootstrap_method \code{character}. Bootstrap CI method: 'percentile'
-#'   (fast, assumes symmetric distribution) or 'bca' (bias-corrected, better for
-#'   skewed data like bounded entropy). Default: 'percentile'.
+#' @param bootstrap \code{logical}. Enable bootstrap confidence intervals for diversity
+#'   estimates. If TRUE, computes percentile or bias-corrected (BCA) CIs. BCA recommended
+#'   for Tsallis entropy (skewed, bounded distribution). Default: FALSE (point estimates only).
+#' @param nboot \code{integer}. Number of bootstrap resamples for confidence intervals.
+#'   Default: 1000. Higher values (5000+) improve CI accuracy at increased computation cost.
+#' @param bootstrap_method \code{character}. Bootstrap CI method:
+#'   \itemize{
+#'     \item 'percentile' (default, fast): Assumes symmetric distribution around point estimate
+#'     \item 'bca': Bias-corrected and accelerated; better for skewed data like bounded entropy
+#'   }
+#' @param bootstrap_ci \code{numeric}. Confidence level for bootstrap CIs (e.g., 0.95 for 95% CI).
+#'   Default: 0.95. Must be in (0, 1).
+#' @param bootstrap_include_diagnostics \code{logical}. Include diagnostic metrics in bootstrap
+#'   results (effective sample size, skewness, bias). Adds ~5-10% computation cost. Default: TRUE.
+#' @param min_valid_frac \code{numeric}. Minimum fraction of valid bootstrap replicates required
+#'   (0 to 1). Default: 0.75. Controls robustness vs speed tradeoff; higher values are more stringent.
+#' @param pseudocount \code{numeric}. Pseudocount added for numerical stability in sparse data.
+#'   Default: 0 (disabled - exact counts). Use numeric value > 0 (e.g., 0.1)
+#'   for manual specification. Affects genes with zero-count samples.
+#' @param norm \code{logical}. Enable normalization of diversity estimates. 
+#'   If TRUE (default), normalizes to [0, 1] range where applicable. 
+#'   If FALSE, returns raw unscaled entropy values. Default: TRUE.
+#' @param norm_method \code{character or NULL}. Post-hoc normalization method for diversity values:
+#'   \itemize{
+#'     \item 'default' or NULL: No post-hoc normalization (range [0, {max_entropy}])
+#'     \item 'zscore': Z-score standardization (mean 0, sd 1) for cross-study comparison
+#'     \item 'log_odds_ratio': Log-odds transformation for ratio-based interpretations
+#'     \item 'relative_reference': Relative to reference group (requires reference_group parameter)
+#'   }
+#'   Default: NULL. Dramatically affects scalability and cross-study interpretability.
+#' @param shrinkage \code{character}. Entropy variance reduction via Bayesian borrowing:
+#'   \itemize{
+#'     \item 'none' (default): No shrinkage (empirical estimates)
+#'     \item 'empirical_bayes': Empirical Bayes shrinkage toward gene-level mean
+#'   }
+#'   Improves stability for sparse genes with 1-2 isoforms. Default: 'none'.
 #' @param stringency \code{character}. Transcript filtering stringency level.
 #'   Options: 'lenient' (minimal filtering), 'medium' (default, reasonable filtering),
 #'   'severe' (strict filtering, recommended for high-confidence results).
 #'   Controls which transcripts/genes are retained in initial filtering step.
 #'   Default: 'medium'.
+#' @param lm_method \code{character}. Linear model fitting method for LM interaction testing:
+#'   \itemize{
+#'     \item 'gam' (default): Generalized Additive Model (flexible, preferred)
+#'     \item 'lmm': Linear Mixed Model (for repeated measures)
+#'     \item 'fpca': Functional Principal Component Analysis
+#'     \item 'gee': Generalized Estimating Equations (GEE)
+#'   }
+#'   Different methods produce different p-values and effect sizes. Critical for reproducibility.
+#'   Default: 'gam'.
+#' @param lm_pcorr \code{character}. P-value correction method for LM interaction multiple comparisons:
+#'   \itemize{
+#'     \item 'BH' (default): Benjamini-Hochberg (FDR control, less conservative)
+#'     \item 'bonferroni': Bonferroni (FWER, very conservative)
+#'     \item 'hochberg': Hochberg (less conservative than Bonferroni)
+#'     \item 'holm': Holm step-down (moderate conservative)
+#'   }
+#'   Changes which genes are deemed significant. Default: 'BH'.
+#' @param jis_use_lm_fdr \code{logical}. In jackknife isoform switching, filter genes using
+#'   LM interaction p-values (if TRUE) or use all genes (if FALSE). If TRUE, typically
+#'   selects 15-20% of genes; if FALSE, analyzes all genes. Dramatically affects
+#'   switching gene discovery. Default: TRUE.
+#' @param divergence_ci \code{numeric}. Confidence level for divergence bootstrap CIs.
+#'   Must be in (0, 1). Example: 0.95 for 95% CI. Default: 0.95.
 #' @param nthreads \code{integer}. Number of threads for parallel computation
 #'   where supported (diversity, divergence, LM fitting). Default: 1 (no parallelization).
 #'   Use 2+ for multi-core systems to improve performance.
@@ -422,20 +476,32 @@ getResults <- function(analysis, type = "diversity", q = NULL, simplify = TRUE) 
 #' by wrapper functions to configure analysis behavior.
 #'
 #' @examples
-#' # Default config with standard parameters
+#' # Default config with standard parameters (point estimates only)
 #' cfg <- tsenat_config()
 #'
-#' # Custom with paired analysis and strict filtering for high-confidence results
+#' # With bootstrap CIs for uncertainty quantification (recommended)
 #' cfg <- tsenat_config(
-#'   q_values = seq(0, 2, by = 0.05),  # Recommended for paired designs: 41 values
+#'   bootstrap = TRUE,                # Enable bootstrap confidence intervals
+#'   bootstrap_method = "bca",         # Bias-corrected (better for skewed entropy)
+#'   nboot = 1000,                     # 1000 resamples
+#'   bootstrap_ci = 0.95               # 95% CI
+#' )
+#'
+#' # Custom with paired analysis, strict filtering, and normalization
+#' cfg <- tsenat_config(
+#'   q_values = seq(0, 2, by = 0.05),  # Recommended for paired: 41 values
 #'   condition_col = 'treatment',
 #'   subject_col = 'subject_id',
 #'   paired = TRUE,
 #'   control = 'untreated',
-#'   stringency = 'severe',
+#'   stringency = 'severe',            # High-confidence transcripts only
+#'   norm_method = 'zscore',           # Cross-study standardization
+#'   shrinkage = 'none',               # Empirical estimates
+#'   bootstrap = TRUE,
 #'   bootstrap_method = 'bca',
-#'   nboot = 5000,
-#'   significance_threshold = 0.01
+#'   nboot = 5000,                     # Higher precision
+#'   pseudocount = 0,                  # Disabled by default; set > 0 to add pseudocount
+#'   significance_threshold = 0.01     # Stricter significance level
 #' )
 #'
 #' @export
@@ -443,7 +509,9 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
     sample_col = "sample", paired = FALSE, control = NULL, p_threshold = 0.05, fdr_threshold = 0.05,
     significance_threshold = 0.05, bootstrap = FALSE, nboot = 1000, bootstrap_method = "percentile",
     stringency = "medium", nthreads = 1, norm = TRUE, 
-    bootstrap_ci = 0.95, norm_method = NULL, pseudocount = NULL, ...) {
+    bootstrap_ci = 0.95, bootstrap_include_diagnostics = TRUE, min_valid_frac = 0.75,
+    norm_method = NULL, pseudocount = 0, shrinkage = "none", lm_method = "gam",
+    lm_pcorr = "BH", jis_use_lm_fdr = TRUE, divergence_ci = 0.95, ...) {
     # Build q_values if range specified
     if (is.null(q_values)) {
         q_values <- seq(0, 2, by = 0.5)
@@ -453,6 +521,25 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
     valid_bootstrap_methods <- c("percentile", "bca")
     if (!bootstrap_method %in% valid_bootstrap_methods) {
         stop("'bootstrap_method' must be 'percentile' or 'bca'", call. = FALSE)
+    }
+
+    # Validate lm_method
+    valid_lm_methods <- c("gam", "lmm", "fpca", "gee")
+    if (!lm_method %in% valid_lm_methods) {
+        stop("'lm_method' must be one of: ", paste(valid_lm_methods, collapse = ", "),
+            call. = FALSE)
+    }
+
+    # Validate lm_pcorr
+    valid_lm_pcorr <- c("BH", "bonferroni", "hochberg", "holm")
+    if (!lm_pcorr %in% valid_lm_pcorr) {
+        stop("'lm_pcorr' must be one of: ", paste(valid_lm_pcorr, collapse = ", "),
+            call. = FALSE)
+    }
+
+    # Validate divergence_ci
+    if (!is.numeric(divergence_ci) || divergence_ci <= 0 || divergence_ci >= 1) {
+        stop("'divergence_ci' must be a probability in (0, 1)", call. = FALSE)
     }
 
     # Build config list with all parameters
@@ -468,13 +555,20 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
         significance_threshold = significance_threshold,
         nboot = nboot,
         bootstrap_method = bootstrap_method,
+        bootstrap = bootstrap,
+        bootstrap_ci = bootstrap_ci,
+        bootstrap_include_diagnostics = bootstrap_include_diagnostics,
+        min_valid_frac = min_valid_frac,
         stringency = stringency,
         nthreads = nthreads,
         norm = norm,
-        bootstrap = bootstrap,
-        bootstrap_ci = bootstrap_ci,
         norm_method = norm_method,
-        pseudocount = pseudocount
+        pseudocount = pseudocount,
+        shrinkage = shrinkage,
+        lm_method = lm_method,
+        lm_pcorr = lm_pcorr,
+        jis_use_lm_fdr = jis_use_lm_fdr,
+        divergence_ci = divergence_ci
     )
 
     # Add any additional parameters (except metadata - should be explicit to build_analysis_s4)
@@ -557,12 +651,29 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
         "  Conditions ........... ", n_conditions, "\n",
         sprintf("  Q-spectrum range ...... %g to %g (%d values)\n", 
                 round(min(q_vals), 2), round(max(q_vals), 2), length(q_vals)),
-        "\n[CONFIG] Configuration\n",
-        "  p-value threshold ..... ", format(cfg$p_threshold %||% 0.05, width = 6, nsmall = 3), "\n",
-        "  FDR threshold ......... ", format(cfg$fdr_threshold %||% 0.05, width = 6, nsmall = 3), "\n"
+        "\n[CONFIG] Analysis Configuration\n",
+        "  Design ................ ", if (cfg$paired) "paired" else "unpaired", "\n",
+        "  Filter stringency .... ", cfg$stringency %||% "medium", "\n",
+        "  Normalization ........ ", if (cfg$norm) "enabled [0-1]" else "disabled", "\n",
+        "  Normalization method . ", toupper(cfg$norm_method %||% "NONE"), "\n",
+        "  Pseudocount .......... ", if (cfg$pseudocount == 0) "disabled" else as.character(cfg$pseudocount), "\n",
+        "  Shrinkage ............ ", toupper(cfg$shrinkage %||% "NONE"), "\n",
+        "  Significance ......... p < ", format(cfg$p_threshold %||% 0.05, nsmall = 3), 
+        " | FDR < ", format(cfg$fdr_threshold %||% 0.05, nsmall = 3), "\n",
+        "  LM method ............ ", toupper(cfg$lm_method %||% "GAM"), "\n",
+        "  LM p-corr method ..... ", toupper(cfg$lm_pcorr %||% "BH"), "\n",
+        "  Jackknife use_lm_fdr . ", if (isTRUE(cfg$jis_use_lm_fdr)) "TRUE" else "FALSE", "\n"
     )
-    if (!is.null(cfg$nboot)) {
-        output <- paste0(output, "  Bootstrap samples ..... ", format(cfg$nboot, big.mark = ","), "\n")
+    if (isTRUE(cfg$bootstrap)) {
+        output <- paste0(output,
+            "  Divergence CI ........ ", format(cfg$divergence_ci %||% 0.95, nsmall = 2), "\n"
+        )
+    }
+    if (isTRUE(cfg$bootstrap) && !is.null(cfg$nboot)) {
+        output <- paste0(output,
+            "  Bootstrap ........... ", cfg$nboot, " x ", toupper(cfg$bootstrap_method %||% "PERCENTILE"),
+            " (", format(cfg$bootstrap_ci %||% 0.95, nsmall = 2), " CI)\n"
+        )
     }
     output <- paste0(output, "\n")
     message(output)
@@ -608,6 +719,9 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
         bootstrap_method <- cfg$bootstrap_method %||% "percentile"
         nboot <- cfg$nboot %||% 1000
         
+        # Only show messages if verbose is explicitly TRUE (not during orchestration)
+        should_show_messages <- verbose && !is.null(cfg$verbose) && cfg$verbose == TRUE
+        
         analysis <- calculate_diversity_s4(
             analysis,
             q = q_vals,
@@ -615,7 +729,8 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
             bootstrap_method = bootstrap_method,
             nboot = nboot,
             output_file = output_file,
-            show_messages = FALSE
+            verbose = FALSE,
+            show_messages = should_show_messages
         )
         if (verbose)
             message(sprintf("          [OK] %d q-values processed", length(q_vals)))
@@ -647,12 +762,12 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 #' @noRd
 .execute_m_estimate_qc <- function(analysis, condition_col, verbose, output_dir, output_format) {
     if (verbose)
-        message("Step 4: Running sample influence QC analysis (m-estimator)...")
+        message(sprintf("[>] [%2d/14] Running sample influence QC analysis (m-estimator)", 4))
     tryCatch({
         output_file <- .build_output_file("m_estimate_qc", output_dir, output_format)
         analysis <- m_estimate_s4(analysis, condition_col = condition_col, output_file = output_file)
         if (verbose)
-            message("  [OK] M-estimate QC complete")
+            message("          [OK] M-estimate QC complete")
     }, error = function(e) {
         if (verbose)
             warning("M-estimate QC failed: ", e$message, call. = FALSE)
@@ -664,14 +779,17 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 #' @noRd
 .execute_lm_interaction_s4 <- function(analysis, verbose, output_dir, output_format) {
     if (verbose)
-        message("Step 5: Testing LM interactions with GAM smoother...")
+        message(sprintf("[>] [%2d/14] Testing LM interactions with GAM smoother", 5))
     tryCatch({
         cfg <- getConfig(analysis)
         fdr <- cfg$fdr_threshold %||% 0.05
+        lm_method <- cfg$lm_method %||% "gam"
+        lm_pcorr <- cfg$lm_pcorr %||% "BH"
         output_file <- .build_output_file("lm_interaction_results", output_dir, output_format)
-        analysis <- calculate_lm_interaction_s4(analysis, fdr_threshold = fdr, output_file = output_file)
+        analysis <- calculate_lm_interaction_s4(analysis, fdr_threshold = fdr, method = lm_method,
+            pcorr = lm_pcorr, output_file = output_file)
         if (verbose)
-            message("  [OK] LM interaction analysis complete")
+            message("          [OK] LM interaction analysis complete")
     }, error = function(e) warning("LM interaction analysis failed:\n", e$message, call. = FALSE))
     analysis
 }
@@ -680,14 +798,14 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 #' @noRd
 .execute_lm_interaction_plot <- function(analysis, verbose, output_dir) {
     if (verbose)
-        message("Step 6: Plotting LM interaction GAM smoother...")
+        message(sprintf("[>] [%2d/14] Plotting LM interaction GAM smoother", 6))
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "lm_interaction_gam_plot.png") else NULL
         p_lm <- plot_lm_interaction_gam_s4(analysis, output_file = output_file)
         if (!is.null(p_lm)) {
             analysis <- addPlot(analysis, type = "lm_interaction", plot = p_lm, replace = TRUE)
             if (verbose)
-                message("  [OK] LM interaction plot generated")
+                message("          [OK] LM interaction plot generated")
         }
     }, error = function(e) {
         if (verbose)
@@ -701,14 +819,15 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 .execute_jackknife_isoform_switching <- function(analysis, q_vals, condition_col,
     verbose, output_dir, output_format) {
     if (verbose)
-        message("Step 7: Computing jackknife isoform switching analysis...")
+        message(sprintf("[>] [%2d/14] Computing jackknife isoform switching analysis", 7))
     tryCatch({
         cfg <- getConfig(analysis)
+        jis_use_lm_fdr <- cfg$jis_use_lm_fdr %||% TRUE
         output_file <- .build_output_file("jackknife_isoform_switching", output_dir, output_format)
         analysis <- jackknife_isoform_switching_s4(analysis, condition_col = condition_col,
-            output_file = output_file, verbose = FALSE)
+            use_lm_fdr = jis_use_lm_fdr, output_file = output_file, verbose = FALSE)
         if (verbose)
-            message("  [OK] Jackknife isoform switching complete")
+            message("          [OK] Jackknife isoform switching complete")
     }, error = function(e) {
         if (verbose)
             warning("Jackknife isoform switching failed: ", e$message, call. = FALSE)
@@ -720,13 +839,13 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 #' @noRd
 .execute_prepare_gene_switching_tables <- function(analysis, verbose, output_dir, output_format) {
     if (verbose)
-        message("Step 8: Preparing gene switching tables...")
+        message(sprintf("[>] [%2d/14] Preparing gene switching tables", 8))
     tryCatch({
         output_file <- .build_output_file("gene_switching_tables", output_dir, output_format)
         tables_result <- prepare_gene_switching_tables_s4(analysis, output_file = output_file, verbose = FALSE)
         if (!is.null(tables_result)) {
             if (verbose)
-                message("  [OK] Gene switching tables prepared")
+                message("          [OK] Gene switching tables prepared")
         }
     }, error = function(e) {
         if (verbose)
@@ -739,7 +858,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 #' @noRd
 .execute_influence_heatmap_plot <- function(analysis, verbose, output_dir) {
     if (verbose)
-        message("Step 9: Plotting multi-q influence heatmap...")
+        message(sprintf("[>] [%2d/14] Plotting multi-q influence heatmap", 9))
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "influence_heatmap.png") else NULL
         p_heatmap <- plot_multiq_delta_influence_heatmaps_s4(analysis, output_file = output_file)
@@ -747,7 +866,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
             analysis <- addPlot(analysis, type = "influence_heatmap", plot = p_heatmap,
                 replace = TRUE)
             if (verbose)
-                message("  [OK] Influence heatmap generated")
+                message("          [OK] Influence heatmap generated")
         }
     }, error = function(e) {
         if (verbose)
@@ -760,7 +879,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 #' @noRd
 .execute_top_transcripts_plot <- function(analysis, verbose, output_dir) {
     if (verbose)
-        message("Step 10: Plotting top transcript counts...")
+        message(sprintf("[>] [%2d/14] Plotting top transcript counts", 10))
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "top_transcripts.png") else NULL
         p_top_tx <- plot_top_transcripts_s4(analysis, output_file = output_file)
@@ -768,7 +887,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
             analysis <- addPlot(analysis, type = "top_transcripts", plot = p_top_tx,
                 replace = TRUE)
             if (verbose)
-                message("  [OK] Top transcripts plot generated")
+                message("          [OK] Top transcripts plot generated")
         }
     }, error = function(e) {
         if (verbose)
@@ -781,12 +900,15 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 #' @noRd
 .execute_divergence_s4 <- function(analysis, q_vals, verbose, output_dir, output_format) {
     if (verbose)
-        message("Step 11: Computing divergence metrics...")
+        message(sprintf("[>] [%2d/14] Computing divergence metrics", 11))
     tryCatch({
+        cfg <- getConfig(analysis)
+        divergence_ci <- cfg$divergence_ci %||% 0.95
         output_file <- .build_output_file("divergence_results", output_dir, output_format)
-        analysis <- calculate_divergence_s4(analysis, q = q_vals, output_file = output_file)
+        analysis <- calculate_divergence_s4(analysis, q = q_vals, output_file = output_file,
+            verbose = FALSE, ci = divergence_ci)
         if (verbose)
-            message("  [OK] Divergence computed")
+            message("          [OK] Divergence computed")
     }, error = function(e) {
         if (verbose)
             warning("Divergence failed: ", e$message, call. = FALSE)
@@ -798,12 +920,12 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 #' @noRd
 .execute_effect_sizes_s4 <- function(analysis, verbose, output_dir, output_format) {
     if (verbose)
-        message("Step 12: Computing effect sizes for divergence...")
+        message(sprintf("[>] [%2d/14] Computing effect sizes for divergence", 12))
     tryCatch({
         output_file <- .build_output_file("effect_sizes", output_dir, output_format)
         analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE, output_file = output_file)
         if (verbose)
-            message("  [OK] Effect sizes computed")
+            message("          [OK] Effect sizes computed")
     }, error = function(e) {
         if (verbose)
             warning("Effect size computation failed: ", e$message, call. = FALSE)
@@ -815,7 +937,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 #' @noRd
 .execute_divergence_dist_plot <- function(analysis, verbose, output_dir) {
     if (verbose)
-        message("Step 13: Plotting divergence distribution...")
+        message(sprintf("[>] [%2d/14] Plotting divergence distribution", 13))
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "divergence_distribution_plot.png") else NULL
         p_div_dist <- plot_divergence_distribution_s4(analysis, output_file = output_file)
@@ -823,7 +945,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
             analysis <- addPlot(analysis, type = "divergence_distribution", plot = p_div_dist,
                 replace = TRUE)
             if (verbose)
-                message("  [OK] Divergence distribution plot generated")
+                message("          [OK] Divergence distribution plot generated")
         }
     }, error = function(e) {
         if (verbose)
@@ -836,7 +958,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
 #' @noRd
 .execute_divergence_spectrum_plot <- function(analysis, verbose, output_dir) {
     if (verbose)
-        message("Step 14: Plotting divergence spectrum...")
+        message(sprintf("[>] [%2d/14] Plotting divergence spectrum", 14))
     tryCatch({
         # Plot 1: Global spectrum plot (all genes)
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "divergence_spectrum_plot.png") else NULL
@@ -845,7 +967,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
             analysis <- addPlot(analysis, type = "divergence_spectrum", plot = p_div_spec,
                 replace = TRUE)
             if (verbose)
-                message("  [OK] Global divergence spectrum plot generated")
+                message("          [OK] Global divergence spectrum plot generated")
         }
         
         # Plot 2: Multi-gene spectrum plot with top 4 genes by p-value
@@ -856,7 +978,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
             analysis <- addPlot(analysis, type = "divergence_spectrum_multi", plot = p_multi,
                 replace = TRUE)
             if (verbose)
-                message("  [OK] Multi-gene divergence spectrum plot generated")
+                message("          [OK] Multi-gene divergence spectrum plot generated")
         }
     }, error = function(e) {
         if (verbose)
@@ -898,15 +1020,11 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
             output <- paste0(output, sprintf("  [OK] LM interactions ..... %d genes (p < 0.05)\n",
                 stats$n_lm_significant))
         if (stats$n_jackknife > 0)
-            output <- paste0(output, sprintf("  [OK] Isoform switching ... %d genes\n",
+            output <- paste0(output, sprintf("  [OK] Isoform switching ... %d genes with robust switching\n",
                 stats$n_jackknife))
         if (stats$n_divergence > 0)
-            output <- paste0(output, sprintf("  [OK] Divergence metrics .. %d pairwise comparisons\n",
+            output <- paste0(output, sprintf("  [OK] Divergence metrics .. %d genes analyzed\n",
                 stats$n_divergence))
-        if (!is.null(analysis@metadata$effect_sizes_divergence))
-            output <- paste0(output, "  [OK] Effect sizes ........ computed\n")
-        if (length(analysis@plots) > 0)
-            output <- paste0(output, sprintf("  [OK] Visualizations ...... %d plots\n", length(analysis@plots)))
         
         if (!is.null(total_time)) {
             time_str <- .format_duration(total_time)
@@ -929,17 +1047,19 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
         
         if (!is.null(output_dir) && dir.exists(output_dir)) {
             n_files <- length(list.files(output_dir, recursive = TRUE))
-            output <- paste0(output, "[OUTPUT] Output\n")
+            output <- paste0(output, "\n[OUTPUT] Output\n")
             output <- paste0(output, sprintf("  Directory ........... %s\n", output_dir))
             output <- paste0(output, sprintf("  Files saved ......... %d\n", n_files))
         }
         
         output <- paste0(output,
-            "\n",
-            "[TIPS] Next steps:\n",
-            "  show(analysis)      - View object structure and slots\n",
-            "  summary(analysis)   - Print detailed statistics\n",
-            "  getPlot(analysis)   - Extract visualization results\n",
+            "\n[TIPS] Next steps:\n",
+            "  show(result)             - View object structure and slots\n",
+            "  summary(result)          - Print detailed statistics summary\n",
+            "  getResults(result)       - Extract numerical results (diversity, divergence, etc.)\n",
+            "  getPlot(result, type)    - Retrieve specific visualization (e.g., 'diversity', 'volcano')\n",
+            "  getMeta(result)          - Access metadata and workflow parameters\n",
+            "  getSE(result)            - Get SummarizedExperiment object for downstream analysis\n",
             "\n"
         )
         
