@@ -2,6 +2,9 @@ library(testthat)
 
 context("Orchestration: Configuration and Pipeline")
 
+# Skip all tests in this file on CRAN
+skip_on_cran()
+
 # ============================================================================
 # Helper: Create test SummarizedExperiment using real package data
 # Loads data like workflow.R but returns just the SE (not TSENATAnalysis)

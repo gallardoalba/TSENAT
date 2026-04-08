@@ -77,29 +77,29 @@ gff3_file <- system.file("extdata",
 Create a configuration object specifying your experimental design parameters (sample/condition columns from metadata) before building the analysis object. This fail-fast pattern ensures invalid parameters are caught immediately before processing begins.
 
 ```r
-## Create configuration with sample metadata column parameters
-## (Minimum required: sample_col and condition_col to identify samples and experimental groups)
+## Create configuration file
 config <- tsenat_config(
-  sample_col = "sample",          # Column name with sample identifiers
-  condition_col = "condition"      # Column name with experimental conditions
-)
+  sample_col = "sample",
+  condition_col = "condition",
+  subject_col = "paired_samples",
+  q_values = seq(0, 2, by = 0.05),
+  nthreads = 2,
+  paired = TRUE,
+  control = "normal")
 
-## Build analysis with counts, annotation, metadata, and config
+## Build TSENATAnalysis object
 analysis <- build_analysis_s4(
   readcounts = readcounts, 
   tx2gene = gff3_file,
   metadata = metadata_df,
   config = config,
   tpm = tpm,
-  effective_length = effective_length
-)
+  effective_length = effective_length)
 ```
-
-For more advanced analysis options (q-value spectrum, multiple testing corrections, paired designs), you can extend the config after building the initial analysis object.
 
 ### Orchestration Function
 
-For a complete analysis pipeline, pass the analysis object with configuration:
+The `tsenat()` function provides a complete, automated analysis pipeline in a single call. It takes your configured `TSENATAnalysis` object and executes all downstream analysis steps: entropy computation, statistical testing for q×condition interactions, and rich visualization. This is the recommended entry point for most users—it orchestrates the full workflow while respecting your configuration parameters (q-values, design, bootstrap settings, etc.) and handles output management seamlessly. For advanced customization, use individual functions directly as shown in the step-by-step workflow below.
 
 ```r
 # Returns: Fully configured TSENATAnalysis object with diversity, testing, and plots
@@ -108,7 +108,7 @@ result <- tsenat(analysis)
 
 ## Detailed Step-by-Step Workflow
 
-For customization at each stage, use individual functions:
+For fine-grained control over your analysis, TSENAT also provides individual functions for each major step. This modular approach allows you to apply custom parameters at each stage, inspect intermediate results, or skip certain components entirely. The workflow below demonstrates the core analysis pipeline when using individual function calls—useful for exploratory analysis, parameter optimization, or integrating TSENAT results into larger custom workflows.
 
 ### 1. Filter & Compute Diversity
 
@@ -161,7 +161,7 @@ print(p_qcurve)
 
 ## Related Packages
 
-TSENAT answers a unique question: **How do isoforms reorganize, independent of abundance changes?** It complements other Bioconductor tools:
+TSENAT addresses a fundamental but underappreciated question in transcriptomic analysis: **How do genes reorganize their isoform usage patterns, independent of changes in total abundance?** This question is distinct from standard differential expression analysis and reveals a layer of biological complexity—coordinated isoform switching—that conventional methods overlook. TSENAT fills a specific niche in the Bioconductor ecosystem by measuring scale-dependent isoform diversity rather than abundance or individual transcript shifts. Below is how TSENAT complements other Bioconductor tools:
 
 | Tool | Answers | TSENAT Difference |
 |------|---------|-------------------|
@@ -170,11 +170,11 @@ TSENAT answers a unique question: **How do isoforms reorganize, independent of a
 | **SplicingFactory** | What is the overall isoform diversity? | TSENAT extends with **scale-dependent diversity** (q-spectrum) vs fixed measures |
 | **Kallisto, Salmon** | How many reads per transcript? | TSENAT uses their quantification as input; adds diversity analysis layer |
 
-## Loading Salmon Quantification Data
+## Native Salmon Integration
 
-TSENAT can read Salmon quantification output directly by automatically discovering all quant.sf files in a directory structure, eliminating manual file parsing. This streamlined workflow accepts the raw output from Salmon without requiring intermediate format conversions.
+TSENAT is specifically engineered to work seamlessly with Salmon quantification output. Rather than requiring manual parsing or format conversion, TSENAT automatically discovers transcript-level quantification files across your Salmon output directory and integrates them directly into the analysis pipeline. This tight integration means you can move from Salmon quantification to entropy analysis without intermediate data manipulation—the raw `quant.sf` files are all you need. TSENAT discovers these files automatically, validates their compatibility with your experimental design, and handles length-correction and normalization as part of the diversity computation workflow.
 
-TSENAT automatically discovers and reads Salmon output when you provide a directory:
+To get started with Salmon-quantified data:
 
 ```r
 library(TSENAT)
