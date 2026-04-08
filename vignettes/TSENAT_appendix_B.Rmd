@@ -1,5 +1,5 @@
 ---
-title: "TSENAT Appendix B: Non-Parametric Validation of Linear Model Results via GAM and Rank-Based Methods"
+title: "Appendix B: Non-Parametric Validation of Linear Model Results via GAM and Rank-Based Methods"
 author: "Cristobal Gallardo <gallardoalba@pm.me>"
 date: "`r Sys.Date()`"
 output:
@@ -39,59 +39,57 @@ suppressPackageStartupMessages(library(kableExtra))
 
 ## Purpose and Rationale
 
-**Primary Goal**: Validate that discoveries of scale-dependent q-value * group interactions from linear models generalize to non-parametric statistical frameworks with minimal assumptions.
+Primary Goal: Validate that discoveries of scale-dependent q-value * group interactions from linear models generalize to non-parametric statistical frameworks with minimal assumptions.
 
-TSENAT's default approach employs **linear models** (via `calculate_difference_s4()`) to test for q-value * group effects in Tsallis entropy. While computationally efficient and well-characterized, linear models assume:
+TSENAT's default approach employs **linear models**  to test for q-value * group effects in Tsallis entropy. While computationally efficient and well-characterized, linear models assume:
 - Normally distributed residuals (reasonable after appropriate transformation)
 - Homogeneous variance across q-values (often violated in diversity metrics)
 - Additive effects of group and q-value on entropy (may oversimplify nonlinear relationships)
 
-This appendix provides **two independent, non-parametric alternatives** that:
+This appendix provides two independent, non-parametric alternatives that:
 
-1. **Make minimal distributional assumptions**, relying only on ranks or data-adaptive smoothing
-2. **Explicitly handle q-ordered structure**, treating q-values as explicit sequential measurements
-3. **Adapt to real-world heteroscedasticity**, automatically weighting measurements by entropy variance
-4. **Provide independent validation**, allowing comparison of linear vs. non-parametric findings
+1. Make minimal distributional assumptions, relying only on ranks or data-adaptive smoothing
+2. Explicitly handle q-ordered structure, treating q-values as explicit sequential measurements
+3. Adapt to real-world heteroscedasticity, automatically weighting measurements by entropy variance
+4. Provide independent validation, allowing comparison of linear vs. non-parametric findings
 
 ## Two Complementary Validation Approaches
 
-### **Method 1: Generalized Additive Models (GAM) with ARIMA-Ordered Measurement Structure**
+### Method 1: Generalized Additive Models (GAM) with ARIMA-Ordered Measurement Structure
 
-- **Distributional assumption**: None required; uses non-parametric basis functions (thin-plate splines)
-- **Treatment of q-ordering**: Treats q-values as time-like ordered measurements, applies ARIMA(1,1,0) differencing for autocorrelation
-- **Heteroscedasticity handling**: Automatically detects variance heterogeneity; applies optimal weighting
-- **Key advantage**: Captures smooth nonlinear q * group effects with computational efficiency
-- **Reference**: Goude (2024)
+- Distributional assumption: None required; uses non-parametric basis functions (thin-plate splines)
+- Treatment of q-ordering: Treats q-values as time-like ordered measurements, applies ARIMA(1,1,0) differencing for autocorrelation
+- Heteroscedasticity handling: Automatically detects variance heterogeneity; applies optimal weighting
+- Key advantage: Captures smooth nonlinear q * group effects with computational efficiency
 
-### **Method 2: Rank-Based Tests (Friedman with Hochberg Step-Up Correction)**
+### Method 2: Rank-Based Tests (Friedman with Hochberg Step-Up Correction)
 
-- **Distributional assumption**: None; operates entirely on ranks (maximal robustness)
-- **Treatment of q-ordering**: Friedman two-way test for paired measurements across q and group
-- **Heteroscedasticity handling**: Rank transformation inherently robust; Hochberg correction controls FWER
-- **Key advantage**: Maximally robust to outliers; valid for any continuous distribution
-- **Reference**: Efron & Tibshirani (1993), Benjamini & Hochberg (1995)
+- Distributional assumption: None; operates entirely on ranks (maximal robustness)
+- Treatment of q-ordering: Friedman two-way test for paired measurements across q and group
+- Heteroscedasticity handling: Rank transformation inherently robust; Hochberg correction controls FWER
+- Key advantage: Maximally robust to outliers; valid for any continuous distribution
+- Reference: Efron & Tibshirani (1993), Benjamini & Hochberg (1995)
 
 ## Key Validation Questions
 
-1. **Concordance**: Do linear model, GAM, and rank-based methods identify the same significant genes? (Target: >85% agreement on top findings)
-2. **Robustness**: Which genes remain significant across all three approaches? (These represent most robust discoveries)
-3. **Method-Specific Signals**: Do rank-based and GAM methods reveal additional genes missed by linear models due to assumption violations?
-4. **Data Characteristics**: What entropy distribution properties predict method disagreement? (Outliers, heteroscedasticity, departure from normality)
-5. **Effect Direction Consistency**: When methods disagree on significance, do they at least agree on effect direction?
+1. Concordance: Do linear model, GAM, and rank-based methods identify the same significant genes?
+2. Robustness: Which genes remain significant across both parametric and non-parametric approaches?
+3. Method-Specific Signals: Do rank-based methods reveal additional genes missed by parametric models due to assumption violations?
+4. Data Characteristics: What entropy distribution properties predict method disagreement? (Outliers, heteroscedasticity, departure from normality)
 
-## Why Three Methods for One Question?
+## Why Two Methods for One Question?
 
-Statistical testing in transcriptomics faces a fundamental challenge: **no single method is universally optimal**. Different approaches make different assumptions and have different strengths:
+Statistical testing in transcriptomics faces a fundamental challenge: **no single method is universally optimal**. Different approaches make different assumptions and have different strengths. TSENAT employs two complementary strategies: parametric methods (linear models and generalized additive models) and non-parametric rank-based tests:
 
-| Aspect | Linear Model | GAM | Rank-Based |
-|--------|--------------|-----|-----------|
-| **Assumptions** | Normality, homoscedasticity | Data-adaptive smoothing only | Ranks only; fully non-parametric |
-| **Power** | Highest (if assumptions met) | High; more flexible | Good; reduced when variance heterogeneous |
-| **Robustness** | Moderate; sensitive to outliers | High; outliers less influential | Highest; resistant to outliers |
-| **Interpretation** | Parametric effect sizes | Smooth curves; intuitive visualization | Effect ranks; robust p-values |
-| **Outlier influence** | High | Moderate | Minimal |
+| Aspect | Parametric (Linear Model / GAM) | Non-Parametric (Rank-Based) |
+|--------|--------------------------------|----------------------------|
+| Assumptions | Normality, homoscedasticity | Ranks only; fully non-parametric |
+| Power | Highest (if assumptions met) | Good; slightly reduced but robust |
+| Robustness | Moderate; sensitive to outliers | Highest; resistant to outliers and outlier-driven effects |
+| Interpretation | Parametric effect sizes, smooth curves | Effect ranks; robust p-values independent of distribution |
+| Outlier influence | High potential for bias | Minimal; rank transformation inherently resistant |
 
-**Validation strategy**: High concordance across all three methods (>85% agreement) confirms that findings are **robust to modeling assumptions and generalize across statistical frameworks**. Method-specific signals suggest either:
+Validation strategy: High concordance between parametric and non-parametric methods (>85% agreement) confirms that findings are **robust to modeling assumptions and generalize across statistical frameworks**. Method-specific signals suggest either:
 - Genuine biological effects masked by parametric assumptions in linear models, AND
 - Real patterns revealed only by the flexibility of GAM or robustness of rank-based methods
 
