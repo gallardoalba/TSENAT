@@ -76,7 +76,7 @@ to quantify isoform complexity and transcript heterogeneity.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">calculate_diversity_s4</span><span class="op">(</span></span>
 <span>  <span class="va">analysis</span>,</span>
 <span>  q <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  norm <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  norm <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  norm_method <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  reference_group <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  tpm <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -350,8 +350,9 @@ see the package vignettes.</p>
 <span class="r-in"><span><span class="va">readcounts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/mode.html" class="external-link">mode</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="st">'numeric'</span></span></span>
 <span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="tsenat_config.html">tsenat_config</a></span><span class="op">(</span>sample_col <span class="op">=</span> <span class="st">'sample'</span>, condition_col <span class="op">=</span> <span class="st">'condition'</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="build_analysis_s4.html">build_analysis_s4</a></span><span class="op">(</span>readcounts <span class="op">=</span> <span class="va">readcounts</span>, tx2gene <span class="op">=</span></span></span>
-<span class="r-in"><span><span class="va">gff3_dataset</span>, metadata <span class="op">=</span> <span class="va">metadata_df</span>,</span></span>
+<span class="r-in"><span><span class="va">gff3_dataset</span>, metadata <span class="op">=</span> <span class="va">metadata_df</span>, config <span class="op">=</span> <span class="va">config</span>,</span></span>
 <span class="r-in"><span>  tpm <span class="op">=</span> <span class="va">tpm</span>, effective_length <span class="op">=</span> <span class="va">effective_length</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Filter to manageable size (use 200+ genes to survive diversity filtering)</span></span></span>
@@ -366,8 +367,8 @@ see the package vignettes.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> dim: 6 16 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> metadata(11): q what ... sample_base_names samples</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> assays(2): diversity counts</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> rownames(6): ENSG00000065970.10 ENSG00000072954.8 ... ENSG00000115008.7</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ENSG00000090674.17</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> rownames(6): ENSG00000065970.10 ENSG00000072954.8 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ENSG00000110429.15 ENSG00000122912.16</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> rowData names(1): gene_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> colnames(16): SRR14800481 SRR14800480 ... SRR14800483 SRR14800482</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> colData names(5): condition sample_type sample_base paired_samples</span>

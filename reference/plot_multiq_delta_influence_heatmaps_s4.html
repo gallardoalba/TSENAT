@@ -164,35 +164,43 @@ interface compared to the base function.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Configure analysis parameters first</span></span></span>
 <span class="r-in"><span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="tsenat_config.html">tsenat_config</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  sample_col <span class="op">=</span> <span class="st">'sample'</span>,</span></span>
 <span class="r-in"><span>  condition_col <span class="op">=</span> <span class="st">'condition'</span>,</span></span>
 <span class="r-in"><span>  subject_col <span class="op">=</span> <span class="st">'paired_samples'</span>,</span></span>
 <span class="r-in"><span>  paired <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
-<span class="r-in"><span>  control <span class="op">=</span> <span class="st">'normal'</span>,</span></span>
-<span class="r-in"><span>  metadata <span class="op">=</span> <span class="va">metadata_df</span></span></span>
+<span class="r-in"><span>  q_values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>[tsenat_config] Paired design (paired=TRUE) requires complete configuration.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>   Missing or incomplete parameters: control</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>   This will cause downstream analysis failure or empty results (LM interaction, plotting).</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>   Provide all parameters: </span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>     config &lt;- tsenat_config(</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>       q_values = seq(0, 2, by = 0.05),       # At least 5 q-values (41 recommended)</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>       condition_col = 'condition',</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>       subject_col = 'paired_samples',        # Required for paired analysis</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>       paired = TRUE,</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>       control = 'normal'                     # Reference group for comparisons</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>     )</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Build analysis with configured parameters</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="build_analysis_s4.html">build_analysis_s4</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  readcounts <span class="op">=</span> <span class="va">readcounts</span>,</span></span>
 <span class="r-in"><span>  tx2gene <span class="op">=</span> <span class="va">gff3_dataset</span>,</span></span>
+<span class="r-in"><span>  metadata <span class="op">=</span> <span class="va">metadata_df</span>,</span></span>
 <span class="r-in"><span>  config <span class="op">=</span> <span class="va">config</span>,</span></span>
 <span class="r-in"><span>  tpm <span class="op">=</span> <span class="va">tpm</span>,</span></span>
 <span class="r-in"><span>  effective_length <span class="op">=</span> <span class="va">effective_length</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="filter_analysis_s4.html">filter_analysis_s4</a></span><span class="op">(</span><span class="va">analysis</span>, stringency <span class="op">=</span> <span class="st">'severe'</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_diversity_s4.html">calculate_diversity_s4</a></span><span class="op">(</span><span class="va">analysis</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1</span>, <span class="fl">1.5</span><span class="op">)</span>, verbose</span></span>
+<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_diversity_s4.html">calculate_diversity_s4</a></span><span class="op">(</span><span class="va">analysis</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1.0</span>, <span class="fl">1.5</span>, <span class="fl">2.0</span>, <span class="fl">2.5</span><span class="op">)</span>, verbose</span></span>
 <span class="r-in"><span><span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_divergence_s4.html">calculate_divergence_s4</a></span><span class="op">(</span><span class="va">analysis</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1</span>, <span class="fl">1.5</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_divergence_s4.html">calculate_divergence_s4</a></span><span class="op">(</span><span class="va">analysis</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1.0</span>, <span class="fl">1.5</span>, <span class="fl">2.0</span>, <span class="fl">2.5</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_lm_interaction_s4.html">calculate_lm_interaction_s4</a></span><span class="op">(</span><span class="va">analysis</span>, method <span class="op">=</span> <span class="st">'gam'</span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>nlminb problem, convergence error code = 1</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span>   message = iteration limit reached without convergence (10)</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>nlminb problem, convergence error code = 1</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span>   message = singular convergence (7)</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>nlminb problem, convergence error code = 1</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span>   message = iteration limit reached without convergence (10)</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>nlminb problem, convergence error code = 1</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span>   message = singular convergence (7)</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>nlminb problem, convergence error code = 1</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span>   message = iteration limit reached without convergence (10)</span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="jackknife_isoform_switching_s4.html">jackknife_isoform_switching_s4</a></span><span class="op">(</span><span class="va">analysis</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1</span>, <span class="fl">1.5</span><span class="op">)</span>,</span></span>

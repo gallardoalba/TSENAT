@@ -110,26 +110,21 @@ from the TSENATAnalysis object, abstracting away internal storage details.</p>
     <div id="ref-examples">
     <h2>Examples</h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># Load example data</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">readcounts</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">readcounts</span>, package <span class="op">=</span> <span class="st">'TSENAT'</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Create SummarizedExperiment from counts</span></span></span>
+<span class="r-in"><span><span class="co"># Create TSENATAnalysis from count matrix</span></span></span>
+<span class="r-in"><span><span class="co"># For simple count matrices (no tx2gene mapping), use TSENATAnalysis directly</span></span></span>
+<span class="r-in"><span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="tsenat_config.html">tsenat_config</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  q_values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1.0</span>, <span class="fl">2.0</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  condition_col <span class="op">=</span> <span class="st">'group'</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">se</span> <span class="op">&lt;-</span> <span class="fu">SummarizedExperiment</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">SummarizedExperiment</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  assays <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>counts <span class="op">=</span> <span class="va">readcounts</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  rowData <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>gene_id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  colData <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>    sample_id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>    group <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"B"</span><span class="op">)</span>, length.out <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span>    group <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">'A'</span>, <span class="st">'B'</span><span class="op">)</span>, length.out <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Create TSENATAnalysis object with configuration</span></span></span>
-<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="TSENATAnalysis.html">TSENATAnalysis</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>  se <span class="op">=</span> <span class="va">se</span>,</span></span>
-<span class="r-in"><span>  config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>    q_values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1.0</span>, <span class="fl">2.0</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>    condition_col <span class="op">=</span> <span class="st">"group"</span></span></span>
-<span class="r-in"><span>  <span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="TSENATAnalysis.html">TSENATAnalysis</a></span><span class="op">(</span>se <span class="op">=</span> <span class="va">se</span>, config <span class="op">=</span> <span class="va">config</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Run analysis to generate diversity results</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_diversity_s4.html">calculate_diversity_s4</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></span>
@@ -138,7 +133,7 @@ from the TSENATAnalysis object, abstracting away internal storage details.</p>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>[calculate_diversity_s4] Assay for q=2 is empty</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Extract diversity results</span></span></span>
-<span class="r-in"><span><span class="va">div_results</span> <span class="op">&lt;-</span> <span class="fu">getResults</span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"diversity"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">div_results</span> <span class="op">&lt;-</span> <span class="fu">getResults</span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">'diversity'</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">div_results</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">div_results</span>, n <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
@@ -150,7 +145,7 @@ from the TSENATAnalysis object, abstracting away internal storage details.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> rownames(0):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> rowData names(1): gene_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> colnames(16): SRR14800475 SRR14800476 ... SRR14800489 SRR14800490</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> colData names(2): sample_id group</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> colData names(2): group sample_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $q_1.000</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> class: SummarizedExperiment </span>
@@ -160,7 +155,7 @@ from the TSENATAnalysis object, abstracting away internal storage details.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> rownames(0):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> rowData names(1): gene_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> colnames(16): SRR14800475 SRR14800476 ... SRR14800489 SRR14800490</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> colData names(2): sample_id group</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> colData names(2): group sample_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $q_2.000</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> class: SummarizedExperiment </span>
@@ -170,7 +165,7 @@ from the TSENATAnalysis object, abstracting away internal storage details.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> rownames(0):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> rowData names(1): gene_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> colnames(16): SRR14800475 SRR14800476 ... SRR14800489 SRR14800490</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> colData names(2): sample_id group</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> colData names(2): group sample_id</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

@@ -89,7 +89,7 @@
 Gallardo <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2026-04-07</h4>
+            <h4 data-toc-skip class="date">2026-04-08</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gallardoalba/TSENAT/blob/HEAD/vignettes/TSENAT.Rmd" class="external-link"><code>vignettes/TSENAT.Rmd</code></a></small>
       <div class="hidden name"><code>TSENAT.Rmd</code></div>
@@ -197,10 +197,18 @@ workflow:</p>
 <span></span>
 <span><span class="co"># Create analysis object with transcript counts, annotation, and metadata</span></span>
 <span><span class="co"># IMPORTANT: Use named parameters to avoid confusion with optional salmon_dir parameter</span></span>
+<span><span class="co"># First, create a configuration with column parameters</span></span>
+<span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/tsenat_config.html">tsenat_config</a></span><span class="op">(</span></span>
+<span>  sample_col <span class="op">=</span> <span class="st">"sample"</span>,</span>
+<span>  condition_col <span class="op">=</span> <span class="st">"condition"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Then build the analysis with the config and metadata</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_analysis_s4.html">build_analysis_s4</a></span><span class="op">(</span></span>
 <span>  readcounts <span class="op">=</span> <span class="va">readcounts</span>,</span>
 <span>  tx2gene <span class="op">=</span> <span class="va">gff3_file</span>,</span>
-<span>  metadata <span class="op">=</span> <span class="va">metadata_df</span></span>
+<span>  metadata <span class="op">=</span> <span class="va">metadata_df</span>,</span>
+<span>  config <span class="op">=</span> <span class="va">config</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Filter low-abundance transcripts</span></span>
@@ -564,22 +572,24 @@ best practices, we create the configuration FIRST, then pass it to the
 builder function (fail-fast principle):</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">## Configure analysis parameters first (best practice: fail-fast principle)</span></span>
-<span><span class="co">## This validates all parameters against metadata before object creation</span></span>
+<span><span class="co">## This validates all parameters before object creation</span></span>
 <span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/tsenat_config.html">tsenat_config</a></span><span class="op">(</span></span>
+<span>  sample_col <span class="op">=</span> <span class="st">"sample"</span>,</span>
 <span>  condition_col <span class="op">=</span> <span class="st">"condition"</span>,</span>
 <span>  subject_col <span class="op">=</span> <span class="st">"paired_samples"</span>,</span>
 <span>  q_values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span>,</span>
 <span>  nthreads <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  paired <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  control <span class="op">=</span> <span class="st">"normal"</span>,</span>
-<span>  metadata <span class="op">=</span> <span class="va">metadata_df</span></span>
+<span>  control <span class="op">=</span> <span class="st">"normal"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co">## Build a complete `TSENATAnalysis` object from readcounts + GFF3.gz annotation</span></span>
 <span><span class="co">## Pass config at construction (Bioconductor pattern): immutable object creation</span></span>
+<span><span class="co">## Note: metadata is passed as explicit parameter (Bioconductor best practice)</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_analysis_s4.html">build_analysis_s4</a></span><span class="op">(</span></span>
 <span>  config <span class="op">=</span> <span class="va">config</span>,</span>
-<span>  readcounts <span class="op">=</span> <span class="va">readcounts</span>, </span>
+<span>  readcounts <span class="op">=</span> <span class="va">readcounts</span>,</span>
+<span>  metadata <span class="op">=</span> <span class="va">metadata_df</span>,</span>
 <span>  tx2gene <span class="op">=</span> <span class="va">gff3_file</span>, </span>
 <span>  tpm <span class="op">=</span> <span class="va">tpm</span>,</span>
 <span>  effective_length <span class="op">=</span> <span class="va">effective_length</span></span>
@@ -610,12 +620,19 @@ isoform heterogeneity at multiple scales <span class="citation">(Ramírez-Reyes 
 normalize entropy to [0,1] range (<code>norm = TRUE</code>) for
 comparable cross-q assessment.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Compute diversity using S4 wrapper with bootstrap confidence intervals [@S232; @S115]</span></span>
+<code class="sourceCode R"><span><span class="co"># Set random seed for reproducible bootstrap CI calculations</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">12345</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Compute diversity using S4 wrapper with bootstrap confidence intervals [@S232; @S115]</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity_s4.html">calculate_diversity_s4</a></span><span class="op">(</span></span>
 <span>    <span class="va">analysis</span>,</span>
-<span>    norm <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>    norm <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>    output_file <span class="op">=</span> <span class="st">"vignette_diversity_results.tsv"</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co">#&gt; Note: 12 genes excluded (&lt; 75% valid values).</span></span></code></pre></div>
+<span><span class="co">#&gt; Note: 12 genes excluded (&lt; 75% valid values).</span></span>
+<span><span class="co">#&gt; [calculate_diversity_s4] Saved diversity spectrum to: vignette_diversity_results_spectrum.tsv</span></span>
+<span><span class="co">#&gt; [calculate_diversity_s4] Saved table to: vignette_diversity_results.tsv</span></span>
+<span><span class="co">#&gt; [calculate_diversity_s4] Saved diversity results to: vignette_diversity_results.tsv</span></span></code></pre></div>
 <table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;">
 <caption>
 <strong>Table 1:</strong> Tsallis entropy for first 4 genes across three
@@ -2396,14 +2413,14 @@ conventions) containing results as assays and metadata:</p>
 <li><p><code>diversity(analysis)</code> -&gt; SummarizedExperiment
 (genes x samples, multiple assays for each q-value)</p></li>
 <li><p><code>lmResults(analysis)</code> -&gt; list containing data.frame
-of LM interaction results (or NULL if method not run)</p></li>
+of LM interaction results</p></li>
 <li><p><code>jeoResults(analysis, q = 1.0)</code> -&gt;
-SummarizedExperiment of jackknife entropy outlier confidence intervals
-(or NULL)</p></li>
+SummarizedExperiment of jackknife entropy outlier confidence
+intervals</p></li>
 <li><p><code>jisResults(analysis, q = 1.0)</code> -&gt; list of
-jackknife isoform switching results (or NULL)</p></li>
+jackknife isoform switching results</p></li>
 <li><p><code>rankResults(analysis)</code> -&gt; data.frame of rank test
-results (or NULL)</p></li>
+results</p></li>
 <li><p><code>divergence(analysis)</code> -&gt; SummarizedExperiment of
 pairwise divergence metrics</p></li>
 </ul>
@@ -2414,19 +2431,26 @@ before downstream use.</p>
 <code class="sourceCode R"><span><span class="co"># Configure analysis parameters once (best practice for reproducibility)</span></span>
 <span><span class="va">tsenat_config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/tsenat_config.html">tsenat_config</a></span><span class="op">(</span></span>
 <span>  q_values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span>,</span>
-<span>  sample_type_col <span class="op">=</span> <span class="st">"sample_type"</span>,</span>
-<span>  subject_col <span class="op">=</span> <span class="st">"paired_samples"</span></span>
+<span>  sample_col <span class="op">=</span> <span class="st">"sample"</span>,</span>
+<span>  condition_col <span class="op">=</span> <span class="st">"condition"</span>,</span>
+<span>  subject_col <span class="op">=</span> <span class="st">"paired_samples"</span>,</span>
+<span>  nthreads <span class="op">=</span> <span class="fl">2</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co">## Build a complete `TSENATAnalysis` object</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_analysis_s4.html">build_analysis_s4</a></span><span class="op">(</span></span>
+<span>  config <span class="op">=</span> <span class="va">config</span>,</span>
+<span>  readcounts <span class="op">=</span> <span class="va">readcounts</span>,</span>
+<span>  metadata <span class="op">=</span> <span class="va">metadata_df</span>,</span>
+<span>  tx2gene <span class="op">=</span> <span class="va">gff3_file</span>, </span>
+<span>  tpm <span class="op">=</span> <span class="va">tpm</span>,</span>
+<span>  effective_length <span class="op">=</span> <span class="va">effective_length</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Run complete pipeline with one function call orchestrating all specified methods</span></span>
 <span><span class="co"># methods parameter: vector of analysis steps to execute ("diversity", "lm_interaction", "jackknife", "divergence")</span></span>
 <span><span class="co"># verbose = TRUE: prints progress messages showing gene filtering, step completion, and result summaries</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/tsenat.html">tsenat</a></span><span class="op">(</span></span>
-<span>  se <span class="op">=</span> <span class="va">se</span>,</span>
-<span>  config <span class="op">=</span> <span class="va">tsenat_config</span>,</span>
-<span>  methods <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"diversity"</span>, <span class="st">"lm_interaction"</span>, <span class="st">"jackknife"</span>, <span class="st">"divergence"</span><span class="op">)</span>,</span>
-<span>  verbose <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span><span class="op">)</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/tsenat.html">tsenat</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Access results via consistent S4 methods (type-safe, mutually-exclusive access instead of nested list indexing)</span></span>
 <span><span class="va">diversity_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/diversity.html">diversity</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span>

@@ -134,15 +134,20 @@ Priority: explicit <code>metadata</code> argument &gt; <code>config$metadata</co
 
 
 <dt id="arg-tpm">tpm<a class="anchor" aria-label="anchor" href="#arg-tpm"></a></dt>
-<dd><p>Optional matrix of transcript-level TPM values. If provided,
-will be
-  stored in the SummarizedExperiment. Same dimensions as readcounts required.</p></dd>
+<dd><p>REQUIRED matrix of transcript-level TPM values (Transcripts Per Million).
+Must be provided and will be stored in the SummarizedExperiment for use during
+  diverse filtering. Same dimensions as readcounts required (rows = transcripts,
+  columns = samples). Typically from SALMON quantification output.
+  If not provided to build_analysis_s4(), subsequent filter_analysis_s4() calls
+  will fail with an explicit error message.</p></dd>
 
 
 <dt id="arg-effective-length">effective_length<a class="anchor" aria-label="anchor" href="#arg-effective-length"></a></dt>
-<dd><p>Optional numeric vector of transcript effective
-lengths
-  (e.g., from SALMON). Length should match nrow(readcounts).</p></dd>
+<dd><p>REQUIRED numeric vector of transcript effective lengths
+(e.g., from SALMON EffectiveLength column). Length must match nrow(readcounts).
+Typically obtained as the median effective length across all samples.
+If not provided to build_analysis_s4(), the data will not be stored for later use
+in length-normalized calculations.</p></dd>
 
 
 <dt id="arg-config">config<a class="anchor" aria-label="anchor" href="#arg-config"></a></dt>
@@ -198,7 +203,32 @@ metadata</p></dd>
   <dt>@metadata</dt>
 <dd><p>Metadata with package version and creation timestamp</p></dd>
 
-</dl></div>
+
+
+</dl><p><strong>CRITICAL: TPM and effective_length Requirements</strong></p>
+<p>Both <code>tpm</code> and <code>effective_length</code> MUST be provided to ensure correct
+filtering and normalization in downstream analysis:</p><ul><li><p><code><a href="filter_analysis_s4.html">filter_analysis_s4()</a></code> requires TPM data (stored in metadata).
+    If TPM is missing, the function will fail with an explicit error message
+    that guides you to pass it to <code>build_analysis_s4()</code>.</p></li>
+<li><p><code><a href="calculate_diversity_s4.html">calculate_diversity_s4()</a></code> uses <code>effective_length</code> for
+    length-normalized entropy calculations.</p></li>
+</ul><p>Following Bioconductor best practices (fail-fast principle), these are explicit
+parameters, not optional. They must be passed at object construction time:</p><div class="sourceCode"><pre><code><span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_analysis_s4.html">build_analysis_s4</a></span><span class="op">(</span></span>
+<span>  readcounts <span class="op">=</span> <span class="va">readcounts</span>,</span>
+<span>  metadata <span class="op">=</span> <span class="va">metadata_df</span>,</span>
+<span>  tx2gene <span class="op">=</span> <span class="va">gff3_file</span>,</span>
+<span>  tpm <span class="op">=</span> <span class="va">tpm</span>,                    <span class="co"># REQUIRED from Salmon output</span></span>
+<span>  effective_length <span class="op">=</span> <span class="va">effective_length</span>,  <span class="co"># REQUIRED from Salmon output</span></span>
+<span>  config <span class="op">=</span> <span class="va">config</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+
+<p>This wrapper combines two steps into one:</p><ol><li><p>Call <code>.build_se()</code> to create a SummarizedExperiment from transcript counts</p></li>
+<li><p>Wrap the result in <code><a href="TSENATAnalysis.html">TSENATAnalysis()</a></code> to create the analysis object</p></li>
+</ol><p>The returned object is ready for diversity analysis via <code><a href="calculate_diversity_s4.html">calculate_diversity_s4()</a></code>.</p>
+<p>If you need to inspect or filter the SummarizedExperiment before creating the
+TSENATAnalysis object, call <code>.build_se()</code> and <code><a href="TSENATAnalysis.html">TSENATAnalysis()</a></code> separately.</p>
+    </div>
     <div id="details">
     <h2>Details</h2>
     <p>When using <code>salmon_dir</code>, the function automatically:</p><ol><li><p>Discovers all Salmon sample folders and quant.sf files</p></li>
@@ -208,14 +238,6 @@ metadata</p></dd>
 </ol><p>The <code>salmon_dir</code> parameter provides a convenient alternative to manually
 constructing the <code>readcounts</code> matrix,
  especially useful in Galaxy workflows.</p>
-<p>This wrapper combines two steps into one:</p><ol><li><p>Call <code>.
-build_se()</code> to create a SummarizedExperiment from transcript counts</p></li>
-<li><p>Wrap the result in <code><a href="TSENATAnalysis.html">TSENATAnalysis()</a></code> to create the analysis object</p></li>
-</ol><p>The returned object is ready for
-diversity analysis via <code><a href="calculate_diversity_s4.html">calculate_diversity_s4()</a></code>.</p>
-<p>If you need to inspect or filter the SummarizedExperiment before creating the
-TSENATAnalysis object,  call <code>. build_se()</code> and
-<code><a href="TSENATAnalysis.html">TSENATAnalysis()</a></code> separately.</p>
     </div>
     <div id="see-also">
     <h2>See also</h2>
@@ -245,15 +267,18 @@ TSENATAnalysis object,  call <code>. build_se()</code> and
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Create sample metadata</span></span></span>
 <span class="r-in"><span><span class="va">metadata</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  sample <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">counts</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  condition <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">'control'</span>, <span class="st">'treatment'</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">5</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  row.names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">counts</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Build analysis object - use NAMED parameters to avoid confusion</span></span></span>
 <span class="r-in"><span><span class="co"># Method 1: With explicit tx2gene data.frame (most common)</span></span></span>
+<span class="r-in"><span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="tsenat_config.html">tsenat_config</a></span><span class="op">(</span>sample_col <span class="op">=</span> <span class="st">'sample'</span>, condition_col <span class="op">=</span> <span class="st">'condition'</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu">build_analysis_s4</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  readcounts <span class="op">=</span> <span class="va">counts</span>,</span></span>
 <span class="r-in"><span>  tx2gene <span class="op">=</span> <span class="va">tx2gene</span>,</span></span>
-<span class="r-in"><span>  metadata <span class="op">=</span> <span class="va">metadata</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  metadata <span class="op">=</span> <span class="va">metadata</span>,</span></span>
+<span class="r-in"><span>  config <span class="op">=</span> <span class="va">config</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Verify the analysis object was created</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span></span></span>
@@ -264,6 +289,24 @@ TSENATAnalysis object,  call <code>. build_se()</code> and
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Samples: 10</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Configuration:</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   q_values: 0, 0.5, 1, 1.5, 2</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   condition_col: condition</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   subject_col: NULL</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   sample_col: sample</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   paired: FALSE</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   control: NULL</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   p_threshold: 0.05</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   fdr_threshold: 0.05</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   significance_threshold: 0.05</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   nboot: 1000</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   bootstrap_method: percentile</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   stringency: medium</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   nthreads: 1</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   norm: TRUE</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   bootstrap: FALSE</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   bootstrap_ci: 0.95</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   norm_method: NULL</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   pseudocount: NULL</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   metadata: &lt;data.frame&gt;</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Analysis Status:</span>
@@ -316,7 +359,7 @@ TSENATAnalysis object,  call <code>. build_se()</code> and
 <span class="r-in"><span><span class="co"># S4Vectors namespace to ensure proper method dispatch:</span></span></span>
 <span class="r-in"><span><span class="co">#   </span></span></span>
 <span class="r-in"><span><span class="co">#   se &lt;- getSE(analysis)</span></span></span>
-<span class="r-in"><span><span class="co">#   assay_with_ci &lt;- SummarizedExperiment::assay(se, "log2fc_ci")</span></span></span>
+<span class="r-in"><span><span class="co">#   assay_with_ci &lt;- SummarizedExperiment::assay(se, 'log2fc_ci')</span></span></span>
 <span class="r-in"><span><span class="co">#   S4Vectors::metadata(assay_with_ci)$lower &lt;- ci_lower_bounds</span></span></span>
 <span class="r-in"><span><span class="co">#   S4Vectors::metadata(assay_with_ci)$upper &lt;- ci_upper_bounds</span></span></span>
 <span class="r-in"><span><span class="co">#</span></span></span>

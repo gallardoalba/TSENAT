@@ -74,7 +74,7 @@
 <span>  fdr_threshold <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  formula <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  condition_col <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  method <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"gam"</span>,</span>
 <span>  paired <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  subject_col <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  nthreads <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -258,21 +258,43 @@ then runs <code>.calculate_lm_interaction()</code>.</p>
 <span class="r-in"><span><span class="co"># Compute diversity (prerequisite for LM interaction analysis)</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_diversity_s4.html">calculate_diversity_s4</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="va">analysis</span>, </span></span>
-<span class="r-in"><span>  q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1.0</span>, <span class="fl">1.5</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1.0</span>, <span class="fl">1.5</span>, <span class="fl">2.0</span>, <span class="fl">2.5</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Calculate q x condition interactions using GAM</span></span></span>
-<span class="r-in"><span><span class="co"># (avoids convergence issues with LMM)</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu">calculate_lm_interaction_s4</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="va">analysis</span>,</span></span>
 <span class="r-in"><span>  condition_col <span class="op">=</span> <span class="st">'condition'</span>,</span></span>
 <span class="r-in"><span>  method <span class="op">=</span> <span class="st">'gam'</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>[validate_and_extract_lm_result] Result is empty (0 rows, 0 columns). This can occur with: low sample counts per condition, insufficient signal, or model convergence issues.</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># View interaction test results</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="lmResults.html">lmResults</a></span><span class="op">(</span><span class="va">analysis</span>, <span class="st">'lm_interaction'</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> data frame with 0 columns and 0 rows</span>
+<span class="r-in"><span><span class="co"># View top interaction results (first 3 genes)</span></span></span>
+<span class="r-in"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="lmResults.html">lmResults</a></span><span class="op">(</span><span class="va">analysis</span>, <span class="st">'lm_interaction'</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">res</span>, <span class="fl">3</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      gene p_interaction        p_raw n_observations n_subjects n_effective</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1  GENE_2  3.243028e-11 3.243028e-11             64         16    14.91552</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 GENE_16  2.846394e-10 2.846394e-10             64         16    12.63764</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 GENE_12  3.813131e-10 3.813131e-10             64         16    12.21766</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      rho_ar1 test_statistic effect_size df_residual model_converged</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 0.04696714       48.30386   0.8654711    58.00221            TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 0.15914471       43.95960   0.8297352    58.00643            TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 0.18223084       43.37480   0.8236480    58.00825            TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      slope_diff arima_transformation bounded_support_model family_used</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1  1.883577e-06                 TRUE                 FALSE    Gaussian</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 -3.589224e-06                 TRUE                 FALSE    Gaussian</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 -1.424366e-05                 TRUE                 FALSE    Gaussian</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   heteroscedasticity_detected variance_ratio_q              fit_method</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1                       FALSE         2.361163 mgcv::gamm_arima(1,1,0)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2                       FALSE         3.511304 mgcv::gamm_arima(1,1,0)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3                        TRUE         3.882614 mgcv::gamm_arima(1,1,0)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   shapiro_p_value residuals_normal n_residuals_tested ci_weighted</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1     0.076530821             TRUE                 64       FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2     0.003200931            FALSE                 64       FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3     0.264509774             TRUE                 64       FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   adj_p_interaction gene_name gene_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1.621514e-09    GENE_2  GENE_2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      1.394733e-08   GENE_16 GENE_16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3      1.830303e-08   GENE_12 GENE_12</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

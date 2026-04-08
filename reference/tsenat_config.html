@@ -77,17 +77,16 @@ analyses.</p>
 <span>  q_values <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  condition_col <span class="op">=</span> <span class="st">"condition"</span>,</span>
 <span>  subject_col <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  sample_col <span class="op">=</span> <span class="st">"sample"</span>,</span>
 <span>  paired <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  control <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  formula <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  p_threshold <span class="op">=</span> <span class="fl">0.05</span>,</span>
 <span>  fdr_threshold <span class="op">=</span> <span class="fl">0.05</span>,</span>
 <span>  significance_threshold <span class="op">=</span> <span class="fl">0.05</span>,</span>
-<span>  n_bootstrap <span class="op">=</span> <span class="fl">1000</span>,</span>
+<span>  nboot <span class="op">=</span> <span class="fl">1000</span>,</span>
 <span>  bootstrap_method <span class="op">=</span> <span class="st">"percentile"</span>,</span>
-<span>  methods <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  generate_plots <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  plot_types <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  stringency <span class="op">=</span> <span class="st">"medium"</span>,</span>
+<span>  nthreads <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -98,7 +97,7 @@ analyses.</p>
 
 <dl><dt id="arg-q-values">q_values<a class="anchor" aria-label="anchor" href="#arg-q-values"></a></dt>
 <dd><p><code>numeric</code>. Q-values for Tsallis entropy spectrum.
-Default: <code>seq(0.5, 2.0, by = 0.5)</code>.</p></dd>
+Default: <code>seq(0, 2, by = 0.5)</code>.</p></dd>
 
 
 <dt id="arg-condition-col">condition_col<a class="anchor" aria-label="anchor" href="#arg-condition-col"></a></dt>
@@ -112,6 +111,11 @@ containing subject/sample identifiers for paired/repeated designs.
 If provided, enables paired analysis. Default: NULL (unpaired).</p></dd>
 
 
+<dt id="arg-sample-col">sample_col<a class="anchor" aria-label="anchor" href="#arg-sample-col"></a></dt>
+<dd><p><code>character</code>. Name of column in <code>colData(se)</code>
+containing sample identifiers. Default: 'sample'.</p></dd>
+
+
 <dt id="arg-paired">paired<a class="anchor" aria-label="anchor" href="#arg-paired"></a></dt>
 <dd><p><code>logical</code>. Whether samples are paired/repeated measures.
 Default: FALSE. Used by jackknife and difference analysis.</p></dd>
@@ -121,11 +125,6 @@ Default: FALSE. Used by jackknife and difference analysis.</p></dd>
 <dd><p><code>character</code>. Reference/control group label for difference
 analysis (e.g., 'control', 'wt'). Only used if 'difference' in methods.
 Default: NULL.</p></dd>
-
-
-<dt id="arg-formula">formula<a class="anchor" aria-label="anchor" href="#arg-formula"></a></dt>
-<dd><p><code>formula</code>. Optional model formula for LM interactions
-(e.g., <code>~ treatment + batch</code>). Default: NULL (uses condition_col).</p></dd>
 
 
 <dt id="arg-p-threshold">p_threshold<a class="anchor" aria-label="anchor" href="#arg-p-threshold"></a></dt>
@@ -143,7 +142,7 @@ threshold. Default: 0.05.</p></dd>
 sizes, assumptions testing, and result filtering. Default: 0.05.</p></dd>
 
 
-<dt id="arg-n-bootstrap">n_bootstrap<a class="anchor" aria-label="anchor" href="#arg-n-bootstrap"></a></dt>
+<dt id="arg-nboot">nboot<a class="anchor" aria-label="anchor" href="#arg-nboot"></a></dt>
 <dd><p><code>integer</code>. Number of bootstrap resamples for jackknife
 confidence intervals. Default: 1000.</p></dd>
 
@@ -154,24 +153,18 @@ confidence intervals. Default: 1000.</p></dd>
 skewed data like bounded entropy). Default: 'percentile'.</p></dd>
 
 
-<dt id="arg-methods">methods<a class="anchor" aria-label="anchor" href="#arg-methods"></a></dt>
-<dd><p><code>character</code>. Analysis steps to run. Core (auto-required):
-'diversity', 'lm_interaction', 'jackknife', 'divergence', 'q_interactions'.
-Optional: 'jackknife_isoform_switching' (requires condition/subject info),
-'difference' (requires control parameter), 'effect_sizes', 'rankbased_assumptions',
-'method_concordance'. Default: core methods.</p></dd>
+<dt id="arg-stringency">stringency<a class="anchor" aria-label="anchor" href="#arg-stringency"></a></dt>
+<dd><p><code>character</code>. Transcript filtering stringency level.
+Options: 'lenient' (minimal filtering), 'medium' (default, reasonable filtering),
+'severe' (strict filtering, recommended for high-confidence results).
+Controls which transcripts/genes are retained in initial filtering step.
+Default: 'medium'.</p></dd>
 
 
-<dt id="arg-generate-plots">generate_plots<a class="anchor" aria-label="anchor" href="#arg-generate-plots"></a></dt>
-<dd><p><code>logical</code>. Generate visualizations.
-Default: TRUE.</p></dd>
-
-
-<dt id="arg-plot-types">plot_types<a class="anchor" aria-label="anchor" href="#arg-plot-types"></a></dt>
-<dd><p><code>character</code>. Specific plot types to generate. Options:
-'q_curve', 'lm_interaction', 'divergence_distribution', 'divergence_spectrum',
-'influence_heatmap', 'volcano', 'method_concordance', 'multi_gene_q_spectrum',
-'top_transcripts', 'tsallis_violin_density'. Default: all available types.</p></dd>
+<dt id="arg-nthreads">nthreads<a class="anchor" aria-label="anchor" href="#arg-nthreads"></a></dt>
+<dd><p><code>integer</code>. Number of threads for parallel computation
+where supported (diversity, divergence, LM fitting). Default: 1 (no parallelization).
+Use 2+ for multi-core systems to improve performance.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -196,17 +189,16 @@ by wrapper functions to configure analysis behavior.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># Default config with standard parameters</span></span></span>
 <span class="r-in"><span><span class="va">cfg</span> <span class="op">&lt;-</span> <span class="fu">tsenat_config</span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Custom with optional features: paired analysis, isoform switching, differences</span></span></span>
+<span class="r-in"><span><span class="co"># Custom with paired analysis and strict filtering for high-confidence results</span></span></span>
 <span class="r-in"><span><span class="va">cfg</span> <span class="op">&lt;-</span> <span class="fu">tsenat_config</span><span class="op">(</span></span></span>
-<span class="r-in"><span>  q_values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1.0</span>, <span class="fl">1.5</span>, <span class="fl">2.0</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  condition_col <span class="op">=</span> <span class="st">"treatment"</span>,</span></span>
-<span class="r-in"><span>  subject_col <span class="op">=</span> <span class="st">"subject_id"</span>,</span></span>
+<span class="r-in"><span>  q_values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span>,  <span class="co"># Recommended for paired designs: 41 values</span></span></span>
+<span class="r-in"><span>  condition_col <span class="op">=</span> <span class="st">'treatment'</span>,</span></span>
+<span class="r-in"><span>  subject_col <span class="op">=</span> <span class="st">'subject_id'</span>,</span></span>
 <span class="r-in"><span>  paired <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
-<span class="r-in"><span>  control <span class="op">=</span> <span class="st">"untreated"</span>,</span></span>
-<span class="r-in"><span>  methods <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"diversity"</span>, <span class="st">"lm_interaction"</span>, <span class="st">"jackknife"</span>, <span class="st">"jackknife_isoform_switching"</span>,</span></span>
-<span class="r-in"><span>              <span class="st">"divergence"</span>, <span class="st">"q_interactions"</span>, <span class="st">"difference"</span>, <span class="st">"effect_sizes"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  bootstrap_method <span class="op">=</span> <span class="st">"bca"</span>,</span></span>
-<span class="r-in"><span>  n_bootstrap <span class="op">=</span> <span class="fl">5000</span>,</span></span>
+<span class="r-in"><span>  control <span class="op">=</span> <span class="st">'untreated'</span>,</span></span>
+<span class="r-in"><span>  stringency <span class="op">=</span> <span class="st">'severe'</span>,</span></span>
+<span class="r-in"><span>  bootstrap_method <span class="op">=</span> <span class="st">'bca'</span>,</span></span>
+<span class="r-in"><span>  nboot <span class="op">=</span> <span class="fl">5000</span>,</span></span>
 <span class="r-in"><span>  significance_threshold <span class="op">=</span> <span class="fl">0.01</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>

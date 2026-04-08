@@ -162,46 +162,42 @@ providing a simplified interface compared to the base function.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Configure analysis parameters first</span></span></span>
 <span class="r-in"><span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="tsenat_config.html">tsenat_config</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  sample_col <span class="op">=</span> <span class="st">'sample'</span>,</span></span>
 <span class="r-in"><span>  condition_col <span class="op">=</span> <span class="st">'condition'</span>,</span></span>
 <span class="r-in"><span>  subject_col <span class="op">=</span> <span class="st">'paired_samples'</span>,</span></span>
-<span class="r-in"><span>  paired <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
-<span class="r-in"><span>  control <span class="op">=</span> <span class="st">'normal'</span>,</span></span>
-<span class="r-in"><span>  metadata <span class="op">=</span> <span class="va">metadata_df</span></span></span>
+<span class="r-in"><span>  q_values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Build analysis with configured parameters</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="build_analysis_s4.html">build_analysis_s4</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  readcounts <span class="op">=</span> <span class="va">readcounts</span>,</span></span>
 <span class="r-in"><span>  tx2gene <span class="op">=</span> <span class="va">gff3_dataset</span>,</span></span>
+<span class="r-in"><span>  metadata <span class="op">=</span> <span class="va">metadata_df</span>,</span></span>
 <span class="r-in"><span>  config <span class="op">=</span> <span class="va">config</span>,</span></span>
 <span class="r-in"><span>  tpm <span class="op">=</span> <span class="va">tpm</span>,</span></span>
 <span class="r-in"><span>  effective_length <span class="op">=</span> <span class="va">effective_length</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="filter_analysis_s4.html">filter_analysis_s4</a></span><span class="op">(</span><span class="va">analysis</span>, stringency <span class="op">=</span> <span class="st">'severe'</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_diversity_s4.html">calculate_diversity_s4</a></span><span class="op">(</span><span class="va">analysis</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1.0</span>, <span class="fl">1.5</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_diversity_s4.html">calculate_diversity_s4</a></span><span class="op">(</span><span class="va">analysis</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1.0</span>, <span class="fl">1.5</span>, <span class="fl">2.0</span>, <span class="fl">2.5</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Note: 7 genes excluded (&lt; 75% valid values).</span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_lm_interaction_s4.html">calculate_lm_interaction_s4</a></span><span class="op">(</span><span class="va">analysis</span>, method <span class="op">=</span> <span class="st">'gam'</span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>nlminb problem, convergence error code = 1</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span>   message = iteration limit reached without convergence (10)</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>nlminb problem, convergence error code = 1</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span>   message = singular convergence (7)</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>nlminb problem, convergence error code = 1</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span>   message = iteration limit reached without convergence (10)</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>nlminb problem, convergence error code = 1</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span>   message = singular convergence (7)</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>nlminb problem, convergence error code = 1</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span>   message = iteration limit reached without convergence (10)</span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="jackknife_isoform_switching_s4.html">jackknife_isoform_switching_s4</a></span><span class="op">(</span><span class="va">analysis</span>, n_bootstrap <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">tables</span> <span class="op">&lt;-</span> <span class="fu">prepare_gene_switching_tables_s4</span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">tables</span><span class="op">$</span><span class="va">summary_df</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     gene gene_name p_interaction adj_p_interaction</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 ZNF493    ZNF493  3.426492e-05       0.001096477</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2  CENPV     CENPV  8.693420e-04       0.026949601</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3   VRK2      VRK2  2.937436e-03       0.088123086</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4   TLN2      TLN2  3.418651e-03       0.099140890</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 ANGEL2    ANGEL2  1.729079e-02       0.484142211</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6  EXOC1     EXOC1  2.462295e-02       0.664819737</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       gene gene_name p_interaction adj_p_interaction</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1   ZNF493    ZNF493  3.075886e-07      9.842836e-06</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2    CENPV     CENPV  5.046008e-06      1.564262e-04</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3     VRK2      VRK2  1.229501e-05      3.688503e-04</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4     TLN2      TLN2  7.474492e-05      2.167603e-03</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 TMEM183A  TMEM183A  2.528512e-04      7.079833e-03</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6   CXCL12    CXCL12  2.425630e-03      6.549200e-02</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

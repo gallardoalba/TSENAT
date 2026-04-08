@@ -78,7 +78,7 @@ S4 workflow pattern where functions accept and return analysis objects.</p>
 <span>  min_tpm <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  tpm_assay_name <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  min_samples <span class="op">=</span> <span class="fl">5L</span>,</span>
-<span>  stringency <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  stringency <span class="op">=</span> <span class="st">"medium"</span>,</span>
 <span>  pair_col <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  min_tx_per_gene <span class="op">=</span> <span class="fl">2L</span>,</span>
 <span>  min_isoform_abundance <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -129,7 +129,7 @@ auto-estimates:
 <code>min_isoform_abundance</code>
   from data. Requires <code>pair_col</code> in colData for paired designs.
   User-provided values for any parameter override stringency defaults.
-  Default: NULL (use explicit parameters).</p></dd>
+  Default: 'medium' (balanced filtering recommended for most analyses).</p></dd>
 
 
 <dt id="arg-pair-col">pair_col<a class="anchor" aria-label="anchor" href="#arg-pair-col"></a></dt>
@@ -231,11 +231,16 @@ statistics
 the TSENATAnalysis object, optionally followed by subsetting parameters.
 The filtering and subsetting operations are applied in sequence:</p>
 <p>1. Extracts the SE from <code>analysis@se</code>
-2. Filters using <code>.filter_se()</code> with specified filtering parameters
+2. Filters using <code>.filter_se()</code> with specified filtering parameters (default: 'medium' stringency)
 3. If any subset parameters are provided, applies gene/sample selection
    to select specific genes and/or samples
 4. Stores the filtered/subsetted SE back in <code>analysis@se</code>
 5. Returns the modified analysis object invisibly</p>
+<p>**Default Filtering (stringency = 'medium'):** By default, filtering applies
+balanced stringency: requires transcripts in ≥50<!-- % of samples with minimum -->
+isoform abundance of 5<!-- %, and genes with at least 2 transcripts. This balances -->
+noise reduction with preservation of isoform diversity for reliable entropy
+calculations.</p>
 <p>**Important:** Filtering should be performed BEFORE computing diversity,
 divergence, or LM interaction results. If called after analysis results
 have been computed, those results will be based on unfiltered data and
@@ -258,8 +263,9 @@ may not align with the filtered SE dimensions.</p>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">gff3_dataset</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">'extdata'</span>, <span class="st">'annotation.gff3.gz'</span>, package <span class="op">=</span></span></span>
 <span class="r-in"><span><span class="st">'TSENAT'</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="tsenat_config.html">tsenat_config</a></span><span class="op">(</span>sample_col <span class="op">=</span> <span class="st">'sample'</span>, condition_col <span class="op">=</span> <span class="st">'condition'</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="build_analysis_s4.html">build_analysis_s4</a></span><span class="op">(</span>readcounts <span class="op">=</span> <span class="va">readcounts</span>, tx2gene <span class="op">=</span></span></span>
-<span class="r-in"><span><span class="va">gff3_dataset</span>, metadata <span class="op">=</span> <span class="va">metadata_df</span>,</span></span>
+<span class="r-in"><span><span class="va">gff3_dataset</span>, metadata <span class="op">=</span> <span class="va">metadata_df</span>, config <span class="op">=</span> <span class="va">config</span>,</span></span>
 <span class="r-in"><span>  tpm <span class="op">=</span> <span class="va">tpm</span>, effective_length <span class="op">=</span> <span class="va">effective_length</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu">filter_analysis_s4</span><span class="op">(</span><span class="va">analysis</span>, stringency <span class="op">=</span> <span class="st">'medium'</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>

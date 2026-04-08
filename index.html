@@ -151,51 +151,42 @@
 <span><span class="co"># Load sample metadata and annotation</span></span>
 <span><span class="va">metadata_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.table</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"metadata.tsv"</span>,</span>
-<span>  package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span>, header <span class="op">=</span> <span class="cn">TRUE</span>, row.names <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span>, header <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  sep <span class="op">=</span> <span class="st">"\t"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">gff3_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>,</span>
 <span>  <span class="st">"annotation.gff3.gz"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="create-configuration-file">Create configuration file<a class="anchor" aria-label="anchor" href="#create-configuration-file"></a>
+<h3 id="create-configuration-and-build-analysis">Create configuration and build analysis<a class="anchor" aria-label="anchor" href="#create-configuration-and-build-analysis"></a>
 </h3>
-<p>Create a configuration object that specifies your analysis parameters (q-values, experimental conditions, sample grouping) before building the analysis object. This fail-fast pattern ensures invalid parameters are caught immediately before processing begins.</p>
+<p>Create a configuration object specifying your experimental design parameters (sample/condition columns from metadata) before building the analysis object. This fail-fast pattern ensures invalid parameters are caught immediately before processing begins.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co">## Configure analysis parameters first (best practice: fail-fast principle)</span></span>
-<span><span class="co">## This validates all parameters against metadata before object creation</span></span>
+<code class="sourceCode R"><span><span class="co">## Create configuration with sample metadata column parameters</span></span>
+<span><span class="co">## (Minimum required: sample_col and condition_col to identify samples and experimental groups)</span></span>
 <span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/tsenat_config.html">tsenat_config</a></span><span class="op">(</span></span>
-<span>  condition_col <span class="op">=</span> <span class="st">"condition"</span>,</span>
-<span>  subject_col <span class="op">=</span> <span class="st">"paired_samples"</span>,</span>
-<span>  q_values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span>,</span>
-<span>  nthreads <span class="op">=</span> <span class="fl">2</span>,</span>
-<span>  paired <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  control <span class="op">=</span> <span class="st">"normal"</span>,</span>
-<span>  metadata <span class="op">=</span> <span class="va">metadata_df</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="build-tsenat-analysis-object">Build TSENAT Analysis Object<a class="anchor" aria-label="anchor" href="#build-tsenat-analysis-object"></a>
-</h3>
-<p>Combine the read counts, annotation file, metadata, and configuration into a single TSENATAnalysis S4 object that serves as the central container for all downstream analysis.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co">## Build a complete `TSENATAnalysis` object from readcounts + GFF3.gz annotation</span></span>
-<span><span class="co">## Pass config at construction (Bioconductor pattern): immutable object creation</span></span>
+<span>  sample_col <span class="op">=</span> <span class="st">"sample"</span>,          <span class="co"># Column name with sample identifiers</span></span>
+<span>  condition_col <span class="op">=</span> <span class="st">"condition"</span>      <span class="co"># Column name with experimental conditions</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co">## Build analysis with counts, annotation, metadata, and config</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/build_analysis_s4.html">build_analysis_s4</a></span><span class="op">(</span></span>
-<span>  config <span class="op">=</span> <span class="va">config</span>,</span>
 <span>  readcounts <span class="op">=</span> <span class="va">readcounts</span>, </span>
-<span>  tx2gene <span class="op">=</span> <span class="va">gff3_file</span>, </span>
+<span>  tx2gene <span class="op">=</span> <span class="va">gff3_file</span>,</span>
+<span>  metadata <span class="op">=</span> <span class="va">metadata_df</span>,</span>
+<span>  config <span class="op">=</span> <span class="va">config</span>,</span>
 <span>  tpm <span class="op">=</span> <span class="va">tpm</span>,</span>
 <span>  effective_length <span class="op">=</span> <span class="va">effective_length</span></span>
 <span><span class="op">)</span></span></code></pre></div>
+<p>For more advanced analysis options (q-value spectrum, multiple testing corrections, paired designs), you can extend the config after building the initial analysis object.</p>
 </div>
 <div class="section level3">
 <h3 id="orchestration-function">Orchestration Function<a class="anchor" aria-label="anchor" href="#orchestration-function"></a>
 </h3>
-<p>For a complete analysis with default parameters, use the <code><a href="reference/tsenat.html">tsenat()</a></code> orchestration function:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<p>For a complete analysis pipeline, pass the analysis object with configuration:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Returns: Fully configured TSENATAnalysis object with diversity, testing, and plots</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/tsenat.html">tsenat</a></span><span class="op">(</span><span class="va">se</span>, config <span class="op">=</span> <span class="va">cfg</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/tsenat.html">tsenat</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="detailed-step-by-step-workflow">Detailed Step-by-Step Workflow<a class="anchor" aria-label="anchor" href="#detailed-step-by-step-workflow"></a>
@@ -205,7 +196,7 @@
 <h3 id="id_1-filter--compute-diversity">1. Filter &amp; Compute Diversity<a class="anchor" aria-label="anchor" href="#id_1-filter--compute-diversity"></a>
 </h3>
 <p>Remove low-abundance transcripts that may contribute noise to entropy calculations, then compute Tsallis entropy across your specified q-spectrum. This produces normalized diversity scores for each gene across all samples and q-values.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Remove low-abundance transcripts</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/filter_analysis_s4.html">filter_analysis_s4</a></span><span class="op">(</span><span class="va">analysis</span>, stringency <span class="op">=</span> <span class="st">"medium"</span><span class="op">)</span></span>
 <span></span>
@@ -216,7 +207,7 @@
 <h3 id="id_2-statistical-testing">2. Statistical Testing<a class="anchor" aria-label="anchor" href="#id_2-statistical-testing"></a>
 </h3>
 <p>Perform statistical testing to identify significant differences in entropy between experimental groups across your q-spectrum. TSENAT supports diverse statistical methods (linear models, rank-based tests, and more) to accommodate different study designs and data characteristics, ensuring you detect robust biological signals at the appropriate diversity scales.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Fit linear models to detect qxcondition interactions</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/calculate_lm_interaction_s4.html">calculate_lm_interaction_s4</a></span><span class="op">(</span></span>
 <span>  <span class="va">analysis</span>,</span>
@@ -226,7 +217,7 @@
 <h3 id="id_3-visualize-results">3. Visualize Results<a class="anchor" aria-label="anchor" href="#id_3-visualize-results"></a>
 </h3>
 <p>Create diverse visualizations to explore and communicate your analysis results. TSENAT provides multiple plotting functions including q-curves, volcano plots, heatmaps, and interaction plots to reveal scale-dependent diversity patterns and statistical findings across different aspects of your data.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot overall q-curve</span></span>
 <span><span class="va">p_qcurve</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/plot_tsallis_q_curve_s4.html">plot_tsallis_q_curve_s4</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span>
 <span></span>
@@ -304,7 +295,7 @@
 </h2>
 <p>TSENAT can read Salmon quantification output directly by automatically discovering all quant.sf files in a directory structure, eliminating manual file parsing. This streamlined workflow accepts the raw output from Salmon without requiring intermediate format conversions.</p>
 <p>TSENAT automatically discovers and reads Salmon output when you provide a directory:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gallardoalba.github.io/TSENAT" class="external-link">TSENAT</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Prepare configuration FIRST</span></span>
@@ -346,9 +337,9 @@
 <h2 id="metadata-file-structure">Metadata File Structure<a class="anchor" aria-label="anchor" href="#metadata-file-structure"></a>
 </h2>
 <p>Example metadata structure:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Load metadata from TSV file</span></span>
-<span><span class="va">metadata_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.table</a></span><span class="op">(</span><span class="st">"metadata.tsv"</span>, header <span class="op">=</span> <span class="cn">TRUE</span>, sep <span class="op">=</span> <span class="st">"\t"</span>, row.names <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">metadata_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.table</a></span><span class="op">(</span><span class="st">"metadata.tsv"</span>, header <span class="op">=</span> <span class="cn">TRUE</span>, sep <span class="op">=</span> <span class="st">"\t"</span><span class="op">)</span></span></code></pre></div>
 <p>Expected TSV file format (<code>metadata.tsv</code>):</p>
 <pre><code>sample        condition    paired_samples
 SRR14800481   normal       A
@@ -370,7 +361,7 @@ SRR14800478   tumor        B</code></pre>
 </h3>
 <p>For a complete walkthrough of the analysis pipeline with real biological examples, see the main package vignette. This includes theory background, step-by-step explanations of each analysis function, and interpretation guidance for understanding your results.</p>
 <p>See the package vignette for detailed examples, theory background, and typical workflows:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette</a></span><span class="op">(</span><span class="st">"TSENAT"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
@@ -378,12 +369,12 @@ SRR14800478   tumor        B</code></pre>
 </h3>
 <p>Use R’s built-in help system to explore detailed documentation for individual TSENAT functions and S4 classes. Each help page includes function arguments, return values, and practical examples of usage.</p>
 <p>Interactive help for functions and classes:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="op">?</span><span class="va">build_analysis_s4</span></span>
 <span><span class="op">?</span><span class="va">calculate_diversity_s4</span></span>
 <span><span class="op">?</span><span class="va">TSENATAnalysis</span><span class="op">-</span><span class="va">class</span></span></code></pre></div>
 <p>For methodology details and a comprehensive bibliography, see the <a href="vignettes/TSENAT.Rmd">TSENAT vignette</a>:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette</a></span><span class="op">(</span><span class="st">"TSENAT"</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
@@ -391,15 +382,15 @@ SRR14800478   tumor        B</code></pre>
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
 <p>If you use TSENAT in your research, please cite:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/citation.html" class="external-link">citation</a></span><span class="op">(</span><span class="st">"TSENAT"</span><span class="op">)</span></span></code></pre></div>
 <p>BibTeX entry:</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="co">@software{gallardo2026tsenat,</span></span>
-<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a><span class="co">  title={TSENAT: Tsallis Entropy Analysis Toolbox},</span></span>
-<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a><span class="co">  author={Gallardo Alba, Cristóbal},</span></span>
-<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a><span class="co">  url={https://github.com/gallardoalba/TSENAT},</span></span>
-<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a><span class="co">  year={2026}</span></span>
-<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb17"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a><span class="co">@software{gallardo2026tsenat,</span></span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a><span class="co">  title={TSENAT: Tsallis Entropy Analysis Toolbox},</span></span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a><span class="co">  author={Gallardo Alba, Cristóbal},</span></span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a><span class="co">  url={https://github.com/gallardoalba/TSENAT},</span></span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a><span class="co">  year={2026}</span></span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="license-and-attribution">License and Attribution<a class="anchor" aria-label="anchor" href="#license-and-attribution"></a>

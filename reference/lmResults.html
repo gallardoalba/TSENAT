@@ -124,27 +124,48 @@ specify component type for targeted extraction.</p>
 <span class="r-in"><span><span class="st">'TSENAT'</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Build analysis from vignette data</span></span></span>
+<span class="r-in"><span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="tsenat_config.html">tsenat_config</a></span><span class="op">(</span>sample_col <span class="op">=</span> <span class="st">'sample'</span>, condition_col <span class="op">=</span> <span class="st">'condition'</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="build_analysis_s4.html">build_analysis_s4</a></span><span class="op">(</span>readcounts <span class="op">=</span> <span class="va">readcounts</span>, tx2gene <span class="op">=</span></span></span>
-<span class="r-in"><span><span class="va">gff3_dataset</span>, metadata <span class="op">=</span> <span class="va">metadata_df</span>,</span></span>
+<span class="r-in"><span><span class="va">gff3_dataset</span>, metadata <span class="op">=</span> <span class="va">metadata_df</span>, config <span class="op">=</span> <span class="va">config</span>,</span></span>
 <span class="r-in"><span>  tpm <span class="op">=</span> <span class="va">tpm</span>, effective_length <span class="op">=</span> <span class="va">effective_length</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="filter_analysis_s4.html">filter_analysis_s4</a></span><span class="op">(</span><span class="va">analysis</span>, min_samples <span class="op">=</span> <span class="fl">1</span>, subset_n_genes</span></span>
 <span class="r-in"><span><span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Compute diversity first (required for LM interaction)</span></span></span>
-<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_diversity_s4.html">calculate_diversity_s4</a></span><span class="op">(</span><span class="va">analysis</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1.0</span><span class="op">)</span>, verbose <span class="op">=</span></span></span>
+<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_diversity_s4.html">calculate_diversity_s4</a></span><span class="op">(</span><span class="va">analysis</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1.0</span>, <span class="fl">1.5</span>, <span class="fl">2.0</span>, <span class="fl">2.5</span><span class="op">)</span>, verbose <span class="op">=</span></span></span>
 <span class="r-in"><span><span class="cn">FALSE</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Calculate LM interaction</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_lm_interaction_s4.html">calculate_lm_interaction_s4</a></span><span class="op">(</span><span class="va">analysis</span>, </span></span>
 <span class="r-in"><span>  condition_col <span class="op">=</span> <span class="st">'condition'</span>, method <span class="op">=</span> <span class="st">'gam'</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>[validate_and_extract_lm_result] Result is empty (0 rows, 0 columns). This can occur with: low sample counts per condition, insufficient signal, or model convergence issues.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Extract and view LM interaction results</span></span></span>
-<span class="r-in"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu">lmResults</span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $lm_interaction</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> data frame with 0 columns and 0 rows</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-in"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu">lmResults</span><span class="op">(</span><span class="va">analysis</span>, <span class="st">'lm_interaction'</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">res</span>, <span class="fl">3</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 gene p_interaction        p_raw n_observations n_subjects</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 ENSG00000107562.18  1.627847e-14 1.627847e-14             64         16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 ENSG00000140274.15  4.253465e-09 4.253465e-09             56         16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 ENSG00000057663.17  9.241246e-05 9.241246e-05             64         16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   n_effective    rho_ar1 test_statistic effect_size df_residual model_converged</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1   14.834530 0.05062463       63.49787   0.8651259    58.05485            TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2   12.754919 0.16228978       38.55106   0.7441343    51.03222            TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3    9.586938 0.35000000       18.57850   0.8466450    58.04111            TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    slope_diff arima_transformation bounded_support_model family_used</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 -0.05825786                 TRUE                 FALSE    Gaussian</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2  0.07862503                 TRUE                 FALSE    Gaussian</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 -0.01899569                 TRUE                 FALSE    Gaussian</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   heteroscedasticity_detected variance_ratio_q              fit_method</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1                       FALSE         2.092749 mgcv::gamm_arima(1,1,0)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2                       FALSE         1.000000 mgcv::gamm_arima(1,1,0)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3                       FALSE         2.272165 mgcv::gamm_arima(1,1,0)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   shapiro_p_value residuals_normal n_residuals_tested ci_weighted</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1    2.565713e-06            FALSE                 64       FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2    1.270953e-05            FALSE                 56       FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3    1.560005e-01             TRUE                 64       FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   adj_p_interaction          gene_name            gene_id</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      1.237163e-12 ENSG00000107562.18 ENSG00000107562.18</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      3.190099e-07 ENSG00000140274.15 ENSG00000140274.15</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3      6.838522e-03 ENSG00000057663.17 ENSG00000057663.17</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

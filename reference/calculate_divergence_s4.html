@@ -197,20 +197,24 @@ Parameters are resolved in priority order:
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">'extdata'</span>, <span class="st">'metadata.tsv'</span>, package <span class="op">=</span> <span class="st">'TSENAT'</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  header <span class="op">=</span> <span class="cn">TRUE</span>, sep <span class="op">=</span> <span class="st">'\t'</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">gff3_dataset</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">'extdata'</span>, <span class="st">'annotation.gff3.gz'</span>, package <span class="op">=</span></span></span>
-<span class="r-in"><span><span class="st">'TSENAT'</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">gff3_dataset</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">'extdata'</span>, <span class="st">'annotation.gff3.gz'</span>, package <span class="op">=</span> <span class="st">'TSENAT'</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Build analysis from vignette data and create manageable subset</span></span></span>
-<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="build_analysis_s4.html">build_analysis_s4</a></span><span class="op">(</span>readcounts <span class="op">=</span> <span class="va">readcounts</span>, tx2gene <span class="op">=</span></span></span>
-<span class="r-in"><span><span class="va">gff3_dataset</span>, metadata <span class="op">=</span> <span class="va">metadata_df</span>,</span></span>
-<span class="r-in"><span>  tpm <span class="op">=</span> <span class="va">tpm</span>, effective_length <span class="op">=</span> <span class="va">effective_length</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="tsenat_config.html">tsenat_config</a></span><span class="op">(</span>sample_col <span class="op">=</span> <span class="st">'sample'</span>, condition_col <span class="op">=</span> <span class="st">'condition'</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="build_analysis_s4.html">build_analysis_s4</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  readcounts <span class="op">=</span> <span class="va">readcounts</span>,</span></span>
+<span class="r-in"><span>  tx2gene <span class="op">=</span> <span class="va">gff3_dataset</span>,</span></span>
+<span class="r-in"><span>  metadata <span class="op">=</span> <span class="va">metadata_df</span>,</span></span>
+<span class="r-in"><span>  config <span class="op">=</span> <span class="va">config</span>,</span></span>
+<span class="r-in"><span>  tpm <span class="op">=</span> <span class="va">tpm</span>,</span></span>
+<span class="r-in"><span>  effective_length <span class="op">=</span> <span class="va">effective_length</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="co"># Use 200+ genes to ensure diversity filtering doesn't remove all genes</span></span></span>
-<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="filter_analysis_s4.html">filter_analysis_s4</a></span><span class="op">(</span><span class="va">analysis</span>, min_samples <span class="op">=</span> <span class="fl">1</span>, subset_n_genes</span></span>
-<span class="r-in"><span><span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="filter_analysis_s4.html">filter_analysis_s4</a></span><span class="op">(</span><span class="va">analysis</span>, min_samples <span class="op">=</span> <span class="fl">1</span>, subset_n_genes <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Compute diversity first (required for divergence)</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_diversity_s4.html">calculate_diversity_s4</a></span><span class="op">(</span><span class="va">analysis</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1.0</span>, <span class="fl">1.5</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Note: 40 genes excluded (&lt; 75% valid values).</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Note: 12 genes excluded (&lt; 75% valid values).</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Calculate divergence across q-values</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu">calculate_divergence_s4</span><span class="op">(</span><span class="va">analysis</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1.0</span>, <span class="fl">1.5</span><span class="op">)</span><span class="op">)</span></span></span>
@@ -219,11 +223,11 @@ Parameters are resolved in priority order:
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="divergence.html">divergence</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $divergence_se</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> class: SummarizedExperiment </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> dim: 98 3 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> dim: 86 3 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> metadata(7): summary_stats elapsed_time_sec ... normalization</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   computation_mode</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> assays(1): divergence</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> rownames(98): DES REG1A ... CCNE1 ENSG00000300867</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> rownames(86): DES SYNM ... ENSG00000291072 GIPR</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> rowData names(26): gene_name error ... ci_width per_q_pattern</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> colnames(3): q_0.5 q_1 q_1.5</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> colData names(3): q_value sample_type computation_mode</span>

@@ -72,14 +72,11 @@ interactions -&gt; divergence -&gt; gene interactions -&gt; visualizations.</p>
 
     <div id="ref-usage">
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">tsenat</span><span class="op">(</span></span>
-<span>  <span class="va">se</span>,</span>
-<span>  config <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  methods <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  q_values <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  generate_plots <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  verbose <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  parallel <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  <span class="va">...</span></span>
+<span>  <span class="va">analysis</span>,</span>
+<span>  output_dir <span class="op">=</span> <span class="st">"tsenat_outputs"</span>,</span>
+<span>  save_output <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  output_format <span class="op">=</span> <span class="st">"tsv"</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -87,38 +84,27 @@ interactions -&gt; divergence -&gt; gene interactions -&gt; visualizations.</p>
     <h2>Arguments</h2>
 
 
-<dl><dt id="arg-se">se<a class="anchor" aria-label="anchor" href="#arg-se"></a></dt>
-<dd><p><code>SummarizedExperiment</code> containing expression counts.</p></dd>
+<dl><dt id="arg-analysis">analysis<a class="anchor" aria-label="anchor" href="#arg-analysis"></a></dt>
+<dd><p><code>TSENATAnalysis</code> object created by <code><a href="build_analysis_s4.html">build_analysis_s4</a></code>.</p></dd>
 
 
-<dt id="arg-config">config<a class="anchor" aria-label="anchor" href="#arg-config"></a></dt>
-<dd><p><code>list</code> or <code>TSENATConfig</code>. Configuration from
-<code><a href="tsenat_config.html">tsenat_config</a></code>. If NULL, uses defaults.</p></dd>
+<dt id="arg-output-dir">output_dir<a class="anchor" aria-label="anchor" href="#arg-output-dir"></a></dt>
+<dd><p><code>character</code>. Directory to save results and plots.
+Default: "tsenat_outputs". Set to NULL to disable automatic output saving.</p></dd>
 
 
-<dt id="arg-methods">methods<a class="anchor" aria-label="anchor" href="#arg-methods"></a></dt>
-<dd><p><code>character</code>. Specific methods to run (overrides config).</p></dd>
+<dt id="arg-save-output">save_output<a class="anchor" aria-label="anchor" href="#arg-save-output"></a></dt>
+<dd><p><code>logical</code>. Whether to save output files (results tables).
+Default: TRUE. If FALSE, no TSV/CSV output files are written to disk.</p></dd>
 
 
-<dt id="arg-q-values">q_values<a class="anchor" aria-label="anchor" href="#arg-q-values"></a></dt>
-<dd><p><code>numeric</code>. Specific q-values (overrides config).</p></dd>
-
-
-<dt id="arg-generate-plots">generate_plots<a class="anchor" aria-label="anchor" href="#arg-generate-plots"></a></dt>
-<dd><p><code>logical</code>. Create visualizations. Default: TRUE.</p></dd>
+<dt id="arg-output-format">output_format<a class="anchor" aria-label="anchor" href="#arg-output-format"></a></dt>
+<dd><p><code>character</code>. Format for output files: 'tsv' (tab-separated),
+'csv' (comma-separated), 'txt' (text), or 'rds' (R serialized). Default: 'tsv'.</p></dd>
 
 
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
 <dd><p><code>logical</code>. Print progress messages. Default: TRUE.</p></dd>
-
-
-<dt id="arg-parallel">parallel<a class="anchor" aria-label="anchor" href="#arg-parallel"></a></dt>
-<dd><p><code>logical</code>. Run independent q-values in parallel.
-Default: FALSE.</p></dd>
-
-
-<dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Additional arguments passed to individual wrapper functions.</p></dd>
 
 </dl></div>
     <div id="value">
@@ -128,61 +114,123 @@ Default: FALSE.</p></dd>
     </div>
     <div id="details">
     <h2>Details</h2>
-    <p>Pipeline execution order (enforced):</p><ol><li><p><code><a href="calculate_diversity_s4.html">calculate_diversity_s4()</a></code> - Tsallis entropy per q-value</p></li>
-<li><p><code><a href="jackknife_entropy_outliers_s4.html">jackknife_entropy_outliers_s4()</a></code> - Confidence intervals</p></li>
-<li><p><code><a href="jackknife_isoform_switching_s4.html">jackknife_isoform_switching_s4()</a></code> - Transcript switching (optional)</p></li>
-<li><p><code><a href="calculate_lm_interaction_s4.html">calculate_lm_interaction_s4()</a></code> - Statistical tests</p></li>
-<li><p><code><a href="calculate_difference_s4.html">calculate_difference_s4()</a></code> - Pairwise group differences (optional)</p></li>
+    <p>Pipeline execution order (enforced, follows TSENAT.Rmd vignette):</p><ol><li><p><code><a href="filter_analysis_s4.html">filter_analysis_s4()</a></code> - Filter low-abundance transcripts</p></li>
+<li><p><code><a href="calculate_diversity_s4.html">calculate_diversity_s4()</a></code> - Tsallis entropy per q-value</p></li>
+<li><p><code><a href="plot_tsallis_q_curve_s4.html">plot_tsallis_q_curve_s4()</a></code> - Visualize q-spectrum</p></li>
+<li><p><code><a href="m_estimate_s4.html">m_estimate_s4()</a></code> - Sample influence QC analysis</p></li>
+<li><p><code><a href="calculate_lm_interaction_s4.html">calculate_lm_interaction_s4()</a></code> - LM interaction testing</p></li>
+<li><p><code><a href="plot_lm_interaction_gam_s4.html">plot_lm_interaction_gam_s4()</a></code> - GAM visualization of LM results</p></li>
+<li><p><code><a href="jackknife_isoform_switching_s4.html">jackknife_isoform_switching_s4()</a></code> - Transcript switching detection</p></li>
+<li><p><code><a href="prepare_gene_switching_tables_s4.html">prepare_gene_switching_tables_s4()</a></code> - Prepare gene switching summary tables</p></li>
+<li><p><code><a href="plot_multiq_delta_influence_heatmaps_s4.html">plot_multiq_delta_influence_heatmaps_s4()</a></code> - Multi-q influence heatmap</p></li>
+<li><p><code><a href="plot_top_transcripts_s4.html">plot_top_transcripts_s4()</a></code> - Top transcript visualization</p></li>
 <li><p><code><a href="calculate_divergence_s4.html">calculate_divergence_s4()</a></code> - Pairwise divergence metrics</p></li>
-<li><p><code><a href="effect_sizes_divergence_s4.html">effect_sizes_divergence_s4()</a></code> - Effect sizes (optional)</p></li>
-<li><p><code><a href="rank_test_q_condition_s4.html">rank_test_q_condition_s4()</a></code> - Q-dependent interactions</p></li>
-<li><p><code><a href="test_rankbased_assumptions_s4.html">test_rankbased_assumptions_s4()</a></code> - Assumption validation (optional)</p></li>
-<li><p><code><a href="compute_method_concordance_s4.html">compute_method_concordance_s4()</a></code> - Method comparison (optional)</p></li>
-<li><p>Plot generation (if enabled)</p></li>
+<li><p><code><a href="effect_sizes_divergence_s4.html">effect_sizes_divergence_s4()</a></code> - Effect size computation</p></li>
+<li><p><code><a href="plot_divergence_distribution_s4.html">plot_divergence_distribution_s4()</a></code> - Divergence distribution plot</p></li>
+<li><p><code><a href="plot_divergence_spectrum_s4.html">plot_divergence_spectrum_s4()</a></code> - Divergence spectrum plot</p></li>
 </ol></div>
 
     <div id="ref-examples">
     <h2>Examples</h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bioconductor.org/packages/SummarizedExperiment" class="external-link">SummarizedExperiment</a></span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">se</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">SummarizedExperiment</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>  assays <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>counts <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">10</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">10</span>, ncol <span class="op">=</span> <span class="fl">10</span>,</span></span>
-<span class="r-in"><span>                                 dimnames <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">'G%d'</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">)</span>, <span class="cn">NULL</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  colData <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>    condition <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">'A'</span>, <span class="st">'B'</span><span class="op">)</span>, <span class="fl">5</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>    sample_id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">'S1'</span>, <span class="st">'S2'</span><span class="op">)</span>, <span class="fl">5</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">readcounts</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">metadata_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.table</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"metadata.tsv"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  header <span class="op">=</span> <span class="cn">TRUE</span>, sep <span class="op">=</span> <span class="st">"\t"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">cfg</span> <span class="op">&lt;-</span> <span class="fu"><a href="tsenat_config.html">tsenat_config</a></span><span class="op">(</span>q_values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1.0</span><span class="op">)</span>, generate_plots <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu">tsenat</span><span class="op">(</span><span class="va">se</span>, config <span class="op">=</span> <span class="va">cfg</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> TSENAT Pipeline</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> ===============</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Genes:   10</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Samples: 10</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Methods: diversity, lm_interaction, jackknife, divergence, q_interactions</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Q-values: 0.5, 1</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 1: Calculating diversity...</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>[calculate_diversity_s4] Assay for q=0.5 is empty</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>[calculate_diversity_s4] Assay for q=1 is empty</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Diversity for q = 0.5, 1</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 2: Running jackknife resampling...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Jackknife CIs computed</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 4: Testing LM interactions...</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>LM failed:</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> [combine_diversity_results_for_lm] Failed: length of 'dimnames' [2] not equal to array extent</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 6: Calculating divergence metrics...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Divergence computed</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 7: Detecting Q-dependent interactions...</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Q-interactions failed:</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> q-interaction detection failed:</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> condition_col='condition' not found in colData. Required for QxCondition interaction testing.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Analysis Complete</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> =================</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Results summary:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Diversity</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Jackknife CIs</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Divergence</span>
+<span class="r-in"><span><span class="va">gff3_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"annotation.gff3.gz"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="tsenat_config.html">tsenat_config</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  sample_col <span class="op">=</span> <span class="st">"sample"</span>,</span></span>
+<span class="r-in"><span>  condition_col <span class="op">=</span> <span class="st">"condition"</span>,</span></span>
+<span class="r-in"><span>  q_values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1.0</span>, <span class="fl">1.5</span>, <span class="fl">2.0</span>, <span class="fl">2.5</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  generate_plots <span class="op">=</span> <span class="cn">FALSE</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="build_analysis_s4.html">build_analysis_s4</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  readcounts <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  tx2gene <span class="op">=</span> <span class="va">gff3_file</span>,</span></span>
+<span class="r-in"><span>  metadata <span class="op">=</span> <span class="va">metadata_df</span>,</span></span>
+<span class="r-in"><span>  config <span class="op">=</span> <span class="va">config</span>,</span></span>
+<span class="r-in"><span>  tpm <span class="op">=</span> <span class="va">tpm</span>,</span></span>
+<span class="r-in"><span>  effective_length <span class="op">=</span> <span class="va">effective_length</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">tsenat</span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Created output directory: tsenat_outputs</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Use show(analysis) or summary(analysis) for details</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> +============================================================+</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> |          TSENAT: Tsallis Entropy Analysis Toolbox          |</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> +============================================================+</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [DATA] Data Summary</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Transcripts ........... 3,089</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Samples .............. 16</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Conditions ........... 2</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Q-spectrum range ...... 0.5 to 2.5 (5 values)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [CONFIG] Configuration</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   p-value threshold .....  0.050</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   FDR threshold .........  0.050</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Bootstrap samples ..... 1,000</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> =============================================================</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 1/14] Filtering low-abundance transcripts</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Complete</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 2/14] Computing Tsallis diversity</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Note: 12 genes excluded (&lt; 75% valid values).</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [calculate_diversity_s4] Saved diversity spectrum to: tsenat_outputs/diversity_results_spectrum.tsv</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [calculate_diversity_s4] Saved table to: tsenat_outputs/diversity_results.tsv</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [calculate_diversity_s4] Saved diversity results to: tsenat_outputs/diversity_results.tsv</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] 5 q-values processed</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 3/14] Plotting q-spectrum curve</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Plot generated</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 4: Running sample influence QC analysis (m-estimator)...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] M-estimate QC complete</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 5: Testing LM interactions with GAM smoother...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] LM interaction analysis complete</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 6: Plotting LM interaction GAM smoother...</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No valid plots generated</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 7: Computing jackknife isoform switching analysis...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Jackknife isoform switching complete</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 8: Preparing gene switching tables...</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Gene switching tables failed: arguments imply differing number of rows: 3, 2, 5, 6</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 9: Plotting multi-q influence heatmap...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Influence heatmap generated</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 10: Plotting top transcript counts...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Top transcripts plot generated</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 11: Computing divergence metrics...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Divergence computed</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 12: Computing effect sizes for divergence...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Effect sizes computed</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 13: Plotting divergence distribution...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Divergence distribution plot generated</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Step 14: Plotting divergence spectrum...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Global divergence spectrum plot generated</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Multi-gene divergence spectrum plot generated</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> =============================================================</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> +============================================================+</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> |               [OK] ANALYSIS COMPLETE                        |</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> +============================================================+</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [RESULTS] Results Summary</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Effect sizes ........ computed</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   [OK] Visualizations ...... 6 plots</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [PERF] Performance</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Total time ........... 17.5s</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Slowest steps:</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     1. lm_interaction       11.7s (67.1%)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     2. m_estimate           1.5s (8.5%)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     3. jackknife            1.3s (7.6%)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [OUTPUT] Output</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Directory ........... tsenat_outputs</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Files saved ......... 14</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [TIPS] Next steps:</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   show(analysis)      - View object structure and slots</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   summary(analysis)   - Print detailed statistics</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   getPlot(analysis)   - Extract visualization results</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
