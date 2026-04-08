@@ -96,26 +96,33 @@ metadata_df <- read.table(
 gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 
 # Create analysis object with transcript counts, annotation, and metadata
-# IMPORTANT: Use named parameters to avoid confusion with optional salmon_dir parameter
-# First, create a configuration with column parameters
 config <- tsenat_config(
   sample_col = "sample",
-  condition_col = "condition"
+  condition_col = "condition",
+  paired = TRUE,
+  subject_col = "paired_samples",
+  control = "normal",
+  q_values = seq(0, 2, by = 0.05)
 )
 
-# Then build the analysis with the config and metadata
+## Build TSENATAnalysis object
 analysis <- build_analysis_s4(
-  readcounts = readcounts,
+  readcounts = readcounts, 
   tx2gene = gff3_file,
   metadata = metadata_df,
-  config = config
-)
+  config = config,
+  tpm = tpm,
+  effective_length = effective_length)
 
 # Filter low-abundance transcripts
-analysis <- filter_analysis_s4(analysis, stringency = "medium")
+analysis <- filter_analysis_s4(analysis)
 
 # Compute Tsallis entropy using S4 wrapper (using single q value for quick start)
-analysis <- calculate_diversity_s4(analysis, q = 1, norm = TRUE)
+analysis <- calculate_diversity_s4(analysis)
+
+# Plot overall q-curve
+p_qcurve <- plot_tsallis_q_curve_s4(analysis)
+print(p_qcurve)
 ```
 
 ### Data Structure Overview
@@ -131,23 +138,14 @@ object, which is the central data container throughout your analysis.
 
 **Organization**: The TSENATAnalysis object encapsulates:
 
-- `@se` - `SummarizedExperiment` storing counts and metadata (access via
-  `se(analysis)`)
-- `@diversity_results` - Entropy values across q-values (accessor:
-  `diversity(analysis)`)
-- `@jackknife_results` - Jackknife confidence intervals and isoform
-  switching results
-- `@lm_results` - LM interaction statistics and rank test q-value
-  effects (accessor: `lmResults(analysis)`)
-- `@divergence_results` - Pairwise divergence metrics (accessor:
-  `divergence(analysis)`)
-- `@plots` - Generated visualizations
-
-Use **accessor functions** like
-[`diversity()`](https://gallardoalba.github.io/TSENAT/reference/diversity.md),
-[`divergence()`](https://gallardoalba.github.io/TSENAT/reference/divergence.md),
-[`lmResults()`](https://gallardoalba.github.io/TSENAT/reference/lmResults.md),
-etc. for type-safe result extraction without direct slot manipulation.
+- `@se`: `SummarizedExperiment` storing counts and metadata.
+- `@diversity_results`: Entropy values across q-values.
+- `@jackknife_results`: Jackknife confidence intervals and isoform
+  switching results.
+- `@lm_results`: LM interaction statistics and rank test q-value
+  effects.
+- `@divergence_results`: Pairwise divergence metrics.
+- `@plots`: Generated visualizations.
 
 For more details on the SummarizedExperiment class, see
 [SummarizedExperiment
@@ -177,11 +175,11 @@ Unlike Shannon entropy (which treats all isoforms equally), Tsallis
 entropy lets you tune a sensitivity parameter `q` to zoom into different
 aspects of isoform complexity:
 
-- **q \< 1**: Emphasizes rare, low-abundance isoforms (discovery mode)
+- **q \< 1**: Emphasizes rare, low-abundance isoforms (discovery mode).
 - **q = 1**: Recovers Shannon entropy (balanced across all abundance
-  scales)
-- **q = 2**: Emphasizes dominant isoforms (robustness mode)
-- **q \> 2**: Focuses almost exclusively on the most abundant species
+  scales).
+- **q = 2**: Emphasizes dominant isoforms (robustness mode).
+- **q \> 2**: Focuses almost exclusively on the most abundant species.
 
 This is the key innovation: by computing entropy across a range of
 q-values (a “q-curve”), you obtain a complete picture of isoform

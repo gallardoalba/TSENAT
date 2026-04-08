@@ -190,8 +190,7 @@ file that describe your experimental design.
 
 suppressMessages({
   library(TSENAT)
-  library(SummarizedExperiment)
-})
+  library(SummarizedExperiment)})
 
 # Load example dataset (includes readcounts, tpm, and effective_length)
 data(readcounts)
@@ -199,12 +198,11 @@ readcounts <- as.matrix(readcounts)
 
 # Load sample metadata and annotation
 metadata_df <- read.table(
-  system.file("extdata", "metadata.tsv",
-  package = "TSENAT"), header = TRUE,
+  system.file("extdata", "metadata.tsv", package = "TSENAT"),
+  header = TRUE,
   sep = "\t")
 
-gff3_file <- system.file("extdata",
-  "annotation.gff3.gz", package = "TSENAT")
+gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 ```
 
 ### Create configuration and build analysis
@@ -252,7 +250,7 @@ the step-by-step workflow below.
 
 ``` r
 
-# Returns: Fully configured TSENATAnalysis object with diversity, testing, and plots
+# Returns: Fully configured TSENATAnalysis object
 result <- tsenat(analysis)
 ```
 
@@ -284,8 +282,8 @@ analysis <- calculate_diversity_s4(analysis, norm = TRUE)
 analysis <- jackknife_isoform_switching_s4(analysis,
     nboot = 100,
     lm_p_threshold = 0.05,
-    threshold = 90
-)
+    threshold = 90)
+
 # Compute divergence
 analysis <- calcualte_divergence_s4(analysis)
 ```
@@ -304,7 +302,7 @@ appropriate diversity scales.
 # Fit linear models to detect qxcondition interactions
 analysis <- calculate_lm_interaction_s4(
   analysis,
-  method = "lmm")
+  method = "gam")
 ```
 
 ### 3. Visualize Results
@@ -317,35 +315,158 @@ your data.
 
 ``` r
 
-# Plot overall q-curve
+# Plot overall Tsallis q-spectrum for all genes 
 p_qcurve <- plot_tsallis_q_curve_s4(analysis)
-
 print(p_qcurve)
+
+# Plot q-curve profiles for the top 4 genes
+combined_plot <- plot_lm_interaction_gam_s4(
+    analysis,
+    n_top = 4)
+print(combined_plot)
 ```
 
 ## Statistical Inference Methods
 
-- *Wilcoxon/Permutation*: Distribution-free testing for pairwise
-  comparisons
-- *Linear Mixed Models (LMM)*: Parametric testing with AR(1) correlation
-  structure for repeated measures; ideal when residuals are
-  approximately normal
-- *Friedman rank tests*: Maximal robustness for paired designs; ideal
-  for bounded distributions like entropy
-- *M-estimation*: Outlier-resistant effect size calculations (Huber,
-  Tukey weights)
-- Jackknife leave-one-out for identifying outlier-influential samples
+TSENAT provides a flexible statistical framework optimized for
+entropy-based diversity analysis. The default configuration uses
+Generalized Additive Models (GAM) with Benjamini-Hochberg multiple
+testing correction and Friedman rank tests for paired designs. Users can
+adjust the statistical methodology via the `lm_method`, `lm_pcorr`, and
+`bootstrap_method` configuration parameters to suit their study design
+and data characteristics.
+
+### Linear Modeling Approaches
+
+TSENAT supports four distinct parametric/semi-parametric linear modeling
+frameworks, selectable via `lm_method`:
+
+- **Generalized Additive Models (GAM/GAMM)** \[DEFAULT\]: Flexible
+  smoothing with locally-weighted basis functions. For unpaired designs,
+  uses standard GAM with F-tests. For paired/repeated measures,
+  automatically switches to GAMM with AR(1) autocorrelation structure.
+  Automatically selects appropriate family (Beta for bounded \[0,1\]
+  entropy values, Gamma for heteroscedastic data, Gaussian otherwise)
+  with smoothing bias correction for small sample sizes.
+
+- **Linear Mixed Models (LMM)**: Parametric framework with AR(1)
+  correlation structure for repeated measures designs. Appropriate when
+  study design assumptions align with mixed model requirements and
+  parametric inference is preferred. Supports multiple p-value
+  computation methods (Satterthwaite, Likelihood Ratio Test, or both).
+
+- **Functional Principal Component Analysis (FPCA)**: Treats entropy
+  curves across the q-spectrum as functional objects, extracting
+  orthogonal functional principal components. Performs ANOVA on
+  component scores. Ideal for investigations emphasizing scale-dependent
+  (multi-q) diversity patterns.
+
+- **Generalized Estimating Equations (GEE)**: Semi-parametric approach
+  using working correlation structures for correlated non-normal data.
+  Provides robust alternative to mixed models when parametric
+  distributional assumptions are uncertain.
+
+**Method Selection Guidance**: GAM is recommended for entropy analysis
+due to its flexibility with bounded, non-normal distributions. Choose
+LMM if parametric assumptions are well-justified. Choose FPCA for
+multi-scale comparative analysis across the q-spectrum. Choose GEE for
+robustness to model misspecification. See
+[`vignette("TSENAT")`](https://gallardoalba.github.io/TSENAT/articles/TSENAT.md)
+for detailed method comparisons and examples.
+
+### Rank-Based Tests for Paired Designs
+
+For paired study designs with non-normal data distributions:
+
+- **Friedman Rank Test** \[DEFAULT for paired\]: Non-parametric test
+  comparing entropy distributions across conditions within matched
+  pairs. Provides maximal robustness for bounded, non-normal
+  distributions characteristic of entropy metrics.
+
+- **Kendall Test**: Non-parametric alternative with different power
+  characteristics; useful as sensitivity analysis.
+
+- **Conditioned Rank Tests**: Stratified rank testing within
+  experimental strata for complex designs.
+
+### Distribution-Free and Permutation Methods
+
+- **Wilcoxon Signed-Rank Test**: For paired pairwise comparisons of
+  entropy between samples or conditions.
+
+- **Permutation Testing**: Distribution-free testing via sample
+  permutation, implemented for pairwise comparisons.
+
+- **Westfall-Young Permutation Correction**: Advanced permutation-based
+  multiple testing procedure controlling family-wise error rate with
+  stepdown, more powerful than traditional Bonferroni correction. Useful
+  for comprehensive hypothesis testing scenarios.
+
+### Multiple Testing Corrections
+
+- **Benjamini-Hochberg (BH)** \[DEFAULT\]: Controls False Discovery Rate
+  (FDR) across multiple hypothesis tests. Appropriate for exploratory
+  analysis where false positive control is balanced against power.
+
+- **Bonferroni**: Conservative family-wise error rate (FWER) control;
+  use when strict false positive protection is required.
+
+- **Holm Step-Down**: Less conservative FWER control; compromise between
+  Bonferroni and BH.
+
+- **Westfall-Young Permutation**: Permutation-based stepdown FWER
+  procedure (see Permutation Methods).
+
+### Bootstrap Confidence Intervals
+
+TSENAT incorporates bootstrap resampling for robust uncertainty
+quantification:
+
+- **Percentile Bootstrap** \[DEFAULT\]: Computes confidence intervals
+  from empirical quantiles of bootstrap distribution. Fast and
+  assumption-free but assumes symmetric sampling distribution.
+
+- **Bias-Corrected and Accelerated (BCA) Bootstrap** \[RECOMMENDED for
+  entropy\]: Adjusts for distribution skewness and bias through
+  acceleration factor computation. Ideal for bounded, skewed entropy
+  distributions. Provides diagnostic output (skewness, acceleration) to
+  assess bootstrap assumption satisfaction.
+
+**Bootstrap Recommendation for Entropy Data**: Use
+`bootstrap_method = "bca"` (set via
+[`tsenat_config()`](https://gallardoalba.github.io/TSENAT/reference/tsenat_config.md))
+for entropy analysis, as entropy metrics are inherently bounded \[0, log
+N\] and often exhibit positive skewness. The BCA correction is
+specifically designed to handle this scenario.
+
+### Transcript-Level Switching and Influence Assessment
+
+- **Jackknife Isoform Switching Analysis**: Bootstrap-based
+  leave-one-transcript-out resampling identifying which individual
+  transcripts drive observed isoform complexity changes. Computes delta
+  influence (transcript contribution shift between conditions) weighted
+  by support frequency across bootstrap replicates. Identifies “robust
+  switching”—transcripts showing consistent switching across ≥90% of
+  bootstrap samples (configurable threshold). Complements group-level
+  diversity tests by pinpointing mechanism.
+
+- **M-Estimation Robustness Weighting** (Tukey biweight, Huber weights):
+  Provides outlier-resistant influence assessment and effect size
+  calculations for divergence analysis. Identifies samples with
+  disproportionate effect on results during quality control stage
+  (incorporated as step 4/14 of automated workflow).
 
 ### Data Integration
 
-- **Unified object**: `TSENATAnalysis` encapsulates data, config, and
-  all results
+- **Unified object**: `TSENATAnalysis` encapsulates sequencing data,
+  configuration, and all statistical results
 - `SummarizedExperiment` foundation: Full Bioconductor ecosystem
   compatibility
 - Accessor functions:
   [`diversity()`](https://gallardoalba.github.io/TSENAT/reference/diversity.md),
   [`divergence()`](https://gallardoalba.github.io/TSENAT/reference/divergence.md),
   [`lmResults()`](https://gallardoalba.github.io/TSENAT/reference/lmResults.md),
+  [`jisResults()`](https://gallardoalba.github.io/TSENAT/reference/jisResults.md),
   etc.
 
 ## Related Packages
@@ -544,112 +665,7 @@ specialized focus on Tsallis entropy analysis.
 
 > **“If I ever come back from the past, it’s to create a cyclone.”**
 >
-> - ## Juan José Lozano
-
-## Appendix A: Detailed TSENAT vs SplicingFactory Comparison
-
-### Motivation
-
-While both TSENAT and SplicingFactory measure isoform diversity, they
-use different mathematical frameworks and support different metrics.
-This appendix provides rigorous guidance on when to use each tool and
-whether they can be interchanged.
-
-### Mathematical Metric Equivalence Analysis
-
-**Shannon Entropy** - **TSENAT formula (q=1):**
-$`H_1 = -\sum p_i \log(p_i)`$ - **SplicingFactory:** Shannon entropy -
-**Equivalence:** ✅ **Mathematically identical** — TSENAT with q=1 is a
-1:1 replacement
-
-**Simpson Diversity Index** - **TSENAT formula (q=2):**
-$`H_2 = 1 - \sum p_i^2`$ - **SplicingFactory:** Simpson diversity
-$`D = 1 - \sum p_i^2`$ - **Equivalence:** ✅ **Mathematically
-identical** — TSENAT with q=2 produces Simpson’s D
-
-**Gini Index** - **Mathematical definition:**
-$`G = \frac{1}{2n^2\mu} \sum |x_i - x_j|`$ - **TSENAT q-spectrum (0 ≤ q
-≤ 2):** No q-value produces Gini formula - **Why different:** Gini uses
-pairwise absolute differences; Tsallis uses power sums -
-**Equivalence:** ❌ **NOT equivalent** — critical limitation
-
-**Laplace Entropy** - **SplicingFactory:** Shannon entropy with Bayesian
-Laplace prior - **TSENAT:** Raw proportions (pseudocount regularization
-available) - **Equivalence:** ⚠️ **Functionally similar but not
-identical** — different regularization philosophies
-
-**Inverse Simpson** - **SplicingFactory:** $`1 / \sum p_i^2`$
-(reciprocal form) - **TSENAT:** $`1 - \sum p_i^2`$ (probability form) -
-**Equivalence:** ❌ **NOT provided** — TSENAT returns Simpson D, not
-inverse Simpson
-
-### Feature Comparison Matrix
-
-| Feature | TSENAT | SplicingFactory | Assessment |
-|----|----|----|----|
-| Shannon entropy | ✓ | ✓ | Identical |
-| Laplace entropy | ✗ | ✓ | Missing in TSENAT |
-| Simpson diversity (H_q=2) | ✓ | ✓ | Identical |
-| Inverse Simpson | ✗ | ✓ | Missing in TSENAT |
-| Gini index | ✗ | ✓ | **Critical gap** |
-| Species richness (q=0) | ✓ | ✗ | TSENAT exclusive |
-| Multi-q spectrum (0-2) | ✓ | ✗ | TSENAT exclusive |
-| Bootstrap confidence intervals | ✓ BCA | ~ | TSENAT advanced |
-| Normalization methods | ✓ ✓ 4 types | ~ basic | TSENAT richer |
-| Statistical testing framework | ✓ LMM, rank tests | ✗ Wilcoxon only | TSENAT superior |
-| Salmon integration | ✓ native | ✗ | TSENAT feature-rich |
-
-### Capability Analysis
-
-**Where TSENAT Surpasses SplicingFactory:** 1. **Multi-q
-parameterization** — reveals scale-dependent diversity patterns;
-SplicingFactory uses single metric per call 2. **Advanced statistical
-methods** — LMM, Friedman tests, M-estimation; vs SplicingFactory’s
-basic Wilcoxon 3. **Bootstrap methodology** — BCA confidence intervals
-with diagnostics (skewness, acceleration factor) 4. **Normalization
-options** — Z-score, log-odds-ratio, relative-reference; vs basic range
-normalization 5. **Species richness analysis** — count distinct isoforms
-(q=0), exclusive to TSENAT
-
-**Where SplicingFactory Is Not Replaceable:** 1. **Gini index (★★★
-critical gap)** — SplicingFactory provides; TSENAT cannot compute any
-q-value equivalent 2. **Laplace entropy** — Bayesian regularization
-philosophy differs from TSENAT’s pseudocount approach 3. **Inverse
-Simpson** — reciprocal form interpretation preferred by ecology-trained
-researchers
-
-### Migration Scenarios
-
-| Scenario | Verdict | Recommendation |
-|----|----|----|
-| User needs only Shannon + Simpson diversity | ✅ **REPLACE** | Migrate to TSENAT; gain q-spectrum |
-| User needs Gini index | ❌ **CANNOT REPLACE** | Keep SplicingFactory or implement custom Gini |
-| User needs Laplace entropy regularization | ⚠️ **PARTIAL** | Use TSENAT with `pseudocount='auto'` as alternative |
-| User doing comprehensive diversity analysis | ✅ **SUPERIOR** | Migrate to TSENAT; gain q-spectrum analysis + robust inference |
-
-### Summary and Guidance
-
-**Can TSENAT completely replace SplicingFactory?**
-
-**Answer:** NO, but TSENAT covers ~75-85% of use cases better.
-
-- **TSENAT is a complete replacement for:** ~75-85% of users
-  - Primary interest in Shannon/Simpson entropy-based diversity
-  - Need q-spectrum visualization and analysis
-  - Want advanced statistical inference (LMM, rank tests)
-  - Require robust bootstrap confidence intervals
-- **SplicingFactory remains necessary for:** ~15-25% of users
-  - **Specifically need Gini index metric** (no TSENAT equivalent)
-  - Rely on Laplace entropy regularization
-  - Use Gini-based benchmarks or comparative studies
-  - Prefer Inverse Simpson interpretation (reciprocal form)
-
-**Conclusion:** TSENAT and SplicingFactory are **complementary tools**
-with overlapping but distinct use cases. Neither fully replaces the
-other. Choose based on: - **TSENAT:** For scale-dependent analysis,
-advanced inference, and q-spectrum exploration - **SplicingFactory:**
-For Gini index, Laplace entropy, and classical fixed-metric diversity
-analysis
+> - Juan José Lozano
 
 # Package index
 

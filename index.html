@@ -137,8 +137,7 @@
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressMessages</a></span><span class="op">(</span><span class="op">{</span></span>
 <span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gallardoalba.github.io/TSENAT">TSENAT</a></span><span class="op">)</span></span>
-<span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bioconductor.org/packages/SummarizedExperiment" class="external-link">SummarizedExperiment</a></span><span class="op">)</span></span>
-<span><span class="op">}</span><span class="op">)</span></span>
+<span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bioconductor.org/packages/SummarizedExperiment" class="external-link">SummarizedExperiment</a></span><span class="op">)</span><span class="op">}</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Load example dataset (includes readcounts, tpm, and effective_length)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span></span>
@@ -146,12 +145,11 @@
 <span></span>
 <span><span class="co"># Load sample metadata and annotation</span></span>
 <span><span class="va">metadata_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.table</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"metadata.tsv"</span>,</span>
-<span>  package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span>, header <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"metadata.tsv"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span>,</span>
+<span>  header <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  sep <span class="op">=</span> <span class="st">"\t"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">gff3_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>,</span>
-<span>  <span class="st">"annotation.gff3.gz"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">gff3_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"annotation.gff3.gz"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="create-configuration-and-build-analysis">Create configuration and build analysis<a class="anchor" aria-label="anchor" href="#create-configuration-and-build-analysis"></a>
@@ -182,7 +180,7 @@
 </h3>
 <p>The <code><a href="reference/tsenat.html">tsenat()</a></code> function provides a complete, automated analysis pipeline in a single call. It takes your configured <code>TSENATAnalysis</code> object and executes all downstream analysis steps: entropy computation, statistical testing for q×condition interactions, and rich visualization. This is the recommended entry point for most users—it orchestrates the full workflow while respecting your configuration parameters (q-values, design, bootstrap settings, etc.) and handles output management seamlessly. For advanced customization, use individual functions directly as shown in the step-by-step workflow below.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Returns: Fully configured TSENATAnalysis object with diversity, testing, and plots</span></span>
+<code class="sourceCode R"><span><span class="co"># Returns: Fully configured TSENATAnalysis object</span></span>
 <span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/tsenat.html">tsenat</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -203,8 +201,8 @@
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/jackknife_isoform_switching_s4.html">jackknife_isoform_switching_s4</a></span><span class="op">(</span><span class="va">analysis</span>,</span>
 <span>    nboot <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>    lm_p_threshold <span class="op">=</span> <span class="fl">0.05</span>,</span>
-<span>    threshold <span class="op">=</span> <span class="fl">90</span></span>
-<span><span class="op">)</span></span>
+<span>    threshold <span class="op">=</span> <span class="fl">90</span><span class="op">)</span></span>
+<span></span>
 <span><span class="co"># Compute divergence</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu">calcualte_divergence_s4</span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -216,42 +214,96 @@
 <code class="sourceCode R"><span><span class="co"># Fit linear models to detect qxcondition interactions</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/calculate_lm_interaction_s4.html">calculate_lm_interaction_s4</a></span><span class="op">(</span></span>
 <span>  <span class="va">analysis</span>,</span>
-<span>  method <span class="op">=</span> <span class="st">"lmm"</span><span class="op">)</span></span></code></pre></div>
+<span>  method <span class="op">=</span> <span class="st">"gam"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="id_3-visualize-results">3. Visualize Results<a class="anchor" aria-label="anchor" href="#id_3-visualize-results"></a>
 </h3>
 <p>Create diverse visualizations to explore and communicate your analysis results. TSENAT provides multiple plotting functions including q-curves, volcano plots, heatmaps, and interaction plots to reveal scale-dependent diversity patterns and statistical findings across different aspects of your data.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Plot overall q-curve</span></span>
+<code class="sourceCode R"><span><span class="co"># Plot overall Tsallis q-spectrum for all genes </span></span>
 <span><span class="va">p_qcurve</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/plot_tsallis_q_curve_s4.html">plot_tsallis_q_curve_s4</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_qcurve</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_qcurve</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># Plot q-curve profiles for the top 4 genes</span></span>
+<span><span class="va">combined_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/plot_lm_interaction_gam_s4.html">plot_lm_interaction_gam_s4</a></span><span class="op">(</span></span>
+<span>    <span class="va">analysis</span>,</span>
+<span>    n_top <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">combined_plot</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
 <h2 id="statistical-inference-methods">Statistical Inference Methods<a class="anchor" aria-label="anchor" href="#statistical-inference-methods"></a>
 </h2>
+<p>TSENAT provides a flexible statistical framework optimized for entropy-based diversity analysis. The default configuration uses Generalized Additive Models (GAM) with Benjamini-Hochberg multiple testing correction and Friedman rank tests for paired designs. Users can adjust the statistical methodology via the <code>lm_method</code>, <code>lm_pcorr</code>, and <code>bootstrap_method</code> configuration parameters to suit their study design and data characteristics.</p>
+<div class="section level3">
+<h3 id="linear-modeling-approaches">Linear Modeling Approaches<a class="anchor" aria-label="anchor" href="#linear-modeling-approaches"></a>
+</h3>
+<p>TSENAT supports four distinct parametric/semi-parametric linear modeling frameworks, selectable via <code>lm_method</code>:</p>
 <ul>
-<li>
-<em>Wilcoxon/Permutation</em>: Distribution-free testing for pairwise comparisons</li>
-<li>
-<em>Linear Mixed Models (LMM)</em>: Parametric testing with AR(1) correlation structure for repeated measures; ideal when residuals are approximately normal</li>
-<li>
-<em>Friedman rank tests</em>: Maximal robustness for paired designs; ideal for bounded distributions like entropy</li>
-<li>
-<em>M-estimation</em>: Outlier-resistant effect size calculations (Huber, Tukey weights)</li>
-<li>Jackknife leave-one-out for identifying outlier-influential samples</li>
+<li><p><strong>Generalized Additive Models (GAM/GAMM)</strong> [DEFAULT]: Flexible smoothing with locally-weighted basis functions. For unpaired designs, uses standard GAM with F-tests. For paired/repeated measures, automatically switches to GAMM with AR(1) autocorrelation structure. Automatically selects appropriate family (Beta for bounded [0,1] entropy values, Gamma for heteroscedastic data, Gaussian otherwise) with smoothing bias correction for small sample sizes.</p></li>
+<li><p><strong>Linear Mixed Models (LMM)</strong>: Parametric framework with AR(1) correlation structure for repeated measures designs. Appropriate when study design assumptions align with mixed model requirements and parametric inference is preferred. Supports multiple p-value computation methods (Satterthwaite, Likelihood Ratio Test, or both).</p></li>
+<li><p><strong>Functional Principal Component Analysis (FPCA)</strong>: Treats entropy curves across the q-spectrum as functional objects, extracting orthogonal functional principal components. Performs ANOVA on component scores. Ideal for investigations emphasizing scale-dependent (multi-q) diversity patterns.</p></li>
+<li><p><strong>Generalized Estimating Equations (GEE)</strong>: Semi-parametric approach using working correlation structures for correlated non-normal data. Provides robust alternative to mixed models when parametric distributional assumptions are uncertain.</p></li>
 </ul>
+<p><strong>Method Selection Guidance</strong>: GAM is recommended for entropy analysis due to its flexibility with bounded, non-normal distributions. Choose LMM if parametric assumptions are well-justified. Choose FPCA for multi-scale comparative analysis across the q-spectrum. Choose GEE for robustness to model misspecification. See <code><a href="articles/TSENAT.html">vignette("TSENAT")</a></code> for detailed method comparisons and examples.</p>
+</div>
+<div class="section level3">
+<h3 id="rank-based-tests-for-paired-designs">Rank-Based Tests for Paired Designs<a class="anchor" aria-label="anchor" href="#rank-based-tests-for-paired-designs"></a>
+</h3>
+<p>For paired study designs with non-normal data distributions:</p>
+<ul>
+<li><p><strong>Friedman Rank Test</strong> [DEFAULT for paired]: Non-parametric test comparing entropy distributions across conditions within matched pairs. Provides maximal robustness for bounded, non-normal distributions characteristic of entropy metrics.</p></li>
+<li><p><strong>Kendall Test</strong>: Non-parametric alternative with different power characteristics; useful as sensitivity analysis.</p></li>
+<li><p><strong>Conditioned Rank Tests</strong>: Stratified rank testing within experimental strata for complex designs.</p></li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="distribution-free-and-permutation-methods">Distribution-Free and Permutation Methods<a class="anchor" aria-label="anchor" href="#distribution-free-and-permutation-methods"></a>
+</h3>
+<ul>
+<li><p><strong>Wilcoxon Signed-Rank Test</strong>: For paired pairwise comparisons of entropy between samples or conditions.</p></li>
+<li><p><strong>Permutation Testing</strong>: Distribution-free testing via sample permutation, implemented for pairwise comparisons.</p></li>
+<li><p><strong>Westfall-Young Permutation Correction</strong>: Advanced permutation-based multiple testing procedure controlling family-wise error rate with stepdown, more powerful than traditional Bonferroni correction. Useful for comprehensive hypothesis testing scenarios.</p></li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="multiple-testing-corrections">Multiple Testing Corrections<a class="anchor" aria-label="anchor" href="#multiple-testing-corrections"></a>
+</h3>
+<ul>
+<li><p><strong>Benjamini-Hochberg (BH)</strong> [DEFAULT]: Controls False Discovery Rate (FDR) across multiple hypothesis tests. Appropriate for exploratory analysis where false positive control is balanced against power.</p></li>
+<li><p><strong>Bonferroni</strong>: Conservative family-wise error rate (FWER) control; use when strict false positive protection is required.</p></li>
+<li><p><strong>Holm Step-Down</strong>: Less conservative FWER control; compromise between Bonferroni and BH.</p></li>
+<li><p><strong>Westfall-Young Permutation</strong>: Permutation-based stepdown FWER procedure (see Permutation Methods).</p></li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="bootstrap-confidence-intervals">Bootstrap Confidence Intervals<a class="anchor" aria-label="anchor" href="#bootstrap-confidence-intervals"></a>
+</h3>
+<p>TSENAT incorporates bootstrap resampling for robust uncertainty quantification:</p>
+<ul>
+<li><p><strong>Percentile Bootstrap</strong> [DEFAULT]: Computes confidence intervals from empirical quantiles of bootstrap distribution. Fast and assumption-free but assumes symmetric sampling distribution.</p></li>
+<li><p><strong>Bias-Corrected and Accelerated (BCA) Bootstrap</strong> [RECOMMENDED for entropy]: Adjusts for distribution skewness and bias through acceleration factor computation. Ideal for bounded, skewed entropy distributions. Provides diagnostic output (skewness, acceleration) to assess bootstrap assumption satisfaction.</p></li>
+</ul>
+<p><strong>Bootstrap Recommendation for Entropy Data</strong>: Use <code>bootstrap_method = "bca"</code> (set via <code><a href="reference/tsenat_config.html">tsenat_config()</a></code>) for entropy analysis, as entropy metrics are inherently bounded [0, log N] and often exhibit positive skewness. The BCA correction is specifically designed to handle this scenario.</p>
+</div>
+<div class="section level3">
+<h3 id="transcript-level-switching-and-influence-assessment">Transcript-Level Switching and Influence Assessment<a class="anchor" aria-label="anchor" href="#transcript-level-switching-and-influence-assessment"></a>
+</h3>
+<ul>
+<li><p><strong>Jackknife Isoform Switching Analysis</strong>: Bootstrap-based leave-one-transcript-out resampling identifying which individual transcripts drive observed isoform complexity changes. Computes delta influence (transcript contribution shift between conditions) weighted by support frequency across bootstrap replicates. Identifies “robust switching”—transcripts showing consistent switching across ≥90% of bootstrap samples (configurable threshold). Complements group-level diversity tests by pinpointing mechanism.</p></li>
+<li><p><strong>M-Estimation Robustness Weighting</strong> (Tukey biweight, Huber weights): Provides outlier-resistant influence assessment and effect size calculations for divergence analysis. Identifies samples with disproportionate effect on results during quality control stage (incorporated as step 4/14 of automated workflow).</p></li>
+</ul>
+</div>
 <div class="section level3">
 <h3 id="data-integration">Data Integration<a class="anchor" aria-label="anchor" href="#data-integration"></a>
 </h3>
 <ul>
 <li>
-<strong>Unified object</strong>: <code>TSENATAnalysis</code> encapsulates data, config, and all results</li>
+<strong>Unified object</strong>: <code>TSENATAnalysis</code> encapsulates sequencing data, configuration, and all statistical results</li>
 <li>
 <code>SummarizedExperiment</code> foundation: Full Bioconductor ecosystem compatibility</li>
-<li>Accessor functions: <code><a href="reference/diversity.html">diversity()</a></code>, <code><a href="reference/divergence.html">divergence()</a></code>, <code><a href="reference/lmResults.html">lmResults()</a></code>, etc.</li>
+<li>Accessor functions: <code><a href="reference/diversity.html">diversity()</a></code>, <code><a href="reference/divergence.html">divergence()</a></code>, <code><a href="reference/lmResults.html">lmResults()</a></code>, <code><a href="reference/jisResults.html">jisResults()</a></code>, etc.</li>
 </ul>
 </div>
 </div>
@@ -411,189 +463,9 @@ SRR14800478   tumor        B</code></pre>
 <blockquote>
 <p><strong>“If I ever come back from the past, it’s to create a cyclone.”</strong></p>
 <ul>
-<li><h2 id="juan-josé-lozano">Juan José Lozano</h2></li>
+<li>Juan José Lozano</li>
 </ul>
 </blockquote>
-</div>
-<div class="section level2">
-<h2 id="appendix-a-detailed-tsenat-vs-splicingfactory-comparison">Appendix A: Detailed TSENAT vs SplicingFactory Comparison<a class="anchor" aria-label="anchor" href="#appendix-a-detailed-tsenat-vs-splicingfactory-comparison"></a>
-</h2>
-<div class="section level3">
-<h3 id="motivation">Motivation<a class="anchor" aria-label="anchor" href="#motivation"></a>
-</h3>
-<p>While both TSENAT and SplicingFactory measure isoform diversity, they use different mathematical frameworks and support different metrics. This appendix provides rigorous guidance on when to use each tool and whether they can be interchanged.</p>
-</div>
-<div class="section level3">
-<h3 id="mathematical-metric-equivalence-analysis">Mathematical Metric Equivalence Analysis<a class="anchor" aria-label="anchor" href="#mathematical-metric-equivalence-analysis"></a>
-</h3>
-<p><strong>Shannon Entropy</strong> - <strong>TSENAT formula (q=1):</strong> <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>H</mi><mn>1</mn></msub><mo>=</mo><mi>−</mi><mo>∑</mo><msub><mi>p</mi><mi>i</mi></msub><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>p</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">H_1 = -\sum p_i \log(p_i)</annotation></semantics></math> - <strong>SplicingFactory:</strong> Shannon entropy - <strong>Equivalence:</strong> ✅ <strong>Mathematically identical</strong> — TSENAT with q=1 is a 1:1 replacement</p>
-<p><strong>Simpson Diversity Index</strong> - <strong>TSENAT formula (q=2):</strong> <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>H</mi><mn>2</mn></msub><mo>=</mo><mn>1</mn><mo>−</mo><mo>∑</mo><msubsup><mi>p</mi><mi>i</mi><mn>2</mn></msubsup></mrow><annotation encoding="application/x-tex">H_2 = 1 - \sum p_i^2</annotation></semantics></math> - <strong>SplicingFactory:</strong> Simpson diversity <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>=</mo><mn>1</mn><mo>−</mo><mo>∑</mo><msubsup><mi>p</mi><mi>i</mi><mn>2</mn></msubsup></mrow><annotation encoding="application/x-tex">D = 1 - \sum p_i^2</annotation></semantics></math> - <strong>Equivalence:</strong> ✅ <strong>Mathematically identical</strong> — TSENAT with q=2 produces Simpson’s D</p>
-<p><strong>Gini Index</strong> - <strong>Mathematical definition:</strong> <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>G</mi><mo>=</mo><mfrac><mn>1</mn><mrow><mn>2</mn><msup><mi>n</mi><mn>2</mn></msup><mi>μ</mi></mrow></mfrac><mo>∑</mo><mo stretchy="false" form="prefix">|</mo><msub><mi>x</mi><mi>i</mi></msub><mo>−</mo><msub><mi>x</mi><mi>j</mi></msub><mo stretchy="false" form="prefix">|</mo></mrow><annotation encoding="application/x-tex">G = \frac{1}{2n^2\mu} \sum |x_i - x_j|</annotation></semantics></math> - <strong>TSENAT q-spectrum (0 ≤ q ≤ 2):</strong> No q-value produces Gini formula - <strong>Why different:</strong> Gini uses pairwise absolute differences; Tsallis uses power sums - <strong>Equivalence:</strong> ❌ <strong>NOT equivalent</strong> — critical limitation</p>
-<p><strong>Laplace Entropy</strong> - <strong>SplicingFactory:</strong> Shannon entropy with Bayesian Laplace prior - <strong>TSENAT:</strong> Raw proportions (pseudocount regularization available) - <strong>Equivalence:</strong> ⚠️ <strong>Functionally similar but not identical</strong> — different regularization philosophies</p>
-<p><strong>Inverse Simpson</strong> - <strong>SplicingFactory:</strong> <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mi>/</mi><mo>∑</mo><msubsup><mi>p</mi><mi>i</mi><mn>2</mn></msubsup></mrow><annotation encoding="application/x-tex">1 / \sum p_i^2</annotation></semantics></math> (reciprocal form) - <strong>TSENAT:</strong> <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mo>−</mo><mo>∑</mo><msubsup><mi>p</mi><mi>i</mi><mn>2</mn></msubsup></mrow><annotation encoding="application/x-tex">1 - \sum p_i^2</annotation></semantics></math> (probability form) - <strong>Equivalence:</strong> ❌ <strong>NOT provided</strong> — TSENAT returns Simpson D, not inverse Simpson</p>
-</div>
-<div class="section level3">
-<h3 id="feature-comparison-matrix">Feature Comparison Matrix<a class="anchor" aria-label="anchor" href="#feature-comparison-matrix"></a>
-</h3>
-<table class="table">
-<colgroup>
-<col width="19%">
-<col width="17%">
-<col width="36%">
-<col width="26%">
-</colgroup>
-<thead><tr>
-<th>Feature</th>
-<th>TSENAT</th>
-<th>SplicingFactory</th>
-<th>Assessment</th>
-</tr></thead>
-<tbody>
-<tr>
-<td>Shannon entropy</td>
-<td>✓</td>
-<td>✓</td>
-<td>Identical</td>
-</tr>
-<tr>
-<td>Laplace entropy</td>
-<td>✗</td>
-<td>✓</td>
-<td>Missing in TSENAT</td>
-</tr>
-<tr>
-<td>Simpson diversity (H_q=2)</td>
-<td>✓</td>
-<td>✓</td>
-<td>Identical</td>
-</tr>
-<tr>
-<td>Inverse Simpson</td>
-<td>✗</td>
-<td>✓</td>
-<td>Missing in TSENAT</td>
-</tr>
-<tr>
-<td>Gini index</td>
-<td>✗</td>
-<td>✓</td>
-<td><strong>Critical gap</strong></td>
-</tr>
-<tr>
-<td>Species richness (q=0)</td>
-<td>✓</td>
-<td>✗</td>
-<td>TSENAT exclusive</td>
-</tr>
-<tr>
-<td>Multi-q spectrum (0-2)</td>
-<td>✓</td>
-<td>✗</td>
-<td>TSENAT exclusive</td>
-</tr>
-<tr>
-<td>Bootstrap confidence intervals</td>
-<td>✓ BCA</td>
-<td>~</td>
-<td>TSENAT advanced</td>
-</tr>
-<tr>
-<td>Normalization methods</td>
-<td>✓ ✓ 4 types</td>
-<td>~ basic</td>
-<td>TSENAT richer</td>
-</tr>
-<tr>
-<td>Statistical testing framework</td>
-<td>✓ LMM, rank tests</td>
-<td>✗ Wilcoxon only</td>
-<td>TSENAT superior</td>
-</tr>
-<tr>
-<td>Salmon integration</td>
-<td>✓ native</td>
-<td>✗</td>
-<td>TSENAT feature-rich</td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="section level3">
-<h3 id="capability-analysis">Capability Analysis<a class="anchor" aria-label="anchor" href="#capability-analysis"></a>
-</h3>
-<p><strong>Where TSENAT Surpasses SplicingFactory:</strong> 1. <strong>Multi-q parameterization</strong> — reveals scale-dependent diversity patterns; SplicingFactory uses single metric per call 2. <strong>Advanced statistical methods</strong> — LMM, Friedman tests, M-estimation; vs SplicingFactory’s basic Wilcoxon 3. <strong>Bootstrap methodology</strong> — BCA confidence intervals with diagnostics (skewness, acceleration factor) 4. <strong>Normalization options</strong> — Z-score, log-odds-ratio, relative-reference; vs basic range normalization 5. <strong>Species richness analysis</strong> — count distinct isoforms (q=0), exclusive to TSENAT</p>
-<p><strong>Where SplicingFactory Is Not Replaceable:</strong> 1. <strong>Gini index (★★★ critical gap)</strong> — SplicingFactory provides; TSENAT cannot compute any q-value equivalent 2. <strong>Laplace entropy</strong> — Bayesian regularization philosophy differs from TSENAT’s pseudocount approach 3. <strong>Inverse Simpson</strong> — reciprocal form interpretation preferred by ecology-trained researchers</p>
-</div>
-<div class="section level3">
-<h3 id="migration-scenarios">Migration Scenarios<a class="anchor" aria-label="anchor" href="#migration-scenarios"></a>
-</h3>
-<table class="table">
-<colgroup>
-<col width="27%">
-<col width="25%">
-<col width="47%">
-</colgroup>
-<thead><tr>
-<th>Scenario</th>
-<th>Verdict</th>
-<th>Recommendation</th>
-</tr></thead>
-<tbody>
-<tr>
-<td>User needs only Shannon + Simpson diversity</td>
-<td>✅ <strong>REPLACE</strong>
-</td>
-<td>Migrate to TSENAT; gain q-spectrum</td>
-</tr>
-<tr>
-<td>User needs Gini index</td>
-<td>❌ <strong>CANNOT REPLACE</strong>
-</td>
-<td>Keep SplicingFactory or implement custom Gini</td>
-</tr>
-<tr>
-<td>User needs Laplace entropy regularization</td>
-<td>⚠️ <strong>PARTIAL</strong>
-</td>
-<td>Use TSENAT with <code>pseudocount='auto'</code> as alternative</td>
-</tr>
-<tr>
-<td>User doing comprehensive diversity analysis</td>
-<td>✅ <strong>SUPERIOR</strong>
-</td>
-<td>Migrate to TSENAT; gain q-spectrum analysis + robust inference</td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="section level3">
-<h3 id="summary-and-guidance">Summary and Guidance<a class="anchor" aria-label="anchor" href="#summary-and-guidance"></a>
-</h3>
-<p><strong>Can TSENAT completely replace SplicingFactory?</strong></p>
-<p><strong>Answer:</strong> NO, but TSENAT covers ~75-85% of use cases better.</p>
-<ul>
-<li>
-<strong>TSENAT is a complete replacement for:</strong> ~75-85% of users
-<ul>
-<li>Primary interest in Shannon/Simpson entropy-based diversity</li>
-<li>Need q-spectrum visualization and analysis</li>
-<li>Want advanced statistical inference (LMM, rank tests)</li>
-<li>Require robust bootstrap confidence intervals</li>
-</ul>
-</li>
-<li>
-<strong>SplicingFactory remains necessary for:</strong> ~15-25% of users
-<ul>
-<li>
-<strong>Specifically need Gini index metric</strong> (no TSENAT equivalent)</li>
-<li>Rely on Laplace entropy regularization</li>
-<li>Use Gini-based benchmarks or comparative studies</li>
-<li>Prefer Inverse Simpson interpretation (reciprocal form)</li>
-</ul>
-</li>
-</ul>
-<p><strong>Conclusion:</strong> TSENAT and SplicingFactory are <strong>complementary tools</strong> with overlapping but distinct use cases. Neither fully replaces the other. Choose based on: - <strong>TSENAT:</strong> For scale-dependent analysis, advanced inference, and q-spectrum exploration - <strong>SplicingFactory:</strong> For Gini index, Laplace entropy, and classical fixed-metric diversity analysis</p>
-</div>
 </div>
 </div>
 
