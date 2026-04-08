@@ -1224,7 +1224,62 @@ setMethod("summary", "TSENATAnalysis", function(object) {
         message(sprintf("  Package version: %s", object@metadata$package_version))
     }
     if (length(object@metadata$function_calls) > 0) {
-        message(sprintf("  Workflow: %s", paste(object@metadata$function_calls, collapse = " → ")))
+        # Compress workflow: group repeated function calls by function name
+        calls <- object@metadata$function_calls
+        
+        # Extract function names and build compact summary
+        compressed_calls <- character()
+        i <- 1
+        while (i <= length(calls)) {
+            # Extract function name (before '[')
+            current_call <- calls[i]
+            func_name <- sub("\\[.*", "", current_call)
+            
+            # Count consecutive calls of same function
+            j <- i
+            while (j <= length(calls) && sub("\\[.*", "", calls[j]) == func_name) {
+                j <- j + 1
+            }
+            
+            # Group summary: if >3 consecutive calls, show compacted form
+            n_consecutive <- j - i
+            if (n_consecutive > 3 && grepl("=", current_call)) {
+                # Extract first parameter from first call
+                first_param <- sub(".*\\[([^\\]]+).*", "\\1", calls[i])
+                last_call <- calls[j - 1]
+                last_param <- sub(".*\\[([^\\]]+).*", "\\1", last_call)
+                
+                # Check if parameters are q-values
+                if (grepl("q=", first_param) && grepl("q=", last_param)) {
+                    first_q <- as.numeric(sub(".*q=([0-9.]+).*", "\\1", first_param))
+                    last_q <- as.numeric(sub(".*q=([0-9.]+).*", "\\1", last_param))
+                    compressed_calls <- c(compressed_calls, 
+                        sprintf("%s (%d q-values: %.1f-%.1f)", func_name, n_consecutive, first_q, last_q))
+                } else {
+                    compressed_calls <- c(compressed_calls, 
+                        sprintf("%s (×%d)", func_name, n_consecutive))
+                }
+            } else {
+                # Keep individual calls if 3 or fewer
+                for (k in seq(i, j - 1)) {
+                    compressed_calls <- c(compressed_calls, calls[k])
+                }
+            }
+            
+            i <- j
+        }
+        
+        # Truncate or summarize if workflow is very long (>10 main steps)
+        if (length(compressed_calls) > 10) {
+            main_steps <- compressed_calls[1:min(5, length(compressed_calls))]
+            remaining <- length(compressed_calls) - length(main_steps)
+            workflow_text <- paste(c(main_steps, 
+                sprintf("... and %d more step(s)", remaining)), collapse = " → ")
+        } else {
+            workflow_text <- paste(compressed_calls, collapse = " → ")
+        }
+        
+        message(sprintf("  Workflow: %s", workflow_text))
     }
 
     message("")
