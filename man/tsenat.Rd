@@ -6,24 +6,25 @@
 \usage{
 tsenat(
   analysis,
-  config = NULL,
   output_dir = "tsenat_outputs",
-  verbose = TRUE,
-  ...
+  save_output = TRUE,
+  output_format = "tsv",
+  verbose = TRUE
 )
 }
 \arguments{
 \item{analysis}{\code{TSENATAnalysis} object created by \code{\link{build_analysis_s4}}.}
 
-\item{config}{\code{list} or \code{TSENATConfig}. Configuration from
-\code{\link{tsenat_config}}. If NULL, uses configuration from analysis object.}
-
 \item{output_dir}{\code{character}. Directory to save results and plots.
 Default: "tsenat_outputs". Set to NULL to disable automatic output saving.}
 
-\item{verbose}{\code{logical}. Print progress messages. Default: TRUE.}
+\item{save_output}{\code{logical}. Whether to save output files (results tables).
+Default: TRUE. If FALSE, no TSV/CSV output files are written to disk.}
 
-\item{...}{Additional arguments passed to individual wrapper functions.}
+\item{output_format}{\code{character}. Format for output files: 'tsv' (tab-separated),
+'csv' (comma-separated), 'txt' (text), or 'rds' (R serialized). Default: 'tsv'.}
+
+\item{verbose}{\code{logical}. Print progress messages. Default: TRUE.}
 }
 \value{
 \code{TSENATAnalysis} object containing complete analysis results,
@@ -75,6 +76,6 @@ analysis <- build_analysis_s4(
   effective_length = effective_length
 )
 
-result <- tsenat(analysis, config = config)
+result <- tsenat(analysis)
 
 }

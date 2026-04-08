@@ -441,8 +441,9 @@ getResults <- function(analysis, type = "diversity", q = NULL, simplify = TRUE) 
 #' @export
 tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_col = NULL,
     sample_col = "sample", paired = FALSE, control = NULL, p_threshold = 0.05, fdr_threshold = 0.05,
-    significance_threshold = 0.05, nboot = 1000, bootstrap_method = "percentile",
-    stringency = "medium", nthreads = 1, ...) {
+    significance_threshold = 0.05, bootstrap = FALSE, nboot = 1000, bootstrap_method = "percentile",
+    stringency = "medium", nthreads = 1, norm = TRUE, 
+    bootstrap_ci = 0.95, norm_method = NULL, pseudocount = NULL, ...) {
     # Build q_values if range specified
     if (is.null(q_values)) {
         q_values <- seq(0, 2, by = 0.5)
@@ -455,10 +456,26 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
     }
 
     # Build config list with all parameters
-    config <- list(q_values = q_values, condition_col = condition_col, subject_col = subject_col,
-        sample_col = sample_col, paired = paired, control = control, p_threshold = p_threshold, fdr_threshold = fdr_threshold,
-        significance_threshold = significance_threshold, nboot = nboot,
-        bootstrap_method = bootstrap_method, stringency = stringency, nthreads = nthreads)
+    config <- list(
+        q_values = q_values,
+        condition_col = condition_col,
+        subject_col = subject_col,
+        sample_col = sample_col,
+        paired = paired,
+        control = control,
+        p_threshold = p_threshold,
+        fdr_threshold = fdr_threshold,
+        significance_threshold = significance_threshold,
+        nboot = nboot,
+        bootstrap_method = bootstrap_method,
+        stringency = stringency,
+        nthreads = nthreads,
+        norm = norm,
+        bootstrap = bootstrap,
+        bootstrap_ci = bootstrap_ci,
+        norm_method = norm_method,
+        pseudocount = pseudocount
+    )
 
     # Add any additional parameters (except metadata - should be explicit to build_analysis_s4)
     extra_args <- list(...)

@@ -423,13 +423,24 @@ setMethod("lmResults", "TSENATAnalysis", function(object, component = NULL) {
 #'   header = TRUE, sep = '\t')
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #'
+#' # NOTE: TPM and effective_length are REQUIRED for filter_analysis_s4()
+#' # In real workflows, these come from Salmon quantification output
+#' # For this example, we create minimal placeholders
+#' tpm <- matrix(runif(nrow(readcounts) * ncol(readcounts), 0.1, 10),
+#'               nrow = nrow(readcounts), ncol = ncol(readcounts),
+#'               dimnames = dimnames(readcounts))
+#' effective_length <- matrix(100, nrow = nrow(readcounts), ncol = ncol(readcounts))
+#'
 #' # Create config (required when metadata is provided)
 #' config <- tsenat_config(sample_col = 'sample', condition_col = 'condition')
 #' 
-#' # Build and filter analysis
+#' # Build analysis with TPM and effective_length
 #' analysis <- build_analysis_s4(readcounts = readcounts,
 #'                              tx2gene = gff3_file,
-#'                              metadata = metadata_df, config = config)
+#'                              metadata = metadata_df,
+#'                              tpm = tpm,
+#'                              effective_length = effective_length,
+#'                              config = config)
 #' analysis <- filter_analysis_s4(analysis, stringency = 'medium')
 #'
 #' # Calculate diversity
@@ -491,6 +502,12 @@ setMethod("pairwiseResults", "TSENATAnalysis", function(object, component = NULL
 #'   header = TRUE, sep = '\t'
 #' )
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+#'
+#' # TPM and effective_length REQUIRED for filter_analysis_s4()
+#' tpm <- matrix(runif(nrow(readcounts) * ncol(readcounts), 0.1, 10),
+#'               nrow = nrow(readcounts), ncol = ncol(readcounts),
+#'               dimnames = dimnames(readcounts))
+#' effective_length <- matrix(100, nrow = nrow(readcounts), ncol = ncol(readcounts))
 #' 
 #' config <- tsenat_config(q_values = c(0.5, 1.0), generate_plots = FALSE)
 #' analysis <- build_analysis_s4(readcounts, tx2gene = gff3_file,
@@ -733,11 +750,19 @@ setMethod("jeoResults", "TSENATAnalysis", function(object, q = NULL) {
 #'   header = TRUE, sep = '\t')
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #'
+#' # TPM and effective_length REQUIRED for filter_analysis_s4()
+#' tpm <- matrix(runif(nrow(readcounts) * ncol(readcounts), 0.1, 10),
+#'               nrow = nrow(readcounts), ncol = ncol(readcounts),
+#'               dimnames = dimnames(readcounts))
+#' effective_length <- matrix(100, nrow = nrow(readcounts), ncol = ncol(readcounts))
+#'
 #' # Build analysis object
 #' config <- tsenat_config(sample_col = 'sample', condition_col = 'condition')
 #' analysis <- build_analysis_s4(readcounts = readcounts,
 #'                              tx2gene = gff3_file,
 #'                              metadata = metadata_df,
+#'                              tpm = tpm,
+#'                              effective_length = effective_length,
 #'                              config = config)
 #'
 #' # Filter low-abundance transcripts

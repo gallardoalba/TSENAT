@@ -9,7 +9,7 @@ filter_analysis_s4(
   min_tpm = 1,
   tpm_assay_name = NULL,
   min_samples = 5L,
-  stringency = NULL,
+  stringency = "medium",
   pair_col = NULL,
   min_tx_per_gene = 2L,
   min_isoform_abundance = NULL,
@@ -47,7 +47,7 @@ auto-estimates:
 \code{min_isoform_abundance}
   from data. Requires \code{pair_col} in colData for paired designs.
   User-provided values for any parameter override stringency defaults.
-  Default: NULL (use explicit parameters).}
+  Default: 'medium' (balanced filtering recommended for most analyses).}
 
 \item{pair_col}{Character; column name in colData containing pair IDs for
 paired designs.
@@ -128,11 +128,17 @@ the TSENATAnalysis object, optionally followed by subsetting parameters.
 The filtering and subsetting operations are applied in sequence:
 
 1. Extracts the SE from \code{analysis@se}
-2. Filters using \code{.filter_se()} with specified filtering parameters
+2. Filters using \code{.filter_se()} with specified filtering parameters (default: 'medium' stringency)
 3. If any subset parameters are provided, applies gene/sample selection
    to select specific genes and/or samples
 4. Stores the filtered/subsetted SE back in \code{analysis@se}
 5. Returns the modified analysis object invisibly
+
+**Default Filtering (stringency = 'medium'):** By default, filtering applies
+balanced stringency: requires transcripts in ≥50% of samples with minimum
+isoform abundance of 5%, and genes with at least 2 transcripts. This balances
+noise reduction with preservation of isoform diversity for reliable entropy
+calculations.
 
 **Important:** Filtering should be performed BEFORE computing diversity,
 divergence, or LM interaction results. If called after analysis results

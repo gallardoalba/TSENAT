@@ -56,6 +56,12 @@
 #' )
 #' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 #' 'TSENAT')
+#'
+#' # TPM and effective_length REQUIRED for filter_analysis_s4()
+#' tpm <- matrix(runif(nrow(readcounts) * ncol(readcounts), 0.1, 10),
+#'               nrow = nrow(readcounts), ncol = ncol(readcounts),
+#'               dimnames = dimnames(readcounts))
+#' effective_length <- matrix(100, nrow = nrow(readcounts), ncol = ncol(readcounts))
 #' 
 #' # Create config (metadata passed as explicit parameter to build_analysis_s4)
 #' config <- tsenat_config(

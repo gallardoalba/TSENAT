@@ -2,9 +2,6 @@ library(testthat)
 
 context("Orchestration: Configuration and Pipeline")
 
-# Skip all tests on CRAN (integration tests are resource-intensive)
-skip_on_cran()
-
 # ============================================================================
 # Helper: Create test SummarizedExperiment using real package data
 # Loads data like workflow.R but returns just the SE (not TSENATAnalysis)
@@ -142,7 +139,7 @@ test_that("tsenat creates TSENATAnalysis from SummarizedExperiment", {
   
   # tsenat requires a TSENATAnalysis object, not a raw SE
   expect_error(
-    tsenat(se, generate_plots = FALSE),
+    tsenat(se),
     "must be a TSENATAnalysis object"
   )
 })
@@ -152,7 +149,7 @@ test_that("tsenat accepts SE with valid assays", {
   
   # tsenat requires a TSENATAnalysis object, not a raw SE
   expect_error(
-    tsenat(se, verbose = FALSE, generate_plots = FALSE),
+    tsenat(se, verbose = FALSE),
     "must be a TSENATAnalysis object"
   )
 })
@@ -241,12 +238,7 @@ test_that("tsenat processes stringency levels", {
   for (stringency in c("soft", "medium", "severe")) {
     # tsenat requires a TSENATAnalysis object, not a raw SE
     expect_error(
-      tsenat(
-        se,
-        stringency = stringency,
-        verbose = FALSE,
-        generate_plots = FALSE
-      ),
+      tsenat(se, verbose = FALSE),
       "must be a TSENATAnalysis object"
     )
   }
@@ -308,13 +300,7 @@ test_that("Helper functions integrate smoothly in tsenat pipeline", {
   
   # Test full pipeline - tsenat requires a TSENATAnalysis object, not a raw SE
   expect_error(
-    tsenat(
-      se,
-      methods = c("diversity"),
-      q_values = c(0.5, 1.0),
-      verbose = FALSE,
-      generate_plots = FALSE
-    ),
+    tsenat(se, verbose = FALSE),
     "must be a TSENATAnalysis object"
   )
 })
@@ -658,7 +644,6 @@ test_that("save_output = FALSE prevents file output", {
     analysis,
     output_dir = test_output_dir,
     save_output = FALSE,
-    q_values = seq(0, 2, by = 0.05),
     verbose = FALSE
   ))
   
@@ -691,7 +676,6 @@ test_that("save_output = TRUE with output_format = 'tsv' creates TSV files", {
     output_dir = test_output_dir,
     save_output = TRUE,
     output_format = "tsv",
-    q_values = seq(0, 2, by = 0.05),
     verbose = FALSE
   ))
   
@@ -720,7 +704,6 @@ test_that("output_format = 'csv' creates CSV files", {
     output_dir = test_output_dir,
     save_output = TRUE,
     output_format = "csv",
-    q_values = seq(0, 2, by = 0.05),
     verbose = FALSE
   ))
   
@@ -749,7 +732,6 @@ test_that("output_format = 'txt' creates TXT files", {
     output_dir = test_output_dir,
     save_output = TRUE,
     output_format = "txt",
-    q_values = seq(0, 2, by = 0.05),
     verbose = FALSE
   ))
   
@@ -778,7 +760,6 @@ test_that("output_format = 'rds' creates RDS files", {
     output_dir = test_output_dir,
     save_output = TRUE,
     output_format = "rds",
-    q_values = seq(0, 2, by = 0.05),
     verbose = FALSE
   ))
   
@@ -821,7 +802,6 @@ test_that("Default parameters (save_output = TRUE, output_format = 'tsv')", {
   result <- suppressWarnings(tsenat(
     analysis,
     output_dir = test_output_dir,
-    q_values = seq(0, 2, by = 0.05),
     verbose = FALSE
   ))
   
@@ -849,7 +829,6 @@ test_that("save_output = FALSE overrides output_dir setting", {
     output_dir = test_output_dir,
     save_output = FALSE,
     output_format = "tsv",
-    q_values = seq(0, 2, by = 0.05),
     verbose = FALSE
   ))
   
