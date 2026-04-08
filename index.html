@@ -56,7 +56,7 @@
       <a href="articles/TSENAT_appendix_A.html">Appendix A: Equivalence Validation - TSENAT vs SplicingFactory</a>
     </li>
     <li>
-      <a href="articles/TSENAT_appendix_B.html">TSENAT Appendix B: Non-Parametric Validation of Linear Model Results via GAM and Rank-Based Methods</a>
+      <a href="articles/TSENAT_appendix_B.html">Appendix B: Non-Parametric Validation of Linear Model Results via GAM and Rank-Based Methods</a>
     </li>
   </ul>
 </li>
@@ -162,28 +162,29 @@
 </h3>
 <p>Create a configuration object specifying your experimental design parameters (sample/condition columns from metadata) before building the analysis object. This fail-fast pattern ensures invalid parameters are caught immediately before processing begins.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co">## Create configuration with sample metadata column parameters</span></span>
-<span><span class="co">## (Minimum required: sample_col and condition_col to identify samples and experimental groups)</span></span>
+<code class="sourceCode R"><span><span class="co">## Create configuration file</span></span>
 <span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/tsenat_config.html">tsenat_config</a></span><span class="op">(</span></span>
-<span>  sample_col <span class="op">=</span> <span class="st">"sample"</span>,          <span class="co"># Column name with sample identifiers</span></span>
-<span>  condition_col <span class="op">=</span> <span class="st">"condition"</span>      <span class="co"># Column name with experimental conditions</span></span>
-<span><span class="op">)</span></span>
+<span>  sample_col <span class="op">=</span> <span class="st">"sample"</span>,</span>
+<span>  condition_col <span class="op">=</span> <span class="st">"condition"</span>,</span>
+<span>  subject_col <span class="op">=</span> <span class="st">"paired_samples"</span>,</span>
+<span>  q_values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span>,</span>
+<span>  nthreads <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  paired <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  control <span class="op">=</span> <span class="st">"normal"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co">## Build analysis with counts, annotation, metadata, and config</span></span>
+<span><span class="co">## Build TSENATAnalysis object</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/build_analysis_s4.html">build_analysis_s4</a></span><span class="op">(</span></span>
 <span>  readcounts <span class="op">=</span> <span class="va">readcounts</span>, </span>
 <span>  tx2gene <span class="op">=</span> <span class="va">gff3_file</span>,</span>
 <span>  metadata <span class="op">=</span> <span class="va">metadata_df</span>,</span>
 <span>  config <span class="op">=</span> <span class="va">config</span>,</span>
 <span>  tpm <span class="op">=</span> <span class="va">tpm</span>,</span>
-<span>  effective_length <span class="op">=</span> <span class="va">effective_length</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-<p>For more advanced analysis options (q-value spectrum, multiple testing corrections, paired designs), you can extend the config after building the initial analysis object.</p>
+<span>  effective_length <span class="op">=</span> <span class="va">effective_length</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="orchestration-function">Orchestration Function<a class="anchor" aria-label="anchor" href="#orchestration-function"></a>
 </h3>
-<p>For a complete analysis pipeline, pass the analysis object with configuration:</p>
+<p>The <code><a href="reference/tsenat.html">tsenat()</a></code> function provides a complete, automated analysis pipeline in a single call. It takes your configured <code>TSENATAnalysis</code> object and executes all downstream analysis steps: entropy computation, statistical testing for q×condition interactions, and rich visualization. This is the recommended entry point for most users—it orchestrates the full workflow while respecting your configuration parameters (q-values, design, bootstrap settings, etc.) and handles output management seamlessly. For advanced customization, use individual functions directly as shown in the step-by-step workflow below.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Returns: Fully configured TSENATAnalysis object with diversity, testing, and plots</span></span>
 <span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/tsenat.html">tsenat</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></code></pre></div>
@@ -191,7 +192,7 @@
 <div class="section level2">
 <h2 id="detailed-step-by-step-workflow">Detailed Step-by-Step Workflow<a class="anchor" aria-label="anchor" href="#detailed-step-by-step-workflow"></a>
 </h2>
-<p>For customization at each stage, use individual functions:</p>
+<p>For fine-grained control over your analysis, TSENAT also provides individual functions for each major step. This modular approach allows you to apply custom parameters at each stage, inspect intermediate results, or skip certain components entirely. The workflow below demonstrates the core analysis pipeline when using individual function calls—useful for exploratory analysis, parameter optimization, or integrating TSENAT results into larger custom workflows.</p>
 <div class="section level3">
 <h3 id="id_1-filter--compute-diversity">1. Filter &amp; Compute Diversity<a class="anchor" aria-label="anchor" href="#id_1-filter--compute-diversity"></a>
 </h3>
@@ -253,7 +254,7 @@
 <div class="section level2">
 <h2 id="related-packages">Related Packages<a class="anchor" aria-label="anchor" href="#related-packages"></a>
 </h2>
-<p>TSENAT answers a unique question: <strong>How do isoforms reorganize, independent of abundance changes?</strong> It complements other Bioconductor tools:</p>
+<p>TSENAT addresses a fundamental but underappreciated question in transcriptomic analysis: <strong>How do genes reorganize their isoform usage patterns, independent of changes in total abundance?</strong> This question is distinct from standard differential expression analysis and reveals a layer of biological complexity—coordinated isoform switching—that conventional methods overlook. TSENAT fills a specific niche in the Bioconductor ecosystem by measuring scale-dependent isoform diversity rather than abundance or individual transcript shifts. Below is how TSENAT complements other Bioconductor tools:</p>
 <table class="table">
 <colgroup>
 <col width="17%">
@@ -291,10 +292,10 @@
 </table>
 </div>
 <div class="section level2">
-<h2 id="loading-salmon-quantification-data">Loading Salmon Quantification Data<a class="anchor" aria-label="anchor" href="#loading-salmon-quantification-data"></a>
+<h2 id="native-salmon-integration">Native Salmon Integration<a class="anchor" aria-label="anchor" href="#native-salmon-integration"></a>
 </h2>
-<p>TSENAT can read Salmon quantification output directly by automatically discovering all quant.sf files in a directory structure, eliminating manual file parsing. This streamlined workflow accepts the raw output from Salmon without requiring intermediate format conversions.</p>
-<p>TSENAT automatically discovers and reads Salmon output when you provide a directory:</p>
+<p>TSENAT is specifically engineered to work seamlessly with Salmon quantification output. Rather than requiring manual parsing or format conversion, TSENAT automatically discovers transcript-level quantification files across your Salmon output directory and integrates them directly into the analysis pipeline. This tight integration means you can move from Salmon quantification to entropy analysis without intermediate data manipulation—the raw <code>quant.sf</code> files are all you need. TSENAT discovers these files automatically, validates their compatibility with your experimental design, and handles length-correction and normalization as part of the diversity computation workflow.</p>
+<p>To get started with Salmon-quantified data:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gallardoalba.github.io/TSENAT" class="external-link">TSENAT</a></span><span class="op">)</span></span>
 <span></span>
