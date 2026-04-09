@@ -181,3 +181,6 @@ setGeneric("se", function(object) standardGeneric("se"))
 if (!isGeneric("metadata")) {
     setGeneric("metadata", function(x, key = NULL) standardGeneric("metadata"))
 }
+
+#' @noRd
+setGeneric("metadata<-", function(x, value) standardGeneric("metadata<-"))

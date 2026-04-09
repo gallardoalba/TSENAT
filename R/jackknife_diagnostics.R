@@ -783,7 +783,15 @@ print.tsenat_jackknife_list <- function(x, ...) {
 
     # Parse q-values from keys (format: 'q_0_01', 'q_0_50', etc.)
     q_keys_clean <- gsub("^q_", "", q_keys)  # Remove leading 'q_'
-    q_vector <- as.numeric(gsub("_", ".", q_keys_clean))  # Convert '0_01' to '0.01'
+    # Filter to only valid Q key formats before conversion
+    valid_q_keys <- q_keys_clean[grep("^[0-9]+_[0-9]{2}$", q_keys_clean)]
+    if (length(valid_q_keys) == 0) {
+        stop(sprintf("No valid q-value keys found. Got: %s", paste(q_keys_clean, collapse = ", ")))
+    }
+    q_vector <- as.numeric(gsub("_", ".", valid_q_keys))  # Convert '0_01' to '0.01'
+    if (any(is.na(q_vector))) {
+        stop(sprintf("Failed to parse q-values from keys: %s", paste(valid_q_keys, collapse = ", ")))
+    }
     q_vector <- sort(q_vector)  # Ensure numeric order
 
     if (verbose) {

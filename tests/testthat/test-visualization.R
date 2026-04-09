@@ -5629,9 +5629,15 @@ test_that("plot_lm_gam_s4 produces plots with valid geometry", {
 
 test_that("Lazy switching_tables via results() produces valid output structure", {
     skip_on_cran()
-    # Run jackknife to get switching results
-    result <- suppressWarnings(calculate_jis_s4(
+    # Run LM first to populate lm_results
+    result <- suppressWarnings(calculate_lm_s4(
         analysis,
+        method = "gam",
+        verbose = FALSE
+    ))
+    # Then run jackknife to get switching results
+    result <- suppressWarnings(calculate_jis_s4(
+        result,
         q = c(0.5, 1.0),
         n_bootstrap = 10,
         verbose = FALSE
@@ -5645,8 +5651,15 @@ test_that("Lazy switching_tables via results() produces valid output structure",
 
 test_that("Lazy switching_tables via results() includes required structure", {
     skip_on_cran()
-    result <- suppressWarnings(calculate_jis_s4(
+    # Run LM first to populate lm_results
+    result <- suppressWarnings(calculate_lm_s4(
         analysis,
+        method = "gam",
+        verbose = FALSE
+    ))
+    # Then run jackknife
+    result <- suppressWarnings(calculate_jis_s4(
+        result,
         q = c(0.5, 1.0),
         n_bootstrap = 10,
         verbose = FALSE
@@ -5661,9 +5674,15 @@ test_that("Lazy switching_tables via results() includes required structure", {
 
 test_that("Lazy switching_tables handles empty results gracefully", {
     skip_on_cran()
-    # Using global analysis object directly
-    result <- suppressWarnings(calculate_jis_s4(
+    # Run LM first to populate lm_results
+    result <- suppressWarnings(calculate_lm_s4(
         analysis,
+        method = "gam",
+        verbose = FALSE
+    ))
+    # Then run jackknife
+    result <- suppressWarnings(calculate_jis_s4(
+        result,
         q = c(0.8),
         n_bootstrap = 5,
         verbose = FALSE
@@ -5677,8 +5696,15 @@ test_that("Lazy switching_tables handles empty results gracefully", {
 
 test_that("Lazy switching_tables returns sorted/ordered output", {
     skip_on_cran()
-    result <- suppressWarnings(calculate_jis_s4(
+    # Run LM first
+    result <- suppressWarnings(calculate_lm_s4(
         analysis,
+        method = "gam",
+        verbose = FALSE
+    ))
+    # Then run jackknife
+    result <- suppressWarnings(calculate_jis_s4(
+        result,
         q = c(0.5, 1.0),
         n_bootstrap = 10,
         verbose = FALSE
@@ -5715,9 +5741,15 @@ test_that("LM results integrate properly with visualization pipeline", {
 
 test_that("Jackknife results integrate with lazy switching_tables computation", {
     skip_on_cran()
-    # Run jackknife
-    jis_result <- suppressWarnings(calculate_jis_s4(
+    # Run LM first
+    jis_result <- suppressWarnings(calculate_lm_s4(
         analysis,
+        method = "gam",
+        verbose = FALSE
+    ))
+    # Then run jackknife
+    jis_result <- suppressWarnings(calculate_jis_s4(
+        jis_result,
         q = c(0.5, 1.0),
         n_bootstrap = 10,
         verbose = FALSE
@@ -5742,8 +5774,15 @@ test_that("plot_lm_gam_s4 produces publishable format", {
 
 test_that("Lazy switching_tables produces export-ready data", {
     skip_on_cran()
-    jis_result <- suppressWarnings(calculate_jis_s4(
+    # Run LM first
+    jis_result <- suppressWarnings(calculate_lm_s4(
         analysis,
+        method = "gam",
+        verbose = FALSE
+    ))
+    # Then run jackknife
+    jis_result <- suppressWarnings(calculate_jis_s4(
+        jis_result,
         q = c(0.5, 1.0),
         n_bootstrap = 8,
         verbose = FALSE
@@ -5775,9 +5814,15 @@ test_that("plot_lm_gam_s4 handles missing LM results gracefully", {
 
 test_that("Lazy switching_tables handles minimal jackknife results", {
     skip_on_cran()
-    # Minimal jackknife setup
-    jis_result <- suppressWarnings(calculate_jis_s4(
+    # Run LM first to populate lm_results
+    result <- suppressWarnings(calculate_lm_s4(
         analysis,
+        method = "gam",
+        verbose = FALSE
+    ))
+    # Minimal jackknife setup
+    result <- suppressWarnings(calculate_jis_s4(
+        result,
         q = c(0.7),
         n_bootstrap = 3,
         verbose = FALSE
@@ -5785,7 +5830,7 @@ test_that("Lazy switching_tables handles minimal jackknife results", {
     
     expect_silent({
         # Lazy computation on access
-        tables <- results(jis_result, type = "switching_tables")
+        tables <- results(result, type = "switching_tables")
     })
 })
 
@@ -5807,8 +5852,15 @@ test_that("plot_lm_gam_s4 axes have correct scale for entropy", {
 
 test_that("Lazy switching_tables data types are consistent", {
     skip_on_cran()
-    jis_result <- suppressWarnings(calculate_jis_s4(
+    # Run LM first
+    jis_result <- suppressWarnings(calculate_lm_s4(
         analysis,
+        method = "gam",
+        verbose = FALSE
+    ))
+    # Then run jackknife
+    jis_result <- suppressWarnings(calculate_jis_s4(
+        jis_result,
         q = c(0.5, 1.0),
         n_bootstrap = 8,
         verbose = FALSE

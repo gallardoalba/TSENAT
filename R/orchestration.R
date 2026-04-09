@@ -487,7 +487,7 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
         effect_sizes_divergence = S4Vectors::metadata(analysis)$effect_sizes_divergence,
         switching_tables = {
             # Lazy computation: compute tables if not already cached but prerequisites exist
-            existing_tables <- S4Vectors::metadata(analysis)$switching_tables
+            existing_tables <- metadata(analysis)$switching_tables
             if (!is.null(existing_tables)) {
                 existing_tables
             } else if (length(analysis@lm_results) > 0 && length(analysis@jackknife_results) > 0) {
@@ -515,9 +515,8 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
                         q_key_pattern <- "^q_[0-9]+_[0-9]{2}$"
                         q_keyed <- jk_list[grep(q_key_pattern, names(jk_list))]
                         
-                        if (length(q_keyed) > 0 || "multi_q" %in% names(jk_list)) {
-                            multi_q_results <- if ("multi_q" %in% names(jk_list)) 
-                                list(multi_q = jk_list[["multi_q"]]) else q_keyed
+                        if (length(q_keyed) > 0) {
+                            multi_q_results <- q_keyed
                             
                             # Call base function
                             computed_tables <- .prepare_gene_switching_tables(
@@ -526,8 +525,10 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
                                 verbose = FALSE
                             )
                             
-                            # Cache in analysis metadata
-                            S4Vectors::metadata(analysis)$switching_tables <- computed_tables
+                            # Cache in analysis metadata using the proper replacement method
+                            meta <- metadata(analysis)
+                            meta$switching_tables <- computed_tables
+                            metadata(analysis) <- meta
                             computed_tables
                         } else {
                             NULL

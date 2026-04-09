@@ -182,6 +182,13 @@ setMethod("metadata", "TSENATAnalysis", function(x, key = NULL) {
 })
 
 #' @rdname TSENATAnalysis-methods
+#' @exportMethod 'metadata<-'
+setReplaceMethod("metadata", "TSENATAnalysis", function(x, value) {
+    x@metadata <- value
+    x
+})
+
+#' @rdname TSENATAnalysis-methods
 #' @exportMethod '['
 setMethod("[", signature(x = "TSENATAnalysis"), function(x, i, j, drop = TRUE) {
     # Get SE dimensions for default arguments
