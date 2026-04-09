@@ -2024,7 +2024,7 @@ test_that("calculate_effect_sizes_s4 orchestrates helpers correctly", {
   analysis <- calculate_diversity_s4(analysis, q = c(0.5, 0.75, 1.0, 1.5, 2.0), verbose = FALSE)
   analysis <- calculate_divergence_s4(analysis, q = c(0.5, 0.75, 1.0, 1.5, 2.0), verbose = FALSE)
   analysis <- suppressWarnings(
-    calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
+    calculate_lm_s4(analysis, method = 'gam', verbose = FALSE)
   )
   
   # Compute effect sizes from divergence results
@@ -2086,7 +2086,7 @@ test_that("calculate_effect_sizes_s4 respects output_file parameter", {
   analysis <- calculate_diversity_s4(analysis, q = c(0.5, 0.75, 1.0, 1.5, 2.0), verbose = FALSE)
   analysis <- calculate_divergence_s4(analysis, q = c(0.5, 0.75, 1.0, 1.5, 2.0), verbose = FALSE)
   analysis <- suppressWarnings(
-    calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
+    calculate_lm_s4(analysis, method = 'gam', verbose = FALSE)
   )
   
   # Create temporary file for TSV output

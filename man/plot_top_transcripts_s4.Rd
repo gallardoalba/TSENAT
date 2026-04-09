@@ -144,7 +144,7 @@ analysis <- build_analysis_s4(
 analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5), verbose
 = FALSE)
-analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
+analysis <- calculate_lm_s4(analysis, method = 'gam', verbose
 = FALSE)
 plot_file <- plot_top_transcripts_s4(analysis, top_n = 3)
 

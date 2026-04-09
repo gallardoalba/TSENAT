@@ -131,7 +131,7 @@
 #' #   nboot = 50)
 #' # analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), 
 #' #   nboot = 50)
-#' # analysis <- calculate_lm_interaction_s4(analysis,
+#' # analysis <- calculate_lm_s4(analysis,
 #' #   condition_col = 'condition')
 #' # analysis <- calculate_effect_sizes_s4(analysis)
 #' # p <- plot_multi_gene_q_spectrum_s4(analysis, n_genes = 4)
@@ -210,7 +210,7 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL, lm_res = NULL, diverge
             message("[plot_multi_gene_q_spectrum_s4] Extracted lm_results with ",
                 nrow(lm_res), " rows")
     } else {
-        stop("TSENATAnalysis object has no lm_results. Run calculate_lm_interaction_s4() first.")
+        stop("TSENATAnalysis object has no lm_results. Run calculate_lm_s4() first.")
     }
 
     if (length(analysis@diversity_results) > 0) {

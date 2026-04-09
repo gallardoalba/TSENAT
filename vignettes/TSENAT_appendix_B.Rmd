@@ -406,7 +406,7 @@ gam_results <- read.delim(
     stringsAsFactors = FALSE
 )
 
-# Note: GAM results are generated via calculate_lm_interaction_s4() in the main vignette
+# Note: GAM results are generated via calculate_lm_s4() in the main vignette
 # When available in the analysis object, extract using generic results accessor:
 # lm_gam_results <- results(analysis, type = "lm", rankBy = "pvalue", n = 20, filterFDR = 0.05)
 # This demonstrates the flexible results pattern for accessing LM/GAM interaction results

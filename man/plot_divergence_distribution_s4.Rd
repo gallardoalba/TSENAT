@@ -91,7 +91,7 @@ analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5), ver
 = FALSE)
 analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5), verbose
 = FALSE)
-analysis <- calculate_lm_interaction_s4(analysis, method = 'gam')
+analysis <- calculate_lm_s4(analysis, method = 'gam')
 analysis <- calculate_effect_sizes_s4(analysis)
 p_dist <- plot_divergence_distribution_s4(analysis)
 print(p_dist)

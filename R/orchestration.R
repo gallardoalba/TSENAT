@@ -30,7 +30,7 @@
 #'   \item \code{calculate_diversity_s4()} - Tsallis entropy per q-value
 #'   \item \code{plot_tsallis_q_curve_s4()} - Visualize q-spectrum
 #'   \item \code{m_estimate_s4()} - Sample influence QC analysis
-#'   \item \code{calculate_lm_interaction_s4()} - LM interaction testing
+#'   \item \code{calculate_lm_s4()} - LM interaction testing
 #'   \item \code{plot_lm_interaction_gam_s4()} - GAM visualization of LM results
 #'   \item \code{jackknife_isoform_switching_s4()} - Transcript switching detection
 #'   \item \code{prepare_gene_switching_tables_s4()} - Prepare gene switching summary tables
@@ -1194,7 +1194,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
         lm_method <- cfg$lm_method %||% "gam"
         lm_pcorr <- cfg$lm_pcorr %||% "BH"
         output_file <- .build_output_file("lm_interaction_results", output_dir, output_format)
-        analysis <- calculate_lm_interaction_s4(analysis, fdr_threshold = fdr, method = lm_method,
+        analysis <- calculate_lm_s4(analysis, fdr_threshold = fdr, method = lm_method,
             pcorr = lm_pcorr, output_file = output_file)
         if (verbose)
             message("          [OK] LM interaction analysis complete")

@@ -40,7 +40,7 @@ for each gene.}
 \item{lm_res}{Data frame (optional); gene interaction test results with
 `gene` column and
   p-value column. Accepts either:
-- Results from `.calculate_lm_interaction()` (has `adj_p_interaction` or
+- Results from `.calculate_lm()` (has `adj_p_interaction` or
 `p_interaction` columns)
 - Results from `.rank_test_q_condition()` (has `adj_p_value` or `p_value`
 columns from Friedman/Wilcoxon tests)

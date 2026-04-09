@@ -1,7 +1,7 @@
 #' Plot GAM q-curves for top genes identified by FPCA/GAM interaction tests
 #'
 #' Visualizes smooth q-curve profiles (GAM fits) for selected genes from
-#' `.calculate_lm_interaction()` results. Useful for understanding which
+#' `.calculate_lm()` results. Useful for understanding which
 #' q-ranges (rare
 #' vs. dominant isoforms) drive significant PC differences between groups.
 #'
@@ -9,7 +9,7 @@
 #' (multiple q values per sample). Typically output from
 #' `.calculate_diversity()`
 #'   with multiple q (e.g., q = seq(0.1, 2, by = 0.1)).
-#' @param lm_res A `data.frame` from `.calculate_lm_interaction()` with columns
+#' @param lm_res A `data.frame` from `.calculate_lm()` with columns
 #'   `gene`, `p_interaction`, and `adj_p_interaction`. Can be from method='fpca'
 #'   or method='gam'.
 #' @param condition_col Column name in `colData(se)` specifying group
@@ -27,7 +27,7 @@
 #' selecting top n.
 #' @param assay_name Name of the assay in `se` to extract (default:
 #' 'diversity').
-#' @param model_data Required list from `.calculate_lm_interaction(...,
+#' @param model_data Required list from `.calculate_lm(...,
 #' return_model_data = TRUE)$model_data`
 #' containing metadata (q_values, sample configuration, etc.). This is the
 #' preferred way to use
@@ -45,7 +45,7 @@
 #' 3. Generates smooth predictions for visualization
 #' 4. Overlays predicted curves for each group with a distinct color
 #'
-#' By providing `model_data` from `.calculate_lm_interaction()`, the
+#' By providing `model_data` from `.calculate_lm()`, the
 #' function can directly
 #' access the q-values used in the original analysis for more accurate
 #' visualization.
@@ -75,7 +75,7 @@
 #' )
 #' 
 #' # Run linear model analysis with model_data  
-#' lm_result <- .calculate_lm_interaction(se, condition_col = 'condition',
+#' lm_result <- .calculate_lm(se, condition_col = 'condition',
 #' method = 'gam',
 #'                                       return_model_data = TRUE)
 #' 

@@ -41,7 +41,7 @@ Pipeline execution order (enforced, follows TSENAT.Rmd vignette):
   \item \code{calculate_diversity_s4()} - Tsallis entropy per q-value
   \item \code{plot_tsallis_q_curve_s4()} - Visualize q-spectrum
   \item \code{m_estimate_s4()} - Sample influence QC analysis
-  \item \code{calculate_lm_interaction_s4()} - LM interaction testing
+  \item \code{calculate_lm_s4()} - LM interaction testing
   \item \code{plot_lm_interaction_gam_s4()} - GAM visualization of LM results
   \item \code{jackknife_isoform_switching_s4()} - Transcript switching detection
   \item \code{prepare_gene_switching_tables_s4()} - Prepare gene switching summary tables

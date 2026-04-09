@@ -22,7 +22,7 @@ test_that("fpca method attaches p_interaction to rowData", {
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
 
     # lower min_obs so test is robust; 4 samples with full q coverage should pass
-    res <- .calculate_lm_interaction(se, condition_col = "sample_type", method = "fpca", min_obs = 2)
+    res <- .calculate_lm(se, condition_col = "sample_type", method = "fpca", min_obs = 2)
     if (is.data.frame(res)) {
         rd_out <- as.data.frame(res)
     } else {
@@ -288,7 +288,7 @@ test_that(".fpca_interaction works with all regularization methods", {
     )
     
     # Test PCA regularization
-    res_pca <- .calculate_lm_interaction(se,
+    res_pca <- .calculate_lm(se,
         condition_col = "sample_type",
         method = "fpca",
         regularization = "pca",
@@ -297,7 +297,7 @@ test_that(".fpca_interaction works with all regularization methods", {
     
     # Test LASSO regularization
     res_lasso <- suppressWarnings({
-        .calculate_lm_interaction(se,
+        .calculate_lm(se,
             condition_col = "sample_type",
             method = "fpca",
             regularization = "lasso",
@@ -307,7 +307,7 @@ test_that(".fpca_interaction works with all regularization methods", {
     
     # Test Elastic Net regularization
     res_elasticnet <- suppressWarnings({
-        .calculate_lm_interaction(se,
+        .calculate_lm(se,
             condition_col = "sample_type",
             method = "fpca",
             regularization = "elasticnet",
@@ -376,14 +376,14 @@ test_that("FPCA with regularization='pca' (default) works correctly", {
     )
     
     # Default method should be "pca"
-    res_default <- .calculate_lm_interaction(se,
+    res_default <- .calculate_lm(se,
         condition_col = "sample_type",
         method = "fpca",
         min_obs = 2
     )
     
     # Explicit "pca" method should give same result
-    res_pca <- .calculate_lm_interaction(se,
+    res_pca <- .calculate_lm(se,
         condition_col = "sample_type",
         method = "fpca",
         regularization = "pca",
@@ -443,7 +443,7 @@ test_that("FPCA with regularization='lasso' produces valid results", {
         colData = cd
     )
     
-    res_lasso <- .calculate_lm_interaction(se,
+    res_lasso <- .calculate_lm(se,
         condition_col = "sample_type",
         method = "fpca",
         regularization = "lasso",
@@ -497,7 +497,7 @@ test_that("FPCA with regularization='elasticnet' produces valid results", {
         colData = cd
     )
     
-    res_elasticnet <- .calculate_lm_interaction(se,
+    res_elasticnet <- .calculate_lm(se,
         condition_col = "sample_type",
         method = "fpca",
         regularization = "elasticnet",
@@ -552,21 +552,21 @@ test_that("FPCA regularization methods produce reasonable p-value differences", 
     )
     
     # Compare all three methods
-    res_pca <- .calculate_lm_interaction(se,
+    res_pca <- .calculate_lm(se,
         condition_col = "sample_type",
         method = "fpca",
         regularization = "pca",
         min_obs = 2
     )
     
-    res_lasso <- .calculate_lm_interaction(se,
+    res_lasso <- .calculate_lm(se,
         condition_col = "sample_type",
         method = "fpca",
         regularization = "lasso",
         min_obs = 2
     )
     
-    res_elasticnet <- .calculate_lm_interaction(se,
+    res_elasticnet <- .calculate_lm(se,
         condition_col = "sample_type",
         method = "fpca",
         regularization = "elasticnet",
@@ -652,7 +652,7 @@ test_that("FPCA regularization with paired design works correctly", {
     )
     
     # Test regularization with paired design (with sufficient observations for glmnet)
-    res <- .calculate_lm_interaction(se,
+    res <- .calculate_lm(se,
         condition_col = "sample_type",
         method = "fpca",
         subject_col = "sample_base",

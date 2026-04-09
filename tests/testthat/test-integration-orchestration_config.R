@@ -1402,7 +1402,7 @@ test_that("getMeta returns concise metadata only (not large result tables)", {
       pvalue = 0.05
     ),
     # Function call logs (should NOT be returned)
-    function_calls = c("calculate_diversity[q=0]", "calculate_lm_interaction"),
+    function_calls = c("calculate_diversity[q=0]", "calculate_lm"),
     function_timestamps = c("2026-04-09 10:05:00", "2026-04-09 10:15:00")
   )
   

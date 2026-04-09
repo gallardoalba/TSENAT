@@ -1043,7 +1043,7 @@ test_that("calculate_difference rejects multiple q values with helpful error", {
         "calculate_difference\\(\\) does not accept multiple q values"
     )
     
-    # Also verify the error message mentions calculate_lm_interaction as alternative
+    # Also verify the error message mentions calculate_lm as alternative
     expect_error(
         .calculate_difference(
             se_multi_q,
@@ -1051,7 +1051,7 @@ test_that("calculate_difference rejects multiple q values with helpful error", {
             method = "mean",
             test = "wilcoxon"
         ),
-        "calculate_lm_interaction\\(\\)"
+        "calculate_lm\\(\\)"
     )
 })
 

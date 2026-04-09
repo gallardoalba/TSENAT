@@ -115,7 +115,7 @@ test_that("Multiple plot functions work after lazy-loading", {
   # LM interaction requires at least 5 q-values
   analysis <- calculate_diversity_s4(analysis, q = seq(0.5, 2, by = 0.375), verbose = FALSE)
   analysis <- calculate_divergence_s4(analysis, q = seq(0.5, 2, by = 0.375), verbose = FALSE)
-  analysis <- calculate_lm_interaction_s4(
+  analysis <- calculate_lm_s4(
     analysis, 
     condition_col = "condition",
     verbose = FALSE

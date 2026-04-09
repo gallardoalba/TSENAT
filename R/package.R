@@ -48,7 +48,7 @@
 #'     Vectorized over genes and q-values with numerical stability safeguards.}
 #'   \item{\code{\link{jackknife_entropy_outliers_s4}}}{Resampling-based confidence intervals 
 #'     for diversity. Identifies outlier genes and validates q-value signal.}
-#'   \item{\code{\link{calculate_lm_interaction_s4}}}{Statistical testing for gene-by-condition 
+#'   \item{\code{\link{calculate_lm_s4}}}{Statistical testing for gene-by-condition 
 #'     interactions. LMM, GAM, and rank-based approaches.}
 #'   \item{\code{\link{calculate_divergence_s4}}}{Tsallis divergence between groups with 
 #'     effect size (Cohen's d, rank-biserial) and hypothesis testing.}

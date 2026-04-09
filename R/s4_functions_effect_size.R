@@ -18,7 +18,7 @@
         lm_only$rank_test <- NULL
     }
     if (length(lm_only) == 0) {
-        stop("LM results required. Run calculate_lm_interaction_s4() first.", call. = FALSE)
+        stop("LM results required. Run calculate_lm_s4() first.", call. = FALSE)
     }
 }
 
@@ -188,7 +188,7 @@
 #' @param analysis \code{TSENATAnalysis}.
 #'  An S4 object containing divergence results
 #'   (from \code{calculate_divergence_s4()}) and LM interaction results
-#'   (from \code{calculate_lm_interaction_s4()}).
+#'   (from \code{calculate_lm_s4()}).
 #'
 #' @param significance_threshold \code{numeric}. Adjusted p-value threshold for
 #'   filtering significant genes (default: 0.05).
@@ -263,7 +263,7 @@
 #' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
-#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam')
+#' analysis <- calculate_lm_s4(analysis, method = 'gam')
 #'
 #' # Compute effect sizes from divergence results
 #' analysis <- calculate_effect_sizes_s4(analysis,
@@ -277,7 +277,7 @@
 #'
 #' @seealso
 #' \code{\link{calculate_divergence_s4}} for divergence wrapper,
-#' \code{\link{calculate_lm_interaction_s4}} for LM interaction wrapper
+#' \code{\link{calculate_lm_s4}} for LM interaction wrapper
 #'
 #' @export
 #' @importFrom methods is

@@ -271,8 +271,8 @@
 #' )
 #' 
 #' # Run linear model interaction analysis
-#' results <- .calculate_lm_interaction(se, condition_col = 'condition')
-.calculate_lm_interaction <- function(se, condition_col = "condition", min_obs = 5,
+#' results <- .calculate_lm(se, condition_col = 'condition')
+.calculate_lm <- function(se, condition_col = "condition", min_obs = 5,
     method = c("lmm", "gam", "fpca", "gee"), pvalue = c("satterthwaite", "lrt", "both"),
     subject_col = NULL, paired = FALSE, nthreads = 1, assay_name = "diversity", pcorr = "BH",
     verbose = FALSE, bias_correction = TRUE, regularization = c("pca", "lasso", "elasticnet",
@@ -341,7 +341,7 @@
 
     # Fit models to all genes
     if (verbose)
-        message("[.calculate_lm_interaction] Starting .fit_all_genes() for ", nrow(mat),
+        message("[.calculate_lm] Starting .fit_all_genes() for ", nrow(mat),
             " genes")
 
     # Phase 15: Wrap .fit_all_genes in try-error to catch any errors during
@@ -359,13 +359,13 @@
         } else {
             as.character(res)
         }
-        warning("[.calculate_lm_interaction] .fit_all_genes() failed with: ", error_msg,
+        warning("[.calculate_lm] .fit_all_genes() failed with: ", error_msg,
             "\n[Returning empty results]", call. = FALSE)
         res <- data.frame()
     }
 
     if (verbose && nrow(res) > 0)
-        message("[.calculate_lm_interaction] .fit_all_genes() completed successfully with ",
+        message("[.calculate_lm] .fit_all_genes() completed successfully with ",
             nrow(res), " results")
 
 
@@ -428,7 +428,7 @@
 #' (when return_model_data=TRUE). This ensures compatibility with plotting and 
 #' analysis functions regardless of return format.
 #'
-#' @param lm_result Result from .calculate_lm_interaction(), either a
+#' @param lm_result Result from .calculate_lm(), either a
 #' data.frame or a list
 #'
 #' @return The results data.frame with columns gene, p_interaction,
@@ -442,6 +442,6 @@
     } else if (is.list(lm_result) && "results" %in% names(lm_result)) {
         return(lm_result$results)
     } else {
-        stop("lm_result must be either a data.frame or a list with 'results' component from .calculate_lm_interaction()")
+        stop("lm_result must be either a data.frame or a list with 'results' component from .calculate_lm()")
     }
 }

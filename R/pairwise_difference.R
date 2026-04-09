@@ -213,7 +213,7 @@
     if (length(unique_q) > 1) {
         stop(".calculate_difference() does not accept multiple q values ", "(q-values are mathematically dependent via AR(1) covariance structure).\n",
             "  Input has q values: ", paste(sort(unique_q), collapse = ", "), "\n",
-            "  For proper multi-q analysis that accounts for correlation:\n", "    Use .calculate_lm_interaction() instead, which supports:\n",
+            "  For proper multi-q analysis that accounts for correlation:\n", "    Use .calculate_lm() instead, which supports:\n",
             "    - method='lmm': Linear mixed models with AR(1) covariance (recommended)\n",
             "    - method='gam': Generalized additive models\n", "    - method='fpca': Functional PCA (implicit AR(1) via ordered curves)\n",
             "    - method='gee': Generalized estimating equations\n", "  Or reduce to a single q value (e.g., q=1 for Shannon entropy).",

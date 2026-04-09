@@ -5,7 +5,7 @@
 #' is a
 #' **data merger**, not a model fitter--all statistical computation happens
 #' upstream in:
-#' - `.calculate_lm_interaction()` -> LMM p-values
+#' - `.calculate_lm()` -> LMM p-values
 #' - `.calculate_divergence()` -> Divergence estimates and CIs for multiple q
 #'
 #' This function merges the results into a single data frame for downstream
@@ -29,7 +29,7 @@
 #' ```
 #'
 #' @param lm_res A data frame of LMM interaction test results from
-#' `.calculate_lm_interaction()`,
+#' `.calculate_lm()`,
 #' with columns: `gene` (character, gene name), `adj_p_interaction`
 #' (numeric, multiple-test adjusted p-value).
 #'   Genes with adj_p_interaction below `significance_threshold` are included.

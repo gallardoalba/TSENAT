@@ -1,4 +1,4 @@
-# Tests for calculate_lm_interaction_s4 S4 wrapper function
+# Tests for calculate_lm_s4 S4 wrapper function
 
 # Setup: Local helper to create test analysis with optional diversity results
 .create_test_analysis <- function(
@@ -22,7 +22,7 @@
   return(analysis)
 }
 
-test_that("S4 Wrappers: calculate_lm_interaction_s4 accepts new arguments", {
+test_that("S4 Wrappers: calculate_lm_s4 accepts new arguments", {
   # Create analysis with diversity results (default behavior)
   analysis <- .create_test_analysis()
   
@@ -45,7 +45,7 @@ test_that("S4 Wrappers: calculate_lm_interaction_s4 accepts new arguments", {
     arg_string <- paste(names(args), collapse = ", ")
     # Test that arguments are accepted
     result <- tryCatch({
-      do.call(calculate_lm_interaction_s4, 
+      do.call(calculate_lm_s4, 
               c(list(analysis = analysis, verbose = FALSE), args))
     }, error = function(e) {
       list(error = paste("Error:", e$message))
@@ -320,5 +320,5 @@ test_that("Helper: .store_lm_results_in_analysis tracks function call", {
   result <- .store_lm_results_in_analysis(analysis, lm_results_df)
   
   # Check that function call was tracked
-  expect_true("calculate_lm_interaction" %in% result@metadata$function_calls)
+  expect_true("calculate_lm" %in% result@metadata$function_calls)
 })

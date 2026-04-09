@@ -2140,12 +2140,12 @@ require_pkgs <- function(pkgs) {
     }
 
     if (!is.data.frame(lm_res) || !("gene" %in% colnames(lm_res))) {
-        stop("lm_res must be either:\n  1. A data.frame with 'gene' column from .calculate_lm_interaction()\n  2. A list with $results and $model_data from return_model_data = TRUE",
+        stop("lm_res must be either:\n  1. A data.frame with 'gene' column from .calculate_lm()\n  2. A list with $results and $model_data from return_model_data = TRUE",
             call. = FALSE)
     }
 
     if (nrow(lm_res) == 0) {
-        stop("lm_res has no rows; .calculate_lm_interaction() returned no genes",
+        stop("lm_res has no rows; .calculate_lm() returned no genes",
             call. = FALSE)
     }
 
@@ -2156,7 +2156,7 @@ require_pkgs <- function(pkgs) {
 #'
 #' Validates model_data and extracts/normalizes q-values for GAM analysis.
 #'
-#' @param model_data List from .calculate_lm_interaction(...,
+#' @param model_data List from .calculate_lm(...,
 #' return_model_data = TRUE)$model_data
 #'
 #' @return Numeric vector of q-values
@@ -2169,7 +2169,7 @@ require_pkgs <- function(pkgs) {
     }
 
     if (!is.list(model_data)) {
-        stop("model_data must be a list from .calculate_lm_interaction(..., return_model_data = TRUE)",
+        stop("model_data must be a list from .calculate_lm(..., return_model_data = TRUE)",
             call. = FALSE)
     }
 

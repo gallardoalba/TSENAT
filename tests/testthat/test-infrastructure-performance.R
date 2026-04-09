@@ -263,10 +263,10 @@ test_that("calculate_diversity scales linearly with gene count", {
 })
 
 # ============================================================================
-# TEST 6: CALCULATE_LM_INTERACTION_S4 PERFORMANCE
+# TEST 6: CALCULATE_LM_S4 PERFORMANCE
 # ============================================================================
 
-test_that("calculate_lm_interaction_s4 completes efficiently", {
+test_that("calculate_lm_s4 completes efficiently", {
   skip_if_not_installed("microbenchmark")
   
   # Create test data with proper column name format for LM interaction
@@ -303,17 +303,17 @@ test_that("calculate_lm_interaction_s4 completes efficiently", {
     colData = cd
   )
   
-  # Benchmark calculate_lm_interaction
+  # Benchmark calculate_lm
   bench <- microbenchmark::microbenchmark(
     times = 2,
-    .calculate_lm_interaction(se, condition_col = "condition")
+    .calculate_lm(se, condition_col = "condition")
   )
   
   # LM fitting should be reasonably fast - tighter threshold for regression tracking
   # Observed: ~82.7 ms; threshold = 100 ms (83% typical usage, handles variance)
   expect_lt(median(bench$time) / 1e6, 100)
   
-  .report_benchmark(".calculate_lm_interaction(50 genes, 6 samples with 3 q-values)",
+  .report_benchmark(".calculate_lm(50 genes, 6 samples with 3 q-values)",
                     bench$time, threshold_ms = 100)
 })
 
@@ -754,7 +754,7 @@ test_that("vectorized CI quantile computation is efficient", {
 # Key Functions Tested:
 #   - .calculate_diversity() / calculate_diversity_s4()
 #   - .calculate_divergence() / calculate_divergence_s4()
-#   - .calculate_lm_interaction()
+#   - .calculate_lm()
 #   - jackknife_isoform_switching_s4()
 #   - detect_q_gene_interactions_s4()
 #   - .filter_se()

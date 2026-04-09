@@ -497,7 +497,7 @@ q-response patterns and is particularly useful for complex interaction structure
 ```{r test-q-condition-interaction}
 # Linear-model interaction test across q values using S4 wrapper
 if (requireNamespace("mgcv", quietly = TRUE)) {
-    analysis <- calculate_lm_interaction_s4(
+    analysis <- calculate_lm_s4(
         analysis,
         method = "gam",
         multicorr = "hochberg"

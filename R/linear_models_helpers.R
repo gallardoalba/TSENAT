@@ -945,7 +945,7 @@ if (getOption("TSENAT.memoization", TRUE)) {
 
 
 
-# Helper functions for .calculate_lm_interaction() These internal functions
+# Helper functions for .calculate_lm() These internal functions
 # decompose the main function logic into focused, testable components that each
 # handle a single responsibility.
 
@@ -953,7 +953,7 @@ if (getOption("TSENAT.memoization", TRUE)) {
 #'
 #' @description
 #' Internal helper that consolidates parameter validation for
-#' \code{.calculate_lm_interaction()}. Checks argument types, values,
+#' \code{.calculate_lm()}. Checks argument types, values,
 #' and inter-dependencies to ensure valid model fitting.
 #'
 #' @param method Character; modeling method (matched from user input)
@@ -1080,7 +1080,7 @@ if (getOption("TSENAT.memoization", TRUE)) {
         group_vec <- unname(st[sample_q])
     } else {
         stop("No sample grouping found: please supply `condition_col` ", "or map sample types into `colData(se)` before calling ",
-            ".calculate_lm_interaction().", call. = FALSE)
+            ".calculate_lm().", call. = FALSE)
     }
 
     if (verbose) {

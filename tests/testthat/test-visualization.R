@@ -6049,7 +6049,7 @@ analysis <- filter_analysis_s4(
 analysis <- calculate_diversity_s4(analysis, norm = TRUE, verbose = FALSE)
 
 # Calculate LM interaction results for plotting tests
-analysis <- suppressWarnings(calculate_lm_interaction_s4(
+analysis <- suppressWarnings(calculate_lm_s4(
     analysis,
     method = "gam",
     multicorr = "hochberg",
@@ -6078,7 +6078,7 @@ test_that("plot_lm_interaction_gam_s4 produces faceted grid with correct structu
 test_that("plot_lm_interaction_gam_s4 creates plot when method='gam'", {
     skip_on_cran()
     # First calculate LM with GAM method
-    test_analysis <- suppressWarnings(calculate_lm_interaction_s4(
+    test_analysis <- suppressWarnings(calculate_lm_s4(
         analysis,
         method = "gam",
         multicorr = "hochberg",
@@ -6179,7 +6179,7 @@ test_that("prepare_gene_switching_tables_s4 returns sorted/ordered output", {
 test_that("LM results integrate properly with visualization pipeline", {
     skip_on_cran()
     # Calculate LM
-    test_analysis <- suppressWarnings(calculate_lm_interaction_s4(
+    test_analysis <- suppressWarnings(calculate_lm_s4(
         analysis,
         method = "gam",
         verbose = FALSE

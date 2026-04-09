@@ -23,7 +23,7 @@
 #' (default 90).
 #' @param n_bootstrap Numeric: number of bootstrap resamples (default 1000).
 #' @param verbose Logical: print results and verbose output? (default TRUE).
-#' @param lm_results Data frame: results from .calculate_lm_interaction()
+#' @param lm_results Data frame: results from .calculate_lm()
 #' with 'gene' column.
 #' Can contain either gene names or gene IDs; function automatically maps
 #' names to IDs

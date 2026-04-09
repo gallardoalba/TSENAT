@@ -961,7 +961,7 @@ plot_volcano_ma_grid_s4 <- function(analysis, x_col = NULL, padj_col = "padj", l
 #' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
-#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam')
+#' analysis <- calculate_lm_s4(analysis, method = 'gam')
 #' # Note: calculate_concordance_s4 requires results from both
 #' # rank_test_q_condition_s4 and test_rankbased_assumptions_s4
 #'
@@ -1521,7 +1521,7 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5), verbose
 #' = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
+#' analysis <- calculate_lm_s4(analysis, method = 'gam', verbose
 #' = FALSE)
 #' plot_file <- plot_top_transcripts_s4(analysis, top_n = 3)
 #'
@@ -1717,7 +1717,7 @@ plot_top_transcripts_s4 <- function(analysis, gene = NULL, condition_col = NULL,
 #' = FALSE)
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5), verbose
 #' = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam')
+#' analysis <- calculate_lm_s4(analysis, method = 'gam')
 #' analysis <- calculate_effect_sizes_s4(analysis)
 #' p_dist <- plot_divergence_distribution_s4(analysis)
 #' print(p_dist)
@@ -1861,7 +1861,7 @@ plot_divergence_distribution_s4 <- function(analysis, threshold = 0.1, output_fi
 #'
 #' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
-#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam')
+#' analysis <- calculate_lm_s4(analysis, method = 'gam')
 #' analysis <- jackknife_isoform_switching_s4(analysis, n_bootstrap = 50)
 #' analysis <- prepare_gene_switching_tables_s4(analysis)
 #' # Access tables from metadata
@@ -1893,7 +1893,7 @@ prepare_gene_switching_tables_s4 <- function(analysis, n_top_genes = NULL, n_tra
 
     lm_results_list <- analysis@lm_results
     if (is.null(lm_results_list) || length(lm_results_list) == 0) {
-        stop("No LM results found in analysis@lm_results. Run calculate_lm_interaction_s4() first.")
+        stop("No LM results found in analysis@lm_results. Run calculate_lm_s4() first.")
     }
 
     # Try to get lm_interaction results first, fallback to first available
@@ -2085,7 +2085,7 @@ prepare_gene_switching_tables_s4 <- function(analysis, n_top_genes = NULL, n_tra
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5), verbose
 #' = FALSE)
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
-#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam')
+#' analysis <- calculate_lm_s4(analysis, method = 'gam')
 #' analysis <- jackknife_isoform_switching_s4(analysis, q = c(0.5, 1, 1.5),
 #'   n_bootstrap = 50)
 #' heatmap_file <- plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes
@@ -2243,7 +2243,7 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(analysis, n_genes = 4, lm_re
 #' }
 #'
 #' @seealso
-#' \code{\link{calculate_lm_interaction_s4}} for 
+#' \code{\link{calculate_lm_s4}} for 
 #' running LM analysis on TSENATAnalysis.
 #'
 #' @examples
@@ -2281,7 +2281,7 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(analysis, n_genes = 4, lm_re
 #' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 #' analysis <- calculate_diversity_s4(analysis, q = seq(0.2, 2.5, by =
 #' 0.15))
-#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam')
+#' analysis <- calculate_lm_s4(analysis, method = 'gam')
 #' 
 #' p_gam <- plot_lm_interaction_gam_s4(analysis, n_top = 2, sig_alpha = 0.15)
 #' print(p_gam)
@@ -2303,7 +2303,7 @@ plot_lm_interaction_gam_s4 <- function(analysis, n_top = 6, genes = NULL, condit
     # Check that LM results exist
     if (is.null(analysis@lm_results) || is.null(analysis@lm_results$lm_interaction)) {
         stop("[plot_lm_interaction_gam_s4] No LM interaction results found in @lm_results$lm_interaction. ",
-            "Run calculate_lm_interaction_s4() first.", call. = FALSE)
+            "Run calculate_lm_s4() first.", call. = FALSE)
     }
 
     lm_res <- analysis@lm_results$lm_interaction
@@ -2338,7 +2338,7 @@ plot_lm_interaction_gam_s4 <- function(analysis, n_top = 6, genes = NULL, condit
 
     # =========================================================================
     # RECONSTRUCT COMBINED DIVERSITY SE FOR PLOTTING (Same approach as in
-    # calculate_lm_interaction_s4)
+    # calculate_lm_s4)
     # =========================================================================
     # Extract q-values from diversity_results keys
     q_keys <- names(analysis@diversity_results)
@@ -2971,7 +2971,7 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min
 #'   \item{@config}{Analysis configuration (empty list or user-provided)}
 #'   \item{@diversity_results}{Empty list (populated by calculate_diversity_s4())}
 #'   \item{@divergence_results}{Empty list (populated by calculate_divergence_s4())}
-#'   \item{@lm_results}{Empty list (populated by calculate_lm_interaction_s4())}
+#'   \item{@lm_results}{Empty list (populated by calculate_lm_s4())}
 #'   \item{@jackknife_results}{Empty list (populated by jackknife functions)}
 #'   \item{@plots}{Empty list (populated by plotting functions)}
 #'   \item{@metadata}{Metadata with package version and creation timestamp}
@@ -3222,7 +3222,7 @@ build_analysis_s4 <- function(readcounts = NULL, salmon_dir = NULL, tx2gene, ass
     }
 
     # Store metadata in config for later use (e.g., in
-    # calculate_lm_interaction_s4)
+    # calculate_lm_s4)
     if (!is.null(metadata)) {
         config$metadata <- metadata
     }

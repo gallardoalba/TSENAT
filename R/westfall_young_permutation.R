@@ -20,7 +20,7 @@
 #' Example workflow:
 #' ```
 #' 1. [For multi-q correlation-adjusted analysis, see
-#' .calculate_lm_interaction() with multicorr='westfall-young']
+#' .calculate_lm() with multicorr='westfall-young']
 #' 2. Or: Use .rank_test_q_condition() for rank-based multi-q testing with
 #' WY control
 #'   3. Then: pi0_obj <- .estimate_storey_pi0(adjusted_pvalues)
@@ -333,7 +333,7 @@
 # WESTFALL-YOUNG PERMUTATION HELPER (March 2026)
 # ════════════════════════════════════════════════════════════════════════════════
 # Consolidates redundant WY permutation logic shared between: 1.
-# .calculate_lm_interaction() - parametric tests (GAM, LMM, GEE) 2.
+# .calculate_lm() - parametric tests (GAM, LMM, GEE) 2.
 # .rank_test_q_condition() - rank-based tests (Kruskal-Wallis, conditional
 # rank) DESIGN PATTERN: - Core permutation loop is identical in both functions
 # (~70% code duplication) - Model refitting logic differs (parametric vs
