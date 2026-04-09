@@ -134,7 +134,7 @@
 #' )
 #' 
 #' # View top interaction results (first 3 genes)
-#' res <- lmResults(analysis, 'lm_interaction')
+#' res <- lmResults(analysis)
 #' if (!is.null(res)) head(res, 3)
 #'
 #' @export

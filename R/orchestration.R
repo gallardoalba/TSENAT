@@ -297,8 +297,8 @@ tsenat <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
 #'
 #' @param analysis \code{TSENATAnalysis} object containing computed results.
 #' @param type \code{character}. Type of results to extract:
-#'   'diversity', 'divergence', 'lm', 'jackknife', or 'rank_test'.
-#'   Default: 'diversity'.
+#'   'diversity', 'divergence', 'lm', 'jackknife', 'rank_test', 'effect_sizes_divergence',
+#'   or 'switching_tables'. Default: 'diversity'.
 #' @param q \code{numeric}. For diversity results, optionally return results for 
 #'   a specific q-value only. When specified, returns a single SummarizedExperiment 
 #'   for that q-value instead of the full list. Default: NULL (return all q-values 
@@ -319,6 +319,8 @@ tsenat <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
 #'   - For diversity with q specified: A single SummarizedExperiment for that q-value
 #'   - For divergence: A SummarizedExperiment (rows=genes, columns=q-values), data.frame, or other format depending on divergence computation method
 #'   - For lm/jackknife: A data.frame or list based on type and format
+#'   - For effect_sizes_divergence: A list containing effect size divergence results with components like interaction_results
+#'   - For switching_tables: A list containing gene switching comparison tables
 #'   Returns NULL if requested result type not computed or no results pass filtering.
 #'
 #' @details
@@ -421,8 +423,12 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
                     
                     if (!is.null(q_char)) {
                         jk_q_result <- jk_res[[q_char]]
-                        # Extract summary_table if available, otherwise use result as-is
-                        if (is.list(jk_q_result) && "summary_table" %in% names(jk_q_result)) {
+                        # If rankBy is pvalue/qvalue, keep full structure for ranking logic to select table
+                        # Otherwise, extract summary_table as default
+                        if (rankBy %in% c("pvalue", "qvalue")) {
+                            # Keep as list for ranking logic to select all_transcript_stats
+                            jk_res <- jk_q_result
+                        } else if (is.list(jk_q_result) && "summary_table" %in% names(jk_q_result)) {
                             jk_res <- jk_q_result$summary_table
                         } else if (is.data.frame(jk_q_result)) {
                             jk_res <- jk_q_result
@@ -438,8 +444,10 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
                 } else if ("multi_q" %in% names(jk_res)) {
                     # For multi-q jackknife without specific q parameter, try to use the multi_q result
                     jk_multi <- jk_res[["multi_q"]]
-                    # Extract summary_table if available
-                    if (is.list(jk_multi) && "summary_table" %in% names(jk_multi)) {
+                    # If rankBy is pvalue/qvalue, keep full structure; otherwise extract summary_table
+                    if (rankBy %in% c("pvalue", "qvalue")) {
+                        jk_res <- jk_multi
+                    } else if (is.list(jk_multi) && "summary_table" %in% names(jk_multi)) {
                         jk_res <- jk_multi$summary_table
                     } else if (is.data.frame(jk_multi)) {
                         jk_res <- jk_multi
@@ -449,7 +457,12 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
                     }
                 } else if ("summary_table" %in% names(jk_res)) {
                     # Single-q jackknife with summary_table
-                    jk_res <- jk_res$summary_table
+                    # Only extract if not ranking by pvalue/qvalue
+                    if (rankBy %in% c("pvalue", "qvalue")) {
+                        # Keep as list to allow ranking logic to select all_transcript_stats
+                    } else {
+                        jk_res <- jk_res$summary_table
+                    }
                 }
             }
             jk_res
@@ -457,16 +470,30 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
         rank_test = if (!is.null(analysis@lm_results) && "rank_test" %in% names(analysis@lm_results)) {
             analysis@lm_results$rank_test
         } else NULL,
+        effect_sizes_divergence = S4Vectors::metadata(analysis)$effect_sizes_divergence,
+        switching_tables = S4Vectors::metadata(analysis)$switching_tables,
         stop("Unknown result type: '", type, "'. Must be one of: ", 
-             "diversity, divergence, lm, jackknife, rank_test", call. = FALSE)
+             "diversity, divergence, lm, jackknife, rank_test, effect_sizes_divergence, switching_tables", call. = FALSE)
     )
 
     if (is.null(result)) {
         return(NULL)
     }
 
-    # Check for incompatible rankBy usage
-    if (rankBy != "none" && !type %in% c("lm", "jackknife", "rank_test")) {
+    # Check for incompatible rankBy usage (type-specific validation)
+    # Effect sizes divergence: more specific message
+    if (type == "effect_sizes_divergence" && (!is.null(filterFDR) || rankBy != "none")) {
+        warning("rankBy and filterFDR are not supported for type='effect_sizes_divergence'. ",
+                "Ignoring these parameters. Access metadata directly for advanced filtering: ",
+                "analysis@metadata$effect_sizes_divergence",
+                call. = FALSE)
+    } else if (type == "switching_tables" && (!is.null(filterFDR) || rankBy != "none")) {
+        warning("rankBy and filterFDR are not supported for type='switching_tables'. ",
+                "Ignoring these parameters. The switching tables are pre-computed with optimal ",
+                "ranking and filtering.",
+                call. = FALSE)
+    } else if (rankBy != "none" && !type %in% c("lm", "jackknife", "rank_test")) {
+        # Generic warning for other unsupported types
         warning("rankBy='", rankBy, "' is not supported for type='", type, "'. ",
                 "Ignoring rankBy parameter. rankBy is only supported for types: ",
                 "'lm', 'jackknife', 'rank_test'.",
@@ -478,33 +505,54 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
         # Filter by q-value if specified
         if (!is.null(q)) {
             # result is a list of SummarizedExperiment objects, one per q-value
-            # Try both q_X.XXX (dot) and q_X_XXX (underscore) formats
-            q_char <- sprintf("q_%.3f", q)
-            q_char_underscore <- sprintf("q_%s", gsub("\\.", "_", sprintf("%.3f", q)))
+            # Try multiple precision levels for robustness (matches diversity() accessor pattern)
+            q_key <- NULL
+            supported_decimals <- c(3, 2, 1, 0)  # Try 3 decimals first, then fewer
             
-            if (!q_char %in% names(result)) {
-                # Try underscore format
+            for (decimals in supported_decimals) {
+                candidate_key <- paste0("q_", formatC(q, format = "f", digits = decimals))
+                if (candidate_key %in% names(result)) {
+                    q_key <- candidate_key
+                    break
+                }
+            }
+            
+            # If still not found, try underscore format (q_X_XXX instead of q_X.XXX)
+            if (is.null(q_key)) {
+                q_formatted <- formatC(q, format = "f", digits = 1)  # Default to 1 decimal
+                q_char_underscore <- paste0("q_", gsub("\\.", "_", q_formatted))
                 if (q_char_underscore %in% names(result)) {
-                    q_char <- q_char_underscore
-                } else {
-                    # Try without zero-padding in case names are stored differently
-                    q_alt <- as.character(q)
-                    q_char_alt <- paste0("q_", q_alt)
-                    
-                    if (q_char_alt %in% names(result)) {
-                        q_char <- q_char_alt
-                    } else {
-                        # Format error message with dots instead of underscores for readability
-                        q_display <- gsub("_", ".", gsub("^q_", "", names(result)))
-                        stop("Q-value ", q, " not found in results. Available q-values: ", 
-                             paste(q_display, collapse = ", "), 
-                             call. = FALSE)
+                    q_key <- q_char_underscore
+                }
+            }
+            
+            # Last resort: try direct character conversion with various formats
+            if (is.null(q_key)) {
+                # Try as integer if q is whole number
+                if (q == as.integer(q)) {
+                    candidate_key <- paste0("q_", as.integer(q))
+                    if (candidate_key %in% names(result)) {
+                        q_key <- candidate_key
                     }
                 }
             }
             
+            if (is.null(q_key)) {
+                # Format error message extracting just the numeric part
+                available_q <- sapply(names(result), function(x) {
+                    numeric_part <- sub("^q_", "", x)
+                    numeric_part <- gsub("_", ".", numeric_part)
+                    as.numeric(numeric_part)
+                })
+                available_q <- available_q[!is.na(available_q)]
+                available_q <- sort(unique(available_q))
+                stop("Q-value ", q, " not found in results. Available q-values: ", 
+                     paste(available_q, collapse = ", "), 
+                     call. = FALSE)
+            }
+            
             # Return single SE for specified q-value
-            result <- result[[q_char]]
+            result <- result[[q_key]]
         }
         return(result)
     }
@@ -512,12 +560,24 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
     # === LM/STATISTICAL RESULTS HANDLING ===
     if (type %in% c("lm", "jackknife", "rank_test")) {
         
-        # Filter by FDR if specified
+        # Filter by FDR if specified - type-specific column detection
         if (!is.null(filterFDR) && is.data.frame(result)) {
-            padj_col <- if ("padj" %in% colnames(result)) "padj" 
-                       else if ("adj.p.val" %in% colnames(result)) "adj.p.val"
-                       else if ("FDR" %in% colnames(result)) "FDR"
-                       else NULL
+            padj_col <- if (type == "lm") {
+                # LM results use adj_p_interaction
+                if ("adj_p_interaction" %in% colnames(result)) "adj_p_interaction"
+                else NULL
+            } else if (type == "rank_test") {
+                # rank_test results use adj_p_value
+                if ("adj_p_value" %in% colnames(result)) "adj_p_value"
+                else NULL
+            } else if (type == "jackknife") {
+                # Jackknife results use fdr (summary_table) or delta_fdr (per-transcript)
+                if ("fdr" %in% colnames(result)) "fdr"
+                else if ("delta_fdr" %in% colnames(result)) "delta_fdr"
+                else NULL
+            } else {
+                NULL
+            }
             
             if (!is.null(padj_col)) {
                 result <- result[!is.na(result[[padj_col]]) & result[[padj_col]] <= filterFDR, , drop = FALSE]
@@ -529,21 +589,28 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
 
         # Rank and subset if requested
         if (rankBy != "none") {
-            # For jackknife results with ranking, must specify a q-value
-            if (type == "jackknife" && is.null(q)) {
-                stop("Ranking jackknife results requires specifying q parameter. ",
-                     "Use results(result, type='jackknife', q=<value>, rankBy='pvalue', n=20)",
-                     call. = FALSE)
+            # For jackknife, check if we need to switch to transcript-level data for pvalue/qvalue ranking
+            # This is needed because initial extraction returns summary_table by default
+            if (type == "jackknife") {
+                # If we have list structure with all_transcript_stats (not yet extracted)
+                if (is.list(result) && !is.data.frame(result)) {
+                    if (rankBy %in% c("pvalue", "qvalue") && "all_transcript_stats" %in% names(result)) {
+                        result <- result$all_transcript_stats
+                    } else if ("summary_table" %in% names(result) && is.data.frame(result$summary_table)) {
+                        result <- result$summary_table
+                    }
+                }
+                # Note: If result is already a data.frame, keep it as-is and proceed to ranking
+                # (it should have the appropriate columns based on what was extracted)
             }
             
-            # For jackknife results that may be lists, try to extract data.frame
+            # For non-jackknife list results, try to extract data.frame
             if (!is.data.frame(result) && is.list(result)) {
+                # Try to extract data.frame from nested list
                 if ("summary_table" %in% names(result) && is.data.frame(result$summary_table)) {
                     result <- result$summary_table
-                } else if (type %in% c("jackknife", "jeoResults")) {
-                    # If still not a data.frame and type is jackknife, cannot rank
-                    stop("Ranking requires data.frame results. Type '", type, "' returned nested list structure ",
-                         "that cannot be converted to data.frame for ranking.", call. = FALSE)
+                } else if ("results" %in% names(result) && is.data.frame(result$results)) {
+                    result <- result$results
                 }
             }
             
@@ -552,25 +619,50 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
                      call. = FALSE)
             }
             
-            # Determine ranking column
-            rank_col <- switch(rankBy,
-                pvalue = if ("p_interaction" %in% colnames(result)) "p_interaction"
-                        else if ("p_value" %in% colnames(result)) "p_value"
-                        else if ("pvalue" %in% colnames(result)) "pvalue" else NULL,
-                qvalue = if ("adj_p_interaction" %in% colnames(result)) "adj_p_interaction"
-                        else if ("adj_p_value" %in% colnames(result)) "adj_p_value"
-                        else if ("padj" %in% colnames(result)) "padj" 
-                        else if ("adj.p.val" %in% colnames(result)) "adj.p.val"
-                        else if ("FDR" %in% colnames(result)) "FDR"
-                        else NULL,
-                effectSize = if ("effect_size_eta2" %in% colnames(result)) "effect_size_eta2"
-                            else if ("effect_size" %in% colnames(result)) "effect_size"
-                            else if ("statistic" %in% colnames(result)) "statistic"
-                            else if ("estimate" %in% colnames(result)) "estimate"
-                            else if ("dIF" %in% colnames(result)) "dIF"
+            # Determine ranking column based on result type with type-specific column detection
+            # LM: p_interaction / adj_p_interaction / statistic (effect) + estimate + effect_size
+            # rank_test: p_value / adj_p_value / statistic or estimate
+            # jackknife: pvalue / fdr / delta_influence + max_delta_influence
+            rank_col <- if (type == "lm") {
+                # LM results
+                switch(rankBy,
+                    pvalue = if ("p_interaction" %in% colnames(result)) "p_interaction"
                             else NULL,
+                    qvalue = if ("adj_p_interaction" %in% colnames(result)) "adj_p_interaction"
+                            else NULL,
+                    effectSize = if ("statistic" %in% colnames(result)) "statistic"
+                                else if ("estimate" %in% colnames(result)) "estimate"
+                                else if ("effect_size" %in% colnames(result)) "effect_size"
+                                else NULL,
+                    NULL
+                )
+            } else if (type == "rank_test") {
+                # rank_test results
+                switch(rankBy,
+                    pvalue = if ("p_value" %in% colnames(result)) "p_value"
+                            else NULL,
+                    qvalue = if ("adj_p_value" %in% colnames(result)) "adj_p_value"
+                            else NULL,
+                    effectSize = if ("statistic" %in% colnames(result)) "statistic"
+                                else if ("estimate" %in% colnames(result)) "estimate"
+                                else NULL,
+                    NULL
+                )
+            } else if (type == "jackknife") {
+                # Jackknife (JIS) results
+                switch(rankBy,
+                    pvalue = if ("pvalue" %in% colnames(result)) "pvalue"
+                            else NULL,
+                    qvalue = if ("fdr" %in% colnames(result)) "fdr"
+                            else NULL,
+                    effectSize = if ("delta_influence" %in% colnames(result)) "delta_influence"
+                                else if ("max_delta_influence" %in% colnames(result)) "max_delta_influence"
+                                else NULL,
+                    NULL
+                )
+            } else {
                 NULL
-            )
+            }
             
             if (is.null(rank_col)) {
                 warning("Column for rankBy='", rankBy, "' not found in results. Skipping ranking.",
@@ -602,33 +694,36 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
 
     # === DIVERGENCE RESULTS HANDLING ===
     if (type == "divergence") {
-        # divergence_results is stored as a list wrapper, extract the actual data
-        if (is.list(result) && length(result) > 0) {
-            # Extract based on storage pattern from .store_divergence_results():
-            # - divergence_se: SummarizedExperiment
-            # - main: data.frame or matrix
-            # - result or other: wrapped data
-            if (!is.null(names(result))) {
-                # Named list - extract the first element (usually "divergence_se", "main", or "result")
-                result <- result[[1]]
-            } else if (length(result) == 1) {
-                # Unnamed list with single element
-                result <- result[[1]]
-            }
-            # If list had multiple elements and unnamed, leave as-is
+        # Extract actual divergence values if result is a SummarizedExperiment
+        if (methods::is(result, "SummarizedExperiment")) {
+            result <- SummarizedExperiment::assay(result, "divergence")
         }
-        
-        # Filter by FDR if specified (only works for data.frame)
-        if (!is.null(filterFDR) && is.data.frame(result)) {
-            padj_col <- if ("padj" %in% colnames(result)) "padj" else NULL
-            if (!is.null(padj_col)) {
-                result <- result[!is.na(result[[padj_col]]) & result[[padj_col]] <= filterFDR, , drop = FALSE]
-                if (nrow(result) == 0) return(NULL)
+        # If result is a list with SummarizedExperiment (e.g., divergence_se element)
+        else if (is.list(result) && length(result) > 0) {
+            # Try to extract SummarizedExperiment from list
+            for (i in seq_along(result)) {
+                if (methods::is(result[[i]], "SummarizedExperiment")) {
+                    result <- SummarizedExperiment::assay(result[[i]], "divergence")
+                    break
+                }
             }
         }
         
-        if (format != "auto") {
-            result <- .convert_result_format(result, format, type)
+        # Filtering and format conversion for data.frame results
+        if (is.data.frame(result) || is.matrix(result)) {
+            if (!is.null(filterFDR)) {
+                if (is.data.frame(result)) {
+                    padj_col <- if ("padj" %in% colnames(result)) "padj" else NULL
+                    if (!is.null(padj_col)) {
+                        result <- result[!is.na(result[[padj_col]]) & result[[padj_col]] <= filterFDR, , drop = FALSE]
+                        if (nrow(result) == 0) return(NULL)
+                    }
+                }
+            }
+            
+            if (format != "auto") {
+                result <- .convert_result_format(result, format, type)
+            }
         }
         
         return(result)
@@ -1077,8 +1172,9 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
         message(sprintf("[>] [%2d/14] Preparing gene switching tables", 8))
     tryCatch({
         output_file <- .build_output_file("gene_switching_tables", output_dir, output_format)
-        tables_result <- prepare_gene_switching_tables_s4(analysis, output_file = output_file, verbose = FALSE)
-        if (!is.null(tables_result)) {
+        # prepare_gene_switching_tables_s4 returns modified analysis with tables stored in metadata
+        analysis <- prepare_gene_switching_tables_s4(analysis, output_file = output_file, verbose = FALSE)
+        if (!is.null(analysis)) {
             if (verbose)
                 message("          [OK] Gene switching tables prepared")
         }

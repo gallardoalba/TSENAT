@@ -6181,8 +6181,8 @@ test_that("LM results integrate properly with visualization pipeline", {
         verbose = FALSE
     ))
     
-    # Get results
-    lm_res <- lmResults(test_analysis)$lm_interaction
+    # Get results - lmResults() returns data.frame directly (thin wrapper around results)
+    lm_res <- lmResults(test_analysis)
     expect_true(!is.null(lm_res))
     expect_true(is.data.frame(lm_res))
     expect_true(("gene" %in% colnames(lm_res)) || ("Gene" %in% colnames(lm_res)))

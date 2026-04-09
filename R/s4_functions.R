@@ -1808,7 +1808,8 @@ plot_divergence_distribution_s4 <- function(analysis, threshold = 0.1, output_fi
 #'
 #' @param ... Additional arguments passed to the base function.
 #'
-#' @return A list containing:
+#' @return Modified \code{TSENATAnalysis} object with switching tables stored in
+#'   \code{analysis@metadata$switching_tables}. The switching_tables list contains:
 #'   \describe{
 #'     \item{\code{$summary_table}}{Gene-level summary with LM p-values and
 #'           significant q-values}
@@ -1861,7 +1862,9 @@ plot_divergence_distribution_s4 <- function(analysis, threshold = 0.1, output_fi
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
 #' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam')
 #' analysis <- jackknife_isoform_switching_s4(analysis, n_bootstrap = 50)
-#' tables <- prepare_gene_switching_tables_s4(analysis)
+#' analysis <- prepare_gene_switching_tables_s4(analysis)
+#' # Access tables from metadata
+#' tables <- S4Vectors::metadata(analysis)$switching_tables
 #' head(tables$summary_df)
 #'
 #' @param output_file \code{character} or  \code{NULL}.
@@ -1971,6 +1974,9 @@ prepare_gene_switching_tables_s4 <- function(analysis, n_top_genes = NULL, n_tra
     analysis@metadata$function_calls <- c(analysis@metadata$function_calls, "prepare_gene_switching_tables_s4")
     analysis@metadata$function_timestamps <- c(analysis@metadata$function_timestamps,
         as.character(Sys.time()))
+    
+    # Store the tables in metadata for retrieval
+    analysis@metadata$switching_tables <- result
 
     # Save if output_file provided
     if (!is.null(output_file)) {
@@ -1995,7 +2001,7 @@ prepare_gene_switching_tables_s4 <- function(analysis, n_top_genes = NULL, n_tra
         })
     }
 
-    return(result)
+    return(analysis)
 }
 
 #' Plot Multi-Q Delta Influence Heatmaps from TSENATAnalysis Object

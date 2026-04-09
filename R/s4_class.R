@@ -350,7 +350,7 @@ setMethod("diversity", "TSENATAnalysis", function(object, q = NULL) {
 #'   condition_col = 'condition', method = 'gam')
 #'
 #' # Extract and view LM interaction results
-#' res <- lmResults(analysis, 'lm_interaction')
+#' res <- lmResults(analysis)
 #' if (!is.null(res)) head(res, 3)
 #'
 #' @export
@@ -863,6 +863,123 @@ setMethod("divergence", "TSENATAnalysis", function(object, component = NULL) {
     
     stop("Component '", component, "' not found in divergence_results.\n", "Available: ",
         paste(names(result), collapse = ", "), call. = FALSE)
+})
+
+# ============================================================================
+# EFFECT SIZE DIVERGENCE ACCESSOR
+# ============================================================================
+
+#' Extract effect size divergence results
+#'
+#' @param object \code{TSENATAnalysis} object.
+#'
+#' @return List containing effect size divergence results with components:
+#'   interaction_results (divergence values for interaction), 
+#'   condition_results (divergence values for condition condition), etc.
+#'
+#' @details
+#' Effect size divergence results are computed by \code{effect_sizes_divergence_s4()}
+#' and stored in \code{analysis@metadata$effect_sizes_divergence}.
+#' Results are organized as a list where each element corresponds to a component
+#' (e.g., interaction_results contains a matrix of divergence values).
+#' Unlike other result accessors, effect size divergence results do not support
+#' filterFDR() or rankBy() operations through the results() function -
+#' access metadata directly for advanced filtering.
+#'
+#' @seealso
+#' Other TSENATAnalysis accessors: \code{\link{diversity}},\code{\link{divergence}},
+#' \code{\link{lmResults}}, \code{\link{se}}; 
+#' Computation: \code{\link{effect_sizes_divergence_s4}}
+#' @examples
+#' # Load real TSENAT data
+#' data(readcounts)
+#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package
+#' = 'TSENAT'),
+#'   header = TRUE, sep = '\t')
+#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+#' config <- tsenat_config(sample_col = 'sample', condition_col = 'condition')
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' gff3_file, metadata = metadata_df, config = config)
+#' analysis <- calculate_divergence_s4(analysis)
+#' analysis <- effect_sizes_divergence_s4(analysis)
+#' eff_div <- effectSizesDivergence(analysis)
+#'
+#' @export
+setGeneric("effectSizesDivergence", function(object) {
+    standardGeneric("effectSizesDivergence")
+})
+
+#' @rdname effectSizesDivergence
+#' @export
+setMethod("effectSizesDivergence", "TSENATAnalysis", function(object) {
+    result <- S4Vectors::metadata(object)$effect_sizes_divergence
+    
+    if (is.null(result)) {
+        warning("No effect size divergence results found. Run effect_sizes_divergence_s4() first.")
+        return(NULL)
+    }
+    
+    return(result)
+})
+
+# ============================================================================
+# SWITCHING TABLES ACCESSOR
+# ============================================================================
+
+#' Extract gene switching comparison tables
+#'
+#' @param object \code{TSENATAnalysis} object.
+#'
+#' @return List containing gene switching comparison tables with components:
+#'   summary_df (gene-level summary), comparison_tables (transcript-level metrics),
+#'   top_genes_list (top genes by significance), q_metadata (q-value info), etc.
+#'   Returns NULL if switching tables have not been computed.
+#'
+#' @details
+#' Gene switching comparison tables are computed by \code{prepare_gene_switching_tables_s4()}
+#' and stored in \code{analysis@metadata$switching_tables}.
+#' Results include gene-level summaries across q-values and transcript-level
+#' switching metrics. Use this accessor to retrieve the full comparison tables
+#' after calling prepare_gene_switching_tables_s4().
+#'
+#' @seealso
+#' Other TSENATAnalysis accessors: \code{\link{diversity}}, \code{\link{divergence}},
+#' \code{\link{lmResults}}, \code{\link{jisResults}}, \code{\link{effectSizesDivergence}};
+#' Computation: \code{\link{prepare_gene_switching_tables_s4}}
+#' @examples
+#' # Load real TSENAT data
+#' data(readcounts)
+#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package
+#' = 'TSENAT'),
+#'   header = TRUE, sep = '\t')
+#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+#' config <- tsenat_config(sample_col = 'sample', condition_col = 'condition')
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' gff3_file, metadata = metadata_df, config = config, tpm = tpm,
+#' effective_length = effective_length)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
+#' analysis <- calculate_lm_interaction_s4(analysis)
+#' analysis <- jackknife_isoform_switching_s4(analysis)
+#' analysis <- prepare_gene_switching_tables_s4(analysis, n_top_genes = 10)
+#' tables <- switchingTables(analysis)
+#' if (!is.null(tables)) head(tables$summary_df)
+#'
+#' @export
+setGeneric("switchingTables", function(object) {
+    standardGeneric("switchingTables")
+})
+
+#' @rdname switchingTables
+#' @export
+setMethod("switchingTables", "TSENATAnalysis", function(object) {
+    result <- S4Vectors::metadata(object)$switching_tables
+    
+    if (is.null(result)) {
+        warning("No gene switching tables found. Run prepare_gene_switching_tables_s4() first.")
+        return(NULL)
+    }
+    
+    return(result)
 })
 
 # ============================================================================
