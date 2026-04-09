@@ -26,10 +26,10 @@ test_se_with_gene_names <- function() {
 # TEST SUITE 1: Multi-Q Support
 # ═══════════════════════════════════════════════════════════════════════════════
 
-test_that("jackknife_isoform_switching accepts single q value", {
+test_that("calculate_jis accepts single q value", {
   se <- test_se_with_gene_names()
   
-  result <- suppressWarnings(.jackknife_isoform_switching(
+  result <- suppressWarnings(.calculate_jis(
     se = se,
     condition_col = "condition",
     gene_col = "gene_id",
@@ -43,11 +43,11 @@ test_that("jackknife_isoform_switching accepts single q value", {
   expect_true(!inherits(result, "tsenat_isoform_switching_multiq"))
 })
 
-test_that("jackknife_isoform_switching accepts vector of q values", {
+test_that("calculate_jis accepts vector of q values", {
   se <- test_se_with_gene_names()
   
   q_values <- c(0.5, 1.0, 1.5)
-  result <- suppressWarnings(.jackknife_isoform_switching(
+  result <- suppressWarnings(.calculate_jis(
     se = se,
     condition_col = "condition",
     gene_col = "gene_id",
@@ -65,7 +65,7 @@ test_that("Multi-q results have correct naming convention", {
   se <- test_se_with_gene_names()
   
   q_values <- c(0.01, 0.5, 1.0, 2.0)
-  result <- suppressWarnings(.jackknife_isoform_switching(
+  result <- suppressWarnings(.calculate_jis(
     se = se,
     condition_col = "condition",
     gene_col = "gene_id",
@@ -84,7 +84,7 @@ test_that("Each multi-q result is a valid tsenat_isoform_switching object", {
   se <- test_se_with_gene_names()
   
   q_values <- c(0.5, 1.0, 1.5)
-  result <- suppressWarnings(.jackknife_isoform_switching(
+  result <- suppressWarnings(.calculate_jis(
     se = se,
     condition_col = "condition",
     gene_col = "gene_id",
@@ -107,7 +107,7 @@ test_that("Multi-q analysis analyzes same genes across all q values", {
   se <- test_se_with_gene_names()
   
   q_values <- c(0.5, 1.0, 1.5)
-  result <- suppressWarnings(.jackknife_isoform_switching(
+  result <- suppressWarnings(.calculate_jis(
     se = se,
     condition_col = "condition",
     gene_col = "gene_id",
@@ -130,7 +130,7 @@ test_that("Multi-q analysis analyzes same genes across all q values", {
 # TEST SUITE 2: Gene Name to ID Mapping
 # ═══════════════════════════════════════════════════════════════════════════════
 
-test_that("jackknife_isoform_switching maps gene names to IDs in lm_results", {
+test_that("calculate_jis maps gene names to IDs in lm_results", {
   se <- test_se_with_gene_names()
   
   # Create lm_results with GENE NAMES (not IDs)
@@ -140,7 +140,7 @@ test_that("jackknife_isoform_switching maps gene names to IDs in lm_results", {
     adj_p_interaction=c(0.02, 0.10, 0.60)
   )
   
-  result <- suppressWarnings(.jackknife_isoform_switching(
+  result <- suppressWarnings(.calculate_jis(
     se = se,
     condition_col = "condition",
     gene_col = "gene_id",
@@ -158,7 +158,7 @@ test_that("jackknife_isoform_switching maps gene names to IDs in lm_results", {
   expect_lte(length(result$gene_names), 3)
 })
 
-test_that("jackknife_isoform_switching handles lm_results with gene IDs", {
+test_that("calculate_jis handles lm_results with gene IDs", {
   se <- test_se_with_gene_names()
   
   # Create lm_results with GENE IDs (already mapped)
@@ -168,7 +168,7 @@ test_that("jackknife_isoform_switching handles lm_results with gene IDs", {
     adj_p_interaction=c(0.02, 0.10, 0.60)
   )
   
-  result <- suppressWarnings(.jackknife_isoform_switching(
+  result <- suppressWarnings(.calculate_jis(
     se = se,
     condition_col = "condition",
     gene_col = "gene_id",
@@ -195,7 +195,7 @@ test_that("Gene mapping respects LM p-value threshold", {
   )
   
   # Analyze with strict threshold (only GeneA)
-  result_strict <- suppressWarnings(.jackknife_isoform_switching(
+  result_strict <- suppressWarnings(.calculate_jis(
     se = se,
     condition_col = "condition",
     gene_col = "gene_id",
@@ -208,7 +208,7 @@ test_that("Gene mapping respects LM p-value threshold", {
   ))
   
   # Analyze with lenient threshold (GeneA and GeneB)
-  result_lenient <- suppressWarnings(.jackknife_isoform_switching(
+  result_lenient <- suppressWarnings(.calculate_jis(
     se = se,
     condition_col = "condition",
     gene_col = "gene_id",
@@ -252,7 +252,7 @@ test_that("Gene name to ID mapping removes duplicates", {
   )
   
   # Should still work despite duplicate names (first mapping wins)
-  result <- suppressWarnings(.jackknife_isoform_switching(
+  result <- suppressWarnings(.calculate_jis(
     se = se_dup,
     condition_col = "condition",
     gene_col = "gene_id",
@@ -280,7 +280,7 @@ test_that("Function accepts multiple genes in lm_results", {
     adj_p_interaction=c(0.002, 0.02, 0.60)
   )
   
-  result <- suppressWarnings(.jackknife_isoform_switching(
+  result <- suppressWarnings(.calculate_jis(
     se = se,
     condition_col = "condition",
     gene_col = "gene_id",
@@ -307,7 +307,7 @@ test_that("LM threshold influences number of analyzed genes", {
   )
   
   # Run with strict threshold
-  result_strict <- suppressWarnings(.jackknife_isoform_switching(
+  result_strict <- suppressWarnings(.calculate_jis(
     se = se,
     condition_col = "condition",
     gene_col = "gene_id",
@@ -320,7 +320,7 @@ test_that("LM threshold influences number of analyzed genes", {
   ))
   
   # Run with lenient threshold
-  result_lenient <- suppressWarnings(.jackknife_isoform_switching(
+  result_lenient <- suppressWarnings(.calculate_jis(
     se = se,
     condition_col = "condition",
     gene_col = "gene_id",
@@ -341,7 +341,7 @@ test_that("LM threshold influences number of analyzed genes", {
 # ═══════════════════════════════════════════════════════════════════════════════
 
 test_that("top_n parameter is removed from function signature", {
-  sig <- formals(.jackknife_isoform_switching)
+  sig <- formals(.calculate_jis)
   expect_false("top_n" %in% names(sig))
 })
 
@@ -349,7 +349,7 @@ test_that("Function works without top_n parameter", {
   se <- test_se_with_gene_names()
   
   # Should work without specifying top_n
-  result <- suppressWarnings(.jackknife_isoform_switching(
+  result <- suppressWarnings(.calculate_jis(
     se = se,
     condition_col = "condition",
     gene_col = "gene_id",
@@ -376,7 +376,7 @@ test_that("Multi-q analysis works with gene name to ID mapping", {
   )
   
   q_values <- c(0.5, 1.0, 1.5)
-  result <- suppressWarnings(.jackknife_isoform_switching(
+  result <- suppressWarnings(.calculate_jis(
     se = se,
     condition_col = "condition",
     gene_col = "gene_id",
@@ -408,7 +408,7 @@ test_that("Multi-q with gene filtering returns consistent structure", {
   )
   
   q_values <- c(1.0, 1.5)
-  result <- suppressWarnings(.jackknife_isoform_switching(
+  result <- suppressWarnings(.calculate_jis(
     se = se,
     condition_col = "condition",
     gene_col = "gene_id",
@@ -444,7 +444,7 @@ test_that("use_lm_fdr parameter switches between raw and adjusted p-values", {
     adj_p_interaction=c(0.002, 0.01, 0.60)
   )
   
-  result_fdr <- suppressWarnings(.jackknife_isoform_switching(
+  result_fdr <- suppressWarnings(.calculate_jis(
     se = se,
     condition_col = "condition",
     gene_col = "gene_id",
@@ -456,7 +456,7 @@ test_that("use_lm_fdr parameter switches between raw and adjusted p-values", {
     verbose = FALSE
   ))
   
-  result_raw <- suppressWarnings(.jackknife_isoform_switching(
+  result_raw <- suppressWarnings(.calculate_jis(
     se = se,
     condition_col = "condition",
     gene_col = "gene_id",
@@ -486,7 +486,7 @@ test_that("Metadata tracks LM gene filtering correctly", {
     adj_p_interaction=c(0.002, 0.02, 0.60)
   )
   
-  result <- suppressWarnings(.jackknife_isoform_switching(
+  result <- suppressWarnings(.calculate_jis(
     se = se,
     condition_col = "condition",
     gene_col = "gene_id",
@@ -512,7 +512,7 @@ test_that("Metadata correctly reports LM filtering statistics", {
     adj_p_interaction=c(0.002, 0.02, 0.60)
   )
   
-  result <- suppressWarnings(.jackknife_isoform_switching(
+  result <- suppressWarnings(.calculate_jis(
     se = se,
     condition_col = "condition",
     gene_col = "gene_id",

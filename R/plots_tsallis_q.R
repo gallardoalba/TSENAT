@@ -28,7 +28,7 @@
 #'   p-value column. Accepts either:
 #' - Results from `.calculate_lm()` (has `adj_p_interaction` or
 #' `p_interaction` columns)
-#' - Results from `.rank_test_q_condition()` (has `adj_p_value` or `p_value`
+#' - Results from `.calculate_rank_test()` (has `adj_p_value` or `p_value`
 #' columns from Friedman/Wilcoxon tests)
 #' If provided (and `gene` is NULL), plots top `n_top` genes ranked by
 #' p-value.
@@ -115,7 +115,7 @@
 #' mode(readcounts) <- 'numeric'
 #' 
 #' # Create configuration (required when metadata is provided)
-#' config <- tsenat_config(sample_col = 'sample', condition_col = 'condition')
+#' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df, config = config,
 #'   tpm = tpm, effective_length = effective_length)
@@ -123,11 +123,11 @@
 #' = 200)
 #' analysis <- calculate_diversity_s4(analysis, q = seq(0.5, 2, by = 0.5),
 #' )
-#' p <- plot_tsallis_q_curve_s4(analysis)
+#' p <- plot_diversity_spectrum_s4(analysis)
 #' if (!is.null(p)) print(p)
 #'
 #' @export
-plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col = NULL,
+plot_diversity_spectrum_s4 <- function(se, assay_name = "diversity", condition_col = NULL,
     gene = NULL, lm_res = NULL, n_top = NULL, metric = "iqr", output_file = NULL) {
     # Validate metric parameter
     metric <- match.arg(tolower(metric), c("iqr", "sd"))

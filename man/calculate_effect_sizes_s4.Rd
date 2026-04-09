@@ -83,7 +83,7 @@ gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 'TSENAT')
 
 # Configure analysis parameters (best practice for reproducibility)
-config <- tsenat_config(
+config <- TSENAT_config(
   sample_col = 'sample',
   condition_col = 'condition',
   subject_col = 'paired_samples',

@@ -77,7 +77,7 @@
 #'
 #' @examples
 #' # Example: Create synthetic multi-q switching results
-#' # For real analysis, use .jackknife_isoform_switching() output
+#' # For real analysis, use .calculate_jis() output
 #' set.seed(123)
 #' gene_names <- paste0('gene_', 1:4)
 #' names(gene_names) <- 1:4
@@ -101,7 +101,7 @@
 #' )
 #' 
 #' # Create heatmap visualization
-#' .plot_multiq_delta_influence_heatmaps(switching_results, n_genes = 2)
+#' .plot_jis_delta(switching_results, n_genes = 2)
 #'
 #' @import grid
 #' @import pheatmap
@@ -109,7 +109,7 @@
 
 #' @noRd
 
-.plot_multiq_delta_influence_heatmaps <- function(switching_results, n_genes = 4,
+.plot_jis_delta <- function(switching_results, n_genes = 4,
     lm_results = NULL, verbose = FALSE, cellwidth = 0, cellheight = 0, fontsize = 18,
     layout_ncol = 2, output_file = NULL, width = NULL, height = NULL) {
     # Phase 1: Validate input
@@ -277,7 +277,7 @@
 #' list with $results and $model_data
 #' - `.calculate_lm(..., return_model_data = FALSE)` returns a
 #' data.frame with adj_p_interaction column
-#' - `.rank_test_q_condition()` returns a data.frame with adj_p_value column
+#' - `.calculate_rank_test()` returns a data.frame with adj_p_value column
 #' (for Friedman/Kruskal-Wallis tests)
 #'   If provided and `gene` is NULL, top genes are selected by adjusted p-value.
 #' @param top_n Integer number of transcripts to show (default = 3). Use
@@ -321,7 +321,7 @@
 #' between cells.
 #'
 #' Architecture follows the pattern established by
-#' `.plot_multiq_delta_influence_heatmaps()`:
+#' `.plot_jis_delta()`:
 #' - Phase 1: Input validation and extraction
 #' - Phase 2: Gene/condition selection
 #' - Phase 3: Layout planning (before creating heatmaps)
@@ -338,12 +338,12 @@
 #' se <- SummarizedExperiment(assays = list(counts = counts), 
 #'                           rowData = rowData_df, colData = colData_df)
 #' # Plot top transcripts
-#' .plot_top_transcripts(se, gene = 'G1', top_n = 2, output_file =
+#' .plot_expression(se, gene = 'G1', top_n = 2, output_file =
 #' '/tmp/heatmap.png')
 
 #' @noRd
 
-.plot_top_transcripts <- function(se, gene = NULL, condition_col = "condition", res = NULL,
+.plot_expression <- function(se, gene = NULL, condition_col = "condition", res = NULL,
     top_n = 3, output_file = NULL, metric = c("median", "mean", "variance", "iqr"),
     use_tpm = TRUE, width = NULL, height = NULL, fontsize = 16, cellwidth = 0, cellheight = 0,
     layout_ncol = 2) {
@@ -459,7 +459,7 @@
 # Internal Helper Functions for Heatmap Refactoring
 # ============================================================================
 # This file contains shared helper functions extracted to support
-# .plot_multiq_delta_influence_heatmaps() and .plot_top_transcripts()
+# .plot_jis_delta() and .plot_expression()
 # refactoring to meet Bioconductor's 50-line function guideline.  All functions
 # marked @keywords internal @noRd are NOT exported.
 # ============================================================================
@@ -486,7 +486,7 @@
 #' @noRd
 .validate_multiq_input <- function(switching_results) {
     if (!inherits(switching_results, "tsenat_isoform_switching_multiq")) {
-        stop("switching_results must be a multi-q result from .jackknife_isoform_switching()",
+        stop("switching_results must be a multi-q result from .calculate_jis()",
             call. = FALSE)
     }
 

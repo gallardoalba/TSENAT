@@ -42,11 +42,11 @@
 #' \describe{
 #'   \item{\code{\link{tsenat}}}{Main orchestration function. Executes complete pipeline with 
 #'     configurable method backends and parallelization.}
-#'   \item{\code{\link{tsenat_config}}}{Configure analysis parameters: q-values, condition 
+#'   \item{\code{\link{TSENAT_config}}}{Configure analysis parameters: q-values, condition 
 #'     grouping, sample pairing, and method selection.}
 #'   \item{\code{\link{calculate_diversity_s4}}}{Compute Tsallis entropy and Hill numbers. 
 #'     Vectorized over genes and q-values with numerical stability safeguards.}
-#'   \item{\code{\link{jackknife_entropy_outliers_s4}}}{Resampling-based confidence intervals 
+#'   \item{\code{\link{calculate_jeo_s4}}}{Resampling-based confidence intervals 
 #'     for diversity. Identifies outlier genes and validates q-value signal.}
 #'   \item{\code{\link{calculate_lm_s4}}}{Statistical testing for gene-by-condition 
 #'     interactions. LMM, GAM, and rank-based approaches.}

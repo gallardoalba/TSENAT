@@ -39,7 +39,7 @@
         })
 
         # Export main function and all helper functions for parallel execution
-        helper_funcs <- c(".jackknife_entropy_outliers", ".entropy_single", ".jackknife_validate_params",
+        helper_funcs <- c(".calculate_jeo", ".entropy_single", ".jackknife_validate_params",
             ".jackknife_process_multiq", ".jackknife_process_se", ".jackknife_process_matrix",
             ".jackknife_process_vector_core", ".jackknife_compute_estimates", ".jackknife_calculate_influence_and_outliers",
             ".jackknife_warn_on_total_count", ".jackknife_warn_on_q_parameters_q_only", ".jackknife_format_verbose_output_matrix")
@@ -48,13 +48,13 @@
 
     if (!is.null(.cluster)) {
         results_list <- parallel::parLapply(.cluster, q, function(q_val) {
-            .jackknife_entropy_outliers(x = x, se = se, res = res, top_n = top_n,
+            .calculate_jeo(x = x, se = se, res = res, top_n = top_n,
                 q = q_val, norm = norm, log_base = log_base, pseudocount = pseudocount,
                 threshold = threshold, verbose = FALSE, .cluster = NULL)
         })
     } else {
         results_list <- lapply(q, function(q_val) {
-            .jackknife_entropy_outliers(x = x, se = se, res = res, top_n = top_n,
+            .calculate_jeo(x = x, se = se, res = res, top_n = top_n,
                 q = q_val, norm = norm, log_base = log_base, pseudocount = pseudocount,
                 threshold = threshold, verbose = FALSE, .cluster = NULL)
         })
@@ -160,7 +160,7 @@
     counts_matrix <- do.call(rbind, lapply(valid_results, "[[", "counts"))
     rownames(counts_matrix) <- vapply(valid_results, "[[", "name", FUN.VALUE = character(1))
 
-    .jackknife_entropy_outliers(x = counts_matrix, q = q, norm = norm, log_base = log_base,
+    .calculate_jeo(x = counts_matrix, q = q, norm = norm, log_base = log_base,
         pseudocount = pseudocount, threshold = threshold, verbose = verbose, nthreads = nthreads,
         .cluster = .cluster)
 }
@@ -596,7 +596,7 @@
 #' # Example 1: Vector input - single gene
 #' set.seed(42)
 #' counts <- c(1000, 500, 200, 100, 50)  # 5 transcripts, decreasing abundance
-#' results <- .jackknife_entropy_outliers(
+#' results <- .calculate_jeo(
 #'   x = counts,
 #'   q = 1,
 #'   norm = TRUE
@@ -608,7 +608,7 @@
 #'   'Gene1' = c(1000, 500, 200, 100, 50),
 #'   'Gene2' = c(800, 400, 300, 200, 100)
 #' )
-#' jack_list <- .jackknife_entropy_outliers(
+#' jack_list <- .calculate_jeo(
 #'   x = counts_matrix,
 #'   q = 1,
 #'   norm = TRUE,
@@ -616,7 +616,7 @@
 #' )
 #' 
 #' # Example 2b: Multiple q values for robustness checking
-#' jack_multiq <- .jackknife_entropy_outliers(
+#' jack_multiq <- .calculate_jeo(
 #'   x = counts_matrix[1, ],  # First gene
 #'   q = c(0.5, 1, 1.5, 2),
 #'   norm = TRUE,
@@ -625,7 +625,7 @@
 #' 
 #' # Example 3: SummarizedExperiment input with automatic data extraction
 #' # Requires se (SummarizedExperiment with counts) and res (results data.frame)
-#' # jack_results <- .jackknife_entropy_outliers(
+#' # jack_results <- .calculate_jeo(
 #' #     se = ts_se,
 #' #     res = res,
 #' #     top_n = 5,
@@ -637,7 +637,7 @@
 
 #' @noRd
 
-.jackknife_entropy_outliers <- function(x = NULL, se = NULL, res = NULL, top_n = 5,
+.calculate_jeo <- function(x = NULL, se = NULL, res = NULL, top_n = 5,
     q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0, threshold = 90, verbose = FALSE,
     nthreads = 1, .cluster = NULL) {
     # Input validation

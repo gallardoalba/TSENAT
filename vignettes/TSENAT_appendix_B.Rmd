@@ -126,7 +126,7 @@ metadata_df <- read.table(
 gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 
 # Configure analysis parameters first (best practice: fail-fast validation)
-config <- tsenat_config(
+config <- TSENAT_config(
   sample_col = "sample",
   condition_col = "condition",
   subject_col = "paired_samples",
@@ -181,7 +181,7 @@ Before applying rank-based methods, we verify key assumptions for rank-based inf
 
 ```{r validate-friedman-assumptions, message=FALSE}
 # Validate Friedman test assumptions using S4 wrapper
-analysis <- test_rankbased_assumptions_s4(
+analysis <- calculate_rank_assumptions_s4(
     analysis
 )
 
@@ -267,7 +267,7 @@ knitr::kable(data_characteristics,
 # With condition_col="sample_type", automatically uses:
 #  - Two-way Friedman test (paired=TRUE: q within-subjects, condition between-subjects)
 #  - Westfall-Young permutation correction respects AR(1) q-correlation + condition structure
-analysis <- rank_test_q_condition_s4(
+analysis <- calculate_rank_test_s4(
     analysis,
     multicorr = "hochberg"
 )
@@ -350,7 +350,7 @@ if (nrow(rank_sig) > 0) {
 Visualize q-curves for top genes:
 
 ```{r extended-fig-1-friedman-q-curves, fig.width=12, fig.height=8, message=FALSE, out.width="98%", fig.pos="H", fig.cap="**Extended Data Figure 1 | Scale-dependent isoform diversity from rank-based analysis.** *Friedman rank test identifies genes with heterogeneous isoform rank-ordering patterns between paired samples.* X-axis, diversity sensitivity *q* (0-2). Y-axis, Tsallis entropy (0-1 range). Each line represents a paired sample or condition. Parallel curves indicate rank-stable condition differences across all *q*-scales; diverging or crossing curves reveal genes with *q*-dependent isoform switching where isoform dominance rank-order differs between conditions at specific scales. Friedman rank test statistic quantifies nonparametric evidence for scale-dependent isoform heterogeneity."}
-top_genes_plot <- plot_tsallis_q_curve_s4(analysis, lm_res = friedman_results, n_top = 4)
+top_genes_plot <- plot_diversity_spectrum_s4(analysis, lm_res = friedman_results, n_top = 4)
 print(top_genes_plot)
 ```
 
@@ -636,7 +636,7 @@ if (!is.null(high_conf) && nrow(high_conf) > 0) {
 
 ```{r visualize-method-concordance, fig.width=10, fig.height=8, out.width="98%", fig.pos="H", fig.cap="**Method concordance visualization** comparing Friedman rank-based and GAM approaches for detecting q$\\times$condition interactions. Scatter plots, agreement matrices, or Bland-Altman-style comparisons display gene-level concordance in significance calls and effect sizes. Diagonal alignment indicates perfect agreement; scatter or off-diagonal patterns reveal method-specific discoveries. Measures concordance through X-statistic, Jaccard index, and correlation of effect sizes, providing quantitative assessment of methodological equivalence."}
 # Create comparison plot using S4 wrapper
-p <- plot_method_concordance_s4(analysis_with_concordance, verbose = TRUE)
+p <- plot_concordance_s4(analysis_with_concordance, verbose = TRUE)
   print(p)
 ```
 
@@ -651,11 +651,11 @@ This vignette demonstrates the modern S4-based analysis workflow for method comp
 | Function | Purpose | Input | Output |
 |----------|---------|-------|--------|
 | `calculate_diversity_s4()` | Compute Tsallis entropy across multiple q-values | TSENATAnalysis + `q`, `norm` params | Updated analysis with diversity results |
-| `test_rankbased_assumptions_s4()` | Validate Friedman test assumptions | TSENATAnalysis | Stores results in metadata via `metadata(analysis, "rankbased_assumptions")` |
-| `rank_test_q_condition_s4()` | Run Friedman test for q$\times$group interactions | TSENATAnalysis + design params | Updated analysis with results via `results(type="rank_test")` |
-| `plot_tsallis_q_curve_s4()` | Plot q-curves for significant genes | TSENATAnalysis + `lm_res` | ggplot2 visualization |
+| `calculate_rank_assumptions_s4()` | Validate Friedman test assumptions | TSENATAnalysis | Stores results in metadata via `metadata(analysis, "rankbased_assumptions")` |
+| `calculate_rank_test_s4()` | Run Friedman test for q$\times$group interactions | TSENATAnalysis + design params | Updated analysis with results via `results(type="rank_test")` |
+| `plot_diversity_spectrum_s4()` | Plot q-curves for significant genes | TSENATAnalysis + `lm_res` | ggplot2 visualization |
 | `calculate_concordance_s4()` | Compare GAM and Friedman results | TSENATAnalysis with LM and rank test results stored in slots | Updated analysis with results via `metadata()` |
-| `plot_method_concordance_s4()` | Visualize method concordance | TSENATAnalysis (after concordance computed) | ggplot2 comparison plot |
+| `plot_concordance_s4()` | Visualize method concordance | TSENATAnalysis (after concordance computed) | ggplot2 comparison plot |
 
 ## Workflow Advantages
 
@@ -678,7 +678,7 @@ analysis <- TSENATAnalysis(se = se, config = list())
 analysis <- calculate_diversity_s4(analysis, q = seq(0.1, 2, by = 0.05), norm = TRUE)
 
 # 3. Validate assumptions
-rank_assumptions <- test_rankbased_assumptions_s4(analysis, verbose = TRUE)
+rank_assumptions <- calculate_rank_assumptions_s4(analysis, verbose = TRUE)
 
 # 4. Friedman test (rank-based)
 analysis <- rank_test_q_condition_s4(
@@ -703,10 +703,10 @@ analysis <- calculate_concordance_s4(
 )
 
 # 7. Visualize concordance
-plot_method_concordance_s4(analysis, verbose = TRUE)
+plot_concordance_s4(analysis, verbose = TRUE)
 
 # 8. Plot top genes (optional)
-plot_tsallis_q_curve_s4(
+plot_diversity_spectrum_s4(
     analysis,
     condition_col = "condition",
     rank_res = results(analysis, type = "rank_test"),
@@ -723,7 +723,7 @@ plot_tsallis_q_curve_s4(
 This vignette demonstrates the modern S4 wrapper approach for method concordance analysis:
 
 - **`calculate_concordance_s4()`**: Integrates seamlessly with TSENATAnalysis objects, storing results accessed via `metadata(analysis, "method_concordance")`
-- **`plot_method_concordance_s4()`**: Creates publication-ready concordance visualizations from S4-stored results
+- **`plot_concordance_s4()`**: Creates publication-ready concordance visualizations from S4-stored results
 - **Benefits**: Consistent class structure, automatic metadata tracking via accessor methods, reduced variable proliferation in global environment
 
 For standard (non-S4) analyses, the original functions (`calculate_concordance()` and `plot_method_concordance()`) remain available and fully supported.

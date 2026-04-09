@@ -2001,7 +2001,7 @@ test_that("calculate_effect_sizes_s4 orchestrates helpers correctly", {
   names(effective_length) <- rownames(readcounts)
   
   # Create config FIRST with required metadata column parameters
-  config <- tsenat_config(
+  config <- TSENAT_config(
     q_values = seq(0, 2, by = 0.05),
     sample_col = 'sample',
     condition_col = 'condition',
@@ -2063,7 +2063,7 @@ test_that("calculate_effect_sizes_s4 respects output_file parameter", {
   names(effective_length) <- rownames(readcounts)
   
   # Create config FIRST with required metadata column parameters
-  config <- tsenat_config(
+  config <- TSENAT_config(
     q_values = seq(0, 2, by = 0.05),
     sample_col = 'sample',
     condition_col = 'condition',

@@ -77,7 +77,7 @@ test_that("detect_q_gene_interactions works with paired=TRUE and hochberg", {
   )
   
   # Run detect_q_gene_interactions with explicit column specifications
-  results <- .rank_test_q_condition(
+  results <- .calculate_rank_test(
     data = test_data,
     entropy_col = "entropy",
     q_col = "q",
@@ -205,7 +205,7 @@ test_that("detect_q_gene_interactions accepts SummarizedExperiment directly", {
   se <- create_paired_diversity_se(n_genes = 20, n_subjects = 6, n_q_values = 8)
   
   # Call with SE directly
-  results <- .rank_test_q_condition(
+  results <- .calculate_rank_test(
     data = se,
     entropy_col = "diversity",
     q_col = "q",
@@ -234,7 +234,7 @@ test_that("detect_q_gene_interactions supports all multicorr methods", {
   
   # Test each correction method
   for (method in c("hochberg", "benjamini-yekutieli", "none")) {
-    results <- .rank_test_q_condition(
+    results <- .calculate_rank_test(
       data = se,
       condition_col = "condition",
       paired = TRUE,
@@ -267,7 +267,7 @@ test_that("detect_q_gene_interactions computes effect sizes correctly", {
     effect_size = 0.5  # Strong effect
   )
   
-  results <- .rank_test_q_condition(
+  results <- .calculate_rank_test(
     data = se,
     entropy_col = "diversity",
     q_col = "q",
@@ -299,7 +299,7 @@ test_that("detect_q_gene_interactions computes effect sizes correctly", {
 test_that("detect_q_gene_interactions stores test_method metadata", {
   se <- create_paired_diversity_se(n_genes = 15, n_subjects = 6, n_q_values = 8)
   
-  results <- .rank_test_q_condition(
+  results <- .calculate_rank_test(
     data = se,
     entropy_col = "diversity",
     q_col = "q",
@@ -355,7 +355,7 @@ test_that("detect_q_gene_interactions handles missing q-values gracefully", {
   )
   
   # Should complete without error, but some genes may have NA results
-  results <- .rank_test_q_condition(
+  results <- .calculate_rank_test(
     data = test_data,
     entropy_col = "entropy",
     q_col = "q",
@@ -380,7 +380,7 @@ test_that("detect_q_gene_interactions handles missing q-values gracefully", {
 test_that("detect_q_gene_interactions classifies interactions correctly", {
   se <- create_paired_diversity_se(n_genes = 20, n_subjects = 6, n_q_values = 8)
   
-  results <- .rank_test_q_condition(
+  results <- .calculate_rank_test(
     data = se,
     condition_col = "condition",
     paired = TRUE,
@@ -408,7 +408,7 @@ test_that("detect_q_gene_interactions uses correct test for paired design", {
   # Increased sample sizes to improve chi-squared approximation (avoid warnings)
   se <- create_paired_diversity_se(n_genes = 15, n_subjects = 10, n_q_values = 8)
   
-  results_paired <- .rank_test_q_condition(
+  results_paired <- .calculate_rank_test(
     data = se,
     entropy_col = "diversity",
     q_col = "q",
@@ -435,7 +435,7 @@ test_that("multiple testing correction maintains data frame dimensions", {
   se <- create_paired_diversity_se(n_genes = 50, n_subjects = 6, n_q_values = 8)
   
   for (method in c("hochberg", "benjamini-yekutieli", "none")) {
-    results <- .rank_test_q_condition(
+    results <- .calculate_rank_test(
       data = se,
       condition_col = "condition",
       paired = TRUE,
@@ -462,7 +462,7 @@ test_that("multiple testing correction maintains data frame dimensions", {
 test_that("detect_q_gene_interactions returns sorted results", {
   se <- create_paired_diversity_se(n_genes = 30, n_subjects = 6, n_q_values = 8)
   
-  results <- .rank_test_q_condition(
+  results <- .calculate_rank_test(
     data = se,
     condition_col = "condition",
     paired = TRUE,
@@ -486,7 +486,7 @@ test_that("detect_q_gene_interactions returns sorted results", {
 test_that("detect_q_gene_interactions stores data characteristics", {
   se <- create_paired_diversity_se(n_genes = 20, n_subjects = 6, n_q_values = 8)
   
-  results <- .rank_test_q_condition(
+  results <- .calculate_rank_test(
     data = se,
     condition_col = "condition",
     paired = TRUE,
@@ -781,7 +781,7 @@ test_that("detect_q_gene_interactions uses Friedman for paired=TRUE", {
   rownames(test_data) <- NULL
   
   # Run paired analysis
-  results_paired <- .rank_test_q_condition(
+  results_paired <- .calculate_rank_test(
     data = test_data,
     entropy_col = "diversity",
     q_col = "q",
@@ -827,7 +827,7 @@ test_that("detect_q_gene_interactions uses Kruskal-Wallis for paired=FALSE", {
   rownames(test_data) <- NULL
   
   # Run unpaired analysis
-  results_unpaired <- .rank_test_q_condition(
+  results_unpaired <- .calculate_rank_test(
     data = test_data,
     entropy_col = "diversity",
     q_col = "q",

@@ -160,7 +160,7 @@ for (method in sf_methods) {
 
 # TSENAT: Single config for q-value sweep
 # (Configuration is identical for all q-values)
-config <- tsenat_config(condition_col = "group")
+config <- TSENAT_config(condition_col = "group")
 
 # TSENAT: Create analysis objects and compute diversity for q=1 and q=2
 q_values <- c(1, 2)
@@ -319,7 +319,7 @@ library(cowplot)
 
 # Create individual volcano and MA plots for Shannon/q=1
 # SplicingFactory method for comparison
-shannon_sf <- TSENAT:::.plot_volcano_ma_grid(
+shannon_sf <- TSENAT:::.plot_diversity_volcano_ma(
   diff_df = entropy_significance,
   x_col = "mean_difference",
   padj_col = "adjusted_p_values",
@@ -330,7 +330,7 @@ shannon_sf <- TSENAT:::.plot_volcano_ma_grid(
 )
 
 # TSENAT S4 wrapper method
-shannon_tsenat <- plot_volcano_ma_grid_s4(
+shannon_tsenat <- plot_diversity_volcano_ma_s4(
   analysis = tsenat_analysis_q1,
   x_col = "mean_difference",
   padj_col = "padj",
@@ -429,7 +429,7 @@ kableExtra::kable_styling(
 
 # Create individual volcano and MA plots for Simpson/q=2
 # SplicingFactory method for comparison
-simpson_sf <- TSENAT:::.plot_volcano_ma_grid(
+simpson_sf <- TSENAT:::.plot_diversity_volcano_ma(
   diff_df = simpson_significance,
   x_col = "mean_difference",
   padj_col = "adjusted_p_values",
@@ -440,7 +440,7 @@ simpson_sf <- TSENAT:::.plot_volcano_ma_grid(
 )
 
 # TSENAT S4 wrapper method
-simpson_tsenat <- plot_volcano_ma_grid_s4(
+simpson_tsenat <- plot_diversity_volcano_ma_s4(
   analysis = tsenat_analysis_q2,
   x_col = "mean_difference",
   padj_col = "padj",

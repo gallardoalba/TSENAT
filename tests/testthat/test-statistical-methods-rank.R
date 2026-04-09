@@ -18,7 +18,7 @@ test_that("test_rankbased_assumptions validates assumptions", {
   )
   
   # Call the function and verify it returns a result
-  result <- .test_rankbased_assumptions(
+  result <- .calculate_rank_assumptions(
     data = expr_data,
     checks = c("exchangeability", "monotonicity")
   )
@@ -38,7 +38,7 @@ test_that("test_rankbased_assumptions validates assumptions", {
 # NEW TESTS FOR GAP 3: INTERACTION DETECTION FUNCTIONS
 # ============================================================================
 
-# Test Suite: .rank_test_q_condition()
+# Test Suite: .calculate_rank_test()
 test_that("detect_q_gene_interactions basic functionality works", {
   # Create synthetic q×gene interaction data
   set.seed(42)
@@ -66,7 +66,7 @@ test_that("detect_q_gene_interactions basic functionality works", {
     stringsAsFactors = FALSE
   )
   
-  result <- .rank_test_q_condition(model_data)
+  result <- .calculate_rank_test(model_data)
   
   # Check output structure
   expect_is(result, "data.frame")
@@ -99,7 +99,7 @@ test_that("detect_q_gene_interactions correctly identifies robust gene", {
     stringsAsFactors = FALSE
   )
   
-  result <- .rank_test_q_condition(model_data)
+  result <- .calculate_rank_test(model_data)
   
   # Robust gene should have high p-value (not significant)
   expect_true(result$p_value[1] > 0.05)
@@ -127,7 +127,7 @@ test_that("detect_q_gene_interactions correctly identifies q-dependent gene", {
     stringsAsFactors = FALSE
   )
   
-  result <- .rank_test_q_condition(model_data)
+  result <- .calculate_rank_test(model_data)
   
   # Q-dependent gene should have low p-value (significant) and large effect size
   expect_true(result$p_value[1] < 0.05)
@@ -149,7 +149,7 @@ test_that("detect_q_gene_interactions handles missing values gracefully", {
     stringsAsFactors = FALSE
   )
   
-  result <- .rank_test_q_condition(model_data)
+  result <- .calculate_rank_test(model_data)
   
   # Should complete without error
   expect_is(result, "data.frame")
@@ -167,7 +167,7 @@ test_that("detect_q_gene_interactions requires minimum 2 q-levels", {
     stringsAsFactors = FALSE
   )
   
-  result <- .rank_test_q_condition(model_data)
+  result <- .calculate_rank_test(model_data)
   
   # Should mark as "Insufficient data"
   expect_equal(result$interaction_class[1], "Insufficient data")
@@ -184,7 +184,7 @@ test_that("detect_q_gene_interactions validates column names", {
   
   # Should error on missing entropy column
   expect_error(
-    .rank_test_q_condition(model_data),
+    .calculate_rank_test(model_data),
     "not found"
   )
 })
@@ -206,7 +206,7 @@ test_that("detect_q_gene_interactions kruskal.test method produces results", {
     stringsAsFactors = FALSE
   )
   
-  result <- .rank_test_q_condition(model_data)
+  result <- .calculate_rank_test(model_data)
   
   # Should complete successfully
   expect_is(result, "data.frame")
@@ -346,7 +346,7 @@ test_that("Full workflow: detect -> classify -> recommend works end-to-end", {
   
   # Step 1: Detect interactions
   # Suppress expected chi-squared approximation warning from small cell counts in test data
-  results <- suppressWarnings(.rank_test_q_condition(model_data))
+  results <- suppressWarnings(.calculate_rank_test(model_data))
   expect_equal(nrow(results), 45)
   
   # Step 2: Classify
@@ -375,7 +375,7 @@ test_that("Functions handle edge case: single sample per q-level", {
   
   # Should handle without error (though with limited power)
   # Suppress expected warnings from edge-case variance calculations with N=1 per group
-  result <- suppressWarnings(.rank_test_q_condition(model_data))
+  result <- suppressWarnings(.calculate_rank_test(model_data))
   expect_is(result, "data.frame")
 })
 
@@ -393,7 +393,7 @@ test_that("Functions handle edge case: many q-levels", {
     stringsAsFactors = FALSE
   )
   
-  result <- .rank_test_q_condition(model_data)
+  result <- .calculate_rank_test(model_data)
   expect_equal(nrow(result), 1)
   expect_is(result$p_value[1], "numeric")
 })
@@ -415,7 +415,7 @@ test_that("detect_q_gene_interactions westfall-young parameter is accepted", {
   )
   
   # Should accept westfall-young without error
-  result <- .rank_test_q_condition(
+  result <- .calculate_rank_test(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 10  # Small number for speed in tests
@@ -442,7 +442,7 @@ test_that("detect_q_gene_interactions westfall-young produces valid adjusted p-v
     stringsAsFactors = FALSE
   )
   
-  result <- .rank_test_q_condition(
+  result <- .calculate_rank_test(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 15
@@ -466,7 +466,7 @@ test_that("detect_q_gene_interactions westfall-young adjusted p-values are monot
   )
   
   # Suppress expected chi-squared approximation warning from small cell counts in test data
-  result <- suppressWarnings(.rank_test_q_condition(
+  result <- suppressWarnings(.calculate_rank_test(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 10
@@ -491,13 +491,13 @@ test_that("detect_q_gene_interactions westfall-young wy_randomizations parameter
   
   # Test with different randomization counts
   # Suppress expected chi-squared approximation warning from small cell counts in test data
-  result_small <- suppressWarnings(.rank_test_q_condition(
+  result_small <- suppressWarnings(.calculate_rank_test(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 5
   ))
   
-  result_large <- suppressWarnings(.rank_test_q_condition(
+  result_large <- suppressWarnings(.calculate_rank_test(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 25
@@ -525,7 +525,7 @@ test_that("detect_q_gene_interactions westfall-young verbose mode works", {
   
   # Capture message output
   expect_message(
-    .rank_test_q_condition(
+    .calculate_rank_test(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = 10,
@@ -550,7 +550,7 @@ test_that("detect_q_gene_interactions westfall-young produces FWER control", {
   
   # Suppress warnings that may occur due to chi-squared approximations with small sample sizes
   result <- suppressWarnings(
-    .rank_test_q_condition(
+    .calculate_rank_test(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = 50
@@ -579,13 +579,13 @@ test_that("detect_q_gene_interactions westfall-young vs hochberg agreement", {
     stringsAsFactors = FALSE
   )
   
-  result_wy <- .rank_test_q_condition(
+  result_wy <- .calculate_rank_test(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 20
   )
   
-  result_hoch <- .rank_test_q_condition(
+  result_hoch <- .calculate_rank_test(
     model_data,
     multicorr = "hochberg"
   )
@@ -613,7 +613,7 @@ test_that("detect_q_gene_interactions westfall-young handles small randomization
   # Should work with very small wy_randomizations (though less accurate)
   # Suppress expected warning about small randomization count
   result <- suppressWarnings(
-    .rank_test_q_condition(
+    .calculate_rank_test(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = 5
@@ -641,7 +641,7 @@ test_that("detect_q_gene_interactions westfall-young handles edge cases graceful
   )
   
   # Should handle without crashing
-  result <- .rank_test_q_condition(
+  result <- .calculate_rank_test(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 10
@@ -669,7 +669,7 @@ test_that("detect_q_gene_interactions westfall-young phipson-smyth correction pr
   )
   
   result <- suppressWarnings(
-    .rank_test_q_condition(
+    .calculate_rank_test(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = 50
@@ -688,14 +688,14 @@ test_that("detect_q_gene_interactions westfall-young phipson-smyth correction pr
 # ============================================================================
 
 test_that("detect_q_gene_interactions has paired parameter with default FALSE", {
-  sig <- formals(.rank_test_q_condition)
+  sig <- formals(.calculate_rank_test)
   
   expect_true("paired" %in% names(sig))
   expect_false(sig$paired)  # Default should be FALSE
 })
 
 test_that("detect_q_gene_interactions has subject_col parameter", {
-  sig <- formals(.rank_test_q_condition)
+  sig <- formals(.calculate_rank_test)
   
   expect_true("subject_col" %in% names(sig))
   # subject_col can have a default value for paired analyses
@@ -712,7 +712,7 @@ test_that("detect_q_gene_interactions paired=TRUE without subject_col raises err
   )
   
   expect_error(
-    .rank_test_q_condition(model_data, paired = TRUE, subject_col = NULL),
+    .calculate_rank_test(model_data, paired = TRUE, subject_col = NULL),
     "paired=TRUE with subject_col=NULL is invalid"
   )
 })
@@ -729,7 +729,7 @@ test_that("detect_q_gene_interactions paired=FALSE with subject_col gives warnin
   )
   
   expect_warning(
-    .rank_test_q_condition(model_data, paired = FALSE, subject_col = "subject", verbose = FALSE),
+    .calculate_rank_test(model_data, paired = FALSE, subject_col = "subject", verbose = FALSE),
     "subject_col provided but paired=FALSE"
   )
 })
@@ -745,7 +745,7 @@ test_that("detect_q_gene_interactions detects missing subject_col in data", {
   )
   
   expect_error(
-    .rank_test_q_condition(model_data, paired = TRUE, subject_col = "subject", verbose = FALSE),
+    .calculate_rank_test(model_data, paired = TRUE, subject_col = "subject", verbose = FALSE),
     "subject_col.*not found"
   )
 })
@@ -788,7 +788,7 @@ test_that("detect_q_gene_interactions paired analysis with WY permutation works 
   
   # Run paired analysis (suppress expected warnings about perfect fits in permutations)
   result <- suppressWarnings(
-    .rank_test_q_condition(
+    .calculate_rank_test(
       model_data,
       paired = TRUE,
       subject_col = "subject",
@@ -864,7 +864,7 @@ test_that("detect_q_gene_interactions paired and unpaired give different results
   
   # Run both analyses (expect warnings about perfect fits)
   result_unpaired <- suppressWarnings(
-    .rank_test_q_condition(
+    .calculate_rank_test(
       model_data,
       paired = FALSE,
       multicorr = "hochberg",
@@ -873,7 +873,7 @@ test_that("detect_q_gene_interactions paired and unpaired give different results
   )
   
   result_paired <- suppressWarnings(
-    .rank_test_q_condition(
+    .calculate_rank_test(
       model_data,
       paired = TRUE,
       subject_col = "subject",
@@ -942,7 +942,7 @@ test_that("detect_q_gene_interactions SummarizedExperiment with paired data extr
   model_data <- do.call(rbind, model_data_list)
   
   # This should work with paired design
-  result <- .rank_test_q_condition(
+  result <- .calculate_rank_test(
     model_data,
     paired = TRUE,
     subject_col = "subject",
@@ -995,7 +995,7 @@ test_that("detect_q_gene_interactions paired detects unbalanced designs", {
   rownames(model_data) <- NULL
   
   # Should run without error (handles unbalanced designs)
-  result <- .rank_test_q_condition(
+  result <- .calculate_rank_test(
     model_data,
     paired = TRUE,
     subject_col = "subject",
@@ -1187,7 +1187,7 @@ test_that("detect_q_gene_interactions with wy_randomizations='auto'", {
   
   # Auto mode should estimate and use calculated value
   result_auto <- suppressWarnings(
-    .rank_test_q_condition(
+    .calculate_rank_test(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = "auto",
@@ -1199,7 +1199,7 @@ test_that("detect_q_gene_interactions with wy_randomizations='auto'", {
   # Explicit mode with estimate_nperm
   nperm_explicit <- .estimate_nperm(model_data, mode = "standard")
   result_explicit <- suppressWarnings(
-    .rank_test_q_condition(
+    .calculate_rank_test(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = nperm_explicit,
@@ -1254,10 +1254,10 @@ skip_on_bioc()
 context("Rank-Based Methods: Coverage Expansion")
 
 # ============================================================================
-# TEST: test_rankbased_assumptions_s4 - Line 92 (matrix conversion)
+# TEST: calculate_rank_assumptions_s4 - Line 92 (matrix conversion)
 # ============================================================================
 
-test_that("test_rankbased_assumptions_s4: converts data.frame to matrix", {
+test_that("calculate_rank_assumptions_s4: converts data.frame to matrix", {
   # Line 92: if (!is.matrix(data)) data <- as.matrix(data)
   
   # Create a TSENATAnalysis object with diversity results
@@ -1280,7 +1280,7 @@ test_that("test_rankbased_assumptions_s4: converts data.frame to matrix", {
   analysis@diversity_results$q_1.0 <- div_se
   
   # This should not error even with data.frame assay
-  result <- TSENAT:::test_rankbased_assumptions_s4(
+  result <- TSENAT:::calculate_rank_assumptions_s4(
     analysis,
     checks = c("exchangeability")
   )
@@ -1290,10 +1290,10 @@ test_that("test_rankbased_assumptions_s4: converts data.frame to matrix", {
 })
 
 # ============================================================================
-# TEST: test_rankbased_assumptions_s4 - Line 117 (single row edge case)
+# TEST: calculate_rank_assumptions_s4 - Line 117 (single row edge case)
 # ============================================================================
 
-test_that("test_rankbased_assumptions_s4: handles small data in exchangeability", {
+test_that("calculate_rank_assumptions_s4: handles small data in exchangeability", {
   # Line 117: 0 (when length(row_means) <= 1) - ensure at least 2 rows
   
   se <- SummarizedExperiment::SummarizedExperiment(
@@ -1317,7 +1317,7 @@ test_that("test_rankbased_assumptions_s4: handles small data in exchangeability"
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::test_rankbased_assumptions_s4(
+  result <- TSENAT:::calculate_rank_assumptions_s4(
     analysis,
     checks = c("exchangeability")
   )
@@ -1327,10 +1327,10 @@ test_that("test_rankbased_assumptions_s4: handles small data in exchangeability"
 })
 
 # ============================================================================
-# TEST: test_rankbased_assumptions_s4 - Line 131 (permutation with single row)
+# TEST: calculate_rank_assumptions_s4 - Line 131 (permutation with single row)
 # ============================================================================
 
-test_that("test_rankbased_assumptions_s4: permutation handles small data", {
+test_that("calculate_rank_assumptions_s4: permutation handles small data", {
   # Line 131: 0 (when length(perm_means) <= 1 in permutation loop)
   
   se <- SummarizedExperiment::SummarizedExperiment(
@@ -1354,7 +1354,7 @@ test_that("test_rankbased_assumptions_s4: permutation handles small data", {
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::test_rankbased_assumptions_s4(
+  result <- TSENAT:::calculate_rank_assumptions_s4(
     analysis,
     checks = c("exchangeability")
   )
@@ -1364,10 +1364,10 @@ test_that("test_rankbased_assumptions_s4: permutation handles small data", {
 })
 
 # ============================================================================
-# TEST: test_rankbased_assumptions_s4 - Line 169 (High correlation status)
+# TEST: calculate_rank_assumptions_s4 - Line 169 (High correlation status)
 # ============================================================================
 
-test_that("test_rankbased_assumptions_s4: returns PASS status for high monotonicity", {
+test_that("calculate_rank_assumptions_s4: returns PASS status for high monotonicity", {
   # Line 169: "[OK] PASS" status when mean_cor > 0.7 && sd_cor < 0.2
   
   se <- SummarizedExperiment::SummarizedExperiment(
@@ -1392,7 +1392,7 @@ test_that("test_rankbased_assumptions_s4: returns PASS status for high monotonic
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::test_rankbased_assumptions_s4(
+  result <- TSENAT:::calculate_rank_assumptions_s4(
     analysis,
     checks = c("monotonicity")
   )
@@ -1402,10 +1402,10 @@ test_that("test_rankbased_assumptions_s4: returns PASS status for high monotonic
 })
 
 # ============================================================================
-# TEST: test_rankbased_assumptions_s4 - Line 171 (Acceptable correlation status)
+# TEST: calculate_rank_assumptions_s4 - Line 171 (Acceptable correlation status)
 # ============================================================================
 
-test_that("test_rankbased_assumptions_s4: returns ACCEPTABLE status for moderate monotonicity", {
+test_that("calculate_rank_assumptions_s4: returns ACCEPTABLE status for moderate monotonicity", {
   # Line 171: "? ACCEPTABLE" status when mean_cor > 0.4
   
   se <- SummarizedExperiment::SummarizedExperiment(
@@ -1429,7 +1429,7 @@ test_that("test_rankbased_assumptions_s4: returns ACCEPTABLE status for moderate
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::test_rankbased_assumptions_s4(
+  result <- TSENAT:::calculate_rank_assumptions_s4(
     analysis,
     checks = c("monotonicity")
   )
@@ -1439,10 +1439,10 @@ test_that("test_rankbased_assumptions_s4: returns ACCEPTABLE status for moderate
 })
 
 # ============================================================================
-# TEST: test_rankbased_assumptions_s4 - Line 224 (High Kendall's W status)
+# TEST: calculate_rank_assumptions_s4 - Line 224 (High Kendall's W status)
 # ============================================================================
 
-test_that("test_rankbased_assumptions_s4: returns PASS status for high Kendall's W", {
+test_that("calculate_rank_assumptions_s4: returns PASS status for high Kendall's W", {
   # Line 224: "[OK] PASS" status when kendall_w > 0.7
   
   se <- SummarizedExperiment::SummarizedExperiment(
@@ -1466,7 +1466,7 @@ test_that("test_rankbased_assumptions_s4: returns PASS status for high Kendall's
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::test_rankbased_assumptions_s4(
+  result <- TSENAT:::calculate_rank_assumptions_s4(
     analysis,
     checks = c("consistency")
   )
@@ -1476,10 +1476,10 @@ test_that("test_rankbased_assumptions_s4: returns PASS status for high Kendall's
 })
 
 # ============================================================================
-# TEST: test_rankbased_assumptions_s4 - Line 226 (Acceptable Kendall's W status)
+# TEST: calculate_rank_assumptions_s4 - Line 226 (Acceptable Kendall's W status)
 # ============================================================================
 
-test_that("test_rankbased_assumptions_s4: returns ACCEPTABLE status for moderate Kendall's W", {
+test_that("calculate_rank_assumptions_s4: returns ACCEPTABLE status for moderate Kendall's W", {
   # Line 226: "? ACCEPTABLE" status when kendall_w > 0.4
   
   se <- SummarizedExperiment::SummarizedExperiment(
@@ -1500,7 +1500,7 @@ test_that("test_rankbased_assumptions_s4: returns ACCEPTABLE status for moderate
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::test_rankbased_assumptions_s4(
+  result <- TSENAT:::calculate_rank_assumptions_s4(
     analysis,
     checks = c("consistency")
   )
@@ -1532,7 +1532,7 @@ test_that("print.rank_assumptions: prints header and check details", {
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::test_rankbased_assumptions_s4(
+  result <- TSENAT:::calculate_rank_assumptions_s4(
     analysis,
     checks = c("exchangeability")
   )
@@ -1569,7 +1569,7 @@ test_that("print.rank_assumptions: includes method field when present", {
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::test_rankbased_assumptions_s4(
+  result <- TSENAT:::calculate_rank_assumptions_s4(
     analysis,
     checks = c("monotonicity")  # monotonicity has method field
   )
@@ -1606,7 +1606,7 @@ test_that("print.rank_assumptions: includes status field when present", {
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::test_rankbased_assumptions_s4(
+  result <- TSENAT:::calculate_rank_assumptions_s4(
     analysis,
     checks = c("monotonicity", "consistency")
   )
@@ -1643,7 +1643,7 @@ test_that("print.rank_assumptions: includes details field when present", {
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::test_rankbased_assumptions_s4(
+  result <- TSENAT:::calculate_rank_assumptions_s4(
     analysis,
     checks = c("monotonicity")
   )
@@ -1659,10 +1659,10 @@ test_that("print.rank_assumptions: includes details field when present", {
 })
 
 # ============================================================================
-# TEST: test_rankbased_assumptions_s4 - All checks combined
+# TEST: calculate_rank_assumptions_s4 - All checks combined
 # ============================================================================
 
-test_that("test_rankbased_assumptions_s4: runs all checks without error", {
+test_that("calculate_rank_assumptions_s4: runs all checks without error", {
   
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(counts = matrix(1:20, nrow = 5, ncol = 4))
@@ -1680,7 +1680,7 @@ test_that("test_rankbased_assumptions_s4: runs all checks without error", {
   analysis@diversity_results$q_1.0 <- div_se
   
   # Run all checks
-  result <- TSENAT:::test_rankbased_assumptions_s4(
+  result <- TSENAT:::calculate_rank_assumptions_s4(
     analysis,
     checks = c("exchangeability", "monotonicity", "consistency")
   )
@@ -2096,7 +2096,7 @@ test_that("plot_method_concordance creates valid plot", {
                       size = 20, replace = TRUE)
   )
   
-  plot <- .plot_method_concordance(comparison_df)
+  plot <- .plot_concordance(comparison_df)
   
   # Check that result is a grob object
   expect_true(methods::is(plot, "grob") || methods::is(plot, "gtable"))
@@ -2108,7 +2108,7 @@ test_that("plot_method_concordance rejects empty data.frame", {
   comparison_df <- data.frame()
   
   expect_error(
-    .plot_method_concordance(comparison_df),
+    .plot_concordance(comparison_df),
     "non-empty"
   )
 })
@@ -2117,7 +2117,7 @@ test_that("plot_method_concordance rejects NULL input", {
   skip_if_not_installed("ggplot2")
   
   expect_error(
-    .plot_method_concordance(NULL),
+    .plot_concordance(NULL),
     "non-empty"
   )
 })
@@ -2132,7 +2132,7 @@ test_that("plot_method_concordance requires required columns", {
   )
   
   expect_error(
-    .plot_method_concordance(comparison_df),
+    .plot_concordance(comparison_df),
     "required columns"
   )
 })

@@ -29,17 +29,17 @@
 #'   log2_fold_change = rnorm(20, sd = 0.8)
 #' )
 #' # Placeholder: actual usage would require valid differential results
-#' # .plot_volcano_ma_grid(x, sig_alpha = 0.05)
+#' # .plot_diversity_volcano_ma(x, sig_alpha = 0.05)
 #'
 
 #' @noRd
 
-.plot_volcano_ma_grid <- function(diff_df, x_col = NULL, padj_col = "padj", label_thresh = 0.1,
+.plot_diversity_volcano_ma <- function(diff_df, x_col = NULL, padj_col = "padj", label_thresh = 0.1,
     sig_alpha = 0.05, top_n = 5, title_volcano = NULL, title_ma = "Tsallis-based MA plot",
     ...) {
     # Require cowplot for grid arrangement
     if (!requireNamespace("cowplot", quietly = TRUE)) {
-        stop("cowplot package required for .plot_volcano_ma_grid()")
+        stop("cowplot package required for .plot_diversity_volcano_ma()")
     }
 
     # Create volcano plot

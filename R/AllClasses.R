@@ -13,7 +13,7 @@
 #'
 #' @slot config \code{list}. Configuration metadata specifying analysis
 #'   parameters that persist through the workflow (q-values, sample grouping
-#'   columns, etc.). Set once via \code{tsenat_config()} and used by all
+#'   columns, etc.). Set once via \code{TSENAT_config()} and used by all
 #'   downstream wrapper functions.
 #'
 #' @slot diversity_results \code{list}. Named list of diversity calculation
@@ -49,7 +49,7 @@
 #'
 #' @slot plots \code{list}. Cached visualization objects (ggplot). Names
 #'   identify plot type (e.g., 'q_curve', 'lm_interaction', 'influence').
-#'   Populated by \code{tsenat()} if \code{generate_plots=TRUE}.
+#'   Populated by \code{TSENAT()} if \code{generate_plots=TRUE}.
 #'
 #' @slot metadata \code{list}. Reproducibility and tracking metadata.
 #'   Automatically maintained by wrapper functions. Includes:

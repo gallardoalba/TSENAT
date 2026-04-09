@@ -17,7 +17,7 @@
 #'    - Tells whether entropy signal is stable or q-dependent
 #'
 #' 3. **MULTI-Q FWER CONTROL**: See
-#' `.rank_test_q_condition(multicorr='westfall-young')`
+#' `.calculate_rank_test(multicorr='westfall-young')`
 #'    - Built-in Westfall-Young permutation procedure for rank-based tests
 #'    - Permutation-based Family-Wise Error Rate control
 #'    - Accounts for correlations between multi-q tests
@@ -29,7 +29,7 @@
 #'    - Storey FDR: pi0-adjusted Benjamini-Hochberg
 #'    - Both handle multi-q correlations better than standard FDR
 #'
-#' 5. **TEST L.5**: `.test_rankbased_assumptions()`
+#' 5. **TEST L.5**: `.calculate_rank_assumptions()`
 #'    - Validates that rank-based analysis is appropriate
 #'    - Checks exchangeability, monotonicity, consistency
 #'
@@ -89,7 +89,7 @@
 
 #' @noRd
 
-.test_rankbased_assumptions <- function(data, checks = c("exchangeability", "monotonicity",
+.calculate_rank_assumptions <- function(data, checks = c("exchangeability", "monotonicity",
     "consistency"), alpha = 0.05) {
 
     if (!is.matrix(data))
@@ -332,7 +332,7 @@ print.rank_correlation_ci <- function(x, ...) {
 #'
 #' Stratifies genes based on their sensitivity to q-parameter changes.
 #'
-#' @param interaction_results Data frame output from .rank_test_q_condition()
+#' @param interaction_results Data frame output from .calculate_rank_test()
 #' @param p_threshold Numeric: p-value threshold for significance (default:
 #' 0.05)
 #' @param eta2_threshold_moderate Numeric: Effect size threshold for

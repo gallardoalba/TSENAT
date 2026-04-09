@@ -495,7 +495,7 @@ test_that("plot_divergence_spectrum_s4: creates plot with valid divergence data"
   skip_if_not_installed("cowplot")
   
   # Build analysis from vignette data
-  config <- tsenat_config(
+  config <- TSENAT_config(
     q_values = seq(0, 2, by = 0.2),
     condition_col = "condition",
     subject_col = "paired_samples",
@@ -522,7 +522,7 @@ test_that("plot_divergence_spectrum_s4: handles single gene mode", {
   skip_if_not_installed("cowplot")
   
   # Build analysis from vignette data
-  config <- tsenat_config(
+  config <- TSENAT_config(
     q_values = seq(0, 2, by = 0.2),
     condition_col = "condition",
     subject_col = "paired_samples",
@@ -551,7 +551,7 @@ test_that("plot_divergence_spectrum_s4: respects metric and variability paramete
   skip_if_not_installed("cowplot")
   
   # Build analysis from vignette data
-  config <- tsenat_config(
+  config <- TSENAT_config(
     q_values = seq(0, 2, by = 0.2),
     condition_col = "condition",
     subject_col = "paired_samples",

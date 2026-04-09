@@ -3853,7 +3853,7 @@ require_pkgs <- function(pkgs) {
 #'  
 #' @noRd
 
-.plot_tsallis_violin_singleq <- function(se, assay_name = "diversity", title = NULL) {
+.plot_diversity_violin_singleq <- function(se, assay_name = "diversity", title = NULL) {
 
     # Try to extract q from SE metadata first (best source for single-q SE)
     q_val <- NA
@@ -3916,7 +3916,7 @@ require_pkgs <- function(pkgs) {
 #'
 #' @noRd
 
-.plot_tsallis_density_singleq <- function(se, assay_name = "diversity", title = NULL) {
+.plot_diversity_density_singleq <- function(se, assay_name = "diversity", title = NULL) {
 
     # Try to extract q from SE metadata first (best source for single-q SE)
     q_val <- NA
@@ -3994,17 +3994,17 @@ require_pkgs <- function(pkgs) {
 #' readcounts <- as.matrix(readcounts)
 #' mode(readcounts) <- 'numeric'
 #' 
-#' config <- tsenat_config(sample_col = 'sample', condition_col = 'condition')
+#' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df, config = config,
 #'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' analysis <- calculate_diversity_s4(analysis, q = 1.0)
-#' p <- plot_tsallis_violin_density_grid_s4(analysis)
+#' p <- plot_diversity_violin_density_s4(analysis)
 #' if (!is.null(p)) print(p)
 #'
-plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", title = NULL,
+plot_diversity_violin_density_s4 <- function(se, assay_name = "diversity", title = NULL,
     output_file = NULL) {
     # Load visualization dependencies (ggplot2, cowplot, etc.)
     .load_visualization_deps()
@@ -4044,9 +4044,9 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
     base_title <- title %||% sprintf("Tsallis entropy at q = %g", q_val)
 
     # Create individual plots
-    p_violin <- .plot_tsallis_violin_singleq(se = se, assay_name = assay_name, title = "Violin")
+    p_violin <- .plot_diversity_violin_singleq(se = se, assay_name = assay_name, title = "Violin")
 
-    p_density <- .plot_tsallis_density_singleq(se = se, assay_name = assay_name,
+    p_density <- .plot_diversity_density_singleq(se = se, assay_name = assay_name,
         title = "Density")
 
     # Arrange plots side by side: violin on left, density on right
@@ -4153,17 +4153,17 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
 #'   log2_fold_change = rnorm(20, sd = 0.8)
 #' )
 #' # Placeholder: actual usage would require valid differential results
-#' # .plot_volcano_ma_grid(x, sig_alpha = 0.05)
+#' # .plot_diversity_volcano_ma(x, sig_alpha = 0.05)
 #'
 
 #' @noRd
 
-.plot_volcano_ma_grid <- function(diff_df, x_col = NULL, padj_col = "padj", label_thresh = 0.1,
+.plot_diversity_volcano_ma <- function(diff_df, x_col = NULL, padj_col = "padj", label_thresh = 0.1,
     sig_alpha = 0.05, top_n = 5, title_volcano = NULL, title_ma = "Tsallis-based MA plot",
     ...) {
     # Require cowplot for grid arrangement
     if (!requireNamespace("cowplot", quietly = TRUE)) {
-        stop("cowplot package required for .plot_volcano_ma_grid()")
+        stop("cowplot package required for .plot_diversity_volcano_ma()")
     }
 
     # Create volcano plot

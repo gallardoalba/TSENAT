@@ -14,7 +14,7 @@
 
 * Visualization suite (8 plot types): diversity q-curves, volcano/MA plots, violin/density plots, transcript composition heatmaps, divergence distance matrices, interaction surfaces, concordance plots, multi-gene q-spectrum plots. All ggplot2-based with publication-ready styling.
 
-* High-level workflow orchestration via `tsenat()` and flexible configuration management with `tsenat_config()`.
+* High-level workflow orchestration via `TSENAT()` and flexible configuration management with `TSENAT_config()`.
 
 * Performance: Rcpp/RcppArmadillo for entropy calculations, BiocParallel support, lazy-loading of visualization libraries (~30% faster non-plot workflows).
 

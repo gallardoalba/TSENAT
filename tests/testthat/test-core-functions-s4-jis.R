@@ -451,7 +451,7 @@ test_that(".store_jis_results updates metadata with function call", {
   
   # Check metadata was updated
   expect_true(
-    any(grepl("jackknife_isoform_switching_s4", 
+    any(grepl("calculate_jis_s4", 
               updated_analysis@metadata$function_calls))
   )
 })
@@ -561,12 +561,12 @@ test_that(".save_jis_output handles text file output", {
 })
 
 # ============================================================================
-# TEST SUITE 8: jackknife_isoform_switching_s4() - Main Wrapper
+# TEST SUITE 8: calculate_jis_s4() - Main Wrapper
 # ============================================================================
 
-test_that("jackknife_isoform_switching_s4 rejects non-TSENATAnalysis input", {
+test_that("calculate_jis_s4 rejects non-TSENATAnalysis input", {
   expect_error(
-    TSENAT::jackknife_isoform_switching_s4(
+    TSENAT::calculate_jis_s4(
       analysis = list(),
       n_bootstrap = 10
     ),
@@ -574,14 +574,14 @@ test_that("jackknife_isoform_switching_s4 rejects non-TSENATAnalysis input", {
   )
 })
 
-test_that("jackknife_isoform_switching_s4 returns TSENATAnalysis object", {
+test_that("calculate_jis_s4 returns TSENATAnalysis object", {
   analysis <- make_test_analysis_jis()
   
   # Pre-populate diversity results so validation passes
   analysis@diversity_results <- list(q_1_00 = list(q = 1.0))
   
   result <- suppressWarnings(
-    TSENAT::jackknife_isoform_switching_s4(
+    TSENAT::calculate_jis_s4(
       analysis = analysis,
       condition_col = "condition",
       gene_col = "gene_id",
@@ -595,12 +595,12 @@ test_that("jackknife_isoform_switching_s4 returns TSENATAnalysis object", {
   expect_is(result, "TSENATAnalysis")
 })
 
-test_that("jackknife_isoform_switching_s4 stores results in @jackknife_results", {
+test_that("calculate_jis_s4 stores results in @jackknife_results", {
   analysis <- make_test_analysis_jis()
   analysis@diversity_results <- list(q_1_00 = list(q = 1.0))
   
   result <- suppressWarnings(
-    TSENAT::jackknife_isoform_switching_s4(
+    TSENAT::calculate_jis_s4(
       analysis = analysis,
       condition_col = "condition",
       gene_col = "gene_id",
@@ -615,12 +615,12 @@ test_that("jackknife_isoform_switching_s4 stores results in @jackknife_results",
   expect_true(any(grepl("^q_", names(result@jackknife_results))))
 })
 
-test_that("jackknife_isoform_switching_s4 updates metadata", {
+test_that("calculate_jis_s4 updates metadata", {
   analysis <- make_test_analysis_jis()
   analysis@diversity_results <- list(q_1_00 = list(q = 1.0))
   
   result <- suppressWarnings(
-    TSENAT::jackknife_isoform_switching_s4(
+    TSENAT::calculate_jis_s4(
       analysis = analysis,
       condition_col = "condition",
       gene_col = "gene_id",
@@ -632,17 +632,17 @@ test_that("jackknife_isoform_switching_s4 updates metadata", {
   )
   
   expect_true(
-    any(grepl("jackknife_isoform_switching_s4", 
+    any(grepl("calculate_jis_s4", 
               result@metadata$function_calls))
   )
 })
 
-test_that("jackknife_isoform_switching_s4 auto-detects columns when NULL", {
+test_that("calculate_jis_s4 auto-detects columns when NULL", {
   analysis <- make_test_analysis_jis()
   analysis@diversity_results <- list(q_1_00 = list(q = 1.0))
   
   result <- suppressWarnings(
-    TSENAT::jackknife_isoform_switching_s4(
+    TSENAT::calculate_jis_s4(
       analysis = analysis,
       condition_col = NULL,  # Auto-detect
       gene_col = NULL,        # Auto-detect
@@ -656,12 +656,12 @@ test_that("jackknife_isoform_switching_s4 auto-detects columns when NULL", {
   expect_is(result, "TSENATAnalysis")
 })
 
-test_that("jackknife_isoform_switching_s4 rejects invalid n_bootstrap", {
+test_that("calculate_jis_s4 rejects invalid n_bootstrap", {
   analysis <- make_test_analysis_jis()
   analysis@diversity_results <- list(q_1_00 = list(q = 1.0))
   
   expect_error(
-    TSENAT::jackknife_isoform_switching_s4(
+    TSENAT::calculate_jis_s4(
       analysis = analysis,
       condition_col = "condition",
       gene_col = "gene_id",
@@ -674,7 +674,7 @@ test_that("jackknife_isoform_switching_s4 rejects invalid n_bootstrap", {
   )
 })
 
-test_that("jackknife_isoform_switching_s4 handles multi-q analysis", {
+test_that("calculate_jis_s4 handles multi-q analysis", {
   analysis <- make_test_analysis_jis()
   analysis@diversity_results <- list(
     q_0_50 = list(q = 0.5),
@@ -682,7 +682,7 @@ test_that("jackknife_isoform_switching_s4 handles multi-q analysis", {
   )
   
   result <- suppressWarnings(
-    TSENAT::jackknife_isoform_switching_s4(
+    TSENAT::calculate_jis_s4(
       analysis = analysis,
       condition_col = "condition",
       gene_col = "gene_id",
@@ -699,14 +699,14 @@ test_that("jackknife_isoform_switching_s4 handles multi-q analysis", {
   expect_true(length(q_keys) > 0)
 })
 
-test_that("jackknife_isoform_switching_s4 saves to file when output_file provided", {
+test_that("calculate_jis_s4 saves to file when output_file provided", {
   analysis <- make_test_analysis_jis()
   analysis@diversity_results <- list(q_1_00 = list(q = 1.0))
   
   temp_file <- tempfile(fileext = ".rds")
   
   result <- suppressWarnings(
-    TSENAT::jackknife_isoform_switching_s4(
+    TSENAT::calculate_jis_s4(
       analysis = analysis,
       condition_col = "condition",
       gene_col = "gene_id",
@@ -722,7 +722,7 @@ test_that("jackknife_isoform_switching_s4 saves to file when output_file provide
   file.remove(temp_file)
 })
 
-test_that("jackknife_isoform_switching_s4 supports method chaining", {
+test_that("calculate_jis_s4 supports method chaining", {
   analysis <- make_test_analysis_jis()
   analysis@diversity_results <- list(
     q_0_50 = list(q = 0.5),
@@ -731,13 +731,13 @@ test_that("jackknife_isoform_switching_s4 supports method chaining", {
   
   # Chain multiple calls
   result <- suppressWarnings(
-    TSENAT::jackknife_isoform_switching_s4(
+    TSENAT::calculate_jis_s4(
       analysis = analysis,
       q = 0.5,
       n_bootstrap = 10,
       verbose = FALSE
     ) %>%
-      TSENAT::jackknife_isoform_switching_s4(
+      TSENAT::calculate_jis_s4(
         q = 1.0,
         n_bootstrap = 10,
         verbose = FALSE
@@ -750,7 +750,7 @@ test_that("jackknife_isoform_switching_s4 supports method chaining", {
   expect_true(length(q_keys) >= 1)
 })
 
-test_that("jackknife_isoform_switching_s4 accepts LM results parameter", {
+test_that("calculate_jis_s4 accepts LM results parameter", {
   analysis <- make_test_analysis_jis()
   analysis@diversity_results <- list(q_1_00 = list(q = 1.0))
   
@@ -766,7 +766,7 @@ test_that("jackknife_isoform_switching_s4 accepts LM results parameter", {
   # The base function may have specific data requirements beyond our test scope
   result <- tryCatch(
     suppressWarnings(
-      TSENAT::jackknife_isoform_switching_s4(
+      TSENAT::calculate_jis_s4(
         analysis = analysis,
         condition_col = "condition",
         gene_col = "gene_id",
@@ -835,7 +835,7 @@ test_that("Error handling: invalid column names propagate correctly", {
   
   # Should throw error when condition_col doesn't exist and can't be auto-detected
   expect_error(
-    TSENAT::jackknife_isoform_switching_s4(
+    TSENAT::calculate_jis_s4(
       analysis = analysis,
       condition_col = "nonexistent_col",
       gene_col = "gene_id",
@@ -853,7 +853,7 @@ test_that("Verbose mode produces informative messages", {
   
   expect_message(
     suppressWarnings(
-      TSENAT::jackknife_isoform_switching_s4(
+      TSENAT::calculate_jis_s4(
         analysis = analysis,
         condition_col = "condition",
         gene_col = "gene_id",
@@ -863,7 +863,7 @@ test_that("Verbose mode produces informative messages", {
         verbose = TRUE
       )
     ),
-    "jackknife_isoform_switching_s4"
+    "calculate_jis_s4"
   )
 })
 
@@ -878,7 +878,7 @@ test_that("Output file (RDS) preserves analysis object structure and data", {
   temp_file <- tempfile(fileext = ".rds")
   
   result <- suppressWarnings(
-    TSENAT::jackknife_isoform_switching_s4(
+    TSENAT::calculate_jis_s4(
       analysis = analysis,
       condition_col = "condition",
       gene_col = "gene_id",

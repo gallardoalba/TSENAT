@@ -115,7 +115,7 @@ metadata_df <- read.table(
 gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 
 # Build analysis from vignette data and create manageable subset
-config <- tsenat_config(sample_col = 'sample', condition_col = 'condition')
+config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
 analysis <- build_analysis_s4(
   readcounts = readcounts,
   tx2gene = gff3_dataset,

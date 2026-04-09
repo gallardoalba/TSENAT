@@ -289,7 +289,7 @@ test_that("plot_tsallis_density_singleq: two-group comparison", {
   expect_is(p, "ggplot")
 })
 
-test_that("plot_tsallis_violin_density_grid_s4: violin plot with density", {
+test_that("plot_diversity_violin_density_s4: violin plot with density", {
   config <- list()
   skip_if_not_installed("ggplot2")
   
@@ -306,7 +306,7 @@ test_that("plot_tsallis_violin_density_grid_s4: violin plot with density", {
   expect_is(p, "ggplot")
 })
 
-test_that("plot_tsallis_violin_density_grid_s4: multi-q faceting", {
+test_that("plot_diversity_violin_density_s4: multi-q faceting", {
   config <- list()
   skip_if_not_installed("ggplot2")
   
@@ -470,7 +470,7 @@ test_that("faceted plot grid consistency", {
   expect_is(p, "ggplot")
 })
 
-test_that("plot_volcano_ma_grid_s4: creates plots from divergence results", {
+test_that("plot_diversity_volcano_ma_s4: creates plots from divergence results", {
   skip_if_not_installed("SummarizedExperiment")
   skip_if_not_installed("ggplot2")
   
@@ -486,14 +486,14 @@ test_that("plot_volcano_ma_grid_s4: creates plots from divergence results", {
     stringsAsFactors = FALSE
   )
   
-  # Try to create and test plot_volcano_ma_grid_s4
+  # Try to create and test plot_diversity_volcano_ma_s4
   # This is a high-level S4 function that may require full analysis object
   expect_true(is.data.frame(div_results))
   expect_true("padj" %in% colnames(div_results))
   expect_true("log2_fold_change" %in% colnames(div_results))
 })
 
-test_that("plot_volcano_ma_grid_s4: handles parameter validation", {
+test_that("plot_diversity_volcano_ma_s4: handles parameter validation", {
   skip_if_not_installed("ggplot2")
   
   
@@ -509,15 +509,15 @@ test_that("plot_volcano_ma_grid_s4: handles parameter validation", {
 })
 
 
-test_that("plot_volcano_ma_grid_s4: validates analysis object", {
+test_that("plot_diversity_volcano_ma_s4: validates analysis object", {
   # Should error when not passed TSENATAnalysis
   expect_error(
-    TSENAT:::plot_volcano_ma_grid_s4("not_analysis"),
+    TSENAT:::plot_diversity_volcano_ma_s4("not_analysis"),
     "must be a TSENATAnalysis object"
   )
 })
 
-test_that("plot_volcano_ma_grid_s4: requires pairwise results", {
+test_that("plot_diversity_volcano_ma_s4: requires pairwise results", {
   set.seed(301)
   
   # Create minimal analysis without pairwise results
@@ -533,17 +533,17 @@ test_that("plot_volcano_ma_grid_s4: requires pairwise results", {
   
   # Should error when no pairwise results
   expect_error(
-    TSENAT:::plot_volcano_ma_grid_s4(analysis),
+    TSENAT:::plot_diversity_volcano_ma_s4(analysis),
     "ifference results not found|No pairwise results"
   )
 })
 
-test_that("plot_volcano_ma_grid_s4: creates plot with valid pairwise data", {
+test_that("plot_diversity_volcano_ma_s4: creates plot with valid pairwise data", {
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("cowplot")
   
   # Build analysis from vignette data
-  config <- tsenat_config(
+  config <- TSENAT_config(
     q_values = seq(0, 2, by = 0.1),
     condition_col = "condition",
     subject_col = "paired_samples",
@@ -558,19 +558,19 @@ test_that("plot_volcano_ma_grid_s4: creates plot with valid pairwise data", {
   analysis <- calculate_difference_s4(analysis, method = "median", verbose = FALSE)
   
   # Create plot - should actually execute plotting code
-  result <- TSENAT:::plot_volcano_ma_grid_s4(analysis, verbose = FALSE)
+  result <- TSENAT:::plot_diversity_volcano_ma_s4(analysis, verbose = FALSE)
   
   # Result must be a valid plot object (ggplot or combined via cowplot)
   expect_true(inherits(result, "ggplot") || is.list(result))
   expect_false(is.null(result))
 })
 
-test_that("plot_volcano_ma_grid_s4: respects sig_alpha and top_n parameters", {
+test_that("plot_diversity_volcano_ma_s4: respects sig_alpha and top_n parameters", {
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("cowplot")
   
   # Build analysis from vignette data
-  config <- tsenat_config(
+  config <- TSENAT_config(
     q_values = seq(0, 2, by = 0.1),
     condition_col = "condition",
     subject_col = "paired_samples",
@@ -585,13 +585,13 @@ test_that("plot_volcano_ma_grid_s4: respects sig_alpha and top_n parameters", {
   analysis <- calculate_difference_s4(analysis, method = "median", verbose = FALSE)
   
   # Test with strict significance threshold
-  result_strict <- TSENAT:::plot_volcano_ma_grid_s4(analysis, sig_alpha = 0.01, top_n = 3, verbose = FALSE)
+  result_strict <- TSENAT:::plot_diversity_volcano_ma_s4(analysis, sig_alpha = 0.01, top_n = 3, verbose = FALSE)
   
   expect_true(inherits(result_strict, "ggplot") || is.list(result_strict))
   expect_false(is.null(result_strict))
   
   # Test with lenient significance threshold
-  result_lenient <- TSENAT:::plot_volcano_ma_grid_s4(analysis, sig_alpha = 0.05, top_n = 5, verbose = FALSE)
+  result_lenient <- TSENAT:::plot_diversity_volcano_ma_s4(analysis, sig_alpha = 0.05, top_n = 5, verbose = FALSE)
   
   expect_true(inherits(result_lenient, "ggplot") || is.list(result_lenient))
   expect_false(is.null(result_lenient))

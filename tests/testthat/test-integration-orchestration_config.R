@@ -36,7 +36,7 @@ make_test_se <- function() {
   
   # Configure analysis parameters (follow workflow.R pattern)
   # Uses all 16 samples with paired design (8 subjects, 2 timepoints each)
-  config <- tsenat_config(
+  config <- TSENAT_config(
     sample_col = "sample",
     condition_col = "condition",
     subject_col = "paired_samples",
@@ -60,17 +60,17 @@ make_test_se <- function() {
   # Apply medium stringency filtering
   analysis <- filter_analysis_s4(analysis, stringency = "medium", verbose = FALSE)
   
-  # Return unfiltered SE with all 16 samples - let tsenat() workflow handle default filtering
-  # workflow.R doesn't pre-filter; filtering happens inside tsenat()
+  # Return unfiltered SE with all 16 samples - let TSENAT() workflow handle default filtering
+  # workflow.R doesn't pre-filter; filtering happens inside TSENAT()
   se(analysis)
 }
 
 # ============================================================================
-# TEST: tsenat_config function
+# TEST: TSENAT_config function
 # ============================================================================
 
-test_that("tsenat_config creates config with defaults", {
-  config <- tsenat_config()
+test_that("TSENAT_config creates config with defaults", {
+  config <- TSENAT_config()
   
   expect_true(is.list(config))
   # These fields are always present
@@ -79,15 +79,15 @@ test_that("tsenat_config creates config with defaults", {
   expect_true("q_values" %in% names(config))
 })
 
-test_that("tsenat_config accepts custom parameters", {
-  config <- tsenat_config(p_threshold = 0.01, seed = 123)
+test_that("TSENAT_config accepts custom parameters", {
+  config <- TSENAT_config(p_threshold = 0.01, seed = 123)
   
   expect_equal(config$p_threshold, 0.01)
   expect_equal(config$seed, 123)
 })
 
-test_that("tsenat_config stores all provided arguments", {
-  config <- tsenat_config(
+test_that("TSENAT_config stores all provided arguments", {
+  config <- TSENAT_config(
     p_threshold = 0.05,
     q_values = c(0.5, 1.0, 1.5),
     norm = "none"
@@ -104,7 +104,7 @@ test_that("tsenat_config stores all provided arguments", {
 
 test_that("getConfig retrieves configuration from analysis", {
   se <- make_test_se()
-  analysis <- TSENATAnalysis(se, config = tsenat_config(seed = 99))
+  analysis <- TSENATAnalysis(se, config = TSENAT_config(seed = 99))
   
   config <- getConfig(analysis)
   
@@ -113,9 +113,9 @@ test_that("getConfig retrieves configuration from analysis", {
 
 test_that("setConfig replaces configuration", {
   se <- make_test_se()
-  analysis <- TSENATAnalysis(se, config = tsenat_config(seed = 1))
+  analysis <- TSENATAnalysis(se, config = TSENAT_config(seed = 1))
   
-  new_analysis <- setConfig(analysis, tsenat_config(seed = 2))
+  new_analysis <- setConfig(analysis, TSENAT_config(seed = 2))
   
   expect_equal(new_analysis@config$seed, 2)
 })
@@ -124,7 +124,7 @@ test_that("setConfig preserves SE data", {
   se <- make_test_se()
   analysis <- TSENATAnalysis(se)
   
-  new_config <- tsenat_config(p_threshold = 0.001)
+  new_config <- TSENAT_config(p_threshold = 0.001)
   new_analysis <- setConfig(analysis, new_config)
   
   expect_identical(
@@ -142,7 +142,7 @@ test_that("tsenat creates TSENATAnalysis from SummarizedExperiment", {
   
   # tsenat requires a TSENATAnalysis object, not a raw SE
   expect_error(
-    tsenat(se),
+    TSENAT(se),
     "must be a TSENATAnalysis object"
   )
 })
@@ -152,7 +152,7 @@ test_that("tsenat accepts SE with valid assays", {
   
   # tsenat requires a TSENATAnalysis object, not a raw SE
   expect_error(
-    tsenat(se, verbose = FALSE),
+    TSENAT(se, verbose = FALSE),
     "must be a TSENATAnalysis object"
   )
 })
@@ -163,7 +163,7 @@ test_that("tsenat accepts config, methods, and filter_genome parameters", {
   
   # tsenat requires a TSENATAnalysis object, not a raw SE
   expect_error(
-    tsenat(se, verbose = FALSE),
+    TSENAT(se, verbose = FALSE),
     "must be a TSENATAnalysis object"
   )
 })
@@ -176,9 +176,9 @@ test_that("tsenat rejects invalid SE (missing required assays)", {
     colData = data.frame(condition = rep(c('A', 'B'), 10), row.names = paste0('S', 1:20))
   )
   
-  # tsenat() requires a TSENATAnalysis object, not a raw SE
+  # TSENAT() requires a TSENATAnalysis object, not a raw SE
   expect_error(
-    tsenat(invalid_se, verbose = FALSE),
+    TSENAT(invalid_se, verbose = FALSE),
     "must be a TSENATAnalysis object"
   )
 })
@@ -194,7 +194,7 @@ test_that("tsenat rejects invalid SE (missing condition column)", {
   
   # SE with no 'condition' column - tsenat expects TSENATAnalysis
   expect_error(
-    tsenat(invalid_se, verbose = FALSE),
+    TSENAT(invalid_se, verbose = FALSE),
     "must be a TSENATAnalysis object"
   )
 })
@@ -205,7 +205,7 @@ test_that("tsenat rejects invalid SE (missing condition column)", {
 
 test_that("tsenat passes config parameters to analysis methods", {
   se <- make_test_se()
-  config <- tsenat_config(p_threshold = 0.001, seed = 777)
+  config <- TSENAT_config(p_threshold = 0.001, seed = 777)
   
   # Create TSENATAnalysis object with config
   analysis <- TSENATAnalysis(se, config = config)
@@ -221,16 +221,16 @@ test_that("tsenat passes config parameters to analysis methods", {
 # TEST: Configuration validation
 # ============================================================================
 
-test_that("tsenat_config validates q_values if provided", {
+test_that("TSENAT_config validates q_values if provided", {
   # q_values should be numeric
-  config <- tsenat_config(q_values = c(0.5, 1.0, 1.5))
+  config <- TSENAT_config(q_values = c(0.5, 1.0, 1.5))
   
   expect_true(is.numeric(config$q_values))
   expect_true(length(config$q_values) >= 1)
 })
 
-test_that("tsenat_config accepts stringency parameter", {
-  config <- tsenat_config(stringency = "medium")
+test_that("TSENAT_config accepts stringency parameter", {
+  config <- TSENAT_config(stringency = "medium")
   
   expect_equal(config$stringency, "medium")
 })
@@ -241,7 +241,7 @@ test_that("tsenat processes stringency levels", {
   for (stringency in c("soft", "medium", "severe")) {
     # tsenat requires a TSENATAnalysis object, not a raw SE
     expect_error(
-      tsenat(se, verbose = FALSE),
+      TSENAT(se, verbose = FALSE),
       "must be a TSENATAnalysis object"
     )
   }
@@ -303,7 +303,7 @@ test_that("Helper functions integrate smoothly in tsenat pipeline", {
   
   # Test full pipeline - tsenat requires a TSENATAnalysis object, not a raw SE
   expect_error(
-    tsenat(se, verbose = FALSE),
+    TSENAT(se, verbose = FALSE),
     "must be a TSENATAnalysis object"
   )
 })
@@ -314,7 +314,7 @@ test_that("Helper functions integrate smoothly in tsenat pipeline", {
 
 test_that(".validate_analysis_object accepts valid analysis object", {
   se <- make_test_se()
-  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  analysis <- TSENATAnalysis(se, config = TSENAT_config())
   
   # Should not raise error for valid object
   expect_no_error(.validate_analysis_object(analysis))
@@ -323,7 +323,7 @@ test_that(".validate_analysis_object accepts valid analysis object", {
 test_that(".validate_analysis_object rejects empty SummarizedExperiment", {
   # Create a valid SE, then manually break it to have 0 rows
   se <- make_test_se()
-  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  analysis <- TSENATAnalysis(se, config = TSENAT_config())
   
   # Manually remove all rows to trigger empty SE validation
   analysis@se <- analysis@se[0, ]
@@ -339,7 +339,7 @@ test_that(".validate_analysis_object rejects empty SummarizedExperiment", {
 test_that(".validate_analysis_object handles missing condition column gracefully", {
   # Create a valid SE, then manually remove the condition column
   se <- make_test_se()
-  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  analysis <- TSENATAnalysis(se, config = TSENAT_config())
   
   # Manually remove condition column from colData
   coldata <- SummarizedExperiment::colData(analysis@se)
@@ -359,7 +359,7 @@ test_that(".validate_analysis_object handles missing condition column gracefully
 test_that(".validate_analysis_object rejects insufficient samples", {
   # Create a valid SE, then manually reduce to 1 sample
   se <- make_test_se()
-  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  analysis <- TSENATAnalysis(se, config = TSENAT_config())
   
   # Manually keep only first sample
   analysis@se <- analysis@se[, 1, drop = FALSE]
@@ -386,7 +386,7 @@ test_that(".validate_analysis_object rejects insufficient genes", {
   
   # Try to create - S4 class might prevent it or our validation catches it
   caught_error <- tryCatch({
-    analysis <- TSENATAnalysis(se_few_genes, config = tsenat_config())
+    analysis <- TSENATAnalysis(se_few_genes, config = TSENAT_config())
     .validate_analysis_object(analysis)
     FALSE  # If no error, return FALSE
   }, error = function(e) TRUE)  # If error caught, return TRUE
@@ -399,7 +399,7 @@ test_that(".validate_analysis_object error message lists failed checks", {
   # S4 class prevents creation of objects that fail multiple checks
   # Just test that error messages make sense when they DO occur
   se <- make_test_se()
-  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  analysis <- TSENATAnalysis(se, config = TSENAT_config())
   
   # Manually break the SE to create an invalid condition
   cdata <- SummarizedExperiment::colData(analysis@se)
@@ -432,7 +432,7 @@ test_that(".validate_analysis_object error message lists failed checks", {
 
 test_that(".track_analysis_metadata records completed steps", {
   se <- make_test_se()
-  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  analysis <- TSENATAnalysis(se, config = TSENAT_config())
   
   analysis_tracked <- .track_analysis_metadata(analysis, analysis@config)
   
@@ -442,7 +442,7 @@ test_that(".track_analysis_metadata records completed steps", {
 
 test_that(".track_analysis_metadata stores method parameters", {
   se <- make_test_se()
-  config <- tsenat_config(fdr_threshold = 0.01, q_values = c(0.5, 1.0, 1.5))
+  config <- TSENAT_config(fdr_threshold = 0.01, q_values = c(0.5, 1.0, 1.5))
   analysis <- TSENATAnalysis(se, config = config)
   
   analysis_tracked <- .track_analysis_metadata(analysis, config)
@@ -454,7 +454,7 @@ test_that(".track_analysis_metadata stores method parameters", {
 
 test_that(".track_analysis_metadata stores TSENAT version", {
   se <- make_test_se()
-  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  analysis <- TSENATAnalysis(se, config = TSENAT_config())
   
   analysis_tracked <- .track_analysis_metadata(analysis, analysis@config)
   
@@ -464,7 +464,7 @@ test_that(".track_analysis_metadata stores TSENAT version", {
 
 test_that(".track_analysis_metadata records completion time", {
   se <- make_test_se()
-  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  analysis <- TSENATAnalysis(se, config = TSENAT_config())
   before_time <- Sys.time()
   
   analysis_tracked <- .track_analysis_metadata(analysis, analysis@config)
@@ -479,7 +479,7 @@ test_that(".track_analysis_metadata records completion time", {
 
 test_that(".track_analysis_metadata preserves existing metadata", {
   se <- make_test_se()
-  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  analysis <- TSENATAnalysis(se, config = TSENAT_config())
   # Add existing metadata
   analysis@metadata$custom_field <- "custom_value"
   
@@ -491,7 +491,7 @@ test_that(".track_analysis_metadata preserves existing metadata", {
 
 test_that(".track_analysis_metadata stores condition_col from config", {
   se <- make_test_se()
-  config <- tsenat_config(condition_col = "condition")  # Use actual column from test data
+  config <- TSENAT_config(condition_col = "condition")  # Use actual column from test data
   analysis <- TSENATAnalysis(se, config = config)
   
   analysis_tracked <- .track_analysis_metadata(analysis, config)
@@ -505,7 +505,7 @@ test_that(".track_analysis_metadata stores condition_col from config", {
 
 test_that("results returns NULL for uncomputed results", {
   se <- make_test_se()
-  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  analysis <- TSENATAnalysis(se, config = TSENAT_config())
   
   # No results computed yet
   div_result <- results(analysis, type = "diversity")
@@ -519,7 +519,7 @@ test_that("results returns NULL for uncomputed results", {
 
 test_that("results raises error for unknown result type", {
   se <- make_test_se()
-  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  analysis <- TSENATAnalysis(se, config = TSENAT_config())
   
   expect_error(
     results(analysis, type = "unknown"),
@@ -538,7 +538,7 @@ test_that("results raises error for non-TSENATAnalysis object", {
 
 test_that("results with diversity results and q-value filtering", {
   se <- make_test_se()
-  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  analysis <- TSENATAnalysis(se, config = TSENAT_config())
   
   # Create mock diversity results as a list (correct type for diversity_results slot)
   q_vals <- c("q_0.5", "q_1.0", "q_1.5", "q_2.0")
@@ -562,7 +562,7 @@ test_that("results with diversity results and q-value filtering", {
 
 test_that("results returns all supported result types", {
   se <- make_test_se()
-  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  analysis <- TSENATAnalysis(se, config = TSENAT_config())
   
   # Mock results for each type (as correct types: lists for diversity_results, divergence_results; lists for others)
   n_genes <- nrow(se)
@@ -594,7 +594,7 @@ test_that("results returns all supported result types", {
 
 test_that("results default type is 'diversity'", {
   se <- make_test_se()
-  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  analysis <- TSENATAnalysis(se, config = TSENAT_config())
   
   # Mock diversity results (as a list, not matrix)
   n_genes <- nrow(se)
@@ -612,7 +612,7 @@ test_that("results default type is 'diversity'", {
 
 test_that("results q-value filtering handles non-existent q-values gracefully", {
   se <- make_test_se()
-  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  analysis <- TSENATAnalysis(se, config = TSENAT_config())
   
   # Create diversity results as a list with specific q-values
   q_vals <- c("q_0.5", "q_1.0", "q_1.5")
@@ -646,7 +646,7 @@ test_that("save_output = FALSE prevents file output", {
   dir.create(test_output_dir, showWarnings = FALSE)
   
   # Run tsenat with save_output = FALSE
-  result <- suppressWarnings(tsenat(
+  result <- suppressWarnings(TSENAT(
     analysis,
     output_dir = test_output_dir,
     save_output = FALSE,
@@ -677,7 +677,7 @@ test_that("save_output = TRUE with output_format = 'tsv' creates TSV files", {
   test_output_dir <- file.path(temp_dir, paste0("test_tsv_", Sys.time()))
   dir.create(test_output_dir, showWarnings = FALSE)
   
-  result <- suppressWarnings(tsenat(
+  result <- suppressWarnings(TSENAT(
     analysis,
     output_dir = test_output_dir,
     save_output = TRUE,
@@ -705,7 +705,7 @@ test_that("output_format = 'csv' creates CSV files", {
   test_output_dir <- file.path(temp_dir, paste0("test_csv_", Sys.time()))
   dir.create(test_output_dir, showWarnings = FALSE)
   
-  result <- suppressWarnings(tsenat(
+  result <- suppressWarnings(TSENAT(
     analysis,
     output_dir = test_output_dir,
     save_output = TRUE,
@@ -733,7 +733,7 @@ test_that("output_format = 'txt' creates TXT files", {
   test_output_dir <- file.path(temp_dir, paste0("test_txt_", Sys.time()))
   dir.create(test_output_dir, showWarnings = FALSE)
   
-  result <- suppressWarnings(tsenat(
+  result <- suppressWarnings(TSENAT(
     analysis,
     output_dir = test_output_dir,
     save_output = TRUE,
@@ -761,7 +761,7 @@ test_that("output_format = 'rds' creates RDS files", {
   test_output_dir <- file.path(temp_dir, paste0("test_rds_", Sys.time()))
   dir.create(test_output_dir, showWarnings = FALSE)
   
-  result <- suppressWarnings(tsenat(
+  result <- suppressWarnings(TSENAT(
     analysis,
     output_dir = test_output_dir,
     save_output = TRUE,
@@ -786,7 +786,7 @@ test_that("Invalid output_format raises error", {
   analysis <- TSENATAnalysis(se)
   
   expect_error(
-    tsenat(
+    TSENAT(
       analysis,
       output_dir = tempdir(),
       output_format = "invalid_format",
@@ -805,7 +805,7 @@ test_that("Default parameters (save_output = TRUE, output_format = 'tsv')", {
   dir.create(test_output_dir, showWarnings = FALSE)
   
   # Don't specify save_output or output_format
-  result <- suppressWarnings(tsenat(
+  result <- suppressWarnings(TSENAT(
     analysis,
     output_dir = test_output_dir,
     verbose = FALSE
@@ -830,7 +830,7 @@ test_that("save_output = FALSE overrides output_dir setting", {
   dir.create(test_output_dir, showWarnings = FALSE)
   
   # Specify output_dir but save_output = FALSE
-  result <- suppressWarnings(tsenat(
+  result <- suppressWarnings(TSENAT(
     analysis,
     output_dir = test_output_dir,
     save_output = FALSE,
@@ -911,7 +911,7 @@ make_mock_jackknife_results <- function(n_genes = 50) {
 
 test_that("results rankBy='pvalue' sorts by ascending p-value", {
     se <- make_test_se()
-    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    analysis <- TSENATAnalysis(se, config = TSENAT_config())
     
     # Add mock LM results
     lm_results <- make_mock_lm_results(n_genes = 30)
@@ -931,7 +931,7 @@ test_that("results rankBy='pvalue' sorts by ascending p-value", {
 
 test_that("results rankBy='pvalue' with n returns top N genes", {
     se <- make_test_se()
-    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    analysis <- TSENATAnalysis(se, config = TSENAT_config())
     
     # Add mock LM results
     lm_results <- make_mock_lm_results(n_genes = 50)
@@ -954,7 +954,7 @@ test_that("results rankBy='pvalue' with n returns top N genes", {
 
 test_that("results rankBy='effectSize' sorts by absolute value (descending)", {
     se <- make_test_se()
-    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    analysis <- TSENATAnalysis(se, config = TSENAT_config())
     
     # Add mock LM results
     lm_results <- make_mock_lm_results(n_genes = 30)
@@ -973,7 +973,7 @@ test_that("results rankBy='effectSize' sorts by absolute value (descending)", {
 
 test_that("results rankBy='effectSize' with n returns largest effect sizes", {
     se <- make_test_se()
-    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    analysis <- TSENATAnalysis(se, config = TSENAT_config())
     
     # Add mock LM results
     lm_results <- make_mock_lm_results(n_genes = 50)
@@ -996,7 +996,7 @@ test_that("results rankBy='effectSize' with n returns largest effect sizes", {
 
 test_that("results rankBy='qvalue' sorts by adjusted p-value (ascending)", {
     se <- make_test_se()
-    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    analysis <- TSENATAnalysis(se, config = TSENAT_config())
     
     # Add mock LM results
     lm_results <- make_mock_lm_results(n_genes = 30)
@@ -1015,7 +1015,7 @@ test_that("results rankBy='qvalue' sorts by adjusted p-value (ascending)", {
 
 test_that("results rankBy='qvalue' with n returns top N by FDR", {
     se <- make_test_se()
-    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    analysis <- TSENATAnalysis(se, config = TSENAT_config())
     
     # Add mock LM results
     lm_results <- make_mock_lm_results(n_genes = 50)
@@ -1038,7 +1038,7 @@ test_that("results rankBy='qvalue' with n returns top N by FDR", {
 
 test_that("results filterFDR filters by adjusted p-value threshold", {
     se <- make_test_se()
-    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    analysis <- TSENATAnalysis(se, config = TSENAT_config())
     
     # Add mock LM results
     lm_results <- make_mock_lm_results(n_genes = 50)
@@ -1059,7 +1059,7 @@ test_that("results filterFDR filters by adjusted p-value threshold", {
 
 test_that("results filterFDR returns NULL if no results pass threshold", {
     se <- make_test_se()
-    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    analysis <- TSENATAnalysis(se, config = TSENAT_config())
     
     # Add mock LM results
     lm_results <- make_mock_lm_results(n_genes = 50)
@@ -1080,7 +1080,7 @@ test_that("results filterFDR returns NULL if no results pass threshold", {
 
 test_that("results filterFDR validates input range", {
     se <- make_test_se()
-    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    analysis <- TSENATAnalysis(se, config = TSENAT_config())
     
     # Add mock LM results
     analysis@lm_results <- list(lm_interaction = make_mock_lm_results())
@@ -1103,7 +1103,7 @@ test_that("results filterFDR validates input range", {
 
 test_that("results format='dataframe' converts to data.frame", {
     se <- make_test_se()
-    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    analysis <- TSENATAnalysis(se, config = TSENAT_config())
     
     # Add mock LM results
     lm_results <- make_mock_lm_results(n_genes = 20)
@@ -1117,7 +1117,7 @@ test_that("results format='dataframe' converts to data.frame", {
 
 test_that("results format='matrix' converts to matrix", {
     se <- make_test_se()
-    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    analysis <- TSENATAnalysis(se, config = TSENAT_config())
     
     # Add mock LM results as data.frame
     lm_results <- make_mock_lm_results(n_genes = 20)
@@ -1131,7 +1131,7 @@ test_that("results format='matrix' converts to matrix", {
 
 test_that("results format='list' converts to list", {
     se <- make_test_se()
-    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    analysis <- TSENATAnalysis(se, config = TSENAT_config())
     
     # Add mock LM results
     lm_results <- make_mock_lm_results(n_genes = 20)
@@ -1145,7 +1145,7 @@ test_that("results format='list' converts to list", {
 
 test_that("results format='auto' uses sensible defaults", {
     se <- make_test_se()
-    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    analysis <- TSENATAnalysis(se, config = TSENAT_config())
     
     # Add mock LM results
     lm_results <- make_mock_lm_results(n_genes = 20)
@@ -1160,7 +1160,7 @@ test_that("results format='auto' uses sensible defaults", {
 
 test_that("results format parameter validates input", {
     se <- make_test_se()
-    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    analysis <- TSENATAnalysis(se, config = TSENAT_config())
     
     analysis@lm_results <- list(lm_interaction = make_mock_lm_results())
     
@@ -1176,7 +1176,7 @@ test_that("results format parameter validates input", {
 
 test_that("results combines rankBy, n, and filterFDR parameters", {
     se <- make_test_se()
-    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    analysis <- TSENATAnalysis(se, config = TSENAT_config())
     
     # Add mock LM results
     lm_results <- make_mock_lm_results(n_genes = 100)
@@ -1208,7 +1208,7 @@ test_that("results combines rankBy, n, and filterFDR parameters", {
 
 test_that("results rankBy + format converts and ranks in correct order", {
     se <- make_test_se()
-    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    analysis <- TSENATAnalysis(se, config = TSENAT_config())
     
     # Add mock Jackknife results
     jk_results <- make_mock_jackknife_results(n_genes = 50)
@@ -1232,7 +1232,7 @@ test_that("results rankBy + format converts and ranks in correct order", {
 
 test_that("results backward compatible: no new parameters specified", {
     se <- make_test_se()
-    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    analysis <- TSENATAnalysis(se, config = TSENAT_config())
     
     # Add mock LM results
     lm_results <- make_mock_lm_results(n_genes = 30)
@@ -1248,7 +1248,7 @@ test_that("results backward compatible: no new parameters specified", {
 
 test_that("results diversity results with q parameter still work", {
     se <- make_test_se()
-    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    analysis <- TSENATAnalysis(se, config = TSENAT_config())
     
     # Create diversity results
     n_genes <- nrow(se)
@@ -1272,7 +1272,7 @@ test_that("results diversity results with q parameter still work", {
 
 test_that("results rankBy='none' with n parameter is ignored", {
     se <- make_test_se()
-    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    analysis <- TSENATAnalysis(se, config = TSENAT_config())
     
     # Add mock LM results
     lm_results <- make_mock_lm_results(n_genes = 50)
@@ -1293,7 +1293,7 @@ test_that("results rankBy='none' with n parameter is ignored", {
 
 test_that("results handles n > total_genes gracefully", {
     se <- make_test_se()
-    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    analysis <- TSENATAnalysis(se, config = TSENAT_config())
     
     # Add mock LM results with 30 genes
     lm_results <- make_mock_lm_results(n_genes = 30)
@@ -1314,7 +1314,7 @@ test_that("results handles n > total_genes gracefully", {
 
 test_that("results handles NA filter parameters gracefully", {
     se <- make_test_se()
-    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    analysis <- TSENATAnalysis(se, config = TSENAT_config())
     
     lm_results <- make_mock_lm_results(n_genes = 30)
     analysis@lm_results <- list(lm_interaction = lm_results)
@@ -1333,7 +1333,7 @@ test_that("results handles NA filter parameters gracefully", {
 
 test_that("results respects standard LM column names", {
     se <- make_test_se()
-    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    analysis <- TSENATAnalysis(se, config = TSENAT_config())
     
     # Create LM results with standard LM column names
     p_vals <- runif(30, 0, 1)
@@ -1500,7 +1500,7 @@ test_that("results with q parameter filters to single SummarizedExperiment", {
     condition = rep(c("control", "treatment"), length.out = ncol(readcounts))
   )
   
-  config <- tsenat_config(
+  config <- TSENAT_config(
     q_values = c(0.5, 1.0, 1.5, 2.0),
     condition_col = "condition",
     sample_col = "sample_id",
@@ -1567,7 +1567,7 @@ test_that("results with NaN diversity values handled correctly", {
     condition = rep(c("A", "B"), 4)
   )
   
-  config <- tsenat_config(
+  config <- TSENAT_config(
     q_values = c(1.0),
     condition_col = "condition",
     sample_col = "sample_id",

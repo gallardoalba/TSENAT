@@ -62,7 +62,7 @@ in length-normalized calculations.}
 \item{config}{Optional list of configuration parameters to store in the
 TSENATAnalysis object. Can also contain \code{config$metadata} which will be
 used if the \code{metadata} argument is NULL. Following Bioconductor best practices
-(fail-fast principle), create configuration via \code{\link{tsenat_config}()} FIRST,
+(fail-fast principle), create configuration via \code{\link{TSENAT_config}()} FIRST,
 then pass to \code{build_analysis_s4()} at object construction time. This ensures
 invalid parameters are caught immediately, before analysis proceeds.
 See examples below for recommended usage pattern.}
@@ -174,7 +174,7 @@ metadata <- data.frame(
 
 # Build analysis object - use NAMED parameters to avoid confusion
 # Method 1: With explicit tx2gene data.frame (most common)
-config <- tsenat_config(sample_col = 'sample', condition_col = 'condition')
+config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
 analysis <- build_analysis_s4(
   readcounts = counts,
   tx2gene = tx2gene,
@@ -215,7 +215,7 @@ print(dim(analysis))
 # )
 #
 # Method 4: Pass metadata via config (parameter resolution pattern)
-# cfg <- tsenat_config()
+# cfg <- TSENAT_config()
 # cfg$metadata <- metadata
 # analysis_with_config <- build_analysis_s4(
 #   readcounts = counts,

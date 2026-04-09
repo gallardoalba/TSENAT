@@ -28,14 +28,13 @@
 #' \enumerate{
 #'   \item \code{filter_analysis_s4()} - Filter low-abundance transcripts
 #'   \item \code{calculate_diversity_s4()} - Tsallis entropy per q-value
-#'   \item \code{plot_tsallis_q_curve_s4()} - Visualize q-spectrum
-#'   \item \code{m_estimate_s4()} - Sample influence QC analysis
+#'   \item \code{plot_diversity_spectrum_s4()} - Visualize q-spectrum
+#'   \item \code{calculate_m_estimator()} - Sample influence QC analysis
 #'   \item \code{calculate_lm_s4()} - LM interaction testing
-#'   \item \code{plot_lm_interaction_gam_s4()} - GAM visualization of LM results
-#'   \item \code{jackknife_isoform_switching_s4()} - Transcript switching detection
-#'   \item \code{prepare_gene_switching_tables_s4()} - Prepare gene switching summary tables
-#'   \item \code{plot_multiq_delta_influence_heatmaps_s4()} - Multi-q influence heatmap
-#'   \item \code{plot_top_transcripts_s4()} - Top transcript visualization
+#'   \item \code{plot_lm_gam_s4()} - GAM visualization of LM results
+#'   \item \code{calculate_jis_s4()} - Transcript switching detection
+#'   \item \code{plot_jis_delta_s4()} - Multi-q influence heatmap (gene switching tables computed lazily via results())
+#'   \item \code{plot_expression_s4()} - Top transcript visualization
 #'   \item \code{calculate_divergence_s4()} - Pairwise divergence metrics
 #'   \item \code{calculate_effect_sizes_s4()} - Effect size computation
 #'   \item \code{plot_divergence_distribution_s4()} - Divergence distribution plot
@@ -50,7 +49,7 @@
 #' )
 #' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 #' 
-#' config <- tsenat_config(
+#' config <- TSENAT_config(
 #'   sample_col = "sample",
 #'   condition_col = "condition",
 #'   q_values = c(0.5, 1.0, 1.5, 2.0, 2.5),
@@ -65,10 +64,10 @@
 #'   effective_length = effective_length
 #' )
 #' 
-#' result <- tsenat(analysis)
+#' result <- TSENAT(analysis)
 #'
 #' @export
-tsenat <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, output_format = "tsv", verbose = TRUE) {
+TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, output_format = "tsv", verbose = TRUE) {
     # Validate input
     if (!is(analysis, "TSENATAnalysis")) {
         stop("'analysis' must be a TSENATAnalysis object created by build_analysis_s4()",
@@ -162,10 +161,8 @@ tsenat <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
         verbose, output_dir, output_format)
     step_times[["jackknife"]] <- Sys.time() - step_start
 
-    step_start <- Sys.time()
-    analysis <- .execute_prepare_gene_switching_tables(analysis, verbose, output_dir, output_format)
-    step_times[["switching_tables"]] <- Sys.time() - step_start
-
+    # Step 8 removed: Gene switching tables now computed lazily via results(type='switching_tables')
+    # No need for explicit computation - results() automatically computes and caches when needed
     step_start <- Sys.time()
     analysis <- .execute_influence_heatmap_plot(analysis, verbose, output_dir)
     step_times[["influence_heatmap"]] <- Sys.time() - step_start
@@ -329,12 +326,19 @@ tsenat <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
 #' filtering, and format conversion. Compatible with DESeq2/edgeR design patterns
 #' for familiar result extraction workflows.
 #'
+#' **Lazy Computation for switching_tables:**
+#' When requesting \code{type = "switching_tables"}, the function automatically
+#' computes and caches the tables if they don't exist yet but the prerequisites
+#' do (LM and jackknife results). This eliminates the need for a separate
+#' \code{prepare_gene_switching_tables_s4()} call - simply request the results
+#' and they will be computed on-demand.
+#'
 #' @examples
 #' # Load example data
 #' data(readcounts, package = 'TSENAT')
 #'
 #' # Create TSENATAnalysis from count matrix
-#' config <- tsenat_config(
+#' config <- TSENAT_config(
 #'   q_values = c(0.5, 1.0, 2.0),
 #'   condition_col = 'group'
 #' )
@@ -360,6 +364,10 @@ tsenat <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
 #'
 #' # Get pairwise results (e.g., differential diversity metrics between conditions)
 #' pairwise_diff <- results(analysis, type = 'pairwise')
+#'
+#' # Get switching tables - automatically computed if prerequisites exist
+#' # (no need to call prepare_gene_switching_tables_s4 separately)
+#' switching <- results(analysis, type = 'switching_tables')
 #'
 #' @rdname TSENATAnalysis-methods
 #' @export
@@ -477,7 +485,64 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
         } else NULL,
         pairwise = if (length(analysis@pairwise_results) > 0) analysis@pairwise_results else NULL,
         effect_sizes_divergence = S4Vectors::metadata(analysis)$effect_sizes_divergence,
-        switching_tables = S4Vectors::metadata(analysis)$switching_tables,
+        switching_tables = {
+            # Lazy computation: compute tables if not already cached but prerequisites exist
+            existing_tables <- S4Vectors::metadata(analysis)$switching_tables
+            if (!is.null(existing_tables)) {
+                existing_tables
+            } else if (length(analysis@lm_results) > 0 && length(analysis@jackknife_results) > 0) {
+                # Prerequisites exist but tables not computed yet - compute and cache
+                tryCatch({
+                    # Compute tables using base function
+                    lm_results_list <- analysis@lm_results
+                    if (!is.null(lm_results_list$lm_interaction)) {
+                        if (is.data.frame(lm_results_list$lm_interaction$results)) {
+                            lm_res <- lm_results_list$lm_interaction$results
+                        } else if (is.data.frame(lm_results_list$lm_interaction)) {
+                            lm_res <- lm_results_list$lm_interaction
+                        } else {
+                            NULL
+                        }
+                    } else if (is.data.frame(lm_results_list)) {
+                        lm_res <- lm_results_list
+                    } else {
+                        NULL
+                    }
+                    
+                    if (!is.null(lm_res)) {
+                        # Extract multi-q results
+                        jk_list <- analysis@jackknife_results
+                        q_key_pattern <- "^q_[0-9]+_[0-9]{2}$"
+                        q_keyed <- jk_list[grep(q_key_pattern, names(jk_list))]
+                        
+                        if (length(q_keyed) > 0 || "multi_q" %in% names(jk_list)) {
+                            multi_q_results <- if ("multi_q" %in% names(jk_list)) 
+                                list(multi_q = jk_list[["multi_q"]]) else q_keyed
+                            
+                            # Call base function
+                            computed_tables <- .prepare_gene_switching_tables(
+                                lm_res = lm_res, 
+                                multi_q_results = multi_q_results,
+                                verbose = FALSE
+                            )
+                            
+                            # Cache in analysis metadata
+                            S4Vectors::metadata(analysis)$switching_tables <- computed_tables
+                            computed_tables
+                        } else {
+                            NULL
+                        }
+                    } else {
+                        NULL
+                    }
+                }, error = function(e) {
+                    # If computation fails, return NULL silently
+                    NULL
+                })
+            } else {
+                NULL
+            }
+        },
         stop("Unknown result type: '", type, "'. Must be one of: ", 
              "diversity, divergence, lm, jackknife, rank_test, pairwise, effect_sizes_divergence, switching_tables", call. = FALSE)
     )
@@ -495,7 +560,7 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
                 call. = FALSE)
     } else if (type == "switching_tables" && (!is.null(filterFDR) || rankBy != "none")) {
         warning("rankBy and filterFDR are not supported for type='switching_tables'. ",
-                "Ignoring these parameters. The switching tables are pre-computed with optimal ",
+                "Ignoring these parameters. Switching tables are automatically pre-computed with optimal ",
                 "ranking and filtering.",
                 call. = FALSE)
     } else if (rankBy != "none" && !type %in% c("lm", "jackknife", "rank_test")) {
@@ -835,7 +900,7 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
 }
 
 # ============================================================================
-# CONFIG BUILDER: tsenat_config()
+# CONFIG BUILDER: TSENAT_config()
 # ============================================================================
 
 #' Create and return TSENAT configuration
@@ -880,10 +945,10 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
 #'
 #' @examples
 #' # Default config with standard parameters (point estimates only)
-#' cfg <- tsenat_config()
+#' cfg <- TSENAT_config()
 #'
 #' # With bootstrap CIs for uncertainty quantification (recommended)
-#' cfg <- tsenat_config(
+#' cfg <- TSENAT_config(
 #'   bootstrap = TRUE,                # Enable bootstrap confidence intervals
 #'   bootstrap_method = "bca",         # Bias-corrected (better for skewed entropy)
 #'   nboot = 1000,                     # 1000 resamples
@@ -891,7 +956,7 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
 #' )
 #'
 #' # Custom with paired analysis, strict filtering, and normalization
-#' cfg <- tsenat_config(
+#' cfg <- TSENAT_config(
 #'   q_values = seq(0, 2, by = 0.05),  # Recommended for paired: 41 values
 #'   condition_col = 'treatment',
 #'   subject_col = 'subject_id',
@@ -908,7 +973,7 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
 #' )
 #'
 #' @export
-tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_col = NULL,
+TSENAT_config <- function(q_values = NULL, condition_col = "condition", subject_col = NULL,
     sample_col = "sample", paired = FALSE, control = NULL, p_threshold = 0.05, fdr_threshold = 0.05,
     significance_threshold = 0.05, bootstrap = FALSE, nboot = 1000, bootstrap_method = "percentile",
     stringency = "medium", nthreads = 1, norm = TRUE, 
@@ -978,7 +1043,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
     extra_args <- list(...)
     # Reject metadata in config to enforce Bioconductor pattern (explicit data parameters)
     if (!is.null(extra_args$metadata)) {
-        warning("[tsenat_config] Parameter 'metadata' should not be in config.\n",
+        warning("[TSENAT_config] Parameter 'metadata' should not be in config.\n",
                 "  Pass metadata directly to build_analysis_s4() as explicit parameter.\n",
                 "  Bioconductor pattern: data files are explicit, config is for analysis choices.",
                 call. = FALSE)
@@ -1003,7 +1068,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
         }
         
         if (length(missing_paired_params) > 0) {
-            warning("[tsenat_config] Paired design (paired=TRUE) requires complete configuration.\n",
+            warning("[TSENAT_config] Paired design (paired=TRUE) requires complete configuration.\n",
                 "  Missing or incomplete parameters: ", paste(missing_paired_params, collapse = ", "), "\n",
                 "  This will cause downstream analysis failure or empty results (LM interaction, plotting).\n",
                 "  Provide all parameters: \n",
@@ -1153,7 +1218,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
         message(sprintf("[>] [%2d/14] Plotting q-spectrum curve", 3))
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "q_curve_plot.png") else NULL
-        p_qcurve <- plot_tsallis_q_curve_s4(analysis, output_file = output_file)
+        p_qcurve <- plot_diversity_spectrum_s4(analysis, output_file = output_file)
         if (!is.null(p_qcurve)) {
             analysis <- addPlot(analysis, type = "q_curve", plot = p_qcurve, replace = TRUE)
             if (verbose)
@@ -1173,7 +1238,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
         message(sprintf("[>] [%2d/14] Running sample influence QC analysis (m-estimator)", 4))
     tryCatch({
         output_file <- .build_output_file("m_estimate_qc", output_dir, output_format)
-        analysis <- m_estimate_s4(analysis, condition_col = condition_col, output_file = output_file)
+        analysis <- calculate_m_estimator(analysis, condition_col = condition_col, output_file = output_file)
         if (verbose)
             message("          [OK] M-estimate QC complete")
     }, error = function(e) {
@@ -1209,7 +1274,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
         message(sprintf("[>] [%2d/14] Plotting LM interaction GAM smoother", 6))
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "lm_interaction_gam_plot.png") else NULL
-        p_lm <- plot_lm_interaction_gam_s4(analysis, output_file = output_file)
+        p_lm <- plot_lm_gam_s4(analysis, output_file = output_file)
         if (!is.null(p_lm)) {
             analysis <- addPlot(analysis, type = "lm_interaction", plot = p_lm, replace = TRUE)
             if (verbose)
@@ -1232,33 +1297,13 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
         cfg <- getConfig(analysis)
         jis_use_lm_fdr <- cfg$jis_use_lm_fdr %||% TRUE
         output_file <- .build_output_file("jackknife_isoform_switching", output_dir, output_format)
-        analysis <- jackknife_isoform_switching_s4(analysis, condition_col = condition_col,
+        analysis <- calculate_jis_s4(analysis, condition_col = condition_col,
             use_lm_fdr = jis_use_lm_fdr, output_file = output_file, verbose = FALSE)
         if (verbose)
             message("          [OK] Jackknife isoform switching complete")
     }, error = function(e) {
         if (verbose)
             warning("Jackknife isoform switching failed: ", e$message, call. = FALSE)
-    })
-    analysis
-}
-
-#' Step 8: Prepare gene switching tables
-#' @noRd
-.execute_prepare_gene_switching_tables <- function(analysis, verbose, output_dir, output_format) {
-    if (verbose)
-        message(sprintf("[>] [%2d/14] Preparing gene switching tables", 8))
-    tryCatch({
-        output_file <- .build_output_file("gene_switching_tables", output_dir, output_format)
-        # prepare_gene_switching_tables_s4 returns modified analysis with tables stored in metadata
-        analysis <- prepare_gene_switching_tables_s4(analysis, output_file = output_file, verbose = FALSE)
-        if (!is.null(analysis)) {
-            if (verbose)
-                message("          [OK] Gene switching tables prepared")
-        }
-    }, error = function(e) {
-        if (verbose)
-            warning("Gene switching tables failed: ", e$message, call. = FALSE)
     })
     analysis
 }
@@ -1270,7 +1315,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
         message(sprintf("[>] [%2d/14] Plotting multi-q influence heatmap", 9))
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "influence_heatmap.png") else NULL
-        p_heatmap <- plot_multiq_delta_influence_heatmaps_s4(analysis, output_file = output_file)
+        p_heatmap <- plot_jis_delta_s4(analysis, output_file = output_file)
         if (!is.null(p_heatmap)) {
             analysis <- addPlot(analysis, type = "influence_heatmap", plot = p_heatmap,
                 replace = TRUE)
@@ -1291,7 +1336,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
         message(sprintf("[>] [%2d/14] Plotting top transcript counts", 10))
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "top_transcripts.png") else NULL
-        p_top_tx <- plot_top_transcripts_s4(analysis, output_file = output_file)
+        p_top_tx <- plot_expression_s4(analysis, output_file = output_file)
         if (!is.null(p_top_tx)) {
             analysis <- addPlot(analysis, type = "top_transcripts", plot = p_top_tx,
                 replace = TRUE)

@@ -23,7 +23,7 @@
 #'
 #' @slot config \code{list}. Configuration metadata specifying analysis
 #'   parameters that persist through the workflow (q-values, sample grouping
-#'   columns, etc.). Set once via \code{tsenat_config()} and used by all
+#'   columns, etc.). Set once via \code{TSENAT_config()} and used by all
 #'   downstream wrapper functions.
 #'
 #' @slot diversity_results \code{list}. Named list of diversity calculation
@@ -54,7 +54,7 @@
 #'
 #' @slot plots \code{list}. Cached visualization objects (ggplot). Names
 #'   identify plot type (e.g., 'q_curve', 'lm_interaction', 'influence').
-#'   Populated by \code{tsenat()} if \code{generate_plots=TRUE}.
+#'   Populated by \code{TSENAT()} if \code{generate_plots=TRUE}.
 #'
 #' @slot metadata \code{list}. Reproducibility and tracking metadata.
 #'   Automatically maintained by wrapper functions. Includes:
@@ -85,7 +85,7 @@
 #' = 'TSENAT'),
 #'   header = TRUE, sep = '\t')
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' config <- tsenat_config(sample_col = 'sample', condition_col = 'condition')
+#' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_file, metadata = metadata_df, config = config,
 #'   tpm = tpm, effective_length = effective_length)
@@ -104,7 +104,7 @@ NULL
 #'
 #' @param se \code{SummarizedExperiment}. The base expression data object.
 #' @param config \code{list}. Optional initial configuration (usually set
-#'   via \code{tsenat_config()} instead).
+#'   via \code{TSENAT_config()} instead).
 #'
 #' @return A new \code{TSENATAnalysis} object.
 #'
@@ -125,7 +125,7 @@ NULL
 #' = 'TSENAT'),
 #'   header = TRUE, sep = '\t')
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' config <- tsenat_config(sample_col = 'sample', condition_col = 'condition')
+#' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_file, metadata = metadata_df, config = config,
 #'   tpm = tpm, effective_length = effective_length)

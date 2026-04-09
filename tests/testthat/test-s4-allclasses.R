@@ -57,7 +57,7 @@ context("TSENATAnalysis S4 Class: Subsetting and Validation")
     assays = list(divergence = div_counts)
   )
   
-  analysis@metadata$function_calls <- c("tsenat_config", "calculate_diversity_s4")
+  analysis@metadata$function_calls <- c("TSENAT_config", "calculate_diversity_s4")
   
   return(analysis)
 }
@@ -309,7 +309,7 @@ test_that("Config and metadata are preserved after subsetting", {
   subset_obj <- analysis[1:5, 1:3]
   
   expect_equal(subset_obj@config$q_values, c(0.5, 1.0))
-  expect_equal(subset_obj@metadata$function_calls, c("tsenat_config", "calculate_diversity_s4"))
+  expect_equal(subset_obj@metadata$function_calls, c("TSENAT_config", "calculate_diversity_s4"))
 })
 
 # ===========================================================================

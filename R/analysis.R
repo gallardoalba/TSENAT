@@ -37,12 +37,10 @@
 #' )
 #' 
 #' # Create concordance plot
-#' plot <- .plot_method_concordance(comparison_df)
+#' plot <- .plot_concordance(comparison_df)
 #'
-
 #' @noRd
-
-.plot_method_concordance <- function(comparison_df) {
+.plot_concordance <- function(comparison_df) {
 
     # Check if data is valid
     if (is.null(comparison_df) || nrow(comparison_df) == 0) {

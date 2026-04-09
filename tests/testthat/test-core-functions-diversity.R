@@ -2077,7 +2077,7 @@ test_that("calculate_diversity preserves counts for jackknife compatibility", {
     # Test that jackknife works with the diversity-transformed SE
     # This verifies that counts assay is accessible and usable
     expect_no_error({
-        result <- .jackknife_entropy_outliers(
+        result <- .calculate_jeo(
             x = SummarizedExperiment::assay(div_se, "counts")[1, ],
             q = 1,
             norm = TRUE

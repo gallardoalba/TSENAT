@@ -79,7 +79,7 @@ setGeneric("getConfig", function(object, ...) standardGeneric("getConfig"))
 #' = 'TSENAT'),
 #'   header = TRUE, sep = '\t')
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' config <- tsenat_config(sample_col = 'sample', condition_col = 'condition')
+#' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_file, metadata = metadata_df, config = config,
 #'   tpm = tpm, effective_length = effective_length)
@@ -114,7 +114,7 @@ setGeneric("getPlot", function(object, ...) standardGeneric("getPlot"))
 #'               dimnames = dimnames(readcounts))
 #' effective_length <- matrix(100, nrow = nrow(readcounts), ncol = ncol(readcounts))
 #' 
-#' config <- tsenat_config(q_values = c(0.5, 1.0), generate_plots = FALSE)
+#' config <- TSENAT_config(q_values = c(0.5, 1.0), generate_plots = FALSE)
 #' analysis <- build_analysis_s4(readcounts, tx2gene = gff3_file,
 #'     metadata = metadata, tpm = tpm, effective_length = effective_length,
 #'     config = config)
@@ -122,7 +122,7 @@ setGeneric("getPlot", function(object, ...) standardGeneric("getPlot"))
 #' analysis <- calculate_diversity_s4(analysis, norm = TRUE)
 #' 
 #' # Create and cache a plot
-#' p <- plot_tsallis_q_curve_s4(analysis)
+#' p <- plot_diversity_spectrum_s4(analysis)
 #' @noRd
 setGeneric("addPlot", function(object, type, plot, replace = FALSE) standardGeneric("addPlot"))
 
@@ -150,7 +150,7 @@ setGeneric("addPlot", function(object, type, plot, replace = FALSE) standardGene
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #'
 #' # Build TSENATAnalysis object
-#' config <- tsenat_config(sample_col = 'sample', condition_col = 'condition')
+#' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
 #' analysis <- build_analysis_s4(readcounts = readcounts, 
 #'                              tx2gene = gff3_file, 
 #'                              metadata = metadata_df,

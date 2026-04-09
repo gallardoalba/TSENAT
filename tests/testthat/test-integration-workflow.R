@@ -24,7 +24,7 @@ setup_workflow_data <- function() {
     
     # Create config FIRST (Bioconductor pattern: immutable object construction)
     # OPTIMIZATION: Use 10 q-values for tests (covers 0 to 2)
-    config <- tsenat_config(
+    config <- TSENAT_config(
         sample_col = "sample",
         condition_col = "condition",
         subject_col = "paired_samples",
@@ -58,11 +58,11 @@ setup_workflow_data <- function() {
 # TEST SUITE 1: Basic Workflow Execution - Paired Design
 # ============================================================================
 
-test_that("tsenat() paired design: executes pipeline, returns TSENATAnalysis, respects config", {
+test_that("TSENAT() paired design: executes pipeline, returns TSENATAnalysis, respects config", {
     data_list <- setup_workflow_data()
     
-    # Single tsenat() call for paired design
-    result <- tsenat(
+    # Single TSENAT() call for paired design
+    result <- TSENAT(
         data_list$analysis,
         output_dir = NULL,
         verbose = FALSE
@@ -84,11 +84,11 @@ test_that("tsenat() paired design: executes pipeline, returns TSENATAnalysis, re
 # TEST SUITE 2: Unpaired Design - Multiple Configuration Tests
 # ============================================================================
 
-test_that("tsenat() unpaired design: executes pipeline, handles config, preserves structure", {
+test_that("TSENAT() unpaired design: executes pipeline, handles config, preserves structure", {
     data_list <- setup_workflow_data()
     
-    # Single tsenat() call for unpaired design
-    result <- tsenat(
+    # Single TSENAT() call for unpaired design
+    result <- TSENAT(
         data_list$analysis,
         output_dir = NULL,
         verbose = FALSE
@@ -114,11 +114,11 @@ test_that("tsenat() unpaired design: executes pipeline, handles config, preserve
 # TEST SUITE 3: Config Override and Defaults
 # ============================================================================
 
-test_that("tsenat() config override: explicit config overrides analysis config, uses defaults", {
+test_that("TSENAT() config override: explicit config overrides analysis config, uses defaults", {
     data_list <- setup_workflow_data()
     
     # Call without explicit config (uses analysis config from setup)
-    result_default <- tsenat(
+    result_default <- TSENAT(
         data_list$analysis,
         output_dir = NULL,
         verbose = FALSE
@@ -126,8 +126,8 @@ test_that("tsenat() config override: explicit config overrides analysis config, 
     expect_s4_class(result_default, "TSENATAnalysis")
     
     # Note: config override is NOT applicable with new architecture
-    # Config is set at analysis build time and cannot be changed in tsenat()
-    result_override <- tsenat(
+    # Config is set at analysis build time and cannot be changed in TSENAT()
+    result_override <- TSENAT(
         data_list$analysis,
         output_dir = NULL,
         verbose = FALSE
@@ -143,13 +143,13 @@ test_that("tsenat() config override: explicit config overrides analysis config, 
 # TEST SUITE 4: Output Directory and Verbose Control
 # ============================================================================
 
-test_that("tsenat() output handling: creates output_dir when needed, silent with verbose=FALSE", {
+test_that("TSENAT() output handling: creates output_dir when needed, silent with verbose=FALSE", {
     data_list <- setup_workflow_data()
     
     output_dir <- tempdir()
     
     # Run with output_dir
-    result_with_output <- tsenat(
+    result_with_output <- TSENAT(
         data_list$analysis,
         output_dir = output_dir,
         verbose = FALSE
@@ -158,7 +158,7 @@ test_that("tsenat() output handling: creates output_dir when needed, silent with
     expect_true(dir.exists(output_dir))
     
     # Run with NULL output_dir (no file saving)
-    result_no_output <- tsenat(
+    result_no_output <- TSENAT(
         data_list$analysis,
         output_dir = NULL,
         verbose = FALSE
@@ -167,7 +167,7 @@ test_that("tsenat() output handling: creates output_dir when needed, silent with
     
     # Capture output for verbose test
     output <- capture.output({
-        result_verbose <- tsenat(
+        result_verbose <- TSENAT(
             data_list$analysis,
             output_dir = NULL,
             verbose = TRUE
@@ -180,12 +180,12 @@ test_that("tsenat() output handling: creates output_dir when needed, silent with
 # TEST SUITE 5: Filtering Effects and Gene Selection
 # ============================================================================
 
-test_that("tsenat() filtering: works with severe filter, retains genes, processes correctly", {
+test_that("TSENAT() filtering: works with severe filter, retains genes, processes correctly", {
     data_list <- setup_workflow_data()
     
     n_genes_filtered <- nrow(se(data_list$analysis))
     
-    result <- tsenat(
+    result <- TSENAT(
         data_list$analysis,
         output_dir = NULL,
         verbose = FALSE
@@ -202,11 +202,11 @@ test_that("tsenat() filtering: works with severe filter, retains genes, processe
 # TEST SUITE 6: Bootstrap and Statistical Parameters
 # ============================================================================
 
-test_that("tsenat() statistical params: respects bootstrap_method, nboot, seed configurations", {
+test_that("TSENAT() statistical params: respects bootstrap_method, nboot, seed configurations", {
     data_list <- setup_workflow_data()
     
     # Test with BCA bootstrap
-    config_bca <- tsenat_config(
+    config_bca <- TSENAT_config(
         sample_col = "sample",
         condition_col = "condition",
         q_values = seq(0, 2, length.out = 10),
@@ -216,7 +216,7 @@ test_that("tsenat() statistical params: respects bootstrap_method, nboot, seed c
         nthreads = 2
     )
     
-    result_bca <- tsenat(
+    result_bca <- TSENAT(
         data_list$analysis,
         output_dir = NULL,
         verbose = FALSE
@@ -224,7 +224,7 @@ test_that("tsenat() statistical params: respects bootstrap_method, nboot, seed c
     expect_s4_class(result_bca, "TSENATAnalysis")
     
     # Test with different nboot
-    config_nboot <- tsenat_config(
+    config_nboot <- TSENAT_config(
         sample_col = "sample",
         condition_col = "condition",
         q_values = seq(0, 2, length.out = 10),
@@ -233,7 +233,7 @@ test_that("tsenat() statistical params: respects bootstrap_method, nboot, seed c
         nthreads = 2
     )
     
-    result_nboot <- tsenat(
+    result_nboot <- TSENAT(
         data_list$analysis,
         output_dir = NULL,
         verbose = FALSE
@@ -241,7 +241,7 @@ test_that("tsenat() statistical params: respects bootstrap_method, nboot, seed c
     expect_s4_class(result_nboot, "TSENATAnalysis")
     
     # Test reproducibility with seed
-    config_seed <- tsenat_config(
+    config_seed <- TSENAT_config(
         sample_col = "sample",
         condition_col = "condition",
         q_values = seq(0, 2, length.out = 10),
@@ -250,12 +250,12 @@ test_that("tsenat() statistical params: respects bootstrap_method, nboot, seed c
         nthreads = 2
     )
     
-    result_seed1 <- tsenat(
+    result_seed1 <- TSENAT(
         data_list$analysis,
         output_dir = NULL,
         verbose = FALSE
     )
-    result_seed2 <- tsenat(
+    result_seed2 <- TSENAT(
         data_list$analysis,
         output_dir = NULL,
         verbose = FALSE
@@ -269,13 +269,13 @@ test_that("tsenat() statistical params: respects bootstrap_method, nboot, seed c
 # TEST SUITE 7: Error Handling
 # ============================================================================
 
-test_that("tsenat() error handling: rejects invalid input, handles edge cases", {
+test_that("TSENAT() error handling: rejects invalid input, handles edge cases", {
     data_list <- setup_workflow_data()
     
     invalid_input <- data.frame(a = 1:10, b = 11:20)
     
     expect_error(
-        tsenat(invalid_input, output_dir = NULL, verbose = FALSE),
+        TSENAT(invalid_input, output_dir = NULL, verbose = FALSE),
         "must be a TSENATAnalysis object"
     )
     
@@ -287,7 +287,7 @@ test_that("tsenat() error handling: rejects invalid input, handles edge cases", 
     )
     
     expect_error(
-        tsenat(empty_analysis, output_dir = NULL, verbose = FALSE),
+        TSENAT(empty_analysis, output_dir = NULL, verbose = FALSE),
         "empty"
     )
 })
@@ -296,7 +296,7 @@ test_that("tsenat() error handling: rejects invalid input, handles edge cases", 
 # TEST SUITE 8: LM Interaction Results and Plot Generation
 # ============================================================================
 
-test_that("tsenat() paired: produces LM results, significant genes, plots generate", {
+test_that("TSENAT() paired: produces LM results, significant genes, plots generate", {
     # Use setup_workflow_data() which already has proper paired config
     data_list <- setup_workflow_data()
     
@@ -306,7 +306,7 @@ test_that("tsenat() paired: produces LM results, significant genes, plots genera
     # Retrieve config from analysis instead of using undefined variable
     config <- getConfig(data_list$analysis)
     
-    result <- tsenat(
+    result <- TSENAT(
         data_list$analysis,
         output_dir = NULL,
         verbose = FALSE
@@ -333,7 +333,7 @@ test_that("tsenat() paired: produces LM results, significant genes, plots genera
     
     # Test plot generation
     plot_result <- tryCatch({
-        plot_lm_interaction_gam_s4(
+        plot_lm_gam_s4(
             result,
             n_top = 3,
             sig_alpha = 0.05,
@@ -369,7 +369,7 @@ setup_workflow_data <- function() {
     
     # Create config FIRST (Bioconductor pattern: immutable object construction)
     # OPTIMIZATION: Use 10 q-values for tests (covers 0 to 2)
-    config <- tsenat_config(
+    config <- TSENAT_config(
         sample_col = "sample",
         condition_col = "condition",
         subject_col = "paired_samples",
@@ -399,9 +399,9 @@ setup_workflow_data <- function() {
 # TEST SUITE: setConfig Bug Detection (GH Issue: Config-induced data corruption)
 # ============================================================================
 # These tests verify that setConfig does NOT corrupt diversity values
-# Background: Passing config parameter to tsenat() calls setConfig internally,
+# Background: Passing config parameter to TSENAT() calls setConfig internally,
 # which was observed to corrupt diversity calculations (values swapped/changed).
-# Solution: Config should only be set during build_analysis_s4(), never via tsenat().
+# Solution: Config should only be set during build_analysis_s4(), never via TSENAT().
 
 test_that("setConfig: does not corrupt SummarizedExperiment dimensions", {
     data_list <- setup_workflow_data()
@@ -414,7 +414,7 @@ test_that("setConfig: does not corrupt SummarizedExperiment dimensions", {
     colnames_orig <- colnames(se_orig)
     rownames_orig <- rownames(se_orig)
     
-    # Apply setConfig (like tsenat() does when config parameter is passed)
+    # Apply setConfig (like TSENAT() does when config parameter is passed)
     config <- getConfig(analysis)
     analysis_after <- setConfig(analysis, config)
     
@@ -430,7 +430,7 @@ test_that("setConfig: does not corrupt SummarizedExperiment dimensions", {
                      info = "setConfig should not reorder or change gene names")
 })
 
-test_that("tsenat() WITHOUT config parameter: produces correct diversity values", {
+test_that("TSENAT() WITHOUT config parameter: produces correct diversity values", {
     # Manual workflow (like vignette): NO setConfig call
     data_list <- setup_workflow_data()
     analysis_manual <- data_list$analysis
@@ -454,8 +454,8 @@ test_that("tsenat() WITHOUT config parameter: produces correct diversity values"
                 info = "Manual workflow should produce diversity results")
 })
 
-test_that("tsenat() WITHOUT config: produces IDENTICAL results to manual workflow", {
-    # REGRESSION TEST: Verify that tsenat() orchestration doesn't corrupt data
+test_that("TSENAT() WITHOUT config: produces IDENTICAL results to manual workflow", {
+    # REGRESSION TEST: Verify that TSENAT() orchestration doesn't corrupt data
     # Setup two identical analyses
     set.seed(42)
     data_list1 <- setup_workflow_data()
@@ -471,8 +471,8 @@ test_that("tsenat() WITHOUT config: produces IDENTICAL results to manual workflo
     expect_equal(dim(se1_before), dim(se2_before),
                  info = "Both analysis objects should start with identical dimensions")
     
-    # Apply tsenat() to analyze2 (full orchestration)
-    analysis2 <- tsenat(
+    # Apply TSENAT() to analyze2 (full orchestration)
+    analysis2 <- TSENAT(
         analysis2,
         output_dir = NULL,
         save_output = FALSE,
@@ -481,7 +481,7 @@ test_that("tsenat() WITHOUT config: produces IDENTICAL results to manual workflo
     
     # After orchestration, analysis2 should still be a valid TSENATAnalysis
     expect_is(analysis2, "TSENATAnalysis",
-              info = "tsenat() should return a valid TSENATAnalysis object")
+              info = "TSENAT() should return a valid TSENATAnalysis object")
     
     # It should have results stored (diversity should exist)
     div_result <- tryCatch(
@@ -489,16 +489,16 @@ test_that("tsenat() WITHOUT config: produces IDENTICAL results to manual workflo
         error = function(e) { NULL }
     )
     expect_false(is.null(div_result),
-                 info = "tsenat() should have computed diversity results")
+                 info = "TSENAT() should have computed diversity results")
 })
 
-test_that("tsenat() WITH config parameter: SHOULD NOT be used (causes data issues)", {
+test_that("TSENAT() WITH config parameter: SHOULD NOT be used (causes data issues)", {
     # This test documents the problematic behavior when config is passed
     data_list <- setup_workflow_data()
     
     config <- getConfig(data_list$analysis)
     
-    # Calling tsenat() WITH config parameter (incorrect usage that causes bug)
+    # Calling TSENAT() WITH config parameter (incorrect usage that causes bug)
     # This is a regression test to catch if the bug is reintroduced
     analysis_with_config <- data_list$analysis
     
@@ -508,7 +508,7 @@ test_that("tsenat() WITH config parameter: SHOULD NOT be used (causes data issue
     
     # Wrap in tryCatch because the config parameter should no longer exist
     result <- tryCatch({
-        analysis_with_config_result <- tsenat(
+        analysis_with_config_result <- TSENAT(
             analysis_with_config,
             config = config,  # INCORRECT: passing config parameter
             output_dir = NULL,
@@ -520,12 +520,12 @@ test_that("tsenat() WITH config parameter: SHOULD NOT be used (causes data issue
         list(result = NULL, error = e)
     })
     
-    # After fix: tsenat() should NOT accept config parameter at all
+    # After fix: TSENAT() should NOT accept config parameter at all
     # So this test verifies the signature is enforced
     if (!is.null(result$error)) {
         # Good: function rejects config parameter
         expect_true(grepl("config", result$error$message, ignore.case = TRUE),
-                    info = "tsenat() should reject config parameter after fix")
+                    info = "TSENAT() should reject config parameter after fix")
     }
 })
 
@@ -563,7 +563,7 @@ test_that("setConfig CORRUPTION: direct calls modify analysis state", {
 # ============================================================================
 # BACKGROUND: The workflow.R issue occurred because:
 # 1. build_analysis_s4(config=X) embeds config X into analysis @config slot
-# 2. tsenat(analysis, config=X) then calls setConfig(analysis, X) AGAIN
+# 2. TSENAT(analysis, config=X) then calls setConfig(analysis, X) AGAIN
 # 3. This redundant call causes internal state corruption in diversity calculations
 # 
 # The root cause appears to be state accumulation: when setConfig is called
@@ -576,7 +576,7 @@ test_that("REDUNDANT setConfig: Reproduce the workflow.R bug scenario", {
     
     # Step 1: Create analysis with embedded config (like build_analysis_s4 does)
     set.seed(42)
-    config <- tsenat_config(
+    config <- TSENAT_config(
         sample_col = "sample",
         condition_col = "condition",
         subject_col = "paired_samples",
@@ -650,7 +650,7 @@ test_that("CONFIG EMBEDDING MECHANISM: Settings only apply once via build_analys
     # This test documents the CORRECT pattern: config applied once at object creation
     
     set.seed(42)
-    config1 <- tsenat_config(
+    config1 <- TSENAT_config(
         sample_col = "sample",
         condition_col = "condition",
         subject_col = "paired_samples",
@@ -731,10 +731,10 @@ test_that("IDEMPOTENCY CHECK: setConfig called multiple times produces consisten
                  info = "setConfig should be idempotent: sample count should not change on 2nd call")
 })
 
-test_that("WORKFLOW COMPARISON: Manual orchestration vs tsenat() function", {
+test_that("WORKFLOW COMPARISON: Manual orchestration vs TSENAT() function", {
     # Compare the two orchestration patterns:
     # Pattern A (MANUAL - like vignette.R): filter → diversity → results
-    # Pattern B (ORCHESTRATED - via tsenat()): entire pipeline as function call
+    # Pattern B (ORCHESTRATED - via TSENAT()): entire pipeline as function call
     
     # Both should produce identical results
     # If they differ, it's likely due to redundant setConfig or other state issues
@@ -756,7 +756,7 @@ test_that("WORKFLOW COMPARISON: Manual orchestration vs tsenat() function", {
     data_list_B <- setup_workflow_data()
     analysis_B <- data_list_B$analysis
     
-    analysis_B <- tsenat(
+    analysis_B <- TSENAT(
         analysis_B,
         output_dir = NULL,
         save_output = FALSE,

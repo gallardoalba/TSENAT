@@ -55,8 +55,8 @@ In this guide, we demonstrate the complete workflow: preprocessing transcript co
 
 1. **Load and preprocess** transcript counts using `build_analysis_s4()`, then filter low-abundance transcripts with `filter_analysis_s4()`.
 2. **Select q-values** tuned to your research question: low q (rare isoforms) vs. high q (dominant isoforms). Compute Tsallis entropy across these scales with `calculate_diversity_s4()`.
-3. **Test for differences** in entropy between groups using `rank_test_q_condition_s4()` (Wilcoxon or permutation tests) [@K002; @K003].
-4. **Visualize results** as q-curves and inspect transcript counts for genes with the strongest entropy shifts using `plot_tsallis_q_curve_s4()` and related functions.
+3. **Test for differences** in entropy between groups using `calculate_rank_test_s4()` (Wilcoxon or permutation tests) [@K002; @K003].
+4. **Visualize results** as q-curves and inspect transcript counts for genes with the strongest entropy shifts using `plot_diversity_spectrum_s4()` and related functions.
 
 **Design assumptions**: This guide assumes paired or longitudinal designs with >=6-8 samples per group for adequate power to detect entropy shifts while controlling false discovery rate. Smaller sample sizes may be underpowered to detect subtle isoform complexity changes.
 
@@ -97,7 +97,7 @@ metadata_df <- read.table(
 gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 
 # Create analysis object with transcript counts, annotation, and metadata
-config <- tsenat_config(
+config <- TSENAT_config(
   sample_col = "sample",
   condition_col = "condition",
   paired = TRUE,
@@ -122,7 +122,7 @@ analysis <- filter_analysis_s4(analysis)
 analysis <- calculate_diversity_s4(analysis)
 
 # Plot overall q-curve
-p_qcurve <- plot_tsallis_q_curve_s4(analysis)
+p_qcurve <- plot_diversity_spectrum_s4(analysis)
 print(p_qcurve)
 ```
 
@@ -161,7 +161,7 @@ Standard RNA-seq analysis measures *whether* transcript abundance changes betwee
 - **q = 2**: Emphasizes dominant isoforms (robustness mode).
 - **q > 2**: Focuses almost exclusively on the most abundant species.
 
-This is the key innovation: by computing entropy across a range of q-values (a "q-curve"), you obtain a complete picture of isoform heterogeneity [@I003]. In TSENAT, you'll explore multiple q-values using `calculate_diversity_s4()` and visualize results with `plot_tsallis_q_curve_s4()`.
+This is the key innovation: by computing entropy across a range of q-values (a "q-curve"), you obtain a complete picture of isoform heterogeneity [@I003]. In TSENAT, you'll explore multiple q-values using `calculate_diversity_s4()` and visualize results with `plot_diversity_spectrum_s4()`.
 
 ## Mathematical Definition
 
@@ -295,7 +295,7 @@ FIRST, then pass it to the builder function (fail-fast principle):
 ```{r initialize-analysis-object}
 ## Configure analysis parameters first (best practice: fail-fast principle)
 ## This validates all parameters before object creation
-config <- tsenat_config(
+config <- TSENAT_config(
   sample_col = "sample",
   condition_col = "condition",
   subject_col = "paired_samples",
@@ -424,7 +424,7 @@ signals differences in dominant isoforms.
 
 ```{r fig-1-isoform-diversity-profiles, fig.width=10, fig.height=5.2, out.width="98%", fig.pos="H", fig.cap = "**Figure 1:** Isoform diversity profiles across q-values. Lines show normalized Tsallis entropy (0-1) for each sample, blue control and red treatment."}
 # Plot overall q-curve
-p_qcurve <- plot_tsallis_q_curve_s4(analysis)
+p_qcurve <- plot_diversity_spectrum_s4(analysis)
 
 print(p_qcurve)
 ```
@@ -439,7 +439,7 @@ We configure three key parameters: `loss_type = "huber"` employs Huber M-estimat
 
 ```{r qc-entropy-outlier-detection, echo=TRUE}
 # Perform multi-q sample influence analysis via S4 wrapper
-analysis <- m_estimate_s4(
+analysis <- calculate_m_estimator(
     analysis,
     loss_type = "huber",
     q_combine_method = "mean",
@@ -558,7 +558,7 @@ by the linear-model interaction test.
 
 ```{r fig-2-scale-dependent-genes, fig.width=14, fig.height=12, out.width="98%", fig.pos="H", fig.cap = "**Figure 2:** Scale-dependent interaction analysis. GAM-identified genes showing significant q$\\times$condition effects (Benjamini-Hochberg q < 0.05)."}
 # Plot q-curve profiles for the top 4 genes using the S4 wrapper
-combined_plot <- plot_lm_interaction_gam_s4(
+combined_plot <- plot_lm_gam_s4(
     analysis,
     n_top = 4
 )
@@ -600,7 +600,7 @@ This classification reveals whether isoform reorganization is a coordinated, glo
 
 ```{r identify-isoform-switching-transcripts, echo=TRUE, results='hide'}
 # Multi-Q analysis: Test switching at different q values
-analysis <- jackknife_isoform_switching_s4(
+analysis <- calculate_jis_s4(
     analysis,
     q = c(0, 0.5, 1, 1.5, 2),
     nboot = 100,
@@ -619,14 +619,9 @@ We configure three key parameters for the switching analysis: `nboot = 100` spec
 The tables below examine transcript switching patterns for the top genes with strongest q$\times$condition interactions. Delta influence, derived from jackknife resampling [@S115], quantifies how each transcript's relative importance changes between conditions, weighted by stability across bootstrap iterations (positive = more influential in first condition; negative = second condition). The `Direction Consistency` column classifies each transcript: "Consistent" indicates stable switching across q-values, while "Mixed" indicates scale-dependent switching. This reveals whether isoform shifts involve the same transcripts across scales or whether different q-values emphasize different transcripts.
 
 ```{r extract-switching-results, echo=TRUE, results='hide'}
-# Prepare comparison tables for top genes across q-values
-# Returns modified analysis object with tables stored in metadata$switching_tables
-analysis <- prepare_gene_switching_tables_s4(
-    analysis, 
-    n_top_genes = 2
-)
-
-# Extract tables using results accessor
+# Gene switching tables are computed lazily via results()
+# No need to call prepare_gene_switching_tables_s4 - it happens automatically
+# Simply retrieve using results accessor
 tables_result <- results(analysis, type = "switching_tables")
 ```
 
@@ -679,7 +674,7 @@ Visualize switching patterns for the top genes identified by the LM interaction 
 
 ```{r fig-3-transcript-jackknife-influence, echo=TRUE, results='hide', fig.width=12, fig.height=10, eval=TRUE, out.width="98%", fig.pos="H", fig.cap = "**Figure 3:** Transcript-level switching patterns via jackknife resampling. Rows q-values (0-2.0), columns transcripts. Red/blue indicates condition influence."}
 # Generate multi-Q heatmaps for top 4 genes using S4 wrapper
-plot_multiq_delta_influence_heatmaps_s4(
+plot_jis_delta_s4(
     analysis, 
     n_genes = 4
 )
@@ -698,7 +693,7 @@ This robustness-weighted visualization reveals not just *which* transcripts swit
 ```{r fig-4-transcript-abundance-heatmap, echo=TRUE, results='hide', fig.width=12, fig.height=8, eval=TRUE, out.width="98%", fig.pos="H", fig.cap = "**Figure 4:** Transcript abundance heatmap with hierarchical clustering. Rows are transcripts, columns are conditions. Blue low, red high expression."}
 # Generate transcript abundance heatmap for top 4 transcripts using hierarchical clustering
 # metric = "median" aggregates expression values across paired conditions
-plot_top_transcripts_s4(
+plot_expression_s4(
     analysis, 
     top_n = 4, 
     metric = "median"

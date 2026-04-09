@@ -119,7 +119,7 @@ NULL
 # MODULAR IRLS CORE (Approach 3)
 # ============================================================================
 # Single vector robust location estimation using Iteratively Re-Weighted Least
-# Squares. Extracted into standalone function for reuse in: 1. .m_estimate() -
+# Squares. Extracted into standalone function for reuse in: 1. .calculate_m_estimator() -
 # full diagnostic output 2. .calculate_difference() - efficient group summaries
 # @param y Numeric vector of observations (may contain NA) @param loss_type
 # Character: 'huber' (default), 'tukey', or 'lsq' @param scale Numeric scale
@@ -300,7 +300,7 @@ NULL
         }
 
         # LOO M-estimate
-        m_est_subset <- .m_estimate(entropy_subset, samples = group_subset, loss_type = loss_type,
+        m_est_subset <- .calculate_m_estimator(entropy_subset, samples = group_subset, loss_type = loss_type,
             scale = scale, max_iter = max_iter, tol = tol, paired = FALSE, pcorr = pcorr,
             scale_method = scale_method)
 
@@ -381,7 +381,7 @@ NULL
 
     # Calculate M-estimate with ALL samples as baseline
     m_est_full <- tryCatch({
-        .m_estimate(entropy_by_sample, samples = group_assignment_unique, loss_type = loss_type,
+        .calculate_m_estimator(entropy_by_sample, samples = group_assignment_unique, loss_type = loss_type,
             scale = scale, max_iter = max_iter, tol = tol, paired = paired, pcorr = pcorr,
             scale_method = scale_method)
     }, error = function(e) {
@@ -811,7 +811,7 @@ NULL
 #'   Recommended when data contamination is suspected.
 #'
 
-.m_estimate <- function(x, samples, loss_type = "huber", scale = NULL, max_iter = 50,
+.calculate_m_estimator <- function(x, samples, loss_type = "huber", scale = NULL, max_iter = 50,
     tol = 1e-06, paired = FALSE, pcorr = "BH", q_combine_method = "mean", influence_threshold = 0.75,
     scale_method = "mad", verbose = FALSE) {
     # Handle SummarizedExperiment input with multi-q analysis

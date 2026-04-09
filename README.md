@@ -95,7 +95,7 @@ Create a configuration object specifying your experimental design parameters (sa
 
 ```r
 ## Create configuration file
-config <- tsenat_config(
+config <- TSENAT_config(
   sample_col = "sample",
   condition_col = "condition",
   subject_col = "paired_samples",
@@ -116,11 +116,11 @@ analysis <- build_analysis_s4(
 
 ### Orchestration Function
 
-The `tsenat()` function provides a complete, automated analysis pipeline in a single call. It takes your configured `TSENATAnalysis` object and executes all downstream analysis steps: entropy computation, statistical testing for q×condition interactions, and rich visualization. This is the recommended entry point for most users—it orchestrates the full workflow while respecting your configuration parameters (q-values, design, bootstrap settings, etc.) and handles output management seamlessly. For advanced customization, use individual functions directly as shown in the step-by-step workflow below.
+The `TSENAT()` function provides a complete, automated analysis pipeline in a single call. It takes your configured `TSENATAnalysis` object and executes all downstream analysis steps: entropy computation, statistical testing for q×condition interactions, and rich visualization. This is the recommended entry point for most users—it orchestrates the full workflow while respecting your configuration parameters (q-values, design, bootstrap settings, etc.) and handles output management seamlessly. For advanced customization, use individual functions directly as shown in the step-by-step workflow below.
 
 ```r
 # Returns: Fully configured TSENATAnalysis object
-result <- tsenat(analysis)
+result <- TSENAT(analysis)
 ```
 
 For a complete walkthrough of the analysis pipeline with real biological examples, see the [main package vignette](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html). This includes theory background, step-by-step explanations of each analysis function, and interpretation guidance for understanding your results.
@@ -176,7 +176,7 @@ To get started with Salmon-quantified data:
 suppressMessages(library(TSENAT))
 
 # Prepare configuration FIRST
-config <- tsenat_config(
+config <- TSENAT_config(
   q_values = seq(0, 2, by = 0.1),
   condition_col = "condition"
 )

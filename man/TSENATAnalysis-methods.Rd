@@ -95,13 +95,20 @@ with options for ranking, filtering, and format conversion.
 This function provides flexible access to all computed results with ranking,
 filtering, and format conversion. Compatible with DESeq2/edgeR design patterns
 for familiar result extraction workflows.
+
+**Lazy Computation for switching_tables:**
+When requesting \code{type = "switching_tables"}, the function automatically
+computes and caches the tables if they don't exist yet but the prerequisites
+do (LM and jackknife results). This eliminates the need for a separate
+\code{prepare_gene_switching_tables_s4()} call - simply request the results
+and they will be computed on-demand.
 }
 \examples{
 # Load example data
 data(readcounts, package = 'TSENAT')
 
 # Create TSENATAnalysis from count matrix
-config <- tsenat_config(
+config <- TSENAT_config(
   q_values = c(0.5, 1.0, 2.0),
   condition_col = 'group'
 )
@@ -127,6 +134,10 @@ if ('lm' \%in\% names(analysis@lm_results)) {
 
 # Get pairwise results (e.g., differential diversity metrics between conditions)
 pairwise_diff <- results(analysis, type = 'pairwise')
+
+# Get switching tables - automatically computed if prerequisites exist
+# (no need to call prepare_gene_switching_tables_s4 separately)
+switching <- results(analysis, type = 'switching_tables')
 
 }
 \keyword{internal}

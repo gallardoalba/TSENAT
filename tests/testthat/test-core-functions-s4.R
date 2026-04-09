@@ -1217,13 +1217,13 @@ test_that("getConfig: returns configuration list", {
   expect_is(config, "list")
 })
 
-test_that("tsenat_config: creates analysis with custom configuration", {
+test_that("TSENAT_config: creates analysis with custom configuration", {
   # Test that configuration can be set via factory function (public API)
   # Note: setConfig is now internal; configuration should be set at object creation
   analysis <- .create_test_analysis()
   
   # Create new analysis with custom config via factory function
-  custom_config <- TSENAT::tsenat_config(
+  custom_config <- TSENAT::TSENAT_config(
     condition_col = "condition",
     q_values = c(0.01, 0.5, 1.0),
     nthreads = 2

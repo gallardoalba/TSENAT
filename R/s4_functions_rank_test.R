@@ -1,7 +1,7 @@
 # ============================================================================
 # DETECT Q×CONDITION GENE INTERACTIONS WRAPPER
 # ============================================================================
-# Purpose: Wrapper around .rank_test_q_condition() that manages TSENATAnalysis
+# Purpose: Wrapper around .calculate_rank_test() that manages TSENATAnalysis
 # object.  Tests for genes with CONDITION-SPECIFIC q-dependent entropy patterns
 # by testing whether the effect of q-values DIFFERS between experimental
 # conditions.  Key Features: - Q×Condition interaction: Tests if entropy
@@ -77,7 +77,7 @@
 #'  when wy_randomizations='auto' (default: 100).
 #' @param max_nperm \code{integer}. Maximum permutations for automatic estimation
 #'  when wy_randomizations='auto' (default: 10000).
-#' @param ... Additional arguments passed to the base \code{.rank_test_q_condition()} function.
+#' @param ... Additional arguments passed to the base \code{.calculate_rank_test()} function.
 #'
 #' @return Modified TSENATAnalysis with interaction results in @lm_results.
 #'
@@ -115,7 +115,7 @@
 #' 'TSENAT')
 #' 
 #' # Create config first (required when metadata is provided)
-#' config <- tsenat_config(sample_col = 'sample', condition_col = 'condition')
+#' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
 #' 
 #' # Build analysis from vignette data and create manageable subset
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
@@ -126,7 +126,7 @@
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
 #' 
 #' # Test Q×Condition interaction (condition_col is REQUIRED)
-#' analysis <- rank_test_q_condition_s4(analysis, condition_col = 'condition', 
+#' analysis <- calculate_rank_test_s4(analysis, condition_col = 'condition', 
 #'                                            multicorr = 'hochberg')
 #' # View results using unified accessor
 #' rank_test_res <- results(analysis, type = "rank_test")
@@ -137,7 +137,7 @@
 # ============================================================================
 # S4 WRAPPER: Detect Q×Condition Gene Interactions (Rank-Based Testing)
 # ============================================================================
-rank_test_q_condition_s4 <- function(analysis, condition_col, q = NULL, output_file = NULL,
+calculate_rank_test_s4 <- function(analysis, condition_col, q = NULL, output_file = NULL,
     paired = NULL, subject_col = NULL, test = c("auto", "kruskal-wallis", "friedman",
         "art"), multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young",
         "none"), entropy_col = "diversity", q_col = "q", gene_col = "gene", wy_randomizations = 500,
@@ -169,7 +169,7 @@ rank_test_q_condition_s4 <- function(analysis, condition_col, q = NULL, output_f
 
     # PHASE 4: Run core rank-based testing
     result <- tryCatch({
-        do.call(.rank_test_q_condition, c(list(data = se_multi_q), dots))
+        do.call(.calculate_rank_test, c(list(data = se_multi_q), dots))
     }, error = function(e) {
         stop("q-interaction detection failed:\n", e$message, call. = FALSE)
     })
@@ -361,7 +361,7 @@ rank_test_q_condition_s4 <- function(analysis, condition_col, q = NULL, output_f
     if (!is.null(output_file)) {
         result_df <- as.data.frame(result)
         save_analysis_output(result_df, output_file, object = analysis, verbose = verbose,
-            func_name = "rank_test_q_condition_s4")
+            func_name = "calculate_rank_test_s4")
     }
 
     analysis

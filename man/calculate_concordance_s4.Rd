@@ -23,11 +23,11 @@ calculate_concordance_s4(analysis, ...)
 
 \item{gam_method}{\code{character}.  Key for 
 GAM/interaction results in \code{@lm_results}.
-  Default: 'rank_test' (results from \code{rank_test_q_condition_s4})}
+  Default: 'rank_test' (results from \code{calculate_rank_test_s4})}
 
 \item{friedman_method}{\code{character}.  Key for 
 Friedman/rank-based results in \code{@lm_results}.
-  Default: 'rankbased' (results from \code{test_rankbased_assumptions_s4})}
+  Default: 'rankbased' (results from \code{calculate_rank_assumptions_s4})}
 
 \item{gam_results}{\code{data. frame} or  \code{NULL}.
  Optional GAM results data frame to store
@@ -83,7 +83,7 @@ gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 'TSENAT')
 
 # Configure analysis parameters first (fail-fast principle)
-config <- tsenat_config(
+config <- TSENAT_config(
   sample_col = 'sample',
   condition_col = 'condition',
   subject_col = 'paired_samples',
@@ -107,6 +107,6 @@ analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
 analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
 analysis <- calculate_lm_s4(analysis, method = 'gam')
 # Note: calculate_concordance_s4 requires results from both
-# rank_test_q_condition_s4 and test_rankbased_assumptions_s4
+# calculate_rank_test_s4 and calculate_rank_assumptions_s4
 
 }

@@ -684,7 +684,7 @@
 #' = 0.25))
 #' 
 #' # Unpaired analysis (default): K-W + multi-test correction for AR(1) q-values
-#' results <- .rank_test_q_condition(ts_se, multicorr = 'hochberg', test =
+#' results <- .calculate_rank_test(ts_se, multicorr = 'hochberg', test =
 #' 'kruskal-wallis')
 #' head(results)
 #' 
@@ -701,7 +701,7 @@
 #' SummarizedExperiment::colData(ts_se) <- coldata
 #' 
 #' # Paired analysis with blocked permutations
-#' results_paired <- .rank_test_q_condition(
+#' results_paired <- .calculate_rank_test(
 #'   ts_se, 
 #'   paired = TRUE,
 #'   subject_col = 'patient_id',
@@ -712,7 +712,7 @@
 
 #' @noRd
 
-.rank_test_q_condition <- function(data, entropy_col = "diversity", q_col = "q",
+.calculate_rank_test <- function(data, entropy_col = "diversity", q_col = "q",
     gene_col = "gene", condition_col = NULL, paired = FALSE, subject_col = "paired_samples",
     test = c("auto", "kruskal-wallis", "friedman", "art"), multicorr = c("hochberg",
         "benjamini-yekutieli", "westfall-young", "none"), wy_randomizations = 500,

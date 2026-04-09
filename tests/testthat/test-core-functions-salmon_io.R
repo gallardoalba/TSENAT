@@ -446,7 +446,7 @@ test_that("build_analysis_s4 works with salmon_dir parameter", {
   readr::write_tsv(tx2gene_df, tx2gene_file)
   
   # Build analysis using salmon_dir
-  config <- tsenat_config(
+  config <- TSENAT_config(
     sample_col = "sample",
     condition_col = "condition"
   )
@@ -488,7 +488,7 @@ test_that("build_analysis_s4 with salmon_dir stores TPM and effective_length", {
   )
   readr::write_tsv(tx2gene_df, tx2gene_file)
   
-  config <- tsenat_config(
+  config <- TSENAT_config(
     sample_col = "sample",
     condition_col = "condition"
   )
@@ -549,7 +549,7 @@ test_that("build_analysis_s4 with salmon direct parameters works", {
     salmon_data$effective_length
   }
   
-  config <- tsenat_config(
+  config <- TSENAT_config(
     sample_col = "sample",
     condition_col = "condition"
   )
@@ -601,7 +601,7 @@ test_that("build_analysis_s4 handles skip=TRUE for unmapped transcripts", {
   )
   
   # With skip=TRUE, should use only mapped transcripts
-  config <- tsenat_config(
+  config <- TSENAT_config(
     sample_col = "sample",
     condition_col = "condition"
   )
@@ -645,7 +645,7 @@ test_that("build_analysis_s4 with verbose=TRUE shows progress", {
   
   # Test that verbose=TRUE produces messages
   # Use expect_message to verify messages are produced during execution
-  config <- tsenat_config(
+  config <- TSENAT_config(
     sample_col = "sample",
     condition_col = "condition"
   )
@@ -720,7 +720,7 @@ test_that("Full Salmon workflow: detect → read → build_analysis creates corr
   }
   
   # Step 5: Build analysis
-  config <- tsenat_config(
+  config <- TSENAT_config(
     sample_col = "sample",
     condition_col = "condition"
   )

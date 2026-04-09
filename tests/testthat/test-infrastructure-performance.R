@@ -321,7 +321,7 @@ test_that("calculate_lm_s4 completes efficiently", {
 # TEST 7: JACKKNIFE ISOFORM SWITCHING PERFORMANCE
 # ============================================================================
 
-test_that("jackknife_isoform_switching_s4 completes in reasonable time", {
+test_that("calculate_jis_s4 completes in reasonable time", {
   skip_if_not_installed("microbenchmark")
   
   # Build analysis with diversity results
@@ -352,7 +352,7 @@ test_that("jackknife_isoform_switching_s4 completes in reasonable time", {
   # Benchmark jackknife
   bench <- microbenchmark::microbenchmark(
     times = 1,  # Just once - jackknife is very expensive
-    jackknife_isoform_switching_s4(
+    calculate_jis_s4(
       analysis,
       condition_col = "condition",
       q = 1,
@@ -367,7 +367,7 @@ test_that("jackknife_isoform_switching_s4 completes in reasonable time", {
   # Observed: ~349.3 ms; threshold = 430 ms (81% typical, allows variance)
   expect_lt(median_ms, 430)
   
-  .report_benchmark("jackknife_isoform_switching_s4 (150 transcripts, 40 genes, nboot=100)",
+  .report_benchmark("calculate_jis_s4 (150 transcripts, 40 genes, nboot=100)",
                     bench$time, threshold_ms = 430)
 })
 
@@ -375,21 +375,21 @@ test_that("jackknife_isoform_switching_s4 completes in reasonable time", {
 # TEST 7B: DETECT Q-GENE INTERACTIONS PERFORMANCE
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 completes efficiently for q-condition tests", {
+test_that("calculate_rank_test_s4 completes efficiently for q-condition tests", {
   skip_if_not_installed("microbenchmark")
   
   # Load real analysis with multiple q-values
   analysis <- setup_real_test_analysis(n_genes = 50, n_samples = 16)
   
   # Skip if function not available
-  if (!exists("rank_test_q_condition_s4")) {
-    skip("rank_test_q_condition_s4 not available in this TSENAT build")
+  if (!exists("calculate_rank_test_s4")) {
+    skip("calculate_rank_test_s4 not available in this TSENAT build")
   }
   
   # Benchmark rank test for q-condition detection
   bench <- microbenchmark::microbenchmark(
     times = 2,
-    rank_test_q_condition_s4(
+    calculate_rank_test_s4(
       analysis = analysis,
       condition_col = "condition",
       nthreads = 1,
@@ -400,7 +400,7 @@ test_that("rank_test_q_condition_s4 completes efficiently for q-condition tests"
   # Should complete quickly - threshold = 650 ms for small dataset (85% typical)
   expect_lt(median(bench$time) / 1e6, 650)
   
-  .report_benchmark("rank_test_q_condition_s4 (real TSENAT data, 50 genes)",
+  .report_benchmark("calculate_rank_test_s4 (real TSENAT data, 50 genes)",
                     bench$time, threshold_ms = 650)
 })
 
@@ -612,7 +612,7 @@ test_that("large analysis doesn't cause memory explosion", {
 # ============================================================================
 # NOTE: .rank_correlation_bootstrap_ci() was removed - test skipped
 
-test_that("rank_test_q_condition_s4 completes in acceptable time", {
+test_that("calculate_rank_test_s4 completes in acceptable time", {
   skip_if_not_installed("microbenchmark")
   
   # Load real analysis from TSENAT package data
@@ -621,7 +621,7 @@ test_that("rank_test_q_condition_s4 completes in acceptable time", {
   # Benchmark: Single-threaded execution
   bench <- microbenchmark::microbenchmark(
     times = 2,
-    rank_test_q_condition_s4(
+    calculate_rank_test_s4(
       analysis = analysis,
       condition_col = "condition",
       nthreads = 1,
@@ -633,7 +633,7 @@ test_that("rank_test_q_condition_s4 completes in acceptable time", {
   # Observed: ~445.7 ms; threshold = 550 ms (81% typical, handles variance)
   expect_lt(median(bench$time) / 1e6, 550)
   
-  .report_benchmark("rank_test_q_condition_s4 (200 genes, real TSENAT data)",
+  .report_benchmark("calculate_rank_test_s4 (200 genes, real TSENAT data)",
                     bench$time, threshold_ms = 550)
 })
 
@@ -641,7 +641,7 @@ test_that("rank_test_q_condition_s4 completes in acceptable time", {
 # TEST 15: RANK TEST SCALABILITY - LINEAR TIME WITH GENE COUNT
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 scales linearly with gene count", {
+test_that("calculate_rank_test_s4 scales linearly with gene count", {
   skip_if_not_installed("microbenchmark")
   
   # Test with different gene counts using real TSENAT data
@@ -653,7 +653,7 @@ test_that("rank_test_q_condition_s4 scales linearly with gene count", {
     analysis <- setup_real_test_analysis(n_genes = n_genes, n_samples = 12)
     
     start_time <- Sys.time()
-    rank_test_q_condition_s4(
+    calculate_rank_test_s4(
       analysis = analysis,
       condition_col = "condition",
       nthreads = 1,
@@ -755,12 +755,12 @@ test_that("vectorized CI quantile computation is efficient", {
 #   - .calculate_diversity() / calculate_diversity_s4()
 #   - .calculate_divergence() / calculate_divergence_s4()
 #   - .calculate_lm()
-#   - jackknife_isoform_switching_s4()
+#   - calculate_jis_s4()
 #   - detect_q_gene_interactions_s4()
 #   - .filter_se()
 #   - .build_se()
 #   - build_analysis_s4()
-#   - rank_test_q_condition_s4()
+#   - calculate_rank_test_s4()
 #   - .rank_correlation_bootstrap_ci()
 #
 # If any test fails:

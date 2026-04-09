@@ -777,7 +777,7 @@ describe("Integration: Complete helper workflow", {
   })
 })
 
-test_that("plot_multiq_delta_influence_heatmaps_s4: creates heatmaps from q-values", {
+test_that("plot_jis_delta_s4: creates heatmaps from q-values", {
   skip_if_not_installed("SummarizedExperiment")
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("ComplexHeatmap")
@@ -809,7 +809,7 @@ test_that("plot_multiq_delta_influence_heatmaps_s4: creates heatmaps from q-valu
   expect_true(all(c("q_0.5", "q_1.0", "q_1.5") %in% names(multiq_results)))
 })
 
-test_that("plot_multiq_delta_influence_heatmaps_s4: parameter validation", {
+test_that("plot_jis_delta_s4: parameter validation", {
   skip_if_not_installed("ggplot2")
   
   
@@ -826,17 +826,17 @@ test_that("plot_multiq_delta_influence_heatmaps_s4: parameter validation", {
 
 
 # ============================================================================
-# TEST 3: plot_multiq_delta_influence_heatmaps_s4 - Multi-q heatmaps
+# TEST 3: plot_jis_delta_s4 - Multi-q heatmaps
 # ============================================================================
 
-test_that("plot_multiq_delta_influence_heatmaps_s4: validates analysis object", {
+test_that("plot_jis_delta_s4: validates analysis object", {
   expect_error(
-    TSENAT:::plot_multiq_delta_influence_heatmaps_s4("not_analysis"),
+    TSENAT:::plot_jis_delta_s4("not_analysis"),
     "must be a TSENATAnalysis object"
   )
 })
 
-test_that("plot_multiq_delta_influence_heatmaps_s4: requires jackknife results", {
+test_that("plot_jis_delta_s4: requires jackknife results", {
   set.seed(308)
   
   # Create analysis without jackknife results
@@ -852,7 +852,7 @@ test_that("plot_multiq_delta_influence_heatmaps_s4: requires jackknife results",
   
   # Should error when no jackknife results
   expect_error(
-    TSENAT:::plot_multiq_delta_influence_heatmaps_s4(analysis),
+    TSENAT:::plot_jis_delta_s4(analysis),
     "No jackknife results"
   )
 })
@@ -860,7 +860,7 @@ test_that("plot_multiq_delta_influence_heatmaps_s4: requires jackknife results",
 
 create_mock_jackknife_multiq <- function(n_genes = 10, n_transcripts_per_gene = 3,
                                          q_values = c("q_0_50", "q_1_00")) {
-  # Create properly structured mock data for .plot_multiq_delta_influence_heatmaps()
+  # Create properly structured mock data for .plot_jis_delta()
   # Structure required:
   # - Class: "tsenat_isoform_switching_multiq"
   # - Names: q_* keys with:
@@ -903,11 +903,11 @@ create_mock_jackknife_multiq <- function(n_genes = 10, n_transcripts_per_gene = 
   return(result)
 }
 
-test_that("plot_multiq_delta_influence_heatmaps_s4: creates heatmap with mock jackknife data", {
+test_that("plot_jis_delta_s4: creates heatmap with mock jackknife data", {
   skip_if_not_installed("pheatmap")
   
   # Build analysis from vignette data
-  config <- tsenat_config(
+  config <- TSENAT_config(
     q_values = seq(0, 2, by = 0.2),
     condition_col = "condition",
     subject_col = "paired_samples",
@@ -919,19 +919,19 @@ test_that("plot_multiq_delta_influence_heatmaps_s4: creates heatmap with mock ja
   
   # Add required calculations
   analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0), verbose = FALSE)
-  analysis <- jackknife_isoform_switching_s4(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
+  analysis <- calculate_jis_s4(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
   
   # Function should execute without error (renders to graphics device, returns invisible NULL)
   expect_silent({
-    TSENAT:::plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 4, verbose = FALSE)
+    TSENAT:::plot_jis_delta_s4(analysis, n_genes = 4, verbose = FALSE)
   })
 })
 
-test_that("plot_multiq_delta_influence_heatmaps_s4: ranks genes by LM results when provided", {
+test_that("plot_jis_delta_s4: ranks genes by LM results when provided", {
   skip_if_not_installed("pheatmap")
   
   # Build analysis from vignette data
-  config <- tsenat_config(
+  config <- TSENAT_config(
     q_values = seq(0, 2, by = 0.2),
     condition_col = "condition",
     subject_col = "paired_samples",
@@ -943,19 +943,19 @@ test_that("plot_multiq_delta_influence_heatmaps_s4: ranks genes by LM results wh
   
   # Add required calculations
   analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0), verbose = FALSE)
-  analysis <- jackknife_isoform_switching_s4(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
+  analysis <- calculate_jis_s4(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
   
   # Function should execute without error
   expect_silent({
-    TSENAT:::plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 3, verbose = FALSE)
+    TSENAT:::plot_jis_delta_s4(analysis, n_genes = 3, verbose = FALSE)
   })
 })
 
-test_that("plot_multiq_delta_influence_heatmaps_s4: respects n_genes parameter", {
+test_that("plot_jis_delta_s4: respects n_genes parameter", {
   skip_if_not_installed("pheatmap")
   
   # Build analysis from vignette data
-  config <- tsenat_config(
+  config <- TSENAT_config(
     q_values = seq(0, 2, by = 0.2),
     condition_col = "condition",
     subject_col = "paired_samples",
@@ -967,15 +967,15 @@ test_that("plot_multiq_delta_influence_heatmaps_s4: respects n_genes parameter",
   
   # Add required calculations
   analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0), verbose = FALSE)
-  analysis <- jackknife_isoform_switching_s4(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
+  analysis <- calculate_jis_s4(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
   
   # Test with different n_genes values - should execute without error
   expect_silent({
-    TSENAT:::plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 2, verbose = FALSE)
+    TSENAT:::plot_jis_delta_s4(analysis, n_genes = 2, verbose = FALSE)
   })
   
   expect_silent({
-    TSENAT:::plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 10, verbose = FALSE)
+    TSENAT:::plot_jis_delta_s4(analysis, n_genes = 10, verbose = FALSE)
   })
 })
 
@@ -988,7 +988,7 @@ test_that("S4 plotting functions work on complete analysis object", {
   skip_if_not_installed("pheatmap")
   
   # Build analysis from vignette data
-  config <- tsenat_config(
+  config <- TSENAT_config(
     q_values = seq(0, 2, by = 0.2),
     condition_col = "condition",
     subject_col = "paired_samples",
@@ -1002,11 +1002,11 @@ test_that("S4 plotting functions work on complete analysis object", {
   analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0), verbose = FALSE)
   analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0), verbose = FALSE)
   analysis <- calculate_difference_s4(analysis, method = "median", verbose = FALSE)
-  analysis <- jackknife_isoform_switching_s4(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
+  analysis <- calculate_jis_s4(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
   
   # All three should execute successfully without error
   expect_silent({
-    TSENAT:::plot_volcano_ma_grid_s4(analysis, verbose = FALSE)
+    TSENAT:::plot_diversity_volcano_ma_s4(analysis, verbose = FALSE)
   })
   
   expect_silent({
@@ -1014,6 +1014,6 @@ test_that("S4 plotting functions work on complete analysis object", {
   })
   
   expect_silent({
-    TSENAT:::plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 3, verbose = FALSE)
+    TSENAT:::plot_jis_delta_s4(analysis, n_genes = 3, verbose = FALSE)
   })
 })

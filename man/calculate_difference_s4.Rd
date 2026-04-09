@@ -140,7 +140,7 @@ gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 'TSENAT')
 
 # Create config (metadata passed as explicit parameter to build_analysis_s4)
-config <- tsenat_config(
+config <- TSENAT_config(
   sample_col = 'sample',
   condition_col = 'condition',
   q_values = seq(0, 2, by = 0.05),

@@ -81,7 +81,7 @@
 #' 
 #' # Plot GAM curves for top genes
 #' if (nrow(lm_result$results) > 0) {
-#' grid_plot <- .plot_lm_interaction_gam(se, lm_result$results,
+#' grid_plot <- .plot_lm_gam(se, lm_result$results,
 #' condition_col = 'condition',
 #'                                         n_top = 2,
 #'  model_data = lm_result$model_data)
@@ -93,7 +93,7 @@
 #' theme_minimal scale_color_brewer
 #' @importFrom cowplot plot_grid
 
-.plot_lm_interaction_gam <- function(se, lm_res, condition_col = "condition", genes = NULL,
+.plot_lm_gam <- function(se, lm_res, condition_col = "condition", genes = NULL,
     n_top = 6, sig_alpha = 0.05, assay_name = "diversity", model_data = NULL, output_file = NULL,
     width = NULL, height = NULL) {
 

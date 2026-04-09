@@ -70,7 +70,7 @@ metadata_df <- read.table(
 gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 'TSENAT')
 # Configure analysis parameters first
-config <- tsenat_config(
+config <- TSENAT_config(
   sample_col = 'sample',
   condition_col = 'condition',
   control = 'normal'
