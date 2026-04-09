@@ -169,87 +169,18 @@
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Returns: Fully configured TSENATAnalysis object</span></span>
 <span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/tsenat.html">tsenat</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></code></pre></div>
-</div>
-</div>
-<div class="section level2">
-<h2 id="detailed-step-by-step-workflow">Detailed Step-by-Step Workflow<a class="anchor" aria-label="anchor" href="#detailed-step-by-step-workflow"></a>
-</h2>
-<p>For fine-grained control over your analysis, TSENAT also provides individual functions for each major step. This modular approach allows you to apply custom parameters at each stage, inspect intermediate results, or skip certain components entirely. The workflow below demonstrates the core analysis pipeline when using individual function calls—useful for exploratory analysis, parameter optimization, or integrating TSENAT results into larger custom workflows.</p>
-<div class="section level3">
-<h3 id="id_1-filter--compute-diversity">1. Filter &amp; Compute Diversity<a class="anchor" aria-label="anchor" href="#id_1-filter--compute-diversity"></a>
-</h3>
-<p>Remove low-abundance transcripts that may contribute noise to entropy calculations, then compute Tsallis entropy across your specified q-spectrum. This produces normalized diversity scores for each gene across all samples and q-values.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Remove low-abundance transcripts</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/filter_analysis_s4.html">filter_analysis_s4</a></span><span class="op">(</span><span class="va">analysis</span>, stringency <span class="op">=</span> <span class="st">"medium"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Compute Tsallis entropy across q-spectrum</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/calculate_diversity_s4.html">calculate_diversity_s4</a></span><span class="op">(</span><span class="va">analysis</span>, norm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co"># Compute Jackknife</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/jackknife_isoform_switching_s4.html">jackknife_isoform_switching_s4</a></span><span class="op">(</span><span class="va">analysis</span>,</span>
-<span>    nboot <span class="op">=</span> <span class="fl">100</span>,</span>
-<span>    lm_p_threshold <span class="op">=</span> <span class="fl">0.05</span>,</span>
-<span>    threshold <span class="op">=</span> <span class="fl">90</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Compute divergence</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu">calcualte_divergence_s4</span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="id_2-statistical-testing">2. Statistical Testing<a class="anchor" aria-label="anchor" href="#id_2-statistical-testing"></a>
-</h3>
-<p>Perform statistical testing to identify significant differences in entropy between experimental groups across your q-spectrum. TSENAT supports diverse statistical methods (linear models, rank-based tests, and more) to accommodate different study designs and data characteristics, ensuring you detect robust biological signals at the appropriate diversity scales.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Fit linear models to detect qxcondition interactions</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/calculate_lm_interaction_s4.html">calculate_lm_interaction_s4</a></span><span class="op">(</span></span>
-<span>  <span class="va">analysis</span>,</span>
-<span>  method <span class="op">=</span> <span class="st">"gam"</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="id_3-visualize-results">3. Visualize Results<a class="anchor" aria-label="anchor" href="#id_3-visualize-results"></a>
-</h3>
-<p>Create diverse visualizations to explore and communicate your analysis results. TSENAT provides multiple plotting functions including q-curves, volcano plots, heatmaps, and interaction plots to reveal scale-dependent diversity patterns and statistical findings across different aspects of your data.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Plot overall Tsallis q-spectrum for all genes </span></span>
-<span><span class="va">p_qcurve</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/plot_tsallis_q_curve_s4.html">plot_tsallis_q_curve_s4</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_qcurve</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Plot q-curve profiles for the top 4 genes</span></span>
-<span><span class="va">combined_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/plot_lm_interaction_gam_s4.html">plot_lm_interaction_gam_s4</a></span><span class="op">(</span></span>
-<span>    <span class="va">analysis</span>,</span>
-<span>    n_top <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">combined_plot</span><span class="op">)</span></span></code></pre></div>
+<p>For a complete walkthrough of the analysis pipeline with real biological examples, see the <a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT.html">main package vignette</a>. This includes theory background, step-by-step explanations of each analysis function, and interpretation guidance for understanding your results.</p>
 </div>
 </div>
 <div class="section level2">
 <h2 id="statistical-inference-methods">Statistical Inference Methods<a class="anchor" aria-label="anchor" href="#statistical-inference-methods"></a>
 </h2>
-<p>TSENAT provides a flexible statistical framework optimized for entropy-based diversity analysis.</p>
-<div class="section level3">
-<h3 id="parametric-methods">Parametric methods:<a class="anchor" aria-label="anchor" href="#parametric-methods"></a>
-</h3>
-<ul>
-<li><p>Generalized Additive Models (GAM) with ARIMA Differencing: GAM is a semi-parametric approach using flexible smooth functions of <em>q</em> and group with ARIMA(1,1,0) first-differencing to remove monotone trend and achieve stationarity. Estimates fixed effect parameters via smooth basis functions; automatically detects heteroscedasticity and applies optimal variance weighting.</p></li>
-<li><p>Linear Mixed Models (LMM) with AR(1): Fits mixed-effects models using <code><a href="https://rdrr.io/pkg/nlme/man/lme.html" class="external-link">nlme::lme()</a></code> with random intercept by subject and AR(1) correlation structure for observation-level errors with explicit time-ordering by <em>q</em>-value.</p></li>
-<li><p>Generalized Estimating Equations (GEE) with Multiple Correlation Structures: Fits marginal models with three selectable correlation structures: AR(1) for <em>q</em>-ordered data, exchangeable for unordered measurements, or independence. Includes Kauermann-Carroll bias correction for small number of clusters.</p></li>
-<li><p>Functional Principal Component Analysis (FPCA) with Regularization: Treats entropy values as ordered curves across <em>q</em>-values; applies ARIMA differencing then performs PCA on the curve matrix to extract orthogonal smooth principal components.</p></li>
-<li><p>Huber M-Estimation with Leave-One-Out Diagnostics: Iteratively re-weighted least squares (IRLS) using Huber loss function.</p></li>
-</ul>
-</div>
-<div class="section level3">
-<h3 id="non-parametric-methods">Non-parametric methods:<a class="anchor" aria-label="anchor" href="#non-parametric-methods"></a>
-</h3>
-<ul>
-<li><p>Friedman Rank-Based Test with Hochberg Correction: Non-parametric alternative to repeated-measures ANOVA that operates entirely on ranks, requiring no distributional assumptions.</p></li>
-<li><p>Jackknife via Delta Influence: Leave-one-out resampling to identify transcript-level contributors to entropy changes via delta influence.</p></li>
-<li><p>Wilcoxon Rank Sum Test with Multiple Hypothesis Correction: Unpaired or paired (Wilcoxon signed-rank) non-parametric alternative to t-tests.</p></li>
-<li><p>Permutation/Label Shuffling Test with FDR Control: Non-parametric exact test via label shuffling.</p></li>
-</ul>
-</div>
+<p>TSENAT provides a flexible statistical framework optimized for entropy-based diversity analysis. The recommended main workflow relies on <strong>Generalized Additive Models (GAM)</strong> (via <a href="https://CRAN.R-project.org/package=mgcv" class="external-link"><code>mgcv::gam()</code></a>) with ARIMA differencing to robustly detect q×condition interactions while accounting for heteroscedasticity and non-normality in entropy data.</p>
 </div>
 <div class="section level2">
 <h2 id="related-packages">Related Packages<a class="anchor" aria-label="anchor" href="#related-packages"></a>
 </h2>
-<p>TSENAT addresses a fundamental but underappreciated question in transcriptomic analysis: <strong>How do genes reorganize their isoform usage patterns, independent of changes in total abundance?</strong> This question is distinct from standard differential expression analysis and reveals a layer of biological complexity—coordinated isoform switching—that conventional methods overlook. TSENAT fills a specific niche in the Bioconductor ecosystem by measuring scale-dependent isoform diversity rather than abundance or individual transcript shifts. Below is how TSENAT complements other Bioconductor tools:</p>
+<p>Below is how TSENAT complements other Bioconductor tools:</p>
 <table class="table">
 <colgroup>
 <col width="17%">
@@ -296,7 +227,7 @@
 </h2>
 <p>TSENAT is specifically engineered to work seamlessly with Salmon quantification output. Rather than requiring manual parsing or format conversion, TSENAT automatically discovers transcript-level quantification files across your Salmon output directory and integrates them directly into the analysis pipeline. This tight integration means you can move from Salmon quantification to entropy analysis without intermediate data manipulation—the raw <code>quant.sf</code> files are all you need. TSENAT discovers these files automatically, validates their compatibility with your experimental design, and handles length-correction and normalization as part of the diversity computation workflow.</p>
 <p>To get started with Salmon-quantified data:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressMessages</a></span><span class="op">(</span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gallardoalba.github.io/TSENAT">TSENAT</a></span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Prepare configuration FIRST</span></span>
@@ -358,20 +289,15 @@ SRR14800478   tumor        B</code></pre>
 <p>Testing is vital in research as it ensures the validity and reliability of results, which is essential for accurately interpreting findings. The report about the current testing coverage can be found <a href="https://app.codecov.io/gh/gallardoalba/TSENAT" class="external-link">here</a>.</p>
 </div>
 <div class="section level2">
-<h2 id="learn-more">Learn More<a class="anchor" aria-label="anchor" href="#learn-more"></a>
-</h2>
-<p>For a complete walkthrough of the analysis pipeline with real biological examples, see the <a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT.html">main package vignette</a>. This includes theory background, step-by-step explanations of each analysis function, and interpretation guidance for understanding your results.</p>
-</div>
-<div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
 <p>If you use TSENAT in your research, please cite:</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="co">@software{gallardo2026tsenat,</span></span>
-<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="co">  title={TSENAT: Tsallis Entropy Analysis Toolbox},</span></span>
-<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a><span class="co">  author={Gallardo Alba, Cristóbal},</span></span>
-<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a><span class="co">  url={https://github.com/gallardoalba/TSENAT},</span></span>
-<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a><span class="co">  year={2026}</span></span>
-<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="co">@software{gallardo2026tsenat,</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="co">  title={TSENAT: Tsallis Entropy Analysis Toolbox},</span></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="co">  author={Gallardo Alba, Cristóbal},</span></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co">  url={https://github.com/gallardoalba/TSENAT},</span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co">  year={2026}</span></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="license-and-attribution">License and Attribution<a class="anchor" aria-label="anchor" href="#license-and-attribution"></a>

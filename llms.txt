@@ -179,138 +179,25 @@ the step-by-step workflow below.
 result <- tsenat(analysis)
 ```
 
-## Detailed Step-by-Step Workflow
-
-For fine-grained control over your analysis, TSENAT also provides
-individual functions for each major step. This modular approach allows
-you to apply custom parameters at each stage, inspect intermediate
-results, or skip certain components entirely. The workflow below
-demonstrates the core analysis pipeline when using individual function
-calls—useful for exploratory analysis, parameter optimization, or
-integrating TSENAT results into larger custom workflows.
-
-### 1. Filter & Compute Diversity
-
-Remove low-abundance transcripts that may contribute noise to entropy
-calculations, then compute Tsallis entropy across your specified
-q-spectrum. This produces normalized diversity scores for each gene
-across all samples and q-values.
-
-``` r
-
-# Remove low-abundance transcripts
-analysis <- filter_analysis_s4(analysis, stringency = "medium")
-
-# Compute Tsallis entropy across q-spectrum
-analysis <- calculate_diversity_s4(analysis, norm = TRUE)
-# Compute Jackknife
-analysis <- jackknife_isoform_switching_s4(analysis,
-    nboot = 100,
-    lm_p_threshold = 0.05,
-    threshold = 90)
-
-# Compute divergence
-analysis <- calcualte_divergence_s4(analysis)
-```
-
-### 2. Statistical Testing
-
-Perform statistical testing to identify significant differences in
-entropy between experimental groups across your q-spectrum. TSENAT
-supports diverse statistical methods (linear models, rank-based tests,
-and more) to accommodate different study designs and data
-characteristics, ensuring you detect robust biological signals at the
-appropriate diversity scales.
-
-``` r
-
-# Fit linear models to detect qxcondition interactions
-analysis <- calculate_lm_interaction_s4(
-  analysis,
-  method = "gam")
-```
-
-### 3. Visualize Results
-
-Create diverse visualizations to explore and communicate your analysis
-results. TSENAT provides multiple plotting functions including q-curves,
-volcano plots, heatmaps, and interaction plots to reveal scale-dependent
-diversity patterns and statistical findings across different aspects of
-your data.
-
-``` r
-
-# Plot overall Tsallis q-spectrum for all genes 
-p_qcurve <- plot_tsallis_q_curve_s4(analysis)
-print(p_qcurve)
-
-# Plot q-curve profiles for the top 4 genes
-combined_plot <- plot_lm_interaction_gam_s4(
-    analysis,
-    n_top = 4)
-print(combined_plot)
-```
+For a complete walkthrough of the analysis pipeline with real biological
+examples, see the [main package
+vignette](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html).
+This includes theory background, step-by-step explanations of each
+analysis function, and interpretation guidance for understanding your
+results.
 
 ## Statistical Inference Methods
 
 TSENAT provides a flexible statistical framework optimized for
-entropy-based diversity analysis.
-
-### Parametric methods:
-
-- Generalized Additive Models (GAM) with ARIMA Differencing: GAM is a
-  semi-parametric approach using flexible smooth functions of *q* and
-  group with ARIMA(1,1,0) first-differencing to remove monotone trend
-  and achieve stationarity. Estimates fixed effect parameters via smooth
-  basis functions; automatically detects heteroscedasticity and applies
-  optimal variance weighting.
-
-- Linear Mixed Models (LMM) with AR(1): Fits mixed-effects models using
-  [`nlme::lme()`](https://rdrr.io/pkg/nlme/man/lme.html) with random
-  intercept by subject and AR(1) correlation structure for
-  observation-level errors with explicit time-ordering by *q*-value.
-
-- Generalized Estimating Equations (GEE) with Multiple Correlation
-  Structures: Fits marginal models with three selectable correlation
-  structures: AR(1) for *q*-ordered data, exchangeable for unordered
-  measurements, or independence. Includes Kauermann-Carroll bias
-  correction for small number of clusters.
-
-- Functional Principal Component Analysis (FPCA) with Regularization:
-  Treats entropy values as ordered curves across *q*-values; applies
-  ARIMA differencing then performs PCA on the curve matrix to extract
-  orthogonal smooth principal components.
-
-- Huber M-Estimation with Leave-One-Out Diagnostics: Iteratively
-  re-weighted least squares (IRLS) using Huber loss function.
-
-### Non-parametric methods:
-
-- Friedman Rank-Based Test with Hochberg Correction: Non-parametric
-  alternative to repeated-measures ANOVA that operates entirely on
-  ranks, requiring no distributional assumptions.
-
-- Jackknife via Delta Influence: Leave-one-out resampling to identify
-  transcript-level contributors to entropy changes via delta influence.
-
-- Wilcoxon Rank Sum Test with Multiple Hypothesis Correction: Unpaired
-  or paired (Wilcoxon signed-rank) non-parametric alternative to
-  t-tests.
-
-- Permutation/Label Shuffling Test with FDR Control: Non-parametric
-  exact test via label shuffling.
+entropy-based diversity analysis. The recommended main workflow relies
+on **Generalized Additive Models (GAM)** (via
+[`mgcv::gam()`](https://CRAN.R-project.org/package=mgcv)) with ARIMA
+differencing to robustly detect q×condition interactions while
+accounting for heteroscedasticity and non-normality in entropy data.
 
 ## Related Packages
 
-TSENAT addresses a fundamental but underappreciated question in
-transcriptomic analysis: **How do genes reorganize their isoform usage
-patterns, independent of changes in total abundance?** This question is
-distinct from standard differential expression analysis and reveals a
-layer of biological complexity—coordinated isoform switching—that
-conventional methods overlook. TSENAT fills a specific niche in the
-Bioconductor ecosystem by measuring scale-dependent isoform diversity
-rather than abundance or individual transcript shifts. Below is how
-TSENAT complements other Bioconductor tools:
+Below is how TSENAT complements other Bioconductor tools:
 
 | Tool | Answers | TSENAT Difference |
 |----|----|----|
@@ -402,15 +289,6 @@ Testing is vital in research as it ensures the validity and reliability
 of results, which is essential for accurately interpreting findings. The
 report about the current testing coverage can be found
 [here](https://app.codecov.io/gh/gallardoalba/TSENAT).
-
-## Learn More
-
-For a complete walkthrough of the analysis pipeline with real biological
-examples, see the [main package
-vignette](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html).
-This includes theory background, step-by-step explanations of each
-analysis function, and interpretation guidance for understanding your
-results.
 
 ## Citation
 

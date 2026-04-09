@@ -130,13 +130,13 @@ result <- tsenat(analysis)
 #>                        -- Paul Feyerabend, Against Method     
 #>                                                               
 #> [DATA] Data Summary
-#>   Transcripts ........... 3,089
+#>   Transcripts .......... 3,089
 #>   Samples .............. 16
 #>   Conditions ........... 2
-#>   Q-spectrum range ...... 0.5 to 2.5 (5 values)
+#>   Q-spectrum range ..... 0.5 to 2.5 (5 values)
 #> 
 #> [CONFIG] Analysis Configuration
-#>   Design ................ unpaired
+#>   Design ............... unpaired
 #>   Filter stringency .... medium
 #>   Normalization ........ enabled [0-1]
 #>   Normalization method . NONE
@@ -186,11 +186,11 @@ result <- tsenat(analysis)
 #> [RESULTS] Results Summary
 #> 
 #> [PERF] Performance
-#>   Total time ........... 18.0s
+#>   Total time ........... 15.9s
 #>   Slowest steps:
-#>     1. lm_interaction       12.4s (68.6%)
-#>     2. div_spectrum_plot    1.6s (9.0%)
-#>     3. jackknife            1.3s (7.3%)
+#>     1. lm_interaction       11.1s (69.7%)
+#>     2. jackknife            1.2s (7.7%)
+#>     3. div_spectrum_plot    1.0s (6.1%)
 #> 
 #> [OUTPUT] Output
 #>   Directory ........... tsenat_outputs
