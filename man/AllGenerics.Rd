@@ -2,15 +2,52 @@
 % Please edit documentation in R/AllGenerics.R
 \name{AllGenerics}
 \alias{AllGenerics}
+\alias{getMeta}
 \title{Generic Functions for TSENATAnalysis S4 Class}
+\usage{
+getMeta(object, ...)
+}
+\arguments{
+\item{object}{TSENATAnalysis object}
+
+\item{...}{Additional arguments (method-specific)}
+}
 \value{
 These generic functions return different types depending on the
 specific method:
   - Accessor methods return data.frames or lists containing analysis results
   - See individual method documentation for specific return types
+
+data.frame or list depending on accessor method. See Details for
+specific return types.
 }
 \description{
 Define generic functions for accessing components of TSENATAnalysis objects.
 These are the recommended way to extract results from analysis objects,
 following Bioconductor best practices.
+}
+\details{
+Use these accessor methods instead of direct slot access with '@'
+
+\code{getMeta}: Returns essential metadata only (timestamps, version, workflow type).
+  Large result tables, sample statistics, and function call logs are NOT included.
+  Use \code{results()} to extract analysis results and tables.
+}
+\examples{
+# Create a simple TSENATAnalysis object for demonstration
+library(SummarizedExperiment)
+set.seed(42)
+counts <- matrix(rpois(100, lambda = 10), nrow = 10, ncol = 10)
+colnames(counts) <- paste0('sample_', 1:10)
+rownames(counts) <- paste0('gene_', 1:10)
+se <- SummarizedExperiment(assays = list(counts = counts))
+
+# Create TSENATAnalysis object
+example_analysis <- new('TSENATAnalysis', se = se)
+
+# Access SummarizedExperiment
+se_retrieved <- getSE(example_analysis)
+
+# These accessor methods follow Bioconductor conventions
+# lmResults, jeoResults, jisResults, getMeta provide structured access
 }

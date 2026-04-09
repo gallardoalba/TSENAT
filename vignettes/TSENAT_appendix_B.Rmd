@@ -166,6 +166,11 @@ analysis <- calculate_diversity_s4(
   norm = TRUE,
   pseudocount = "auto"
 )
+
+# Extract diversity results using results accessor
+diversity_results <- results(analysis, type = "diversity")
+cat("Diversity results extracted:\n")
+print(head(diversity_results, n = 10))
 ```
 
 # Rank-Based Approach (Friedman)
@@ -269,6 +274,11 @@ analysis <- rank_test_q_condition_s4(
 
 # Extract results from S4 object using accessor
 friedman_results <- rankResults(analysis)
+
+# Alternative: Extract rank_test results using generic results accessor
+rank_test_results <- results(analysis, type = "rank_test", rankBy = "pvalue", n = 20, filterFDR = 0.05)
+cat("Top rank_test results by p-value (FDR < 0.05):\n")
+print(head(rank_test_results, n = 10))
 ```
 
 ```{r friedman-results-summary, message=FALSE, echo=FALSE}
@@ -395,6 +405,11 @@ gam_results <- read.delim(
     system.file("extdata", "lm_interaction_results.tsv", package = "TSENAT"),
     stringsAsFactors = FALSE
 )
+
+# Note: GAM results are generated via calculate_lm_interaction_s4() in the main vignette
+# When available in the analysis object, extract using generic results accessor:
+# lm_gam_results <- results(analysis, type = "lm", rankBy = "pvalue", n = 20, filterFDR = 0.05)
+# This demonstrates the flexible results pattern for accessing LM/GAM interaction results
 ```
 
 ```{r gam-results-summary-table, message=FALSE, echo=FALSE}
@@ -503,7 +518,7 @@ if ("p_interaction" %in% colnames(gam_results)) {
 analysis_with_concordance <- compute_method_concordance_s4(
     analysis,
     gam_method = "gam_results",
-    friedman_method = "q_interactions",
+    friedman_method = "rank_test",
     gam_results = gam_results,
     verbose = TRUE
 )
@@ -646,7 +661,8 @@ This vignette demonstrates the modern S4-based analysis workflow for method comp
 
 - **Consistent class structure:** All results integrated into TSENATAnalysis object
 - **Automatic metadata tracking:** No global variables polluting environment
-- **Seamless integration:** Methods pass results through accessor methods `metadata()`, `lmResults()`, and `rankResults()`
+- **Seamless integration:** Accessors like `lmResults()`, `rankResults()`, `divergence()`, `jisResults()` are thin wrappers around canonical `results()` for flexible result retrieval and filtering
+- **Unified ranking & filtering:** All accessors support ranking (rankBy), FDR filtering, and format conversion through `results()`
 - **Reproducibility:** Clear, standardized workflow for complex multi-method analyses
 - **Documentation:** S4 methods maintain Roxygen documentation and inheritance
 
@@ -681,7 +697,7 @@ gam_results_loaded <- read.csv("lm_interaction_results.csv")
 analysis <- compute_method_concordance_s4(
     analysis,
     gam_method = "gam_results",
-    friedman_method = "q_interactions",
+    friedman_method = "rank_test",
     gam_results = gam_results_loaded,
     verbose = TRUE
 )

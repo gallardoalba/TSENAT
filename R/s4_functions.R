@@ -885,7 +885,7 @@ plot_volcano_ma_grid_s4 <- function(analysis, x_col = NULL, padj_col = "padj", l
 #' @param analysis \code{TSENATAnalysis} object with LM results (e.g., GAM).
 #' @param gam_method \code{character}.  Key for 
 #' GAM/interaction results in \code{@lm_results}.
-#'   Default: 'q_interactions' (results from \code{rank_test_q_condition_s4})
+#'   Default: 'rank_test' (results from \code{rank_test_q_condition_s4})
 #' @param friedman_method \code{character}.  Key for 
 #' Friedman/rank-based results in \code{@lm_results}.
 #'   Default: 'rankbased' (results from \code{test_rankbased_assumptions_s4})
@@ -971,7 +971,7 @@ setGeneric("compute_method_concordance_s4", function(analysis, ...) {
 })
 
 #' @rdname compute_method_concordance_s4
-setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(analysis, gam_method = "q_interactions",
+setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(analysis, gam_method = "rank_test",
     friedman_method = "rankbased", gam_results = NULL, verbose = FALSE, output_file = NULL) {
 
     # ===================================================================

@@ -161,6 +161,6 @@ analysis <- rank_test_q_condition_s4(analysis, condition_col = 'condition',
                                            multicorr = 'hochberg')
 # View results
 results <- lmResults(analysis)
-if (!is.null(results)) head(results$q_interactions)
+if (!is.null(results)) head(results$rank_test)
 
 }

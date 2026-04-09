@@ -26,10 +26,45 @@ setMethod("getSE", "TSENATAnalysis", function(object) {
 
 #' @rdname methods-TSENATAnalysis
 setMethod("getMeta", "TSENATAnalysis", function(object, key = NULL) {
-    if (is.null(key)) {
-        return(object@metadata)
+    # Returns ONLY essential metadata (timestamps, version, workflow type)
+    # Large result tables, sample stats, function logs are accessed via results(), etc.
+    
+    # Filter metadata to essential fields only
+    essential_meta <- list()
+    
+    if ("created_at" %in% names(object@metadata)) {
+        essential_meta$created_at <- object@metadata$created_at
     }
-    object@metadata[[key]]
+    if ("ended_at" %in% names(object@metadata)) {
+        essential_meta$ended_at <- object@metadata$ended_at
+    }
+    if ("package_version" %in% names(object@metadata)) {
+        essential_meta$package_version <- object@metadata$package_version
+    }
+    if ("tsenat_version" %in% names(object@metadata)) {
+        essential_meta$tsenat_version <- object@metadata$tsenat_version
+    }
+    if ("workflow_type" %in% names(object@metadata)) {
+        essential_meta$workflow_type <- object@metadata$workflow_type
+    }
+    if ("workflow" %in% names(object@metadata)) {
+        # Extract only essential workflow info
+        workflow_info <- object@metadata$workflow
+        if (is.list(workflow_info)) {
+            essential_meta$workflow <- list(
+                type = workflow_info$workflow_type,
+                completion_time = workflow_info$completion_time
+            )
+        }
+    }
+    
+    # If key specified, return specific field
+    if (!is.null(key)) {
+        return(essential_meta[[key]])
+    }
+    
+    # Return filtered essential metadata only
+    essential_meta
 })
 
 #' @rdname methods-TSENATAnalysis

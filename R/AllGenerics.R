@@ -51,6 +51,10 @@ if (getRversion() >= "2.15.1") {
 #' # lmResults, jeoResults, jisResults, getMeta provide structured access
 
 #' @export
+#' @rdname AllGenerics
+#' @details \code{getMeta}: Returns essential metadata only (timestamps, version, workflow type).
+#'   Large result tables, sample statistics, and function call logs are NOT included.
+#'   Use \code{results()} to extract analysis results and tables.
 setGeneric("getMeta", function(object, ...) standardGeneric("getMeta"))
 
 #' @export

@@ -36,7 +36,7 @@
 #'   \describe{
 #'     \item{\code{lm_interaction}}{LM/GAM/GEE model results (list with
 #'           \code{$results} data.frame, \code{$models} list, etc.)}
-#'     \item{\code{q_interactions}}{Friedman/rank-based test results}
+#'     \item{\code{rank_test}}{Friedman/rank-based test results}
 #'     \item{\code{divergence_difference}}{Differential divergence comparison}
 #'   }
 #'
@@ -361,44 +361,25 @@ setGeneric("lmResults", function(object, component = NULL) {
 #' @rdname lmResults
 #' @export
 setMethod("lmResults", "TSENATAnalysis", function(object, component = NULL) {
-    # Filter out rank test results (q_interactions belongs to rankResults, not
-    # lmResults)
-    lm_only_results <- object@lm_results
-    if (is.list(lm_only_results) && "q_interactions" %in% names(lm_only_results)) {
-        lm_only_results$q_interactions <- NULL
-    }
-
-    if (length(lm_only_results) == 0) {
+    # Thin wrapper around results() - delegates to canonical API
+    result <- results(object, type = "lm")
+    
+    if (is.null(result)) {
         warning("No LM interaction results found. Run calculate_lm_interaction_s4() first.")
         return(NULL)
     }
-
+    
     if (is.null(component)) {
-        # Return all LM interaction results (excluding rank test
-        # q_interactions)
-        return(lm_only_results)
+        # Return all LM interaction results (as data.frame)
+        return(result)
     }
-
-    # Try to extract specific component
-    if (component %in% names(lm_only_results)) {
-        return(lm_only_results[[component]])
+    
+    # Extract specific column if component is a column name
+    if (is.data.frame(result) && component %in% colnames(result)) {
+        return(result[[component]])
     }
-
-    # If component.results pattern, extract the $results subcomponent
-    if (component %in% c("results", "p_value", "effect_size")) {
-        # Search all subcomponents
-        for (name in names(lm_only_results)) {
-            if (is.list(lm_only_results[[name]]) && "results" %in% names(lm_only_results[[name]])) {
-                results_df <- lm_only_results[[name]]$results
-                if (is.data.frame(results_df) && component %in% colnames(results_df)) {
-                  return(results_df[[component]])
-                }
-            }
-        }
-    }
-
-    stop("Component '", component, "' not found in LM interaction results.\n", "Available: ",
-        paste(names(lm_only_results), collapse = ", "), call. = FALSE)
+    
+    stop("Component ", component, " not found in LM interaction results.", call. = FALSE)
 })
 
 #' Extract pairwise differential comparison results
@@ -529,27 +510,24 @@ setGeneric("rankResults", function(object, component = NULL) {
 #' @rdname rankResults
 #' @export
 setMethod("rankResults", "TSENATAnalysis", function(object, component = NULL) {
-    if (length(object@lm_results) == 0 || !("q_interactions" %in% names(object@lm_results))) {
+    # Thin wrapper around results() - delegates to canonical API
+    result <- results(object, type = "rank_test")
+    
+    if (is.null(result)) {
         warning("No rank test q-value interaction results found. Run rank_test_q_condition_s4() first.")
         return(NULL)
     }
-
-    q_interactions <- object@lm_results$q_interactions
-
+    
     if (is.null(component)) {
-        # Return all rank test results
-        return(q_interactions)
+        # Return all rank test results (as data.frame)
+        return(result)
     }
-
-    # Try to extract specific component
-    if (is.data.frame(q_interactions) && component %in% colnames(q_interactions)) {
-        return(q_interactions[[component]])
+    
+    # Extract specific column if component is a column name
+    if (is.data.frame(result) && component %in% colnames(result)) {
+        return(result[[component]])
     }
-
-    if (is.list(q_interactions) && component %in% names(q_interactions)) {
-        return(q_interactions[[component]])
-    }
-
+    
     stop("Component '", component, "' not found in rank test results.", call. = FALSE)
 })
 
@@ -630,7 +608,7 @@ setMethod("pairwiseResults<-", "TSENATAnalysis", function(object, value) {
     object
 })
 
-#' Setter for rank test q-value interaction results stored in @lm_results$q_interactions
+#' Setter for rank test q-value interaction results stored in @lm_results$rank_test
 #'
 #' @rdname rankResults
 #' @param object TSENATAnalysis object
@@ -649,7 +627,7 @@ setMethod("rankResults<-", "TSENATAnalysis", function(object, value) {
     if (!is.list(object@lm_results)) {
         object@lm_results <- list()
     }
-    object@lm_results$q_interactions <- value
+    object@lm_results$rank_test <- value
     object
 })
 
@@ -733,15 +711,25 @@ setMethod("jeoResults", "TSENATAnalysis", function(object, q = NULL) {
 #' @param object \code{TSENATAnalysis} object.
 #' @param q \code{numeric} or NULL. Q-value for specific results.
 #'   If NULL, returns all isoform switching jackknife results.
+#' @param rankBy \code{character}. Ranking method: 'none' (default, unranked),
+#'   'pvalue' (by p-value), 'qvalue' (by adjusted p-value), 'effectSize',
+#'   or 'none' (unranked). Default: 'none'.
+#' @param n \code{integer} or NULL. Top N results to return. If NULL, returns all.
+#' @param filterFDR \code{numeric} or NULL. FDR threshold for filtering. If specified,
+#'   returns only results with adjusted p-value <= filterFDR.
+#' @param ... Additional parameters passed to \code{\link{results}}.
 #'
 #' @return List of isoform switching jackknife results, or NULL if not computed.
 #'
 #' @details
 #' Jackknife isoform switching results are computed separately from entropy outliers.
-#' Use this to access isoform switching analysis results.
+#' Use this to access isoform switching analysis results with optional ranking.
 #'
 #' Results include leave-one-out diagnostics for detecting genes with
 #' condition-specific isoform switching patterns across q-values.
+#'
+#' If \code{rankBy != 'none'}, delegates to \code{\link{results}} to support
+#' ranked extraction across result types.
 #'
 #' @examples
 #' # Load data and build analysis 
@@ -780,42 +768,33 @@ setMethod("jeoResults", "TSENATAnalysis", function(object, q = NULL) {
 #' # Extract all isoform switching results
 #' all_jis <- jisResults(analysis)
 #'
+#' # Extract top 20 jackknife results by p-value
+#' top_jis_pval <- jisResults(analysis, rankBy = "pvalue", n = 20)
+#'
+#' # Extract significant results (FDR < 0.05) ranked by effect size
+#' sig_jis <- jisResults(analysis, rankBy = "effectSize", filterFDR = 0.05)
+#'
 #' @export
-setGeneric("jisResults", function(object, q = NULL) {
+setGeneric("jisResults", function(object, q = NULL, rankBy = "none", n = NULL, 
+                               filterFDR = NULL, ...) {
     standardGeneric("jisResults")
 })
 
 #' @rdname jisResults
 #' @export
-setMethod("jisResults", "TSENATAnalysis", function(object, q = NULL) {
-    if (length(object@jackknife_results) == 0) {
+setMethod("jisResults", "TSENATAnalysis", function(object, q = NULL, rankBy = "none", 
+                                                   n = NULL, filterFDR = NULL, ...) {
+    # Thin wrapper around results() - delegates to canonical API
+    # with proper parameter mapping
+    result <- results(object, type = "jackknife", q = q, rankBy = rankBy, 
+                        n = n, filterFDR = filterFDR, ...)
+    
+    if (is.null(result)) {
         warning("No jackknife isoform switching results found. Run jackknife_isoform_switching_s4() first.")
         return(NULL)
     }
-
-    # Check if multi_q key exists (indicates isoform switching data)
-    if (!"multi_q" %in% names(object@jackknife_results)) {
-        warning("No jackknife isoform switching results found (multi_q key missing). Run jackknife_isoform_switching_s4() first.")
-        return(NULL)
-    }
-
-    if (is.null(q)) {
-        # Return all isoform switching results
-        return(object@jackknife_results)
-    }
-
-    # Format q-value key for isoform switching (uses different format than
-    # entropy outliers) isoform switching uses paste0('q_', gsub('\\.', '_',
-    # sprintf('%.2f', q))) format
-    q_key <- paste0("q_", gsub("\\.", "_", sprintf("%.2f", q)))
-
-    if (!(q_key %in% names(object@jackknife_results))) {
-        stop("Q-value ", q, " not found in jackknife isoform switching results.\n",
-            "Available q-values: ", paste(names(object@jackknife_results), collapse = ", "),
-            call. = FALSE)
-    }
-
-    object@jackknife_results[[q_key]]
+    
+    result
 })
 
 # ============================================================================
@@ -864,22 +843,26 @@ setGeneric("divergence", function(object, component = NULL) {
 #' @rdname divergence
 #' @export
 setMethod("divergence", "TSENATAnalysis", function(object, component = NULL) {
-    if (length(object@divergence_results) == 0) {
+    # Thin wrapper around results() - delegates to canonical API
+    result <- results(object, type = "divergence")
+    
+    if (is.null(result)) {
         warning("No divergence results found. Run calculate_divergence_s4() first.")
         return(NULL)
     }
-
+    
     if (is.null(component)) {
         # Return all results
-        return(object@divergence_results)
+        return(result)
     }
-
-    if (!(component %in% names(object@divergence_results))) {
-        stop("Component '", component, "' not found in divergence_results.\n", "Available: ",
-            paste(names(object@divergence_results), collapse = ", "), call. = FALSE)
+    
+    # Extract specific component if it's a list
+    if (is.list(result) && component %in% names(result)) {
+        return(result[[component]])
     }
-
-    object@divergence_results[[component]]
+    
+    stop("Component '", component, "' not found in divergence_results.\n", "Available: ",
+        paste(names(result), collapse = ", "), call. = FALSE)
 })
 
 # ============================================================================
@@ -1269,17 +1252,11 @@ setMethod("summary", "TSENATAnalysis", function(object) {
             i <- j
         }
         
-        # Truncate or summarize if workflow is very long (>10 main steps)
-        if (length(compressed_calls) > 10) {
-            main_steps <- compressed_calls[1:min(5, length(compressed_calls))]
-            remaining <- length(compressed_calls) - length(main_steps)
-            workflow_text <- paste(c(main_steps, 
-                sprintf("... and %d more step(s)", remaining)), collapse = " → ")
-        } else {
-            workflow_text <- paste(compressed_calls, collapse = " → ")
+        # Format workflow vertically for better readability
+        message("  Workflow:")
+        for (step in compressed_calls) {
+            message(sprintf("    → %s", step))
         }
-        
-        message(sprintf("  Workflow: %s", workflow_text))
     }
 
     message("")

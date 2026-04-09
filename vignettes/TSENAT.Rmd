@@ -352,6 +352,10 @@ analysis <- calculate_diversity_s4(
     norm = TRUE,
     output_file = "vignette_diversity_results.tsv"
 )
+
+# Extract diversity results using results accessor
+diversity_results <- results(analysis, type = "diversity")
+head(diversity_results, n = 10)
 ```
 
 ```{r display-tsallis-table, echo = FALSE}
@@ -491,11 +495,16 @@ if (requireNamespace("mgcv", quietly = TRUE)) {
         method = "gam",
         multicorr = "hochberg"
     )
+    
+    # Extract LM interaction results using results accessor
+    lm_results <- results(analysis, type = "lm", rankBy = "pvalue", n = 10)
+    cat("Top 10 genes by p-value:\n")
+    print(lm_results)
 }
 ```
 
 ```{r display-interaction-results, echo = FALSE}
-lm_res <- lmResults(analysis)$lm_interaction
+lm_res <- lmResults(analysis)
 if (!is.null(lm_res) && is.data.frame(lm_res) && nrow(lm_res) > 0) {
     display <- head(lm_res, 6)
     
@@ -591,6 +600,11 @@ analysis <- jackknife_isoform_switching_s4(
     lm_p_threshold = 0.05,
     threshold = 90
 )
+
+# Extract jackknife results using results accessor (specify q value)
+jackknife_q1 <- results(analysis, type = "jackknife", q = 1.0, rankBy = "pvalue", n = 20)
+cat("Top 20 jackknife genes by p-value (q = 1.0):\n")
+print(jackknife_q1)
 ```
 
 We configure three key parameters for the switching analysis: `nboot = 100` specifies 100 bootstrap resamples to estimate robust confidence intervals for delta influence values [@S115]; `lm_p_threshold = 0.05` filters genes to those with significant q$\times$condition interaction effects (p < 0.05) before assessing transcript switching; and `threshold = 90` designates transcripts with support $\geq$ 90% across bootstrap samples as robust switches. These parameters balance sensitivity (detecting switching) with specificity (avoiding false positives from noise).
@@ -718,8 +732,11 @@ treatment groups across all q-dependent scales [@I060].
 ```{r effect-size-multiq}
 # Calculate divergence: computes pairwise information-theoretic distance (Tsallis divergence) between conditions
 # using bootstrap confidence intervals across all configured q-values from getConfig(analysis)$q_values
-analysis <- calculate_divergence_s4(
-    analysis)
+analysis <- calculate_divergence_s4(analysis)
+
+# Extract divergence results using results accessor
+divergence_results <- results(analysis, type = \"divergence\")
+head(divergence_results, n = 10)
 ```
 
 
@@ -1028,21 +1045,27 @@ TSENAT provides an integrated S4-based workflow for coordinated analysis followi
 
 The `tsenat()` function accepts a configured `TSENATConfig` object and orchestrates a complete pipeline: diversity computation -> quality control -> statistical testing -> effect sizes (as specified by the `methods` parameter). Parameter `verbose = TRUE` outputs progress messages showing data filtering steps and method completion. This single-function approach ensures consistency between preprocessing and analysis steps, eliminating boilerplate and reducing risk of parameter mismatches.
 
-**Accessor methods return types:** Most accessors return `SummarizedExperiment` objects (following Bioconductor conventions) containing results as assays and metadata:
+**Accessor methods (thin wrappers around canonical results()):** Most accessors delegate to `results()` following Bioconductor best practices. This unified architecture provides a single source of truth for result extraction and filtering:
 
-- `diversity(analysis)` -> SummarizedExperiment (genes x samples, multiple assays for each q-value)
+- `diversity(analysis, q = NULL)` → Wrapper calling `results(type = "diversity", q = q)` → SummarizedExperiment (genes x samples)
 
-- `lmResults(analysis)` -> list containing data.frame of LM interaction results
+- `lmResults(analysis, component = NULL)` → Wrapper calling `results(type = "lm")` → data.frame of LM interaction results
 
-- `jeoResults(analysis, q = 1.0)` -> SummarizedExperiment of jackknife entropy outlier confidence intervals
+- `rankResults(analysis, component = NULL)` → Wrapper calling `results(type = "rank_test")` → data.frame of rank test results
 
-- `jisResults(analysis, q = 1.0)` -> list of jackknife isoform switching results
+- `jisResults(analysis, q = NULL, rankBy = "none", n = NULL, filterFDR = NULL)` → Wrapper calling `results(type = "jackknife", q = q, rankBy = rankBy, n = n, filterFDR = filterFDR)` → data.frame or list of jackknife isoform switching results
 
-- `rankResults(analysis)` -> data.frame of rank test results
+- `jeoResults(analysis, q = NULL)` → Accessor for jackknife entropy outlier results → SummarizedExperiment
 
-- `divergence(analysis)` -> SummarizedExperiment of pairwise divergence metrics
+- `divergence(analysis, component = NULL)` → Wrapper calling `results(type = "divergence")` → SummarizedExperiment or list of pairwise divergence metrics
 
-If a requested method was not run during `tsenat()` orchestration, the accessor returns NULL-users should check results before downstream use.
+**Why thin wrappers?** This pattern (following SummarizedExperiment, DESeq2, EdgeR) ensures:
+- Single source of truth (`results()`) for all result access logic
+- Ranking, filtering, and format conversion available uniformly across all accessors
+- Automatic consistency when new features added to `results()`
+- Backward compatibility with existing code
+
+If a requested method was not run during `tsenat()` orchestration, the accessor returns NULL—users should check results before downstream use.
 
 ```{r s4-workflow-demo, include = TRUE, echo = TRUE, eval = FALSE}
 # Configure analysis parameters once (best practice for reproducibility)
@@ -1076,6 +1099,18 @@ jk_entropy <- jeoResults(analysis, q = 1.0)
 jk_iso <- jisResults(analysis, q = 1.0)
 rank_test <- rankResults(analysis)
 divergence_table <- divergence(analysis)
+
+# Alternatively, use the generic results() accessor for flexible result retrieval
+diversity_via_generic <- results(analysis, type = "diversity", q = 1.0)
+lm_via_generic <- results(analysis, type = "lm", rankBy = "pvalue", n = 20, filterFDR = 0.05)
+jackknife_via_generic <- results(analysis, type = "jackknife", q = 1.0, rankBy = "effectSize", n = 25)
+rank_test_via_generic <- results(analysis, type = "rank_test")
+divergence_via_generic <- results(analysis, type = "divergence")
+
+# results() supports filtering and ranking across all result types
+top_significant_lm <- results(analysis, type = "lm", rankBy = "pvalue", filterFDR = 0.01, n = 50)
+top_effect_jackknife <- results(analysis, type = "jackknife", q = 1.5, rankBy = "effectSize", n = 30)
+rank_test_filtered <- results(analysis, type = "rank_test", filterFDR = 0.05)
 ```
 
 For detailed step-by-step implementation, see the sections above demonstrating each analysis component and its accessor patterns.

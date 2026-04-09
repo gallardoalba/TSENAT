@@ -96,7 +96,7 @@ test_that("rank_test_q_condition_s4 returns TSENATAnalysis with results", {
     
     # Should return modified TSENATAnalysis
     expect_is(result, "TSENATAnalysis")
-    # Should have q_interactions stored (data frame)
+    # Should have rank_test stored (data frame)
     rank_res <- TSENAT::rankResults(result)
     expect_is(rank_res, "data.frame")
     expect_true(nrow(rank_res) > 0)
@@ -319,7 +319,7 @@ test_that("rank_test_q_condition_s4 results have correct structure", {
     rank_res <- TSENAT::rankResults(result)
     q_int_res <- rank_res
     
-    # Check for essential columns in q_interactions
+    # Check for essential columns in rank_test
     expect_true("gene" %in% colnames(q_int_res))
     expect_true("p_value" %in% colnames(q_int_res))
     expect_true("adj_p_value" %in% colnames(q_int_res))
@@ -823,8 +823,8 @@ test_that(".store_rank_test_results stores results in lm_results", {
     
     # Check results are stored in correct location
     expect_true(is.list(analysis_stored@lm_results))
-    expect_true("q_interactions" %in% names(analysis_stored@lm_results))
-    expect_equal(nrow(analysis_stored@lm_results$q_interactions), 3)
+    expect_true("rank_test" %in% names(analysis_stored@lm_results))
+    expect_equal(nrow(analysis_stored@lm_results$rank_test), 3)
 })
 
 test_that(".store_rank_test_results creates lm_results list when needed", {
@@ -849,7 +849,7 @@ test_that(".store_rank_test_results creates lm_results list when needed", {
     
     # Check list was created properly
     expect_true(is.list(analysis_stored@lm_results))
-    expect_true("q_interactions" %in% names(analysis_stored@lm_results))
+    expect_true("rank_test" %in% names(analysis_stored@lm_results))
 })
 
 test_that(".store_rank_test_results returns modified TSENATAnalysis", {
@@ -912,7 +912,7 @@ test_that("Helper functions integrate correctly in rank test workflow", {
     )
     
     expect_is(analysis_final, "TSENATAnalysis")
-    expect_true("q_interactions" %in% names(analysis_final@lm_results))
+    expect_true("rank_test" %in% names(analysis_final@lm_results))
 })
 
 # ============================================================================
@@ -1125,8 +1125,8 @@ test_that(".store_rank_test_results handles empty results data frame", {
         verbose = FALSE
     )
     
-    expect_true("q_interactions" %in% names(analysis_stored@lm_results))
-    expect_equal(nrow(analysis_stored@lm_results$q_interactions), 0)
+    expect_true("rank_test" %in% names(analysis_stored@lm_results))
+    expect_equal(nrow(analysis_stored@lm_results$rank_test), 0)
 })
 
 test_that(".store_rank_test_results preserves existing lm_results", {
@@ -1157,7 +1157,7 @@ test_that(".store_rank_test_results preserves existing lm_results", {
     
     # Check both lists exist
     expect_true("some_other_results" %in% names(analysis_stored@lm_results))
-    expect_true("q_interactions" %in% names(analysis_stored@lm_results))
+    expect_true("rank_test" %in% names(analysis_stored@lm_results))
 })
 
 # ============================================================================

@@ -2034,8 +2034,9 @@ test_that("effect_sizes_divergence_s4 orchestrates helpers correctly", {
     verbose = FALSE
   )
   
-  # Access results using metadata accessor
-  effect_size_results <- getMeta(analysis, 'effect_sizes_divergence')
+  # Access results directly from metadata (getMeta now filters to essential fields only)
+  # For internal testing, access @metadata directly instead of public accessor
+  effect_size_results <- analysis@metadata$effect_sizes_divergence
   
   # Verify structure of results
   expect_true(!is.null(effect_size_results))

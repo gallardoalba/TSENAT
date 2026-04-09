@@ -11,11 +11,11 @@
         stop("Divergence results required. Run calculate_divergence_s4() first.",
             call. = FALSE)
     }
-    # Check for LM interaction results (exclude q_interactions which belongs to
+    # Check for LM interaction results (exclude rank_test which belongs to
     # rankResults)
     lm_only <- analysis@lm_results
-    if (is.list(lm_only) && "q_interactions" %in% names(lm_only)) {
-        lm_only$q_interactions <- NULL
+    if (is.list(lm_only) && "rank_test" %in% names(lm_only)) {
+        lm_only$rank_test <- NULL
     }
     if (length(lm_only) == 0) {
         stop("LM results required. Run calculate_lm_interaction_s4() first.", call. = FALSE)
@@ -38,10 +38,10 @@
             call. = FALSE)
     }
 
-    # Filter out q_interactions (rank test results) and access LM results
+    # Filter out rank_test (rank test results) and access LM results
     analysis_lmres <- analysis@lm_results
-    if (is.list(analysis_lmres) && "q_interactions" %in% names(analysis_lmres)) {
-        analysis_lmres$q_interactions <- NULL
+    if (is.list(analysis_lmres) && "rank_test" %in% names(analysis_lmres)) {
+        analysis_lmres$rank_test <- NULL
     }
 
     lm_res <- .extract_object_with_fallbacks(analysis_lmres, "data.frame", key_name = "lm_interaction",
@@ -136,12 +136,14 @@
 #' @noRd
 .store_effect_sizes_results_in_metadata <- function(analysis, result, significance_threshold,
     verbose = FALSE) {
-    current_meta <- getMeta(analysis)
-    if (is.null(current_meta))
+    # Internal function: access object@metadata directly for large result storage
+    # getMeta() will filter these out when users call it (returns only essential metadata)
+    
+    if (is.null(analysis@metadata))
         analysis@metadata <- list()
     analysis@metadata$effect_sizes_divergence <- result
 
-    current_calls <- getMeta(analysis, "function_calls") %||% character(0)
+    current_calls <- analysis@metadata$function_calls %||% character(0)
     analysis@metadata$function_calls <- c(current_calls, paste0("effect_sizes_divergence[threshold=",
         significance_threshold, "]"))
 

@@ -1596,3 +1596,55 @@ test_that("S4 Wrappers: calculate_divergence_s4 accepts new arguments", {
                             "Error:", if(is.list(result) && "error" %in% names(result)) result$error else "None"))
   }
 })
+
+test_that("S4 Thin Wrapper Pattern: lmResults, rankResults, divergence delegate to results()", {
+  # Verify that refactored accessors correctly delegate to results()
+  # This test validates the Bioconductor best practice pattern implemented
+  
+  analysis <- .create_test_analysis(precompute_diversity = TRUE)
+  
+  # Populate @lm_results with test data
+  lm_test_df <- data.frame(
+    gene = c("ENSG1", "ENSG2", "ENSG3"),
+    p_interaction = c(0.001, 0.05, 0.5),
+    adj_p_interaction = c(0.005, 0.1, 0.8),
+    effect_size = c(0.5, 0.3, 0.1),
+    stringsAsFactors = FALSE
+  )
+  rank_test_df <- data.frame(
+    gene = c("ENSG1", "ENSG2"),
+    p_value = c(0.001, 0.01),
+    stringsAsFactors = FALSE
+  )
+  
+  analysis@lm_results <- list(
+    lm_interaction = lm_test_df,
+    rank_test = rank_test_df
+  )
+  
+  # Test lmResults wrapper delegates to results(type = "lm")
+  lm_result <- lmResults(analysis)
+  expect_identical(lm_result, lm_test_df, 
+                  info = "lmResults() should delegate to results and return data.frame directly")
+  
+  # Test rankResults wrapper delegates to results(type = "rank_test")
+  rank_result <- rankResults(analysis)
+  expect_identical(rank_result, rank_test_df,
+                  info = "rankResults() should delegate to results and return data.frame directly")
+  
+  # Populate divergence results
+  divergence_list <- list(
+    tsallis_divergence = data.frame(gene = "ENSG1", divergence = 0.5)
+  )
+  analysis@divergence_results <- divergence_list
+  
+  # Test divergence wrapper delegates to results(type = "divergence")
+  div_result <- divergence(analysis)
+  expect_identical(div_result, divergence_list,
+                  info = "divergence() should delegate to results and return list")
+  
+  # Test component extraction for nested results
+  div_component <- divergence(analysis, component = "tsallis_divergence")
+  expect_identical(div_component, divergence_list$tsallis_divergence,
+                  info = "divergence(component='...') should extract specific component")
+})

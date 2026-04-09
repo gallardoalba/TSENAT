@@ -60,7 +60,7 @@ statistical testing. Top-level names identify analysis type:
 \describe{
   \item{\code{lm_interaction}}{LM/GAM/GEE model results (list with
         \code{$results} data.frame, \code{$models} list, etc.)}
-  \item{\code{q_interactions}}{Friedman/rank-based test results}
+  \item{\code{rank_test}}{Friedman/rank-based test results}
   \item{\code{divergence_difference}}{Differential divergence comparison}
 }}
 
@@ -112,7 +112,7 @@ statistical testing. Top-level names identify analysis type:
 \describe{
   \item{\code{lm_interaction}}{LM/GAM/GEE model results (list with
         \code{$results} data.frame, \code{$models} list, etc.)}
-  \item{\code{q_interactions}}{Friedman/rank-based test results}
+  \item{\code{rank_test}}{Friedman/rank-based test results}
   \item{\code{divergence_difference}}{Differential divergence comparison}
 }}
 

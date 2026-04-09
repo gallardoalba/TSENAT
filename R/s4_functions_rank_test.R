@@ -130,7 +130,7 @@
 #'                                            multicorr = 'hochberg')
 #' # View results
 #' results <- lmResults(analysis)
-#' if (!is.null(results)) head(results$q_interactions)
+#' if (!is.null(results)) head(results$rank_test)
 #'
 #' @export
 #' @importFrom utils write.table
@@ -353,9 +353,9 @@ rank_test_q_condition_s4 <- function(analysis, condition_col, q = NULL, output_f
 #' @noRd
 .store_rank_test_results <- function(analysis, result, output_file, verbose) {
     if (is.list(analysis@lm_results)) {
-        analysis@lm_results$q_interactions <- result
+        analysis@lm_results$rank_test <- result
     } else {
-        analysis@lm_results <- list(q_interactions = result)
+        analysis@lm_results <- list(rank_test = result)
     }
 
     if (!is.null(output_file)) {

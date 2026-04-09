@@ -14,63 +14,77 @@ tsenat_config(
   p_threshold = 0.05,
   fdr_threshold = 0.05,
   significance_threshold = 0.05,
+  bootstrap = FALSE,
   nboot = 1000,
   bootstrap_method = "percentile",
   stringency = "medium",
   nthreads = 1,
+  norm = TRUE,
+  bootstrap_ci = 0.95,
+  bootstrap_include_diagnostics = TRUE,
+  min_valid_frac = 0.75,
+  norm_method = NULL,
+  pseudocount = 0,
+  shrinkage = "none",
+  lm_method = "gam",
+  lm_pcorr = "BH",
+  jis_use_lm_fdr = TRUE,
+  divergence_ci = 0.95,
   ...
 )
 }
 \arguments{
-\item{q_values}{\code{numeric}. Q-values for Tsallis entropy spectrum.
-Default: \code{seq(0, 2, by = 0.5)}.}
+\item{q_values}{\code{numeric} vector. Q-values for Tsallis entropy. Default: \code{seq(0, 2, by=0.5)}.}
 
-\item{condition_col}{\code{character}. Name of column in \code{colData(se)}
-containing experimental conditions/groups. Default: 'condition'.}
+\item{condition_col}{\code{character}. Column name in colData containing conditions. Default: 'condition'.}
 
-\item{subject_col}{\code{character}. Name of column in \code{colData(se)}
-containing subject/sample identifiers for paired/repeated designs.
-If provided, enables paired analysis. Default: NULL (unpaired).}
+\item{subject_col}{\code{character}. Column name in colData containing subject IDs (for paired designs). Default: NULL.}
 
-\item{sample_col}{\code{character}. Name of column in \code{colData(se)}
-containing sample identifiers. Default: 'sample'.}
+\item{sample_col}{\code{character}. Column name in colData containing sample IDs. Default: 'sample'.}
 
-\item{paired}{\code{logical}. Whether samples are paired/repeated measures.
-Default: FALSE. Used by jackknife and difference analysis.}
+\item{paired}{\code{logical}. Whether samples are paired/repeated measures. Default: FALSE.}
 
-\item{control}{\code{character}. Reference/control group label for difference
-analysis (e.g., 'control', 'wt'). Only used if 'difference' in methods.
-Default: NULL.}
+\item{control}{\code{character}. Reference/control group label. Default: NULL.}
 
-\item{p_threshold}{\code{numeric}. Raw p-value threshold for significance
-in LM interaction testing. Default: 0.05.}
+\item{p_threshold}{\code{numeric}. Raw p-value threshold. Default: 0.05.}
 
-\item{fdr_threshold}{\code{numeric}. Adjusted p-value (FDR/Benjamini-Hochberg)
-threshold. Default: 0.05.}
+\item{fdr_threshold}{\code{numeric}. FDR-adjusted p-value threshold. Default: 0.05.}
 
-\item{significance_threshold}{\code{numeric}. Significance cutoff for effect
-sizes, assumptions testing, and result filtering. Default: 0.05.}
+\item{significance_threshold}{\code{numeric}. Significance cutoff. Default: 0.05.}
 
-\item{nboot}{\code{integer}. Number of bootstrap resamples for jackknife
-confidence intervals. Default: 1000.}
+\item{bootstrap}{\code{logical}. Enable bootstrap CIs. Default: FALSE.}
 
-\item{bootstrap_method}{\code{character}. Bootstrap CI method: 'percentile'
-(fast, assumes symmetric distribution) or 'bca' (bias-corrected, better for
-skewed data like bounded entropy). Default: 'percentile'.}
+\item{nboot}{\code{integer}. Bootstrap resamples for CIs. Default: 1000.}
 
-\item{stringency}{\code{character}. Transcript filtering stringency level.
-Options: 'lenient' (minimal filtering), 'medium' (default, reasonable filtering),
-'severe' (strict filtering, recommended for high-confidence results).
-Controls which transcripts/genes are retained in initial filtering step.
-Default: 'medium'.}
+\item{bootstrap_method}{\code{character}. Bootstrap method: 'percentile' or 'bca'. Default: 'percentile'.}
 
-\item{nthreads}{\code{integer}. Number of threads for parallel computation
-where supported (diversity, divergence, LM fitting). Default: 1 (no parallelization).
-Use 2+ for multi-core systems to improve performance.}
+\item{stringency}{\code{character}. Filtering stringency: 'lenient', 'medium', 'severe'. Default: 'medium'.}
 
-\item{...}{Additional configuration parameters (stored as-is in @config slot).
-Examples: \code{q_diff=1.0} (specific q for differences),
-\code{alpha=0.05} (significance for assumptions), etc.}
+\item{nthreads}{\code{integer}. Parallel threads. Default: 1.}
+
+\item{norm}{\code{logical}. Enable normalization. Default: TRUE.}
+
+\item{bootstrap_ci}{\code{numeric}. Confidence level (0-1). Default: 0.95.}
+
+\item{bootstrap_include_diagnostics}{\code{logical}. Include diagnostics. Default: TRUE.}
+
+\item{min_valid_frac}{\code{numeric}. Min valid replicate fraction. Default: 0.75.}
+
+\item{norm_method}{\code{character}. Normalization: NULL, 'zscore', 'log_odds_ratio', 'relative_reference'. Default: NULL.}
+
+\item{pseudocount}{\code{numeric}. Pseudocount for sparse data. Default: 0.}
+
+\item{shrinkage}{\code{character}. Variance reduction: 'none' or 'empirical_bayes'. Default: 'none'.}
+
+\item{lm_method}{\code{character}. LM method: 'gam', 'lmm', 'fpca', 'gee'. Default: 'gam'.}
+
+\item{lm_pcorr}{\code{character}. P-value correction: 'BH', 'bonferroni', 'hochberg', 'holm'. Default: 'BH'.}
+
+\item{jis_use_lm_fdr}{\code{logical}. Filter jackknife genes using LM p-values. Default: TRUE.}
+
+\item{divergence_ci}{\code{numeric}. Confidence level for divergence CIs. Default: 0.95.}
+
+\item{...}{Additional configuration parameters (stored as-is).}
 }
 \value{
 \code{list} with class \code{TSENATConfig} containing all
@@ -86,20 +100,32 @@ Configuration is stored in the TSENATAnalysis@config slot and used
 by wrapper functions to configure analysis behavior.
 }
 \examples{
-# Default config with standard parameters
+# Default config with standard parameters (point estimates only)
 cfg <- tsenat_config()
 
-# Custom with paired analysis and strict filtering for high-confidence results
+# With bootstrap CIs for uncertainty quantification (recommended)
 cfg <- tsenat_config(
-  q_values = seq(0, 2, by = 0.05),  # Recommended for paired designs: 41 values
+  bootstrap = TRUE,                # Enable bootstrap confidence intervals
+  bootstrap_method = "bca",         # Bias-corrected (better for skewed entropy)
+  nboot = 1000,                     # 1000 resamples
+  bootstrap_ci = 0.95               # 95\% CI
+)
+
+# Custom with paired analysis, strict filtering, and normalization
+cfg <- tsenat_config(
+  q_values = seq(0, 2, by = 0.05),  # Recommended for paired: 41 values
   condition_col = 'treatment',
   subject_col = 'subject_id',
   paired = TRUE,
   control = 'untreated',
-  stringency = 'severe',
+  stringency = 'severe',            # High-confidence transcripts only
+  norm_method = 'zscore',           # Cross-study standardization
+  shrinkage = 'none',               # Empirical estimates
+  bootstrap = TRUE,
   bootstrap_method = 'bca',
-  nboot = 5000,
-  significance_threshold = 0.01
+  nboot = 5000,                     # Higher precision
+  pseudocount = 0,                  # Disabled by default; set > 0 to add pseudocount
+  significance_threshold = 0.01     # Stricter significance level
 )
 
 }

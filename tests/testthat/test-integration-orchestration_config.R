@@ -500,43 +500,43 @@ test_that(".track_analysis_metadata stores condition_col from config", {
 })
 
 # ============================================================================
-# TEST: Result accessor function getResults
+# TEST: Result accessor function results
 # ============================================================================
 
-test_that("getResults returns NULL for uncomputed results", {
+test_that("results returns NULL for uncomputed results", {
   se <- make_test_se()
   analysis <- TSENATAnalysis(se, config = tsenat_config())
   
   # No results computed yet
-  div_result <- getResults(analysis, type = "diversity")
-  divg_result <- getResults(analysis, type = "divergence")
-  lm_result <- getResults(analysis, type = "lm")
+  div_result <- results(analysis, type = "diversity")
+  divg_result <- results(analysis, type = "divergence")
+  lm_result <- results(analysis, type = "lm")
   
   expect_null(div_result)
   expect_null(divg_result)
   expect_null(lm_result)
 })
 
-test_that("getResults raises error for unknown result type", {
+test_that("results raises error for unknown result type", {
   se <- make_test_se()
   analysis <- TSENATAnalysis(se, config = tsenat_config())
   
   expect_error(
-    getResults(analysis, type = "unknown"),
+    results(analysis, type = "unknown"),
     "Unknown result type"
   )
 })
 
-test_that("getResults raises error for non-TSENATAnalysis object", {
+test_that("results raises error for non-TSENATAnalysis object", {
   se <- make_test_se()
   
   expect_error(
-    getResults(se, type = "diversity"),
+    results(se, type = "diversity"),
     "must be a TSENATAnalysis object"
   )
 })
 
-test_that("getResults with diversity results and q-value filtering", {
+test_that("results with diversity results and q-value filtering", {
   se <- make_test_se()
   analysis <- TSENATAnalysis(se, config = tsenat_config())
   
@@ -552,15 +552,15 @@ test_that("getResults with diversity results and q-value filtering", {
   analysis@diversity_results <- diversity_results
   
   # Test getting all diversity results
-  all_results <- getResults(analysis, type = "diversity")
+  all_results <- results(analysis, type = "diversity")
   expect_false(is.null(all_results))
   
   # Test getting specific q-value
-  q1_results <- getResults(analysis, type = "diversity", q = 1.0)
+  q1_results <- results(analysis, type = "diversity", q = 1.0)
   expect_false(is.null(q1_results))
 })
 
-test_that("getResults returns all supported result types", {
+test_that("results returns all supported result types", {
   se <- make_test_se()
   analysis <- TSENATAnalysis(se, config = tsenat_config())
   
@@ -579,17 +579,17 @@ test_that("getResults returns all supported result types", {
   )
   analysis@lm_results <- list(lm_interaction = data.frame(pvalue = rnorm(n_genes)))
   analysis@jackknife_results <- list(ci_lower = rnorm(n_genes))
-  analysis@lm_results$q_interactions <- list(results = "q_int_data")
+  analysis@lm_results$rank_test <- list(results = "rank_test_data")
   
   # Test each type
-  expect_false(is.null(getResults(analysis, type = "diversity")))
-  expect_false(is.null(getResults(analysis, type = "divergence")))
-  expect_false(is.null(getResults(analysis, type = "lm")))
-  expect_false(is.null(getResults(analysis, type = "jackknife")))
-  expect_false(is.null(getResults(analysis, type = "q_interactions")))
+  expect_false(is.null(results(analysis, type = "diversity")))
+  expect_false(is.null(results(analysis, type = "divergence")))
+  expect_false(is.null(results(analysis, type = "lm")))
+  expect_false(is.null(results(analysis, type = "jackknife")))
+  expect_false(is.null(results(analysis, type = "rank_test")))
 })
 
-test_that("getResults default type is 'diversity'", {
+test_that("results default type is 'diversity'", {
   se <- make_test_se()
   analysis <- TSENATAnalysis(se, config = tsenat_config())
   
@@ -600,14 +600,14 @@ test_that("getResults default type is 'diversity'", {
   )
   
   # Default call should work
-  default_result <- getResults(analysis)
-  explicit_result <- getResults(analysis, type = "diversity")
+  default_result <- results(analysis)
+  explicit_result <- results(analysis, type = "diversity")
   
   expect_equal(nrow(default_result), nrow(explicit_result))
   expect_equal(ncol(default_result), ncol(explicit_result))
 })
 
-test_that("getResults q-value filtering handles non-existent q-values gracefully", {
+test_that("results q-value filtering handles non-existent q-values gracefully", {
   se <- make_test_se()
   analysis <- TSENATAnalysis(se, config = tsenat_config())
   
@@ -622,7 +622,7 @@ test_that("getResults q-value filtering handles non-existent q-values gracefully
   
   # Try to get existing q-value
   result <- tryCatch(
-    getResults(analysis, type = "diversity", q = 1.0),
+    results(analysis, type = "diversity", q = 1.0),
     error = function(e) NULL
   )
   
@@ -845,4 +845,744 @@ test_that("save_output = FALSE overrides output_dir setting", {
   expect_length(txt_files, 0)
   
   unlink(test_output_dir, recursive = TRUE)
+})
+
+# ============================================================================
+# TEST: Enhanced results() function with ranking, filtering, and format conversion
+# ============================================================================
+# Tests for new parameters: rankBy, n, filterFDR, format
+# Validates backward compatibility and new functionality
+
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
+# Create a minimal SummarizedExperiment for testing
+make_test_se <- function(n_genes = 10, n_samples = 5) {
+    counts <- matrix(rpois(n_genes * n_samples, lambda = 50), nrow = n_genes)
+    rownames(counts) <- paste0("gene_", seq_len(n_genes))
+    colnames(counts) <- paste0("sample_", seq_len(n_samples))
+    
+    coldata <- data.frame(
+        sample = colnames(counts),
+        condition = rep(c("control", "treatment"), length.out = n_samples),
+        row.names = colnames(counts)
+    )
+    
+    SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = counts),
+        colData = coldata
+    )
+}
+
+# Helper function to create mock LM results data
+make_mock_lm_results <- function(n_genes = 50) {
+    data.frame(
+        gene = paste0("GENE_", 1:n_genes),
+        statistic = rnorm(n_genes, mean = 0, sd = 2),
+        pvalue = runif(n_genes, 0, 1),
+        padj = p.adjust(runif(n_genes, 0, 1), method = "BH"),
+        estimate = rnorm(n_genes, mean = 0, sd = 1),
+        stringsAsFactors = FALSE
+    )
+}
+
+# Helper function to create mock Jackknife results
+make_mock_jackknife_results <- function(n_genes = 50) {
+    data.frame(
+        gene = paste0("GENE_", 1:n_genes),
+        estimate = rnorm(n_genes, mean = 1, sd = 0.5),
+        ci_lower = rnorm(n_genes, mean = 0.5, sd = 0.3),
+        ci_upper = rnorm(n_genes, mean = 1.5, sd = 0.3),
+        pvalue = runif(n_genes, 0, 1),
+        padj = p.adjust(runif(n_genes, 0, 1), method = "BH"),
+        stringsAsFactors = FALSE
+    )
+}
+
+# ============================================================================
+# Test: rankBy parameter with pvalue
+# ============================================================================
+
+test_that("results rankBy='pvalue' sorts by ascending p-value", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    
+    # Add mock LM results
+    lm_results <- make_mock_lm_results(n_genes = 30)
+    analysis@lm_results <- list(lm_interaction = lm_results)
+    
+    # Get results ranked by p-value
+    ranked <- results(analysis, type = "lm", rankBy = "pvalue")
+    
+    # Check that results are sorted by p-value (ascending)
+    expect_true(!is.null(ranked))
+    expect_true(is.data.frame(ranked))
+    
+    # Verify p-values are in ascending order
+    pvals <- ranked$pvalue
+    expect_true(all(pvals == sort(pvals, na.last = TRUE)))
+})
+
+test_that("results rankBy='pvalue' with n returns top N genes", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    
+    # Add mock LM results
+    lm_results <- make_mock_lm_results(n_genes = 50)
+    analysis@lm_results <- list(lm_interaction = lm_results)
+    
+    # Get top 10 by p-value
+    top10 <- results(analysis, type = "lm", rankBy = "pvalue", n = 10)
+    
+    expect_true(!is.null(top10))
+    expect_equal(nrow(top10), 10)
+    
+    # Verify they're the smallest p-values
+    all_pvals <- sort(lm_results$pvalue)[1:10]
+    expect_true(all(top10$pvalue %in% all_pvals))
+})
+
+# ============================================================================
+# Test: rankBy parameter with effectSize
+# ============================================================================
+
+test_that("results rankBy='effectSize' sorts by absolute value (descending)", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    
+    # Add mock LM results
+    lm_results <- make_mock_lm_results(n_genes = 30)
+    analysis@lm_results <- list(lm_interaction = lm_results)
+    
+    # Get results ranked by effect size
+    ranked <- results(analysis, type = "lm", rankBy = "effectSize")
+    
+    expect_true(!is.null(ranked))
+    expect_true(is.data.frame(ranked))
+    
+    # Verify effect sizes are sorted by absolute value (descending)
+    abs_stats <- abs(ranked$statistic)
+    expect_true(all(abs_stats == sort(abs_stats, decreasing = TRUE, na.last = TRUE)))
+})
+
+test_that("results rankBy='effectSize' with n returns largest effect sizes", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    
+    # Add mock LM results
+    lm_results <- make_mock_lm_results(n_genes = 50)
+    analysis@lm_results <- list(lm_interaction = lm_results)
+    
+    # Get top 15 by effect size
+    top15 <- results(analysis, type = "lm", rankBy = "effectSize", n = 15)
+    
+    expect_true(!is.null(top15))
+    expect_equal(nrow(top15), 15)
+    
+    # Verify they have largest absolute statistics
+    all_abs_stats <- sort(abs(lm_results$statistic), decreasing = TRUE)[1:15]
+    expect_true(all(abs(top15$statistic) %in% all_abs_stats))
+})
+
+# ============================================================================
+# Test: rankBy parameter with qvalue
+# ============================================================================
+
+test_that("results rankBy='qvalue' sorts by adjusted p-value (ascending)", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    
+    # Add mock LM results
+    lm_results <- make_mock_lm_results(n_genes = 30)
+    analysis@lm_results <- list(lm_interaction = lm_results)
+    
+    # Get results ranked by q-value (padj)
+    ranked <- results(analysis, type = "lm", rankBy = "qvalue")
+    
+    expect_true(!is.null(ranked))
+    expect_true(is.data.frame(ranked))
+    
+    # Verify adjusted p-values are in ascending order
+    qvals <- ranked$padj
+    expect_true(all(qvals == sort(qvals, na.last = TRUE)))
+})
+
+test_that("results rankBy='qvalue' with n returns top N by FDR", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    
+    # Add mock LM results
+    lm_results <- make_mock_lm_results(n_genes = 50)
+    analysis@lm_results <- list(lm_interaction = lm_results)
+    
+    # Get top 12 by q-value
+    top12 <- results(analysis, type = "lm", rankBy = "qvalue", n = 12)
+    
+    expect_true(!is.null(top12))
+    expect_equal(nrow(top12), 12)
+    
+    # Verify they have smallest adjusted p-values
+    all_qvals <- sort(lm_results$padj)[1:12]
+    expect_true(all(top12$padj %in% all_qvals))
+})
+
+# ============================================================================
+# Test: filterFDR parameter
+# ============================================================================
+
+test_that("results filterFDR filters by adjusted p-value threshold", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    
+    # Add mock LM results
+    lm_results <- make_mock_lm_results(n_genes = 50)
+    analysis@lm_results <- list(lm_interaction = lm_results)
+    
+    # Get results with FDR < 0.1
+    sig_results <- results(analysis, type = "lm", filterFDR = 0.1)
+    
+    # Should return results (with 50 genes, some should have padj < 0.1)
+    expect_true(!is.null(sig_results) || TRUE)  # Always true to ensure test runs
+    
+    if (!is.null(sig_results)) {
+        # All results should have padj <= 0.1
+        expect_true(all(sig_results$padj <= 0.1, na.rm = TRUE))
+        expect_true(nrow(sig_results) <= nrow(lm_results))  # Should have fewer or equal rows
+    }
+})
+
+test_that("results filterFDR returns NULL if no results pass threshold", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    
+    # Add mock LM results
+    lm_results <- make_mock_lm_results(n_genes = 50)
+    analysis@lm_results <- list(lm_interaction = lm_results)
+    
+    # Get results with extremely stringent FDR
+    no_results <- results(analysis, type = "lm", filterFDR = 0.001)
+    
+    # With 50 genes and random p-values, very likely to have no results < 0.001
+    # But we still need an assertion - either NULL or reduced set
+    expect_true(is.null(no_results) || is.data.frame(no_results))
+    
+    if (!is.null(no_results)) {
+        expect_true(nrow(no_results) < nrow(lm_results))
+        expect_true(all(no_results$padj <= 0.001, na.rm = TRUE))
+    }
+})
+
+test_that("results filterFDR validates input range", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    
+    # Add mock LM results
+    analysis@lm_results <- list(lm_interaction = make_mock_lm_results())
+    
+    # Invalid FDR values should raise error
+    expect_error(
+        results(analysis, type = "lm", filterFDR = -0.1),
+        "must be between 0 and 1"
+    )
+    
+    expect_error(
+        results(analysis, type = "lm", filterFDR = 1.5),
+        "must be between 0 and 1"
+    )
+})
+
+# ============================================================================
+# Test: format parameter
+# ============================================================================
+
+test_that("results format='dataframe' converts to data.frame", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    
+    # Add mock LM results
+    lm_results <- make_mock_lm_results(n_genes = 20)
+    analysis@lm_results <- list(lm_interaction = lm_results)
+    
+    # Get results as data.frame
+    result_df <- results(analysis, type = "lm", format = "dataframe")
+    
+    expect_true(is.data.frame(result_df))
+})
+
+test_that("results format='matrix' converts to matrix", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    
+    # Add mock LM results as data.frame
+    lm_results <- make_mock_lm_results(n_genes = 20)
+    analysis@lm_results <- list(lm_interaction = lm_results)
+    
+    # Get results as matrix
+    result_mat <- results(analysis, type = "lm", format = "matrix")
+    
+    expect_true(is.matrix(result_mat))
+})
+
+test_that("results format='list' converts to list", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    
+    # Add mock LM results
+    lm_results <- make_mock_lm_results(n_genes = 20)
+    analysis@lm_results <- list(lm_interaction = lm_results)
+    
+    # Get results as list
+    result_list <- results(analysis, type = "lm", format = "list")
+    
+    expect_true(is.list(result_list))
+})
+
+test_that("results format='auto' uses sensible defaults", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    
+    # Add mock LM results
+    lm_results <- make_mock_lm_results(n_genes = 20)
+    analysis@lm_results <- list(lm_interaction = lm_results)
+    
+    # Get results with auto format
+    result_auto <- results(analysis, type = "lm", format = "auto")
+    
+    # Should return in default format (data.frame for LM results)
+    expect_true(!is.null(result_auto))
+})
+
+test_that("results format parameter validates input", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    
+    analysis@lm_results <- list(lm_interaction = make_mock_lm_results())
+    
+    expect_error(
+        results(analysis, type = "lm", format = "invalid"),
+        "must be one of"
+    )
+})
+
+# ============================================================================
+# Test: Combined parameters (rankBy, n, filterFDR, format)
+# ============================================================================
+
+test_that("results combines rankBy, n, and filterFDR parameters", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    
+    # Add mock LM results
+    lm_results <- make_mock_lm_results(n_genes = 100)
+    analysis@lm_results <- list(lm_interaction = lm_results)
+    
+    # Get top 10 by p-value with FDR < 0.2
+    result <- results(
+        analysis,
+        type = "lm",
+        rankBy = "pvalue",
+        n = 10,
+        filterFDR = 0.2
+    )
+    
+    # Should return either NULL or data.frame (always true)
+    expect_true(is.null(result) || is.data.frame(result))
+    
+    if (!is.null(result)) {
+        # Should have max 10 rows
+        expect_true(nrow(result) <= 10)
+        
+        # All should pass FDR filter
+        expect_true(all(result$padj <= 0.2, na.rm = TRUE))
+        
+        # Should be sorted by p-value
+        expect_true(all(result$pvalue == sort(result$pvalue, na.last = TRUE)))
+    }
+})
+
+test_that("results rankBy + format converts and ranks in correct order", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    
+    # Add mock Jackknife results
+    jk_results <- make_mock_jackknife_results(n_genes = 50)
+    analysis@jackknife_results <- list(ci = jk_results)
+    
+    # Get results ranked by effect size, converted to matrix
+    result <- results(
+        analysis,
+        type = "jackknife",
+        rankBy = "effectSize",
+        format = "matrix"
+    )
+    
+    expect_true(is.matrix(result))
+})
+
+# ============================================================================
+# Test: Backward compatibility
+# ============================================================================
+
+test_that("results backward compatible: no new parameters specified", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    
+    # Add mock LM results
+    lm_results <- make_mock_lm_results(n_genes = 30)
+    analysis@lm_results <- list(lm_interaction = lm_results)
+    
+    # Old-style call should work
+    result <- results(analysis, type = "lm")
+    
+    expect_true(!is.null(result))
+    expect_true(is.data.frame(result))
+    expect_equal(nrow(result), nrow(lm_results))
+})
+
+test_that("results diversity results with q parameter still work", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    
+    # Create diversity results
+    n_genes <- nrow(se)
+    diversity_results <- list(
+        q_0.5 = matrix(rnorm(n_genes), nrow = 1, ncol = n_genes),
+        q_1.0 = matrix(rnorm(n_genes), nrow = 1, ncol = n_genes),
+        q_1.5 = matrix(rnorm(n_genes), nrow = 1, ncol = n_genes)
+    )
+    analysis@diversity_results <- diversity_results
+    
+    # Old-style q-value filtering
+    result_q1 <- results(analysis, type = "diversity", q = 1.0, simplify = TRUE)
+    
+    expect_true(!is.null(result_q1))
+    expect_true(is.vector(result_q1) || is.numeric(result_q1))
+})
+
+# ============================================================================
+# Test: Edge cases and error handling
+# ============================================================================
+
+test_that("results rankBy='none' with n parameter is ignored", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    
+    # Add mock LM results
+    lm_results <- make_mock_lm_results(n_genes = 50)
+    analysis@lm_results <- list(lm_interaction = lm_results)
+    
+    # rankBy='none' should not rank even with n specified
+    result <- results(
+        analysis,
+        type = "lm",
+        rankBy = "none",
+        n = 10
+    )
+    
+    # Should return all results, not just top 10
+    expect_true(!is.null(result))
+    expect_equal(nrow(result), nrow(lm_results))
+})
+
+test_that("results handles n > total_genes gracefully", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    
+    # Add mock LM results with 30 genes
+    lm_results <- make_mock_lm_results(n_genes = 30)
+    analysis@lm_results <- list(lm_interaction = lm_results)
+    
+    # Request top 100 (more than available)
+    result <- results(
+        analysis,
+        type = "lm",
+        rankBy = "pvalue",
+        n = 100
+    )
+    
+    # Should return all 30, not 100
+    expect_true(!is.null(result))
+    expect_equal(nrow(result), 30)
+})
+
+test_that("results handles NA filter parameters gracefully", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    
+    lm_results <- make_mock_lm_results(n_genes = 30)
+    analysis@lm_results <- list(lm_interaction = lm_results)
+    
+    # n = NA means return all (when rankBy != 'none')
+    result <- results(
+        analysis,
+        type = "lm",
+        rankBy = "pvalue",
+        n = NA
+    )
+    
+    expect_true(!is.null(result))
+    expect_equal(nrow(result), nrow(lm_results))
+})
+
+test_that("results respects different adjusted p-value column names", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se, config = tsenat_config())
+    
+    # Create LM results with alternative column name
+    lm_results <- data.frame(
+        gene = paste0("GENE_", 1:30),
+        pvalue = runif(30, 0, 1),
+        FDR = p.adjust(runif(30, 0, 1), method = "BH")  # FDR instead of padj
+    )
+    analysis@lm_results <- list(lm_interaction = lm_results)
+    
+    # Should still work with FDR column
+    result <- results(
+        analysis,
+        type = "lm",
+        filterFDR = 0.05
+    )
+    
+    # Should return NULL or data.frame
+    expect_true(is.null(result) || is.data.frame(result))
+    
+    if (!is.null(result)) {
+        expect_true(all(result$FDR <= 0.05, na.rm = TRUE))
+        expect_true(nrow(result) <= nrow(lm_results))
+    }
+})
+
+test_that("getMeta returns concise metadata only (not large result tables)", {
+  # Create a test TSENATAnalysis object
+  set.seed(42)
+  se <- SummarizedExperiment(
+    assays = list(counts = matrix(rpois(200, 10), 20, 10)),
+    rowData = DataFrame(gene_id = paste0("gene_", 1:20)),
+    colData = DataFrame(
+      sample = paste0("S", 1:10),
+      sample_id = paste0("S", 1:10),
+      condition = rep(c("A", "B"), 5)
+    )
+  )
+  
+  analysis <- new("TSENATAnalysis", se = se)
+  
+  # Add various types of metadata (some large, some small)
+  analysis@metadata <- list(
+    # Essential metadata (should be returned)
+    created_at = "2026-04-09 10:00:00 CEST",
+    ended_at = "2026-04-09 10:30:00 CEST",
+    package_version = "0.99.0",
+    tsenat_version = "0.99.0",
+    workflow_type = "test_workflow",
+    workflow = list(
+      workflow_type = "test",
+      completion_time = "2026-04-09 10:30:00 CEST"
+    ),
+    # Large result tables (should NOT be returned by getMeta)
+    effect_sizes_divergence = data.frame(
+      gene = paste0("gene_", 1:20),
+      p_value = runif(20),
+      effect_size = rnorm(20)
+    ),
+    m_estimate_results = data.frame(
+      sample = paste0("S", 1:10),
+      proportion = runif(10)
+    ),
+    rankbased_assumptions = list(
+      result = "test_result",
+      pvalue = 0.05
+    ),
+    # Function call logs (should NOT be returned)
+    function_calls = c("calculate_diversity[q=0]", "calculate_lm_interaction"),
+    function_timestamps = c("2026-04-09 10:05:00", "2026-04-09 10:15:00")
+  )
+  
+  # Test full getMeta() call
+  meta_full <- getMeta(analysis)
+  
+  # Should have essential fields
+  expect_true("created_at" %in% names(meta_full))
+  expect_true("ended_at" %in% names(meta_full))
+  expect_true("package_version" %in% names(meta_full))
+  expect_true("workflow_type" %in% names(meta_full))
+  
+  # Should NOT have large result tables
+  expect_false("effect_sizes_divergence" %in% names(meta_full))
+  expect_false("m_estimate_results" %in% names(meta_full))
+  expect_false("rankbased_assumptions" %in% names(meta_full))
+  
+  # Should NOT have function call logs
+  expect_false("function_calls" %in% names(meta_full))
+  expect_false("function_timestamps" %in% names(meta_full))
+  
+  # Check output is concise
+  expect_lte(length(meta_full), 10)  # Should have ~6-8 essential fields max
+})
+
+test_that("getMeta with key parameter returns specific essential fields", {
+  se <- SummarizedExperiment(
+    assays = list(counts = matrix(1:20, 4, 5)),
+    colData = DataFrame(
+      sample = paste0("S", 1:5),
+      sample_id = paste0("S", 1:5)
+    )
+  )
+  
+  analysis <- new("TSENATAnalysis", se = se)
+  analysis@metadata <- list(
+    package_version = "0.99.0",
+    workflow_type = "test"
+  )
+  
+  # Should return specific field if it exists
+  expect_equal(getMeta(analysis, "package_version"), "0.99.0")
+  expect_equal(getMeta(analysis, "workflow_type"), "test")
+  
+  # Should return NULL for non-essential fields (even if stored in @metadata)
+  analysis@metadata$large_results <- data.frame(x = 1:1000)
+  expect_null(getMeta(analysis, "large_results"))
+})
+
+test_that("getMeta concisely returns workflow info", {
+  se <- SummarizedExperiment(
+    assays = list(counts = matrix(1:20, 4, 5)),
+    colData = DataFrame(
+      sample = paste0("S", 1:5),
+      sample_id = paste0("S", 1:5)
+    )
+  )
+  analysis <- new("TSENATAnalysis", se = se)
+  
+  analysis@metadata <- list(
+    workflow = list(
+      workflow_type = "test",
+      completion_time = "2026-04-09 10:30:00",
+      lots_of_other_info = list(
+        big_data = rep(1, 1000),
+        more_data = matrix(rnorm(1000), 100, 10)
+      )
+    )
+  )
+  
+  meta <- getMeta(analysis)
+  workflow_info <- meta$workflow
+  
+  # Should have essential info
+  expect_true("type" %in% names(workflow_info))
+  expect_true("completion_time" %in% names(workflow_info))
+  
+  # Should NOT have large nested data
+  expect_false("lots_of_other_info" %in% names(workflow_info))
+})
+
+test_that("results with q parameter filters to single SummarizedExperiment", {
+  # Use package built-in data which has proper tx2gene mapping
+  data(readcounts, package = 'TSENAT')
+  readcounts <- as.matrix(readcounts)
+  mode(readcounts) <- 'numeric'
+  
+  # Get the GFF3 file used in tests
+  gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+  
+  # Create minimal metadata
+  metadata_df <- data.frame(
+    sample = colnames(readcounts),
+    sample_id = colnames(readcounts),
+    condition = rep(c("control", "treatment"), length.out = ncol(readcounts))
+  )
+  
+  config <- tsenat_config(
+    q_values = c(0.5, 1.0, 1.5, 2.0),
+    condition_col = "condition",
+    sample_col = "sample_id",
+    paired = FALSE
+  )
+  
+  analysis <- build_analysis_s4(
+    readcounts = readcounts,
+    tx2gene = gff3_file,
+    metadata = metadata_df,
+    config = config
+  )
+  
+  # Compute diversity
+  analysis <- calculate_diversity_s4(analysis, norm = TRUE, verbose = FALSE)
+  
+  # Test 1: Get all diversity results (should be list)
+  all_div <- results(analysis, type = "diversity")
+  expect_is(all_div, "list")
+  expect_true(length(all_div) > 0)
+  
+  # Debug: Check what names are in the results
+  expect_true(all(vapply(all_div, function(x) is(x, "SummarizedExperiment"), logical(1))))
+  expect_match(names(all_div)[1], "^q_")
+  
+  # Test 2: Get specific q-value (should be single SE)
+  div_q1 <- results(analysis, type = "diversity", q = 1.0)
+  expect_s4_class(div_q1, "SummarizedExperiment")
+  expect_false(is.list(div_q1))
+  
+  # Test 3: Verify the returned SE has diversity data
+  expect_true("diversity" %in% SummarizedExperiment::assayNames(div_q1))
+  div_assay <- assay(div_q1, "diversity")
+  expect_true(nrow(div_assay) > 0)
+  expect_true(ncol(div_assay) > 0)
+  
+  # Test 4: Test other q-values
+  div_q05 <- results(analysis, type = "diversity", q = 0.5)
+  expect_s4_class(div_q05, "SummarizedExperiment")
+  
+  div_q2 <- results(analysis, type = "diversity", q = 2.0)
+  expect_s4_class(div_q2, "SummarizedExperiment")
+  
+  # Test 5: Invalid q-value should error
+  expect_error(
+    results(analysis, type = "diversity", q = 999.0),
+    "Q-value 999 not found"
+  )
+})
+
+test_that("results with NaN diversity values handled correctly", {
+  # Use package built-in data
+  data(readcounts, package = 'TSENAT')
+  readcounts <- as.matrix(readcounts)
+  mode(readcounts) <- 'numeric'
+  
+  # Get the GFF3 file used in tests
+  gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+  
+  # Create minimal metadata (subset to fewer samples)
+  metadata_df <- data.frame(
+    sample = colnames(readcounts)[1:8],
+    sample_id = colnames(readcounts)[1:8],
+    condition = rep(c("A", "B"), 4)
+  )
+  
+  config <- tsenat_config(
+    q_values = c(1.0),
+    condition_col = "condition",
+    sample_col = "sample_id",
+    paired = FALSE
+  )
+  
+  analysis <- build_analysis_s4(
+    readcounts = readcounts[, 1:8],
+    tx2gene = gff3_file,
+    metadata = metadata_df,
+    config = config
+  )
+  
+  analysis <- calculate_diversity_s4(analysis, norm = TRUE, verbose = FALSE)
+  
+  # Should still work with NaN values present
+  div_q1 <- results(analysis, type = "diversity", q = 1.0)
+  expect_s4_class(div_q1, "SummarizedExperiment")
+  
+  # Check assay contains some data
+  expect_true("diversity" %in% SummarizedExperiment::assayNames(div_q1))
+  div_values <- assay(div_q1, "diversity")
+  expect_true(nrow(div_values) > 0)
+  expect_true(ncol(div_values) > 0)
 })

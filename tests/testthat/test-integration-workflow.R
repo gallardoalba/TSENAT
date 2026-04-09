@@ -314,12 +314,8 @@ test_that("tsenat() paired: produces LM results, significant genes, plots genera
     
     # Test LM results structure
     expect_s4_class(result, "TSENATAnalysis")
-    lm_res_list <- lmResults(result)
-    expect_true(!is.null(lm_res_list))
-    expect_true("lm_interaction" %in% names(lm_res_list))
-    
-    # Extract actual data frame
-    lm_res <- lm_res_list$lm_interaction
+    lm_res <- lmResults(result)  # Now returns data.frame directly (thin wrapper around results)
+    expect_true(!is.null(lm_res))
     expect_true(is.data.frame(lm_res))
     expect_true(nrow(lm_res) > 0)
     expect_true("adj_p_interaction" %in% colnames(lm_res) || "p_interaction" %in% colnames(lm_res))

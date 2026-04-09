@@ -5,15 +5,26 @@
 \alias{jisResults,TSENATAnalysis-method}
 \title{Extract jackknife isoform switching results}
 \usage{
-jisResults(object, q = NULL)
+jisResults(object, q = NULL, rankBy = "none", n = NULL, filterFDR = NULL, ...)
 
-\S4method{jisResults}{TSENATAnalysis}(object, q = NULL)
+\S4method{jisResults}{TSENATAnalysis}(object, q = NULL, rankBy = "none", n = NULL, filterFDR = NULL, ...)
 }
 \arguments{
 \item{object}{\code{TSENATAnalysis} object.}
 
 \item{q}{\code{numeric} or NULL. Q-value for specific results.
 If NULL, returns all isoform switching jackknife results.}
+
+\item{rankBy}{\code{character}. Ranking method: 'none' (default, unranked),
+'pvalue' (by p-value), 'qvalue' (by adjusted p-value), 'effectSize',
+or 'none' (unranked). Default: 'none'.}
+
+\item{n}{\code{integer} or NULL. Top N results to return. If NULL, returns all.}
+
+\item{filterFDR}{\code{numeric} or NULL. FDR threshold for filtering. If specified,
+returns only results with adjusted p-value <= filterFDR.}
+
+\item{...}{Additional parameters passed to \code{\link{results}}.}
 }
 \value{
 List of isoform switching jackknife results, or NULL if not computed.
@@ -23,10 +34,13 @@ Extract jackknife isoform switching results
 }
 \details{
 Jackknife isoform switching results are computed separately from entropy outliers.
-Use this to access isoform switching analysis results.
+Use this to access isoform switching analysis results with optional ranking.
 
 Results include leave-one-out diagnostics for detecting genes with
 condition-specific isoform switching patterns across q-values.
+
+If \code{rankBy != 'none'}, delegates to \code{\link{results}} to support
+ranked extraction across result types.
 }
 \examples{
 # Load data and build analysis 
@@ -64,5 +78,11 @@ jis_results <- jisResults(analysis, q = 1.0)
 
 # Extract all isoform switching results
 all_jis <- jisResults(analysis)
+
+# Extract top 20 jackknife results by p-value
+top_jis_pval <- jisResults(analysis, rankBy = "pvalue", n = 20)
+
+# Extract significant results (FDR < 0.05) ranked by effect size
+sig_jis <- jisResults(analysis, rankBy = "effectSize", filterFDR = 0.05)
 
 }

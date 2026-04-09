@@ -28,7 +28,7 @@ List or data.frame of rank test q-value interaction results, or NULL if not comp
 \description{
 Extract rank test q-value interaction results
 
-Setter for rank test q-value interaction results stored in @lm_results$q_interactions
+Setter for rank test q-value interaction results stored in @lm_results$rank_test
 }
 \details{
 Rank test results from \code{rank_test_q_condition_s4()} are retrieved via this method.

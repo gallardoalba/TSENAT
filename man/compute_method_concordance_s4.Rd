@@ -9,7 +9,7 @@ compute_method_concordance_s4(analysis, ...)
 
 \S4method{compute_method_concordance_s4}{TSENATAnalysis}(
   analysis,
-  gam_method = "q_interactions",
+  gam_method = "rank_test",
   friedman_method = "rankbased",
   gam_results = NULL,
   verbose = FALSE,
@@ -23,7 +23,7 @@ compute_method_concordance_s4(analysis, ...)
 
 \item{gam_method}{\code{character}.  Key for 
 GAM/interaction results in \code{@lm_results}.
-  Default: 'q_interactions' (results from \code{rank_test_q_condition_s4})}
+  Default: 'rank_test' (results from \code{rank_test_q_condition_s4})}
 
 \item{friedman_method}{\code{character}.  Key for 
 Friedman/rank-based results in \code{@lm_results}.

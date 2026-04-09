@@ -292,30 +292,45 @@ tsenat <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
 
 #' Extract analysis results from TSENATAnalysis object
 #'
-#' Provides flexible access to diversity, divergence, and statistical test results.
+#' Provides flexible access to diversity, divergence, and statistical test results
+#' with options for ranking, filtering, and format conversion.
 #'
 #' @param analysis \code{TSENATAnalysis} object containing computed results.
 #' @param type \code{character}. Type of results to extract:
-#'   'diversity', 'divergence', 'lm', 'jackknife', or 'q_interactions'.
+#'   'diversity', 'divergence', 'lm', 'jackknife', or 'rank_test'.
 #'   Default: 'diversity'.
-#' @param q \code{numeric}. For diversity results, optionally filter by q-value.
-#'   Default: NULL (return all q-values).
-#' @param simplify \code{logical}. If TRUE and q is specified, return as 
-#'   vector instead of matrix. Default: TRUE.
+#' @param q \code{numeric}. For diversity results, optionally return results for 
+#'   a specific q-value only. When specified, returns a single SummarizedExperiment 
+#'   for that q-value instead of the full list. Default: NULL (return all q-values 
+#'   as list). Example: q = 1.0 returns only the q=1.0 results.
+#' @param rankBy \code{character}. For LM/Jackknife results, ranking method:
+#'   'none' (default), 'pvalue', 'effectSize', or 'qvalue'.
+#'   Applies to statistical test results. Default: 'none'.
+#' @param n \code{integer}. Return top N features/genes ranked by rankBy.
+#'   Use NA (default) to return all results. Requires rankBy != 'none'.
+#' @param filterFDR \code{numeric}. FDR threshold for significance filtering
+#'   (0.0-1.0). Only results with adjusted p-value <= filterFDR retained.
+#'   Default: NULL (no filtering).
+#' @param format \code{character}. Output format: 'auto' (sensible default for type),
+#'   'list', 'dataframe', or 'matrix'. Default: 'auto'.
 #'
-#' @return Extracted results as data.frame, matrix, or list depending on type.
-#'   Returns NULL if requested result type not computed.
+#' @return 
+#'   - For diversity with q=NULL: A named list of SummarizedExperiment objects, one per q-value
+#'   - For diversity with q specified: A single SummarizedExperiment for that q-value
+#'   - For divergence: A SummarizedExperiment (rows=genes, columns=q-values), data.frame, or other format depending on divergence computation method
+#'   - For lm/jackknife: A data.frame or list based on type and format
+#'   Returns NULL if requested result type not computed or no results pass filtering.
 #'
 #' @details
-#' This function provides a consistent interface to access all computed results
-#' from the TSENATAnalysis object, abstracting away internal storage details.
+#' This function provides flexible access to all computed results with ranking,
+#' filtering, and format conversion. Compatible with DESeq2/edgeR design patterns
+#' for familiar result extraction workflows.
 #'
 #' @examples
 #' # Load example data
 #' data(readcounts, package = 'TSENAT')
 #'
 #' # Create TSENATAnalysis from count matrix
-#' # For simple count matrices (no tx2gene mapping), use TSENATAnalysis directly
 #' config <- tsenat_config(
 #'   q_values = c(0.5, 1.0, 2.0),
 #'   condition_col = 'group'
@@ -327,43 +342,322 @@ tsenat <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
 #'   )
 #' )
 #' analysis <- TSENATAnalysis(se = se, config = config)
-#'
-#' # Run analysis to generate diversity results
 #' analysis <- calculate_diversity_s4(analysis)
 #'
-#' # Extract diversity results
-#' div_results <- getResults(analysis, type = 'diversity')
-#' if (!is.null(div_results)) {
-#'   head(div_results, n = 3)
+#' # Get all diversity results (list of SummarizedExperiment objects, one per q)
+#' div_all <- results(analysis, type = 'diversity')
+#'
+#' # Get diversity for specific q-value (single SummarizedExperiment)
+#' div_q1 <- results(analysis, type = 'diversity', q = 1.0)
+#'
+#' # Get results ranked by p-value, top 20 genes
+#' if ('lm' %in% names(analysis@lm_results)) {
+#'   top_lm <- results(analysis, type = 'lm', rankBy = 'pvalue', n = 20)
 #' }
 #'
 #' @export
-getResults <- function(analysis, type = "diversity", q = NULL, simplify = TRUE) {
+results <- function(analysis, type = "diversity", q = NULL, rankBy = "none", 
+                       n = NA, filterFDR = NULL, format = "auto") {
     if (!is(analysis, "TSENATAnalysis")) {
         stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }
 
-    result <- switch(type, diversity = if (length(analysis@diversity_results) > 0) analysis@diversity_results else NULL,
+    # Validate parameters
+    valid_rank_methods <- c("none", "pvalue", "qvalue", "effectSize")
+    if (!rankBy %in% valid_rank_methods) {
+        stop("'rankBy' must be one of: ", paste(valid_rank_methods, collapse = ", "), 
+             call. = FALSE)
+    }
+    
+    valid_formats <- c("auto", "list", "dataframe", "matrix")
+    if (!format %in% valid_formats) {
+        stop("'format' must be one of: ", paste(valid_formats, collapse = ", "), 
+             call. = FALSE)
+    }
+    
+    if (!is.null(filterFDR) && (filterFDR < 0 || filterFDR > 1)) {
+        stop("'filterFDR' must be between 0 and 1 or NULL", call. = FALSE)
+    }
+
+    # Extract result based on type
+    result <- switch(type, 
+        diversity = if (length(analysis@diversity_results) > 0) analysis@diversity_results else NULL,
         divergence = if (length(analysis@divergence_results) > 0) analysis@divergence_results else NULL,
-        lm = if (length(analysis@lm_results) > 0) analysis@lm_results else NULL,
-        jackknife = if (length(analysis@jackknife_results) > 0) analysis@jackknife_results else NULL,
-        q_interactions = if ("q_interactions" %in% names(analysis@lm_results)) analysis@lm_results$q_interactions else NULL,
-        stop("Unknown result type: '", type, "'. Must be one of: ", "diversity, divergence, lm, jackknife, q_interactions",
-            call. = FALSE))
+        lm = if (length(analysis@lm_results) > 0) {
+            # LM results are stored as list(lm_interaction = data.frame(...))
+            if ("lm_interaction" %in% names(analysis@lm_results)) {
+                analysis@lm_results$lm_interaction
+            } else {
+                analysis@lm_results
+            }
+        } else NULL,
+        jackknife = if (length(analysis@jackknife_results) > 0) {
+            # Jackknife results are stored as list, extract data.frame or summary_table if present
+            jk_res <- NULL
+            if (is.data.frame(analysis@jackknife_results)) {
+                jk_res <- analysis@jackknife_results
+            } else if ("results" %in% names(analysis@jackknife_results)) {
+                jk_res <- analysis@jackknife_results$results
+            } else if ("ci" %in% names(analysis@jackknife_results)) {
+                jk_res <- analysis@jackknife_results$ci
+            } else {
+                jk_res <- analysis@jackknife_results
+            }
+            
+            # Handle multi-q jackknife: if we have nested q-value lists, extract specific q if specified
+            if (is.list(jk_res) && !is.data.frame(jk_res)) {
+                if (!is.null(q)) {
+                    # User specified a q-value, extract that specific q-value result
+                    # Use consistent %.2f format matching jackknife storage (see s4_functions_jis.R line 466)
+                    q_char_underscore <- sprintf("q_%s", gsub("\\.", "_", sprintf("%.2f", q)))
+                    q_char_dot <- sprintf("q_%.2f", q)  # Fallback for dot format
+                    
+                    q_char <- NULL
+                    if (q_char_underscore %in% names(jk_res)) {
+                        q_char <- q_char_underscore
+                    } else if (q_char_dot %in% names(jk_res)) {
+                        q_char <- q_char_dot
+                    }
+                    
+                    if (!is.null(q_char)) {
+                        jk_q_result <- jk_res[[q_char]]
+                        # Extract summary_table if available, otherwise use result as-is
+                        if (is.list(jk_q_result) && "summary_table" %in% names(jk_q_result)) {
+                            jk_res <- jk_q_result$summary_table
+                        } else if (is.data.frame(jk_q_result)) {
+                            jk_res <- jk_q_result
+                        } else {
+                            jk_res <- jk_q_result
+                        }
+                    } else {
+                        warning("Jackknife results for q=", q, " not found. Available q-values: ",
+                                paste(grep("^q_", names(jk_res), value = TRUE), collapse = ", "),
+                                call. = FALSE)
+                        jk_res <- NULL
+                    }
+                } else if ("multi_q" %in% names(jk_res)) {
+                    # For multi-q jackknife without specific q parameter, try to use the multi_q result
+                    jk_multi <- jk_res[["multi_q"]]
+                    # Extract summary_table if available
+                    if (is.list(jk_multi) && "summary_table" %in% names(jk_multi)) {
+                        jk_res <- jk_multi$summary_table
+                    } else if (is.data.frame(jk_multi)) {
+                        jk_res <- jk_multi
+                    } else {
+                        # Keep original multi_q structure for now
+                        jk_res <- jk_multi
+                    }
+                } else if ("summary_table" %in% names(jk_res)) {
+                    # Single-q jackknife with summary_table
+                    jk_res <- jk_res$summary_table
+                }
+            }
+            jk_res
+        } else NULL,
+        rank_test = if (!is.null(analysis@lm_results) && "rank_test" %in% names(analysis@lm_results)) {
+            analysis@lm_results$rank_test
+        } else NULL,
+        stop("Unknown result type: '", type, "'. Must be one of: ", 
+             "diversity, divergence, lm, jackknife, rank_test", call. = FALSE)
+    )
 
     if (is.null(result)) {
         return(NULL)
     }
 
-    # Filter by q-value if specified and applicable
-    if (!is.null(q) && type == "diversity" && is.matrix(result)) {
-        if (simplify) {
-            result <- result[as.character(q), , drop = TRUE]
-        } else {
-            result <- result[as.character(q), , drop = FALSE]
-        }
+    # Check for incompatible rankBy usage
+    if (rankBy != "none" && !type %in% c("lm", "jackknife", "rank_test")) {
+        warning("rankBy='", rankBy, "' is not supported for type='", type, "'. ",
+                "Ignoring rankBy parameter. rankBy is only supported for types: ",
+                "'lm', 'jackknife', 'rank_test'.",
+                call. = FALSE)
     }
 
+    # === DIVERSITY RESULTS HANDLING ===
+    if (type == "diversity") {
+        # Filter by q-value if specified
+        if (!is.null(q)) {
+            # result is a list of SummarizedExperiment objects, one per q-value
+            # Try both q_X.XXX (dot) and q_X_XXX (underscore) formats
+            q_char <- sprintf("q_%.3f", q)
+            q_char_underscore <- sprintf("q_%s", gsub("\\.", "_", sprintf("%.3f", q)))
+            
+            if (!q_char %in% names(result)) {
+                # Try underscore format
+                if (q_char_underscore %in% names(result)) {
+                    q_char <- q_char_underscore
+                } else {
+                    # Try without zero-padding in case names are stored differently
+                    q_alt <- as.character(q)
+                    q_char_alt <- paste0("q_", q_alt)
+                    
+                    if (q_char_alt %in% names(result)) {
+                        q_char <- q_char_alt
+                    } else {
+                        # Format error message with dots instead of underscores for readability
+                        q_display <- gsub("_", ".", gsub("^q_", "", names(result)))
+                        stop("Q-value ", q, " not found in results. Available q-values: ", 
+                             paste(q_display, collapse = ", "), 
+                             call. = FALSE)
+                    }
+                }
+            }
+            
+            # Return single SE for specified q-value
+            result <- result[[q_char]]
+        }
+        return(result)
+    }
+
+    # === LM/STATISTICAL RESULTS HANDLING ===
+    if (type %in% c("lm", "jackknife", "rank_test")) {
+        
+        # Filter by FDR if specified
+        if (!is.null(filterFDR) && is.data.frame(result)) {
+            padj_col <- if ("padj" %in% colnames(result)) "padj" 
+                       else if ("adj.p.val" %in% colnames(result)) "adj.p.val"
+                       else if ("FDR" %in% colnames(result)) "FDR"
+                       else NULL
+            
+            if (!is.null(padj_col)) {
+                result <- result[!is.na(result[[padj_col]]) & result[[padj_col]] <= filterFDR, , drop = FALSE]
+                if (nrow(result) == 0) {
+                    return(NULL)  # No results pass filter
+                }
+            }
+        }
+
+        # Rank and subset if requested
+        if (rankBy != "none") {
+            # For jackknife results with ranking, must specify a q-value
+            if (type == "jackknife" && is.null(q)) {
+                stop("Ranking jackknife results requires specifying q parameter. ",
+                     "Use results(result, type='jackknife', q=<value>, rankBy='pvalue', n=20)",
+                     call. = FALSE)
+            }
+            
+            # For jackknife results that may be lists, try to extract data.frame
+            if (!is.data.frame(result) && is.list(result)) {
+                if ("summary_table" %in% names(result) && is.data.frame(result$summary_table)) {
+                    result <- result$summary_table
+                } else if (type %in% c("jackknife", "jeoResults")) {
+                    # If still not a data.frame and type is jackknife, cannot rank
+                    stop("Ranking requires data.frame results. Type '", type, "' returned nested list structure ",
+                         "that cannot be converted to data.frame for ranking.", call. = FALSE)
+                }
+            }
+            
+            if (!is.data.frame(result)) {
+                stop("Ranking requires data.frame results. Type '", type, "' returned different format.",
+                     call. = FALSE)
+            }
+            
+            # Determine ranking column
+            rank_col <- switch(rankBy,
+                pvalue = if ("p_interaction" %in% colnames(result)) "p_interaction"
+                        else if ("p_value" %in% colnames(result)) "p_value"
+                        else if ("pvalue" %in% colnames(result)) "pvalue" else NULL,
+                qvalue = if ("adj_p_interaction" %in% colnames(result)) "adj_p_interaction"
+                        else if ("adj_p_value" %in% colnames(result)) "adj_p_value"
+                        else if ("padj" %in% colnames(result)) "padj" 
+                        else if ("adj.p.val" %in% colnames(result)) "adj.p.val"
+                        else if ("FDR" %in% colnames(result)) "FDR"
+                        else NULL,
+                effectSize = if ("effect_size_eta2" %in% colnames(result)) "effect_size_eta2"
+                            else if ("effect_size" %in% colnames(result)) "effect_size"
+                            else if ("statistic" %in% colnames(result)) "statistic"
+                            else if ("estimate" %in% colnames(result)) "estimate"
+                            else if ("dIF" %in% colnames(result)) "dIF"
+                            else NULL,
+                NULL
+            )
+            
+            if (is.null(rank_col)) {
+                warning("Column for rankBy='", rankBy, "' not found in results. Skipping ranking.",
+                       call. = FALSE)
+            } else {
+                # Sort by absolute value of effect sizes, or by p-value directly
+                if (rankBy == "effectSize") {
+                    idx <- order(abs(result[[rank_col]]), decreasing = TRUE, na.last = TRUE)
+                } else {
+                    idx <- order(result[[rank_col]], na.last = TRUE)
+                }
+                result <- result[idx, , drop = FALSE]
+                
+                # Subset to top N if specified
+                if (!is.na(n) && n > 0) {
+                    n <- min(n, nrow(result))
+                    result <- result[1:n, , drop = FALSE]
+                }
+            }
+        }
+
+        # Convert to requested format
+        if (format != "auto") {
+            result <- .convert_result_format(result, format, type)
+        }
+        
+        return(result)
+    }
+
+    # === DIVERGENCE RESULTS HANDLING ===
+    if (type == "divergence") {
+        # divergence_results is stored as a list wrapper, extract the actual data
+        if (is.list(result) && length(result) > 0) {
+            # Extract based on storage pattern from .store_divergence_results():
+            # - divergence_se: SummarizedExperiment
+            # - main: data.frame or matrix
+            # - result or other: wrapped data
+            if (!is.null(names(result))) {
+                # Named list - extract the first element (usually "divergence_se", "main", or "result")
+                result <- result[[1]]
+            } else if (length(result) == 1) {
+                # Unnamed list with single element
+                result <- result[[1]]
+            }
+            # If list had multiple elements and unnamed, leave as-is
+        }
+        
+        # Filter by FDR if specified (only works for data.frame)
+        if (!is.null(filterFDR) && is.data.frame(result)) {
+            padj_col <- if ("padj" %in% colnames(result)) "padj" else NULL
+            if (!is.null(padj_col)) {
+                result <- result[!is.na(result[[padj_col]]) & result[[padj_col]] <= filterFDR, , drop = FALSE]
+                if (nrow(result) == 0) return(NULL)
+            }
+        }
+        
+        if (format != "auto") {
+            result <- .convert_result_format(result, format, type)
+        }
+        
+        return(result)
+    }
+
+    return(result)
+}
+
+# Helper function to convert result format
+.convert_result_format <- function(result, format, type) {
+    if (format == "auto") return(result)
+    
+    if (format == "dataframe" && !is.data.frame(result)) {
+        if (is.matrix(result)) {
+            result <- as.data.frame(result)
+        }
+    } else if (format == "matrix" && !is.matrix(result)) {
+        if (is.data.frame(result)) {
+            result <- as.matrix(result)
+        }
+    } else if (format == "list" && !is.list(result)) {
+        # Convert to list with rows as elements
+        if (is.data.frame(result)) {
+            result <- as.list(result)
+        } else if (is.matrix(result)) {
+            result <- asplit(result, 1)  # Split by rows
+        }
+    }
+    
     return(result)
 }
 
@@ -377,96 +671,32 @@ getResults <- function(analysis, type = "diversity", q = NULL, simplify = TRUE) 
 #' Allows specifying analysis parameters once and reusing across multiple
 #' analyses.
 #'
-#' @param q_values \code{numeric}. Q-values for Tsallis entropy spectrum.
-#'   Default: \code{seq(0, 2, by = 0.5)}.
-#' @param condition_col \code{character}. Name of column in \code{colData(se)}
-#'   containing experimental conditions/groups. Default: 'condition'.
-#' @param subject_col \code{character}. Name of column in \code{colData(se)}
-#'   containing subject/sample identifiers for paired/repeated designs.
-#'   If provided, enables paired analysis. Default: NULL (unpaired).
-#' @param sample_col \code{character}. Name of column in \code{colData(se)}
-#'   containing sample identifiers. Default: 'sample'.
-#' @param paired \code{logical}. Whether samples are paired/repeated measures.
-#'   Default: FALSE. Used by jackknife and difference analysis.
-#' @param control \code{character}. Reference/control group label for difference
-#'   analysis (e.g., 'control', 'wt'). Only used if 'difference' in methods.
-#'   Default: NULL.
-#' @param p_threshold \code{numeric}. Raw p-value threshold for significance
-#'   in LM interaction testing. Default: 0.05.
-#' @param fdr_threshold \code{numeric}. Adjusted p-value (FDR/Benjamini-Hochberg)
-#'   threshold. Default: 0.05.
-#' @param significance_threshold \code{numeric}. Significance cutoff for effect
-#'   sizes, assumptions testing, and result filtering. Default: 0.05.
-#' @param bootstrap \code{logical}. Enable bootstrap confidence intervals for diversity
-#'   estimates. If TRUE, computes percentile or bias-corrected (BCA) CIs. BCA recommended
-#'   for Tsallis entropy (skewed, bounded distribution). Default: FALSE (point estimates only).
-#' @param nboot \code{integer}. Number of bootstrap resamples for confidence intervals.
-#'   Default: 1000. Higher values (5000+) improve CI accuracy at increased computation cost.
-#' @param bootstrap_method \code{character}. Bootstrap CI method:
-#'   \itemize{
-#'     \item 'percentile' (default, fast): Assumes symmetric distribution around point estimate
-#'     \item 'bca': Bias-corrected and accelerated; better for skewed data like bounded entropy
-#'   }
-#' @param bootstrap_ci \code{numeric}. Confidence level for bootstrap CIs (e.g., 0.95 for 95% CI).
-#'   Default: 0.95. Must be in (0, 1).
-#' @param bootstrap_include_diagnostics \code{logical}. Include diagnostic metrics in bootstrap
-#'   results (effective sample size, skewness, bias). Adds ~5-10% computation cost. Default: TRUE.
-#' @param min_valid_frac \code{numeric}. Minimum fraction of valid bootstrap replicates required
-#'   (0 to 1). Default: 0.75. Controls robustness vs speed tradeoff; higher values are more stringent.
-#' @param pseudocount \code{numeric}. Pseudocount added for numerical stability in sparse data.
-#'   Default: 0 (disabled - exact counts). Use numeric value > 0 (e.g., 0.1)
-#'   for manual specification. Affects genes with zero-count samples.
-#' @param norm \code{logical}. Enable normalization of diversity estimates. 
-#'   If TRUE (default), normalizes to [0, 1] range where applicable. 
-#'   If FALSE, returns raw unscaled entropy values. Default: TRUE.
-#' @param norm_method \code{character or NULL}. Post-hoc normalization method for diversity values:
-#'   \itemize{
-#'     \item 'default' or NULL: No post-hoc normalization (range [0, {max_entropy}])
-#'     \item 'zscore': Z-score standardization (mean 0, sd 1) for cross-study comparison
-#'     \item 'log_odds_ratio': Log-odds transformation for ratio-based interpretations
-#'     \item 'relative_reference': Relative to reference group (requires reference_group parameter)
-#'   }
-#'   Default: NULL. Dramatically affects scalability and cross-study interpretability.
-#' @param shrinkage \code{character}. Entropy variance reduction via Bayesian borrowing:
-#'   \itemize{
-#'     \item 'none' (default): No shrinkage (empirical estimates)
-#'     \item 'empirical_bayes': Empirical Bayes shrinkage toward gene-level mean
-#'   }
-#'   Improves stability for sparse genes with 1-2 isoforms. Default: 'none'.
-#' @param stringency \code{character}. Transcript filtering stringency level.
-#'   Options: 'lenient' (minimal filtering), 'medium' (default, reasonable filtering),
-#'   'severe' (strict filtering, recommended for high-confidence results).
-#'   Controls which transcripts/genes are retained in initial filtering step.
-#'   Default: 'medium'.
-#' @param lm_method \code{character}. Linear model fitting method for LM interaction testing:
-#'   \itemize{
-#'     \item 'gam' (default): Generalized Additive Model (flexible, preferred)
-#'     \item 'lmm': Linear Mixed Model (for repeated measures)
-#'     \item 'fpca': Functional Principal Component Analysis
-#'     \item 'gee': Generalized Estimating Equations (GEE)
-#'   }
-#'   Different methods produce different p-values and effect sizes. Critical for reproducibility.
-#'   Default: 'gam'.
-#' @param lm_pcorr \code{character}. P-value correction method for LM interaction multiple comparisons:
-#'   \itemize{
-#'     \item 'BH' (default): Benjamini-Hochberg (FDR control, less conservative)
-#'     \item 'bonferroni': Bonferroni (FWER, very conservative)
-#'     \item 'hochberg': Hochberg (less conservative than Bonferroni)
-#'     \item 'holm': Holm step-down (moderate conservative)
-#'   }
-#'   Changes which genes are deemed significant. Default: 'BH'.
-#' @param jis_use_lm_fdr \code{logical}. In jackknife isoform switching, filter genes using
-#'   LM interaction p-values (if TRUE) or use all genes (if FALSE). If TRUE, typically
-#'   selects 15-20% of genes; if FALSE, analyzes all genes. Dramatically affects
-#'   switching gene discovery. Default: TRUE.
-#' @param divergence_ci \code{numeric}. Confidence level for divergence bootstrap CIs.
-#'   Must be in (0, 1). Example: 0.95 for 95% CI. Default: 0.95.
-#' @param nthreads \code{integer}. Number of threads for parallel computation
-#'   where supported (diversity, divergence, LM fitting). Default: 1 (no parallelization).
-#'   Use 2+ for multi-core systems to improve performance.
-#' @param ... Additional configuration parameters (stored as-is in @config slot).
-#'   Examples: \code{q_diff=1.0} (specific q for differences),
-#'   \code{alpha=0.05} (significance for assumptions), etc.
+#' @param q_values \code{numeric} vector. Q-values for Tsallis entropy. Default: \code{seq(0, 2, by=0.5)}.
+#' @param condition_col \code{character}. Column name in colData containing conditions. Default: 'condition'.
+#' @param subject_col \code{character}. Column name in colData containing subject IDs (for paired designs). Default: NULL.
+#' @param sample_col \code{character}. Column name in colData containing sample IDs. Default: 'sample'.
+#' @param paired \code{logical}. Whether samples are paired/repeated measures. Default: FALSE.
+#' @param control \code{character}. Reference/control group label. Default: NULL.
+#' @param p_threshold \code{numeric}. Raw p-value threshold. Default: 0.05.
+#' @param fdr_threshold \code{numeric}. FDR-adjusted p-value threshold. Default: 0.05.
+#' @param significance_threshold \code{numeric}. Significance cutoff. Default: 0.05.
+#' @param bootstrap \code{logical}. Enable bootstrap CIs. Default: FALSE.
+#' @param nboot \code{integer}. Bootstrap resamples for CIs. Default: 1000.
+#' @param bootstrap_method \code{character}. Bootstrap method: 'percentile' or 'bca'. Default: 'percentile'.
+#' @param bootstrap_ci \code{numeric}. Confidence level (0-1). Default: 0.95.
+#' @param bootstrap_include_diagnostics \code{logical}. Include diagnostics. Default: TRUE.
+#' @param min_valid_frac \code{numeric}. Min valid replicate fraction. Default: 0.75.
+#' @param pseudocount \code{numeric}. Pseudocount for sparse data. Default: 0.
+#' @param norm \code{logical}. Enable normalization. Default: TRUE.
+#' @param norm_method \code{character}. Normalization: NULL, 'zscore', 'log_odds_ratio', 'relative_reference'. Default: NULL.
+#' @param shrinkage \code{character}. Variance reduction: 'none' or 'empirical_bayes'. Default: 'none'.
+#' @param stringency \code{character}. Filtering stringency: 'lenient', 'medium', 'severe'. Default: 'medium'.
+#' @param lm_method \code{character}. LM method: 'gam', 'lmm', 'fpca', 'gee'. Default: 'gam'.
+#' @param lm_pcorr \code{character}. P-value correction: 'BH', 'bonferroni', 'hochberg', 'holm'. Default: 'BH'.
+#' @param jis_use_lm_fdr \code{logical}. Filter jackknife genes using LM p-values. Default: TRUE.
+#' @param divergence_ci \code{numeric}. Confidence level for divergence CIs. Default: 0.95.
+#' @param nthreads \code{integer}. Parallel threads. Default: 1.
+#' @param ... Additional configuration parameters (stored as-is).
 #'
 #' @return \code{list} with class \code{TSENATConfig} containing all
 #'   specified parameters.
@@ -645,25 +875,24 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
         "+============================================================+\n",
         "|          TSENAT: Tsallis Entropy Analysis Toolbox          |\n",
         "+============================================================+\n",
-        "|                                                            |\n",
-        "|  Science is an essentially anarchic enterprise: theoretical |\n",
-        "|  anarchism is more humanitarian and more likely to        |\n",
-        "|  encourage progress than its law-and-order alternatives.  |\n",
-        "|                          — Paul Feyerabend, *Against Method* |\n",
-        "+============================================================+\n\n",
+        "                                                              \n",
+        "      Science is an essentially anarchic enterprise.          \n",
+        "                                                              \n",
+        "                       -- Paul Feyerabend, Against Method     \n",
+        "                                                              \n",
         "[DATA] Data Summary\n",
-        "  Transcripts ........... ", format(nrow(se), big.mark = ","), "\n",
+        "  Transcripts .......... ", format(nrow(se), big.mark = ","), "\n",
         "  Samples .............. ", ncol(se), "\n",
         "  Conditions ........... ", n_conditions, "\n",
-        sprintf("  Q-spectrum range ...... %g to %g (%d values)\n", 
+        sprintf("  Q-spectrum range ..... %g to %g (%d values)\n", 
                 round(min(q_vals), 2), round(max(q_vals), 2), length(q_vals)),
         "\n[CONFIG] Analysis Configuration\n",
-        "  Design ................ ", if (cfg$paired) "paired" else "unpaired", "\n",
+        "  Design ............... ", if (cfg$paired) "paired" else "unpaired", "\n",
         "  Filter stringency .... ", cfg$stringency %||% "medium", "\n",
         "  Normalization ........ ", if (cfg$norm) "enabled [0-1]" else "disabled", "\n",
         "  Normalization method . ", toupper(cfg$norm_method %||% "NONE"), "\n",
         "  Pseudocount .......... ", if (cfg$pseudocount == 0) "disabled" else as.character(cfg$pseudocount), "\n",
-        "  Shrinkage ............ ", toupper(cfg$shrinkage %||% "NONE"), "\n",
+        "  Shrinkage ............ ", if (tolower(cfg$shrinkage %||% "none") == "none") "disabled" else toupper(cfg$shrinkage), "\n",
         "  Significance ......... p < ", format(cfg$p_threshold %||% 0.05, nsmall = 3), 
         " | FDR < ", format(cfg$fdr_threshold %||% 0.05, nsmall = 3), "\n",
         "  LM method ............ ", toupper(cfg$lm_method %||% "GAM"), "\n",
@@ -1014,7 +1243,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
         output <- paste0(
             "\n",
             "+============================================================+\n",
-            "|               [OK] ANALYSIS COMPLETE                        |\n",
+            "|               [OK] ANALYSIS COMPLETE                       |\n",
             "+============================================================+\n\n",
             "[RESULTS] Results Summary\n"
         )
@@ -1062,7 +1291,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
             "\n[TIPS] Next steps:\n",
             "  show(result)             - View object structure and slots\n",
             "  summary(result)          - Print detailed statistics summary\n",
-            "  getResults(result)       - Extract numerical results (diversity, divergence, etc.)\n",
+            "  results(result)       - Extract numerical results (diversity, divergence, etc.)\n",
             "  getPlot(result, type)    - Retrieve specific visualization (e.g., 'diversity', 'volcano')\n",
             "  getMeta(result)          - Access metadata and workflow parameters\n",
             "  getSE(result)            - Get SummarizedExperiment object for downstream analysis\n",
