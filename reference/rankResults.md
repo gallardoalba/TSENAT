@@ -3,7 +3,7 @@
 Extract rank test q-value interaction results
 
 Setter for rank test q-value interaction results stored in
-@lm_results\$q_interactions
+@lm_results\$rank_test
 
 ## Usage
 

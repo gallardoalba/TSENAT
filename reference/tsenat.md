@@ -141,7 +141,7 @@ result <- tsenat(analysis)
 #>   Normalization ........ enabled [0-1]
 #>   Normalization method . NONE
 #>   Pseudocount .......... disabled
-#>   Shrinkage ............ NONE
+#>   Shrinkage ............ disabled
 #>   Significance ......... p < 0.050 | FDR < 0.050
 #>   LM method ............ GAM
 #>   LM p-corr method ..... BH
@@ -186,10 +186,10 @@ result <- tsenat(analysis)
 #> [RESULTS] Results Summary
 #> 
 #> [PERF] Performance
-#>   Total time ........... 15.9s
+#>   Total time ........... 17.0s
 #>   Slowest steps:
-#>     1. lm_interaction       11.1s (69.7%)
-#>     2. jackknife            1.2s (7.7%)
+#>     1. lm_interaction       11.7s (69.1%)
+#>     2. jackknife            1.3s (7.6%)
 #>     3. div_spectrum_plot    1.0s (6.1%)
 #> 
 #> [OUTPUT] Output

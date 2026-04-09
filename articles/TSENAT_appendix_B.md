@@ -465,7 +465,7 @@ style="margin-left: auto; margin-right: auto;"}
 analysis_with_concordance <- compute_method_concordance_s4(
     analysis,
     gam_method = "gam_results",
-    friedman_method = "q_interactions",
+    friedman_method = "rank_test",
     gam_results = gam_results,
     verbose = TRUE
 )
@@ -611,7 +611,7 @@ gam_results_loaded <- read.csv("lm_interaction_results.csv")
 analysis <- compute_method_concordance_s4(
     analysis,
     gam_method = "gam_results",
-    friedman_method = "q_interactions",
+    friedman_method = "rank_test",
     gam_results = gam_results_loaded,
     verbose = TRUE
 )

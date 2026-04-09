@@ -52,7 +52,7 @@
 <span><span class="co"># S4 method for class 'TSENATAnalysis'</span></span>
 <span><span class="fu">compute_method_concordance_s4</span><span class="op">(</span></span>
 <span>  <span class="va">analysis</span>,</span>
-<span>  gam_method <span class="op">=</span> <span class="st">"q_interactions"</span>,</span>
+<span>  gam_method <span class="op">=</span> <span class="st">"rank_test"</span>,</span>
 <span>  friedman_method <span class="op">=</span> <span class="st">"rankbased"</span>,</span>
 <span>  gam_results <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -75,7 +75,7 @@
 <dt id="arg-gam-method">gam_method<a class="anchor" aria-label="anchor" href="#arg-gam-method"></a></dt>
 <dd><p><code>character</code>.  Key for
 GAM/interaction results in <code>@lm_results</code>.
-  Default: 'q_interactions' (results from <code>rank_test_q_condition_s4</code>)</p></dd>
+  Default: 'rank_test' (results from <code>rank_test_q_condition_s4</code>)</p></dd>
 
 
 <dt id="arg-friedman-method">friedman_method<a class="anchor" aria-label="anchor" href="#arg-friedman-method"></a></dt>

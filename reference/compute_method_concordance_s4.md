@@ -10,7 +10,7 @@ compute_method_concordance_s4(analysis, ...)
 # S4 method for class 'TSENATAnalysis'
 compute_method_concordance_s4(
   analysis,
-  gam_method = "q_interactions",
+  gam_method = "rank_test",
   friedman_method = "rankbased",
   gam_results = NULL,
   verbose = FALSE,
@@ -31,7 +31,7 @@ compute_method_concordance_s4(
 - gam_method:
 
   `character`. Key for GAM/interaction results in `@lm_results`.
-  Default: 'q_interactions' (results from `rank_test_q_condition_s4`)
+  Default: 'rank_test' (results from `rank_test_q_condition_s4`)
 
 - friedman_method:
 

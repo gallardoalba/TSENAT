@@ -60,8 +60,7 @@ q-values:
 
 By examining diversity across multiple q-values, you identify
 **scale-dependent** diversity changes—the hallmark of coordinate isoform
-switching. See **vignette(“TSENAT”)** for the complete mathematical
-treatment and information-theoretic interpretation.
+switching.
 
 ### Divergence Analysis: Measuring Information-Theoretic Distance Between Conditions
 
@@ -190,10 +189,17 @@ results.
 
 TSENAT provides a flexible statistical framework optimized for
 entropy-based diversity analysis. The recommended main workflow relies
-on **Generalized Additive Models (GAM)** (via
-[`mgcv::gam()`](https://CRAN.R-project.org/package=mgcv)) with ARIMA
-differencing to robustly detect q×condition interactions while
-accounting for heteroscedasticity and non-normality in entropy data.
+on **Generalized Additive Models (GAM)** via
+[`mgcv::gam()`](https://CRAN.R-project.org/package=mgcv) combined with
+ARIMA differencing to robustly detect q×condition interactions.
+
+Tsallis entropy’s fundamental non-additivity (Tirnakli et al., 2025,
+*Entropy Special Issue*) —a violation of the additivity axiom underlying
+classical statistics— makes GAM the natural choice for TSENAT. Unlike
+linear models, GAM’s flexible splines accommodate this non-additivity,
+capture q×condition interactions, and estimate heteroscedasticity in the
+bounded, skewed residuals characteristic of entropy data. ARIMA(1,1,0)
+differencing removes temporal autocorrelation before GAM fitting.
 
 ## Related Packages
 
@@ -201,10 +207,10 @@ Below is how TSENAT complements other Bioconductor tools:
 
 | Tool | Answers | TSENAT Difference |
 |----|----|----|
-| DESeq2, edgeR, limma | Which genes change in *total abundance*? | TSENAT detects isoform diversity changes **independent of total abundance** |
+| DESeq2, edgeR, limma | Which genes change in *total abundance*? | TSENAT detects isoform diversity changes independent of total abundance |
 | DRIMSeq | Which *individual transcripts* shift usage? | TSENAT measures overall isoform diversity, not individual transcript shifts |
-| IsoformSwitchAnalyzeR | Which *individual isoforms* switch; what are the *functional consequences*? | TSENAT measures overall isoform diversity and diversity **shifts** rather than cataloging individual transcript switches or predicting functional consequences; complements switch identification with diversity patterns |
-| SplicingFactory | What is the overall isoform diversity? | TSENAT extends with **scale-dependent diversity** (q-spectrum) vs fixed measures |
+| IsoformSwitchAnalyzeR | Which *individual isoforms* switch; what are the *functional consequences*? | TSENAT measures overall isoform diversity and diversity shifts rather than cataloging individual transcript switches or predicting functional consequences; complements switch identification with diversity patterns |
+| SplicingFactory | What is the overall isoform diversity? | TSENAT extends with scale-dependent diversity (q-spectrum) vs fixed measures |
 | Kallisto, Salmon | How many reads per transcript? | TSENAT uses their quantification as input; adds diversity analysis layer |
 
 ## Native Salmon Integration
@@ -282,13 +288,6 @@ Key requirements:
 - `condition` column: experimental groups.
 - `paired_samples` column: required if using paired designs; identifier
   for matched samples.
-
-## Tests coverage
-
-Testing is vital in research as it ensures the validity and reliability
-of results, which is essential for accurately interpreting findings. The
-report about the current testing coverage can be found
-[here](https://app.codecov.io/gh/gallardoalba/TSENAT).
 
 ## Citation
 

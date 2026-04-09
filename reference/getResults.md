@@ -18,7 +18,7 @@ getResults(analysis, type = "diversity", q = NULL, simplify = TRUE)
 - type:
 
   `character`. Type of results to extract: 'diversity', 'divergence',
-  'lm', 'jackknife', or 'q_interactions'. Default: 'diversity'.
+  'lm', 'jackknife', or 'rank_test'. Default: 'diversity'.
 
 - q:
 
