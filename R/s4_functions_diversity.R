@@ -192,16 +192,16 @@
 #' mode(readcounts) <- 'numeric'
 #' 
 #' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' analysis <- build_analysis(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df, config = config,
 #'   tpm = tpm, effective_length = effective_length)
 #' 
 #' # Filter to manageable size (use 200+ genes to survive diversity filtering)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' 
 #' # Compute diversity and access results using unified accessor
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0), verbose =
+#' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0), verbose =
 #' FALSE)
 #' head(results(analysis, type = "diversity", q = 1.0))
 #'
@@ -212,7 +212,7 @@
 #'
 #' @export
 #' @importFrom utils write.table
-calculate_diversity_s4 <- function(analysis, q = NULL, norm = TRUE, norm_method = NULL,
+calculate_diversity <- function(analysis, q = NULL, norm = TRUE, norm_method = NULL,
     reference_group = NULL, tpm = FALSE, assayno = NULL, verbose = NULL, show_messages = FALSE,
     what = NULL, nthreads = NULL, pseudocount = NULL, min_valid_frac = NULL, shrinkage = NULL,
     genes = NULL, effective_length = NULL, metadata = NULL, bootstrap = NULL, nboot = NULL,
@@ -283,7 +283,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = TRUE, norm_method 
         pseudocount_resolved <- .handle_pseudocount_auto(params$pseudocount, analysis@se,
             verbose = FALSE)
         if (params$verbose) {
-            message(sprintf("[calculate_diversity_s4] Resolved pseudocount (auto) = %.4f",
+            message(sprintf("[calculate_diversity] Resolved pseudocount (auto) = %.4f",
                 pseudocount_resolved))
         }
     }
@@ -375,10 +375,10 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = TRUE, norm_method 
     }, error = function(e) {
         error_msg <- conditionMessage(e)
         if (params$bootstrap && grepl("bootstrap", error_msg, ignore.case = TRUE)) {
-            stop("[calculate_diversity_s4] Bootstrap CI computation failed for q=",
+            stop("[calculate_diversity] Bootstrap CI computation failed for q=",
                 q_val, ": ", error_msg, call. = FALSE)
         } else {
-            stop("[calculate_diversity_s4] Failed to compute diversity for q=", q_val,
+            stop("[calculate_diversity] Failed to compute diversity for q=", q_val,
                 ":\n", error_msg, call. = FALSE)
         }
     })
@@ -411,7 +411,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = TRUE, norm_method 
     }
 
     if (length(q_cols) == 0) {
-        stop("[calculate_diversity_s4] No columns found for q=", q_val, call. = FALSE)
+        stop("[calculate_diversity] No columns found for q=", q_val, call. = FALSE)
     }
     q_cols
 }
@@ -476,19 +476,19 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = TRUE, norm_method 
     }
 
     if (length(SummarizedExperiment::assays(result_se)) == 0) {
-        stop("[calculate_diversity_s4] Converted SE for q=", q_val, " has no assays",
+        stop("[calculate_diversity] Converted SE for q=", q_val, " has no assays",
             call. = FALSE)
     }
 
     test_assay <- tryCatch({
         SummarizedExperiment::assay(result_se, 1)
     }, error = function(e) {
-        stop("[calculate_diversity_s4] Cannot access assay for q=", q_val, ": ",
+        stop("[calculate_diversity] Cannot access assay for q=", q_val, ": ",
             conditionMessage(e), call. = FALSE)
     })
 
     if (is.null(test_assay) || nrow(test_assay) == 0) {
-        warning("[calculate_diversity_s4] Assay for q=", q_val, " is empty", call. = FALSE)
+        warning("[calculate_diversity] Assay for q=", q_val, " is empty", call. = FALSE)
     }
     TRUE
 }
@@ -522,7 +522,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = TRUE, norm_method 
 
     if (params$nthreads > 1) {
         analysis@metadata$parallel_processing <- c(analysis@metadata$parallel_processing,
-            paste0("calculate_diversity_s4: nthreads=", params$nthreads, " (", length(params$q),
+            paste0("calculate_diversity: nthreads=", params$nthreads, " (", length(params$q),
                 " q-values)"))
     }
     analysis
@@ -571,11 +571,11 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = TRUE, norm_method 
             row.names = FALSE, quote = FALSE)
 
         if (params$verbose) {
-            message("[calculate_diversity_s4] Saved diversity spectrum to: ", spectrum_file)
+            message("[calculate_diversity] Saved diversity spectrum to: ", spectrum_file)
         }
         analysis@metadata$diversity_spectrum <- diversity_spectrum
     }, error = function(e) {
-        warning("[calculate_diversity_s4] Could not compute diversity spectrum: ",
+        warning("[calculate_diversity] Could not compute diversity spectrum: ",
             conditionMessage(e), call. = FALSE)
     })
     analysis
@@ -594,13 +594,13 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = TRUE, norm_method 
         }
 
         save_analysis_output(output_data, output_file, verbose = params$verbose,
-            func_name = "calculate_diversity_s4")
+            func_name = "calculate_diversity")
 
         if (params$verbose) {
-            message("[calculate_diversity_s4] Saved diversity results to: ", output_file)
+            message("[calculate_diversity] Saved diversity results to: ", output_file)
         }
     }, error = function(e) {
-        warning("[calculate_diversity_s4] Could not save diversity results: ", conditionMessage(e),
+        warning("[calculate_diversity] Could not save diversity results: ", conditionMessage(e),
             call. = FALSE)
     })
     analysis
@@ -869,7 +869,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = TRUE, norm_method 
         if (!is.null(ci_upper_assay))
             ci_upper_assay <- .normalize_zscore(ci_upper_assay, per_q = TRUE)
         if (verbose)
-            message("[calculate_diversity_s4] Applied z-score normalization for q=",
+            message("[calculate_diversity] Applied z-score normalization for q=",
                 q_val)
     } else if (norm_method == "log_odds_ratio" && !is.null(params$genes)) {
         n_isoforms_vec <- table(params$genes)
@@ -882,7 +882,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = TRUE, norm_method 
             ci_upper_assay <- .normalize_log_odds_ratio(ci_upper_assay, n_isoforms = n_isoforms_vec,
                 q = q_val)
         if (verbose)
-            message("[calculate_diversity_s4] Applied log-odds ratio normalization for q=",
+            message("[calculate_diversity] Applied log-odds ratio normalization for q=",
                 q_val)
     } else if (norm_method == "relative_reference" && !is.null(params$reference_group)) {
         coldata <- SummarizedExperiment::colData(result_se)
@@ -897,7 +897,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = TRUE, norm_method 
                 ci_upper_assay <- .normalize_relative_reference(ci_upper_assay, group_vector = group_vector,
                   reference_group = params$reference_group)
             if (verbose)
-                message("[calculate_diversity_s4] Applied relative reference normalization for q=",
+                message("[calculate_diversity] Applied relative reference normalization for q=",
                   q_val)
         }
     }

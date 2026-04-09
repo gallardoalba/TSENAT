@@ -777,7 +777,7 @@ describe("Integration: Complete helper workflow", {
   })
 })
 
-test_that("plot_jis_delta_s4: creates heatmaps from q-values", {
+test_that("plot_jis_delta: creates heatmaps from q-values", {
   skip_if_not_installed("SummarizedExperiment")
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("ComplexHeatmap")
@@ -809,7 +809,7 @@ test_that("plot_jis_delta_s4: creates heatmaps from q-values", {
   expect_true(all(c("q_0.5", "q_1.0", "q_1.5") %in% names(multiq_results)))
 })
 
-test_that("plot_jis_delta_s4: parameter validation", {
+test_that("plot_jis_delta: parameter validation", {
   skip_if_not_installed("ggplot2")
   
   
@@ -826,17 +826,17 @@ test_that("plot_jis_delta_s4: parameter validation", {
 
 
 # ============================================================================
-# TEST 3: plot_jis_delta_s4 - Multi-q heatmaps
+# TEST 3: plot_jis_delta - Multi-q heatmaps
 # ============================================================================
 
-test_that("plot_jis_delta_s4: validates analysis object", {
+test_that("plot_jis_delta: validates analysis object", {
   expect_error(
-    TSENAT:::plot_jis_delta_s4("not_analysis"),
+    TSENAT:::plot_jis_delta("not_analysis"),
     "must be a TSENATAnalysis object"
   )
 })
 
-test_that("plot_jis_delta_s4: requires jackknife results", {
+test_that("plot_jis_delta: requires jackknife results", {
   set.seed(308)
   
   # Create analysis without jackknife results
@@ -852,7 +852,7 @@ test_that("plot_jis_delta_s4: requires jackknife results", {
   
   # Should error when no jackknife results
   expect_error(
-    TSENAT:::plot_jis_delta_s4(analysis),
+    TSENAT:::plot_jis_delta(analysis),
     "No jackknife results"
   )
 })
@@ -903,7 +903,7 @@ create_mock_jackknife_multiq <- function(n_genes = 10, n_transcripts_per_gene = 
   return(result)
 }
 
-test_that("plot_jis_delta_s4: creates heatmap with mock jackknife data", {
+test_that("plot_jis_delta: creates heatmap with mock jackknife data", {
   skip_if_not_installed("pheatmap")
   
   # Build analysis from vignette data
@@ -914,20 +914,20 @@ test_that("plot_jis_delta_s4: creates heatmap with mock jackknife data", {
     paired = TRUE,
     control = "normal"
   )
-  analysis <- build_analysis_s4(config = config, metadata = metadata_df, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
-  analysis <- filter_analysis_s4(analysis, stringency = "medium")
+  analysis <- build_analysis(config = config, metadata = metadata_df, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
+  analysis <- filter_analysis(analysis, stringency = "medium")
   
   # Add required calculations
-  analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0), verbose = FALSE)
-  analysis <- calculate_jis_s4(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
+  analysis <- calculate_diversity(analysis, q = c(0.5, 1.0), verbose = FALSE)
+  analysis <- calculate_jis(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
   
   # Function should execute without error (renders to graphics device, returns invisible NULL)
   expect_silent({
-    TSENAT:::plot_jis_delta_s4(analysis, n_genes = 4, verbose = FALSE)
+    TSENAT:::plot_jis_delta(analysis, n_genes = 4, verbose = FALSE)
   })
 })
 
-test_that("plot_jis_delta_s4: ranks genes by LM results when provided", {
+test_that("plot_jis_delta: ranks genes by LM results when provided", {
   skip_if_not_installed("pheatmap")
   
   # Build analysis from vignette data
@@ -938,20 +938,20 @@ test_that("plot_jis_delta_s4: ranks genes by LM results when provided", {
     paired = TRUE,
     control = "normal"
   )
-  analysis <- build_analysis_s4(config = config, metadata = metadata_df, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
-  analysis <- filter_analysis_s4(analysis, stringency = "medium")
+  analysis <- build_analysis(config = config, metadata = metadata_df, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
+  analysis <- filter_analysis(analysis, stringency = "medium")
   
   # Add required calculations
-  analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0), verbose = FALSE)
-  analysis <- calculate_jis_s4(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
+  analysis <- calculate_diversity(analysis, q = c(0.5, 1.0), verbose = FALSE)
+  analysis <- calculate_jis(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
   
   # Function should execute without error
   expect_silent({
-    TSENAT:::plot_jis_delta_s4(analysis, n_genes = 3, verbose = FALSE)
+    TSENAT:::plot_jis_delta(analysis, n_genes = 3, verbose = FALSE)
   })
 })
 
-test_that("plot_jis_delta_s4: respects n_genes parameter", {
+test_that("plot_jis_delta: respects n_genes parameter", {
   skip_if_not_installed("pheatmap")
   
   # Build analysis from vignette data
@@ -962,20 +962,20 @@ test_that("plot_jis_delta_s4: respects n_genes parameter", {
     paired = TRUE,
     control = "normal"
   )
-  analysis <- build_analysis_s4(config = config, metadata = metadata_df, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
-  analysis <- filter_analysis_s4(analysis, stringency = "medium")
+  analysis <- build_analysis(config = config, metadata = metadata_df, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
+  analysis <- filter_analysis(analysis, stringency = "medium")
   
   # Add required calculations
-  analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0), verbose = FALSE)
-  analysis <- calculate_jis_s4(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
+  analysis <- calculate_diversity(analysis, q = c(0.5, 1.0), verbose = FALSE)
+  analysis <- calculate_jis(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
   
   # Test with different n_genes values - should execute without error
   expect_silent({
-    TSENAT:::plot_jis_delta_s4(analysis, n_genes = 2, verbose = FALSE)
+    TSENAT:::plot_jis_delta(analysis, n_genes = 2, verbose = FALSE)
   })
   
   expect_silent({
-    TSENAT:::plot_jis_delta_s4(analysis, n_genes = 10, verbose = FALSE)
+    TSENAT:::plot_jis_delta(analysis, n_genes = 10, verbose = FALSE)
   })
 })
 
@@ -995,25 +995,25 @@ test_that("S4 plotting functions work on complete analysis object", {
     paired = TRUE,
     control = "normal"
   )
-  analysis <- build_analysis_s4(config = config, metadata = metadata_df, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
-  analysis <- filter_analysis_s4(analysis, stringency = "medium")
+  analysis <- build_analysis(config = config, metadata = metadata_df, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
+  analysis <- filter_analysis(analysis, stringency = "medium")
   
   # Add all required calculations
-  analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0), verbose = FALSE)
-  analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0), verbose = FALSE)
-  analysis <- calculate_difference_s4(analysis, method = "median", verbose = FALSE)
-  analysis <- calculate_jis_s4(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
+  analysis <- calculate_diversity(analysis, q = c(0.5, 1.0), verbose = FALSE)
+  analysis <- calculate_divergence(analysis, q = c(0.5, 1.0), verbose = FALSE)
+  analysis <- calculate_difference(analysis, method = "median", verbose = FALSE)
+  analysis <- calculate_jis(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
   
   # All three should execute successfully without error
   expect_silent({
-    TSENAT:::plot_diversity_volcano_ma_s4(analysis, verbose = FALSE)
+    TSENAT:::plot_diversity_volcano_ma(analysis, verbose = FALSE)
   })
   
   expect_silent({
-    TSENAT:::plot_divergence_spectrum_s4(analysis, n_genes = 2, verbose = FALSE)
+    TSENAT:::plot_divergence_spectrum(analysis, n_genes = 2, verbose = FALSE)
   })
   
   expect_silent({
-    TSENAT:::plot_jis_delta_s4(analysis, n_genes = 3, verbose = FALSE)
+    TSENAT:::plot_jis_delta(analysis, n_genes = 3, verbose = FALSE)
   })
 })

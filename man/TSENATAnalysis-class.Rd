@@ -69,7 +69,7 @@ statistical testing. Top-level names identify analysis type:
 
 \item{\code{pairwise_results}}{\code{list}. Pairwise group comparison results.
 Contains differential testing output computed by
-\code{calculate_difference_s4()}, stored under the \code{difference}
+\code{calculate_difference()}, stored under the \code{difference}
 component.}
 
 \item{\code{jackknife_results}}{\code{list}. Resampling-based confidence intervals.
@@ -170,9 +170,9 @@ metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package
   header = TRUE, sep = '\t')
 gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
-analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+analysis <- build_analysis(readcounts = readcounts, tx2gene =
 gff3_file, metadata = metadata_df, config = config,
   tpm = tpm, effective_length = effective_length)
-analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 = 200)
 }

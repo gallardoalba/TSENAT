@@ -1,5 +1,5 @@
 # Comprehensive testing of all plotting functions
-# Tests plot_ma, plot_top_transcripts, plot_volcano, plot_diversity_spectrum_s4,
+# Tests plot_ma, plot_top_transcripts, plot_volcano, plot_diversity_spectrum,
 # plot_tsallis_violin_multq
 
 skip_on_bioc()
@@ -147,7 +147,7 @@ test_that("plot_volcano with custom columns", {
     expect_s3_class(p, "ggplot")
 })
 
-test_that("plot_diversity_spectrum_s4 returns ggplot with valid SE", {
+test_that("plot_diversity_spectrum returns ggplot with valid SE", {
     skip_if_not_installed("SummarizedExperiment")
     skip_if_not_installed("ggplot2")
     skip_if_not_installed("tidyr")
@@ -170,7 +170,7 @@ test_that("plot_diversity_spectrum_s4 returns ggplot with valid SE", {
 
     ts_se <- TSENAT:::.map_metadata_se(ts_se, coldata_df, sample_col = "Sample", condition_col = "Condition")
 
-    p <- plot_diversity_spectrum_s4(ts_se)
+    p <- plot_diversity_spectrum(ts_se)
     expect_true(inherits(p, "ggplot"))
 })
 
@@ -335,7 +335,7 @@ test_that("plot_ma_tsallis handles simple inputs", {
 })
 
 
-test_that("plot_diversity_spectrum_s4 correctly handles multiple groups with different entropy values", {
+test_that("plot_diversity_spectrum correctly handles multiple groups with different entropy values", {
     skip_if_not_installed(c("ggplot2", "SummarizedExperiment", "dplyr"))
     
     # Create SE with two groups having different entropy profiles
@@ -375,7 +375,7 @@ test_that("plot_diversity_spectrum_s4 correctly handles multiple groups with dif
     SummarizedExperiment::colData(se) <- cd
     
     # Generate plot
-    p <- TSENAT:::plot_diversity_spectrum_s4(se, condition_col = "sample_type")
+    p <- TSENAT:::plot_diversity_spectrum(se, condition_col = "sample_type")
     
     # Verify plot is ggplot
     expect_s3_class(p, "ggplot")
@@ -401,7 +401,7 @@ test_that("plot_diversity_spectrum_s4 correctly handles multiple groups with dif
     expect_true(mean(normal_medians) > mean(tumor_medians))
 })
 
-test_that("plot_diversity_spectrum_s4 preserves decimal q-values correctly", {
+test_that("plot_diversity_spectrum preserves decimal q-values correctly", {
     skip_if_not_installed(c("ggplot2", "SummarizedExperiment", "dplyr"))
     
     # Create SE with decimal q-values
@@ -430,7 +430,7 @@ test_that("plot_diversity_spectrum_s4 preserves decimal q-values correctly", {
     SummarizedExperiment::colData(se) <- cd
     
     # Generate plot
-    p <- TSENAT:::plot_diversity_spectrum_s4(se, condition_col = "sample_type")
+    p <- TSENAT:::plot_diversity_spectrum(se, condition_col = "sample_type")
     
     # Verify plot data q values are numeric
     plot_data <- p$data
@@ -1027,10 +1027,10 @@ test_that(".plot_ma_core handles more edge cases", {
     expect_s3_class(p2, "ggplot")
 })
 
-test_that("plot_diversity_spectrum_s4 handles single group and empty long df", {
+test_that("plot_diversity_spectrum handles single group and empty long df", {
     se <- SummarizedExperiment(assays = list(diversity = matrix(rnorm(4), 2, dimnames = list(NULL, c("s1_q=0.1", "s2_q=0.1")))))
     colData(se) <- DataFrame(sample_type = c("A", "A"), row.names = c("s1", "s2"))
-    p <- plot_diversity_spectrum_s4(se)
+    p <- plot_diversity_spectrum(se)
     expect_s3_class(p, "ggplot")
     # check that legend is removed for single group
     expect_true(p$theme$legend.position == "none")
@@ -1040,10 +1040,10 @@ test_that("plot_diversity_spectrum_s4 handles single group and empty long df", {
     se_empty <- SummarizedExperiment(assays = list(diversity = matrix(NA_real_, nrow = 1, ncol = 1, dimnames = list(NULL, c("s1_q=0.1")))))
     SummarizedExperiment::rowData(se_empty)$genes <- "g1"
     SummarizedExperiment::colData(se_empty) <- DataFrame(sample_type = "A", row.names = "s1")
-    expect_error(plot_diversity_spectrum_s4(se_empty), "No tsallis values found in SummarizedExperiment")
+    expect_error(plot_diversity_spectrum(se_empty), "No tsallis values found in SummarizedExperiment")
 
     # not a summarized experiment
-    expect_error(plot_diversity_spectrum_s4(123), "unable to find an inherited method")
+    expect_error(plot_diversity_spectrum(123), "unable to find an inherited method")
 })
 
 
@@ -1441,7 +1441,7 @@ test_that("plot_jis_delta creates valid PNG file", {
 # TSENAT: Test Suite for Single-q Visualization Functions
 # ============================================================================
 # Purpose: Tests .plot_diversity_violin_singleq(), .plot_diversity_density_singleq(),
-#          and plot_diversity_violin_density_s4() for single q-value input
+#          and plot_diversity_violin_density() for single q-value input
 # ============================================================================
 
 test_that("Violin plotting with single q values", {
@@ -1488,8 +1488,8 @@ test_that("Violin and density grid combined plotting", {
   # Calculate diversity with norm=TRUE to avoid edge cases
   result <- .calculate_diversity(x, genes, q = 1.0, norm = TRUE, verbose = FALSE)
   
-  # Test plot_diversity_violin_density_s4() (note the _s4 suffix)
-  p <- plot_diversity_violin_density_s4(result)
+  # Test plot_diversity_violin_density() (note the _s4 suffix)
+  p <- plot_diversity_violin_density(result)
   
   # Should return a ggplot or gtable
   expect_true(
@@ -2162,12 +2162,12 @@ setup_bootstrap_no_ci_analysis <- function() {
 # TEST: Bootstrap CI detection (Lines 688-694)
 # ==============================================================================
 
-test_that("plot_diversity_spectrum_s4 bootstrap: CI auto-detection when both assays present (line 694)", {
+test_that("plot_diversity_spectrum bootstrap: CI auto-detection when both assays present (line 694)", {
   analysis <- setup_bootstrap_ci_analysis()
   
   # Function should automatically detect CI assays and use bootstrap mode
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       condition_col = "condition"
     )
@@ -2177,12 +2177,12 @@ test_that("plot_diversity_spectrum_s4 bootstrap: CI auto-detection when both ass
   expect_true(is.null(result$error) || !grepl("found in SE", result$error, ignore.case = TRUE))
 })
 
-test_that("plot_diversity_spectrum_s4 fallback: IQR when no CI data available (lines 697-700)", {
+test_that("plot_diversity_spectrum fallback: IQR when no CI data available (lines 697-700)", {
   analysis <- setup_bootstrap_no_ci_analysis()
   
   # Should fall back to IQR when CI assays not available (no warning)
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       condition_col = "condition"
     )
@@ -2196,12 +2196,12 @@ test_that("plot_diversity_spectrum_s4 fallback: IQR when no CI data available (l
 # TEST: Basic mode plot creation (Lines 709-755)
 # ==============================================================================
 
-test_that("plot_diversity_spectrum_s4 basic mode: plot creation (lines 725-755)", {
+test_that("plot_diversity_spectrum basic mode: plot creation (lines 725-755)", {
   analysis <- setup_bootstrap_no_ci_analysis()
   
   # Should create IQR-based plot when CI data unavailable
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       condition_col = "condition"
     )
@@ -2215,12 +2215,12 @@ test_that("plot_diversity_spectrum_s4 basic mode: plot creation (lines 725-755)"
   }
 })
 
-test_that("plot_diversity_spectrum_s4 basic mode: IQR ribbon computation (lines 717-722)", {
+test_that("plot_diversity_spectrum basic mode: IQR ribbon computation (lines 717-722)", {
   analysis <- setup_bootstrap_ci_analysis()
   
   # Basic mode should compute median and IQR
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       bootstrap = FALSE,
       condition_col = "condition"
@@ -2231,7 +2231,7 @@ test_that("plot_diversity_spectrum_s4 basic mode: IQR ribbon computation (lines 
   expect_true(is.null(result$error) || !is.null(result))
 })
 
-test_that("plot_diversity_spectrum_s4 basic mode: single group legend hiding (line 751-752)", {
+test_that("plot_diversity_spectrum basic mode: single group legend hiding (line 751-752)", {
   # Create single-group analysis
   se <- setup_bootstrap_ci_analysis()@diversity_results[[1]]
   if (is(se, "SummarizedExperiment")) {
@@ -2243,7 +2243,7 @@ test_that("plot_diversity_spectrum_s4 basic mode: single group legend hiding (li
   
   # Basic mode with single group should hide legend
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       se,
       bootstrap = FALSE,
       condition_col = "condition",
@@ -2259,12 +2259,12 @@ test_that("plot_diversity_spectrum_s4 basic mode: single group legend hiding (li
 # TEST: Bootstrap CI assay detection (Lines 688-689, 785-787)
 # ==============================================================================
 
-test_that("plot_diversity_spectrum_s4 bootstrap: detect ci_lower and ci_upper assays (line 688-689)", {
+test_that("plot_diversity_spectrum bootstrap: detect ci_lower and ci_upper assays (line 688-689)", {
   analysis <- setup_bootstrap_ci_analysis()
   
   # Should detect both CI assays
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       bootstrap = TRUE,
       condition_col = "condition"
@@ -2279,12 +2279,12 @@ test_that("plot_diversity_spectrum_s4 bootstrap: detect ci_lower and ci_upper as
   }
 })
 
-test_that("plot_diversity_spectrum_s4 bootstrap: error when CI assays missing (line 785-787)", {
+test_that("plot_diversity_spectrum bootstrap: error when CI assays missing (line 785-787)", {
   analysis <- setup_bootstrap_no_ci_analysis()
   
   # Directly call with bootstrap mode expecting CI (should warn/fallback)
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       bootstrap = TRUE,
       condition_col = "condition"
@@ -2299,12 +2299,12 @@ test_that("plot_diversity_spectrum_s4 bootstrap: error when CI assays missing (l
 # TEST: Bootstrap data validation (Lines 761-791)
 # ==============================================================================
 
-test_that("plot_diversity_spectrum_s4 bootstrap: long data preparation (line 761)", {
+test_that("plot_diversity_spectrum bootstrap: long data preparation (line 761)", {
   analysis <- setup_bootstrap_ci_analysis()
   
   # Long data preparation should work
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       bootstrap = TRUE,
       condition_col = "condition"
@@ -2318,12 +2318,12 @@ test_that("plot_diversity_spectrum_s4 bootstrap: long data preparation (line 761
   }
 })
 
-test_that("plot_diversity_spectrum_s4 bootstrap: q-value extraction (line 766-767)", {
+test_that("plot_diversity_spectrum bootstrap: q-value extraction (line 766-767)", {
   analysis <- setup_bootstrap_ci_analysis()
   
   # Q-values should be extracted as numeric
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       bootstrap = TRUE,
       condition_col = "condition"
@@ -2334,12 +2334,12 @@ test_that("plot_diversity_spectrum_s4 bootstrap: q-value extraction (line 766-76
   expect_true(is.null(result$error) || !grepl("numeric", result$error, ignore.case = TRUE))
 })
 
-test_that("plot_diversity_spectrum_s4 bootstrap: minimum q-value count (line 770-771)", {
+test_that("plot_diversity_spectrum bootstrap: minimum q-value count (line 770-771)", {
   se <- setup_bootstrap_ci_analysis()@diversity_results[[1]]
   if (is(se, "SummarizedExperiment")) {
     # Ensure at least 2 q-values (should already have them from setup)
     result <- suppressWarnings(tryCatch({
-      plot_diversity_spectrum_s4(
+      plot_diversity_spectrum(
         se,
         bootstrap = TRUE,
         condition_col = "condition",
@@ -2357,12 +2357,12 @@ test_that("plot_diversity_spectrum_s4 bootstrap: minimum q-value count (line 770
 # TEST: Column validation (Lines 775-776, 779-781)
 # ==============================================================================
 
-test_that("plot_diversity_spectrum_s4 bootstrap: condition_col validation (line 775-776)", {
+test_that("plot_diversity_spectrum bootstrap: condition_col validation (line 775-776)", {
   analysis <- setup_bootstrap_ci_analysis()
   
   # Invalid condition_col should either error or fail gracefully
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       bootstrap = TRUE,
       condition_col = "nonexistent_column"
@@ -2373,12 +2373,12 @@ test_that("plot_diversity_spectrum_s4 bootstrap: condition_col validation (line 
   expect_true(is.null(result$error) || is.list(result) || !is.null(result))
 })
 
-test_that("plot_diversity_spectrum_s4 bootstrap: group count validation (line 779-781)", {
+test_that("plot_diversity_spectrum bootstrap: group count validation (line 779-781)", {
   analysis <- setup_bootstrap_ci_analysis()
   
   # 2 groups expected for bootstrap comparison
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       bootstrap = TRUE,
       condition_col = "condition"
@@ -2398,12 +2398,12 @@ test_that("plot_diversity_spectrum_s4 bootstrap: group count validation (line 77
 # TEST: Bootstrap plot data construction (Lines 800-858)
 # ==============================================================================
 
-test_that("plot_diversity_spectrum_s4 bootstrap: plot_df initialization (lines 800-806)", {
+test_that("plot_diversity_spectrum bootstrap: plot_df initialization (lines 800-806)", {
   analysis <- setup_bootstrap_ci_analysis()
   
   # Plot data frame should be initialized with proper columns
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       bootstrap = TRUE,
       condition_col = "condition"
@@ -2413,12 +2413,12 @@ test_that("plot_diversity_spectrum_s4 bootstrap: plot_df initialization (lines 8
   expect_true(is.null(result$error) || !is.null(result))
 })
 
-test_that("plot_diversity_spectrum_s4 bootstrap: group-q loop iteration (lines 810-858)", {
+test_that("plot_diversity_spectrum bootstrap: group-q loop iteration (lines 810-858)", {
   analysis <- setup_bootstrap_ci_analysis()
   
   # Should iterate through groups and q-values
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       bootstrap = TRUE,
       condition_col = "condition"
@@ -2429,12 +2429,12 @@ test_that("plot_diversity_spectrum_s4 bootstrap: group-q loop iteration (lines 8
   expect_true(is.null(result$error) || !is.null(result))
 })
 
-test_that("plot_diversity_spectrum_s4 bootstrap: sample CI bounds aggregation (lines 820-845)", {
+test_that("plot_diversity_spectrum bootstrap: sample CI bounds aggregation (lines 820-845)", {
   analysis <- setup_bootstrap_ci_analysis()
   
   # Sample-level CI bounds should be aggregated
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       bootstrap = TRUE,
       condition_col = "condition"
@@ -2448,12 +2448,12 @@ test_that("plot_diversity_spectrum_s4 bootstrap: sample CI bounds aggregation (l
 # TEST: Bootstrap plot creation (Lines 861-891)
 # ==============================================================================
 
-test_that("plot_diversity_spectrum_s4 bootstrap: plot creation with CI bands (lines 861-870)", {
+test_that("plot_diversity_spectrum bootstrap: plot creation with CI bands (lines 861-870)", {
   analysis <- setup_bootstrap_ci_analysis()
   
   # Bootstrap mode should create plot with CI ribbons
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       bootstrap = TRUE,
       condition_col = "condition"
@@ -2468,12 +2468,12 @@ test_that("plot_diversity_spectrum_s4 bootstrap: plot creation with CI bands (li
   }
 })
 
-test_that("plot_diversity_spectrum_s4 bootstrap: plot styling (lines 871-883)", {
+test_that("plot_diversity_spectrum bootstrap: plot styling (lines 871-883)", {
   analysis <- setup_bootstrap_ci_analysis()
   
   # Plot should have proper styling
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       bootstrap = TRUE,
       condition_col = "condition"
@@ -2483,12 +2483,12 @@ test_that("plot_diversity_spectrum_s4 bootstrap: plot styling (lines 871-883)", 
   expect_true(is.null(result$error) || !is.null(result))
 })
 
-test_that("plot_diversity_spectrum_s4 bootstrap: color scales (lines 884-885)", {
+test_that("plot_diversity_spectrum bootstrap: color scales (lines 884-885)", {
   analysis <- setup_bootstrap_ci_analysis()
   
   # Manual color scales should be applied
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       bootstrap = TRUE,
       condition_col = "condition"
@@ -2498,7 +2498,7 @@ test_that("plot_diversity_spectrum_s4 bootstrap: color scales (lines 884-885)", 
   expect_true(is.null(result$error) || !is.null(result))
 })
 
-test_that("plot_diversity_spectrum_s4 bootstrap: single group legend (lines 887-888)", {
+test_that("plot_diversity_spectrum bootstrap: single group legend (lines 887-888)", {
   # Create single-group data with CIs
   se <- setup_bootstrap_ci_analysis()@diversity_results[[1]]
   if (is(se, "SummarizedExperiment")) {
@@ -2507,7 +2507,7 @@ test_that("plot_diversity_spectrum_s4 bootstrap: single group legend (lines 887-
     SummarizedExperiment::colData(se) <- cd
     
     result <- suppressWarnings(tryCatch({
-      plot_diversity_spectrum_s4(
+      plot_diversity_spectrum(
         se,
         bootstrap = TRUE,
         condition_col = "condition",
@@ -2525,12 +2525,12 @@ test_that("plot_diversity_spectrum_s4 bootstrap: single group legend (lines 887-
 # TEST: Return value (Line 891)
 # ==============================================================================
 
-test_that("plot_diversity_spectrum_s4 bootstrap: returns ggplot object (line 891)", {
+test_that("plot_diversity_spectrum bootstrap: returns ggplot object (line 891)", {
   analysis <- setup_bootstrap_ci_analysis()
   
   # Function should return ggplot for bootstrap mode
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       bootstrap = TRUE,
       condition_col = "condition"
@@ -2653,12 +2653,12 @@ create_lm_res_p_value <- function() {
 # TEST: Assay name validation (Line 559)
 # ==============================================================================
 
-test_that("plot_diversity_spectrum_s4 gene-mode: invalid assay name error (line 559)", {
+test_that("plot_diversity_spectrum gene-mode: invalid assay name error (line 559)", {
   analysis <- setup_gene_mode_analysis()
   
   # Try to use non-existent assay - function will error during processing
   suppressWarnings(expect_error(
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       gene = "GENE_1",
       assay_name = "nonexistent_assay"
@@ -2668,13 +2668,13 @@ test_that("plot_diversity_spectrum_s4 gene-mode: invalid assay name error (line 
   ))
 })
 
-test_that("plot_diversity_spectrum_s4 gene-mode: valid assay name passes validation (line 559)", {
+test_that("plot_diversity_spectrum gene-mode: valid assay name passes validation (line 559)", {
   analysis <- setup_gene_mode_analysis()
   
   # Should not error on assay validation with existing assay
   # (may error later on computation/data issues, that's ok)
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       gene = "GENE_1",
       assay_name = "diversity"
@@ -2696,13 +2696,13 @@ test_that("plot_diversity_spectrum_s4 gene-mode: valid assay name passes validat
 # TEST: prepare_tsallis_long call (Line 566)
 # ==============================================================================
 
-test_that("plot_diversity_spectrum_s4 gene-mode: prepare_tsallis_long is called (line 566)", {
+test_that("plot_diversity_spectrum gene-mode: prepare_tsallis_long is called (line 566)", {
   analysis <- setup_gene_mode_analysis()
   
   # Verify that calling with gene param triggers prepare_tsallis_long path
   # The function should attempt to prepare data for specified gene
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       gene = "GENE_1",
       assay_name = "diversity"
@@ -2717,14 +2717,14 @@ test_that("plot_diversity_spectrum_s4 gene-mode: prepare_tsallis_long is called 
 # TEST: Gene column validation (Line 567)
 # ==============================================================================
 
-test_that("plot_diversity_spectrum_s4 gene-mode: Gene column requirement (line 567)", {
+test_that("plot_diversity_spectrum gene-mode: Gene column requirement (line 567)", {
   # This test verifies the function checks for Gene column in prepared data
   # prepare_tsallis_long should return data with Gene column
   analysis <- setup_gene_mode_analysis()
   
   # Calling with gene should work if prepare_tsallis_long returns proper structure
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       gene = "GENE_1",
       assay_name = "diversity"
@@ -2744,13 +2744,13 @@ test_that("plot_diversity_spectrum_s4 gene-mode: Gene column requirement (line 5
 # TEST: gene vs lm_res resolution (Lines 570-571)
 # ==============================================================================
 
-test_that("plot_diversity_spectrum_s4 gene-mode: gene parameter takes precedence (line 570)", {
+test_that("plot_diversity_spectrum gene-mode: gene parameter takes precedence (line 570)", {
   analysis <- setup_gene_mode_analysis()
   lm_res <- create_lm_res_adj_p_interaction()
   
   # When gene is provided, lm_res should be ignored
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       gene = "GENE_2",  # gene is provided
       lm_res = lm_res,  # lm_res also provided
@@ -2762,13 +2762,13 @@ test_that("plot_diversity_spectrum_s4 gene-mode: gene parameter takes precedence
   expect_true(is.null(result) || is.list(result) || !is.null(result))
 })
 
-test_that("plot_diversity_spectrum_s4 gene-mode: NULL gene and lm_res falls back to aggregate mode (line 571)", {
+test_that("plot_diversity_spectrum gene-mode: NULL gene and lm_res falls back to aggregate mode (line 571)", {
   skip_on_cran()
   analysis <- setup_gene_mode_analysis()
   
   # When gene is NULL and lm_res is NULL with incomplete metadata, should error gracefully
   suppressWarnings(expect_error(
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       gene = NULL,
       lm_res = NULL,
@@ -2782,13 +2782,13 @@ test_that("plot_diversity_spectrum_s4 gene-mode: NULL gene and lm_res falls back
 # TEST: lm_res validation (Line 572)
 # ==============================================================================
 
-test_that("plot_diversity_spectrum_s4 gene-mode: lm_res must be data.frame (line 572)", {
+test_that("plot_diversity_spectrum gene-mode: lm_res must be data.frame (line 572)", {
   skip_on_cran()
   analysis <- setup_gene_mode_analysis()
   
   # lm_res as non-dataframe with incomplete metadata, should error on metadata first
   suppressWarnings(expect_error(
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       gene = NULL,
       lm_res = list(not_a_dataframe = TRUE),  # Not a data.frame
@@ -2798,7 +2798,7 @@ test_that("plot_diversity_spectrum_s4 gene-mode: lm_res must be data.frame (line
   ))
 })
 
-test_that("plot_diversity_spectrum_s4 gene-mode: lm_res must have gene column (line 572)", {
+test_that("plot_diversity_spectrum gene-mode: lm_res must have gene column (line 572)", {
   skip_on_cran()
   analysis <- setup_gene_mode_analysis()
   
@@ -2809,7 +2809,7 @@ test_that("plot_diversity_spectrum_s4 gene-mode: lm_res must have gene column (l
   )
   
   suppressWarnings(expect_error(
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       gene = NULL,
       lm_res = bad_lm_res,
@@ -2823,13 +2823,13 @@ test_that("plot_diversity_spectrum_s4 gene-mode: lm_res must have gene column (l
 # TEST: P-column detection for different formats (Lines 575-586)
 # ==============================================================================
 
-test_that("plot_diversity_spectrum_s4 gene-mode: detect adj_p_interaction format (line 576-578)", {
+test_that("plot_diversity_spectrum gene-mode: detect adj_p_interaction format (line 576-578)", {
   analysis <- setup_gene_mode_analysis()
   lm_res <- create_lm_res_adj_p_interaction()
   
   # Should accept adj_p_interaction format
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       gene = NULL,
       lm_res = lm_res,
@@ -2847,13 +2847,13 @@ test_that("plot_diversity_spectrum_s4 gene-mode: detect adj_p_interaction format
   }
 })
 
-test_that("plot_diversity_spectrum_s4 gene-mode: detect p_interaction format (line 579-580)", {
+test_that("plot_diversity_spectrum gene-mode: detect p_interaction format (line 579-580)", {
   analysis <- setup_gene_mode_analysis()
   lm_res <- create_lm_res_p_interaction()
   
   # Should accept p_interaction format
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       gene = NULL,
       lm_res = lm_res,
@@ -2869,13 +2869,13 @@ test_that("plot_diversity_spectrum_s4 gene-mode: detect p_interaction format (li
   }
 })
 
-test_that("plot_diversity_spectrum_s4 gene-mode: detect adj_p_value format (line 581-583)", {
+test_that("plot_diversity_spectrum gene-mode: detect adj_p_value format (line 581-583)", {
   analysis <- setup_gene_mode_analysis()
   lm_res <- create_lm_res_adj_p_value()
   
   # Should accept adj_p_value format (Friedman/Wilcoxon)
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       gene = NULL,
       lm_res = lm_res,
@@ -2891,13 +2891,13 @@ test_that("plot_diversity_spectrum_s4 gene-mode: detect adj_p_value format (line
   }
 })
 
-test_that("plot_diversity_spectrum_s4 gene-mode: detect p_value format (line 584-585)", {
+test_that("plot_diversity_spectrum gene-mode: detect p_value format (line 584-585)", {
   analysis <- setup_gene_mode_analysis()
   lm_res <- create_lm_res_p_value()
   
   # Should accept p_value format
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       gene = NULL,
       lm_res = lm_res,
@@ -2917,7 +2917,7 @@ test_that("plot_diversity_spectrum_s4 gene-mode: detect p_value format (line 584
 # TEST: Missing p-column error (Line 588)
 # ==============================================================================
 
-test_that("plot_diversity_spectrum_s4 gene-mode: missing p-value column error (line 588)", {
+test_that("plot_diversity_spectrum gene-mode: missing p-value column error (line 588)", {
   skip_on_cran()
   analysis <- setup_gene_mode_analysis()
   
@@ -2929,7 +2929,7 @@ test_that("plot_diversity_spectrum_s4 gene-mode: missing p-value column error (l
   )
   
   suppressWarnings(expect_error(
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       gene = NULL,
       lm_res = bad_lm_res,
@@ -2943,13 +2943,13 @@ test_that("plot_diversity_spectrum_s4 gene-mode: missing p-value column error (l
 # TEST: Gene ordering and selection (Lines 590-593)
 # ==============================================================================
 
-test_that("plot_diversity_spectrum_s4 gene-mode: genes ordered by p-value (line 590)", {
+test_that("plot_diversity_spectrum gene-mode: genes ordered by p-value (line 590)", {
   analysis <- setup_gene_mode_analysis()
   lm_res <- create_lm_res_adj_p_interaction()
   
   # Genes should be ordered by p-value (smallest to largest)
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       gene = NULL,
       lm_res = lm_res,
@@ -2962,13 +2962,13 @@ test_that("plot_diversity_spectrum_s4 gene-mode: genes ordered by p-value (line 
   expect_true(is.null(result) || is.list(result) || !is.null(result))
 })
 
-test_that("plot_diversity_spectrum_s4 gene-mode: n_top defaults to 1 when NULL (line 592)", {
+test_that("plot_diversity_spectrum gene-mode: n_top defaults to 1 when NULL (line 592)", {
   analysis <- setup_gene_mode_analysis()
   lm_res <- create_lm_res_adj_p_interaction()
   
   # When n_top is NULL, should default to top 1 gene
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       gene = NULL,
       lm_res = lm_res,
@@ -2981,13 +2981,13 @@ test_that("plot_diversity_spectrum_s4 gene-mode: n_top defaults to 1 when NULL (
   expect_true(is.null(result) || is.list(result) || !is.null(result))
 })
 
-test_that("plot_diversity_spectrum_s4 gene-mode: n_top limits gene selection (line 593)", {
+test_that("plot_diversity_spectrum gene-mode: n_top limits gene selection (line 593)", {
   analysis <- setup_gene_mode_analysis()
   lm_res <- create_lm_res_adj_p_interaction()
   
   # n_top should limit selection (5 genes in lm_res, pick top 2)
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       gene = NULL,
       lm_res = lm_res,
@@ -3003,13 +3003,13 @@ test_that("plot_diversity_spectrum_s4 gene-mode: n_top limits gene selection (li
 # TEST: Empty genes check (Line 598)
 # ==============================================================================
 
-test_that("plot_diversity_spectrum_s4 gene-mode: empty gene vector falls back to aggregate mode (line 598)", {
+test_that("plot_diversity_spectrum gene-mode: empty gene vector falls back to aggregate mode (line 598)", {
   skip_on_cran()
   analysis <- setup_gene_mode_analysis()
   
   # Empty gene vector with incomplete metadata should error on metadata first
   suppressWarnings(expect_error(
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       gene = c(),  # Empty
       assay_name = "diversity"
@@ -3022,12 +3022,12 @@ test_that("plot_diversity_spectrum_s4 gene-mode: empty gene vector falls back to
 # TEST: Single gene plotting (Lines 601-627)
 # ==============================================================================
 
-test_that("plot_diversity_spectrum_s4 gene-mode: single gene plotting (line 631-632)", {
+test_that("plot_diversity_spectrum gene-mode: single gene plotting (line 631-632)", {
   analysis <- setup_gene_mode_analysis()
   
   # Single gene should return ggplot
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       gene = "GENE_1",
       assay_name = "diversity"
@@ -3047,12 +3047,12 @@ test_that("plot_diversity_spectrum_s4 gene-mode: single gene plotting (line 631-
   }
 })
 
-test_that("plot_diversity_spectrum_s4 gene-mode: median +/- SD computation (lines 607-610)", {
+test_that("plot_diversity_spectrum gene-mode: median +/- SD computation (lines 607-610)", {
   analysis <- setup_gene_mode_analysis()
   
   # Function should compute stats (median, SD/variance)
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       gene = "GENE_1",
       assay_name = "diversity"
@@ -3072,12 +3072,12 @@ test_that("plot_diversity_spectrum_s4 gene-mode: median +/- SD computation (line
 # TEST: Multi-gene plotting with grid arrangement (Lines 635-678)
 # ==============================================================================
 
-test_that("plot_diversity_spectrum_s4 gene-mode: multiple genes creates grid (lines 635-639)", {
+test_that("plot_diversity_spectrum gene-mode: multiple genes creates grid (lines 635-639)", {
   analysis <- setup_gene_mode_analysis()
   
   # Multiple genes should trigger grid arrangement
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       gene = c("GENE_1", "GENE_2", "GENE_3"),
       assay_name = "diversity"
@@ -3088,12 +3088,12 @@ test_that("plot_diversity_spectrum_s4 gene-mode: multiple genes creates grid (li
   expect_true(is.null(result) || is.list(result) || !is.null(result))
 })
 
-test_that("plot_diversity_spectrum_s4 gene-mode: legend extraction and positioning (lines 643-649)", {
+test_that("plot_diversity_spectrum gene-mode: legend extraction and positioning (lines 643-649)", {
   analysis <- setup_gene_mode_analysis()
   
   # Multiple genes triggers cowplot legend positioning
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       gene = c("GENE_1", "GENE_2", "GENE_3", "GENE_4"),
       assay_name = "diversity"
@@ -3104,12 +3104,12 @@ test_that("plot_diversity_spectrum_s4 gene-mode: legend extraction and positioni
   expect_true(is.null(result) || is.list(result) || !is.null(result))
 })
 
-test_that("plot_diversity_spectrum_s4 gene-mode: 2x2 grid arrangement (lines 657-660)", {
+test_that("plot_diversity_spectrum gene-mode: 2x2 grid arrangement (lines 657-660)", {
   analysis <- setup_gene_mode_analysis()
   
   # Multiple genes should be arranged in 2x2 grid
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       gene = c("GENE_1", "GENE_2", "GENE_3", "GENE_4"),
       assay_name = "diversity"
@@ -3120,12 +3120,12 @@ test_that("plot_diversity_spectrum_s4 gene-mode: 2x2 grid arrangement (lines 657
   expect_true(is.null(result) || is.list(result) || !is.null(result))
 })
 
-test_that("plot_diversity_spectrum_s4 gene-mode: title and subtitle construction (lines 663-667)", {
+test_that("plot_diversity_spectrum gene-mode: title and subtitle construction (lines 663-667)", {
   analysis <- setup_gene_mode_analysis()
   
   # Multiple genes should add title/subtitle layer
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       gene = c("GENE_2", "GENE_3"),
       assay_name = "diversity"
@@ -3136,12 +3136,12 @@ test_that("plot_diversity_spectrum_s4 gene-mode: title and subtitle construction
   expect_true(is.null(result) || is.list(result) || !is.null(result))
 })
 
-test_that("plot_diversity_spectrum_s4 gene-mode: full grid with legend assembly (lines 670-676)", {
+test_that("plot_diversity_spectrum gene-mode: full grid with legend assembly (lines 670-676)", {
   analysis <- setup_gene_mode_analysis()
   
   # Final assembly: title + grid + legend in 3-row layout
   result <- suppressWarnings(tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       gene = c("GENE_1", "GENE_2"),
       assay_name = "diversity"
@@ -3224,7 +3224,7 @@ setup_multiq_analysis <- function() {
 # TEST: Multiple q-value diversity results handling (Lines 430-551)
 # ==============================================================================
 
-test_that("plot_diversity_spectrum_s4: TSENATAnalysis with multiple q-values (lines 430-551)", {
+test_that("plot_diversity_spectrum: TSENATAnalysis with multiple q-values (lines 430-551)", {
   # Lines 430-551: Extract and combine multiple q-value diversity results
   analysis <- setup_multiq_analysis()
   
@@ -3237,7 +3237,7 @@ test_that("plot_diversity_spectrum_s4: TSENATAnalysis with multiple q-values (li
   # Function should accept TSENATAnalysis with multiple q-values
   # (may error on computation, that's ok)
   result <- tryCatch({
-    plot_diversity_spectrum_s4(
+    plot_diversity_spectrum(
       analysis,
       q = NULL,  # Use all q-values
       verbose = FALSE
@@ -3248,7 +3248,7 @@ test_that("plot_diversity_spectrum_s4: TSENATAnalysis with multiple q-values (li
   expect_true(TRUE)
 })
 
-test_that("plot_diversity_spectrum_s4: assay list initialization (lines 433-435)", {
+test_that("plot_diversity_spectrum: assay list initialization (lines 433-435)", {
   # Lines 433-435: Initialize assay list and first_se variables
   analysis <- setup_multiq_analysis()
   
@@ -3258,14 +3258,14 @@ test_that("plot_diversity_spectrum_s4: assay list initialization (lines 433-435)
   
   # Call function - should initialize lists properly (may error on computation, that's ok)
   result <- tryCatch({
-    plot_diversity_spectrum_s4(analysis, verbose = FALSE)
+    plot_diversity_spectrum(analysis, verbose = FALSE)
   }, error = function(e) list(error = conditionMessage(e)))
   
   # Should either succeed or error for a different reason than initialization
   expect_true(is.null(result) || is.list(result) || !is.list(result))
 })
 
-test_that("plot_diversity_spectrum_s4: loop through diversity_results (lines 437-446)", {
+test_that("plot_diversity_spectrum: loop through diversity_results (lines 437-446)", {
   # Lines 437-446: Iterate through diversity results, handle both SE and matrix objects
   analysis <- setup_multiq_analysis()
   
@@ -3281,14 +3281,14 @@ test_that("plot_diversity_spectrum_s4: loop through diversity_results (lines 437
   
   # Function should be callable with mixed input
   result <- tryCatch({
-    plot_diversity_spectrum_s4(analysis, verbose = FALSE)
+    plot_diversity_spectrum(analysis, verbose = FALSE)
   }, error = function(e) list(error = conditionMessage(e)))
   
   # Accept any result (success or error)
   expect_true(TRUE)
 })
 
-test_that("plot_diversity_spectrum_s4: q-value extraction and storage (lines 449-453)", {
+test_that("plot_diversity_spectrum: q-value extraction and storage (lines 449-453)", {
   # Lines 449-453: Extract q-value from name and store in dictionary
   analysis <- setup_multiq_analysis()
   
@@ -3304,13 +3304,13 @@ test_that("plot_diversity_spectrum_s4: q-value extraction and storage (lines 449
   
   # Function is callable with these q-values
   result <- tryCatch({
-    plot_diversity_spectrum_s4(analysis, verbose = FALSE)
+    plot_diversity_spectrum(analysis, verbose = FALSE)
   }, error = function(e) list(error = conditionMessage(e)))
   
   expect_true(TRUE)
 })
 
-test_that("plot_diversity_spectrum_s4: error when no SE in diversity_results (lines 457-459)", {
+test_that("plot_diversity_spectrum: error when no SE in diversity_results (lines 457-459)", {
   # Lines 457-459: Error handling when first_se is NULL
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(counts = matrix(1, nrow = 5, ncol = 4))
@@ -3324,14 +3324,14 @@ test_that("plot_diversity_spectrum_s4: error when no SE in diversity_results (li
   
   # Verify that when only matrices exist (no SE), function is still callable
   result <- tryCatch({
-    plot_diversity_spectrum_s4(analysis, verbose = FALSE)
+    plot_diversity_spectrum(analysis, verbose = FALSE)
   }, error = function(e) list(error = conditionMessage(e)))
   
   # The function should either work or error - both are acceptable
   expect_true(TRUE)
 })
 
-test_that("plot_diversity_spectrum_s4: target dimensions extraction (lines 462-464)", {
+test_that("plot_diversity_spectrum: target dimensions extraction (lines 462-464)", {
   # Lines 462-464: Extract target gene names and column count
   analysis <- setup_multiq_analysis()
   
@@ -3348,7 +3348,7 @@ test_that("plot_diversity_spectrum_s4: target dimensions extraction (lines 462-4
   expect_true(TRUE)
 })
 
-test_that("plot_diversity_spectrum_s4: combined assay creation (lines 467-469)", {
+test_that("plot_diversity_spectrum: combined assay creation (lines 467-469)", {
   # Lines 467-469: Create combined assay matrix with proper dimensions
   analysis <- setup_multiq_analysis()
   
@@ -3364,7 +3364,7 @@ test_that("plot_diversity_spectrum_s4: combined assay creation (lines 467-469)",
   expect_true(TRUE)
 })
 
-test_that("plot_diversity_spectrum_s4: column count mismatch handling (lines 480-489)", {
+test_that("plot_diversity_spectrum: column count mismatch handling (lines 480-489)", {
   # Lines 480-489: Detect and handle when q-value result has different column count
   analysis <- setup_multiq_analysis()
   
@@ -3379,14 +3379,14 @@ test_that("plot_diversity_spectrum_s4: column count mismatch handling (lines 480
   
   # Function should be callable (mismatch handling code will execute)
   result <- tryCatch({
-    plot_diversity_spectrum_s4(analysis, verbose = FALSE)
+    plot_diversity_spectrum(analysis, verbose = FALSE)
   }, error = function(e) list(error = conditionMessage(e)))
   
   # Test passes - we verified mismatch handling code path exists
   expect_true(TRUE)
 })
 
-test_that("plot_diversity_spectrum_s4: column naming with q-value suffix (lines 503-510)", {
+test_that("plot_diversity_spectrum: column naming with q-value suffix (lines 503-510)", {
   # Lines 503-510: Create unique column names with q-value suffix
   analysis <- setup_multiq_analysis()
   
@@ -3402,7 +3402,7 @@ test_that("plot_diversity_spectrum_s4: column naming with q-value suffix (lines 
   expect_true(TRUE)
 })
 
-test_that("plot_diversity_spectrum_s4: dimension validation (lines 513-520)", {
+test_that("plot_diversity_spectrum: dimension validation (lines 513-520)", {
   # Lines 513-520: Validate dimensions before assigning to combined assay
   analysis <- setup_multiq_analysis()
   
@@ -3423,7 +3423,7 @@ test_that("plot_diversity_spectrum_s4: dimension validation (lines 513-520)", {
   expect_true(TRUE)
 })
 
-test_that("plot_diversity_spectrum_s4: combined assay population (lines 522-525)", {
+test_that("plot_diversity_spectrum: combined assay population (lines 522-525)", {
   # Lines 522-525: Fill in combined assay matrix column by column
   analysis <- setup_multiq_analysis()
   
@@ -3442,7 +3442,7 @@ test_that("plot_diversity_spectrum_s4: combined assay population (lines 522-525)
   expect_true(TRUE)
 })
 
-test_that("plot_diversity_spectrum_s4: colData construction from diversity_results (lines 528-535)", {
+test_that("plot_diversity_spectrum: colData construction from diversity_results (lines 528-535)", {
   # Lines 528-535: Build colData from each diversity result
   analysis <- setup_multiq_analysis()
   
@@ -3458,7 +3458,7 @@ test_that("plot_diversity_spectrum_s4: colData construction from diversity_resul
   expect_true(TRUE)
 })
 
-test_that("plot_diversity_spectrum_s4: combined SE creation and assay naming (lines 539-550)", {
+test_that("plot_diversity_spectrum: combined SE creation and assay naming (lines 539-550)", {
   # Lines 539-550: Create final SummarizedExperiment with combined results
   analysis <- setup_multiq_analysis()
   
@@ -3469,7 +3469,7 @@ test_that("plot_diversity_spectrum_s4: combined SE creation and assay naming (li
   
   # Function should be callable to combine data
   result <- tryCatch({
-    plot_diversity_spectrum_s4(analysis, verbose = FALSE)
+    plot_diversity_spectrum(analysis, verbose = FALSE)
   }, error = function(e) list(error = conditionMessage(e)))
   
   # Test passes - code paths are exercised
@@ -4736,7 +4736,7 @@ test_that("plot_tsallis_density_singleq: two-group comparison", {
   expect_is(p, "ggplot")
 })
 
-test_that("plot_diversity_violin_density_s4: violin plot with density", {
+test_that("plot_diversity_violin_density: violin plot with density", {
   config <- list()
   skip_if_not_installed("ggplot2")
   
@@ -4753,7 +4753,7 @@ test_that("plot_diversity_violin_density_s4: violin plot with density", {
   expect_is(p, "ggplot")
 })
 
-test_that("plot_diversity_violin_density_s4: multi-q faceting", {
+test_that("plot_diversity_violin_density: multi-q faceting", {
   config <- list()
   skip_if_not_installed("ggplot2")
   
@@ -5399,10 +5399,10 @@ test_that("infer_samples_from_se: handles matrix input for samples parameter", {
 })
 
 # ============================================================================
-# TEST: plot_divergence_distribution_s4 - S4 Distribution Plot
+# TEST: plot_divergence_distribution - S4 Distribution Plot
 # ============================================================================
 
-test_that("plot_divergence_distribution_s4: requires effect_sizes_divergence in metadata", {
+test_that("plot_divergence_distribution: requires effect_sizes_divergence in metadata", {
   skip_if_not_installed("SummarizedExperiment")
   
   set.seed(5555)
@@ -5420,12 +5420,12 @@ test_that("plot_divergence_distribution_s4: requires effect_sizes_divergence in 
   
   # Calling without effect_sizes should error
   expect_error(
-    TSENAT::plot_divergence_distribution_s4(analysis),
+    TSENAT::plot_divergence_distribution(analysis),
     regex = "Effect sizes not found"
   )
 })
 
-test_that("plot_divergence_distribution_s4: returns plot or NULL gracefully", {
+test_that("plot_divergence_distribution: returns plot or NULL gracefully", {
   skip_if_not_installed("SummarizedExperiment")
   skip_if_not_installed("ggplot2")
   
@@ -5452,15 +5452,15 @@ test_that("plot_divergence_distribution_s4: returns plot or NULL gracefully", {
   )
   
   # Call function - should return ggplot or NULL
-  result <- TSENAT::plot_divergence_distribution_s4(analysis)
+  result <- TSENAT::plot_divergence_distribution(analysis)
   expect_true(is.null(result) || inherits(result, "ggplot"))
 })
 
 # ============================================================================
-# TEST: plot_concordance_s4 - S4 Concordance Plot
+# TEST: plot_concordance - S4 Concordance Plot
 # ============================================================================
 
-test_that("plot_concordance_s4: requires method_concordance in metadata", {
+test_that("plot_concordance: requires method_concordance in metadata", {
   skip_if_not_installed("SummarizedExperiment")
   
   set.seed(5557)
@@ -5478,12 +5478,12 @@ test_that("plot_concordance_s4: requires method_concordance in metadata", {
   
   # Calling without concordance results should error
   expect_error(
-    TSENAT::plot_concordance_s4(analysis),
+    TSENAT::plot_concordance(analysis),
     regex = "No concordance results found"
   )
 })
 
-test_that("plot_concordance_s4: returns plot with valid concordance data", {
+test_that("plot_concordance: returns plot with valid concordance data", {
   skip_if_not_installed("SummarizedExperiment")
   skip_if_not_installed("ggplot2")
   
@@ -5515,7 +5515,7 @@ test_that("plot_concordance_s4: returns plot with valid concordance data", {
   )
   
   # Call function
-  result <- TSENAT::plot_concordance_s4(analysis, verbose = FALSE)
+  result <- TSENAT::plot_concordance(analysis, verbose = FALSE)
   expect_true(is.null(result) || inherits(result, "ggplot") || is.list(result))
 })
 
@@ -5548,7 +5548,7 @@ config <- TSENAT_config(
 )
 
 # Build analysis object
-analysis <- build_analysis_s4(
+analysis <- build_analysis(
     readcounts = readcounts,
     tx2gene = gff3_dataset,
     metadata = metadata_df,
@@ -5558,16 +5558,16 @@ analysis <- build_analysis_s4(
 )
 
 # Apply filtering for quality control
-analysis <- filter_analysis_s4(
+analysis <- filter_analysis(
     analysis,
     stringency = "severe"
 )
 
 # Calculate diversity
-analysis <- calculate_diversity_s4(analysis, norm = TRUE, verbose = FALSE)
+analysis <- calculate_diversity(analysis, norm = TRUE, verbose = FALSE)
 
 # Calculate LM interaction results for plotting tests
-analysis <- suppressWarnings(calculate_lm_s4(
+analysis <- suppressWarnings(calculate_lm(
     analysis,
     method = "gam",
     multicorr = "hochberg",
@@ -5575,51 +5575,51 @@ analysis <- suppressWarnings(calculate_lm_s4(
 ))
 
 # =============================================================================
-# Test: plot_lm_gam_s4 - Enhanced Assertions
+# Test: plot_lm_gam - Enhanced Assertions
 # =============================================================================
 
-test_that("plot_lm_gam_s4 calculates LM and returns valid grid plot", {
+test_that("plot_lm_gam calculates LM and returns valid grid plot", {
     skip_on_cran()
-    p <- plot_lm_gam_s4(analysis, n_top = 4)
+    p <- plot_lm_gam(analysis, n_top = 4)
     
     # Should return grid of plots for top 4 genes
     expect_true(inherits(p, "ggplot") || inherits(p, "gtable") || 
                 inherits(p, "Reduce") || is.null(p))
 })
 
-test_that("plot_lm_gam_s4 produces faceted grid with correct structure", {
+test_that("plot_lm_gam produces faceted grid with correct structure", {
     skip_on_cran()
-    p <- plot_lm_gam_s4(analysis, n_top = 4)
+    p <- plot_lm_gam(analysis, n_top = 4)
     expect_true(inherits(p, "ggplot") || inherits(p, "gtable") || is.null(p))
 })
 
-test_that("plot_lm_gam_s4 creates plot when method='gam'", {
+test_that("plot_lm_gam creates plot when method='gam'", {
     skip_on_cran()
     # First calculate LM with GAM method
-    test_analysis <- suppressWarnings(calculate_lm_s4(
+    test_analysis <- suppressWarnings(calculate_lm(
         analysis,
         method = "gam",
         multicorr = "hochberg",
         verbose = FALSE
     ))
     
-    p <- plot_lm_gam_s4(test_analysis, n_top = 3)
+    p <- plot_lm_gam(test_analysis, n_top = 3)
     
     # Should not error; may be NULL if no significant genes
     expect_true(is.null(p) || inherits(p, "ggplot") || inherits(p, "gtable"))
 })
 
-test_that("plot_lm_gam_s4 handles method='gam' with high n_top", {
+test_that("plot_lm_gam handles method='gam' with high n_top", {
     skip_on_cran()
-    p <- plot_lm_gam_s4(analysis, n_top = 6)
+    p <- plot_lm_gam(analysis, n_top = 6)
     
     # Should handle gracefully even if fewer genes exist
     expect_true(is.null(p) || inherits(p, "ggplot") || inherits(p, "gtable"))
 })
 
-test_that("plot_lm_gam_s4 produces plots with valid geometry", {
+test_that("plot_lm_gam produces plots with valid geometry", {
     skip_on_cran()
-    p <- plot_lm_gam_s4(analysis, n_top = 2)
+    p <- plot_lm_gam(analysis, n_top = 2)
     expect_true(is.null(p) || inherits(p, "ggplot") || inherits(p, "gtable"))
 })
 
@@ -5630,13 +5630,13 @@ test_that("plot_lm_gam_s4 produces plots with valid geometry", {
 test_that("Lazy switching_tables via results() produces valid output structure", {
     skip_on_cran()
     # Run LM first to populate lm_results
-    result <- suppressWarnings(calculate_lm_s4(
+    result <- suppressWarnings(calculate_lm(
         analysis,
         method = "gam",
         verbose = FALSE
     ))
     # Then run jackknife to get switching results
-    result <- suppressWarnings(calculate_jis_s4(
+    result <- suppressWarnings(calculate_jis(
         result,
         q = c(0.5, 1.0),
         n_bootstrap = 10,
@@ -5652,13 +5652,13 @@ test_that("Lazy switching_tables via results() produces valid output structure",
 test_that("Lazy switching_tables via results() includes required structure", {
     skip_on_cran()
     # Run LM first to populate lm_results
-    result <- suppressWarnings(calculate_lm_s4(
+    result <- suppressWarnings(calculate_lm(
         analysis,
         method = "gam",
         verbose = FALSE
     ))
     # Then run jackknife
-    result <- suppressWarnings(calculate_jis_s4(
+    result <- suppressWarnings(calculate_jis(
         result,
         q = c(0.5, 1.0),
         n_bootstrap = 10,
@@ -5675,13 +5675,13 @@ test_that("Lazy switching_tables via results() includes required structure", {
 test_that("Lazy switching_tables handles empty results gracefully", {
     skip_on_cran()
     # Run LM first to populate lm_results
-    result <- suppressWarnings(calculate_lm_s4(
+    result <- suppressWarnings(calculate_lm(
         analysis,
         method = "gam",
         verbose = FALSE
     ))
     # Then run jackknife
-    result <- suppressWarnings(calculate_jis_s4(
+    result <- suppressWarnings(calculate_jis(
         result,
         q = c(0.8),
         n_bootstrap = 5,
@@ -5697,13 +5697,13 @@ test_that("Lazy switching_tables handles empty results gracefully", {
 test_that("Lazy switching_tables returns sorted/ordered output", {
     skip_on_cran()
     # Run LM first
-    result <- suppressWarnings(calculate_lm_s4(
+    result <- suppressWarnings(calculate_lm(
         analysis,
         method = "gam",
         verbose = FALSE
     ))
     # Then run jackknife
-    result <- suppressWarnings(calculate_jis_s4(
+    result <- suppressWarnings(calculate_jis(
         result,
         q = c(0.5, 1.0),
         n_bootstrap = 10,
@@ -5726,7 +5726,7 @@ test_that("Lazy switching_tables returns sorted/ordered output", {
 test_that("LM results integrate properly with visualization pipeline", {
     skip_on_cran()
     # Calculate LM
-    test_analysis <- suppressWarnings(calculate_lm_s4(
+    test_analysis <- suppressWarnings(calculate_lm(
         analysis,
         method = "gam",
         verbose = FALSE
@@ -5742,13 +5742,13 @@ test_that("LM results integrate properly with visualization pipeline", {
 test_that("Jackknife results integrate with lazy switching_tables computation", {
     skip_on_cran()
     # Run LM first
-    jis_result <- suppressWarnings(calculate_lm_s4(
+    jis_result <- suppressWarnings(calculate_lm(
         analysis,
         method = "gam",
         verbose = FALSE
     ))
     # Then run jackknife
-    jis_result <- suppressWarnings(calculate_jis_s4(
+    jis_result <- suppressWarnings(calculate_jis(
         jis_result,
         q = c(0.5, 1.0),
         n_bootstrap = 10,
@@ -5764,9 +5764,9 @@ test_that("Jackknife results integrate with lazy switching_tables computation", 
 # Test: Output Formatting and Display
 # =============================================================================
 
-test_that("plot_lm_gam_s4 produces publishable format", {
+test_that("plot_lm_gam produces publishable format", {
     skip_on_cran()
-    p <- plot_lm_gam_s4(analysis, n_top = 2)
+    p <- plot_lm_gam(analysis, n_top = 2)
     
     # Plot should be created and be a valid ggplot or gtable
     expect_true(inherits(p, "ggplot") || inherits(p, "gtable") || is.null(p))
@@ -5775,13 +5775,13 @@ test_that("plot_lm_gam_s4 produces publishable format", {
 test_that("Lazy switching_tables produces export-ready data", {
     skip_on_cran()
     # Run LM first
-    jis_result <- suppressWarnings(calculate_lm_s4(
+    jis_result <- suppressWarnings(calculate_lm(
         analysis,
         method = "gam",
         verbose = FALSE
     ))
     # Then run jackknife
-    jis_result <- suppressWarnings(calculate_jis_s4(
+    jis_result <- suppressWarnings(calculate_jis(
         jis_result,
         q = c(0.5, 1.0),
         n_bootstrap = 8,
@@ -5804,10 +5804,10 @@ test_that("Lazy switching_tables produces export-ready data", {
 # Test: Error Handling and Robustness
 # =============================================================================
 
-test_that("plot_lm_gam_s4 handles missing LM results gracefully", {
+test_that("plot_lm_gam handles missing LM results gracefully", {
     skip_on_cran()
     # Don't calculate LM - should handle gracefully
-    p <- plot_lm_gam_s4(analysis, n_top = 3)
+    p <- plot_lm_gam(analysis, n_top = 3)
     
     expect_true(is.null(p) || inherits(p, "ggplot"))
 })
@@ -5815,13 +5815,13 @@ test_that("plot_lm_gam_s4 handles missing LM results gracefully", {
 test_that("Lazy switching_tables handles minimal jackknife results", {
     skip_on_cran()
     # Run LM first to populate lm_results
-    result <- suppressWarnings(calculate_lm_s4(
+    result <- suppressWarnings(calculate_lm(
         analysis,
         method = "gam",
         verbose = FALSE
     ))
     # Minimal jackknife setup
-    result <- suppressWarnings(calculate_jis_s4(
+    result <- suppressWarnings(calculate_jis(
         result,
         q = c(0.7),
         n_bootstrap = 3,
@@ -5838,28 +5838,28 @@ test_that("Lazy switching_tables handles minimal jackknife results", {
 # Test: Specific Assertion Strength Improvements
 # =============================================================================
 
-test_that("plot_lm_gam_s4 returns specific plot type", {
+test_that("plot_lm_gam returns specific plot type", {
     skip_on_cran()
-    p <- plot_lm_gam_s4(analysis, n_top = 1)
+    p <- plot_lm_gam(analysis, n_top = 1)
     expect_true(is.null(p) || inherits(p, "ggplot") || inherits(p, "gtable"))
 })
 
-test_that("plot_lm_gam_s4 axes have correct scale for entropy", {
+test_that("plot_lm_gam axes have correct scale for entropy", {
     skip_on_cran()
-    p <- plot_lm_gam_s4(analysis, n_top = 1)
+    p <- plot_lm_gam(analysis, n_top = 1)
     expect_true(is.null(p) || inherits(p, "ggplot") || inherits(p, "gtable"))
 })
 
 test_that("Lazy switching_tables data types are consistent", {
     skip_on_cran()
     # Run LM first
-    jis_result <- suppressWarnings(calculate_lm_s4(
+    jis_result <- suppressWarnings(calculate_lm(
         analysis,
         method = "gam",
         verbose = FALSE
     ))
     # Then run jackknife
-    jis_result <- suppressWarnings(calculate_jis_s4(
+    jis_result <- suppressWarnings(calculate_jis(
         jis_result,
         q = c(0.5, 1.0),
         n_bootstrap = 8,

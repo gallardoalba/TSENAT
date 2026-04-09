@@ -2176,7 +2176,7 @@ test_that("output file generation and numerical correctness without bootstrap", 
     # Calculate diversity without bootstrap
     results_se <- .calculate_diversity(se, genes = genes, q = 0.5, norm = TRUE, bootstrap = FALSE)
     
-    # Convert to long format (mimicking calculate_diversity_s4 behavior)
+    # Convert to long format (mimicking calculate_diversity behavior)
     genes_vec <- rownames(results_se)
     samples_vec <- colnames(results_se)
     diversity_mat <- SummarizedExperiment::assay(results_se, "diversity")
@@ -2227,7 +2227,7 @@ test_that("output file generation and numerical correctness with bootstrap", {
     }, error = function(e) NULL)
     
     if (!is.null(results_se)) {
-        # Convert to long format with CIs (mimicking calculate_diversity_s4 behavior)
+        # Convert to long format with CIs (mimicking calculate_diversity behavior)
         genes_vec <- rownames(results_se)
         samples_vec <- colnames(results_se)
         diversity_mat <- SummarizedExperiment::assay(results_se, "diversity")

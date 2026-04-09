@@ -11,7 +11,7 @@
 #' Coordinates the full TSENAT workflow: diversity -> jackknife -> LM
 #' interactions -> divergence -> gene interactions -> visualizations.
 #'
-#' @param analysis \code{TSENATAnalysis} object created by \code{\link{build_analysis_s4}}.
+#' @param analysis \code{TSENATAnalysis} object created by \code{\link{build_analysis}}.
 #' @param output_dir \code{character}. Directory to save results and plots.
 #'   Default: "tsenat_outputs". Set to NULL to disable automatic output saving.
 #' @param save_output \code{logical}. Whether to save output files (results tables).
@@ -26,19 +26,19 @@
 #' @details
 #' Pipeline execution order (enforced, follows TSENAT.Rmd vignette):
 #' \enumerate{
-#'   \item \code{filter_analysis_s4()} - Filter low-abundance transcripts
-#'   \item \code{calculate_diversity_s4()} - Tsallis entropy per q-value
-#'   \item \code{plot_diversity_spectrum_s4()} - Visualize q-spectrum
+#'   \item \code{filter_analysis()} - Filter low-abundance transcripts
+#'   \item \code{calculate_diversity()} - Tsallis entropy per q-value
+#'   \item \code{plot_diversity_spectrum()} - Visualize q-spectrum
 #'   \item \code{calculate_m_estimator()} - Sample influence QC analysis
-#'   \item \code{calculate_lm_s4()} - LM interaction testing
-#'   \item \code{plot_lm_gam_s4()} - GAM visualization of LM results
-#'   \item \code{calculate_jis_s4()} - Transcript switching detection
-#'   \item \code{plot_jis_delta_s4()} - Multi-q influence heatmap (gene switching tables computed lazily via results())
-#'   \item \code{plot_expression_s4()} - Top transcript visualization
-#'   \item \code{calculate_divergence_s4()} - Pairwise divergence metrics
-#'   \item \code{calculate_effect_sizes_s4()} - Effect size computation
-#'   \item \code{plot_divergence_distribution_s4()} - Divergence distribution plot
-#'   \item \code{plot_divergence_spectrum_s4()} - Divergence spectrum plot
+#'   \item \code{calculate_lm()} - LM interaction testing
+#'   \item \code{plot_lm_gam()} - GAM visualization of LM results
+#'   \item \code{calculate_jis()} - Transcript switching detection
+#'   \item \code{plot_jis_delta()} - Multi-q influence heatmap (gene switching tables computed lazily via results())
+#'   \item \code{plot_expression()} - Top transcript visualization
+#'   \item \code{calculate_divergence()} - Pairwise divergence metrics
+#'   \item \code{calculate_effect_sizes()} - Effect size computation
+#'   \item \code{plot_divergence_distribution()} - Divergence distribution plot
+#'   \item \code{plot_divergence_spectrum()} - Divergence spectrum plot
 #' }
 #'
 #' @examples
@@ -55,7 +55,7 @@
 #'   q_values = c(0.5, 1.0, 1.5, 2.0, 2.5),
 #'   generate_plots = FALSE
 #' )
-#' analysis <- build_analysis_s4(
+#' analysis <- build_analysis(
 #'   readcounts = as.matrix(readcounts),
 #'   tx2gene = gff3_file,
 #'   metadata = metadata_df,
@@ -70,7 +70,7 @@
 TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, output_format = "tsv", verbose = TRUE) {
     # Validate input
     if (!is(analysis, "TSENATAnalysis")) {
-        stop("'analysis' must be a TSENATAnalysis object created by build_analysis_s4()",
+        stop("'analysis' must be a TSENATAnalysis object created by build_analysis()",
             call. = FALSE)
     }
     if (nrow(se(analysis)) == 0) {
@@ -99,7 +99,7 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
     # Validate input object
     .validate_analysis_object(analysis)
 
-    # Extract parameters from config (already embedded in analysis object from build_analysis_s4)
+    # Extract parameters from config (already embedded in analysis object from build_analysis)
     cfg <- getConfig(analysis)
     
     # Get q_values from config
@@ -130,7 +130,7 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
     tryCatch({
         cfg <- getConfig(analysis)
         stringency_level <- cfg$stringency %||% "medium"
-        analysis <- filter_analysis_s4(analysis, stringency = stringency_level)
+        analysis <- filter_analysis(analysis, stringency = stringency_level)
         if (verbose)
             message("          [OK] Complete")
     }, error = function(e) warning("Filtering failed:\n", e$message, call. = FALSE))
@@ -349,7 +349,7 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
 #'   )
 #' )
 #' analysis <- TSENATAnalysis(se = se, config = config)
-#' analysis <- calculate_diversity_s4(analysis)
+#' analysis <- calculate_diversity(analysis)
 #'
 #' # Get all diversity results (list of SummarizedExperiment objects, one per q)
 #' div_all <- results(analysis, type = 'diversity')
@@ -1040,12 +1040,12 @@ TSENAT_config <- function(q_values = NULL, condition_col = "condition", subject_
         divergence_ci = divergence_ci
     )
 
-    # Add any additional parameters (except metadata - should be explicit to build_analysis_s4)
+    # Add any additional parameters (except metadata - should be explicit to build_analysis)
     extra_args <- list(...)
     # Reject metadata in config to enforce Bioconductor pattern (explicit data parameters)
     if (!is.null(extra_args$metadata)) {
         warning("[TSENAT_config] Parameter 'metadata' should not be in config.\n",
-                "  Pass metadata directly to build_analysis_s4() as explicit parameter.\n",
+                "  Pass metadata directly to build_analysis() as explicit parameter.\n",
                 "  Bioconductor pattern: data files are explicit, config is for analysis choices.",
                 call. = FALSE)
         extra_args$metadata <- NULL
@@ -1196,7 +1196,7 @@ TSENAT_config <- function(q_values = NULL, condition_col = "condition", subject_
         # Only show messages if verbose is explicitly TRUE (not during orchestration)
         should_show_messages <- verbose && !is.null(cfg$verbose) && cfg$verbose == TRUE
         
-        analysis <- calculate_diversity_s4(
+        analysis <- calculate_diversity(
             analysis,
             q = q_vals,
             norm = TRUE,
@@ -1219,7 +1219,7 @@ TSENAT_config <- function(q_values = NULL, condition_col = "condition", subject_
         message(sprintf("[>] [%2d/14] Plotting q-spectrum curve", 3))
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "q_curve_plot.png") else NULL
-        p_qcurve <- plot_diversity_spectrum_s4(analysis, output_file = output_file)
+        p_qcurve <- plot_diversity_spectrum(analysis, output_file = output_file)
         if (!is.null(p_qcurve)) {
             analysis <- addPlot(analysis, type = "q_curve", plot = p_qcurve, replace = TRUE)
             if (verbose)
@@ -1260,7 +1260,7 @@ TSENAT_config <- function(q_values = NULL, condition_col = "condition", subject_
         lm_method <- cfg$lm_method %||% "gam"
         lm_pcorr <- cfg$lm_pcorr %||% "BH"
         output_file <- .build_output_file("lm_interaction_results", output_dir, output_format)
-        analysis <- calculate_lm_s4(analysis, fdr_threshold = fdr, method = lm_method,
+        analysis <- calculate_lm(analysis, fdr_threshold = fdr, method = lm_method,
             pcorr = lm_pcorr, output_file = output_file)
         if (verbose)
             message("          [OK] LM interaction analysis complete")
@@ -1275,7 +1275,7 @@ TSENAT_config <- function(q_values = NULL, condition_col = "condition", subject_
         message(sprintf("[>] [%2d/14] Plotting LM interaction GAM smoother", 6))
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "lm_interaction_gam_plot.png") else NULL
-        p_lm <- plot_lm_gam_s4(analysis, output_file = output_file)
+        p_lm <- plot_lm_gam(analysis, output_file = output_file)
         if (!is.null(p_lm)) {
             analysis <- addPlot(analysis, type = "lm_interaction", plot = p_lm, replace = TRUE)
             if (verbose)
@@ -1298,7 +1298,7 @@ TSENAT_config <- function(q_values = NULL, condition_col = "condition", subject_
         cfg <- getConfig(analysis)
         jis_use_lm_fdr <- cfg$jis_use_lm_fdr %||% TRUE
         output_file <- .build_output_file("jackknife_isoform_switching", output_dir, output_format)
-        analysis <- calculate_jis_s4(analysis, condition_col = condition_col,
+        analysis <- calculate_jis(analysis, condition_col = condition_col,
             use_lm_fdr = jis_use_lm_fdr, output_file = output_file, verbose = FALSE)
         if (verbose)
             message("          [OK] Jackknife isoform switching complete")
@@ -1316,7 +1316,7 @@ TSENAT_config <- function(q_values = NULL, condition_col = "condition", subject_
         message(sprintf("[>] [%2d/14] Plotting multi-q influence heatmap", 9))
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "influence_heatmap.png") else NULL
-        p_heatmap <- plot_jis_delta_s4(analysis, output_file = output_file)
+        p_heatmap <- plot_jis_delta(analysis, output_file = output_file)
         if (!is.null(p_heatmap)) {
             analysis <- addPlot(analysis, type = "influence_heatmap", plot = p_heatmap,
                 replace = TRUE)
@@ -1337,7 +1337,7 @@ TSENAT_config <- function(q_values = NULL, condition_col = "condition", subject_
         message(sprintf("[>] [%2d/14] Plotting top transcript counts", 10))
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "top_transcripts.png") else NULL
-        p_top_tx <- plot_expression_s4(analysis, output_file = output_file)
+        p_top_tx <- plot_expression(analysis, output_file = output_file)
         if (!is.null(p_top_tx)) {
             analysis <- addPlot(analysis, type = "top_transcripts", plot = p_top_tx,
                 replace = TRUE)
@@ -1360,7 +1360,7 @@ TSENAT_config <- function(q_values = NULL, condition_col = "condition", subject_
         cfg <- getConfig(analysis)
         divergence_ci <- cfg$divergence_ci %||% 0.95
         output_file <- .build_output_file("divergence_results", output_dir, output_format)
-        analysis <- calculate_divergence_s4(analysis, q = q_vals, output_file = output_file,
+        analysis <- calculate_divergence(analysis, q = q_vals, output_file = output_file,
             verbose = FALSE, ci = divergence_ci)
         if (verbose)
             message("          [OK] Divergence computed")
@@ -1378,7 +1378,7 @@ TSENAT_config <- function(q_values = NULL, condition_col = "condition", subject_
         message(sprintf("[>] [%2d/14] Computing effect sizes for divergence", 12))
     tryCatch({
         output_file <- .build_output_file("effect_sizes", output_dir, output_format)
-        analysis <- calculate_effect_sizes_s4(analysis, verbose = FALSE, output_file = output_file)
+        analysis <- calculate_effect_sizes(analysis, verbose = FALSE, output_file = output_file)
         if (verbose)
             message("          [OK] Effect sizes computed")
     }, error = function(e) {
@@ -1395,7 +1395,7 @@ TSENAT_config <- function(q_values = NULL, condition_col = "condition", subject_
         message(sprintf("[>] [%2d/14] Plotting divergence distribution", 13))
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "divergence_distribution_plot.png") else NULL
-        p_div_dist <- plot_divergence_distribution_s4(analysis, output_file = output_file)
+        p_div_dist <- plot_divergence_distribution(analysis, output_file = output_file)
         if (!is.null(p_div_dist)) {
             analysis <- addPlot(analysis, type = "divergence_distribution", plot = p_div_dist,
                 replace = TRUE)
@@ -1417,7 +1417,7 @@ TSENAT_config <- function(q_values = NULL, condition_col = "condition", subject_
     tryCatch({
         # Plot 1: Global spectrum plot (all genes)
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "divergence_spectrum_plot.png") else NULL
-        p_div_spec <- plot_divergence_spectrum_s4(analysis, output_file = output_file)
+        p_div_spec <- plot_divergence_spectrum(analysis, output_file = output_file)
         if (!is.null(p_div_spec)) {
             analysis <- addPlot(analysis, type = "divergence_spectrum", plot = p_div_spec,
                 replace = TRUE)
@@ -1427,7 +1427,7 @@ TSENAT_config <- function(q_values = NULL, condition_col = "condition", subject_
         
         # Plot 2: Multi-gene spectrum plot with top 4 genes by p-value
         output_file_multi <- if (!is.null(output_dir)) file.path(output_dir, "divergence_spectrum_plot_top_genes.png") else NULL
-        p_multi <- plot_divergence_spectrum_s4(analysis, n_genes = 4, use_pvalue_ranking = TRUE,
+        p_multi <- plot_divergence_spectrum(analysis, n_genes = 4, use_pvalue_ranking = TRUE,
             output_file = output_file_multi)
         if (!is.null(p_multi)) {
             analysis <- addPlot(analysis, type = "divergence_spectrum_multi", plot = p_multi,

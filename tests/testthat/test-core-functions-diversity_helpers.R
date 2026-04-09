@@ -513,7 +513,7 @@ test_that("suggest_min_count handles edge cases", {
 # across colnames/rownames alignment
 # ============================================================================
 
-test_that("filter_analysis_s4 maintains TSENATAnalysis integrity", {
+test_that("filter_analysis maintains TSENATAnalysis integrity", {
   skip_if_not_installed("SummarizedExperiment")
   
   # Create a minimal TSENATAnalysis object with TPM to avoid warnings
@@ -539,7 +539,7 @@ test_that("filter_analysis_s4 maintains TSENATAnalysis integrity", {
   
   # Filter the analysis (but don't filter out any samples, keep all 3)
   # Use high min_samples to avoid filtering samples
-  analysis_filt <- TSENAT:::filter_analysis_s4(analysis, min_samples = 1, verbose = FALSE)
+  analysis_filt <- TSENAT:::filter_analysis(analysis, min_samples = 1, verbose = FALSE)
   
   # Check that TSENATAnalysis is still valid
   expect_s4_class(analysis_filt, "TSENATAnalysis")

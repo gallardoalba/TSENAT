@@ -13,7 +13,7 @@ TSENAT(
 )
 }
 \arguments{
-\item{analysis}{\code{TSENATAnalysis} object created by \code{\link{build_analysis_s4}}.}
+\item{analysis}{\code{TSENATAnalysis} object created by \code{\link{build_analysis}}.}
 
 \item{output_dir}{\code{character}. Directory to save results and plots.
 Default: "tsenat_outputs". Set to NULL to disable automatic output saving.}
@@ -37,19 +37,19 @@ interactions -> divergence -> gene interactions -> visualizations.
 \details{
 Pipeline execution order (enforced, follows TSENAT.Rmd vignette):
 \enumerate{
-  \item \code{filter_analysis_s4()} - Filter low-abundance transcripts
-  \item \code{calculate_diversity_s4()} - Tsallis entropy per q-value
-  \item \code{plot_diversity_spectrum_s4()} - Visualize q-spectrum
+  \item \code{filter_analysis()} - Filter low-abundance transcripts
+  \item \code{calculate_diversity()} - Tsallis entropy per q-value
+  \item \code{plot_diversity_spectrum()} - Visualize q-spectrum
   \item \code{calculate_m_estimator()} - Sample influence QC analysis
-  \item \code{calculate_lm_s4()} - LM interaction testing
-  \item \code{plot_lm_gam_s4()} - GAM visualization of LM results
-  \item \code{calculate_jis_s4()} - Transcript switching detection
-  \item \code{plot_jis_delta_s4()} - Multi-q influence heatmap (gene switching tables computed lazily via results())
-  \item \code{plot_expression_s4()} - Top transcript visualization
-  \item \code{calculate_divergence_s4()} - Pairwise divergence metrics
-  \item \code{calculate_effect_sizes_s4()} - Effect size computation
-  \item \code{plot_divergence_distribution_s4()} - Divergence distribution plot
-  \item \code{plot_divergence_spectrum_s4()} - Divergence spectrum plot
+  \item \code{calculate_lm()} - LM interaction testing
+  \item \code{plot_lm_gam()} - GAM visualization of LM results
+  \item \code{calculate_jis()} - Transcript switching detection
+  \item \code{plot_jis_delta()} - Multi-q influence heatmap (gene switching tables computed lazily via results())
+  \item \code{plot_expression()} - Top transcript visualization
+  \item \code{calculate_divergence()} - Pairwise divergence metrics
+  \item \code{calculate_effect_sizes()} - Effect size computation
+  \item \code{plot_divergence_distribution()} - Divergence distribution plot
+  \item \code{plot_divergence_spectrum()} - Divergence spectrum plot
 }
 }
 \examples{
@@ -66,7 +66,7 @@ config <- TSENAT_config(
   q_values = c(0.5, 1.0, 1.5, 2.0, 2.5),
   generate_plots = FALSE
 )
-analysis <- build_analysis_s4(
+analysis <- build_analysis(
   readcounts = as.matrix(readcounts),
   tx2gene = gff3_file,
   metadata = metadata_df,

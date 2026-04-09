@@ -1981,7 +1981,7 @@ test_that(".save_effect_sizes_output handles NULL output_file", {
   )
 })
 
-test_that("calculate_effect_sizes_s4 orchestrates helpers correctly", {
+test_that("calculate_effect_sizes orchestrates helpers correctly", {
   # Replicate roxygen documentation example exactly
   data(readcounts)
   readcounts <- as.matrix(readcounts)
@@ -2010,7 +2010,7 @@ test_that("calculate_effect_sizes_s4 orchestrates helpers correctly", {
     control = 'normal'
   )
   
-  analysis <- build_analysis_s4(
+  analysis <- build_analysis(
     config = config,
     readcounts = readcounts,
     metadata = metadata_df,
@@ -2020,15 +2020,15 @@ test_that("calculate_effect_sizes_s4 orchestrates helpers correctly", {
     verbose = FALSE
   )
   
-  analysis <- filter_analysis_s4(analysis, stringency = 'severe', verbose = FALSE)
-  analysis <- calculate_diversity_s4(analysis, q = c(0.5, 0.75, 1.0, 1.5, 2.0), verbose = FALSE)
-  analysis <- calculate_divergence_s4(analysis, q = c(0.5, 0.75, 1.0, 1.5, 2.0), verbose = FALSE)
+  analysis <- filter_analysis(analysis, stringency = 'severe', verbose = FALSE)
+  analysis <- calculate_diversity(analysis, q = c(0.5, 0.75, 1.0, 1.5, 2.0), verbose = FALSE)
+  analysis <- calculate_divergence(analysis, q = c(0.5, 0.75, 1.0, 1.5, 2.0), verbose = FALSE)
   analysis <- suppressWarnings(
-    calculate_lm_s4(analysis, method = 'gam', verbose = FALSE)
+    calculate_lm(analysis, method = 'gam', verbose = FALSE)
   )
   
   # Compute effect sizes from divergence results
-  analysis <- calculate_effect_sizes_s4(
+  analysis <- calculate_effect_sizes(
     analysis,
     significance_threshold = 0.05, 
     verbose = FALSE
@@ -2043,7 +2043,7 @@ test_that("calculate_effect_sizes_s4 orchestrates helpers correctly", {
   expect_true(is.list(effect_size_results))
 })
 
-test_that("calculate_effect_sizes_s4 respects output_file parameter", {
+test_that("calculate_effect_sizes respects output_file parameter", {
   # Replicate roxygen documentation example with output_file
   data(readcounts)
   readcounts <- as.matrix(readcounts)
@@ -2072,7 +2072,7 @@ test_that("calculate_effect_sizes_s4 respects output_file parameter", {
     control = 'normal'
   )
   
-  analysis <- build_analysis_s4(
+  analysis <- build_analysis(
     config = config,
     readcounts = readcounts,
     metadata = metadata_df,
@@ -2082,18 +2082,18 @@ test_that("calculate_effect_sizes_s4 respects output_file parameter", {
     verbose = FALSE
   )
   
-  analysis <- filter_analysis_s4(analysis, stringency = 'severe', verbose = FALSE)
-  analysis <- calculate_diversity_s4(analysis, q = c(0.5, 0.75, 1.0, 1.5, 2.0), verbose = FALSE)
-  analysis <- calculate_divergence_s4(analysis, q = c(0.5, 0.75, 1.0, 1.5, 2.0), verbose = FALSE)
+  analysis <- filter_analysis(analysis, stringency = 'severe', verbose = FALSE)
+  analysis <- calculate_diversity(analysis, q = c(0.5, 0.75, 1.0, 1.5, 2.0), verbose = FALSE)
+  analysis <- calculate_divergence(analysis, q = c(0.5, 0.75, 1.0, 1.5, 2.0), verbose = FALSE)
   analysis <- suppressWarnings(
-    calculate_lm_s4(analysis, method = 'gam', verbose = FALSE)
+    calculate_lm(analysis, method = 'gam', verbose = FALSE)
   )
   
   # Create temporary file for TSV output
   temp_output <- tempfile(fileext = ".tsv")
   
   # Compute effect sizes and save to file
-  analysis <- calculate_effect_sizes_s4(
+  analysis <- calculate_effect_sizes(
     analysis,
     significance_threshold = 0.05,
     output_file = temp_output,

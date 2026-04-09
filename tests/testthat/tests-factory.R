@@ -143,7 +143,7 @@ create_test_analysis <- function(
   analysis <- TSENAT::TSENATAnalysis(se = se, config = list())
   
   # Calculate diversity
-  analysis <- TSENAT::calculate_diversity_s4(
+  analysis <- TSENAT::calculate_diversity(
     analysis,
     q = q_values,
     verbose = FALSE,
@@ -153,7 +153,7 @@ create_test_analysis <- function(
   # Calculate divergence if requested
   if (include_divergence) {
     analysis <- tryCatch({
-      TSENAT::calculate_divergence_s4(
+      TSENAT::calculate_divergence(
         analysis,
         verbose = FALSE
       )
@@ -1545,12 +1545,12 @@ suppress_loess_warnings <- function(expr) {
     analysis <- TSENATAnalysis(se = se, config = list())
 
     # Calculate diversity
-    analysis <- calculate_diversity_s4(analysis, q = q_values, verbose = FALSE)
+    analysis <- calculate_diversity(analysis, q = q_values, verbose = FALSE)
 
     # Calculate divergence if requested
     if (include_divergence) {
         analysis <- tryCatch({
-            calculate_divergence_s4(analysis, verbose = FALSE)
+            calculate_divergence(analysis, verbose = FALSE)
         }, error = function(e) {
             # If divergence fails, continue without it
             if (verbose) {

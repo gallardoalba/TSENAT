@@ -35,7 +35,7 @@ setup_workflow_data <- function() {
     )
     
     # Build analysis with config and explicit metadata parameter
-    analysis <- build_analysis_s4(
+    analysis <- build_analysis(
         config = config,
         readcounts = readcounts,
         metadata = metadata_df,
@@ -45,7 +45,7 @@ setup_workflow_data <- function() {
     )
     
     # Filter with severe stringency (reproducible with seed set above)
-    analysis <- filter_analysis_s4(analysis, stringency = "severe")
+    analysis <- filter_analysis(analysis, stringency = "severe")
     
     list(analysis = analysis, se = se(analysis), readcounts = readcounts)
 }
@@ -333,7 +333,7 @@ test_that("TSENAT() paired: produces LM results, significant genes, plots genera
     
     # Test plot generation
     plot_result <- tryCatch({
-        plot_lm_gam_s4(
+        plot_lm_gam(
             result,
             n_top = 3,
             sig_alpha = 0.05,
@@ -380,7 +380,7 @@ setup_workflow_data <- function() {
     )
     
     # Build analysis with config and explicit metadata parameter
-    analysis <- build_analysis_s4(
+    analysis <- build_analysis(
         config = config,
         readcounts = readcounts,
         metadata = metadata_df,
@@ -390,7 +390,7 @@ setup_workflow_data <- function() {
     )
     
     # Filter with severe stringency (reproducible with seed set above)
-    analysis <- filter_analysis_s4(analysis, stringency = "severe")
+    analysis <- filter_analysis(analysis, stringency = "severe")
     
     list(analysis = analysis, se = se(analysis), readcounts = readcounts)
 }
@@ -401,7 +401,7 @@ setup_workflow_data <- function() {
 # These tests verify that setConfig does NOT corrupt diversity values
 # Background: Passing config parameter to TSENAT() calls setConfig internally,
 # which was observed to corrupt diversity calculations (values swapped/changed).
-# Solution: Config should only be set during build_analysis_s4(), never via TSENAT().
+# Solution: Config should only be set during build_analysis(), never via TSENAT().
 
 test_that("setConfig: does not corrupt SummarizedExperiment dimensions", {
     data_list <- setup_workflow_data()
@@ -436,7 +436,7 @@ test_that("TSENAT() WITHOUT config parameter: produces correct diversity values"
     analysis_manual <- data_list$analysis
     
     # Calculate diversity manually
-    analysis_manual <- calculate_diversity_s4(
+    analysis_manual <- calculate_diversity(
         analysis_manual,
         norm = TRUE,
         output_file = NULL,
@@ -562,7 +562,7 @@ test_that("setConfig CORRUPTION: direct calls modify analysis state", {
 # ADDITIONAL DEEP-DIVE TESTS: Understanding WHY setConfig causes problems
 # ============================================================================
 # BACKGROUND: The workflow.R issue occurred because:
-# 1. build_analysis_s4(config=X) embeds config X into analysis @config slot
+# 1. build_analysis(config=X) embeds config X into analysis @config slot
 # 2. TSENAT(analysis, config=X) then calls setConfig(analysis, X) AGAIN
 # 3. This redundant call causes internal state corruption in diversity calculations
 # 
@@ -574,7 +574,7 @@ test_that("setConfig CORRUPTION: direct calls modify analysis state", {
 test_that("REDUNDANT setConfig: Reproduce the workflow.R bug scenario", {
     # This test reproduces EXACTLY what was happening in workflow.R
     
-    # Step 1: Create analysis with embedded config (like build_analysis_s4 does)
+    # Step 1: Create analysis with embedded config (like build_analysis does)
     set.seed(42)
     config <- TSENAT_config(
         sample_col = "sample",
@@ -597,8 +597,8 @@ test_that("REDUNDANT setConfig: Reproduce the workflow.R bug scenario", {
     
     gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
     
-    # build_analysis_s4 embeds config into @config slot
-    analysis_fresh <- build_analysis_s4(
+    # build_analysis embeds config into @config slot
+    analysis_fresh <- build_analysis(
         config = config,
         readcounts = readcounts,
         metadata = metadata_df,
@@ -606,11 +606,11 @@ test_that("REDUNDANT setConfig: Reproduce the workflow.R bug scenario", {
         tpm = tpm,
         effective_length = effective_length
     )
-    analysis_fresh <- filter_analysis_s4(analysis_fresh, stringency = "severe")
+    analysis_fresh <- filter_analysis(analysis_fresh, stringency = "severe")
     
     # Step 2: Call calculate_diversity WITHOUT intermediate setConfig (CONTROL)
     analysis_no_setconfig <- analysis_fresh
-    analysis_no_setconfig <- calculate_diversity_s4(
+    analysis_no_setconfig <- calculate_diversity(
         analysis_no_setconfig,
         norm = TRUE,
         output_file = NULL,
@@ -622,9 +622,9 @@ test_that("REDUNDANT setConfig: Reproduce the workflow.R bug scenario", {
     analysis_with_redundant_setconfig <- analysis_fresh
     analysis_with_redundant_setconfig <- setConfig(
         analysis_with_redundant_setconfig,
-        config  # Redundant: config already in @config slot from build_analysis_s4
+        config  # Redundant: config already in @config slot from build_analysis
     )
-    analysis_with_redundant_setconfig <- calculate_diversity_s4(
+    analysis_with_redundant_setconfig <- calculate_diversity(
         analysis_with_redundant_setconfig,
         norm = TRUE,
         output_file = NULL,
@@ -646,7 +646,7 @@ test_that("REDUNDANT setConfig: Reproduce the workflow.R bug scenario", {
     }
 })
 
-test_that("CONFIG EMBEDDING MECHANISM: Settings only apply once via build_analysis_s4", {
+test_that("CONFIG EMBEDDING MECHANISM: Settings only apply once via build_analysis", {
     # This test documents the CORRECT pattern: config applied once at object creation
     
     set.seed(42)
@@ -672,7 +672,7 @@ test_that("CONFIG EMBEDDING MECHANISM: Settings only apply once via build_analys
     gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
     
     # Correct pattern: config applied exactly ONCE at build time
-    analysis <- build_analysis_s4(
+    analysis <- build_analysis(
         config = config1,
         readcounts = readcounts,
         metadata = metadata_df,
@@ -689,18 +689,18 @@ test_that("CONFIG EMBEDDING MECHANISM: Settings only apply once via build_analys
     expect_equal(
         cfg_embedded_q,
         config1_q,
-        info = "build_analysis_s4 should embed config exactly as provided"
+        info = "build_analysis should embed config exactly as provided"
     )
     
     # Filter should NOT modify @config
-    analysis2 <- filter_analysis_s4(analysis, stringency = "severe")
+    analysis2 <- filter_analysis(analysis, stringency = "severe")
     cfg_after_filter <- getConfig(analysis2)
     cfg_after_filter_q <- if (is.list(cfg_after_filter)) cfg_after_filter$q_values else cfg_after_filter@q_values
     
     expect_identical(
         cfg_after_filter_q,
         cfg_embedded_q,
-        info = "filter_analysis_s4 should preserve embedded config unchanged"
+        info = "filter_analysis should preserve embedded config unchanged"
     )
 })
 
@@ -744,7 +744,7 @@ test_that("WORKFLOW COMPARISON: Manual orchestration vs TSENAT() function", {
     analysis_A <- data_list_A$analysis
     
     # Pattern A: Manual steps (control - no setConfig in pipeline)
-    analysis_A <- calculate_diversity_s4(
+    analysis_A <- calculate_diversity(
         analysis_A,
         norm = TRUE,
         output_file = NULL,
@@ -790,7 +790,7 @@ test_that("WHY setConfig CORRUPTS: Examining metadata and state changes", {
     
     # Check for metadata differences
     # If setConfig is modifying metadata during redundant call, it could affect
-    # how downstream functions like calculate_diversity_s4 process the data
+    # how downstream functions like calculate_diversity process the data
     
     # The metadata should not change with redundant setConfig
     if (!is.null(meta_before) && !is.null(meta_after)) {

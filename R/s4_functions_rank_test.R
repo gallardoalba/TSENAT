@@ -118,15 +118,15 @@
 #' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
 #' 
 #' # Build analysis from vignette data and create manageable subset
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' analysis <- build_analysis(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df, config = config,
 #'   tpm = tpm, effective_length = effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 #' = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
+#' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
 #' 
 #' # Test Q×Condition interaction (condition_col is REQUIRED)
-#' analysis <- calculate_rank_test_s4(analysis, condition_col = 'condition', 
+#' analysis <- calculate_rank_test(analysis, condition_col = 'condition', 
 #'                                            multicorr = 'hochberg')
 #' # View results using unified accessor
 #' rank_test_res <- results(analysis, type = "rank_test")
@@ -137,7 +137,7 @@
 # ============================================================================
 # S4 WRAPPER: Detect Q×Condition Gene Interactions (Rank-Based Testing)
 # ============================================================================
-calculate_rank_test_s4 <- function(analysis, condition_col, q = NULL, output_file = NULL,
+calculate_rank_test <- function(analysis, condition_col, q = NULL, output_file = NULL,
     paired = NULL, subject_col = NULL, test = c("auto", "kruskal-wallis", "friedman",
         "art"), multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young",
         "none"), entropy_col = "diversity", q_col = "q", gene_col = "gene", wy_randomizations = 500,
@@ -197,7 +197,7 @@ calculate_rank_test_s4 <- function(analysis, condition_col, q = NULL, output_fil
     }
 
     if (length(analysis@diversity_results) == 0) {
-        stop("Diversity results required. Run calculate_diversity_s4() first.", call. = FALSE)
+        stop("Diversity results required. Run calculate_diversity() first.", call. = FALSE)
     }
 
     condition_col
@@ -361,7 +361,7 @@ calculate_rank_test_s4 <- function(analysis, condition_col, q = NULL, output_fil
     if (!is.null(output_file)) {
         result_df <- as.data.frame(result)
         save_analysis_output(result_df, output_file, object = analysis, verbose = verbose,
-            func_name = "calculate_rank_test_s4")
+            func_name = "calculate_rank_test")
     }
 
     analysis

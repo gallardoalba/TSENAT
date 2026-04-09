@@ -946,10 +946,10 @@ skip_on_bioc()
 context("Divergence: Coverage Expansion")
 
 # ============================================================================
-# TEST: calculate_divergence_s4 - Basic divergence computation
+# TEST: calculate_divergence - Basic divergence computation
 # ============================================================================
 
-test_that("calculate_divergence_s4: computes divergence with valid inputs", {
+test_that("calculate_divergence: computes divergence with valid inputs", {
   # Tests basic divergence calculation with minimal viable data
   
   analysis <- create_tsenat_with_diversity(
@@ -959,7 +959,7 @@ test_that("calculate_divergence_s4: computes divergence with valid inputs", {
     q_values = c(1.0)
   )
   
-  result <- TSENAT:::calculate_divergence_s4(
+  result <- TSENAT:::calculate_divergence(
     analysis = analysis,
     group_col = "group",
     control_group = "Control"
@@ -970,10 +970,10 @@ test_that("calculate_divergence_s4: computes divergence with valid inputs", {
 })
 
 # ============================================================================
-# TEST: calculate_divergence_s4 - Multiple q-values
+# TEST: calculate_divergence - Multiple q-values
 # ============================================================================
 
-test_that("calculate_divergence_s4: processes multiple q-values", {
+test_that("calculate_divergence: processes multiple q-values", {
   # Tests divergence with multiple q-value diversity results
   
   analysis <- create_tsenat_with_diversity(
@@ -983,7 +983,7 @@ test_that("calculate_divergence_s4: processes multiple q-values", {
     q_values = c(0.5, 1.0, 1.5)
   )
   
-  result <- TSENAT:::calculate_divergence_s4(
+  result <- TSENAT:::calculate_divergence(
     analysis = analysis,
     group_col = "group",
     control_group = "Control"
@@ -994,10 +994,10 @@ test_that("calculate_divergence_s4: processes multiple q-values", {
 })
 
 # ============================================================================
-# TEST: calculate_divergence_s4 - Missing diversity results error
+# TEST: calculate_divergence - Missing diversity results error
 # ============================================================================
 
-test_that("calculate_divergence_s4: errors when no diversity results available", {
+test_that("calculate_divergence: errors when no diversity results available", {
   # Tests error handling when diversity calculations haven't been run
   
   se <- create_test_se_simple(
@@ -1011,7 +1011,7 @@ test_that("calculate_divergence_s4: errors when no diversity results available",
   
   # Should error with clear message
   expect_error({
-    TSENAT:::calculate_divergence_s4(
+    TSENAT:::calculate_divergence(
       analysis = analysis,
       group_col = "group",
       control_group = "Control"
@@ -1020,10 +1020,10 @@ test_that("calculate_divergence_s4: errors when no diversity results available",
 })
 
 # ============================================================================
-# TEST: calculate_divergence_s4 - Unbalanced group sizes
+# TEST: calculate_divergence - Unbalanced group sizes
 # ============================================================================
 
-test_that("calculate_divergence_s4: handles unbalanced group sizes", {
+test_that("calculate_divergence: handles unbalanced group sizes", {
   # Tests that divergence calculation works with unequal group sizes
   
   analysis <- create_tsenat_with_diversity(
@@ -1033,7 +1033,7 @@ test_that("calculate_divergence_s4: handles unbalanced group sizes", {
     q_values = c(1.0)
   )
   
-  result <- TSENAT:::calculate_divergence_s4(
+  result <- TSENAT:::calculate_divergence(
     analysis = analysis,
     group_col = "group",
     control_group = "Control"
@@ -1044,10 +1044,10 @@ test_that("calculate_divergence_s4: handles unbalanced group sizes", {
 })
 
 # ============================================================================
-# TEST: calculate_divergence_s4 - Preserves gene information
+# TEST: calculate_divergence - Preserves gene information
 # ============================================================================
 
-test_that("calculate_divergence_s4: preserves gene identifiers", {
+test_that("calculate_divergence: preserves gene identifiers", {
   # Tests that gene names are maintained through divergence calculation
   
   gene_names <- c("GENE_A", "GENE_B", "GENE_C", "GENE_D", "GENE_E")
@@ -1071,7 +1071,7 @@ test_that("calculate_divergence_s4: preserves gene identifiers", {
   
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::calculate_divergence_s4(
+  result <- TSENAT:::calculate_divergence(
     analysis = analysis,
     group_col = "group",
     control_group = "Control"
@@ -1085,7 +1085,7 @@ test_that("calculate_divergence_s4: preserves gene identifiers", {
 # TEST: Divergence with repeated measurements
 # ============================================================================
 
-test_that("calculate_divergence_s4: handles repeated measurements", {
+test_that("calculate_divergence: handles repeated measurements", {
   # Tests divergence with paired/repeated sample structure
   
   se <- create_test_se_simple(
@@ -1108,7 +1108,7 @@ test_that("calculate_divergence_s4: handles repeated measurements", {
   
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::calculate_divergence_s4(
+  result <- TSENAT:::calculate_divergence(
     analysis = analysis,
     group_col = "group",
     control_group = "Control"
@@ -1119,12 +1119,12 @@ test_that("calculate_divergence_s4: handles repeated measurements", {
 })
 
 # ============================================================================
-# TEST: calculate_effect_sizes_s4 - Basic effect size calculation
+# TEST: calculate_effect_sizes - Basic effect size calculation
 # ============================================================================
 
-test_that("calculate_effect_sizes_s4: computes effect sizes", {
+test_that("calculate_effect_sizes: computes effect sizes", {
   # Tests basic effect size calculations
-  # Note: calculate_effect_sizes_s4 requires LM results to be pre-computed
+  # Note: calculate_effect_sizes requires LM results to be pre-computed
   
   se <- create_count_se(
     n_genes = 10,
@@ -1146,7 +1146,7 @@ test_that("calculate_effect_sizes_s4: computes effect sizes", {
   analysis@diversity_results$q_1.0 <- div_se
   
   # Calculate divergence first
-  result <- TSENAT:::calculate_divergence_s4(
+  result <- TSENAT:::calculate_divergence(
     analysis = analysis,
     group_col = "group",
     control_group = "Control"
@@ -1161,7 +1161,7 @@ test_that("calculate_effect_sizes_s4: computes effect sizes", {
 # TEST: Divergence with all NA values
 # ============================================================================
 
-test_that("calculate_divergence_s4: handles all NA divergence gracefully", {
+test_that("calculate_divergence: handles all NA divergence gracefully", {
   # Tests handling when divergence values are all NA
   
   se <- create_test_se_simple(
@@ -1182,7 +1182,7 @@ test_that("calculate_divergence_s4: handles all NA divergence gracefully", {
   
   # This may error or return gracefully - test that it handles gracefully
   result <- tryCatch({
-    TSENAT:::calculate_divergence_s4(
+    TSENAT:::calculate_divergence(
       analysis = analysis,
       group_col = "group",
       control_group = "Control"

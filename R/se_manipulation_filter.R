@@ -550,7 +550,7 @@
     if (is.null(tpm_result)) {
         stop("TPM data is required for diversity filtering but was not found.\n",
              "To resolve this, ensure TPM is provided when building the analysis:\n\n",
-             "  analysis <- build_analysis_s4(\n",
+             "  analysis <- build_analysis(\n",
              "    readcounts = readcounts,\n",
              "    metadata = metadata_df,\n",
              "    tx2gene = gff3_file,\n",
@@ -806,17 +806,17 @@
 #'
 #' # Subset to top genes (use 200 to ensure adequate data for downstream
 #' analysis)
-#' small_analysis <- filter_analysis_s4(analysis, min_samples = 1,
+#' small_analysis <- filter_analysis(analysis, min_samples = 1,
 #' subset_n_genes = 200)
 #'
 #' # Subset to genes with minimum 1 total count across all samples
 #' # This ensures data adequacy filtering (recommended: min_count = 10-20
 #' for robust estimates)
-#' filtered <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' filtered <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 #' = 100, subset_min_count = 1)
 #'
 #' # Subset to specific genes only
-#' subset_genes <- filter_analysis_s4(
+#' subset_genes <- filter_analysis(
 #'   analysis,
 #'   min_samples = 1,
 #'   subset_genes = c('TX_1', 'TX_2', 'TX_3'),
@@ -824,7 +824,7 @@
 #' )
 #'
 #' # Random selection of genes (reproducible with seed)
-#' random_subset <- filter_analysis_s4(
+#' random_subset <- filter_analysis(
 #'   analysis,
 #'   min_samples = 1,
 #'   subset_n_genes = 8,
@@ -834,7 +834,7 @@
 #' )
 #'
 #' # Keep specific samples only
-#' control_only <- filter_analysis_s4(
+#' control_only <- filter_analysis(
 #'   analysis,
 #'   min_samples = 1,
 #'   subset_samples = colnames(se(analysis))[

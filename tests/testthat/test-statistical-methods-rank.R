@@ -1254,10 +1254,10 @@ skip_on_bioc()
 context("Rank-Based Methods: Coverage Expansion")
 
 # ============================================================================
-# TEST: calculate_rank_assumptions_s4 - Line 92 (matrix conversion)
+# TEST: calculate_rank_assumptions - Line 92 (matrix conversion)
 # ============================================================================
 
-test_that("calculate_rank_assumptions_s4: converts data.frame to matrix", {
+test_that("calculate_rank_assumptions: converts data.frame to matrix", {
   # Line 92: if (!is.matrix(data)) data <- as.matrix(data)
   
   # Create a TSENATAnalysis object with diversity results
@@ -1280,7 +1280,7 @@ test_that("calculate_rank_assumptions_s4: converts data.frame to matrix", {
   analysis@diversity_results$q_1.0 <- div_se
   
   # This should not error even with data.frame assay
-  result <- TSENAT:::calculate_rank_assumptions_s4(
+  result <- TSENAT:::calculate_rank_assumptions(
     analysis,
     checks = c("exchangeability")
   )
@@ -1290,10 +1290,10 @@ test_that("calculate_rank_assumptions_s4: converts data.frame to matrix", {
 })
 
 # ============================================================================
-# TEST: calculate_rank_assumptions_s4 - Line 117 (single row edge case)
+# TEST: calculate_rank_assumptions - Line 117 (single row edge case)
 # ============================================================================
 
-test_that("calculate_rank_assumptions_s4: handles small data in exchangeability", {
+test_that("calculate_rank_assumptions: handles small data in exchangeability", {
   # Line 117: 0 (when length(row_means) <= 1) - ensure at least 2 rows
   
   se <- SummarizedExperiment::SummarizedExperiment(
@@ -1317,7 +1317,7 @@ test_that("calculate_rank_assumptions_s4: handles small data in exchangeability"
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::calculate_rank_assumptions_s4(
+  result <- TSENAT:::calculate_rank_assumptions(
     analysis,
     checks = c("exchangeability")
   )
@@ -1327,10 +1327,10 @@ test_that("calculate_rank_assumptions_s4: handles small data in exchangeability"
 })
 
 # ============================================================================
-# TEST: calculate_rank_assumptions_s4 - Line 131 (permutation with single row)
+# TEST: calculate_rank_assumptions - Line 131 (permutation with single row)
 # ============================================================================
 
-test_that("calculate_rank_assumptions_s4: permutation handles small data", {
+test_that("calculate_rank_assumptions: permutation handles small data", {
   # Line 131: 0 (when length(perm_means) <= 1 in permutation loop)
   
   se <- SummarizedExperiment::SummarizedExperiment(
@@ -1354,7 +1354,7 @@ test_that("calculate_rank_assumptions_s4: permutation handles small data", {
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::calculate_rank_assumptions_s4(
+  result <- TSENAT:::calculate_rank_assumptions(
     analysis,
     checks = c("exchangeability")
   )
@@ -1364,10 +1364,10 @@ test_that("calculate_rank_assumptions_s4: permutation handles small data", {
 })
 
 # ============================================================================
-# TEST: calculate_rank_assumptions_s4 - Line 169 (High correlation status)
+# TEST: calculate_rank_assumptions - Line 169 (High correlation status)
 # ============================================================================
 
-test_that("calculate_rank_assumptions_s4: returns PASS status for high monotonicity", {
+test_that("calculate_rank_assumptions: returns PASS status for high monotonicity", {
   # Line 169: "[OK] PASS" status when mean_cor > 0.7 && sd_cor < 0.2
   
   se <- SummarizedExperiment::SummarizedExperiment(
@@ -1392,7 +1392,7 @@ test_that("calculate_rank_assumptions_s4: returns PASS status for high monotonic
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::calculate_rank_assumptions_s4(
+  result <- TSENAT:::calculate_rank_assumptions(
     analysis,
     checks = c("monotonicity")
   )
@@ -1402,10 +1402,10 @@ test_that("calculate_rank_assumptions_s4: returns PASS status for high monotonic
 })
 
 # ============================================================================
-# TEST: calculate_rank_assumptions_s4 - Line 171 (Acceptable correlation status)
+# TEST: calculate_rank_assumptions - Line 171 (Acceptable correlation status)
 # ============================================================================
 
-test_that("calculate_rank_assumptions_s4: returns ACCEPTABLE status for moderate monotonicity", {
+test_that("calculate_rank_assumptions: returns ACCEPTABLE status for moderate monotonicity", {
   # Line 171: "? ACCEPTABLE" status when mean_cor > 0.4
   
   se <- SummarizedExperiment::SummarizedExperiment(
@@ -1429,7 +1429,7 @@ test_that("calculate_rank_assumptions_s4: returns ACCEPTABLE status for moderate
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::calculate_rank_assumptions_s4(
+  result <- TSENAT:::calculate_rank_assumptions(
     analysis,
     checks = c("monotonicity")
   )
@@ -1439,10 +1439,10 @@ test_that("calculate_rank_assumptions_s4: returns ACCEPTABLE status for moderate
 })
 
 # ============================================================================
-# TEST: calculate_rank_assumptions_s4 - Line 224 (High Kendall's W status)
+# TEST: calculate_rank_assumptions - Line 224 (High Kendall's W status)
 # ============================================================================
 
-test_that("calculate_rank_assumptions_s4: returns PASS status for high Kendall's W", {
+test_that("calculate_rank_assumptions: returns PASS status for high Kendall's W", {
   # Line 224: "[OK] PASS" status when kendall_w > 0.7
   
   se <- SummarizedExperiment::SummarizedExperiment(
@@ -1466,7 +1466,7 @@ test_that("calculate_rank_assumptions_s4: returns PASS status for high Kendall's
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::calculate_rank_assumptions_s4(
+  result <- TSENAT:::calculate_rank_assumptions(
     analysis,
     checks = c("consistency")
   )
@@ -1476,10 +1476,10 @@ test_that("calculate_rank_assumptions_s4: returns PASS status for high Kendall's
 })
 
 # ============================================================================
-# TEST: calculate_rank_assumptions_s4 - Line 226 (Acceptable Kendall's W status)
+# TEST: calculate_rank_assumptions - Line 226 (Acceptable Kendall's W status)
 # ============================================================================
 
-test_that("calculate_rank_assumptions_s4: returns ACCEPTABLE status for moderate Kendall's W", {
+test_that("calculate_rank_assumptions: returns ACCEPTABLE status for moderate Kendall's W", {
   # Line 226: "? ACCEPTABLE" status when kendall_w > 0.4
   
   se <- SummarizedExperiment::SummarizedExperiment(
@@ -1500,7 +1500,7 @@ test_that("calculate_rank_assumptions_s4: returns ACCEPTABLE status for moderate
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::calculate_rank_assumptions_s4(
+  result <- TSENAT:::calculate_rank_assumptions(
     analysis,
     checks = c("consistency")
   )
@@ -1532,7 +1532,7 @@ test_that("print.rank_assumptions: prints header and check details", {
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::calculate_rank_assumptions_s4(
+  result <- TSENAT:::calculate_rank_assumptions(
     analysis,
     checks = c("exchangeability")
   )
@@ -1569,7 +1569,7 @@ test_that("print.rank_assumptions: includes method field when present", {
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::calculate_rank_assumptions_s4(
+  result <- TSENAT:::calculate_rank_assumptions(
     analysis,
     checks = c("monotonicity")  # monotonicity has method field
   )
@@ -1606,7 +1606,7 @@ test_that("print.rank_assumptions: includes status field when present", {
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::calculate_rank_assumptions_s4(
+  result <- TSENAT:::calculate_rank_assumptions(
     analysis,
     checks = c("monotonicity", "consistency")
   )
@@ -1643,7 +1643,7 @@ test_that("print.rank_assumptions: includes details field when present", {
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::calculate_rank_assumptions_s4(
+  result <- TSENAT:::calculate_rank_assumptions(
     analysis,
     checks = c("monotonicity")
   )
@@ -1659,10 +1659,10 @@ test_that("print.rank_assumptions: includes details field when present", {
 })
 
 # ============================================================================
-# TEST: calculate_rank_assumptions_s4 - All checks combined
+# TEST: calculate_rank_assumptions - All checks combined
 # ============================================================================
 
-test_that("calculate_rank_assumptions_s4: runs all checks without error", {
+test_that("calculate_rank_assumptions: runs all checks without error", {
   
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(counts = matrix(1:20, nrow = 5, ncol = 4))
@@ -1680,7 +1680,7 @@ test_that("calculate_rank_assumptions_s4: runs all checks without error", {
   analysis@diversity_results$q_1.0 <- div_se
   
   # Run all checks
-  result <- TSENAT:::calculate_rank_assumptions_s4(
+  result <- TSENAT:::calculate_rank_assumptions(
     analysis,
     checks = c("exchangeability", "monotonicity", "consistency")
   )

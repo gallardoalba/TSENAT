@@ -105,7 +105,7 @@ config <- TSENAT_config(
   control = "normal")
 
 ## Build TSENATAnalysis object
-analysis <- build_analysis_s4(
+analysis <- build_analysis(
   readcounts = readcounts, 
   tx2gene = gff3_file,
   metadata = metadata_df,
@@ -183,7 +183,7 @@ config <- TSENAT_config(
 
 # Build analysis directly from Salmon output directory
 # IMPORTANT: Use named parameters (salmon_dir=, tx2gene=)
-analysis <- build_analysis_s4(
+analysis <- build_analysis(
   salmon_dir = "path/to/salmon_output",  # Auto-discovers all quant.sf files
   tx2gene = "path/to/annotation.gff3.gz",  # Transcript-to-gene mapping
   metadata = metadata_df,  # Sample metadata (see structure below)
@@ -191,8 +191,8 @@ analysis <- build_analysis_s4(
 )
 
 # Run analysis pipeline
-analysis <- filter_analysis_s4(analysis, stringency = "severe")
-analysis <- calculate_diversity_s4(analysis)  # Salmon-informed length-normalized entropy
+analysis <- filter_analysis(analysis, stringency = "severe")
+analysis <- calculate_diversity(analysis)  # Salmon-informed length-normalized entropy
 ```
 
 ### Salmon Directory Structure

@@ -115,8 +115,8 @@
 #'
 #'   The analysis object is returned visibly to support method chaining:
 #'   \preformatted{
-#'     analysis <- calculate_jis_s4(analysis, q = 0.5)
-#'     analysis <- calculate_jis_s4(analysis, q = 1.0)
+#'     analysis <- calculate_jis(analysis, q = 0.5)
+#'     analysis <- calculate_jis(analysis, q = 1.0)
 #'   }
 #'
 #' @details
@@ -161,16 +161,16 @@
 #'                           header = TRUE, sep = '\t')
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' analysis <- build_analysis(readcounts = readcounts, tx2gene =
 #' gff3_file, metadata = metadata_df, config = config,
 #'                              tpm = tpm,
 #'  effective_length = effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 #' = 20, subset_n_samples = 8)
-#' analysis <- calculate_diversity_s4(analysis, q = 1)
+#' analysis <- calculate_diversity(analysis, q = 1)
 #' 
 #' @export
-calculate_jis_s4 <- function(analysis, condition_col = NULL, subject_col = NULL,
+calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL,
     gene_col = NULL, isoform_col = NULL, q = c(0, 0.5, 1, 1.5, 2), norm = NULL, log_base = NULL, threshold = 90,
     n_bootstrap = 1000, pseudocount = NULL, lm_results = NULL, lm_p_threshold = 0.05,
     use_lm_fdr = TRUE, output_file = NULL, verbose = FALSE, ...) {
@@ -200,7 +200,7 @@ calculate_jis_s4 <- function(analysis, condition_col = NULL, subject_col = NULL,
             pseudocount = params$pseudocount, verbose = verbose, lm_results = lm_results,
             lm_p_threshold = params$lm_p_threshold, use_lm_fdr = use_lm_fdr)
     }, error = function(e) {
-        stop("[calculate_jis_s4] Jackknife analysis failed:\n", conditionMessage(e),
+        stop("[calculate_jis] Jackknife analysis failed:\n", conditionMessage(e),
             call. = FALSE)
     })
 
@@ -236,7 +236,7 @@ calculate_jis_s4 <- function(analysis, condition_col = NULL, subject_col = NULL,
 
     se <- analysis@se
     if (!inherits(se, "SummarizedExperiment")) {
-        stop("[calculate_jis_s4] @se must be a SummarizedExperiment object",
+        stop("[calculate_jis] @se must be a SummarizedExperiment object",
             call. = FALSE)
     }
 
@@ -271,14 +271,14 @@ calculate_jis_s4 <- function(analysis, condition_col = NULL, subject_col = NULL,
     } else {
         # Validate explicit condition_col exists
         if (!condition_col %in% cd_cols) {
-            stop("[calculate_jis_s4] condition_col '", condition_col,
+            stop("[calculate_jis] condition_col '", condition_col,
                 "' not found in colData.\n", "  Available columns: ", paste(cd_cols,
                   collapse = ", "), call. = FALSE)
         }
     }
 
     if (is.null(condition_col)) {
-        stop("[calculate_jis_s4] Cannot auto-detect condition_col.\n",
+        stop("[calculate_jis] Cannot auto-detect condition_col.\n",
             "  Available colData columns: ", paste(cd_cols, collapse = ", "), "\n\n",
             "SOLUTION: Set @config$condition_col or pass explicit parameter\n", call. = FALSE)
     }
@@ -297,7 +297,7 @@ calculate_jis_s4 <- function(analysis, condition_col = NULL, subject_col = NULL,
     } else {
         # Validate explicit gene_col exists if rowData is present
         if (length(rd_cols) > 0 && !gene_col %in% rd_cols) {
-            stop("[calculate_jis_s4] gene_col '", gene_col, "' not found in rowData.\n",
+            stop("[calculate_jis] gene_col '", gene_col, "' not found in rowData.\n",
                 "  Available columns: ", paste(rd_cols, collapse = ", "), call. = FALSE)
         }
     }
@@ -311,7 +311,7 @@ calculate_jis_s4 <- function(analysis, condition_col = NULL, subject_col = NULL,
     } else {
         # Validate explicit isoform_col exists if rowData is present
         if (length(rd_cols) > 0 && !isoform_col %in% rd_cols) {
-            stop("[calculate_jis_s4] isoform_col '", isoform_col, "' not found in rowData.\n",
+            stop("[calculate_jis] isoform_col '", isoform_col, "' not found in rowData.\n",
                 "  Available columns: ", paste(rd_cols, collapse = ", "), call. = FALSE)
         }
     }
@@ -333,7 +333,7 @@ calculate_jis_s4 <- function(analysis, condition_col = NULL, subject_col = NULL,
         if ("lm_interaction" %in% names(analysis@lm_results)) {
             lm_results <- analysis@lm_results$lm_interaction
             if (verbose) {
-                message("[calculate_jis_s4] Using LM interaction results")
+                message("[calculate_jis] Using LM interaction results")
             }
         }
     }
@@ -366,11 +366,11 @@ calculate_jis_s4 <- function(analysis, condition_col = NULL, subject_col = NULL,
     usable_q <- intersect(q_vals, available_q)
     
     if (length(usable_q) == 0) {
-        warning("[calculate_jis_s4] No matching q-values found.\n",
+        warning("[calculate_jis] No matching q-values found.\n",
                 "  Requested: ", paste(q_vals, collapse = ", "), "\n",
                 "  Available: ", paste(available_q, collapse = ", "), call. = FALSE)
     } else if (verbose) {
-        message("[calculate_jis_s4] Using q-values: ", paste(usable_q, collapse = ", "))
+        message("[calculate_jis] Using q-values: ", paste(usable_q, collapse = ", "))
     }
 
     invisible(NULL)
@@ -452,7 +452,7 @@ calculate_jis_s4 <- function(analysis, condition_col = NULL, subject_col = NULL,
         }
         analysis@jackknife_results[["multi_q"]] <- result
         if (verbose) {
-            message("[calculate_jis_s4] Stored multi-q results")
+            message("[calculate_jis] Stored multi-q results")
         }
     } else {
         # Single or vector q-values
@@ -465,19 +465,19 @@ calculate_jis_s4 <- function(analysis, condition_col = NULL, subject_col = NULL,
             } else if (length(q_vals) == 1) {
                 analysis@jackknife_results[[q_key]] <- result
             } else {
-                warning("[calculate_jis_s4] Result for q=", q_vals[i],
+                warning("[calculate_jis] Result for q=", q_vals[i],
                   " (key: ", q_key, ") not found", call. = FALSE)
             }
 
             if (verbose) {
-                message("[calculate_jis_s4] Stored results for ", q_key)
+                message("[calculate_jis] Stored results for ", q_key)
             }
         }
     }
 
     # Update metadata
     if (is.list(analysis@metadata)) {
-        call_str <- sprintf("calculate_jis_s4[q=%s, condition_col=%s]",
+        call_str <- sprintf("calculate_jis[q=%s, condition_col=%s]",
             paste(q_vals, collapse = ","), condition_col)
         analysis@metadata$function_calls <- c(analysis@metadata$function_calls, call_str)
         analysis@metadata$function_timestamps <- c(analysis@metadata$function_timestamps,
@@ -507,10 +507,10 @@ calculate_jis_s4 <- function(analysis, condition_col = NULL, subject_col = NULL,
         tryCatch({
             saveRDS(analysis, file = output_file)
             if (verbose) {
-                message("[calculate_jis_s4] Saved to ", output_file)
+                message("[calculate_jis] Saved to ", output_file)
             }
         }, error = function(e) {
-            warning("[calculate_jis_s4] Failed to save: ", conditionMessage(e),
+            warning("[calculate_jis] Failed to save: ", conditionMessage(e),
                 call. = FALSE)
         })
     }
@@ -555,7 +555,7 @@ calculate_jis_s4 <- function(analysis, condition_col = NULL, subject_col = NULL,
                 row.names = FALSE)
         }
     }, error = function(e) {
-        warning("[calculate_jis_s4] Could not write results: ", conditionMessage(e),
+        warning("[calculate_jis] Could not write results: ", conditionMessage(e),
             call. = FALSE)
     })
 }

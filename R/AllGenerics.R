@@ -80,10 +80,10 @@ setGeneric("getConfig", function(object, ...) standardGeneric("getConfig"))
 #'   header = TRUE, sep = '\t')
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' analysis <- build_analysis(readcounts = readcounts, tx2gene =
 #' gff3_file, metadata = metadata_df, config = config,
 #'   tpm = tpm, effective_length = effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' @noRd
 setGeneric("getPlot", function(object, ...) standardGeneric("getPlot"))
@@ -108,21 +108,21 @@ setGeneric("getPlot", function(object, ...) standardGeneric("getPlot"))
 #' )
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #'
-#' # TPM and effective_length REQUIRED for filter_analysis_s4()
+#' # TPM and effective_length REQUIRED for filter_analysis()
 #' tpm <- matrix(runif(nrow(readcounts) * ncol(readcounts), 0.1, 10),
 #'               nrow = nrow(readcounts), ncol = ncol(readcounts),
 #'               dimnames = dimnames(readcounts))
 #' effective_length <- matrix(100, nrow = nrow(readcounts), ncol = ncol(readcounts))
 #' 
 #' config <- TSENAT_config(q_values = c(0.5, 1.0), generate_plots = FALSE)
-#' analysis <- build_analysis_s4(readcounts, tx2gene = gff3_file,
+#' analysis <- build_analysis(readcounts, tx2gene = gff3_file,
 #'     metadata = metadata, tpm = tpm, effective_length = effective_length,
 #'     config = config)
-#' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-#' analysis <- calculate_diversity_s4(analysis, norm = TRUE)
+#' analysis <- filter_analysis(analysis, stringency = 'severe')
+#' analysis <- calculate_diversity(analysis, norm = TRUE)
 #' 
 #' # Create and cache a plot
-#' p <- plot_diversity_spectrum_s4(analysis)
+#' p <- plot_diversity_spectrum(analysis)
 #' @noRd
 setGeneric("addPlot", function(object, type, plot, replace = FALSE) standardGeneric("addPlot"))
 
@@ -151,7 +151,7 @@ setGeneric("addPlot", function(object, type, plot, replace = FALSE) standardGene
 #'
 #' # Build TSENATAnalysis object
 #' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
-#' analysis <- build_analysis_s4(readcounts = readcounts, 
+#' analysis <- build_analysis(readcounts = readcounts, 
 #'                              tx2gene = gff3_file, 
 #'                              metadata = metadata_df,
 #'                              config = config,

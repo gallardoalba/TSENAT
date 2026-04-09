@@ -28,7 +28,7 @@
 #'
 #' @details
 #' This function is called automatically by all S4 plot wrapper functions
-#' (plot_diversity_volcano_ma_s4, plot_divergence_spectrum_s4, etc.).
+#' (plot_diversity_volcano_ma, plot_divergence_spectrum, etc.).
 #' Users should not need to call this directly.
 #'
 #' The loading state is tracked in namespace variable .viz_loaded to ensure

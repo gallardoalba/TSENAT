@@ -8,7 +8,7 @@
     }
     # Check slots directly to avoid warnings from accessors
     if (length(analysis@divergence_results) == 0) {
-        stop("Divergence results required. Run calculate_divergence_s4() first.",
+        stop("Divergence results required. Run calculate_divergence() first.",
             call. = FALSE)
     }
     # Check for LM interaction results (exclude rank_test which belongs to
@@ -18,7 +18,7 @@
         lm_only$rank_test <- NULL
     }
     if (length(lm_only) == 0) {
-        stop("LM results required. Run calculate_lm_s4() first.", call. = FALSE)
+        stop("LM results required. Run calculate_lm() first.", call. = FALSE)
     }
 }
 
@@ -52,7 +52,7 @@
     }
 
     if (verbose) {
-        message("[calculate_effect_sizes_s4] Extracted: Divergence SE ", paste(dim(divergence_se),
+        message("[calculate_effect_sizes] Extracted: Divergence SE ", paste(dim(divergence_se),
             collapse = " x "), ", LM results: ", nrow(lm_res), " genes")
     }
 
@@ -83,7 +83,7 @@
             rd$gene_name <- gene_names_expanded
             rowData(divergence_se) <- rd
             if (verbose) {
-                message("[calculate_effect_sizes_s4] Added gene_name via tx2gene mapping")
+                message("[calculate_effect_sizes] Added gene_name via tx2gene mapping")
             }
             return(divergence_se)
         }
@@ -94,14 +94,14 @@
         rd$gene_name <- as.character(lm_res$gene)
         rowData(divergence_se) <- rd
         if (verbose) {
-            message("[calculate_effect_sizes_s4] Added gene_name via direct assignment")
+            message("[calculate_effect_sizes] Added gene_name via direct assignment")
         }
         return(divergence_se)
     }
 
     rd_final <- rowData(divergence_se)
     if (!("gene_name" %in% colnames(rd_final)) || any(is.na(rd_final$gene_name))) {
-        stop("[calculate_effect_sizes_s4] Failed to add valid gene_name. ", "Ensure tx2gene metadata is properly set.",
+        stop("[calculate_effect_sizes] Failed to add valid gene_name. ", "Ensure tx2gene metadata is properly set.",
             call. = FALSE)
     }
     divergence_se
@@ -148,7 +148,7 @@
         significance_threshold, "]"))
 
     if (verbose && !is.null(result$interaction_results)) {
-        message("[calculate_effect_sizes_s4] Stored results: ", nrow(result$interaction_results),
+        message("[calculate_effect_sizes] Stored results: ", nrow(result$interaction_results),
             " genes")
     }
     analysis
@@ -169,7 +169,7 @@
         if (length(all_na_cols) > 0) {
             results_df <- results_df[, !colnames(results_df) %in% all_na_cols]
             if (verbose) {
-                message("[calculate_effect_sizes_s4] Removed NA columns: ", paste(all_na_cols,
+                message("[calculate_effect_sizes] Removed NA columns: ", paste(all_na_cols,
                   collapse = ", "))
             }
         }
@@ -187,8 +187,8 @@
 #'
 #' @param analysis \code{TSENATAnalysis}.
 #'  An S4 object containing divergence results
-#'   (from \code{calculate_divergence_s4()}) and LM interaction results
-#'   (from \code{calculate_lm_s4()}).
+#'   (from \code{calculate_divergence()}) and LM interaction results
+#'   (from \code{calculate_lm()}).
 #'
 #' @param significance_threshold \code{numeric}. Adjusted p-value threshold for
 #'   filtering significant genes (default: 0.05).
@@ -256,17 +256,17 @@
 #'   control = 'normal',
 #'   q_values = seq(0, 2, by = 0.05)  # Recommended: 41 q-values for paired designs
 #' )
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' analysis <- build_analysis(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df, config = config,
 #'   tpm = tpm, effective_length = effective_length)
 #' 
-#' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
-#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
-#' analysis <- calculate_lm_s4(analysis, method = 'gam')
+#' analysis <- filter_analysis(analysis, stringency = 'severe')
+#' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
+#' analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
+#' analysis <- calculate_lm(analysis, method = 'gam')
 #'
 #' # Compute effect sizes from divergence results
-#' analysis <- calculate_effect_sizes_s4(analysis,
+#' analysis <- calculate_effect_sizes(analysis,
 #'   significance_threshold = 0.05)
 #'
 #' # Access results using unified results accessor
@@ -276,13 +276,13 @@
 #' str(effect_size_results, max.level = 1)
 #'
 #' @seealso
-#' \code{\link{calculate_divergence_s4}} for divergence wrapper,
-#' \code{\link{calculate_lm_s4}} for LM interaction wrapper
+#' \code{\link{calculate_divergence}} for divergence wrapper,
+#' \code{\link{calculate_lm}} for LM interaction wrapper
 #'
 #' @export
 #' @importFrom methods is
 #' @importFrom utils write.table
-calculate_effect_sizes_s4 <- function(analysis, significance_threshold = NULL, enrich_per_q_pattern = NULL,
+calculate_effect_sizes <- function(analysis, significance_threshold = NULL, enrich_per_q_pattern = NULL,
     verbose = NULL, output_file = NULL, ...) {
 
     verbose <- resolve_slot_param(verbose, getConfig(analysis), "verbose", FALSE)
@@ -303,7 +303,7 @@ calculate_effect_sizes_s4 <- function(analysis, significance_threshold = NULL, e
         verbose)
 
     if (verbose) {
-        message("[calculate_effect_sizes_s4] Computing effect sizes...")
+        message("[calculate_effect_sizes] Computing effect sizes...")
     }
 
     result <- tryCatch({

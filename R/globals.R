@@ -309,7 +309,7 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "ran
 #' - Optional major gridlines for q-value axis
 #' - Wider plot margins for axis labels
 #'
-#' Used by: plot_diversity_spectrum_s4(), .plot_lm_gam(),
+#' Used by: plot_diversity_spectrum(), .plot_lm_gam(),
 #' and similar spectrum/profile plots.
 #'
 

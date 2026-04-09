@@ -48,7 +48,7 @@ make_test_se <- function() {
   )
   
   # Build TSENATAnalysis object (has embedded SummarizedExperiment) with ALL samples
-  analysis <- build_analysis_s4(
+  analysis <- build_analysis(
     config = config,
     readcounts = readcounts,
     metadata = metadata_df,
@@ -58,7 +58,7 @@ make_test_se <- function() {
   )
   
   # Apply medium stringency filtering
-  analysis <- filter_analysis_s4(analysis, stringency = "medium", verbose = FALSE)
+  analysis <- filter_analysis(analysis, stringency = "medium", verbose = FALSE)
   
   # Return unfiltered SE with all 16 samples - let TSENAT() workflow handle default filtering
   # workflow.R doesn't pre-filter; filtering happens inside TSENAT()
@@ -1507,7 +1507,7 @@ test_that("results with q parameter filters to single SummarizedExperiment", {
     paired = FALSE
   )
   
-  analysis <- build_analysis_s4(
+  analysis <- build_analysis(
     readcounts = readcounts,
     tx2gene = gff3_file,
     metadata = metadata_df,
@@ -1515,7 +1515,7 @@ test_that("results with q parameter filters to single SummarizedExperiment", {
   )
   
   # Compute diversity
-  analysis <- calculate_diversity_s4(analysis, norm = TRUE, verbose = FALSE)
+  analysis <- calculate_diversity(analysis, norm = TRUE, verbose = FALSE)
   
   # Test 1: Get all diversity results (should be list)
   all_div <- results(analysis, type = "diversity")
@@ -1574,14 +1574,14 @@ test_that("results with NaN diversity values handled correctly", {
     paired = FALSE
   )
   
-  analysis <- build_analysis_s4(
+  analysis <- build_analysis(
     readcounts = readcounts[, 1:8],
     tx2gene = gff3_file,
     metadata = metadata_df,
     config = config
   )
   
-  analysis <- calculate_diversity_s4(analysis, norm = TRUE, verbose = FALSE)
+  analysis <- calculate_diversity(analysis, norm = TRUE, verbose = FALSE)
   
   # Should still work with NaN values present
   div_q1 <- results(analysis, type = "diversity", q = 1.0)

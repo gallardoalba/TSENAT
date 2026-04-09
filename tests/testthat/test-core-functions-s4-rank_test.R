@@ -3,10 +3,10 @@ library(TSENAT)
 library(SummarizedExperiment)
 
 # ============================================================================
-# Tests for calculate_rank_test_s4() S4 wrapper function
+# Tests for calculate_rank_test() S4 wrapper function
 # ============================================================================
 
-context("S4 Rank Test: calculate_rank_test_s4")
+context("S4 Rank Test: calculate_rank_test")
 
 # CACHE LEVEL 1: Base analysis (built once from full dataset)
 .test_analysis_cache <- NULL
@@ -43,7 +43,7 @@ context("S4 Rank Test: calculate_rank_test_s4")
         subject_col = "paired_samples"
     )
     
-    analysis <- build_analysis_s4(
+    analysis <- build_analysis(
         config = config,
         readcounts = readcounts,
         tx2gene = gff3_file,
@@ -71,10 +71,10 @@ setup_rank_test_analysis <- function(n_genes = 10, n_samples = 4) {
     analysis <- .get_cached_analysis()
     
     # Filter to subset for this test (much faster than rebuilding)
-    analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = n_genes, subset_n_samples = n_samples)
+    analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = n_genes, subset_n_samples = n_samples)
     
     # Calculate diversity AFTER filtering (this is the correct order)
-    analysis <- calculate_diversity_s4(analysis, norm = TRUE)
+    analysis <- calculate_diversity(analysis, norm = TRUE)
     
     # Cache for next test with same parameters
     .test_analysis_diversity_cache[[cache_key]] <<- analysis
@@ -86,10 +86,10 @@ setup_rank_test_analysis <- function(n_genes = 10, n_samples = 4) {
 # Test 1: Basic functionality with real data
 # ============================================================================
 
-test_that("calculate_rank_test_s4 returns TSENATAnalysis with results", {
+test_that("calculate_rank_test returns TSENATAnalysis with results", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 12)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition"
     )
@@ -106,11 +106,11 @@ test_that("calculate_rank_test_s4 returns TSENATAnalysis with results", {
 # Test 2: Paired design with subject_col
 # ============================================================================
 
-test_that("calculate_rank_test_s4 runs with paired design", {
+test_that("calculate_rank_test runs with paired design", {
     skip_on_cran()
     analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         paired = TRUE,
@@ -126,10 +126,10 @@ test_that("calculate_rank_test_s4 runs with paired design", {
 # Test 3: Parameter resolution - explicit args override config
 # ============================================================================
 
-test_that("calculate_rank_test_s4 respects explicit parameters over config", {
+test_that("calculate_rank_test respects explicit parameters over config", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         test = "kruskal-wallis"
@@ -144,10 +144,10 @@ test_that("calculate_rank_test_s4 respects explicit parameters over config", {
 # Test 4: Different test methods - Kruskal-Wallis (unpaired)
 # ============================================================================
 
-test_that("calculate_rank_test_s4 works with Kruskal-Wallis test", {
+test_that("calculate_rank_test works with Kruskal-Wallis test", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         test = "kruskal-wallis"
@@ -163,10 +163,10 @@ test_that("calculate_rank_test_s4 works with Kruskal-Wallis test", {
 # Test 5: Different test methods - Friedman (paired)
 # ============================================================================
 
-test_that("calculate_rank_test_s4 works with Friedman test for paired design", {
+test_that("calculate_rank_test works with Friedman test for paired design", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         test = "friedman",
@@ -183,10 +183,10 @@ test_that("calculate_rank_test_s4 works with Friedman test for paired design", {
 # Test 6: Different multiple correction methods - Hochberg
 # ============================================================================
 
-test_that("calculate_rank_test_s4 works with Hochberg correction", {
+test_that("calculate_rank_test works with Hochberg correction", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         multicorr = "hochberg"
@@ -202,10 +202,10 @@ test_that("calculate_rank_test_s4 works with Hochberg correction", {
 # Test 7: Different multiple correction methods - Benjamini-Yekutieli
 # ============================================================================
 
-test_that("calculate_rank_test_s4 works with Benjamini-Yekutieli correction", {
+test_that("calculate_rank_test works with Benjamini-Yekutieli correction", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         multicorr = "benjamini-yekutieli"
@@ -220,10 +220,10 @@ test_that("calculate_rank_test_s4 works with Benjamini-Yekutieli correction", {
 # Test 8: Multiple correction method - None
 # ============================================================================
 
-test_that("calculate_rank_test_s4 works with no multiple correction", {
+test_that("calculate_rank_test works with no multiple correction", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         multicorr = "none"
@@ -238,10 +238,10 @@ test_that("calculate_rank_test_s4 works with no multiple correction", {
 # Test 9: Auto test selection
 # ============================================================================
 
-test_that("calculate_rank_test_s4 auto-selects appropriate test method", {
+test_that("calculate_rank_test auto-selects appropriate test method", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         test = "auto"
@@ -256,28 +256,28 @@ test_that("calculate_rank_test_s4 auto-selects appropriate test method", {
 # Test 10: Error handling - missing required condition_col
 # ============================================================================
 
-test_that("calculate_rank_test_s4 requires condition_col argument", {
+test_that("calculate_rank_test requires condition_col argument", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # Calling without condition_col should not error (defaults to "condition")
     # but should work if condition column exists in metadata
-    result <- calculate_rank_test_s4(analysis)
+    result <- calculate_rank_test(analysis)
     expect_is(result, "TSENATAnalysis")
     
     # Invalid condition_col should error
-    expect_error(calculate_rank_test_s4(analysis, condition_col = "nonexistent"))
+    expect_error(calculate_rank_test(analysis, condition_col = "nonexistent"))
 })
 
 # ============================================================================
 # Test 11: Invalid condition column
 # ============================================================================
 
-test_that("calculate_rank_test_s4 errors with invalid condition_col", {
+test_that("calculate_rank_test errors with invalid condition_col", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # Should error when condition column doesn't exist in metadata
     expect_error(
-        calculate_rank_test_s4(
+        calculate_rank_test(
             analysis,
             condition_col = "nonexistent_column"
         ),
@@ -289,12 +289,12 @@ test_that("calculate_rank_test_s4 errors with invalid condition_col", {
 # Test 12: Paired design requires subject_col
 # ============================================================================
 
-test_that("calculate_rank_test_s4 requires subject_col when paired=TRUE", {
+test_that("calculate_rank_test requires subject_col when paired=TRUE", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # Should error when subject column doesn't exist but paired=TRUE
     expect_error(
-        calculate_rank_test_s4(
+        calculate_rank_test(
             analysis,
             condition_col = "condition",
             paired = TRUE,
@@ -307,10 +307,10 @@ test_that("calculate_rank_test_s4 requires subject_col when paired=TRUE", {
 # Test 13: Results contain expected columns
 # ============================================================================
 
-test_that("calculate_rank_test_s4 results have correct structure", {
+test_that("calculate_rank_test results have correct structure", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         multicorr = "hochberg"
@@ -330,11 +330,11 @@ test_that("calculate_rank_test_s4 results have correct structure", {
 # Test 14: Multiple genes with varying p-values
 # ============================================================================
 
-test_that("calculate_rank_test_s4 handles multiple genes with varying significance", {
+test_that("calculate_rank_test handles multiple genes with varying significance", {
     skip_on_cran()
     analysis <- setup_rank_test_analysis(n_genes = 30, n_samples = 8)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         multicorr = "hochberg"
@@ -355,11 +355,11 @@ test_that("calculate_rank_test_s4 handles multiple genes with varying significan
 # Test 15: ART (Aligned Rank Transform) test method
 # ============================================================================
 
-test_that("calculate_rank_test_s4 works with ART (Aligned Rank Transform)", {
+test_that("calculate_rank_test works with ART (Aligned Rank Transform)", {
     skip_on_cran()
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         test = "art"
@@ -375,11 +375,11 @@ test_that("calculate_rank_test_s4 works with ART (Aligned Rank Transform)", {
 # Test 16: Westfall-Young correction method
 # ============================================================================
 
-test_that("calculate_rank_test_s4 works with Westfall-Young correction", {
+test_that("calculate_rank_test works with Westfall-Young correction", {
     skip_on_cran()
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         multicorr = "westfall-young",
@@ -396,11 +396,11 @@ test_that("calculate_rank_test_s4 works with Westfall-Young correction", {
 # Test 17: Explicit q-values parameter
 # ============================================================================
 
-test_that("calculate_rank_test_s4 accepts explicit q parameter", {
+test_that("calculate_rank_test accepts explicit q parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Specify subset of q-values to test
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         q = c(0.5, 1.0, 1.5)
@@ -415,11 +415,11 @@ test_that("calculate_rank_test_s4 accepts explicit q parameter", {
 # Test 18: Custom entropy column name
 # ============================================================================
 
-test_that("calculate_rank_test_s4 accepts custom entropy_col parameter", {
+test_that("calculate_rank_test accepts custom entropy_col parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Default entropy_col is "diversity"
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         entropy_col = "diversity"
@@ -434,10 +434,10 @@ test_that("calculate_rank_test_s4 accepts custom entropy_col parameter", {
 # Test 19: Custom q column name
 # ============================================================================
 
-test_that("calculate_rank_test_s4 accepts custom q_col parameter", {
+test_that("calculate_rank_test accepts custom q_col parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         q_col = "q"
@@ -452,10 +452,10 @@ test_that("calculate_rank_test_s4 accepts custom q_col parameter", {
 # Test 20: Custom gene column name
 # ============================================================================
 
-test_that("calculate_rank_test_s4 accepts custom gene_col parameter", {
+test_that("calculate_rank_test accepts custom gene_col parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         gene_col = "gene"
@@ -471,10 +471,10 @@ test_that("calculate_rank_test_s4 accepts custom gene_col parameter", {
 # Test 21: nthreads parameter for parallelization
 # ============================================================================
 
-test_that("calculate_rank_test_s4 accepts nthreads parameter", {
+test_that("calculate_rank_test accepts nthreads parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         nthreads = 1
@@ -489,11 +489,11 @@ test_that("calculate_rank_test_s4 accepts nthreads parameter", {
 # Test 22: verbose parameter for progress output
 # ============================================================================
 
-test_that("calculate_rank_test_s4 accepts verbose parameter", {
+test_that("calculate_rank_test accepts verbose parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Verbose may or may not produce output, but should not error
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         verbose = FALSE
@@ -508,11 +508,11 @@ test_that("calculate_rank_test_s4 accepts verbose parameter", {
 # Test 23: nperm_mode parameter (permutation estimation mode)
 # ============================================================================
 
-test_that("calculate_rank_test_s4 accepts nperm_mode parameter", {
+test_that("calculate_rank_test accepts nperm_mode parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Test with different permutation modes
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         nperm_mode = "standard"
@@ -527,11 +527,11 @@ test_that("calculate_rank_test_s4 accepts nperm_mode parameter", {
 # Test 24: wy_randomizations parameter (Westfall-Young permutations)
 # ============================================================================
 
-test_that("calculate_rank_test_s4 wy_randomizations controls WY permutations", {
+test_that("calculate_rank_test wy_randomizations controls WY permutations", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Test with explicit WY randomizations count
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         multicorr = "westfall-young",
@@ -547,13 +547,13 @@ test_that("calculate_rank_test_s4 wy_randomizations controls WY permutations", {
 # Test 25: output_file parameter (optional file output)
 # ============================================================================
 
-test_that("calculate_rank_test_s4 accepts output_file parameter", {
+test_that("calculate_rank_test accepts output_file parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Create temporary file path
     temp_file <- tempfile(fileext = ".rds")
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         output_file = temp_file
@@ -568,11 +568,11 @@ test_that("calculate_rank_test_s4 accepts output_file parameter", {
 # Test 26: Combined parameters - multiple options together
 # ============================================================================
 
-test_that("calculate_rank_test_s4 handles combined parameter specifications", {
+test_that("calculate_rank_test handles combined parameter specifications", {
     skip_on_cran()
     analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         test = "friedman",
@@ -1161,15 +1161,15 @@ test_that(".store_rank_test_results preserves existing lm_results", {
 })
 
 # ============================================================================
-# Test: calculate_rank_test_s4 with verbose output
+# Test: calculate_rank_test with verbose output
 # ============================================================================
 
-test_that("calculate_rank_test_s4 respects verbose parameter", {
+test_that("calculate_rank_test respects verbose parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Capture output with verbose = TRUE
     output <- capture.output({
-        result <- calculate_rank_test_s4(
+        result <- calculate_rank_test(
             analysis,
             condition_col = "condition",
             test = "auto",
@@ -1183,13 +1183,13 @@ test_that("calculate_rank_test_s4 respects verbose parameter", {
 })
 
 # ============================================================================
-# Test: calculate_rank_test_s4 with different multicorr methods
+# Test: calculate_rank_test with different multicorr methods
 # ============================================================================
 
-test_that("calculate_rank_test_s4 works with benjamini-yekutieli correction", {
+test_that("calculate_rank_test works with benjamini-yekutieli correction", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         multicorr = "benjamini-yekutieli"
@@ -1200,10 +1200,10 @@ test_that("calculate_rank_test_s4 works with benjamini-yekutieli correction", {
     expect_true("adj_p_value" %in% colnames(rank_res))
 })
 
-test_that("calculate_rank_test_s4 works with no multiple correction", {
+test_that("calculate_rank_test works with no multiple correction", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         multicorr = "none"
@@ -1217,14 +1217,14 @@ test_that("calculate_rank_test_s4 works with no multiple correction", {
 })
 
 # ============================================================================
-# Test: calculate_rank_test_s4 with explicit q-values
+# Test: calculate_rank_test with explicit q-values
 # ============================================================================
 
-test_that("calculate_rank_test_s4 respects explicit q parameter", {
+test_that("calculate_rank_test respects explicit q parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Explicitly pass q-values
-    result_explicit <- calculate_rank_test_s4(
+    result_explicit <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         q = c(0.5, 1.0, 1.5)
@@ -1236,16 +1236,16 @@ test_that("calculate_rank_test_s4 respects explicit q parameter", {
 })
 
 # ============================================================================
-# Test: calculate_rank_test_s4 with nthreads parameter
+# Test: calculate_rank_test with nthreads parameter
 # ============================================================================
 
-test_that("calculate_rank_test_s4 respects nthreads parameter", {
+test_that("calculate_rank_test respects nthreads parameter", {
     skip_if_not_installed("parallel")
     
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Test with 1 thread (should work on any system)
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         nthreads = 1
@@ -1255,13 +1255,13 @@ test_that("calculate_rank_test_s4 respects nthreads parameter", {
 })
 
 # ============================================================================
-# Test: calculate_rank_test_s4 with different entropy columns
+# Test: calculate_rank_test with different entropy columns
 # ============================================================================
 
-test_that("calculate_rank_test_s4 handles custom entropy column names", {
+test_that("calculate_rank_test handles custom entropy column names", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         entropy_col = "diversity"  # Default column name
@@ -1274,10 +1274,10 @@ test_that("calculate_rank_test_s4 handles custom entropy column names", {
 # Test: Integration - Full workflow with different parameter combinations
 # ============================================================================
 
-test_that("calculate_rank_test_s4 full workflow with art test method", {
+test_that("calculate_rank_test full workflow with art test method", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         test = "art",
@@ -1289,10 +1289,10 @@ test_that("calculate_rank_test_s4 full workflow with art test method", {
     expect_true(nrow(rank_res) > 0)
 })
 
-test_that("calculate_rank_test_s4 preserves effect size calculations", {
+test_that("calculate_rank_test preserves effect size calculations", {
     analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition"
     )
@@ -1307,10 +1307,10 @@ test_that("calculate_rank_test_s4 preserves effect size calculations", {
     expect_true(all(res_df$effect_size_eta2 >= 0 & res_df$effect_size_eta2 <= 1, na.rm = TRUE))
 })
 
-test_that("calculate_rank_test_s4 classifies q-dependence correctly", {
+test_that("calculate_rank_test classifies q-dependence correctly", {
     analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition"
     )
@@ -1328,10 +1328,10 @@ test_that("calculate_rank_test_s4 classifies q-dependence correctly", {
 # Test: Data integrity and consistency checks
 # ============================================================================
 
-test_that("calculate_rank_test_s4 results contain expected columns", {
+test_that("calculate_rank_test results contain expected columns", {
     analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition"
     )
@@ -1349,10 +1349,10 @@ test_that("calculate_rank_test_s4 results contain expected columns", {
     }
 })
 
-test_that("calculate_rank_test_s4 results are sorted by adjusted p-value", {
+test_that("calculate_rank_test results are sorted by adjusted p-value", {
     analysis <- setup_rank_test_analysis(n_genes = 30, n_samples = 8)
     
-    result <- calculate_rank_test_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition"
     )
@@ -1367,18 +1367,18 @@ test_that("calculate_rank_test_s4 results are sorted by adjusted p-value", {
     }
 })
 
-test_that("calculate_rank_test_s4 generates consistent results", {
+test_that("calculate_rank_test generates consistent results", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Run twice and compare
-    result1 <- calculate_rank_test_s4(
+    result1 <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         test = "auto",
         multicorr = "hochberg"
     )
     
-    result2 <- calculate_rank_test_s4(
+    result2 <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         test = "auto",
@@ -1405,7 +1405,7 @@ test_that("rank_test output file (TSV format) contains valid p-values", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_rank_pvalues.tsv")
   
-  result <- calculate_rank_test_s4(
+  result <- calculate_rank_test(
     analysis,
     condition_col = "condition",
     test = "kruskal-wallis",
@@ -1448,7 +1448,7 @@ test_that("rank_test output file (CSV format) preserves numerical properties acr
   csv_file <- file.path(output_dir, "test_rank_format_csv.csv")
   
   # Run test with TSV output
-  result_tsv <- calculate_rank_test_s4(
+  result_tsv <- calculate_rank_test(
     analysis,
     condition_col = "condition",
     test = "kruskal-wallis",
@@ -1457,7 +1457,7 @@ test_that("rank_test output file (CSV format) preserves numerical properties acr
   )
   
   # Run test with CSV output
-  result_csv <- calculate_rank_test_s4(
+  result_csv <- calculate_rank_test(
     analysis,
     condition_col = "condition",
     test = "kruskal-wallis",
@@ -1490,7 +1490,7 @@ test_that("rank_test statistics respect monotonicity: adj_p >= p_value", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_rank_monotone.tsv")
   
-  result <- calculate_rank_test_s4(
+  result <- calculate_rank_test(
     analysis,
     condition_col = "condition",
     multicorr = "hochberg",
@@ -1522,7 +1522,7 @@ test_that("rank_test results are consistent across different multicorr methods",
   
   # Test with no correction
   file_none <- file.path(output_dir, "test_rank_none.tsv")
-  result_none <- calculate_rank_test_s4(
+  result_none <- calculate_rank_test(
     analysis,
     condition_col = "condition",
     test = "kruskal-wallis",
@@ -1533,7 +1533,7 @@ test_that("rank_test results are consistent across different multicorr methods",
   
   # Test with Hochberg correction
   file_bh <- file.path(output_dir, "test_rank_bh.tsv")
-  result_bh <- calculate_rank_test_s4(
+  result_bh <- calculate_rank_test(
     analysis,
     condition_col = "condition",
     test = "kruskal-wallis",
@@ -1603,7 +1603,7 @@ test_that("rank_test results with different test methods produce valid statistic
   output_dir <- tempdir()
   file_kw <- file.path(output_dir, "test_rank_kw.tsv")
   
-  result <- calculate_rank_test_s4(
+  result <- calculate_rank_test(
     analysis,
     condition_col = "condition",
     test = "kruskal-wallis",
@@ -1643,7 +1643,7 @@ test_that("rank_test paired designs produce mathematically valid results", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_rank_paired.tsv")
   
-  result <- calculate_rank_test_s4(
+  result <- calculate_rank_test(
     analysis,
     condition_col = "condition",
     test = "friedman",
@@ -1680,7 +1680,7 @@ test_that("rank_test results are deterministic and reproducible", {
   file1 <- file.path(output_dir, "test_rank_repro1.tsv")
   file2 <- file.path(output_dir, "test_rank_repro2.tsv")
   
-  result1 <- calculate_rank_test_s4(
+  result1 <- calculate_rank_test(
     analysis,
     condition_col = "condition",
     test = "kruskal-wallis",
@@ -1688,7 +1688,7 @@ test_that("rank_test results are deterministic and reproducible", {
     verbose = FALSE
   )
   
-  result2 <- calculate_rank_test_s4(
+  result2 <- calculate_rank_test(
     analysis,
     condition_col = "condition",
     test = "kruskal-wallis",

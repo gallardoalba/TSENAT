@@ -3995,16 +3995,16 @@ require_pkgs <- function(pkgs) {
 #' mode(readcounts) <- 'numeric'
 #' 
 #' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' analysis <- build_analysis(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df, config = config,
 #'   tpm = tpm, effective_length = effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 #' = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = 1.0)
-#' p <- plot_diversity_violin_density_s4(analysis)
+#' analysis <- calculate_diversity(analysis, q = 1.0)
+#' p <- plot_diversity_violin_density(analysis)
 #' if (!is.null(p)) print(p)
 #'
-plot_diversity_violin_density_s4 <- function(se, assay_name = "diversity", title = NULL,
+plot_diversity_violin_density <- function(se, assay_name = "diversity", title = NULL,
     output_file = NULL) {
     # Load visualization dependencies (ggplot2, cowplot, etc.)
     .load_visualization_deps()
@@ -4012,7 +4012,7 @@ plot_diversity_violin_density_s4 <- function(se, assay_name = "diversity", title
     # Handle TSENATAnalysis objects - extract first diversity result
     if (methods::is(se, "TSENATAnalysis")) {
         if (length(se@diversity_results) == 0) {
-            stop("No diversity results found in TSENATAnalysis object. Run calculate_diversity_s4() first.")
+            stop("No diversity results found in TSENATAnalysis object. Run calculate_diversity() first.")
         }
         # Extract first diversity result
         se <- se@diversity_results[[1]]

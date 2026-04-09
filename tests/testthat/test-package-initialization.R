@@ -99,8 +99,8 @@ test_that("Main TSENAT classes and functions are exported", {
     
     # Check main functions are exported
     expect_true(exists("TSENAT", where = asNamespace("TSENAT")))
-    expect_true(exists("calculate_diversity_s4", where = asNamespace("TSENAT")))
-    expect_true(exists("calculate_divergence_s4", where = asNamespace("TSENAT")))
+    expect_true(exists("calculate_diversity", where = asNamespace("TSENAT")))
+    expect_true(exists("calculate_divergence", where = asNamespace("TSENAT")))
 })
 
 # ============================================================================

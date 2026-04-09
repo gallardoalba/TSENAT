@@ -13,6 +13,7 @@
 \alias{setConfigValue,TSENATAnalysis-method}
 \alias{se,TSENATAnalysis-method}
 \alias{metadata,TSENATAnalysis-method}
+\alias{metadata<-,TSENATAnalysis-method}
 \alias{[,TSENATAnalysis,ANY,ANY,ANY-method}
 \alias{results}
 \title{Extract analysis results from TSENATAnalysis object}
@@ -38,6 +39,8 @@
 \S4method{se}{TSENATAnalysis}(object)
 
 \S4method{metadata}{TSENATAnalysis}(x, key = NULL)
+
+\S4method{metadata}{TSENATAnalysis}(x) <- value
 
 \S4method{[}{TSENATAnalysis,ANY,ANY,ANY}(x, i, j, drop = TRUE)
 
@@ -119,7 +122,7 @@ se <- SummarizedExperiment::SummarizedExperiment(
   )
 )
 analysis <- TSENATAnalysis(se = se, config = config)
-analysis <- calculate_diversity_s4(analysis)
+analysis <- calculate_diversity(analysis)
 
 # Get all diversity results (list of SummarizedExperiment objects, one per q)
 div_all <- results(analysis, type = 'diversity')

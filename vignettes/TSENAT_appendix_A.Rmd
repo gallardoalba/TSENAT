@@ -171,7 +171,8 @@ for (q in q_values) {
   tsenat_results[[paste0("q", q)]] <- TSENATAnalysis(se_data, config = config)
   
   # Compute diversity with dynamic output filename using sprintf
-  tsenat_results[[paste0("q", q)]] <- calculate_diversity_s4(
+  # Use explicit namespace to avoid SplicingFactory::calculate_diversity masking
+  tsenat_results[[paste0("q", q)]] <- TSENAT::calculate_diversity(
     analysis = tsenat_results[[paste0("q", q)]],
     q = q,
     norm = TRUE,
@@ -214,7 +215,7 @@ simpson_significance <- SplicingFactory::calculate_difference(
 
 # TSENAT: Differential analysis for Tsallis q=1
 # Config already set at object construction, no need to reset
-tsenat_analysis_q1 <- calculate_difference_s4(
+tsenat_analysis_q1 <- TSENAT::calculate_difference(
   analysis = tsenat_analysis_q1,
   control = "Normal",
   method = "mean",
@@ -222,16 +223,16 @@ tsenat_analysis_q1 <- calculate_difference_s4(
   verbose = FALSE
 )
 # Extract results for downstream functions
-tsenat_shannon_diff <- results(tsenat_analysis_q1, type = "pairwise")
+tsenat_shannon_diff <- TSENAT::results(tsenat_analysis_q1, type = "pairwise")
 
 # Extract diversity results using results accessor for q=1
-tsenat_q1_diversity <- results(tsenat_analysis_q1, type = "diversity", q = 1.0)
+tsenat_q1_diversity <- TSENAT::results(tsenat_analysis_q1, type = "diversity", q = 1.0)
 cat("TSENAT Diversity Results (q=1):\n")
 print(head(tsenat_q1_diversity, n = 10))
 
 # TSENAT: Differential analysis for Tsallis q=2
 # Config already set at object construction, no need to reset
-tsenat_analysis_q2 <- calculate_difference_s4(
+tsenat_analysis_q2 <- TSENAT::calculate_difference(
   analysis = tsenat_analysis_q2,
   control = "Normal",
   method = "mean",
@@ -239,10 +240,10 @@ tsenat_analysis_q2 <- calculate_difference_s4(
   verbose = FALSE
 )
 # Extract results for downstream functions
-tsenat_simpson_diff <- results(tsenat_analysis_q2, type = "pairwise")
+tsenat_simpson_diff <- TSENAT::results(tsenat_analysis_q2, type = "pairwise")
 
 # Extract diversity results using results accessor for q=2
-tsenat_q2_diversity <- results(tsenat_analysis_q2, type = "diversity", q = 2.0)
+tsenat_q2_diversity <- TSENAT::results(tsenat_analysis_q2, type = "diversity", q = 2.0)
 cat("TSENAT Diversity Results (q=2):\n")
 print(head(tsenat_q2_diversity, n = 10))
 ```
@@ -330,7 +331,7 @@ shannon_sf <- TSENAT:::.plot_diversity_volcano_ma(
 )
 
 # TSENAT S4 wrapper method
-shannon_tsenat <- plot_diversity_volcano_ma_s4(
+shannon_tsenat <- TSENAT::plot_diversity_volcano_ma(
   analysis = tsenat_analysis_q1,
   x_col = "mean_difference",
   padj_col = "padj",
@@ -440,7 +441,7 @@ simpson_sf <- TSENAT:::.plot_diversity_volcano_ma(
 )
 
 # TSENAT S4 wrapper method
-simpson_tsenat <- plot_diversity_volcano_ma_s4(
+simpson_tsenat <- TSENAT::plot_diversity_volcano_ma(
   analysis = tsenat_analysis_q2,
   x_col = "mean_difference",
   padj_col = "padj",

@@ -36,7 +36,7 @@ setup_real_test_analysis <- function(n_genes = NULL, n_samples = NULL) {
   gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
   
   # Build analysis
-  analysis <- build_analysis_s4(
+  analysis <- build_analysis(
     readcounts_mat,
     tx2gene = gff3_file,
     metadata = metadata_df,
@@ -46,14 +46,14 @@ setup_real_test_analysis <- function(n_genes = NULL, n_samples = NULL) {
   
   # Subset to specific size if needed
   if (!is.null(n_genes) || !is.null(n_samples)) {
-    analysis <- filter_analysis_s4(analysis,
+    analysis <- filter_analysis(analysis,
                                    min_samples = 1,
                                    subset_n_genes = n_genes,
                                    subset_n_samples = n_samples)
   }
   
   # Calculate diversity for testing
-  analysis <- calculate_diversity_s4(analysis, norm = TRUE)
+  analysis <- calculate_diversity(analysis, norm = TRUE)
   analysis
 }
 
@@ -266,7 +266,7 @@ test_that("calculate_diversity scales linearly with gene count", {
 # TEST 6: CALCULATE_LM_S4 PERFORMANCE
 # ============================================================================
 
-test_that("calculate_lm_s4 completes efficiently", {
+test_that("calculate_lm completes efficiently", {
   skip_if_not_installed("microbenchmark")
   
   # Create test data with proper column name format for LM interaction
@@ -321,7 +321,7 @@ test_that("calculate_lm_s4 completes efficiently", {
 # TEST 7: JACKKNIFE ISOFORM SWITCHING PERFORMANCE
 # ============================================================================
 
-test_that("calculate_jis_s4 completes in reasonable time", {
+test_that("calculate_jis completes in reasonable time", {
   skip_if_not_installed("microbenchmark")
   
   # Build analysis with diversity results
@@ -338,7 +338,7 @@ test_that("calculate_jis_s4 completes in reasonable time", {
   )
   
   # Create analysis and compute diversity
-  analysis <- build_analysis_s4(readcounts = counts, tx2gene = tx2gene)
+  analysis <- build_analysis(readcounts = counts, tx2gene = tx2gene)
   
   # Add sample metadata (required for jackknife)
   sample_metadata <- S4Vectors::DataFrame(
@@ -347,12 +347,12 @@ test_that("calculate_jis_s4 completes in reasonable time", {
   )
   SummarizedExperiment::colData(analysis@se) <- sample_metadata
   
-  analysis <- calculate_diversity_s4(analysis, q = 1.0, norm = TRUE)
+  analysis <- calculate_diversity(analysis, q = 1.0, norm = TRUE)
   
   # Benchmark jackknife
   bench <- microbenchmark::microbenchmark(
     times = 1,  # Just once - jackknife is very expensive
-    calculate_jis_s4(
+    calculate_jis(
       analysis,
       condition_col = "condition",
       q = 1,
@@ -367,7 +367,7 @@ test_that("calculate_jis_s4 completes in reasonable time", {
   # Observed: ~349.3 ms; threshold = 430 ms (81% typical, allows variance)
   expect_lt(median_ms, 430)
   
-  .report_benchmark("calculate_jis_s4 (150 transcripts, 40 genes, nboot=100)",
+  .report_benchmark("calculate_jis (150 transcripts, 40 genes, nboot=100)",
                     bench$time, threshold_ms = 430)
 })
 
@@ -375,21 +375,21 @@ test_that("calculate_jis_s4 completes in reasonable time", {
 # TEST 7B: DETECT Q-GENE INTERACTIONS PERFORMANCE
 # ============================================================================
 
-test_that("calculate_rank_test_s4 completes efficiently for q-condition tests", {
+test_that("calculate_rank_test completes efficiently for q-condition tests", {
   skip_if_not_installed("microbenchmark")
   
   # Load real analysis with multiple q-values
   analysis <- setup_real_test_analysis(n_genes = 50, n_samples = 16)
   
   # Skip if function not available
-  if (!exists("calculate_rank_test_s4")) {
-    skip("calculate_rank_test_s4 not available in this TSENAT build")
+  if (!exists("calculate_rank_test")) {
+    skip("calculate_rank_test not available in this TSENAT build")
   }
   
   # Benchmark rank test for q-condition detection
   bench <- microbenchmark::microbenchmark(
     times = 2,
-    calculate_rank_test_s4(
+    calculate_rank_test(
       analysis = analysis,
       condition_col = "condition",
       nthreads = 1,
@@ -400,7 +400,7 @@ test_that("calculate_rank_test_s4 completes efficiently for q-condition tests", 
   # Should complete quickly - threshold = 650 ms for small dataset (85% typical)
   expect_lt(median(bench$time) / 1e6, 650)
   
-  .report_benchmark("calculate_rank_test_s4 (real TSENAT data, 50 genes)",
+  .report_benchmark("calculate_rank_test (real TSENAT data, 50 genes)",
                     bench$time, threshold_ms = 650)
 })
 
@@ -436,7 +436,7 @@ test_that("filter_se is efficient", {
 # TEST 9: CALCULATE_DIVERGENCE_S4 PERFORMANCE
 # ============================================================================
 
-test_that("calculate_divergence_s4 completes efficiently", {
+test_that("calculate_divergence completes efficiently", {
   skip_if_not_installed("microbenchmark")
   
   # Build analysis object
@@ -453,7 +453,7 @@ test_that("calculate_divergence_s4 completes efficiently", {
   )
   
   # Create analysis with diversity
-  analysis <- build_analysis_s4(readcounts = counts, tx2gene = tx2gene)
+  analysis <- build_analysis(readcounts = counts, tx2gene = tx2gene)
   
   # Add sample metadata (required for divergence calculation)
   sample_metadata <- S4Vectors::DataFrame(
@@ -462,19 +462,19 @@ test_that("calculate_divergence_s4 completes efficiently", {
   )
   SummarizedExperiment::colData(analysis@se) <- sample_metadata
   
-  analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0), norm = TRUE)
+  analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5, 2.0), norm = TRUE)
   
   # Benchmark divergence calculation (requires diversity results and colData)
   bench <- microbenchmark::microbenchmark(
     times = 2,
-    calculate_divergence_s4(analysis, group_col = "condition")
+    calculate_divergence(analysis, group_col = "condition")
   )
   
   # Divergence calculation should be efficient - tighter threshold for regression detection
   # Observed: ~350.5 ms; threshold = 430 ms (81% typical, allows variance)
   expect_lt(median(bench$time) / 1e6, 430)
   
-  .report_benchmark("calculate_divergence_s4 (500 transcripts, 100 genes, 4 q-values)",
+  .report_benchmark("calculate_divergence (500 transcripts, 100 genes, 4 q-values)",
                     bench$time, threshold_ms = 430)
 })
 
@@ -535,7 +535,7 @@ test_that("full orchestration pipeline completes in acceptable time", {
   
   bench <- microbenchmark::microbenchmark(
     times = 1,  # Just once - full pipeline is expensive
-    build_analysis_s4(
+    build_analysis(
       readcounts = counts,
       tx2gene = tx2gene
     )
@@ -612,7 +612,7 @@ test_that("large analysis doesn't cause memory explosion", {
 # ============================================================================
 # NOTE: .rank_correlation_bootstrap_ci() was removed - test skipped
 
-test_that("calculate_rank_test_s4 completes in acceptable time", {
+test_that("calculate_rank_test completes in acceptable time", {
   skip_if_not_installed("microbenchmark")
   
   # Load real analysis from TSENAT package data
@@ -621,7 +621,7 @@ test_that("calculate_rank_test_s4 completes in acceptable time", {
   # Benchmark: Single-threaded execution
   bench <- microbenchmark::microbenchmark(
     times = 2,
-    calculate_rank_test_s4(
+    calculate_rank_test(
       analysis = analysis,
       condition_col = "condition",
       nthreads = 1,
@@ -633,7 +633,7 @@ test_that("calculate_rank_test_s4 completes in acceptable time", {
   # Observed: ~445.7 ms; threshold = 550 ms (81% typical, handles variance)
   expect_lt(median(bench$time) / 1e6, 550)
   
-  .report_benchmark("calculate_rank_test_s4 (200 genes, real TSENAT data)",
+  .report_benchmark("calculate_rank_test (200 genes, real TSENAT data)",
                     bench$time, threshold_ms = 550)
 })
 
@@ -641,7 +641,7 @@ test_that("calculate_rank_test_s4 completes in acceptable time", {
 # TEST 15: RANK TEST SCALABILITY - LINEAR TIME WITH GENE COUNT
 # ============================================================================
 
-test_that("calculate_rank_test_s4 scales linearly with gene count", {
+test_that("calculate_rank_test scales linearly with gene count", {
   skip_if_not_installed("microbenchmark")
   
   # Test with different gene counts using real TSENAT data
@@ -653,7 +653,7 @@ test_that("calculate_rank_test_s4 scales linearly with gene count", {
     analysis <- setup_real_test_analysis(n_genes = n_genes, n_samples = 12)
     
     start_time <- Sys.time()
-    calculate_rank_test_s4(
+    calculate_rank_test(
       analysis = analysis,
       condition_col = "condition",
       nthreads = 1,
@@ -752,15 +752,15 @@ test_that("vectorized CI quantile computation is efficient", {
 #   - If a test fails, median runtime likely increased >15-25% from baseline
 #
 # Key Functions Tested:
-#   - .calculate_diversity() / calculate_diversity_s4()
-#   - .calculate_divergence() / calculate_divergence_s4()
+#   - .calculate_diversity() / calculate_diversity()
+#   - .calculate_divergence() / calculate_divergence()
 #   - .calculate_lm()
-#   - calculate_jis_s4()
+#   - calculate_jis()
 #   - detect_q_gene_interactions_s4()
 #   - .filter_se()
 #   - .build_se()
-#   - build_analysis_s4()
-#   - calculate_rank_test_s4()
+#   - build_analysis()
+#   - calculate_rank_test()
 #   - .rank_correlation_bootstrap_ci()
 #
 # If any test fails:

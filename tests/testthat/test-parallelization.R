@@ -1094,9 +1094,9 @@ test_that("calculate_divergence output includes required columns", {
 
 context("Parallelization - Phase 1: BiocParallel Integration")
 
-# Helper function to pass through bootstrap parameters to calculate_divergence_s4
+# Helper function to pass through bootstrap parameters to calculate_divergence
 silent_calculate_divergence <- function(analysis, nthreads = 1, bootstrap = FALSE, nboot = NULL, ...) {
-  calculate_divergence_s4(
+  calculate_divergence(
     analysis = analysis,
     nthreads = nthreads,
     bootstrap = bootstrap,

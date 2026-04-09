@@ -22,7 +22,7 @@ calculate_m_estimator(
 }
 \arguments{
 \item{analysis}{\code{TSENATAnalysis} object with diversity results
-(typically via \code{\link{calculate_diversity_s4}}).}
+(typically via \code{\link{calculate_diversity}}).}
 
 \item{condition_col}{\code{character}.
 Column name in sample metadata indicating
@@ -107,7 +107,7 @@ grouping column
 
 **Data Requirements:**
 \itemize{
-  \item Diversity results must be computed via \code{calculate_diversity_s4()}
+  \item Diversity results must be computed via \code{calculate_diversity()}
   \item Sample grouping column required in colData (auto-detected from @config$condition_col
     or via 'samples' parameter)
 }
@@ -124,7 +124,7 @@ metadata_df <- read.table(
 gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 'TSENAT')
 
-# Create config (metadata passed as explicit parameter to build_analysis_s4)
+# Create config (metadata passed as explicit parameter to build_analysis)
 config <- TSENAT_config(
   sample_col = 'sample',
   condition_col = 'condition',
@@ -133,7 +133,7 @@ config <- TSENAT_config(
 )
 
 # Build analysis from vignette data
-analysis <- build_analysis_s4(
+analysis <- build_analysis(
   readcounts = readcounts,
   tx2gene = gff3_dataset,
   metadata = metadata_df,
@@ -141,8 +141,8 @@ analysis <- build_analysis_s4(
   tpm = tpm,
   effective_length = effective_length
 )
-analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
+analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = 200)
+analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
 analysis <- calculate_m_estimator(
   analysis,
   condition_col = 'condition',
@@ -151,5 +151,5 @@ analysis <- calculate_m_estimator(
 
 }
 \seealso{
-\code{\link{calculate_diversity_s4}} for computing diversity
+\code{\link{calculate_diversity}} for computing diversity
 }

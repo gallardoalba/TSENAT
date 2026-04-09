@@ -38,7 +38,7 @@
 #'
 #' @details
 #' Requires diversity results to exist first. Will error if
-#' \code{calculate_diversity_s4()} has not been run.
+#' \code{calculate_diversity()} has not been run.
 #'
 #' **Parameter Priority Resolution:**
 #' \describe{
@@ -57,13 +57,13 @@
 #' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 #' 'TSENAT')
 #'
-#' # TPM and effective_length REQUIRED for filter_analysis_s4()
+#' # TPM and effective_length REQUIRED for filter_analysis()
 #' tpm <- matrix(runif(nrow(readcounts) * ncol(readcounts), 0.1, 10),
 #'               nrow = nrow(readcounts), ncol = ncol(readcounts),
 #'               dimnames = dimnames(readcounts))
 #' effective_length <- matrix(100, nrow = nrow(readcounts), ncol = ncol(readcounts))
 #' 
-#' # Create config (metadata passed as explicit parameter to build_analysis_s4)
+#' # Create config (metadata passed as explicit parameter to build_analysis)
 #' config <- TSENAT_config(
 #'   sample_col = 'sample',
 #'   condition_col = 'condition',
@@ -72,7 +72,7 @@
 #' )
 #' 
 #' # Build analysis from vignette data - metadata as explicit parameter
-#' analysis <- build_analysis_s4(
+#' analysis <- build_analysis(
 #'   readcounts = readcounts,
 #'   metadata = metadata_df,
 #'   tx2gene = gff3_dataset,
@@ -82,20 +82,20 @@
 #' )
 #'
 #' # Filter low-abundance genes (required for reliable jackknife estimates)
-#' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
+#' analysis <- filter_analysis(analysis, stringency = 'severe')
 #' 
 #' # Compute diversity first (required for jackknife)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
+#' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
 #' 
 #' # Run jackknife estimation
-#' analysis <- calculate_jeo_s4(analysis, q = c(0.5, 1.0, 1.5))
+#' analysis <- calculate_jeo(analysis, q = c(0.5, 1.0, 1.5))
 #' # Check jackknife results using unified accessor
 #' jackknife_res <- results(analysis, type = "jackknife")
 #' if (!is.null(jackknife_res)) names(jackknife_res)
 #'
 #' @export
 #' @importFrom utils write.table
-calculate_jeo_s4 <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
+calculate_jeo <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
     top_n = NULL, verbose = NULL, nthreads = NULL, pseudocount = NULL, output_file = NULL,
     ...) {
     if (!is(analysis, "TSENATAnalysis")) {
@@ -104,7 +104,7 @@ calculate_jeo_s4 <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
 
     # Check prerequisite: diversity must be calculated
     if (length(analysis@diversity_results) == 0) {
-        stop("Diversity results required. Run calculate_diversity_s4() first.", call. = FALSE)
+        stop("Diversity results required. Run calculate_diversity() first.", call. = FALSE)
     }
 
     # PARAMETER EXTRACTION using utility function
@@ -129,7 +129,7 @@ calculate_jeo_s4 <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
         # jackknife)
         div_key <- paste0("q_", formatC(q_val, format = "f", digits = 3))
         if (!(div_key %in% names(analysis@diversity_results))) {
-            stop("Diversity not calculated for q=", q_val, ". Run calculate_diversity_s4(analysis, q=",
+            stop("Diversity not calculated for q=", q_val, ". Run calculate_diversity(analysis, q=",
                 q_val, ") first.", call. = FALSE)
         }
 
@@ -211,19 +211,19 @@ calculate_jeo_s4 <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
                     row.names = FALSE)
 
                   if (verbose) {
-                    message("[calculate_jeo_s4] Results saved to ",
+                    message("[calculate_jeo] Results saved to ",
                       output_file)
                   }
                 }
             }, error = function(e) {
-                warning("[calculate_jeo_s4] Could not write jackknife results to file: ",
+                warning("[calculate_jeo] Could not write jackknife results to file: ",
                   conditionMessage(e), call. = FALSE)
             })
         } else {
             # Default to RDS for S4 object
             saveRDS(analysis, file = output_file)
             if (verbose) {
-                message("[calculate_jeo_s4] Analysis object saved to ",
+                message("[calculate_jeo] Analysis object saved to ",
                   output_file)
             }
         }
@@ -243,7 +243,7 @@ calculate_jeo_s4 <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
 #' S4 wrapper that operates on TSENATAnalysis objects to calculate differences
 #' between control and  treatment groups.
 #'  Uses diversity results from \code{@diversity_results} 
-#' slot (from \code{calculate_diversity_s4()}) and 
+#' slot (from \code{calculate_diversity()}) and 
 #' stores results in the \code{lm_results} slot.
 #'
 #' @param analysis A \code{TSENATAnalysis} object with 
@@ -302,7 +302,7 @@ calculate_jeo_s4 <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
 #'
 #' @details
 #' **IMPORTANT:
-#' ** Requires diversity results to exist first via \code{calculate_diversity_s4()}.
+#' ** Requires diversity results to exist first via \code{calculate_diversity()}.
 #' This wrapper extracts the diversity SummarizedExperiment from \code{@diversity_results},
 #' not the raw input data in \code{@se}.
 #'  This ensures you're comparing diversity values
@@ -322,7 +322,7 @@ calculate_jeo_s4 <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
 #'
 #' @importFrom utils write.table
 #' @seealso
-#' \code{\link{calculate_diversity_s4}} for computing diversity.
+#' \code{\link{calculate_diversity}} for computing diversity.
 #'
 #' @examples
 #' # Load example data (matching TSENAT.Rmd workflow)
@@ -336,7 +336,7 @@ calculate_jeo_s4 <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
 #' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 #' 'TSENAT')
 #' 
-#' # Create config (metadata passed as explicit parameter to build_analysis_s4)
+#' # Create config (metadata passed as explicit parameter to build_analysis)
 #' config <- TSENAT_config(
 #'   sample_col = 'sample',
 #'   condition_col = 'condition',
@@ -345,7 +345,7 @@ calculate_jeo_s4 <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
 #' )
 #' 
 #' # Build analysis from vignette data and create small subset
-#' analysis <- build_analysis_s4(
+#' analysis <- build_analysis(
 #'   readcounts = readcounts,
 #'   metadata = metadata_df,
 #'   tx2gene = gff3_dataset,
@@ -353,9 +353,9 @@ calculate_jeo_s4 <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
 #'   tpm = tpm,
 #'   effective_length = effective_length
 #' )
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
-#' result <- calculate_difference_s4(analysis, control = 'normal')
+#' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = 200)
+#' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
+#' result <- calculate_difference(analysis, control = 'normal')
 #'
 #' @export
 # ============================================================================
@@ -396,7 +396,7 @@ calculate_jeo_s4 <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
 # equally) Result: Significant divergence indicates isoform switching in
 # disease.
 # ============================================================================
-calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, condition_col = NULL,
+calculate_difference <- function(analysis, control = NULL, q = NULL, condition_col = NULL,
     method = NULL, test = NULL, randomizations = NULL, pcorr = NULL, assayno = NULL,
     verbose = NULL, paired = FALSE, exact = FALSE, pseudocount = NULL, nthreads = NULL,
     robust_loss_type = NULL, robust_scale_method = NULL, pairs = NULL, output_file = NULL,
@@ -407,7 +407,7 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
 
     # Check prerequisites: diversity results must exist
     if (length(analysis@diversity_results) == 0) {
-        stop("Diversity results required. Run calculate_diversity_s4() first.", call. = FALSE)
+        stop("Diversity results required. Run calculate_diversity() first.", call. = FALSE)
     }
 
     # Priority 1: Use explicit parameter Priority 2: Use @config$control
@@ -470,7 +470,7 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
     pairs <- resolve_slot_param(pairs, analysis@config, "pairs", NULL)
 
     # Run difference calculation on diversity results Note: diversity_se and
-    # its colData are already prepared by calculate_diversity_s4
+    # its colData are already prepared by calculate_diversity
     result <- tryCatch({
         .calculate_difference(x = diversity_se, condition_col = condition_col, control = control,
             method = method, test = test, randomizations = randomizations, pcorr = pcorr,
@@ -489,7 +489,7 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
     }
 
     # Track metadata
-    analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("calculate_difference_s4[q=",
+    analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("calculate_difference[q=",
         q_used, ", control=", control, "]"))
 
     # Save if output_file provided (using centralized output handler)
@@ -500,7 +500,7 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
             as.data.frame(analysis@pairwise_results$difference)
         }
         save_analysis_output(diff_data, output_file, object = analysis, verbose = verbose,
-            func_name = "calculate_difference_s4")
+            func_name = "calculate_difference")
     }
 
     analysis
@@ -560,7 +560,7 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
 #'   q_values = seq(0, 2, by = 0.05),
 #'   paired = FALSE
 #' )
-#' analysis <- build_analysis_s4(
+#' analysis <- build_analysis(
 #'   readcounts = readcounts,
 #'   metadata = metadata_df,
 #'   tx2gene = gff3_dataset,
@@ -568,21 +568,21 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
 #'   tpm = tpm,
 #'   effective_length = effective_length
 #' )
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
-#' analysis <- calculate_rank_assumptions_s4(analysis, q = 1.0)
+#' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = 200)
+#' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
+#' analysis <- calculate_rank_assumptions(analysis, q = 1.0)
 #' # Check results using rank_test accessor
 #' results_df <- results(analysis, type = 'rank_test')
 #'
 #' @export
-#' @rdname calculate_rank_assumptions_s4
-setGeneric("calculate_rank_assumptions_s4", function(analysis, q = NULL, checks = c("exchangeability",
+#' @rdname calculate_rank_assumptions
+setGeneric("calculate_rank_assumptions", function(analysis, q = NULL, checks = c("exchangeability",
     "monotonicity", "consistency"), alpha = 0.05, ...) {
-    standardGeneric("calculate_rank_assumptions_s4")
+    standardGeneric("calculate_rank_assumptions")
 })
 
-#' @rdname calculate_rank_assumptions_s4
-setMethod("calculate_rank_assumptions_s4", signature(analysis = "TSENATAnalysis"),
+#' @rdname calculate_rank_assumptions
+setMethod("calculate_rank_assumptions", signature(analysis = "TSENATAnalysis"),
     function(analysis, q = NULL, checks = c("exchangeability", "monotonicity", "consistency"),
         alpha = 0.05, ...) {
 
@@ -659,7 +659,7 @@ setMethod("calculate_rank_assumptions_s4", signature(analysis = "TSENATAnalysis"
 
         # Check that we have data
         if (is.null(diversity_data)) {
-            stop("No diversity results found in analysis object. ", "Run calculate_diversity_s4() first.",
+            stop("No diversity results found in analysis object. ", "Run calculate_diversity() first.",
                 call. = FALSE)
         }
 
@@ -680,7 +680,7 @@ setMethod("calculate_rank_assumptions_s4", signature(analysis = "TSENATAnalysis"
             checks_performed = checks, alpha_used = alpha, timestamp = Sys.time())
 
         # Track function call
-        analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("calculate_rank_assumptions_s4[q=",
+        analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("calculate_rank_assumptions[q=",
             q_used, "]"))
 
         analysis
@@ -700,7 +700,7 @@ setMethod("calculate_rank_assumptions_s4", signature(analysis = "TSENATAnalysis"
 #' and treatment groups.
 #'
 #' @param analysis \code{TSENATAnalysis} object with calculated differences
-#'   (typically via \code{\link{calculate_difference_s4}}).
+#'   (typically via \code{\link{calculate_difference}}).
 #' @param x_col \code{character}. Column name for x-axis in MA plot.
 #'   Default: NULL (uses mean_difference if available, else mean fold-change).
 #' @param padj_col \code{character}. Column name for adjusted p-values.
@@ -741,7 +741,7 @@ setMethod("calculate_rank_assumptions_s4", signature(analysis = "TSENATAnalysis"
 #'
 #' **Required Data:**
 #' \itemize{
-#'   \item Differential analysis must be computed via \code{calculate_difference_s4()}
+#'   \item Differential analysis must be computed via \code{calculate_difference()}
 #'   \item Results are stored in \code{analysis@pairwise_results$difference}
 #' }
 #'
@@ -785,7 +785,7 @@ setMethod("calculate_rank_assumptions_s4", signature(analysis = "TSENATAnalysis"
 #' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 #' 'TSENAT')
 #'
-#' # Create config (metadata passed as explicit parameter to build_analysis_s4)
+#' # Create config (metadata passed as explicit parameter to build_analysis)
 #' config <- TSENAT_config(
 #'   sample_col = 'sample',
 #'   condition_col = 'condition',
@@ -794,7 +794,7 @@ setMethod("calculate_rank_assumptions_s4", signature(analysis = "TSENATAnalysis"
 #' )
 #' 
 #' # Build analysis from vignette data and create small subset
-#' analysis <- build_analysis_s4(
+#' analysis <- build_analysis(
 #'   readcounts = readcounts,
 #'   tx2gene = gff3_dataset,
 #'   metadata = metadata_df,
@@ -802,19 +802,19 @@ setMethod("calculate_rank_assumptions_s4", signature(analysis = "TSENATAnalysis"
 #'   tpm = tpm,
 #'   effective_length = effective_length
 #' )
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
-#' analysis <- calculate_difference_s4(analysis, control = 'normal')
+#' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = 200)
+#' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
+#' analysis <- calculate_difference(analysis, control = 'normal')
 #'   
 #' # Plot volcano and MA plots
-#' p <- plot_diversity_volcano_ma_s4(analysis, sig_alpha = 0.05, top_n = 3)
+#' p <- plot_diversity_volcano_ma(analysis, sig_alpha = 0.05, top_n = 3)
 #' print(p)
 #'
 #' @seealso
-#' \code{\link{calculate_difference_s4}} for computing differential analysis.
+#' \code{\link{calculate_difference}} for computing differential analysis.
 #'
 #' @export
-plot_diversity_volcano_ma_s4 <- function(analysis, x_col = NULL, padj_col = "padj", label_thresh = 0.1,
+plot_diversity_volcano_ma <- function(analysis, x_col = NULL, padj_col = "padj", label_thresh = 0.1,
     sig_alpha = 0.05, top_n = 5, title_volcano = NULL, title_ma = "Tsallis-based MA plot",
     verbose = FALSE, output_file = NULL, width = 12, height = 7.2, ...) {
 
@@ -831,13 +831,13 @@ plot_diversity_volcano_ma_s4 <- function(analysis, x_col = NULL, padj_col = "pad
 
     # Extract difference results from S4 object
     if (is.null(analysis@pairwise_results) || !is.list(analysis@pairwise_results)) {
-        stop("No pairwise results found in analysis@pairwise_results. ", "Run calculate_difference_s4() first.",
+        stop("No pairwise results found in analysis@pairwise_results. ", "Run calculate_difference() first.",
             call. = FALSE)
     }
 
     if (!("difference" %in% names(analysis@pairwise_results))) {
         stop("Difference results not found in analysis@pairwise_results$difference. ",
-            "Run calculate_difference_s4() first.", call. = FALSE)
+            "Run calculate_difference() first.", call. = FALSE)
     }
 
     diff_df <- analysis@pairwise_results$difference
@@ -861,17 +861,17 @@ plot_diversity_volcano_ma_s4 <- function(analysis, x_col = NULL, padj_col = "pad
             label_thresh = label_thresh, sig_alpha = sig_alpha, top_n = top_n, title_volcano = title_volcano,
             title_ma = title_ma, ...)
     }, error = function(e) {
-        stop("[plot_diversity_volcano_ma_s4]", conditionMessage(e), call. = FALSE)
+        stop("[plot_diversity_volcano_ma]", conditionMessage(e), call. = FALSE)
     })
 
     if (verbose) {
-        message("[plot_diversity_volcano_ma_s4] Plot created successfully")
+        message("[plot_diversity_volcano_ma] Plot created successfully")
     }
 
     # Save plot to file if requested
     if (!is.null(output_file)) {
         save_analysis_output(plot_obj, output_file, object = analysis, verbose = verbose,
-            func_name = "plot_diversity_volcano_ma_s4", width = width, height = height)
+            func_name = "plot_diversity_volcano_ma", width = width, height = height)
     }
 
     return(invisible(plot_obj))
@@ -886,10 +886,10 @@ plot_diversity_volcano_ma_s4 <- function(analysis, x_col = NULL, padj_col = "pad
 #' @param analysis \code{TSENATAnalysis} object with LM results (e.g., GAM).
 #' @param gam_method \code{character}.  Key for 
 #' GAM/interaction results in \code{@lm_results}.
-#'   Default: 'rank_test' (results from \code{calculate_rank_test_s4})
+#'   Default: 'rank_test' (results from \code{calculate_rank_test})
 #' @param friedman_method \code{character}.  Key for 
 #' Friedman/rank-based results in \code{@lm_results}.
-#'   Default: 'rankbased' (results from \code{calculate_rank_assumptions_s4})
+#'   Default: 'rankbased' (results from \code{calculate_rank_assumptions})
 #' @param gam_results \code{data. frame} or  \code{NULL}.
 #'  Optional GAM results data frame to store
 #'   in the analysis object.  If provided,
@@ -949,7 +949,7 @@ plot_diversity_volcano_ma_s4 <- function(analysis, x_col = NULL, padj_col = "pad
 #' )
 #'
 #' # Build analysis with configured parameters and metadata as explicit parameter
-#' analysis <- build_analysis_s4(
+#' analysis <- build_analysis(
 #'   readcounts = readcounts,
 #'   tx2gene = gff3_dataset,
 #'   metadata = metadata_df,
@@ -958,21 +958,21 @@ plot_diversity_volcano_ma_s4 <- function(analysis, x_col = NULL, padj_col = "pad
 #'   effective_length = effective_length
 #' )
 #' 
-#' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
-#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
-#' analysis <- calculate_lm_s4(analysis, method = 'gam')
-#' # Note: calculate_concordance_s4 requires results from both
-#' # calculate_rank_test_s4 and calculate_rank_assumptions_s4
+#' analysis <- filter_analysis(analysis, stringency = 'severe')
+#' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
+#' analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
+#' analysis <- calculate_lm(analysis, method = 'gam')
+#' # Note: calculate_concordance requires results from both
+#' # calculate_rank_test and calculate_rank_assumptions
 #'
-#' @aliases calculate_concordance_s4
+#' @aliases calculate_concordance
 #' @export
-setGeneric("calculate_concordance_s4", function(analysis, ...) {
-    standardGeneric("calculate_concordance_s4")
+setGeneric("calculate_concordance", function(analysis, ...) {
+    standardGeneric("calculate_concordance")
 })
 
-#' @rdname calculate_concordance_s4
-setMethod("calculate_concordance_s4", "TSENATAnalysis", function(analysis, gam_method = "rank_test",
+#' @rdname calculate_concordance
+setMethod("calculate_concordance", "TSENATAnalysis", function(analysis, gam_method = "rank_test",
     friedman_method = "rankbased", gam_results = NULL, verbose = FALSE, output_file = NULL) {
 
     # ===================================================================
@@ -994,13 +994,13 @@ setMethod("calculate_concordance_s4", "TSENATAnalysis", function(analysis, gam_m
         }
         analysis@lm_results[[gam_method]] <- gam_results
         if (verbose) {
-            message("[calculate_concordance_s4] Stored GAM results as '", gam_method,
+            message("[calculate_concordance] Stored GAM results as '", gam_method,
                 "'")
         }
     }
 
     if (is.null(analysis@lm_results)) {
-        stop("No LM results found in analysis@lm_results. Run calculate_rank_test_s4() first.",
+        stop("No LM results found in analysis@lm_results. Run calculate_rank_test() first.",
             call. = FALSE)
     }
 
@@ -1035,7 +1035,7 @@ setMethod("calculate_concordance_s4", "TSENATAnalysis", function(analysis, gam_m
     # ===================================================================
 
     if (verbose) {
-        message("[calculate_concordance_s4] Computing concordance between ",
+        message("[calculate_concordance] Computing concordance between ",
             gam_method, " and ", friedman_method)
     }
 
@@ -1043,7 +1043,7 @@ setMethod("calculate_concordance_s4", "TSENATAnalysis", function(analysis, gam_m
     concordance_result <- tryCatch({
         .calculate_concordance(gam_results_final, friedman_results)
     }, error = function(e) {
-        stop("[calculate_concordance_s4]", conditionMessage(e), call. = FALSE)
+        stop("[calculate_concordance]", conditionMessage(e), call. = FALSE)
     })
 
     # =================================================================== STORE
@@ -1056,13 +1056,13 @@ setMethod("calculate_concordance_s4", "TSENATAnalysis", function(analysis, gam_m
         friedman_method = friedman_method, timestamp = Sys.time())
 
     # Track function call
-    analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("calculate_concordance_s4[",
+    analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("calculate_concordance[",
         gam_method, " vs ", friedman_method, "]"))
 
     if (verbose) {
-        message("[calculate_concordance_s4] Concordance computed successfully")
+        message("[calculate_concordance] Concordance computed successfully")
         if (!is.na(concordance_result$spearman_rho)) {
-            message("[calculate_concordance_s4] Spearman corr = ", round(concordance_result$spearman_rho,
+            message("[calculate_concordance] Spearman corr = ", round(concordance_result$spearman_rho,
                 3))
         }
     }
@@ -1073,7 +1073,7 @@ setMethod("calculate_concordance_s4", "TSENATAnalysis", function(analysis, gam_m
 
     if (!is.null(output_file)) {
         if (verbose) {
-            message("[calculate_concordance_s4] Writing results to: ", output_file)
+            message("[calculate_concordance] Writing results to: ", output_file)
         }
         saveRDS(analysis, file = output_file)
     }
@@ -1088,7 +1088,7 @@ setMethod("calculate_concordance_s4", "TSENATAnalysis", function(analysis, gam_m
 #' genes) as a function of q-value.
 #'
 #' @param analysis \code{TSENATAnalysis} object with divergence results
-#'   (typically via \code{\link{calculate_divergence_s4}}).
+#'   (typically via \code{\link{calculate_divergence}}).
 #' @param gene \code{character}. Optional specific gene name to plot.
 #'   If NULL, plots global divergence curve (aggregated across all genes).
 #' @param n_genes \code{integer}. Number of top genes to plot when showing
@@ -1123,7 +1123,7 @@ setMethod("calculate_concordance_s4", "TSENATAnalysis", function(analysis, gam_m
 #'
 #' **Data Requirements:**
 #' \itemize{
-#'   \item Divergence must be computed via \code{calculate_divergence_s4()}
+#'   \item Divergence must be computed via \code{calculate_divergence()}
 #'   \item \code{@divergence_results$divergence_se} or direct divergence SE
 #' }
 #'
@@ -1151,23 +1151,23 @@ setMethod("calculate_concordance_s4", "TSENATAnalysis", function(analysis, gam_m
 #' 
 #' # Build analysis from vignette data and create small subset
 #' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' analysis <- build_analysis(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df, config = config,
 #'   tpm = tpm, effective_length = effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 #' = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose
+#' analysis <- calculate_diversity(analysis, q = c(0.5, 1, 1.5), verbose
 #' = FALSE)
-#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose
+#' analysis <- calculate_divergence(analysis, q = c(0.5, 1, 1.5), verbose
 #' = FALSE)
-#' p_global <- plot_divergence_spectrum_s4(analysis)
+#' p_global <- plot_divergence_spectrum(analysis)
 #' print(p_global)
 #'
 #' @seealso
-#' \code{\link{calculate_divergence_s4}} for computing divergence.
+#' \code{\link{calculate_divergence}} for computing divergence.
 #'
 #' @export
-plot_divergence_spectrum_s4 <- function(analysis, gene = NULL, n_genes = 4, ncol = 2,
+plot_divergence_spectrum <- function(analysis, gene = NULL, n_genes = 4, ncol = 2,
     metric = c("median", "mean"), variability_metric = c("iqr", "sd"), use_pvalue_ranking = FALSE,
     output_file = NULL, width = 12, height = NULL, verbose = FALSE, ...) {
 
@@ -1188,7 +1188,7 @@ plot_divergence_spectrum_s4 <- function(analysis, gene = NULL, n_genes = 4, ncol
 
     # Extract divergence SE from analysis object
     if (is.null(analysis@divergence_results)) {
-        stop("Divergence results not found in analysis@divergence_results. ", "Run calculate_divergence_s4() first.",
+        stop("Divergence results not found in analysis@divergence_results. ", "Run calculate_divergence() first.",
             call. = FALSE)
     }
 
@@ -1254,7 +1254,7 @@ plot_divergence_spectrum_s4 <- function(analysis, gene = NULL, n_genes = 4, ncol
     # Save plot to file if requested
     if (!is.null(output_file)) {
         save_analysis_output(p, output_file, object = analysis, verbose = verbose,
-            func_name = "plot_divergence_spectrum_s4", width = width, height = height)
+            func_name = "plot_divergence_spectrum", width = width, height = height)
     }
 
     # Return file path if saved, otherwise return plot
@@ -1268,7 +1268,7 @@ plot_divergence_spectrum_s4 <- function(analysis, gene = NULL, n_genes = 4, ncol
 #' Plot method concordance results from TSENATAnalysis
 #'
 #' @param analysis \code{TSENATAnalysis} object with computed method concordance
-#'   (from \code{calculate_concordance_s4()}).
+#'   (from \code{calculate_concordance()}).
 #' @param verbose \code{logical}. Print progress messages. Default: FALSE
 #'
 #' @return A ggplot/cowplot object showing:
@@ -1283,7 +1283,7 @@ plot_divergence_spectrum_s4 <- function(analysis, gene = NULL, n_genes = 4, ncol
 #' - P-value distribution histograms for both methods
 #' - Significance threshold lines at p < 0.05
 #'
-#' Requires that \code{calculate_concordance_s4()} has already been run
+#' Requires that \code{calculate_concordance()} has already been run
 #' to populate \code{@metadata$method_concordance}.
 #'
 #' @examples
@@ -1300,32 +1300,32 @@ plot_divergence_spectrum_s4 <- function(analysis, gene = NULL, n_genes = 4, ncol
 #' 
 #' # Build analysis from vignette data and create small subset
 #' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' analysis <- build_analysis(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df, config = config,
 #'   tpm = tpm, effective_length = effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #'
-#' # Note: calculate_concordance_s4 requires additional LM and Friedman
+#' # Note: calculate_concordance requires additional LM and Friedman
 #' # results computed. For demo purposes, we show that
-#' # plot_concordance_s4 needs pre-computed concordance in @metadata
+#' # plot_concordance needs pre-computed concordance in @metadata
 #'
-#' @aliases plot_concordance_s4
+#' @aliases plot_concordance
 #' @export
-setGeneric("plot_concordance_s4", function(analysis, verbose = FALSE) {
-    standardGeneric("plot_concordance_s4")
+setGeneric("plot_concordance", function(analysis, verbose = FALSE) {
+    standardGeneric("plot_concordance")
 })
 
-#' @rdname plot_concordance_s4
-setMethod("plot_concordance_s4", "TSENATAnalysis", function(analysis, verbose = FALSE) {
+#' @rdname plot_concordance
+setMethod("plot_concordance", "TSENATAnalysis", function(analysis, verbose = FALSE) {
 
     # Load visualization dependencies (ggplot2, cowplot, etc.)
     .load_visualization_deps()
 
     # Validate that concordance results exist
     if (is.null(analysis@metadata$method_concordance)) {
-        stop("[plot_concordance_s4] No concordance results found in @metadata.\n",
-            "  Please run calculate_concordance_s4() first.)")
+        stop("[plot_concordance] No concordance results found in @metadata.\n",
+            "  Please run calculate_concordance() first.)")
     }
 
     concordance_results <- analysis@metadata$method_concordance
@@ -1334,13 +1334,13 @@ setMethod("plot_concordance_s4", "TSENATAnalysis", function(analysis, verbose = 
     comparison_df <- concordance_results$comparison_df
 
     if (is.null(comparison_df) || nrow(comparison_df) == 0) {
-        stop("[plot_concordance_s4] Concordance comparison_df is empty or missing.")
+        stop("[plot_concordance] Concordance comparison_df is empty or missing.")
     }
 
     if (verbose) {
-        message("[plot_concordance_s4] Plotting concordance for ", nrow(comparison_df),
+        message("[plot_concordance] Plotting concordance for ", nrow(comparison_df),
             " genes")
-        message("[plot_concordance_s4] Methods compared: ", concordance_results$gam_method,
+        message("[plot_concordance] Methods compared: ", concordance_results$gam_method,
             " vs ", concordance_results$friedman_method)
     }
 
@@ -1457,7 +1457,7 @@ setMethod("plot_concordance_s4", "TSENATAnalysis", function(analysis, verbose = 
 #' for sequencing
 #' depth and is recommended for comparing expression across samples.
 #' Requires TPM data
-#' in metadata from `build_analysis_s4()` or `.build_se()` with `tpm`
+#' in metadata from `build_analysis()` or `.build_se()` with `tpm`
 #' parameter.
 #'   Raises error if TPM not available and `use_tpm = TRUE`.
 #'
@@ -1509,7 +1509,7 @@ setMethod("plot_concordance_s4", "TSENATAnalysis", function(analysis, verbose = 
 #' )
 #'
 #' # Build analysis with configured parameters
-#' analysis <- build_analysis_s4(
+#' analysis <- build_analysis(
 #'   readcounts = readcounts,
 #'   tx2gene = gff3_dataset,
 #'   metadata = metadata_df,
@@ -1518,19 +1518,19 @@ setMethod("plot_concordance_s4", "TSENATAnalysis", function(analysis, verbose = 
 #'   effective_length = effective_length
 #' )
 #'
-#' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5), verbose
+#' analysis <- filter_analysis(analysis, stringency = 'severe')
+#' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5), verbose
 #' = FALSE)
-#' analysis <- calculate_lm_s4(analysis, method = 'gam', verbose
+#' analysis <- calculate_lm(analysis, method = 'gam', verbose
 #' = FALSE)
-#' plot_file <- plot_expression_s4(analysis, top_n = 3)
+#' plot_file <- plot_expression(analysis, top_n = 3)
 #'
 #' @seealso
 #' \code{\link{TSENATAnalysis}} for object structure
 #'
 #' @export
 #' @importFrom methods is
-plot_expression_s4 <- function(analysis, gene = NULL, condition_col = NULL,
+plot_expression <- function(analysis, gene = NULL, condition_col = NULL,
     top_n = 4, output_file = NULL, metric = c("median", "mean", "variance", "iqr"),
     use_tpm = TRUE, width = NULL, height = NULL, fontsize = 16, cellwidth = 0, cellheight = 0,
     layout_ncol = 2, verbose = FALSE, ...) {
@@ -1597,7 +1597,7 @@ plot_expression_s4 <- function(analysis, gene = NULL, condition_col = NULL,
                   gene <- as.character(lm_results_df[top_indices, gene_col])
 
                   if (verbose) {
-                    message("[plot_expression_s4] Auto-selected top ", length(gene),
+                    message("[plot_expression] Auto-selected top ", length(gene),
                       " genes from LM results")
                     message("  ", paste(gene, collapse = ", "))
                   }
@@ -1607,7 +1607,7 @@ plot_expression_s4 <- function(analysis, gene = NULL, condition_col = NULL,
     }
 
     if (is.null(gene)) {
-        stop("[plot_expression_s4] No gene specified and cannot auto-detect from LM results. ",
+        stop("[plot_expression] No gene specified and cannot auto-detect from LM results. ",
             "Provide gene explicitly.", call. = FALSE)
     }
 
@@ -1616,10 +1616,10 @@ plot_expression_s4 <- function(analysis, gene = NULL, condition_col = NULL,
     # =========================================================================
     if (verbose) {
         if (length(gene) > 1) {
-            message("[plot_expression_s4] Calling .plot_expression() for genes: ",
+            message("[plot_expression] Calling .plot_expression() for genes: ",
                 paste(gene, collapse = ", "))
         } else {
-            message("[plot_expression_s4] Calling .plot_expression() for gene: ",
+            message("[plot_expression] Calling .plot_expression() for gene: ",
                 gene)
         }
     }
@@ -1631,13 +1631,13 @@ plot_expression_s4 <- function(analysis, gene = NULL, condition_col = NULL,
             cellwidth = cellwidth, cellheight = cellheight, layout_ncol = layout_ncol,
             ...)
     }, error = function(e) {
-        stop("[plot_expression_s4]", conditionMessage(e), call. = FALSE)
+        stop("[plot_expression]", conditionMessage(e), call. = FALSE)
     })
 
     # Optionally save to file if output_file provided
     if (!is.null(output_file)) {
         if (verbose) {
-            message("[plot_expression_s4] Plot saved to: ", output_file)
+            message("[plot_expression] Plot saved to: ", output_file)
         }
     }
 
@@ -1653,7 +1653,7 @@ plot_expression_s4 <- function(analysis, gene = NULL, condition_col = NULL,
 #' across genes.
 #'
 #' @param analysis \code{TSENATAnalysis} object with effect sizes computed
-#'   (typically via \code{\link{calculate_effect_sizes_s4}}).
+#'   (typically via \code{\link{calculate_effect_sizes}}).
 #' @param threshold \code{numeric}. Effect size threshold for visual marking
 #'   in the plot. Default is 0.1 (information-theoretic significance level).
 #' @param output_file \code{character}. Optional file path to save the plot.
@@ -1679,7 +1679,7 @@ plot_expression_s4 <- function(analysis, gene = NULL, condition_col = NULL,
 #'
 #' **Data Requirements:**
 #' \itemize{
-#'   \item Effect sizes must be computed via \code{calculate_effect_sizes_s4()}
+#'   \item Effect sizes must be computed via \code{calculate_effect_sizes()}
 #'   \item \code{@metadata$effect_sizes_divergence$interaction_results} must
 #'         contain columns matching pattern \code{effect_size_D_q*}
 #' }
@@ -1703,7 +1703,7 @@ plot_expression_s4 <- function(analysis, gene = NULL, condition_col = NULL,
 #' )
 #'
 #' # Build analysis with configured parameters
-#' analysis <- build_analysis_s4(
+#' analysis <- build_analysis(
 #'   readcounts = readcounts,
 #'   tx2gene = gff3_dataset,
 #'   metadata = metadata_df,
@@ -1712,21 +1712,21 @@ plot_expression_s4 <- function(analysis, gene = NULL, condition_col = NULL,
 #'   effective_length = effective_length
 #' )
 #'
-#' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5), verbose
+#' analysis <- filter_analysis(analysis, stringency = 'severe')
+#' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5), verbose
 #' = FALSE)
-#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5), verbose
+#' analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5), verbose
 #' = FALSE)
-#' analysis <- calculate_lm_s4(analysis, method = 'gam')
-#' analysis <- calculate_effect_sizes_s4(analysis)
-#' p_dist <- plot_divergence_distribution_s4(analysis)
+#' analysis <- calculate_lm(analysis, method = 'gam')
+#' analysis <- calculate_effect_sizes(analysis)
+#' p_dist <- plot_divergence_distribution(analysis)
 #' print(p_dist)
 #'
 #' @seealso
-#' \code{\link{calculate_effect_sizes_s4}} for computing effect sizes.
+#' \code{\link{calculate_effect_sizes}} for computing effect sizes.
 #'
 #' @export
-plot_divergence_distribution_s4 <- function(analysis, threshold = 0.1, output_file = NULL,
+plot_divergence_distribution <- function(analysis, threshold = 0.1, output_file = NULL,
     width = 12, height = 6, verbose = FALSE, ...) {
 
     # Load visualization dependencies (ggplot2, cowplot, etc.)
@@ -1743,7 +1743,7 @@ plot_divergence_distribution_s4 <- function(analysis, threshold = 0.1, output_fi
     # Extract effect sizes from metadata
     if (is.null(analysis@metadata$effect_sizes_divergence)) {
         stop("Effect sizes not found in analysis@metadata$effect_sizes_divergence. ",
-            "Run calculate_effect_sizes_s4() first.", call. = FALSE)
+            "Run calculate_effect_sizes() first.", call. = FALSE)
     }
 
     effect_sizes <- analysis@metadata$effect_sizes_divergence
@@ -1779,7 +1779,7 @@ plot_divergence_distribution_s4 <- function(analysis, threshold = 0.1, output_fi
     # Save to file if requested
     if (!is.null(output_file)) {
         save_analysis_output(p, output_file, object = analysis, verbose = verbose,
-            func_name = "plot_divergence_distribution_s4", width = width, height = height)
+            func_name = "plot_divergence_distribution", width = width, height = height)
     }
 
     # Always return the plot object (not file path) Knitr will auto-manage
@@ -1855,7 +1855,7 @@ plot_divergence_distribution_s4 <- function(analysis, threshold = 0.1, output_fi
 #' )
 #'
 #' # Build analysis with configured parameters
-#' analysis <- build_analysis_s4(
+#' analysis <- build_analysis(
 #'   readcounts = readcounts,
 #'   tx2gene = gff3_dataset,
 #'   metadata = metadata_df,
@@ -1864,22 +1864,22 @@ plot_divergence_distribution_s4 <- function(analysis, threshold = 0.1, output_fi
 #'   effective_length = effective_length
 #' )
 #'
-#' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5), verbose
+#' analysis <- filter_analysis(analysis, stringency = 'severe')
+#' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5), verbose
 #' = FALSE)
-#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
-#' analysis <- calculate_lm_s4(analysis, method = 'gam')
-#' analysis <- calculate_jis_s4(analysis, q = c(0.5, 1, 1.5),
+#' analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
+#' analysis <- calculate_lm(analysis, method = 'gam')
+#' analysis <- calculate_jis(analysis, q = c(0.5, 1, 1.5),
 #'   n_bootstrap = 50)
-#' heatmap_file <- plot_jis_delta_s4(analysis, n_genes
+#' heatmap_file <- plot_jis_delta(analysis, n_genes
 #' = 2)
 #'
 #' @seealso
-#' \code{\link{calculate_jis_s4}} for computing switching results
+#' \code{\link{calculate_jis}} for computing switching results
 #'
 #' @export
 #' @importFrom methods is
-plot_jis_delta_s4 <- function(analysis, n_genes = 4, lm_results = NULL,
+plot_jis_delta <- function(analysis, n_genes = 4, lm_results = NULL,
     verbose = FALSE, output_file = NULL, ...) {
 
     # Load visualization dependencies (ggplot2, cowplot, pheatmap, etc.)
@@ -1899,7 +1899,7 @@ plot_jis_delta_s4 <- function(analysis, n_genes = 4, lm_results = NULL,
     # Extract jackknife/switching results
     jackknife_results_list <- analysis@jackknife_results
     if (is.null(jackknife_results_list) || length(jackknife_results_list) == 0) {
-        stop("No jackknife results found in analysis@jackknife_results. ", "Run calculate_jis_s4() first.",
+        stop("No jackknife results found in analysis@jackknife_results. ", "Run calculate_jis() first.",
             call. = FALSE)
     }
 
@@ -2026,7 +2026,7 @@ plot_jis_delta_s4 <- function(analysis, n_genes = 4, lm_results = NULL,
 #' }
 #'
 #' @seealso
-#' \code{\link{calculate_lm_s4}} for 
+#' \code{\link{calculate_lm}} for 
 #' running LM analysis on TSENATAnalysis.
 #'
 #' @examples
@@ -2052,7 +2052,7 @@ plot_jis_delta_s4 <- function(analysis, n_genes = 4, lm_results = NULL,
 #' )
 #'
 #' # Build analysis with configured parameters
-#' analysis <- build_analysis_s4(
+#' analysis <- build_analysis(
 #'   readcounts = readcounts,
 #'   tx2gene = gff3_dataset,
 #'   metadata = metadata_df,
@@ -2061,16 +2061,16 @@ plot_jis_delta_s4 <- function(analysis, n_genes = 4, lm_results = NULL,
 #'   effective_length = effective_length
 #' )
 #'
-#' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-#' analysis <- calculate_diversity_s4(analysis, q = seq(0.2, 2.5, by =
+#' analysis <- filter_analysis(analysis, stringency = 'severe')
+#' analysis <- calculate_diversity(analysis, q = seq(0.2, 2.5, by =
 #' 0.15))
-#' analysis <- calculate_lm_s4(analysis, method = 'gam')
+#' analysis <- calculate_lm(analysis, method = 'gam')
 #' 
-#' p_gam <- plot_lm_gam_s4(analysis, n_top = 2, sig_alpha = 0.15)
+#' p_gam <- plot_lm_gam(analysis, n_top = 2, sig_alpha = 0.15)
 #' print(p_gam)
 #'
 #' @export
-plot_lm_gam_s4 <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL,
+plot_lm_gam <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL,
     sig_alpha = 0.05, assay_name = "diversity", output_file = NULL, width = 12, height = NULL,
     verbose = FALSE, ...) {
     # Load visualization dependencies (ggplot2, cowplot, mgcv, etc.)
@@ -2085,21 +2085,21 @@ plot_lm_gam_s4 <- function(analysis, n_top = 6, genes = NULL, condition_col = NU
 
     # Check that LM results exist
     if (is.null(analysis@lm_results) || is.null(analysis@lm_results$lm_interaction)) {
-        stop("[plot_lm_gam_s4] No LM interaction results found in @lm_results$lm_interaction. ",
-            "Run calculate_lm_s4() first.", call. = FALSE)
+        stop("[plot_lm_gam] No LM interaction results found in @lm_results$lm_interaction. ",
+            "Run calculate_lm() first.", call. = FALSE)
     }
 
     lm_res <- analysis@lm_results$lm_interaction
 
     if (!is.data.frame(lm_res)) {
-        stop("[plot_lm_gam_s4] @lm_results$lm_interaction must be a data.frame",
+        stop("[plot_lm_gam] @lm_results$lm_interaction must be a data.frame",
             call. = FALSE)
     }
 
     # Check that diversity results exist (needed for SE reconstruction)
     if (length(analysis@diversity_results) == 0) {
-        stop("[plot_lm_gam_s4] No diversity results found in @diversity_results. ",
-            "Run calculate_diversity_s4() first.", call. = FALSE)
+        stop("[plot_lm_gam] No diversity results found in @diversity_results. ",
+            "Run calculate_diversity() first.", call. = FALSE)
     }
 
     # =========================================================================
@@ -2114,14 +2114,14 @@ plot_lm_gam_s4 <- function(analysis, n_top = 6, genes = NULL, condition_col = NU
 
     # Validate that condition_col exists in colData
     if (!(condition_col %in% colnames(colData(analysis@se)))) {
-        stop("[plot_lm_gam_s4] Specified condition_col='", condition_col,
+        stop("[plot_lm_gam] Specified condition_col='", condition_col,
             "' not found in colData. Available columns: ", paste(colnames(colData(analysis@se)),
                 collapse = ", "), call. = FALSE)
     }
 
     # =========================================================================
     # RECONSTRUCT COMBINED DIVERSITY SE FOR PLOTTING (Same approach as in
-    # calculate_lm_s4)
+    # calculate_lm)
     # =========================================================================
     # Extract q-values from diversity_results keys
     q_keys <- names(analysis@diversity_results)
@@ -2132,7 +2132,7 @@ plot_lm_gam_s4 <- function(analysis, n_top = 6, genes = NULL, condition_col = NU
         .calculate_diversity(x = analysis@se, q = sort(q_computed), norm = TRUE,
             verbose = verbose, bootstrap = FALSE)
     }, error = function(e) {
-        stop("[plot_lm_gam_s4] Failed to reconstruct diversity SE:\n",
+        stop("[plot_lm_gam] Failed to reconstruct diversity SE:\n",
             conditionMessage(e), call. = FALSE)
     })
 
@@ -2176,7 +2176,7 @@ plot_lm_gam_s4 <- function(analysis, n_top = 6, genes = NULL, condition_col = NU
             model_data = model_data, output_file = output_file, width = width, height = height,
             ...)
     }, error = function(e) {
-        stop("[plot_lm_gam_s4]", conditionMessage(e), call. = FALSE)
+        stop("[plot_lm_gam]", conditionMessage(e), call. = FALSE)
     })
 
     # =========================================================================
@@ -2184,14 +2184,14 @@ plot_lm_gam_s4 <- function(analysis, n_top = 6, genes = NULL, condition_col = NU
     # =========================================================================
     # Track that plotting occurred
     if (is.list(analysis@metadata)) {
-        analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("plot_lm_gam_s4[n_top=",
+        analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("plot_lm_gam[n_top=",
             n_top, ", condition_col=", condition_col, "]"))
     }
 
     # Save plot to file if requested (only if result is a valid ggplot)
     if (!is.null(output_file) && inherits(result, "ggplot")) {
         save_analysis_output(result, output_file, object = analysis, verbose = verbose,
-            func_name = "plot_lm_gam_s4", width = width, height = height)
+            func_name = "plot_lm_gam", width = width, height = height)
     }
 
     # Return the plot object directly (not the analysis object)
@@ -2207,7 +2207,7 @@ plot_lm_gam_s4 <- function(analysis, n_top = 6, genes = NULL, condition_col = NU
 #' back into the object.
 #'
 #' @param analysis \code{TSENATAnalysis} object with diversity results
-#'   (typically via \code{\link{calculate_diversity_s4}}).
+#'   (typically via \code{\link{calculate_diversity}}).
 #' @param condition_col \code{character}.
 #'  Column name in sample metadata indicating
 #'   condition/sample grouping. Auto-detected from \code{@config$condition_col}
@@ -2275,7 +2275,7 @@ plot_lm_gam_s4 <- function(analysis, n_top = 6, genes = NULL, condition_col = NU
 #'
 #' **Data Requirements:**
 #' \itemize{
-#'   \item Diversity results must be computed via \code{calculate_diversity_s4()}
+#'   \item Diversity results must be computed via \code{calculate_diversity()}
 #'   \item Sample grouping column required in colData (auto-detected from @config$condition_col
 #'     or via 'samples' parameter)
 #' }
@@ -2292,7 +2292,7 @@ plot_lm_gam_s4 <- function(analysis, n_top = 6, genes = NULL, condition_col = NU
 #' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 #' 'TSENAT')
 #' 
-#' # Create config (metadata passed as explicit parameter to build_analysis_s4)
+#' # Create config (metadata passed as explicit parameter to build_analysis)
 #' config <- TSENAT_config(
 #'   sample_col = 'sample',
 #'   condition_col = 'condition',
@@ -2301,7 +2301,7 @@ plot_lm_gam_s4 <- function(analysis, n_top = 6, genes = NULL, condition_col = NU
 #' )
 #' 
 #' # Build analysis from vignette data
-#' analysis <- build_analysis_s4(
+#' analysis <- build_analysis(
 #'   readcounts = readcounts,
 #'   tx2gene = gff3_dataset,
 #'   metadata = metadata_df,
@@ -2309,8 +2309,8 @@ plot_lm_gam_s4 <- function(analysis, n_top = 6, genes = NULL, condition_col = NU
 #'   tpm = tpm,
 #'   effective_length = effective_length
 #' )
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
+#' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = 200)
+#' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
 #' analysis <- calculate_m_estimator(
 #'   analysis,
 #'   condition_col = 'condition',
@@ -2318,7 +2318,7 @@ plot_lm_gam_s4 <- function(analysis, n_top = 6, genes = NULL, condition_col = NU
 #' )
 #'
 #' @seealso
-#' \code{\link{calculate_diversity_s4}} for computing diversity
+#' \code{\link{calculate_diversity}} for computing diversity
 #'
 #' @export
 #' @importFrom utils write.table
@@ -2334,7 +2334,7 @@ calculate_m_estimator <- function(analysis, condition_col = NULL, loss_type = "h
     # Check for diversity results
     if (is.null(analysis@diversity_results) || length(analysis@diversity_results) ==
         0) {
-        stop("Diversity results not found. Run calculate_diversity_s4() first.",
+        stop("Diversity results not found. Run calculate_diversity() first.",
             call. = FALSE)
     }
 
@@ -2582,7 +2582,7 @@ calculate_m_estimator <- function(analysis, condition_col = NULL, loss_type = "h
 #' may not align with the filtered SE dimensions.
 #'
 #' @seealso
-#' \code{\link{build_analysis_s4}} for creating a new analysis object
+#' \code{\link{build_analysis}} for creating a new analysis object
 #'
 #' @examples
 #' # Create test analysis and filter
@@ -2596,10 +2596,10 @@ calculate_m_estimator <- function(analysis, condition_col = NULL, loss_type = "h
 #' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 #' 'TSENAT')
 #' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' analysis <- build_analysis(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df, config = config,
 #'   tpm = tpm, effective_length = effective_length)
-#' analysis <- filter_analysis_s4(analysis, stringency = 'medium')
+#' analysis <- filter_analysis(analysis, stringency = 'medium')
 #'
 #' @export
 # ============================================================================
@@ -2622,7 +2622,7 @@ calculate_m_estimator <- function(analysis, condition_col = NULL, loss_type = "h
 # well-represented genes) Result: More reliable diversity estimates and smaller
 # multiple-testing burden.
 # ============================================================================
-filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min_samples = 5L,
+filter_analysis <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min_samples = 5L,
     stringency = "medium", pair_col = NULL, min_tx_per_gene = 2L, min_isoform_abundance = NULL,
     assay_name = "counts", subset_n_genes = NULL, subset_genes = NULL, subset_n_samples = NULL,
     subset_samples = NULL, subset_select_by = c("variance", "mean", "random"), subset_seed = 42,
@@ -2707,20 +2707,20 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min
 #' Must be provided and will be stored in the SummarizedExperiment for use during
 #'   diverse filtering. Same dimensions as readcounts required (rows = transcripts, 
 #'   columns = samples). Typically from SALMON quantification output.
-#'   If not provided to build_analysis_s4(), subsequent filter_analysis_s4() calls 
+#'   If not provided to build_analysis(), subsequent filter_analysis() calls 
 #'   will fail with an explicit error message.
 #'
 #' @param effective_length REQUIRED numeric vector of transcript effective lengths
 #'   (e.g., from SALMON EffectiveLength column). Length must match nrow(readcounts).
 #'   Typically obtained as the median effective length across all samples.
-#'   If not provided to build_analysis_s4(), the data will not be stored for later use
+#'   If not provided to build_analysis(), the data will not be stored for later use
 #'   in length-normalized calculations.
 #'
 #' @param config Optional list of configuration parameters to store in the
 #'   TSENATAnalysis object. Can also contain \code{config$metadata} which will be
 #'   used if the \code{metadata} argument is NULL. Following Bioconductor best practices
 #'   (fail-fast principle), create configuration via \code{\link{TSENAT_config}()} FIRST,
-#'   then pass to \code{build_analysis_s4()} at object construction time. This ensures
+#'   then pass to \code{build_analysis()} at object construction time. This ensures
 #'   invalid parameters are caught immediately, before analysis proceeds.
 #'   See examples below for recommended usage pattern.
 #'
@@ -2752,9 +2752,9 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min
 #'   \item{@se}{The SummarizedExperiment containing transcript counts and 
 #' metadata}
 #'   \item{@config}{Analysis configuration (empty list or user-provided)}
-#'   \item{@diversity_results}{Empty list (populated by calculate_diversity_s4())}
-#'   \item{@divergence_results}{Empty list (populated by calculate_divergence_s4())}
-#'   \item{@lm_results}{Empty list (populated by calculate_lm_s4())}
+#'   \item{@diversity_results}{Empty list (populated by calculate_diversity())}
+#'   \item{@divergence_results}{Empty list (populated by calculate_divergence())}
+#'   \item{@lm_results}{Empty list (populated by calculate_lm())}
 #'   \item{@jackknife_results}{Empty list (populated by jackknife functions)}
 #'   \item{@plots}{Empty list (populated by plotting functions)}
 #'   \item{@metadata}{Metadata with package version and creation timestamp}
@@ -2765,17 +2765,17 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min
 #' Both \code{tpm} and \code{effective_length} MUST be provided to ensure correct
 #' filtering and normalization in downstream analysis:
 #' \itemize{
-#'   \item \code{filter_analysis_s4()} requires TPM data (stored in metadata).
+#'   \item \code{filter_analysis()} requires TPM data (stored in metadata).
 #'     If TPM is missing, the function will fail with an explicit error message
-#'     that guides you to pass it to \code{build_analysis_s4()}.
-#'   \item \code{calculate_diversity_s4()} uses \code{effective_length} for 
+#'     that guides you to pass it to \code{build_analysis()}.
+#'   \item \code{calculate_diversity()} uses \code{effective_length} for 
 #'     length-normalized entropy calculations.
 #' }
 #'
 #' Following Bioconductor best practices (fail-fast principle), these are explicit
 #' parameters, not optional. They must be passed at object construction time:
 #' \preformatted{
-#' analysis <- build_analysis_s4(
+#' analysis <- build_analysis(
 #'   readcounts = readcounts,
 #'   metadata = metadata_df,
 #'   tx2gene = gff3_file,
@@ -2791,14 +2791,14 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min
 #'   \item Wrap the result in \code{TSENATAnalysis()} to create the analysis object
 #' }
 #'
-#' The returned object is ready for diversity analysis via \code{calculate_diversity_s4()}.
+#' The returned object is ready for diversity analysis via \code{calculate_diversity()}.
 #'
 #' If you need to inspect or filter the SummarizedExperiment before creating the
 #' TSENATAnalysis object, call \code{.build_se()} and \code{TSENATAnalysis()} separately.
 #'
 #' @seealso
 #' \code{\link{TSENATAnalysis}} for the S4 class structure
-#' \code{\link{calculate_diversity_s4}} for computing Tsallis entropy
+#' \code{\link{calculate_diversity}} for computing Tsallis entropy
 #'
 #' @examples
 #' # Create example transcript count data
@@ -2828,7 +2828,7 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min
 #' # Build analysis object - use NAMED parameters to avoid confusion
 #' # Method 1: With explicit tx2gene data.frame (most common)
 #' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
-#' analysis <- build_analysis_s4(
+#' analysis <- build_analysis(
 #'   readcounts = counts,
 #'   tx2gene = tx2gene,
 #'   metadata = metadata,
@@ -2854,14 +2854,14 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min
 #' #   row.names = c('sample1', 'sample2', 'sample3', 'sample4')
 #' # )
 #' # 
-#' # analysis_salmon <- build_analysis_s4(
+#' # analysis_salmon <- build_analysis(
 #' #   salmon_dir = salmon_dir,
 #' #   tx2gene = 'annotation.gff3.gz',  # Auto-parsed from GFF3
 #' #   metadata = salmon_metadata
 #' # )
 #' #
 #' # Method 3: Hybrid - Salmon counts with manual tx2gene
-#' # analysis_hybrid <- build_analysis_s4(
+#' # analysis_hybrid <- build_analysis(
 #' #   salmon_dir = salmon_dir,
 #' #   tx2gene = tx2gene,  # data.frame instead of file
 #' #   metadata = salmon_metadata
@@ -2870,7 +2870,7 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min
 #' # Method 4: Pass metadata via config (parameter resolution pattern)
 #' # cfg <- TSENAT_config()
 #' # cfg$metadata <- metadata
-#' # analysis_with_config <- build_analysis_s4(
+#' # analysis_with_config <- build_analysis(
 #' #   readcounts = counts,
 #' #   tx2gene = tx2gene,
 #' #   config = cfg
@@ -2891,14 +2891,14 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min
 #' # cause silent failures in S4 object metadata assignment.
 #'
 #' @export
-build_analysis_s4 <- function(readcounts = NULL, salmon_dir = NULL, tx2gene, assay_name = "counts",
+build_analysis <- function(readcounts = NULL, salmon_dir = NULL, tx2gene, assay_name = "counts",
     metadata = NULL, tpm = NULL, effective_length = NULL, config = list(), skip = FALSE,
     verbose = FALSE) {
     # Parameter resolution: explicit argument takes priority, then config
     if (is.null(metadata) && !is.null(config$metadata)) {
         metadata <- config$metadata
         if (verbose)
-            message("[build_analysis_s4] Reading metadata from config$metadata")
+            message("[build_analysis] Reading metadata from config$metadata")
     }
 
     # Handle salmon_dir parameter - auto-load Salmon quantification data
@@ -2907,7 +2907,7 @@ build_analysis_s4 <- function(readcounts = NULL, salmon_dir = NULL, tx2gene, ass
         salmon_info <- .detect_salmon_samples(salmon_dir)
 
         if (verbose)
-            message("[build_analysis_s4] Found ", salmon_info$count, " Salmon samples")
+            message("[build_analysis] Found ", salmon_info$count, " Salmon samples")
 
         # Validate Salmon sample names match metadata (if metadata provided)
         if (!is.null(metadata)) {
@@ -2919,7 +2919,7 @@ build_analysis_s4 <- function(readcounts = NULL, salmon_dir = NULL, tx2gene, ass
             missing_in_salmon <- setdiff(metadata_samples, salmon_samples)
 
             if (length(missing_in_metadata) > 0 || length(missing_in_salmon) > 0) {
-                error_msg <- "[build_analysis_s4] Sample name mismatch between Salmon folder and metadata:\n"
+                error_msg <- "[build_analysis] Sample name mismatch between Salmon folder and metadata:\n"
 
                 if (length(missing_in_metadata) > 0) {
                   error_msg <- paste0(error_msg, "  Salmon samples NOT in metadata (",
@@ -2940,7 +2940,7 @@ build_analysis_s4 <- function(readcounts = NULL, salmon_dir = NULL, tx2gene, ass
             }
 
             if (verbose)
-                message("[build_analysis_s4] [OK] Sample names match metadata")
+                message("[build_analysis] [OK] Sample names match metadata")
         }
 
         # Read Salmon quantification files
@@ -2958,7 +2958,7 @@ build_analysis_s4 <- function(readcounts = NULL, salmon_dir = NULL, tx2gene, ass
 
     # Validate readcounts is now available
     if (is.null(readcounts)) {
-        stop("[build_analysis_s4] Either 'readcounts' or 'salmon_dir' must be provided\n",
+        stop("[build_analysis] Either 'readcounts' or 'salmon_dir' must be provided\n",
             "  readcounts: matrix/data.frame of transcript counts\n", "  salmon_dir: path to Salmon quantification output directory")
     }
     
@@ -2974,7 +2974,7 @@ build_analysis_s4 <- function(readcounts = NULL, salmon_dir = NULL, tx2gene, ass
         }
         
         if (length(missing_cols) > 0) {
-            stop("[build_analysis_s4] Metadata provided but required column parameters missing: ",
+            stop("[build_analysis] Metadata provided but required column parameters missing: ",
                 paste(missing_cols, collapse = ", "), "\n",
                 "  These parameters MUST be provided in TSENAT_config():\n",
                 "    config <- TSENAT_config(\n",
@@ -2982,7 +2982,7 @@ build_analysis_s4 <- function(readcounts = NULL, salmon_dir = NULL, tx2gene, ass
                 "      condition_col = 'condition', # Column name with condition/treatment labels\n",
                 "      ...\n",
                 "    )\n",
-                "    analysis <- build_analysis_s4(config = config, metadata = metadata_df, ...)",
+                "    analysis <- build_analysis(config = config, metadata = metadata_df, ...)",
                 call. = FALSE)
         }
     }
@@ -3005,7 +3005,7 @@ build_analysis_s4 <- function(readcounts = NULL, salmon_dir = NULL, tx2gene, ass
     }
 
     # Store metadata in config for later use (e.g., in
-    # calculate_lm_s4)
+    # calculate_lm)
     if (!is.null(metadata)) {
         config$metadata <- metadata
     }

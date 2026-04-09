@@ -83,12 +83,12 @@ test_that("Plot functions trigger visualization loading", {
   )
   
   # Compute required results
-  analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
-  analysis <- calculate_divergence_s4(analysis, q = 1.0, verbose = FALSE)
+  analysis <- calculate_diversity(analysis, q = 1.0, verbose = FALSE)
+  analysis <- calculate_divergence(analysis, q = 1.0, verbose = FALSE)
   
   # Call a plot function (should trigger lazy-loading if not already done)
   p <- tryCatch({
-    plot_divergence_spectrum_s4(analysis, verbose = FALSE)
+    plot_divergence_spectrum(analysis, verbose = FALSE)
   }, error = function(e) {
     # Plot might fail for other reasons (missing data), that's OK
     # We're just testing that lazy-loading is triggered
@@ -113,9 +113,9 @@ test_that("Multiple plot functions work after lazy-loading", {
   )
   
   # LM interaction requires at least 5 q-values
-  analysis <- calculate_diversity_s4(analysis, q = seq(0.5, 2, by = 0.375), verbose = FALSE)
-  analysis <- calculate_divergence_s4(analysis, q = seq(0.5, 2, by = 0.375), verbose = FALSE)
-  analysis <- calculate_lm_s4(
+  analysis <- calculate_diversity(analysis, q = seq(0.5, 2, by = 0.375), verbose = FALSE)
+  analysis <- calculate_divergence(analysis, q = seq(0.5, 2, by = 0.375), verbose = FALSE)
+  analysis <- calculate_lm(
     analysis, 
     condition_col = "condition",
     verbose = FALSE
@@ -127,7 +127,7 @@ test_that("Multiple plot functions work after lazy-loading", {
   
   # Attempt different plot types (some may fail due to data constraints, that's OK)
   tryCatch({
-    plots$spectrum <- plot_divergence_spectrum_s4(analysis, verbose = FALSE)
+    plots$spectrum <- plot_divergence_spectrum(analysis, verbose = FALSE)
   }, error = function(e) NULL)
   
   tryCatch({
@@ -146,10 +146,10 @@ test_that("Lazy-loading doesn't affect non-plot functions", {
   analysis <- .create_test_analysis(n_genes = 4, n_samples_per_group = 5)
   
   # These should work fine without any plot functions
-  analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
+  analysis <- calculate_diversity(analysis, q = 1.0, verbose = FALSE)
   expect_true(length(analysis@diversity_results) > 0)
   
-  analysis <- calculate_divergence_s4(analysis, q = 1.0, verbose = FALSE)
+  analysis <- calculate_divergence(analysis, q = 1.0, verbose = FALSE)
   expect_true(length(analysis@divergence_results) > 0)
   
   # Viz may or may not be loaded depending on prior tests
@@ -162,7 +162,7 @@ test_that("Lazy-loading maintains backward compatibility", {
   
   # Users expecting visualizations to just work should not be affected
   analysis <- .create_test_analysis(n_genes = 4, n_samples_per_group = 5)
-  analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
+  analysis <- calculate_diversity(analysis, q = 1.0, verbose = FALSE)
   
   # Calling plot functions should work as before
   # (they just might be slightly slower on first call due to lazy-loading)

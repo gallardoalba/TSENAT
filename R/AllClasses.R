@@ -32,7 +32,7 @@
 #'
 #' @slot pairwise_results \code{list}. Pairwise group comparison results.
 #'   Contains differential testing output computed by
-#'   \code{calculate_difference_s4()}, stored under the \code{difference}
+#'   \code{calculate_difference()}, stored under the \code{difference}
 #'   component.
 #'
 #' @slot jackknife_results \code{list}. Resampling-based confidence intervals.

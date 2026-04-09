@@ -263,7 +263,7 @@
 #' Must have a 'genes' column in rowData specifying which gene each
 #' transcript belongs to.
 #' If `use_tpm = TRUE`, requires TPM data in metadata (provided to
-#' `build_analysis_s4()` or `.build_se()`).
+#' `build_analysis()` or `.build_se()`).
 #' @param gene Character vector; gene symbol(s) to inspect. If NULL and
 #' `res` is provided,
 #'   top genes are selected by p-value.
@@ -291,7 +291,7 @@
 #' (default: FALSE). TPM is normalized for sequencing depth and is
 #' recommended for comparing
 #' expression across samples. Requires TPM data in `metadata(se)$tpm`
-#' from `build_analysis_s4()` or `.build_se()`
+#' from `build_analysis()` or `.build_se()`
 #' with `tpm` parameter. Raises error if TPM not available and `use_tpm =
 #' TRUE`.
 #' @param width Output image width in inches. If NULL, automatically

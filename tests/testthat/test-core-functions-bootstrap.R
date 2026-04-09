@@ -4883,13 +4883,13 @@ test_that("bootstrap CI omits diagnostics when not requested", {
 # ============================================================================
 # These tests verify that bootstrap S3 methods (print, summary) are properly
 # triggered when users interact with the public API through:
-# - calculate_jeo_s4() [exported S4 function]
-# - calculate_diversity_s4() [exported S4 function with bootstrap parameters]
+# - calculate_jeo() [exported S4 function]
+# - calculate_diversity() [exported S4 function with bootstrap parameters]
 # - jeoResults() [exported accessor function]
 # 
 # NOTE: The internal S3 methods are NOT directly exported but are registered
 # via registerS3method() in .onLoad() and are automatically used when:
-# 1. Users print results from calculate_jeo_s4()
+# 1. Users print results from calculate_jeo()
 # 2. Users summarize bootstrap CI objects from jackknife functions
 # 3. Bootstrap objects are returned from internal .calculate_tsallis_entropy_bootstrap()
 # ============================================================================

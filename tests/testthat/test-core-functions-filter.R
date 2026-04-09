@@ -563,7 +563,7 @@ test_that(".filter_se with multiple assays: all filtered consistently", {
 # FILTER_ANALYSIS_S4 TESTS
 # ============================================================================
 
-test_that("filter_analysis_s4: basic filtering preserves TSENATAnalysis class", {
+test_that("filter_analysis: basic filtering preserves TSENATAnalysis class", {
   counts <- matrix(c(100, 50, 10, 5, 20, 15), nrow = 3, ncol = 2)
   tpm <- counts
   rownames(counts) <- rownames(tpm) <- c("TX1", "TX2", "TX3")
@@ -577,14 +577,14 @@ test_that("filter_analysis_s4: basic filtering preserves TSENATAnalysis class", 
   analysis <- TSENAT::TSENATAnalysis(se)
   
   # Filter with min_samples = 1 to keep most data
-  filtered_analysis <- TSENAT:::filter_analysis_s4(analysis, min_samples = 1, verbose = FALSE)
+  filtered_analysis <- TSENAT:::filter_analysis(analysis, min_samples = 1, verbose = FALSE)
   
   # Check class preservation
   expect_s4_class(filtered_analysis, "TSENATAnalysis")
   expect_s4_class(filtered_analysis@se, "SummarizedExperiment")
 })
 
-test_that("filter_analysis_s4: stringency levels affect filtering", {
+test_that("filter_analysis: stringency levels affect filtering", {
   # Create data with 3 isoforms per gene to survive severe stringency (requires 3+ isoforms)
   # 6 samples = 3 pairs; each gene has 3 isoforms for min_tx_per_gene requirement
   counts <- matrix(c(
@@ -609,9 +609,9 @@ test_that("filter_analysis_s4: stringency levels affect filtering", {
   analysis <- TSENAT::TSENATAnalysis(se)
   
   # Apply different stringency levels
-  filt_soft <- TSENAT:::filter_analysis_s4(analysis, stringency = "soft", verbose = FALSE)
-  filt_medium <- TSENAT:::filter_analysis_s4(analysis, stringency = "medium", verbose = FALSE)
-  filt_severe <- TSENAT:::filter_analysis_s4(analysis, stringency = "severe", verbose = FALSE)
+  filt_soft <- TSENAT:::filter_analysis(analysis, stringency = "soft", verbose = FALSE)
+  filt_medium <- TSENAT:::filter_analysis(analysis, stringency = "medium", verbose = FALSE)
+  filt_severe <- TSENAT:::filter_analysis(analysis, stringency = "severe", verbose = FALSE)
   
   n_soft <- nrow(filt_soft@se)
   n_medium <- nrow(filt_medium@se)
@@ -628,7 +628,7 @@ test_that("filter_analysis_s4: stringency levels affect filtering", {
   expect_true(n_medium <= n_soft)
 })
 
-test_that("filter_analysis_s4: min_samples and min_tpm parameters", {
+test_that("filter_analysis: min_samples and min_tpm parameters", {
   # Create data where one gene's transcripts pass but another's don't
   # Each gene has 2 transcripts to avoid single-tx gene filtering
   counts <- matrix(c(
@@ -649,21 +649,21 @@ test_that("filter_analysis_s4: min_samples and min_tpm parameters", {
   analysis <- TSENAT::TSENATAnalysis(se)
   
   # min_samples = 3, min_tpm = 50: G1 passes (2 transcripts), G2 fails (need 3+ samples)
-  filt_3 <- TSENAT:::filter_analysis_s4(analysis, min_samples = 3, min_tpm = 50, verbose = FALSE)
+  filt_3 <- TSENAT:::filter_analysis(analysis, min_samples = 3, min_tpm = 50, verbose = FALSE)
   expect_equal(nrow(filt_3@se), 2)  # Only G1.1 and G1.2
   expect_true("G1.1" %in% rownames(filt_3@se))
   expect_true("G1.2" %in% rownames(filt_3@se))
 })
 
-test_that("filter_analysis_s4: error on invalid input", {
+test_that("filter_analysis: error on invalid input", {
   # Try to filter non-TSENATAnalysis object
   expect_error(
-    TSENAT:::filter_analysis_s4("not_an_analysis"),
+    TSENAT:::filter_analysis("not_an_analysis"),
     "must be a TSENATAnalysis"
   )
 })
 
-test_that("filter_analysis_s4: colData preserved after filtering", {
+test_that("filter_analysis: colData preserved after filtering", {
   counts <- matrix(c(100, 50, 10), nrow = 3, ncol = 1)
   tpm <- counts
   rownames(counts) <- rownames(tpm) <- c("TX1", "TX2", "TX3")
@@ -681,7 +681,7 @@ test_that("filter_analysis_s4: colData preserved after filtering", {
   )
   
   analysis <- TSENAT::TSENATAnalysis(se)
-  filt <- TSENAT:::filter_analysis_s4(analysis, min_tpm = 5, min_samples = 1, verbose = FALSE)
+  filt <- TSENAT:::filter_analysis(analysis, min_tpm = 5, min_samples = 1, verbose = FALSE)
   
   # colData should remain unchanged
   cd <- SummarizedExperiment::colData(filt@se)
@@ -691,7 +691,7 @@ test_that("filter_analysis_s4: colData preserved after filtering", {
   expect_equal(cd$batch, 1)
 })
 
-test_that("filter_analysis_s4: rowData preserved for kept transcripts", {
+test_that("filter_analysis: rowData preserved for kept transcripts", {
   counts <- matrix(c(100, 50, 10), nrow = 3, ncol = 1)
   tpm <- counts
   rownames(counts) <- rownames(tpm) <- c("TX1", "TX2", "TX3")
@@ -707,14 +707,14 @@ test_that("filter_analysis_s4: rowData preserved for kept transcripts", {
   )
   
   analysis <- TSENAT::TSENATAnalysis(se)
-  filt <- TSENAT:::filter_analysis_s4(analysis, min_tpm = 40, min_samples = 1, verbose = FALSE)
+  filt <- TSENAT:::filter_analysis(analysis, min_tpm = 40, min_samples = 1, verbose = FALSE)
   
   rd <- SummarizedExperiment::rowData(filt@se)
   expect_equal(nrow(rd), 2)  # TX1 and TX2 kept, TX3 filtered
   expect_true(all(rd$transcript_name %in% c("ENST001", "ENST002")))
 })
 
-test_that("filter_analysis_s4: isoform filtering through analysis object", {
+test_that("filter_analysis: isoform filtering through analysis object", {
   counts <- matrix(c(
     50, 40, 30,  # TX1.1 (120/200 = 60%)
     40, 50, 60,  # TX1.2 (150/200 = 75%)
@@ -732,7 +732,7 @@ test_that("filter_analysis_s4: isoform filtering through analysis object", {
   analysis <- TSENAT::TSENATAnalysis(se)
   
   # Filter isoforms: remove those < 30% relative abundance
-  filt <- TSENAT:::filter_analysis_s4(analysis, min_samples = 1, min_tpm = 1, 
+  filt <- TSENAT:::filter_analysis(analysis, min_samples = 1, min_tpm = 1, 
                                       min_isoform_abundance = 0.30, verbose = FALSE)
   
   # TX1.3 has ~25% abundance, should be removed
@@ -742,7 +742,7 @@ test_that("filter_analysis_s4: isoform filtering through analysis object", {
   expect_false("TX1.3" %in% rownames(filt@se))
 })
 
-test_that("filter_analysis_s4: multi-gene filtering accuracy", {
+test_that("filter_analysis: multi-gene filtering accuracy", {
   # Create data with clear filtering outcomes
   # G1: 2 high-expression transcripts that both pass TPM filter
   # G2: 1 high and 1 low - one passes, one fails TPM
@@ -773,7 +773,7 @@ test_that("filter_analysis_s4: multi-gene filtering accuracy", {
   # G2: keeps G2.1 only (30 >= 15, but 2,3 < 15) = 1 transcript, min_tx_per_gene=2 removes it
   # G3: single transcript, min_tx_per_gene=2 removes it
   # Result: 2 rows from G1 only
-  filt <- TSENAT:::filter_analysis_s4(analysis, min_tpm = 15, min_samples = 2, verbose = FALSE)
+  filt <- TSENAT:::filter_analysis(analysis, min_tpm = 15, min_samples = 2, verbose = FALSE)
   
   expect_equal(nrow(filt@se), 2)  # Only G1.1 and G1.2 (G2 and G3 filtered by min_tx_per_gene=2)
   expect_true("G1.1" %in% rownames(filt@se))
@@ -1655,8 +1655,8 @@ describe("Helper functions unit tests", {
 # FILTER_ANALYSIS_S4 TESTS
 # ============================================================================
 
-test_that("filter_analysis_s4 basic filtering", {
-  # Create test data for filter_analysis_s4
+test_that("filter_analysis basic filtering", {
+  # Create test data for filter_analysis
   counts <- matrix(c(
     100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
     100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
@@ -1678,13 +1678,13 @@ test_that("filter_analysis_s4 basic filtering", {
   analysis <- TSENAT::TSENATAnalysis(se)
   
   # Apply basic filtering
-  filt <- TSENAT:::filter_analysis_s4(analysis, min_samples = 1, verbose = FALSE)
+  filt <- TSENAT:::filter_analysis(analysis, min_samples = 1, verbose = FALSE)
   
   expect_s4_class(filt, "TSENATAnalysis")
   expect_true(nrow(filt@se) > 0)
 })
 
-test_that("filter_analysis_s4 with min_tx_per_gene", {
+test_that("filter_analysis with min_tx_per_gene", {
   # Test min_tx_per_gene parameter interaction
   counts <- matrix(c(
     100, 100, 100,
@@ -1706,7 +1706,7 @@ test_that("filter_analysis_s4 with min_tx_per_gene", {
   
   # Apply filter with min_tx_per_gene
   # min_tx_per_gene=2 removes G2 (only 1 isoform)
-  filt <- TSENAT:::filter_analysis_s4(
+  filt <- TSENAT:::filter_analysis(
     analysis, 
     min_samples = 1,
     min_tx_per_gene = 2,
@@ -1720,10 +1720,10 @@ test_that("filter_analysis_s4 with min_tx_per_gene", {
 })
 
 # ============================================================================
-# Tests for filter_analysis_s4 with subset parameters
+# Tests for filter_analysis with subset parameters
 # ============================================================================
 
-test_that("filter_analysis_s4 subset_n_genes by variance", {
+test_that("filter_analysis subset_n_genes by variance", {
   # Create SE with varying transcript variances
   # Note: subset_analysis selects individual transcripts, not genes
   counts <- matrix(c(
@@ -1749,7 +1749,7 @@ test_that("filter_analysis_s4 subset_n_genes by variance", {
   analysis <- TSENAT::TSENATAnalysis(se)
   
   # Filter, then subset to 1 transcript by variance (selects TX2.1 or TX2.2, both have highest variance)
-  filt <- TSENAT:::filter_analysis_s4(
+  filt <- TSENAT:::filter_analysis(
     analysis,
     min_samples = 1,
     subset_n_genes = 1,
@@ -1762,7 +1762,7 @@ test_that("filter_analysis_s4 subset_n_genes by variance", {
   expect_true(any(c("TX2.1", "TX2.2") %in% rownames(filt@se)))
 })
 
-test_that("filter_analysis_s4 subset_n_genes by mean expression", {
+test_that("filter_analysis subset_n_genes by mean expression", {
   # Create SE with different mean expression levels at transcript level
   counts <- matrix(c(
     10,  10,  10,      # TX1.1: low mean
@@ -1786,7 +1786,7 @@ test_that("filter_analysis_s4 subset_n_genes by mean expression", {
   analysis <- TSENAT::TSENATAnalysis(se)
   
   # Filter, then subset to 2 transcripts by mean expression
-  filt <- TSENAT:::filter_analysis_s4(
+  filt <- TSENAT:::filter_analysis(
     analysis,
     min_samples = 1,
     min_tx_per_gene = 1,
@@ -1800,7 +1800,7 @@ test_that("filter_analysis_s4 subset_n_genes by mean expression", {
   expect_true(all(c("TX2.1", "TX2.2") %in% rownames(filt@se)) || all(c("TX3.1") %in% rownames(filt@se)))
 })
 
-test_that("filter_analysis_s4 subset_n_genes with random selection and seed", {
+test_that("filter_analysis subset_n_genes with random selection and seed", {
   # Create SE with 8 transcripts from 4 genes
   counts <- matrix(c(
     100, 100, 100,     # TX1.1
@@ -1827,7 +1827,7 @@ test_that("filter_analysis_s4 subset_n_genes with random selection and seed", {
   analysis <- TSENAT::TSENATAnalysis(se)
   
   # Random selection with seed should be reproducible
-  filt1 <- TSENAT:::filter_analysis_s4(
+  filt1 <- TSENAT:::filter_analysis(
     analysis,
     min_samples = 1,
     subset_n_genes = 2,
@@ -1836,7 +1836,7 @@ test_that("filter_analysis_s4 subset_n_genes with random selection and seed", {
     verbose = FALSE
   )
   
-  filt2 <- TSENAT:::filter_analysis_s4(
+  filt2 <- TSENAT:::filter_analysis(
     analysis,
     min_samples = 1,
     subset_n_genes = 2,
@@ -1850,7 +1850,7 @@ test_that("filter_analysis_s4 subset_n_genes with random selection and seed", {
   expect_equal(nrow(filt1@se), 2)  # 2 random transcripts
 })
 
-test_that("filter_analysis_s4 subset_genes by specific transcript names", {
+test_that("filter_analysis subset_genes by specific transcript names", {
   # Create SE with multiple transcripts
   counts <- matrix(c(
     100, 100, 100,     # TX1.1
@@ -1875,7 +1875,7 @@ test_that("filter_analysis_s4 subset_genes by specific transcript names", {
   analysis <- TSENAT::TSENATAnalysis(se)
   
   # Subset to retain only specific transcripts (subset_genes uses transcript IDs)
-  filt <- TSENAT:::filter_analysis_s4(
+  filt <- TSENAT:::filter_analysis(
     analysis,
     min_samples = 1,
     subset_genes = c("TX1.1", "TX1.2", "TX3.1", "TX3.2"),
@@ -1889,7 +1889,7 @@ test_that("filter_analysis_s4 subset_genes by specific transcript names", {
   expect_true(all(c("TX1.1", "TX1.2", "TX3.1", "TX3.2") %in% rownames(filt@se)))
 })
 
-test_that("filter_analysis_s4 subset_n_samples", {
+test_that("filter_analysis subset_n_samples", {
   # Create SE with 5 samples and multiple genes
   counts <- matrix(c(
     100, 100, 100, 100, 100,     # TX1.1
@@ -1915,7 +1915,7 @@ test_that("filter_analysis_s4 subset_n_samples", {
   analysis <- TSENAT::TSENATAnalysis(se)
   
   # Subset to 3 samples (balanced by condition if available)
-  filt <- TSENAT:::filter_analysis_s4(
+  filt <- TSENAT:::filter_analysis(
     analysis,
     min_samples = 1,
     subset_n_samples = 3,
@@ -1927,7 +1927,7 @@ test_that("filter_analysis_s4 subset_n_samples", {
   expect_equal(ncol(filt@se), 3)
 })
 
-test_that("filter_analysis_s4 subset_samples by specific sample names", {
+test_that("filter_analysis subset_samples by specific sample names", {
   # Create SE with 5 samples and 4 transcripts
   counts <- matrix(c(
     100, 100, 100, 100, 100,     # TX1.1
@@ -1950,7 +1950,7 @@ test_that("filter_analysis_s4 subset_samples by specific sample names", {
   analysis <- TSENAT::TSENATAnalysis(se)
   
   # Subset to specific samples
-  filt <- TSENAT:::filter_analysis_s4(
+  filt <- TSENAT:::filter_analysis(
     analysis,
     min_samples = 1,
     subset_samples = c("S1", "S3", "S5"),
@@ -1963,7 +1963,7 @@ test_that("filter_analysis_s4 subset_samples by specific sample names", {
   expect_equal(colnames(filt@se), c("S1", "S3", "S5"))
 })
 
-test_that("filter_analysis_s4 combined filter and subset operations", {
+test_that("filter_analysis combined filter and subset operations", {
   # Create SE with sparse and abundant genes
   counts <- matrix(c(
     100, 100, 100, 100, 5,      # TX1.1: abundant
@@ -1987,7 +1987,7 @@ test_that("filter_analysis_s4 combined filter and subset operations", {
   analysis <- TSENAT::TSENATAnalysis(se)
   
   # Apply filtering (removes G2, keeps G1 and G3) and then subset to 1 gene
-  filt <- TSENAT:::filter_analysis_s4(
+  filt <- TSENAT:::filter_analysis(
     analysis,
     min_samples = 3,
     min_tx_per_gene = 2,
@@ -2003,7 +2003,7 @@ test_that("filter_analysis_s4 combined filter and subset operations", {
   expect_true(nrow(filt@se) <= 4)
 })
 
-test_that("filter_analysis_s4 subset_min_count during subsetting", {
+test_that("filter_analysis subset_min_count during subsetting", {
   # Create SE with varying count depths
   counts <- matrix(c(
     1000, 1000, 1000,   # TX1.1: high counts
@@ -2029,7 +2029,7 @@ test_that("filter_analysis_s4 subset_min_count during subsetting", {
   # Apply subsetting with min_count to filter low-count transcripts
   # This should trigger a warning about filtered genes
   filt <- testthat::expect_warning(
-    TSENAT:::filter_analysis_s4(
+    TSENAT:::filter_analysis(
       analysis,
       min_samples = 1,
       subset_n_genes = 3,
@@ -2047,7 +2047,7 @@ test_that("filter_analysis_s4 subset_min_count during subsetting", {
   expect_false(all(c("TX2.1", "TX2.2") %in% rownames(filt@se)))
 })
 
-test_that("filter_analysis_s4 no subsetting when all params NULL", {
+test_that("filter_analysis no subsetting when all params NULL", {
   # Create simple SE
   counts <- matrix(c(
     100, 100, 100,     # TX1.1
@@ -2070,7 +2070,7 @@ test_that("filter_analysis_s4 no subsetting when all params NULL", {
   analysis <- TSENAT::TSENATAnalysis(se)
   
   # Apply filtering only (no subsetting)
-  filt <- TSENAT:::filter_analysis_s4(
+  filt <- TSENAT:::filter_analysis(
     analysis,
     min_samples = 1,
     verbose = FALSE
@@ -2402,7 +2402,7 @@ test_that(".filter_se works with refactored helper functions", {
   
   # Test 1: Basic filtering works
   expect_no_error({
-    se_filt <- TSENAT::filter_analysis_s4(
+    se_filt <- TSENAT::filter_analysis(
       TSENATAnalysis(se),
       min_samples = 3, min_tpm = 1.0, verbose = FALSE
     )
@@ -2421,7 +2421,7 @@ test_that(".filter_se produces valid output dimensions", {
   
   # Create analysis and filter
   analysis <- TSENATAnalysis(se)
-  analysis_filt <- TSENAT::filter_analysis_s4(
+  analysis_filt <- TSENAT::filter_analysis(
     analysis,
     min_samples = 2, min_tpm = 0.5, verbose = FALSE
   )
@@ -2453,7 +2453,7 @@ test_that(".filter_se with stringency parameter works", {
   # Test with stringency parameter
   analysis <- TSENATAnalysis(se)
   expect_no_error({
-    analysis_filt <- TSENAT::filter_analysis_s4(
+    analysis_filt <- TSENAT::filter_analysis(
       analysis,
       stringency = "medium",
       pair_col = "pair",
@@ -2475,7 +2475,7 @@ test_that(".filter_se preserves assay names across refactoring", {
   )
   
   analysis <- TSENATAnalysis(se)
-  analysis_filt <- TSENAT::filter_analysis_s4(
+  analysis_filt <- TSENAT::filter_analysis(
     analysis,
     min_samples = 1, min_tpm = 0.1, verbose = FALSE
   )
@@ -2506,7 +2506,7 @@ test_that("Refactoring maintains isoform-level filtering behavior", {
   )
   
   analysis <- TSENATAnalysis(se)
-  analysis_filt <- TSENAT::filter_analysis_s4(
+  analysis_filt <- TSENAT::filter_analysis(
     analysis,
     min_samples = 1, min_tpm = 1.0,
     min_isoform_abundance = 0.1,
@@ -2532,7 +2532,7 @@ test_that("Refactored code handles empty results gracefully", {
   
   # Should produce warning but not error
   expect_warning({
-    analysis_filt <- TSENAT::filter_analysis_s4(
+    analysis_filt <- TSENAT::filter_analysis(
       analysis,
       min_samples = 10, min_tpm = 100, verbose = FALSE
     )

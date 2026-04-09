@@ -92,7 +92,7 @@
 #' - This function automatically detects these assays and displays bootstrap
 #' confidence interval
 #'   bands instead of IQR. No additional parameter needed.
-#' - For confidence bands to appear, use `calculate_diversity_s4(...,
+#' - For confidence bands to appear, use `calculate_diversity(...,
 #' bootstrap=TRUE, nboot=1000)`
 #'   or appropriate divergence function with bootstrap enabled.
 #'
@@ -116,18 +116,18 @@
 #' 
 #' # Create configuration (required when metadata is provided)
 #' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' analysis <- build_analysis(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df, config = config,
 #'   tpm = tpm, effective_length = effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 #' = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = seq(0.5, 2, by = 0.5),
+#' analysis <- calculate_diversity(analysis, q = seq(0.5, 2, by = 0.5),
 #' )
-#' p <- plot_diversity_spectrum_s4(analysis)
+#' p <- plot_diversity_spectrum(analysis)
 #' if (!is.null(p)) print(p)
 #'
 #' @export
-plot_diversity_spectrum_s4 <- function(se, assay_name = "diversity", condition_col = NULL,
+plot_diversity_spectrum <- function(se, assay_name = "diversity", condition_col = NULL,
     gene = NULL, lm_res = NULL, n_top = NULL, metric = "iqr", output_file = NULL) {
     # Validate metric parameter
     metric <- match.arg(tolower(metric), c("iqr", "sd"))

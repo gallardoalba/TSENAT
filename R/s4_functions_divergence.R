@@ -67,7 +67,7 @@
 #' 2. Values from analysis@config (if present)
 #' 3. Function defaults
 #'
-#' Requires diversity results from calculate_diversity_s4() as prerequisite.
+#' Requires diversity results from calculate_diversity() as prerequisite.
 #'
 #' @examples
 #' # Load example data (matching TSENAT.Rmd workflow)
@@ -82,7 +82,7 @@
 #' 
 #' # Build analysis from vignette data and create manageable subset
 #' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
-#' analysis <- build_analysis_s4(
+#' analysis <- build_analysis(
 #'   readcounts = readcounts,
 #'   tx2gene = gff3_dataset,
 #'   metadata = metadata_df,
@@ -91,20 +91,20 @@
 #'   effective_length = effective_length
 #' )
 #' # Use 200+ genes to ensure diversity filtering doesn't remove all genes
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
+#' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = 200)
 #' 
 #' # Compute diversity first (required for divergence)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
+#' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
 #' 
 #' # Calculate divergence across q-values
-#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5))
+#' analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5))
 #' 
 #' # Check divergence results using unified accessor
 #' head(results(analysis, type = "divergence"))
 #'
 #' @export
 #' @importFrom utils write.table
-calculate_divergence_s4 <- function(analysis, q = NULL, verbose = FALSE, nthreads = NULL,
+calculate_divergence <- function(analysis, q = NULL, verbose = FALSE, nthreads = NULL,
     output_file = NULL, control_group = NULL, paired = FALSE, method = NULL, bootstrap = FALSE,
     nboot = NULL, progress = FALSE, ...) {
 
@@ -168,7 +168,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = FALSE, nthread
     }
 
     if (length(analysis@diversity_results) == 0) {
-        stop("Diversity results required. Run calculate_diversity_s4() first.", call. = FALSE)
+        stop("Diversity results required. Run calculate_diversity() first.", call. = FALSE)
     }
 
     invisible(NULL)
@@ -263,7 +263,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = FALSE, nthread
 #' @noRd
 .store_divergence_results <- function(analysis, result) {
     if (is.null(result)) {
-        warning("[calculate_divergence_s4] Result is NULL. Check .calculate_divergence() output.",
+        warning("[calculate_divergence] Result is NULL. Check .calculate_divergence() output.",
             call. = FALSE)
         analysis@divergence_results <- list()
     } else if (is(result, "SummarizedExperiment")) {
@@ -273,7 +273,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = FALSE, nthread
     } else if (is.data.frame(result) || is.matrix(result)) {
         analysis@divergence_results <- list(main = result)
     } else {
-        warning("[calculate_divergence_s4] Unexpected result type: ", class(result),
+        warning("[calculate_divergence] Unexpected result type: ", class(result),
             ". Wrapping in list.", call. = FALSE)
         analysis@divergence_results <- list(result = result)
     }
@@ -324,11 +324,11 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = FALSE, nthread
                 write.table(write_data, file = output_file, sep = sep, quote = FALSE,
                   row.names = TRUE)
             } else {
-                warning("[calculate_divergence_s4] No divergence results to save",
+                warning("[calculate_divergence] No divergence results to save",
                   call. = FALSE)
             }
         }, error = function(e) {
-            warning("[calculate_divergence_s4] Could not write divergence results: ",
+            warning("[calculate_divergence] Could not write divergence results: ",
                 conditionMessage(e), call. = FALSE)
         })
     } else {
@@ -385,7 +385,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = FALSE, nthread
 
     tryCatch({
         if (isTRUE(verbose)) {
-            message("[calculate_divergence_s4] Attempting to save bootstrap results to: ",
+            message("[calculate_divergence] Attempting to save bootstrap results to: ",
                 bootstrap_file)
         }
 
@@ -414,12 +414,12 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = FALSE, nthread
                 row.names = FALSE)
 
             if (isTRUE(verbose)) {
-                message("[calculate_divergence_s4] Saved bootstrap results to: ",
+                message("[calculate_divergence] Saved bootstrap results to: ",
                   bootstrap_file)
             }
         }
     }, error = function(e) {
-        warning("[calculate_divergence_s4] Could not write bootstrap results: ",
+        warning("[calculate_divergence] Could not write bootstrap results: ",
             conditionMessage(e), call. = FALSE)
     })
 

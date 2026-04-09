@@ -54,15 +54,15 @@ TSENAT implements a complete analytical pipeline:
     configurable method backends and parallelization.}
   \item{\code{\link{TSENAT_config}}}{Configure analysis parameters: q-values, condition 
     grouping, sample pairing, and method selection.}
-  \item{\code{\link{calculate_diversity_s4}}}{Compute Tsallis entropy and Hill numbers. 
+  \item{\code{\link{calculate_diversity}}}{Compute Tsallis entropy and Hill numbers. 
     Vectorized over genes and q-values with numerical stability safeguards.}
-  \item{\code{\link{calculate_jeo_s4}}}{Resampling-based confidence intervals 
+  \item{\code{\link{calculate_jeo}}}{Resampling-based confidence intervals 
     for diversity. Identifies outlier genes and validates q-value signal.}
-  \item{\code{\link{calculate_lm_s4}}}{Statistical testing for gene-by-condition 
+  \item{\code{\link{calculate_lm}}}{Statistical testing for gene-by-condition 
     interactions. LMM, GAM, and rank-based approaches.}
-  \item{\code{\link{calculate_divergence_s4}}}{Tsallis divergence between groups with 
+  \item{\code{\link{calculate_divergence}}}{Tsallis divergence between groups with 
     effect size (Cohen's d, rank-biserial) and hypothesis testing.}
-  \item{\code{\link{filter_analysis_s4}}}{Filter genes by diversity, effect size, or 
+  \item{\code{\link{filter_analysis}}}{Filter genes by diversity, effect size, or 
     interaction significance (adjustable FDR, Benjamini-Hochberg).}
 }
 }

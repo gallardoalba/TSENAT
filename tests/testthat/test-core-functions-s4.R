@@ -1136,7 +1136,7 @@ test_metadata <- data.frame(
   )
   
   if (precompute_diversity) {
-    analysis <- TSENAT::calculate_diversity_s4(
+    analysis <- TSENAT::calculate_diversity(
       analysis,
       q = q_values,
       verbose = FALSE,
@@ -1439,11 +1439,11 @@ test_that("TSENATAnalysis: colData contains sample metadata", {
 # TEST 9: S4 Wrapper Functions - Comprehensive parameter testing
 # ============================================================================
 
-test_that("S4 Wrappers: calculate_diversity_s4 runs successfully with improved data", {
+test_that("S4 Wrappers: calculate_diversity runs successfully with improved data", {
   analysis <- .create_test_analysis(precompute_diversity = FALSE)
   
   result <- tryCatch({
-    calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE, nthreads = 1)
+    calculate_diversity(analysis, q = 1.0, verbose = FALSE, nthreads = 1)
   }, error = function(e) {
     # If diversity fails, return original so we can still test
     analysis
@@ -1459,7 +1459,7 @@ test_that("S4 Wrappers: calculate_diversity_s4 runs successfully with improved d
   }
 })
 
-test_that("S4 Wrappers: all calculate_diversity_s4 arguments are accepted", {
+test_that("S4 Wrappers: all calculate_diversity arguments are accepted", {
   analysis <- .create_test_analysis(precompute_diversity = FALSE)
   
   # Test that each argument is accepted by the function
@@ -1478,7 +1478,7 @@ test_that("S4 Wrappers: all calculate_diversity_s4 arguments are accepted", {
     arg_string <- paste(names(args), collapse = ", ")
     # Test that arguments are accepted without syntax errors
     result <- tryCatch({
-      do.call(calculate_diversity_s4, c(list(analysis = analysis, q = 1.0, verbose = FALSE), args))
+      do.call(calculate_diversity, c(list(analysis = analysis, q = 1.0, verbose = FALSE), args))
     }, error = function(e) {
       # Capture error but don't fail - we're testing argument acceptance, not compute success
       list(error = e$message)
@@ -1490,7 +1490,7 @@ test_that("S4 Wrappers: all calculate_diversity_s4 arguments are accepted", {
   }
 })
 
-test_that("S4 Wrappers: calculate_difference_s4 accepts new arguments", {
+test_that("S4 Wrappers: calculate_difference accepts new arguments", {
   # Pre-compute diversity to have valid input data
   analysis <- .create_test_analysis(precompute_diversity = TRUE)
   
@@ -1514,7 +1514,7 @@ test_that("S4 Wrappers: calculate_difference_s4 accepts new arguments", {
     arg_string <- paste(names(args), collapse = ", ")
     # Test that arguments are accepted
     result <- tryCatch({
-      do.call(calculate_difference_s4, 
+      do.call(calculate_difference, 
               c(list(analysis = analysis, control = "control", verbose = FALSE), args))
     }, error = function(e) {
       list(error = paste("Error:", e$message))
@@ -1528,7 +1528,7 @@ test_that("S4 Wrappers: calculate_difference_s4 accepts new arguments", {
 })
 
 
-test_that("S4 Wrappers: calculate_divergence_s4 accepts new arguments", {
+test_that("S4 Wrappers: calculate_divergence accepts new arguments", {
   # Pre-compute diversity to have valid input data
   analysis <- .create_test_analysis(precompute_diversity = TRUE)
   
@@ -1550,7 +1550,7 @@ test_that("S4 Wrappers: calculate_divergence_s4 accepts new arguments", {
     arg_string <- paste(names(args), collapse = ", ")
     # Test that arguments are accepted
     result <- tryCatch({
-      do.call(calculate_divergence_s4, 
+      do.call(calculate_divergence, 
               c(list(analysis = analysis, verbose = FALSE), args))
     }, error = function(e) {
       list(error = paste("Error:", e$message))
