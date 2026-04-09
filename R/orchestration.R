@@ -52,7 +52,7 @@
 #' config <- TSENAT_config(
 #'   sample_col = "sample",
 #'   condition_col = "condition",
-#'   q_values = c(0.5, 1.0, 1.5, 2.0, 2.5),
+#'   q = 1.0,
 #'   generate_plots = FALSE
 #' )
 #' analysis <- build_analysis(
@@ -102,13 +102,11 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
     # Extract parameters from config (already embedded in analysis object from build_analysis)
     cfg <- getConfig(analysis)
     
-    # Get q_values from config
-    q_vals <- cfg$q_values %||% seq(0, 2, by = 0.5)
+    # Get q value from config (single q-value for statistical tests)
+    q_val <- cfg$q %||% 1.0
     
-    # Inform user if using default q-values
-    if (is.null(cfg$q_values)) {
-        if (verbose) message("[INFO] Using default q-values: ", paste(q_vals, collapse = ", "))
-    }
+    # Inform user which q-value is being used
+    if (verbose) message("[INFO] Using q-value: ", q_val)
     
     condition_col <- cfg$condition_col %||% "condition"
 
@@ -339,7 +337,7 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
 #'
 #' # Create TSENATAnalysis from count matrix
 #' config <- TSENAT_config(
-#'   q_values = c(0.5, 1.0, 2.0),
+#'   q = 1.0,
 #'   condition_col = 'group'
 #' )
 #' se <- SummarizedExperiment::SummarizedExperiment(
@@ -906,11 +904,15 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
 
 #' Create and return TSENAT configuration
 #'
-#' Builds a configuration list for use with \code{\link{tsenat}}().
+#' Builds a configuration list for use with \code{\link{TSENAT}}().
 #' Allows specifying analysis parameters once and reusing across multiple
 #' analyses.
 #'
-#' @param q_values \code{numeric} vector. Q-values for Tsallis entropy. Default: \code{seq(0, 2, by=0.5)}.
+#' @param q \code{numeric}. Q-value(s) for Tsallis entropy (single value or vector). 
+#'   Default: 1.0 (Shannon entropy).
+#'   Usage: \code{calculate_diversity/divergence} use this for spectrum computation 
+#'   (if vector) or as default fallback (if single);
+#'   \code{calculate_difference} requires single value for statistical tests.
 #' @param condition_col \code{character}. Column name in colData containing conditions. Default: 'condition'.
 #' @param subject_col \code{character}. Column name in colData containing subject IDs (for paired designs). Default: NULL.
 #' @param sample_col \code{character}. Column name in colData containing sample IDs. Default: 'sample'.
@@ -943,10 +945,26 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
 #' @details
 #' Configuration is stored in the TSENATAnalysis@config slot and used
 #' by wrapper functions to configure analysis behavior.
+#' Note: Statistical tests (Wilcoxon, shuffle) work on a single q-value,
+#' so only one q-value is specified in config.
 #'
 #' @examples
 #' # Default config with standard parameters (point estimates only)
 #' cfg <- TSENAT_config()
+#'
+#' # For Wilcoxon/shuffle tests (single q-value required in config)
+#' cfg <- TSENAT_config(
+#'   q = 1.0,                          # Shannon entropy - for rank tests
+#'   condition_col = 'treatment',
+#'   control = 'untreated'
+#' )
+#'
+#' # For Friedman/LM tests (multiple q-values)
+#' cfg <- TSENAT_config(
+#'   q = seq(0, 2, by = 0.5),          # Multiple q-values for spectrum or advanced testing
+#'   condition_col = 'treatment',
+#'   control = 'untreated'
+#' )
 #'
 #' # With bootstrap CIs for uncertainty quantification (recommended)
 #' cfg <- TSENAT_config(
@@ -958,7 +976,7 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
 #'
 #' # Custom with paired analysis, strict filtering, and normalization
 #' cfg <- TSENAT_config(
-#'   q_values = seq(0, 2, by = 0.05),  # Recommended for paired: 41 values
+#'   q = 1.0,                          # Shannon entropy
 #'   condition_col = 'treatment',
 #'   subject_col = 'subject_id',
 #'   paired = TRUE,
@@ -974,16 +992,20 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
 #' )
 #'
 #' @export
-TSENAT_config <- function(q_values = NULL, condition_col = "condition", subject_col = NULL,
+TSENAT_config <- function(q = 1.0, condition_col = "condition", subject_col = NULL,
     sample_col = "sample", paired = FALSE, control = NULL, p_threshold = 0.05, fdr_threshold = 0.05,
     significance_threshold = 0.05, bootstrap = FALSE, nboot = 1000, bootstrap_method = "percentile",
     stringency = "medium", nthreads = 1, norm = TRUE, 
     bootstrap_ci = 0.95, bootstrap_include_diagnostics = TRUE, min_valid_frac = 0.75,
     norm_method = NULL, pseudocount = 0, shrinkage = "none", lm_method = "gam",
     lm_pcorr = "BH", jis_use_lm_fdr = TRUE, divergence_ci = 0.95, ...) {
-    # Build q_values if range specified
-    if (is.null(q_values)) {
-        q_values <- seq(0, 2, by = 0.5)
+    # Validate q parameter (single or multiple q-values)
+    if (is.null(q)) {
+        stop("'q' must be specified (q-value or q-values for diversity/statistics calculations).", 
+            call. = FALSE)
+    }
+    if (!is.numeric(q) || any(q < 0) || any(q > 2)) {
+        stop("'q' must be numeric value(s) between 0 and 2", call. = FALSE)
     }
 
     # Validate bootstrap_method
@@ -1013,7 +1035,7 @@ TSENAT_config <- function(q_values = NULL, condition_col = "condition", subject_
 
     # Build config list with all parameters
     config <- list(
-        q_values = q_values,
+        q = q,
         condition_col = condition_col,
         subject_col = subject_col,
         sample_col = sample_col,
@@ -1064,21 +1086,18 @@ TSENAT_config <- function(q_values = NULL, condition_col = "condition", subject_
         if (is.null(control)) {
             missing_paired_params <- c(missing_paired_params, "control")
         }
-        if (is.null(q_values) || length(q_values) < 5) {
-            missing_paired_params <- c(missing_paired_params, "q_values (recommended: >= 5 values)")
-        }
         
         if (length(missing_paired_params) > 0) {
             warning("[TSENAT_config] Paired design (paired=TRUE) requires complete configuration.\n",
                 "  Missing or incomplete parameters: ", paste(missing_paired_params, collapse = ", "), "\n",
                 "  This will cause downstream analysis failure or empty results (LM interaction, plotting).\n",
                 "  Provide all parameters: \n",
-                "    config <- tsenat_config(\n",
-                "      q_values = seq(0, 2, by = 0.05),       # At least 5 q-values (41 recommended)\n",
+                "    config <- TSENAT_config(\n",
+                "      q = 1.0,                              # Q-value for Tsallis entropy\n",
                 "      condition_col = 'condition',\n",
-                "      subject_col = 'paired_samples',        # Required for paired analysis\n",
+                "      subject_col = 'paired_samples',      # Required for paired analysis\n",
                 "      paired = TRUE,\n",
-                "      control = 'normal'                     # Reference group for comparisons\n",
+                "      control = 'normal'                    # Reference group for comparisons\n",
                 "    )",
                 call. = FALSE)
         }
@@ -1449,7 +1468,7 @@ TSENAT_config <- function(q_values = NULL, condition_col = "condition", subject_
     analysis@metadata$workflow <- list(workflow_type = "isoform_switching_vignette",
         completion_time = Sys.time(), tsenat_version = utils::packageVersion("TSENAT"))
     analysis@metadata$methods_parameters <- list(fdr_threshold = cfg$fdr_threshold %||%
-        0.05, q_values = cfg$q_values %||% seq(0, 2, by = 0.5), condition_col = cfg$condition_col %||%
+        0.05, q = cfg$q %||% 1.0, condition_col = cfg$condition_col %||%
         "condition", filter_stringency = cfg$filter_stringency %||% "medium")
     analysis
 }

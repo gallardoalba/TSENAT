@@ -39,7 +39,7 @@
 #' @param q \code{numeric}.  Tsallis entropy parameter(s) to analyze.
 #'  Can be single value 
 #'   or vector for multi-q analysis (default: c(0, 0.5, 1, 1.5, 2)).
-#'   If NULL, uses @config$q_values.
+#'   If NULL, uses @config$q.
 #'
 #' @param norm \code{logical}. Whether to use normalized diversity values 
 #'   (default: TRUE).
@@ -99,7 +99,7 @@
 #'
 #' Affected parameters:
 #' \itemize{
-#'   \item \code{q}: Uses config's \code{q_values} if available, else c(0, 0.5, 1, 1.5, 2)
+#'   \\item \\code{q}: Uses config's \\code{q} if available, else 1.0 (Shannon entropy)
 #'   \item \code{n_bootstrap}: Uses config's \code{n_bootstrap} if available, else 1000
 #'   \item \code{threshold}: Uses config's \code{threshold} if available, else 90
 #'   \item \code{lm_p_threshold}: Uses config's \code{lm_p_threshold} if available, else 0.05
@@ -392,8 +392,8 @@ calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL,
 .resolve_and_validate_jis_params <- function(q, norm = NULL, log_base = NULL, pseudocount = NULL, n_bootstrap = 1000,
     threshold = NULL, lm_p_threshold = NULL, analysis, verbose = FALSE) {
     # Resolve q: use config if available, otherwise use the provided value (which has function default)
-    if (is.null(q) && "q_values" %in% names(analysis@config)) {
-        q <- analysis@config$q_values
+    if (is.null(q) && "q" %in% names(analysis@config)) {
+        q <- analysis@config$q
     }
     
     # Convert q to numeric vector

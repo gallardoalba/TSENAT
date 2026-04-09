@@ -25,8 +25,6 @@
 #' Detect q-dependent gene interactions
 #'
 #' @param analysis \code{TSENATAnalysis} object.
-#' @param q \code{numeric} or \code{NULL}. Q-values to test across spectrum.
-#'   If NULL, auto-detects from \code{@config$q_values} or diversity results.
 #' @param output_file \code{character} or  \code{NULL}.
 #'  Optional file path to save results.
 #'   Supported formats: .rds (for S4 objects). Default: NULL (no file output).
@@ -89,8 +87,7 @@
 #' **Parameter resolution priority** (explicit > @config > default/auto-detect):
 #' \itemize{
 #'   \item \code{condition_col}: REQUIRED - must be explicitly provided
-#'   \item \code{q}:
-#'  explicit arg > \code{@config$q_values} > extract from diversity_results keys
+#'   \item \code{q}: ALWAYS auto-detected from diversity results (cannot be overridden)
 #'   \item \code{paired}: explicit arg > \code{@config$paired} > FALSE (default)
 #'   \item \code{subject_col}: explicit arg > \code{@config$subject_col}
 #'   \item \code{multicorr}:
@@ -137,7 +134,7 @@
 # ============================================================================
 # S4 WRAPPER: Detect Q×Condition Gene Interactions (Rank-Based Testing)
 # ============================================================================
-calculate_rank_test <- function(analysis, condition_col, q = NULL, output_file = NULL,
+calculate_rank_test <- function(analysis, condition_col, output_file = NULL,
     paired = NULL, subject_col = NULL, test = c("auto", "kruskal-wallis", "friedman",
         "art"), multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young",
         "none"), entropy_col = "diversity", q_col = "q", gene_col = "gene", wy_randomizations = 500,
@@ -149,8 +146,9 @@ calculate_rank_test <- function(analysis, condition_col, q = NULL, output_file =
     condition_col <- .validate_rank_test_input(analysis, condition_col)
 
     # PHASE 2: Resolve parameters from config + explicit args
+    # Note: q is NOT a parameter - always auto-detected from diversity results
     param_result <- .resolve_rank_test_params(analysis, test, multicorr, nperm_mode,
-        q, paired, subject_col, nthreads, wy_randomizations, entropy_col, q_col,
+        paired, subject_col, nthreads, wy_randomizations, entropy_col, q_col,
         gene_col)
     dots <- param_result$dots
     dots$condition_col <- condition_col
@@ -206,7 +204,7 @@ calculate_rank_test <- function(analysis, condition_col, q = NULL, output_file =
 #' Internal: Resolve rank test parameters from config
 #'
 #' @noRd
-.resolve_rank_test_params <- function(analysis, test, multicorr, nperm_mode, q, paired,
+.resolve_rank_test_params <- function(analysis, test, multicorr, nperm_mode, paired,
     subject_col, nthreads, wy_randomizations, entropy_col, q_col, gene_col) {
     dots <- list()
 
@@ -239,7 +237,7 @@ calculate_rank_test <- function(analysis, condition_col, q = NULL, output_file =
     dots$gene_col <- gene_col
 
     # Use resolve_slot_param for remaining parameters
-    q <- resolve_slot_param(q, analysis@config, "q_values", NULL)
+    # Note: q is NOT resolved here - always auto-detected from diversity results
     paired <- resolve_slot_param(paired, analysis@config, "paired", NULL)
     subject_col <- resolve_slot_param(subject_col, analysis@config, "subject_col",
         NULL)
@@ -252,7 +250,7 @@ calculate_rank_test <- function(analysis, condition_col, q = NULL, output_file =
     dots$nthreads <- nthreads
     dots$wy_randomizations <- wy_randomizations
 
-    list(dots = dots, q_extracted = q)
+    list(dots = dots)
 }
 
 #' Internal: Prepare multi-Q SummarizedExperiment for testing

@@ -99,7 +99,7 @@ config <- TSENAT_config(
   sample_col = "sample",
   condition_col = "condition",
   subject_col = "paired_samples",
-  q_values = seq(0, 2, by = 0.05),
+  q = seq(0, 2, by = 0.05),
   nthreads = 2,
   paired = TRUE,
   control = "normal")
@@ -231,6 +231,15 @@ Key requirements:
 - `condition` column: experimental groups.
 - `paired_samples` column: required if using paired designs; identifier for matched samples.
 
+## Documentation and Guides
+
+Additional documentation and reference guides are available:
+
+- **[Q-Parameter Management Guide](Q_PARAMETER_GUIDE.md)** — Comprehensive guide explaining how different TSENAT functions manage the q-value parameter, with examples for various use cases (single q-value workflows, spectrum analysis, statistical testing, etc.)
+
+- **[Main Package Vignette](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html)** — Full tutorial with biological examples and interpretation guidance
+
+- **[Statistical Methods Reference](STATISTICAL_METHODS_EVALUATION.md)** — Detailed documentation of statistical inference methods available in TSENAT
 
 ## Citation
 

@@ -15,9 +15,9 @@
 #' }
 #'
 #' @param analysis \code{TSENATAnalysis} object.
-#' @param q \code{numeric}. Q-value for divergence.
-#' If NULL, uses first q_value from @config$q_values if available, else
-#' defaults to 1.0.
+#' @param q \code{numeric}. Q-value(s) for divergence (single value or vector).
+#' If NULL, reads from \code{analysis@config$q}. If not in config, defaults to 
+#' seq(0.01, 2, by = 0.05) for full spectrum computation.
 #' @param verbose \code{logical}. Print progress messages. Default: TRUE.
 #' @param nthreads \code{numeric} or  \code{NULL}.  Number of CPU threads for 
 #' parallel processing.
@@ -120,6 +120,18 @@ calculate_divergence <- function(analysis, q = NULL, verbose = FALSE, nthreads =
     # Step 3: Resolve and process parameters
     params <- .resolve_divergence_parameters(q, control_group, method, nthreads,
         nboot, paired, bootstrap, analysis)
+    
+    # Show message about q-values being used
+    if (params$q_source != "explicit" && verbose) {
+        if (length(params$q) == 1) {
+            message("[calculate_divergence] Using q = ", formatC(params$q, format="f", digits=3), 
+                    " (", params$q_source, ")")
+        } else {
+            message("[calculate_divergence] Using q spectrum: ", 
+                    paste(formatC(params$q, format="f", digits=3), collapse=", "),
+                    " (", params$q_source, ")")
+        }
+    }
 
     # Step 4: Build arguments for computation
     args <- .build_divergence_args(analysis, params, verbose, progress, ...)
@@ -181,7 +193,15 @@ calculate_divergence <- function(analysis, q = NULL, verbose = FALSE, nthreads =
 .resolve_divergence_parameters <- function(q, control_group, method, nthreads, nboot,
     paired, bootstrap, analysis) {
     # Extract parameters using utility functions
-    q <- resolve_slot_param(q, analysis@config, "q_values", 1)
+    # q can be single or multiple values
+    q_source <- "explicit"  # Track where q came from
+    q <- resolve_slot_param(q, analysis@config, "q", NULL)
+    if (is.null(q)) {
+        q <- seq(0.01, 2, by = 0.05)  # Default: full q-spectrum
+        q_source <- "default"
+    } else if (!is.null(analysis@config$q) && identical(q, analysis@config$q)) {
+        q_source <- "config"
+    }
     control_group <- resolve_slot_param(control_group, analysis@config, "control_group",
         NULL)
     method <- resolve_slot_param(method, analysis@config, "method", "percentile")
@@ -219,8 +239,8 @@ calculate_divergence <- function(analysis, q = NULL, verbose = FALSE, nthreads =
         method <- "percentile"
     }
 
-    list(q = q, control_group = control_group, method = method, nthreads = nthreads,
-        nboot = nboot, paired = paired, bootstrap = bootstrap)
+    list(q = q, q_source = q_source, control_group = control_group, method = method, 
+        nthreads = nthreads, nboot = nboot, paired = paired, bootstrap = bootstrap)
 }
 
 #' Build arguments list for divergence calculation

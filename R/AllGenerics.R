@@ -114,7 +114,7 @@ setGeneric("getPlot", function(object, ...) standardGeneric("getPlot"))
 #'               dimnames = dimnames(readcounts))
 #' effective_length <- matrix(100, nrow = nrow(readcounts), ncol = ncol(readcounts))
 #' 
-#' config <- TSENAT_config(q_values = c(0.5, 1.0), generate_plots = FALSE)
+#' config <- TSENAT_config(q = 1.0, generate_plots = FALSE)
 #' analysis <- build_analysis(readcounts, tx2gene = gff3_file,
 #'     metadata = metadata, tpm = tpm, effective_length = effective_length,
 #'     config = config)

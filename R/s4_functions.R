@@ -12,7 +12,9 @@
 #' Jackknife resampling with confidence intervals
 #'
 #' @param analysis \code{TSENATAnalysis} object.
-#' @param q \code{numeric}. Q-value(s) for jackknife. Default: 1.0.
+#' @param q \code{numeric}. Q-value(s) for jackknife estimation.
+#'   If NULL, reads from \code{analysis@config$q}. 
+#'   Default: c(0, 0.5, 1, 1.5, 2) (matches \code{calculate_jis} spectrum).
 #' @param norm \code{logical}.  Normalization flag.  Default:
 #'  NULL (uses @config$norm or  TRUE).
 #' @param log_base \code{numeric}.  Logarithm base for  entropy normalization.
@@ -108,7 +110,28 @@ calculate_jeo <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
     }
 
     # PARAMETER EXTRACTION using utility function
-    q <- resolve_slot_param(q, analysis@config, "q_values", 1)
+    q_source <- "explicit"
+    q <- resolve_slot_param(q, analysis@config, "q", NULL)
+    if (is.null(q)) {
+        q <- c(0, 0.5, 1, 1.5, 2)
+        q_source <- "default"
+    } else if (!is.null(analysis@config$q) && identical(q, analysis@config$q)) {
+        q_source <- "config"
+    }
+    
+    # Show message about q-value(s) being used
+    verbose_resolved <- resolve_slot_param(verbose, analysis@config, "verbose", TRUE)
+    if (verbose_resolved && q_source != "explicit") {
+        if (length(q) == 1) {
+            message("[calculate_jeo] Using q = ", formatC(q, format="f", digits=3), 
+                    " (", q_source, ")")
+        } else {
+            message("[calculate_jeo] Using q spectrum: ", 
+                    paste(formatC(q, format="f", digits=3), collapse=", "),
+                    " (", q_source, ")")
+        }
+    }
+    
     norm <- resolve_slot_param(norm, analysis@config, "norm", TRUE)
     log_base <- resolve_slot_param(log_base, analysis@config, "log_base", exp(1))
     top_n <- resolve_slot_param(top_n, analysis@config, "top_n", 5)
@@ -248,8 +271,12 @@ calculate_jeo <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
 #'
 #' @param analysis A \code{TSENATAnalysis} object with 
 #' diversity results in \code{@diversity_results}.
-#' @param q \code{numeric}.  Q-value to use.  If NULL,
-#'  uses first diversity result or  q=1. 0.
+#' @param q \code{numeric} or \code{NULL}. Q-value to use for testing.
+#'   If NULL: auto-detects from diversity results if only ONE q-value present,
+#'   or errors if MULTIPLE q-values present (must specify which to test).
+#'   NOTE: q is NOT read from config - only explicit argument or auto-detected from diversity.
+#'   If diversity contains single q-value, q is OPTIONAL.
+#'   If diversity contains multiple q-values, q is REQUIRED.
 #' @param control Character string specifying the control group identifier.
 #'  If \code{NULL},
 #'   attempts to retrieve from \code{analysis@config$control}.
@@ -420,23 +447,43 @@ calculate_difference <- function(analysis, control = NULL, q = NULL, condition_c
         }
     }
 
-    # Determine which diversity result to use
+    # Determine q-value for difference calculation
+    # Does NOT read from config - only explicit argument or auto-detect from diversity
+    q_source <- "explicit"
+    
     if (is.null(q)) {
-        div_keys <- names(analysis@diversity_results)
-        if (length(div_keys) == 0) {
-            stop("No diversity results found in @diversity_results", call. = FALSE)
+        # Check how many q-values are in diversity results
+        available_q_keys <- names(analysis@diversity_results)
+        if (length(available_q_keys) == 1) {
+            # Only one q-value available - use it automatically
+            q_key_extracted <- available_q_keys[1]
+            q <- as.numeric(sub("q_", "", q_key_extracted))
+            q_source <- "auto-detected"
+        } else if (length(available_q_keys) > 1) {
+            # Multiple q-values available - q must be explicitly specified
+            stop("'q' must be explicitly specified. Multiple q-values available: ",
+                paste(gsub("q_", "", available_q_keys), collapse=", "), call. = FALSE)
+        } else {
+            # No diversity results
+            stop("No diversity results found. Run calculate_diversity() first.", call. = FALSE)
         }
-        diversity_se <- analysis@diversity_results[[div_keys[1]]]
-        q_used <- sub("^q_", "", div_keys[1])
-    } else {
-        q_key <- paste0("q_", formatC(q, format = "f", digits = 3))
-        if (!(q_key %in% names(analysis@diversity_results))) {
-            stop("Diversity not calculated for q=", q, ". Available: ", paste(names(analysis@diversity_results),
-                collapse = ", "), call. = FALSE)
-        }
-        diversity_se <- analysis@diversity_results[[q_key]]
-        q_used <- q
     }
+    
+    # Show message about q-value being used
+    verbose_check <- resolve_slot_param(NULL, analysis@config, "verbose", TRUE)
+    if (q_source != "explicit" && verbose_check) {
+        message("[calculate_difference] Using q = ", formatC(q, format="f", digits=3), 
+                " (", q_source, ")")
+    }
+    
+    # Determine which diversity result to use
+    q_key <- paste0("q_", formatC(q, format = "f", digits = 3))
+    if (!(q_key %in% names(analysis@diversity_results))) {
+        stop("Diversity not calculated for q=", q, ". Available: ", paste(names(analysis@diversity_results),
+            collapse = ", "), call. = FALSE)
+    }
+    diversity_se <- analysis@diversity_results[[q_key]]
+    q_used <- q
 
     # Determine condition column to use
     condition_col <- resolve_slot_param(condition_col, analysis@config, "condition_col",
