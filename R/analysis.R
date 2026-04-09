@@ -166,14 +166,14 @@ print.gtable <- function(x, ...) {
 #'   gene = paste0('gene_', 1:10),
 #'   p_value = runif(10)
 #' )
-#' # concordance_result <- .compute_method_concordance(
+#' # concordance_result <- .calculate_concordance(
 #' #   gam_results, kw_results
 #' # )  
 #'
 
 #' @noRd
 
-.compute_method_concordance <- function(gam_results, kw_results) {
+.calculate_concordance <- function(gam_results, kw_results) {
 
     # Initialize outputs
     comparison_df <- NULL

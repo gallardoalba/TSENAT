@@ -37,7 +37,7 @@
 #'   \item \code{plot_multiq_delta_influence_heatmaps_s4()} - Multi-q influence heatmap
 #'   \item \code{plot_top_transcripts_s4()} - Top transcript visualization
 #'   \item \code{calculate_divergence_s4()} - Pairwise divergence metrics
-#'   \item \code{effect_sizes_divergence_s4()} - Effect size computation
+#'   \item \code{calculate_effect_sizes_s4()} - Effect size computation
 #'   \item \code{plot_divergence_distribution_s4()} - Divergence distribution plot
 #'   \item \code{plot_divergence_spectrum_s4()} - Divergence spectrum plot
 #' }
@@ -1332,7 +1332,7 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
         message(sprintf("[>] [%2d/14] Computing effect sizes for divergence", 12))
     tryCatch({
         output_file <- .build_output_file("effect_sizes", output_dir, output_format)
-        analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE, output_file = output_file)
+        analysis <- calculate_effect_sizes_s4(analysis, verbose = FALSE, output_file = output_file)
         if (verbose)
             message("          [OK] Effect sizes computed")
     }, error = function(e) {

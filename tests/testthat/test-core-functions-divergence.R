@@ -580,13 +580,13 @@ test_that("classify_q_pattern classifies ABUNDANT_DRIVEN correctly", {
 })
 
 # =====================================================================
-# Tests for effect_sizes_divergence
+# Tests for calculate_effect_sizes
 # =====================================================================
 
-test_that("effect_sizes_divergence requires data frame input", {
+test_that("calculate_effect_sizes requires data frame input", {
   # lm_res must be a data frame
   expect_error(
-    .effect_sizes_divergence(
+    .calculate_effect_sizes(
       lm_res = list(a = 1, b = 2),
       divergence_results_se = NULL,
       verbose = FALSE
@@ -595,12 +595,12 @@ test_that("effect_sizes_divergence requires data frame input", {
   )
 })
 
-test_that("effect_sizes_divergence requires required columns", {
+test_that("calculate_effect_sizes requires required columns", {
   # Create lm_res without required columns
   lm_res <- data.frame(some_col = c(1, 2, 3))
   
   expect_error(
-    .effect_sizes_divergence(
+    .calculate_effect_sizes(
       lm_res = lm_res,
       divergence_results_se = NULL,
       verbose = FALSE
@@ -1119,12 +1119,12 @@ test_that("calculate_divergence_s4: handles repeated measurements", {
 })
 
 # ============================================================================
-# TEST: effect_sizes_divergence_s4 - Basic effect size calculation
+# TEST: calculate_effect_sizes_s4 - Basic effect size calculation
 # ============================================================================
 
-test_that("effect_sizes_divergence_s4: computes effect sizes", {
+test_that("calculate_effect_sizes_s4: computes effect sizes", {
   # Tests basic effect size calculations
-  # Note: effect_sizes_divergence_s4 requires LM results to be pre-computed
+  # Note: calculate_effect_sizes_s4 requires LM results to be pre-computed
   
   se <- create_count_se(
     n_genes = 10,

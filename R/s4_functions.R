@@ -962,17 +962,17 @@ plot_volcano_ma_grid_s4 <- function(analysis, x_col = NULL, padj_col = "padj", l
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
 #' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam')
-#' # Note: compute_method_concordance_s4 requires results from both
+#' # Note: calculate_concordance_s4 requires results from both
 #' # rank_test_q_condition_s4 and test_rankbased_assumptions_s4
 #'
-#' @aliases compute_method_concordance_s4
+#' @aliases calculate_concordance_s4
 #' @export
-setGeneric("compute_method_concordance_s4", function(analysis, ...) {
-    standardGeneric("compute_method_concordance_s4")
+setGeneric("calculate_concordance_s4", function(analysis, ...) {
+    standardGeneric("calculate_concordance_s4")
 })
 
-#' @rdname compute_method_concordance_s4
-setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(analysis, gam_method = "rank_test",
+#' @rdname calculate_concordance_s4
+setMethod("calculate_concordance_s4", "TSENATAnalysis", function(analysis, gam_method = "rank_test",
     friedman_method = "rankbased", gam_results = NULL, verbose = FALSE, output_file = NULL) {
 
     # ===================================================================
@@ -994,7 +994,7 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(analysis, 
         }
         analysis@lm_results[[gam_method]] <- gam_results
         if (verbose) {
-            message("[compute_method_concordance_s4] Stored GAM results as '", gam_method,
+            message("[calculate_concordance_s4] Stored GAM results as '", gam_method,
                 "'")
         }
     }
@@ -1035,15 +1035,15 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(analysis, 
     # ===================================================================
 
     if (verbose) {
-        message("[compute_method_concordance_s4] Computing concordance between ",
+        message("[calculate_concordance_s4] Computing concordance between ",
             gam_method, " and ", friedman_method)
     }
 
     # Call the standard function
     concordance_result <- tryCatch({
-        .compute_method_concordance(gam_results_final, friedman_results)
+        .calculate_concordance(gam_results_final, friedman_results)
     }, error = function(e) {
-        stop("[compute_method_concordance_s4]", conditionMessage(e), call. = FALSE)
+        stop("[calculate_concordance_s4]", conditionMessage(e), call. = FALSE)
     })
 
     # =================================================================== STORE
@@ -1056,13 +1056,13 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(analysis, 
         friedman_method = friedman_method, timestamp = Sys.time())
 
     # Track function call
-    analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("compute_method_concordance_s4[",
+    analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("calculate_concordance_s4[",
         gam_method, " vs ", friedman_method, "]"))
 
     if (verbose) {
-        message("[compute_method_concordance_s4] Concordance computed successfully")
+        message("[calculate_concordance_s4] Concordance computed successfully")
         if (!is.na(concordance_result$spearman_rho)) {
-            message("[compute_method_concordance_s4] Spearman corr = ", round(concordance_result$spearman_rho,
+            message("[calculate_concordance_s4] Spearman corr = ", round(concordance_result$spearman_rho,
                 3))
         }
     }
@@ -1073,7 +1073,7 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(analysis, 
 
     if (!is.null(output_file)) {
         if (verbose) {
-            message("[compute_method_concordance_s4] Writing results to: ", output_file)
+            message("[calculate_concordance_s4] Writing results to: ", output_file)
         }
         saveRDS(analysis, file = output_file)
     }
@@ -1268,7 +1268,7 @@ plot_divergence_spectrum_s4 <- function(analysis, gene = NULL, n_genes = 4, ncol
 #' Plot method concordance results from TSENATAnalysis
 #'
 #' @param analysis \code{TSENATAnalysis} object with computed method concordance
-#'   (from \code{compute_method_concordance_s4()}).
+#'   (from \code{calculate_concordance_s4()}).
 #' @param verbose \code{logical}. Print progress messages. Default: FALSE
 #'
 #' @return A ggplot/cowplot object showing:
@@ -1283,7 +1283,7 @@ plot_divergence_spectrum_s4 <- function(analysis, gene = NULL, n_genes = 4, ncol
 #' - P-value distribution histograms for both methods
 #' - Significance threshold lines at p < 0.05
 #'
-#' Requires that \code{compute_method_concordance_s4()} has already been run
+#' Requires that \code{calculate_concordance_s4()} has already been run
 #' to populate \code{@metadata$method_concordance}.
 #'
 #' @examples
@@ -1306,7 +1306,7 @@ plot_divergence_spectrum_s4 <- function(analysis, gene = NULL, n_genes = 4, ncol
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #'
-#' # Note: compute_method_concordance_s4 requires additional LM and Friedman
+#' # Note: calculate_concordance_s4 requires additional LM and Friedman
 #' # results computed. For demo purposes, we show that
 #' # plot_method_concordance_s4 needs pre-computed concordance in @metadata
 #'
@@ -1325,7 +1325,7 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
     # Validate that concordance results exist
     if (is.null(analysis@metadata$method_concordance)) {
         stop("[plot_method_concordance_s4] No concordance results found in @metadata.\n",
-            "  Please run compute_method_concordance_s4() first.")
+            "  Please run calculate_concordance_s4() first.)")
     }
 
     concordance_results <- analysis@metadata$method_concordance
@@ -1653,7 +1653,7 @@ plot_top_transcripts_s4 <- function(analysis, gene = NULL, condition_col = NULL,
 #' across genes.
 #'
 #' @param analysis \code{TSENATAnalysis} object with effect sizes computed
-#'   (typically via \code{\link{effect_sizes_divergence_s4}}).
+#'   (typically via \code{\link{calculate_effect_sizes_s4}}).
 #' @param threshold \code{numeric}. Effect size threshold for visual marking
 #'   in the plot. Default is 0.1 (information-theoretic significance level).
 #' @param output_file \code{character}. Optional file path to save the plot.
@@ -1679,7 +1679,7 @@ plot_top_transcripts_s4 <- function(analysis, gene = NULL, condition_col = NULL,
 #'
 #' **Data Requirements:**
 #' \itemize{
-#'   \item Effect sizes must be computed via \code{effect_sizes_divergence_s4()}
+#'   \item Effect sizes must be computed via \code{calculate_effect_sizes_s4()}
 #'   \item \code{@metadata$effect_sizes_divergence$interaction_results} must
 #'         contain columns matching pattern \code{effect_size_D_q*}
 #' }
@@ -1718,12 +1718,12 @@ plot_top_transcripts_s4 <- function(analysis, gene = NULL, condition_col = NULL,
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5), verbose
 #' = FALSE)
 #' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam')
-#' analysis <- effect_sizes_divergence_s4(analysis)
+#' analysis <- calculate_effect_sizes_s4(analysis)
 #' p_dist <- plot_divergence_distribution_s4(analysis)
 #' print(p_dist)
 #'
 #' @seealso
-#' \code{\link{effect_sizes_divergence_s4}} for computing effect sizes.
+#' \code{\link{calculate_effect_sizes_s4}} for computing effect sizes.
 #'
 #' @export
 plot_divergence_distribution_s4 <- function(analysis, threshold = 0.1, output_file = NULL,
@@ -1743,7 +1743,7 @@ plot_divergence_distribution_s4 <- function(analysis, threshold = 0.1, output_fi
     # Extract effect sizes from metadata
     if (is.null(analysis@metadata$effect_sizes_divergence)) {
         stop("Effect sizes not found in analysis@metadata$effect_sizes_divergence. ",
-            "Run effect_sizes_divergence_s4() first.", call. = FALSE)
+            "Run calculate_effect_sizes_s4() first.", call. = FALSE)
     }
 
     effect_sizes <- analysis@metadata$effect_sizes_divergence

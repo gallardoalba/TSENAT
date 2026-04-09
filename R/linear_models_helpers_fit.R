@@ -334,15 +334,29 @@
     }
 
     if (use_var_structure) {
-        fit0 <- try(nlme::lme(formula_null, random = ~1 | subject, data = df_model,
-            method = "ML"), silent = TRUE)
-        fit1 <- try(nlme::lme(formula_alt, random = ~1 | subject, data = df_model,
-            method = "ML"), silent = TRUE)
+        if (verbose) {
+            fit0 <- try(nlme::lme(formula_null, random = ~1 | subject, data = df_model,
+                method = "ML"), silent = TRUE)
+            fit1 <- try(nlme::lme(formula_alt, random = ~1 | subject, data = df_model,
+                method = "ML"), silent = TRUE)
+        } else {
+            fit0 <- try(suppressMessages(nlme::lme(formula_null, random = ~1 | subject, data = df_model,
+                method = "ML")), silent = TRUE)
+            fit1 <- try(suppressMessages(nlme::lme(formula_alt, random = ~1 | subject, data = df_model,
+                method = "ML")), silent = TRUE)
+        }
     } else {
-        fit0 <- try(nlme::lme(formula_null, random = ~1 | subject, data = df_model,
-            method = "ML"), silent = TRUE)
-        fit1 <- try(nlme::lme(formula_alt, random = ~1 | subject, data = df_model,
-            method = "ML"), silent = TRUE)
+        if (verbose) {
+            fit0 <- try(nlme::lme(formula_null, random = ~1 | subject, data = df_model,
+                method = "ML"), silent = TRUE)
+            fit1 <- try(nlme::lme(formula_alt, random = ~1 | subject, data = df_model,
+                method = "ML"), silent = TRUE)
+        } else {
+            fit0 <- try(suppressMessages(nlme::lme(formula_null, random = ~1 | subject, data = df_model,
+                method = "ML")), silent = TRUE)
+            fit1 <- try(suppressMessages(nlme::lme(formula_alt, random = ~1 | subject, data = df_model,
+                method = "ML")), silent = TRUE)
+        }
     }
 
     # Phase 16: Log fit errors for diagnosis

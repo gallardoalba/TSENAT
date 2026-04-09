@@ -4848,7 +4848,7 @@ NULL
 #' with per-q divergence estimates.
 #' Must contain columns matching the pattern `effect_size_D_q*` (e.g.,
 #' `effect_size_D_q0_5`, `effect_size_D_q1_0`).
-#'   Typically the result from [.effect_sizes_divergence()].
+#'   Typically the result from [.calculate_effect_sizes()].
 #'
 #' @param threshold Numeric. Effect size threshold for visual marking.
 #' Default is 0.1 (information-theoretic significance level).

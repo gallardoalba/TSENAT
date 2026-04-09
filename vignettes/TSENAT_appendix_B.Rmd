@@ -515,7 +515,7 @@ if ("p_interaction" %in% colnames(gam_results)) {
 ```{r compare-friedman-gam-methods, message=FALSE}
 # Compute concordance analysis using S4 wrapper
 # Pass GAM results directly - the function handles storage automatically
-analysis_with_concordance <- compute_method_concordance_s4(
+analysis_with_concordance <- calculate_concordance_s4(
     analysis,
     gam_method = "gam_results",
     friedman_method = "rank_test",
@@ -654,7 +654,7 @@ This vignette demonstrates the modern S4-based analysis workflow for method comp
 | `test_rankbased_assumptions_s4()` | Validate Friedman test assumptions | TSENATAnalysis | Stores results in metadata via `metadata(analysis, "rankbased_assumptions")` |
 | `rank_test_q_condition_s4()` | Run Friedman test for q$\times$group interactions | TSENATAnalysis + design params | Updated analysis with results via `results(type="rank_test")` |
 | `plot_tsallis_q_curve_s4()` | Plot q-curves for significant genes | TSENATAnalysis + `lm_res` | ggplot2 visualization |
-| `compute_method_concordance_s4()` | Compare GAM and Friedman results | TSENATAnalysis with LM and rank test results stored in slots | Updated analysis with results via `metadata()` |
+| `calculate_concordance_s4()` | Compare GAM and Friedman results | TSENATAnalysis with LM and rank test results stored in slots | Updated analysis with results via `metadata()` |
 | `plot_method_concordance_s4()` | Visualize method concordance | TSENATAnalysis (after concordance computed) | ggplot2 comparison plot |
 
 ## Workflow Advantages
@@ -694,7 +694,7 @@ analysis <- rank_test_q_condition_s4(
 gam_results_loaded <- read.csv("lm_interaction_results.csv")
 
 # 6. Compare methods (gam_results parameter handles storage automatically)
-analysis <- compute_method_concordance_s4(
+analysis <- calculate_concordance_s4(
     analysis,
     gam_method = "gam_results",
     friedman_method = "rank_test",
@@ -722,11 +722,11 @@ plot_tsallis_q_curve_s4(
 
 This vignette demonstrates the modern S4 wrapper approach for method concordance analysis:
 
-- **`compute_method_concordance_s4()`**: Integrates seamlessly with TSENATAnalysis objects, storing results accessed via `metadata(analysis, "method_concordance")`
+- **`calculate_concordance_s4()`**: Integrates seamlessly with TSENATAnalysis objects, storing results accessed via `metadata(analysis, "method_concordance")`
 - **`plot_method_concordance_s4()`**: Creates publication-ready concordance visualizations from S4-stored results
 - **Benefits**: Consistent class structure, automatic metadata tracking via accessor methods, reduced variable proliferation in global environment
 
-For standard (non-S4) analyses, the original functions (`compute_method_concordance()` and `plot_method_concordance()`) remain available and fully supported.
+For standard (non-S4) analyses, the original functions (`calculate_concordance()` and `plot_method_concordance()`) remain available and fully supported.
 
 ## Best Practices for Analysis
 

@@ -800,7 +800,7 @@ if (exists("analysis")) {
 ```{r effect-size-merge}
 # Compute effect sizes: significance_threshold = 0.05 filters genes to those with q*condition interaction p < 0.05;
 # enrich_per_q_pattern = TRUE classifies each gene by its divergence pattern (Rare-driven/Balanced/Abundant-driven)
-analysis <- effect_sizes_divergence_s4(
+analysis <- calculate_effect_sizes_s4(
     analysis,
     significance_threshold = 0.05,
     enrich_per_q_pattern = TRUE
@@ -808,7 +808,7 @@ analysis <- effect_sizes_divergence_s4(
 ```
 
 ```{r extract-divergence-results, echo=FALSE, results='hide'}
-# Extract results from effect_sizes_divergence_s4 using the new accessor
+# Extract results from calculate_effect_sizes_s4 using the new accessor
 divergence_results_se <- NULL
 lm_res_results <- NULL
 
@@ -828,7 +828,7 @@ if (exists("analysis")) {
 ```
 
 ```{r divergence-results-table, results='asis', echo = FALSE}
-# Display top divergence results from effect_sizes_divergence_s4
+# Display top divergence results from calculate_effect_sizes_s4
 if (!is.null(lm_res_results) && nrow(lm_res_results) > 0) {
     tryCatch({
         # Check for required columns
@@ -948,7 +948,7 @@ if (!is.null(lm_res_results) && nrow(lm_res_results) > 0) {
         cat("Note: Could not create divergence results table:", e$message, "\n")
     })
 } else {
-    cat("Note: LM results from effect_sizes_divergence_s4 not available\n")
+    cat("Note: LM results from calculate_effect_sizes_s4 not available\n")
 }
 ```
 

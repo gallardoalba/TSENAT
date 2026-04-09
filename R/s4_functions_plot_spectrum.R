@@ -133,7 +133,7 @@
 #' #   nboot = 50)
 #' # analysis <- calculate_lm_interaction_s4(analysis,
 #' #   condition_col = 'condition')
-#' # analysis <- effect_sizes_divergence_s4(analysis)
+#' # analysis <- calculate_effect_sizes_s4(analysis)
 #' # p <- plot_multi_gene_q_spectrum_s4(analysis, n_genes = 4)
 #' # if (!is.null(p)) print(p)
 #'

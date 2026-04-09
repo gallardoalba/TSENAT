@@ -11,7 +11,7 @@ plot_method_concordance_s4(analysis, verbose = FALSE)
 }
 \arguments{
 \item{analysis}{\code{TSENATAnalysis} object with computed method concordance
-(from \code{compute_method_concordance_s4()}).}
+(from \code{calculate_concordance_s4()}).}
 
 \item{verbose}{\code{logical}. Print progress messages. Default: FALSE}
 }
@@ -31,7 +31,7 @@ Creates visualization of method concordance including:
 - P-value distribution histograms for both methods
 - Significance threshold lines at p < 0.05
 
-Requires that \code{compute_method_concordance_s4()} has already been run
+Requires that \code{calculate_concordance_s4()} has already been run
 to populate \code{@metadata$method_concordance}.
 }
 \examples{
@@ -54,7 +54,7 @@ gff3_dataset, metadata = metadata_df, config = config,
 analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 = 200)
 
-# Note: compute_method_concordance_s4 requires additional LM and Friedman
+# Note: calculate_concordance_s4 requires additional LM and Friedman
 # results computed. For demo purposes, we show that
 # plot_method_concordance_s4 needs pre-computed concordance in @metadata
 

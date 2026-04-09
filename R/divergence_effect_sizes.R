@@ -111,7 +111,7 @@
 #' - Papers S197: Quality filtering and effect size thresholds
 #'
 #' @noRd
-.effect_sizes_divergence <- function(lm_res, divergence_results_se, significance_threshold = 0.05,
+.calculate_effect_sizes <- function(lm_res, divergence_results_se, significance_threshold = 0.05,
     enrich_per_q_pattern = TRUE, verbose = FALSE) {
     .validateEffectSizeInputs(lm_res, divergence_results_se)
     rd <- SummarizedExperiment::rowData(divergence_results_se)
@@ -177,7 +177,7 @@
 
     # OPTIMIZATION: Consolidate verbose logging into a single condition block
     if (verbose) {
-        message("[effect_sizes_divergence] Gene name matching strategy:")
+        message("[calculate_effect_sizes] Gene name matching strategy:")
         message("  - gene_name column in lm_res:", use_gene_name_col)
         if (use_gene_name_col) {
             message("  - lm_res$gene (first 5):", paste(head(lm_res$gene, 5), collapse = ", "))
@@ -188,7 +188,7 @@
         }
         message("  - divergence gene_name (first 5):", paste(head(rd$gene_name, 5),
             collapse = ", "))
-        message("\n[effect_sizes_divergence] MERGE STARTING")
+        message("\n[calculate_effect_sizes] MERGE STARTING")
         message("  - significant_genes count:", length(significant_genes))
         message("  - lm_res rows:", nrow(lm_res))
         message("  - divergence rowData rows:", nrow(rd))
@@ -206,7 +206,7 @@
 
     if (verbose) {
         n_found <- sum(!is.na(gene_idx_map))
-        message("[effect_sizes_divergence] OPTIMIZATION: Pre-computed gene index map")
+        message("[calculate_effect_sizes] OPTIMIZATION: Pre-computed gene index map")
         message("  - Genes found: ", n_found, "/", length(significant_genes))
     }
 
@@ -410,14 +410,14 @@
 
     if (n_after_filter > 0) {
         if (verbose) {
-            message("[effect_sizes_divergence] Gene alignment:")
+            message("[calculate_effect_sizes] Gene alignment:")
             message("  - lm_res before filtering: ", n_before_filter, " genes")
             message("  - lm_res after filtering: ", n_after_filter, " genes")
             message("  - Genes filtered out: ", n_before_filter - n_after_filter)
         }
     } else {
         if (verbose) {
-            message("[effect_sizes_divergence] No matching genes found between lm_res and divergence_results_se")
+            message("[calculate_effect_sizes] No matching genes found between lm_res and divergence_results_se")
         }
     }
 
@@ -433,7 +433,7 @@
         q_values <- NA_real_
         use_generic <- TRUE
         if (verbose) {
-            message("[effect_sizes_divergence] Using generic divergence columns (single q-value results)")
+            message("[calculate_effect_sizes] Using generic divergence columns (single q-value results)")
         }
     } else {
         # Extract q values from column names
@@ -442,7 +442,7 @@
         use_generic <- FALSE
 
         if (verbose) {
-            message("[effect_sizes_divergence] Detected per-q columns for q values: ",
+            message("[calculate_effect_sizes] Detected per-q columns for q values: ",
                 paste(q_values, collapse = ", "))
         }
     }
@@ -627,7 +627,7 @@
         return(invisible(NULL))
     }
 
-    message("\n[effect_sizes_divergence] MERGE COMPLETED\n", "  - Total significant genes: ",
+    message("\n[calculate_effect_sizes] MERGE COMPLETED\n", "  - Total significant genes: ",
         validation_stats$total_genes, "\n", "  - Passed merge: ", validation_stats$passed_lmm,
         "\n", "  - Failed (missing divergence): ", validation_stats$failed_missing_divergence,
         "\n", "  - Other errors: ", validation_stats$other_errors, "\n", "  - interaction_results rows: ",

@@ -1956,10 +1956,10 @@ test_that(".detect_q_analyze_gene: handles condition column", {
 context("High-Level Analysis Workflow: Method Concordance")
 
 # =============================================================================
-# TEST: compute_method_concordance - Basic functionality
+# TEST: calculate_concordance - Basic functionality
 # =============================================================================
 
-test_that("compute_method_concordance computes correlation correctly", {
+test_that("calculate_concordance computes correlation correctly", {
   # Create sample data
   gam_results <- data.frame(
     gene = paste0("GENE_", 1:20),
@@ -1975,7 +1975,7 @@ test_that("compute_method_concordance computes correlation correctly", {
     effect_size_eta2 = runif(20)
   )
   
-  result <- .compute_method_concordance(gam_results, kw_results)
+  result <- .calculate_concordance(gam_results, kw_results)
   
   expect_true(is.list(result))
   expect_true("comparison_df" %in% names(result))
@@ -1988,7 +1988,7 @@ test_that("compute_method_concordance computes correlation correctly", {
   expect_true(result$spearman_rho >= -1 && result$spearman_rho <= 1)
 })
 
-test_that("compute_method_concordance identifies agreement categories", {
+test_that("calculate_concordance identifies agreement categories", {
   gam_results <- data.frame(
     gene = paste0("GENE_", 1:10),
     p_interaction = c(0.001, 0.01, 0.5, 0.5, 0.001, 0.01, 0.5, 0.5, 0.001, 0.01),
@@ -2001,7 +2001,7 @@ test_that("compute_method_concordance identifies agreement categories", {
     adj_p_value = c(0.01, 0.5, 0.05, 0.5, 0.5, 0.5, 0.01, 0.5, 0.5, 0.05)
   )
   
-  result <- .compute_method_concordance(gam_results, kw_results)
+  result <- .calculate_concordance(gam_results, kw_results)
   
   expect_true(nrow(result$comparison_df) > 0)
   expect_true("agreement" %in% colnames(result$comparison_df))
@@ -2011,7 +2011,7 @@ test_that("compute_method_concordance identifies agreement categories", {
   expect_true(any(c("Both significant", "GAM only", "Friedman only", "Neither significant") %in% categories))
 })
 
-test_that("compute_method_concordance extracts high-confidence genes", {
+test_that("calculate_concordance extracts high-confidence genes", {
   gam_results <- data.frame(
     gene = paste0("GENE_", 1:10),
     p_interaction = c(0.001, 0.5, rep(0.5, 8)),
@@ -2024,14 +2024,14 @@ test_that("compute_method_concordance extracts high-confidence genes", {
     adj_p_value = c(0.01, 0.5, rep(0.5, 8))
   )
   
-  result <- .compute_method_concordance(gam_results, kw_results)
+  result <- .calculate_concordance(gam_results, kw_results)
   
   # First gene should be in high_conf
   expect_true(nrow(result$high_conf) >= 1)
   expect_true("GENE_1" %in% result$high_conf$gene)
 })
 
-test_that("compute_method_concordance handles missing p_interaction column", {
+test_that("calculate_concordance handles missing p_interaction column", {
   gam_results <- data.frame(
     gene = paste0("GENE_", 1:10),
     p_value = runif(10)
@@ -2043,22 +2043,22 @@ test_that("compute_method_concordance handles missing p_interaction column", {
   )
   
   expect_error(
-    .compute_method_concordance(gam_results, kw_results),
+    .calculate_concordance(gam_results, kw_results),
     "p_interaction"
   )
 })
 
-test_that("compute_method_concordance handles non-data.frame input", {
+test_that("calculate_concordance handles non-data.frame input", {
   gam_results <- list(a = 1, b = 2)
   kw_results <- data.frame(gene = 1:10, p_value = runif(10))
   
   expect_error(
-    .compute_method_concordance(gam_results, kw_results),
+    .calculate_concordance(gam_results, kw_results),
     "data.frame"
   )
 })
 
-test_that("compute_method_concordance handles mismatched genes", {
+test_that("calculate_concordance handles mismatched genes", {
   gam_results <- data.frame(
     gene = paste0("GENE_A_", 1:10),
     p_interaction = runif(10),
@@ -2071,7 +2071,7 @@ test_that("compute_method_concordance handles mismatched genes", {
     adj_p_value = runif(10)
   )
   
-  result <- .compute_method_concordance(gam_results, kw_results)
+  result <- .calculate_concordance(gam_results, kw_results)
   
   # No common genes - expect NULL or empty results
   expect_true(is.null(result$comparison_df) || nrow(result$comparison_df) == 0)

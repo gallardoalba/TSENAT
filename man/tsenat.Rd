@@ -48,7 +48,7 @@ Pipeline execution order (enforced, follows TSENAT.Rmd vignette):
   \item \code{plot_multiq_delta_influence_heatmaps_s4()} - Multi-q influence heatmap
   \item \code{plot_top_transcripts_s4()} - Top transcript visualization
   \item \code{calculate_divergence_s4()} - Pairwise divergence metrics
-  \item \code{effect_sizes_divergence_s4()} - Effect size computation
+  \item \code{calculate_effect_sizes_s4()} - Effect size computation
   \item \code{plot_divergence_distribution_s4()} - Divergence distribution plot
   \item \code{plot_divergence_spectrum_s4()} - Divergence spectrum plot
 }
