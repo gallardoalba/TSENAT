@@ -142,6 +142,7 @@ setMethod("summary", "TSENATAnalysis", function(object) {
     } else {
         message("  ✗ Divergence: not computed")
     }
+    invisible(object)
 })
 
 #' @rdname TSENATAnalysis-methods  

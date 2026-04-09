@@ -50,9 +50,16 @@ if (getRversion() >= "2.15.1") {
 #' # These accessor methods follow Bioconductor conventions
 #' # lmResults, jeoResults, jisResults, getMeta provide structured access
 
+#' Get metadata from TSENATAnalysis
+#' @param object TSENATAnalysis object
+#' @param key Optional metadata key to retrieve
+#' @return list containing metadata or specific key value
 #' @noRd
 setGeneric("getMeta", function(object, ...) standardGeneric("getMeta"))
 
+#' Get configuration from TSENATAnalysis
+#' @param object TSENATAnalysis object
+#' @return list containing configuration parameters
 #' @noRd
 setGeneric("getConfig", function(object, ...) standardGeneric("getConfig"))
 

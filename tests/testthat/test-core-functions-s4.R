@@ -1213,7 +1213,7 @@ test_that("show: TSENATAnalysis displays with mock results", {
 test_that("getConfig: returns configuration list", {
   analysis <- .create_test_analysis()
   
-  config <- TSENAT::getConfig(analysis)
+  config <- getConfig(analysis)
   expect_is(config, "list")
 })
 
@@ -1235,7 +1235,7 @@ test_that("tsenat_config: creates analysis with custom configuration", {
   )
   
   expect_s4_class(analysis_with_config, "TSENATAnalysis")
-  config <- TSENAT::getConfig(analysis_with_config)
+  config <- getConfig(analysis_with_config)
   expect_equal(config$condition_col, "condition")
 })
 
