@@ -1465,10 +1465,10 @@ tsenat_config <- function(q_values = NULL, condition_col = "condition", subject_
             "\n[TIPS] Next steps:\n",
             "  show(result)             - View object structure and slots\n",
             "  summary(result)          - Print detailed statistics summary\n",
-            "  results(result)       - Extract numerical results (diversity, divergence, etc.)\n",
+            "  results(result)          - Extract numerical results (diversity, divergence, etc.)\n",
             "  getPlot(result, type)    - Retrieve specific visualization (e.g., 'diversity', 'volcano')\n",
-            "  getMeta(result)          - Access metadata and workflow parameters\n",
-            "  getSE(result)            - Get SummarizedExperiment object for downstream analysis\n",
+            "  metadata(result)         - Access metadata and workflow parameters\n",
+            "  se(result)               - Get SummarizedExperiment object for downstream analysis\n",
             "\n"
         )
         

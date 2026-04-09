@@ -354,7 +354,7 @@ save_analysis_output <- function(data, output_file, object = NULL, verbose = FAL
 #' combined_results <- extract_multiq_table(q_result)
 #' head(combined_results)
 #' 
-#' @export
+#' @noRd
 extract_multiq_table <- function(result, is_multiq = NULL, extract_fn = NULL, q_value_col = "q_value") {
 
     # Auto-detect multi-q if not specified

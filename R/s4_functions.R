@@ -571,8 +571,8 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
 #' analysis <- test_rankbased_assumptions_s4(analysis, q = 1.0)
-#' # Access results using getMeta S4 accessor
-#' names(getMeta(analysis, 'rankbased_assumptions'))
+#' # Check results using rank_test accessor
+#' results_df <- results(analysis, type = 'rank_test')
 #'
 #' @export
 #' @rdname test_rankbased_assumptions_s4

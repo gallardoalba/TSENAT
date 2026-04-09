@@ -104,8 +104,8 @@ analysis <- calculate_lm_interaction_s4(analysis, method = 'gam')
 analysis <- effect_sizes_divergence_s4(analysis,
   significance_threshold = 0.05)
 
-# Access results using metadata accessor
-effect_size_results <- getMeta(analysis, 'effect_sizes_divergence')
+# Access results using unified results accessor
+effect_size_results <- results(analysis, type = 'effect_sizes_divergence')
 
 # View structure of results
 str(effect_size_results, max.level = 1)

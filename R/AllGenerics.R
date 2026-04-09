@@ -160,3 +160,17 @@ setGeneric("addPlot", function(object, type, plot, replace = FALSE) standardGene
 #' SummarizedExperiment::assayNames(se)  # Available assay matrices
 #' @noRd
 setGeneric("getSE", function(object, ...) standardGeneric("getSE"))
+
+#' @noRd
+setGeneric("setConfig", function(object, value) standardGeneric("setConfig"))
+
+#' @noRd
+setGeneric("setConfigValue", function(object, key, value) standardGeneric("setConfigValue"))
+
+#' @noRd
+setGeneric("se", function(object) standardGeneric("se"))
+
+#' @noRd
+if (!isGeneric("metadata")) {
+    setGeneric("metadata", function(x, key = NULL) standardGeneric("metadata"))
+}
