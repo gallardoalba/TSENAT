@@ -50,14 +50,10 @@ if (getRversion() >= "2.15.1") {
 #' # These accessor methods follow Bioconductor conventions
 #' # lmResults, jeoResults, jisResults, getMeta provide structured access
 
-#' @export
-#' @rdname AllGenerics
-#' @details \code{getMeta}: Returns essential metadata only (timestamps, version, workflow type).
-#'   Large result tables, sample statistics, and function call logs are NOT included.
-#'   Use \code{results()} to extract analysis results and tables.
+#' @noRd
 setGeneric("getMeta", function(object, ...) standardGeneric("getMeta"))
 
-#' @export
+#' @noRd
 setGeneric("getConfig", function(object, ...) standardGeneric("getConfig"))
 
 #' Get cached plot
@@ -82,9 +78,7 @@ setGeneric("getConfig", function(object, ...) standardGeneric("getConfig"))
 #'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
-#' all_plots <- getPlot(analysis)
-#'
-#' @export
+#' @noRd
 setGeneric("getPlot", function(object, ...) standardGeneric("getPlot"))
 
 #' Add or cache a plot in TSENATAnalysis object
@@ -122,9 +116,7 @@ setGeneric("getPlot", function(object, ...) standardGeneric("getPlot"))
 #' 
 #' # Create and cache a plot
 #' p <- plot_tsallis_q_curve_s4(analysis)
-#' analysis <- addPlot(analysis, type = 'tsallis_q_curve', plot = p)
-#'
-#' @export
+#' @noRd
 setGeneric("addPlot", function(object, type, plot, replace = FALSE) standardGeneric("addPlot"))
 
 #' Extract SummarizedExperiment from TSENATAnalysis
@@ -166,7 +158,5 @@ setGeneric("addPlot", function(object, type, plot, replace = FALSE) standardGene
 #' nrow(se)  # Number of transcripts
 #' ncol(se)  # Number of samples
 #' SummarizedExperiment::assayNames(se)  # Available assay matrices
-#' SummarizedExperiment::colData(se)  # Sample metadata
-#' 
-#' @export
+#' @noRd
 setGeneric("getSE", function(object, ...) standardGeneric("getSE"))

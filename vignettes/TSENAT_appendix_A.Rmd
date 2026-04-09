@@ -222,7 +222,7 @@ tsenat_analysis_q1 <- calculate_difference_s4(
   verbose = FALSE
 )
 # Extract results for downstream functions
-tsenat_shannon_diff <- pairwiseResults(tsenat_analysis_q1, component = "difference")
+tsenat_shannon_diff <- results(tsenat_analysis_q1, type = "pairwise")
 
 # Extract diversity results using results accessor for q=1
 tsenat_q1_diversity <- results(tsenat_analysis_q1, type = "diversity", q = 1.0)
@@ -239,7 +239,7 @@ tsenat_analysis_q2 <- calculate_difference_s4(
   verbose = FALSE
 )
 # Extract results for downstream functions
-tsenat_simpson_diff <- pairwiseResults(tsenat_analysis_q2, component = "difference")
+tsenat_simpson_diff <- results(tsenat_analysis_q2, type = "pairwise")
 
 # Extract diversity results using results accessor for q=2
 tsenat_q2_diversity <- results(tsenat_analysis_q2, type = "diversity", q = 2.0)

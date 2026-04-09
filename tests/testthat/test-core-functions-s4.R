@@ -1527,40 +1527,6 @@ test_that("S4 Wrappers: calculate_difference_s4 accepts new arguments", {
   }
 })
 
-test_that("S4 Wrappers: pairwiseResults accessor returns calculate_difference_s4 output", {
-  analysis <- .create_test_analysis(precompute_diversity = TRUE)
-
-  if (length(analysis@diversity_results) == 0) {
-    skip_on_cran()
-  }
-
-  result <- calculate_difference_s4(analysis, control = "control", verbose = FALSE)
-  expect_s4_class(result, "TSENATAnalysis")
-  expect_true(length(result@pairwise_results) > 0)
-  expect_true(!is.null(pairwiseResults(result)))
-  expect_true(!is.null(pairwiseResults(result, "difference")))
-})
-
-test_that("S4 Setter methods work for diversity, divergence, pairwise, and rank results", {
-  analysis <- .create_test_analysis(precompute_diversity = TRUE)
-
-  diversity_list <- list(q_1.0 = diversity(analysis, q = 1.0))
-  diversity(analysis) <- diversity_list
-  expect_identical(diversity(analysis), diversity_list)
-
-  divergence_list <- list(tsallis_divergence = data.frame(gene_id = rownames(analysis@se), divergence = runif(nrow(analysis@se))))
-  divergence(analysis) <- divergence_list
-  expect_identical(divergence(analysis), divergence_list)
-
-  pairwise_list <- list(difference = data.frame(gene_id = rownames(analysis@se), padj = rep(1, nrow(analysis@se))))
-  pairwiseResults(analysis) <- pairwise_list
-  expect_identical(pairwiseResults(analysis), pairwise_list)
-  expect_identical(pairwiseResults(analysis, "difference"), pairwise_list$difference)
-
-  rank_df <- data.frame(gene_id = rownames(analysis@se), q = rep(1, nrow(analysis@se)), pvalue = runif(nrow(analysis@se)))
-  rankResults(analysis) <- rank_df
-  expect_identical(rankResults(analysis), rank_df)
-})
 
 test_that("S4 Wrappers: calculate_divergence_s4 accepts new arguments", {
   # Pre-compute diversity to have valid input data
@@ -1597,9 +1563,9 @@ test_that("S4 Wrappers: calculate_divergence_s4 accepts new arguments", {
   }
 })
 
-test_that("S4 Thin Wrapper Pattern: lmResults, rankResults, divergence delegate to results()", {
-  # Verify that refactored accessors correctly delegate to results()
-  # This test validates the Bioconductor best practice pattern implemented
+test_that("results() unified accessor provides access to all result types", {
+  # Verify that results() provides unified interface for all analysis outputs
+  # This test validates the unified accessor pattern implemented
   
   analysis <- .create_test_analysis(precompute_diversity = TRUE)
   
@@ -1622,15 +1588,15 @@ test_that("S4 Thin Wrapper Pattern: lmResults, rankResults, divergence delegate 
     rank_test = rank_test_df
   )
   
-  # Test lmResults wrapper delegates to results(type = "lm")
-  lm_result <- lmResults(analysis)
+  # Test results() with type = "lm"
+  lm_result <- results(analysis, type = "lm")
   expect_identical(lm_result, lm_test_df, 
-                  info = "lmResults() should delegate to results and return data.frame directly")
+                  info = "results(type='lm') should return lm data.frame")
   
-  # Test rankResults wrapper delegates to results(type = "rank_test")
-  rank_result <- rankResults(analysis)
+  # Test results() with type = "rank_test"
+  rank_result <- results(analysis, type = "rank_test")
   expect_identical(rank_result, rank_test_df,
-                  info = "rankResults() should delegate to results and return data.frame directly")
+                  info = "results(type='rank_test') should return rank test data.frame")
   
   # Populate divergence results
   divergence_list <- list(
@@ -1638,13 +1604,8 @@ test_that("S4 Thin Wrapper Pattern: lmResults, rankResults, divergence delegate 
   )
   analysis@divergence_results <- divergence_list
   
-  # Test divergence wrapper delegates to results(type = "divergence")
-  div_result <- divergence(analysis)
+  # Test results() with type = "divergence"
+  div_result <- results(analysis, type = "divergence")
   expect_identical(div_result, divergence_list,
-                  info = "divergence() should delegate to results and return list")
-  
-  # Test component extraction for nested results
-  div_component <- divergence(analysis, component = "tsallis_divergence")
-  expect_identical(div_component, divergence_list$tsallis_divergence,
-                  info = "divergence(component='...') should extract specific component")
+                  info = "results(type='divergence') should return divergence list")
 })

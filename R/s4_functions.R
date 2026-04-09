@@ -89,8 +89,9 @@
 #' 
 #' # Run jackknife estimation
 #' analysis <- jackknife_entropy_outliers_s4(analysis, q = c(0.5, 1.0, 1.5))
-#' # Check jackknife results
-#' names(jeoResults(analysis))
+#' # Check jackknife results using unified accessor
+#' jackknife_res <- results(analysis, type = "jackknife")
+#' if (!is.null(jackknife_res)) names(jackknife_res)
 #'
 #' @export
 #' @importFrom utils write.table

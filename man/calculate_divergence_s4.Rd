@@ -133,7 +133,7 @@ analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
 # Calculate divergence across q-values
 analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5))
 
-# Check divergence results  
-head(divergence(analysis))
+# Check divergence results using unified accessor
+head(results(analysis, type = "divergence"))
 
 }

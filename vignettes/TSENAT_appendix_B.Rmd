@@ -272,10 +272,10 @@ analysis <- rank_test_q_condition_s4(
     multicorr = "hochberg"
 )
 
-# Extract results from S4 object using accessor
-friedman_results <- rankResults(analysis)
+# Extract results from S4 object using unified accessor
+friedman_results <- results(analysis, type = "rank_test")
 
-# Alternative: Extract rank_test results using generic results accessor
+# Alternative: Extract rank_test results with ranking and filtering
 rank_test_results <- results(analysis, type = "rank_test", rankBy = "pvalue", n = 20, filterFDR = 0.05)
 cat("Top rank_test results by p-value (FDR < 0.05):\n")
 print(head(rank_test_results, n = 10))
@@ -652,16 +652,16 @@ This vignette demonstrates the modern S4-based analysis workflow for method comp
 |----------|---------|-------|--------|
 | `calculate_diversity_s4()` | Compute Tsallis entropy across multiple q-values | TSENATAnalysis + `q`, `norm` params | Updated analysis with diversity results |
 | `test_rankbased_assumptions_s4()` | Validate Friedman test assumptions | TSENATAnalysis | Stores results in metadata via `metadata(analysis, "rankbased_assumptions")` |
-| `rank_test_q_condition_s4()` | Run Friedman test for q$\times$group interactions | TSENATAnalysis + design params | Updated analysis with results via `rankResults()` |
+| `rank_test_q_condition_s4()` | Run Friedman test for q$\times$group interactions | TSENATAnalysis + design params | Updated analysis with results via `results(type="rank_test")` |
 | `plot_tsallis_q_curve_s4()` | Plot q-curves for significant genes | TSENATAnalysis + `lm_res` | ggplot2 visualization |
-| `compute_method_concordance_s4()` | Compare GAM and Friedman results | TSENATAnalysis with LM results via `lmResults()` and rank test results via `rankResults()` | Updated analysis with results via `metadata()` |
+| `compute_method_concordance_s4()` | Compare GAM and Friedman results | TSENATAnalysis with LM and rank test results stored in slots | Updated analysis with results via `metadata()` |
 | `plot_method_concordance_s4()` | Visualize method concordance | TSENATAnalysis (after concordance computed) | ggplot2 comparison plot |
 
 ## Workflow Advantages
 
 - **Consistent class structure:** All results integrated into TSENATAnalysis object
 - **Automatic metadata tracking:** No global variables polluting environment
-- **Seamless integration:** Accessors like `lmResults()`, `rankResults()`, `divergence()`, `jisResults()` are thin wrappers around canonical `results()` for flexible result retrieval and filtering
+- **Seamless integration:** Single unified `results()` accessor with type parameter ("lm", "rank_test", "divergence", "diversity", etc.) for flexible result retrieval and filtering
 - **Unified ranking & filtering:** All accessors support ranking (rankBy), FDR filtering, and format conversion through `results()`
 - **Reproducibility:** Clear, standardized workflow for complex multi-method analyses
 - **Documentation:** S4 methods maintain Roxygen documentation and inheritance
@@ -709,7 +709,7 @@ plot_method_concordance_s4(analysis, verbose = TRUE)
 plot_tsallis_q_curve_s4(
     analysis,
     condition_col = "condition",
-    rank_res = rankResults(analysis),
+    rank_res = results(analysis, type = "rank_test"),
     n_top = 4
 )
 ```

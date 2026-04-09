@@ -319,6 +319,7 @@ tsenat <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
 #'   - For diversity with q specified: A single SummarizedExperiment for that q-value
 #'   - For divergence: A SummarizedExperiment (rows=genes, columns=q-values), data.frame, or other format depending on divergence computation method
 #'   - For lm/jackknife: A data.frame or list based on type and format
+#'   - For pairwise: A data.frame with pairwise comparison difference metrics
 #'   - For effect_sizes_divergence: A list containing effect size divergence results with components like interaction_results
 #'   - For switching_tables: A list containing gene switching comparison tables
 #'   Returns NULL if requested result type not computed or no results pass filtering.
@@ -357,6 +358,10 @@ tsenat <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
 #'   top_lm <- results(analysis, type = 'lm', rankBy = 'pvalue', n = 20)
 #' }
 #'
+#' # Get pairwise results (e.g., differential diversity metrics between conditions)
+#' pairwise_diff <- results(analysis, type = 'pairwise')
+#'
+#' @rdname TSENATAnalysis-methods
 #' @export
 results <- function(analysis, type = "diversity", q = NULL, rankBy = "none", 
                        n = NA, filterFDR = NULL, format = "auto") {
@@ -470,10 +475,11 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
         rank_test = if (!is.null(analysis@lm_results) && "rank_test" %in% names(analysis@lm_results)) {
             analysis@lm_results$rank_test
         } else NULL,
+        pairwise = if (length(analysis@pairwise_results) > 0) analysis@pairwise_results else NULL,
         effect_sizes_divergence = S4Vectors::metadata(analysis)$effect_sizes_divergence,
         switching_tables = S4Vectors::metadata(analysis)$switching_tables,
         stop("Unknown result type: '", type, "'. Must be one of: ", 
-             "diversity, divergence, lm, jackknife, rank_test, effect_sizes_divergence, switching_tables", call. = FALSE)
+             "diversity, divergence, lm, jackknife, rank_test, pairwise, effect_sizes_divergence, switching_tables", call. = FALSE)
     )
 
     if (is.null(result)) {
@@ -687,6 +693,78 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
         # Convert to requested format
         if (format != "auto") {
             result <- .convert_result_format(result, format, type)
+        }
+        
+        return(result)
+    }
+
+    # === DIVERGENCE RESULTS HANDLING ===
+    if (type == "divergence") {
+        # Extract actual divergence values if result is a SummarizedExperiment
+        if (methods::is(result, "SummarizedExperiment")) {
+            result <- SummarizedExperiment::assay(result, "divergence")
+        }
+        # If result is a list with SummarizedExperiment (e.g., divergence_se element)
+        else if (is.list(result) && length(result) > 0) {
+            # Try to extract SummarizedExperiment from list
+            for (i in seq_along(result)) {
+                if (methods::is(result[[i]], "SummarizedExperiment")) {
+                    result <- SummarizedExperiment::assay(result[[i]], "divergence")
+                    break
+                }
+            }
+        }
+        
+        # Filtering and format conversion for data.frame results
+        if (is.data.frame(result) || is.matrix(result)) {
+            if (!is.null(filterFDR)) {
+                if (is.data.frame(result)) {
+                    padj_col <- if ("padj" %in% colnames(result)) "padj" else NULL
+                    if (!is.null(padj_col)) {
+                        result <- result[!is.na(result[[padj_col]]) & result[[padj_col]] <= filterFDR, , drop = FALSE]
+                        if (nrow(result) == 0) return(NULL)
+                    }
+                }
+            }
+            
+            if (format != "auto") {
+                result <- .convert_result_format(result, format, type)
+            }
+        }
+        
+        return(result)
+    }
+
+    # === PAIRWISE RESULTS HANDLING ===
+    if (type == "pairwise") {
+        # Pairwise results are stored as list(difference = data.frame(...))
+        # Extract the difference component directly
+        if (is.list(result)) {
+            if ("difference" %in% names(result)) {
+                result <- result$difference
+            } else if (length(result) > 0) {
+                # Fallback: return first element if difference not found
+                result <- result[[1]]
+            } else {
+                return(NULL)
+            }
+        }
+        
+        # Apply filtering and formatting
+        if (is.data.frame(result)) {
+            if (!is.null(filterFDR)) {
+                padj_col <- if ("padj" %in% colnames(result)) "padj"
+                           else if ("adj_p_value" %in% colnames(result)) "adj_p_value"
+                           else NULL
+                if (!is.null(padj_col)) {
+                    result <- result[!is.na(result[[padj_col]]) & result[[padj_col]] <= filterFDR, , drop = FALSE]
+                    if (nrow(result) == 0) return(NULL)
+                }
+            }
+            
+            if (format != "auto") {
+                result <- .convert_result_format(result, format, type)
+            }
         }
         
         return(result)

@@ -71,7 +71,7 @@ test_that("tsenat() paired design: executes pipeline, returns TSENATAnalysis, re
     # Multiple assertions on same result
     expect_s4_class(result, "TSENATAnalysis")
     # Use the first available q-value (0) since exact q=1.0 may not exist with seq(0,2,length.out=10)
-    expect_true(length(diversity(result, q = 0)) > 0 || is.null(diversity(result, q = 0)))
+    expect_true(length(results(result, type = "diversity", q = 0)) > 0 || is.null(results(result, type = "diversity", q = 0)))
     expect_s4_class(getSE(result), "SummarizedExperiment")
     expect_true(is.list(getConfig(result)))
     expect_true(is.list(getMeta(result)))
@@ -314,7 +314,7 @@ test_that("tsenat() paired: produces LM results, significant genes, plots genera
     
     # Test LM results structure
     expect_s4_class(result, "TSENATAnalysis")
-    lm_res <- lmResults(result)  # Now returns data.frame directly (thin wrapper around results)
+    lm_res <- results(result, type = "lm")
     expect_true(!is.null(lm_res))
     expect_true(is.data.frame(lm_res))
     expect_true(nrow(lm_res) > 0)
@@ -444,7 +444,7 @@ test_that("tsenat() WITHOUT config parameter: produces correct diversity values"
     )
     
     # Extract first gene's diversity at q=0 (most stable, no bootstrap)
-    div_manual <- diversity(analysis_manual, q = 0)
+    div_manual <- results(analysis_manual, type = "diversity", q = 0)
     if (is(div_manual, "SummarizedExperiment")) {
         manual_values <- assay(div_manual, 1)
         manual_first_gene <- manual_values[1, , drop = TRUE]
@@ -485,7 +485,7 @@ test_that("tsenat() WITHOUT config: produces IDENTICAL results to manual workflo
     
     # It should have results stored (diversity should exist)
     div_result <- tryCatch(
-        { diversity(analysis2, q = 0) },
+        { results(analysis2, type = "diversity", q = 0) },
         error = function(e) { NULL }
     )
     expect_false(is.null(div_result),
@@ -616,7 +616,7 @@ test_that("REDUNDANT setConfig: Reproduce the workflow.R bug scenario", {
         output_file = NULL,
         show_messages = FALSE
     )
-    div_no_setconfig <- diversity(analysis_no_setconfig, q = 0)
+    div_no_setconfig <- results(analysis_no_setconfig, type = "diversity", q = 0)
     
     # Step 3: Call setConfig THEN calculate_diversity (REPRODUCES BUG)
     analysis_with_redundant_setconfig <- analysis_fresh
@@ -630,7 +630,7 @@ test_that("REDUNDANT setConfig: Reproduce the workflow.R bug scenario", {
         output_file = NULL,
         show_messages = FALSE
     )
-    div_with_redundant_setconfig <- diversity(analysis_with_redundant_setconfig, q = 0)
+    div_with_redundant_setconfig <- results(analysis_with_redundant_setconfig, type = "diversity", q = 0)
     
     # Compare results
     if (is(div_no_setconfig, "SummarizedExperiment") && 
@@ -764,8 +764,8 @@ test_that("WORKFLOW COMPARISON: Manual orchestration vs tsenat() function", {
     )
     
     # Both should have diversity results
-    div_A <- diversity(analysis_A, q = 0)
-    div_B <- diversity(analysis_B, q = 0)
+    div_A <- results(analysis_A, type = "diversity", q = 0)
+    div_B <- results(analysis_B, type = "diversity", q = 0)
     
     expect_is(div_A, "SummarizedExperiment",
               info = "Manual pattern should produce diversity SE")

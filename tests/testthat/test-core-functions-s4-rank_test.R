@@ -97,7 +97,7 @@ test_that("rank_test_q_condition_s4 returns TSENATAnalysis with results", {
     # Should return modified TSENATAnalysis
     expect_is(result, "TSENATAnalysis")
     # Should have rank_test stored (data frame)
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_is(rank_res, "data.frame")
     expect_true(nrow(rank_res) > 0)
 })
@@ -118,7 +118,7 @@ test_that("rank_test_q_condition_s4 runs with paired design", {
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -136,7 +136,7 @@ test_that("rank_test_q_condition_s4 respects explicit parameters over config", {
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -154,7 +154,7 @@ test_that("rank_test_q_condition_s4 works with Kruskal-Wallis test", {
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
     expect_true("p_value" %in% colnames(rank_res))
 })
@@ -175,7 +175,7 @@ test_that("rank_test_q_condition_s4 works with Friedman test for paired design",
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -193,7 +193,7 @@ test_that("rank_test_q_condition_s4 works with Hochberg correction", {
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
     expect_true("adj_p_value" %in% colnames(rank_res))
 })
@@ -212,7 +212,7 @@ test_that("rank_test_q_condition_s4 works with Benjamini-Yekutieli correction", 
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -230,7 +230,7 @@ test_that("rank_test_q_condition_s4 works with no multiple correction", {
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -248,7 +248,7 @@ test_that("rank_test_q_condition_s4 auto-selects appropriate test method", {
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -316,7 +316,7 @@ test_that("rank_test_q_condition_s4 results have correct structure", {
         multicorr = "hochberg"
     )
     
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     q_int_res <- rank_res
     
     # Check for essential columns in rank_test
@@ -340,7 +340,7 @@ test_that("rank_test_q_condition_s4 handles multiple genes with varying signific
         multicorr = "hochberg"
     )
     
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     q_int_res <- rank_res
     
     # Should have results for tested genes
@@ -366,7 +366,7 @@ test_that("rank_test_q_condition_s4 works with ART (Aligned Rank Transform)", {
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
     expect_true("test_method" %in% colnames(rank_res))
 })
@@ -387,7 +387,7 @@ test_that("rank_test_q_condition_s4 works with Westfall-Young correction", {
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
     expect_true("adj_p_value" %in% colnames(rank_res))
 })
@@ -407,7 +407,7 @@ test_that("rank_test_q_condition_s4 accepts explicit q parameter", {
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -426,7 +426,7 @@ test_that("rank_test_q_condition_s4 accepts custom entropy_col parameter", {
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -444,7 +444,7 @@ test_that("rank_test_q_condition_s4 accepts custom q_col parameter", {
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -462,7 +462,7 @@ test_that("rank_test_q_condition_s4 accepts custom gene_col parameter", {
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
     expect_true("gene" %in% colnames(rank_res))
 })
@@ -481,7 +481,7 @@ test_that("rank_test_q_condition_s4 accepts nthreads parameter", {
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -500,7 +500,7 @@ test_that("rank_test_q_condition_s4 accepts verbose parameter", {
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -519,7 +519,7 @@ test_that("rank_test_q_condition_s4 accepts nperm_mode parameter", {
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -539,7 +539,7 @@ test_that("rank_test_q_condition_s4 wy_randomizations controls WY permutations",
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -585,7 +585,7 @@ test_that("rank_test_q_condition_s4 handles combined parameter specifications", 
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
     expect_true("adj_p_value" %in% colnames(rank_res))
 })
@@ -1196,7 +1196,7 @@ test_that("rank_test_q_condition_s4 works with benjamini-yekutieli correction", 
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true("adj_p_value" %in% colnames(rank_res))
 })
 
@@ -1210,7 +1210,7 @@ test_that("rank_test_q_condition_s4 works with no multiple correction", {
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     
     # With no correction, adj_p_value should equal p_value
     expect_true(all(rank_res$adj_p_value == rank_res$p_value, na.rm = TRUE))
@@ -1231,7 +1231,7 @@ test_that("rank_test_q_condition_s4 respects explicit q parameter", {
     )
     
     expect_is(result_explicit, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result_explicit)
+    rank_res <- results(result_explicit, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -1285,7 +1285,7 @@ test_that("rank_test_q_condition_s4 full workflow with art test method", {
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -1297,7 +1297,7 @@ test_that("rank_test_q_condition_s4 preserves effect size calculations", {
         condition_col = "condition"
     )
     
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     res_df <- rank_res
     
     # Check that effect size columns are present
@@ -1315,7 +1315,7 @@ test_that("rank_test_q_condition_s4 classifies q-dependence correctly", {
         condition_col = "condition"
     )
     
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     res_df <- rank_res
     
     # Check that interaction_class column exists with valid values
@@ -1336,7 +1336,7 @@ test_that("rank_test_q_condition_s4 results contain expected columns", {
         condition_col = "condition"
     )
     
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     res_df <- if (is.data.frame(rank_res)) rank_res else as.data.frame(rank_res)
     
     expected_cols <- c(
@@ -1357,7 +1357,7 @@ test_that("rank_test_q_condition_s4 results are sorted by adjusted p-value", {
         condition_col = "condition"
     )
     
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     res_df <- if (is.data.frame(rank_res)) rank_res else as.data.frame(rank_res)
     
     # Check that results are sorted by adj_p_value (primary) and effect size (secondary)
@@ -1385,9 +1385,9 @@ test_that("rank_test_q_condition_s4 generates consistent results", {
         multicorr = "hochberg"
     )
     
-    res1_df <- TSENAT::rankResults(result1)
+    res1_df <- results(result1, type = "rank_test")
     if (is.list(res1_df)) res1_df <- as.data.frame(res1_df)
-    res2_df <- TSENAT::rankResults(result2)
+    res2_df <- results(result2, type = "rank_test")
     if (is.list(res2_df)) res2_df <- as.data.frame(res2_df)
     
     # Results should be identical (deterministic)
@@ -1543,8 +1543,8 @@ test_that("rank_test results are consistent across different multicorr methods",
   )
   
   # Check in-memory results
-  data_none <- TSENAT::rankResults(result_none)
-  data_bh <- TSENAT::rankResults(result_bh)
+  data_none <- results(result_none, type = "rank_test")
+  data_bh <- results(result_bh, type = "rank_test")
   
   # Both should have results
   expect_gt(nrow(data_none), 0)

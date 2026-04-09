@@ -128,9 +128,9 @@
 #' # Test Q×Condition interaction (condition_col is REQUIRED)
 #' analysis <- rank_test_q_condition_s4(analysis, condition_col = 'condition', 
 #'                                            multicorr = 'hochberg')
-#' # View results
-#' results <- lmResults(analysis)
-#' if (!is.null(results)) head(results$rank_test)
+#' # View results using unified accessor
+#' rank_test_res <- results(analysis, type = "rank_test")
+#' if (!is.null(rank_test_res)) head(rank_test_res)
 #'
 #' @export
 #' @importFrom utils write.table

@@ -6119,7 +6119,8 @@ test_that("prepare_gene_switching_tables_s4 produces valid output structure", {
         verbose = FALSE
     ))
     
-    tables <- prepare_gene_switching_tables_s4(result)
+    result <- prepare_gene_switching_tables_s4(result)
+    tables <- results(result, type = "switching_tables")
     
     expect_true(is.data.frame(tables) || is.list(tables))
 })
@@ -6133,7 +6134,8 @@ test_that("prepare_gene_switching_tables_s4 includes required columns", {
         verbose = FALSE
     ))
     
-    tables <- prepare_gene_switching_tables_s4(result)
+    result <- prepare_gene_switching_tables_s4(result)
+    tables <- results(result, type = "switching_tables")
     expect_true(is.data.frame(tables) || is.list(tables))
     # Empty results (no significant switching) valid; if has rows must have columns
     expect_true(is.list(tables) || is.data.frame(tables) && (nrow(tables) == 0 || length(colnames(tables)) > 0))
@@ -6151,7 +6153,8 @@ test_that("prepare_gene_switching_tables_s4 handles empty results gracefully", {
     
     # Should not error even if minimal results
     expect_silent({
-        tables <- prepare_gene_switching_tables_s4(result)
+        result <- prepare_gene_switching_tables_s4(result)
+        tables <- results(result, type = "switching_tables")
     })
 })
 
@@ -6164,7 +6167,8 @@ test_that("prepare_gene_switching_tables_s4 returns sorted/ordered output", {
         verbose = FALSE
     ))
     
-    tables <- prepare_gene_switching_tables_s4(result)
+    result <- prepare_gene_switching_tables_s4(result)
+    tables <- results(result, type = "switching_tables")
     expect_true(is.data.frame(tables) || is.list(tables))
 })
 
@@ -6181,8 +6185,8 @@ test_that("LM results integrate properly with visualization pipeline", {
         verbose = FALSE
     ))
     
-    # Get results - lmResults() returns data.frame directly (thin wrapper around results)
-    lm_res <- lmResults(test_analysis)
+    # Get results - use unified results() accessor
+    lm_res <- results(test_analysis, type = "lm")
     expect_true(!is.null(lm_res))
     expect_true(is.data.frame(lm_res))
     expect_true(("gene" %in% colnames(lm_res)) || ("Gene" %in% colnames(lm_res)))
@@ -6199,7 +6203,8 @@ test_that("Jackknife results integrate with gene switching tables", {
     ))
     
     # Prepare tables
-    tables <- prepare_gene_switching_tables_s4(jis_result)
+    jis_result <- prepare_gene_switching_tables_s4(jis_result)
+    tables <- results(jis_result, type = "switching_tables")
     expect_true(is.data.frame(tables) || is.list(tables))
 })
 
@@ -6224,7 +6229,8 @@ test_that("prepare_gene_switching_tables_s4 produces export-ready data", {
         verbose = FALSE
     ))
     
-    tables <- prepare_gene_switching_tables_s4(jis_result)
+    jis_result <- prepare_gene_switching_tables_s4(jis_result)
+    tables <- results(jis_result, type = "switching_tables")
     expect_true(is.data.frame(tables) || is.list(tables))
     
     if (is.data.frame(tables) && nrow(tables) > 0) {
@@ -6258,7 +6264,8 @@ test_that("prepare_gene_switching_tables_s4 handles minimal jackknife results", 
     ))
     
     expect_silent({
-        tables <- prepare_gene_switching_tables_s4(jis_result)
+        jis_result <- prepare_gene_switching_tables_s4(jis_result)
+        tables <- results(jis_result, type = "switching_tables")
     })
 })
 
@@ -6287,6 +6294,7 @@ test_that("prepare_gene_switching_tables_s4 data types are consistent", {
         verbose = FALSE
     ))
     
-    tables <- prepare_gene_switching_tables_s4(jis_result)
+    jis_result <- prepare_gene_switching_tables_s4(jis_result)
+    tables <- results(jis_result, type = "switching_tables")
     expect_true(is.data.frame(tables) || is.list(tables))
 })

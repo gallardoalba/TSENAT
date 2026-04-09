@@ -28,10 +28,13 @@ the analysis pipeline and provides consistent accessor methods for result
 retrieval.
 
 
-Access results via accessor methods (recommended):
-\code{diversity(obj, q)} for diversity, \code{lmResults(obj)} for models,
-\code{jeoResults(obj, q)} for entropy outlier jackknife, \code{jisResults(obj, q)} for isoform switching jackknife,
-\code{getMeta(obj)} for metadata.
+Access results via the unified \code{results(obj, type = ...)} accessor method:
+- \code{type="diversity"} for Tsallis entropy across q-values
+- \code{type="lm"} for linear model interaction results
+- \code{type="rank_test"} for Friedman rank-based test results
+- \code{type="divergence"} for divergence metrics
+- \code{type="jackknife"} for jackknife resampling results
+Use \code{metadata(obj)} to access reproducibility metadata.
 
 The \code{TSENATAnalysis} class encapsulates all components of a complete
 TSENAT analysis: raw data, configuration metadata, and results from each
@@ -145,12 +148,7 @@ Automatically maintained by wrapper functions. Includes:
 \section{Accessor Methods}{
 
   \describe{
-    \item{\code{diversity(object,  q=NULL)}}{Extract diversity results for 
-q-value}
-    \item{\code{lmResults(object, component=NULL)}}{Extract LM results}
-    \item{\code{jeoResults(object, q=NULL)}}{Extract jackknife entropy outlier results}
-    \item{\code{jisResults(object, q=NULL)}}{Extract jackknife isoform switching results}
-    \item{\code{divergence(object)}}{Extract divergence results}
+    \item{\code{results(object, type, ...)}}{Unified interface to extract all analysis results (diversity, divergence, lm, jackknife, rank_test, effect_sizes_divergence, switching_tables)}
     \item{\code{getPlot(object, type=NULL)}}{Retrieve cached plot}
     \item{\code{addPlot(object, type, plot)}}{Add/cache a new plot}
     \item{\code{show(object)}}{Display object summary}

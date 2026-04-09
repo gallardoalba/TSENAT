@@ -67,12 +67,7 @@
 #'
 #' @section Accessor Methods:
 #'   \describe{
-#'     \item{\code{diversity(object,  q=NULL)}}{Extract diversity results for 
-#' q-value}
-#'     \item{\code{lmResults(object, component=NULL)}}{Extract LM results}
-#'     \item{\code{jeoResults(object, q=NULL)}}{Extract jackknife entropy outlier results}
-#'     \item{\code{jisResults(object, q=NULL)}}{Extract jackknife isoform switching results}
-#'     \item{\code{divergence(object)}}{Extract divergence results}
+#'     \item{\code{results(object, type, ...)}}{Unified interface to extract all analysis results (diversity, divergence, lm, jackknife, rank_test, effect_sizes_divergence, switching_tables)}
 #'     \item{\code{getPlot(object, type=NULL)}}{Retrieve cached plot}
 #'     \item{\code{addPlot(object, type, plot)}}{Add/cache a new plot}
 #'     \item{\code{show(object)}}{Display object summary}
@@ -185,803 +180,6 @@ TSENATAnalysis <- function(se, config = list()) {
             package_version = as.character(utils::packageVersion("TSENAT")), function_calls = character()))
 }
 
-# Accessor Methods for TSENATAnalysis Objects Standard methods for extracting
-# results and metadata from TSENATAnalysis objects. Following Bioconductor
-# conventions (DESeq2, edgeR).
-
-# ============================================================================
-# DIVERSITY ACCESSOR
-# ============================================================================
-
-#' Extract diversity results
-#'
-#' @param object \code{TSENATAnalysis} object.
-#' @param q \code{numeric}. Q-value to extract (e.g., 1.0, 2.0).
-#'   If NULL (default), returns list of all q-values.
-#'
-#' @return SummarizedExperiment or list of SummarizedExperiment objects
-#'   containing diversity values keyed by q-value.
-#'
-#' @details
-#' Results stored in @diversity_results with names like 'q_0.5', 'q_1.0', etc.
-#' Use \code{diversity(analysis)} to get all results as a list, or
-#' \code{diversity(analysis, q=1.0)} for a specific q-value.
-#'
-#' @seealso
-#' Other TSENATAnalysis accessors:  \code{\link{divergence}},
-#' \code{\link{lmResults}}, \code{\link{se}}, \code{\link[S4Vectors]{metadata}}
-#' @examples
-#' # Load real TSENAT data
-#' data(readcounts)
-#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv',
-#'   package = 'TSENAT'), header = TRUE, sep = '\t')
-#' gff3_file <- system.file('extdata', 'annotation.gff3.gz',
-#'   package = 'TSENAT')
-#' config <- tsenat_config(sample_col = 'sample', condition_col = 'condition')
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
-#' gff3_file,
-#'   metadata = metadata_df, config = config, tpm = tpm,
-#'   effective_length = effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
-#' = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = 1)
-#' diversity_results <- diversity(analysis)
-#'
-#' @export
-setGeneric("diversity", function(object, q = NULL) {
-    standardGeneric("diversity")
-})
-
-#' @rdname diversity
-#' @export
-setMethod("diversity", "TSENATAnalysis", function(object, q = NULL) {
-    if (length(object@diversity_results) == 0) {
-        warning("No diversity results found. Run calculate_diversity_s4() first.")
-        return(NULL)
-    }
-
-    if (is.null(q)) {
-        # Return all results
-        return(object@diversity_results)
-    }
-
-    # Format q-value key - try multiple precision levels for robustness
-    supported_decimals <- c(1, 2, 3)
-    q_key <- NULL
-
-    for (decimals in supported_decimals) {
-        candidate_key <- paste0("q_", formatC(q, format = "f", digits = decimals))
-        if (candidate_key %in% names(object@diversity_results)) {
-            q_key <- candidate_key
-            break
-        }
-    }
-
-    if (is.null(q_key)) {
-        # Fallback: check if lazy conversion is needed from combined result
-        if (!is.null(object@metadata$diversity_combined) && is.list(object@metadata$diversity_combined) &&
-            !is.null(object@metadata$diversity_combined$combined_result)) {
-
-            # Perform lazy conversion from combined format
-            combined_result <- object@metadata$diversity_combined$combined_result
-
-            # Extract columns for this q-value from combined result
-            q_cols <- grep(paste0("_q=", gsub("\\.", "\\\\.", as.character(q)), "$"),
-                colnames(combined_result))
-
-            if (length(q_cols) > 0) {
-                # Extract per-q data
-                result_subset <- combined_result[, q_cols, drop = FALSE]
-
-                # Convert to SummarizedExperiment
-                assay_matrix <- as.matrix(result_subset[, vapply(result_subset, is.numeric,
-                  FUN.VALUE = logical(1))])
-                result_se <- SummarizedExperiment(assays = list(diversity = assay_matrix))
-                rownames(result_se) <- rownames(result_subset)
-
-                # Apply colData from original SE
-                if (!is.null(object@se)) {
-                  orig_coldata <- SummarizedExperiment::colData(object@se)
-                  if (!is.null(orig_coldata) && nrow(orig_coldata) == ncol(result_se)) {
-                    SummarizedExperiment::colData(result_se) <- orig_coldata
-                  }
-                }
-
-                # Cache this result for future access
-                q_key_to_cache <- paste0("q_", formatC(q, format = "f", digits = 3))
-                object@diversity_results[[q_key_to_cache]] <- result_se
-
-                return(result_se)
-            }
-        }
-
-        stop("Q-value ", q, " not found in diversity_results.\n", "Available q-values: ",
-            paste(names(object@diversity_results), collapse = ", "), call. = FALSE)
-    }
-
-    object@diversity_results[[q_key]]
-})
-
-# ============================================================================
-# LM RESULTS ACCESSOR
-# ============================================================================
-
-#' Extract linear model interaction results
-#'
-#' @param object \code{TSENATAnalysis} object.
-#' @param component \code{character}. Which result component to extract.
-#'   Options: NULL (all LM interaction results), 'lm_interaction', 'lm_interaction_model_data',
-#'   'results', 'p_value', 'effect_size', etc.
-#'
-#' @return List or data.frame of LM interaction results depending on component requested.
-#'
-#' @details
-#' Returns only LM interaction results stored in the \code{@@lm_results} slot.
-#' Note: Rank test q-value interaction results are retrieved separately via \code{rankResults()}.
-#' Use \code{lmResults(analysis)} to get all LM interaction components,  or 
-#' specify component type for targeted extraction.
-#'
-#' @examples
-#' # Load example data and run LM interaction analysis
-#' data(readcounts)
-#' readcounts <- as.matrix(readcounts)
-#' mode(readcounts) <- 'numeric'
-#' metadata_df <- read.table(
-#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
-#'   header = TRUE, sep = '\t'
-#' )
-#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
-#' 'TSENAT')
-#'
-#' # Build analysis from vignette data
-#' config <- tsenat_config(sample_col = 'sample', condition_col = 'condition')
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
-#' gff3_dataset, metadata = metadata_df, config = config,
-#'   tpm = tpm, effective_length = effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
-#' = 200)
-#'
-#' # Compute diversity first (required for LM interaction)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5), verbose =
-#' FALSE)
-#'
-#' # Calculate LM interaction
-#' analysis <- calculate_lm_interaction_s4(analysis, 
-#'   condition_col = 'condition', method = 'gam')
-#'
-#' # Extract and view LM interaction results
-#' res <- lmResults(analysis)
-#' if (!is.null(res)) head(res, 3)
-#'
-#' @export
-setGeneric("lmResults", function(object, component = NULL) {
-    standardGeneric("lmResults")
-})
-
-#' @rdname lmResults
-#' @export
-setMethod("lmResults", "TSENATAnalysis", function(object, component = NULL) {
-    # Thin wrapper around results() - delegates to canonical API
-    result <- results(object, type = "lm")
-    
-    if (is.null(result)) {
-        warning("No LM interaction results found. Run calculate_lm_interaction_s4() first.")
-        return(NULL)
-    }
-    
-    if (is.null(component)) {
-        # Return all LM interaction results (as data.frame)
-        return(result)
-    }
-    
-    # Extract specific column if component is a column name
-    if (is.data.frame(result) && component %in% colnames(result)) {
-        return(result[[component]])
-    }
-    
-    stop("Component ", component, " not found in LM interaction results.", call. = FALSE)
-})
-
-#' Extract pairwise differential comparison results
-#'
-#' @param object TSENATAnalysis object
-#' @param component character. Component name to extract ('difference').
-#'   If NULL, returns all pairwise results.
-#'
-#' @return List or data.frame of pairwise comparison results, or NULL if not computed.
-#'
-#' @details
-#' Pairwise comparison results are generated by \code{calculate_difference_s4()}.
-#' They contain p-values and effect sizes for comparing diversity between
-#' pairs of samples or conditions.
-#'
-#' Available components include 'difference', 'p_values', and 'effect_sizes'.
-#'
-#' @examples
-#' # Load data and build analysis
-#' data(readcounts, package = 'TSENAT')
-#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
-#'   header = TRUE, sep = '\t')
-#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#'
-#' # NOTE: TPM and effective_length are REQUIRED for filter_analysis_s4()
-#' # In real workflows, these come from Salmon quantification output
-#' # For this example, we create minimal placeholders
-#' tpm <- matrix(runif(nrow(readcounts) * ncol(readcounts), 0.1, 10),
-#'               nrow = nrow(readcounts), ncol = ncol(readcounts),
-#'               dimnames = dimnames(readcounts))
-#' effective_length <- matrix(100, nrow = nrow(readcounts), ncol = ncol(readcounts))
-#'
-#' # Create config (required when metadata is provided)
-#' config <- tsenat_config(sample_col = 'sample', condition_col = 'condition')
-#' 
-#' # Build analysis with TPM and effective_length
-#' analysis <- build_analysis_s4(readcounts = readcounts,
-#'                              tx2gene = gff3_file,
-#'                              metadata = metadata_df,
-#'                              tpm = tpm,
-#'                              effective_length = effective_length,
-#'                              config = config)
-#' analysis <- filter_analysis_s4(analysis, stringency = 'medium')
-#'
-#' # Calculate diversity
-#' analysis <- calculate_diversity_s4(analysis, q = 1.0, norm = TRUE)
-#'
-#' # Perform pairwise comparisons (requires paired samples)
-#' # This would extract pre-computed pairwise results:
-#' pairwise_results <- pairwiseResults(analysis)
-#'
-#' # Extract specific component
-#' if (!is.null(pairwise_results)) {
-#'   difference_comp <- pairwiseResults(analysis, component = 'difference')
-#' }
-#'
-#' @export
-setGeneric("pairwiseResults", function(object, component = NULL) {
-    standardGeneric("pairwiseResults")
-})
-
-#' @rdname pairwiseResults
-#' @export
-setMethod("pairwiseResults", "TSENATAnalysis", function(object, component = NULL) {
-    if (length(object@pairwise_results) == 0) {
-        warning("No pairwise results found. Run calculate_difference_s4() first.")
-        return(NULL)
-    }
-
-    if (is.null(component)) {
-        return(object@pairwise_results)
-    }
-
-    if (component %in% names(object@pairwise_results)) {
-        return(object@pairwise_results[[component]])
-    }
-
-    stop("Component '", component, "' not found in pairwise results.", call. = FALSE)
-})
-
-# ============================================================================
-# RANK TEST Q-VALUE INTERACTION ACCESSOR
-# ============================================================================
-
-#' Extract rank test q-value interaction results
-#'
-#' @param object \code{TSENATAnalysis} object.
-#' @param component \code{character}. Component to extract (default: all results).
-#'
-#' @return List or data.frame of rank test q-value interaction results, or NULL if not computed.
-#'
-#' @details
-#' Rank test results from \code{rank_test_q_condition_s4()} are retrieved via this method.
-#' LM interaction results are retrieved separately with \code{lmResults()}.
-#'
-#' @examples
-#' # Extract rank test results from TSENATAnalysis object
-#' data(readcounts, package = 'TSENAT')
-#' metadata <- read.table(
-#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
-#'   header = TRUE, sep = '\t'
-#' )
-#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#'
-#' # TPM and effective_length REQUIRED for filter_analysis_s4()
-#' tpm <- matrix(runif(nrow(readcounts) * ncol(readcounts), 0.1, 10),
-#'               nrow = nrow(readcounts), ncol = ncol(readcounts),
-#'               dimnames = dimnames(readcounts))
-#' effective_length <- matrix(100, nrow = nrow(readcounts), ncol = ncol(readcounts))
-#' 
-#' config <- tsenat_config(q_values = c(0.5, 1.0), generate_plots = FALSE)
-#' analysis <- build_analysis_s4(readcounts, tx2gene = gff3_file,
-#'     metadata = metadata, tpm = tpm, effective_length = effective_length,
-#'     config = config)
-#' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-#' analysis <- calculate_diversity_s4(analysis, norm = TRUE)
-#' analysis <- rank_test_q_condition_s4(analysis, q = 1.0)
-#' 
-#' # Retrieve all rank test results
-#' results <- rankResults(analysis)
-#' head(results)
-#'
-#' @export
-setGeneric("rankResults", function(object, component = NULL) {
-    standardGeneric("rankResults")
-})
-
-#' @rdname rankResults
-#' @export
-setMethod("rankResults", "TSENATAnalysis", function(object, component = NULL) {
-    # Thin wrapper around results() - delegates to canonical API
-    result <- results(object, type = "rank_test")
-    
-    if (is.null(result)) {
-        warning("No rank test q-value interaction results found. Run rank_test_q_condition_s4() first.")
-        return(NULL)
-    }
-    
-    if (is.null(component)) {
-        # Return all rank test results (as data.frame)
-        return(result)
-    }
-    
-    # Extract specific column if component is a column name
-    if (is.data.frame(result) && component %in% colnames(result)) {
-        return(result[[component]])
-    }
-    
-    stop("Component '", component, "' not found in rank test results.", call. = FALSE)
-})
-
-#' @rdname lmResults
-#' @export
-setGeneric("lmResults<-", function(object, value) {
-    standardGeneric("lmResults<-")
-})
-
-#' @rdname lmResults
-#' @param value A list of LM interaction results to assign to the object.
-#' @export
-setMethod("lmResults<-", "TSENATAnalysis", function(object, value) {
-    if (!is.list(value)) {
-        stop("lmResults value must be a list", call. = FALSE)
-    }
-    object@lm_results <- value
-    object
-})
-
-#' Setter for diversity results stored in @diversity_results
-#'
-#' @rdname diversity
-#' @param object TSENATAnalysis object
-#' @param value list. Named list of diversity results per q-value.
-#' @export
-setGeneric("diversity<-", function(object, value) {
-    standardGeneric("diversity<-")
-})
-
-#' @rdname diversity
-#' @export
-setMethod("diversity<-", "TSENATAnalysis", function(object, value) {
-    if (!is.list(value)) {
-        stop("diversity value must be a list", call. = FALSE)
-    }
-    object@diversity_results <- value
-    object
-})
-
-#' Setter for divergence results stored in @divergence_results
-#'
-#' @rdname divergence
-#' @param object TSENATAnalysis object
-#' @param value list. Named list of divergence results.
-#' @export
-setGeneric("divergence<-", function(object, value) {
-    standardGeneric("divergence<-")
-})
-
-#' @rdname divergence
-#' @export
-setMethod("divergence<-", "TSENATAnalysis", function(object, value) {
-    if (!is.list(value)) {
-        stop("divergence value must be a list", call. = FALSE)
-    }
-    object@divergence_results <- value
-    object
-})
-
-#' Setter for pairwise comparison results stored in @pairwise_results
-#'
-#' @rdname pairwiseResults
-#' @param object TSENATAnalysis object
-#' @param value list. Named list of pairwise comparison results.
-#' @export
-setGeneric("pairwiseResults<-", function(object, value) {
-    standardGeneric("pairwiseResults<-")
-})
-
-#' @rdname pairwiseResults
-#' @export
-setMethod("pairwiseResults<-", "TSENATAnalysis", function(object, value) {
-    if (!is.list(value)) {
-        stop("pairwiseResults value must be a list", call. = FALSE)
-    }
-    object@pairwise_results <- value
-    object
-})
-
-#' Setter for rank test q-value interaction results stored in @lm_results$rank_test
-#'
-#' @rdname rankResults
-#' @param object TSENATAnalysis object
-#' @param value list or data.frame. Rank test q-value interaction results.
-#' @export
-setGeneric("rankResults<-", function(object, value) {
-    standardGeneric("rankResults<-")
-})
-
-#' @rdname rankResults
-#' @export
-setMethod("rankResults<-", "TSENATAnalysis", function(object, value) {
-    if (!is.list(value) && !is.data.frame(value)) {
-        stop("rankResults value must be a list or data.frame", call. = FALSE)
-    }
-    if (!is.list(object@lm_results)) {
-        object@lm_results <- list()
-    }
-    object@lm_results$rank_test <- value
-    object
-})
-
-# ============================================================================
-# JACKKNIFE ACCESSOR
-# ============================================================================
-
-#' Extract jackknife resampling results
-#'
-#' @param object \code{TSENATAnalysis} object.
-#' @param q \code{numeric}. Q-value for jackknife results (e.g., 1.0).
-#'   If NULL (default), returns all q-values.
-#'
-#' @return Jackknife result object (confidence intervals, resamples, etc.).
-#'
-#' @details
-#' Jackknife results are stored per q-value. Use this to access confidence
-#' intervals and diagnostic information from resampling.
-#'
-#' @seealso
-#' Other TSENATAnalysis accessors:  \code{\link{diversity}},
-#'  \code{\link{divergence}},
-#' \code{\link{lmResults}}, \code{\link{se}}, \code{\link[S4Vectors]{metadata}}
-#'
-#' @examples
-#' # Load real TSENAT data and run jackknife analysis
-#' data(readcounts)
-#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package
-#' = 'TSENAT'),
-#'   header = TRUE, sep = '\t')
-#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' config <- tsenat_config(sample_col = 'sample', condition_col = 'condition')
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
-#' gff3_file, metadata = metadata_df, config = config,
-#'   tpm = tpm, effective_length = effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
-#' = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
-#' analysis <- jackknife_entropy_outliers_s4(analysis, q = c(0.5, 1.0, 1.5))
-#' jk_results <- jeoResults(analysis)
-#'
-#' @export
-setGeneric("jeoResults", function(object, q = NULL) {
-    standardGeneric("jeoResults")
-})
-
-#' @rdname jeoResults
-#' @export
-setMethod("jeoResults", "TSENATAnalysis", function(object, q = NULL) {
-    if (length(object@jackknife_results) == 0) {
-        warning("No jackknife entropy outlier results found. Run jackknife_entropy_outliers_s4() first.")
-        return(NULL)
-    }
-
-    if (is.null(q)) {
-        # Return all entropy outlier results (exclude multi_q if present)
-        results <- object@jackknife_results
-        results[names(results) != "multi_q"]
-    } else {
-        # Format q-value key - must match storage format used by
-        # jackknife_entropy_outliers_s4() Storage uses formatC(..., digits = 3)
-        # format to create keys like 'q_1.000'
-        q_key <- paste0("q_", formatC(q, format = "f", digits = 3))
-
-        if (!(q_key %in% names(object@jackknife_results))) {
-            stop("Q-value ", q, " not found in jackknife entropy outlier results.\n",
-                "Available q-values: ", paste(names(object@jackknife_results), collapse = ", "),
-                call. = FALSE)
-        }
-
-        object@jackknife_results[[q_key]]
-    }
-})
-
-# ============================================================================
-# JACKKNIFE ISOFORM SWITCHING ACCESSOR
-# ============================================================================
-
-#' Extract jackknife isoform switching results
-#'
-#' @param object \code{TSENATAnalysis} object.
-#' @param q \code{numeric} or NULL. Q-value for specific results.
-#'   If NULL, returns all isoform switching jackknife results.
-#' @param rankBy \code{character}. Ranking method: 'none' (default, unranked),
-#'   'pvalue' (by p-value), 'qvalue' (by adjusted p-value), 'effectSize',
-#'   or 'none' (unranked). Default: 'none'.
-#' @param n \code{integer} or NULL. Top N results to return. If NULL, returns all.
-#' @param filterFDR \code{numeric} or NULL. FDR threshold for filtering. If specified,
-#'   returns only results with adjusted p-value <= filterFDR.
-#' @param ... Additional parameters passed to \code{\link{results}}.
-#'
-#' @return List of isoform switching jackknife results, or NULL if not computed.
-#'
-#' @details
-#' Jackknife isoform switching results are computed separately from entropy outliers.
-#' Use this to access isoform switching analysis results with optional ranking.
-#'
-#' Results include leave-one-out diagnostics for detecting genes with
-#' condition-specific isoform switching patterns across q-values.
-#'
-#' If \code{rankBy != 'none'}, delegates to \code{\link{results}} to support
-#' ranked extraction across result types.
-#'
-#' @examples
-#' # Load data and build analysis 
-#' data(readcounts, package = 'TSENAT')
-#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
-#'   header = TRUE, sep = '\t')
-#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#'
-#' # TPM and effective_length REQUIRED for filter_analysis_s4()
-#' tpm <- matrix(runif(nrow(readcounts) * ncol(readcounts), 0.1, 10),
-#'               nrow = nrow(readcounts), ncol = ncol(readcounts),
-#'               dimnames = dimnames(readcounts))
-#' effective_length <- matrix(100, nrow = nrow(readcounts), ncol = ncol(readcounts))
-#'
-#' # Build analysis object
-#' config <- tsenat_config(sample_col = 'sample', condition_col = 'condition')
-#' analysis <- build_analysis_s4(readcounts = readcounts,
-#'                              tx2gene = gff3_file,
-#'                              metadata = metadata_df,
-#'                              tpm = tpm,
-#'                              effective_length = effective_length,
-#'                              config = config)
-#'
-#' # Filter low-abundance transcripts
-#' analysis <- filter_analysis_s4(analysis, stringency = 'medium')
-#'
-#' # Calculate diversity
-#' analysis <- calculate_diversity_s4(analysis, q = c(1.0, 2.0), norm = TRUE)
-#'
-#' # Run jackknife isoform switching analysis
-#' analysis <- jackknife_isoform_switching_s4(analysis, q = 1.0)
-#'
-#' # Extract isoform switching results for q = 1.0
-#' jis_results <- jisResults(analysis, q = 1.0)
-#' 
-#' # Extract all isoform switching results
-#' all_jis <- jisResults(analysis)
-#'
-#' # Extract top 20 jackknife results by p-value
-#' top_jis_pval <- jisResults(analysis, rankBy = "pvalue", n = 20)
-#'
-#' # Extract significant results (FDR < 0.05) ranked by effect size
-#' sig_jis <- jisResults(analysis, rankBy = "effectSize", filterFDR = 0.05)
-#'
-#' @export
-setGeneric("jisResults", function(object, q = NULL, rankBy = "none", n = NULL, 
-                               filterFDR = NULL, ...) {
-    standardGeneric("jisResults")
-})
-
-#' @rdname jisResults
-#' @export
-setMethod("jisResults", "TSENATAnalysis", function(object, q = NULL, rankBy = "none", 
-                                                   n = NULL, filterFDR = NULL, ...) {
-    # Thin wrapper around results() - delegates to canonical API
-    # with proper parameter mapping
-    result <- results(object, type = "jackknife", q = q, rankBy = rankBy, 
-                        n = n, filterFDR = filterFDR, ...)
-    
-    if (is.null(result)) {
-        warning("No jackknife isoform switching results found. Run jackknife_isoform_switching_s4() first.")
-        return(NULL)
-    }
-    
-    result
-})
-
-# ============================================================================
-# DIVERGENCE ACCESSOR
-# ============================================================================
-
-#' Extract divergence results
-#'
-#' @param object \code{TSENATAnalysis} object.
-#' @param component \code{character}. Component to extract: NULL (all),
-#'   'tsallis_divergence', 'effect_sizes', etc.
-#'
-#' @return SummarizedExperiment or data.frame with divergence metrics.
-#'
-#' @details
-#' Divergence results are stored in @divergence_results with component names
-#' corresponding to different divergence metrics.
-#'  Use \code{divergence(analysis)}
-#' to retrieve all components or specify a component for targeted extraction.
-#'
-#' @seealso
-#' Other TSENATAnalysis accessors:  \code{\link{diversity}},
-#' \code{\link{lmResults}}, \code{\link{se}}, \code{\link[S4Vectors]{metadata}}
-#' @examples
-#' # Load real TSENAT data and calculate divergence
-#' data(readcounts)
-#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package
-#' = 'TSENAT'),
-#'   header = TRUE, sep = '\t')
-#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' config <- tsenat_config(sample_col = 'sample', condition_col = 'condition')
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
-#' gff3_file, metadata = metadata_df, config = config,
-#'   tpm = tpm, effective_length = effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
-#' = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
-#' analysis <- calculate_divergence_s4(analysis)
-#' div_res <- divergence(analysis)
-#'
-#' @export
-setGeneric("divergence", function(object, component = NULL) {
-    standardGeneric("divergence")
-})
-
-#' @rdname divergence
-#' @export
-setMethod("divergence", "TSENATAnalysis", function(object, component = NULL) {
-    # Thin wrapper around results() - delegates to canonical API
-    result <- results(object, type = "divergence")
-    
-    if (is.null(result)) {
-        warning("No divergence results found. Run calculate_divergence_s4() first.")
-        return(NULL)
-    }
-    
-    if (is.null(component)) {
-        # Return all results
-        return(result)
-    }
-    
-    # Extract specific component if it's a list
-    if (is.list(result) && component %in% names(result)) {
-        return(result[[component]])
-    }
-    
-    stop("Component '", component, "' not found in divergence_results.\n", "Available: ",
-        paste(names(result), collapse = ", "), call. = FALSE)
-})
-
-# ============================================================================
-# EFFECT SIZE DIVERGENCE ACCESSOR
-# ============================================================================
-
-#' Extract effect size divergence results
-#'
-#' @param object \code{TSENATAnalysis} object.
-#'
-#' @return List containing effect size divergence results with components:
-#'   interaction_results (divergence values for interaction), 
-#'   condition_results (divergence values for condition condition), etc.
-#'
-#' @details
-#' Effect size divergence results are computed by \code{effect_sizes_divergence_s4()}
-#' and stored in \code{analysis@metadata$effect_sizes_divergence}.
-#' Results are organized as a list where each element corresponds to a component
-#' (e.g., interaction_results contains a matrix of divergence values).
-#' Unlike other result accessors, effect size divergence results do not support
-#' filterFDR() or rankBy() operations through the results() function -
-#' access metadata directly for advanced filtering.
-#'
-#' @seealso
-#' Other TSENATAnalysis accessors: \code{\link{diversity}},\code{\link{divergence}},
-#' \code{\link{lmResults}}, \code{\link{se}}; 
-#' Computation: \code{\link{effect_sizes_divergence_s4}}
-#' @examples
-#' # Load real TSENAT data
-#' data(readcounts)
-#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package
-#' = 'TSENAT'),
-#'   header = TRUE, sep = '\t')
-#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' config <- tsenat_config(sample_col = 'sample', condition_col = 'condition')
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
-#' gff3_file, metadata = metadata_df, config = config)
-#' analysis <- calculate_divergence_s4(analysis)
-#' analysis <- effect_sizes_divergence_s4(analysis)
-#' eff_div <- effectSizesDivergence(analysis)
-#'
-#' @export
-setGeneric("effectSizesDivergence", function(object) {
-    standardGeneric("effectSizesDivergence")
-})
-
-#' @rdname effectSizesDivergence
-#' @export
-setMethod("effectSizesDivergence", "TSENATAnalysis", function(object) {
-    result <- S4Vectors::metadata(object)$effect_sizes_divergence
-    
-    if (is.null(result)) {
-        warning("No effect size divergence results found. Run effect_sizes_divergence_s4() first.")
-        return(NULL)
-    }
-    
-    return(result)
-})
-
-# ============================================================================
-# SWITCHING TABLES ACCESSOR
-# ============================================================================
-
-#' Extract gene switching comparison tables
-#'
-#' @param object \code{TSENATAnalysis} object.
-#'
-#' @return List containing gene switching comparison tables with components:
-#'   summary_df (gene-level summary), comparison_tables (transcript-level metrics),
-#'   top_genes_list (top genes by significance), q_metadata (q-value info), etc.
-#'   Returns NULL if switching tables have not been computed.
-#'
-#' @details
-#' Gene switching comparison tables are computed by \code{prepare_gene_switching_tables_s4()}
-#' and stored in \code{analysis@metadata$switching_tables}.
-#' Results include gene-level summaries across q-values and transcript-level
-#' switching metrics. Use this accessor to retrieve the full comparison tables
-#' after calling prepare_gene_switching_tables_s4().
-#'
-#' @seealso
-#' Other TSENATAnalysis accessors: \code{\link{diversity}}, \code{\link{divergence}},
-#' \code{\link{lmResults}}, \code{\link{jisResults}}, \code{\link{effectSizesDivergence}};
-#' Computation: \code{\link{prepare_gene_switching_tables_s4}}
-#' @examples
-#' # Load real TSENAT data
-#' data(readcounts)
-#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package
-#' = 'TSENAT'),
-#'   header = TRUE, sep = '\t')
-#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' config <- tsenat_config(sample_col = 'sample', condition_col = 'condition')
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
-#' gff3_file, metadata = metadata_df, config = config, tpm = tpm,
-#' effective_length = effective_length)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
-#' analysis <- calculate_lm_interaction_s4(analysis)
-#' analysis <- jackknife_isoform_switching_s4(analysis)
-#' analysis <- prepare_gene_switching_tables_s4(analysis, n_top_genes = 10)
-#' tables <- switchingTables(analysis)
-#' if (!is.null(tables)) head(tables$summary_df)
-#'
-#' @export
-setGeneric("switchingTables", function(object) {
-    standardGeneric("switchingTables")
-})
-
-#' @rdname switchingTables
-#' @export
-setMethod("switchingTables", "TSENATAnalysis", function(object) {
-    result <- S4Vectors::metadata(object)$switching_tables
-    
-    if (is.null(result)) {
-        warning("No gene switching tables found. Run prepare_gene_switching_tables_s4() first.")
-        return(NULL)
-    }
-    
-    return(result)
-})
-
 # ============================================================================
 # PLOT ACCESSORS
 # ============================================================================
@@ -1010,14 +208,8 @@ setMethod("switchingTables", "TSENATAnalysis", function(object) {
 #' = 200)
 #' all_plots <- getPlot(analysis)
 #'
-#' @noRd
-setGeneric("getPlot", function(object, type = NULL) {
-    standardGeneric("getPlot")
-})
-
-#' @rdname getPlot
-
-#' @noRd
+#' @rdname TSENATAnalysis-methods
+#' @export
 setMethod("getPlot", "TSENATAnalysis", function(object, type = NULL) {
     if (is.null(type)) {
         # Return all plots (empty list if none exist)
@@ -1057,15 +249,8 @@ setMethod("getPlot", "TSENATAnalysis", function(object, type = NULL) {
 #' analysis <- TSENATAnalysis(se)
 #' # analysis <- addPlot(analysis, type = 'example', plot = NULL)
 #'
-
-#' @noRd
-setGeneric("addPlot", function(object, type, plot, replace = FALSE) {
-    standardGeneric("addPlot")
-})
-
-#' @rdname addPlot
-
-#' @noRd
+#' @rdname TSENATAnalysis-methods
+#' @export
 setMethod("addPlot", "TSENATAnalysis", function(object, type, plot, replace = FALSE) {
     if (!replace && type %in% names(object@plots)) {
         warning("Plot type '", type, "' already exists. Set replace=TRUE to overwrite.",
@@ -1107,6 +292,7 @@ setMethod("addPlot", "TSENATAnalysis", function(object, type, plot, replace = FA
 #' = 200)
 #' show(analysis)
 #'
+#' @rdname TSENATAnalysis-methods
 #' @export
 setMethod("show", "TSENATAnalysis", function(object) {
     n_genes <- nrow(object@se)
@@ -1174,6 +360,7 @@ setMethod("show", "TSENATAnalysis", function(object) {
 #' = 200)
 #' summary(analysis)
 #'
+#' @rdname TSENATAnalysis-methods
 #' @export
 setMethod("summary", "TSENATAnalysis", function(object) {
     message("TSENAT Analysis Summary")
@@ -1416,11 +603,13 @@ setMethod("summary", "TSENATAnalysis", function(object) {
 #' config <- getConfig(analysis)
 #' print(config$q_values)
 #'
+#' @rdname TSENATAnalysis-methods
 #' @export
 setGeneric("getConfig", function(object) {
     standardGeneric("getConfig")
 })
 
+#' @rdname TSENATAnalysis-methods
 #' @export
 setMethod("getConfig", "TSENATAnalysis", function(object) {
     object@config
@@ -1476,12 +665,13 @@ setMethod("getConfig", "TSENATAnalysis", function(object) {
 #' current_config <- getConfig(analysis)
 #' print(current_config$q_values)  # Shows c(0.5, 1.0, 1.5)
 #'
+#' @rdname TSENATAnalysis-methods
 #' @export
 setGeneric("setConfig", function(object, value) {
     standardGeneric("setConfig")
 })
 
-#' @rdname setConfig
+#' @rdname TSENATAnalysis-methods
 #' @aliases setConfig,TSENATAnalysis-method
 #' @keywords internal
 #'
@@ -1566,12 +756,13 @@ setMethod("setConfig", "TSENATAnalysis", function(object, value) {
 #' config <- getConfig(analysis)
 #' print(config$q_values)  # Shows c(0.5, 1.0, 1.5)
 #'
+#' @rdname TSENATAnalysis-methods
 #' @export
 setGeneric("setConfigValue", function(object, key, value) {
     standardGeneric("setConfigValue")
 })
 
-#' @rdname setConfigValue
+#' @rdname TSENATAnalysis-methods
 #' @aliases setConfigValue,TSENATAnalysis-method
 #' @keywords internal
 #'
@@ -1635,6 +826,7 @@ setMethod("setConfigValue", "TSENATAnalysis", function(object, key, value) {
 #'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
+#' @rdname TSENATAnalysis-methods
 #' @export
 setGeneric("se", function(object) {
     standardGeneric("se")
@@ -1647,7 +839,7 @@ if (!isGeneric("metadata")) {
     })
 }
 
-#' @rdname se
+#' @rdname TSENATAnalysis-methods
 #' @export
 setMethod("se", "TSENATAnalysis", function(object) {
     object@se
@@ -1684,7 +876,7 @@ setMethod("se", "TSENATAnalysis", function(object) {
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' @noRd
-#' @rdname metadata
+#' @rdname TSENATAnalysis-methods
 
 setMethod("metadata", "TSENATAnalysis", function(x, key = NULL) {
     if (is.null(key)) {

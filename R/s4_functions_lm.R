@@ -133,8 +133,8 @@
 #'   method = 'gam'
 #' )
 #' 
-#' # View top interaction results (first 3 genes)
-#' res <- lmResults(analysis)
+#' # View top interaction results using unified accessor (first 3 genes)
+#' res <- results(analysis, type = "lm")
 #' if (!is.null(res)) head(res, 3)
 #'
 #' @export

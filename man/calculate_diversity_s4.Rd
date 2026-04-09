@@ -265,9 +265,9 @@ gff3_dataset, metadata = metadata_df, config = config,
 analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 = 200)
 
-# Compute diversity and access results
+# Compute diversity and access results using unified accessor
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0), verbose =
 FALSE)
-head(diversity(analysis, q = 1.0))
+head(results(analysis, type = "diversity", q = 1.0))
 
 }

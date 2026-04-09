@@ -35,7 +35,8 @@ Default: NULL (no file output).}
 \item{...}{Additional arguments passed to the base function.}
 }
 \value{
-A list containing:
+Modified \code{TSENATAnalysis} object with switching tables stored in
+  \code{analysis@metadata$switching_tables}. The switching_tables list contains:
   \describe{
     \item{\code{$summary_table}}{Gene-level summary with LM p-values and
           significant q-values}
@@ -93,7 +94,9 @@ analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
 analysis <- calculate_lm_interaction_s4(analysis, method = 'gam')
 analysis <- jackknife_isoform_switching_s4(analysis, n_bootstrap = 50)
-tables <- prepare_gene_switching_tables_s4(analysis)
+analysis <- prepare_gene_switching_tables_s4(analysis)
+# Access tables from metadata
+tables <- S4Vectors::metadata(analysis)$switching_tables
 head(tables$summary_df)
 
 }

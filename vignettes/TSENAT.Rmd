@@ -352,15 +352,14 @@ analysis <- calculate_diversity_s4(
     norm = TRUE
 )
 
-# Extract diversity results using results accessor (or diversity() S4 accessor)
+# Extract diversity results using results accessor
 diversity_results <- results(analysis, type = "diversity")
-# Alternative: diversity_results <- diversity(analysis)
 # Display structure of diversity results (list of SummarizedExperiment objects)
 str(diversity_results, max.level = 2)
 ```
 
 ```{r display-tsallis-table, echo = FALSE}
-# Extract diversity results for three specific q values using the diversity() accessor
+# Extract diversity results for three specific q values using the results() accessor
 # Show entropy values for ONE sample across three q values (0.05, 1, 2)
 # Note: q=0 (richness) is computed deterministically outside bootstrap to avoid discrete data artifacts
 
@@ -369,7 +368,7 @@ sample_data <- NULL
 first_sample_name <- NULL
 
 for (q_val in q_values_to_show) {
-    div_q <- diversity(analysis, q = q_val)
+    div_q <- results(analysis, type = "diversity", q = q_val)
     
     if (!is.null(div_q)) {
         # Extract matrix from SummarizedExperiment
@@ -504,16 +503,15 @@ if (requireNamespace("mgcv", quietly = TRUE)) {
         multicorr = "hochberg"
     )
     
-    # Extract LM interaction results using results accessor (or lmResults() S4 accessor)
+    # Extract LM interaction results using results accessor
     lm_results <- results(analysis, type = "lm", rankBy = "pvalue", n = 10)
-    # Alternative: lm_results <- lmResults(analysis)
     cat("Top 10 genes by p-value:\n")
     print(lm_results)
 }
 ```
 
 ```{r display-interaction-results, echo = FALSE}
-lm_res <- lmResults(analysis)
+lm_res <- results(analysis, type = "lm")
 if (!is.null(lm_res) && is.data.frame(lm_res) && nrow(lm_res) > 0) {
     display <- head(lm_res, 6)
     
@@ -610,9 +608,8 @@ analysis <- jackknife_isoform_switching_s4(
     threshold = 90
 )
 
-# Extract jackknife results using results accessor (specify q value, or use jisResults() S4 accessor)
+# Extract jackknife results using results accessor (specify q value)
 jackknife_q1 <- results(analysis, type = "jackknife", q = 1.0, rankBy = "pvalue", n = 20)
-# Alternative: jackknife_q1 <- jisResults(analysis, q = 1.0)
 cat("Top 20 jackknife genes by p-value (q = 1.0):\n")
 print(jackknife_q1)
 ```
@@ -629,10 +626,8 @@ analysis <- prepare_gene_switching_tables_s4(
     n_top_genes = 2
 )
 
-# Access tables using the switchingTables() S4 accessor
-tables_result <- switchingTables(analysis)
-# Alternatively: results(analysis, type = "switching_tables")
-# Or direct access: S4Vectors::metadata(analysis)$switching_tables
+# Extract tables using results accessor
+tables_result <- results(analysis, type = "switching_tables")
 ```
 
 ```{r display-switching-table, echo=FALSE, results='asis'}
@@ -750,17 +745,16 @@ treatment groups across all q-dependent scales [@I060].
 # using bootstrap confidence intervals across all configured q-values from getConfig(analysis)$q_values
 analysis <- calculate_divergence_s4(analysis)
 
-# Extract divergence results using results accessor (or divergence() S4 accessor)
+# Extract divergence results using results accessor
 divergence_results <- results(analysis, type = "divergence")
-# Alternative: divergence_results <- divergence(analysis)
 head(divergence_results, n = 10)
 ```
 
 
 ```{r divergence-assay-display, echo = FALSE}
-# Display the raw divergence computation results using S4 accessor method
+# Display the raw divergence computation results
 if (exists("analysis")) {
-    div_results <- divergence(analysis)
+    div_results <- results(analysis, type = "divergence")
     
     # Extract divergence data - format depends on how it's stored in divergence_results slot
     if (is.matrix(div_results) && nrow(div_results) > 0) {
@@ -819,19 +813,17 @@ divergence_results_se <- NULL
 lm_res_results <- NULL
 
 if (exists("analysis")) {
-    # Use the new effectSizesDivergence() S4 accessor for clean access to results
-    effect_res <- effectSizesDivergence(analysis)
-    # Alternatively: results(analysis, type = "effect_sizes_divergence")
-    # Or direct: S4Vectors::metadata(analysis)$effect_sizes_divergence
+    # Extract effect size divergence results using results accessor
+    effect_res <- results(analysis, type = "effect_sizes_divergence")
     
     if (!is.null(effect_res) && !is.null(effect_res$interaction_results)) {
         lm_res_results <- effect_res$interaction_results
     }
 }
 
-# Also extract raw divergence using S4 accessor method (optional)
+# Also extract raw divergence results (optional)
 if (exists("analysis")) {
-    divergence_results_se <- divergence(analysis)
+    divergence_results_se <- results(analysis, type = "divergence")
 }
 ```
 

@@ -61,10 +61,13 @@
 #'   }
 #'
 #' @details
-#' Access results via accessor methods (recommended):
-#' \code{diversity(obj, q)} for diversity, \code{lmResults(obj)} for models,
-#' \code{jeoResults(obj, q)} for entropy outlier jackknife, \code{jisResults(obj, q)} for isoform switching jackknife,
-#' \code{getMeta(obj)} for metadata.
+#' Access results via the unified \code{results(obj, type = ...)} accessor method:
+#' - \code{type="diversity"} for Tsallis entropy across q-values
+#' - \code{type="lm"} for linear model interaction results
+#' - \code{type="rank_test"} for Friedman rank-based test results
+#' - \code{type="divergence"} for divergence metrics
+#' - \code{type="jackknife"} for jackknife resampling results
+#' Use \code{metadata(obj)} to access reproducibility metadata.
 #'
 #' @rdname TSENATAnalysis-class
 #' @exportClass TSENATAnalysis
