@@ -22,9 +22,9 @@ calculate_divergence(
 \arguments{
 \item{analysis}{\code{TSENATAnalysis} object.}
 
-\item{q}{\code{numeric}. Q-value for divergence.
-If NULL, uses first q_value from @config$q_values if available, else
-defaults to 1.0.}
+\item{q}{\code{numeric}. Q-value(s) for divergence (single value or vector).
+If NULL, reads from \code{analysis@config$q}. If not in config, defaults to 
+seq(0.01, 2, by = 0.05) for full spectrum computation.}
 
 \item{verbose}{\code{logical}. Print progress messages. Default: TRUE.}
 

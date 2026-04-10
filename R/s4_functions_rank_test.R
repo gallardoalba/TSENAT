@@ -25,6 +25,7 @@
 #' Detect q-dependent gene interactions
 #'
 #' @param analysis \code{TSENATAnalysis} object.
+
 #' @param output_file \code{character} or  \code{NULL}.
 #'  Optional file path to save results.
 #'   Supported formats: .rds (for S4 objects). Default: NULL (no file output).
@@ -87,7 +88,7 @@
 #' **Parameter resolution priority** (explicit > @config > default/auto-detect):
 #' \itemize{
 #'   \item \code{condition_col}: REQUIRED - must be explicitly provided
-#'   \item \code{q}: ALWAYS auto-detected from diversity results (cannot be overridden)
+#'   \item \code{q}: ALWAYS auto-detected from diversity_results (all q-values tested together)
 #'   \item \code{paired}: explicit arg > \code{@config$paired} > FALSE (default)
 #'   \item \code{subject_col}: explicit arg > \code{@config$subject_col}
 #'   \item \code{multicorr}:
@@ -146,7 +147,7 @@ calculate_rank_test <- function(analysis, condition_col, output_file = NULL,
     condition_col <- .validate_rank_test_input(analysis, condition_col)
 
     # PHASE 2: Resolve parameters from config + explicit args
-    # Note: q is NOT a parameter - always auto-detected from diversity results
+    # Note: q-values are ALWAYS auto-detected from diversity_results
     param_result <- .resolve_rank_test_params(analysis, test, multicorr, nperm_mode,
         paired, subject_col, nthreads, wy_randomizations, entropy_col, q_col,
         gene_col)
@@ -237,7 +238,7 @@ calculate_rank_test <- function(analysis, condition_col, output_file = NULL,
     dots$gene_col <- gene_col
 
     # Use resolve_slot_param for remaining parameters
-    # Note: q is NOT resolved here - always auto-detected from diversity results
+    # Note: q is NOT resolved here - always auto-detected from diversity_results in .prepare_multi_q_se()
     paired <- resolve_slot_param(paired, analysis@config, "paired", NULL)
     subject_col <- resolve_slot_param(subject_col, analysis@config, "subject_col",
         NULL)

@@ -112,7 +112,7 @@ data(readcounts, package = 'TSENAT')
 
 # Create TSENATAnalysis from count matrix
 config <- TSENAT_config(
-  q_values = c(0.5, 1.0, 2.0),
+  q = 1.0,
   condition_col = 'group'
 )
 se <- SummarizedExperiment::SummarizedExperiment(

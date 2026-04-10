@@ -5542,7 +5542,7 @@ gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 config <- TSENAT_config(
     condition_col = "condition",
     subject_col = "paired_samples",
-    q_values = seq(0, 2, by = 0.05),
+    q = seq(0, 2, by = 0.05),
     paired = TRUE,
     control = "normal"
 )

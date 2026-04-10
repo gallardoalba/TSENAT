@@ -139,7 +139,7 @@ gff3_dataset, metadata = metadata_df, config = config,
   tpm = tpm, effective_length = effective_length)
 analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 = 200)
-analysis <- calculate_diversity(analysis, q = seq(0.5, 2, by = 0.5),
+analysis <- calculate_diversity(analysis, q = seq(0, 2, by = 0.5),
 )
 p <- plot_diversity_spectrum(analysis)
 if (!is.null(p)) print(p)

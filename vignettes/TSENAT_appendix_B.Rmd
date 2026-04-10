@@ -130,7 +130,7 @@ config <- TSENAT_config(
   sample_col = "sample",
   condition_col = "condition",
   subject_col = "paired_samples",
-  q_values = seq(0, 2, by = 0.05),
+  q = seq(0, 2, by = 0.05),
   nthreads = 3,
   paired = TRUE,
   control = "normal"
@@ -466,6 +466,19 @@ if ("p_interaction" %in% colnames(gam_results)) {
       numeric_cols <- sapply(gam_display, is.numeric)
       gam_display[, numeric_cols] <- round(gam_display[, numeric_cols], 3)
       
+      # Format p-value columns with scientific notation for very small values
+      if ("p_interaction" %in% colnames(gam_display)) {
+        gam_display$p_interaction <- sapply(gam_display$p_interaction, function(x) {
+          if (is.na(x)) "NA" else if (x < 1e-10) sprintf("%.2e", x) else sprintf("%.3f", x)
+        })
+      }
+      
+      if ("adj_p_interaction" %in% colnames(gam_display)) {
+        gam_display$adj_p_interaction <- sapply(gam_display$adj_p_interaction, function(x) {
+          if (is.na(x)) "NA" else if (x < 1e-10) sprintf("%.2e", x) else sprintf("%.3f", x)
+        })
+      }
+      
       # Format effect size as percentage
       if ("effect_size" %in% colnames(gam_display)) {
         gam_display$effect_size <- sapply(gam_display$effect_size, function(x) {
@@ -636,8 +649,16 @@ if (!is.null(high_conf) && nrow(high_conf) > 0) {
 
 ```{r visualize-method-concordance, fig.width=10, fig.height=8, out.width="98%", fig.pos="H", fig.cap="**Method concordance visualization** comparing Friedman rank-based and GAM approaches for detecting q$\\times$condition interactions. Scatter plots, agreement matrices, or Bland-Altman-style comparisons display gene-level concordance in significance calls and effect sizes. Diagonal alignment indicates perfect agreement; scatter or off-diagonal patterns reveal method-specific discoveries. Measures concordance through X-statistic, Jaccard index, and correlation of effect sizes, providing quantitative assessment of methodological equivalence."}
 # Create comparison plot using S4 wrapper
-p <- plot_concordance(analysis_with_concordance, verbose = TRUE)
+# Check if concordance analysis was successful
+concordance_results <- metadata(analysis_with_concordance, "method_concordance")
+if (!is.null(concordance_results) && !is.null(concordance_results$comparison_df) && nrow(concordance_results$comparison_df) > 0) {
+  p <- plot_concordance(analysis_with_concordance, verbose = TRUE)
   print(p)
+} else {
+  message("Note: Insufficient overlapping genes between GAM and Friedman results for concordance visualization.")
+  message("This can occur when gene filtering strategies differ between methods.")
+  message("Proceeding with tabular comparison instead.")
+}
 ```
 
 ***

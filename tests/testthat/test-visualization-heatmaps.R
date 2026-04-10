@@ -1001,7 +1001,7 @@ test_that("S4 plotting functions work on complete analysis object", {
   # Add all required calculations
   analysis <- calculate_diversity(analysis, q = c(0.5, 1.0), verbose = FALSE)
   analysis <- calculate_divergence(analysis, q = c(0.5, 1.0), verbose = FALSE)
-  analysis <- calculate_difference(analysis, method = "median", verbose = FALSE)
+  analysis <- calculate_difference(analysis, q = 1.0, method = "median", verbose = FALSE)
   analysis <- calculate_jis(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
   
   # All three should execute successfully without error

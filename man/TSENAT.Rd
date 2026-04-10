@@ -63,7 +63,7 @@ gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 config <- TSENAT_config(
   sample_col = "sample",
   condition_col = "condition",
-  q_values = c(0.5, 1.0, 1.5, 2.0, 2.5),
+  q = 1.0,
   generate_plots = FALSE
 )
 analysis <- build_analysis(

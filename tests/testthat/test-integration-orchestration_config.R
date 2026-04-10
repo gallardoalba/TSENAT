@@ -40,7 +40,7 @@ make_test_se <- function() {
     sample_col = "sample",
     condition_col = "condition",
     subject_col = "paired_samples",
-    q_values = seq(0, 2, by = 0.05),  # ~41 q-values matching workflow.R for sufficient GAM data points
+    q = seq(0, 2, by = 0.05),  # ~41 q-values matching workflow.R for sufficient GAM data points
     paired = TRUE,
     control = "normal",
     stringency = "severe",
@@ -74,9 +74,9 @@ test_that("TSENAT_config creates config with defaults", {
   
   expect_true(is.list(config))
   # These fields are always present
-  expect_true(all(c("p_threshold", "q_values", "p_threshold") %in% names(config)))
+  expect_true(all(c("p_threshold", "q", "p_threshold") %in% names(config)))
   # seed is optional, only included if specified
-  expect_true("q_values" %in% names(config))
+  expect_true("q" %in% names(config))
 })
 
 test_that("TSENAT_config accepts custom parameters", {
@@ -89,13 +89,13 @@ test_that("TSENAT_config accepts custom parameters", {
 test_that("TSENAT_config stores all provided arguments", {
   config <- TSENAT_config(
     p_threshold = 0.05,
-    q_values = c(0.5, 1.0, 1.5),
+    q = c(0.5, 1.0, 1.5),
     norm = "none"
   )
   
   expect_equal(config$p_threshold, 0.05)
   expect_equal(config$norm, "none")
-  expect_equal(length(config$q_values), 3)
+  expect_equal(length(config$q), 3)
 })
 
 # ============================================================================
@@ -221,12 +221,12 @@ test_that("tsenat passes config parameters to analysis methods", {
 # TEST: Configuration validation
 # ============================================================================
 
-test_that("TSENAT_config validates q_values if provided", {
-  # q_values should be numeric
-  config <- TSENAT_config(q_values = c(0.5, 1.0, 1.5))
-  
-  expect_true(is.numeric(config$q_values))
-  expect_true(length(config$q_values) >= 1)
+test_that("TSENAT_config validates q if provided", {
+  # q should be numeric
+  config <- TSENAT_config(q = c(0.5, 1.0, 1.5))
+
+  expect_true(is.numeric(config$q))
+  expect_true(length(config$q) >= 1)
 })
 
 test_that("TSENAT_config accepts stringency parameter", {
@@ -442,14 +442,14 @@ test_that(".track_analysis_metadata records completed steps", {
 
 test_that(".track_analysis_metadata stores method parameters", {
   se <- make_test_se()
-  config <- TSENAT_config(fdr_threshold = 0.01, q_values = c(0.5, 1.0, 1.5))
+  config <- TSENAT_config(fdr_threshold = 0.01, q = c(0.5, 1.0, 1.5))
   analysis <- TSENATAnalysis(se, config = config)
   
   analysis_tracked <- .track_analysis_metadata(analysis, config)
   
   expect_true("methods_parameters" %in% names(analysis_tracked@metadata))
   expect_equal(analysis_tracked@metadata$methods_parameters$fdr_threshold, 0.01)
-  expect_equal(length(analysis_tracked@metadata$methods_parameters$q_values), 3)
+  expect_equal(length(analysis_tracked@metadata$methods_parameters$q), 3)
 })
 
 test_that(".track_analysis_metadata stores TSENAT version", {
@@ -1501,7 +1501,7 @@ test_that("results with q parameter filters to single SummarizedExperiment", {
   )
   
   config <- TSENAT_config(
-    q_values = c(0.5, 1.0, 1.5, 2.0),
+    q = c(0.5, 1.0, 1.5, 2.0),
     condition_col = "condition",
     sample_col = "sample_id",
     paired = FALSE
@@ -1568,7 +1568,7 @@ test_that("results with NaN diversity values handled correctly", {
   )
   
   config <- TSENAT_config(
-    q_values = c(1.0),
+    q = c(1.0),
     condition_col = "condition",
     sample_col = "sample_id",
     paired = FALSE

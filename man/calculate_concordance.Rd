@@ -89,7 +89,7 @@ config <- TSENAT_config(
   subject_col = 'paired_samples',
   paired = TRUE,
   control = 'normal',
-  q_values = seq(0, 2, by = 0.1)
+  q = seq(0, 2, by = 0.1)
 )
 
 # Build analysis with configured parameters and metadata as explicit parameter

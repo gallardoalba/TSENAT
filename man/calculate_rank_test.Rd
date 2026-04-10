@@ -7,7 +7,6 @@
 calculate_rank_test(
   analysis,
   condition_col,
-  q = NULL,
   output_file = NULL,
   paired = NULL,
   subject_col = NULL,
@@ -37,9 +36,6 @@ sample grouping/condition (REQUIRED).
 Specifies the condition/treatment variable for testing q×condition
 interactions.
   Example: 'sample_type', 'treatment', 'disease_status'.}
-
-\item{q}{\code{numeric} or \code{NULL}. Q-values to test across spectrum.
-If NULL, auto-detects from \code{@config$q_values} or diversity results.}
 
 \item{output_file}{\code{character} or  \code{NULL}.
 Optional file path to save results.
@@ -120,8 +116,7 @@ rank-based
 **Parameter resolution priority** (explicit > @config > default/auto-detect):
 \itemize{
   \item \code{condition_col}: REQUIRED - must be explicitly provided
-  \item \code{q}:
- explicit arg > \code{@config$q_values} > extract from diversity_results keys
+  \item \code{q}: ALWAYS auto-detected from diversity_results (all q-values tested together)
   \item \code{paired}: explicit arg > \code{@config$paired} > FALSE (default)
   \item \code{subject_col}: explicit arg > \code{@config$subject_col}
   \item \code{multicorr}:

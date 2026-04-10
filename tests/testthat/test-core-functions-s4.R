@@ -23,7 +23,7 @@ make_test_se <- function(n_genes = 10, n_samples = 5) {
 # Setup: Create minimal test analysis object
 make_test_analysis <- function() {
   se <- make_test_se()
-  TSENAT::TSENATAnalysis(se, config = list(q_values = c(0.5, 1.0, 1.5)))
+  TSENAT::TSENATAnalysis(se, config = list(q = c(0.5, 1.0, 1.5)))
 }
 
 # ===========================================================================
@@ -37,9 +37,9 @@ test_that(".prepare_diversity_params extracts q values from config", {
     analysis, 
     q = NULL,  # Should use config
     norm = NULL, norm_method = NULL, reference_group = NULL,
-    tpm = FALSE, assayno = NULL, verbose = NULL, what = NULL,
+    verbose = NULL, what = NULL,
     nthreads = NULL, pseudocount = NULL,
-    shrinkage = NULL, genes = NULL, effective_length = NULL,
+    shrinkage = NULL, genes = NULL,
     metadata = NULL, bootstrap = NULL, nboot = NULL,
     bootstrap_method = NULL, bootstrap_ci = NULL,
     bootstrap_include_diagnostics = NULL
@@ -49,7 +49,7 @@ test_that(".prepare_diversity_params extracts q values from config", {
   expect_named(params, c("q", "nthreads", "verbose", "show_messages", "bootstrap", "pseudocount", 
                          "min_valid_frac", "norm", "what", "assayno", "shrinkage",
                          "bootstrap_method", "bootstrap_ci", "tpm", 
-                         "genes", "effective_length", "nboot", 
+                         "genes", "nboot", 
                          "bootstrap_include_diagnostics", "metadata", "norm_method", 
                          "reference_group"))
 })
@@ -215,7 +215,6 @@ test_that(".build_calc_diversity_args includes optional parameters when present"
     bootstrap_ci = 0.95,
     tpm = FALSE,
     genes = c("gene1", "gene2"),  # Include
-    effective_length = c(1000, 2000),  # Include
     nboot = 100,  # Include
     bootstrap_include_diagnostics = TRUE,
     metadata = list(custom = "value"),  # Include
@@ -226,7 +225,6 @@ test_that(".build_calc_diversity_args includes optional parameters when present"
   args <- TSENAT:::.build_calc_diversity_args(params, analysis, list())
   
   expect_true("genes" %in% names(args))
-  expect_true("effective_length" %in% names(args))
   expect_true("bootstrap_nboot" %in% names(args))
   expect_true("metadata" %in% names(args))
 })
@@ -247,7 +245,6 @@ test_that(".build_calc_diversity_args includes ... arguments", {
     bootstrap_ci = 0.95,
     tpm = FALSE,
     genes = NULL,
-    effective_length = NULL,
     nboot = NULL,
     bootstrap_include_diagnostics = TRUE,
     metadata = NULL,
@@ -606,7 +603,6 @@ test_that(".prepare_diversity_params handles logical parameters correctly", {
     q = c(1.0),
     norm = FALSE,  # Test all logical parameters
     norm_method = NULL, reference_group = NULL,
-    tpm = TRUE,
     assayno = NULL,
     verbose = FALSE,
     what = NULL,
@@ -614,7 +610,6 @@ test_that(".prepare_diversity_params handles logical parameters correctly", {
     pseudocount = NULL,
     shrinkage = NULL,
     genes = NULL,
-    effective_length = NULL,
     metadata = NULL,
     bootstrap = TRUE,  # Test bootstrap=TRUE
     nboot = NULL,
@@ -624,7 +619,7 @@ test_that(".prepare_diversity_params handles logical parameters correctly", {
   )
   
   expect_equal(params$norm, FALSE)
-  expect_equal(params$tpm, TRUE)
+  expect_equal(params$tpm, FALSE)  # tpm is always FALSE
   expect_equal(params$verbose, FALSE)
   expect_equal(params$bootstrap, TRUE)
 })
@@ -632,7 +627,7 @@ test_that(".prepare_diversity_params handles logical parameters correctly", {
 test_that(".prepare_diversity_params merges config with defaults", {
   se <- make_test_se()
   config <- list(
-    q_values = c(0.2, 0.8),
+    q = c(0.2, 0.8),
     nthreads = 3,
     verbose = FALSE
   )
@@ -1465,8 +1460,6 @@ test_that("S4 Wrappers: all calculate_diversity arguments are accepted", {
   # Test that each argument is accepted by the function
   args_to_test <- list(
     list(norm = TRUE),
-    list(tpm = FALSE),
-    list(assayno = 1),
     list(what = "S"),
     list(bootstrap = FALSE),
     list(pseudocount = 0),
@@ -1515,7 +1508,7 @@ test_that("S4 Wrappers: calculate_difference accepts new arguments", {
     # Test that arguments are accepted
     result <- tryCatch({
       do.call(calculate_difference, 
-              c(list(analysis = analysis, control = "control", verbose = FALSE), args))
+              c(list(analysis = analysis, control = "control", q = 0.5, verbose = FALSE), args))
     }, error = function(e) {
       list(error = paste("Error:", e$message))
     })

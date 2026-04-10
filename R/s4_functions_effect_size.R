@@ -254,7 +254,7 @@
 #'   subject_col = 'paired_samples',
 #'   paired = TRUE,
 #'   control = 'normal',
-#'   q = 1.0  # Single q-value for statistical tests (Shannon entropy)
+#'   q = seq(0, 2, by = 0.5)  # Multiple q-values for LM interaction analysis (5 unique: 0, 0.5, 1, 1.5, 2)
 #' )
 #' analysis <- build_analysis(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df, config = config,

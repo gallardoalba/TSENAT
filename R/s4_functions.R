@@ -69,7 +69,7 @@
 #' config <- TSENAT_config(
 #'   sample_col = 'sample',
 #'   condition_col = 'condition',
-#'   q_values = seq(0, 2, by = 0.05),
+#'   q = seq(0, 2, by = 0.05),
 #'   paired = FALSE
 #' )
 #' 
@@ -363,15 +363,18 @@ calculate_jeo <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
 #' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 #' 'TSENAT')
 #' 
+#' # Load TPM and effective length from vignette data
+#' data(readcounts)  # Also loads tpm and effective_length
+#' 
 #' # Create config (metadata passed as explicit parameter to build_analysis)
 #' config <- TSENAT_config(
 #'   sample_col = 'sample',
 #'   condition_col = 'condition',
-#'   q_values = seq(0, 2, by = 0.05),
+#'   q = seq(0, 2, by = 0.05),
 #'   paired = FALSE
 #' )
 #' 
-#' # Build analysis from vignette data and create small subset
+#' # Build analysis from vignette data - metadata as explicit parameter
 #' analysis <- build_analysis(
 #'   readcounts = readcounts,
 #'   metadata = metadata_df,
@@ -382,7 +385,7 @@ calculate_jeo <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
 #' )
 #' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = 200)
 #' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
-#' result <- calculate_difference(analysis, control = 'normal')
+#' result <- calculate_difference(analysis, q = 1.0, control = 'normal')
 #'
 #' @export
 # ============================================================================
@@ -851,7 +854,7 @@ setMethod("calculate_rank_assumptions", signature(analysis = "TSENATAnalysis"),
 #' )
 #' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = 200)
 #' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
-#' analysis <- calculate_difference(analysis, control = 'normal')
+#' analysis <- calculate_difference(analysis, q = 1.0, control = 'normal')
 #'   
 #' # Plot volcano and MA plots
 #' p <- plot_diversity_volcano_ma(analysis, sig_alpha = 0.05, top_n = 3)
@@ -992,7 +995,7 @@ plot_diversity_volcano_ma <- function(analysis, x_col = NULL, padj_col = "padj",
 #'   subject_col = 'paired_samples',
 #'   paired = TRUE,
 #'   control = 'normal',
-#'   q_values = seq(0, 2, by = 0.1)
+#'   q = seq(0, 2, by = 0.1)
 #' )
 #'
 #' # Build analysis with configured parameters and metadata as explicit parameter
@@ -1898,7 +1901,7 @@ plot_divergence_distribution <- function(analysis, threshold = 0.1, output_file 
 #'   condition_col = 'condition',
 #'   subject_col = 'paired_samples',
 #'   paired = TRUE,
-#'   q_values = seq(0, 2, by = 0.1)
+#'   q = seq(0, 2, by = 0.1)
 #' )
 #'
 #' # Build analysis with configured parameters
@@ -2095,7 +2098,7 @@ plot_jis_delta <- function(analysis, n_genes = 4, lm_results = NULL,
 #'   subject_col = 'paired_samples',
 #'   paired = TRUE,
 #'   control = 'normal',
-#'   q_values = seq(0.2, 2.5, by = 0.15)
+#'   q = seq(0.2, 2, by = 0.4)  # 5 unique q-values: 0.2, 0.6, 1.0, 1.4, 1.8
 #' )
 #'
 #' # Build analysis with configured parameters

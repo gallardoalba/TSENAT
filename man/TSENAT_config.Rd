@@ -5,7 +5,7 @@
 \title{Create and return TSENAT configuration}
 \usage{
 TSENAT_config(
-  q_values = NULL,
+  q = 1,
   condition_col = "condition",
   subject_col = NULL,
   sample_col = "sample",
@@ -34,7 +34,11 @@ TSENAT_config(
 )
 }
 \arguments{
-\item{q_values}{\code{numeric} vector. Q-values for Tsallis entropy. Default: \code{seq(0, 2, by=0.5)}.}
+\item{q}{\code{numeric}. Q-value(s) for Tsallis entropy (single value or vector). 
+Default: 1.0 (Shannon entropy).
+Usage: \code{calculate_diversity/divergence} use this for spectrum computation 
+(if vector) or as default fallback (if single);
+\code{calculate_difference} requires single value for statistical tests.}
 
 \item{condition_col}{\code{character}. Column name in colData containing conditions. Default: 'condition'.}
 
@@ -91,17 +95,33 @@ TSENAT_config(
   specified parameters.
 }
 \description{
-Builds a configuration list for use with \code{\link{tsenat}}().
+Builds a configuration list for use with \code{\link{TSENAT}}().
 Allows specifying analysis parameters once and reusing across multiple
 analyses.
 }
 \details{
 Configuration is stored in the TSENATAnalysis@config slot and used
 by wrapper functions to configure analysis behavior.
+Note: Statistical tests (Wilcoxon, shuffle) work on a single q-value,
+so only one q-value is specified in config.
 }
 \examples{
 # Default config with standard parameters (point estimates only)
 cfg <- TSENAT_config()
+
+# For Wilcoxon/shuffle tests (single q-value required in config)
+cfg <- TSENAT_config(
+  q = 1.0,                          # Shannon entropy - for rank tests
+  condition_col = 'treatment',
+  control = 'untreated'
+)
+
+# For Friedman/LM tests (multiple q-values)
+cfg <- TSENAT_config(
+  q = seq(0, 2, by = 0.5),          # Multiple q-values for spectrum or advanced testing
+  condition_col = 'treatment',
+  control = 'untreated'
+)
 
 # With bootstrap CIs for uncertainty quantification (recommended)
 cfg <- TSENAT_config(
@@ -113,7 +133,7 @@ cfg <- TSENAT_config(
 
 # Custom with paired analysis, strict filtering, and normalization
 cfg <- TSENAT_config(
-  q_values = seq(0, 2, by = 0.05),  # Recommended for paired: 41 values
+  q = 1.0,                          # Shannon entropy
   condition_col = 'treatment',
   subject_col = 'subject_id',
   paired = TRUE,

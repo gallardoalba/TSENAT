@@ -5,15 +5,15 @@ test_that("TSENAT_config creates config with defaults", {
 
   expect_s3_class(cfg, "TSENATConfig")
   expect_true(is.list(cfg))
-  expect_true("q_values" %in% names(cfg))
+  expect_true("q" %in% names(cfg))
   expect_equal(cfg$fdr_threshold, 0.05)
   expect_equal(cfg$p_threshold, 0.05)
 })
 
-test_that("TSENAT_config accepts custom q_values", {
-  cfg <- TSENAT_config(q_values = c(0.5, 1.0, 1.5))
+test_that("TSENAT_config accepts custom q values", {
+  cfg <- TSENAT_config(q = c(0.5, 1.0, 1.5))
 
-  expect_equal(cfg$q_values, c(0.5, 1.0, 1.5))
+  expect_equal(cfg$q, c(0.5, 1.0, 1.5))
 })
 
 test_that("TSENAT_config accepts custom thresholds", {

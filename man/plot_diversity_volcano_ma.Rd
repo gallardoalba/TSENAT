@@ -143,7 +143,7 @@ analysis <- build_analysis(
 )
 analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = 200)
 analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
-analysis <- calculate_difference(analysis, control = 'normal')
+analysis <- calculate_difference(analysis, q = 1.0, control = 'normal')
   
 # Plot volcano and MA plots
 p <- plot_diversity_volcano_ma(analysis, sig_alpha = 0.05, top_n = 3)

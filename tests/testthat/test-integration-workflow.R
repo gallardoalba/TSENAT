@@ -28,7 +28,7 @@ setup_workflow_data <- function() {
         sample_col = "sample",
         condition_col = "condition",
         subject_col = "paired_samples",
-        q_values = seq(0, 2, length.out = 10),
+        q = seq(0, 2, length.out = 10),
         paired = TRUE,
         control = "normal",
         nthreads = 4
@@ -76,7 +76,7 @@ test_that("TSENAT() paired design: executes pipeline, returns TSENATAnalysis, re
     expect_true(is.list(getConfig(result)))
     expect_true(is.list(getMeta(result)))
     cfg_result <- getConfig(result)
-    expect_equal(cfg_result$q_values, seq(0, 2, length.out = 10))
+    expect_equal(cfg_result$q, seq(0, 2, length.out = 10))
     expect_true(nrow(se(result)) > 0)
 })
 
@@ -136,7 +136,7 @@ test_that("TSENAT() config override: explicit config overrides analysis config, 
     # Verify the analysis retains its config
     expect_s4_class(result_override, "TSENATAnalysis")
     cfg_result <- getConfig(result_override)
-    expect_equal(cfg_result$q_values, seq(0, 2, length.out = 10))
+    expect_equal(cfg_result$q, seq(0, 2, length.out = 10))
 })
 
 # ============================================================================
@@ -209,7 +209,7 @@ test_that("TSENAT() statistical params: respects bootstrap_method, nboot, seed c
     config_bca <- TSENAT_config(
         sample_col = "sample",
         condition_col = "condition",
-        q_values = seq(0, 2, length.out = 10),
+        q = seq(0, 2, length.out = 10),
         paired = FALSE,
         bootstrap_method = "bca",
         nboot = 100,
@@ -227,7 +227,7 @@ test_that("TSENAT() statistical params: respects bootstrap_method, nboot, seed c
     config_nboot <- TSENAT_config(
         sample_col = "sample",
         condition_col = "condition",
-        q_values = seq(0, 2, length.out = 10),
+        q = seq(0, 2, length.out = 10),
         paired = FALSE,
         nboot = 50,
         nthreads = 2
@@ -244,7 +244,7 @@ test_that("TSENAT() statistical params: respects bootstrap_method, nboot, seed c
     config_seed <- TSENAT_config(
         sample_col = "sample",
         condition_col = "condition",
-        q_values = seq(0, 2, length.out = 10),
+        q = seq(0, 2, length.out = 10),
         paired = FALSE,
         seed = 42,
         nthreads = 2
@@ -373,7 +373,7 @@ setup_workflow_data <- function() {
         sample_col = "sample",
         condition_col = "condition",
         subject_col = "paired_samples",
-        q_values = seq(0, 2, length.out = 10),
+        q = seq(0, 2, length.out = 10),
         paired = TRUE,
         control = "normal",
         nthreads = 4
@@ -580,7 +580,7 @@ test_that("REDUNDANT setConfig: Reproduce the workflow.R bug scenario", {
         sample_col = "sample",
         condition_col = "condition",
         subject_col = "paired_samples",
-        q_values = seq(0, 2, length.out = 10),
+        q = seq(0, 2, length.out = 10),
         paired = TRUE,
         control = "normal",
         nthreads = 4
@@ -654,7 +654,7 @@ test_that("CONFIG EMBEDDING MECHANISM: Settings only apply once via build_analys
         sample_col = "sample",
         condition_col = "condition",
         subject_col = "paired_samples",
-        q_values = seq(0, 1, length.out = 5),
+        q = seq(0, 1, length.out = 5),
         paired = TRUE,
         control = "normal",
         nthreads = 4
@@ -683,8 +683,8 @@ test_that("CONFIG EMBEDDING MECHANISM: Settings only apply once via build_analys
     
     # The @config slot should now contain exactly what we passed in
     cfg_embedded <- getConfig(analysis)
-    cfg_embedded_q <- if (is.list(cfg_embedded)) cfg_embedded$q_values else cfg_embedded@q_values
-    config1_q <- if (is.list(config1)) config1$q_values else config1@q_values
+    cfg_embedded_q <- if (is.list(cfg_embedded)) cfg_embedded$q else cfg_embedded@q
+    config1_q <- if (is.list(config1)) config1$q else config1@q
     
     expect_equal(
         cfg_embedded_q,
@@ -695,7 +695,7 @@ test_that("CONFIG EMBEDDING MECHANISM: Settings only apply once via build_analys
     # Filter should NOT modify @config
     analysis2 <- filter_analysis(analysis, stringency = "severe")
     cfg_after_filter <- getConfig(analysis2)
-    cfg_after_filter_q <- if (is.list(cfg_after_filter)) cfg_after_filter$q_values else cfg_after_filter@q_values
+    cfg_after_filter_q <- if (is.list(cfg_after_filter)) cfg_after_filter$q else cfg_after_filter@q
     
     expect_identical(
         cfg_after_filter_q,
@@ -805,8 +805,8 @@ test_that("WHY setConfig CORRUPTS: Examining metadata and state changes", {
     # Config slot should remain unchanged
     cfg_before <- getConfig(analysis)
     cfg_after <- getConfig(analysis_after)
-    cfg_before_q <- if (is.list(cfg_before)) cfg_before$q_values else cfg_before@q_values
-    cfg_after_q <- if (is.list(cfg_after)) cfg_after$q_values else cfg_after@q_values
+    cfg_before_q <- if (is.list(cfg_before)) cfg_before$q else cfg_before@q
+    cfg_after_q <- if (is.list(cfg_after)) cfg_after$q else cfg_after@q
     
     expect_identical(
         cfg_before_q,

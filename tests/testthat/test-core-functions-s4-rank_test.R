@@ -58,7 +58,7 @@ context("S4 Rank Test: calculate_rank_test")
 }
 
 # Helper function to create test subset (FAST - uses diversity cache when available)
-setup_rank_test_analysis <- function(n_genes = 10, n_samples = 4) {
+setup_rank_test_analysis <- function(n_genes = 100, n_samples = 4) {
     # Create cache key for this filter combination
     cache_key <- paste0("genes_", n_genes, "_samples_", n_samples)
     
@@ -71,10 +71,15 @@ setup_rank_test_analysis <- function(n_genes = 10, n_samples = 4) {
     analysis <- .get_cached_analysis()
     
     # Filter to subset for this test (much faster than rebuilding)
+    # Use larger gene subset (100+ genes) to avoid sparsity issues
     analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = n_genes, subset_n_samples = n_samples)
     
     # Calculate diversity AFTER filtering (this is the correct order)
-    analysis <- calculate_diversity(analysis, norm = TRUE)
+    # Use very low min_valid_frac (0.05) to handle small sparse test subsets
+    # This ensures genes aren't filtered out when testing with smaller sample sizes
+    # Calculate with multiple q-values to ensure Q×Condition interaction can be tested
+    analysis <- calculate_diversity(analysis, norm = TRUE, min_valid_frac = 0.05, 
+                                    q = c(0.5, 1.0, 1.5))
     
     # Cache for next test with same parameters
     .test_analysis_diversity_cache[[cache_key]] <<- analysis
@@ -332,7 +337,7 @@ test_that("calculate_rank_test results have correct structure", {
 
 test_that("calculate_rank_test handles multiple genes with varying significance", {
     skip_on_cran()
-    analysis <- setup_rank_test_analysis(n_genes = 30, n_samples = 8)
+    analysis <- setup_rank_test_analysis(n_genes = 100, n_samples = 12)
     
     result <- calculate_rank_test(
         analysis,
@@ -671,7 +676,6 @@ test_that(".resolve_rank_test_params handles explicit arguments over config", {
         test = "friedman",
         multicorr = "benjamini-yekutieli",
         nperm_mode = "standard",
-        q = c(0.5, 1.0, 1.5),
         paired = TRUE,
         subject_col = "explicit_subject",
         nthreads = 4,
@@ -713,7 +717,6 @@ test_that(".resolve_rank_test_params falls back to config when args not provided
         test = NULL,
         multicorr = NULL,
         nperm_mode = NULL,
-        q = NULL,
         paired = NULL,
         subject_col = NULL,
         nthreads = NULL,
@@ -726,7 +729,6 @@ test_that(".resolve_rank_test_params falls back to config when args not provided
     # Note: need to handle the way the function checks for missing vs NULL
     # This is a basic structure test
     expect_true("dots" %in% names(result))
-    expect_true("q_extracted" %in% names(result))
 })
 
 test_that(".resolve_rank_test_params validates enum arguments", {
@@ -739,7 +741,6 @@ test_that(".resolve_rank_test_params validates enum arguments", {
             test = "invalid_test",
             multicorr = NULL,
             nperm_mode = NULL,
-            q = NULL,
             paired = NULL,
             subject_col = NULL,
             nthreads = NULL,
@@ -887,7 +888,6 @@ test_that("Helper functions integrate correctly in rank test workflow", {
         test = "auto",
         multicorr = "hochberg",
         nperm_mode = "standard",
-        q = NULL,
         paired = FALSE,
         subject_col = NULL,
         nthreads = 1,
@@ -953,7 +953,6 @@ test_that(".resolve_rank_test_params handles all multicorr methods", {
             test = "auto",
             multicorr = method,
             nperm_mode = "standard",
-            q = NULL,
             paired = FALSE,
             subject_col = NULL,
             nthreads = 1,
@@ -976,7 +975,6 @@ test_that(".resolve_rank_test_params handles all test methods", {
             test = method,
             multicorr = "hochberg",
             nperm_mode = "standard",
-            q = NULL,
             paired = FALSE,
             subject_col = NULL,
             nthreads = 1,
@@ -999,7 +997,6 @@ test_that(".resolve_rank_test_params handles all nperm_mode values", {
             test = "auto",
             multicorr = "westfall-young",
             nperm_mode = mode,
-            q = NULL,
             paired = FALSE,
             subject_col = NULL,
             nthreads = 1,
@@ -1021,7 +1018,6 @@ test_that(".resolve_rank_test_params preserves custom column names", {
         test = "auto",
         multicorr = "hochberg",
         nperm_mode = "standard",
-        q = NULL,
         paired = FALSE,
         subject_col = NULL,
         nthreads = 1,
@@ -1046,7 +1042,6 @@ test_that(".resolve_rank_test_params handles nthreads appropriately", {
             test = "auto",
             multicorr = "hochberg",
             nperm_mode = "standard",
-            q = NULL,
             paired = FALSE,
             subject_col = NULL,
             nthreads = nthreads_val,

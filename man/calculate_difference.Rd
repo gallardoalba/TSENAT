@@ -34,8 +34,12 @@ diversity results in \code{@diversity_results}.}
 If \code{NULL},
  attempts to retrieve from \code{analysis@config$control}.}
 
-\item{q}{\code{numeric}.  Q-value to use.  If NULL,
-uses first diversity result or  q=1. 0.}
+\item{q}{\code{numeric} or \code{NULL}. Q-value to use for testing.
+If NULL: auto-detects from diversity results if only ONE q-value present,
+or errors if MULTIPLE q-values present (must specify which to test).
+NOTE: q is NOT read from config - only explicit argument or auto-detected from diversity.
+If diversity contains single q-value, q is OPTIONAL.
+If diversity contains multiple q-values, q is REQUIRED.}
 
 \item{condition_col}{\code{character} or  \code{NULL}.
 Column name in colData identifying sample conditions.
@@ -139,15 +143,18 @@ metadata_df <- read.table(
 gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 'TSENAT')
 
+# Load TPM and effective length from vignette data
+data(readcounts)  # Also loads tpm and effective_length
+
 # Create config (metadata passed as explicit parameter to build_analysis)
 config <- TSENAT_config(
   sample_col = 'sample',
   condition_col = 'condition',
-  q_values = seq(0, 2, by = 0.05),
+  q = seq(0, 2, by = 0.05),
   paired = FALSE
 )
 
-# Build analysis from vignette data and create small subset
+# Build analysis from vignette data - metadata as explicit parameter
 analysis <- build_analysis(
   readcounts = readcounts,
   metadata = metadata_df,
@@ -158,7 +165,7 @@ analysis <- build_analysis(
 )
 analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = 200)
 analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
-result <- calculate_difference(analysis, control = 'normal')
+result <- calculate_difference(analysis, q = 1.0, control = 'normal')
 
 }
 \seealso{

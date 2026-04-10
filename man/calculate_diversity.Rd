@@ -10,8 +10,6 @@ calculate_diversity(
   norm = TRUE,
   norm_method = NULL,
   reference_group = NULL,
-  tpm = FALSE,
-  assayno = NULL,
   verbose = NULL,
   show_messages = FALSE,
   what = NULL,
@@ -19,9 +17,6 @@ calculate_diversity(
   pseudocount = NULL,
   min_valid_frac = NULL,
   shrinkage = NULL,
-  genes = NULL,
-  effective_length = NULL,
-  metadata = NULL,
   bootstrap = NULL,
   nboot = NULL,
   bootstrap_method = NULL,
@@ -34,9 +29,9 @@ calculate_diversity(
 \arguments{
 \item{analysis}{\code{TSENATAnalysis} object.}
 
-\item{q}{\code{numeric}. Q-value(s) for Tsallis entropy.
-  If NULL,  uses q_values from \code{analysis@config$q_values} if 
-available,  else defaults to seq(0. 01,  2,  by = 0. 05).}
+\item{q}{\code{numeric}. Q-value(s) for Tsallis entropy (single value or vector).
+If NULL, reads from \code{analysis@config$q}. If not in config, defaults to 
+seq(0.01, 2, by = 0.05) for full spectrum computation.}
 
 \item{norm}{\code{logical} or  \code{character}.  Normalization method:
 TRUE,  FALSE,  'none',  'range',  'zscore',  'log_odds_ratio',
@@ -61,12 +56,6 @@ isoform-aware)
 the reference group column name (e.g., from colData). If NULL, uses first
 group in colData.
   If NULL, reads from \code{@config$reference_group} if available.}
-
-\item{tpm}{\code{logical}. TPM normalization. Default: FALSE.
-If not specified, reads from \code{@config$tpm} if available.}
-
-\item{assayno}{\code{numeric}. Assay number to use. Default: 1.
-If NULL, reads from \code{@config$assayno} if available.}
 
 \item{verbose}{\code{logical}. Print progress messages. Default: TRUE.
 If not specified, reads from \code{@config$verbose} if available.}
@@ -93,17 +82,6 @@ Minimum fraction of valid samples for  gene filtering.  Default:  NULL.
 \item{shrinkage}{\code{character}.  Shrinkage method:  'none' or 
 'empirical_bayes'.  Default:  'none'.
   If NULL, reads from \code{@config$shrinkage} if available.}
-
-\item{genes}{\code{character} or  \code{NULL}.  Gene set specification.
-Default:  NULL (use all genes).
- If NULL, reads from \code{@config$genes} if available.}
-
-\item{effective_length}{\code{numeric} or  \code{NULL}.
-Effective gene lengths.  Default:  NULL.
- If NULL, reads from \code{@config$effective_length} if available.}
-
-\item{metadata}{\code{list} or  \code{NULL}.  Additional metadata.
-Default:  NULL.}
 
 \item{bootstrap}{\code{logical}.  Compute bootstrap confidence intervals.
 Default:  FALSE.
@@ -215,10 +193,8 @@ Spectrum is saved as: \code{*_spectrum.tsv}
 
 **Parameter Priority Resolution:**
 \describe{
-  \item{q}{Priority 1 (explicit) > Priority 2 (\code{@config$q_values}) > Priority 3 (default:
- seq(0. 01,  2,  by = 0. 05))\cr
-    **Note: ** If explicit q AND \code{@config$q_values} both provided,
- explicit wins. }
+  \item{q}{Priority 1 (explicit) > Priority 2 (\code{@config$q}) > Priority 3 (default: seq(0.01, 2, by=0.05)). \cr
+    Accepts single or multiple q-values (for spectrum computation). }
   \item{nthreads}{Priority: explicit > \code{@config$nthreads} > 1}
   \item{verbose}{Priority: explicit > \code{@config$verbose} > TRUE}
   \item{bootstrap}{Priority: explicit > \code{@config$bootstrap} > FALSE}

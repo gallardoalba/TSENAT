@@ -19,7 +19,7 @@
 #' used throughout S4 wrapper functions.
 #'
 #' @examples
-#' config <- list(nthreads = 4, verbose = TRUE, q_values = seq(0.01, 2, by =
+#' config <- list(nthreads = 4, verbose = TRUE, q = seq(0.01, 2, by =
 #' 0.05))
 #' 
 #' # User-provided value takes priority

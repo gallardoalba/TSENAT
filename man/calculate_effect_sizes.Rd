@@ -89,15 +89,15 @@ config <- TSENAT_config(
   subject_col = 'paired_samples',
   paired = TRUE,
   control = 'normal',
-  q_values = seq(0, 2, by = 0.05)  # Recommended: 41 q-values for paired designs
+  q = seq(0, 2, by = 0.5)  # Multiple q-values for LM interaction analysis (5 unique: 0, 0.5, 1, 1.5, 2)
 )
 analysis <- build_analysis(readcounts = readcounts, tx2gene =
 gff3_dataset, metadata = metadata_df, config = config,
   tpm = tpm, effective_length = effective_length)
 
 analysis <- filter_analysis(analysis, stringency = 'severe')
-analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
-analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
+analysis <- calculate_diversity(analysis)
+analysis <- calculate_divergence(analysis)
 analysis <- calculate_lm(analysis, method = 'gam')
 
 # Compute effect sizes from divergence results

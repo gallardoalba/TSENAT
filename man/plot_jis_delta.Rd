@@ -77,7 +77,7 @@ config <- TSENAT_config(
   condition_col = 'condition',
   subject_col = 'paired_samples',
   paired = TRUE,
-  q_values = seq(0, 2, by = 0.1)
+  q = seq(0, 2, by = 0.1)
 )
 
 # Build analysis with configured parameters

@@ -20,7 +20,9 @@ calculate_jeo(
 \arguments{
 \item{analysis}{\code{TSENATAnalysis} object.}
 
-\item{q}{\code{numeric}. Q-value(s) for jackknife. Default: 1.0.}
+\item{q}{\code{numeric}. Q-value(s) for jackknife estimation.
+If NULL, reads from \code{analysis@config$q}. 
+Default: c(0, 0.5, 1, 1.5, 2) (matches \code{calculate_jis} spectrum).}
 
 \item{norm}{\code{logical}.  Normalization flag.  Default:
 NULL (uses @config$norm or  TRUE).}
@@ -87,7 +89,7 @@ effective_length <- matrix(100, nrow = nrow(readcounts), ncol = ncol(readcounts)
 config <- TSENAT_config(
   sample_col = 'sample',
   condition_col = 'condition',
-  q_values = seq(0, 2, by = 0.05),
+  q = seq(0, 2, by = 0.05),
   paired = FALSE
 )
 

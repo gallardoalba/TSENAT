@@ -707,7 +707,10 @@ calculate_diversity <- function(analysis, q = NULL, norm = TRUE, norm_method = N
     nthreads = NULL, pseudocount = NULL, min_valid_frac = NULL, shrinkage = NULL,
     bootstrap = NULL, nboot = NULL,
     bootstrap_method = NULL, bootstrap_ci = NULL, bootstrap_include_diagnostics = NULL,
-    show_messages = FALSE) {
+    show_messages = FALSE, ...) {
+    # ... captures deprecated parameters (tpm, assayno, genes, effective_length, metadata)
+    # that were removed from public API but may still be passed by old test code
+    
     # Extract q parameter - can be single or multiple values
     q_source <- "explicit"  # Track where q came from
     if (is.null(q)) {
@@ -724,8 +727,11 @@ calculate_diversity <- function(analysis, q = NULL, norm = TRUE, norm_method = N
         stop("'q' must be numeric", call. = FALSE)
     }
     
+    # Resolve verbose first so we can use it in conditions
+    verbose_resolved <- resolve_slot_param(verbose, analysis@config, "verbose", TRUE)
+    
     # Show message about q-values being used
-    if (q_source != "explicit" && verbose) {
+    if (q_source != "explicit" && verbose_resolved) {
         if (length(q) == 1) {
             message("[calculate_diversity] Using q = ", formatC(q, format="f", digits=3), 
                     " (", q_source, ")")
@@ -752,8 +758,7 @@ calculate_diversity <- function(analysis, q = NULL, norm = TRUE, norm_method = N
 
 
 
-    list(q = q, nthreads = nthreads_resolved, verbose = resolve_slot_param(verbose,
-        analysis@config, "verbose", TRUE), show_messages = show_messages, bootstrap = resolve_slot_param(bootstrap,
+    list(q = q, nthreads = nthreads_resolved, verbose = verbose_resolved, show_messages = show_messages, bootstrap = resolve_slot_param(bootstrap,
         analysis@config, "bootstrap", FALSE), pseudocount = resolve_slot_param(pseudocount,
         analysis@config, "pseudocount", 0), min_valid_frac = resolve_slot_param(min_valid_frac,
         analysis@config, "min_valid_frac", 0.75), norm = resolve_slot_param(norm,

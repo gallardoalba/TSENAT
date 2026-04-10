@@ -102,11 +102,12 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
     # Extract parameters from config (already embedded in analysis object from build_analysis)
     cfg <- getConfig(analysis)
     
-    # Get q value from config (single q-value for statistical tests)
-    q_val <- cfg$q %||% 1.0
+    # Get q values from config (can be vector or single value)
+    q_vals <- cfg$q %||% 1.0
+    if (!is.vector(q_vals)) q_vals <- c(q_vals)
     
-    # Inform user which q-value is being used
-    if (verbose) message("[INFO] Using q-value: ", q_val)
+    # Inform user which q-value(s) is being used
+    if (verbose) message("[INFO] Using q-value(s): ", paste(q_vals, collapse = ", "))
     
     condition_col <- cfg$condition_col %||% "condition"
 

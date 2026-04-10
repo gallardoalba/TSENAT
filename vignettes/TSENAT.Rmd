@@ -103,7 +103,7 @@ config <- TSENAT_config(
   paired = TRUE,
   subject_col = "paired_samples",
   control = "normal",
-  q_values = seq(0, 2, by = 0.05)
+  q = seq(0, 2, by = 0.05)
 )
 
 ## Build TSENATAnalysis object
@@ -299,7 +299,7 @@ config <- TSENAT_config(
   sample_col = "sample",
   condition_col = "condition",
   subject_col = "paired_samples",
-  q_values = seq(0, 2, by = 0.05),
+  q = seq(0, 2, by = 0.05),
   nthreads = 2,
   paired = TRUE,
   control = "normal"
@@ -347,6 +347,7 @@ We normalize entropy to [0,1] range (`norm = TRUE`) for comparable cross-q asses
 set.seed(12345)
 
 # Compute diversity using S4 wrapper with bootstrap confidence intervals [@S232; @S115]
+# Uses q-spectrum from config (seq(0, 2, by=0.05) as configured above)
 analysis <- calculate_diversity(
     analysis,
     norm = TRUE
@@ -368,7 +369,12 @@ sample_data <- NULL
 first_sample_name <- NULL
 
 for (q_val in q_values_to_show) {
-    div_q <- results(analysis, type = "diversity", q = q_val)
+    # Use tryCatch to gracefully handle q-values that don't exist
+    div_q <- tryCatch({
+        results(analysis, type = "diversity", q = q_val)
+    }, error = function(e) {
+        NULL
+    })
     
     if (!is.null(div_q)) {
         # Extract matrix from SummarizedExperiment
@@ -410,6 +416,9 @@ if (!is.null(sample_data) && nrow(sample_data) > 0) {
       bootstrap_options = c("striped", "hover", "condensed"),
       latex_options = c("scale_down")
     )
+} else {
+  cat("Note: Diversity results not available for the requested q-values. ",
+      "Ensure calculate_diversity() was run with appropriate q-value configuration.")
 }
 ```
 
@@ -737,7 +746,7 @@ treatment groups across all q-dependent scales [@I060].
 
 ```{r effect-size-multiq}
 # Calculate divergence: computes pairwise information-theoretic distance (Tsallis divergence) between conditions
-# using bootstrap confidence intervals across all configured q-values from getConfig(analysis)$q_values
+# using bootstrap confidence intervals across all configured q-values from getConfig(analysis)$q
 analysis <- calculate_divergence(analysis)
 
 # Extract divergence results using results accessor
