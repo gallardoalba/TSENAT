@@ -174,6 +174,7 @@ setMethod("se", "TSENATAnalysis", function(object) {
 })
 
 #' @rdname TSENATAnalysis-methods
+#' @exportMethod metadata
 setMethod("metadata", "TSENATAnalysis", function(x, key = NULL) {
     if (is.null(key)) {
         return(x@metadata)

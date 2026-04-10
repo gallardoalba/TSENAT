@@ -62,3 +62,39 @@ The `preprocess.R` script performs the following steps to generate all inst/extd
 - Content: 3 genes with 9 transcripts total (12 GFF3 lines including parent genes)
 - Structure: Follows GENCODE GFF3 format specification
 - Note: Synthetic test data, not derived from preprocess.R output
+
+## Vignette-Generated Analysis Objects
+
+The following files were generated from the main analysis vignette (`vignettes/TSENAT.Rmd`) and are used for testing and documentation purposes:
+
+**analysis_lm.rds**:
+- **Source:** Generated from `vignettes/TSENAT.Rmd` main vignette
+- **Format:** R serialized object (RDS)
+- **Content:** `TSENATAnalysis` object containing:
+  - Linear model (LM) results from `calculate_lm()` with interaction testing
+  - Stored in slot `@lm_results$lm_interaction` (76 genes)
+  - Includes p-values, adjusted p-values, effect sizes, and test statistics
+- **Purpose:** 
+  - Reference implementation for LM-based q-value × group interaction analysis
+  - Used in concordance tests (`vignettes/TSENAT_appendix_B.Rmd`) to demonstrate method validation
+  - Enables integration tests without requiring full vignette re-execution
+- **Generation:** Run the main `TSENAT.Rmd` vignette to regenerate
+
+### Regenerating Vignette Analysis Objects
+
+To regenerate `analysis_lm.rds` after updating the analysis pipeline:
+
+1. Ensure the main vignette runs successfully:
+   ```bash
+   Rscript -e "rmarkdown::render('vignettes/TSENAT.Rmd')"
+   ```
+
+2. Extract and save the analysis object from the vignette output:
+   ```r
+   # Within or after TSENAT.Rmd:
+   saveRDS(analysis, file = "inst/extdata/analysis_lm.rds")
+   ```
+
+3. Then update `TSENAT_appendix_B.Rmd` to load from the saved RDS file for concordance testing
+
+This object allows the appendix concordance vignette to work independently without re-running the full main analysis.

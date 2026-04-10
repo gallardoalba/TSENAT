@@ -5,21 +5,27 @@
 \alias{calculate_concordance,TSENATAnalysis-method}
 \title{Compute concordance between two analysis methods in TSENATAnalysis}
 \usage{
-calculate_concordance(analysis, ...)
+calculate_concordance(analysis_lm, analysis_rank = NULL, ...)
 
 \S4method{calculate_concordance}{TSENATAnalysis}(
-  analysis,
-  gam_method = "rank_test",
-  friedman_method = "rankbased",
-  gam_results = NULL,
+  analysis_lm,
+  analysis_rank = NULL,
+  lm_method = NULL,
+  rank_method = "rank_test",
   verbose = FALSE,
   output_file = NULL
 )
 }
 \arguments{
-\item{analysis}{\code{TSENATAnalysis} object with LM results (e.g., GAM).}
-
 \item{...}{Additional arguments for future extensibility.}
+
+\item{verbose}{\code{logical}. Print progress messages (default: FALSE).}
+
+\item{output_file}{\code{character} or  \code{NULL}.
+Optional file path to save results.
+ Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
+
+\item{analysis}{\code{TSENATAnalysis} object with LM results (e.g., GAM).}
 
 \item{gam_method}{\code{character}.  Key for 
 GAM/interaction results in \code{@lm_results}.
@@ -37,12 +43,6 @@ Friedman/rank-based results in \code{@lm_results}.
 importing external results or  results 
 computed outside the S4 wrapper. Default: NULL (use existing results in
 analysis).}
-
-\item{verbose}{\code{logical}. Print progress messages (default: FALSE).}
-
-\item{output_file}{\code{character} or  \code{NULL}.
-Optional file path to save results.
- Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
 }
 \value{
 Modified TSENATAnalysis object with concordance results stored in:

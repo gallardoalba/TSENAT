@@ -5504,14 +5504,14 @@ test_that("plot_concordance: returns plot with valid concordance data", {
   analysis@metadata$method_concordance <- list(
     comparison_df = data.frame(
       gene_id = paste0("g", 1:5),
-      p_gam = c(0.001, 0.005, 0.01, 0.1, 0.5),
-      p_friedman = c(0.002, 0.008, 0.02, 0.08, 0.4),
+      p_lm = c(0.001, 0.005, 0.01, 0.1, 0.5),
+      p_rank = c(0.002, 0.008, 0.02, 0.08, 0.4),
       agreement = c("Both significant", "Both significant", "Both significant", 
-                   "GAM only", "Neither significant"),
+                   "LM only", "Neither significant"),
       stringsAsFactors = FALSE
     ),
-    gam_method = "GAM",
-    friedman_method = "Friedman"
+    lm_method = "lm_interaction",
+    rank_method = "rank_test"
   )
   
   # Call function

@@ -1017,67 +1017,127 @@ plot_diversity_volcano_ma <- function(analysis, x_col = NULL, padj_col = "padj",
 #'
 #' @aliases calculate_concordance
 #' @export
-setGeneric("calculate_concordance", function(analysis, ...) {
+setGeneric("calculate_concordance", function(analysis_lm, analysis_rank = NULL, ...) {
     standardGeneric("calculate_concordance")
 })
 
 #' @rdname calculate_concordance
-setMethod("calculate_concordance", "TSENATAnalysis", function(analysis, gam_method = "rank_test",
-    friedman_method = "rankbased", gam_results = NULL, verbose = FALSE, output_file = NULL) {
+setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_lm, analysis_rank = NULL,
+    lm_method = NULL, rank_method = "rank_test", verbose = FALSE, output_file = NULL) {
 
     # ===================================================================
     # VALIDATION
     # ===================================================================
 
-    if (!is(analysis, "TSENATAnalysis")) {
-        stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
+    if (!is(analysis_lm, "TSENATAnalysis")) {
+        stop("'analysis_lm' must be a TSENATAnalysis object", call. = FALSE)
     }
 
-    # If gam_results provided, store them in lmResults automatically
-    if (!is.null(gam_results)) {
-        if (!is.data.frame(gam_results)) {
-            stop("gam_results must be a data.frame", call. = FALSE)
+    # Check if analysis_rank is provided (new two-object API)
+    if (!is.null(analysis_rank)) {
+        # ===================================================================
+        # NEW API: Accept two TSENATAnalysis objects
+        # ===================================================================
+
+        if (!is(analysis_rank, "TSENATAnalysis")) {
+            stop("'analysis_rank' must be a TSENATAnalysis object", call. = FALSE)
         }
-        # Store GAM results in analysis@lm_results
-        if (is.null(analysis@lm_results)) {
-            analysis@lm_results <- list()
-        }
-        analysis@lm_results[[gam_method]] <- gam_results
+
         if (verbose) {
-            message("[calculate_concordance] Stored GAM results as '", gam_method,
-                "'")
+            message("[calculate_concordance] Using two TSENATAnalysis objects")
+            if (!is.null(lm_method))
+                message("  - LM method: ", lm_method)
+            message("  - Rank test method: ", rank_method)
         }
+
+        # Call the refactored function with two objects
+        concordance_result <- tryCatch({
+            .calculate_concordance(analysis_lm = analysis_lm, analysis_rank = analysis_rank,
+                lm_method = lm_method, rank_method = rank_method)
+        }, error = function(e) {
+            stop("[calculate_concordance] ", conditionMessage(e), call. = FALSE)
+        })
+
+        final_lm_method <- concordance_result$lm_method
+        final_rank_method <- concordance_result$rank_method
+
+        # Store results in the LM analysis object's metadata
+        analysis_lm@metadata$method_concordance <- list(
+            comparison_df = concordance_result$comparison_df,
+            spearman_rho = concordance_result$spearman_rho,
+            high_confidence = concordance_result$high_conf,
+            agreement_table = concordance_result$agreement_table,
+            lm_method = final_lm_method,
+            rank_method = final_rank_method,
+            timestamp = Sys.time()
+        )
+
+        # Track function call
+        analysis_lm@metadata$function_calls <- c(analysis_lm@metadata$function_calls,
+            paste0("calculate_concordance[", final_lm_method, " vs ", final_rank_method, "]"))
+
+        if (verbose) {
+            message("[calculate_concordance] Concordance computed successfully")
+            if (!is.na(concordance_result$spearman_rho)) {
+                message("[calculate_concordance] Spearman correlation = ",
+                  round(concordance_result$spearman_rho, 3))
+            }
+        }
+
+        # Save to file if requested
+        if (!is.null(output_file)) {
+            if (verbose) {
+                message("[calculate_concordance] Writing results to: ", output_file)
+            }
+            saveRDS(analysis_lm, file = output_file)
+        }
+
+        return(analysis_lm)
     }
 
-    if (is.null(analysis@lm_results)) {
-        stop("No LM results found in analysis@lm_results. Run calculate_rank_test() first.",
+    # ===================================================================
+    # LEGACY API: Single analysis object with both LM and rank test results
+    # ===================================================================
+
+    if (verbose) {
+        message("[calculate_concordance] Using legacy single-object API")
+    }
+
+    if (is.null(analysis_lm@lm_results) || length(analysis_lm@lm_results) == 0) {
+        stop("No LM results found in analysis_lm@lm_results. Run calculate_lm() first.",
             call. = FALSE)
     }
 
     # Check for required methods
-    if (!(gam_method %in% names(analysis@lm_results))) {
-        available_methods <- paste(names(analysis@lm_results), collapse = ", ")
-        stop("GAM method '", gam_method, "' not found in LM results. ", "Available: ",
+    default_lm_method <- if (is.null(lm_method)) {
+        names(analysis_lm@lm_results)[1]
+    } else {
+        lm_method
+    }
+
+    if (!(default_lm_method %in% names(analysis_lm@lm_results))) {
+        available_methods <- paste(names(analysis_lm@lm_results), collapse = ", ")
+        stop("LM method '", default_lm_method, "' not found in LM results. Available: ",
             available_methods, call. = FALSE)
     }
 
-    # Check friedman_method - must be in rank_test_results
-    if (is.null(analysis@rank_test_results) || !("rank_test" %in% names(analysis@rank_test_results))) {
-        stop("Friedman method 'rank_tests' not found in rank_test_results. ",
+    # Check rank_test_results
+    if (is.null(analysis_lm@rank_test_results) || !(rank_method %in% names(analysis_lm@rank_test_results))) {
+        stop("Rank test method '", rank_method, "' not found in rank_test_results. ",
             "Run calculate_rank_test() first.", call. = FALSE)
     }
 
     # Extract results
-    gam_results_final <- analysis@lm_results[[gam_method]]
-    friedman_results <- analysis@rank_test_results$rank_test
+    lm_results_final <- analysis_lm@lm_results[[default_lm_method]]
+    rank_test_results <- analysis_lm@rank_test_results[[rank_method]]
 
     # Validate they're data frames
-    if (!is.data.frame(gam_results_final)) {
-        stop("GAM results ('", gam_method, "') must be a data.frame", call. = FALSE)
+    if (!is.data.frame(lm_results_final)) {
+        stop("LM results ('", default_lm_method, "') must be a data.frame", call. = FALSE)
     }
 
-    if (!is.data.frame(friedman_results)) {
-        stop("Friedman results ('", friedman_method, "') must be a data.frame", call. = FALSE)
+    if (!is.data.frame(rank_test_results)) {
+        stop("Rank test results ('", rank_method, "') must be a data.frame", call. = FALSE)
     }
 
     # ===================================================================
@@ -1086,34 +1146,45 @@ setMethod("calculate_concordance", "TSENATAnalysis", function(analysis, gam_meth
 
     if (verbose) {
         message("[calculate_concordance] Computing concordance between ",
-            gam_method, " and ", friedman_method)
+            default_lm_method, " and ", rank_method)
     }
 
-    # Call the standard function
+    # Create temporary analysis objects for the refactored function
+    temp_lm <- analysis_lm
+    temp_lm@lm_results <- list(temp = lm_results_final)
+    temp_rank <- analysis_lm
+    temp_rank@rank_test_results <- list(temp = rank_test_results)
+
     concordance_result <- tryCatch({
-        .calculate_concordance(gam_results_final, friedman_results)
+        .calculate_concordance(analysis_lm = temp_lm, analysis_rank = temp_rank,
+            lm_method = "temp", rank_method = "temp")
     }, error = function(e) {
-        stop("[calculate_concordance]", conditionMessage(e), call. = FALSE)
+        stop("[calculate_concordance] ", conditionMessage(e), call. = FALSE)
     })
 
     # =================================================================== STORE
     # RESULTS
     # ===================================================================
 
-    analysis@metadata$method_concordance <- list(comparison_df = concordance_result$comparison_df,
-        spearman_rho = concordance_result$spearman_rho, high_confidence = concordance_result$high_conf,
-        agreement_table = concordance_result$agreement_table, gam_method = gam_method,
-        friedman_method = friedman_method, timestamp = Sys.time())
+    analysis_lm@metadata$method_concordance <- list(
+        comparison_df = concordance_result$comparison_df,
+        spearman_rho = concordance_result$spearman_rho,
+        high_confidence = concordance_result$high_conf,
+        agreement_table = concordance_result$agreement_table,
+        lm_method = default_lm_method,
+        rank_method = rank_method,
+        timestamp = Sys.time()
+    )
 
     # Track function call
-    analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("calculate_concordance[",
-        gam_method, " vs ", friedman_method, "]"))
+    analysis_lm@metadata$function_calls <- c(analysis_lm@metadata$function_calls,
+        paste0("calculate_concordance[", default_lm_method, " vs ", rank_method, "]"))
 
     if (verbose) {
         message("[calculate_concordance] Concordance computed successfully")
         if (!is.na(concordance_result$spearman_rho)) {
-            message("[calculate_concordance] Spearman corr = ", round(concordance_result$spearman_rho,
-                3))
+            message("[calculate_concordance] Spearman correlation = ",
+              round(concordance_result$spearman_rho, 3))
         }
     }
 
@@ -1125,10 +1196,10 @@ setMethod("calculate_concordance", "TSENATAnalysis", function(analysis, gam_meth
         if (verbose) {
             message("[calculate_concordance] Writing results to: ", output_file)
         }
-        saveRDS(analysis, file = output_file)
+        saveRDS(analysis_lm, file = output_file)
     }
 
-    analysis
+    analysis_lm
 })
 
 #' Plot Global Divergence q-Curve Across All Genes (S4 Wrapper)

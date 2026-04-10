@@ -393,16 +393,18 @@ This section loads precomputed GAM results **generated in the main vignette** ([
 The precomputed results include effect sizes, model convergence diagnostics, and heteroscedasticity detection. Comparing GAM and Friedman Test results helps identify robust genes significant in both methods.
 
 ```{r generalized-additive-model-analysis, message=FALSE}
-# Load precomputed GAM results from TSV file
-gam_results <- read.delim(
-    system.file("extdata", "lm_interaction_results.tsv", package = "TSENAT"),
-    stringsAsFactors = FALSE
+# Load precomputed LM analysis object from RDS file
+analysis_lm <- readRDS(
+    system.file("extdata", "analysis_lm.rds", package = "TSENAT")
 )
 
-# Note: GAM results are generated via calculate_lm() in the main vignette
+# Extract GAM/LM results for inspection
+gam_results <- analysis_lm@lm_results$lm_interaction
+
+# Note: LM analysis is generated via calculate_lm() in the main vignette
 # When available in the analysis object, extract using generic results accessor:
-# lm_gam_results <- results(analysis, type = "lm", rankBy = "pvalue", n = 20, filterFDR = 0.05)
-# This demonstrates the flexible results pattern for accessing LM/GAM interaction results
+# lm_gam_results <- results(analysis_lm, type = "lm", rankBy = "pvalue", n = 20, filterFDR = 0.05)
+# This demonstrates the flexible results pattern for accessing LM interaction results
 ```
 
 ```{r gam-results-summary-table, message=FALSE, echo=FALSE}
@@ -519,13 +521,13 @@ if ("p_interaction" %in% colnames(gam_results)) {
 # Method Concordance Analysis
 
 ```{r compare-friedman-gam-methods, message=FALSE}
-# Compute concordance analysis using S4 wrapper
-# Pass GAM results directly - the function handles storage automatically
+# Compute concordance analysis using new two-object API
+# Compares LM results (from analysis_lm) with rank test results (from analysis)
 analysis_with_concordance <- calculate_concordance(
-    analysis,
-    gam_method = "gam_results",
-    friedman_method = "rank_tests",
-    gam_results = gam_results,
+    analysis_lm = analysis_lm,
+    analysis_rank = analysis,
+    lm_method = "lm_interaction",
+    rank_method = "rank_test",
     verbose = TRUE
 )
 
@@ -541,8 +543,8 @@ agreement_table <- concordance_result$agreement_table
 # === GLOBAL CONCORDANCE METRICS ===
 total_genes <- nrow(comparison_df)
 both_sig <- sum(comparison_df$agreement == "Both significant")
-gam_only <- sum(comparison_df$agreement == "GAM only")
-friedman_only <- sum(comparison_df$agreement == "Friedman only")
+lm_only <- sum(comparison_df$agreement == "LM only")
+rank_only <- sum(comparison_df$agreement == "Rank test only")
 neither_sig <- sum(comparison_df$agreement == "Neither significant")
 
 concordance_metrics <- data.frame(
@@ -550,8 +552,8 @@ concordance_metrics <- data.frame(
     "Total genes compared",
     "Spearman correlation (p-values)",
     "Both methods significant (p < 0.05)",
-    "GAM only significant",
-    "Friedman only significant",
+    "LM only significant",
+    "Rank test only significant",
     "Neither significant",
     "Concordance rate",
     "Discordance rate"
@@ -560,11 +562,11 @@ concordance_metrics <- data.frame(
     sprintf("%d", total_genes),
     sprintf("rho = %.4f", spearman_rho),
     sprintf("%d (%.1f%%)", both_sig, 100 * both_sig / total_genes),
-    sprintf("%d (%.1f%%)", gam_only, 100 * gam_only / total_genes),
-    sprintf("%d (%.1f%%)", friedman_only, 100 * friedman_only / total_genes),
+    sprintf("%d (%.1f%%)", lm_only, 100 * lm_only / total_genes),
+    sprintf("%d (%.1f%%)", rank_only, 100 * rank_only / total_genes),
     sprintf("%d (%.1f%%)", neither_sig, 100 * neither_sig / total_genes),
     sprintf("%.1f%%", 100 * (both_sig + neither_sig) / total_genes),
-    sprintf("%.1f%%", 100 * (gam_only + friedman_only) / total_genes)
+    sprintf("%.1f%%", 100 * (lm_only + rank_only) / total_genes)
   )
 )
 
@@ -610,17 +612,17 @@ if (!is.null(agreement_table) && length(agreement_table) > 0) {
 ```{r high-confidence-calls, message=FALSE, echo=FALSE}
 # === HIGH-CONFIDENCE GENES (BOTH METHODS SIGNIFICANT) ===
 if (!is.null(high_conf) && nrow(high_conf) > 0) {
-  # Sort by GAM adjusted p-value, then by Friedman adjusted p-value (both ascending)
-  high_conf_sorted <- high_conf[order(high_conf$padj_gam, high_conf$padj_friedman), ]
+  # Sort by LM adjusted p-value, then by Rank adjusted p-value (both ascending)
+  high_conf_sorted <- high_conf[order(high_conf$padj_lm, high_conf$padj_rank), ]
   
-  hc_display <- high_conf_sorted[1:min(15, nrow(high_conf_sorted)), c("gene", "padj_gam", "padj_friedman", "effect_gam", "effect_friedman")]
+  hc_display <- high_conf_sorted[1:min(15, nrow(high_conf_sorted)), c("gene", "padj_lm", "padj_rank", "effect_lm", "effect_rank")]
   
-  hc_display$padj_gam <- sprintf("%.3e", hc_display$padj_gam)
-  hc_display$padj_friedman <- sprintf("%.3e", hc_display$padj_friedman)
-  hc_display$effect_gam <- sprintf("%.1f%%", hc_display$effect_gam * 100)
-  hc_display$effect_friedman <- sprintf("%.3f", hc_display$effect_friedman)
+  hc_display$padj_lm <- sprintf("%.3e", hc_display$padj_lm)
+  hc_display$padj_rank <- sprintf("%.3e", hc_display$padj_rank)
+  hc_display$effect_lm <- sprintf("%.1f%%", hc_display$effect_lm * 100)
+  hc_display$effect_rank <- sprintf("%.3f", hc_display$effect_rank)
   
-  colnames(hc_display) <- c("Gene", "GAM adj p", "Friedman adj p", "GAM Effect", "Friedman eta^2")
+  colnames(hc_display) <- c("Gene", "LM adj p", "Rank test adj p", "LM Effect", "Rank test eta^2")
   rownames(hc_display) <- NULL
   
   knitr::kable(hc_display,
@@ -668,7 +670,7 @@ This vignette demonstrates the modern S4-based analysis workflow for method comp
 | `calculate_rank_assumptions()` | Validate Friedman test assumptions | TSENATAnalysis | Stores results in metadata via `metadata(analysis, "rankbased_assumptions")` |
 | `calculate_rank_test()` | Run Friedman test for q$\times$group interactions | TSENATAnalysis + design params | Updated analysis with results via `results(type="rank_test")` |
 | `plot_diversity_spectrum()` | Plot q-curves for significant genes | TSENATAnalysis + `lm_res` | ggplot2 visualization |
-| `calculate_concordance()` | Compare GAM and Friedman results | TSENATAnalysis with LM and rank test results stored in slots | Updated analysis with results via `metadata()` |
+| `calculate_concordance()` | Compare LM and rank test results | Two TSENATAnalysis objects (LM and rank test results) | Updated analysis with results via `metadata()` |
 | `plot_concordance()` | Visualize method concordance | TSENATAnalysis (after concordance computed) | ggplot2 comparison plot |
 
 ## Workflow Advantages
@@ -695,7 +697,7 @@ analysis <- calculate_diversity(analysis, q = seq(0.1, 2, by = 0.05), norm = TRU
 rank_assumptions <- calculate_rank_assumptions(analysis, verbose = TRUE)
 
 # 4. Friedman test (rank-based)
-analysis <- rank_test_q_condition_s4(
+analysis <- calculate_rank_test(
     analysis,
     condition_col = "condition",
     paired = TRUE,
@@ -704,15 +706,15 @@ analysis <- rank_test_q_condition_s4(
     verbose = TRUE
 )
 
-# 5. Load GAM results and pass directly to concordance function
-gam_results_loaded <- read.csv("lm_interaction_results.csv")
+# 5. Load LM analysis object from RDS file
+analysis_lm <- readRDS("inst/extdata/analysis_lm.rds")
 
-# 6. Compare methods (gam_results parameter handles storage automatically)
+# 6. Compare methods using new two-object API
 analysis <- calculate_concordance(
-    analysis,
-    gam_method = "gam_results",
-    friedman_method = "rank_test",
-    gam_results = gam_results_loaded,
+    analysis_lm = analysis_lm,
+    analysis_rank = analysis,
+    lm_method = "lm_interaction",
+    rank_method = "rank_test",
     verbose = TRUE
 )
 
@@ -734,13 +736,13 @@ plot_diversity_spectrum(
 
 ## S4 Wrapper Integration Overview
 
-This vignette demonstrates the modern S4 wrapper approach for method concordance analysis:
+This vignette demonstrates the modern S4 wrapper approach for method concordance analysis using the refactored two-object API:
 
-- **`calculate_concordance()`**: Integrates seamlessly with TSENATAnalysis objects, storing results accessed via `metadata(analysis, "method_concordance")`
+- **`calculate_concordance(analysis_lm, analysis_rank, ...)`**: Accepts two TSENATAnalysis objects containing LM and rank test results respectively. Compares results from independent analyses with automatic method selection and returns updated analysis with concordance results stored in `metadata(analysis, "method_concordance")`
 - **`plot_concordance()`**: Creates publication-ready concordance visualizations from S4-stored results
-- **Benefits**: Consistent class structure, automatic metadata tracking via accessor methods, reduced variable proliferation in global environment
+- **Benefits**: Clean separation of analysis objects, flexible method selection, automatic metadata tracking, reduced variable proliferation in global environment, backward-compatible with legacy single-object API
 
-For standard (non-S4) analyses, the original functions (`calculate_concordance()` and `plot_method_concordance()`) remain available and fully supported.
+For backward compatibility, the original single-object API (`calculate_concordance(analysis, gam_results = ...)`) remains fully supported.
 
 ## Best Practices for Analysis
 
