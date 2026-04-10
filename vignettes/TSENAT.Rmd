@@ -501,12 +501,12 @@ Each gene produces a **q-curve**: a trajectory showing how entropy changes acros
 
 We can test for these interactions using one of four methods, each with specific strengths:
 
-- **GAM** (generalized additive model [@C038; @C073]): flexibly captures nonlinear q-response patterns via adaptive smoothing splines. Default method.
-- **LMM** (linear mixed models [@C018; @S019]): handles AR(1) correlation in q-ordered measurements with subject-level random effects.
-- **GEE** (generalized estimating equations): particularly useful for paired and longitudinal designs with repeated q-measures.
-- **FPCA** (functional principal component analysis): treats q-values as ordered functional data, implicitly capturing q-ordering structure.
+- GAM (generalized additive model): flexibly captures nonlinear q-response patterns via adaptive smoothing splines. Default method.
+- LMM (linear mixed models): models subject-level random intercepts to account for within-subject correlation in repeated q-ordered measurements.
+- GEE (generalized estimating equations): particularly useful for paired and longitudinal designs with repeated q-measures.
+- FPCA (functional principal component analysis): treats q-values as ordered functional data, implicitly capturing q-ordering structure.
 
-All methods automatically account for the AR(1) correlation structure inherent in Tsallis entropy measurements across q-values. The gam method is particularly useful for complex nonlinear interaction structures.
+All methods automatically account for the AR(1) correlation structure inherent in Tsallis entropy measurements.
 
 ```{r test-q-condition-interaction}
 # Linear-model interaction test across q values using S4 wrapper
@@ -1043,6 +1043,6 @@ Objective: Validate q-value * group interaction detection results from statistic
 
 ## Session Information
 
-```{r session-info}
+```{r session-info, results = 'markup'}
 sessionInfo()
 ```

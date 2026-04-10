@@ -211,7 +211,8 @@ knitr::kable(entropy_summary,
   kableExtra::kable_styling(
     bootstrap_options = c("striped", "hover", "condensed"),
     latex_options = c("scale_down")
-  )
+  ) %>%
+  kableExtra::footnote(general = "**Supplementary Note 1:** Data from complete entropy matrix across all q-values and samples.")
 
 cat("\n")
 
@@ -239,7 +240,8 @@ knitr::kable(data_characteristics,
   kableExtra::kable_styling(
     bootstrap_options = c("striped", "hover", "condensed"),
     latex_options = c("scale_down")
-  )
+  ) %>%
+  kableExtra::footnote(general = "**Supplementary Note 2:** All metrics support validity of paired-design rank-based inference.")
 ```
 
  
@@ -288,7 +290,8 @@ knitr::kable(rank_summary_stats, caption = "**Supplementary Table 3 | Friedman T
   kableExtra::kable_styling(
     bootstrap_options = c("striped", "hover", "condensed"),
     latex_options = c("scale_down")
-  )
+  ) %>%
+  kableExtra::footnote(general = "**Supplementary Note 3:** Friedman test: nonparametric rank-based ANOVA for paired designs.")
 
 # Show top genes results
 rank_sig <- friedman_results[!is.na(friedman_results$p_value), ]
@@ -328,7 +331,8 @@ if (nrow(rank_sig) > 0) {
     kableExtra::kable_styling(
       bootstrap_options = c("striped", "hover", "condensed"),
       latex_options = c("scale_down")
-    )
+    ) %>%
+    kableExtra::footnote(general = "**Supplementary Note 4:** Effect size $\\eta^2$ quantifies strength of *q* × condition interaction; top 10 genes ranked by significance.")
   }
 }
 ```
@@ -392,12 +396,8 @@ analysis_lm <- readRDS(
 )
 
 # Extract GAM/LM results for inspection using accessor function
-gam_results <- results(analysis_lm, type = "lm", rankBy = "pvalue", n = 20)
+gam_results <- results(analysis_lm, type = "lm", rankBy = "pvalue")
 
-# Note: LM analysis is generated via calculate_lm() in the main vignette
-# When available in the analysis object, extract using generic results accessor:
-# lm_gam_results <- results(analysis_lm, type = "lm", rankBy = "pvalue", n = 20, filterFDR = 0.05)
-# This demonstrates the flexible results pattern for accessing LM interaction results
 ```
 
 ```{r gam-results-summary-table, message=FALSE, echo=FALSE}
@@ -433,7 +433,8 @@ knitr::kable(summary_stats, caption = "GAM Results Summary", align = c("l", "r")
   kableExtra::kable_styling(
     bootstrap_options = c("striped", "hover", "condensed"),
     latex_options = c("scale_down")
-  )
+  ) %>%
+  kableExtra::footnote(general = "**Supplementary Note 5:** Aggregate statistics across all genes tested by GAM method; effect size > 30% indicates strong biological signal.")
 
 # Show top genes with additional information
 if ("p_interaction" %in% colnames(gam_results)) {
@@ -457,13 +458,13 @@ if ("p_interaction" %in% colnames(gam_results)) {
       # Format p-value columns with scientific notation for very small values
       if ("p_interaction" %in% colnames(gam_display)) {
         gam_display$p_interaction <- sapply(gam_display$p_interaction, function(x) {
-          if (is.na(x)) "NA" else if (x < 1e-10) sprintf("%.2e", x) else sprintf("%.3f", x)
+          if (is.na(x)) "NA" else if (x < 0.001) sprintf("%.3e", x) else sprintf("%.6f", x)
         })
       }
       
       if ("adj_p_interaction" %in% colnames(gam_display)) {
         gam_display$adj_p_interaction <- sapply(gam_display$adj_p_interaction, function(x) {
-          if (is.na(x)) "NA" else if (x < 1e-10) sprintf("%.2e", x) else sprintf("%.3f", x)
+          if (is.na(x)) "NA" else if (x < 0.001) sprintf("%.3e", x) else sprintf("%.6f", x)
         })
       }
       
@@ -500,7 +501,8 @@ if ("p_interaction" %in% colnames(gam_results)) {
       kableExtra::kable_styling(
         bootstrap_options = c("striped", "hover", "condensed"),
         latex_options = c("scale_down")
-      )
+      ) %>%
+      kableExtra::footnote(general = "**Supplementary Note 6:** Top 10 genes ranked by significance; p-values < 0.001 shown in scientific notation; effect size range 0-100%.")
     }
   }
 } else {
@@ -572,7 +574,8 @@ knitr::kable(concordance_metrics,
   kableExtra::kable_styling(
     bootstrap_options = c("striped", "hover", "condensed"),
     latex_options = c("scale_down")
-  )
+  ) %>%
+  kableExtra::footnote(general = "**Supplementary Note 7:** Comparison of significant genes (p < 0.05) detected by GAM vs Friedman methods; high concordance validates robustness.")
 ```
 
 ```{r display-agreement-results, message=FALSE, echo=FALSE}
@@ -596,7 +599,8 @@ if (!is.null(agreement_table) && length(agreement_table) > 0) {
   kableExtra::kable_styling(
     bootstrap_options = c("striped", "hover", "condensed"),
     latex_options = c("scale_down")
-  )
+  ) %>%
+  kableExtra::footnote(general = "**Supplementary Note 8:** Categories: Concordant (both methods, p < 0.05); GAM-only; Friedman-only; Neither (both p ≥ 0.05).")
 } else {
   cat("No agreement table available from concordance analysis.")
 }
@@ -627,7 +631,8 @@ if (!is.null(high_conf) && nrow(high_conf) > 0) {
   kableExtra::kable_styling(
     bootstrap_options = c("striped", "hover", "condensed"),
     latex_options = c("scale_down")
-  )
+  ) %>%
+  kableExtra::footnote(general = "**Supplementary Note 9:** High-confidence genes: significant by both GAM and Friedman rank test (adj p < 0.05); $\\eta^2$ = rank test effect size.")
 } else {
   cat("No high-confidence genes detected by both methods (p < 0.05 in both GAM and Friedman tests).")
 }
@@ -639,14 +644,9 @@ if (!is.null(high_conf) && nrow(high_conf) > 0) {
 # Create comparison plot using S4 wrapper
 # Check if concordance analysis was successful
 concordance_results <- metadata(analysis_with_concordance, "method_concordance")
-if (!is.null(concordance_results) && !is.null(concordance_results$comparison_df) && nrow(concordance_results$comparison_df) > 0) {
-  p <- plot_concordance(analysis_with_concordance, verbose = TRUE)
-  print(p)
-} else {
-  message("Note: Insufficient overlapping genes between GAM and Friedman results for concordance visualization.")
-  message("This can occur when gene filtering strategies differ between methods.")
-  message("Proceeding with tabular comparison instead.")
-}
+
+p <- plot_concordance(analysis_with_concordance, verbose = TRUE)
+print(p)
 ```
 
 ***
@@ -656,7 +656,3 @@ if (!is.null(concordance_results) && !is.null(concordance_results$comparison_df)
 ```{r session-info-appendix-b}
 sessionInfo()
 ```
-
-***
-
-# References
