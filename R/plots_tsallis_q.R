@@ -203,7 +203,7 @@ plot_diversity_spectrum <- function(se, assay_name = "diversity", condition_col 
     }
 
     # Basic aggregate mode with specified metric
-    .plot_tsallis_basic(long, metric, output_file)
+    return(.plot_tsallis_basic(long, metric, output_file))
 }
 
 # ============================================================================

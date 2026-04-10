@@ -1577,7 +1577,10 @@ test_that("results() unified accessor provides access to all result types", {
   )
   
   analysis@lm_results <- list(
-    lm_interaction = lm_test_df,
+    lm_interaction = lm_test_df
+  )
+  
+  analysis@rank_test_results <- list(
     rank_test = rank_test_df
   )
   

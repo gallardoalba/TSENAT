@@ -75,9 +75,11 @@
 #' @importFrom S4Vectors metadata
 #'
 setClass("TSENATAnalysis", slots = list(se = "SummarizedExperiment", config = "list",
-    diversity_results = "list", lm_results = "list", pairwise_results = "list", jackknife_results = "list",
+    diversity_results = "list", lm_results = "list", pairwise_results = "list", 
+    rank_test_results = "list", jackknife_results = "list",
     divergence_results = "list", plots = "list", metadata = "list"), prototype = list(config = list(),
-    diversity_results = list(), lm_results = list(), pairwise_results = list(), jackknife_results = list(),
+    diversity_results = list(), lm_results = list(), pairwise_results = list(), rank_test_results = list(),
+    jackknife_results = list(),
     divergence_results = list(), plots = list(), metadata = list(function_calls = character(0),
         function_timestamps = character(0))), validity = function(object) {
     # Check @se is SummarizedExperiment
@@ -105,6 +107,9 @@ setClass("TSENATAnalysis", slots = list(se = "SummarizedExperiment", config = "l
     }
     if (!is.list(object@pairwise_results)) {
         return("@pairwise_results must be a list")
+    }
+    if (!is.list(object@rank_test_results)) {
+        return("@rank_test_results must be a list")
     }
     if (!is.list(object@jackknife_results)) {
         return("@jackknife_results must be a list")

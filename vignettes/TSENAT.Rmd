@@ -512,6 +512,14 @@ if (requireNamespace("mgcv", quietly = TRUE)) {
         multicorr = "hochberg"
     )
     
+    # Save the full analysis object (results will be used in appendix B)
+    rds_path <- file.path("..", "inst", "extdata", "analysis_lm.rds")
+    tryCatch({
+        saveRDS(analysis, rds_path)
+    }, error = function(e) {
+        warning("Could not save analysis_lm.rds: ", e$message)
+    })
+    
     # Extract LM interaction results using results accessor
     lm_results <- results(analysis, type = "lm", rankBy = "pvalue", n = 10)
     cat("Top 10 genes by p-value:\n")

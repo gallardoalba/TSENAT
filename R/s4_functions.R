@@ -1061,15 +1061,15 @@ setMethod("calculate_concordance", "TSENATAnalysis", function(analysis, gam_meth
             available_methods, call. = FALSE)
     }
 
-    if (!(friedman_method %in% names(analysis@lm_results))) {
-        available_methods <- paste(names(analysis@lm_results), collapse = ", ")
-        stop("Friedman method '", friedman_method, "' not found in LM results. ",
-            "Available: ", available_methods, call. = FALSE)
+    # Check friedman_method - must be in rank_test_results
+    if (is.null(analysis@rank_test_results) || !("rank_test" %in% names(analysis@rank_test_results))) {
+        stop("Friedman method 'rank_tests' not found in rank_test_results. ",
+            "Run calculate_rank_test() first.", call. = FALSE)
     }
 
     # Extract results
     gam_results_final <- analysis@lm_results[[gam_method]]
-    friedman_results <- analysis@lm_results[[friedman_method]]
+    friedman_results <- analysis@rank_test_results$rank_test
 
     # Validate they're data frames
     if (!is.data.frame(gam_results_final)) {

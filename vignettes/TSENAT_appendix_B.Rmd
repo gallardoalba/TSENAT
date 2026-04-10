@@ -531,7 +531,7 @@ if ("p_interaction" %in% colnames(gam_results)) {
 analysis_with_concordance <- calculate_concordance(
     analysis,
     gam_method = "gam_results",
-    friedman_method = "rank_test",
+    friedman_method = "rank_tests",
     gam_results = gam_results,
     verbose = TRUE
 )

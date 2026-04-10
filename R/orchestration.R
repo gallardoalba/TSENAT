@@ -479,8 +479,8 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
             }
             jk_res
         } else NULL,
-        rank_test = if (!is.null(analysis@lm_results) && "rank_test" %in% names(analysis@lm_results)) {
-            analysis@lm_results$rank_test
+        rank_test = if (!is.null(analysis@rank_test_results) && "rank_test" %in% names(analysis@rank_test_results)) {
+            analysis@rank_test_results$rank_test
         } else NULL,
         pairwise = if (length(analysis@pairwise_results) > 0) analysis@pairwise_results else NULL,
         effect_sizes_divergence = S4Vectors::metadata(analysis)$effect_sizes_divergence,

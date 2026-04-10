@@ -582,7 +582,7 @@ test_that("results returns all supported result types", {
     adj_p_interaction = p.adjust(rnorm(n_genes), method = "BH")
   ))
   analysis@jackknife_results <- list(ci_lower = rnorm(n_genes))
-  analysis@lm_results$rank_test <- list(results = "rank_test_data")
+  analysis@rank_test_results <- list(rank_test = list(results = "rank_test_data"))
   
   # Test each type
   expect_false(is.null(results(analysis, type = "diversity")))

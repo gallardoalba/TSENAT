@@ -803,7 +803,7 @@ test_that(".prepare_multi_q_se uses cached combined SE when available", {
 # Test: .store_rank_test_results() helper function
 # ============================================================================
 
-test_that(".store_rank_test_results stores results in lm_results", {
+test_that(".store_rank_test_results stores results in rank_test_results", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # Create dummy results data frame (mock output from rank test)
@@ -823,16 +823,16 @@ test_that(".store_rank_test_results stores results in lm_results", {
     )
     
     # Check results are stored in correct location
-    expect_true(is.list(analysis_stored@lm_results))
-    expect_true("rank_test" %in% names(analysis_stored@lm_results))
-    expect_equal(nrow(analysis_stored@lm_results$rank_test), 3)
+    expect_true(is.list(analysis_stored@rank_test_results))
+    expect_true("rank_test" %in% names(analysis_stored@rank_test_results))
+    expect_equal(nrow(analysis_stored@rank_test_results$rank_test), 3)
 })
 
-test_that(".store_rank_test_results creates lm_results list when needed", {
+test_that(".store_rank_test_results creates rank_test_results list when needed", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
-    # Clear lm_results to test list creation
-    analysis@lm_results <- list()
+    # Clear rank_test_results to test list creation
+    analysis@rank_test_results <- list()
     
     mock_results <- data.frame(
         gene = "gene1",
@@ -849,8 +849,8 @@ test_that(".store_rank_test_results creates lm_results list when needed", {
     )
     
     # Check list was created properly
-    expect_true(is.list(analysis_stored@lm_results))
-    expect_true("rank_test" %in% names(analysis_stored@lm_results))
+    expect_true(is.list(analysis_stored@rank_test_results))
+    expect_true("rank_test" %in% names(analysis_stored@rank_test_results))
 })
 
 test_that(".store_rank_test_results returns modified TSENATAnalysis", {
@@ -912,7 +912,7 @@ test_that("Helper functions integrate correctly in rank test workflow", {
     )
     
     expect_is(analysis_final, "TSENATAnalysis")
-    expect_true("rank_test" %in% names(analysis_final@lm_results))
+    expect_true("rank_test" %in% names(analysis_final@rank_test_results))
 })
 
 # ============================================================================
@@ -1120,11 +1120,11 @@ test_that(".store_rank_test_results handles empty results data frame", {
         verbose = FALSE
     )
     
-    expect_true("rank_test" %in% names(analysis_stored@lm_results))
-    expect_equal(nrow(analysis_stored@lm_results$rank_test), 0)
+    expect_true("rank_test" %in% names(analysis_stored@rank_test_results))
+    expect_equal(nrow(analysis_stored@rank_test_results$rank_test), 0)
 })
 
-test_that(".store_rank_test_results preserves existing lm_results", {
+test_that(".store_rank_test_results preserves existing rank_test_results", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # Add existing results
@@ -1133,7 +1133,7 @@ test_that(".store_rank_test_results preserves existing lm_results", {
         p_value = 0.001,
         adj_p_value = 0.01
     )
-    analysis@lm_results <- list(
+    analysis@rank_test_results <- list(
         some_other_results = existing_results
     )
     
@@ -1151,8 +1151,8 @@ test_that(".store_rank_test_results preserves existing lm_results", {
     )
     
     # Check both lists exist
-    expect_true("some_other_results" %in% names(analysis_stored@lm_results))
-    expect_true("rank_test" %in% names(analysis_stored@lm_results))
+    expect_true("some_other_results" %in% names(analysis_stored@rank_test_results))
+    expect_true("rank_test" %in% names(analysis_stored@rank_test_results))
 })
 
 # ============================================================================

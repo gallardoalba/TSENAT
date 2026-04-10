@@ -351,11 +351,10 @@ calculate_rank_test <- function(analysis, condition_col, output_file = NULL,
 #'
 #' @noRd
 .store_rank_test_results <- function(analysis, result, output_file, verbose) {
-    # Store in dedicated rank_test_results slot (not in lm_results)
-    if (is.list(analysis@rank_test_results)) {
-        analysis@rank_test_results$rank_test <- result
+    if (is.list(analysis@lm_results)) {
+        analysis@lm_results$rank_test <- result
     } else {
-        analysis@rank_test_results <- list(rank_test = result)
+        analysis@lm_results <- list(rank_test = result)
     }
 
     if (!is.null(output_file)) {
