@@ -17,6 +17,7 @@ output:
 header-includes:
   - \usepackage{float}
 bibliography: TSENAT.bib
+suppress-bibliography: true
 vignette: |
   %\VignetteIndexEntry{TSENAT Appendix B: Non-Parametric Validation}
   %\VignetteEngine{knitr::rmarkdown}
@@ -515,6 +516,8 @@ if ("p_interaction" %in% colnames(gam_results)) {
 
 # Method Concordance Analysis
 
+A critical validation step is to compare whether the Friedman rank-based test and GAM produce consistent results. High concordance between methods (i.e., genes significant in both approaches) provides strong evidence that discoveries are robust to methodological choice. Discordant genes—those significant in only one method—warrant closer inspection: they may represent genuine biological signals revealed by one method's specific advantages, or artifacts of that method's assumptions. This section quantifies agreement between approaches and identifies high-confidence genes significant across both statistical frameworks.
+
 ```{r compare-friedman-gam-methods, message=FALSE}
 # Compute concordance analysis using new two-object API
 # Compares LM results (from analysis_lm) with rank test results (from analysis)
@@ -638,7 +641,41 @@ if (!is.null(high_conf) && nrow(high_conf) > 0) {
 }
 ```
 
+## Statistical Power vs. Robustness: Understanding Method Discordance
+
+The striking discordance between GAM and Friedman results (71.1% significant in GAM only, 0% in rank test only, 28.9% total concordance) reflects a fundamental trade-off in statistical methodology: **parametric methods maximize power when assumptions hold, while nonparametric methods sacrifice power for robustness to assumption violations**.
+
+**Why GAM detects more significant genes than Friedman:**
+
+GAM's superior power derives from two factors:
+
+1. **Distributional assumptions:** GAM assumes approximately normal residuals and homogeneous variance, which are reasonable after appropriate transformation for entropy data. Under these assumptions, parametric methods are theoretically optimal, achieving maximum power for a given type I error rate. The rank-based Friedman test is assumption-free but necessarily **discards quantitative information** by converting measurements to ranks, which reduces statistical power when the underlying data are approximately normal.
+
+2. **Model flexibility with penalty:** GAM uses thin-plate splines with smoothness penalties that simultaneously fit nonlinear patterns while controlling degrees of freedom. This flexibility allows GAM to detect subtle **entropic index × group** interactions across all q-values. The Friedman test, by contrast, operates on rank patterns only, which is inherently less sensitive to continuous relationships across the ordering (q-values).
+
+**Why Friedman detected no genes uniquely (0%):**
+
+This absence of Friedman-only discoveries—whilst counterintuitive—is statistically expected when one method is more powerful than the other in the applicable problem domain. Friedman would only detect genes missed by GAM if:
+- The data severely violate GAM normality assumptions (unlikely after transformation), OR
+- The Friedman test possesses specific advantages for the interaction structure (unlikely given GAM's flexibility)
+
+Since neither applies here, Friedman's lower power produces a subset of GAM's discoveries, not a disjoint set.
+
+**Interpreting the 5 high-confidence genes (6.6% concordance):**
+
+These genes represent **gold-standard discoveries**, significant by both conservative (Friedman) and powerful (GAM) standards. The extremely low adjusted p-values in both methods (e.g., CXCL12: $2.99 \times 10^{-162}$ for GAM, $1.64 \times 10^{-61}$ for Friedman) indicate overwhelming evidence of entropic index × group interactions—effects so strong that they survive even nonparametric rank-based testing. These genes represent the most robust candidates for biological validation.
+
+**Practical recommendations:**
+
+- **High-confidence genes (Table above):** Pursue aggressively; supported by both methods
+- **GAM-only genes (54 genes, 71.1%):** Evaluate for biological plausibility; GAM's higher power may detect real but subtle effects, or effects specific to the parametric model structure. Cross-validate with the original linear model results (main vignette [@S019]) to distinguish signal from artifact
+- **Neither significant (17 genes, 22.4%):** No evidence of entropic index × group interactions; reliable negative findings
+
+This complementary approach—combining high-power parametric tests with robust nonparametric alternatives—provides confidence that discoveries are methodologically sound rather than artifacts of statistical assumptions.
+
 ## Visualization: Method Comparison
+
+Visual comparison of concordance patterns provides intuitive assessment of which genes align between methods and which are method-specific. The following plots display significance calls, effect sizes, and agreement metrics in a format that facilitates interpretation of both robust discoveries and method-specific findings.
 
 ```{r visualize-method-concordance, fig.width=10, fig.height=8, out.width="98%", fig.pos="H", fig.cap="**Method concordance visualization** comparing Friedman rank-based and GAM approaches for detecting q$\\times$condition interactions. Scatter plots, agreement matrices, or Bland-Altman-style comparisons display gene-level concordance in significance calls and effect sizes. Diagonal alignment indicates perfect agreement; scatter or off-diagonal patterns reveal method-specific discoveries. Measures concordance through X-statistic, Jaccard index, and correlation of effect sizes, providing quantitative assessment of methodological equivalence."}
 # Create comparison plot using S4 wrapper

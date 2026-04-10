@@ -222,16 +222,14 @@ tsenat_analysis_q1 <- TSENAT::calculate_difference(
   test = "wilcoxon",
   verbose = FALSE
 )
-# Extract results for downstream functions
+
 tsenat_shannon_diff <- TSENAT::results(tsenat_analysis_q1, type = "pairwise")
 
 # Extract diversity results using results accessor for q=1
 tsenat_q1_diversity <- TSENAT::results(tsenat_analysis_q1, type = "diversity", q = 1.0)
-cat("TSENAT Diversity Results (q=1):\n")
-print(head(tsenat_q1_diversity, n = 10))
+
 
 # TSENAT: Differential analysis for Tsallis q=2
-# Config already set at object construction, no need to reset
 tsenat_analysis_q2 <- TSENAT::calculate_difference(
   analysis = tsenat_analysis_q2,
   control = "Normal",
@@ -239,13 +237,12 @@ tsenat_analysis_q2 <- TSENAT::calculate_difference(
   test = "wilcoxon",
   verbose = FALSE
 )
+
 # Extract results for downstream functions
 tsenat_simpson_diff <- TSENAT::results(tsenat_analysis_q2, type = "pairwise")
 
 # Extract diversity results using results accessor for q=2
 tsenat_q2_diversity <- TSENAT::results(tsenat_analysis_q2, type = "diversity", q = 2.0)
-cat("TSENAT Diversity Results (q=2):\n")
-print(head(tsenat_q2_diversity, n = 10))
 ```
 
 
