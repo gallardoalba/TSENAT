@@ -254,7 +254,7 @@ analysis <- calculate_rank_test(
 
 # Extract results
 friedman_results <- results(analysis, type = "rank_test", rankBy = "pvalue", n = 20, filterFDR = 0.05)
-print(head(rank_test_results, n = 10))
+print(head(friedman_results, n = 10))
 ```
 
 ```{r friedman-results-summary, message=FALSE, echo=FALSE}
@@ -269,9 +269,9 @@ rank_summary_stats <- data.frame(
     "Significant (p < 0.05)", 
     "Significant (adj_p < 0.05, FWER-controlled)", 
     "NAs",
-    "Mean effect size ($\eta^2$)",
-    "Median effect size ($\eta^2$)",
-    "Strong effect genes ($\eta^2$ > 10%)"
+    "Mean effect size ($\\eta^2$)",
+    "Median effect size ($\\eta^2$)",
+    "Strong effect genes ($\\eta^2$ > 10%)"
   ),
   Value = c(
     nrow(friedman_results),
@@ -284,7 +284,7 @@ rank_summary_stats <- data.frame(
   )
 )
 
-knitr::kable(rank_summary_stats, caption = "**Supplementary Table 3 | Friedman Test Results Summary.** Rank-based nonparametric test of *q* * condition interactions. Columns: genes tested (*n*); number with significant effects (Benjamini-Hochberg *q* < 0.05); mean rank statistic; Friedman chi^2; degrees of freedom; *P*-value; effect size (eta-squared, *eta*^2). Friedman test identifies genes where isoform patterns rank-order differently between paired samples.", label = "tab:friedman-test-summary", align = c("l", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
+knitr::kable(rank_summary_stats, caption = "**Supplementary Table 3 | Friedman Test Results Summary.** Rank-based nonparametric test of *q* * condition interactions. Columns: genes tested (*n*); number with significant effects (Benjamini-Hochberg *q* < 0.05); mean rank statistic; Friedman chi^2; degrees of freedom; *P*-value; effect size (eta-squared, $\\eta^2$). Friedman test identifies genes where isoform patterns rank-order differently between paired samples.", label = "tab:friedman-test-summary", align = c("l", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
   kableExtra::kable_styling(
     bootstrap_options = c("striped", "hover", "condensed"),
     latex_options = c("scale_down")
@@ -318,9 +318,9 @@ if (nrow(rank_sig) > 0) {
     }
     
     knitr::kable(rank_display, 
-                 caption = "**Supplementary Table 4 | Top genes identified by Friedman rank-based test.** Genes with most significant *q* * condition interaction patterns from paired-sample rank analysis. Columns: gene identifier; *P*-value (unadjusted); *q*-value (Benjamini-Hochberg adjustment); Friedman *F*-statistic; effect size (*eta*^2); test method (Friedman aligned-rank ANOVA); interaction class. Ranked by adjusted significance.",
+                 caption = "**Supplementary Table 4 | Top genes identified by Friedman rank-based test.** Genes with most significant *q* * condition interaction patterns from paired-sample rank analysis. Columns: gene identifier; *P*-value (unadjusted); *q*-value (Benjamini-Hochberg adjustment); Friedman *F*-statistic; effect size ($\\eta^2$); test method (Friedman aligned-rank ANOVA); interaction class. Ranked by adjusted significance.",
                  col.names = c("Gene", "P-value", "Adj. P-value", "F-Statistic", 
-                               "Effect Size ($\eta^2$)", "Test Method", "Interaction Class")[1:ncol(rank_display)],
+                               "Effect Size ($\\eta^2$)", "Test Method", "Interaction Class")[1:ncol(rank_display)],
                  digits = 4,
                  format = if (knitr::is_latex_output()) "latex" else "html",
                  longtable = knitr::is_latex_output(),
@@ -615,7 +615,7 @@ if (!is.null(high_conf) && nrow(high_conf) > 0) {
   hc_display$effect_lm <- sprintf("%.1f%%", hc_display$effect_lm * 100)
   hc_display$effect_rank <- sprintf("%.3f", hc_display$effect_rank)
   
-  colnames(hc_display) <- c("Gene", "LM adj p", "Rank test adj p", "LM Effect", "Rank test $\eta^2$")
+  colnames(hc_display) <- c("Gene", "LM adj p", "Rank test adj p", "LM Effect", "Rank test $\\eta^2$")
   rownames(hc_display) <- NULL
   
   knitr::kable(hc_display,
