@@ -1591,7 +1591,7 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
     parallel_factor <- max(0.75, 1 - log(nthreads)/12)
     base_nboot <- round(base_nboot * parallel_factor)
 
-    # Enforce minimum (need ≥ 100 for meaningful percentile CIs)
+    # Enforce minimum (need >= 100 for meaningful percentile CIs)
     max(100, base_nboot)
 }
 

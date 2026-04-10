@@ -135,7 +135,7 @@ The filtering and subsetting operations are applied in sequence:
 5. Returns the modified analysis object invisibly
 
 **Default Filtering (stringency = 'medium'):** By default, filtering applies
-balanced stringency: requires transcripts in ≥50% of samples with minimum
+balanced stringency: requires transcripts in >= 50% of samples with minimum
 isoform abundance of 5%, and genes with at least 2 transcripts. This balances
 noise reduction with preservation of isoform diversity for reliable entropy
 calculations.

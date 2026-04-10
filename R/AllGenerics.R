@@ -174,7 +174,11 @@ setGeneric("setConfig", function(object, value) standardGeneric("setConfig"))
 #' @noRd
 setGeneric("setConfigValue", function(object, key, value) standardGeneric("setConfigValue"))
 
-#' @noRd
+#' Extract SummarizedExperiment from TSENATAnalysis
+#'
+#' @param object TSENATAnalysis object
+#' @return SummarizedExperiment object
+#' @export
 setGeneric("se", function(object) standardGeneric("se"))
 
 #' @noRd
@@ -182,5 +186,11 @@ if (!isGeneric("metadata")) {
     setGeneric("metadata", function(x, key = NULL) standardGeneric("metadata"))
 }
 
-#' @noRd
+#' Set metadata for TSENATAnalysis object
+#'
+#' @param x TSENATAnalysis object
+#' @param value Replacement value for metadata (typically a list)
+#' @return TSENATAnalysis object with updated metadata
+#' @seealso \code{\link{TSENATAnalysis-methods}} for other accessor methods
+#' @keywords internal
 setGeneric("metadata<-", function(x, value) standardGeneric("metadata<-"))

@@ -17,32 +17,24 @@ calculate_concordance(analysis_lm, analysis_rank = NULL, ...)
 )
 }
 \arguments{
+\item{analysis_lm}{\code{TSENATAnalysis} object with LM/GAM results.}
+
+\item{analysis_rank}{\code{TSENATAnalysis} object or NULL. If NULL, uses legacy 
+single-object API with analysis_lm containing both results. If provided, 
+compares LM results from analysis_lm with rank-test results from analysis_rank.}
+
 \item{...}{Additional arguments for future extensibility.}
+
+\item{lm_method}{\code{character}. Key for LM/GAM interaction results in 
+\code{@lm_results}. Default: NULL (auto-detects from analysis_lm).}
+
+\item{rank_method}{\code{character}. Key for rank-based test results in 
+\code{@lm_results}. Default: 'rank_test' (from \code{calculate_rank_test}).}
 
 \item{verbose}{\code{logical}. Print progress messages (default: FALSE).}
 
-\item{output_file}{\code{character} or  \code{NULL}.
-Optional file path to save results.
- Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
-
-\item{analysis}{\code{TSENATAnalysis} object with LM results (e.g., GAM).}
-
-\item{gam_method}{\code{character}.  Key for 
-GAM/interaction results in \code{@lm_results}.
-  Default: 'rank_test' (results from \code{calculate_rank_test})}
-
-\item{friedman_method}{\code{character}.  Key for 
-Friedman/rank-based results in \code{@lm_results}.
-  Default: 'rankbased' (results from \code{calculate_rank_assumptions})}
-
-\item{gam_results}{\code{data. frame} or  \code{NULL}.
- Optional GAM results data frame to store
-  in the analysis object.  If provided,
- automatically stored in \code{@lm_results} under the
-  key specified by \code{gam_method}.  Useful for 
-importing external results or  results 
-computed outside the S4 wrapper. Default: NULL (use existing results in
-analysis).}
+\item{output_file}{\code{character} or NULL. Optional file path to save results.
+Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
 }
 \value{
 Modified TSENATAnalysis object with concordance results stored in:
@@ -52,8 +44,8 @@ Modified TSENATAnalysis object with concordance results stored in:
     \item{spearman_rho}{Spearman correlation between adjusted p-values}
     \item{high_confidence}{Genes with strong agreement}
     \item{agreement_table}{Contingency table of significant/non-significant calls}
-    \item{gam_method}{Method name used for GAM analysis}
-    \item{friedman_method}{Method name used for Friedman analysis}
+    \item{lm_method}{Method name used for LM/GAM analysis}
+    \item{rank_method}{Method name used for rank-based analysis}
     \item{timestamp}{When concordance was computed}
   }
 }
@@ -62,12 +54,10 @@ Compute concordance between two analysis methods in TSENATAnalysis
 }
 \details{
 Compares results from two different statistical methods (typically GAM
-for continuous
-and Friedman/Kruskal-Wallis for rank-based analysis) on the same data.
+for continuous and Friedman/Kruskal-Wallis for rank-based analysis) on the same data.
 Identifies:
 - Genes significant in both methods (high confidence)
-- Genes detected by one method only (potential false positives or
-method-specific signal)
+- Genes detected by one method only (potential false positives or method-specific signal)
 - Spearman correlation of p-values (overall agreement trends)
 }
 \examples{

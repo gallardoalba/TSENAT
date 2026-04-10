@@ -933,24 +933,16 @@ plot_diversity_volcano_ma <- function(analysis, x_col = NULL, padj_col = "padj",
 
 #' Compute concordance between two analysis methods in TSENATAnalysis
 #'
-#' @param analysis \code{TSENATAnalysis} object with LM results (e.g., GAM).
-#' @param gam_method \code{character}.  Key for 
-#' GAM/interaction results in \code{@lm_results}.
-#'   Default: 'rank_test' (results from \code{calculate_rank_test})
-#' @param friedman_method \code{character}.  Key for 
-#' Friedman/rank-based results in \code{@lm_results}.
-#'   Default: 'rankbased' (results from \code{calculate_rank_assumptions})
-#' @param gam_results \code{data. frame} or  \code{NULL}.
-#'  Optional GAM results data frame to store
-#'   in the analysis object.  If provided,
-#'  automatically stored in \code{@lm_results} under the
-#'   key specified by \code{gam_method}.  Useful for 
-#' importing external results or  results 
-#' computed outside the S4 wrapper. Default: NULL (use existing results in
-#' analysis).
+#' @param analysis_lm \code{TSENATAnalysis} object with LM/GAM results.
+#' @param analysis_rank \code{TSENATAnalysis} object or NULL. If NULL, uses legacy 
+#'   single-object API with analysis_lm containing both results. If provided, 
+#'   compares LM results from analysis_lm with rank-test results from analysis_rank.
+#' @param lm_method \code{character}. Key for LM/GAM interaction results in 
+#'   \code{@lm_results}. Default: NULL (auto-detects from analysis_lm).
+#' @param rank_method \code{character}. Key for rank-based test results in 
+#'   \code{@lm_results}. Default: 'rank_test' (from \code{calculate_rank_test}).
 #' @param verbose \code{logical}. Print progress messages (default: FALSE).
-#' @param output_file \code{character} or  \code{NULL}.
-#'  Optional file path to save results.
+#' @param output_file \code{character} or NULL. Optional file path to save results.
 #'   Supported formats: .rds (for S4 objects). Default: NULL (no file output).
 #' @param ... Additional arguments for future extensibility.
 #'
@@ -961,19 +953,17 @@ plot_diversity_volcano_ma <- function(analysis, x_col = NULL, padj_col = "padj",
 #'     \item{spearman_rho}{Spearman correlation between adjusted p-values}
 #'     \item{high_confidence}{Genes with strong agreement}
 #'     \item{agreement_table}{Contingency table of significant/non-significant calls}
-#'     \item{gam_method}{Method name used for GAM analysis}
-#'     \item{friedman_method}{Method name used for Friedman analysis}
+#'     \item{lm_method}{Method name used for LM/GAM analysis}
+#'     \item{rank_method}{Method name used for rank-based analysis}
 #'     \item{timestamp}{When concordance was computed}
 #'   }
 #'
 #' @details
 #' Compares results from two different statistical methods (typically GAM
-#' for continuous
-#' and Friedman/Kruskal-Wallis for rank-based analysis) on the same data.
+#' for continuous and Friedman/Kruskal-Wallis for rank-based analysis) on the same data.
 #' Identifies:
 #' - Genes significant in both methods (high confidence)
-#' - Genes detected by one method only (potential false positives or
-#' method-specific signal)
+#' - Genes detected by one method only (potential false positives or method-specific signal)
 #' - Spearman correlation of p-values (overall agreement trends)
 #'
 #' @examples
@@ -2691,7 +2681,7 @@ calculate_m_estimator <- function(analysis, condition_col = NULL, loss_type = "h
 #' 5. Returns the modified analysis object invisibly
 #'
 #' **Default Filtering (stringency = 'medium'):** By default, filtering applies
-#' balanced stringency: requires transcripts in ≥50% of samples with minimum
+#' balanced stringency: requires transcripts in >= 50% of samples with minimum
 #' isoform abundance of 5%, and genes with at least 2 transcripts. This balances
 #' noise reduction with preservation of isoform diversity for reliable entropy
 #' calculations.

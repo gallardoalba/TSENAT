@@ -50,7 +50,7 @@ TSENAT implements a complete analytical pipeline:
 \section{Core Functions}{
 
 \describe{
-  \item{\code{\link{tsenat}}}{Main orchestration function. Executes complete pipeline with 
+  \item{\code{\link{TSENAT}}}{Main orchestration function. Executes complete pipeline with 
     configurable method backends and parallelization.}
   \item{\code{\link{TSENAT_config}}}{Configure analysis parameters: q-values, condition 
     grouping, sample pairing, and method selection.}
@@ -166,18 +166,17 @@ Isoform switching and transcriptomics:
 
 \section{S4 Container}{
 
-\code{\link{TSENATAnalysis-class}} — Central container unifying all analysis components.
-Access results via accessor methods: \code{\link{diversity}}, \code{\link{lmResults}}, 
-\code{\link{jeoResults}}, \code{\link{jisResults}}, \code{\link{getMeta}}, \code{\link{getSE}}.
+\\code{\\link{TSENATAnalysis-class}} - Central container unifying all analysis components.
+Access results via slots: \code{@diversity_results}, \code{@lm_results}, 
+\code{@jackknife_results}, \code{@divergence_results}, 
+or accessor methods \code{\link{TSENATAnalysis-methods}}.
 }
 
 \seealso{
-Useful links:
-\itemize{
-  \item \url{https://gallardoalba.github.io/TSENAT}
-  \item Report bugs at \url{https://github.com/gallardoalba/TSENAT/issues}
-}
-
+\code{\link{TSENAT}} for running the complete analysis pipeline.
+\code{\link{TSENATAnalysis-methods}} for accessor functions (getSE, getMeta, getConfig, results).
+\code{\link{TSENATAnalysis-class}} for the S4 object structure.
+\code{\link{build_analysis}} for creating TSENATAnalysis objects.
 }
 \author{
 \strong{Maintainer}: Cristóbal Gallardo \email{gallardoalba@pm.me} (\href{https://orcid.org/0000-0002-5752-2155}{ORCID})

@@ -163,11 +163,11 @@ The diverse statistical methods available in TSENAT include:
 
 | Tool | Answers | TSENAT Difference |
 |------|---------|-------------------|
-| DESeq2, edgeR, limma | Which genes change in *total abundance*? | TSENAT detects isoform diversity changes independent of total abundance |
-| DRIMSeq | Which *individual transcripts* shift usage? | TSENAT measures overall isoform diversity, not individual transcript shifts |
-| IsoformSwitchAnalyzeR | Which *individual isoforms* switch; what are the *functional consequences*? | TSENAT measures overall isoform diversity and diversity shifts rather than cataloging individual transcript switches or predicting functional consequences; complements switch identification with diversity patterns |
-| SplicingFactory | What is the *overall isoform diversity*? | TSENAT extends with scale-dependent diversity (q-spectrum) vs fixed measures |
-| Kallisto, Salmon | How many reads per transcript? | TSENAT uses their quantification as input; adds diversity analysis layer |
+| **DESeq2, edgeR, limma** | Which genes change in *total abundance*? | TSENAT detects isoform diversity changes independent of total abundance |
+| **DRIMSeq** | Which *individual transcripts* shift usage? | TSENAT measures overall isoform diversity, not individual transcript shifts |
+| **IsoformSwitchAnalyzeR** | Which *individual isoforms* switch; what are the *functional consequences*? | TSENAT measures overall isoform diversity and diversity shifts rather than cataloging individual transcript switches or predicting functional consequences; complements switch identification with diversity patterns |
+| **SplicingFactory** | What is the *overall isoform diversity*? | TSENAT extends with scale-dependent diversity (q-spectrum) vs fixed measures |
+| **Kallisto, Salmon** | How many reads per transcript? | TSENAT uses their quantification as input; adds diversity analysis layer |
 
 ## Native Salmon Integration
 

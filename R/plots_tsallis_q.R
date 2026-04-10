@@ -109,6 +109,7 @@
 #' @importFrom dplyr filter group_by summarise pull
 #' @importFrom SummarizedExperiment assayNames assay colData rowData
 #' @importFrom tidyr pivot_longer
+#' @importFrom grDevices dev.new
 #'
 #' @examples
 #' # Plot 7: Tsallis entropy q-curve (combined across all sample diversity)

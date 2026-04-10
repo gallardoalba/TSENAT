@@ -99,10 +99,10 @@
 #'
 #' Affected parameters:
 #' \itemize{
-#'   \\item \\code{q}: Uses config's \\code{q} if available, else 1.0 (Shannon entropy)
-#'   \item \code{n_bootstrap}: Uses config's \code{n_bootstrap} if available, else 1000
-#'   \item \code{threshold}: Uses config's \code{threshold} if available, else 90
-#'   \item \code{lm_p_threshold}: Uses config's \code{lm_p_threshold} if available, else 0.05
+#'   \item \code{q}: Multi-q vector c(0, 0.5, 1, 1.5, 2) if not provided, or \code{@config$q} if available
+#'   \item \code{n_bootstrap}: Uses \code{@config$n_bootstrap} if available, else 1000
+#'   \item \code{threshold}: Uses \code{@config$threshold} if available, else 90
+#'   \item \code{lm_p_threshold}: Uses \code{@config$lm_p_threshold} if available, else 0.05
 #' }
 #'
 #' This allows setting defaults once in the config and reusing across multiple analyses.

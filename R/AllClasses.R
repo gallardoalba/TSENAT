@@ -35,6 +35,11 @@
 #'   \code{calculate_difference()}, stored under the \code{difference}
 #'   component.
 #'
+#' @slot rank_test_results \code{list}. Friedman and rank-based statistical
+#'   test results. Names correspond to q-values (e.g., 'q_0.5', 'q_1.0').
+#'   Computed by \code{calculate_rank_test()} as a non-parametric alternative
+#'   to linear mixed model testing.
+#'
 #' @slot jackknife_results \code{list}. Resampling-based confidence intervals.
 #'   Names correspond to q-values (e.g., 'q_0.5', 'q_1.0'). Values are
 #'   jackknife result objects containing resamples, CI bounds, and diagnostics.
