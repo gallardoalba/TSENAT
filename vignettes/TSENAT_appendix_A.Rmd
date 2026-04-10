@@ -16,7 +16,7 @@ header-includes:
     - \usepackage{float}
 bibliography: TSENAT.bib
 vignette: |
-    %\VignetteIndexEntry{TSENAT Validation: SplicingFactory Equivalence}
+    %\VignetteIndexEntry{TSENAT Appendix A: Validation}
     %\VignetteEngine{knitr::rmarkdown}
     %\VignetteEncoding{UTF-8}
 ---

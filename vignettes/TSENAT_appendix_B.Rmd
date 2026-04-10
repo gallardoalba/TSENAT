@@ -259,14 +259,7 @@ knitr::kable(data_characteristics,
 
 
 ```{r friedman-rank-test-analysis, message=TRUE}
-# Run Friedman test for q * condition INTERACTION (FIXED - March 2026)
-# IMPORTANT: Now tests whether q-effect differs between conditions (tumor vs normal)
-# PREVIOUS BEHAVIOR (INCORRECT): Tested only q main effect, ignoring condition
-# NEW BEHAVIOR (CORRECT): Tests if entropy pattern across q-values differs by condition
-# 
-# With condition_col="sample_type", automatically uses:
-#  - Two-way Friedman test (paired=TRUE: q within-subjects, condition between-subjects)
-#  - Westfall-Young permutation correction respects AR(1) q-correlation + condition structure
+# Run Friedman test for q * condition INTERACTION
 analysis <- calculate_rank_test(
     analysis,
     multicorr = "hochberg"
