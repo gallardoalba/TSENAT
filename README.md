@@ -149,7 +149,7 @@ filtered_diversity <- results(result, type = "diversity", q = 1.0)
 
 TSENAT provides a flexible statistical framework optimized for entropy-based diversity analysis. The recommended main workflow relies on **Generalized Additive Models (GAM)** via [`mgcv::gam()`](https://CRAN.R-project.org/package=mgcv) combined with ARIMA differencing.
 
-The diverse statistical methods available in TSENAT include:
+The statistical methods available in TSENAT include:
 
 - Wilcoxon/Permutation: Distribution-free testing for pairwise comparisons
 - Linear Mixed Models (LMM): Parametric testing with AR(1) correlation structure for repeated measures. GAM, LMM, GEE and FPCA are all parameterized to handle non-normality and heteroscedasticity characteristic of entropy data.

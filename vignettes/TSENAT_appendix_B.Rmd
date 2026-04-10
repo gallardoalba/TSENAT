@@ -408,8 +408,8 @@ analysis_lm <- readRDS(
     system.file("extdata", "analysis_lm.rds", package = "TSENAT")
 )
 
-# Extract GAM/LM results for inspection
-gam_results <- analysis_lm@lm_results$lm_interaction
+# Extract GAM/LM results for inspection using accessor function
+gam_results <- results(analysis_lm, type = "lm", rankBy = "pvalue", n = 20)
 
 # Note: LM analysis is generated via calculate_lm() in the main vignette
 # When available in the analysis object, extract using generic results accessor:

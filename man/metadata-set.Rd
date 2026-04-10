@@ -17,6 +17,18 @@ TSENATAnalysis object with updated metadata
 \description{
 Set metadata for TSENATAnalysis object
 }
+\examples{
+# Create a simple TSENATAnalysis object
+library(SummarizedExperiment)
+se <- SummarizedExperiment(assays = list(counts = matrix(1:100, nrow = 10)))
+analysis <- new('TSENATAnalysis', se = se, config = list())
+
+# Set metadata
+metadata(analysis) <- list(processing_date = Sys.Date(), method = "test")
+
+# Verify metadata was set
+metadata(analysis)
+}
 \seealso{
 \code{\link{TSENATAnalysis-methods}} for other accessor methods
 }

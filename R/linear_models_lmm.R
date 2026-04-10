@@ -102,10 +102,10 @@
             fit1_ar1 <- nlme::lme(entropy ~ q * group, random = ~1 | subject, correlation = nlme::corAR1(form = ~time_idx |
                 subject), data = df, method = "ML")
         } else {
-            fit0_ar1 <- suppressMessages(nlme::lme(entropy ~ q + group, random = ~1 | subject, correlation = nlme::corAR1(form = ~time_idx |
-                subject), data = df, method = "ML"))
-            fit1_ar1 <- suppressMessages(nlme::lme(entropy ~ q * group, random = ~1 | subject, correlation = nlme::corAR1(form = ~time_idx |
-                subject), data = df, method = "ML"))
+            fit0_ar1 <- nlme::lme(entropy ~ q + group, random = ~1 | subject, correlation = nlme::corAR1(form = ~time_idx |
+                subject), data = df, method = "ML")
+            fit1_ar1 <- nlme::lme(entropy ~ q * group, random = ~1 | subject, correlation = nlme::corAR1(form = ~time_idx |
+                subject), data = df, method = "ML")
         }
 
         if (!inherits(fit0_ar1, "try-error") && !inherits(fit1_ar1, "try-error")) {
@@ -141,10 +141,10 @@
             fit1_nlme <- try(nlme::lme(entropy ~ q * group, random = ~1 | subject, data = df,
                 method = "ML"), silent = TRUE)
         } else {
-            fit0_nlme <- try(suppressMessages(nlme::lme(entropy ~ q + group, random = ~1 | subject, data = df,
-                method = "ML")), silent = TRUE)
-            fit1_nlme <- try(suppressMessages(nlme::lme(entropy ~ q * group, random = ~1 | subject, data = df,
-                method = "ML")), silent = TRUE)
+            fit0_nlme <- try(nlme::lme(entropy ~ q + group, random = ~1 | subject, data = df,
+                method = "ML"), silent = TRUE)
+            fit1_nlme <- try(nlme::lme(entropy ~ q * group, random = ~1 | subject, data = df,
+                method = "ML"), silent = TRUE)
         }
         if (!inherits(fit0_nlme, "try-error") && !inherits(fit1_nlme, "try-error")) {
             if (verbose)
