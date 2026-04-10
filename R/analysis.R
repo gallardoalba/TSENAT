@@ -55,8 +55,8 @@
     }
 
     # Create comparison plot
-    p1 <- ggplot2::ggplot(comparison_df, ggplot2::aes(x = -log10(p_lm), y = -log10(p_rank),
-        color = agreement)) + ggplot2::geom_point(size = 2.5, alpha = 0.6) + ggplot2::geom_vline(xintercept = -log10(0.05),
+    p1 <- ggplot2::ggplot(comparison_df, ggplot2::aes(x = -log10(.data$p_lm), y = -log10(.data$p_rank),
+        color = .data$agreement)) + ggplot2::geom_point(size = 2.5, alpha = 0.6) + ggplot2::geom_vline(xintercept = -log10(0.05),
         linetype = "dashed", color = "gray50") + ggplot2::geom_hline(yintercept = -log10(0.05),
         linetype = "dashed", color = "gray50") + ggplot2::scale_color_manual(values = c(`Both significant` = "#2ecc71",
         `LM only` = "#3498db", `Rank test only` = "#e74c3c", `Neither significant` = "#95a5a6"),

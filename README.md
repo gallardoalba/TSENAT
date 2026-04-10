@@ -10,7 +10,7 @@ Standard differential expression tools (DESeq2, edgeR) detect changes in total t
 
 ## The Solution
 
-TSENAT captures **isoform diversity** independently of which specific isoforms are abundant. The method uses **Tsallis entropy** with a sensitivity parameter `q` that acts like a lens:
+TSENAT captures **isoform diversity** independently of which specific isoforms are abundant. The method uses **Tsallis entropy** with a sensitivity parameter `q` (the entropic index) that acts like a lens:
 
 - **Low q** (e.g., 0.5): Focuses on rare isoforms - detects if diversity is maintained or collapsed
 
@@ -18,7 +18,7 @@ TSENAT captures **isoform diversity** independently of which specific isoforms a
 
 - **High q** (e.g., 2.0): Focuses on dominant isoforms - detects dominance shifts
 
-By examining diversity across multiple q-values, you identify **scale-dependent** diversity changes - the hallmark of coordinate isoform switching.
+By examining diversity across multiple entropic indices (q-values), you identify **scale-dependent** diversity changes - the hallmark of coordinate isoform switching.
 
 ## The Mathematics Behind Tsallis Entropy
 
@@ -28,13 +28,13 @@ Tsallis entropy is a parametric family of diversity measures that generalizes Sh
 
 $$S_q = \frac{1 - \sum_{i=1}^{n} p_i^q}{q - 1}$$
 
-This elegant formula unifies diverse diversity concepts at specific q-values:
+This elegant formula unifies diverse diversity concepts at specific entropic indices (q-values):
 
 - **q = 0**: Richness — Simple count of expressed isoforms; emphasizes rare variants most strongly.
 - **q = 1**: Shannon entropy — Standard information-theoretic measure; balanced weighting across scales.
 - **q = 2**: Gini-Simpson index — Probability that two randomly-drawn transcripts are different; robust to rare variants.
 
-By examining diversity across multiple q-values, you identify **scale-dependent** diversity changes—the hallmark of coordinate isoform switching.
+By examining diversity across multiple entropic indices (q-values), you identify **scale-dependent** diversity changes—the hallmark of coordinate isoform switching.
 
 ### Divergence Analysis: Measuring Information-Theoretic Distance Between Conditions
 
@@ -119,7 +119,7 @@ analysis <- build_analysis(
 
 ### Orchestration Function
 
-The `TSENAT()` function provides a complete, automated analysis pipeline in a single call. It takes your configured `TSENATAnalysis` object and executes all downstream analysis steps: entropy computation, statistical testing for q×condition interactions, and rich visualization. This is the recommended entry point for most users—it orchestrates the full workflow while respecting your configuration parameters (q-values, design, bootstrap settings, etc.) and handles output management seamlessly. For advanced customization, use individual functions directly as shown in the step-by-step workflow below.
+The `TSENAT()` function provides a complete, automated analysis pipeline in a single call. It takes your configured `TSENATAnalysis` object and executes all downstream analysis steps: entropy computation, statistical testing for entropic index (q-value) by condition interactions, and rich visualization. This is the recommended entry point for most users—it orchestrates the full workflow while respecting your configuration parameters (entropic indices, design, bootstrap settings, etc.) and handles output management seamlessly. For advanced customization, use individual functions directly as shown in the step-by-step workflow below.
 
 ```r
 # Returns: Fully configured TSENATAnalysis object

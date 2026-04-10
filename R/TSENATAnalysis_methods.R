@@ -123,24 +123,24 @@ setMethod("summary", "TSENATAnalysis", function(object) {
     }
     message("\nANALYSIS RESULTS:")
     if (length(object@diversity_results) > 0) {
-        message("  ✓ Diversity: computed")
+        message("  [OK] Diversity: computed")
     } else {
-        message("  ✗ Diversity: not computed")
+        message("  [--] Diversity: not computed")
     }
     if (length(object@lm_results) > 0) {
-        message("  ✓ LM Interaction: computed")
+        message("  [OK] LM Interaction: computed")
     } else {
-        message("  ✗ LM Interaction: not computed")
+        message("  [--] LM Interaction: not computed")
     }
     if (length(object@jackknife_results) > 0) {
-        message("  ✓ Jackknife: computed")
+        message("  [OK] Jackknife: computed")
     } else {
-        message("  ✗ Jackknife: not computed")
+        message("  [--] Jackknife: not computed")
     }
     if (length(object@divergence_results) > 0) {
-        message("  ✓ Divergence: computed")
+        message("  [OK] Divergence: computed")
     } else {
-        message("  ✗ Divergence: not computed")
+        message("  [--] Divergence: not computed")
     }
     invisible(object)
 })

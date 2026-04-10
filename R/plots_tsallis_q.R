@@ -49,6 +49,14 @@
 #' @param output_file \code{character} or  \code{NULL}.
 #'  Optional file path to save the plot.
 #'   Default: NULL (no file output).
+#' @param dev_width Numeric or NULL; width in inches for the graphics device
+#'   when displaying the plot interactively.
+#'   If specified (along with dev_height), creates a new device with this width.
+#'   Default: NULL (uses current device).
+#' @param dev_height Numeric or NULL; height in inches for the graphics device
+#'   when displaying the plot interactively.
+#'   If specified (along with dev_width), creates a new device with this height.
+#'   Default: NULL (uses current device).
 #'
 #' @return
 #' **Aggregate mode (gene=NULL, lm_res=NULL)**:
@@ -128,7 +136,13 @@
 #'
 #' @export
 plot_diversity_spectrum <- function(se, assay_name = "diversity", condition_col = NULL,
-    gene = NULL, lm_res = NULL, n_top = NULL, metric = "iqr", output_file = NULL) {
+    gene = NULL, lm_res = NULL, n_top = NULL, metric = "iqr", output_file = NULL,
+    dev_width = NULL, dev_height = NULL) {
+    # Create graphics device if width/height specified
+    if (!is.null(dev_width) && !is.null(dev_height)) {
+        dev.new(width = dev_width, height = dev_height)
+    }
+
     # Validate metric parameter
     metric <- match.arg(tolower(metric), c("iqr", "sd"))
 

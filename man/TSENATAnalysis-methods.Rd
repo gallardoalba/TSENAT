@@ -51,7 +51,10 @@ results(
   rankBy = "none",
   n = NA,
   filterFDR = NULL,
-  format = "auto"
+  format = "auto",
+  display_table = FALSE,
+  n_genes = 4,
+  q_values_table = c(0, 0.5, 1, 1.5, 2)
 )
 }
 \arguments{

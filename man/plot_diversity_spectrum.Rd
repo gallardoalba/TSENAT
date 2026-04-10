@@ -12,7 +12,9 @@ plot_diversity_spectrum(
   lm_res = NULL,
   n_top = NULL,
   metric = "iqr",
-  output_file = NULL
+  output_file = NULL,
+  dev_width = NULL,
+  dev_height = NULL
 )
 }
 \arguments{
@@ -66,6 +68,16 @@ available.
 \item{output_file}{\code{character} or  \code{NULL}.
 Optional file path to save the plot.
  Default: NULL (no file output).}
+
+\item{dev_width}{Numeric or NULL; width in inches for the graphics device
+when displaying the plot interactively.
+If specified (along with dev_height), creates a new device with this width.
+Default: NULL (uses current device).}
+
+\item{dev_height}{Numeric or NULL; height in inches for the graphics device
+when displaying the plot interactively.
+If specified (along with dev_width), creates a new device with this height.
+Default: NULL (uses current device).}
 }
 \value{
 **Aggregate mode (gene=NULL, lm_res=NULL)**:

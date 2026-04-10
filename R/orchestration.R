@@ -371,7 +371,8 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
 #' @rdname TSENATAnalysis-methods
 #' @export
 results <- function(analysis, type = "diversity", q = NULL, rankBy = "none", 
-                       n = NA, filterFDR = NULL, format = "auto") {
+                       n = NA, filterFDR = NULL, format = "auto", display_table = FALSE,
+                       n_genes = 4, q_values_table = c(0, 0.5, 1.0, 1.5, 2.0)) {
     if (!is(analysis, "TSENATAnalysis")) {
         stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }
@@ -625,6 +626,50 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
             # Return single SE for specified q-value
             result <- result[[q_key]]
         }
+        
+        # Display table if requested (diversity type)
+        if (display_table) {
+            # Get all diversity results as a list to access all q-values
+            all_div_results <- if (is.null(q)) analysis@diversity_results else list(result)
+            
+            if (length(all_div_results) > 0) {
+                first_se <- all_div_results[[1]]
+                first_sample <- colnames(SummarizedExperiment::assay(first_se))[1]
+                
+                cat(sprintf("\n[results] Tsallis entropy across q-spectrum\n"))
+                cat(sprintf("[results] Sample: %s\n", first_sample))
+                cat(sprintf("[results] Gene count: %d (showing %d)\n\n", 
+                            nrow(SummarizedExperiment::assay(first_se)), 
+                            min(n_genes, nrow(SummarizedExperiment::assay(first_se)))))
+                
+                # Build table header
+                cat(sprintf("%-15s", "Gene"))
+                for (q_val in q_values_table) {
+                    cat(sprintf("%12s", paste0("q=", sprintf("%.1f", q_val))))
+                }
+                cat("\n")
+                
+                # Display genes
+                for (gene_idx in 1:min(n_genes, nrow(SummarizedExperiment::assay(first_se)))) {
+                    gene_name <- rownames(SummarizedExperiment::assay(first_se))[gene_idx]
+                    cat(sprintf("%-15s", gene_name))
+                    
+                    for (q_val in q_values_table) {
+                        q_name <- paste0("q_", sprintf("%.3f", q_val))
+                        if (q_name %in% names(all_div_results)) {
+                            mat <- SummarizedExperiment::assay(all_div_results[[q_name]])
+                            if (gene_idx <= nrow(mat)) {
+                                val <- mat[gene_idx, first_sample]
+                                cat(sprintf("%12.5f", val))
+                            }
+                        }
+                    }
+                    cat("\n")
+                }
+                cat("\n")
+            }
+        }
+        
         return(result)
     }
 
