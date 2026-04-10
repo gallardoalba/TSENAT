@@ -115,8 +115,7 @@ analysis <- build_analysis(
 )
 
 analysis <- filter_analysis(analysis, stringency = 'severe')
-analysis <- calculate_diversity(analysis, q = seq(0.2, 2.5, by =
-0.15))
+analysis <- calculate_diversity(analysis, q = seq(0.2, 2, by = 0.4))
 analysis <- calculate_lm(analysis, method = 'gam')
 
 p_gam <- plot_lm_gam(analysis, n_top = 2, sig_alpha = 0.15)
