@@ -940,8 +940,9 @@ test_that("calculate_divergence returns error results gracefully", {
 
 # Comprehensive testing for uncovered lines in divergence analysis
 # Tests edge cases and error conditions in divergence calculation functions
+# Note: These tests can be intensive
 
-skip_on_bioc()
+skip_on_cran()
 
 context("Divergence: Coverage Expansion")
 

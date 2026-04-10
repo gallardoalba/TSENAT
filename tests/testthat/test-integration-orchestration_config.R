@@ -581,8 +581,14 @@ test_that("results returns all supported result types", {
     p_interaction = rnorm(n_genes),
     adj_p_interaction = p.adjust(rnorm(n_genes), method = "BH")
   ))
-  analysis@jackknife_results <- list(ci_lower = rnorm(n_genes))
-  analysis@rank_test_results <- list(rank_test = list(results = "rank_test_data"))
+  analysis@jackknife_results <- list(results = data.frame(
+    ci_lower = rnorm(n_genes),
+    ci_upper = rnorm(n_genes)
+  ))
+  analysis@rank_test_results <- list(rank_test = list(results = data.frame(
+    gene = paste0("g", 1:n_genes),
+    p_value = rnorm(n_genes, mean = 0.01)
+  )))
   
   # Test each type
   expect_false(is.null(results(analysis, type = "diversity")))

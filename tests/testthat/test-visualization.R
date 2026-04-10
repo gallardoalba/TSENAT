@@ -1,8 +1,9 @@
 # Comprehensive testing of all plotting functions
 # Tests plot_ma, plot_top_transcripts, plot_volcano, plot_diversity_spectrum,
 # plot_tsallis_violin_multq
+# Note: Plotting and visualization tests can be intensive
 
-skip_on_bioc()
+skip_on_cran()
 
 context("plots: Visualization and Data Exploration")
 library(TSENAT)
@@ -279,9 +280,6 @@ test_that("plot_top_transcripts errors when se is not SummarizedExperiment", {
 
 context("Visualization: Generate Plots Additional Tests")
 
-
-skip_on_bioc()
-
 test_that("make_plot_for_geneprepare_inputs errors when tx2gene missing", {
     skip_if_not_installed("ggplot2")
     counts <- matrix(1:6, nrow = 3)
@@ -323,9 +321,6 @@ test_that("make_plot_for_genecombine_plots returns a plot-like object", {
 })
 
 context("Visualization: Generate Plots Extra Tests")
-
-
-skip_on_bioc()
 
 test_that("plot_ma_tsallis handles simple inputs", {
     skip_if_not_installed("ggplot2")
@@ -453,8 +448,6 @@ test_that("plot_volcano auto-detects x_col and returns ggplot", {
     p <- TSENAT:::.plot_volcano(df)
     expect_s3_class(p, "ggplot")
 })
-
-skip_on_bioc()
 
 context("Visualization: Generate Plots Extended Tests")
 
@@ -797,8 +790,6 @@ test_that(".prepare_volcano_df handles padj <=0 and signficance logic", {
     sig <- res$df$significant
     expect_equal(sig, ifelse(abs(res$df$xval) >= 0.1 & res$df$padj < 0.05, "significant", "non-significant"))
 })
-
-skip_on_bioc()
 
 context("Visualization: Unit Tests for Plotting Helpers")
 
@@ -4919,8 +4910,6 @@ test_that("faceted plot grid consistency", {
 
 # Comprehensive testing for uncovered lines in generate_plots.R
 # Tests edge cases, error conditions, and specific code paths
-
-skip_on_bioc()
 
 context("Plots: Coverage Expansion for Edge Cases")
 

@@ -191,6 +191,7 @@ setGeneric("setConfigValue", function(object, key, value) standardGeneric("setCo
 #' # Extract the SummarizedExperiment
 #' extracted_se <- se(analysis)
 #' dim(extracted_se)
+#' @rdname TSENATAnalysis-se
 #' @export
 setGeneric("se", function(object) standardGeneric("se"))
 
@@ -207,16 +208,16 @@ if (!isGeneric("metadata")) {
 #' @param value Replacement value for metadata (typically a list)
 #' @return TSENATAnalysis object with updated metadata
 #' @examples
-#' # Create a simple TSENATAnalysis object
+#' \donttest{
+#' # For complete examples including the metadata<- setter method, 
+#' # see the TSENATAnalysis-metadata help page
 #' library(SummarizedExperiment)
 #' se <- SummarizedExperiment(assays = list(counts = matrix(1:100, nrow = 10)))
 #' analysis <- new('TSENATAnalysis', se = se, config = list())
-#'
-#' # Set metadata
-#' metadata(analysis) <- list(processing_date = Sys.Date(), method = "test")
-#'
-#' # Verify metadata was set
+#' 
+#' # Get metadata (this works immediately)
 #' metadata(analysis)
-#' @seealso \code{\link{TSENATAnalysis-methods}} for other accessor methods
+#' }
+#' @rdname TSENATAnalysis-metadata
 #' @keywords internal
 setGeneric("metadata<-", function(x, value) standardGeneric("metadata<-"))

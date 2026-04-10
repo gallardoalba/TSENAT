@@ -168,12 +168,52 @@ setMethod("setConfigValue", "TSENATAnalysis", function(object, key, value) {
     setConfig(object, config)
 })
 
-#' @rdname TSENATAnalysis-methods
+#' @aliases se,TSENATAnalysis-method
+#' @rdname TSENATAnalysis-se
+#' @noRd
 setMethod("se", "TSENATAnalysis", function(object) {
     object@se
 })
 
-#' @rdname TSENATAnalysis-methods
+#' Get or Set Metadata
+#'
+#' @title Metadata Accessor Methods
+#'
+#' @description Access or set the metadata list stored in a TSENATAnalysis object.
+#' The getter function retrieves all metadata or a specific key-value.
+#' The setter function replaces the entire metadata list.
+#'
+#' @param x,object A \code{\linkS4class{TSENATAnalysis}} object
+#' @param key Optional character string specifying a metadata key to retrieve
+#' @param value A list of metadata to assign
+#'
+#' @return
+#' \describe{
+#'   \item{\code{metadata}}{Returns the full metadata list, or a single value if \code{key} is specified}
+#'   \item{\code{metadata<-}}{Returns the modified \code{TSENATAnalysis} object}
+#' }
+#'
+#' @examples
+#' # Create a TSENATAnalysis object
+#' library(SummarizedExperiment)
+#' se <- SummarizedExperiment(assays = list(counts = matrix(1:100, nrow = 10)))
+#' analysis <- new('TSENATAnalysis', se = se, config = list())
+#'
+#' # Get metadata (empty by default)
+#' metadata(analysis)
+#'
+#' \donttest{
+#' # Set metadata
+#' metadata(analysis) <- list(processing_date = Sys.Date(), method = "test")
+#'
+#' # Retrieve all metadata
+#' metadata(analysis)
+#'
+#' # Retrieve specific metadata key
+#' metadata(analysis, key = "method")
+#' }
+#'
+#' @rdname TSENATAnalysis-metadata
 #' @exportMethod metadata
 setMethod("metadata", "TSENATAnalysis", function(x, key = NULL) {
     if (is.null(key)) {
@@ -182,7 +222,8 @@ setMethod("metadata", "TSENATAnalysis", function(x, key = NULL) {
     x@metadata[[key]]
 })
 
-#' @rdname TSENATAnalysis-methods
+#' @aliases metadata<-,TSENATAnalysis-method
+#' @rdname TSENATAnalysis-metadata
 #' @exportMethod 'metadata<-'
 setReplaceMethod("metadata", "TSENATAnalysis", function(x, value) {
     x@metadata <- value
