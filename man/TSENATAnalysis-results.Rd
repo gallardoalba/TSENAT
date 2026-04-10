@@ -6,7 +6,7 @@
 \usage{
 results(
   analysis,
-  type = "diversity",
+  type,
   q = NULL,
   rankBy = "none",
   n = NA,
@@ -14,15 +14,17 @@ results(
   format = "auto",
   display_table = FALSE,
   n_genes = 4,
-  q_values_table = c(0, 0.5, 1, 1.5, 2)
+  q_values_table = c(0, 0.5, 1, 1.5, 2),
+  top_n = NULL,
+  sort_by = "adj_p_interaction"
 )
 }
 \arguments{
 \item{analysis}{\code{TSENATAnalysis} object containing computed results.}
 
-\item{type}{\code{character}. Type of results to extract:
+\item{type}{\\code{character}. **Required.** Type of results to extract:
 'diversity', 'divergence', 'lm', 'jackknife', 'rank_test', 'effect_sizes_divergence',
-or 'switching_tables'. Default: 'diversity'.}
+or 'switching_tables'.}
 
 \item{q}{\code{numeric}. For diversity results, optionally return results for 
 a specific q-value only. When specified, returns a single SummarizedExperiment 
@@ -42,6 +44,14 @@ Default: NULL (no filtering).}
 
 \item{format}{\code{character}. Output format: 'auto' (sensible default for type),
 'list', 'dataframe', or 'matrix'. Default: 'auto'.}
+
+\item{top_n}{\code{integer}. For effect_sizes_divergence, return top N genes ranked by sort_by.
+When specified, results are sorted by sort_by column and limited to top N rows.
+Default: NULL (return all results). Use NA to return all.}
+
+\item{sort_by}{\code{character}. For effect_sizes_divergence, column name to sort by.
+Common choices: 'adj_p_interaction' (p-value, ascending), 'Mean_Divergence' (descending).
+Default: 'adj_p_interaction' (most significant first).#'}
 }
 \value{
 - For diversity with q=NULL: A named list of SummarizedExperiment objects, one per q-value
@@ -99,6 +109,14 @@ top_lm <- results(analysis, type = 'lm', rankBy = 'pvalue', n = 20)
 
 # Get pairwise results (e.g., differential diversity metrics between conditions)
 pairwise_diff <- results(analysis, type = 'pairwise')
+
+# Get effect size results, top 6 genes by p-value (most significant first)
+top_effect_sizes <- results(analysis, type = 'effect_sizes_divergence', 
+                             top_n = 6, sort_by = 'adj_p_interaction')
+
+# Get effect sizes sorted by mean divergence (largest effect sizes first)
+large_effects <- results(analysis, type = 'effect_sizes_divergence',
+                         top_n = 10, sort_by = 'Mean_Divergence')
 
 # Get switching tables - automatically computed if prerequisites exist
 # (no need to call prepare_gene_switching_tables_s4 separately)

@@ -34,15 +34,7 @@
   year = {1995},
   note = {Seminal paper introducing the false discovery rate (FDR) control method for multiple testing correction. Essential reference for controlling Type I error rates in large-scale hypothesis testing such as gene expression differential analysis and feature selection in genomic studies.}
 }
-@article{C029,
-  author = {Holm, S.},
-  title = {A simple sequentially rejective multiple test procedure},
-  journal = {Scandinavian Journal of Statistics},
-  volume = {6},
-  pages = {65--70},
-  year = {1979},
-  note = {Foundational paper on step-down multiple testing procedure for family-wise error rate control. Provides alternative to Bonferroni correction offering improved power in sequential testing of genes and isoforms for differential expression, diversity, or divergence.}
-}
+
 @article{I051,
   author = {Shannon, Claude E.},
   title = {A mathematical theory of communication},
@@ -52,15 +44,6 @@
   pages = {379--423},
   year = {1948},
   note = {Foundational work defining Shannon entropy as a measure of information content and uncertainty in communication systems. Establishes the mathematical framework underlying all modern entropy-based diversity measures including Tsallis entropy.}
-}
-@article{I003,
-  author = {R{\'{e}}nyi, Alfr{\'{e}}d},
-  title = {On measures of entropy and information},
-  journal = {Proceedings of the Fourth Berkeley Symposium on Mathematical Statistics and Probability},
-  volume = {1},
-  pages = {547--561},
-  year = {1961},
-  note = {Introduces the Rényi entropy family, a generalized entropy measure that unifies Shannon entropy and provides a continuous scale of diversity measures related to Tsallis entropy. Critical for understanding scale-dependent diversity.}
 }
 @article{I003,
   author = {Jost, Lou},
@@ -111,25 +94,7 @@
   year = {2004},
   note = {Comprehensive review of permutation-based statistical methods for exact inference without distributional assumptions. Provides mathematical foundation for permutation testing, jackknife methods, and resampling-based confidence interval construction used in TSENAT hypothesis testing.}
 }
-@book{S019,
-  author = {Good, P. I.},
-  title = {Permutation, Parametric and Bootstrap Tests of Hypotheses},
-  edition = {3rd},
-  series = {Springer Series in Statistics},
-  publisher = {Springer},
-  year = {2004},
-  note = {Practical reference combining permutation tests, parametric methods, and bootstrap procedures for hypothesis testing. Covers resampling-based inference and rank-based tests used in TSENAT for non-parametric analysis of transcriptomic data without normality assumptions.}
-}
-@article{S019,
-  author = {Phipson, B. and Smyth, G. K.},
-  title = {Permutation {P}-values Should Never Be Zero: Calculating Exact {P}-values When Permutations Are Randomly Drawn},
-  journal = {Statistical Applications in Genetics and Molecular Biology},
-  volume = {9},
-  number = {1},
-  pages = {39},
-  year = {2010},
-  note = {Critical methodology paper for permutation-based hypothesis testing in genomics. Addresses proper p-value calculation when permutations are computationally sampled, directly relevant to TSENAT permutation test procedures for differential analysis.}
-}
+
 @article{BY003,
   author = {Tian, L. and Dong, X. and Sotero, S. and Lucks, J. B. and Bustamante, C. D.},
   title = {Benchmarking null models of transcription},
@@ -158,28 +123,14 @@
   year = {1988},
   note = {Foundational reference for statistical power analysis framework. Defines Cohen effect size conventions: small (d=0.2), medium (d=0.5), large (d=0.8). Critical reference for TSENAT Appendix A.}
 }
-@article{S023,
-  author = {Qiao, Xiaoming and Suomi, Tapio and Ello, Laura L.},
-  title = {{RNA}-seq power analysis and sample size calculation in {R}},
-  journal = {Bioinformatics},
-  year = {2018},
-  note = {Power analysis for {RNA}-seq experiments. Provides genomics-specific effect size guidance and sample size recommendations. Referenced in TSENAT for {RNA}-seq entropy variance.}
-}
 @book{C029,
-  author = {Abdi, H. and Valentin, D.},
-  title = {Correspondence analysis},
-  booktitle = {Encyclopedia of Measurement and Statistics},
-  pages = {280--287},
-  publisher = {Sage},
-  year = {2007},
-  note = {Foundational reference on correspondence analysis for exploratory multivariate data analysis. Provides mathematical framework for analyzing contingency tables and discovering latent dimensions in categorical data, relevant to gene expression pattern analysis and dimensionality reduction.}
-}
-@book{C018,
-  author = {Le Roux, B. and Rouanet, H.},
-  title = {Geometric Data Analysis: From Correspondence Analysis to Structured Data Analysis},
-  publisher = {Kluwer Academic Publishers},
-  year = {2011},
-  note = {Comprehensive reference on geometric data analysis including correspondence analysis and extensions to structured data. Provides theoretical framework for visual analysis and dimension reduction of multivariate gene expression data and isoform abundance patterns.}
+  author = {Holm, S.},
+  title = {A simple sequentially rejective multiple test procedure},
+  journal = {Scandinavian Journal of Statistics},
+  volume = {6},
+  pages = {65--70},
+  year = {1979},
+  note = {Foundational paper on step-down multiple testing procedure for family-wise error rate control. Provides alternative to Bonferroni correction offering improved power in sequential testing of genes and isoforms for differential expression, diversity, or divergence.}
 }
 @article{K003,
   author = {Saulsbury, M. D.},
@@ -190,13 +141,7 @@
   year = {2020},
   note = {Novel permutation methodology for testing within-subject effects while preserving repeated measures structure. Relevant to analyzing paired/repeated RNA-seq samples and testing for significant changes in diversity or divergence within subjects over time or conditions.}
 }
-@misc{S023,
-  title = {{S}almon {D}ocumentation: Quantifying Transcriptomes at Lightning Speed},
-  author = {Patro, R. and Duggal, G. and Love, M. I. and Irizarry, R. A. and Kingsford, C.},
-  url = {https://salmon.readthedocs.io/},
-  year = {2017},
-  note = {Documentation for Salmon quasi-mapping transcriptome quantification tool. Primary reference for isoform-level and gene-level quantification methods used to obtain count data for isoform-switching and diversity analysis in TSENAT.}
-}
+
 @book{C049,
   author = {Efron, B.},
   title = {Large-Scale Inference: Empirical Bayes Methods for Estimation, Testing, and Prediction},
@@ -220,25 +165,6 @@
   year = {2014},
   note = {Critical reference for effect size interpretation thresholds (r-values): negligible <0.1, small 0.1--0.3, medium 0.3--0.5, large >=0.5. Reference for TSENAT Appendix A power analysis.}
 }
-@article{C029,
-  author = {Khangar, C. M. and Kamalja, K. K.},
-  title = {Multiple correspondence analysis},
-  journal = {Statistics},
-  volume = {51},
-  number = {2},
-  pages = {405--410},
-  year = {2017},
-  note = {Recent reference on multiple correspondence analysis (MCA) for analyzing multivariate categorical data. Extends correspondence analysis methodology for analyzing complex relationships among multiple factors in gene expression experiments and condition-specific expression patterns.}
-}
-@book{I002,
-  author = {Cover, Thomas M. and Thomas, Joy A.},
-  title = {Elements of Information Theory},
-  edition = {2nd},
-  publisher = {Wiley-Interscience},
-  year = {2006},
-  doi = {10.1002/0471200611},
-  note = {Comprehensive reference on information theory including entropy, divergence, and information measures. Chapter on entropy maximization directly relevant to understanding Tsallis entropy framework and generalizations.}
-}
 @article{I022,
   author = {Simpson, Edward H.},
   title = {Measurement of diversity},
@@ -248,28 +174,6 @@
   year = {1949},
   doi = {10.1038/163688a0},
   note = {Introduces the Simpson index (or collision probability) as a diversity measure reflecting the likelihood that two randomly selected individuals belong to different species. Equivalent to Tsallis entropy at q=2. Foundational for diversity index literature.}
-}
-@article{I002,
-  author = {Tsallis, Constantino},
-  title = {Possible generalization of {B}oltzmann-{G}ibbs statistics},
-  journal = {Journal of Statistical Physics},
-  volume = {52},
-  number = {1},
-  pages = {479--487},
-  year = {1988},
-  doi = {10.1007/BF01016429},
-  note = {Foundational paper introducing Tsallis entropy as a generalization of classical thermodynamic entropy. Establishes mathematical framework and asymptotic properties empirically demonstrated in physics applications. Central motivation for q-parameter framework.}
-}
-@article{I038,
-  author = {D\'{e}rian, Nicolas and Pham, Hang-Phuong and Nehar-Belaid, Djamel and Tchitchek, Nicolas and Klatzmann, David and Eric, Vicaut and Six, Adrien},
-  title = {The {T}sallis generalized entropy enhances the interpretation of transcriptomics datasets},
-  journal = {PLOS ONE},
-  volume = {17},
-  number = {4},
-  pages = {e0266618},
-  year = {2022},
-  doi = {10.1371/journal.pone.0266618},
-  note = {Directly demonstrates application of Tsallis entropy to transcriptomics datasets, showing improved interpretation of gene expression patterns via scale-dependent analysis of transcript complexity.}
 }
 @article{I010,
   author = {Gandrillon, Olivier and Gaillard, Mathilde and Espinasse, Thibault and Garnier, Nicolas B. and Dussiau, Charles and Kosmiker, Olivier and Sujobert, Pierre},
@@ -299,17 +203,6 @@
   doi = {10.64898/2026.02.19.706555},
   note = {Applies information content principles to explain tissue-specific gene expression patterns, demonstrating information-theoretic approaches for understanding tissue-dependent regulatory complexity.}
 }
-@article{C113,
-  author = {Chanda, Pritam and Costa, Eduardo and Hu, Jie and Sukumar, Shravan and Van Hemert, John and Walia, Rasna},
-  title = {Information Theory in Computational Biology: {W}here {W}e {S}tand {T}oday},
-  journal = {Entropy},
-  volume = {22},
-  number = {6},
-  pages = {627},
-  year = {2020},
-  doi = {10.3390/e22060627},
-  note = {Reviews information theory applications in computational biology including gene expression, transcriptomics, and error correction, establishing state-of-the-art for information-theoretic approaches in genomics.}
-}
 @article{I034,
   author = {Baji\'{c}, Dragana},
   title = {Information theory, living systems, and communication engineering},
@@ -320,13 +213,6 @@
   year = {2024},
   doi = {10.3390/e26050430},
   note = {Explores information theory and communication engineering principles as they apply to biological systems, including applications to understanding data transmission and processing in living organisms.}
-}
-@article{I032,
-  author = {Adami, Christoph},
-  title = {Information theory in molecular biology},
-  journal = {arXiv preprint q-bio/0405004},
-  year = {2004},
-  note = {Foundational article on information theory in molecular biology, addressing applications to genetic information, molecular sequences, and biological function through information-theoretic principles.}
 }
 @article{C067,
   author = {Bartal, Alon and Jagodnik, Kathleen M.},
@@ -377,24 +263,6 @@
   isbn = {0412042312},
   note = {Foundational reference for bootstrap methods, including bootstrap confidence intervals, bias correction, and accelerated methods. Essential for understanding bootstrap implementation in divergence analysis.}
 }
-@article{I038,
-  author = {Tsallis, Constantino},
-  title = {Generalized entropy and thermodynamic stability of scaling systems},
-  journal = {Physics Letters A},
-  volume = {206},
-  number = {5-6},
-  pages = {389--397},
-  year = {1998},
-  note = {Extends Tsallis entropy framework to divergence measures, establishing mathematical properties of Tsallis divergence as a generalization of KL divergence through q-parameter.}
-}
-@book{I023,
-  author = {Cliff, Norman},
-  title = {Dominance statistics: Ordinal analyses for ordinal data},
-  publisher = {Sage Publications},
-  year = {1993},
-  isbn = {0803952538},
-  note = {Establishes Cliff's delta effect size thresholds for non-parametric data: negligible (|d| < 0.147), small (0.147-0.330), medium (0.330-0.474), large (|d| ≥ 0.474). Foundational for effect size interpretation in RNA-seq studies.}
-}
 @book{BY011,
   author = {McGrew, Kevin S. and Chen, Ching-Lin},
   title = {Contemporary intellectual assessment: {T}heories, tests, and issues},
@@ -403,37 +271,8 @@
   year = {2015},
   note = {Modern validation of Cliff's delta thresholds with contemporary datasets, confirming utility and appropriateness of effect size classifications for statistical analysis.}
 }
-@article{S019,
-  author = {Phipson, Belinda and Smyth, Gordon K.},
-  title = {Permutation {P}-values should never be zero},
-  journal = {Statistical Applications in Genetics and Molecular Biology},
-  volume = {9},
-  number = {1},
-  pages = {Article 39},
-  year = {2010},
-  note = {Addresses computational issues in permutation-based and bootstrap p-value calculations, emphasizing importance of proper null distribution construction and multiple testing correction.}
-}
-@article{I002,
-  author = {Tsallis, Constantino},
-  title = {Information theoretical properties of {T}sallis entropies},
-  journal = {Information Theory and Statistical Learning},
-  year = {2006},
-  note = {Comprehensive treatment of mathematical properties of Tsallis entropy family, including monotonicity, concavity/convexity, and distance properties for generalized entropy measures.}
-}
-@article{I003,
-  author = {Rényi, Alfréd},
-  title = {On measures of entropy and information},
-  journal = {Proceedings of the Fourth Berkeley Symposium on Mathematical Statistics and Probability},
-  year = {1961},
-  note = {Foundational work establishing the Rényi entropy family as a generalization of Shannon entropy, providing theoretical basis for understanding Tsallis entropy within the broader framework of generalized information measures.}
-}
-@article{I004,
-  author = {Sason, Igal},
-  title = {Divergence: Measures, Mathematical Foundations and Applications in Information-Theoretic and Statistical Problems},
-  journal = {Entropy},
-  year = {2022},
-  note = {Comprehensive mathematical treatment of divergence measures and their role in quantifying information-theoretic differences between probability distributions, including symmetry and distance properties critical for effect size calculations.}
-}
+
+
 @article{I005,
   author = {Anastasiadis, Anastasios},
   title = {Entropy {P}roperties and {M}ultiple {T}sallis {D}istributions},
@@ -461,14 +300,7 @@
   year = {2013},
   note = {Authoritative reference for linear mixed-effects models, covering fixed/random effects specification, REML vs ML estimation objectives, and likelihood ratio testing for hypothesis evaluation.}
 }
-@manual{C113,
-  author = {Drost, Hajk-Georg},
-  title = {Philentropy: {I}nformation {T}heory and {D}istance {Q}uantification with {R}},
-  organization = {R Foundation for Statistical Computing},
-  year = {2018},
-  url = {https://CRAN.R-project.org/package=philentropy},
-  note = {R package providing implementations of distance measures and divergence indices, including validation methods for mathematical properties of divergence metrics like symmetry and triangle inequality.}
-}
+
 @article{S041,
   author = {Hardin, James W. and Hilbe, Joseph M.},
   title = {Generalized Estimating Equations},
@@ -523,17 +355,6 @@
   year = {1965},
   note = {Foundational reference handbook covering theoretical definitions and foundational statistical principles including loss functions, robustness, and influence diagnostics. Provides theoretical underpinnings for robust statistical methods.}
 }
-@article{I045,
-  author = {Ré, Miguel A. and Azad, Rajeev K.},
-  year = {2014},
-  title = {Generalization of {{E}}ntropy {{B}}ased {{D}}ivergence {{M}}easures for {{S}}ymbolic {{S}}equence {{A}}nalysis},
-  journal = {PLOS ONE},
-  volume = {9},
-  number = {4},
-  pages = {e93532},
-  doi = {10.1371/journal.pone.0093532},
-  note = {Theoretical paper generalizing entropy-based divergence measures including Tsallis divergence for symbolic sequence analysis. Proposes Tsallis-Markovian generalization of Jensen-Shannon divergence and demonstrates improved performance in distinguishing phylogenetically proximal DNA sequences. Provides mathematical framework for understanding relationships between different divergence formulations under various q-value definitions.}
-}
 @article{I027,
   author = {Baji\'c, Dragana},
   title = {Information Theory, Living Systems, and Communication Engineering},
@@ -559,10 +380,12 @@
 @article{I032,
   author = {Adami, Christoph},
   year = {2004},
-  title = {Information Theory in Molecular Biology},
-  journal = {arXiv Preprint q-bio/0405004},
-  eprint = {q-bio/0405004},
-  url = {https://arxiv.org/abs/q-bio/0405004},
+  title = {Information theory in molecular biology},
+  journal = {Physics of Life Reviews},
+  volume = {1},
+  number = {1},
+  pages = {3--22},
+  doi = {10.1016/j.plrev.2004.01.002},
   note = {Foundational review applying information theory to molecular biology, establishing theoretical connections between entropy and biological sequence complexity. Provides conceptual underpinnings for entropy-based measures of genomic and transcriptomic diversity.}
 }
 @misc{C073,
@@ -597,7 +420,7 @@
   note = {Comprehensive treatment of Tsallis entropy properties in reliability theory. Establishes connections between Tsallis entropy and stochastic orders in coherent systems with applications to systems with independent identically distributed component lifetimes.}
 }
 
-@article{I010,
+@article{I008,
   author = {Gao, Xiaozhuan and Tsai, Sang-Bing and Liu, Fan and Pan, Lipeng and Deng, Yong},
   title = {Uncertainty {{M}}easure {{B}}ased on {{T}}sallis {{E}}ntropy in {{E}}vidence {{T}}heory},
   journal = {International Journal of Intelligent Systems},
@@ -739,19 +562,6 @@
   publisher = {Chapman and Hall},
   note = {Foundational reference on bootstrap and jackknife methods for obtaining reliable statistical estimators. Essential techniques for confidence interval estimation requiring less computational power than advanced resampling methods, directly applicable to TSENAT entropy estimates.}
 }
-
-@article{S019,
-  author = {Phipson, Belinda and Smyth, Gordon K.},
-  title = {Permutation {{P}}-values {{S}}hould {{N}}ever {{B}}e {{Z}}ero: {{C}}alculating {{E}}xact {{P}}-values {{W}}hen {{P}}ermutations {{A}}re {{R}}anked},
-  journal = {Statistical Applications in Genetics and Molecular Biology},
-  volume = {9},
-  number = {1},
-  pages = {39},
-  year = {2010},
-  doi = {10.2202/1544-6115.1585},
-  note = {Fundamental paper on calculation of exact p-values in permutation-based tests, addressing computational challenges when enumerated permutations are ranked. Directly applicable to rank-based Friedman test procedures and Westfall-Young correction with AR(1) correlation.}
-}
-
 @article{S166,
   author = {Meinshausen, Nicolai and Maathuis, Marloes H. and B\"{u}hlmann, Peter},
   title = {Asymptotic {{O}}ptimality of the {{W}}estfall-{{Y}}oung {{P}}ermutation {{P}}rocedure for {{M}}ultiple {{T}}esting {{U}}nder {{D}}ependence},

@@ -497,10 +497,16 @@ if (!is.null(sample_qc) && nrow(sample_qc) > 0) {
 
 ## Linear-Model interaction
 
-We can test for interactions between `q` and sample groups across the q-sequence
-using one of five methods: linear, lmm (linear mixed model [@C018; @S019]), gam (generalized additive model [@C038; @C073]), gee (generalized estimating equations for paired data), 
-or fpca (functional principal component analysis). The gam method flexibly captures nonlinear 
-q-response patterns and is particularly useful for complex interaction structures.
+Each gene produces a **q-curve**: a trajectory showing how entropy changes across entropic scales from rare (low `q`) to abundant (high `q`) isoforms. Our goal is to detect whether this curve differs between groups—in other words, whether the effect of `q` on entropy **depends on** which group a sample belongs to. This is captured statistically as a **q x condition interaction**: if significant, it reveals genes with condition-specific diversity patterns that change shape across the diversity spectrum. Linear models (and their extensions) naturally formalize this multi-scale comparison, making them ideal for identifying such scale-dependent biological signals.
+
+We can test for these interactions using one of four methods, each with specific strengths:
+
+- **GAM** (generalized additive model [@C038; @C073]): flexibly captures nonlinear q-response patterns via adaptive smoothing splines. Default method.
+- **LMM** (linear mixed models [@C018; @S019]): handles AR(1) correlation in q-ordered measurements with subject-level random effects.
+- **GEE** (generalized estimating equations): particularly useful for paired and longitudinal designs with repeated q-measures.
+- **FPCA** (functional principal component analysis): treats q-values as ordered functional data, implicitly capturing q-ordering structure.
+
+All methods automatically account for the AR(1) correlation structure inherent in Tsallis entropy measurements across q-values. The gam method is particularly useful for complex nonlinear interaction structures.
 
 ```{r test-q-condition-interaction}
 # Linear-model interaction test across q values using S4 wrapper
@@ -508,7 +514,7 @@ analysis <- calculate_lm(
     analysis,
     method = "gam",
     multicorr = "hochberg"
-    )
+)
        
 # Extract LM interaction results
 lm_results <- results(analysis, type = "lm", rankBy = "pvalue", n = 10)
@@ -572,7 +578,7 @@ This workflow combines two complementary statistical methods:
 1. **Multi-*q* LM interaction test**: Tests whether the condition effect on diversity depends on *q* (overall pattern across diversity scales)
 2. **Single-*q* jackknife resampling**: Tests which individual transcripts drive those patterns at each *q*-value, with robustness assessment
 
-**Delta influence** (from jackknife resampling [@S115]) quantifies *how each transcript's relative importance changes between conditions*, weighted by stability across bootstrap iterations (positive = more influential in first condition; negative = second condition).
+**Delta influence** (from jackknife resampling [@S115]) quantifies *how each transcript's relative importance changes between normal and tumor conditions*, weighted by stability across bootstrap iterations (positive = more influential in normal condition; negative = more influential in tumor condition).
 
 ### Key Interpretation Questions
 
@@ -593,12 +599,10 @@ analysis <- calculate_jis(
 
 We configure three key parameters for the switching analysis: `nboot = 100` specifies 100 bootstrap resamples to estimate robust confidence intervals for delta influence values [@S115]; `lm_p_threshold = 0.05` filters genes to those with significant q$\times$condition interaction effects (p < 0.05) before assessing transcript switching; and `threshold = 90` designates transcripts with support $\geq$ 90% across bootstrap samples as robust switches. These parameters balance sensitivity (detecting switching) with specificity (avoiding false positives from noise).
 
-The tables below show the transcript switching patterns for the top genes with strongest q×condition interactions. The `Direction Consistency` column classifies each transcript: "Consistent" indicates stable switching across entropic indices, while "Mixed" indicates scale-dependent switching. This reveals whether isoform shifts involve the same transcripts across scales or whether different entropic indices emphasize different transcripts.
+The tables below show the transcript switching patterns for the top genes with strongest q×condition interactions, automatically computed via bootstrap resampling. The `Direction Consistency` column classifies each transcript: "Consistent" indicates stable switching across entropic indices, while "Mixed" indicates scale-dependent switching. This reveals whether isoform shifts involve the same transcripts across scales or whether different entropic indices emphasize different transcripts.
 
 ```{r extract-switching-results, echo=TRUE}
-# Gene switching tables are computed lazily via results()
-# No need to call prepare_gene_switching_tables_s4 - it happens automatically
-# Simply retrieve using results accessor
+# Retrieve gene switching tables
 tables_result <- results(analysis, type = "switching_tables")
 ```
 
@@ -647,34 +651,24 @@ if (exists("tables_result") && is.list(tables_result) &&
 
 ### Delta Influence Across Diversity Scales
 
-Visualize switching patterns for the top genes identified by the LM interaction test. This shows which transcripts are switching in genes with significant q × condition interaction effects. The heatmaps below display **jackknife delta influence** [@S232]-a resampling-based measure of how robustly each transcript's relative contribution changes between conditions-across different entropic indices (rows: 0 to 2.0, representing increasing diversity scales from rare to abundant isoforms) and transcripts (columns) for each gene. Delta influence values are computed from bootstrap resampling iterations, providing robust, non-parametric estimates of transcript switching significance weighted by consistency across replicates.
+Visualize switching patterns for the top genes identified by the LM interaction test. This shows which transcripts are switching in genes with significant q × condition interaction effects. The heatmaps below display **jackknife delta influence** [@S232]-a resampling-based measure of how robustly each transcript's relative contribution changes between conditions-across different entropic indices and transcripts for each gene. Delta influence values are computed from bootstrap resampling iterations, providing robust, non-parametric estimates of transcript switching significance weighted by consistency across replicates.
 
 ```{r fig-3-transcript-jackknife-influence, echo=TRUE, results='hide', fig.width=12, fig.height=10, eval=TRUE, out.width="98%", fig.pos="H", fig.cap = "**Figure 3:** Transcript-level switching patterns via jackknife resampling. Rows q-values (0-2.0), columns transcripts. Red/blue indicates condition influence."}
 # Generate multi-Q heatmaps for top 4 genes using S4 wrapper
-plot_jis_delta(
-    analysis, 
-    n_genes = 4
-)
+plot_jis_delta(analysis, n_genes = 4)
 ```
 
-**Interpretation:** Rows represent q-values across the diversity spectrum (0 to 2.0, with low q emphasizing rare isoforms and high q emphasizing abundant isoforms). Red cells indicate transcripts with strong positive delta influence in the first condition (meaning their relative importance increased); blue indicates negative influence in the second condition (meaning their importance decreased). **Patterns to look for:**
+**Interpretation:** Rows represent q-values across the diversity spectrum (0 to 2.0, with low q emphasizing rare isoforms and high q emphasizing abundant isoforms). 
 
-- **Strong color intensity (bright red or blue)**: Robust switching signal, consistently observed across bootstrap resamples
-- **Weak color intensity (pale/white)**: Uncertain or noisy switching signal, high variability across resamples
-- **Consistent colors down a column**: That transcript switches stably across all q-values (scale-independent switching)
-- **Varied colors down a column**: That transcript shows scale-dependent switching (different roles at rare vs. abundant scales)
-- **Color differences across rows**: Different q-values emphasize different transcripts, revealing how regulatory mechanisms vary by topological scale
+- **Red cells** indicate transcripts with strong positive delta influence in the **normal condition** (first condition)—meaning these transcripts became *more important* in normal samples compared to tumor samples. 
+- **Blue cells** indicate negative delta influence in the normal condition (or equivalently, positive influence in the tumor condition)—meaning these transcripts became *less important* in normal samples but *more important* in tumor samples. 
+- **Color intensity** reflects robustness across bootstrap resamples: bright red/blue = consistent signal, pale/white = noisy or uncertain signal.
 
 This robustness-weighted visualization reveals not just *which* transcripts switch, but *how reliably* they switch, allowing distinction between robust biological signals and artifacts of sampling variation.
 
 ```{r fig-4-transcript-abundance-heatmap, echo=TRUE, results='hide', fig.width=12, fig.height=8, eval=TRUE, out.width="98%", fig.pos="H", fig.cap = "**Figure 4:** Transcript abundance heatmap with hierarchical clustering. Rows are transcripts, columns are conditions. Blue low, red high expression."}
-# Generate transcript abundance heatmap for top 4 transcripts using hierarchical clustering
-# metric = "median" aggregates expression values across paired conditions
-plot_expression(
-    analysis, 
-    top_n = 4, 
-    metric = "median"
-)
+# Generate transcript abundance heatmap
+plot_expression(analysis, top_n = 4, metric = "median")
 ```
 
 **Interpretation:** Transcripts (rows) are hierarchically clustered by expression similarity. Red indicates high expression, blue indicates low expression. Distinct horizontal bands reveal condition-specific isoforms; uniform coloring suggests constitutive expression. Clustering reveals which transcripts co-vary in expression patterns across conditions.
@@ -752,31 +746,14 @@ analysis <- calculate_effect_sizes(
     significance_threshold = 0.05,
     enrich_per_q_pattern = TRUE
 )
-```
 
-To retrieve the effect sizes and q-spectrum patterns programmatically, use the `results()` accessor:
-
-```{r retrieve-effect-sizes-results}
-# Extract effect sizes and patterns using the unified results() accessor
-effect_sizes_df <- results(analysis, type = "effect_sizes_divergence")
-
-# Display top 6 genes by statistical significance
-if (!is.null(effect_sizes_df) && is.data.frame(effect_sizes_df)) {
-    # Select key columns for display
-    key_cols <- c("gene", "gene_name", "adj_p_interaction", "Mean_Divergence", 
-                  "per_q_pattern", "div_rare_median", "div_abundant_median", "q_ratio")
-    
-    # Keep only columns that exist
-    available_cols <- key_cols[key_cols %in% colnames(effect_sizes_df)]
-    display_df <- effect_sizes_df[, available_cols, drop = FALSE]
-    
-    # Sort by p-value and show top 6
-    display_df <- display_df[order(display_df$adj_p_interaction, na.last = TRUE), ]
-    display_df <- head(display_df, 6)
-    
-    cat("Top 6 genes by effect size and statistical significance:\n")
-    print(display_df)
-}
+# Extract top 6 genes by statistical significance
+top_genes_result <- results(
+    analysis, 
+    type = "effect_sizes_divergence",
+    top_n = 6,
+    sort_by = "p_value_interaction"
+)
 ```
 
 ```{r extract-divergence-results, echo=FALSE, results='hide'}
@@ -895,7 +872,7 @@ if (!is.null(lm_res_results) && nrow(lm_res_results) > 0) {
                         div_df <- div_df[, col_order, drop = FALSE]
                         
                         print(knitr::kable(div_df,
-                            caption = "**Table 5 | Top genes by linear model significance with effect sizes and q-spectrum patterns.** Ranked by statistical significance (ascending *P*-values, Benjamini-Hochberg *q*-value < 0.05). Columns: gene identifier; effect size (mean divergence across q-spectrum); pattern classification (Rare-driven/Balanced/Abundant-driven); pattern metrics-D\\_rare: median divergence for rare isoforms (q<1), D\\_abundant: median divergence for abundant isoforms (q>1), Ratio: D\\_rare/D\\_abundant (>1.3 indicates rare-driven, <0.77 indicates abundant-driven); adjusted P-value for linear model interaction test.",
+                            caption = "**Table 5 | Top genes by linear model significance with effect sizes and q-spectrum patterns.** Ranked by statistical significance (ascending *P*-values, Benjamini-Hochberg *q*-value < 0.05).",
                             row.names = FALSE,
                             format = if (knitr::is_latex_output()) "latex" else "html",
                             longtable = knitr::is_latex_output(),
@@ -924,17 +901,6 @@ if (!is.null(lm_res_results) && nrow(lm_res_results) > 0) {
 }
 ```
 
-**Table 5 | Top genes by linear model significance with effect sizes and q-spectrum patterns.** 
-Ranked by statistical significance (ascending P-values, Benjamini-Hochberg multiple comparison correction). 
-Columns: **Gene** - gene identifier; **Gene Name** - standard gene symbol; **P-value** - unadjusted p-value 
-for q×condition interaction; **Adj. P-value** - multiple-comparison-corrected p-value; **Mean Effect Size** - 
-mean Tsallis divergence D across the full q-spectrum (0 to 2.0), measuring information-theoretic separation 
-between conditions; **Q-Pattern** - classification from hierarchical clustering of per-q divergence values 
-(Rare-driven/Balanced/Abundant-driven); **D_rare** - median divergence for rare isoforms (q < 1.0); 
-**D_abundant** - median divergence for abundant isoforms (q > 1.0); **Ratio** - D_rare / D_abundant 
-(>1.3 indicates rare-driven, <0.77 indicates abundant-driven, 0.77-1.3 indicates balanced). Genes meeting 
-significance threshold (q < 0.05) with largest divergence values indicate the most robust transcriptomic 
-reorganization between treatment groups across multiple diversity scales.
 
 Interpretation of Pattern Types:
 
@@ -950,7 +916,7 @@ substantial divergence, indicating that entropy distributions differ fundamental
 across the full q-spectrum.
 
 **Biological Interpretation:** Following Tsallis entropy theory and information-theoretic principles [@I002; @I003; @I004; @S204], 
-effect size quantification [@S205] 
+effect size quantification [@I029] 
 genes with large D values are those where isoform complexity distributions differ qualitatively between conditions 
 when examined at all sensitivity scales (q = rare -> abundant isoforms). For example, a gene might show 
 high entropy at low q (emphasizing rare isoforms) in one condition but low entropy at high q (emphasizing 
@@ -960,9 +926,6 @@ for investigation of condition-specific splicing architecture and dynamic isofor
 
 ```{r effect-size-plot-multiq, fig.width=10, fig.height=6, out.width="98%", fig.align='center', fig.pos="H"}
 # Visualize the distribution of Tsallis divergence effect sizes across genes
-# The red dashed line marks D = 0.1 (information-theoretic significance threshold)
-# Generate divergence distribution plot (returns plot object)
-# Optionally save to file for external use
 plot_obj <- plot_divergence_distribution(
     analysis, 
     threshold = 0.1
@@ -973,7 +936,6 @@ print(plot_obj)
 
 ```{r compare-q-spectra-plot, fig.width=10, fig.height=6, out.width='100%', fig.align='center', fig.cap='**Figure 5:** Q-spectrum curves for top genes by significance. Each line represents divergence as a function of q-value; shape reveals biological pattern (rare-driven, balanced, or abundant-driven).'}
 # Visualize q-spectrum curves for top 4 genes by significance
-# Plot is rendered directly by knitr (no file dependency)
 p_multi <- plot_divergence_spectrum(
     analysis, 
     n_genes = 4, 
@@ -986,22 +948,18 @@ print(p_multi)
 
 Interpreting the Q-Spectrum Curve:
 
-- Shape matters more than single value: The **q-spectrum** curve is the complete biological story. 
+- Shape matters more than single value: The **q-spectrum** curve is the complete biological story [@I021]. 
   A flat curve (balanced) vs. declining curve (rare driven) vs. rising curve (abundant driven) 
-  encode fundamentally different mechanisms.
+  encode fundamentally different mechanisms [@I059].
 
 - q=1 (KL divergence): The middle point corresponds to ordinary Kullback-Leibler divergence [@K001; @I060], 
   where in the limit q->1 the Tsallis divergence reduces to standard KL divergence [@I060]. 
   This weights all isoforms equally. This is the "average" effect.
-
 - q < 1 (rare isoforms): Emphasizes how much low-abundance transcripts differ between 
-  groups. If D(q=0.5) >> D(q=1), the divergence is driven by changes in rare variants.
-
-- q > 1 (abundant isoforms): Emphasizes dominant transcripts. If D(q=2) >> D(q=1), major 
+  groups [@I007; @I008; @I010]. If D(q=0.5) >> D(q=1), the divergence is driven by changes in rare variants.
+- q > 1 (abundant isoforms): Emphasizes dominant transcripts [@I007; @I008]. If D(q=2) >> D(q=1), major 
   isoforms rebalance while rare ones stay similar.
 
-- Bootstrap CI bands: Shaded region shows 95% confidence limits on per-q estimates. Narrow 
-  bands indicate robust estimates; wide bands suggest noisy data or small sample sizes.
 
 
 
@@ -1012,24 +970,22 @@ abundance scales (rare vs. abundant) are affected.
 ```{r visualize-q-spectrum, fig.width=10, fig.height=5, out.width='100%', fig.align='center', fig.cap='**Figure 6:** Global divergence spectrum across all genes. Aggregated q-spectrum pattern shows which abundance scales (rare vs. abundant isoforms) are affected genome-wide.'}
 # Visualize global divergence q-spectrum across all genes (aggregated)
 # Plot is rendered directly by knitr (no file dependency)
-p <- plot_divergence_spectrum(
-    analysis
-)
+p <- plot_divergence_spectrum(analysis)
 
 print(p)
 ```
 
 Statistical Validation During Interpretation:
 
-1. Bootstrap CI validity: Per-q CIs should narrow as q increases [@S115] (higher q = aggregation 
+1. Bootstrap CI validity: Per-q CIs should narrow as q increases [@S232; @S115] (higher q = aggregation 
    effect, less variance). If CIs grow with q, check for data quality issues.
 
-2. Monotonicity check: By **Tsallis entropy** theory [@I002], entropy is monotone decreasing in q. Divergence 
+2. Monotonicity check: By Tsallis entropy theory [@I002], entropy is monotone decreasing in q. Divergence 
    should NOT show erratic increases with q. Small fluctuations are normal, but large spikes 
    indicate numerical instability.
 
-3. **Comparison with genome-wide patterns**: Compute q-spectra for housekeeping genes (GAPDH, 
-   ACTB, etc.). These should show BALANCED patterns. If not, revisit normalization parameters.
+3. Comparison with genome-wide patterns: Compute q-spectra for housekeeping genes (GAPDH, 
+   ACTB, etc.) [@S023]. These should show BALANCED patterns. If not, revisit normalization parameters.
 
 
 
@@ -1037,13 +993,13 @@ Statistical Validation During Interpretation:
 
 This main vignette is complemented by two comprehensive appendices:
 
-#### Appendix A: Equivalence Validation - TSENAT vs SplicingFactory
+**Appendix A: Equivalence Validation - TSENAT vs SplicingFactory**
 
 Objetive: Validates that TSENAT's Shannon and Simpson entropy implementations are mathematically equivalent to SplicingFactory.
 
 **[View Appendix A](TSENAT_appendix_A.html)**
 
-##### Appendix B: Non-Parametric Validation of Statistical Test Results via GAM and Rank-Based Methods
+**Appendix B: Non-Parametric Validation of Statistical Test Results via GAM and Rank-Based Methods**
 
 Objective: Validate q-value * group interaction detection results from statistical tests using complementary non-parametric modeling approaches.
 
@@ -1051,7 +1007,7 @@ Objective: Validate q-value * group interaction detection results from statistic
 
 ## References
 
-1. Adami, C. (2004). "Information Theory in Molecular Biology." *arXiv Preprint q-Bio/0405004*.
+1. Adami, C. (2004). "Information theory in molecular biology." *Physics of Life Reviews*, 1(1), 3–22. https://doi.org/10.1016/j.plrev.2004.01.002
 
 2. Bajic, D. (2024). "Information Theory, Living Systems, and Communication Engineering." *Entropy*, 26(5), 430. https://doi.org/10.3390/e26050430.
 

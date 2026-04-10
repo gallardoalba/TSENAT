@@ -57,29 +57,22 @@ This appendix provides two independent, non-parametric alternatives that:
 
 ### Method 1: Generalized Additive Models (GAM) with ARIMA-Ordered Measurement Structure
 
-- Distributional assumption: None required; uses non-parametric basis functions (thin-plate splines)
-- Treatment of entropic structure: Treats q-values as time-like ordered measurements, applies ARIMA(1,1,0) differencing for autocorrelation
-- Heteroscedasticity handling: Automatically detects variance heterogeneity; applies optimal weighting
-- Key advantage: Captures smooth nonlinear q * group effects with computational efficiency
+- Distributional assumption: None required; uses non-parametric basis functions (thin-plate splines).
+- Treatment of entropic structure: Treats q-values as time-like ordered measurements, applies ARIMA(1,1,0) differencing for autocorrelation.
+- Heteroscedasticity handling: Automatically detects variance heterogeneity; applies optimal weighting.
+- Key advantage: Captures smooth nonlinear q * group effects with computational efficiency.
 
 ### Method 2: Rank-Based Tests (Friedman with Hochberg Step-Up Correction)
 
-- Distributional assumption: None; operates entirely on ranks (maximal robustness)
-- Treatment of q-ordering: Friedman two-way test for paired measurements across q and group
-- Heteroscedasticity handling: Rank transformation inherently robust; Hochberg correction controls FWER
-- Key advantage: Maximally robust to outliers; valid for any continuous distribution
-- Reference: Efron & Tibshirani (1993), Benjamini & Hochberg (1995)
+- Distributional assumption: None; operates entirely on ranks (maximal robustness).
+- Treatment of q-ordering: Friedman two-way test for paired measurements across q and group.
+- Heteroscedasticity handling: Rank transformation inherently robust; Hochberg correction controls FWER.
+- Key advantage: Maximally robust to outliers; valid for any continuous distribution.
 
-## Key Validation Questions
-
-1. Concordance: Do linear model, GAM, and rank-based methods identify the same significant genes?
-2. Robustness: Which genes remain significant across both parametric and non-parametric approaches?
-3. Method-Specific Signals: Do rank-based methods reveal additional genes missed by parametric models due to assumption violations?
-4. Data Characteristics: What entropy distribution properties predict method disagreement? (Outliers, heteroscedasticity, departure from normality)
 
 ## Why Two Methods for One Question?
 
-Statistical testing in transcriptomics faces a fundamental challenge: **no single method is universally optimal**. Different approaches make different assumptions and have different strengths. TSENAT employs two complementary strategies: parametric methods (linear models and generalized additive models) and non-parametric rank-based tests:
+Statistical testing in transcriptomics faces a fundamental challenge: **no single method is universally optimal**. Different approaches make different assumptions and have different strengths. TSENAT employs two complementary strategies: parametric methods (linear models) and non-parametric rank-based tests:
 
 | Aspect | Parametric (Linear Model / GAM) | Non-Parametric (Rank-Based) |
 |--------|--------------------------------|----------------------------|
@@ -137,7 +130,6 @@ config <- TSENAT_config(
 )
 
 # Build analysis object: creates SummarizedExperiment and initializes TSENATAnalysis
-# Pass config at construction (Bioconductor pattern)
 analysis <- build_analysis(
     readcounts = readcounts,
     tx2gene = gff3_dataset,
@@ -159,18 +151,13 @@ analysis <- filter_analysis(
 
 For robust entropy estimation on sparse count data, we normalize pseudocounts by library size. This approach is principled and recommended in edgeR and DESeq2, as it ensures regularization strength adapts to overall sequencing depth.
 
-```{r compute-tsallis-entropy, message=FALSE}
+```{r compute-tsallis-entropy, message=FALSE, results='hide'}
 # Compute diversity using S4 wrapper with bootstrap confidence intervals
 analysis <- calculate_diversity(
   analysis, 
   norm = TRUE,
   pseudocount = "auto"
 )
-
-# Extract diversity results using results accessor
-diversity_results <- results(analysis, type = "diversity")
-cat("Diversity results extracted:\n")
-print(head(diversity_results, n = 10))
 ```
 
 # Rank-Based Approach (Friedman)
@@ -180,7 +167,7 @@ print(head(diversity_results, n = 10))
 Before applying rank-based methods, we verify key assumptions for rank-based inference [@S115; @S204]. The Friedman test is a non-parametric alternative to repeated-measures ANOVA, making fewer distributional assumptions while maintaining validity for paired designs [@S019]:
 
 ```{r validate-friedman-assumptions, message=FALSE}
-# Validate Friedman test assumptions using S4 wrapper
+# Validate Friedman test assumptions
 analysis <- calculate_rank_assumptions(
     analysis
 )
@@ -258,19 +245,15 @@ knitr::kable(data_characteristics,
  
 
 
-```{r friedman-rank-test-analysis, message=TRUE}
+```{r friedman-rank-test-analysis, message=FALSE, results='hide'}
 # Run Friedman test for q * condition INTERACTION
 analysis <- calculate_rank_test(
     analysis,
     multicorr = "hochberg"
 )
 
-# Extract results from S4 object using unified accessor
-friedman_results <- results(analysis, type = "rank_test")
-
-# Alternative: Extract rank_test results with ranking and filtering
-rank_test_results <- results(analysis, type = "rank_test", rankBy = "pvalue", n = 20, filterFDR = 0.05)
-cat("Top rank_test results by p-value (FDR < 0.05):\n")
+# Extract results
+friedman_results <- results(analysis, type = "rank_test", rankBy = "pvalue", n = 20, filterFDR = 0.05)
 print(head(rank_test_results, n = 10))
 ```
 
@@ -286,9 +269,9 @@ rank_summary_stats <- data.frame(
     "Significant (p < 0.05)", 
     "Significant (adj_p < 0.05, FWER-controlled)", 
     "NAs",
-    "Mean effect size (eta^2)",
-    "Median effect size (eta^2)",
-    "Strong effect genes (eta^2 > 10%)"
+    "Mean effect size ($\eta^2$)",
+    "Median effect size ($\eta^2$)",
+    "Strong effect genes ($\eta^2$ > 10%)"
   ),
   Value = c(
     nrow(friedman_results),
@@ -337,7 +320,7 @@ if (nrow(rank_sig) > 0) {
     knitr::kable(rank_display, 
                  caption = "**Supplementary Table 4 | Top genes identified by Friedman rank-based test.** Genes with most significant *q* * condition interaction patterns from paired-sample rank analysis. Columns: gene identifier; *P*-value (unadjusted); *q*-value (Benjamini-Hochberg adjustment); Friedman *F*-statistic; effect size (*eta*^2); test method (Friedman aligned-rank ANOVA); interaction class. Ranked by adjusted significance.",
                  col.names = c("Gene", "P-value", "Adj. P-value", "F-Statistic", 
-                               "Effect Size (eta^2)", "Test Method", "Interaction Class")[1:ncol(rank_display)],
+                               "Effect Size ($\eta^2$)", "Test Method", "Interaction Class")[1:ncol(rank_display)],
                  digits = 4,
                  format = if (knitr::is_latex_output()) "latex" else "html",
                  longtable = knitr::is_latex_output(),
@@ -352,7 +335,7 @@ if (nrow(rank_sig) > 0) {
 
 Visualize q-curves for top genes:
 
-```{r extended-fig-1-friedman-q-curves, fig.width=12, fig.height=8, message=FALSE, out.width="98%", fig.pos="H", fig.cap="**Extended Data Figure 1 | Scale-dependent isoform diversity from rank-based analysis.** *Friedman rank test identifies genes with heterogeneous isoform rank-ordering patterns between paired samples.* X-axis, diversity sensitivity *q* (0-2). Y-axis, Tsallis entropy (0-1 range). Each line represents a paired sample or condition. Parallel curves indicate rank-stable condition differences across all *q*-scales; diverging or crossing curves reveal genes with *q*-dependent isoform switching where isoform dominance rank-order differs between conditions at specific scales. Friedman rank test statistic quantifies nonparametric evidence for scale-dependent isoform heterogeneity."}
+```{r extended-fig-1-friedman-q-curves, fig.width=12, fig.height=8, message=FALSE, out.width="98%", fig.pos="H", fig.cap="**Extended Data Figure 1 | Friedman rank test results for scale-dependent isoform switching.** X-axis: *q* (0-2), Y-axis: Tsallis entropy (0-1). Parallel curves indicate consistent condition effects across diversity scales; diverging curves reveal *q*-dependent switching patterns."}
 top_genes_plot <- plot_diversity_spectrum(analysis, lm_res = friedman_results, n_top = 4)
 print(top_genes_plot)
 ```
@@ -360,31 +343,31 @@ print(top_genes_plot)
 
 ## Friedman Test: Testing q $\times$ Condition Interactions
 
-The Friedman test evaluates whether entropy patterns across entropic indices (q-values) differ between normal and tumor samples [@S205]. It ranks observations within each subject, preserving the paired structure critical for valid inference in paired designs [@S019]. This rank-based approach is particularly robust for skewed distributions like entropy values [@S019], and the Westfall-Young permutation correction used here is asymptotically optimal for dependent test statistics [@S166].
+The Friedman test evaluates whether entropy patterns across entropic indices (q-values) differ between normal and tumor samples [@K003]. It ranks observations within each subject, preserving the paired structure critical for valid inference in paired designs [@S019]. This rank-based approach is particularly robust for skewed distributions like entropy values [@S019], and the Westfall-Young permutation correction used here is asymptotically optimal for dependent test statistics [@S166].
 
-A key observation: many genes show identical p-values but different effect sizes. This reflects the rank-based nature of the test [@S115]. Effect size eta^2 directly quantifies the strength of the entropic index (q-value) by condition dependence and serves as the practical ranking metric when p-values cluster [@S205]:
+A key observation: many genes show identical p-values but different effect sizes. This reflects the rank-based nature of the test [@S115]. Effect size $\eta^2$ directly quantifies the strength of the entropic index (q-value) by condition dependence and serves as the practical ranking metric when p-values cluster [@K003]:
 
 $$\eta^2 = \frac{SS_\text{between}}{SS_\text{total}}$$
 
-This represents the proportion of total variance in entropy explained by changes in entropic indices. Genes with eta^2 = 96.1% (e.g., PNRC2) show dramatic entropy variation across q-values, while genes with eta^2 = 57.6% (e.g., HDAC2) show moderate variation.
+This represents the proportion of total variance in entropy explained by changes in entropic indices. Genes with $\eta^2$ = 96.1% (e.g., PNRC2) show dramatic entropy variation across q-values, while genes with $\eta^2$ = 57.6% (e.g., HDAC2) show moderate variation.
 
 ## Interpreting Identical p-values and Effect Size Ranking
 
 A key observation in this analysis is that **many genes share identical p-values** (p=0.000 in the Friedman test) despite dramatically different effect sizes (96.1%, 67.9%, 57.6%). This is **not a statistical error** but rather a fundamental property of the two-way Friedman test applied to q $\times$ condition interaction:
 
 **Why identical p-values occur in two-way Friedman:**
-The test statistic depends on the **rank patterns** of entropy values across entropic index levels within each condition and subject [@S205]. When genes show similar interaction structure (e.g., Q-entropy consistently higher in tumors vs normals at all q-values), they produce identical test statistics despite different magnitudes of entropy change. This property of rank statistics [@S115] is characteristic of non-parametric testing when distributions are heavily skewed or bounded. For multifactorial designs, aligned rank transform methods [@S187] provide robust alternatives to traditional ANOVA.
+The test statistic depends on the **rank patterns** of entropy values across entropic index levels within each condition and subject [@K003]. When genes show similar interaction structure (e.g., Q-entropy consistently higher in tumors vs normals at all q-values), they produce identical test statistics despite different magnitudes of entropy change. This property of rank statistics [@S115] is characteristic of non-parametric testing when distributions are heavily skewed or bounded. For multifactorial designs, aligned rank transform methods [@S187] provide robust alternatives to traditional ANOVA.
 
 **How to rank genes when p-values cluster:**
-In this scenario, **effect size (eta^2) becomes the practical ranking metric** [@S205] because it directly quantifies the strength of the entropic order index × entropy dependence:
-- eta^2 captures the proportion of variance explained by entropic indices (q-values) [@S205]
-- Higher eta^2 = stronger biological effect for that gene
+In this scenario, **effect size ($\eta^2$) becomes the practical ranking metric** [@K003] because it directly quantifies the strength of the entropic order index × entropy dependence:
+- $\eta^2$ captures the proportion of variance explained by entropic indices (q-values) [@K003]
+- Higher $\eta^2$ = stronger biological effect for that gene
 - Effect size properly reflects the magnitude of entropy change across entropic indices
 
 The vignette table sorts genes by (1) p-value and (2) effect size as tiebreaker. This strategy ensures that statistically significant genes are listed first, with effect size distinguishing between genes with identical statistical significance.
 
 **Recommendations:**
-- Focus on genes with eta^2 > 0.3 for robust biological findings
+- Focus on genes with $\eta^2$ > 0.3 for robust biological findings
 - Cross-validate significant genes using complementary methods (e.g., GAM section below)
 - Remember that statistical significance (p-value) indicates q-dependence exists, while effect size says how strong it is
 
@@ -632,7 +615,7 @@ if (!is.null(high_conf) && nrow(high_conf) > 0) {
   hc_display$effect_lm <- sprintf("%.1f%%", hc_display$effect_lm * 100)
   hc_display$effect_rank <- sprintf("%.3f", hc_display$effect_rank)
   
-  colnames(hc_display) <- c("Gene", "LM adj p", "Rank test adj p", "LM Effect", "Rank test eta^2")
+  colnames(hc_display) <- c("Gene", "LM adj p", "Rank test adj p", "LM Effect", "Rank test $\eta^2$")
   rownames(hc_display) <- NULL
   
   knitr::kable(hc_display,
@@ -665,109 +648,6 @@ if (!is.null(concordance_results) && !is.null(concordance_results$comparison_df)
   message("Proceeding with tabular comparison instead.")
 }
 ```
-
-***
-
-# Complete S4 Workflow Guide
-
-This vignette demonstrates the modern S4-based analysis workflow for method comparison. The following functions are used in their S4 wrapper forms for consistent class-based integration:
-
-## S4 Functions Used in This Vignette
-
-| Function | Purpose | Input | Output |
-|----------|---------|-------|--------|
-| `calculate_diversity()` | Compute Tsallis entropy across multiple entropic order indices (q-values) | TSENATAnalysis + `q`, `norm` params | Updated analysis with diversity results |
-| `calculate_rank_assumptions()` | Validate Friedman test assumptions | TSENATAnalysis | Stores results in metadata via `metadata(analysis, "rankbased_assumptions")` |
-| `calculate_rank_test()` | Run Friedman test for q$\times$group interactions | TSENATAnalysis + design params | Updated analysis with results via `results(type="rank_test")` |
-| `plot_diversity_spectrum()` | Plot q-curves for significant genes | TSENATAnalysis + `lm_res` | ggplot2 visualization |
-| `calculate_concordance()` | Compare LM and rank test results | Two TSENATAnalysis objects (LM and rank test results) | Updated analysis with results via `metadata()` |
-| `plot_concordance()` | Visualize method concordance | TSENATAnalysis (after concordance computed) | ggplot2 comparison plot |
-
-## Workflow Advantages
-
-- **Consistent class structure:** All results integrated into TSENATAnalysis object
-- **Automatic metadata tracking:** No global variables polluting environment
-- **Seamless integration:** Single unified `results()` accessor with type parameter ("lm", "rank_test", "divergence", "diversity", etc.) for flexible result retrieval and filtering
-- **Unified ranking & filtering:** All accessors support ranking (rankBy), FDR filtering, and format conversion through `results()`
-- **Reproducibility:** Clear, standardized workflow for complex multi-method analyses
-- **Documentation:** S4 methods maintain Roxygen documentation and inheritance
-
-## Workflow Reconstruction
-
-If needed, this complete workflow can be recreated step-by-step:
-
-```{r appendix-workflow-code, eval=FALSE}
-# 1. Initialize analysis
-analysis <- TSENATAnalysis(se = se, config = list())
-
-# 2. Calculate diversity
-analysis <- calculate_diversity(analysis, q = seq(0.1, 2, by = 0.05), norm = TRUE)
-
-# 3. Validate assumptions
-rank_assumptions <- calculate_rank_assumptions(analysis, verbose = TRUE)
-
-# 4. Friedman test (rank-based)
-analysis <- calculate_rank_test(
-    analysis,
-    condition_col = "condition",
-    paired = TRUE,
-    subject_col = "paired_samples",
-    multicorr = "hochberg",
-    verbose = TRUE
-)
-
-# 5. Load LM analysis object from RDS file
-analysis_lm <- readRDS("inst/extdata/analysis_lm.rds")
-
-# 6. Compare methods using new two-object API
-analysis <- calculate_concordance(
-    analysis_lm = analysis_lm,
-    analysis_rank = analysis,
-    lm_method = "lm_interaction",
-    rank_method = "rank_test",
-    verbose = TRUE
-)
-
-# 7. Visualize concordance
-plot_concordance(analysis, verbose = TRUE)
-
-# 8. Plot top genes (optional)
-plot_diversity_spectrum(
-    analysis,
-    condition_col = "condition",
-    rank_res = results(analysis, type = "rank_test"),
-    n_top = 4
-)
-```
-
-***
-
-# Recommendations
-
-## S4 Wrapper Integration Overview
-
-This vignette demonstrates the modern S4 wrapper approach for method concordance analysis using the refactored two-object API:
-
-- **`calculate_concordance(analysis_lm, analysis_rank, ...)`**: Accepts two TSENATAnalysis objects containing LM and rank test results respectively. Compares results from independent analyses with automatic method selection and returns updated analysis with concordance results stored in `metadata(analysis, "method_concordance")`
-- **`plot_concordance()`**: Creates publication-ready concordance visualizations from S4-stored results
-- **Benefits**: Clean separation of analysis objects, flexible method selection, automatic metadata tracking, reduced variable proliferation in global environment, backward-compatible with legacy single-object API
-
-For backward compatibility, the original single-object API (`calculate_concordance(analysis, gam_results = ...)`) remains fully supported.
-
-## Best Practices for Analysis
-
-We recommend a **complementary two-method approach** for robust detection of entropic order index × group interactions (q-values):
-
-**Primary analysis:** Start with the Friedman Test for q $\times$ condition interaction, which provides correct statistical inference for paired/blocked designs by:
-1. **Testing the interaction**: Does the q-effect differ between conditions? (Not just whether entropy varies across q-values)
-2. **Respecting the repeated-measures structure**: 8 paired tumor-normal samples, testing if entropy patterns across q-values differ by condition
-3. **Accounting for within-subject correlation**: Friedman test properly handles paired structure
-4. **Multiple testing correction**: Westfall-Young permutation respects AR(1) correlation structure across q-values
-5. **Condition-aware**: Uses two-way Friedman (q within-subjects, condition between-subjects)
-
-**Validation step:** Confirm findings with GAM to validate against parametric assumptions and identify condition-specific nonlinear q-entropy patterns that may be missed by rank-based methods.
-
-**High-confidence genes** are those significant in *both* methods-these provide the strongest evidence of genuine q $\times$ condition interactions and are recommended for downstream biological validation. The Friedman Test is particularly appropriate for paired designs and provides distribution-free inference without requiring assumptions about data normality, while properly accounting for the q $\times$ condition interaction structure.
 
 ***
 

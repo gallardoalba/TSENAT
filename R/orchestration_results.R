@@ -8,9 +8,9 @@
 #' with options for ranking, filtering, and format conversion.
 #'
 #' @param analysis \code{TSENATAnalysis} object containing computed results.
-#' @param type \code{character}. Type of results to extract:
+#' @param type \\code{character}. **Required.** Type of results to extract:
 #'   'diversity', 'divergence', 'lm', 'jackknife', 'rank_test', 'effect_sizes_divergence',
-#'   or 'switching_tables'. Default: 'diversity'.
+#'   or 'switching_tables'.
 #' @param q \code{numeric}. For diversity results, optionally return results for 
 #'   a specific q-value only. When specified, returns a single SummarizedExperiment 
 #'   for that q-value instead of the full list. Default: NULL (return all q-values 
@@ -25,7 +25,12 @@
 #'   Default: NULL (no filtering).
 #' @param format \code{character}. Output format: 'auto' (sensible default for type),
 #'   'list', 'dataframe', or 'matrix'. Default: 'auto'.
-#'
+#' @param top_n \code{integer}. For effect_sizes_divergence, return top N genes ranked by sort_by.
+#'   When specified, results are sorted by sort_by column and limited to top N rows.
+#'   Default: NULL (return all results). Use NA to return all.
+#' @param sort_by \code{character}. For effect_sizes_divergence, column name to sort by.
+#'   Common choices: 'adj_p_interaction' (p-value, ascending), 'Mean_Divergence' (descending).
+#'   Default: 'adj_p_interaction' (most significant first).#'
 #' @return 
 #'   - For diversity with q=NULL: A named list of SummarizedExperiment objects, one per q-value
 #'   - For diversity with q specified: A single SummarizedExperiment for that q-value
@@ -79,15 +84,24 @@
 #' # Get pairwise results (e.g., differential diversity metrics between conditions)
 #' pairwise_diff <- results(analysis, type = 'pairwise')
 #'
+#' # Get effect size results, top 6 genes by p-value (most significant first)
+#' top_effect_sizes <- results(analysis, type = 'effect_sizes_divergence', 
+#'                              top_n = 6, sort_by = 'adj_p_interaction')
+#'
+#' # Get effect sizes sorted by mean divergence (largest effect sizes first)
+#' large_effects <- results(analysis, type = 'effect_sizes_divergence',
+#'                          top_n = 10, sort_by = 'Mean_Divergence')
+#'
 #' # Get switching tables - automatically computed if prerequisites exist
 #' # (no need to call prepare_gene_switching_tables_s4 separately)
 #' switching <- results(analysis, type = 'switching_tables')
 #'
 #' @rdname TSENATAnalysis-results
 #' @export
-results <- function(analysis, type = "diversity", q = NULL, rankBy = "none", 
+results <- function(analysis, type, q = NULL, rankBy = "none", 
                        n = NA, filterFDR = NULL, format = "auto", display_table = FALSE,
-                       n_genes = 4, q_values_table = c(0, 0.5, 1.0, 1.5, 2.0)) {
+                       n_genes = 4, q_values_table = c(0, 0.5, 1.0, 1.5, 2.0),
+                       top_n = NULL, sort_by = "adj_p_interaction") {
     # Validate parameters
     .validate_results_params(analysis, type, rankBy, format, filterFDR)
     
@@ -110,7 +124,7 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
         lm = ,
         jackknife = ,
         rank_test = .process_statistical_results(result, type, filterFDR, rankBy, n, format),
-        effect_sizes_divergence = result,
+        effect_sizes_divergence = .process_effect_sizes_divergence_results(result, top_n, sort_by),
         switching_tables = result,
         result
     )
@@ -438,11 +452,7 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
 # HELPER: Warn about unsupported parameters
 # ============================================================================
 .warn_unsupported_params <- function(type, filterFDR, rankBy) {
-    if (type == "effect_sizes_divergence" && (!is.null(filterFDR) || rankBy != "none")) {
-        warning("rankBy and filterFDR are not supported for type='effect_sizes_divergence'. ",
-                "Ignoring these parameters. Access metadata directly for advanced filtering: ",
-                "analysis@metadata$effect_sizes_divergence", call. = FALSE)
-    } else if (type == "switching_tables" && (!is.null(filterFDR) || rankBy != "none")) {
+    if (type == "switching_tables" && (!is.null(filterFDR) || rankBy != "none")) {
         warning("rankBy and filterFDR are not supported for type='switching_tables'. ",
                 "Ignoring these parameters. Switching tables are automatically pre-computed with optimal ",
                 "ranking and filtering.", call. = FALSE)
@@ -731,6 +741,86 @@ results <- function(analysis, type = "diversity", q = NULL, rankBy = "none",
         }
     }
     
+    result
+}
+
+# ============================================================================
+# HELPER: Process effect_sizes_divergence results with sorting and filtering
+# ============================================================================
+.process_effect_sizes_divergence_results <- function(result, top_n = NULL, sort_by = "adj_p_interaction") {
+    if (is.null(result)) {
+        return(NULL)
+    }
+    
+    # If result is a list, try to extract the main results data.frame
+    if (is.list(result)) {
+        # Look for common data.frame names in the list
+        if ("results" %in% names(result) && is.data.frame(result$results)) {
+            results_df <- result$results
+        } else if ("interaction_results" %in% names(result) && is.data.frame(result$interaction_results)) {
+            results_df <- result$interaction_results
+        } else if (length(result) == 1 && is.data.frame(result[[1]])) {
+            results_df <- result[[1]]
+        } else {
+            # No data.frame found, return as-is
+            return(result)
+        }
+        
+        # Apply sorting and limiting if top_n specified
+        if (!is.null(top_n) && !is.na(top_n) && top_n > 0) {
+            # Verify sort_by column exists
+            if (!(sort_by %in% colnames(results_df))) {
+                stop("Column '", sort_by, "' not found in results. ",
+                     "Available columns: ", paste(colnames(results_df), collapse = ", "),
+                     call. = FALSE)
+            }
+            
+            # Determine sort direction: ascending for p-values, descending for divergence/effect sizes
+            decreasing <- !grepl("p_value|pvalue|padj|adj_p", sort_by, ignore.case = TRUE)
+            
+            # Sort results
+            order_idx <- order(results_df[[sort_by]], na.last = TRUE, decreasing = decreasing)
+            results_df <- results_df[order_idx, , drop = FALSE]
+            
+            # Limit to top_n
+            results_df <- head(results_df, top_n)
+        }
+        
+        # Update the list with the processed data.frame
+        if ("results" %in% names(result)) {
+            result$results <- results_df
+        } else if ("interaction_results" %in% names(result)) {
+            result$interaction_results <- results_df
+        } else if (length(result) == 1) {
+            result[[1]] <- results_df
+        }
+        
+        return(result)
+    }
+    
+    # If result is already a data.frame, process directly
+    if (is.data.frame(result)) {
+        if (!is.null(top_n) && !is.na(top_n) && top_n > 0) {
+            # Verify sort_by column exists
+            if (!(sort_by %in% colnames(result))) {
+                stop("Column '", sort_by, "' not found in results. ",
+                     "Available columns: ", paste(colnames(result), collapse = ", "),
+                     call. = FALSE)
+            }
+            
+            # Determine sort direction
+            decreasing <- !grepl("p_value|pvalue|padj|adj_p", sort_by, ignore.case = TRUE)
+            
+            # Sort and limit
+            order_idx <- order(result[[sort_by]], na.last = TRUE, decreasing = decreasing)
+            result <- result[order_idx, , drop = FALSE]
+            result <- head(result, top_n)
+        }
+        
+        return(result)
+    }
+    
+    # Return as-is if it's some other type
     result
 }
 
