@@ -54,11 +54,11 @@ In this guide, we demonstrate the complete workflow: preprocessing transcript co
 ## High-level workflow
 
 1. **Load and preprocess** transcript counts using `build_analysis()`, then filter low-abundance transcripts with `filter_analysis()`.
-2. **Select q-values** tuned to your research question: low q (rare isoforms) vs. high q (dominant isoforms). Compute Tsallis entropy across these scales with `calculate_diversity()`.
-3. **Test for differences** in entropy between groups using `calculate_rank_test()` (Wilcoxon or permutation tests) [@K002; @K003].
-4. **Visualize results** as q-curves and inspect transcript counts for genes with the strongest entropy shifts using `plot_diversity_spectrum()` and related functions.
+2. **Compute diversity** (Tsallis entropy) and **divergence** (Tsallis divergence).
+3. **Test for differences** in entropy patterns between groups across q-values.
+4. **Visualize results**.
 
-**Design assumptions**: This guide assumes paired or longitudinal designs with >=6-8 samples per group for adequate power to detect entropy shifts while controlling false discovery rate. Smaller sample sizes may be underpowered to detect subtle isoform complexity changes.
+Design assumptions: This guide assumes paired or longitudinal designs with >=6-8 samples per group for adequate power to detect entropy shifts while controlling false discovery rate. Smaller sample sizes may be underpowered to detect subtle isoform complexity changes.
 
 
 ## Installation
