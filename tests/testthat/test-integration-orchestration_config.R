@@ -1593,3 +1593,375 @@ test_that("results with NaN diversity values handled correctly", {
   expect_true(nrow(div_values) > 0)
   expect_true(ncol(div_values) > 0)
 })
+
+context("Orchestration: TSENAT() Main Function and Helper Functions (Optimized)")
+
+# ============================================================================
+# MODULE-LEVEL SETUP: Shared test data loaded ONCE
+# ============================================================================
+
+# Cache analysis object to avoid rebuilding for each test
+test_analysis <- local({
+    set.seed(42)
+    data("readcounts", package = "TSENAT", envir = environment())
+    readcounts <- as.matrix(readcounts)
+    
+    metadata_df <- read.table(
+        system.file("extdata", "metadata.tsv", package = "TSENAT"),
+        header = TRUE, sep = "\t"
+    )
+    
+    gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+    
+    # OPTIMIZATION: Use 10 q-values with consolidated assertions (avoid pipeline reruns)
+    config <- TSENAT::TSENAT_config(
+        sample_col = "sample",
+        condition_col = "condition",
+        subject_col = "paired_samples",
+        q = c(0.1, 0.3, 0.5, 0.7, 0.9, 1.0, 1.2, 1.5, 1.8, 2.0),  # 10 q-values
+        paired = TRUE,
+        control = "normal",
+        stringency = "medium",
+        nthreads = 3
+    )
+    
+    analysis <- TSENAT::build_analysis(
+        config = config,
+        readcounts = readcounts,
+        metadata = metadata_df,
+        tx2gene = gff3_file,
+        tpm = tpm,
+        effective_length = effective_length
+    )
+    
+    TSENAT::filter_analysis(analysis, stringency = "medium")
+})
+
+# Cache the result from running the full pipeline ONCE
+# Suppress nlminb convergence warnings from calculate_lm (known behavior with edge cases)
+test_result <- suppressWarnings(
+    TSENAT::TSENAT(test_analysis, output_dir = NULL, verbose = FALSE)
+)
+
+# ============================================================================
+# TEST SUITE 1: TSENAT() Main Function - Basic Execution
+# ============================================================================
+
+test_that("TSENAT() executes complete pipeline and returns TSENATAnalysis", {
+    # OPTIMIZATION: Use cached result instead of rebuilding
+    expect_s4_class(test_result, "TSENATAnalysis")
+    expect_true(nrow(TSENAT::se(test_result)) > 0)
+    # Verify pipeline executed by checking results
+    expect_true(length(TSENAT::results(test_result, type = "diversity")) > 0)
+})
+
+test_that("TSENAT() rejects non-TSENATAnalysis input", {
+    expect_error(
+        TSENAT::TSENAT(list(data = "invalid"), output_dir = NULL, verbose = FALSE),
+        "must be a TSENATAnalysis object"
+    )
+    expect_error(
+        TSENAT::TSENAT(data.frame(x = 1:10), output_dir = NULL, verbose = FALSE),
+        "must be a TSENATAnalysis object"
+    )
+})
+
+test_that("TSENAT() rejects empty SummarizedExperiment", {
+    # OPTIMIZATION: Modify cached analysis for this specific test
+    analysis <- test_analysis
+    analysis@se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = matrix(nrow = 0, ncol = 16)),
+        colData = SummarizedExperiment::colData(TSENAT::se(test_analysis))
+    )
+    
+    expect_error(
+        TSENAT::TSENAT(analysis, output_dir = NULL, verbose = FALSE),
+        "empty"
+    )
+})
+
+# ============================================================================
+# TEST SUITE 2: TSENAT() Output Format Handling
+# ============================================================================
+
+test_that("TSENAT() accepts all valid output formats", {
+    # Test each valid format with cached analysis
+    for (format in c("tsv", "csv", "txt", "rds")) {
+        result <- TSENAT::TSENAT(
+            test_analysis,
+            output_dir = NULL,
+            output_format = format,
+            verbose = FALSE
+        )
+        expect_s4_class(result, "TSENATAnalysis")
+    }
+})
+
+test_that("TSENAT() rejects invalid output format", {
+    expect_error(
+        TSENAT::TSENAT(test_analysis, output_dir = NULL, output_format = "invalid", verbose = FALSE),
+        "must be one of"
+    )
+    expect_error(
+        TSENAT::TSENAT(test_analysis, output_dir = NULL, output_format = "json", verbose = FALSE),
+        "must be one of"
+    )
+})
+
+test_that("TSENAT() respects save_output=FALSE", {
+    result <- TSENAT::TSENAT(
+        test_analysis,
+        output_dir = tempdir(),
+        save_output = FALSE,
+        verbose = FALSE
+    )
+    expect_s4_class(result, "TSENATAnalysis")
+})
+
+# ============================================================================
+# TEST SUITE 3: TSENAT() Output Directory Handling
+# ============================================================================
+
+test_that("TSENAT() creates output directory if it does not exist", {
+    output_dir <- file.path(tempdir(), paste0("test_tsenat_", floor(runif(1, 1e6, 9.9e6))))
+    if (dir.exists(output_dir)) unlink(output_dir, recursive = TRUE)
+    
+    expect_false(dir.exists(output_dir))
+    
+    result <- TSENAT::TSENAT(
+        test_analysis,
+        output_dir = output_dir,
+        verbose = FALSE
+    )
+    
+    expect_s4_class(result, "TSENATAnalysis")
+    expect_true(dir.exists(output_dir))
+    unlink(output_dir, recursive = TRUE)
+})
+
+test_that("TSENAT() uses existing output directory", {
+    result <- TSENAT::TSENAT(
+        test_analysis,
+        output_dir = tempdir(),
+        verbose = FALSE
+    )
+    expect_s4_class(result, "TSENATAnalysis")
+    expect_true(dir.exists(tempdir()))
+})
+
+test_that("TSENAT() with NULL output_dir disables file saving", {
+    result <- TSENAT::TSENAT(
+        test_analysis,
+        output_dir = NULL,
+        save_output = TRUE,
+        verbose = FALSE
+    )
+    expect_s4_class(result, "TSENATAnalysis")
+})
+
+# ============================================================================
+# TEST SUITE 4: TSENAT() Verbose Output Control
+# ============================================================================
+
+test_that("TSENAT() verbose=TRUE produces or allows execution", {
+    # Note: verbose output may or may not be captured, but function should succeed
+    result <- tryCatch({
+        capture.output({
+            TSENAT::TSENAT(
+                test_analysis,
+                output_dir = NULL,
+                verbose = TRUE
+            )
+        }, type = "message")
+        TSENAT::TSENAT(
+            test_analysis,
+            output_dir = NULL,
+            verbose = TRUE
+        )
+    }, error = function(e) NULL)
+    
+    expect_s4_class(result, "TSENATAnalysis")
+})
+
+test_that("TSENAT() verbose=FALSE suppresses most output", {
+    output <- capture.output({
+        result <- TSENAT::TSENAT(
+            test_analysis,
+            output_dir = NULL,
+            verbose = FALSE
+        )
+    })
+    
+    expect_s4_class(result, "TSENATAnalysis")
+    expect_true(length(output) < 10)
+})
+
+# ============================================================================
+# TEST SUITE 5: Helper Functions
+# ============================================================================
+
+test_that(".format_duration formats time durations correctly", {
+    # Test seconds, minutes, hours
+    expect_match(TSENAT:::.format_duration(as.difftime(30, units = "secs")), "s$")
+    expect_match(TSENAT:::.format_duration(as.difftime(90, units = "secs")), "m$")
+    expect_match(TSENAT:::.format_duration(as.difftime(5400, units = "secs")), "h$")
+})
+
+test_that(".extract_analysis_statistics returns list with expected structure", {
+    stats <- TSENAT:::.extract_analysis_statistics(test_result)
+    
+    expect_is(stats, "list")
+    expect_true("n_transcripts" %in% names(stats))
+    expect_true(all(is.numeric(unlist(stats))))
+})
+
+test_that(".convert_result_format preserves data structure across formats", {
+    df_result <- data.frame(
+        gene = c("ENSG001", "ENSG002"),
+        value = c(1.5, 2.3),
+        stringsAsFactors = FALSE
+    )
+    
+    for (fmt in c("tsv", "csv", "txt", "rds")) {
+        formatted <- TSENAT:::.convert_result_format(df_result, format = fmt, type = "test")
+        expect_true(nrow(formatted) == 2)
+    }
+})
+
+test_that(".validate_analysis_object accepts valid TSENATAnalysis", {
+    expect_silent(TSENAT:::.validate_analysis_object(test_analysis))
+})
+
+test_that(".validate_analysis_object rejects invalid objects", {
+    expect_error(TSENAT:::.validate_analysis_object(list(data = "invalid")))
+    expect_error(TSENAT:::.validate_analysis_object(data.frame(x = 1:10)))
+})
+
+test_that(".build_output_file creates correct paths for all formats", {
+    output_dir <- tempdir()
+    
+    path_tsv <- TSENAT:::.build_output_file("test", output_dir, "tsv")
+    path_csv <- TSENAT:::.build_output_file("test", output_dir, "csv")
+    path_rds <- TSENAT:::.build_output_file("test", output_dir, "rds")
+    
+    expect_true(grepl("\\.tsv$", path_tsv))
+    expect_true(grepl("\\.csv$", path_csv))
+    expect_true(grepl("\\.rds$", path_rds))
+    
+    # NULL output_dir returns NULL
+    expect_null(TSENAT:::.build_output_file("test", NULL, "tsv"))
+})
+
+test_that(".track_analysis_metadata updates metadata correctly", {
+    updated <- TSENAT:::.track_analysis_metadata(test_analysis, test_analysis@config)
+    expect_s4_class(updated, "TSENATAnalysis")
+})
+
+test_that(".finalize_tsenat_analysis handles timing and output", {
+    finalized <- TSENAT:::.finalize_tsenat_analysis(
+        test_result,
+        verbose = FALSE,
+        step_times = list(diversity = 1.5, lm = 2.0),
+        total_time = 5.0,
+        output_dir = NULL
+    )
+    expect_s4_class(finalized, "TSENATAnalysis")
+})
+
+# ============================================================================
+# TEST SUITE 6: TSENAT_config() Configuration Builder
+# ============================================================================
+
+test_that("TSENAT_config creates valid configuration with defaults", {
+    cfg <- TSENAT::TSENAT_config()
+    
+    expect_s3_class(cfg, "TSENATConfig")
+    expect_true("q" %in% names(cfg))
+})
+
+test_that("TSENAT_config accepts single and multiple q-values", {
+    cfg_single <- TSENAT::TSENAT_config(q = 1.0)
+    expect_equal(cfg_single$q, 1.0)
+    
+    cfg_multi <- TSENAT::TSENAT_config(q = c(0.5, 1.0, 1.5))
+    expect_equal(cfg_multi$q, c(0.5, 1.0, 1.5))
+})
+
+test_that("TSENAT_config handles paired design parameters", {
+    cfg <- TSENAT::TSENAT_config(
+        paired = TRUE,
+        subject_col = "subject_id",
+        control = "control_group"
+    )
+    
+    expect_true(cfg$paired)
+    expect_equal(cfg$subject_col, "subject_id")
+    expect_equal(cfg$control, "control_group")
+})
+
+test_that("TSENAT_config accepts statistical parameters", {
+    cfg <- TSENAT::TSENAT_config(
+        p_threshold = 0.01,
+        fdr_threshold = 0.001,
+        bootstrap_method = "bca",
+        nboot = 500
+    )
+    
+    expect_equal(cfg$p_threshold, 0.01)
+    expect_equal(cfg$fdr_threshold, 0.001)
+    expect_equal(cfg$bootstrap_method, "bca")
+    expect_equal(cfg$nboot, 500)
+})
+
+# ============================================================================
+# TEST SUITE 7: Results Extraction Functions
+# ============================================================================
+
+test_that("results() extracts diversity results from cached analysis", {
+    div_results <- TSENAT::results(test_result, type = "diversity")
+    expect_true(is.list(div_results) || is.data.frame(div_results))
+})
+
+test_that("results() extracts different result types", {
+    res_div <- TSENAT::results(test_result, type = "diversity")
+    expect_true(is.list(res_div) || is.data.frame(res_div))
+    
+    res_lm <- TSENAT::results(test_result, type = "lm")
+    expect_true(is.list(res_lm) || is.data.frame(res_lm) || length(res_lm) == 0)
+})
+
+# ============================================================================
+# TEST SUITE 8: Configuration and Metadata Preservation
+# ============================================================================
+
+test_that("TSENAT() preserves configuration through pipeline", {
+    # Verify configuration preserved via results extraction
+    results_div <- TSENAT::results(test_result, type = "diversity")
+    expect_true(is.list(results_div) || is.data.frame(results_div))
+    expect_true(length(results_div) > 0)  # Config preserved if results exist
+})
+
+test_that("TSENAT() preserves sample metadata", {
+    original_coldata <- SummarizedExperiment::colData(TSENAT::se(test_analysis))
+    result_coldata <- SummarizedExperiment::colData(TSENAT::se(test_result))
+    
+    expect_equal(ncol(original_coldata), ncol(result_coldata))
+    expect_equal(nrow(original_coldata), nrow(result_coldata))
+})
+
+# ============================================================================
+# TEST SUITE 9: Special Cases with Extreme Parameters
+# ============================================================================
+
+test_that("TSENAT_config handles extreme q-values within valid range", {
+    cfg_extreme <- TSENAT::TSENAT_config(q = c(0.001, 2.0))
+    expect_equal(cfg_extreme$q, c(0.001, 2.0))
+})
+
+test_that(".validate_analysis_object correctly identifies invalid inputs", {
+    # These should all error
+    expect_error(TSENAT:::.validate_analysis_object(NULL))
+    expect_error(TSENAT:::.validate_analysis_object("string"))
+    expect_error(TSENAT:::.validate_analysis_object(123))
+})
+

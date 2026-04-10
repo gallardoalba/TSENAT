@@ -188,6 +188,8 @@ if (!isGeneric("metadata")) {
 
 #' Set metadata for TSENATAnalysis object
 #'
+# metadata<- generic for TSENATAnalysis
+# Defines the replacement method for modifying @metadata slot
 #' @param x TSENATAnalysis object
 #' @param value Replacement value for metadata (typically a list)
 #' @return TSENATAnalysis object with updated metadata

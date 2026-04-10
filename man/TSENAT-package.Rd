@@ -166,7 +166,7 @@ Isoform switching and transcriptomics:
 
 \section{S4 Container}{
 
-\\code{\\link{TSENATAnalysis-class}} - Central container unifying all analysis components.
+\code{\link{TSENATAnalysis-class}} --- Central container unifying all analysis components.
 Access results via slots: \code{@diversity_results}, \code{@lm_results}, 
 \code{@jackknife_results}, \code{@divergence_results}, 
 or accessor methods \code{\link{TSENATAnalysis-methods}}.

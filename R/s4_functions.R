@@ -1701,7 +1701,8 @@ plot_expression <- function(analysis, gene = NULL, condition_col = NULL,
                   "gene_col", c("gene", "gene_name", "gene_id"), verbose = FALSE,
                   param_name = "gene_col")
 
-                if (!is.null(p_col) && p_col %in% colnames(lm_results_df)) {
+                if (!is.null(p_col) && !is.null(gene_col) && p_col %in% colnames(lm_results_df) && 
+                    gene_col %in% colnames(lm_results_df)) {
                   # Get top genes (sorted by p-value, select top_n)
                   top_indices <- order(lm_results_df[[p_col]])[seq_len(min(top_n,
                     nrow(lm_results_df)))]

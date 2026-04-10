@@ -385,6 +385,14 @@
         stop("gene must be provided or derivable from res", call. = FALSE)
     }
 
+    # Resolve gene identifiers: convert gene names/transcript IDs to gene IDs
+    gene <- .resolve_gene_identifiers(gene, tx2gene, rd, gene_col)
+    
+    if (FALSE) {  # Debug mode - set to TRUE if needed
+        message("[DEBUG] After resolution, genes: ", paste(gene, collapse=", "))
+        message("[DEBUG] tx2gene$Gen unique values (first 10): ", paste(head(unique(tx2gene$Gen), 10), collapse=", "))
+    }
+
     # Phase 3: Plan layout
     gene_info_list <- lapply(seq_along(gene), function(i) {
         tx_idx <- which(tx2gene$Gen == gene[i])
@@ -427,9 +435,13 @@
             cellwidth, cellheight, fontsize)
 
         # Create pheatmap
-        heatmap_plots[[gene_idx]] <- .create_pheatmap_grob(mat, title = gene_name,
-            cellw = cells$cellwidth, cellh = cells$cellheight, fontsize = cells$fontsize_adj,
-            cluster_rows = FALSE)
+        heatmap_plots[[gene_idx]] <- tryCatch({
+            .create_pheatmap_grob(mat, title = gene_name,
+                cellw = cells$cellwidth, cellh = cells$cellheight, fontsize = cells$fontsize_adj,
+                cluster_rows = FALSE)
+        }, error = function(e) {
+            NULL
+        })
     }
 
     if (all(vapply(heatmap_plots, is.null, logical(1)))) {
@@ -523,6 +535,61 @@
 #'   - condition_col: validated condition column name
 #'
 
+#' @keywords internal
+#' @noRd
+.resolve_gene_identifiers <- function(genes, tx2gene, rd, gene_col) {
+    # Flexible gene identifier resolution
+    # Accepts: gene IDs, gene names, or transcript IDs
+    # Returns: vector of gene IDs for lookup
+    
+    if (is.null(genes) || length(genes) == 0) {
+        return(genes)
+    }
+    
+    genes <- as.character(genes)
+    
+    # Get available identifiers from rowData
+    gene_ids <- as.character(rd[[gene_col]])
+    gene_names <- if ("gene_name" %in% colnames(rd)) {
+        as.character(rd$gene_name)
+    } else {
+        NULL
+    }
+    transcript_ids <- tx2gene$Transcript
+    
+    # Try to resolve each gene
+    resolved_genes <- character(length(genes))
+    
+    for (i in seq_along(genes)) {
+        gene_input <- genes[i]
+        
+        # Check if it's already a valid gene ID
+        if (gene_input %in% gene_ids) {
+            resolved_genes[i] <- gene_input
+            next
+        }
+        
+        # Check if it's a gene name
+        if (!is.null(gene_names) && gene_input %in% gene_names) {
+            idx <- which(gene_names == gene_input)[1]
+            resolved_genes[i] <- gene_ids[idx]
+            next
+        }
+        
+        # Check if it's a transcript ID
+        if (gene_input %in% transcript_ids) {
+            idx <- which(transcript_ids == gene_input)[1]
+            resolved_genes[i] <- tx2gene$Gen[idx]
+            next
+        }
+        
+        # If not found, keep original and let downstream error handling catch it
+        resolved_genes[i] <- gene_input
+    }
+    
+    resolved_genes
+}
+
 #' @noRd
 .validate_se_for_heatmaps <- function(se, gene_col = NULL, condition_col = NULL) {
     if (!inherits(se, "SummarizedExperiment")) {
@@ -531,14 +598,14 @@
 
     # Validate/auto-detect gene column
     if (is.null(gene_col)) {
-        gene_col <- if ("genes" %in% colnames(rowData(se))) {
+        gene_col <- if ("gene_id" %in% colnames(rowData(se))) {
+            "gene_id"
+        } else if ("genes" %in% colnames(rowData(se))) {
             "genes"
         } else if ("gene_name" %in% colnames(rowData(se))) {
             "gene_name"
-        } else if ("gene_id" %in% colnames(rowData(se))) {
-            "gene_id"
         } else {
-            stop("rowData(se) must contain 'genes', 'gene_name', or 'gene_id' column",
+            stop("rowData(se) must contain 'gene_id', 'genes', or 'gene_name' column",
                 call. = FALSE)
         }
     } else {
@@ -943,6 +1010,11 @@
     title = "Heatmap Analysis", subtitle = "") {
     # Open PNG if specified
     if (!is.null(output_file)) {
+        # Create parent directories if they don't exist
+        output_dir <- dirname(output_file)
+        if (!dir.exists(output_dir)) {
+            dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+        }
         grDevices::png(output_file, width = png_width, height = png_height, units = "in",
             res = 100)
     }
