@@ -168,9 +168,22 @@ setMethod("setConfigValue", "TSENATAnalysis", function(object, key, value) {
     setConfig(object, config)
 })
 
+#' Extract SummarizedExperiment from TSENATAnalysis
+#'
+#' @title Extract SummarizedExperiment Slot
+#'
+#' @param object \code{TSENATAnalysis} object.
+#'
+#' @return The \code{SummarizedExperiment} object stored in \code{@se} slot,
+#'   containing raw count data and sample metadata.
+#'
+#' @details
+#' Provides read-only access to the underlying SummarizedExperiment. To modify
+#' the SummarizedExperiment, use \code{\link{setConfig}} or directly access
+#' \code{object@se}.
+#'
 #' @aliases se,TSENATAnalysis-method
 #' @rdname TSENATAnalysis-se
-#' @noRd
 setMethod("se", "TSENATAnalysis", function(object) {
     object@se
 })
@@ -183,7 +196,7 @@ setMethod("se", "TSENATAnalysis", function(object) {
 #' The getter function retrieves all metadata or a specific key-value.
 #' The setter function replaces the entire metadata list.
 #'
-#' @param x,object A \code{\linkS4class{TSENATAnalysis}} object
+#' @param x A \code{\linkS4class{TSENATAnalysis}} object
 #' @param key Optional character string specifying a metadata key to retrieve
 #' @param value A list of metadata to assign
 #'

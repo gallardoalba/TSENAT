@@ -1,9 +1,9 @@
 #' Storey's Pi0 Estimation and Q-Value Calculation
 #' 
-#' Implements adaptive false discovery rate (FDR) control using Storey's π₀ 
+#' Implements adaptive false discovery rate (FDR) control using Storey's \\eqn{\\pi_0} 
 #' estimation method. This allows for more powerful inference than
 #' Benjamini-Hochberg
-#' when a substantial proportion of null hypotheses are true (large π₀).
+#' when a substantial proportion of null hypotheses are true (large \\eqn{\\pi_0}).
 #' 
 #' @details
 #' 
@@ -31,27 +31,27 @@
 #' **Why Westfall-Young First?**
 #' - Westfall-Young corrects for q-value AR(1) correlation structure
 #' - WY-adjusted p-values satisfy exchangeability (independence-like property)
-#' - Storey π₀ estimation becomes mathematically valid
+#' - Storey \\eqn{\\pi_0} estimation becomes mathematically valid
 #' - Type I error properly controlled at α level
 #' - Combined approach: more powerful than either method alone
 #' 
-#' **Storey's π₀ Estimation:**
-#' 
-#' The proportion of true null hypotheses (π₀) is estimated from the p-value 
+#' **Storey's \\eqn{\\pi_0} Estimation:**
+#'
+#' The proportion of true null hypotheses (\\eqn{\\pi_0}) is estimated from the p-value
 #' distribution using the method of Storey (2002):
 #' 
-#' π₀(λ) = (# p-values > λ) / ((1-λ) * m)
+#' \\eqn{\\pi_0(\\lambda)} = (# p-values > \\eqn{\\lambda}) / ((1-\\eqn{\\lambda}) * m)
 #' 
 #' where λ is a threshold (typically 0.5) and m is the number of tests.
 #' 
-#' This is more adaptive than assuming π₀ = 1 (as in Benjamini-Hochberg), 
+#' This is more adaptive than assuming \\eqn{\\pi_0} = 1 (as in Benjamini-Hochberg), 
 #' allowing increased power when many signals are present.
 #' 
 #' **Q-Value Conversion:**
 #' 
 #' Once π₀ is estimated, q-values are computed as:
 #' 
-#' q(p) = π₀ * (rank(p) / m) * FDR_level
+#' \\eqn{q(p)} = \\eqn{\\pi_0} * (rank(p) / m) * FDR_level
 #' 
 #' This maintains FDR <= α while incorporating the estimated proportion of 
 #' true signals.
@@ -61,7 +61,7 @@
 #'   Westfall-Young preprocessed p-values only (already correlation-adjusted).
 #' Direct application to raw multi-q p-values violates the independence
 #' assumption.
-#' @param lambda Optional threshold for π₀ estimation (default: 0.5). 
+#' @param lambda Optional threshold for \\eqn{\\pi_0} estimation (default: 0.5). 
 #'   Common range: 0.3-0.9. Higher λ uses more conservative p-values.
 #' @param pi0_method Character specifying π₀ estimation method:
 #'   - 'lambda' (default): Uses fixed λ (robust, conservative)

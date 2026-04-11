@@ -17,13 +17,13 @@
 #'   (Westfall-Young) procedures
 #' - **AR(1) Correlation Handling**: Westfall-Young preserves q-value spatial
 #'   correlations (important for ordered q measurements)
-#' - **Effect Sizes**: Eta-squared (η²) for q×condition interactions
+#' - **Effect Sizes**: Eta-squared (\\eqn{\\eta^2}) for q×condition interactions
 #'
 #' ## Statistical Hypotheses
 #'
 #' Tests the null hypothesis:
-#' - **H₀** = Gene entropy q-effect does NOT differ between conditions (q-independent)
-#' - **H₁** = Gene entropy q-dependence is CONDITION-SPECIFIC (interaction exists)
+#' - **H\\textsubscript{0}** = Gene entropy q-effect does NOT differ between conditions (q-independent)
+#' - **H\\textsubscript{1}** = Gene entropy q-dependence is CONDITION-SPECIFIC (interaction exists)
 #'
 #' A significant interaction indicates condition-specific patterns in how entropy
 #' varies across the q-value spectrum, revealing biological processes specific to

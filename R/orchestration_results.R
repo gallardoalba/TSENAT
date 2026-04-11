@@ -8,7 +8,7 @@
 #' with options for ranking, filtering, and format conversion.
 #'
 #' @param analysis \code{TSENATAnalysis} object containing computed results.
-#' @param type \\code{character}. **Required.** Type of results to extract:
+#' @param type \code{character}. \strong{Required.} Type of results to extract:
 #'   'diversity', 'divergence', 'lm', 'jackknife', 'rank_test', 'effect_sizes_divergence',
 #'   or 'switching_tables'.
 #' @param q \code{numeric}. For diversity results, optionally return results for 
@@ -25,12 +25,19 @@
 #'   Default: NULL (no filtering).
 #' @param format \code{character}. Output format: 'auto' (sensible default for type),
 #'   'list', 'dataframe', or 'matrix'. Default: 'auto'.
+#' @param display_table \code{logical}. For diversity results with display_table=TRUE,
+#'   returns a formatted table showing diversity values across selected q-values
+#'   for each gene. Default: FALSE (returns SummarizedExperiment or list).
+#' @param n_genes \code{integer}. Number of genes to display in diversity tables
+#'   when display_table=TRUE. Default: 4.
+#' @param q_values_table \code{numeric}. Vector of q-values to include in diversity
+#'   table display when display_table=TRUE. Default: c(0, 0.5, 1.0, 1.5, 2.0).
 #' @param top_n \code{integer}. For effect_sizes_divergence, return top N genes ranked by sort_by.
 #'   When specified, results are sorted by sort_by column and limited to top N rows.
 #'   Default: NULL (return all results). Use NA to return all.
 #' @param sort_by \code{character}. For effect_sizes_divergence, column name to sort by.
 #'   Common choices: 'adj_p_interaction' (p-value, ascending), 'Mean_Divergence' (descending).
-#'   Default: 'adj_p_interaction' (most significant first).#'
+#'   Default: 'adj_p_interaction' (most significant first).
 #' @return 
 #'   - For diversity with q=NULL: A named list of SummarizedExperiment objects, one per q-value
 #'   - For diversity with q specified: A single SummarizedExperiment for that q-value
@@ -96,7 +103,7 @@
 #' # (no need to call prepare_gene_switching_tables_s4 separately)
 #' switching <- results(analysis, type = 'switching_tables')
 #'
-#' @rdname TSENATAnalysis-results
+#' @rdname results
 #' @export
 results <- function(analysis, type, q = NULL, rankBy = "none", 
                        n = NA, filterFDR = NULL, format = "auto", display_table = FALSE,
@@ -504,7 +511,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
             } else {
                 jk_res <- jk_multi
             }
-        } else if ("summary_table" %in% names(jk_res) && rankBy %not_in% c("pvalue", "qvalue")) {
+        } else if ("summary_table" %in% names(jk_res) && !(rankBy %in% c("pvalue", "qvalue"))) {
             jk_res <- jk_res$summary_table
         }
     }

@@ -265,16 +265,19 @@ analysis <- calculate_rank_test(
     multicorr = "hochberg"
 )
 
-# Extract results
+# Extract ALL results (no filtering) for summary statistics
+srh_results_all <- results(analysis, type = "rank_test", rankBy = "pvalue")
+
+# Extract top significant genes for display
 srh_results <- results(analysis, type = "rank_test", rankBy = "pvalue", n = 20, filterFDR = 0.05)
 print(head(srh_results, n = 10))
 ```
 
 ```{r srh-results-summary, message=FALSE, echo=FALSE}
-# Create summary statistics table with additional metrics
+# Create summary statistics table with additional metrics using ALL tested genes
 # Handle NA and NaN values properly
-mean_effect <- mean(srh_results$effect_size_eta2, na.rm = TRUE)
-median_effect <- median(srh_results$effect_size_eta2, na.rm = TRUE)
+mean_effect <- mean(srh_results_all$effect_size_eta2, na.rm = TRUE)
+median_effect <- median(srh_results_all$effect_size_eta2, na.rm = TRUE)
 
 rank_summary_stats <- data.frame(
   Metric = c(
@@ -287,13 +290,13 @@ rank_summary_stats <- data.frame(
     "Strong effect genes ($\\eta^2$ > 10%)"
   ),
   Value = c(
-    nrow(srh_results),
-    sum(srh_results$p_value < 0.05, na.rm = TRUE),
-    sum(srh_results$adj_p_value < 0.05, na.rm = TRUE),
-    sum(is.na(srh_results$p_value)),
+    nrow(srh_results_all),
+    sum(srh_results_all$p_value < 0.05, na.rm = TRUE),
+    sum(srh_results_all$adj_p_value < 0.05, na.rm = TRUE),
+    sum(is.na(srh_results_all$p_value)),
     if (is.na(mean_effect) || !is.finite(mean_effect)) "Not available" else sprintf("%.1f%%", mean_effect * 100),
     if (is.na(median_effect) || !is.finite(median_effect)) "Not available" else sprintf("%.1f%%", median_effect * 100),
-    sum(srh_results$p_value < 0.05 & srh_results$effect_size_eta2 > 0.10, na.rm = TRUE)
+    sum(srh_results_all$p_value < 0.05 & srh_results_all$effect_size_eta2 > 0.10, na.rm = TRUE)
   )
 )
 
@@ -351,7 +354,7 @@ if (nrow(rank_sig) > 0) {
     }
     
     knitr::kable(rank_display, 
-                 caption = "Supplementary Table 4 | Top genes identified by Scheirer-Ray-Hare rank-based test. Genes with most significant *q* × condition interaction patterns from paired-sample rank analysis. Columns: gene identifier; *P*-value (unadjusted, scientific notation for p < 0.0001); adjusted *P*-value (Benjamini-Hochberg correction, scientific notation for p < 0.0001); Scheirer-Ray-Hare *F*-statistic; effect size ($\\eta^2$); test method; interaction class. Ranked by adjusted significance.",
+                 caption = "Supplementary Table 4 | Top genes identified by Scheirer-Ray-Hare rank-based test.",
                  col.names = c("Gene", "P-value", "Adj. P-value", "F-Statistic", 
                                "Effect Size (η²)", "Test Method", "Interaction Class")[1:ncol(rank_display)],
                  format = if (knitr::is_latex_output()) "latex" else "html",
@@ -368,11 +371,11 @@ if (nrow(rank_sig) > 0) {
 
 Visualize q-curves for top genes:
 
-```{r extended-fig-1-srh-q-curves, fig.width=12, fig.height=8, message=FALSE, out.width="98%", fig.pos="H", fig.cap="Extended Data Figure 1 | Scheirer-Ray-Hare rank test results for scale-dependent isoform switching. X-axis: *q* (0-2), Y-axis: Tsallis entropy (0-1). Parallel curves indicate consistent condition effects across diversity scales; diverging curves reveal *q*-dependent switching patterns."}
+```{r extended-fig-1-srh-q-curves, fig.width=12, fig.height=8, message=FALSE, out.width="98%", fig.pos="H", fig.cap="Extended Data Figure 1 | Scheirer-Ray-Hare rank test results for scale-dependent isoform switching."}
+# Plot top genes from Scheirer-Ray-Hare test
 top_genes_plot <- plot_diversity_spectrum(analysis, lm_res = srh_results, n_top = 4)
 print(top_genes_plot)
 ```
-
 
 ***
 
@@ -647,7 +650,7 @@ This complementary approach—combining high-power parametric tests with robust 
 
 Visual comparison of concordance patterns provides intuitive assessment of which genes align between methods and which are method-specific. The following plots display significance calls, effect sizes, and agreement metrics in a format that facilitates interpretation of both robust discoveries and method-specific findings.
 
-```{r visualize-method-concordance, fig.width=10, fig.height=8, out.width="98%", fig.pos="H", fig.cap="Method concordance visualization comparing Scheirer-Ray-Hare rank-based and GAM approaches for detecting q × condition interactions. Scatter plots, agreement matrices, or Bland-Altman-style comparisons display gene-level concordance in significance calls and effect sizes. Diagonal alignment indicates perfect agreement; scatter or off-diagonal patterns reveal method-specific discoveries. Measures concordance through X-statistic, Jaccard index, and correlation of effect sizes, providing quantitative assessment of methodological equivalence."}
+```{r visualize-method-concordance, fig.width=10, fig.height=8, out.width="98%", fig.pos="H", fig.cap="Method concordance visualization comparing Scheirer-Ray-Hare rank-based and GAM approaches for detecting q × condition interactions."}
 # Create comparison plot using S4 wrapper
 # Check if concordance analysis was successful
 concordance_results <- metadata(analysis_with_concordance, "method_concordance")
