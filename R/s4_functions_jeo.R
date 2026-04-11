@@ -113,7 +113,7 @@ calculate_jeo <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
     }
     
     # Show message about q-value(s) being used
-    verbose_resolved <- resolve_slot_param(verbose, analysis@config, "verbose", TRUE)
+    verbose_resolved <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
     if (verbose_resolved && q_source != "explicit") {
         if (length(q) == 1) {
             message("[calculate_jeo] Using q = ", formatC(q, format="f", digits=3), 

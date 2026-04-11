@@ -67,8 +67,7 @@ Default: NULL (no file output).}
 \value{
 Modified TSENATAnalysis object with M-estimation results stored in
 \code{analysis@metadata$m_estimate_results}. Contains data frame with
-influence scores, robustness weights, entropy statistics, and QC
-classifications.
+influence scores, robustness weights, entropy statistics, and QC classifications.
 Returns visibly to support method chaining and piping.
 }
 \description{
@@ -90,12 +89,10 @@ unusual diversity patterns.
 **M-Estimation Results include:**
 \itemize{
   \item \code{sample_influence}: How much each sample affects the overall fit
-  \item \code{robustness_weight}:
- Down-weighting factor (lower = more outlying)
+  \item \code{robustness_weight}: Down-weighting factor
   \item \code{entropy_mean}: Average entropy for the sample
   \item \code{entropy_sd}: Entropy variability within the sample
-  \item \code{Status}:  QC Classification ('OK' or  'Flag for 
-QC' based on influence_threshold)
+  \item \code{Status}:  QC Classification 
 }
 
 **Parameter resolution priority** (explicit > @config > error):

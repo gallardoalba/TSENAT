@@ -413,8 +413,3 @@ test_that("faceted plot grid consistency", {
   expect_is(p, "ggplot")
 })
 
-# REMOVED: Tests for plot_diversity_volcano_ma (function deleted along with calculate_difference)
-test_that("plot_diversity_volcano_ma [REMOVED]", {
-  skip("plot_diversity_volcano_ma function was removed")
-})
-

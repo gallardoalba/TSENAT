@@ -2,9 +2,6 @@ context("AllGenerics: S4 Accessor Methods (Testing public and internal accessors
 
 library(TSENAT)
 
-# Skip all tests on CRAN
-skip_on_cran()
-
 # ============================================================================
 # MODULE-LEVEL SETUP: Shared test data loaded ONCE
 # ============================================================================

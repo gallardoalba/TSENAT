@@ -292,7 +292,7 @@ test_that(".resolve_and_validate_jis_params converts q to numeric vector", {
     norm = NULL,
     log_base = NULL,
     pseudocount = NULL,
-    n_bootstrap = 100,
+    nboot = 100,
     analysis = analysis,
     verbose = FALSE
   )
@@ -309,7 +309,7 @@ test_that(".resolve_and_validate_jis_params handles vector q values", {
     norm = NULL,
     log_base = NULL,
     pseudocount = NULL,
-    n_bootstrap = 100,
+    nboot = 100,
     analysis = analysis,
     verbose = FALSE
   )
@@ -325,7 +325,7 @@ test_that(".resolve_and_validate_jis_params uses config values", {
     norm = NULL,      # Should use config
     log_base = NULL,  # Should use config
     pseudocount = NULL,  # Should use config
-    n_bootstrap = 100,
+    nboot = 100,
     analysis = analysis,
     verbose = FALSE
   )
@@ -334,7 +334,7 @@ test_that(".resolve_and_validate_jis_params uses config values", {
   expect_equal(params$pseudocount, 0)  # From config
 })
 
-test_that(".resolve_and_validate_jis_params rejects invalid n_bootstrap", {
+test_that(".resolve_and_validate_jis_params rejects invalid nboot", {
   analysis <- make_test_analysis_jis()
   
   expect_error(
@@ -343,7 +343,7 @@ test_that(".resolve_and_validate_jis_params rejects invalid n_bootstrap", {
       norm = NULL,
       log_base = NULL,
       pseudocount = NULL,
-      n_bootstrap = -1,  # Invalid
+      nboot = -1,  # Invalid
       analysis = analysis,
       verbose = FALSE
     ),
@@ -351,7 +351,7 @@ test_that(".resolve_and_validate_jis_params rejects invalid n_bootstrap", {
   )
 })
 
-test_that(".resolve_and_validate_jis_params warns when n_bootstrap < 50", {
+test_that(".resolve_and_validate_jis_params warns when nboot < 50", {
   analysis <- make_test_analysis_jis()
   
   expect_warning(
@@ -360,7 +360,7 @@ test_that(".resolve_and_validate_jis_params warns when n_bootstrap < 50", {
       norm = NULL,
       log_base = NULL,
       pseudocount = NULL,
-      n_bootstrap = 20,  # Below recommended
+      nboot = 20,  # Below recommended
       analysis = analysis,
       verbose = FALSE
     ),
@@ -376,7 +376,7 @@ test_that(".resolve_and_validate_jis_params overrides with explicit parameters",
     norm = FALSE,  # Override config
     log_base = 10,  # Override config
     pseudocount = 1,  # Override config
-    n_bootstrap = 200,
+    nboot = 200,
     analysis = analysis,
     verbose = FALSE
   )
@@ -568,7 +568,7 @@ test_that("calculate_jis rejects non-TSENATAnalysis input", {
   expect_error(
     TSENAT::calculate_jis(
       analysis = list(),
-      n_bootstrap = 10
+      nboot = 10
     ),
     "must be a TSENATAnalysis object"
   )
@@ -587,7 +587,7 @@ test_that("calculate_jis returns TSENATAnalysis object", {
       gene_col = "gene_id",
       isoform_col = "transcript_id",
       q = 1.0,
-      n_bootstrap = 10,
+      nboot = 10,
       verbose = FALSE
     )
   )
@@ -606,7 +606,7 @@ test_that("calculate_jis stores results in @jackknife_results", {
       gene_col = "gene_id",
       isoform_col = "transcript_id",
       q = 1.0,
-      n_bootstrap = 10,
+      nboot = 10,
       verbose = FALSE
     )
   )
@@ -626,7 +626,7 @@ test_that("calculate_jis updates metadata", {
       gene_col = "gene_id",
       isoform_col = "transcript_id",
       q = 1.0,
-      n_bootstrap = 10,
+      nboot = 10,
       verbose = FALSE
     )
   )
@@ -648,7 +648,7 @@ test_that("calculate_jis auto-detects columns when NULL", {
       gene_col = NULL,        # Auto-detect
       isoform_col = NULL,     # Auto-detect
       q = 1.0,
-      n_bootstrap = 10,
+      nboot = 10,
       verbose = FALSE
     )
   )
@@ -656,7 +656,7 @@ test_that("calculate_jis auto-detects columns when NULL", {
   expect_is(result, "TSENATAnalysis")
 })
 
-test_that("calculate_jis rejects invalid n_bootstrap", {
+test_that("calculate_jis rejects invalid nboot", {
   analysis <- make_test_analysis_jis()
   analysis@diversity_results <- list(q_1_00 = list(q = 1.0))
   
@@ -667,7 +667,7 @@ test_that("calculate_jis rejects invalid n_bootstrap", {
       gene_col = "gene_id",
       isoform_col = "transcript_id",
       q = 1.0,
-      n_bootstrap = -1,  # Invalid
+      nboot = -1,  # Invalid
       verbose = FALSE
     ),
     "must be a positive integer"
@@ -688,7 +688,7 @@ test_that("calculate_jis handles multi-q analysis", {
       gene_col = "gene_id",
       isoform_col = "transcript_id",
       q = c(0.5, 1.0),
-      n_bootstrap = 10,
+      nboot = 10,
       verbose = FALSE
     )
   )
@@ -712,7 +712,7 @@ test_that("calculate_jis saves to file when output_file provided", {
       gene_col = "gene_id",
       isoform_col = "transcript_id",
       q = 1.0,
-      n_bootstrap = 10,
+      nboot = 10,
       output_file = temp_file,
       verbose = FALSE
     )
@@ -734,12 +734,12 @@ test_that("calculate_jis supports method chaining", {
     TSENAT::calculate_jis(
       analysis = analysis,
       q = 0.5,
-      n_bootstrap = 10,
+      nboot = 10,
       verbose = FALSE
     ) %>%
       TSENAT::calculate_jis(
         q = 1.0,
-        n_bootstrap = 10,
+        nboot = 10,
         verbose = FALSE
       )
   )
@@ -772,7 +772,7 @@ test_that("calculate_jis accepts LM results parameter", {
         gene_col = "gene_id",
         isoform_col = "transcript_id",
         q = 1.0,
-        n_bootstrap = 10,
+        nboot = 10,
         lm_results = lm_results,
         lm_p_threshold = 0.05,
         use_lm_fdr = TRUE,
@@ -819,7 +819,7 @@ test_that("Full workflow: validation -> detection -> params -> results -> storag
     norm = NULL, 
     log_base = NULL, 
     pseudocount = NULL, 
-    n_bootstrap = 100,
+    nboot = 100,
     threshold = NULL,
     lm_p_threshold = NULL,
     analysis = analysis, 
@@ -841,7 +841,7 @@ test_that("Error handling: invalid column names propagate correctly", {
       gene_col = "gene_id",
       isoform_col = "transcript_id",
       q = 1.0,
-      n_bootstrap = 100,
+      nboot = 100,
       verbose = FALSE
     )
   )
@@ -859,7 +859,7 @@ test_that("Verbose mode produces informative messages", {
         gene_col = "gene_id",
         isoform_col = "transcript_id",
         q = 1.0,
-        n_bootstrap = 10,
+        nboot = 10,
         verbose = TRUE
       )
     ),
@@ -884,7 +884,7 @@ test_that("Output file (RDS) preserves analysis object structure and data", {
       gene_col = "gene_id",
       isoform_col = "transcript_id",
       q = 1.0,
-      n_bootstrap = 10,
+      nboot = 10,
       output_file = temp_file,
       verbose = FALSE
     )

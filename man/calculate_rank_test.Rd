@@ -28,7 +28,8 @@ calculate_rank_test(
 )
 }
 \arguments{
-\item{analysis}{\code{TSENATAnalysis} object.}
+\item{analysis}{\code{TSENATAnalysis} object.
+Must have diversity results from \code{calculate_diversity()}.}
 
 \item{condition_col}{\code{character}.  Column name for 
 sample grouping/condition (REQUIRED).
@@ -178,16 +179,27 @@ gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
 
 # Build analysis from vignette data and create manageable subset
-analysis <- build_analysis(readcounts = readcounts, tx2gene =
-gff3_dataset, metadata = metadata_df, config = config,
-  tpm = tpm, effective_length = effective_length)
-analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
-= 200)
+analysis <- build_analysis(
+  readcounts = readcounts,
+  tx2gene = gff3_dataset,
+  metadata = metadata_df,
+  config = config,
+  tpm = tpm,
+  effective_length = effective_length
+)
+analysis <- filter_analysis(
+  analysis,
+  min_samples = 1,
+  subset_n_genes = 200
+)
 analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
 
 # Test Q×Condition interaction (condition_col is REQUIRED)
-analysis <- calculate_rank_test(analysis, condition_col = 'condition', 
-                                           multicorr = 'hochberg')
+analysis <- calculate_rank_test(
+  analysis,
+  condition_col = 'condition',
+  multicorr = 'hochberg'
+)
 # View results using unified accessor
 rank_test_res <- results(analysis, type = "rank_test")
 if (!is.null(rank_test_res)) head(rank_test_res)

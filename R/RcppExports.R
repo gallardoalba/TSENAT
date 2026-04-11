@@ -25,8 +25,8 @@ jis_jackknife_influences_cpp <- function(counts, q = 1.0, normalize = TRUE, log_
     .Call(`_TSENAT_jis_jackknife_influences_cpp`, counts, q, normalize, log_base, pseudocount, n_tx_fixed)
 }
 
-jis_bootstrap_delta_cpp <- function(counts_A, counts_B, delta_influence, q = 1.0, normalize = TRUE, log_base = 2.718281828, pseudocount = 1e-8, n_bootstrap = 1000L, confidence = 0.95, method = "percentile", n_transcripts_fixed = -1L) {
-    .Call(`_TSENAT_jis_bootstrap_delta_cpp`, counts_A, counts_B, delta_influence, q, normalize, log_base, pseudocount, n_bootstrap, confidence, method, n_transcripts_fixed)
+jis_bootstrap_delta_cpp <- function(counts_A, counts_B, delta_influence, q = 1.0, normalize = TRUE, log_base = 2.718281828, pseudocount = 1e-8, nboot = 1000L, confidence = 0.95, method = "percentile", n_transcripts_fixed = -1L) {
+    .Call(`_TSENAT_jis_bootstrap_delta_cpp`, counts_A, counts_B, delta_influence, q, normalize, log_base, pseudocount, nboot, confidence, method, n_transcripts_fixed)
 }
 
 tsallis_divergence_cpp <- function(p, r, q = 1.0, log_base = 2.718281828) {

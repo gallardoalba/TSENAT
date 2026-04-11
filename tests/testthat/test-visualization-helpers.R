@@ -1259,56 +1259,8 @@ testthat::test_that(".create_centered_theme applies centering", {
 })
 
 # =============================================================================
-# 4. .normalize_plot_scales - Scale Normalization Test
+# 4. [REMOVED] .normalize_plot_scales tests - Function does not exist
 # =============================================================================
-
-testthat::test_that(".normalize_plot_scales identifies fold-change column", {
-  # No packages required
-  df <- data.frame(
-    logFC = c(1.5, -2.0, 0.5),
-    condition1_mean = c(100, 200, 150),
-    condition2_mean = c(110, 210, 160),
-    gene = c("A", "B", "C"),
-    stringsAsFactors = FALSE
-  )
-  
-  result <- .normalize_plot_scales(df, fold_col_candidates = c("log2_fold_change", "logFC", "fold"))
-  
-  testthat::expect_is(result, "list")
-  testthat::expect_equal(result$fold_col, "logFC")
-  testthat::expect_true("x_norm" %in% colnames(result$df))
-  testthat::expect_true("y_norm" %in% colnames(result$df))
-})
-
-testthat::test_that(".normalize_plot_scales computes normalized positions", {
-  # No packages required
-  df <- data.frame(
-    log2_fold_change = c(1.0, -1.0, 0.5),
-    control_mean = c(100, 200, 150),
-    treatment_mean = c(120, 210, 160),
-    gene = c("A", "B", "C"),
-    stringsAsFactors = FALSE
-  )
-  
-  result <- .normalize_plot_scales(df, fold_col_candidates = c("log2_fold_change", "logFC"))
-  
-  # x_norm should be average of means
-  expected_x <- c((100+120)/2, (200+210)/2, (150+160)/2)
-  testthat::expect_equal(result$df$x_norm, expected_x, tolerance = 0.1)
-})
-
-testthat::test_that(".normalize_plot_scales warns on missing fold column", {
-  # No packages required
-  df <- data.frame(
-    x = c(1, 2, 3),
-    y = c(4, 5, 6)
-  )
-  
-  testthat::expect_warning(
-    .normalize_plot_scales(df, fold_col_candidates = c("logFC", "log2FC")),
-    "No fold-change column found"
-  )
-})
 
 # =============================================================================
 # 5. .compute_distribution_stats - Statistics Computation Test

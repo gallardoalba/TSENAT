@@ -194,7 +194,6 @@ test_that("jackknife_entropy_outliers is deterministic", {
 
 # Test 23: Large transcript count
 test_that("jackknife_entropy_outliers works with many transcripts", {
-  skip_on_cran()
   
   many_transcripts <- rpois(50, lambda = 50)  # Reduced from 100 to 50 for faster testing
 
@@ -247,14 +246,14 @@ test_se_basic <- function() {
   )
 }
 
-# Test 1: Function signature accepts n_bootstrap parameter
+# Test 1: Function signature accepts nboot parameter
 test_that("calculate_jis function signature is correct", {
   # Just test that function exists and has correct parameters
   expect_true(exists(".calculate_jis"))
   
   # Get function signature
   sig <- formals(.calculate_jis)
-  expect_true("n_bootstrap" %in% names(sig))
+  expect_true("nboot" %in% names(sig))
   expect_true("condition_col" %in% names(sig))
   expect_true("gene_col" %in% names(sig))
   expect_true("isoform_col" %in% names(sig))
@@ -270,7 +269,7 @@ test_that("calculate_jis detects missing condition column", {
       condition_col = "nonexistent",
       gene_col = "gene_id",
       isoform_col = "isoform_id",
-      n_bootstrap = 5,
+      nboot = 5,
       norm = FALSE,
       verbose = FALSE
     )),
@@ -289,7 +288,7 @@ test_that("calculate_jis handles q parameter appropriately", {
     gene_col = "gene_id",
     isoform_col = "isoform_id",
     q = 1.5,
-    n_bootstrap = 5,
+    nboot = 5,
     norm = FALSE,
     verbose = FALSE
   ))
@@ -306,7 +305,7 @@ test_that("calculate_jis returns tsenat_isoform_switching class", {
     condition_col = "condition",
     gene_col = "gene_id",
     isoform_col = "isoform_id",
-    n_bootstrap = 5,
+    nboot = 5,
     norm = FALSE,
     verbose = FALSE
   ))
@@ -324,7 +323,7 @@ test_that("calculate_jis output has required components", {
     condition_col = "condition",
     gene_col = "gene_id",
     isoform_col = "isoform_id",
-    n_bootstrap = 5,
+    nboot = 5,
     norm = FALSE,
     verbose = FALSE
   ))
@@ -345,7 +344,7 @@ test_that("all_transcript_stats has required columns", {
     condition_col = "condition",
     gene_col = "gene_id",
     isoform_col = "isoform_id",
-    n_bootstrap = 5,
+    nboot = 5,
     norm = FALSE,
     verbose = FALSE
   ))
@@ -382,7 +381,7 @@ test_that("calculate_jis accepts subject_col parameter", {
     subject_col = "individual_id",
     gene_col = "gene_id",
     isoform_col = "isoform_id",
-    n_bootstrap = 5,
+    nboot = 5,
     norm = FALSE,
     verbose = FALSE
   ))
@@ -392,7 +391,6 @@ test_that("calculate_jis accepts subject_col parameter", {
 
 # Test 8: LM results parameter is accepted
 test_that("calculate_jis accepts lm_results parameter", {
-  skip_on_cran()
   
   suppressPackageStartupMessages({
   })
@@ -425,7 +423,7 @@ test_that("calculate_jis accepts lm_results parameter", {
     isoform_col = "isoform_id",
     lm_results = lm_results,
     lm_p_threshold = 0.05,
-    n_bootstrap = 5,
+    nboot = 5,
     norm = FALSE,
     verbose = FALSE
   ))
@@ -443,7 +441,7 @@ test_that("Metadata is populated after analysis", {
     gene_col = "gene_id",
     isoform_col = "isoform_id",
     q = 1.5,
-    n_bootstrap = 5,
+    nboot = 5,
     norm = FALSE,
     verbose = FALSE
   ))
@@ -458,7 +456,6 @@ test_that("Metadata is populated after analysis", {
 
 # Test 10: Results are numeric (not NA/NaN) for small bootstrap
 test_that("Results contain numeric values with small bootstrap", {
-  skip_on_cran()
   
   se <- test_se_basic()
   
@@ -467,7 +464,7 @@ test_that("Results contain numeric values with small bootstrap", {
     condition_col = "condition",
     gene_col = "gene_id",
     isoform_col = "isoform_id",
-    n_bootstrap = 5,
+    nboot = 5,
     norm = FALSE,
     verbose = FALSE
   ))
@@ -1417,7 +1414,6 @@ test_that("bootstrap multi-q estimates differ across q values", {
 })
 
 test_that("bootstrap multi-q CI bounds are sensible for each q", {
-    skip_on_cran()
     
     x <- c(100, 50, 30, 20)
     set.seed(234)
@@ -1481,7 +1477,6 @@ test_that("jackknife multi-q estimates differ across q values", {
 })
 
 test_that("jackknife multi-q with matrix input", {
-    skip_on_cran()
     
     counts_matrix <- rbind(
         "Gene1" = c(100, 50, 30, 20),

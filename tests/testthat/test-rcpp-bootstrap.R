@@ -11,7 +11,6 @@ small_counts <- c(5, 3, 2, 1)
 # ============================================================================
 
 test_that("C++ bootstrap_compute_cpp compiles and is available", {
-  skip_on_cran()
   
   # Check that the function exists
   expect_true(exists("bootstrap_compute_cpp_wrapper"))
@@ -27,7 +26,6 @@ test_that("C++ bootstrap_compute_cpp compiles and is available", {
 })
 
 test_that("bootstrap_compute_cpp returns valid structure", {
-  skip_on_cran()
   
   result <- bootstrap_compute_cpp_wrapper(
     x = test_counts, q = 1.0, normalize = TRUE, 
@@ -40,7 +38,6 @@ test_that("bootstrap_compute_cpp returns valid structure", {
 })
 
 test_that("bootstrap_compute_cpp produces positive entropy values", {
-  skip_on_cran()
   
   result <- bootstrap_compute_cpp_wrapper(
     x = test_counts, q = 1.0, normalize = TRUE, 
@@ -53,7 +50,6 @@ test_that("bootstrap_compute_cpp produces positive entropy values", {
 })
 
 test_that("bootstrap_compute_cpp respects nboot parameter", {
-  skip_on_cran()
   
   for (nboot in c(10, 50, 100, 500)) {
     result <- bootstrap_compute_cpp_wrapper(
@@ -70,7 +66,6 @@ test_that("bootstrap_compute_cpp respects nboot parameter", {
 # ============================================================================
 
 test_that("bootstrap_compute_cpp works with various q values", {
-  skip_on_cran()
   
   q_values <- c(0.5, 1.0, 1.5, 2.0, 2.5)
   
@@ -86,7 +81,6 @@ test_that("bootstrap_compute_cpp works with various q values", {
 })
 
 test_that("bootstrap_compute_cpp handles q=0 (species richness)", {
-  skip_on_cran()
   
   result <- bootstrap_compute_cpp_wrapper(
     x = test_counts, q = 0.0, normalize = TRUE, 
@@ -100,7 +94,6 @@ test_that("bootstrap_compute_cpp handles q=0 (species richness)", {
 })
 
 test_that("bootstrap_compute_cpp produces different distributions for different q", {
-  skip_on_cran()
   
   result_q1 <- bootstrap_compute_cpp_wrapper(
     x = test_counts, q = 1.0, normalize = TRUE, 
@@ -125,7 +118,6 @@ test_that("bootstrap_compute_cpp produces different distributions for different 
 # ============================================================================
 
 test_that("bootstrap_compute_cpp respects normalize parameter", {
-  skip_on_cran()
   
   result_norm <- bootstrap_compute_cpp_wrapper(
     x = test_counts, q = 1.0, normalize = TRUE, 
@@ -143,7 +135,6 @@ test_that("bootstrap_compute_cpp respects normalize parameter", {
 })
 
 test_that("bootstrap_compute_cpp normalized <= unnormalized for q=1", {
-  skip_on_cran()
   
   set.seed(42)
   result_norm <- bootstrap_compute_cpp_wrapper(
@@ -167,7 +158,6 @@ test_that("bootstrap_compute_cpp normalized <= unnormalized for q=1", {
 # ============================================================================
 
 test_that("bootstrap_compute_cpp works with different log bases", {
-  skip_on_cran()
   
   log_bases <- c(exp(1), 2, 10, 2.718281828)
   
@@ -183,7 +173,6 @@ test_that("bootstrap_compute_cpp works with different log bases", {
 })
 
 test_that("bootstrap_compute_cpp log base affects scale but not relative ordering", {
-  skip_on_cran()
   
   set.seed(123)
   result_e <- bootstrap_compute_cpp_wrapper(
@@ -210,7 +199,6 @@ test_that("bootstrap_compute_cpp log base affects scale but not relative orderin
 # ============================================================================
 
 test_that("bootstrap_compute_cpp works with pseudocount", {
-  skip_on_cran()
   
   for (pc in c(0, 0.5, 1.0)) {
     result <- bootstrap_compute_cpp_wrapper(
@@ -224,7 +212,6 @@ test_that("bootstrap_compute_cpp works with pseudocount", {
 })
 
 test_that("bootstrap_compute_cpp with pseudocount affects entropy", {
-  skip_on_cran()
   
   # With counts c(100, 50, 25, 10), very unequal
   result_no_pc <- bootstrap_compute_cpp_wrapper(
@@ -250,7 +237,6 @@ test_that("bootstrap_compute_cpp with pseudocount affects entropy", {
 # ============================================================================
 
 test_that("bootstrap_compute_cpp handles small counts", {
-  skip_on_cran()
   
   result <- bootstrap_compute_cpp_wrapper(
     x = small_counts, q = 1.0, normalize = TRUE, 
@@ -262,7 +248,6 @@ test_that("bootstrap_compute_cpp handles small counts", {
 })
 
 test_that("bootstrap_compute_cpp handles skewed distributions", {
-  skip_on_cran()
   
   result <- bootstrap_compute_cpp_wrapper(
     x = skewed_counts, q = 1.0, normalize = TRUE, 
@@ -276,7 +261,6 @@ test_that("bootstrap_compute_cpp handles skewed distributions", {
 })
 
 test_that("bootstrap_compute_cpp handles large counts", {
-  skip_on_cran()
   
   result <- bootstrap_compute_cpp_wrapper(
     x = large_counts, q = 1.0, normalize = TRUE, 
@@ -288,7 +272,6 @@ test_that("bootstrap_compute_cpp handles large counts", {
 })
 
 test_that("bootstrap_compute_cpp handles single value vector", {
-  skip_on_cran()
   
   result <- bootstrap_compute_cpp_wrapper(
     x = c(100), q = 1.0, normalize = TRUE, 
@@ -300,7 +283,6 @@ test_that("bootstrap_compute_cpp handles single value vector", {
 })
 
 test_that("bootstrap_compute_cpp handles zeros with pseudocount", {
-  skip_on_cran()
   
   zero_counts <- c(0, 0, 0, 100)
   
@@ -318,7 +300,6 @@ test_that("bootstrap_compute_cpp handles zeros with pseudocount", {
 # ============================================================================
 
 test_that("bootstrap_compute_cpp is reproducible with set.seed", {
-  skip_on_cran()
   
   set.seed(999)
   result1 <- bootstrap_compute_cpp_wrapper(
@@ -336,7 +317,6 @@ test_that("bootstrap_compute_cpp is reproducible with set.seed", {
 })
 
 test_that("bootstrap_compute_cpp different seeds produce different results", {
-  skip_on_cran()
   
   set.seed(111)
   result1 <- bootstrap_compute_cpp_wrapper(
@@ -358,7 +338,6 @@ test_that("bootstrap_compute_cpp different seeds produce different results", {
 # ============================================================================
 
 test_that(".bootstrap_resample_optimized uses C++ by default", {
-  skip_on_cran()
   
   result <- .bootstrap_resample_optimized(
     x = test_counts, q = 1.0, norm = TRUE, nboot = 50,
@@ -371,7 +350,6 @@ test_that(".bootstrap_resample_optimized uses C++ by default", {
 })
 
 test_that(".bootstrap_resample_optimized handles what='S' (entropy)", {
-  skip_on_cran()
   
   result <- .bootstrap_resample_optimized(
     x = test_counts, q = 1.0, norm = TRUE, nboot = 50,
@@ -383,7 +361,6 @@ test_that(".bootstrap_resample_optimized handles what='S' (entropy)", {
 })
 
 test_that(".bootstrap_resample_optimized handles what='D' (Hill numbers)", {
-  skip_on_cran()
   
   result <- .bootstrap_resample_optimized(
     x = test_counts, q = 1.0, norm = TRUE, nboot = 50,
@@ -398,7 +375,6 @@ test_that(".bootstrap_resample_optimized handles what='D' (Hill numbers)", {
 })
 
 test_that(".bootstrap_resample_optimized converts entropy to Hill numbers correctly", {
-  skip_on_cran()
   
   # For Shannon (q=1), Hill number D_1 = exp(H_1)
   set.seed(555)
@@ -423,7 +399,6 @@ test_that(".bootstrap_resample_optimized converts entropy to Hill numbers correc
 # ============================================================================
 
 test_that(".bootstrap_compute_ci uses C++ bootstrap internally", {
-  skip_on_cran()
   
   result <- .bootstrap_compute_ci(
     x = test_counts, q = 1.0, norm = TRUE, nboot = 100,
@@ -438,7 +413,6 @@ test_that(".bootstrap_compute_ci uses C++ bootstrap internally", {
 })
 
 test_that("bootstrap_compute_ci confidence intervals are consistent", {
-  skip_on_cran()
   
   result <- .bootstrap_compute_ci(
     x = test_counts, q = 1.0, norm = TRUE, nboot = 100,
@@ -455,7 +429,6 @@ test_that("bootstrap_compute_ci confidence intervals are consistent", {
 })
 
 test_that("bootstrap_compute_ci BCa method uses bootstrap correctly", {
-  skip_on_cran()
   
   result_percentile <- .bootstrap_compute_ci(
     x = test_counts, q = 1.0, norm = TRUE, nboot = 100,
@@ -479,7 +452,6 @@ test_that("bootstrap_compute_ci BCa method uses bootstrap correctly", {
 # ============================================================================
 
 test_that("bootstrap_compute_cpp scales reasonably with nboot", {
-  skip_on_cran()
   
   times <- numeric(3)
   nboots <- c(100, 500, 1000)
@@ -501,7 +473,6 @@ test_that("bootstrap_compute_cpp scales reasonably with nboot", {
 })
 
 test_that("bootstrap_compute_cpp is faster than R version", {
-  skip_on_cran()
   
   # This test just ensures the C++ version completes in reasonable time
   t_cpp <- system.time({
@@ -520,7 +491,6 @@ test_that("bootstrap_compute_cpp is faster than R version", {
 # ============================================================================
 
 test_that("bootstrap entropy estimates are consistent with point estimate", {
-  skip_on_cran()
   
   result <- .bootstrap_compute_ci(
     x = test_counts, q = 1.0, norm = TRUE, nboot = 200,
@@ -537,7 +507,6 @@ test_that("bootstrap entropy estimates are consistent with point estimate", {
 })
 
 test_that("bootstrap standard error is reasonable", {
-  skip_on_cran()
   
   result <- .bootstrap_compute_ci(
     x = test_counts, q = 1.0, norm = TRUE, nboot = 200,
@@ -556,7 +525,6 @@ test_that("bootstrap standard error is reasonable", {
 # ============================================================================
 
 test_that(".bootstrap_resample_optimized has fallback to R version", {
-  skip_on_cran()
   
   # This test verifies the fallback mechanism exists
   # (by default C++ succeeds, but if it fails, should fall back)
@@ -570,7 +538,6 @@ test_that(".bootstrap_resample_optimized has fallback to R version", {
 })
 
 test_that("bootstrap_compute_cpp_wrapper has proper error messages", {
-  skip_on_cran()
   
   # Test that invalid inputs are caught
   expect_error(
@@ -582,7 +549,6 @@ test_that("bootstrap_compute_cpp_wrapper has proper error messages", {
 })
 
 test_that("bootstrap_compute_cpp handles negative nboot gracefully", {
-  skip_on_cran()
   
   expect_error(
     bootstrap_compute_cpp_wrapper(
@@ -602,7 +568,6 @@ paired_counts_3 <- c(100, 95, 110, 105, 90, 92)  # 3 pairs
 paired_counts_large <- c(500, 490, 520, 510, 450, 440, 480, 470)  # 4 pairs
 
 test_that("C++ block_bootstrap_compute_cpp compiles and is available", {
-  skip_on_cran()
   
   # Check that the function exists
   expect_true(exists("block_bootstrap_compute_cpp_wrapper"))
@@ -618,7 +583,6 @@ test_that("C++ block_bootstrap_compute_cpp compiles and is available", {
 })
 
 test_that("block_bootstrap_compute_cpp requires even-length input", {
-  skip_on_cran()
   
   odd_length <- c(100, 95, 110)  # 3 elements (1.5 pairs)
   
@@ -631,7 +595,6 @@ test_that("block_bootstrap_compute_cpp requires even-length input", {
 })
 
 test_that("block_bootstrap_compute_cpp returns valid structure", {
-  skip_on_cran()
   
   result <- block_bootstrap_compute_cpp_wrapper(
     x = paired_counts_3, q = 1.0, normalize = TRUE, 
@@ -644,7 +607,6 @@ test_that("block_bootstrap_compute_cpp returns valid structure", {
 })
 
 test_that("block_bootstrap_compute_cpp produces entropy in valid range", {
-  skip_on_cran()
   
   result <- block_bootstrap_compute_cpp_wrapper(
     x = paired_counts_3, q = 1.0, normalize = TRUE, 
@@ -657,7 +619,6 @@ test_that("block_bootstrap_compute_cpp produces entropy in valid range", {
 })
 
 test_that("block_bootstrap_compute_cpp respects nboot parameter", {
-  skip_on_cran()
   
   for (nboot in c(10, 50, 100, 200)) {
     result <- block_bootstrap_compute_cpp_wrapper(
@@ -670,7 +631,6 @@ test_that("block_bootstrap_compute_cpp respects nboot parameter", {
 })
 
 test_that("block_bootstrap_compute_cpp works with various q values", {
-  skip_on_cran()
   
   q_values <- c(0.5, 1.0, 1.5, 2.0)
   
@@ -686,7 +646,6 @@ test_that("block_bootstrap_compute_cpp works with various q values", {
 })
 
 test_that("block_bootstrap_compute_cpp handles normalization parameter", {
-  skip_on_cran()
   
   result_norm <- block_bootstrap_compute_cpp_wrapper(
     x = paired_counts_3, q = 1.0, normalize = TRUE, 
@@ -704,7 +663,6 @@ test_that("block_bootstrap_compute_cpp handles normalization parameter", {
 })
 
 test_that("block_bootstrap_compute_cpp works with different log bases", {
-  skip_on_cran()
   
   log_bases <- c(exp(1), 2, 10)
   
@@ -720,7 +678,6 @@ test_that("block_bootstrap_compute_cpp works with different log bases", {
 })
 
 test_that("block_bootstrap_compute_cpp supports pseudocount", {
-  skip_on_cran()
   
   for (pc in c(0, 0.5, 1.0)) {
     result <- block_bootstrap_compute_cpp_wrapper(
@@ -734,7 +691,6 @@ test_that("block_bootstrap_compute_cpp supports pseudocount", {
 })
 
 test_that("block_bootstrap_compute_cpp is reproducible with set.seed", {
-  skip_on_cran()
   
   set.seed(777)
   result1 <- block_bootstrap_compute_cpp_wrapper(
@@ -752,7 +708,6 @@ test_that("block_bootstrap_compute_cpp is reproducible with set.seed", {
 })
 
 test_that("block_bootstrap_compute_cpp with different seeds differs", {
-  skip_on_cran()
   
   # Use data with more variation to detect RNG seeding differences
   # Balanced data produces very similar entropy values, making seed differences hard to detect
@@ -779,7 +734,6 @@ test_that("block_bootstrap_compute_cpp with different seeds differs", {
 # ============================================================================
 
 test_that(".bootstrap_resample_optimized handles paired=TRUE with what='S'", {
-  skip_on_cran()
   
   result <- .bootstrap_resample_optimized(
     x = paired_counts_3, q = 1.0, norm = TRUE, nboot = 50,
@@ -793,7 +747,6 @@ test_that(".bootstrap_resample_optimized handles paired=TRUE with what='S'", {
 })
 
 test_that(".bootstrap_resample_optimized handles paired=TRUE with what='D'", {
-  skip_on_cran()
   
   result <- .bootstrap_resample_optimized(
     x = paired_counts_3, q = 1.0, norm = TRUE, nboot = 50,
@@ -808,7 +761,6 @@ test_that(".bootstrap_resample_optimized handles paired=TRUE with what='D'", {
 })
 
 test_that(".bootstrap_resample_optimized paired entropy to Hill conversion", {
-  skip_on_cran()
   
   # For Shannon (q=1), Hill number D_1 = exp(H_1)
   set.seed(888)
@@ -829,7 +781,6 @@ test_that(".bootstrap_resample_optimized paired entropy to Hill conversion", {
 })
 
 test_that(".bootstrap_compute_ci works with paired=TRUE and percentile method", {
-  skip_on_cran()
   
   result <- .bootstrap_compute_ci(
     x = paired_counts_3, q = 1.0, norm = TRUE, nboot = 100,
@@ -844,7 +795,6 @@ test_that(".bootstrap_compute_ci works with paired=TRUE and percentile method", 
 })
 
 test_that(".bootstrap_compute_ci works with paired=TRUE and BCa method", {
-  skip_on_cran()
   
   result <- .bootstrap_compute_ci(
     x = paired_counts_3, q = 1.0, norm = TRUE, nboot = 100,
@@ -860,7 +810,6 @@ test_that(".bootstrap_compute_ci works with paired=TRUE and BCa method", {
 })
 
 test_that("paired bootstrap CI bounds bracket the point estimate", {
-  skip_on_cran()
   
   result <- .bootstrap_compute_ci(
     x = paired_counts_3, q = 1.0, norm = TRUE, nboot = 100,
@@ -878,7 +827,6 @@ test_that("paired bootstrap CI bounds bracket the point estimate", {
 })
 
 test_that("block bootstrap with different pair counts works", {
-  skip_on_cran()
   
   # Test with different numbers of pairs
   pair_counts <- list(
@@ -899,7 +847,6 @@ test_that("block bootstrap with different pair counts works", {
 })
 
 test_that("block bootstrap with small pairs works", {
-  skip_on_cran()
   
   small_paired <- c(10, 9, 12, 11)  # Very small counts
   
@@ -913,7 +860,6 @@ test_that("block bootstrap with small pairs works", {
 })
 
 test_that("block bootstrap with skewed pairs works", {
-  skip_on_cran()
   
   skewed_paired <- c(1000, 10, 5, 2)  # Highly skewed pairs
   
@@ -927,7 +873,6 @@ test_that("block bootstrap with skewed pairs works", {
 })
 
 test_that("block bootstrap preserves pair structure", {
-  skip_on_cran()
   
   # Block bootstrap should resample pairs, so it should preserve
   # pair correlation structure. Both methods should have similar means
@@ -962,7 +907,6 @@ test_that("block bootstrap preserves pair structure", {
 })
 
 test_that("block bootstrap performance scales reasonably", {
-  skip_on_cran()
   
   nboots <- c(100, 500, 1000)
   times <- numeric(length(nboots))
@@ -983,7 +927,6 @@ test_that("block bootstrap performance scales reasonably", {
 })
 
 test_that("block bootstrap with various q values in paired CI", {
-  skip_on_cran()
   
   q_values <- c(0.5, 1.0, 1.5, 2.0)
   
@@ -1006,7 +949,6 @@ test_that("block bootstrap with various q values in paired CI", {
 # ============================================================================
 
 test_that("bootstrap CI with what='D' (Hill numbers) computes correctly", {
-  skip_on_cran()
   
   result_entropy <- .bootstrap_compute_ci(
     x = test_counts, q = 1.0, norm = FALSE, nboot = 100,
@@ -1028,7 +970,6 @@ test_that("bootstrap CI with what='D' (Hill numbers) computes correctly", {
 })
 
 test_that("bootstrap CI with what='D' matches Hill number formula", {
-  skip_on_cran()
   
   result <- .bootstrap_compute_ci(
     x = c(100, 50, 30, 20), q = 2.0, norm = FALSE, nboot = 50,
@@ -1043,7 +984,6 @@ test_that("bootstrap CI with what='D' matches Hill number formula", {
 })
 
 test_that("Hill numbers across q spectrum", {
-  skip_on_cran()
   
   q_vals <- c(0.5, 1.0, 1.5, 2.0)
   results <- lapply(q_vals, function(q) {
@@ -1067,7 +1007,6 @@ test_that("Hill numbers across q spectrum", {
 # ============================================================================
 
 test_that("bootstrap with log_base=2 (bits)", {
-  skip_on_cran()
   
   result_e <- .bootstrap_compute_ci(
     x = test_counts, q = 1.0, norm = FALSE, nboot = 50,
@@ -1087,7 +1026,6 @@ test_that("bootstrap with log_base=2 (bits)", {
 })
 
 test_that("bootstrap with log_base=10 (nats)", {
-  skip_on_cran()
   
   result_e <- .bootstrap_compute_ci(
     x = test_counts, q = 1.0, norm = FALSE, nboot = 50,
@@ -1107,7 +1045,6 @@ test_that("bootstrap with log_base=10 (nats)", {
 })
 
 test_that("C++ bootstrap respects log_base in entropy calculation", {
-  skip_on_cran()
   
   set.seed(123)
   result_e <- bootstrap_compute_cpp_wrapper(
@@ -1133,7 +1070,6 @@ test_that("C++ bootstrap respects log_base in entropy calculation", {
 # ============================================================================
 
 test_that("bootstrap with pseudocount affects entropy calculation", {
-  skip_on_cran()
   
   result_no_pc <- .bootstrap_compute_ci(
     x = c(100, 0, 0, 0), q = 1.0, norm = FALSE, nboot = 50,
@@ -1154,7 +1090,6 @@ test_that("bootstrap with pseudocount affects entropy calculation", {
 })
 
 test_that("pseudocount smooths bootstrap replicates", {
-  skip_on_cran()
   
   # Use moderately sparse data where pseudocount improves stability
   # Extreme sparsity (100,0,0,0) causes pseudocount to ADD variance (degenerate -> less degenerate)
@@ -1179,7 +1114,6 @@ test_that("pseudocount smooths bootstrap replicates", {
 # ============================================================================
 
 test_that("bootstrap handles uniform distribution correctly", {
-  skip_on_cran()
   
   # Uniform distribution should have maximum entropy
   uniform_data <- rep(10, 4)  # All equal counts
@@ -1196,7 +1130,6 @@ test_that("bootstrap handles uniform distribution correctly", {
 })
 
 test_that("bootstrap handles highly skewed distribution", {
-  skip_on_cran()
   
   # Highly skewed: one dominant species
   skewed_data <- c(1000, 1, 1, 1)
@@ -1212,7 +1145,6 @@ test_that("bootstrap handles highly skewed distribution", {
 })
 
 test_that("bootstrap with single non-zero count", {
-  skip_on_cran()
   
   # Only one species present
   single_species <- c(100, 0, 0, 0)
@@ -1228,7 +1160,6 @@ test_that("bootstrap with single non-zero count", {
 })
 
 test_that("bootstrap handles very small counts", {
-  skip_on_cran()
   
   small_data <- c(1, 1, 1, 1)
   
@@ -1248,7 +1179,6 @@ test_that("bootstrap handles very small counts", {
 # ============================================================================
 
 test_that("percentile vs BCa CI methods produce reasonable results", {
-  skip_on_cran()
   
   result_percentile <- .bootstrap_compute_ci(
     x = test_counts, q = 1.0, norm = TRUE, nboot = 100,
@@ -1273,7 +1203,6 @@ test_that("percentile vs BCa CI methods produce reasonable results", {
 })
 
 test_that("CI coverage properties for different sample sizes", {
-  skip_on_cran()
   
   sizes <- c(10, 50, 100)
   results <- lapply(sizes, function(n) {
@@ -1301,7 +1230,6 @@ test_that("CI coverage properties for different sample sizes", {
 # ============================================================================
 
 test_that("bootstrap_compute_cpp handles full q spectrum", {
-  skip_on_cran()
   
   q_values <- c(0.5, 1.0, 1.5, 2.0, 3.0)
   
@@ -1319,7 +1247,6 @@ test_that("bootstrap_compute_cpp handles full q spectrum", {
 })
 
 test_that("bootstrap CI with multiple q-values produces consistent results", {
-  skip_on_cran()
   
   q_spectrum <- c(0.5, 1.0, 1.5, 2.0)
   cis <- lapply(q_spectrum, function(q) {
@@ -1343,7 +1270,6 @@ test_that("bootstrap CI with multiple q-values produces consistent results", {
 # ============================================================================
 
 test_that("block vs standard bootstrap produce similar mean for balanced data", {
-  skip_on_cran()
   
   # Balanced pairs should give similar bootstrap distributions
   balanced_pairs <- c(100, 100, 100, 100, 100, 100)
@@ -1365,7 +1291,6 @@ test_that("block vs standard bootstrap produce similar mean for balanced data", 
 })
 
 test_that("bootstrap reproducibility with set.seed", {
-  skip_on_cran()
   
   set.seed(999)
   result1 <- bootstrap_compute_cpp_wrapper(
@@ -1384,7 +1309,6 @@ test_that("bootstrap reproducibility with set.seed", {
 })
 
 test_that("bootstrap CI integration: point estimate within CI bounds", {
-  skip_on_cran()
   
   for (q in c(0.5, 1.0, 2.0)) {
     result <- .bootstrap_compute_ci(
@@ -1407,7 +1331,6 @@ test_that("bootstrap CI integration: point estimate within CI bounds", {
 # is modified or when edge cases are encountered.
 
 test_that("REGRESSION 10.1: Bootstrap CI bounds are monotonic", {
-  skip_on_cran()
   
   set.seed(666)
   counts_A <- matrix(rpois(15 * 40, lambda = 10), nrow = 15, ncol = 40)
@@ -1422,7 +1345,7 @@ test_that("REGRESSION 10.1: Bootstrap CI bounds are monotonic", {
     set.seed(seed)
     result <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence,
                                        q = 1, normalize = TRUE,
-                                       n_bootstrap = 300, confidence = 0.95)
+                                       nboot = 300, confidence = 0.95)
     
     # Check monotonicity: all ci_lower <= ci_upper
     valid_idx <- !is.na(result$ci_lower) & !is.na(result$ci_upper)
@@ -1432,7 +1355,6 @@ test_that("REGRESSION 10.1: Bootstrap CI bounds are monotonic", {
 })
 
 test_that("REGRESSION 10.2: Confidence level ordering respected", {
-  skip_on_cran()
   
   set.seed(777)
   counts_A <- matrix(rpois(20 * 35, lambda = 8), nrow = 20, ncol = 35)
@@ -1445,16 +1367,16 @@ test_that("REGRESSION 10.2: Confidence level ordering respected", {
   # Compute CIs at different confidence levels
   result_80 <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence,
                                         q = 1, normalize = TRUE,
-                                        n_bootstrap = 500, confidence = 0.80)
+                                        nboot = 500, confidence = 0.80)
   result_90 <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence,
                                         q = 1, normalize = TRUE,
-                                        n_bootstrap = 500, confidence = 0.90)
+                                        nboot = 500, confidence = 0.90)
   result_95 <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence,
                                         q = 1, normalize = TRUE,
-                                        n_bootstrap = 500, confidence = 0.95)
+                                        nboot = 500, confidence = 0.95)
   result_99 <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence,
                                         q = 1, normalize = TRUE,
-                                        n_bootstrap = 500, confidence = 0.99)
+                                        nboot = 500, confidence = 0.99)
   
   # Higher confidence should give wider (or equal) intervals
   valid_idx <- !is.na(result_80$ci_width) & !is.na(result_90$ci_width) &
@@ -1477,7 +1399,6 @@ test_that("REGRESSION 10.2: Confidence level ordering respected", {
 })
 
 test_that("REGRESSION 10.3: P-value distribution validation", {
-  skip_on_cran()
   
   set.seed(888)
   counts_A <- matrix(rpois(25 * 30, lambda = 12), nrow = 25, ncol = 30)
@@ -1489,7 +1410,7 @@ test_that("REGRESSION 10.3: P-value distribution validation", {
   
   result <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence,
                                      q = 1, normalize = TRUE,
-                                     n_bootstrap = 1000, confidence = 0.95)
+                                     nboot = 1000, confidence = 0.95)
   
   # P-values must be valid probabilities
   pvals <- result$p_value[!is.na(result$p_value)]
@@ -1503,7 +1424,6 @@ test_that("REGRESSION 10.3: P-value distribution validation", {
 })
 
 test_that("REGRESSION 10.4: Bootstrap statistics across q values remain stable", {
-  skip_on_cran()
   
   set.seed(999)
   counts_A <- matrix(rpois(18 * 35, lambda = 10), nrow = 18, ncol = 35)
@@ -1519,7 +1439,7 @@ test_that("REGRESSION 10.4: Bootstrap statistics across q values remain stable",
     
     result <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence,
                                        q = q, normalize = TRUE,
-                                       n_bootstrap = 400, confidence = 0.95)
+                                       nboot = 400, confidence = 0.95)
     
     # All output fields should exist and be properly sized
     expect_equal(length(result$ci_lower), nrow(counts_A))
@@ -1530,7 +1450,6 @@ test_that("REGRESSION 10.4: Bootstrap statistics across q values remain stable",
 })
 
 test_that("REGRESSION 10.5: Quantile method consistency across sample sizes", {
-  skip_on_cran()
   
   # Test with various bootstrap replicates to ensure quantile indexing is correct
   nboot_values <- c(100, 500, 1000, 5000)
@@ -1546,7 +1465,7 @@ test_that("REGRESSION 10.5: Quantile method consistency across sample sizes", {
     
     result <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence,
                                        q = 1, normalize = TRUE,
-                                       n_bootstrap = nboot, confidence = 0.95)
+                                       nboot = nboot, confidence = 0.95)
     
     # CIs should be valid for any nboot
     valid_ci <- !is.na(result$ci_lower) & !is.na(result$ci_upper)
@@ -1557,7 +1476,6 @@ test_that("REGRESSION 10.5: Quantile method consistency across sample sizes", {
 })
 
 test_that("REGRESSION 10.6: Effect size and CI consistency", {
-  skip_on_cran()
   
   set.seed(1212)
   counts_A <- matrix(rpois(16 * 32, lambda = 10), nrow = 16, ncol = 32)
@@ -1569,7 +1487,7 @@ test_that("REGRESSION 10.6: Effect size and CI consistency", {
   
   result <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence,
                                      q = 1, normalize = TRUE,
-                                     n_bootstrap = 600, confidence = 0.95)
+                                     nboot = 600, confidence = 0.95)
   
   # Effect size should be non-negative
   effect_sizes <- result$effect_size[!is.na(result$effect_size)]
@@ -1586,7 +1504,6 @@ test_that("REGRESSION 10.6: Effect size and CI consistency", {
 })
 
 test_that("REGRESSION 10.7: No NaN propagation in quantile computation", {
-  skip_on_cran()
   
   set.seed(1313)
   # Create data with some zero-sum samples (will produce NA in entropy)
@@ -1599,7 +1516,7 @@ test_that("REGRESSION 10.7: No NaN propagation in quantile computation", {
   
   result <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence,
                                      q = 1, normalize = TRUE,
-                                     n_bootstrap = 400, confidence = 0.95)
+                                     nboot = 400, confidence = 0.95)
   
   # All output should be either numeric or NA, not NaN
   expect_true(all(!is.nan(result$ci_lower)))
@@ -1613,7 +1530,6 @@ test_that("REGRESSION 10.7: No NaN propagation in quantile computation", {
 # ============================================================================
 
 test_that("divergence_bootstrap_compute_cpp_wrapper compiles and is available", {
-  skip_on_cran()
   
   # Check that the function exists
   expect_true(exists("divergence_bootstrap_compute_cpp_wrapper"))
@@ -1633,7 +1549,6 @@ test_that("divergence_bootstrap_compute_cpp_wrapper compiles and is available", 
 })
 
 test_that("divergence_bootstrap_compute_cpp_wrapper respects nboot parameter", {
-  skip_on_cran()
   
   x <- c(100, 50, 25)
   y <- c(80, 60, 40)
@@ -1650,7 +1565,6 @@ test_that("divergence_bootstrap_compute_cpp_wrapper respects nboot parameter", {
 })
 
 test_that("divergence_bootstrap_compute_cpp_wrapper works with various q values", {
-  skip_on_cran()
   
   x <- c(100, 50, 25, 10)
   y <- c(80, 60, 40, 20)
@@ -1669,7 +1583,6 @@ test_that("divergence_bootstrap_compute_cpp_wrapper works with various q values"
 })
 
 test_that("divergence_bootstrap_compute_cpp_wrapper handles pseudocount adjustment", {
-  skip_on_cran()
   
   x <- c(100, 50, 25, 10)
   y <- c(80, 60, 40, 20)
@@ -1693,7 +1606,6 @@ test_that("divergence_bootstrap_compute_cpp_wrapper handles pseudocount adjustme
 })
 
 test_that("divergence_bootstrap_compute_cpp_wrapper is reproducible", {
-  skip_on_cran()
   
   x <- c(100, 50, 25, 10)
   y <- c(80, 60, 40, 20)
@@ -1718,7 +1630,6 @@ test_that("divergence_bootstrap_compute_cpp_wrapper is reproducible", {
 # ============================================================================
 
 test_that("divergence_bootstrap_paired_cpp_wrapper compiles and is available", {
-  skip_on_cran()
   
   # Check that the function exists
   expect_true(exists("divergence_bootstrap_paired_cpp_wrapper"))
@@ -1741,7 +1652,6 @@ test_that("divergence_bootstrap_paired_cpp_wrapper compiles and is available", {
 })
 
 test_that("divergence_bootstrap_paired_cpp_wrapper respects nboot parameter", {
-  skip_on_cran()
   
   # Paired data: one control and one treatment per pair
   x <- c(100, 80, 120)
@@ -1761,7 +1671,6 @@ test_that("divergence_bootstrap_paired_cpp_wrapper respects nboot parameter", {
 })
 
 test_that("divergence_bootstrap_paired_cpp_wrapper works with various q values", {
-  skip_on_cran()
   
   x <- c(100, 80, 120, 95)
   y <- c(90, 85, 110, 100)
@@ -1782,7 +1691,6 @@ test_that("divergence_bootstrap_paired_cpp_wrapper works with various q values",
 })
 
 test_that("divergence_bootstrap_paired_cpp_wrapper handles multiple pairs", {
-  skip_on_cran()
   
   # Test with increasing numbers of pairs
   for (n_pairs in c(2, 5, 10)) {
@@ -1804,7 +1712,6 @@ test_that("divergence_bootstrap_paired_cpp_wrapper handles multiple pairs", {
 })
 
 test_that("divergence_bootstrap_paired_cpp_wrapper is reproducible", {
-  skip_on_cran()
   
   x <- c(100, 80, 120, 95)
   y <- c(90, 85, 110, 100)
@@ -1828,7 +1735,6 @@ test_that("divergence_bootstrap_paired_cpp_wrapper is reproducible", {
 })
 
 test_that("divergence_bootstrap_paired_cpp validates input lengths", {
-  skip_on_cran()
   
   x <- c(100, 50, 80)  # Uneven length
   y <- c(80, 60)       # Different length
@@ -1846,7 +1752,6 @@ test_that("divergence_bootstrap_paired_cpp validates input lengths", {
 })
 
 test_that("divergence_bootstrap_paired_cpp handles pseudocount", {
-  skip_on_cran()
   
   x <- c(100, 80, 120)
   y <- c(90, 85, 110)
@@ -1876,14 +1781,12 @@ test_that("divergence_bootstrap_paired_cpp handles pseudocount", {
 # ============================================================================
 
 test_that("divergence_bootstrap_flexible_cpp_wrapper compiles and is available", {
-  skip_on_cran()
   
   expect_true(exists("divergence_bootstrap_flexible_cpp_wrapper"))
   expect_true(is.function(divergence_bootstrap_flexible_cpp_wrapper))
 })
 
 test_that("divergence_bootstrap_flexible_cpp_wrapper handles complete pairs", {
-  skip_on_cran()
   
   # Complete pairs: all pair_ids present in both x and y
   x <- c(100, 80, 120, 95)
@@ -1904,7 +1807,6 @@ test_that("divergence_bootstrap_flexible_cpp_wrapper handles complete pairs", {
 })
 
 test_that("divergence_bootstrap_flexible_cpp_wrapper handles unpaired samples only", {
-  skip_on_cran()
   
   # All unpaired: pair_ids = 0
   x <- c(100, 80, 120, 95)
@@ -1925,7 +1827,6 @@ test_that("divergence_bootstrap_flexible_cpp_wrapper handles unpaired samples on
 })
 
 test_that("divergence_bootstrap_flexible_cpp_wrapper handles incomplete pairs", {
-  skip_on_cran()
   
   # Incomplete pairs: pair 1,2,3 in both groups, pair 4 only in x
   x <- c(100, 80, 120, 95)
@@ -1946,7 +1847,6 @@ test_that("divergence_bootstrap_flexible_cpp_wrapper handles incomplete pairs", 
 })
 
 test_that("divergence_bootstrap_flexible_cpp_wrapper handles mixed paired/unpaired", {
-  skip_on_cran()
   
   # Mixed: pairs 1,2,3 complete, pair 0 (unpaired) in both, pair 4 only in y
   x <- c(100, 80, 120, 95, 110)
@@ -1967,7 +1867,6 @@ test_that("divergence_bootstrap_flexible_cpp_wrapper handles mixed paired/unpair
 })
 
 test_that("divergence_bootstrap_flexible_cpp_wrapper works with NA for unpaired", {
-  skip_on_cran()
   
   # NA should be treated as unpaired (converted to 0 internally)
   x <- c(100, 80, 120, 95)
@@ -1988,7 +1887,6 @@ test_that("divergence_bootstrap_flexible_cpp_wrapper works with NA for unpaired"
 })
 
 test_that("divergence_bootstrap_flexible_cpp_wrapper respects nboot parameter", {
-  skip_on_cran()
   
   x <- c(100, 80, 120, 95)
   y <- c(90, 85, 110, 100)
@@ -2009,7 +1907,6 @@ test_that("divergence_bootstrap_flexible_cpp_wrapper respects nboot parameter", 
 })
 
 test_that("divergence_bootstrap_flexible_cpp_wrapper works with various q values", {
-  skip_on_cran()
   
   x <- c(100, 80, 120, 95)
   y <- c(90, 85, 110, 100)
@@ -2032,7 +1929,6 @@ test_that("divergence_bootstrap_flexible_cpp_wrapper works with various q values
 })
 
 test_that("divergence_bootstrap_flexible_cpp_wrapper is reproducible", {
-  skip_on_cran()
   
   x <- c(100, 80, 120, 95)
   y <- c(90, 85, 110, 100)
@@ -2059,7 +1955,6 @@ test_that("divergence_bootstrap_flexible_cpp_wrapper is reproducible", {
 })
 
 test_that("divergence_bootstrap_flexible_cpp_wrapper validates input lengths", {
-  skip_on_cran()
   
   x <- c(100, 80, 120)
   y <- c(90, 85, 110, 100)
@@ -2078,7 +1973,6 @@ test_that("divergence_bootstrap_flexible_cpp_wrapper validates input lengths", {
 })
 
 test_that("divergence_bootstrap_flexible_cpp_wrapper handles pseudocount", {
-  skip_on_cran()
   
   x <- c(100, 80, 120)
   y <- c(90, 85, 110)
@@ -2107,7 +2001,6 @@ test_that("divergence_bootstrap_flexible_cpp_wrapper handles pseudocount", {
 })
 
 test_that("divergence_bootstrap_flexible_cpp_wrapper handles different log bases", {
-  skip_on_cran()
   
   x <- c(100, 80, 120, 95)
   y <- c(90, 85, 110, 100)
@@ -2135,7 +2028,6 @@ test_that("divergence_bootstrap_flexible_cpp_wrapper handles different log bases
 })
 
 test_that("divergence_bootstrap_flexible_cpp_wrapper handles many samples", {
-  skip_on_cran()
   
   # Test with larger sample sizes
   n_pairs <- 20
@@ -2160,7 +2052,6 @@ test_that("divergence_bootstrap_flexible_cpp_wrapper handles many samples", {
 })
 
 test_that("divergence_bootstrap_flexible_cpp_wrapper handles asymmetric unpaired", {
-  skip_on_cran()
   
   # x has 5 samples, y has 3 samples, all unpaired
   x <- c(100, 80, 120, 95, 110)
@@ -2181,7 +2072,6 @@ test_that("divergence_bootstrap_flexible_cpp_wrapper handles asymmetric unpaired
 })
 
 test_that("divergence_bootstrap_flexible_cpp_wrapper handles sparse pair distribution", {
-  skip_on_cran()
   
   # Complex scenario: some pairs present in both, some only in one group
   x <- c(100, 80, 120, 95, 110, 75)     # 6 samples
@@ -2203,7 +2093,6 @@ test_that("divergence_bootstrap_flexible_cpp_wrapper handles sparse pair distrib
 })
 
 test_that("divergence_bootstrap_flexible_cpp_wrapper handles single sample", {
-  skip_on_cran()
   
   # Edge case: single sample in each group
   x <- c(100)
@@ -2227,7 +2116,6 @@ test_that("divergence_bootstrap_flexible_cpp_wrapper handles single sample", {
 # ============================================================================
 
 test_that("divergence_bootstrap_compute_cpp_wrapper handles extreme q values", {
-  skip_on_cran()
   
   x <- c(100, 80, 120, 95)
   y <- c(90, 85, 110, 100)
@@ -2250,7 +2138,6 @@ test_that("divergence_bootstrap_compute_cpp_wrapper handles extreme q values", {
 })
 
 test_that("divergence_bootstrap_compute_cpp_wrapper works with very small counts", {
-  skip_on_cran()
   
   # Very small counts (e.g., single molecules)
   x <- c(1, 2, 1, 3)
@@ -2267,7 +2154,6 @@ test_that("divergence_bootstrap_compute_cpp_wrapper works with very small counts
 })
 
 test_that("divergence_bootstrap_compute_cpp_wrapper works with very large counts", {
-  skip_on_cran()
   
   # Very large counts (e.g., millions)
   x <- c(1e6, 2e6, 1.5e6, 800000)
@@ -2284,7 +2170,6 @@ test_that("divergence_bootstrap_compute_cpp_wrapper works with very large counts
 })
 
 test_that("divergence_bootstrap_compute_cpp_wrapper works with identical x and y", {
-  skip_on_cran()
   
   # Identical distributions should have ~0 divergence
   counts <- c(100, 80, 120, 95)
@@ -2301,7 +2186,6 @@ test_that("divergence_bootstrap_compute_cpp_wrapper works with identical x and y
 })
 
 test_that("divergence_bootstrap_compute_cpp_wrapper respects log_base parameter", {
-  skip_on_cran()
   
   x <- c(100, 80, 120, 95)
   y <- c(90, 85, 110, 100)
@@ -2335,7 +2219,6 @@ test_that("divergence_bootstrap_compute_cpp_wrapper respects log_base parameter"
 })
 
 test_that("divergence_bootstrap_paired_cpp_wrapper handles multiple pairs efficiently", {
-  skip_on_cran()
   
   # Test with increasing numbers of pairs to verify performance doesn't degrade
   for (n_pairs in c(5, 10, 15)) {
@@ -2357,7 +2240,6 @@ test_that("divergence_bootstrap_paired_cpp_wrapper handles multiple pairs effici
 })
 
 test_that("divergence_bootstrap_flexible_cpp_wrapper handles zero counts with pseudocount", {
-  skip_on_cran()
   
   # Some counts are zero - pseudocount should prevent division issues
   x <- c(0, 100, 0, 80, 120)
@@ -2378,7 +2260,6 @@ test_that("divergence_bootstrap_flexible_cpp_wrapper handles zero counts with ps
 })
 
 test_that("divergence_bootstrap_flexible_cpp_wrapper preserves pairing correlation", {
-  skip_on_cran()
   
   # When we resample pairs as units, pair correlation should be preserved
   # Create perfectly correlated pairs
@@ -2412,7 +2293,6 @@ test_that("divergence_bootstrap_flexible_cpp_wrapper preserves pairing correlati
 })
 
 test_that("divergence_bootstrap_flexible_cpp_wrapper handles all mixed scenarios simultaneously", {
-  skip_on_cran()
   
   # Complex: complete pairs + incomplete pairs in x + incomplete pairs in y + unpaired all together
   x <- c(100, 80, 120, 95, 110, 75, 105)       # 7 samples
@@ -2442,7 +2322,6 @@ test_that("divergence_bootstrap_flexible_cpp_wrapper handles all mixed scenarios
 })
 
 test_that("divergence_bootstrap_flexible_cpp_wrapper works with q sequence", {
-  skip_on_cran()
   
   x <- c(100, 80, 120, 95)
   y <- c(90, 85, 110, 100)
@@ -2467,7 +2346,6 @@ test_that("divergence_bootstrap_flexible_cpp_wrapper works with q sequence", {
 })
 
 test_that("divergence_bootstrap_compute_cpp_wrapper produces consistent results across calls", {
-  skip_on_cran()
   
   x <- c(100, 80, 120, 95)
   y <- c(90, 85, 110, 100)
@@ -2490,7 +2368,6 @@ test_that("divergence_bootstrap_compute_cpp_wrapper produces consistent results 
 })
 
 test_that("divergence_bootstrap_flexible_cpp_wrapper with pseudocount vector", {
-  skip_on_cran()
   
   x <- c(100, 80, 120)
   y <- c(90, 85, 110)

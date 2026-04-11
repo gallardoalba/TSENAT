@@ -728,7 +728,7 @@ calculate_diversity <- function(analysis, q = NULL, norm = TRUE, norm_method = N
     }
     
     # Resolve verbose first so we can use it in conditions
-    verbose_resolved <- resolve_slot_param(verbose, analysis@config, "verbose", TRUE)
+    verbose_resolved <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
     
     # Show message about q-values being used
     if (q_source != "explicit" && verbose_resolved) {

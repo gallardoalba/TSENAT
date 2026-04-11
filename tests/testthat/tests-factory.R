@@ -6,6 +6,13 @@
 #' @keywords internal
 #' @name test_factories
 
+# ============================================================================
+# NOTE: This file contains test factory functions, not test cases
+# ============================================================================
+test_that("[FACTORY FILE] This file provides test utilities, not tests", {
+  skip("This file contains test data factory functions for use across the test suite, not test cases")
+})
+
 #' Create a Complete TSENATAnalysis with Diversity Results
 #' 
 #' Factory function that generates a fully initialized TSENATAnalysis object

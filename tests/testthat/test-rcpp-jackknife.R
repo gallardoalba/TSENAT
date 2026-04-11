@@ -4,7 +4,6 @@ context("DIAGNOSTIC: Investigate C++ vs R differences")
 # between C++ and R implementations
 
 test_that("DIAGNOSTIC: Actual entropy differences for q != 1", {
-  skip_on_cran()
   
   set.seed(123)
   counts <- matrix(rpois(50 * 15, lambda = 5), nrow = 50, ncol = 15)
@@ -40,7 +39,6 @@ test_that("DIAGNOSTIC: Actual entropy differences for q != 1", {
 })
 
 test_that("DIAGNOSTIC: Singular distribution entropy values", {
-  skip_on_cran()
   
   n_tx <- 100
   test_qs <- c(0.5, 1.0, 1.5, 2.0)
@@ -67,7 +65,6 @@ test_that("DIAGNOSTIC: Singular distribution entropy values", {
 })
 
 test_that("DIAGNOSTIC: Uniform distribution entropy should be ~1", {
-  skip_on_cran()
   
   n_tx <- 100
   test_qs <- c(0.5, 1.0, 1.5, 2.0, 3.0)
@@ -104,7 +101,6 @@ test_that("Rcpp jackknife available for testing", {
 })
 
 test_that("Rcpp jackknife produces valid results", {
-  skip_on_cran()
   
   # Create test data
   set.seed(42)
@@ -128,7 +124,6 @@ test_that("Rcpp jackknife produces valid results", {
 })
 
 test_that("Rcpp jackknife handles different Tsallis parameters", {
-  skip_on_cran()
   
   set.seed(42)
   counts <- matrix(rpois(50 * 20, lambda = 5), nrow = 50, ncol = 20)
@@ -146,7 +141,6 @@ test_that("Rcpp jackknife handles different Tsallis parameters", {
 })
 
 test_that("Rcpp jackknife handles edge cases", {
-  skip_on_cran()
   
   # Minimum valid case (2 rows, minimal counts)
   set.seed(42)
@@ -161,7 +155,6 @@ test_that("Rcpp jackknife handles edge cases", {
 })
 
 test_that("Rcpp jackknife with pseudocount", {
-  skip_on_cran()
   
   set.seed(42)
   counts <- matrix(rpois(30 * 15, lambda = 3), nrow = 30, ncol = 15)
@@ -199,7 +192,6 @@ test_that("Hybrid wrapper falls back to R version gracefully", {
 })
 
 test_that("Rcpp entropy computation matches R version", {
-  skip_on_cran()
   
   # Create proportions
   p <- c(0.2, 0.3, 0.3, 0.2)
@@ -212,7 +204,6 @@ test_that("Rcpp entropy computation matches R version", {
 })
 
 test_that("Rcpp jackknife works with large datasets", {
-  skip_on_cran()
   
   # Verify that Rcpp version works correctly with large data
   set.seed(42)
@@ -230,7 +221,6 @@ test_that("Rcpp jackknife works with large datasets", {
 })
 
 test_that("Rcpp output structure includes all required fields", {
-  skip_on_cran()
   
   set.seed(42)
   counts <- matrix(rpois(50 * 20, lambda = 5), nrow = 50, ncol = 20)
@@ -252,7 +242,6 @@ test_that("Rcpp output structure includes all required fields", {
 })
 
 test_that("Rcpp jackknife parameters stored in output", {
-  skip_on_cran()
   
   set.seed(42)
   counts <- matrix(rpois(50 * 20, lambda = 5), nrow = 50, ncol = 20)
@@ -272,7 +261,6 @@ test_that("Rcpp jackknife parameters stored in output", {
 })
 
 test_that("Rcpp jackknife with different log bases", {
-  skip_on_cran()
   
   set.seed(42)
   counts <- matrix(rpois(50 * 20, lambda = 5), nrow = 50, ncol = 20)
@@ -295,7 +283,6 @@ test_that("Rcpp jackknife with different log bases", {
 })
 
 test_that("Rcpp jackknife no NaN or Inf values in results", {
-  skip_on_cran()
   
   set.seed(42)
   counts <- matrix(rpois(100 * 30, lambda = 5), nrow = 100, ncol = 30)
@@ -318,7 +305,6 @@ test_that("Rcpp jackknife no NaN or Inf values in results", {
 })
 
 test_that("Rcpp entropy with normalized vs unnormalized", {
-  skip_on_cran()
   
   set.seed(42)
   counts <- matrix(rpois(50 * 20, lambda = 5), nrow = 50, ncol = 20)
@@ -337,7 +323,6 @@ test_that("Rcpp entropy with normalized vs unnormalized", {
 })
 
 test_that("Rcpp jackknife influence is non-negative", {
-  skip_on_cran()
   
   set.seed(42)
   counts <- matrix(rpois(50 * 20, lambda = 5), nrow = 50, ncol = 20)
@@ -349,7 +334,6 @@ test_that("Rcpp jackknife influence is non-negative", {
 })
 
 test_that("Rcpp jackknife SE is always positive", {
-  skip_on_cran()
   
   set.seed(42)
   counts <- matrix(rpois(50 * 20, lambda = 5), nrow = 50, ncol = 20)
@@ -360,7 +344,6 @@ test_that("Rcpp jackknife SE is always positive", {
 })
 
 test_that("Rcpp jackknife with varying sample sizes", {
-  skip_on_cran()
   
   set.seed(42)
   
@@ -381,7 +364,6 @@ test_that("Rcpp jackknife with varying sample sizes", {
 })
 
 test_that("Rcpp jackknife with varying feature/sample proportions", {
-  skip_on_cran()
   
   set.seed(42)
   
@@ -399,7 +381,6 @@ test_that("Rcpp jackknife with varying feature/sample proportions", {
 })
 
 test_that("Rcpp jackknife works across multiple parameter combinations", {
-  skip_on_cran()
   
   set.seed(42)
   counts <- matrix(rpois(50 * 20, lambda = 5), nrow = 50, ncol = 20)
@@ -426,7 +407,6 @@ test_that("Rcpp jackknife works across multiple parameter combinations", {
 })
 
 test_that("Rcpp jackknife high pseudocount impact", {
-  skip_on_cran()
   
   set.seed(42)
   counts <- matrix(rpois(50 * 20, lambda = 2), nrow = 50, ncol = 20)
@@ -447,7 +427,6 @@ test_that("Rcpp jackknife high pseudocount impact", {
 })
 
 test_that("Rcpp jackknife numeric vector output dimensions", {
-  skip_on_cran()
   
   set.seed(42)
   counts <- matrix(rpois(75 * 25, lambda = 5), nrow = 75, ncol = 25)
@@ -467,7 +446,6 @@ test_that("Rcpp jackknife numeric vector output dimensions", {
 # ============================================================================
 
 test_that("Rcpp jackknife handles q=0 (species richness) correctly", {
-  skip_on_cran()
   
   set.seed(42)
   counts <- matrix(rpois(50 * 20, lambda = 5), nrow = 50, ncol = 20)
@@ -484,7 +462,6 @@ test_that("Rcpp jackknife handles q=0 (species richness) correctly", {
 })
 
 test_that("Rcpp jackknife q near 1 boundary handling", {
-  skip_on_cran()
   
   set.seed(42)
   counts <- matrix(rpois(50 * 20, lambda = 5), nrow = 50, ncol = 20)
@@ -501,7 +478,6 @@ test_that("Rcpp jackknife q near 1 boundary handling", {
 })
 
 test_that("Rcpp jackknife extreme q values", {
-  skip_on_cran()
   
   set.seed(42)
   counts <- matrix(rpois(50 * 20, lambda = 5), nrow = 50, ncol = 20)
@@ -521,7 +497,6 @@ test_that("Rcpp jackknife extreme q values", {
 })
 
 test_that("Rcpp jackknife single species per observation", {
-  skip_on_cran()
   
   # Create data with only one species having counts per observation
   counts_single <- matrix(0, nrow = 20, ncol = 15)
@@ -543,7 +518,6 @@ test_that("Rcpp jackknife single species per observation", {
 })
 
 test_that("Rcpp jackknife highly skewed distribution", {
-  skip_on_cran()
   
   # Create highly skewed distribution
   counts_skewed <- matrix(c(
@@ -561,7 +535,6 @@ test_that("Rcpp jackknife highly skewed distribution", {
 })
 
 test_that("Rcpp jackknife uniform distribution maximizes entropy", {
-  skip_on_cran()
   
   # Create nearly uniform distribution
   counts_uniform <- matrix(rep(10, 50 * 10), nrow = 50, ncol = 10)
@@ -579,7 +552,6 @@ test_that("Rcpp jackknife uniform distribution maximizes entropy", {
 })
 
 test_that("Rcpp jackknife handles NA values in proportions", {
-  skip_on_cran()
   
   # Test entropy_cpp directly with NA values
   p_with_na <- c(0.2, 0.3, NA, 0.3, 0.2)
@@ -594,7 +566,6 @@ test_that("Rcpp jackknife handles NA values in proportions", {
 })
 
 test_that("Rcpp jackknife empty proportions returns NA", {
-  skip_on_cran()
   
   # Pass all-zero proportions (after filtering)
   p_zeros <- c(0, 0, 0, 0)
@@ -605,7 +576,6 @@ test_that("Rcpp jackknife empty proportions returns NA", {
 })
 
 test_that("Rcpp jackknife row with zero counts handled correctly", {
-  skip_on_cran()
   
   set.seed(42)
   counts <- matrix(rpois(30 * 10, lambda = 5), nrow = 30, ncol = 10)
@@ -624,7 +594,6 @@ test_that("Rcpp jackknife row with zero counts handled correctly", {
 })
 
 test_that("Rcpp jackknife normalization effect on different q values", {
-  skip_on_cran()
   
   set.seed(42)
   counts <- matrix(rpois(50 * 20, lambda = 5), nrow = 50, ncol = 20)
@@ -649,7 +618,6 @@ test_that("Rcpp jackknife normalization effect on different q values", {
 })
 
 test_that("Rcpp jackknife SE is NA when all estimates are invalid", {
-  skip_on_cran()
   
   # Create counts that would produce mostly invalid estimates
   # This is very difficult to trigger, but we test the logic path
@@ -665,7 +633,6 @@ test_that("Rcpp jackknife SE is NA when all estimates are invalid", {
 })
 
 test_that("Rcpp jackknife consistency across multiple calls", {
-  skip_on_cran()
   
   set.seed(42)
   counts <- matrix(rpois(50 * 20, lambda = 5), nrow = 50, ncol = 20)
@@ -681,7 +648,6 @@ test_that("Rcpp jackknife consistency across multiple calls", {
 })
 
 test_that("Rcpp jackknife monotonic relationship with q variation", {
-  skip_on_cran()
   
   set.seed(123)
   counts <- matrix(rpois(50 * 15, lambda = 5), nrow = 50, ncol = 15)
@@ -699,7 +665,6 @@ test_that("Rcpp jackknife monotonic relationship with q variation", {
 })
 
 test_that("Rcpp jackknife different log bases produce consistent results", {
-  skip_on_cran()
   
   set.seed(42)
   counts <- matrix(rpois(50 * 20, lambda = 5), nrow = 50, ncol = 20)
@@ -715,7 +680,6 @@ test_that("Rcpp jackknife different log bases produce consistent results", {
 })
 
 test_that("Rcpp jackknife unnormalized results scale with log base", {
-  skip_on_cran()
   
   set.seed(42)
   counts <- matrix(rpois(50 * 20, lambda = 5), nrow = 50, ncol = 20)
@@ -732,7 +696,6 @@ test_that("Rcpp jackknife unnormalized results scale with log base", {
 })
 
 test_that("Rcpp influence values are always non-negative", {
-  skip_on_cran()
   
   set.seed(42)
   counts <- matrix(rpois(100 * 25, lambda = 5), nrow = 100, ncol = 25)
@@ -748,7 +711,6 @@ test_that("Rcpp influence values are always non-negative", {
 })
 
 test_that("Rcpp jackknife high-dimensional data", {
-  skip_on_cran()
   
   # Test with many species (high-dimensional)
   set.seed(42)
@@ -765,7 +727,6 @@ test_that("Rcpp jackknife high-dimensional data", {
 })
 
 test_that("Rcpp jackknife with comprehensive parameter coverage", {
-  skip_on_cran()
   
   set.seed(42)
   counts <- matrix(rpois(50 * 20, lambda = 5), nrow = 50, ncol = 20)
@@ -959,7 +920,7 @@ test_that("SUITE 3.1: compute_delta_statistics_cpp - basic bootstrap", {
   delta_influence <- abs(jack_A - jack_B)
   
   result <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE, 
-                                          log_base = 2, pseudocount = 0, n_bootstrap = 100,
+                                          log_base = 2, pseudocount = 0, nboot = 100,
                                           confidence = 0.95, method = "percentile")
   
   expect_is(result, "list")
@@ -984,7 +945,7 @@ test_that("SUITE 3.2: compute_delta_statistics_cpp - confidence intervals", {
   jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
   delta_influence <- abs(jack_A - jack_B)
   result_90 <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE,
-                                             log_base = 2, pseudocount = 0, n_bootstrap = 100,
+                                             log_base = 2, pseudocount = 0, nboot = 100,
                                              confidence = 0.90, method = "percentile")
   
   # Compute delta_influence
@@ -992,7 +953,7 @@ test_that("SUITE 3.2: compute_delta_statistics_cpp - confidence intervals", {
   jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
   delta_influence <- abs(jack_A - jack_B)
   result_95 <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE,
-                                             log_base = 2, pseudocount = 0, n_bootstrap = 100,
+                                             log_base = 2, pseudocount = 0, nboot = 100,
                                              confidence = 0.95, method = "percentile")
   
   # Compute delta_influence
@@ -1000,7 +961,7 @@ test_that("SUITE 3.2: compute_delta_statistics_cpp - confidence intervals", {
   jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
   delta_influence <- abs(jack_A - jack_B)
   result_99 <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE,
-                                             log_base = 2, pseudocount = 0, n_bootstrap = 100,
+                                             log_base = 2, pseudocount = 0, nboot = 100,
                                              confidence = 0.99, method = "percentile")
   
   # Wider confidence should have larger width (compare means of vector results)
@@ -1024,7 +985,7 @@ test_that("SUITE 3.3: compute_delta_statistics_cpp - bootstrap methods", {
   jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
   delta_influence <- abs(jack_A - jack_B)
     result <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE,
-                                            log_base = 2, pseudocount = 0, n_bootstrap = 100,
+                                            log_base = 2, pseudocount = 0, nboot = 100,
                                             confidence = 0.95, method = method)
     
     expect_is(result, "list")
@@ -1042,7 +1003,7 @@ test_that("SUITE 3.4: compute_delta_statistics_cpp - p-value computation", {
   jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
   delta_influence <- abs(jack_A - jack_B)
   result_diff <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE,
-                                               log_base = 2, pseudocount = 0, n_bootstrap = 200,
+                                               log_base = 2, pseudocount = 0, nboot = 200,
                                                confidence = 0.95, method = "percentile")
   
   # Create data with minimal difference
@@ -1054,7 +1015,7 @@ test_that("SUITE 3.4: compute_delta_statistics_cpp - p-value computation", {
   jack_B <- jis_jackknife_influences_cpp(counts_B_same, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
   delta_influence <- abs(jack_A - jack_B)
   result_same <- jis_bootstrap_delta_cpp(counts_A_same, counts_B_same, delta_influence, q = 1, normalize = TRUE,
-                                               log_base = 2, pseudocount = 0, n_bootstrap = 200,
+                                               log_base = 2, pseudocount = 0, nboot = 200,
                                                confidence = 0.95, method = "percentile")
   
   # Different samples should have more significant p-value
@@ -1071,7 +1032,7 @@ test_that("SUITE 3.5: compute_delta_statistics_cpp - effect size", {
   jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
   delta_influence <- abs(jack_A - jack_B)
   result <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE,
-                                          log_base = 2, pseudocount = 0, n_bootstrap = 100,
+                                          log_base = 2, pseudocount = 0, nboot = 100,
                                           confidence = 0.95, method = "percentile")
   
   expect_true(result$effect_size >= 0)
@@ -1104,7 +1065,7 @@ test_that("SUITE 4.2: degenerate case - zero-width CI warning detection", {
   jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
   delta_influence <- abs(jack_A - jack_B)
   result <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE,
-                                          log_base = 2, pseudocount = 0, n_bootstrap = 100,
+                                          log_base = 2, pseudocount = 0, nboot = 100,
                                           confidence = 0.95, method = "percentile")
   
   # CI width should be very small
@@ -1179,7 +1140,7 @@ test_that("SUITE 6.1: bootstrap - stability with seed", {
   jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
   delta_influence <- abs(jack_A - jack_B)
   result1 <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE,
-                                           log_base = 2, pseudocount = 0, n_bootstrap = 100,
+                                           log_base = 2, pseudocount = 0, nboot = 100,
                                            confidence = 0.95, method = "percentile")
   
   set.seed(12345)
@@ -1188,7 +1149,7 @@ test_that("SUITE 6.1: bootstrap - stability with seed", {
   jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
   delta_influence <- abs(jack_A - jack_B)
   result2 <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE,
-                                           log_base = 2, pseudocount = 0, n_bootstrap = 100,
+                                           log_base = 2, pseudocount = 0, nboot = 100,
                                            confidence = 0.95, method = "percentile")
   
   expect_equal(result1$delta_influence, result2$delta_influence)
@@ -1206,7 +1167,7 @@ test_that("SUITE 6.2: bootstrap - CI width increases with confidence", {
   jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
   delta_influence <- abs(jack_A - jack_B)
   result_90 <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE,
-                                             log_base = 2, pseudocount = 0, n_bootstrap = 200,
+                                             log_base = 2, pseudocount = 0, nboot = 200,
                                              confidence = 0.90, method = "percentile")
   
   set.seed(42)
@@ -1215,7 +1176,7 @@ test_that("SUITE 6.2: bootstrap - CI width increases with confidence", {
   jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
   delta_influence <- abs(jack_A - jack_B)
   result_99 <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE,
-                                             log_base = 2, pseudocount = 0, n_bootstrap = 200,
+                                             log_base = 2, pseudocount = 0, nboot = 200,
                                              confidence = 0.99, method = "percentile")
   
   expect_true(result_99$ci_width >= result_90$ci_width)
@@ -1288,7 +1249,7 @@ test_that("SUITE 8.2: performance - large bootstrap", {
   jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
   delta_influence <- abs(jack_A - jack_B)
   result <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE,
-                                          log_base = 2, pseudocount = 0, n_bootstrap = 5000,
+                                          log_base = 2, pseudocount = 0, nboot = 5000,
                                           confidence = 0.95, method = "percentile")
   time_elapsed <- Sys.time() - time_start
   
@@ -1304,7 +1265,6 @@ test_that("SUITE 8.2: performance - large bootstrap", {
 # doesn't regress when code is modified in the future.
 
 test_that("REGRESSION 9.1: Entropy normalization formula correctness", {
-  skip_on_cran()
   
   n_tx <- 100
   test_cases <- list(
@@ -1330,7 +1290,6 @@ test_that("REGRESSION 9.1: Entropy normalization formula correctness", {
 })
 
 test_that("REGRESSION 9.2: No abs() artifacts in Tsallis computation", {
-  skip_on_cran()
   
   # This test would catch if someone accidentally reintroduced abs() 
   # by verifying the mathematical properties
@@ -1353,7 +1312,6 @@ test_that("REGRESSION 9.2: No abs() artifacts in Tsallis computation", {
 })
 
 test_that("REGRESSION 9.3: Singular vs uniform distribution contrast", {
-  skip_on_cran()
   
   # Singular and uniform distributions should have very different normalized entropies
   n_tx <- 100
@@ -1374,7 +1332,6 @@ test_that("REGRESSION 9.3: Singular vs uniform distribution contrast", {
 })
 
 test_that("REGRESSION 9.4: Jackknife influences unchanged after fix", {
-  skip_on_cran()
   
   set.seed(555)
   counts <- matrix(rpois(30 * 25, lambda = 8), nrow = 30, ncol = 25)
@@ -1396,7 +1353,6 @@ test_that("REGRESSION 9.4: Jackknife influences unchanged after fix", {
 })
 
 test_that("REGRESSION 9.5: Fix doesn't break edge cases", {
-  skip_on_cran()
   
   # Test with very small counts
   counts_small <- matrix(rep(c(1, 0, 0), each = 20), nrow = 3, ncol = 20) + 1e-8
@@ -1410,7 +1366,6 @@ test_that("REGRESSION 9.5: Fix doesn't break edge cases", {
 })
 
 test_that("REGRESSION 9.6: Mathematical consistency check", {
-  skip_on_cran()
   
   # For uniform distribution P = (1/n, 1/n, ..., 1/n)
   # H_q = (1 - sum(p^q)) / (q - 1) = (1 - n*(1/n)^q) / (q - 1)

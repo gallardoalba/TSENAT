@@ -112,7 +112,6 @@ test_that("calculate_rank_test returns TSENATAnalysis with results", {
 # ============================================================================
 
 test_that("calculate_rank_test runs with paired design", {
-    skip_on_cran()
     analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
     
     result <- calculate_rank_test(
@@ -331,7 +330,6 @@ test_that("calculate_rank_test results have correct structure", {
 # ============================================================================
 
 test_that("calculate_rank_test handles multiple genes with varying significance", {
-    skip_on_cran()
     analysis <- setup_rank_test_analysis(n_genes = 100, n_samples = 12)
     
     result <- calculate_rank_test(
@@ -356,7 +354,6 @@ test_that("calculate_rank_test handles multiple genes with varying significance"
 # ============================================================================
 
 test_that("calculate_rank_test returns Scheirer-Ray-Hare test method", {
-    skip_on_cran()
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     result <- calculate_rank_test(
@@ -375,7 +372,6 @@ test_that("calculate_rank_test returns Scheirer-Ray-Hare test method", {
 # ============================================================================
 
 test_that("calculate_rank_test works with Westfall-Young correction", {
-    skip_on_cran()
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     result <- calculate_rank_test(
@@ -568,7 +564,6 @@ test_that("calculate_rank_test accepts output_file parameter", {
 # ============================================================================
 
 test_that("calculate_rank_test handles combined parameter specifications", {
-    skip_on_cran()
     analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
     
     result <- calculate_rank_test(

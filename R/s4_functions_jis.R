@@ -56,7 +56,7 @@
 #' are classified
 #'   as 'switching'.
 #'
-#' @param n_bootstrap \code{integer}.  Number of bootstrap resamples for 
+#' @param nboot \code{integer}.  Number of bootstrap resamples for 
 #' confidence 
 #'   intervals (default: 1000).
 #'
@@ -100,7 +100,7 @@
 #' Affected parameters:
 #' \itemize{
 #'   \item \code{q}: Multi-q vector c(0, 0.5, 1, 1.5, 2) if not provided, or \code{@config$q} if available
-#'   \item \code{n_bootstrap}: Uses \code{@config$n_bootstrap} if available, else 1000
+#'   \item \code{nboot}: Uses \code{@config$nboot} if available, else 1000
 #'   \item \code{threshold}: Uses \code{@config$threshold} if available, else 90
 #'   \item \code{lm_p_threshold}: Uses \code{@config$lm_p_threshold} if available, else 0.05
 #' }
@@ -172,7 +172,7 @@
 #' @export
 calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL,
     gene_col = NULL, isoform_col = NULL, q = c(0, 0.5, 1, 1.5, 2), norm = NULL, log_base = NULL, threshold = 90,
-    n_bootstrap = 1000, pseudocount = NULL, lm_results = NULL, lm_p_threshold = 0.05,
+    nboot = 1000, pseudocount = NULL, lm_results = NULL, lm_p_threshold = 0.05,
     use_lm_fdr = TRUE, output_file = NULL, verbose = FALSE, ...) {
     # Validate input and extract SummarizedExperiment
     se <- .validate_jis_input(analysis)
@@ -189,14 +189,14 @@ calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL,
     lm_results <- .extract_lm_results(analysis, lm_results, verbose)
 
     # Resolve and validate all parameters (including threshold and lm_p_threshold)
-    params <- .resolve_and_validate_jis_params(q, norm, log_base, pseudocount, n_bootstrap,
+    params <- .resolve_and_validate_jis_params(q, norm, log_base, pseudocount, nboot,
         threshold, lm_p_threshold, analysis, verbose)
 
     # Call base jackknife function
     result <- tryCatch({
         .calculate_jis(se = se, condition_col = condition_col, subject_col = subject_col,
             gene_col = gene_col, isoform_col = isoform_col, q = params$q, norm = params$norm,
-            log_base = params$log_base, threshold = params$threshold, n_bootstrap = params$n_bootstrap,
+            log_base = params$log_base, threshold = params$threshold, nboot = params$nboot,
             pseudocount = params$pseudocount, verbose = verbose, lm_results = lm_results,
             lm_p_threshold = params$lm_p_threshold, use_lm_fdr = use_lm_fdr)
     }, error = function(e) {
@@ -382,14 +382,14 @@ calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL,
 #' @param norm Normalization flag
 #' @param log_base Logarithm base
 #' @param pseudocount Pseudocount for regularization
-#' @param n_bootstrap Number of bootstrap resamples
+#' @param nboot Number of bootstrap resamples
 #' @param analysis TSENATAnalysis object for config access
 #' @param verbose Logical, print messages
 #'
 #' @return List with resolved parameters and q_vals (numeric vector)
 #'
 #' @noRd
-.resolve_and_validate_jis_params <- function(q, norm = NULL, log_base = NULL, pseudocount = NULL, n_bootstrap = 1000,
+.resolve_and_validate_jis_params <- function(q, norm = NULL, log_base = NULL, pseudocount = NULL, nboot = 1000,
     threshold = NULL, lm_p_threshold = NULL, analysis, verbose = FALSE) {
     # Resolve q: use config if available, otherwise use the provided value (which has function default)
     if (is.null(q) && "q" %in% names(analysis@config)) {
@@ -405,17 +405,17 @@ calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL,
     norm <- resolve_slot_param(norm, analysis@config, "norm", TRUE)
     log_base <- resolve_slot_param(log_base, analysis@config, "log_base", exp(1))
     pseudocount <- resolve_slot_param(pseudocount, analysis@config, "pseudocount", 0)
-    n_bootstrap <- resolve_slot_param(n_bootstrap, analysis@config, "n_bootstrap", 1000)
+    nboot <- resolve_slot_param(nboot, analysis@config, "nboot", 1000)
     threshold <- resolve_slot_param(threshold, analysis@config, "threshold", 90)
     lm_p_threshold <- resolve_slot_param(lm_p_threshold, analysis@config, "lm_p_threshold", 0.05)
 
-    # Validate n_bootstrap
-    if (!is.numeric(n_bootstrap) || length(n_bootstrap) != 1 || n_bootstrap < 1) {
-        stop("'n_bootstrap' must be a positive integer", call. = FALSE)
+    # Validate nboot
+    if (!is.numeric(nboot) || length(nboot) != 1 || nboot < 1) {
+        stop("'nboot' must be a positive integer", call. = FALSE)
     }
 
-    if (n_bootstrap < 50) {
-        warning("n_bootstrap = ", n_bootstrap, " is less than recommended minimum 50",
+    if (nboot < 50) {
+        warning("nboot = ", nboot, " is less than recommended minimum 50",
             call. = FALSE)
     }
 
@@ -430,7 +430,7 @@ calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL,
     }
 
     list(q = q, q_vals = q_vals, norm = norm, log_base = log_base, pseudocount = pseudocount,
-        n_bootstrap = n_bootstrap, threshold = threshold, lm_p_threshold = lm_p_threshold)
+        nboot = nboot, threshold = threshold, lm_p_threshold = lm_p_threshold)
 }
 
 #' Store jackknife results in analysis object

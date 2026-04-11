@@ -28,7 +28,6 @@ test_that("S4 Wrappers: calculate_lm accepts new arguments", {
   
   # Ensure diversity results exist
   if (length(analysis@diversity_results) == 0) {
-    skip_on_cran()
   }
   
   # Test each argument individually

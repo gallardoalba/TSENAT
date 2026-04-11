@@ -67,7 +67,6 @@ test_that("BUG ALERT: Normalized Tsallis uses wrong denominator - produces oppos
 })
 
 test_that("BUG IMPACT: C++ formula is correct for all q values", {
-  skip_on_cran()
   
   # Create test data
   n_tx <- 100
@@ -116,7 +115,6 @@ test_that("ROOT CAUSE: Denominator (q-1) vs (1-q) affects all q != 1 cases", {
 })
 
 test_that("DIAGNOSTIC: Investigate C++ vs R differences", {
-  skip_on_cran()
   
   # This test documents the Shannon entropy pseudocount handling difference
   
@@ -659,7 +657,6 @@ context("BUG FIX: Tsallis Entropy Normalization Formula")
 # ============================================================================
 
 test_that("BUGFIX 1.1: Tsallis normalization for q > 1 produces correct max_h", {
-  skip_on_cran()
   
   # For q > 1, the formula should work correctly
   # Test with q = 2.0 (Renyi entropy of order 2)
@@ -680,7 +677,6 @@ test_that("BUGFIX 1.1: Tsallis normalization for q > 1 produces correct max_h", 
 })
 
 test_that("BUGFIX 1.2: Tsallis normalization for q < 1 produces correct max_h", {
-  skip_on_cran()
   
   # For q < 1, BOTH numerator and denominator are negative
   # (-) / (-) = positive, NO abs() needed
@@ -706,7 +702,6 @@ test_that("BUGFIX 1.2: Tsallis normalization for q < 1 produces correct max_h", 
 })
 
 test_that("BUGFIX 1.3: Tsallis normalization for q near 1 produces correct max_h", {
-  skip_on_cran()
   
   # Test q very close to but not exactly 1
   n_tx <- 100
@@ -727,7 +722,6 @@ test_that("BUGFIX 1.3: Tsallis normalization for q near 1 produces correct max_h
 })
 
 test_that("BUGFIX 1.4: abs() bug would cause wrong direction for q < 1", {
-  skip_on_cran()
   
   # This test demonstrates what the bug would have caused
   n_tx <- 100
@@ -754,7 +748,6 @@ test_that("BUGFIX 1.4: abs() bug would cause wrong direction for q < 1", {
 })
 
 test_that("BUGFIX 1.5: Tsallis normalization maintains positivity across all q > 0", {
-  skip_on_cran()
   
   n_tx <- 50
   test_qs <- c(0.1, 0.5, 0.9, 0.99, 1.01, 1.1, 1.5, 2.0, 3.0, 5.0)
@@ -773,7 +766,6 @@ test_that("BUGFIX 1.5: Tsallis normalization maintains positivity across all q >
 })
 
 test_that("BUGFIX 1.6: R reference implementation now matches C++", {
-  skip_on_cran()
   
   set.seed(123)
   counts <- matrix(rpois(50 * 15, lambda = 5), nrow = 50, ncol = 15)
@@ -799,7 +791,6 @@ test_that("BUGFIX 1.6: R reference implementation now matches C++", {
 })
 
 test_that("BUGFIX 1.7: Normalized entropy of uniform distribution equals 1", {
-  skip_on_cran()
   
   n_tx <- 100
   test_qs <- c(0.5, 1.0, 1.5, 2.0, 3.0)
@@ -818,7 +809,6 @@ test_that("BUGFIX 1.7: Normalized entropy of uniform distribution equals 1", {
 })
 
 test_that("BUGFIX 1.8: Normalized entropy of singular distribution is very small", {
-  skip_on_cran()
   
   n_tx <- 100
   test_qs <- c(0.5, 1.0, 1.5, 2.0)

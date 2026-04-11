@@ -1249,7 +1249,6 @@ test_that("estimate_nperm with single q-value", {
 # Comprehensive testing for uncovered lines in rank_based_methods.R
 # Tests edge cases and specific code paths for rank-based assumptions testing
 
-skip_on_cran()
 
 context("Rank-Based Methods: Coverage Expansion")
 

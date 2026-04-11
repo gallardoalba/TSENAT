@@ -55,7 +55,6 @@ test_that("calculate_method parallelization with multiple q values", {
 context("Parallelization: Large Dataset Stress Testing")
 
 test_that("Large calculate_method dataset with single q value", {
-    skip_on_cran()
     
     set.seed(555)
     # 500 genes with multiple transcripts, 8 samples, single q value
@@ -876,7 +875,6 @@ test_that("Serial (nthreads=1) produces valid divergence results", {
 })
 
 test_that("Parallel (nthreads=2) produces valid divergence results", {
-  skip_on_cran()  # Skip on CRAN due to resources
   
   expect_error(
     {
@@ -906,7 +904,6 @@ test_that("Parallel (nthreads=2) produces valid divergence results", {
 })
 
 test_that("Serial vs Parallel: Estimates are numerically identical", {
-  skip_on_cran()
   
   analysis <- create_test_analysis()
   
@@ -947,7 +944,6 @@ test_that("Serial vs Parallel: Estimates are numerically identical", {
 })
 
 test_that("Serial vs Parallel: CI bounds are numerically identical", {
-  skip_on_cran()
   
   analysis <- create_test_analysis()
   
@@ -1006,7 +1002,6 @@ test_that("Serial vs Parallel: CI bounds are numerically identical", {
 })
 
 test_that("Serial vs Parallel: Row metadata identical", {
-  skip_on_cran()
   
   analysis <- create_test_analysis()
   result_serial <- silent_calculate_divergence(
@@ -1043,7 +1038,6 @@ test_that("Serial vs Parallel: Row metadata identical", {
 })
 
 test_that("Increasing threads maintains numerical stability", {
-  skip_on_cran()
   
   analysis <- create_test_analysis()
   # Run with 1 thread
@@ -1073,7 +1067,6 @@ test_that("Increasing threads maintains numerical stability", {
     
     expect_lt(max_diff, 1e-10)
   } else {
-    skip_on_cran()
   }
 })
 
@@ -1111,7 +1104,6 @@ test_that("nthreads parameter is properly validated", {
 })
 
 test_that("Computation mode is correctly reported in colData", {
-  skip_on_cran()
   
   analysis <- create_test_analysis()
   result_serial <- silent_calculate_divergence(

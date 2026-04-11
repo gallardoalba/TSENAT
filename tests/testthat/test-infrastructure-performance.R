@@ -152,7 +152,6 @@ test_that("calculate_diversity with normalization is efficient", {
 # ============================================================================
 
 test_that("zscore normalization is fast enough (internal bottleneck)", {
-  skip_on_cran()
   skip_if_not_installed("microbenchmark")
   
   # Normalize large entropy matrix (common in pipeline)
@@ -357,7 +356,7 @@ test_that("calculate_jis completes in reasonable time", {
       condition_col = "condition",
       q = 1,
       norm = TRUE,
-      n_bootstrap = 100  # Use smaller bootstrap for speed
+      nboot = 100  # Use smaller bootstrap for speed
     )
   )
   

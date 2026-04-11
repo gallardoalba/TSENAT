@@ -2722,7 +2722,7 @@ summary.tsenat_divergence_bootstrap_ci <- function(object, ...) {
 #'
 #' @noRd
 #' @noRd
-.analyze_ci_width <- function(ci_lower, ci_upper, point_est, boot_dist, n_bootstrap) {
+.analyze_ci_width <- function(ci_lower, ci_upper, point_est, boot_dist, nboot) {
 
     # Basic CI characteristics
     ci_width <- ci_upper - ci_lower
@@ -2789,7 +2789,7 @@ summary.tsenat_divergence_bootstrap_ci <- function(object, ...) {
     }
 
     # Small effective sample size
-    if (n_bootstrap < 100) {
+    if (nboot < 100) {
         issues <- c(issues, "Low n_bootstrap (< 100, less stable CI)")
     }
 

@@ -80,7 +80,6 @@ test_that("calculate_diversity generates both diversity_results.tsv and _diversi
 })
 
 test_that("calculate_diversity generates diversity_results.tsv with CI columns when bootstrap=TRUE", {
-  skip_on_cran()
   
   analysis <- make_test_analysis_diversity(n_genes = 8, n_samples_per_group = 2)
   output_dir <- tempdir()
@@ -316,7 +315,6 @@ test_that("CI bounds are valid (ci_lower <= diversity <= ci_upper)", {
 })
 
 test_that("CI width decreases with higher bootstrap replicates (nboot)", {
-  skip_on_cran()
   
   # Use same seed for both analyses so they analyze the same data
   # Only difference is nboot (20 vs 100)

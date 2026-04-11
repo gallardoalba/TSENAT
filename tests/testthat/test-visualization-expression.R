@@ -1,9 +1,6 @@
 context("S4 Wrapper: plot_expression() - Gene Expression Visualization")
 library(TSENAT)
 
-# Skip all tests on CRAN
-skip_on_cran()
-
 # ============================================================================
 # MODULE-LEVEL SETUP: Shared test data loaded ONCE
 # ============================================================================

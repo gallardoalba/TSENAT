@@ -942,7 +942,6 @@ test_that("calculate_divergence returns error results gracefully", {
 # Tests edge cases and error conditions in divergence calculation functions
 # Note: These tests can be intensive
 
-skip_on_cran()
 
 context("Divergence: Coverage Expansion")
 

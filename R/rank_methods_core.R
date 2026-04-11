@@ -383,10 +383,8 @@
 #' # After diversity calculation with 6 samples and 5 q-values: 30 columns total
 #' # Create colData with patient_id for each sample-q combination
 #' coldata <- S4Vectors::DataFrame(
-#' patient_id = rep(rep(1:3, each = 2), each = 5),  # 3 patients, 2 samples
-#' each, 5 q-levels
-#' q = rep(seq(0.5, 1.5, by = 0.25), times = 6)     # q values repeated for
-#' all samples
+#'   patient_id = rep(rep(1:3, each = 2), each = 5),  # 3 patients, 2 samples each, 5 q-levels
+#'   q = rep(seq(0.5, 1.5, by = 0.25), times = 6)     # q values repeated for all samples
 #' )
 #' rownames(coldata) <- colnames(ts_se)
 #' SummarizedExperiment::colData(ts_se) <- coldata
@@ -397,7 +395,7 @@
 #'   paired = TRUE,
 #'   subject_col = 'patient_id',
 #'   multicorr = 'hochberg',
-#'   wy_randomizations = 100,
+#'   wy_randomizations = 100
 #' )
 #' head(results_paired)
 

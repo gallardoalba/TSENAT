@@ -4302,47 +4302,7 @@ NULL
     paste0(toupper(substr(s, 1, 1)), substr(s, 2, nchar(s)))
 }
 
-.prepare_ma_plot_df <- function(df, fold_col, mean_cols, x_label, y_label) {
-    # Detect x-axis values
-    if (length(mean_cols) >= 2) {
-        xvals <- rowMeans(df[, mean_cols[seq_len(2)], drop = FALSE], na.rm = TRUE)
-        x_label <- x_label %||% paste0(mean_cols[1], " vs ", mean_cols[2])
-    } else if (length(mean_cols) == 1) {
-        xvals <- as.numeric(df[[mean_cols[1]]])
-        x_label <- x_label %||% mean_cols[1]
-    } else if ("mean" %in% colnames(df)) {
-        xvals <- as.numeric(df$mean)
-        x_label <- x_label %||% "Mean"
-    } else {
-        xvals <- seq_len(nrow(df))
-        x_label <- x_label %||% "Index"
-    }
-
-    yvals <- as.numeric(df[[fold_col]])
-
-    padj_candidates <- c("adjusted_p_values", "adj_p_value", "adj_p", "padj", "p.adjust")
-    padj_col <- intersect(padj_candidates, colnames(df))
-    padj_col <- if (length(padj_col)) {
-        padj_col[1]
-    } else {
-        NULL
-    }
-
-    padj <- if (!is.null(padj_col)) {
-        as.numeric(df[[padj_col]])
-    } else {
-        rep(1, length(yvals))
-    }
-    padj[is.na(padj)] <- 1
-
-    sig_flag <- ifelse(abs(yvals) > 0 & padj < 0.05, "significant", "non-significant")
-
-    plot_df <- data.frame(genes = df$genes, x = xvals, y = yvals, padj = padj, significant = sig_flag,
-        stringsAsFactors = FALSE)
-
-    list(plot_df = plot_df, x_label = x_label, y_label = y_label)
-}
-
+# [REMOVED] .prepare_ma_plot_df() - MA plot functionality removed (April 2026)
 
 #' Plot Tsallis Divergence Effect Size Distribution
 #'

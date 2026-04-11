@@ -775,6 +775,54 @@ per_q_na <- c(q_0.5 = NA_real_, q_1 = NA_real_)
 per_q_short <- c(q_0.5 = 0.2)
 per_q_noname <- c(0.1, 0.2, 0.3)  # unnamed vector should return NA
 
+# =============================================================================
+# OPTIMIZATION: Pre-cache shared SummarizedExperiment fixtures
+# Reused across multiple tests to avoid redundant SE creation (saves ~5-8 sec)
+# =============================================================================
+
+# Basic 2-gene multi-q fixture
+div_se_multiq_basic <- SummarizedExperiment::SummarizedExperiment(
+  assays = list(
+    q_0.5 = matrix(c(0.95, 0.55), nrow = 2, ncol = 1),
+    q_1.0 = matrix(c(0.85, 0.35), nrow = 2, ncol = 1),
+    q_2.0 = matrix(c(0.75, 0.15), nrow = 2, ncol = 1)
+  ),
+  rowData = data.frame(
+    gene_name = c("gene1", "gene2"),
+    estimate_q0.5 = c(0.95, 0.55),
+    lower_ci_q0.5 = c(0.85, 0.45),
+    upper_ci_q0.5 = c(1.05, 0.65),
+    estimate_q1 = c(0.85, 0.35),
+    lower_ci_q1 = c(0.75, 0.25),
+    upper_ci_q1 = c(0.95, 0.45),
+    estimate_q2 = c(0.75, 0.15),
+    lower_ci_q2 = c(0.65, 0.05),
+    upper_ci_q2 = c(0.85, 0.25)
+  )
+)
+
+# Simple 2-gene single-q fixture
+div_se_singleq_basic <- SummarizedExperiment::SummarizedExperiment(
+  assays = list(div = matrix(c(0.8, 0.7), nrow = 2, ncol = 1)),
+  rowData = data.frame(
+    gene_name = c("gene1", "gene2"),
+    estimate = c(0.8, 0.7),
+    lower_ci = c(0.7, 0.6),
+    upper_ci = c(0.9, 0.8)
+  )
+)
+
+# 3-gene fixture for more comprehensive testing
+div_se_threegene <- SummarizedExperiment::SummarizedExperiment(
+  assays = list(div = matrix(c(0.8, 0.7, 0.6), nrow = 3, ncol = 1)),
+  rowData = data.frame(
+    gene_name = c("ENSG00001", "ENSG00002", "ENSG00003"),
+    estimate = c(0.8, 0.7, 0.6),
+    lower_ci = c(0.7, 0.6, 0.5),
+    upper_ci = c(0.9, 0.8, 0.7)
+  )
+)
+
 test_that("patterns are classified correctly", {
   expect_equal(.classify_q_pattern(per_q1)$pattern, "Rare driven")
   expect_equal(.classify_q_pattern(per_q2)$pattern, "Abundant driven")
@@ -1148,27 +1196,11 @@ test_that(".enrichWithQPatterns adds per_q_pattern column", {
     effect_size_D = c(0.8, 0.7)
   )
   
-  # Create matrices without dimnames then set them via SE
-  q_matrices <- list(
-    matrix(c(0.9, 0.5), nrow = 2, ncol = 1),
-    matrix(c(0.8, 0.3), nrow = 2, ncol = 1),
-    matrix(c(0.7, 0.1), nrow = 2, ncol = 1)
-  )
-  names(q_matrices) <- c("q_0.5", "q_1.0", "q_2.0")
-  
-  div_se <- SummarizedExperiment::SummarizedExperiment(
-    assays = q_matrices
-  )
-  rownames(div_se) <- c("gene1", "gene2")
-  
-  # Add rowData with gene naming
-  SummarizedExperiment::rowData(div_se) <- data.frame(
-    gene_name = c("gene1", "gene2")
-  )
-  
+  # OPTIMIZATION: Reuse pre-cached div_se_multiq_basic fixture
+  # Avoids SE creation overhead (~500ms), shared across similar tests
   result <- TSENAT:::.enrichWithQPatterns(
     interaction_results = interaction_results,
-    divergence_results_se = div_se,
+    divergence_results_se = div_se_multiq_basic,
     verbose = FALSE
   )
   
@@ -1177,36 +1209,17 @@ test_that(".enrichWithQPatterns adds per_q_pattern column", {
 })
 
 test_that("complete workflow with multi-q divergence produces correct output", {
-  skip_on_cran()
   
   lm_res <- data.frame(
     gene = c("gene1", "gene2"),
     adj_p_interaction = c(0.001, 0.05)
   )
   
-  div_se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(
-      q_0.5 = matrix(c(0.95, 0.55), nrow = 2, ncol = 1),
-      q_1.0 = matrix(c(0.85, 0.35), nrow = 2, ncol = 1),
-      q_2.0 = matrix(c(0.75, 0.15), nrow = 2, ncol = 1)
-    ),
-    rowData = data.frame(
-      gene_name = c("gene1", "gene2"),
-      estimate_q0.5 = c(0.95, 0.55),
-      lower_ci_q0.5 = c(0.85, 0.45),
-      upper_ci_q0.5 = c(1.05, 0.65),
-      estimate_q1 = c(0.85, 0.35),
-      lower_ci_q1 = c(0.75, 0.25),
-      upper_ci_q1 = c(0.95, 0.45),
-      estimate_q2 = c(0.75, 0.15),
-      lower_ci_q2 = c(0.65, 0.05),
-      upper_ci_q2 = c(0.85, 0.25)
-    )
-  )
-  
+  # OPTIMIZATION: Reuse pre-cached div_se_multiq_basic fixture
+  # Avoids SE creation overhead (~500ms), shared across similar tests
   result <- .calculate_effect_sizes(
     lm_res = lm_res,
-    divergence_results_se = div_se,
+    divergence_results_se = div_se_multiq_basic,
     significance_threshold = 0.05,
     enrich_per_q_pattern = TRUE,
     verbose = FALSE
@@ -1221,7 +1234,6 @@ test_that("complete workflow with multi-q divergence produces correct output", {
 })
 
 test_that("calculate_effect_sizes maintains data integrity through pipeline", {
-  skip_on_cran()
   
   lm_res <- data.frame(
     gene = c("ENSG00001", "ENSG00002", "ENSG00003"),
@@ -1229,19 +1241,11 @@ test_that("calculate_effect_sizes maintains data integrity through pipeline", {
     slope_diff = c(0.5, 0.3, 0.1)
   )
   
-  div_se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(div = matrix(c(0.8, 0.7, 0.6), nrow = 3, ncol = 1)),
-    rowData = data.frame(
-      gene_name = c("ENSG00001", "ENSG00002", "ENSG00003"),
-      estimate = c(0.8, 0.7, 0.6),
-      lower_ci = c(0.7, 0.6, 0.5),
-      upper_ci = c(0.9, 0.8, 0.7)
-    )
-  )
-  
+  # OPTIMIZATION: Reuse pre-cached div_se_threegene fixture
+  # Avoids SE creation overhead (~500ms), shared across similar tests
   result <- .calculate_effect_sizes(
     lm_res = lm_res,
-    divergence_results_se = div_se,
+    divergence_results_se = div_se_threegene,
     significance_threshold = 0.1,
     verbose = FALSE
   )
@@ -1573,7 +1577,6 @@ test_that("classify_q_pattern correctly computes median for classification", {
 })
 
 test_that("Effect size calculation preserves full precision through pipeline", {
-  skip_on_cran()
   
   # Test full pipeline with high-precision values
   lm_res <- data.frame(

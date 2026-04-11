@@ -112,7 +112,7 @@ calculate_divergence <- function(analysis, q = NULL, verbose = FALSE, nthreads =
     .validate_divergence_input(analysis)
 
     # Step 2: Resolve all parameters from config
-    verbose <- resolve_slot_param(verbose, analysis@config, "verbose", TRUE)
+    verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
     output_file <- resolve_slot_param(output_file, analysis@config, "output_file",
         NULL)
     progress <- resolve_slot_param(progress, analysis@config, "progress", FALSE)

@@ -99,8 +99,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // jis_bootstrap_delta_cpp
-List jis_bootstrap_delta_cpp(NumericMatrix counts_A, NumericMatrix counts_B, NumericVector delta_influence, double q, bool normalize, double log_base, double pseudocount, int n_bootstrap, double confidence, String method, int n_transcripts_fixed);
-RcppExport SEXP _TSENAT_jis_bootstrap_delta_cpp(SEXP counts_ASEXP, SEXP counts_BSEXP, SEXP delta_influenceSEXP, SEXP qSEXP, SEXP normalizeSEXP, SEXP log_baseSEXP, SEXP pseudocountSEXP, SEXP n_bootstrapSEXP, SEXP confidenceSEXP, SEXP methodSEXP, SEXP n_transcripts_fixedSEXP) {
+List jis_bootstrap_delta_cpp(NumericMatrix counts_A, NumericMatrix counts_B, NumericVector delta_influence, double q, bool normalize, double log_base, double pseudocount, int nboot, double confidence, String method, int n_transcripts_fixed);
+RcppExport SEXP _TSENAT_jis_bootstrap_delta_cpp(SEXP counts_ASEXP, SEXP counts_BSEXP, SEXP delta_influenceSEXP, SEXP qSEXP, SEXP normalizeSEXP, SEXP log_baseSEXP, SEXP pseudocountSEXP, SEXP nbootSEXP, SEXP confidenceSEXP, SEXP methodSEXP, SEXP n_transcripts_fixedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< NumericMatrix >::type counts_A(counts_ASEXP);
@@ -110,11 +110,11 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type normalize(normalizeSEXP);
     Rcpp::traits::input_parameter< double >::type log_base(log_baseSEXP);
     Rcpp::traits::input_parameter< double >::type pseudocount(pseudocountSEXP);
-    Rcpp::traits::input_parameter< int >::type n_bootstrap(n_bootstrapSEXP);
+    Rcpp::traits::input_parameter< int >::type nboot(nbootSEXP);
     Rcpp::traits::input_parameter< double >::type confidence(confidenceSEXP);
     Rcpp::traits::input_parameter< String >::type method(methodSEXP);
     Rcpp::traits::input_parameter< int >::type n_transcripts_fixed(n_transcripts_fixedSEXP);
-    rcpp_result_gen = Rcpp::wrap(jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q, normalize, log_base, pseudocount, n_bootstrap, confidence, method, n_transcripts_fixed));
+    rcpp_result_gen = Rcpp::wrap(jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q, normalize, log_base, pseudocount, nboot, confidence, method, n_transcripts_fixed));
     return rcpp_result_gen;
 END_RCPP
 }

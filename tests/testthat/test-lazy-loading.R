@@ -42,7 +42,6 @@ test_that(".viz_status provides diagnostic information", {
 })
 
 test_that(".load_visualization_deps works and is idempotent", {
-  skip_on_cran()
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("dplyr")
   
@@ -61,7 +60,6 @@ test_that(".load_visualization_deps works and is idempotent", {
 })
 
 test_that(".load_visualization_deps fails gracefully with strict=FALSE", {
-  skip_on_cran()
   skip_if_not_installed("ggplot2")
   
   # This test verifies error handling, not real failure
@@ -72,7 +70,6 @@ test_that(".load_visualization_deps fails gracefully with strict=FALSE", {
 })
 
 test_that("Plot functions trigger visualization loading", {
-  skip_on_cran()
   skip_if_not_installed("SummarizedExperiment")
   skip_if_not_installed("ggplot2")
   
@@ -102,7 +99,6 @@ test_that("Plot functions trigger visualization loading", {
 })
 
 test_that("Multiple plot functions work after lazy-loading", {
-  skip_on_cran()
   skip_if_not_installed("SummarizedExperiment")
   skip_if_not_installed("ggplot2")
   
@@ -157,7 +153,6 @@ test_that("Lazy-loading doesn't affect non-plot functions", {
 })
 
 test_that("Lazy-loading maintains backward compatibility", {
-  skip_on_cran()
   skip_if_not_installed("ggplot2")
   
   # Users expecting visualizations to just work should not be affected

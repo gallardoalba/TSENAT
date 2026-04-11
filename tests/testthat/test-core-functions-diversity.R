@@ -1082,7 +1082,6 @@ test_that(".prepare_diversity_input handles SummarizedExperiment variants and tx
     expect_error(.prepare_diversity_input(se, genes = NULL, assayno = 10), "provide a valid assay number")
 })
 
-skip_on_cran()
 
 context("Tsallis Entropy: Additional Function Tests")
 

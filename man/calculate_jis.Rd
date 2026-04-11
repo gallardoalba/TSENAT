@@ -14,7 +14,7 @@ calculate_jis(
   norm = NULL,
   log_base = NULL,
   threshold = 90,
-  n_bootstrap = 1000,
+  nboot = 1000,
   pseudocount = NULL,
   lm_results = NULL,
   lm_p_threshold = 0.05,
@@ -64,7 +64,7 @@ detecting transcript switching
 are classified
   as 'switching'.}
 
-\item{n_bootstrap}{\code{integer}.  Number of bootstrap resamples for 
+\item{nboot}{\code{integer}.  Number of bootstrap resamples for 
 confidence 
   intervals (default: 1000).}
 
@@ -142,7 +142,7 @@ The following parameters are resolved using a three-level priority system:
 Affected parameters:
 \itemize{
   \item \code{q}: Multi-q vector c(0, 0.5, 1, 1.5, 2) if not provided, or \code{@config$q} if available
-  \item \code{n_bootstrap}: Uses \code{@config$n_bootstrap} if available, else 1000
+  \item \code{nboot}: Uses \code{@config$nboot} if available, else 1000
   \item \code{threshold}: Uses \code{@config$threshold} if available, else 90
   \item \code{lm_p_threshold}: Uses \code{@config$lm_p_threshold} if available, else 0.05
 }

@@ -41,7 +41,7 @@
 #'   splicing regulation
 #'
 #' @param analysis \code{TSENATAnalysis} object.
-
+#'  Must have diversity results from \code{calculate_diversity()}.
 #' @param output_file \code{character} or  \code{NULL}.
 #'  Optional file path to save results.
 #'   Supported formats: .rds (for S4 objects). Default: NULL (no file output).
@@ -129,25 +129,33 @@
 #' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
 #' 
 #' # Build analysis from vignette data and create manageable subset
-#' analysis <- build_analysis(readcounts = readcounts, tx2gene =
-#' gff3_dataset, metadata = metadata_df, config = config,
-#'   tpm = tpm, effective_length = effective_length)
-#' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
-#' = 200)
+#' analysis <- build_analysis(
+#'   readcounts = readcounts,
+#'   tx2gene = gff3_dataset,
+#'   metadata = metadata_df,
+#'   config = config,
+#'   tpm = tpm,
+#'   effective_length = effective_length
+#' )
+#' analysis <- filter_analysis(
+#'   analysis,
+#'   min_samples = 1,
+#'   subset_n_genes = 200
+#' )
 #' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
 #' 
 #' # Test Q×Condition interaction (condition_col is REQUIRED)
-#' analysis <- calculate_rank_test(analysis, condition_col = 'condition', 
-#'                                            multicorr = 'hochberg')
+#' analysis <- calculate_rank_test(
+#'   analysis,
+#'   condition_col = 'condition',
+#'   multicorr = 'hochberg'
+#' )
 #' # View results using unified accessor
 #' rank_test_res <- results(analysis, type = "rank_test")
 #' if (!is.null(rank_test_res)) head(rank_test_res)
 #'
 #' @export
 #' @importFrom utils write.table
-# ============================================================================
-# S4 WRAPPER: Detect Q×Condition Gene Interactions (Rank-Based Testing)
-# ============================================================================
 calculate_rank_test <- function(analysis, condition_col, output_file = NULL,
     paired = NULL, subject_col = NULL, multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young",
         "none"), entropy_col = "diversity", q_col = "q", gene_col = "gene", wy_randomizations = 500,

@@ -1,9 +1,6 @@
 context("S4 Wrapper: calculate_jeo() - Jackknife Entropy Operations")
 library(TSENAT)
 
-# Skip all tests on CRAN
-skip_on_cran()
-
 # ============================================================================
 # MODULE-LEVEL SETUP: Shared test data loaded ONCE
 # ============================================================================

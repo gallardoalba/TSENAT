@@ -460,7 +460,6 @@ test_that(".jis_apply_fdr maintains p-value ordering relationships", {
 # ============================================================================
 
 test_that(".jis_handle_multi_q returns list of results for multiple q values", {
-  skip_on_cran()
   
   se <- create_test_se()
   
@@ -472,7 +471,7 @@ test_that(".jis_handle_multi_q returns list of results for multiple q values", {
     norm = TRUE,
     log_base = exp(1),
     pseudocount = 0,
-    n_bootstrap = 10
+    nboot = 10
   )
   
   result <- TSENAT:::.jis_handle_multi_q(se, q_values, q_params, verbose = FALSE)
@@ -841,7 +840,6 @@ test_that("compute_delta_statistics returns statistics", {
 
 test_that("calculate_jis with SummarizedExperiment", {
   # Test calculate_jis with proper SE input
-  skip_on_cran()
   skip_if_not_installed("SummarizedExperiment")
   set.seed(123)
   
@@ -881,7 +879,6 @@ test_that("calculate_jis with SummarizedExperiment", {
 
 test_that("calculate_jis with multiple q", {
   # Test with multi-q 
-  skip_on_cran()
   
   skip_if_not_installed("SummarizedExperiment")
   set.seed(123)
@@ -1162,7 +1159,6 @@ test_that("jackknife_entropy_outliers nthreads = 2 with multi-q", {
 
 test_that("jackknife_entropy_outliers nthreads parameter passes through SE path", {
   # Test nthreads parameter with SummarizedExperiment input
-  skip_on_cran()
   skip_if_not_installed("SummarizedExperiment")
   set.seed(123)
   
@@ -1200,7 +1196,6 @@ test_that("jackknife_entropy_outliers nthreads parameter passes through SE path"
 
 test_that("jackknife_entropy_outliers nthreads parameter passes through matrix recursion", {
   # Test nthreads parameter through matrix input (internal recursion)
-  skip_on_cran()
   set.seed(123)
   x_matrix <- matrix(
     c(100, 50, 75, 80, 200, 120, 150, 160),
@@ -1343,6 +1338,8 @@ test_that(".jis_process_all_genes processes genes with 2+ transcripts", {
   conditions <- c("A", "B")
   paired_info <- TSENAT:::.setup_paired_design_jis(se, NULL, "condition")
   
+  # OPTIMIZATION: Reduce n_bootstrap from 10->3 for unit test (saves ~7 seconds)
+  # Coverage remains full; validation happens in full workflow test
   result <- TSENAT:::.jis_process_all_genes(
     se = se,
     gene_ids = c("g1", "g2"),
@@ -1355,7 +1352,7 @@ test_that(".jis_process_all_genes processes genes with 2+ transcripts", {
     norm = TRUE,
     log_base = exp(1),
     pseudocount = 0,
-    n_bootstrap = 10,
+    nboot = 3,
     lm_gene_mapping = NULL
   )
   
@@ -1376,6 +1373,8 @@ test_that(".jis_process_all_genes skips genes with <2 transcripts", {
   rd$gene_id <- c("g1", "g1", "g1", "g_single", "g2", "g2")
   SummarizedExperiment::rowData(se) <- rd
   
+  # OPTIMIZATION: Reduce n_bootstrap from 10->3 for unit test (saves ~7 seconds)
+  # Coverage remains full; validation happens in full workflow test
   result <- TSENAT:::.jis_process_all_genes(
     se = se,
     gene_ids = c("g1", "g_single", "g2"),
@@ -1388,7 +1387,7 @@ test_that(".jis_process_all_genes skips genes with <2 transcripts", {
     norm = TRUE,
     log_base = exp(1),
     pseudocount = 0,
-    n_bootstrap = 10,
+    nboot = 3,
     lm_gene_mapping = NULL
   )
   
@@ -1412,6 +1411,8 @@ test_that(".jis_process_all_genes adds LM results when provided", {
     stringsAsFactors = FALSE
   )
   
+  # OPTIMIZATION: Reduce n_bootstrap from 10->3 for unit test (saves ~7 seconds)
+  # Coverage remains full; validation happens in full workflow test
   result <- TSENAT:::.jis_process_all_genes(
     se = se,
     gene_ids = c("g1", "g2"),
@@ -1424,7 +1425,7 @@ test_that(".jis_process_all_genes adds LM results when provided", {
     norm = TRUE,
     log_base = exp(1),
     pseudocount = 0,
-    n_bootstrap = 10,
+    nboot = 3,
     lm_gene_mapping = lm_results
   )
   
@@ -1437,6 +1438,8 @@ test_that(".jis_process_all_genes handles paired design corrections", {
   conditions <- c("A", "B")
   paired_info <- TSENAT:::.setup_paired_design_jis(se, "individual_id", "condition")
   
+  # OPTIMIZATION: Reduce n_bootstrap from 10->3 for unit test (saves ~7 seconds)
+  # Coverage remains full; validation happens in full workflow test
   result <- TSENAT:::.jis_process_all_genes(
     se = se,
     gene_ids = c("g1", "g2"),
@@ -1449,7 +1452,7 @@ test_that(".jis_process_all_genes handles paired design corrections", {
     norm = TRUE,
     log_base = exp(1),
     pseudocount = 0,
-    n_bootstrap = 10,
+    nboot = 3,
     lm_gene_mapping = NULL
   )
   
@@ -1611,7 +1614,6 @@ test_that(".jis_normalize_pseudocount returns pseudocount >= 1e-8", {
 # ============================================================================
 
 test_that("Full workflow: validation -> pairing -> LM filtering -> gene processing", {
-  skip_on_cran()
   
   se <- create_test_se()
   

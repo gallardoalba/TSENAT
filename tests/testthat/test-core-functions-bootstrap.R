@@ -909,7 +909,6 @@ context("BUG FIX: Bootstrap Quantile Method and Confidence Intervals")
 # ============================================================================
 
 test_that("BUGFIX 2.1: Bootstrap quantile method consistency", {
-  skip_on_cran()
   
   set.seed(42)
   n_samples <- 1000
@@ -930,7 +929,6 @@ test_that("BUGFIX 2.1: Bootstrap quantile method consistency", {
 })
 
 test_that("BUGFIX 2.2: Bootstrap CI with type=1 (nearest-rank) quantiles", {
-  skip_on_cran()
   
   set.seed(123)
   counts_A <- matrix(rpois(20 * 30, lambda = 10), nrow = 20, ncol = 30)
@@ -944,7 +942,7 @@ test_that("BUGFIX 2.2: Bootstrap CI with type=1 (nearest-rank) quantiles", {
   # Compute bootstrap statistics
   result <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence,
                                      q = 1, normalize = TRUE, log_base = 2,
-                                     pseudocount = 0, n_bootstrap = 500,
+                                     pseudocount = 0, nboot = 500,
                                      confidence = 0.95)
   
   # Check that CI bounds are valid
@@ -957,7 +955,6 @@ test_that("BUGFIX 2.2: Bootstrap CI with type=1 (nearest-rank) quantiles", {
 })
 
 test_that("BUGFIX 2.3: C++ uses nearest-rank quantile (type=1)", {
-  skip_on_cran()
   
   # Create a simple bootstrap distribution with known quantiles
   set.seed(99)
@@ -984,7 +981,6 @@ test_that("BUGFIX 2.3: C++ uses nearest-rank quantile (type=1)", {
 })
 
 test_that("BUGFIX 2.4: Bootstrap CIs respect quantile monotonicity", {
-  skip_on_cran()
   
   set.seed(456)
   counts_A <- matrix(rpois(15 * 40, lambda = 8), nrow = 15, ncol = 40)
@@ -997,10 +993,10 @@ test_that("BUGFIX 2.4: Bootstrap CIs respect quantile monotonicity", {
   # Different confidence levels
   result_90 <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence,
                                         q = 1, normalize = TRUE, 
-                                        n_bootstrap = 500, confidence = 0.90)
+                                        nboot = 500, confidence = 0.90)
   result_95 <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence,
                                         q = 1, normalize = TRUE, 
-                                        n_bootstrap = 500, confidence = 0.95)
+                                        nboot = 500, confidence = 0.95)
   
   # Higher confidence (0.95) should give wider intervals than lower confidence (0.90)
   # i.e., ci_width_95 >= ci_width_90
@@ -1017,7 +1013,6 @@ test_that("BUGFIX 2.4: Bootstrap CIs respect quantile monotonicity", {
 })
 
 test_that("BUGFIX 2.5: Consistency between C++ and R bootstrap quantiles", {
-  skip_on_cran()
   
   set.seed(789)
   # Create a controlled bootstrap sample
@@ -1040,7 +1035,6 @@ test_that("BUGFIX 2.5: Consistency between C++ and R bootstrap quantiles", {
 })
 
 test_that("BUGFIX 2.6: P-value calculation with type=1 quantiles", {
-  skip_on_cran()
   
   set.seed(101)
   counts_A <- matrix(rpois(10 * 50, lambda = 12), nrow = 10, ncol = 50)
@@ -1052,7 +1046,7 @@ test_that("BUGFIX 2.6: P-value calculation with type=1 quantiles", {
   
   result <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence,
                                      q = 1, normalize = TRUE,
-                                     n_bootstrap = 1000, confidence = 0.95)
+                                     nboot = 1000, confidence = 0.95)
   
   # P-values must be in [0, 1]
   valid_pvals <- result$p_value[!is.na(result$p_value)]
@@ -1067,7 +1061,6 @@ test_that("BUGFIX 2.6: P-value calculation with type=1 quantiles", {
 })
 
 test_that("BUGFIX 2.7: Bootstrap statistics across different q values", {
-  skip_on_cran()
   
   set.seed(202)
   counts_A <- matrix(rpois(12 * 30, lambda = 10), nrow = 12, ncol = 30)
@@ -1082,7 +1075,7 @@ test_that("BUGFIX 2.7: Bootstrap statistics across different q values", {
     
     result <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence,
                                        q = q, normalize = TRUE,
-                                       n_bootstrap = 300, confidence = 0.95)
+                                       nboot = 300, confidence = 0.95)
     
     # All CI widths should be non-negative
     valid_widths <- result$ci_width[!is.na(result$ci_width)]
@@ -1092,7 +1085,6 @@ test_that("BUGFIX 2.7: Bootstrap statistics across different q values", {
 })
 
 test_that("BUGFIX 2.8: Bootstrap effect size computation", {
-  skip_on_cran()
   
   set.seed(303)
   counts_A <- matrix(rpois(15 * 25, lambda = 8), nrow = 15, ncol = 25)
@@ -1104,7 +1096,7 @@ test_that("BUGFIX 2.8: Bootstrap effect size computation", {
   
   result <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence,
                                      q = 1, normalize = TRUE,
-                                     n_bootstrap = 500, confidence = 0.95)
+                                     nboot = 500, confidence = 0.95)
   
   # Effect sizes should match the absolute delta_influence
   valid_idx <- !is.na(result$effect_size) & !is.na(delta_influence)
@@ -1116,7 +1108,6 @@ test_that("BUGFIX 2.8: Bootstrap effect size computation", {
 })
 
 test_that("BUGFIX 2.9: CI width relative to mean", {
-  skip_on_cran()
   
   set.seed(404)
   counts_A <- matrix(rpois(20 * 35, lambda = 15), nrow = 20, ncol = 35)
@@ -1128,7 +1119,7 @@ test_that("BUGFIX 2.9: CI width relative to mean", {
   
   result <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence,
                                      q = 1, normalize = TRUE,
-                                     n_bootstrap = 500, confidence = 0.95)
+                                     nboot = 500, confidence = 0.95)
   
   # Relative CI width should be finite and non-negative
   valid_rel_ci <- result$relative_ci_width[!is.na(result$relative_ci_width)]
@@ -3449,7 +3440,6 @@ test_that("matrix with diagnostic parameters propagated", {
 })
 
 test_that("parallel processing validation on multi-core systems", {
-    skip_on_cran()  # Skip on CRAN to avoid parallelization issues
     
     counts_matrix <- matrix(
         c(100, 80, 90, 100,
@@ -4377,7 +4367,6 @@ test_that("bootstrap multi-q estimates differ across q values", {
 })
 
 test_that("bootstrap multi-q CI bounds are sensible for each q", {
-    skip_on_cran()
     
     x <- c(100, 50, 30, 20)
     result <- .calculate_tsallis_entropy_bootstrap(x, q = c(1, 2), nboot = 100)
@@ -4439,7 +4428,6 @@ test_that("jackknife multi-q estimates differ across q values", {
 })
 
 test_that("jackknife multi-q with matrix input", {
-    skip_on_cran()
     
     counts_matrix <- rbind(
         "Gene1" = c(100, 50, 30, 20),
@@ -4763,14 +4751,14 @@ test_that(".analyze_ci_width assesses precision levels", {
   # Excellent precision
   result_excellent <- TSENAT:::.analyze_ci_width(
     ci_lower = 1.95, ci_upper = 2.05,
-    point_est = 2.0, boot_dist = boot_dist, n_bootstrap = 500
+    point_est = 2.0, boot_dist = boot_dist, nboot = 500
   )
   expect_match(result_excellent$precision_assessment, "excellent|good")
   
   # Poor precision
   result_poor <- TSENAT:::.analyze_ci_width(
     ci_lower = 0.5, ci_upper = 3.5,
-    point_est = 2.0, boot_dist = boot_dist, n_bootstrap = 500
+    point_est = 2.0, boot_dist = boot_dist, nboot = 500
   )
   expect_match(result_poor$precision_assessment, "poor|acceptable")
 })
@@ -5317,7 +5305,6 @@ test_that("summary.tsenat_divergence_bootstrap_ci numerical outputs are rounded"
 # ============================================================================
 
 test_that("print and summary work on real bootstrap result", {
-  skip_on_cran()
   
   # Create a simple test case with real bootstrap computation
   x <- c(100, 50, 75, 200, 80, 120)
@@ -5336,7 +5323,6 @@ test_that("print and summary work on real bootstrap result", {
 })
 
 test_that("print.tsenat_bootstrap_ci_list works with actual bootstrap results", {
-  skip_on_cran()
   
   x <- c(100, 50, 75, 200, 80, 120)
   

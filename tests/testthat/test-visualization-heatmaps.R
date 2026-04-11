@@ -918,7 +918,7 @@ test_that("plot_jis_delta: creates heatmap with mock jackknife data", {
   
   # Add required calculations
   analysis <- calculate_diversity(analysis, q = c(0.5, 1.0), verbose = FALSE)
-  analysis <- calculate_jis(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
+  analysis <- calculate_jis(analysis, q = c(0.5, 1.0), nboot = 50, verbose = FALSE)
   
   # Function should execute without error (renders to graphics device, returns invisible NULL)
   expect_silent({
@@ -942,7 +942,7 @@ test_that("plot_jis_delta: ranks genes by LM results when provided", {
   
   # Add required calculations
   analysis <- calculate_diversity(analysis, q = c(0.5, 1.0), verbose = FALSE)
-  analysis <- calculate_jis(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
+  analysis <- calculate_jis(analysis, q = c(0.5, 1.0), nboot = 50, verbose = FALSE)
   
   # Function should execute without error
   expect_silent({
@@ -966,7 +966,7 @@ test_that("plot_jis_delta: respects n_genes parameter", {
   
   # Add required calculations
   analysis <- calculate_diversity(analysis, q = c(0.5, 1.0), verbose = FALSE)
-  analysis <- calculate_jis(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
+  analysis <- calculate_jis(analysis, q = c(0.5, 1.0), nboot = 50, verbose = FALSE)
   
   # Test with different n_genes values - should execute without error
   expect_silent({
@@ -1000,7 +1000,7 @@ test_that("S4 plotting functions work on complete analysis object", {
   # Add required calculations (calculate_difference removed from codebase)
   analysis <- calculate_diversity(analysis, q = c(0.5, 1.0), verbose = FALSE)
   analysis <- calculate_divergence(analysis, q = c(0.5, 1.0), verbose = FALSE)
-  analysis <- calculate_jis(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
+  analysis <- calculate_jis(analysis, q = c(0.5, 1.0), nboot = 50, verbose = FALSE)
   
   # Note: plot_diversity_volcano_ma() requires calculate_difference which was removed
   # These two should execute successfully without error

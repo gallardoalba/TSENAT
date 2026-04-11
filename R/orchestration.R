@@ -529,6 +529,8 @@ TSENAT_config <- function(q = 1.0, condition_col = "condition", subject_col = NU
         failed <- names(checks)[!unlist(checks)]
         stop("Analysis validation failed: ", paste(failed, collapse = ", "), call. = FALSE)
     }
+    
+    TRUE
 }
 
 #' Log pipeline start

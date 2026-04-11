@@ -21,7 +21,7 @@
 #' @param pseudocount Numeric: pseudocount to add (default 0).
 #' @param threshold Numeric: percentile for outlier detection on influences
 #' (default 90).
-#' @param n_bootstrap Numeric: number of bootstrap resamples (default 1000).
+#' @param nboot Numeric: number of bootstrap resamples (default 1000).
 #' @param verbose Logical: print results and verbose output? (default TRUE).
 #' @param lm_results Data frame: results from .calculate_lm()
 #' with 'gene' column.
@@ -77,7 +77,7 @@
 #' @noRd
 .calculate_jis <- function(se = NULL, condition_col = "condition",
     subject_col = NULL, gene_col = NULL, isoform_col = NULL, q = 1, norm = TRUE,
-    log_base = exp(1), pseudocount = 0, threshold = 90, n_bootstrap = 1000, verbose = TRUE,
+    log_base = exp(1), pseudocount = 0, threshold = 90, nboot = 1000, verbose = TRUE,
     lm_results = NULL, lm_p_threshold = 0.05, use_lm_fdr = TRUE) {
     # 1. Validate input
     conditions <- .jis_validate_input(se, condition_col, gene_col, isoform_col)
@@ -86,7 +86,7 @@
     if (is.numeric(q) && length(q) > 1) {
         q_params <- list(condition_col = condition_col, subject_col = subject_col,
             gene_col = gene_col, isoform_col = isoform_col, norm = norm, log_base = log_base,
-            pseudocount = pseudocount, threshold = threshold, n_bootstrap = n_bootstrap,
+            pseudocount = pseudocount, threshold = threshold, nboot = nboot,
             lm_results = lm_results, lm_p_threshold = lm_p_threshold, use_lm_fdr = use_lm_fdr)
         return(.jis_handle_multi_q(se, q, q_params, verbose))
     }
@@ -105,7 +105,7 @@
 
     # 5. Process genes
     gene_results <- .jis_process_all_genes(se, gene_ids, gene_col, isoform_col, condition_col,
-        conditions, paired_info, q, norm, log_base, pseudocount, n_bootstrap, lm_gene_mapping)
+        conditions, paired_info, q, norm, log_base, pseudocount, nboot, lm_gene_mapping)
 
     # 6. Build results
     summary_results <- .jis_build_summary_results(se, gene_results$results_per_gene,
@@ -259,13 +259,13 @@
 #' 
 #' @noRd
 .jis_bootstrap_delta_fast <- function(counts_A, counts_B, delta_influence, q = 1,
-    norm = TRUE, log_base = exp(1), pseudocount = 0, n_bootstrap = 1000, confidence = 0.95,
+    norm = TRUE, log_base = exp(1), pseudocount = 0, nboot = 1000, confidence = 0.95,
     method = "percentile", n_transcripts = NULL) {
     tryCatch({
         if (exists("jis_bootstrap_delta_cpp", mode = "function")) {
             result_cpp <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence,
                 q = q, normalize = norm, log_base = log_base, pseudocount = pseudocount,
-                n_bootstrap = n_bootstrap, confidence = confidence, method = method)
+                nboot = nboot, confidence = confidence, method = method)
 
             # Translate field names from C++ (p_value) to R (pvalue) convention
             result_R <- list(delta_influence = if (!is.null(result_cpp$delta_influence)) {
@@ -281,12 +281,12 @@
 
         # Fallback to R implementation
         .compute_delta_statistics(counts_A, counts_B, delta_influence, q = q, norm = norm,
-            log_base = log_base, pseudocount = pseudocount, n_bootstrap = n_bootstrap,
+            log_base = log_base, pseudocount = pseudocount, nboot = nboot,
             n_transcripts = n_transcripts)
     }, error = function(e) {
         # Fallback to R if C++ fails
         .compute_delta_statistics(counts_A, counts_B, delta_influence, q = q, norm = norm,
-            log_base = log_base, pseudocount = pseudocount, n_bootstrap = n_bootstrap,
+            log_base = log_base, pseudocount = pseudocount, nboot = nboot,
             n_transcripts = n_transcripts)
     })
 }
@@ -342,7 +342,7 @@
 
 #' @noRd
 .jis_process_all_genes <- function(se, gene_ids, gene_col, isoform_col, condition_col,
-    conditions, paired_info, q, norm, log_base, pseudocount, n_bootstrap, lm_gene_mapping) {
+    conditions, paired_info, q, norm, log_base, pseudocount, nboot, lm_gene_mapping) {
     results_per_gene <- list()
     all_pvalues <- list()
     gene_processing_log <- data.frame(gene = character(), n_transcripts = numeric(),
@@ -395,7 +395,7 @@
 
         # Get bootstrap statistics
         delta_stats <- .jis_bootstrap_delta_fast(counts_A, counts_B, delta_influence,
-            q = q, norm = norm, log_base = log_base, pseudocount = pseudocount, n_bootstrap = n_bootstrap,
+            q = q, norm = norm, log_base = log_base, pseudocount = pseudocount, nboot = nboot,
             confidence = 0.95, method = "percentile", n_transcripts = nrow(counts_A))
 
         # Determine switching status
@@ -641,7 +641,7 @@
 #' @noRd
 
 .compute_delta_statistics <- function(counts_A, counts_B, delta_influence, q = 1,
-    norm = TRUE, log_base = exp(1), pseudocount = 0, n_bootstrap = 1000, confidence = 0.95,
+    norm = TRUE, log_base = exp(1), pseudocount = 0, nboot = 1000, confidence = 0.95,
     n_transcripts = NULL) {
     .calculate_tsallis <- function(counts, q, norm, log_base, pseudocount, n_transcripts_fixed) {
         if (is.vector(counts))
@@ -728,9 +728,9 @@
 
     n_tx <- length(delta_influence)
     # Seed handling left to caller for Bioconductor compliance
-    bootstrap_deltas_matrix <- matrix(nrow = n_bootstrap, ncol = n_tx)
+    bootstrap_deltas_matrix <- matrix(nrow = nboot, ncol = n_tx)
 
-    for (b in seq_len(n_bootstrap)) {
+    for (b in seq_len(nboot)) {
         idx_A <- sample(seq_len(ncol(counts_A)), size = ncol(counts_A), replace = TRUE)
         idx_B <- sample(seq_len(ncol(counts_B)), size = ncol(counts_B), replace = TRUE)
 
@@ -765,7 +765,7 @@
         valid_boots <- !is.na(boot_abs) & is.finite(boot_abs)
         if (!is.na(obs_abs) && is.finite(obs_abs) && any(valid_boots)) {
             pvalues[i] <- mean(boot_abs[valid_boots] >= obs_abs, na.rm = FALSE)
-            pvalues[i] <- max(pvalues[i], 1/n_bootstrap)  # Minimum p-value = 1/n_bootstrap
+            pvalues[i] <- max(pvalues[i], 1/nboot)  # Minimum p-value = 1/nboot
         } else {
             pvalues[i] <- NA_real_  # Return NA if insufficient data
         }
@@ -783,11 +783,11 @@
     }
 
     # IMPROVEMENT #2: Add power/sample size assessment
-    power_assessment <- data.frame(n_effective = n_bootstrap * (1 - sum(is.na(bootstrap_deltas_matrix))/length(bootstrap_deltas_matrix)),
+    power_assessment <- data.frame(n_effective = nboot * (1 - sum(is.na(bootstrap_deltas_matrix))/length(bootstrap_deltas_matrix)),
         avg_ci_width = mean(ci_width, na.rm = TRUE), min_recommended_nboot = NA_integer_)
 
     if (power_assessment$avg_ci_width > 0.05) {
-        power_assessment$min_recommended_nboot <- ceiling(n_bootstrap * (power_assessment$avg_ci_width/0.05)^2)
+        power_assessment$min_recommended_nboot <- ceiling(nboot * (power_assessment$avg_ci_width/0.05)^2)
     }
 
     return(list(ci_lower = as.numeric(ci_lower), ci_upper = as.numeric(ci_upper),

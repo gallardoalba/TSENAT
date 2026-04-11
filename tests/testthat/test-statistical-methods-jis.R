@@ -35,7 +35,7 @@ test_that("calculate_jis accepts single q value", {
     gene_col = "gene_id",
     isoform_col = "isoform_id",
     q = 1.0,
-    n_bootstrap = 5,  # Reduced from 10 to 5 for faster testing
+    nboot = 5,  # Reduced from 10 to 5 for faster testing
     verbose = FALSE
   ))
   
@@ -53,7 +53,7 @@ test_that("calculate_jis accepts vector of q values", {
     gene_col = "gene_id",
     isoform_col = "isoform_id",
     q = q_values,
-    n_bootstrap = 5,
+    nboot = 5,
     verbose = FALSE
   ))
   
@@ -71,7 +71,7 @@ test_that("Multi-q results have correct naming convention", {
     gene_col = "gene_id",
     isoform_col = "isoform_id",
     q = q_values,
-    n_bootstrap = 5,  # Reduced from 10 to 5 for faster testing
+    nboot = 5,  # Reduced from 10 to 5 for faster testing
     verbose = FALSE
   ))
   
@@ -90,7 +90,7 @@ test_that("Each multi-q result is a valid tsenat_isoform_switching object", {
     gene_col = "gene_id",
     isoform_col = "isoform_id",
     q = q_values,
-    n_bootstrap = 5,  # Reduced from 10 to 5 for faster testing
+    nboot = 5,  # Reduced from 10 to 5 for faster testing
     verbose = FALSE
   ))
 
@@ -113,7 +113,7 @@ test_that("Multi-q analysis analyzes same genes across all q values", {
     gene_col = "gene_id",
     isoform_col = "isoform_id",
     q = q_values,
-    n_bootstrap = 5,
+    nboot = 5,
     verbose = FALSE
   ))
   
@@ -148,7 +148,7 @@ test_that("calculate_jis maps gene names to IDs in lm_results", {
     lm_results = lm_results,
     lm_p_threshold = 0.05,
     use_lm_fdr = FALSE,
-    n_bootstrap = 5,
+    nboot = 5,
     verbose = FALSE
   ))
   
@@ -176,7 +176,7 @@ test_that("calculate_jis handles lm_results with gene IDs", {
     lm_results = lm_results,
     lm_p_threshold = 0.05,
     use_lm_fdr = FALSE,
-    n_bootstrap = 5,
+    nboot = 5,
     verbose = FALSE
   ))
   
@@ -203,7 +203,7 @@ test_that("Gene mapping respects LM p-value threshold", {
     lm_results = lm_results,
     lm_p_threshold = 0.005,
     use_lm_fdr = FALSE,
-    n_bootstrap = 5,
+    nboot = 5,
     verbose = FALSE
   ))
   
@@ -216,7 +216,7 @@ test_that("Gene mapping respects LM p-value threshold", {
     lm_results = lm_results,
     lm_p_threshold = 0.05,
     use_lm_fdr = FALSE,
-    n_bootstrap = 5,
+    nboot = 5,
     verbose = FALSE
   ))
   
@@ -259,7 +259,7 @@ test_that("Gene name to ID mapping removes duplicates", {
     isoform_col = "isoform_id",
     lm_results = lm_results,
     lm_p_threshold = 0.05,
-    n_bootstrap = 5,
+    nboot = 5,
     verbose = FALSE
   ))
   
@@ -288,7 +288,7 @@ test_that("Function accepts multiple genes in lm_results", {
     lm_results = lm_results,
     lm_p_threshold = 0.05,
     use_lm_fdr = FALSE,
-    n_bootstrap = 5,
+    nboot = 5,
     verbose = FALSE
   ))
   
@@ -315,7 +315,7 @@ test_that("LM threshold influences number of analyzed genes", {
     lm_results = lm_results,
     lm_p_threshold = 0.005,
     use_lm_fdr = FALSE,
-    n_bootstrap = 5,
+    nboot = 5,
     verbose = FALSE
   ))
   
@@ -328,7 +328,7 @@ test_that("LM threshold influences number of analyzed genes", {
     lm_results = lm_results,
     lm_p_threshold = 0.50,
     use_lm_fdr = FALSE,
-    n_bootstrap = 5,
+    nboot = 5,
     verbose = FALSE
   ))
   
@@ -354,7 +354,7 @@ test_that("Function works without top_n parameter", {
     condition_col = "condition",
     gene_col = "gene_id",
     isoform_col = "isoform_id",
-    n_bootstrap = 5,
+    nboot = 5,
     verbose = FALSE
   ))
   
@@ -385,7 +385,7 @@ test_that("Multi-q analysis works with gene name to ID mapping", {
     lm_results = lm_results,
     lm_p_threshold = 0.05,
     use_lm_fdr = FALSE,
-    n_bootstrap = 5,
+    nboot = 5,
     verbose = FALSE
   ))
   
@@ -417,7 +417,7 @@ test_that("Multi-q with gene filtering returns consistent structure", {
     lm_results = lm_results,
     lm_p_threshold = 0.05,
     use_lm_fdr = FALSE,
-    n_bootstrap = 5,
+    nboot = 5,
     verbose = FALSE
   ))
   
@@ -452,7 +452,7 @@ test_that("use_lm_fdr parameter switches between raw and adjusted p-values", {
     lm_results = lm_results,
     lm_p_threshold = 0.05,
     use_lm_fdr = TRUE,
-    n_bootstrap = 5,
+    nboot = 5,
     verbose = FALSE
   ))
   
@@ -464,7 +464,7 @@ test_that("use_lm_fdr parameter switches between raw and adjusted p-values", {
     lm_results = lm_results,
     lm_p_threshold = 0.05,
     use_lm_fdr = FALSE,
-    n_bootstrap = 5,
+    nboot = 5,
     verbose = FALSE
   ))
   
@@ -493,7 +493,7 @@ test_that("Metadata tracks LM gene filtering correctly", {
     isoform_col = "isoform_id",
     lm_results = lm_results,
     lm_p_threshold = 0.05,
-    n_bootstrap = 5,
+    nboot = 5,
     verbose = FALSE
   ))
   
@@ -520,7 +520,7 @@ test_that("Metadata correctly reports LM filtering statistics", {
     lm_results = lm_results,
     lm_p_threshold = 0.05,
     use_lm_fdr = FALSE,
-    n_bootstrap = 5,
+    nboot = 5,
     verbose = FALSE
   ))
   

@@ -678,7 +678,7 @@ List jis_bootstrap_delta_cpp(NumericMatrix counts_A,
                              bool normalize = true, 
                              double log_base = 2.718281828,
                              double pseudocount = 1e-8,
-                             int n_bootstrap = 1000,
+                             int nboot = 1000,
                              double confidence = 0.95,
                              String method = "percentile",
                              int n_transcripts_fixed = -1) {
@@ -692,8 +692,8 @@ List jis_bootstrap_delta_cpp(NumericMatrix counts_A,
   if (confidence <= 0 || confidence >= 1) {
     return List::create(Named("error") = "Confidence level must be in (0, 1)");
   }
-  if (n_bootstrap < 1) {
-    return List::create(Named("error") = "n_bootstrap must be >= 1");
+  if (nboot < 1) {
+    return List::create(Named("error") = "nboot must be >= 1");
   }
   
   // Bootstrap computation for delta statistics (confidence intervals and p-values)
@@ -716,15 +716,15 @@ List jis_bootstrap_delta_cpp(NumericMatrix counts_A,
   arma::mat counts_A_arma(counts_A.begin(), n_tx, n_samples_A, false);
   arma::mat counts_B_arma(counts_B.begin(), counts_B.nrow(), n_samples_B, false);
   
-  // Pre-allocate bootstrap delta matrix (n_bootstrap × n_tx)
+  // Pre-allocate bootstrap delta matrix (nboot × n_tx)
   // Initialize with NaN (not using fill::value() which doesn't work with NA_REAL)
-  arma::mat bootstrap_deltas(n_bootstrap, n_tx);
+  arma::mat bootstrap_deltas(nboot, n_tx);
   bootstrap_deltas.fill(std::nan(""));
   
   GetRNGstate();
   
   // Bootstrap loop - resample columns (samples) with replacement
-  for (int b = 0; b < n_bootstrap; b++) {
+  for (int b = 0; b < nboot; b++) {
     // BUG FIX: Validate sample sizes > 0 before resampling
     // Empty matrices cause undefined behavior with Rcpp::sample(0, 0, true)
     if (n_samples_A < 1 || n_samples_B < 1) {
