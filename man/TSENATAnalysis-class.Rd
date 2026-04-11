@@ -9,6 +9,8 @@
 \S4method{[}{TSENATAnalysis,ANY,ANY,ANY}(x, i, j, drop = TRUE)
 }
 \arguments{
+\item{x}{A \code{\linkS4class{TSENATAnalysis}} object to subset.}
+
 \item{i}{Gene indices (numeric, logical, or character vector). Defaults to all genes.}
 
 \item{j}{Sample indices (numeric, logical, or character vector). Defaults to all samples.}

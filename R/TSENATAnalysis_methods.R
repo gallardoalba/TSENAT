@@ -232,6 +232,7 @@ setReplaceMethod("metadata", "TSENATAnalysis", function(x, value) {
 #' @param i Gene indices (numeric, logical, or character vector). Defaults to all genes.
 #' @param j Sample indices (numeric, logical, or character vector). Defaults to all samples.
 #' @param drop Ignored for TSENATAnalysis objects; included for S4 method signature compatibility.
+#' @param x A \code{\linkS4class{TSENATAnalysis}} object to subset.
 #'
 #' @rdname TSENATAnalysis-class
 #' @exportMethod '['
