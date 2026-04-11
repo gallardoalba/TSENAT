@@ -41,13 +41,13 @@ suppressPackageStartupMessages(library(kableExtra))
 
 # Overview
 
-TSENAT (Tsallis Entropy Analysis Toolbox) quantifies **isoform heterogeneity** in RNA-seq data using Tsallis entropy-a scale-dependent diversity measure distinct from abundance-focused tools (DESeq2, Salmon) and differential transcript usage packages (*SplicingFactory*). By tuning a sensitivity parameter `q`, users examine diversity at different scales: rare variants (low `q`) or dominant isoforms (high `q`). This package enables computing Tsallis entropy from transcript-level abundance estimates, comparing measures between groups, and visualizing scale-dependent differences via q-curves. Results integrate seamlessly with Bioconductor's `SummarizedExperiment`, capturing scale-dependent isoform complexity that often signals cellular state changes independent of total abundance shifts.
+TSENAT (Tsallis Entropy Analysis Toolbox) quantifies **isoform heterogeneity** in RNA-seq data using Tsallis entropy-a scale-dependent diversity measure distinct from abundance-focused tools (DESeq2, Salmon) and differential transcript usage packages (*SplicingFactory*). By tuning a sensitivity parameter `q`, users examine diversity at different scales: rare variants (low `q`) or dominant isoforms (high `q`). This package enables computing Tsallis entropy from transcript-level abundance estimates, comparing measures between groups, and visualizing scale-dependent differences via q-curves.
 
 ## Motivation and Bioconductor Contribution
 
 Common RNA-seq tools focus on either total gene abundance changes or individual transcript usage shifts. Yet genes often remodel their isoform landscapes without changing overall expression-a phenomenon missed by these approaches. TSENAT quantifies this *isoform complexity* directly via Tsallis entropy, a scale-dependent diversity framework tuned by parameter `q`. By sliding `q` across scales, researchers zoom between rare variants (low `q`) and dominant isoforms (high `q`), capturing biological signal invisible to abundance- or proportion-based summaries.
 
-In this guide, we demonstrate the complete workflow: preprocessing transcript counts, computing entropy across entropic indices, testing for between-group differences, and visualizing scale-dependent complexity. All results integrate seamlessly with Bioconductor's `SummarizedExperiment`, making TSENAT a natural complement to existing DTU and abundance-focused tools in the ecosystem.
+In this guide, we demonstrate the complete workflow: preprocessing transcript counts, computing entropy across entropic indices, testing for between-group differences, and visualizing scale-dependent complexity.
 
 
 ## High-level workflow
@@ -127,23 +127,6 @@ p_qcurve <- plot_diversity_spectrum(
     dev_height = 8)
 print(p_qcurve)
 ```
-
-## Data Structures: Scale-Dependent Organization
-
-TSENAT organizes results around **multiple diversity scales** (entropic indices), not individual genes or samples. The **TSENATAnalysis** S4 object encapsulates:
-
-- `@se`: SummarizedExperiment with transcript counts and entropy values across entropic indices.
-- `@config`: Configuration parameters (sample/condition columns, q-spectrum, design, bootstrap settings).
-- `@diversity_results`: Median entropy ± confidence intervals per group and entropic index.
-- `@lm_results`: Linear/GAM/GEE interaction statistics testing if entropy differences vary across entropic indices.
-- `@rank_test_results`: Non-parametric rank test results (Scheirer-Ray-Hare, Kruskal-Wallis) for scale-dependent effects.
-- `@pairwise_results`: Pairwise comparisons between groups at individual entropic indices.
-- `@jackknife_results`: Jackknife confidence intervals and transcript-level contributions to entropy change.
-- `@divergence_results`: Pairwise group divergence (information-theoretic distance) at each entropic index.
-- `@plots`: Pre-generated visualizations (q-curves, interaction plots, heatmaps, divergence spectra).
-- `@metadata`: Processing metadata including function call history and timestamps.
-
-This scale-dependent structure is TSENAT's core innovation: a single q-curve reveals how diversity patterns shift across diversity scales.
 
 # What is Entropy and Tsallis Entropy?
 
