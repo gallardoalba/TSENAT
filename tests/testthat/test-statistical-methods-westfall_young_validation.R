@@ -401,49 +401,11 @@ test_that("Westfall-Young permutation works with unpaired rank-based tests", {
 })
 
 # ════════════════════════════════════════════════════════════════════════════════
-# TEST 7: CONDITIONAL RANK TEST SELECTION
+# TEST 7: CONDITIONAL RANK TEST SELECTION [REMOVED - dead code]
 # ════════════════════════════════════════════════════════════════════════════════
 
-test_that("Conditional rank test selection adapts to data characteristics", {
-  set.seed(888)
-  
-  # Test 7a: Normal data → Kruskal-Wallis
-  data_normal <- data.frame(
-    entropy = rnorm(60, mean = 2, sd = 0.5),
-    q = factor(rep(c(1, 2, 3, 4), 15))
-  )
-  
-  result_normal <- .apply_conditional_rank_test(
-    data = data_normal,
-    value_col = "entropy",
-    group_col = "q",
-    verbose = FALSE
-  )
-  
-  expect_is(result_normal$p_value, "numeric")
-  expect_true(result_normal$p_value >= 0 & result_normal$p_value <= 1)
-  
-  # Test 7b: Heteroscedastic data → Should detect and adjust
-  data_hetero <- data.frame(
-    entropy = c(
-      rnorm(15, mean = 2, sd = 0.2),   # Low variance group
-      rnorm(15, mean = 2.5, sd = 2.0), # High variance group
-      rnorm(15, mean = 2.2, sd = 0.3), # Low variance group
-      rnorm(15, mean = 2.3, sd = 0.25) # Low variance group
-    ),
-    q = factor(rep(c(1, 2, 3, 4), 15))
-  )
-  
-  result_hetero <- .apply_conditional_rank_test(
-    data = data_hetero,
-    value_col = "entropy",
-    group_col = "q",
-    verbose = FALSE
-  )
-  
-  expect_is(result_hetero$p_value, "numeric")
-  expect_true(result_hetero$characteristics$heteroscedastic %in% c(TRUE, FALSE))
-})
+# Removed: test_that("Conditional rank test selection adapts to data characteristics")
+# Reason: .apply_conditional_rank_test() was deleted in code cleanup
 
 # ════════════════════════════════════════════════════════════════════════════════
 # TEST 8: PARALLEL WESTFALL-YOUNG PERMUTATION (nthreads=2)

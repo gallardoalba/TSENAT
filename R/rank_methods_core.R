@@ -207,22 +207,19 @@
 #' @details
 #' **Statistical hypotheses tested (FIXED - March 2026):**
 #'
-#' This function now properly distinguishes between two different
-#' statistical tests:
+#' This function tests:
 #'
-#' 1. **Q Main Effect** (condition_col = NULL): 
-#'   - H0: Entropy does NOT vary significantly across q-values
-#'   - Collapses across all samples/conditions
-#'   - Tests whether q itself influences entropy (ignoring grouping)
-#'   - Useful for: Detecting which genes show q-value dependence broadly
-#'
-#' 2. **Q * Condition Interaction** (condition_col = 'condition' or similar):
+#' **Q * Condition Interaction** (condition_col is REQUIRED):
 #'   - H0: The q-effect does NOT differ between conditions (groups)
 #'   - Accounts for both within-q and condition differences
-#' - Tests whether entropy's pattern across q-values DIFFERS by condition
-#' (e.g., tumor vs normal)
+#'   - Tests whether entropy's pattern across q-values DIFFERS by condition
+#'     (e.g., tumor vs normal)
 #'   - Useful for: Identifying disease- or treatment-specific q-dependent genes
-#'   - **This is the biologically relevant test for most genomic applications**
+#'   - **This is the primary biologically relevant test for genomic applications**
+#'
+#' **Note:** Q main effect testing is no longer supported (March 2026 refactoring).
+#' Condition parameter is now required. For condition-agnostic analyses, 
+#' use a single-level condition variable.
 #'
 #' **Test selection by design:**
 #'
@@ -231,13 +228,10 @@
 #' non-normally distributed entropy data.
 #'
 #' **Unpaired mode (paired=FALSE, default):**
-#' - Q main effect: Tests whether entropy varies across q-parameters for
-#' each gene
-#' - Q * condition interaction: Uses Scheirer-Ray-Hare test (non-parametric
-#' 2-way ANOVA)
-#'     - Tests if q-effect varies by condition
-#'     - Works on rank-transformed data
-#'     - No distributional assumptions
+#' - Uses Scheirer-Ray-Hare test (non-parametric 2-way ANOVA)
+#'   - Tests if q-effect differs by condition
+#'   - Works on rank-transformed data
+#'   - No distributional assumptions
 #'
 #' **BLOCK-PERMUTATION WESTFALL-YOUNG FOR PAIRED DESIGNS (NEW - March 2026):**
 #' 
@@ -292,17 +286,11 @@
 #' 
 #' **Implementation details:**
 #' 
-#' Conditional permutation based on test type:
-#' - If condition_col != NULL: Permute condition assignments within subjects
-#'   - Tests: Does q * condition interaction exist?
-#'   - Null: q effect is same in both conditions (H0)
-#' - If condition_col = NULL: Permute q assignments within subjects  
-#'   - Tests: Does q main effect exist?
-#'   - Null: entropy independent of q (H0)
-#' 
-#' Conditional test refitting:
-#' - If condition_col != NULL: Refit .test_q_condition_interaction()
-#' - If condition_col = NULL: Refit .apply_conditional_rank_test()
+#' Conditional permutation and test refitting:
+#' - Permutes condition assignments within subjects
+#' - Tests: Does q * condition interaction exist?
+#' - Null hypothesis: q effect is same in both conditions (H0)
+#' - Refit: .test_q_condition_interaction() at each permutation
 #' 
 #' **Technical notes:**
 #' 1. Paired parameter IGNORED if paired=FALSE (global permutation used instead)
@@ -316,15 +304,10 @@
 #'             Papers S165-S166 (TSENAT-specific validation)
 #' 
 #' **Paired mode (paired=TRUE):**
-#'   - Q main effect: Uses Friedman test with subject blocking
-#' - Q * condition interaction: Uses two-way Friedman (q within-subjects,
-#' condition between)
-#'     - Tests if the pattern of entropy across q-values differs by condition
-#' - Uses Westfall-Young Max T permutation test with BLOCKED permutations
-#' that
-#'     respect within-subject pairing structure. Details:
-#' - Permutation: Labels shuffled within subjects, respecting condition
-#' structure
+#' - Uses Scheirer-Ray-Hare test with subject blocking for Q * condition interaction
+#' - Uses Westfall-Young Max T permutation test with BLOCKED permutations that
+#'   respect within-subject pairing structure. Details:
+#' - Permutation: Labels shuffled within subjects, respecting condition structure
 #'     - Pairing: Requires subject_col specifying study design blocking variable
 #' - AR(1): Multi-q correlation automatically preserved in permutation
 #' distribution
@@ -344,9 +327,12 @@
 #'
 #'   (Papers S165-S166, S051; Song 2007; Saulsbury 2020; FIXED - March 2026)
 #'
-#' Adaptive test selection (unpaired mode only, March 2026):
-#' With paired=FALSE and condition_col=NULL, applies conditional rank test
-#' selection:
+#' **NOTE:** Condition parameter is REQUIRED (March 2026 refactoring).
+#' Q main effect testing is no longer supported. For condition-agnostic analyses,
+#' provide a single-level condition variable or use an auxiliary grouping factor.
+#'
+#' Adaptive test selection (unpaired mode, all cases):
+#' Applies conditional rank test selection to detect data characteristics:
 #'   - Heteroscedasticity detected -> Aligned Rank Transform + parametric test
 #'   - Extreme skewness detected -> Mood's robust median test  
 #'   - Standard case -> Kruskal-Wallis (rank-based)

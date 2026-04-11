@@ -1,7 +1,6 @@
 # ============================================================================
 library(SummarizedExperiment)
 library(ggplot2)
-library(ComplexHeatmap)
 library(pheatmap)
 library(testthat)
 
