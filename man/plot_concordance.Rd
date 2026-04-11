@@ -54,7 +54,7 @@ gff3_dataset, metadata = metadata_df, config = config,
 analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 = 200)
 
-# Note: calculate_concordance requires additional LM and Friedman
+# Note: calculate_concordance requires additional LM and Scheirer-Ray-Hare rank test
 # results computed. For demo purposes, we show that
 # plot_concordance needs pre-computed concordance in @metadata
 

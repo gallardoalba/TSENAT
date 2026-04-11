@@ -45,7 +45,7 @@ for each gene.}
 - Results from `.calculate_lm()` (has `adj_p_interaction` or
 `p_interaction` columns)
 - Results from `.calculate_rank_test()` (has `adj_p_value` or `p_value`
-columns from Friedman/Wilcoxon tests)
+columns from Scheirer-Ray-Hare rank tests)
 If provided (and `gene` is NULL), plots top `n_top` genes ranked by
 p-value.
   Useful for plotting significant genes from any interaction analysis.}

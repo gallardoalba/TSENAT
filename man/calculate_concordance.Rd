@@ -54,7 +54,7 @@ Compute concordance between two analysis methods in TSENATAnalysis
 }
 \details{
 Compares results from two different statistical methods (typically GAM
-for continuous and Friedman/Kruskal-Wallis for rank-based analysis) on the same data.
+for continuous and Scheirer-Ray-Hare for rank-based analysis) on the same data.
 Identifies:
 - Genes significant in both methods (high confidence)
 - Genes detected by one method only (potential false positives or method-specific signal)

@@ -367,7 +367,7 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
 #'   control = 'untreated'
 #' )
 #'
-#' # For Friedman/LM tests (multiple q-values)
+#' # For Scheirer-Ray-Hare rank tests (multiple q-values)
 #' cfg <- TSENAT_config(
 #'   q = seq(0, 2, by = 0.5),          # Multiple q-values for spectrum or advanced testing
 #'   condition_col = 'treatment',

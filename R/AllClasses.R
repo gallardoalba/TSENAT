@@ -26,7 +26,7 @@
 #'   \describe{
 #'     \item{\code{lm_interaction}}{LM/GAM/GEE model results (list with
 #'           \code{$results} data.frame, \code{$models} list, etc.)}
-#'     \item{\code{rank_test}}{Friedman/rank-based test results}
+#'     \item{\code{rank_test}}{Scheirer-Ray-Hare rank-based test results}
 #'     \item{\code{divergence_difference}}{Differential divergence comparison}
 #'   }
 #'
@@ -35,7 +35,7 @@
 #'   \code{calculate_difference()}, stored under the \code{difference}
 #'   component.
 #'
-#' @slot rank_test_results \code{list}. Friedman and rank-based statistical
+#' @slot rank_test_results \code{list}. Scheirer-Ray-Hare rank-based statistical
 #'   test results. Names correspond to q-values (e.g., 'q_0.5', 'q_1.0').
 #'   Computed by \code{calculate_rank_test()} as a non-parametric alternative
 #'   to linear mixed model testing.
@@ -69,7 +69,7 @@
 #' Access results via the unified \code{results(obj, type = ...)} accessor method:
 #' - \code{type="diversity"} for Tsallis entropy across q-values
 #' - \code{type="lm"} for linear model interaction results
-#' - \code{type="rank_test"} for Friedman rank-based test results
+#' - \code{type="rank_test"} for Scheirer-Ray-Hare rank-based test results
 #' - \code{type="divergence"} for divergence metrics
 #' - \code{type="jackknife"} for jackknife resampling results
 #' Use \code{metadata(obj)} to access reproducibility metadata.

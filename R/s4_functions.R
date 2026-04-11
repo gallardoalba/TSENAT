@@ -425,8 +425,8 @@ setMethod("calculate_rank_assumptions", signature(analysis = "TSENATAnalysis"),
             })
 
             # Use complete case analysis: keep only genes present in ALL
-            # q-value matrices This is mathematically sound for rank-based
-            # tests (Friedman) and follows best practices per scholarly
+            # q-value matrices. This is mathematically sound for rank-based
+            # tests (Scheirer-Ray-Hare) and follows best practices per scholarly
             # literature (Springer Handbook, Permutation Tests)
             all_genes <- lapply(entropy_list, rownames)
             common_genes <- Reduce(intersect, all_genes)
@@ -681,7 +681,7 @@ plot_diversity_volcano_ma <- function(analysis, x_col = NULL, padj_col = "padj",
 }
 
 # ============================================================================
-# CONCORDANCE WRAPPER - Compute Method Concordance (GAM vs Friedman/KW)
+# CONCORDANCE WRAPPER - Compute Method Concordance (GAM vs Scheirer-Ray-Hare)
 # ============================================================================
 
 #' Compute concordance between two analysis methods in TSENATAnalysis
@@ -713,7 +713,7 @@ plot_diversity_volcano_ma <- function(analysis, x_col = NULL, padj_col = "padj",
 #'
 #' @details
 #' Compares results from two different statistical methods (typically GAM
-#' for continuous and Friedman/Kruskal-Wallis for rank-based analysis) on the same data.
+#' for continuous and Scheirer-Ray-Hare for rank-based analysis) on the same data.
 #' Identifies:
 #' - Genes significant in both methods (high confidence)
 #' - Genes detected by one method only (potential false positives or method-specific signal)
@@ -1170,7 +1170,7 @@ plot_divergence_spectrum <- function(analysis, gene = NULL, n_genes = 4, ncol = 
 #' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #'
-#' # Note: calculate_concordance requires additional LM and Friedman
+#' # Note: calculate_concordance requires additional LM and Scheirer-Ray-Hare rank test
 #' # results computed. For demo purposes, we show that
 #' # plot_concordance needs pre-computed concordance in @metadata
 #'
@@ -1205,7 +1205,7 @@ setMethod("plot_concordance", "TSENATAnalysis", function(analysis, verbose = FAL
         message("[plot_concordance] Plotting concordance for ", nrow(comparison_df),
             " genes")
         message("[plot_concordance] Methods compared: ", concordance_results$gam_method,
-            " vs ", concordance_results$friedman_method)
+            " vs Scheirer-Ray-Hare rank test")
     }
 
     # Call standard plotting function

@@ -94,7 +94,7 @@
 #'     'Strongly q-dependent' (p < 0.05 AND eta2 > 0.10),
 #'     or 'Insufficient data' if < 2 q-levels
 #'   - test_method: Which rank-based test was used 
-#'     ('kruskal-wallis', 'friedman', 'aligned-rank-transform', 'median-test')
+#'     ('srh_paired' for paired designs, 'srh_unpaired' for unpaired)
 #'   - heteroscedastic: Logical; whether unequal variances were detected
 #' - boundary_clustered: Logical; whether values clustered at boundaries
 #' detected
@@ -137,12 +137,7 @@
 #' - **Unpaired designs** (paired=FALSE): Scheirer-Ray-Hare test with global ranks
 #' Both test for Q×Condition interactions on ranked data (non-parametric two-way ANOVA)
 #'
-#' @param test Character; test selection method (default: 'auto'). Options:
-#' - 'auto': Automatically select appropriate rank test based on data characteristics
-#'   - Main effect (no condition_col): 'kruskal-wallis' (unpaired) or 'friedman' (paired)
-#'   - Interaction (condition_col provided): 'scheirer-ray-hare' (both paired and unpaired)
-#'   - 'art': Aligned Rank Transform for designs with heteroscedasticity
-#'
+
 #' @param nthreads Integer; number of parallel threads for computation
 #' (default: 1).
 #'   Use nthreads > 1 for faster processing on multi-core systems. Particularly
@@ -223,15 +218,12 @@
 #'
 #' **Test selection by design:**
 #'
-#' Uses Kruskal-Wallis test (rank-based) by default for unpaired conditions, or
+#' Uses Scheirer-Ray-Hare test (rank-based) for Q×Condition interaction testing, or
 #' Westfall-Young permutation (blocked) if paired=TRUE. Both are appropriate for
 #' non-normally distributed entropy data.
 #'
 #' **Unpaired mode (paired=FALSE, default):**
 #' - Uses Scheirer-Ray-Hare test (non-parametric 2-way ANOVA)
-#'   - Tests if q-effect differs by condition
-#'   - Works on rank-transformed data
-#'   - No distributional assumptions
 #'
 #' **BLOCK-PERMUTATION WESTFALL-YOUNG FOR PAIRED DESIGNS (NEW - March 2026):**
 #' 
@@ -331,19 +323,14 @@
 #' Q main effect testing is no longer supported. For condition-agnostic analyses,
 #' provide a single-level condition variable or use an auxiliary grouping factor.
 #'
-#' Adaptive test selection (unpaired mode, all cases):
-#' Applies conditional rank test selection to detect data characteristics:
-#'   - Heteroscedasticity detected -> Aligned Rank Transform + parametric test
-#'   - Extreme skewness detected -> Mood's robust median test  
-#'   - Standard case -> Kruskal-Wallis (rank-based)
-#'   
+#' Statistical test method (Q×Condition interaction):
+#' Uses Scheirer-Ray-Hare rank-based (within-subject ranking) test exclusively.
+#' This test handles the paired/within-subject design efficiently and is robust
+#' to heteroscedasticity and non-normality. See Papers S041-S042 for details.
+#'
 #' **NOTE:** Boundary clustering detection is SKIPPED for entropy/diversity
-#' metrics,
-#' since these are mathematically bounded by definition [0, log(m)] and
-#' boundary
-#' clustering is EXPECTED, not pathological. This fix (March 2026) resolves
-#' prior
-#'   false positives that were triggering inappropriate quantile test selection.
+#' metrics, since these are mathematically bounded by definition [0, log(m)] and
+#' boundary clustering is EXPECTED behavior, not statistical pathology (March 2026 fix).
 #'
 #' Classification:
 #'   - Robust: p >= 0.05 (no significant q-effect)
@@ -371,7 +358,7 @@
 #'
 #' @references
 #' Papers S041, S042: Interaction testing in genomic designs
-#' Papers S181-S187: Aligned Rank Transform for multi-factor analysis
+#' Papers S165-S166: Rank-based statistical methods
 #'
 #' @examples
 #' # Create example data with multiple q values
@@ -388,9 +375,8 @@
 #' ts_se <- .calculate_diversity(counts, genes = genes, q = seq(0.5, 1.5, by
 #' = 0.25))
 #' 
-#' # Unpaired analysis (default): K-W + multi-test correction for AR(1) q-values
-#' results <- .calculate_rank_test(ts_se, multicorr = 'hochberg', test =
-#' 'kruskal-wallis')
+#' # Unpaired analysis (default): Scheirer-Ray-Hare + multi-test correction for AR(1) q-values
+#' results <- .calculate_rank_test(ts_se, multicorr = 'hochberg')
 #' head(results)
 #' 
 #' # Paired analysis with metadata
@@ -419,13 +405,12 @@
 
 .calculate_rank_test <- function(data, entropy_col = "diversity", q_col = "q",
     gene_col = "gene", condition_col = NULL, paired = FALSE, subject_col = "paired_samples",
-    test = c("auto", "kruskal-wallis", "friedman", "art"), multicorr = c("hochberg",
+    multicorr = c("hochberg",
         "benjamini-yekutieli", "westfall-young", "none"), wy_randomizations = 500,
     nperm_mode = "standard", nthreads = 1, alpha = 0.05, p_threshold = 0.05, eta2_threshold_moderate = 0.01,
     eta2_threshold_strong = 0.1, min_nperm = 100, max_nperm = 10000, n_permutations = 5000,
     verbose = FALSE) {
 
-    test <- match.arg(test)
     multicorr <- match.arg(multicorr)
 
     # PHASE 1: VALIDATE PARAMETERS

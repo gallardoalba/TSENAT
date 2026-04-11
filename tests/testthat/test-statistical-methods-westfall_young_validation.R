@@ -156,7 +156,7 @@ test_that("Type I error (FWER) is maintained at appropriate alpha level", {
   # Test under H₀: no gene × q interaction
   n_genes <- 5
   n_q <- 3
-  n_samples <- 8  # Increased from 4 to avoid sparse contingency tables in Mood's median test
+  n_samples <- 8  # Adequate sample size for robust permutation test results
   
   fwer_count <- 0
   n_simulations <- 30  # Reduced for speed in test suite
@@ -172,7 +172,6 @@ test_that("Type I error (FWER) is maintained at appropriate alpha level", {
     data_null$entropy <- rnorm(nrow(data_null), mean = 2, sd = 0.5)
     
     # Run rank-based test with multiple correction
-    # Suppress occasional chi-squared warnings from Mood's median test with sparse tables
     result <- suppressWarnings(
       tryCatch(
         .calculate_rank_test(
@@ -308,7 +307,7 @@ test_that("Westfall-Young permutation maintains FWER with adequate sample sizes"
   set.seed(888)
   
   # Create unpaired data with adequate sample size (20 per q-level)
-  # Ensures contingency tables in Mood's median test have sufficient cell counts
+  # Sample size ensures sufficient observations for permutation test computation
   # even during permutation resampling
   data_large <- expand.grid(
     sample = 1:20,

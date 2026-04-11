@@ -11,7 +11,7 @@
 #'   by condition (main discovery goal)
 #' - **Multi-q Analysis**: Combines diversity results for multiple q-values into
 #'   a single SummarizedExperiment for joint hypothesis testing
-#' - **Rank-Based Statistics**: Kruskal-Wallis (unpaired) or Friedman (paired)
+#' - **Rank-Based Statistics**: Scheirer-Ray-Hare test (two-way ANOVA on ranked data,
 #' - **Scheirer-Ray-Hare Test**: Two-way non-parametric ANOVA on ranks
 #' - **Multiple Testing Correction**: Hochberg, Benjamini-Yekutieli, or permutation
 #'   (Westfall-Young) procedures
@@ -57,9 +57,6 @@
 #' Specifies the condition/treatment variable for testing q×condition
 #' interactions.
 #'   Example: 'sample_type', 'treatment', 'disease_status'.
-#' @param test \code{character}.  Test method:  'auto' (default),
-#'  'kruskal-wallis' (unpaired),
-#'   'friedman' (paired), or 'art' (aligned rank transform).
 #' @param multicorr \code{character}.  Multiple testing correction:
 #'  'hochberg' (default),
 #'   'benjamini-yekutieli', 'westfall-young', or 'none'.
@@ -99,7 +96,7 @@
 #' @details
 #' Analyzes how gene interactions change across q-value spectrum using
 #' rank-based
-#' (Friedman/Kruskal-Wallis) or parametric (GAM) statistical tests.
+#' (Scheirer-Ray-Hare) or parametric (GAM) statistical tests.
 #'
 #' **Parameter resolution priority** (explicit > @config > default/auto-detect):
 #' \itemize{
@@ -152,8 +149,7 @@
 # S4 WRAPPER: Detect Q×Condition Gene Interactions (Rank-Based Testing)
 # ============================================================================
 calculate_rank_test <- function(analysis, condition_col, output_file = NULL,
-    paired = NULL, subject_col = NULL, test = c("auto", "kruskal-wallis", "friedman",
-        "art"), multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young",
+    paired = NULL, subject_col = NULL, multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young",
         "none"), entropy_col = "diversity", q_col = "q", gene_col = "gene", wy_randomizations = 500,
     nperm_mode = c("standard", "conservative", "interactive"), nthreads = NULL, alpha = 0.05,
     p_threshold = 0.05, eta2_threshold_moderate = 0.01, eta2_threshold_strong = 0.1,
@@ -164,7 +160,7 @@ calculate_rank_test <- function(analysis, condition_col, output_file = NULL,
 
     # PHASE 2: Resolve parameters from config + explicit args
     # Note: q-values are ALWAYS auto-detected from diversity_results
-    param_result <- .resolve_rank_test_params(analysis, test, multicorr, nperm_mode,
+    param_result <- .resolve_rank_test_params(analysis, multicorr, nperm_mode,
         paired, subject_col, nthreads, wy_randomizations, entropy_col, q_col,
         gene_col)
     dots <- param_result$dots
@@ -221,18 +217,11 @@ calculate_rank_test <- function(analysis, condition_col, output_file = NULL,
 #' Internal: Resolve rank test parameters from config
 #'
 #' @noRd
-.resolve_rank_test_params <- function(analysis, test, multicorr, nperm_mode, paired,
+.resolve_rank_test_params <- function(analysis, multicorr, nperm_mode, paired,
     subject_col, nthreads, wy_randomizations, entropy_col, q_col, gene_col) {
     dots <- list()
 
     # Match enums early
-    if (!missing(test)) {
-        test <- match.arg(test, c("auto", "kruskal-wallis", "friedman", "art"))
-        dots$test <- test
-    } else if ("test" %in% names(analysis@config)) {
-        dots$test <- analysis@config$test
-    }
-
     if (!missing(multicorr)) {
         multicorr <- match.arg(multicorr, c("hochberg", "benjamini-yekutieli", "westfall-young",
             "none"))

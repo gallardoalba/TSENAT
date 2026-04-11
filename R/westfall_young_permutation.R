@@ -334,7 +334,7 @@
 # ════════════════════════════════════════════════════════════════════════════════
 # Consolidates redundant WY permutation logic shared between: 1.
 # .calculate_lm() - parametric tests (GAM, LMM, GEE) 2.
-# .calculate_rank_test() - rank-based tests (Kruskal-Wallis, conditional
+# .calculate_rank_test() - rank-based tests (Scheirer-Ray-Hare only, March 2026)
 # rank) DESIGN PATTERN: - Core permutation loop is identical in both functions
 # (~70% code duplication) - Model refitting logic differs (parametric vs
 # rank-based) - Solution: Extract permutation machinery, supply model-specific

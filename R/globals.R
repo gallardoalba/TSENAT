@@ -8,7 +8,7 @@
 #' @noRd
 #' @importFrom dplyr arrange filter group_by mutate pull select summarise %>%
 #' @importFrom stats IQR aggregate anova aov chisq.test coef cor fitted
-#' friedman.test formula kruskal.test lm loess loess.control median
+#' formula lm loess loess.control median
 #' model.frame model.matrix na.omit p.adjust pchisq pnorm pt qnorm quantile
 #' residuals rmultinom rpois sd setNames t.test var weighted.mean
 #' wilcox.test xtabs
@@ -24,7 +24,7 @@ if (getRversion() >= "2.15.1") {
     utils::globalVariables(c("xval", "x", "y", "padj", "padj_num", "padj_clean",
         "label_flag", "sample_q", "qnum", "significant", "prcomp", "predict", ".data",
         "divergence", "lower", "upper", "central", "spread", "ci_lower", "ci_upper",
-        "entropy", "entropy_fit", "p_gam", "p_friedman", "agreement", "p_value",
+        "entropy", "entropy_fit", "p_gam", "agreement", "p_value",
         "method", "direction", "gene", "calculate_tsallis_divergence_paired_gene"))
 }
 

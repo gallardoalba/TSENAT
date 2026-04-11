@@ -128,11 +128,11 @@ print.gtable <- function(x, ...) {
 #'
 #' @return A list with elements:
 #'   \itemize{
-#'     \item \code{comparison_df}:  Data frame with  merged results and 
+#'     \item \code{comparison_df}:  Data frame with merged results and 
 #' agreement classification
-#' Contains columns: gene, p_gam, padj_gam, effect_gam, p_friedman,
-#' padj_friedman, effect_friedman,
-#'       gam_sig, friedman_sig, agreement
+#' Contains columns: gene, p_gam, padj_gam, effect_gam, p_rank_test,
+#' padj_rank_test, effect_rank_test,
+#'       gam_sig, rank_test_sig, agreement
 #'     \item \code{spearman_rho}:  Spearman correlation between GAM and 
 #' Scheirer-Ray-Hare p-values
 #'     \item \code{high_conf}:  Subset of comparison_df for 

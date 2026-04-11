@@ -137,7 +137,6 @@ test_that("calculate_rank_test respects explicit parameters over config", {
     result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
-        test = "kruskal-wallis"
     )
     
     expect_is(result, "TSENATAnalysis")
@@ -149,13 +148,12 @@ test_that("calculate_rank_test respects explicit parameters over config", {
 # Test 4: Different test methods - Kruskal-Wallis (unpaired)
 # ============================================================================
 
-test_that("calculate_rank_test works with Kruskal-Wallis test", {
+test_that("calculate_rank_test works with unpaired design", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
-        test = "kruskal-wallis"
     )
     
     expect_is(result, "TSENATAnalysis")
@@ -164,17 +162,15 @@ test_that("calculate_rank_test works with Kruskal-Wallis test", {
     expect_true("p_value" %in% colnames(rank_res))
 })
 
-# ============================================================================
-# Test 5: Different test methods - Friedman (paired)
+# Test 5: Paired design
 # ============================================================================
 
-test_that("calculate_rank_test works with Friedman test for paired design", {
+test_that("calculate_rank_test works with paired design (Scheirer-Ray-Hare)", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
-        test = "friedman",
         paired = TRUE,
         subject_col = "paired_samples"
     )
@@ -249,7 +245,6 @@ test_that("calculate_rank_test auto-selects appropriate test method", {
     result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
-        test = "auto"
     )
     
     expect_is(result, "TSENATAnalysis")
@@ -357,17 +352,16 @@ test_that("calculate_rank_test handles multiple genes with varying significance"
 })
 
 # ============================================================================
-# Test 15: ART (Aligned Rank Transform) test method
+# Test 15: Check test_method output
 # ============================================================================
 
-test_that("calculate_rank_test works with ART (Aligned Rank Transform)", {
+test_that("calculate_rank_test returns Scheirer-Ray-Hare test method", {
     skip_on_cran()
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
-        test = "art"
     )
     
     expect_is(result, "TSENATAnalysis")
@@ -580,7 +574,6 @@ test_that("calculate_rank_test handles combined parameter specifications", {
     result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
-        test = "friedman",
         multicorr = "benjamini-yekutieli",
         paired = TRUE,
         subject_col = "paired_samples",
@@ -661,7 +654,6 @@ test_that(".resolve_rank_test_params handles explicit arguments over config", {
     
     # Set config values
     analysis@config <- list(
-        test = "kruskal-wallis",
         multicorr = "hochberg",
         nperm_mode = "conservative",
         q_values = c(0.5, 1.0),
@@ -673,7 +665,6 @@ test_that(".resolve_rank_test_params handles explicit arguments over config", {
     # Call with explicit arguments (should override config)
     result <- TSENAT:::.resolve_rank_test_params(
         analysis,
-        test = "friedman",
         multicorr = "benjamini-yekutieli",
         nperm_mode = "standard",
         paired = TRUE,
@@ -702,7 +693,6 @@ test_that(".resolve_rank_test_params falls back to config when args not provided
     
     # Set config values
     analysis@config <- list(
-        test = "kruskal-wallis",
         multicorr = "hochberg",
         nperm_mode = "interactive",
         q_values = c(0.5, 1.0, 1.5),
@@ -885,7 +875,6 @@ test_that("Helper functions integrate correctly in rank test workflow", {
     # 2. Resolve params
     param_result <- TSENAT:::.resolve_rank_test_params(
         analysis,
-        test = "auto",
         multicorr = "hochberg",
         nperm_mode = "standard",
         paired = FALSE,
@@ -950,7 +939,6 @@ test_that(".resolve_rank_test_params handles all multicorr methods", {
     for (method in c("hochberg", "benjamini-yekutieli", "westfall-young", "none")) {
         result <- TSENAT:::.resolve_rank_test_params(
             analysis,
-            test = "auto",
             multicorr = method,
             nperm_mode = "standard",
             paired = FALSE,
@@ -994,7 +982,6 @@ test_that(".resolve_rank_test_params handles all nperm_mode values", {
     for (mode in c("standard", "conservative", "interactive")) {
         result <- TSENAT:::.resolve_rank_test_params(
             analysis,
-            test = "auto",
             multicorr = "westfall-young",
             nperm_mode = mode,
             paired = FALSE,
@@ -1015,7 +1002,6 @@ test_that(".resolve_rank_test_params preserves custom column names", {
     
     result <- TSENAT:::.resolve_rank_test_params(
         analysis,
-        test = "auto",
         multicorr = "hochberg",
         nperm_mode = "standard",
         paired = FALSE,
@@ -1039,7 +1025,6 @@ test_that(".resolve_rank_test_params handles nthreads appropriately", {
     for (nthreads_val in c(1, 2, 4, 8)) {
         result <- TSENAT:::.resolve_rank_test_params(
             analysis,
-            test = "auto",
             multicorr = "hochberg",
             nperm_mode = "standard",
             paired = FALSE,
@@ -1167,7 +1152,6 @@ test_that("calculate_rank_test respects verbose parameter", {
         result <- calculate_rank_test(
             analysis,
             condition_col = "condition",
-            test = "auto",
             multicorr = "hochberg",
             verbose = TRUE
         )
@@ -1269,13 +1253,12 @@ test_that("calculate_rank_test handles custom entropy column names", {
 # Test: Integration - Full workflow with different parameter combinations
 # ============================================================================
 
-test_that("calculate_rank_test full workflow with art test method", {
+test_that("calculate_rank_test full workflow with Scheirer-Ray-Hare test", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
-        test = "art",
         multicorr = "hochberg"
     )
     
@@ -1369,14 +1352,12 @@ test_that("calculate_rank_test generates consistent results", {
     result1 <- calculate_rank_test(
         analysis,
         condition_col = "condition",
-        test = "auto",
         multicorr = "hochberg"
     )
     
     result2 <- calculate_rank_test(
         analysis,
         condition_col = "condition",
-        test = "auto",
         multicorr = "hochberg"
     )
     
@@ -1403,7 +1384,6 @@ test_that("rank_test output file (TSV format) contains valid p-values", {
   result <- calculate_rank_test(
     analysis,
     condition_col = "condition",
-    test = "kruskal-wallis",
     multicorr = "hochberg",
     output_file = output_file,
     verbose = FALSE
@@ -1446,7 +1426,6 @@ test_that("rank_test output file (CSV format) preserves numerical properties acr
   result_tsv <- calculate_rank_test(
     analysis,
     condition_col = "condition",
-    test = "kruskal-wallis",
     output_file = tsv_file,
     verbose = FALSE
   )
@@ -1455,7 +1434,6 @@ test_that("rank_test output file (CSV format) preserves numerical properties acr
   result_csv <- calculate_rank_test(
     analysis,
     condition_col = "condition",
-    test = "kruskal-wallis",
     output_file = csv_file,
     verbose = FALSE
   )
@@ -1520,7 +1498,6 @@ test_that("rank_test results are consistent across different multicorr methods",
   result_none <- calculate_rank_test(
     analysis,
     condition_col = "condition",
-    test = "kruskal-wallis",
     multicorr = "none",
     output_file = file_none,
     verbose = FALSE
@@ -1531,7 +1508,6 @@ test_that("rank_test results are consistent across different multicorr methods",
   result_bh <- calculate_rank_test(
     analysis,
     condition_col = "condition",
-    test = "kruskal-wallis",
     multicorr = "hochberg",
     output_file = file_bh,
     verbose = FALSE
@@ -1601,7 +1577,6 @@ test_that("rank_test results with different test methods produce valid statistic
   result <- calculate_rank_test(
     analysis,
     condition_col = "condition",
-    test = "kruskal-wallis",
     output_file = file_kw,
     verbose = FALSE
   )
@@ -1641,7 +1616,6 @@ test_that("rank_test paired designs produce mathematically valid results", {
   result <- calculate_rank_test(
     analysis,
     condition_col = "condition",
-    test = "friedman",
     paired = TRUE,
     subject_col = "paired_samples",
     output_file = output_file,
@@ -1678,7 +1652,6 @@ test_that("rank_test results are deterministic and reproducible", {
   result1 <- calculate_rank_test(
     analysis,
     condition_col = "condition",
-    test = "kruskal-wallis",
     output_file = file1,
     verbose = FALSE
   )
@@ -1686,7 +1659,6 @@ test_that("rank_test results are deterministic and reproducible", {
   result2 <- calculate_rank_test(
     analysis,
     condition_col = "condition",
-    test = "kruskal-wallis",
     output_file = file2,
     verbose = FALSE
   )

@@ -189,7 +189,7 @@ test_that("detect_q_gene_interactions validates column names", {
   )
 })
 
-test_that("detect_q_gene_interactions kruskal.test method produces results", {
+test_that("detect_q_gene_interactions produces Scheirer-Ray-Hare test results", {
   set.seed(111)
   entropy_vals <- c(
     rnorm(10, mean = 1.0, sd = 0.2),  # q=0.5
@@ -2223,8 +2223,8 @@ test_that("plot_method_concordance requires required columns", {
   
   comparison_df <- data.frame(
     gene = paste0("GENE_", 1:10),
-    p_gam = runif(10)
-    # Missing p_friedman and agreement columns
+    p_lm = runif(10)
+    # Missing p_rank and agreement columns
   )
   
   expect_error(

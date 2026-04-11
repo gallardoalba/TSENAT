@@ -10,7 +10,6 @@ calculate_rank_test(
   output_file = NULL,
   paired = NULL,
   subject_col = NULL,
-  test = c("auto", "kruskal-wallis", "friedman", "art"),
   multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young", "none"),
   entropy_col = "diversity",
   q_col = "q",
@@ -49,10 +48,6 @@ uses paired/blocked design
 subject/block identifiers
   (required when  \code{paired=TRUE}).  If NULL,
  reads from \code{@config$subject_col}.}
-
-\item{test}{\code{character}.  Test method:  'auto' (default),
-'kruskal-wallis' (unpaired),
- 'friedman' (paired), or 'art' (aligned rank transform).}
 
 \item{multicorr}{\code{character}.  Multiple testing correction:
 'hochberg' (default),
@@ -118,7 +113,7 @@ This detects disease-relevant or condition-specific isoform switching patterns.
   by condition (main discovery goal)
 - **Multi-q Analysis**: Combines diversity results for multiple q-values into
   a single SummarizedExperiment for joint hypothesis testing
-- **Rank-Based Statistics**: Kruskal-Wallis (unpaired) or Friedman (paired)
+- **Rank-Based Statistics**: Scheirer-Ray-Hare test (two-way ANOVA on ranked data,
 - **Scheirer-Ray-Hare Test**: Two-way non-parametric ANOVA on ranks
 - **Multiple Testing Correction**: Hochberg, Benjamini-Yekutieli, or permutation
   (Westfall-Young) procedures
@@ -150,7 +145,7 @@ For condition-specific q-dependent genes:
 
 Analyzes how gene interactions change across q-value spectrum using
 rank-based
-(Friedman/Kruskal-Wallis) or parametric (GAM) statistical tests.
+(Scheirer-Ray-Hare) or parametric (GAM) statistical tests.
 
 **Parameter resolution priority** (explicit > @config > default/auto-detect):
 \itemize{
