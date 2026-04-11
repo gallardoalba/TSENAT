@@ -106,9 +106,6 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
     q_vals <- cfg$q %||% 1.0
     if (!is.vector(q_vals)) q_vals <- c(q_vals)
     
-    # Inform user which q-value(s) is being used
-    if (verbose) message("[INFO] Using q-value(s): ", paste(q_vals, collapse = ", "))
-    
     condition_col <- cfg$condition_col %||% "condition"
 
     # Initialize timing
@@ -557,7 +554,7 @@ TSENAT_config <- function(q = 1.0, condition_col = "condition", subject_col = NU
         "  Design ............... ", if (cfg$paired) "paired" else "unpaired", "\n",
         "  Filter stringency .... ", cfg$stringency %||% "medium", "\n",
         "  Normalization ........ ", if (cfg$norm) "enabled [0-1]" else "disabled", "\n",
-        "  Normalization method . ", toupper(cfg$norm_method %||% "NONE"), "\n",
+        "  Normalization method . ", if (cfg$norm) toupper(cfg$norm_method %||% "RANGE (default)") else "N/A", "\n",
         "  Pseudocount .......... ", if (cfg$pseudocount == 0) "disabled" else as.character(cfg$pseudocount), "\n",
         "  Shrinkage ............ ", if (tolower(cfg$shrinkage %||% "none") == "none") "disabled" else toupper(cfg$shrinkage), "\n",
         "  Significance ......... p < ", format(cfg$p_threshold %||% 0.05, nsmall = 3), 
