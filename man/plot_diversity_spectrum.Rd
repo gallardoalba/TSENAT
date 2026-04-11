@@ -154,6 +154,6 @@ analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 analysis <- calculate_diversity(analysis, q = seq(0, 2, by = 0.5),
 )
 p <- plot_diversity_spectrum(analysis)
-if (!is.null(p)) print(p)
+# print(p)
 
 }

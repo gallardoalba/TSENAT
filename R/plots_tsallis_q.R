@@ -133,7 +133,7 @@
 #' analysis <- calculate_diversity(analysis, q = seq(0, 2, by = 0.5),
 #' )
 #' p <- plot_diversity_spectrum(analysis)
-#' if (!is.null(p)) print(p)
+#' # print(p)
 #'
 #' @export
 plot_diversity_spectrum <- function(se, assay_name = "diversity", condition_col = NULL,

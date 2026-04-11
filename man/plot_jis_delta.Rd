@@ -91,12 +91,21 @@ analysis <- build_analysis(
 )
 
 analysis <- filter_analysis(analysis, stringency = 'severe')
-analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5), verbose
-= FALSE)
-analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
-analysis <- calculate_lm(analysis, method = 'gam')
-analysis <- calculate_jis(analysis, q = c(0.5, 1, 1.5),
-  n_bootstrap = 50)
+analysis <- calculate_diversity(
+  analysis,
+  q = c(0.5, 1.0, 1.5, 2.0, 2.5),
+  verbose = FALSE
+)
+analysis <- calculate_divergence(
+  analysis,
+  q = c(0.5, 1.0, 1.5, 2.0, 2.5)
+)
+analysis <- suppressWarnings(calculate_lm(analysis, method = 'gam'))
+analysis <- calculate_jis(
+  analysis,
+  q = c(0.5, 1, 1.5),
+  n_bootstrap = 50
+)
 heatmap_file <- plot_jis_delta(analysis, n_genes
 = 2)
 

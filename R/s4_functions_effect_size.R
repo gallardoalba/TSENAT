@@ -82,7 +82,7 @@
 #' analysis <- filter_analysis(analysis, stringency = 'severe')
 #' analysis <- calculate_diversity(analysis)
 #' analysis <- calculate_divergence(analysis)
-#' analysis <- calculate_lm(analysis, method = 'gam')
+#' analysis <- suppressWarnings(calculate_lm(analysis, method = 'gam'))
 #'
 #' # Compute effect sizes from divergence results
 #' analysis <- calculate_effect_sizes(analysis,

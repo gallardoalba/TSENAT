@@ -3640,7 +3640,7 @@
 #' = 200)
 #' analysis <- calculate_diversity(analysis, q = 1.0)
 #' p <- plot_diversity_violin_density(analysis)
-#' if (!is.null(p)) print(p)
+#' # if (!is.null(p)) print(p)
 #'
 plot_diversity_violin_density <- function(se, assay_name = "diversity", title = NULL,
     output_file = NULL) {

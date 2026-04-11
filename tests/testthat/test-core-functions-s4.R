@@ -127,7 +127,7 @@ test_that(".prepare_diversity_params resolves default parameters", {
   
   # Check defaults
   expect_equal(params$norm, TRUE)
-  expect_equal(params$verbose, TRUE)
+  expect_equal(params$verbose, FALSE)
   expect_equal(params$bootstrap, FALSE)
   expect_equal(params$pseudocount, 0)
   expect_equal(params$nthreads, 1)

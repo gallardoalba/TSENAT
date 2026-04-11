@@ -4,124 +4,6 @@
 # appropriate slots.
 
 # ============================================================================
-# CALCULATE DIFFERENCE WRAPPER
-# ============================================================================
-
-#' Calculate Difference Between Control and Treatment Groups (S4 Wrapper)
-#'
-#' S4 wrapper that operates on TSENATAnalysis objects to calculate differences
-#' between control and  treatment groups.
-#'  Uses diversity results from \code{@diversity_results} 
-#' slot (from \code{calculate_diversity()}) and 
-#' stores results in the \code{lm_results} slot.
-#'
-#' @param analysis A \code{TSENATAnalysis} object with 
-#' diversity results in \code{@diversity_results}.
-#' @param q \code{numeric} or \code{NULL}. Q-value to use for testing.
-#'   If NULL: auto-detects from diversity results if only ONE q-value present,
-#'   or errors if MULTIPLE q-values present (must specify which to test).
-#'   NOTE: q is NOT read from config - only explicit argument or auto-detected from diversity.
-#'   If diversity contains single q-value, q is OPTIONAL.
-#'   If diversity contains multiple q-values, q is REQUIRED.
-#' @param control Character string specifying the control group identifier.
-#'  If \code{NULL},
-#'   attempts to retrieve from \code{analysis@config$control}.
-#' @param condition_col \code{character} or  \code{NULL}.
-#'  Column name in colData identifying sample conditions.
-#'   If NULL, reads from \code{@config$condition_col} or auto-detects.
-#' @param method \code{character}.  Difference calculation method.  Default:
-#'  'mean'.
-#'   If NULL, reads from \code{@config$method} if available.
-#' @param test \code{character}. Statistical test type. Default: 'wilcoxon'.
-#'   If NULL, reads from \code{@config$test} if available.
-#' @param randomizations \code{numeric}. Number of randomizations. Default: 100.
-#'   If NULL, reads from \code{@config$randomizations} if available.
-#' @param pcorr \code{character}. P-value correction method. Default: 'BH'.
-#'   If NULL, reads from \code{@config$pcorr} if available.
-#' @param assayno \code{numeric}. Assay number to use. Default: 1.
-#'   If NULL, reads from \code{@config$assayno} if available.
-#' @param verbose \code{logical}. Print progress messages. Default: TRUE.
-#'   If not specified, reads from \code{@config$verbose} if available.
-#' @param paired \code{logical}. Whether data is paired. Default: FALSE.
-#'   If not specified, reads from \code{@config$paired} if available.
-#' @param pairs \code{character} or \code{numeric} vector or \code{NULL}. 
-#' Pairing information for paired designs.
-#'   When \code{paired = TRUE}, specifies which samples are paired 
-#'   (e.g., c(1,1,2,2,3,3) for 3 pairs).
-#'   Default: NULL. When NULL with \code{paired = TRUE}, auto-extracted 
-#'   from colData 'sample_base' column if available.
-#' @param exact \code{logical}. Use exact test. Default: FALSE.
-#'   If not specified, reads from \code{@config$exact} if available.
-#' @param pseudocount \code{numeric}. Pseudocount for normalization. Default: 0.
-#'   If NULL, reads from \code{@config$pseudocount} if available.
-#' @param nthreads \code{numeric} or  \code{NULL}.  Number of CPU threads for 
-#' parallel processing.
-#'   If NULL, reads from \code{@config$nthreads} (or defaults to 1).
-#' @param robust_loss_type \code{character}.  Robust regression loss type.
-#'  Default:  'huber'.
-#'   If NULL, reads from \code{@config$robust_loss_type} if available.
-#' @param robust_scale_method \code{character}.  Robust scaling method.
-#'  Default:  'mad'.
-#'   If NULL, reads from \code{@config$robust_scale_method} if available.
-#' @param output_file \code{character} or  \code{NULL}.
-#'  Optional file path to save results.
-#' Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables).
-#' Default: NULL (no file output).
-#' @param ... Additional arguments passed to the base function.
-#'
-#' @return Returns the modified \code{analysis} object invisibly with 
-#' results stored in
-#'   \code{analysis@pairwise_results$difference}.
-#'
-#' @details
-#' **IMPORTANT:
-#' ** Requires diversity results to exist first via \code{calculate_diversity()}.
-#' This wrapper extracts the diversity SummarizedExperiment from \code{@diversity_results},
-#' not the raw input data in \code{@se}.
-#'  This ensures you're comparing diversity values
-#' between control and treatment groups, not raw abundance data.
-#'
-#' **Parameter resolution priority** (explicit > @config > auto-detect > error):
-#' \itemize{
-#'   \item \code{control}:  Uses explicit arg,  else \code{@config$control},
-#'  else error
-#'   \item \code{nthreads}:  Uses explicit arg,  else \code{@config$nthreads},
-#'  else 1
-#'   \item \code{condition_col} (sample grouping):
-#'  Uses \code{@config$condition_col},
-#' else auto-detects from colData columns: 'group', 'sample_type',
-#' 'condition'
-#' }
-#'
-#' @importFrom utils write.table
-#' @seealso
-#' \code{\link{calculate_diversity}} for computing diversity.
-#'
-#' @examples
-#' # Load example data (matching TSENAT.Rmd workflow)
-#' data(readcounts)
-#' readcounts <- as.matrix(readcounts)
-#' mode(readcounts) <- 'numeric'
-#' metadata_df <- read.table(
-#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
-#'   header = TRUE, sep = '\t'
-#' )
-#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
-#' 'TSENAT')
-#' 
-#' # Load TPM and effective length from vignette data
-#' data(readcounts)  # Also loads tpm and effective_length
-#' 
-#' # Create config (metadata passed as explicit parameter to build_analysis)
-#' config <- TSENAT_config(
-#'   sample_col = 'sample',
-#'   condition_col = 'condition',
-#'   q = seq(0, 2, by = 0.05),
-#'   paired = FALSE
-#' )
-#' 
-
-# ============================================================================
 # TEST RANKBASED ASSUMPTIONS WRAPPER
 # ============================================================================
 
@@ -383,7 +265,7 @@ setMethod("calculate_rank_assumptions", signature(analysis = "TSENATAnalysis"),
 #' analysis <- filter_analysis(analysis, stringency = 'severe')
 #' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
 #' analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
-#' analysis <- calculate_lm(analysis, method = 'gam')
+#' analysis <- suppressWarnings(calculate_lm(analysis, method = 'gam'))
 #' # Note: calculate_concordance requires results from both
 #' # calculate_rank_test and calculate_rank_assumptions
 #'
@@ -647,14 +529,23 @@ setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_lm, analy
 #' analysis <- build_analysis(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df, config = config,
 #'   tpm = tpm, effective_length = effective_length)
-#' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
-#' = 200)
-#' analysis <- calculate_diversity(analysis, q = c(0.5, 1, 1.5), verbose
-#' = FALSE)
-#' analysis <- calculate_divergence(analysis, q = c(0.5, 1, 1.5), verbose
-#' = FALSE)
+#' analysis <- filter_analysis(
+#'   analysis,
+#'   min_samples = 1,
+#'   subset_n_genes = 200
+#' )
+#' analysis <- calculate_diversity(
+#'   analysis,
+#'   q = c(0.5, 1, 1.5),
+#'   verbose = FALSE
+#' )
+#' analysis <- calculate_divergence(
+#'   analysis,
+#'   q = c(0.5, 1, 1.5),
+#'   verbose = FALSE
+#' )
 #' p_global <- plot_divergence_spectrum(analysis)
-#' print(p_global)
+#' # print(p_global)
 #'
 #' @seealso
 #' \code{\link{calculate_divergence}} for computing divergence.
@@ -1010,11 +901,18 @@ setMethod("plot_concordance", "TSENATAnalysis", function(analysis, verbose = FAL
 #' )
 #'
 #' analysis <- filter_analysis(analysis, stringency = 'severe')
-#' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5), verbose
-#' = FALSE)
-#' analysis <- calculate_lm(analysis, method = 'gam', verbose
-#' = FALSE)
+#' analysis <- calculate_diversity(
+#'   analysis,
+#'   q = c(0.5, 1.0, 1.5, 2.0, 2.5),
+#'   verbose = FALSE
+#' )
+#' analysis <- suppressWarnings(calculate_lm(
+#'   analysis,
+#'   method = 'gam',
+#'   verbose = FALSE
+#' ))
 #' plot_file <- plot_expression(analysis, top_n = 3)
+#' # print(plot_file) 
 #'
 #' @seealso
 #' \code{\link{TSENATAnalysis}} for object structure
@@ -1205,14 +1103,20 @@ plot_expression <- function(analysis, gene = NULL, condition_col = NULL,
 #' )
 #'
 #' analysis <- filter_analysis(analysis, stringency = 'severe')
-#' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5), verbose
-#' = FALSE)
-#' analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5), verbose
-#' = FALSE)
-#' analysis <- calculate_lm(analysis, method = 'gam')
+#' analysis <- calculate_diversity(
+#'   analysis,
+#'   q = c(0.5, 1.0, 1.5, 2.0, 2.5),
+#'   verbose = FALSE
+#' )
+#' analysis <- calculate_divergence(
+#'   analysis,
+#'   q = c(0.5, 1.0, 1.5, 2.0, 2.5),
+#'   verbose = FALSE
+#' )
+#' analysis <- suppressWarnings(calculate_lm(analysis, method = 'gam'))
 #' analysis <- calculate_effect_sizes(analysis)
 #' p_dist <- plot_divergence_distribution(analysis)
-#' print(p_dist)
+#' # print(p_dist)
 #'
 #' @seealso
 #' \code{\link{calculate_effect_sizes}} for computing effect sizes.
@@ -1356,12 +1260,21 @@ plot_divergence_distribution <- function(analysis, threshold = 0.1, output_file 
 #' )
 #'
 #' analysis <- filter_analysis(analysis, stringency = 'severe')
-#' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5), verbose
-#' = FALSE)
-#' analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
-#' analysis <- calculate_lm(analysis, method = 'gam')
-#' analysis <- calculate_jis(analysis, q = c(0.5, 1, 1.5),
-#'   n_bootstrap = 50)
+#' analysis <- calculate_diversity(
+#'   analysis,
+#'   q = c(0.5, 1.0, 1.5, 2.0, 2.5),
+#'   verbose = FALSE
+#' )
+#' analysis <- calculate_divergence(
+#'   analysis,
+#'   q = c(0.5, 1.0, 1.5, 2.0, 2.5)
+#' )
+#' analysis <- suppressWarnings(calculate_lm(analysis, method = 'gam'))
+#' analysis <- calculate_jis(
+#'   analysis,
+#'   q = c(0.5, 1, 1.5),
+#'   n_bootstrap = 50
+#' )
 #' heatmap_file <- plot_jis_delta(analysis, n_genes
 #' = 2)
 #'
@@ -1554,10 +1467,10 @@ plot_jis_delta <- function(analysis, n_genes = 4, lm_results = NULL,
 #'
 #' analysis <- filter_analysis(analysis, stringency = 'severe')
 #' analysis <- calculate_diversity(analysis, q = seq(0.2, 2, by = 0.4))
-#' analysis <- calculate_lm(analysis, method = 'gam')
+#' analysis <- suppressWarnings(calculate_lm(analysis, method = 'gam'))
 #' 
 #' p_gam <- plot_lm_gam(analysis, n_top = 2, sig_alpha = 0.15)
-#' print(p_gam)
+#' # print(p_gam)
 #'
 #' @export
 plot_lm_gam <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL,

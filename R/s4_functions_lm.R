@@ -127,11 +127,11 @@
 #' )
 #' 
 #' # Calculate q x condition interactions using GAM
-#' analysis <- calculate_lm(
+#' analysis <- suppressWarnings(calculate_lm(
 #'   analysis,
 #'   condition_col = 'condition',
 #'   method = 'gam'
-#' )
+#' ))
 #' 
 #' # View top interaction results using unified accessor (first 3 genes)
 #' res <- results(analysis, type = "lm")

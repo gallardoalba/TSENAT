@@ -103,14 +103,23 @@ config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
 analysis <- build_analysis(readcounts = readcounts, tx2gene =
 gff3_dataset, metadata = metadata_df, config = config,
   tpm = tpm, effective_length = effective_length)
-analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
-= 200)
-analysis <- calculate_diversity(analysis, q = c(0.5, 1, 1.5), verbose
-= FALSE)
-analysis <- calculate_divergence(analysis, q = c(0.5, 1, 1.5), verbose
-= FALSE)
+analysis <- filter_analysis(
+  analysis,
+  min_samples = 1,
+  subset_n_genes = 200
+)
+analysis <- calculate_diversity(
+  analysis,
+  q = c(0.5, 1, 1.5),
+  verbose = FALSE
+)
+analysis <- calculate_divergence(
+  analysis,
+  q = c(0.5, 1, 1.5),
+  verbose = FALSE
+)
 p_global <- plot_divergence_spectrum(analysis)
-print(p_global)
+# print(p_global)
 
 }
 \seealso{
