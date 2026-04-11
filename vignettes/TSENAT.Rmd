@@ -168,31 +168,15 @@ From an information theory perspective [@I051; @I002], entropy measures the unce
 
 The **q parameter acts as a sensitivity dial** that controls which aspects of the distribution become visible:
 
-- **q < 1** (e.g., 0.5): Emphasizes rare, low-abundance isoforms; useful for discovering cryptic or condition-specific variants
-- **q = 1**: Recovers Shannon entropy; provides balanced sensitivity across all abundance scales
-- **q = 2** (and beyond): Emphasizes dominant, abundant isoforms; captures core expression architecture
-
-Consider a simple example:
-- A gene with 5 equally abundant isoforms has high entropy at all q values
-- A gene where 1 isoform dominates shows different patterns: at low q, rare variants still contribute high entropy; at high q, the entropy drops sharply toward the dominant form
-
-This scale-dependent nature reveals biological signal invisible to abundance- or proportion-based summaries alone. In TSENAT, you'll explore this multi-scale landscape using `calculate_diversity()` and visualize q-curves with `plot_diversity_spectrum()`.
-
-## Special Cases and Limiting Behavior
-
-Tsallis entropy exhibits important special cases [@I013] that appear when you set specific entropic indices:
-
-- **q = 0 (Richness)**: $S_0 = m - 1$ (number of expressed isoforms). Pure species count, most minimal assumption.
-- **q = 1 (Shannon)**: $S_1(p) = -\sum_i p_i \log p_i$. Standard information entropy [@I051]; optimal estimator of information content.
-- **q = 2 (Gini-Simpson)**: $S_2 = 1 - \sum_i p_i^2$. Probability that two randomly drawn transcripts differ [@I022]; robust to rare variants.
-
-**Normalized entropy**: For genes with different isoform counts, normalize by maximum possible entropy: $\tilde{S}_q = \frac{S_q(p)}{S_{q,\max}(m)}$ where $S_{q,\max}(m) = \frac{1-m^{1-q}}{q-1}$. This enables fair comparison across genes.
+- **q < 1** (e.g., 0.5): Emphasizes rare, low-abundance isoforms; useful for discovering cryptic or condition-specific variants.
+- **q = 1**: Recovers Shannon entropy; provides balanced sensitivity across all abundance scales.
+- **q > 1**: Emphasizes dominant, abundant isoforms; captures core expression architecture.
 
 ## Biological Potentiality: Why TSENAT Matters
 
 Tsallis entropy is grounded in Shannon's foundational information theory [@I051], generalized by Renyi's family of entropies [@I003], and extended by Tsallis [@I002]. The key innovation is a tunable parameter `q` that controls sensitivity to different aspects of the diversity distribution-which aspects of isoform heterogeneity become visible depends on the entropic index chosen [@I005; @I007; @I009].
 
-As stated explicitly in the mathematical literature [@I013]: "This introduces the formal possibility not to set rare and common events on the same footing, as in BG or Shannon statistics, but it enhances or depresses them according to the parameter chosen." This principle is formalized in the Hill numbers framework [@I021], which unifies diverse entropy-based measures (richness, Shannon, Simpson) as different manifestations of the same parametric family with varying sensitivity to abundance scales.
+As stated explicitly in the mathematical literature: "This introduces the formal possibility not to set rare and common events on the same footing, as in BG or Shannon statistics, but it enhances or depresses them according to the parameter chosen." This principle is formalized in the Hill numbers framework [@I021], which unifies diverse entropy-based measures (richness, Shannon, Simpson) as different manifestations of the same parametric family with varying sensitivity to abundance scales.
 
 The flexibility is crucial for isoform analysis. The concept of "true diversity" [@I021] emphasizes that diversity can be decomposed into two independent components: species richness (how many distinct isoforms exist) and evenness (how evenly distributed they are across the population). Two genes can have identical Shannon entropy yet differ dramatically in isoform structure: one might be dominated by a single abundant isoform (maximizing apparent heterogeneity at low `q` where rare variants matter), while another distributes transcripts across many isoforms equally (maximizing heterogeneity across all `q` values). By tuning the q-parameter according to Tsallis entropy theory [@I005; @I063], we can vary the weight on rare events (high q) to reveal dominant isoform patterns, or enhance rare-event weight (low q) to reveal cryptic isoform complexity. TSENAT's multi-*q* approach captures this full spectrum of isoform diversity, enabling researchers to detect both rare isoform innovations and robust isoform usage patterns [@C113] by exploring the q-curve across multiple scales.
 
@@ -403,7 +387,8 @@ if (!is.null(sample_data) && nrow(sample_data) > 0) {
         linesep = ""
     ) %>%
     kableExtra::kable_styling(
-      bootstrap_options = c("striped", "hover", "condensed"),
+      bootstrap_options = c("striped", "hover"),
+      full_width = TRUE,
       latex_options = c("scale_down")
     )
 } else {
@@ -470,7 +455,8 @@ if (!is.null(sample_qc) && nrow(sample_qc) > 0) {
       linesep = ""
   ) %>%
   kableExtra::kable_styling(
-    bootstrap_options = c("striped", "hover", "condensed"),
+    bootstrap_options = c("striped", "hover"),
+    full_width = TRUE,
     latex_options = c("scale_down")
   )
 }
@@ -552,7 +538,7 @@ print(combined_plot)
 
 ## Transcript Switching Across Diversity Scales
 
-The LM interaction test (from `calculate_lm()`) tests whether condition effects depend on which diversity scale (q-value) you examine. This section identifies **which individual transcripts** drive these scale-dependent patterns, revealing whether the same transcripts switch across all scales or whether different regulatory mechanisms dominate at rare versus abundant isoform scales.
+The LM interaction tests whether condition effects depend on which diversity scale (q-value) you examine. This section identifies **which individual transcripts** drive these scale-dependent patterns, revealing whether the same transcripts switch across all scales or whether different regulatory mechanisms dominate at rare versus abundant isoform scales.
 
 ### Two-Stage Analysis Approach
 
@@ -620,7 +606,8 @@ if (exists("tables_result") && is.list(tables_result) &&
                          longtable = knitr::is_latex_output(), 
                          linesep = "") %>%
             kableExtra::kable_styling(
-              bootstrap_options = c("striped", "hover", "condensed"),
+              bootstrap_options = c("striped", "hover"),
+              full_width = TRUE,
               latex_options = c("scale_down")
             ))
     }
@@ -695,7 +682,8 @@ if (exists("analysis")) {
             linesep = ""
         ) %>%
         kableExtra::kable_styling(
-          bootstrap_options = c("striped", "hover", "condensed"),
+          bootstrap_options = c("striped", "hover"),
+          full_width = TRUE,
           latex_options = c("scale_down")
         )
     } else if (is.list(div_results) && length(div_results) > 0) {
@@ -714,7 +702,8 @@ if (exists("analysis")) {
                 linesep = ""
             ) %>%
             kableExtra::kable_styling(
-              bootstrap_options = c("striped", "hover", "condensed"),
+              bootstrap_options = c("striped", "hover"),
+              full_width = TRUE,
               latex_options = c("scale_down")
             )
         }
@@ -861,7 +850,8 @@ if (!is.null(lm_res_results) && nrow(lm_res_results) > 0) {
                             longtable = knitr::is_latex_output(),
                             linesep = "") %>%
                         kableExtra::kable_styling(
-                          bootstrap_options = c("striped", "hover", "condensed"),
+                          bootstrap_options = c("striped", "hover"),
+                          full_width = TRUE,
                           latex_options = c("scale_down")
                         ))
                     } else {

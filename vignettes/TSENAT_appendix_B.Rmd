@@ -219,7 +219,8 @@ knitr::kable(entropy_summary,
              longtable = knitr::is_latex_output(),
              linesep = "") %>%
   kableExtra::kable_styling(
-    bootstrap_options = c("striped", "hover", "condensed"),
+    bootstrap_options = c("striped", "hover"),
+    full_width = TRUE,
     latex_options = c("scale_down")
   ) %>%
   kableExtra::footnote(general = "Data from complete entropy matrix across all q-values and samples.")
@@ -248,7 +249,8 @@ knitr::kable(data_characteristics,
              longtable = knitr::is_latex_output(),
              linesep = "") %>%
   kableExtra::kable_styling(
-    bootstrap_options = c("striped", "hover", "condensed"),
+    bootstrap_options = c("striped", "hover"),
+    full_width = TRUE,
     latex_options = c("scale_down")
   ) %>%
   kableExtra::footnote(general = "All metrics support validity of paired-design rank-based inference.")
@@ -302,7 +304,8 @@ rank_summary_stats <- data.frame(
 
 knitr::kable(rank_summary_stats, caption = "Supplementary Table 3 | Scheirer-Ray-Hare Test Results Summary. Rank-based nonparametric test of *q* × condition interactions.", label = "tab:srh-test-summary", align = c("l", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
   kableExtra::kable_styling(
-    bootstrap_options = c("striped", "hover", "condensed"),
+    bootstrap_options = c("striped", "hover"),
+    full_width = TRUE,
     latex_options = c("scale_down")
   ) %>%
   kableExtra::footnote(general = "Scheirer-Ray-Hare test: nonparametric rank-based ANOVA for paired designs.")
@@ -361,7 +364,8 @@ if (nrow(rank_sig) > 0) {
                  longtable = knitr::is_latex_output(),
                  linesep = "") %>%
     kableExtra::kable_styling(
-      bootstrap_options = c("striped", "hover", "condensed"),
+      bootstrap_options = c("striped", "hover"),
+      full_width = TRUE,
       latex_options = c("scale_down")
     ) %>%
     kableExtra::footnote(general = "Effect size η² quantifies strength of *q* × condition interaction; top 10 genes ranked by significance. P-values < 0.0001 shown in scientific notation for precision.")
@@ -425,7 +429,8 @@ summary_stats <- data.frame(
 
 knitr::kable(summary_stats, caption = "GAM Results Summary", align = c("l", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
   kableExtra::kable_styling(
-    bootstrap_options = c("striped", "hover", "condensed"),
+    bootstrap_options = c("striped", "hover"),
+    full_width = TRUE,
     latex_options = c("scale_down")
   ) %>%
   kableExtra::footnote(general = "Aggregate statistics across all genes tested by GAM method; effect size > 30% indicates strong biological signal.")
@@ -493,7 +498,8 @@ if ("p_interaction" %in% colnames(gam_results)) {
                    longtable = knitr::is_latex_output(),
                    linesep = "") %>%
       kableExtra::kable_styling(
-        bootstrap_options = c("striped", "hover", "condensed"),
+        bootstrap_options = c("striped", "hover"),
+        full_width = TRUE,
         latex_options = c("scale_down")
       ) %>%
       kableExtra::footnote(general = "Top 10 genes ranked by significance; p-values < 0.001 shown in scientific notation; effect size range 0-100%.")
@@ -568,7 +574,8 @@ knitr::kable(concordance_metrics,
              longtable = knitr::is_latex_output(),
              linesep = "") %>%
   kableExtra::kable_styling(
-    bootstrap_options = c("striped", "hover", "condensed"),
+    bootstrap_options = c("striped", "hover"),
+    full_width = TRUE,
     latex_options = c("scale_down")
   ) %>%
   kableExtra::footnote(general = "Comparison of significant genes (p < 0.05) detected by GAM vs Scheirer-Ray-Hare methods; high concordance validates robustness.")
@@ -593,7 +600,8 @@ if (!is.null(agreement_table) && length(agreement_table) > 0) {
                longtable = knitr::is_latex_output(),
                linesep = "") %>%
   kableExtra::kable_styling(
-    bootstrap_options = c("striped", "hover", "condensed"),
+    bootstrap_options = c("striped", "hover"),
+    full_width = TRUE,
     latex_options = c("scale_down")
   ) %>%
   kableExtra::footnote(general = "Categories: Concordant (both methods, p < 0.05); GAM-only; Scheirer-Ray-Hare-only; Neither (both p ≥ 0.05).")
@@ -625,7 +633,8 @@ if (!is.null(high_conf) && nrow(high_conf) > 0) {
                caption = sprintf("Robust Entropic Order Index Interactions: High-Confidence Genes Detected by Both Methods (n=%d, ranked by statistical significance)", nrow(high_conf)),
                align = c("l", "r", "r", "r", "r")) %>%
   kableExtra::kable_styling(
-    bootstrap_options = c("striped", "hover", "condensed"),
+    bootstrap_options = c("striped", "hover"),
+    full_width = TRUE,
     latex_options = c("scale_down")
   ) %>%
   kableExtra::footnote(general = "High-confidence genes: significant by both GAM and Scheirer-Ray-Hare rank test (adj p < 0.05); $\\eta^2$ = rank test effect size.")
