@@ -10,7 +10,7 @@ Standard differential expression tools (DESeq2, edgeR) detect changes in total t
 
 ## The Solution
 
-TSENAT captures **isoform diversity** independently of which specific isoforms are abundant. The method uses **Tsallis entropy** with a sensitivity parameter `q` (the entropic index) that acts like a lens:
+TSENAT captures isoform diversity independently of which specific isoforms are abundant. The method uses Tsallis entropy with a sensitivity parameter q (the entropic index) that acts like a lens:
 
 - **Low q** (e.g., 0.5): Focuses on rare isoforms - detects if diversity is maintained or collapsed
 
@@ -18,7 +18,7 @@ TSENAT captures **isoform diversity** independently of which specific isoforms a
 
 - **High q** (e.g., 2.0): Focuses on dominant isoforms - detects dominance shifts
 
-By examining diversity across multiple entropic indices (q-values), you identify **scale-dependent** diversity changes - the hallmark of coordinate isoform switching.
+By examining diversity across multiple entropic indices (q-values), you identify scale-dependent diversity changes - the hallmark of coordinate isoform switching.
 
 ## The Mathematics Behind Tsallis Entropy
 
@@ -33,8 +33,6 @@ This elegant formula unifies diverse diversity concepts at specific entropic ind
 - **q = 0**: Richness — Simple count of expressed isoforms; emphasizes rare variants most strongly.
 - **q = 1**: Shannon entropy — Standard information-theoretic measure; balanced weighting across scales.
 - **q = 2**: Gini-Simpson index — Probability that two randomly-drawn transcripts are different; robust to rare variants.
-
-By examining diversity across multiple entropic indices (q-values), you identify **scale-dependent** diversity changes—the hallmark of coordinate isoform switching.
 
 ### Divergence Analysis: Measuring Information-Theoretic Distance Between Conditions
 

@@ -79,9 +79,8 @@
 #' @return Data frame with columns:
 #'   - gene: Gene identifier
 #'   - n_q_values_tested: Number of q-levels tested for this gene
-#' - f_statistic: Test statistic (H-statistic for Kruskal-Wallis,
-#' chi-squared for Friedman)
-#'   - p_value: P-value for H0: 'No q*gene interaction' (unadjusted)
+#' - f_statistic: F-statistic from Scheirer-Ray-Hare test (two-way ANOVA on ranked data)
+#'   - p_value: P-value for H0: 'No Q×Condition interaction' (unadjusted)
 #'   - adj_p_value: Adjusted p-value using multicorr method (NEW - March 2026)
 #'   - ss_interaction: Sum of squares for q-effect (interaction sum of squares)
 #'   - ss_residual: Sum of squares for residuals
@@ -134,50 +133,31 @@
 #'     that differs significantly between conditions
 #'   
 #'   When condition_col provided, automatically uses:
-#' - **Paired designs** (paired=TRUE): Two-way Friedman test (q
-#' within-subjects, condition between-subjects)
-#' - **Unpaired designs** (paired=FALSE): Scheirer-Ray-Hare test
-#' (non-parametric two-way ANOVA)
+#' - **Paired designs** (paired=TRUE): Scheirer-Ray-Hare test with within-subject ranks (preserves subject-level dependence)
+#' - **Unpaired designs** (paired=FALSE): Scheirer-Ray-Hare test with global ranks
+#' Both test for Q×Condition interactions on ranked data (non-parametric two-way ANOVA)
 #'
 #' @param test Character; test selection method (default: 'auto'). Options:
-#' - 'auto': Automatically select appropriate rank test based on data
-#' characteristics
-#'   - 'kruskal-wallis': Kruskal-Wallis H test for unpaired designs
-#'   - 'friedman': Friedman test for paired designs (requires subject_col)
-#'   - 'art': Aligned Rank Transform test for designs with heteroscedasticity
+#' - 'auto': Automatically select appropriate rank test based on data characteristics
+#'   - Main effect (no condition_col): 'kruskal-wallis' (unpaired) or 'friedman' (paired)
+#'   - Interaction (condition_col provided): 'scheirer-ray-hare' (both paired and unpaired)
+#'   - 'art': Aligned Rank Transform for designs with heteroscedasticity
 #'
 #' @param nthreads Integer; number of parallel threads for computation
 #' (default: 1).
 #'   Use nthreads > 1 for faster processing on multi-core systems. Particularly
 #'   beneficial when multicorr='westfall-young' with high wy_randomizations.
 #'   
-#'   **Paired design implementation (March 2026):**
-#' When paired=TRUE, uses CONDITIONAL paired rank test selection (like
-#' unpaired mode):
-#' - **Heteroscedasticity detected** -> Aligned Rank Transform Friedman
-#' (ART-F)
-#'     - More powerful than standard Friedman with variance heterogeneity
-#'     - Handles treatment-dependent variance drift
-#'   - **Extreme skewness detected** -> Robust (Median-based) Friedman  
-#'     - Resistant to extreme outliers and heavy-tailed distributions
-#'     - Based on median comparisons rather than rank sums
-#'   - **Default case** -> Standard Friedman test
+#'   **Paired and unpaired Q×Condition interaction testing (March 2026):**
+#' Both use Scheirer-Ray-Hare test (two-way ANOVA on ranked data):
+#' - **Paired designs** (paired=TRUE): Ranks computed within each subject, preserves subject-level dependence
+#' - **Unpaired designs** (paired=FALSE): Ranks computed globally across entire dataset
+#' Both then apply identical Scheirer-Ray-Hare framework for interaction testing.
+#' This unified approach (revised March 2026) properly handles multi-q data with AR(1) correlation
+#' via Westfall-Young permutation when multicorr='westfall-young'.
 #'   
-#' The conditional selection improves power compared to standard Friedman
-#' alone:
-#'   - ART-F: ~15-25% power gain with heteroscedasticity
-#'   - Robust Friedman: ~25-40% power gain with extreme skewness
-#'   - No loss when characteristics not detected (falls back to Friedman)
-#'   
-#'   Theory: Both ART-F and Robust Friedman preserve blocking structure while
-#' addressing specific data violations better than standard Friedman (Papers
-#' S181-S187).
-#'   Combined with Westfall-Young permutation and AR(1) correction for q-values:
-#'   - Power ~85-90% maintained across 39 q-values
-#'   - Exact FWER control (not asymptotic)
-#'   - No distributional assumptions
-#'   
-#' (Papers S165-S166, S051, S181-S187; NEW - March 2026)
+#'   Theory: Scherier-Ray-Hare on ranked data is robust to distributional violations
+#'   and properly tests two-way interactions (Papers S165-S166, S181-S187).
 #' @param alpha Numeric; significance level for p-value correction methods
 #' (default: 0.05). 
 #'   Used by all multiple testing correction methods (Hochberg, 

@@ -119,6 +119,7 @@ jobs:
           name: Run checks with parallel compilation
           command: |
             export _R_CHECK_FORCE_SUGGESTS_=false
+            export NOT_CRAN=true
             R CMD check --no-manual --ignore-vignettes *.tar.gz
           no_output_timeout: 30m
       - run:
@@ -128,6 +129,7 @@ jobs:
             CXX: /usr/bin/g++
             FC: /usr/bin/gfortran
             F77: /usr/bin/gfortran
+            NOT_CRAN: "true"
           command: |
             if [ -f tools/run_coverage.R ]; then
               # Use covr::codecov() to upload directly (includes --upload flag)
