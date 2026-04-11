@@ -55,37 +55,37 @@ TSENAT implements a complete analytical pipeline:
 
 ## Core Functions
 
-- [`tsenat`](https://gallardoalba.github.io/TSENAT/reference/tsenat.md):
+- [`TSENAT`](https://gallardoalba.github.io/TSENAT/reference/TSENAT.md):
 
   Main orchestration function. Executes complete pipeline with
   configurable method backends and parallelization.
 
-- [`tsenat_config`](https://gallardoalba.github.io/TSENAT/reference/tsenat_config.md):
+- [`TSENAT_config`](https://gallardoalba.github.io/TSENAT/reference/TSENAT_config.md):
 
   Configure analysis parameters: q-values, condition grouping, sample
   pairing, and method selection.
 
-- [`calculate_diversity_s4`](https://gallardoalba.github.io/TSENAT/reference/calculate_diversity_s4.md):
+- [`calculate_diversity`](https://gallardoalba.github.io/TSENAT/reference/calculate_diversity.md):
 
   Compute Tsallis entropy and Hill numbers. Vectorized over genes and
   q-values with numerical stability safeguards.
 
-- [`jackknife_entropy_outliers_s4`](https://gallardoalba.github.io/TSENAT/reference/jackknife_entropy_outliers_s4.md):
+- [`calculate_jeo`](https://gallardoalba.github.io/TSENAT/reference/calculate_jeo.md):
 
   Resampling-based confidence intervals for diversity. Identifies
   outlier genes and validates q-value signal.
 
-- [`calculate_lm_interaction_s4`](https://gallardoalba.github.io/TSENAT/reference/calculate_lm_interaction_s4.md):
+- [`calculate_lm`](https://gallardoalba.github.io/TSENAT/reference/calculate_lm.md):
 
   Statistical testing for gene-by-condition interactions. LMM, GAM, and
   rank-based approaches.
 
-- [`calculate_divergence_s4`](https://gallardoalba.github.io/TSENAT/reference/calculate_divergence_s4.md):
+- [`calculate_divergence`](https://gallardoalba.github.io/TSENAT/reference/calculate_divergence.md):
 
   Tsallis divergence between groups with effect size (Cohen's d,
   rank-biserial) and hypothesis testing.
 
-- [`filter_analysis_s4`](https://gallardoalba.github.io/TSENAT/reference/filter_analysis_s4.md):
+- [`filter_analysis`](https://gallardoalba.github.io/TSENAT/reference/filter_analysis.md):
 
   Filter genes by diversity, effect size, or interaction significance
   (adjustable FDR, Benjamini-Hochberg).
@@ -207,21 +207,24 @@ Isoform switching and transcriptomics:
 
 [`TSENATAnalysis-class`](https://gallardoalba.github.io/TSENAT/reference/TSENATAnalysis-class.md)
 — Central container unifying all analysis components. Access results via
-accessor methods:
-[`diversity`](https://gallardoalba.github.io/TSENAT/reference/diversity.md),
-[`lmResults`](https://gallardoalba.github.io/TSENAT/reference/lmResults.md),
-[`jeoResults`](https://gallardoalba.github.io/TSENAT/reference/jeoResults.md),
-[`jisResults`](https://gallardoalba.github.io/TSENAT/reference/jisResults.md),
-[`getMeta`](https://gallardoalba.github.io/TSENAT/reference/getMeta.md),
-[`getSE`](https://gallardoalba.github.io/TSENAT/reference/getSE.md).
+slots: `@diversity_results`, `@lm_results`, `@jackknife_results`,
+`@divergence_results`, or accessor methods
+[`se`](https://gallardoalba.github.io/TSENAT/reference/TSENATAnalysis-se.md),
+`metadata<-`, and
+[`results`](https://gallardoalba.github.io/TSENAT/reference/results.md).
 
 ## See also
 
-Useful links:
-
-- <https://gallardoalba.github.io/TSENAT>
-
-- Report bugs at <https://github.com/gallardoalba/TSENAT/issues>
+[`TSENAT`](https://gallardoalba.github.io/TSENAT/reference/TSENAT.md)
+for running the complete analysis pipeline.
+[`se`](https://gallardoalba.github.io/TSENAT/reference/TSENATAnalysis-se.md),
+`metadata<-`, and
+[`results`](https://gallardoalba.github.io/TSENAT/reference/results.md)
+for accessor functions.
+[`TSENATAnalysis-class`](https://gallardoalba.github.io/TSENAT/reference/TSENATAnalysis-class.md)
+for the S4 object structure.
+[`build_analysis`](https://gallardoalba.github.io/TSENAT/reference/build_analysis.md)
+for creating TSENATAnalysis objects.
 
 ## Author
 

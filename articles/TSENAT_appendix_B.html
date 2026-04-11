@@ -64,7 +64,7 @@
 Gallardo <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2026-04-09</h4>
+            <h4 data-toc-skip class="date">2026-04-11</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gallardoalba/TSENAT/blob/HEAD/vignettes/TSENAT_appendix_B.Rmd" class="external-link"><code>vignettes/TSENAT_appendix_B.Rmd</code></a></small>
       <div class="d-none name"><code>TSENAT_appendix_B.Rmd</code></div>
@@ -73,29 +73,29 @@ Gallardo <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a
     
     
 <div class="section level2">
-<h2 id="overview-non-parametric-validation-of-q-value-group-interactions">Overview: Non-Parametric Validation of q-Value * Group
-Interactions<a class="anchor" aria-label="anchor" href="#overview-non-parametric-validation-of-q-value-group-interactions"></a>
+<h2 id="overview-non-parametric-validation-of-entropic-index-group-interactions-q-values">Overview: Non-Parametric Validation of Entropic Index × Group
+Interactions (q-values)<a class="anchor" aria-label="anchor" href="#overview-non-parametric-validation-of-entropic-index-group-interactions-q-values"></a>
 </h2>
 <div class="section level3">
 <h3 id="purpose-and-rationale">Purpose and Rationale<a class="anchor" aria-label="anchor" href="#purpose-and-rationale"></a>
 </h3>
-<p>Primary Goal: Validate that discoveries of scale-dependent q-value *
-group interactions from linear models generalize to non-parametric
-statistical frameworks with minimal assumptions.</p>
+<p>Primary Goal: Validate that discoveries of scale-dependent entropic
+index × group interactions from linear models generalize to
+non-parametric statistical frameworks with minimal assumptions.</p>
 <p>TSENAT’s default approach employs <strong>linear models</strong> to
-test for q-value * group effects in Tsallis entropy. While
+test for entropic index × group effects in Tsallis entropy. While
 computationally efficient and well-characterized, linear models assume:
 - Normally distributed residuals (reasonable after appropriate
-transformation) - Homogeneous variance across q-values (often violated
-in diversity metrics) - Additive effects of group and q-value on entropy
-(may oversimplify nonlinear relationships)</p>
+transformation) - Homogeneous variance across entropic indices (often
+violated in diversity metrics) - Additive effects of group and entropic
+index on entropy (may oversimplify nonlinear relationships)</p>
 <p>This appendix provides two independent, non-parametric alternatives
 that:</p>
 <ol style="list-style-type: decimal">
 <li>Make minimal distributional assumptions, relying only on ranks or
 data-adaptive smoothing</li>
-<li>Explicitly handle q-ordered structure, treating q-values as explicit
-sequential measurements</li>
+<li>Explicitly handle the ordered structure of entropic indices,
+treating them as sequential measurements (q-values)</li>
 <li>Adapt to real-world heteroscedasticity, automatically weighting
 measurements by entropy variance</li>
 <li>Provide independent validation, allowing comparison of linear
@@ -105,63 +105,40 @@ vs. non-parametric findings</li>
 <div class="section level3">
 <h3 id="two-complementary-validation-approaches">Two Complementary Validation Approaches<a class="anchor" aria-label="anchor" href="#two-complementary-validation-approaches"></a>
 </h3>
-<div class="section level4">
-<h4 id="method-1-generalized-additive-models-gam-with-arima-ordered-measurement-structure">Method 1: Generalized Additive Models (GAM) with ARIMA-Ordered
-Measurement Structure<a class="anchor" aria-label="anchor" href="#method-1-generalized-additive-models-gam-with-arima-ordered-measurement-structure"></a>
-</h4>
+<p><strong>Method 1</strong>: Generalized Additive Models (GAM) with
+ARIMA-Ordered Measurement Structure.</p>
 <ul>
 <li>Distributional assumption: None required; uses non-parametric basis
-functions (thin-plate splines)</li>
-<li>Treatment of q-ordering: Treats q-values as time-like ordered
-measurements, applies ARIMA(1,1,0) differencing for autocorrelation</li>
+functions (thin-plate splines).</li>
+<li>Treatment of entropic structure: Treats q-values as time-like
+ordered measurements, applies ARIMA(1,1,0) differencing for
+autocorrelation.</li>
 <li>Heteroscedasticity handling: Automatically detects variance
-heterogeneity; applies optimal weighting</li>
+heterogeneity; applies optimal weighting.</li>
 <li>Key advantage: Captures smooth nonlinear q * group effects with
-computational efficiency</li>
+computational efficiency.</li>
 </ul>
-</div>
-<div class="section level4">
-<h4 id="method-2-rank-based-tests-friedman-with-hochberg-step-up-correction">Method 2: Rank-Based Tests (Friedman with Hochberg Step-Up
-Correction)<a class="anchor" aria-label="anchor" href="#method-2-rank-based-tests-friedman-with-hochberg-step-up-correction"></a>
-</h4>
+<p><strong>Method 2</strong>: Rank-Based Tests (Scheirer-Ray-Hare with
+Hochberg Step-Up Correction).</p>
 <ul>
 <li>Distributional assumption: None; operates entirely on ranks (maximal
-robustness)</li>
-<li>Treatment of q-ordering: Friedman two-way test for paired
-measurements across q and group</li>
+robustness).</li>
+<li>Treatment of q-ordering: Scheirer-Ray-Hare two-way test for paired
+measurements across q and group.</li>
 <li>Heteroscedasticity handling: Rank transformation inherently robust;
-Hochberg correction controls FWER</li>
+Hochberg correction controls FWER.</li>
 <li>Key advantage: Maximally robust to outliers; valid for any
-continuous distribution</li>
-<li>Reference: Efron &amp; Tibshirani (1993), Benjamini &amp; Hochberg
-(1995)</li>
+continuous distribution.</li>
 </ul>
-</div>
-</div>
-<div class="section level3">
-<h3 id="key-validation-questions">Key Validation Questions<a class="anchor" aria-label="anchor" href="#key-validation-questions"></a>
-</h3>
-<ol style="list-style-type: decimal">
-<li>Concordance: Do linear model, GAM, and rank-based methods identify
-the same significant genes?</li>
-<li>Robustness: Which genes remain significant across both parametric
-and non-parametric approaches?</li>
-<li>Method-Specific Signals: Do rank-based methods reveal additional
-genes missed by parametric models due to assumption violations?</li>
-<li>Data Characteristics: What entropy distribution properties predict
-method disagreement? (Outliers, heteroscedasticity, departure from
-normality)</li>
-</ol>
 </div>
 <div class="section level3">
 <h3 id="why-two-methods-for-one-question">Why Two Methods for One Question?<a class="anchor" aria-label="anchor" href="#why-two-methods-for-one-question"></a>
 </h3>
 <p>Statistical testing in transcriptomics faces a fundamental challenge:
-<strong>no single method is universally optimal</strong>. Different
-approaches make different assumptions and have different strengths.
-TSENAT employs two complementary strategies: parametric methods (linear
-models and generalized additive models) and non-parametric rank-based
-tests:</p>
+no single method is universally optimal. Different approaches make
+different assumptions and have different strengths. TSENAT employs two
+complementary strategies: parametric methods (linear models) and
+non-parametric rank-based tests:</p>
 <table class="table">
 <colgroup>
 <col width="11%">
@@ -202,21 +179,17 @@ tests:</p>
 </tbody>
 </table>
 <p>Validation strategy: High concordance between parametric and
-non-parametric methods (&gt;85% agreement) confirms that findings are
-<strong>robust to modeling assumptions and generalize across statistical
-frameworks</strong>. Method-specific signals suggest either: - Genuine
-biological effects masked by parametric assumptions in linear models,
-AND - Real patterns revealed only by the flexibility of GAM or
-robustness of rank-based methods</p>
-<p>Genes significant in linear models but NOT in non-parametric methods
-should be scrutinized: they may reflect model artifact rather than true
-biological signal.</p>
+non-parametric methods confirms that findings are robust to modeling
+assumptions and generalize across statistical frameworks.</p>
 <hr>
 </div>
 </div>
 <div class="section level2">
 <h2 id="setup">Setup<a class="anchor" aria-label="anchor" href="#setup"></a>
 </h2>
+<p>This section initializes the analysis environment by loading required
+packages, setting a random seed for reproducibility, and preparing the
+test dataset.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressPackageStartupMessages</a></span><span class="op">(</span><span class="op">{</span></span>
 <span>    <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gallardoalba.github.io/TSENAT">TSENAT</a></span><span class="op">)</span></span>
@@ -226,9 +199,9 @@ biological signal.</p>
 <span>    <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">gridExtra</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Load preprocessed dataset</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Load preprocessed dataset</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span></span>
 <span><span class="va">readcounts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/mode.html" class="external-link">mode</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="st">"numeric"</span></span>
@@ -242,19 +215,18 @@ biological signal.</p>
 <span><span class="va">gff3_dataset</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"annotation.gff3.gz"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Configure analysis parameters first (best practice: fail-fast validation)</span></span>
-<span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/tsenat_config.html">tsenat_config</a></span><span class="op">(</span></span>
+<span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/TSENAT_config.html">TSENAT_config</a></span><span class="op">(</span></span>
 <span>  sample_col <span class="op">=</span> <span class="st">"sample"</span>,</span>
 <span>  condition_col <span class="op">=</span> <span class="st">"condition"</span>,</span>
 <span>  subject_col <span class="op">=</span> <span class="st">"paired_samples"</span>,</span>
-<span>  q_values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span>,</span>
+<span>  q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span>,</span>
 <span>  nthreads <span class="op">=</span> <span class="fl">3</span>,</span>
 <span>  paired <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  control <span class="op">=</span> <span class="st">"normal"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Build analysis object: creates SummarizedExperiment and initializes TSENATAnalysis</span></span>
-<span><span class="co"># Pass config at construction (Bioconductor pattern)</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_analysis_s4.html">build_analysis_s4</a></span><span class="op">(</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_analysis.html">build_analysis</a></span><span class="op">(</span></span>
 <span>    readcounts <span class="op">=</span> <span class="va">readcounts</span>,</span>
 <span>    tx2gene <span class="op">=</span> <span class="va">gff3_dataset</span>,</span>
 <span>    metadata <span class="op">=</span> <span class="va">metadata_df</span>,</span>
@@ -264,21 +236,51 @@ biological signal.</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Apply filtering for quality control</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/filter_analysis_s4.html">filter_analysis_s4</a></span><span class="op">(</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/filter_analysis.html">filter_analysis</a></span><span class="op">(</span></span>
 <span>    <span class="va">analysis</span>,</span>
 <span>    stringency <span class="op">=</span> <span class="st">"medium"</span>,</span>
 <span>    min_isoform_abundance <span class="op">=</span> <span class="fl">0</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <div class="section level3">
-<h3 id="library-size-normalization-for-pseudocounts">Library Size Normalization for Pseudocounts<a class="anchor" aria-label="anchor" href="#library-size-normalization-for-pseudocounts"></a>
+<h3 id="computing-tsallis-entropy-with-pseudocount-regularization">Computing Tsallis Entropy with Pseudocount Regularization<a class="anchor" aria-label="anchor" href="#computing-tsallis-entropy-with-pseudocount-regularization"></a>
 </h3>
-<p>For robust entropy estimation on sparse count data, we normalize
-pseudocounts by library size. This approach is principled and
-recommended in edgeR and DESeq2, as it ensures regularization strength
-adapts to overall sequencing depth.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<p>Pseudocounts are critical for statistical robustness when applying
+rank-based tests to sparse RNA-seq count data. RNA-seq experiments
+typically contain many zero or near-zero counts, which creates two
+problems for rank-based nonparametric methods:</p>
+<ol style="list-style-type: decimal">
+<li><p><strong>Ties in rankings:</strong> Sparse counts produce many
+tied values (especially zeros), which reduces the discriminatory power
+of rank tests. Rank-based statistics depend on unique orderings; when
+many observations are identical, the test statistic contains less
+information, reducing statistical power.</p></li>
+<li><p><strong>Library size artifacts:</strong> Small count differences
+due to sequencing depth variations overshadow true biological
+differences. Normalized library sizes (accounting for sequencing depth)
+ensure that entropy estimates reflect true biological diversity rather
+than technical artifacts <span class="citation">(Robinson et al. 2010;
+Love et al. 2014)</span>.</p></li>
+</ol>
+<p>By adding small pseudocounts proportional to library size, we achieve
+two benefits:</p>
+<ul>
+<li>
+<strong>Regularization</strong> breaks ties and prevents
+zero-inflation bias that compromises rank-based inference.</li>
+<li>
+<strong>Normalization</strong> makes entropy estimates comparable
+across samples with different sequencing depths. This approach is
+standard in RNA-seq analysis and is particularly important for
+entropy-based diversity metrics, which require positive values for
+logarithmic transforms.</li>
+</ul>
+<p>The <code><a href="../reference/calculate_diversity.html">calculate_diversity()</a></code> function implements automatic
+pseudocount selection, scaling pseudocount magnitude and diversity
+estimates by median library size to ensure robust statistical inference
+across the range of sequencing depths in your dataset.</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Compute diversity using S4 wrapper with bootstrap confidence intervals</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity_s4.html">calculate_diversity_s4</a></span><span class="op">(</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span></span>
 <span>  <span class="va">analysis</span>, </span>
 <span>  norm <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  pseudocount <span class="op">=</span> <span class="st">"auto"</span></span>
@@ -286,36 +288,30 @@ adapts to overall sequencing depth.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="rank-based-approach-friedman">Rank-Based Approach (Friedman)<a class="anchor" aria-label="anchor" href="#rank-based-approach-friedman"></a>
+<h2 id="rank-based-approach-scheirer-ray-hare">Rank-Based Approach (Scheirer-Ray-Hare)<a class="anchor" aria-label="anchor" href="#rank-based-approach-scheirer-ray-hare"></a>
 </h2>
+<p>The Scheirer-Ray-Hare test provides a non-parametric validation of
+linear model results by leveraging the paired nature of the experimental
+design and the ordered structure of entropic indices. Unlike parametric
+methods that assume normality and homogeneity of variance, the
+Scheirer-Ray-Hare test operates solely on ranks, making it maximally
+robust to outliers and extreme values.</p>
 <div class="section level3">
 <h3 id="assumption-validation">Assumption Validation<a class="anchor" aria-label="anchor" href="#assumption-validation"></a>
 </h3>
 <p>Before applying rank-based methods, we verify key assumptions for
-rank-based inference <span class="citation">(Efron, Bradley and
-Tibshirani, Robert J. 1993; Hyndman and Athanasopoulos 2018)</span>. The
-Friedman test is a non-parametric alternative to repeated-measures
-ANOVA, making fewer distributional assumptions while maintaining
-validity for paired designs <span class="citation">(Phipson and Smyth
-2010)</span>:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Validate Friedman test assumptions using S4 wrapper</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/test_rankbased_assumptions_s4.html">test_rankbased_assumptions_s4</a></span><span class="op">(</span></span>
+rank-based inference.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Validate Scheirer-Ray-Hare test assumptions</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_rank_assumptions.html">calculate_rank_assumptions</a></span><span class="op">(</span></span>
 <span>    <span class="va">analysis</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Extract the result object from metadata using accessor function</span></span>
+<span><span class="co"># Extract the result object</span></span>
 <span><span class="va">rank_assumptions</span> <span class="op">&lt;-</span> <span class="fu">metadata</span><span class="op">(</span><span class="va">analysis</span>, <span class="st">"rankbased_assumptions"</span><span class="op">)</span><span class="op">$</span><span class="va">result</span></span></code></pre></div>
-<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;">
+<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption>
-<strong>Supplementary Table 1 | Rank-Based Entropy Matrix
-Properties.</strong> Descriptive statistics for Tsallis entropy values
-across all samples and <em>q</em>-values. Columns: <em>q</em>-value;
-mean entropy; standard deviation; range (minimum, maximum); median
-absolute deviation (MAD, robust to outliers); sample size. Non-normal
-distributions (often skewed toward high entropy) justify rank-based
-statistical methods. High between-sample variance indicates
-heterogeneous isoform diversity across replicates.
+Supplementary Table 1 | Rank-Based Entropy Matrix Properties.
 </caption>
 <thead><tr>
 <th style="text-align:left;">
@@ -336,9 +332,7 @@ Genes tested
 </tr>
 <tr>
 <td style="text-align:left;">
-Samples (q-values
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
-groups)
+Samples (entropic order indices × groups)
 </td>
 <td style="text-align:right;">
 656
@@ -377,17 +371,30 @@ Missing values
 </td>
 </tr>
 </tbody>
+<tfoot>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<span style="font-style: italic;">Note: </span>
+</td>
+</tr>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<sup></sup> Data from complete entropy matrix across all q-values and
+samples.
+</td>
+</tr>
+</tfoot>
 </table>
-<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;">
+<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption>
-<strong>Supplementary Table 2 | Entropy Matrix Validation
-Metrics.</strong> Three core properties validating suitability for
-rank-based analysis. Rows: Paired Structure (exchangeability test
-ensures independence), Gene Heterogeneity (Spearman rank correlation),
-Subject Consistency (Kendall’s <em>W</em> concordance). Values reported
-as <em>P</em>-values, correlation coefficients <em>r</em>, and
-concordance <em>W</em> (0-1 range). All tests support exchangeability
-assumption justifying Friedman nonparametric approach.
+Supplementary Table 2 | Entropy Matrix Validation Metrics. Three core
+properties validating suitability for rank-based analysis. Rows: Paired
+Structure (exchangeability test ensures independence), Gene
+Heterogeneity (Spearman rank correlation), Subject Consistency
+(Kendall’s <em>W</em> concordance). Values reported as
+<em>P</em>-values, correlation coefficients <em>r</em>, and concordance
+<em>W</em> (0-1 range). All tests support exchangeability assumption
+justifying Scheirer-Ray-Hare nonparametric approach.
 </caption>
 <thead><tr>
 <th style="text-align:left;">
@@ -435,32 +442,49 @@ W=0.000
 </td>
 </tr>
 </tbody>
+<tfoot>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<span style="font-style: italic;">Note: </span>
+</td>
+</tr>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<sup></sup> All metrics support validity of paired-design rank-based
+inference.
+</td>
+</tr>
+</tfoot>
 </table>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Run Friedman test for q * condition INTERACTION (FIXED - March 2026)</span></span>
-<span><span class="co"># IMPORTANT: Now tests whether q-effect differs between conditions (tumor vs normal)</span></span>
-<span><span class="co"># PREVIOUS BEHAVIOR (INCORRECT): Tested only q main effect, ignoring condition</span></span>
-<span><span class="co"># NEW BEHAVIOR (CORRECT): Tests if entropy pattern across q-values differs by condition</span></span>
-<span><span class="co"># </span></span>
-<span><span class="co"># With condition_col="sample_type", automatically uses:</span></span>
-<span><span class="co">#  - Two-way Friedman test (paired=TRUE: q within-subjects, condition between-subjects)</span></span>
-<span><span class="co">#  - Westfall-Young permutation correction respects AR(1) q-correlation + condition structure</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rank_test_q_condition_s4.html">rank_test_q_condition_s4</a></span><span class="op">(</span></span>
+</div>
+<div class="section level3">
+<h3 id="scheirer-ray-hare-test-testing-q-times-condition-interactions">Scheirer-Ray-Hare Test: Testing q
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
+Condition Interactions<a class="anchor" aria-label="anchor" href="#scheirer-ray-hare-test-testing-q-times-condition-interactions"></a>
+</h3>
+<p>Now we will use the Scheirer-Ray-Hare test to evaluate whether
+entropy patterns across entropic indices (q-values) differ between
+normal and tumor samples. The Scheirer-Ray-Hare test is a non-parametric
+alternative to the paired t-test and repeated measures ANOVA, making it
+ideal for paired designs where distributional assumptions may be
+violated <span class="citation">(Zhang and Yuan 2018)</span>.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Run Scheirer-Ray-Hare test for q * condition INTERACTION</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_rank_test.html">calculate_rank_test</a></span><span class="op">(</span></span>
 <span>    <span class="va">analysis</span>,</span>
 <span>    multicorr <span class="op">=</span> <span class="st">"hochberg"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Extract results from S4 object using accessor</span></span>
-<span><span class="va">friedman_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rankResults.html">rankResults</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></code></pre></div>
-<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;">
+<span><span class="co"># Extract ALL results (no filtering) for summary statistics</span></span>
+<span><span class="va">srh_results_all</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"rank_test"</span>, rankBy <span class="op">=</span> <span class="st">"pvalue"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Extract top significant genes for display</span></span>
+<span><span class="va">srh_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"rank_test"</span>, rankBy <span class="op">=</span> <span class="st">"pvalue"</span>, n <span class="op">=</span> <span class="fl">20</span>, filterFDR <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">srh_results</span>, n <span class="op">=</span> <span class="fl">10</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption>
-<strong>Supplementary Table 3 | Friedman Test Results Summary.</strong>
-Rank-based nonparametric test of <em>q</em> * condition interactions.
-Columns: genes tested (<em>n</em>); number with significant effects
-(Benjamini-Hochberg <em>q</em> &lt; 0.05); mean rank statistic; Friedman
-chi^2; degrees of freedom; <em>P</em>-value; effect size (eta-squared,
-<em>eta</em>^2). Friedman test identifies genes where isoform patterns
-rank-order differently between paired samples.
+Supplementary Table 3 | Scheirer-Ray-Hare Test Results Summary.
+Rank-based nonparametric test of <em>q</em> × condition interactions.
 </caption>
 <thead><tr>
 <th style="text-align:left;">
@@ -505,7 +529,8 @@ NAs
 </tr>
 <tr>
 <td style="text-align:left;">
-Mean effect size (eta^2)
+Mean effect size
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>η</mi><mn>2</mn></msup><annotation encoding="application/x-tex">\eta^2</annotation></semantics></math>)
 </td>
 <td style="text-align:right;">
 43.4%
@@ -513,7 +538,8 @@ Mean effect size (eta^2)
 </tr>
 <tr>
 <td style="text-align:left;">
-Median effect size (eta^2)
+Median effect size
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>η</mi><mn>2</mn></msup><annotation encoding="application/x-tex">\eta^2</annotation></semantics></math>)
 </td>
 <td style="text-align:right;">
 40.3%
@@ -521,40 +547,49 @@ Median effect size (eta^2)
 </tr>
 <tr>
 <td style="text-align:left;">
-Strong effect genes (eta^2 &gt; 10%)
+Strong effect genes
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>η</mi><mn>2</mn></msup><annotation encoding="application/x-tex">\eta^2</annotation></semantics></math>
+&gt; 10%)
 </td>
 <td style="text-align:right;">
 8
 </td>
 </tr>
 </tbody>
+<tfoot>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<span style="font-style: italic;">Note: </span>
+</td>
+</tr>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<sup></sup> Scheirer-Ray-Hare test: nonparametric rank-based ANOVA for
+paired designs.
+</td>
+</tr>
+</tfoot>
 </table>
-<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;">
+<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption>
-<strong>Supplementary Table 4 | Top genes identified by Friedman
-rank-based test.</strong> Genes with most significant <em>q</em> *
-condition interaction patterns from paired-sample rank analysis.
-Columns: gene identifier; <em>P</em>-value (unadjusted);
-<em>q</em>-value (Benjamini-Hochberg adjustment); Friedman
-<em>F</em>-statistic; effect size (<em>eta</em>^2); test method
-(Friedman aligned-rank ANOVA); interaction class. Ranked by adjusted
-significance.
+Supplementary Table 4 | Top genes identified by Scheirer-Ray-Hare
+rank-based test.
 </caption>
 <thead><tr>
 <th style="text-align:left;">
 Gene
 </th>
-<th style="text-align:right;">
+<th style="text-align:left;">
 P-value
 </th>
-<th style="text-align:right;">
+<th style="text-align:left;">
 Adj. P-value
 </th>
-<th style="text-align:right;">
+<th style="text-align:left;">
 F-Statistic
 </th>
-<th style="text-align:right;">
-Effect Size (eta^2)
+<th style="text-align:left;">
+Effect Size (η²)
 </th>
 <th style="text-align:left;">
 Test Method
@@ -568,20 +603,20 @@ Interaction Class
 <td style="text-align:left;">
 CXCL12
 </td>
-<td style="text-align:right;">
-0.000
-</td>
-<td style="text-align:right;">
-0.000
-</td>
-<td style="text-align:right;">
-14.483
-</td>
-<td style="text-align:right;">
-0.299
+<td style="text-align:left;">
+1.9e-63
 </td>
 <td style="text-align:left;">
-srh_paired
+1.6e-61
+</td>
+<td style="text-align:left;">
+14.4833
+</td>
+<td style="text-align:left;">
+0.2993
+</td>
+<td style="text-align:left;">
+Scheirer-Ray-Hare (paired)
 </td>
 <td style="text-align:left;">
 Strongly q-dependent
@@ -591,20 +626,20 @@ Strongly q-dependent
 <td style="text-align:left;">
 LINC03040
 </td>
-<td style="text-align:right;">
-0.000
-</td>
-<td style="text-align:right;">
-0.000
-</td>
-<td style="text-align:right;">
-7.039
-</td>
-<td style="text-align:right;">
-0.074
+<td style="text-align:left;">
+1.1e-29
 </td>
 <td style="text-align:left;">
-srh_paired
+9.5e-28
+</td>
+<td style="text-align:left;">
+7.0391
+</td>
+<td style="text-align:left;">
+0.0735
+</td>
+<td style="text-align:left;">
+Scheirer-Ray-Hare (paired)
 </td>
 <td style="text-align:left;">
 Moderately q-dependent
@@ -614,20 +649,20 @@ Moderately q-dependent
 <td style="text-align:left;">
 PNRC2
 </td>
-<td style="text-align:right;">
-0.000
-</td>
-<td style="text-align:right;">
-0.000
-</td>
-<td style="text-align:right;">
-4.757
-</td>
-<td style="text-align:right;">
-0.961
+<td style="text-align:left;">
+6.8e-18
 </td>
 <td style="text-align:left;">
-srh_paired
+5.8e-16
+</td>
+<td style="text-align:left;">
+4.7573
+</td>
+<td style="text-align:left;">
+0.9610
+</td>
+<td style="text-align:left;">
+Scheirer-Ray-Hare (paired)
 </td>
 <td style="text-align:left;">
 Strongly q-dependent
@@ -637,20 +672,20 @@ Strongly q-dependent
 <td style="text-align:left;">
 FAM114A2
 </td>
-<td style="text-align:right;">
-0.000
-</td>
-<td style="text-align:right;">
-0.001
-</td>
-<td style="text-align:right;">
-2.358
-</td>
-<td style="text-align:right;">
-0.256
+<td style="text-align:left;">
+9.8e-06
 </td>
 <td style="text-align:left;">
-srh_paired
+0.000831
+</td>
+<td style="text-align:left;">
+2.3578
+</td>
+<td style="text-align:left;">
+0.2556
+</td>
+<td style="text-align:left;">
+Scheirer-Ray-Hare (paired)
 </td>
 <td style="text-align:left;">
 Strongly q-dependent
@@ -660,20 +695,20 @@ Strongly q-dependent
 <td style="text-align:left;">
 HDAC2
 </td>
-<td style="text-align:right;">
-0.000
-</td>
-<td style="text-align:right;">
-0.010
-</td>
-<td style="text-align:right;">
-2.116
-</td>
-<td style="text-align:right;">
-0.576
+<td style="text-align:left;">
+0.000116
 </td>
 <td style="text-align:left;">
-srh_paired
+0.009751
+</td>
+<td style="text-align:left;">
+2.1161
+</td>
+<td style="text-align:left;">
+0.5758
+</td>
+<td style="text-align:left;">
+Scheirer-Ray-Hare (paired)
 </td>
 <td style="text-align:left;">
 Strongly q-dependent
@@ -683,244 +718,69 @@ Strongly q-dependent
 <td style="text-align:left;">
 ATG5
 </td>
-<td style="text-align:right;">
-0.000
-</td>
-<td style="text-align:right;">
-0.020
-</td>
-<td style="text-align:right;">
-2.043
-</td>
-<td style="text-align:right;">
-0.679
+<td style="text-align:left;">
+0.000239
 </td>
 <td style="text-align:left;">
-srh_paired
+0.019839
 </td>
 <td style="text-align:left;">
-Strongly q-dependent
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-SRP72
-</td>
-<td style="text-align:right;">
-0.001
-</td>
-<td style="text-align:right;">
-0.117
-</td>
-<td style="text-align:right;">
-1.853
-</td>
-<td style="text-align:right;">
-0.362
+2.0427
 </td>
 <td style="text-align:left;">
-srh_paired
+0.6787
+</td>
+<td style="text-align:left;">
+Scheirer-Ray-Hare (paired)
 </td>
 <td style="text-align:left;">
 Strongly q-dependent
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-METTL26
-</td>
-<td style="text-align:right;">
-0.002
-</td>
-<td style="text-align:right;">
-0.178
-</td>
-<td style="text-align:right;">
-1.805
-</td>
-<td style="text-align:right;">
-0.281
-</td>
-<td style="text-align:left;">
-srh_paired
-</td>
-<td style="text-align:left;">
-Strongly q-dependent
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-PTGER4
-</td>
-<td style="text-align:right;">
-0.694
-</td>
-<td style="text-align:right;">
-1.000
-</td>
-<td style="text-align:right;">
-0.873
-</td>
-<td style="text-align:right;">
-0.930
-</td>
-<td style="text-align:left;">
-srh_paired
-</td>
-<td style="text-align:left;">
-Robust across q
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-GSR
-</td>
-<td style="text-align:right;">
-0.999
-</td>
-<td style="text-align:right;">
-1.000
-</td>
-<td style="text-align:right;">
-0.443
-</td>
-<td style="text-align:right;">
-0.897
-</td>
-<td style="text-align:left;">
-srh_paired
-</td>
-<td style="text-align:left;">
-Robust across q
 </td>
 </tr>
 </tbody>
+<tfoot>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<span style="font-style: italic;">Note: </span>
+</td>
+</tr>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<sup></sup> Effect size η² quantifies strength of <em>q</em> × condition
+interaction; top 10 genes ranked by significance. P-values &lt; 0.0001
+shown in scientific notation for precision.
+</td>
+</tr>
+</tfoot>
 </table>
 <p>Visualize q-curves for top genes:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">top_genes_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_q_curve_s4.html">plot_tsallis_q_curve_s4</a></span><span class="op">(</span><span class="va">analysis</span>, lm_res <span class="op">=</span> <span class="va">friedman_results</span>, n_top <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Plot top genes from Scheirer-Ray-Hare test</span></span>
+<span><span class="va">top_genes_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_diversity_spectrum.html">plot_diversity_spectrum</a></span><span class="op">(</span><span class="va">analysis</span>, lm_res <span class="op">=</span> <span class="va">srh_results</span>, n_top <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">top_genes_plot</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<img src="TSENAT_appendix_B_files/figure-html/extended-fig-1-friedman-q-curves-1.png" class="r-plt" alt="**Extended Data Figure 1 | Scale-dependent isoform diversity from rank-based analysis.** *Friedman rank test identifies genes with heterogeneous isoform rank-ordering patterns between paired samples.* X-axis, diversity sensitivity *q* (0-2). Y-axis, Tsallis entropy (0-1 range). Each line represents a paired sample or condition. Parallel curves indicate rank-stable condition differences across all *q*-scales; diverging or crossing curves reveal genes with *q*-dependent isoform switching where isoform dominance rank-order differs between conditions at specific scales. Friedman rank test statistic quantifies nonparametric evidence for scale-dependent isoform heterogeneity." width="98%"><p class="caption">
-<strong>Extended Data Figure 1 | Scale-dependent isoform diversity from
-rank-based analysis.</strong> <em>Friedman rank test identifies genes
-with heterogeneous isoform rank-ordering patterns between paired
-samples.</em> X-axis, diversity sensitivity <em>q</em> (0-2). Y-axis,
-Tsallis entropy (0-1 range). Each line represents a paired sample or
-condition. Parallel curves indicate rank-stable condition differences
-across all <em>q</em>-scales; diverging or crossing curves reveal genes
-with <em>q</em>-dependent isoform switching where isoform dominance
-rank-order differs between conditions at specific scales. Friedman rank
-test statistic quantifies nonparametric evidence for scale-dependent
-isoform heterogeneity.
+<img src="TSENAT_appendix_B_files/figure-html/extended-fig-1-srh-q-curves-1.png" class="r-plt" alt="Extended Data Figure 1 | Scheirer-Ray-Hare rank test results for scale-dependent isoform switching." width="98%"><p class="caption">
+Extended Data Figure 1 | Scheirer-Ray-Hare rank test results for
+scale-dependent isoform switching.
 </p>
 </div>
-</div>
-<div class="section level3">
-<h3 id="friedman-test-testing-q-times-condition-interactions">Friedman Test: Testing q
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
-Condition Interactions<a class="anchor" aria-label="anchor" href="#friedman-test-testing-q-times-condition-interactions"></a>
-</h3>
-<p>The Friedman test evaluates whether entropy patterns across q-values
-differ between normal and tumor samples <span class="citation">(Unknown
-2020)</span>. It ranks observations within each subject, preserving the
-paired structure critical for valid inference in paired designs <span class="citation">(Phipson and Smyth 2010)</span>. This rank-based
-approach is particularly robust for skewed distributions like entropy
-values <span class="citation">(Phipson and Smyth 2010)</span>, and the
-Westfall-Young permutation correction used here is asymptotically
-optimal for dependent test statistics <span class="citation">(Meinshausen et al. 2012)</span>.</p>
-<p>A key observation: many genes show identical p-values but different
-effect sizes. This reflects the rank-based nature of the test <span class="citation">(Efron, Bradley and Tibshirani, Robert J. 1993)</span>.
-Effect size eta^2 directly quantifies the strength of the q-value *
-condition dependence and serves as the practical ranking metric when
-p-values cluster <span class="citation">(Unknown 2020)</span>:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>η</mi><mn>2</mn></msup><mo>=</mo><mfrac><mrow><mi>S</mi><msub><mi>S</mi><mtext mathvariant="normal">between</mtext></msub></mrow><mrow><mi>S</mi><msub><mi>S</mi><mtext mathvariant="normal">total</mtext></msub></mrow></mfrac></mrow><annotation encoding="application/x-tex">\eta^2 = \frac{SS_\text{between}}{SS_\text{total}}</annotation></semantics></math></p>
-<p>This represents the proportion of total variance in entropy explained
-by changes in q-values. Genes with eta^2 = 96.1% (e.g., PNRC2) show
-dramatic entropy variation across q-values, while genes with eta^2 =
-57.6% (e.g., HDAC2) show moderate variation.</p>
-</div>
-<div class="section level3">
-<h3 id="interpreting-identical-p-values-and-effect-size-ranking">Interpreting Identical p-values and Effect Size Ranking<a class="anchor" aria-label="anchor" href="#interpreting-identical-p-values-and-effect-size-ranking"></a>
-</h3>
-<p>A key observation in this analysis is that <strong>many genes share
-identical p-values</strong> (p=0.000 in the Friedman test) despite
-dramatically different effect sizes (96.1%, 67.9%, 57.6%). This is
-<strong>not a statistical error</strong> but rather a fundamental
-property of the two-way Friedman test applied to q
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
-condition interaction:</p>
-<p><strong>Why identical p-values occur in two-way Friedman:</strong>
-The test statistic depends on the <strong>rank patterns</strong> of
-entropy values across q-levels within each condition and subject <span class="citation">(Unknown 2020)</span>. When genes show similar
-interaction structure (e.g., Q-entropy consistently higher in tumors vs
-normals at all q-values), they produce identical test statistics despite
-different magnitudes of entropy change. This property of rank statistics
-<span class="citation">(Efron, Bradley and Tibshirani, Robert J.
-1993)</span> is characteristic of non-parametric testing when
-distributions are heavily skewed or bounded. For multifactorial designs,
-aligned rank transform methods <span class="citation">(Elkin and Kay
-2023)</span> provide robust alternatives to traditional ANOVA.</p>
-<p><strong>How to rank genes when p-values cluster:</strong> In this
-scenario, <strong>effect size (eta^2) becomes the practical ranking
-metric</strong> <span class="citation">(Unknown 2020)</span> because it
-directly quantifies the strength of the q-value * entropy dependence: -
-eta^2 captures the proportion of variance explained by q-values <span class="citation">(Unknown 2020)</span> - Higher eta^2 = stronger
-biological effect for that gene - Effect size properly reflects the
-magnitude of entropy change across q-values</p>
-<p>The vignette table sorts genes by (1) p-value and (2) effect size as
-tiebreaker. This strategy ensures that statistically significant genes
-are listed first, with effect size distinguishing between genes with
-identical statistical significance.</p>
-<p><strong>Recommendations:</strong> - Focus on genes with eta^2 &gt;
-0.3 for robust biological findings - Cross-validate significant genes
-using complementary methods (e.g., GAM section below) - Remember that
-statistical significance (p-value) indicates q-dependence exists, while
-effect size says how strong it is</p>
 <hr>
 </div>
 </div>
 <div class="section level2">
 <h2 id="generalized-additive-model-approach-gam">Generalized Additive Model Approach (GAM)<a class="anchor" aria-label="anchor" href="#generalized-additive-model-approach-gam"></a>
 </h2>
-<p>This section loads precomputed GAM results <strong>generated in the
-main vignette</strong> (<a href="TSENAT.Rmd">TSENAT.Rmd</a>). The GAM
-analysis provides a complementary parametric approach to detect q-value
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
-group interactions. Results are integrated into the TSENATAnalysis
-object for S4 workflow consistency:</p>
-<ul>
-<li>
-<strong>Model:</strong> Generalized Additive Models (GAM) with
-ARIMA(1,1,0) transformations (can be combined with rank-based
-quasi-likelihood regularization) <span class="citation">(Goude 2024;
-Correia and Abebe 2021)</span>
-</li>
-<li>
-<strong>Approach:</strong> Smooth functions fit across q-values for
-each gene</li>
-<li>
-<strong>Correction:</strong> Hochberg multiple testing correction
-accounting for AR(1) correlation</li>
-<li>
-<strong>Assumptions:</strong> Assumes continuous underlying
-distribution (better for nonlinear patterns)</li>
-<li>
-<strong>Source:</strong> Precomputed results from main vignette
-analysis (see <a href="TSENAT.Rmd">TSENAT.Rmd</a> for generation
-details)</li>
-</ul>
-<p>The precomputed results include effect sizes, model convergence
-diagnostics, and heteroscedasticity detection. Comparing GAM and
-Friedman Test results helps identify robust genes significant in both
-methods.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Load precomputed GAM results from TSV file</span></span>
-<span><span class="va">gam_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.delim</a></span><span class="op">(</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"lm_interaction_results.tsv"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span>,</span>
-<span>    stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;">
+<p>This section loads precomputed GAM results generated in the main
+vignette (<a href="TSENAT.Rmd">TSENAT.Rmd</a>).</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Load precomputed LM analysis object from RDS file</span></span>
+<span><span class="va">analysis_lm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"analysis_lm.rds"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Extract GAM/LM results for inspection using accessor function</span></span>
+<span><span class="va">gam_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis_lm</span>, type <span class="op">=</span> <span class="st">"lm"</span>, rankBy <span class="op">=</span> <span class="st">"pvalue"</span><span class="op">)</span></span></code></pre></div>
+<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption>
 GAM Results Summary
 </caption>
@@ -938,7 +798,7 @@ Value
 Genes tested
 </td>
 <td style="text-align:right;">
-87
+76
 </td>
 </tr>
 <tr>
@@ -946,7 +806,7 @@ Genes tested
 Significant (p &lt; 0.05)
 </td>
 <td style="text-align:right;">
-70
+65
 </td>
 </tr>
 <tr>
@@ -954,7 +814,7 @@ Significant (p &lt; 0.05)
 Concordant (p &lt; 0.05 AND adj_p &lt; 0.05)
 </td>
 <td style="text-align:right;">
-61
+59
 </td>
 </tr>
 <tr>
@@ -978,7 +838,7 @@ Mean effect size
 Median effect size
 </td>
 <td style="text-align:right;">
-15.8%
+15.4%
 </td>
 </tr>
 <tr>
@@ -986,7 +846,7 @@ Median effect size
 Strong effect genes (effect_size &gt; 30%)
 </td>
 <td style="text-align:right;">
-20
+17
 </td>
 </tr>
 <tr>
@@ -998,10 +858,23 @@ Model convergence rate
 </td>
 </tr>
 </tbody>
+<tfoot>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<span style="font-style: italic;">Note: </span>
+</td>
+</tr>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<sup></sup> Aggregate statistics across all genes tested by GAM method;
+effect size &gt; 30% indicates strong biological signal.
+</td>
+</tr>
+</tfoot>
 </table>
-<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;">
+<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption>
-Top 10 Genes by GAM p-value (with Effect Size &amp;amp; Test Statistics)
+Top 10 Genes by GAM p-value (with Effect Size and Test Statistics)
 </caption>
 <thead><tr>
 <th style="text-align:left;">
@@ -1029,10 +902,10 @@ df
 CXCL12
 </td>
 <td style="text-align:right;">
-0
+0e+00
 </td>
 <td style="text-align:right;">
-0
+0e+00
 </td>
 <td style="text-align:right;">
 81.3%
@@ -1046,39 +919,19 @@ CXCL12
 </tr>
 <tr>
 <td style="text-align:left;">
-MEF2A
+THY1
 </td>
 <td style="text-align:right;">
-0
+0e+00
 </td>
 <td style="text-align:right;">
-0
+0e+00
 </td>
 <td style="text-align:right;">
-27.3%
+60.1%
 </td>
 <td style="text-align:right;">
-465.59
-</td>
-<td style="text-align:right;">
-640
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-PNPT1
-</td>
-<td style="text-align:right;">
-0
-</td>
-<td style="text-align:right;">
-0
-</td>
-<td style="text-align:right;">
-65.8%
-</td>
-<td style="text-align:right;">
-359.04
+442.14
 </td>
 <td style="text-align:right;">
 640
@@ -1089,10 +942,10 @@ PNPT1
 ING3
 </td>
 <td style="text-align:right;">
-0
+0e+00
 </td>
 <td style="text-align:right;">
-0
+0e+00
 </td>
 <td style="text-align:right;">
 35.3%
@@ -1109,56 +962,16 @@ ING3
 SNHG10
 </td>
 <td style="text-align:right;">
-0
+0e+00
 </td>
 <td style="text-align:right;">
-0
+0e+00
 </td>
 <td style="text-align:right;">
-30.7%
+5.1%
 </td>
 <td style="text-align:right;">
-296.73
-</td>
-<td style="text-align:right;">
-640
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-FAXDC2
-</td>
-<td style="text-align:right;">
-0
-</td>
-<td style="text-align:right;">
-0
-</td>
-<td style="text-align:right;">
-18.6%
-</td>
-<td style="text-align:right;">
-283.83
-</td>
-<td style="text-align:right;">
-640
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-HDAC2
-</td>
-<td style="text-align:right;">
-0
-</td>
-<td style="text-align:right;">
-0
-</td>
-<td style="text-align:right;">
-59.4%
-</td>
-<td style="text-align:right;">
-273.11
+340.82
 </td>
 <td style="text-align:right;">
 640
@@ -1169,10 +982,10 @@ HDAC2
 LINC03040
 </td>
 <td style="text-align:right;">
-0
+0e+00
 </td>
 <td style="text-align:right;">
-0
+0e+00
 </td>
 <td style="text-align:right;">
 73.8%
@@ -1186,19 +999,19 @@ LINC03040
 </tr>
 <tr>
 <td style="text-align:left;">
-CENPV
+HDAC2
 </td>
 <td style="text-align:right;">
-0
+0e+00
 </td>
 <td style="text-align:right;">
-0
+0e+00
 </td>
 <td style="text-align:right;">
-15.7%
+28.4%
 </td>
 <td style="text-align:right;">
-234.77
+232.94
 </td>
 <td style="text-align:right;">
 640
@@ -1206,39 +1019,122 @@ CENPV
 </tr>
 <tr>
 <td style="text-align:left;">
-THY1
+ENSG00000274322
 </td>
 <td style="text-align:right;">
-0
+0e+00
 </td>
 <td style="text-align:right;">
-0
+0e+00
 </td>
 <td style="text-align:right;">
-31.0%
+4.7%
 </td>
 <td style="text-align:right;">
-233.01
+217.93
+</td>
+<td style="text-align:right;">
+640
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+MEF2A
+</td>
+<td style="text-align:right;">
+0e+00
+</td>
+<td style="text-align:right;">
+0e+00
+</td>
+<td style="text-align:right;">
+19.3%
+</td>
+<td style="text-align:right;">
+197.39
+</td>
+<td style="text-align:right;">
+640
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+RAP1GDS1
+</td>
+<td style="text-align:right;">
+0e+00
+</td>
+<td style="text-align:right;">
+0e+00
+</td>
+<td style="text-align:right;">
+54.8%
+</td>
+<td style="text-align:right;">
+170.93
+</td>
+<td style="text-align:right;">
+640
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PDE7A
+</td>
+<td style="text-align:right;">
+0e+00
+</td>
+<td style="text-align:right;">
+0e+00
+</td>
+<td style="text-align:right;">
+0.4%
+</td>
+<td style="text-align:right;">
+169.40
 </td>
 <td style="text-align:right;">
 640
 </td>
 </tr>
 </tbody>
+<tfoot>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<span style="font-style: italic;">Note: </span>
+</td>
+</tr>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<sup></sup> Top 10 genes ranked by significance; p-values &lt; 0.001
+shown in scientific notation; effect size range 0-100%.
+</td>
+</tr>
+</tfoot>
 </table>
 <hr>
 </div>
 <div class="section level2">
 <h2 id="method-concordance-analysis">Method Concordance Analysis<a class="anchor" aria-label="anchor" href="#method-concordance-analysis"></a>
 </h2>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Compute concordance analysis using S4 wrapper</span></span>
-<span><span class="co"># Pass GAM results directly - the function handles storage automatically</span></span>
-<span><span class="va">analysis_with_concordance</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_method_concordance_s4.html">compute_method_concordance_s4</a></span><span class="op">(</span></span>
-<span>    <span class="va">analysis</span>,</span>
-<span>    gam_method <span class="op">=</span> <span class="st">"gam_results"</span>,</span>
-<span>    friedman_method <span class="op">=</span> <span class="st">"rank_test"</span>,</span>
-<span>    gam_results <span class="op">=</span> <span class="va">gam_results</span>,</span>
+<p>A critical validation step is to compare whether the
+Scheirer-Ray-Hare rank-based test and GAM produce consistent results.
+High concordance between methods (i.e., genes significant in both
+approaches) provides strong evidence that discoveries are robust to
+methodological choice. Discordant genes—those significant in only one
+method—warrant closer inspection: they may represent genuine biological
+signals revealed by one method’s specific advantages, or artifacts of
+that method’s assumptions. This section quantifies agreement between
+approaches and identifies high-confidence genes significant across both
+statistical frameworks.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Compute concordance analysis using new two-object API</span></span>
+<span><span class="co"># Compares LM results (from analysis_lm) with rank test results (from analysis)</span></span>
+<span><span class="va">analysis_with_concordance</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_concordance.html">calculate_concordance</a></span><span class="op">(</span></span>
+<span>    analysis_lm <span class="op">=</span> <span class="va">analysis_lm</span>,</span>
+<span>    analysis_rank <span class="op">=</span> <span class="va">analysis</span>,</span>
+<span>    lm_method <span class="op">=</span> <span class="st">"lm_interaction"</span>,</span>
+<span>    rank_method <span class="op">=</span> <span class="st">"rank_test"</span>,</span>
 <span>    verbose <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -1248,9 +1144,9 @@ THY1
 <span><span class="va">spearman_rho</span> <span class="op">&lt;-</span> <span class="va">concordance_result</span><span class="op">$</span><span class="va">spearman_rho</span></span>
 <span><span class="va">high_conf</span> <span class="op">&lt;-</span> <span class="va">concordance_result</span><span class="op">$</span><span class="va">high_confidence</span></span>
 <span><span class="va">agreement_table</span> <span class="op">&lt;-</span> <span class="va">concordance_result</span><span class="op">$</span><span class="va">agreement_table</span></span></code></pre></div>
-<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;">
+<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption>
-Global Concordance Metrics: GAM vs Friedman Methods
+Global Concordance Metrics: GAM vs Scheirer-Ray-Hare Methods
 </caption>
 <thead><tr>
 <th style="text-align:left;">
@@ -1266,7 +1162,7 @@ Value
 Total genes compared
 </td>
 <td style="text-align:right;">
-87
+76
 </td>
 </tr>
 <tr>
@@ -1274,7 +1170,7 @@ Total genes compared
 Spearman correlation (p-values)
 </td>
 <td style="text-align:right;">
-rho = 0.3264
+rho = 0.3571
 </td>
 </tr>
 <tr>
@@ -1282,20 +1178,20 @@ rho = 0.3264
 Both methods significant (p &lt; 0.05)
 </td>
 <td style="text-align:right;">
-6 (6.9%)
+5 (6.6%)
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-GAM only significant
+LM only significant
 </td>
 <td style="text-align:right;">
-55 (63.2%)
+54 (71.1%)
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-Friedman only significant
+Rank test only significant
 </td>
 <td style="text-align:right;">
 0 (0.0%)
@@ -1306,7 +1202,7 @@ Friedman only significant
 Neither significant
 </td>
 <td style="text-align:right;">
-26 (29.9%)
+17 (22.4%)
 </td>
 </tr>
 <tr>
@@ -1314,7 +1210,7 @@ Neither significant
 Concordance rate
 </td>
 <td style="text-align:right;">
-36.8%
+28.9%
 </td>
 </tr>
 <tr>
@@ -1322,12 +1218,25 @@ Concordance rate
 Discordance rate
 </td>
 <td style="text-align:right;">
-63.2%
+71.1%
 </td>
 </tr>
 </tbody>
+<tfoot>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<span style="font-style: italic;">Note: </span>
+</td>
+</tr>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<sup></sup> Comparison of significant genes (p &lt; 0.05) detected by
+GAM vs Scheirer-Ray-Hare methods; high concordance validates robustness.
+</td>
+</tr>
+</tfoot>
 </table>
-<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;">
+<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption>
 Method Agreement Distribution
 </caption>
@@ -1348,21 +1257,21 @@ Percentage
 Both significant
 </td>
 <td style="text-align:right;">
-6
+5
 </td>
 <td style="text-align:right;">
-6.9%
+6.6%
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-GAM only
+LM only
 </td>
 <td style="text-align:right;">
-55
+54
 </td>
 <td style="text-align:right;">
-63.2%
+71.1%
 </td>
 </tr>
 <tr>
@@ -1370,34 +1279,48 @@ GAM only
 Neither significant
 </td>
 <td style="text-align:right;">
-26
+17
 </td>
 <td style="text-align:right;">
-29.9%
+22.4%
 </td>
 </tr>
 </tbody>
+<tfoot>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<span style="font-style: italic;">Note: </span>
+</td>
+</tr>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<sup></sup> Categories: Concordant (both methods, p &lt; 0.05);
+GAM-only; Scheirer-Ray-Hare-only; Neither (both p ≥ 0.05).
+</td>
+</tr>
+</tfoot>
 </table>
-<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;">
+<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption>
-Robust q-value Interactions: High-Confidence Genes Detected by Both
-Methods (n=6, ranked by statistical significance)
+Robust Entropic Order Index Interactions: High-Confidence Genes Detected
+by Both Methods (n=5, ranked by statistical significance)
 </caption>
 <thead><tr>
 <th style="text-align:left;">
 Gene
 </th>
 <th style="text-align:right;">
-GAM adj p
+LM adj p
 </th>
 <th style="text-align:right;">
-Friedman adj p
+Rank test adj p
 </th>
 <th style="text-align:right;">
-GAM Effect
+LM Effect
 </th>
 <th style="text-align:right;">
-Friedman eta^2
+Rank test
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>η</mi><mn>2</mn></msup><annotation encoding="application/x-tex">\eta^2</annotation></semantics></math>
 </th>
 </tr></thead>
 <tbody>
@@ -1406,7 +1329,7 @@ Friedman eta^2
 CXCL12
 </td>
 <td style="text-align:right;">
-3.423e-162
+2.990e-162
 </td>
 <td style="text-align:right;">
 1.640e-61
@@ -1420,27 +1343,10 @@ CXCL12
 </tr>
 <tr>
 <td style="text-align:left;">
-HDAC2
-</td>
-<td style="text-align:right;">
-4.017e-58
-</td>
-<td style="text-align:right;">
-9.751e-03
-</td>
-<td style="text-align:right;">
-59.4%
-</td>
-<td style="text-align:right;">
-0.576
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
 LINC03040
 </td>
 <td style="text-align:right;">
-1.500e-55
+1.350e-55
 </td>
 <td style="text-align:right;">
 9.502e-28
@@ -1454,16 +1360,33 @@ LINC03040
 </tr>
 <tr>
 <td style="text-align:left;">
+HDAC2
+</td>
+<td style="text-align:right;">
+1.855e-49
+</td>
+<td style="text-align:right;">
+9.751e-03
+</td>
+<td style="text-align:right;">
+28.4%
+</td>
+<td style="text-align:right;">
+0.576
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
 FAM114A2
 </td>
 <td style="text-align:right;">
-2.079e-29
+6.136e-27
 </td>
 <td style="text-align:right;">
 8.306e-04
 </td>
 <td style="text-align:right;">
-49.2%
+46.4%
 </td>
 <td style="text-align:right;">
 0.256
@@ -1471,274 +1394,99 @@ FAM114A2
 </tr>
 <tr>
 <td style="text-align:left;">
-PNRC2
-</td>
-<td style="text-align:right;">
-3.218e-11
-</td>
-<td style="text-align:right;">
-5.816e-16
-</td>
-<td style="text-align:right;">
-22.9%
-</td>
-<td style="text-align:right;">
-0.961
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
 ATG5
 </td>
 <td style="text-align:right;">
-1.690e-06
+2.301e-24
 </td>
 <td style="text-align:right;">
 1.984e-02
 </td>
 <td style="text-align:right;">
-55.1%
+43.1%
 </td>
 <td style="text-align:right;">
 0.679
 </td>
 </tr>
 </tbody>
+<tfoot>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<span style="font-style: italic;">Note: </span>
+</td>
+</tr>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<sup></sup> High-confidence genes: significant by both GAM and
+Scheirer-Ray-Hare rank test (adj p &lt; 0.05);
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>η</mi><mn>2</mn></msup><annotation encoding="application/x-tex">\eta^2</annotation></semantics></math>
+= rank test effect size.
+</td>
+</tr>
+</tfoot>
 </table>
+<div class="section level3">
+<h3 id="statistical-power-vs--robustness-understanding-method-discordance">Statistical Power vs. Robustness: Understanding Method
+Discordance<a class="anchor" aria-label="anchor" href="#statistical-power-vs--robustness-understanding-method-discordance"></a>
+</h3>
+<p>The striking discordance between GAM and Scheirer-Ray-Hare results
+(71.1% significant in GAM only, 0% in rank test only, 28.9% total
+concordance) reflects a fundamental trade-off in statistical
+methodology: <strong>parametric methods maximize power when assumptions
+hold, while nonparametric methods sacrifice power for robustness to
+assumption violations</strong>.</p>
+<p>GAM’s superior power derives from two factors:</p>
+<ol style="list-style-type: decimal">
+<li><p>Distributional assumptions: GAM assumes approximately normal
+residuals and homogeneous variance, which are reasonable after
+appropriate transformation for entropy data. Under these assumptions,
+parametric methods are theoretically optimal, achieving maximum power
+for a given type I error rate. The rank-based Scheirer-Ray-Hare test is
+assumption-free but necessarily discards quantitative information by
+converting measurements to ranks, which reduces statistical power when
+the underlying data are approximately normal.</p></li>
+<li><p>Model flexibility with penalty: GAM uses thin-plate splines with
+smoothness penalties that simultaneously fit nonlinear patterns while
+controlling degrees of freedom. This flexibility allows GAM to detect
+subtle entropic index × group interactions across all q-values. The
+Scheirer-Ray-Hare test, by contrast, operates on rank patterns only,
+which is inherently less sensitive to continuous relationships across
+the ordering (q-values).</p></li>
+</ol>
+<p>This complementary approach—combining high-power parametric tests
+with robust nonparametric alternatives—provides confidence that
+discoveries are methodologically sound rather than artifacts of
+statistical assumptions.</p>
+</div>
 <div class="section level3">
 <h3 id="visualization-method-comparison">Visualization: Method Comparison<a class="anchor" aria-label="anchor" href="#visualization-method-comparison"></a>
 </h3>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<p>Visual comparison of concordance patterns provides intuitive
+assessment of which genes align between methods and which are
+method-specific. The following plots display significance calls, effect
+sizes, and agreement metrics in a format that facilitates interpretation
+of both robust discoveries and method-specific findings.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Create comparison plot using S4 wrapper</span></span>
-<span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_method_concordance_s4.html">plot_method_concordance_s4</a></span><span class="op">(</span><span class="va">analysis_with_concordance</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># Check if concordance analysis was successful</span></span>
+<span><span class="va">concordance_results</span> <span class="op">&lt;-</span> <span class="fu">metadata</span><span class="op">(</span><span class="va">analysis_with_concordance</span>, <span class="st">"method_concordance"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_concordance.html">plot_concordance</a></span><span class="op">(</span><span class="va">analysis_with_concordance</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<img src="TSENAT_appendix_B_files/figure-html/visualize-method-concordance-1.png" class="r-plt" alt="**Method concordance visualization** comparing Friedman rank-based and GAM approaches for detecting q$\times$condition interactions. Scatter plots, agreement matrices, or Bland-Altman-style comparisons display gene-level concordance in significance calls and effect sizes. Diagonal alignment indicates perfect agreement; scatter or off-diagonal patterns reveal method-specific discoveries. Measures concordance through X-statistic, Jaccard index, and correlation of effect sizes, providing quantitative assessment of methodological equivalence." width="98%"><p class="caption">
-<strong>Method concordance visualization</strong> comparing Friedman
-rank-based and GAM approaches for detecting
-q<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>condition
-interactions. Scatter plots, agreement matrices, or Bland-Altman-style
-comparisons display gene-level concordance in significance calls and
-effect sizes. Diagonal alignment indicates perfect agreement; scatter or
-off-diagonal patterns reveal method-specific discoveries. Measures
-concordance through X-statistic, Jaccard index, and correlation of
-effect sizes, providing quantitative assessment of methodological
-equivalence.
+<img src="TSENAT_appendix_B_files/figure-html/visualize-method-concordance-1.png" class="r-plt" alt="Method concordance visualization comparing Scheirer-Ray-Hare rank-based and GAM approaches for detecting q × condition interactions." width="98%"><p class="caption">
+Method concordance visualization comparing Scheirer-Ray-Hare rank-based
+and GAM approaches for detecting q × condition interactions.
 </p>
 </div>
 <hr>
 </div>
 </div>
 <div class="section level2">
-<h2 id="complete-s4-workflow-guide">Complete S4 Workflow Guide<a class="anchor" aria-label="anchor" href="#complete-s4-workflow-guide"></a>
-</h2>
-<p>This vignette demonstrates the modern S4-based analysis workflow for
-method comparison. The following functions are used in their S4 wrapper
-forms for consistent class-based integration:</p>
-<div class="section level3">
-<h3 id="s4-functions-used-in-this-vignette">S4 Functions Used in This Vignette<a class="anchor" aria-label="anchor" href="#s4-functions-used-in-this-vignette"></a>
-</h3>
-<table class="table">
-<colgroup>
-<col width="29%">
-<col width="26%">
-<col width="20%">
-<col width="23%">
-</colgroup>
-<thead><tr class="header">
-<th>Function</th>
-<th>Purpose</th>
-<th>Input</th>
-<th>Output</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td><code><a href="../reference/calculate_diversity_s4.html">calculate_diversity_s4()</a></code></td>
-<td>Compute Tsallis entropy across multiple q-values</td>
-<td>TSENATAnalysis + <code>q</code>, <code>norm</code> params</td>
-<td>Updated analysis with diversity results</td>
-</tr>
-<tr class="even">
-<td><code><a href="../reference/test_rankbased_assumptions_s4.html">test_rankbased_assumptions_s4()</a></code></td>
-<td>Validate Friedman test assumptions</td>
-<td>TSENATAnalysis</td>
-<td>Stores results in metadata via
-<code>metadata(analysis, "rankbased_assumptions")</code>
-</td>
-</tr>
-<tr class="odd">
-<td><code><a href="../reference/rank_test_q_condition_s4.html">rank_test_q_condition_s4()</a></code></td>
-<td>Run Friedman test for
-q<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>group
-interactions</td>
-<td>TSENATAnalysis + design params</td>
-<td>Updated analysis with results via <code><a href="../reference/rankResults.html">rankResults()</a></code>
-</td>
-</tr>
-<tr class="even">
-<td><code><a href="../reference/plot_tsallis_q_curve_s4.html">plot_tsallis_q_curve_s4()</a></code></td>
-<td>Plot q-curves for significant genes</td>
-<td>TSENATAnalysis + <code>lm_res</code>
-</td>
-<td>ggplot2 visualization</td>
-</tr>
-<tr class="odd">
-<td><code><a href="../reference/compute_method_concordance_s4.html">compute_method_concordance_s4()</a></code></td>
-<td>Compare GAM and Friedman results</td>
-<td>TSENATAnalysis with LM results via <code><a href="../reference/lmResults.html">lmResults()</a></code> and rank
-test results via <code><a href="../reference/rankResults.html">rankResults()</a></code>
-</td>
-<td>Updated analysis with results via <code>metadata()</code>
-</td>
-</tr>
-<tr class="even">
-<td><code><a href="../reference/plot_method_concordance_s4.html">plot_method_concordance_s4()</a></code></td>
-<td>Visualize method concordance</td>
-<td>TSENATAnalysis (after concordance computed)</td>
-<td>ggplot2 comparison plot</td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="section level3">
-<h3 id="workflow-advantages">Workflow Advantages<a class="anchor" aria-label="anchor" href="#workflow-advantages"></a>
-</h3>
-<ul>
-<li>
-<strong>Consistent class structure:</strong> All results integrated
-into TSENATAnalysis object</li>
-<li>
-<strong>Automatic metadata tracking:</strong> No global variables
-polluting environment</li>
-<li>
-<strong>Seamless integration:</strong> Methods pass results through
-accessor methods <code>metadata()</code>, <code><a href="../reference/lmResults.html">lmResults()</a></code>, and
-<code><a href="../reference/rankResults.html">rankResults()</a></code>
-</li>
-<li>
-<strong>Reproducibility:</strong> Clear, standardized workflow for
-complex multi-method analyses</li>
-<li>
-<strong>Documentation:</strong> S4 methods maintain Roxygen
-documentation and inheritance</li>
-</ul>
-</div>
-<div class="section level3">
-<h3 id="workflow-reconstruction">Workflow Reconstruction<a class="anchor" aria-label="anchor" href="#workflow-reconstruction"></a>
-</h3>
-<p>If needed, this complete workflow can be recreated step-by-step:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># 1. Initialize analysis</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/TSENATAnalysis.html">TSENATAnalysis</a></span><span class="op">(</span>se <span class="op">=</span> <span class="va">se</span>, config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># 2. Calculate diversity</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity_s4.html">calculate_diversity_s4</a></span><span class="op">(</span><span class="va">analysis</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span>, norm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># 3. Validate assumptions</span></span>
-<span><span class="va">rank_assumptions</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/test_rankbased_assumptions_s4.html">test_rankbased_assumptions_s4</a></span><span class="op">(</span><span class="va">analysis</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># 4. Friedman test (rank-based)</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rank_test_q_condition_s4.html">rank_test_q_condition_s4</a></span><span class="op">(</span></span>
-<span>    <span class="va">analysis</span>,</span>
-<span>    condition_col <span class="op">=</span> <span class="st">"condition"</span>,</span>
-<span>    paired <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>    subject_col <span class="op">=</span> <span class="st">"paired_samples"</span>,</span>
-<span>    multicorr <span class="op">=</span> <span class="st">"hochberg"</span>,</span>
-<span>    verbose <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># 5. Load GAM results and pass directly to concordance function</span></span>
-<span><span class="va">gam_results_loaded</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"lm_interaction_results.csv"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># 6. Compare methods (gam_results parameter handles storage automatically)</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_method_concordance_s4.html">compute_method_concordance_s4</a></span><span class="op">(</span></span>
-<span>    <span class="va">analysis</span>,</span>
-<span>    gam_method <span class="op">=</span> <span class="st">"gam_results"</span>,</span>
-<span>    friedman_method <span class="op">=</span> <span class="st">"rank_test"</span>,</span>
-<span>    gam_results <span class="op">=</span> <span class="va">gam_results_loaded</span>,</span>
-<span>    verbose <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># 7. Visualize concordance</span></span>
-<span><span class="fu"><a href="../reference/plot_method_concordance_s4.html">plot_method_concordance_s4</a></span><span class="op">(</span><span class="va">analysis</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># 8. Plot top genes (optional)</span></span>
-<span><span class="fu"><a href="../reference/plot_tsallis_q_curve_s4.html">plot_tsallis_q_curve_s4</a></span><span class="op">(</span></span>
-<span>    <span class="va">analysis</span>,</span>
-<span>    condition_col <span class="op">=</span> <span class="st">"condition"</span>,</span>
-<span>    rank_res <span class="op">=</span> <span class="fu"><a href="../reference/rankResults.html">rankResults</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span>,</span>
-<span>    n_top <span class="op">=</span> <span class="fl">4</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-<hr>
-</div>
-</div>
-<div class="section level2">
-<h2 id="recommendations">Recommendations<a class="anchor" aria-label="anchor" href="#recommendations"></a>
-</h2>
-<div class="section level3">
-<h3 id="s4-wrapper-integration-overview">S4 Wrapper Integration Overview<a class="anchor" aria-label="anchor" href="#s4-wrapper-integration-overview"></a>
-</h3>
-<p>This vignette demonstrates the modern S4 wrapper approach for method
-concordance analysis:</p>
-<ul>
-<li>
-<strong><code><a href="../reference/compute_method_concordance_s4.html">compute_method_concordance_s4()</a></code></strong>:
-Integrates seamlessly with TSENATAnalysis objects, storing results
-accessed via <code>metadata(analysis, "method_concordance")</code>
-</li>
-<li>
-<strong><code><a href="../reference/plot_method_concordance_s4.html">plot_method_concordance_s4()</a></code></strong>: Creates
-publication-ready concordance visualizations from S4-stored results</li>
-<li>
-<strong>Benefits</strong>: Consistent class structure, automatic
-metadata tracking via accessor methods, reduced variable proliferation
-in global environment</li>
-</ul>
-<p>For standard (non-S4) analyses, the original functions
-(<code>compute_method_concordance()</code> and
-<code>plot_method_concordance()</code>) remain available and fully
-supported.</p>
-</div>
-<div class="section level3">
-<h3 id="best-practices-for-analysis">Best Practices for Analysis<a class="anchor" aria-label="anchor" href="#best-practices-for-analysis"></a>
-</h3>
-<p>We recommend a <strong>complementary two-method approach</strong> for
-robust detection of q-value
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
-group interactions:</p>
-<p><strong>Primary analysis:</strong> Start with the Friedman Test for q
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
-condition interaction, which provides correct statistical inference for
-paired/blocked designs by: 1. <strong>Testing the interaction</strong>:
-Does the q-effect differ between conditions? (Not just whether entropy
-varies across q-values) 2. <strong>Respecting the repeated-measures
-structure</strong>: 8 paired tumor-normal samples, testing if entropy
-patterns across q-values differ by condition 3. <strong>Accounting for
-within-subject correlation</strong>: Friedman test properly handles
-paired structure 4. <strong>Multiple testing correction</strong>:
-Westfall-Young permutation respects AR(1) correlation structure across
-q-values 5. <strong>Condition-aware</strong>: Uses two-way Friedman (q
-within-subjects, condition between-subjects)</p>
-<p><strong>Validation step:</strong> Confirm findings with GAM to
-validate against parametric assumptions and identify condition-specific
-nonlinear q-entropy patterns that may be missed by rank-based
-methods.</p>
-<p><strong>High-confidence genes</strong> are those significant in
-<em>both</em> methods-these provide the strongest evidence of genuine q
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
-condition interactions and are recommended for downstream biological
-validation. The Friedman Test is particularly appropriate for paired
-designs and provides distribution-free inference without requiring
-assumptions about data normality, while properly accounting for the q
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>
-condition interaction structure.</p>
-<hr>
-</div>
-</div>
-<div class="section level2">
 <h2 id="session-information">Session Information<a class="anchor" aria-label="anchor" href="#session-information"></a>
 </h2>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; R version 4.5.2 (2025-10-31)</span></span>
 <span><span class="co">#&gt; Platform: x86_64-conda-linux-gnu</span></span>
@@ -1795,62 +1543,6 @@ condition interaction structure.</p>
 <span><span class="co">#&gt; [58] xml2_1.5.2          svglite_2.2.2       rstudioapi_0.18.0  </span></span>
 <span><span class="co">#&gt; [61] jsonlite_2.0.0      R6_2.6.1            systemfonts_1.3.2  </span></span>
 <span><span class="co">#&gt; [64] fs_1.6.7</span></span></code></pre></div>
-<hr>
-</div>
-<div class="section level2">
-<h2 class="unnumbered" id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
-</h2>
-<div id="refs" class="references csl-bib-body hanging-indent">
-<div id="ref-C077" class="csl-entry">
-Correia, Hannah E., and Asheber Abebe. 2021. <span>“Regularised
-<span>R</span>ank <span>Q</span>uasi-<span>L</span>ikelihood
-<span>E</span>stimation for <span>G</span>eneralised
-<span>A</span>dditive <span>M</span>odels.”</span> <em>Journal of
-Nonparametric Statistics</em> 33 (1): 101–17. <a href="https://doi.org/10.1080/10485252.2021.1921176" class="external-link">https://doi.org/10.1080/10485252.2021.1921176</a>.
-</div>
-<div id="ref-S115" class="csl-entry">
-Efron, Bradley and Tibshirani, Robert J. 1993. <em><span>A</span>n
-<span>I</span>ntroduction to the <span>B</span>ootstrap</em>. No. 57.
-Monographs on Statistics and Applied Probability. Chapman; Hall.
-</div>
-<div id="ref-S187" class="csl-entry">
-Elkin, Lisa A., and Matthew Kay. 2023. <span>“An <span>A</span>ligned
-<span>R</span>ank <span>T</span>ransform <span>P</span>rocedure for
-<span>M</span>ultifactor <span>C</span>ontrast
-<span>T</span>ests.”</span> <em>Journal of Statistical Software</em>
-forthcoming.
-</div>
-<div id="ref-C073" class="csl-entry">
-Goude, Yannig. 2024. <em>Forecasting at <span>EDF</span>: Generalized
-Additive Models for Time Series</em>. EDF R&amp;D, EDF Lab Saclay.
-</div>
-<div id="ref-S204" class="csl-entry">
-Hyndman, Rob J., and George Athanasopoulos. 2018. <em>Forecasting:
-<span>P</span>rinciples and <span>P</span>ractice</em>. 2nd ed. <a href="https://otexts.com/fpp2/" class="external-link uri">Https://otexts.com/fpp2/</a>.
-</div>
-<div id="ref-S166" class="csl-entry">
-Meinshausen, Nicolai, Marloes H. Maathuis, and Peter Bühlmann. 2012.
-<span>“Asymptotic <span>O</span>ptimality of the
-<span>W</span>estfall-<span>Y</span>oung <span>P</span>ermutation
-<span>P</span>rocedure for <span>M</span>ultiple <span>T</span>esting
-<span>U</span>nder <span>D</span>ependence.”</span> <em>The Annals of
-Statistics</em> 39 (6): 3369–91. <a href="https://doi.org/10.1214/11-AOS946" class="external-link">https://doi.org/10.1214/11-AOS946</a>.
-</div>
-<div id="ref-S019" class="csl-entry">
-Phipson, Belinda, and Gordon K. Smyth. 2010. <span>“Permutation
-<span>P</span>-Values <span>S</span>hould <span>N</span>ever
-<span>B</span>e <span>Z</span>ero: <span>C</span>alculating
-<span>E</span>xact <span>P</span>-Values <span>W</span>hen
-<span>P</span>ermutations <span>A</span>re <span>R</span>anked.”</span>
-<em>Statistical Applications in Genetics and Molecular Biology</em> 9
-(1): 39. <a href="https://doi.org/10.2202/1544-6115.1585" class="external-link">https://doi.org/10.2202/1544-6115.1585</a>.
-</div>
-<div id="ref-S205" class="csl-entry">
-Unknown. 2020. <em><span>A</span>utocorrelated <span>T</span>ime
-<span>S</span>eries: <span>ARIMA</span>(1,1,1) <span>M</span>odel
-<span>F</span>orecasting <span>T</span>echniques</em>.
-</div>
-</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

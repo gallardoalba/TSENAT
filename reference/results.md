@@ -1,0 +1,170 @@
+# Extract analysis results from TSENATAnalysis object
+
+Provides flexible access to diversity, divergence, and statistical test
+results with options for ranking, filtering, and format conversion.
+
+## Usage
+
+``` r
+results(
+  analysis,
+  type,
+  q = NULL,
+  rankBy = "none",
+  n = NA,
+  filterFDR = NULL,
+  format = "auto",
+  display_table = FALSE,
+  n_genes = 4,
+  q_values_table = c(0, 0.5, 1, 1.5, 2),
+  top_n = NULL,
+  sort_by = "adj_p_interaction"
+)
+```
+
+## Arguments
+
+- analysis:
+
+  `TSENATAnalysis` object containing computed results.
+
+- type:
+
+  `character`. **Required.** Type of results to extract: 'diversity',
+  'divergence', 'lm', 'jackknife', 'rank_test',
+  'effect_sizes_divergence', or 'switching_tables'.
+
+- q:
+
+  `numeric`. For diversity results, optionally return results for a
+  specific q-value only. When specified, returns a single
+  SummarizedExperiment for that q-value instead of the full list.
+  Default: NULL (return all q-values as list). Example: q = 1.0 returns
+  only the q=1.0 results.
+
+- rankBy:
+
+  `character`. For LM/Jackknife results, ranking method: 'none'
+  (default), 'pvalue', 'effectSize', or 'qvalue'. Applies to statistical
+  test results. Default: 'none'.
+
+- n:
+
+  `integer`. Return top N features/genes ranked by rankBy. Use NA
+  (default) to return all results. Requires rankBy != 'none'.
+
+- filterFDR:
+
+  `numeric`. FDR threshold for significance filtering (0.0-1.0). Only
+  results with adjusted p-value \<= filterFDR retained. Default: NULL
+  (no filtering).
+
+- format:
+
+  `character`. Output format: 'auto' (sensible default for type),
+  'list', 'dataframe', or 'matrix'. Default: 'auto'.
+
+- display_table:
+
+  `logical`. For diversity results with display_table=TRUE, returns a
+  formatted table showing diversity values across selected q-values for
+  each gene. Default: FALSE (returns SummarizedExperiment or list).
+
+- n_genes:
+
+  `integer`. Number of genes to display in diversity tables when
+  display_table=TRUE. Default: 4.
+
+- q_values_table:
+
+  `numeric`. Vector of q-values to include in diversity table display
+  when display_table=TRUE. Default: c(0, 0.5, 1.0, 1.5, 2.0).
+
+- top_n:
+
+  `integer`. For effect_sizes_divergence, return top N genes ranked by
+  sort_by. When specified, results are sorted by sort_by column and
+  limited to top N rows. Default: NULL (return all results). Use NA to
+  return all.
+
+- sort_by:
+
+  `character`. For effect_sizes_divergence, column name to sort by.
+  Common choices: 'adj_p_interaction' (p-value, ascending),
+  'Mean_Divergence' (descending). Default: 'adj_p_interaction' (most
+  significant first).
+
+## Value
+
+\- For diversity with q=NULL: A named list of SummarizedExperiment
+objects, one per q-value - For diversity with q specified: A single
+SummarizedExperiment for that q-value - For divergence: A
+SummarizedExperiment (rows=genes, columns=q-values), data.frame, or
+other format depending on divergence computation method - For
+lm/jackknife: A data.frame or list based on type and format - For
+pairwise: A data.frame with pairwise comparison difference metrics - For
+effect_sizes_divergence: A list containing effect size divergence
+results with components like interaction_results - For switching_tables:
+A list containing gene switching comparison tables Returns NULL if
+requested result type not computed or no results pass filtering.
+
+## Details
+
+This function provides flexible access to all computed results with
+ranking, filtering, and format conversion. Compatible with DESeq2/edgeR
+design patterns for familiar result extraction workflows.
+
+\*\*Lazy Computation for switching_tables:\*\* When requesting
+`type = "switching_tables"`, the function automatically computes and
+caches the tables if they don't exist yet but the prerequisites do (LM
+and jackknife results). This eliminates the need for a separate
+`prepare_gene_switching_tables_s4()` call - simply request the results
+and they will be computed on-demand.
+
+## Examples
+
+``` r
+# Load example data
+data(readcounts, package = 'TSENAT')
+
+# Create TSENATAnalysis from count matrix
+config <- TSENAT_config(
+  q = 1.0,
+  condition_col = 'group'
+)
+se <- SummarizedExperiment::SummarizedExperiment(
+  assays = list(counts = readcounts),
+  colData = data.frame(
+    group = rep(c('A', 'B'), length.out = ncol(readcounts))
+  )
+)
+analysis <- TSENATAnalysis(se = se, config = config)
+analysis <- calculate_diversity(analysis)
+#> [calculate_diversity] Using q = 1.000 (config)
+#> Warning: [calculate_diversity] Assay for q=1 is empty
+
+# Get all diversity results (list of SummarizedExperiment objects, one per q)
+div_all <- results(analysis, type = 'diversity')
+
+# Get diversity for specific q-value (single SummarizedExperiment)
+div_q1 <- results(analysis, type = 'diversity', q = 1.0)
+
+# Get results ranked by p-value, top 20 genes
+# Using accessor function instead of @ slot access
+top_lm <- results(analysis, type = 'lm', rankBy = 'pvalue', n = 20)
+
+# Get pairwise results (e.g., differential diversity metrics between conditions)
+pairwise_diff <- results(analysis, type = 'pairwise')
+
+# Get effect size results, top 6 genes by p-value (most significant first)
+top_effect_sizes <- results(analysis, type = 'effect_sizes_divergence', 
+                             top_n = 6, sort_by = 'adj_p_interaction')
+
+# Get effect sizes sorted by mean divergence (largest effect sizes first)
+large_effects <- results(analysis, type = 'effect_sizes_divergence',
+                         top_n = 10, sort_by = 'Mean_Divergence')
+
+# Get switching tables - automatically computed if prerequisites exist
+# (no need to call prepare_gene_switching_tables_s4 separately)
+switching <- results(analysis, type = 'switching_tables')
+```

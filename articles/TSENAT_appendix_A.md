@@ -136,7 +136,7 @@ for (method in sf_methods) {
 
 # TSENAT: Single config for q-value sweep
 # (Configuration is identical for all q-values)
-config <- tsenat_config(condition_col = "group")
+config <- TSENAT_config(condition_col = "group")
 
 # TSENAT: Create analysis objects and compute diversity for q=1 and q=2
 q_values <- c(1, 2)
@@ -147,7 +147,8 @@ for (q in q_values) {
   tsenat_results[[paste0("q", q)]] <- TSENATAnalysis(se_data, config = config)
   
   # Compute diversity with dynamic output filename using sprintf
-  tsenat_results[[paste0("q", q)]] <- calculate_diversity_s4(
+  # Use explicit namespace to avoid SplicingFactory::calculate_diversity masking
+  tsenat_results[[paste0("q", q)]] <- TSENAT::calculate_diversity(
     analysis = tsenat_results[[paste0("q", q)]],
     q = q,
     norm = TRUE,
@@ -191,27 +192,36 @@ simpson_significance <- SplicingFactory::calculate_difference(
 
 # TSENAT: Differential analysis for Tsallis q=1
 # Config already set at object construction, no need to reset
-tsenat_analysis_q1 <- calculate_difference_s4(
+tsenat_analysis_q1 <- TSENAT::calculate_difference(
   analysis = tsenat_analysis_q1,
   control = "Normal",
   method = "mean",
   test = "wilcoxon",
   verbose = FALSE
 )
-# Extract results for downstream functions
-tsenat_shannon_diff <- pairwiseResults(tsenat_analysis_q1, component = "difference")
+#> [calculate_difference] Using q = 1.000 (auto-detected)
+
+tsenat_shannon_diff <- TSENAT::results(tsenat_analysis_q1, type = "pairwise")
+
+# Extract diversity results using results accessor for q=1
+tsenat_q1_diversity <- TSENAT::results(tsenat_analysis_q1, type = "diversity", q = 1.0)
+
 
 # TSENAT: Differential analysis for Tsallis q=2
-# Config already set at object construction, no need to reset
-tsenat_analysis_q2 <- calculate_difference_s4(
+tsenat_analysis_q2 <- TSENAT::calculate_difference(
   analysis = tsenat_analysis_q2,
   control = "Normal",
   method = "mean",
   test = "wilcoxon",
   verbose = FALSE
 )
+#> [calculate_difference] Using q = 2.000 (auto-detected)
+
 # Extract results for downstream functions
-tsenat_simpson_diff <- pairwiseResults(tsenat_analysis_q2, component = "difference")
+tsenat_simpson_diff <- TSENAT::results(tsenat_analysis_q2, type = "pairwise")
+
+# Extract diversity results using results accessor for q=2
+tsenat_q2_diversity <- TSENAT::results(tsenat_analysis_q2, type = "diversity", q = 2.0)
 ```
 
 For the benchmark comparison with TSENAT, we will compute Tsallis
@@ -314,7 +324,7 @@ library(cowplot)
 
 # Create individual volcano and MA plots for Shannon/q=1
 # SplicingFactory method for comparison
-shannon_sf <- TSENAT:::.plot_volcano_ma_grid(
+shannon_sf <- TSENAT:::.plot_diversity_volcano_ma(
   diff_df = entropy_significance,
   x_col = "mean_difference",
   padj_col = "adjusted_p_values",
@@ -325,7 +335,7 @@ shannon_sf <- TSENAT:::.plot_volcano_ma_grid(
 )
 
 # TSENAT S4 wrapper method
-shannon_tsenat <- plot_volcano_ma_grid_s4(
+shannon_tsenat <- TSENAT::plot_diversity_volcano_ma(
   analysis = tsenat_analysis_q1,
   x_col = "mean_difference",
   padj_col = "padj",
@@ -467,7 +477,7 @@ style="margin-left: auto; margin-right: auto;"}
 
 # Create individual volcano and MA plots for Simpson/q=2
 # SplicingFactory method for comparison
-simpson_sf <- TSENAT:::.plot_volcano_ma_grid(
+simpson_sf <- TSENAT:::.plot_diversity_volcano_ma(
   diff_df = simpson_significance,
   x_col = "mean_difference",
   padj_col = "adjusted_p_values",
@@ -478,7 +488,7 @@ simpson_sf <- TSENAT:::.plot_volcano_ma_grid(
 )
 
 # TSENAT S4 wrapper method
-simpson_tsenat <- plot_volcano_ma_grid_s4(
+simpson_tsenat <- TSENAT::plot_diversity_volcano_ma(
   analysis = tsenat_analysis_q2,
   x_col = "mean_difference",
   padj_col = "padj",

@@ -1,0 +1,207 @@
+# Run complete TSENAT analysis pipeline
+
+Coordinates the full TSENAT workflow: diversity -\> jackknife -\> LM
+interactions -\> divergence -\> gene interactions -\> visualizations.
+
+## Usage
+
+``` r
+TSENAT(
+  analysis,
+  output_dir = "tsenat_outputs",
+  save_output = TRUE,
+  output_format = "tsv",
+  verbose = TRUE
+)
+```
+
+## Arguments
+
+- analysis:
+
+  `TSENATAnalysis` object created by
+  [`build_analysis`](https://gallardoalba.github.io/TSENAT/reference/build_analysis.md).
+
+- output_dir:
+
+  `character`. Directory to save results and plots. Default:
+  "tsenat_outputs". Set to NULL to disable automatic output saving.
+
+- save_output:
+
+  `logical`. Whether to save output files (results tables). Default:
+  TRUE. If FALSE, no TSV/CSV output files are written to disk.
+
+- output_format:
+
+  `character`. Format for output files: 'tsv' (tab-separated), 'csv'
+  (comma-separated), 'txt' (text), or 'rds' (R serialized). Default:
+  'tsv'.
+
+- verbose:
+
+  `logical`. Print progress messages. Default: TRUE.
+
+## Value
+
+`TSENATAnalysis` object containing complete analysis results, plots, and
+metadata.
+
+## Details
+
+Pipeline execution order (enforced, follows TSENAT.Rmd vignette):
+
+1.  [`filter_analysis()`](https://gallardoalba.github.io/TSENAT/reference/filter_analysis.md) -
+    Filter low-abundance transcripts
+
+2.  [`calculate_diversity()`](https://gallardoalba.github.io/TSENAT/reference/calculate_diversity.md) -
+    Tsallis entropy per q-value
+
+3.  [`plot_diversity_spectrum()`](https://gallardoalba.github.io/TSENAT/reference/plot_diversity_spectrum.md) -
+    Visualize q-spectrum
+
+4.  [`calculate_m_estimator()`](https://gallardoalba.github.io/TSENAT/reference/calculate_m_estimator.md) -
+    Sample influence QC analysis
+
+5.  [`calculate_lm()`](https://gallardoalba.github.io/TSENAT/reference/calculate_lm.md) -
+    LM interaction testing
+
+6.  [`plot_lm_gam()`](https://gallardoalba.github.io/TSENAT/reference/plot_lm_gam.md) -
+    GAM visualization of LM results
+
+7.  [`calculate_jis()`](https://gallardoalba.github.io/TSENAT/reference/calculate_jis.md) -
+    Transcript switching detection
+
+8.  [`plot_jis_delta()`](https://gallardoalba.github.io/TSENAT/reference/plot_jis_delta.md) -
+    Multi-q influence heatmap (gene switching tables computed lazily via
+    results())
+
+9.  [`plot_expression()`](https://gallardoalba.github.io/TSENAT/reference/plot_expression.md) -
+    Top transcript visualization
+
+10. [`calculate_divergence()`](https://gallardoalba.github.io/TSENAT/reference/calculate_divergence.md) -
+    Pairwise divergence metrics
+
+11. [`calculate_effect_sizes()`](https://gallardoalba.github.io/TSENAT/reference/calculate_effect_sizes.md) -
+    Effect size computation
+
+12. [`plot_divergence_distribution()`](https://gallardoalba.github.io/TSENAT/reference/plot_divergence_distribution.md) -
+    Divergence distribution plot
+
+13. [`plot_divergence_spectrum()`](https://gallardoalba.github.io/TSENAT/reference/plot_divergence_spectrum.md) -
+    Divergence spectrum plot
+
+## Examples
+
+``` r
+# \donttest{
+data(readcounts, package = "TSENAT")
+metadata_df <- read.table(
+  system.file("extdata", "metadata.tsv", package = "TSENAT"),
+  header = TRUE, sep = "\t"
+)
+gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+
+config <- TSENAT_config(
+  sample_col = "sample",
+  condition_col = "condition",
+  q = seq(0, 2, length.out = 10),
+  generate_plots = FALSE
+)
+analysis <- build_analysis(
+  readcounts = as.matrix(readcounts),
+  tx2gene = gff3_file,
+  metadata = metadata_df,
+  config = config,
+  tpm = tpm,
+  effective_length = effective_length
+)
+
+result <- TSENAT(analysis)
+#> Created output directory: tsenat_outputs
+#> 
+#> +============================================================+
+#> |          TSENAT: Tsallis Entropy Analysis Toolbox          |
+#> +============================================================+
+#>                                                               
+#>       Science is an essentially anarchic enterprise.          
+#>                                                               
+#>                        -- Paul Feyerabend, Against Method     
+#>                                                               
+#> [DATA] Data Summary
+#>   Transcripts .......... 3,089
+#>   Samples .............. 16
+#>   Conditions ........... 2
+#>   Q-spectrum range ..... 0 to 2 (10 values)
+#> 
+#> [CONFIG] Analysis Configuration
+#>   Design ............... unpaired
+#>   Filter stringency .... medium
+#>   Normalization ........ enabled [0-1]
+#>   Normalization method . RANGE (DEFAULT)
+#>   Pseudocount .......... disabled
+#>   Shrinkage ............ disabled
+#>   Significance ......... p < 0.050 | FDR < 0.050
+#>   LM method ............ GAM
+#>   LM p-corr method ..... BH
+#>   Jackknife use_lm_fdr . TRUE
+#> 
+#> =============================================================
+#> [>] [ 1/14] Filtering low-abundance transcripts
+#>           [OK] Complete
+#> [>] [ 2/14] Computing Tsallis diversity
+#>           [OK] 10 q-values processed
+#> [>] [ 3/14] Plotting q-spectrum curve
+#>           [OK] Plot generated
+#> [>] [ 4/14] Running sample influence QC analysis (m-estimator)
+#>           [OK] M-estimate QC complete
+#> [>] [ 5/14] Testing LM interactions with GAM smoother
+#> Warning: nlminb problem, convergence error code = 1
+#>   message = singular convergence (7)
+#>           [OK] LM interaction analysis complete
+#> [>] [ 6/14] Plotting LM interaction GAM smoother
+#>           [OK] LM interaction plot generated
+#> [>] [ 7/14] Computing jackknife isoform switching analysis
+#>           [OK] Jackknife isoform switching complete
+#> [>] [ 9/14] Plotting multi-q influence heatmap
+#>           [OK] Influence heatmap generated
+#> [>] [10/14] Plotting top transcript counts
+#>           [OK] Top transcripts plot generated
+#> [>] [11/14] Computing divergence metrics
+#>           [OK] Divergence computed
+#> [>] [12/14] Computing effect sizes for divergence
+#>           [OK] Effect sizes computed
+#> [>] [13/14] Plotting divergence distribution
+#>           [OK] Divergence distribution plot generated
+#> [>] [14/14] Plotting divergence spectrum
+#>           [OK] Global divergence spectrum plot generated
+#>           [OK] Multi-gene divergence spectrum plot generated
+#> =============================================================
+#> 
+#> +============================================================+
+#> |               [OK] ANALYSIS COMPLETE                       |
+#> +============================================================+
+#> 
+#> [RESULTS] Results Summary
+#> 
+#> [PERF] Performance
+#>   Total time ........... 26.1s
+#>   Slowest steps:
+#>     1. lm_interaction       13.6s (52.2%)
+#>     2. jackknife            4.5s (17.2%)
+#>     3. lm_plot              2.6s (10.0%)
+#> 
+#> [OUTPUT] Output
+#>   Directory ........... tsenat_outputs
+#>   Files saved ......... 15
+#> 
+#> [TIPS] Next steps:
+#>   show(result)             - View object structure and slots
+#>   summary(result)          - Print detailed statistics summary
+#>   results(result)          - Extract numerical results (diversity, divergence, etc.)
+#>   getPlot(result, type)    - Retrieve specific visualization (e.g., 'diversity', 'volcano')
+#>   metadata(result)         - Access metadata and workflow parameters
+#>   se(result)               - Get SummarizedExperiment object for downstream analysis
+#> 
+# }
+```

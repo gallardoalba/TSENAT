@@ -8,16 +8,16 @@
   count-based differential expression methods.
 
 - Core analysis via
-  [`calculate_diversity()`](https://rdrr.io/pkg/SplicingFactory/man/calculate_diversity.html)
+  [`calculate_diversity()`](https://gallardoalba.github.io/TSENAT/reference/calculate_diversity.md)
   /
-  [`calculate_diversity_s4()`](https://gallardoalba.github.io/TSENAT/reference/calculate_diversity_s4.md),
-  [`calculate_difference()`](https://rdrr.io/pkg/SplicingFactory/man/calculate_difference.html)
+  [`calculate_diversity()`](https://gallardoalba.github.io/TSENAT/reference/calculate_diversity.md),
+  [`calculate_difference()`](https://gallardoalba.github.io/TSENAT/reference/calculate_difference.md)
   /
-  [`calculate_difference_s4()`](https://gallardoalba.github.io/TSENAT/reference/calculate_difference_s4.md),
-  `calculate_divergence()` /
-  [`calculate_divergence_s4()`](https://gallardoalba.github.io/TSENAT/reference/calculate_divergence_s4.md),
-  and `calculate_lm_interaction()` /
-  [`calculate_lm_interaction_s4()`](https://gallardoalba.github.io/TSENAT/reference/calculate_lm_interaction_s4.md)
+  [`calculate_difference()`](https://gallardoalba.github.io/TSENAT/reference/calculate_difference.md),
+  [`calculate_divergence()`](https://gallardoalba.github.io/TSENAT/reference/calculate_divergence.md)
+  /
+  [`calculate_divergence()`](https://gallardoalba.github.io/TSENAT/reference/calculate_divergence.md),
+  and `calculate_lm_interaction()` / `calculate_lm_interaction_s4()`
   supporting diverse statistical tests (Wilcoxon, Friedman, permutation,
   jackknife bootstrap).
 
@@ -33,10 +33,9 @@
   quantification import with GFF3 annotation parsing.
 
 - Quality control:
-  [`filter_analysis_s4()`](https://gallardoalba.github.io/TSENAT/reference/filter_analysis_s4.md)
-  for multi-criteria filtering;
-  [`jackknife_entropy_outliers_s4()`](https://gallardoalba.github.io/TSENAT/reference/jackknife_entropy_outliers_s4.md)
-  for outlier detection.
+  [`filter_analysis()`](https://gallardoalba.github.io/TSENAT/reference/filter_analysis.md)
+  for multi-criteria filtering; `jackknife_entropy_outliers_s4()` for
+  outlier detection.
 
 - Visualization suite (8 plot types): diversity q-curves, volcano/MA
   plots, violin/density plots, transcript composition heatmaps,
@@ -45,9 +44,9 @@
   styling.
 
 - High-level workflow orchestration via
-  [`tsenat()`](https://gallardoalba.github.io/TSENAT/reference/tsenat.md)
+  [`TSENAT()`](https://gallardoalba.github.io/TSENAT/reference/TSENAT.md)
   and flexible configuration management with
-  [`tsenat_config()`](https://gallardoalba.github.io/TSENAT/reference/tsenat_config.md).
+  [`TSENAT_config()`](https://gallardoalba.github.io/TSENAT/reference/TSENAT_config.md).
 
 - Performance: Rcpp/RcppArmadillo for entropy calculations, BiocParallel
   support, lazy-loading of visualization libraries (~30% faster non-plot

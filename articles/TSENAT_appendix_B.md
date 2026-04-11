@@ -1,28 +1,28 @@
 # Appendix B: Non-Parametric Validation of Linear Model Results via GAM and Rank-Based Methods
 
-## Overview: Non-Parametric Validation of q-Value \* Group Interactions
+## Overview: Non-Parametric Validation of Entropic Index × Group Interactions (q-values)
 
 ### Purpose and Rationale
 
-Primary Goal: Validate that discoveries of scale-dependent q-value \*
-group interactions from linear models generalize to non-parametric
-statistical frameworks with minimal assumptions.
+Primary Goal: Validate that discoveries of scale-dependent entropic
+index × group interactions from linear models generalize to
+non-parametric statistical frameworks with minimal assumptions.
 
-TSENAT’s default approach employs **linear models** to test for q-value
-\* group effects in Tsallis entropy. While computationally efficient and
-well-characterized, linear models assume: - Normally distributed
-residuals (reasonable after appropriate transformation) - Homogeneous
-variance across q-values (often violated in diversity metrics) -
-Additive effects of group and q-value on entropy (may oversimplify
-nonlinear relationships)
+TSENAT’s default approach employs **linear models** to test for entropic
+index × group effects in Tsallis entropy. While computationally
+efficient and well-characterized, linear models assume: - Normally
+distributed residuals (reasonable after appropriate transformation) -
+Homogeneous variance across entropic indices (often violated in
+diversity metrics) - Additive effects of group and entropic index on
+entropy (may oversimplify nonlinear relationships)
 
 This appendix provides two independent, non-parametric alternatives
 that:
 
 1.  Make minimal distributional assumptions, relying only on ranks or
     data-adaptive smoothing
-2.  Explicitly handle q-ordered structure, treating q-values as explicit
-    sequential measurements
+2.  Explicitly handle the ordered structure of entropic indices,
+    treating them as sequential measurements (q-values)
 3.  Adapt to real-world heteroscedasticity, automatically weighting
     measurements by entropy variance
 4.  Provide independent validation, allowing comparison of linear
@@ -30,48 +30,37 @@ that:
 
 ### Two Complementary Validation Approaches
 
-#### Method 1: Generalized Additive Models (GAM) with ARIMA-Ordered Measurement Structure
+**Method 1**: Generalized Additive Models (GAM) with ARIMA-Ordered
+Measurement Structure.
 
 - Distributional assumption: None required; uses non-parametric basis
-  functions (thin-plate splines)
-- Treatment of q-ordering: Treats q-values as time-like ordered
-  measurements, applies ARIMA(1,1,0) differencing for autocorrelation
+  functions (thin-plate splines).
+- Treatment of entropic structure: Treats q-values as time-like ordered
+  measurements, applies ARIMA(1,1,0) differencing for autocorrelation.
 - Heteroscedasticity handling: Automatically detects variance
-  heterogeneity; applies optimal weighting
+  heterogeneity; applies optimal weighting.
 - Key advantage: Captures smooth nonlinear q \* group effects with
-  computational efficiency
+  computational efficiency.
 
-#### Method 2: Rank-Based Tests (Friedman with Hochberg Step-Up Correction)
+**Method 2**: Rank-Based Tests (Scheirer-Ray-Hare with Hochberg Step-Up
+Correction).
 
 - Distributional assumption: None; operates entirely on ranks (maximal
-  robustness)
-- Treatment of q-ordering: Friedman two-way test for paired measurements
-  across q and group
+  robustness).
+- Treatment of q-ordering: Scheirer-Ray-Hare two-way test for paired
+  measurements across q and group.
 - Heteroscedasticity handling: Rank transformation inherently robust;
-  Hochberg correction controls FWER
+  Hochberg correction controls FWER.
 - Key advantage: Maximally robust to outliers; valid for any continuous
-  distribution
-- Reference: Efron & Tibshirani (1993), Benjamini & Hochberg (1995)
-
-### Key Validation Questions
-
-1.  Concordance: Do linear model, GAM, and rank-based methods identify
-    the same significant genes?
-2.  Robustness: Which genes remain significant across both parametric
-    and non-parametric approaches?
-3.  Method-Specific Signals: Do rank-based methods reveal additional
-    genes missed by parametric models due to assumption violations?
-4.  Data Characteristics: What entropy distribution properties predict
-    method disagreement? (Outliers, heteroscedasticity, departure from
-    normality)
+  distribution.
 
 ### Why Two Methods for One Question?
 
-Statistical testing in transcriptomics faces a fundamental challenge:
-**no single method is universally optimal**. Different approaches make
+Statistical testing in transcriptomics faces a fundamental challenge: no
+single method is universally optimal. Different approaches make
 different assumptions and have different strengths. TSENAT employs two
-complementary strategies: parametric methods (linear models and
-generalized additive models) and non-parametric rank-based tests:
+complementary strategies: parametric methods (linear models) and
+non-parametric rank-based tests:
 
 | Aspect | Parametric (Linear Model / GAM) | Non-Parametric (Rank-Based) |
 |----|----|----|
@@ -82,20 +71,16 @@ generalized additive models) and non-parametric rank-based tests:
 | Outlier influence | High potential for bias | Minimal; rank transformation inherently resistant |
 
 Validation strategy: High concordance between parametric and
-non-parametric methods (\>85% agreement) confirms that findings are
-**robust to modeling assumptions and generalize across statistical
-frameworks**. Method-specific signals suggest either: - Genuine
-biological effects masked by parametric assumptions in linear models,
-AND - Real patterns revealed only by the flexibility of GAM or
-robustness of rank-based methods
-
-Genes significant in linear models but NOT in non-parametric methods
-should be scrutinized: they may reflect model artifact rather than true
-biological signal.
+non-parametric methods confirms that findings are robust to modeling
+assumptions and generalize across statistical frameworks.
 
 ------------------------------------------------------------------------
 
 ## Setup
+
+This section initializes the analysis environment by loading required
+packages, setting a random seed for reproducibility, and preparing the
+test dataset.
 
 ``` r
 
@@ -108,9 +93,6 @@ suppressPackageStartupMessages({
 })
 
 set.seed(42)
-```
-
-``` r
 
 # Load preprocessed dataset
 data(readcounts)
@@ -126,19 +108,18 @@ metadata_df <- read.table(
 gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 
 # Configure analysis parameters first (best practice: fail-fast validation)
-config <- tsenat_config(
+config <- TSENAT_config(
   sample_col = "sample",
   condition_col = "condition",
   subject_col = "paired_samples",
-  q_values = seq(0, 2, by = 0.05),
+  q = seq(0, 2, by = 0.05),
   nthreads = 3,
   paired = TRUE,
   control = "normal"
 )
 
 # Build analysis object: creates SummarizedExperiment and initializes TSENATAnalysis
-# Pass config at construction (Bioconductor pattern)
-analysis <- build_analysis_s4(
+analysis <- build_analysis(
     readcounts = readcounts,
     tx2gene = gff3_dataset,
     metadata = metadata_df,
@@ -148,325 +129,270 @@ analysis <- build_analysis_s4(
 )
 
 # Apply filtering for quality control
-analysis <- filter_analysis_s4(
+analysis <- filter_analysis(
     analysis,
     stringency = "medium",
     min_isoform_abundance = 0
 )
 ```
 
-### Library Size Normalization for Pseudocounts
+### Computing Tsallis Entropy with Pseudocount Regularization
 
-For robust entropy estimation on sparse count data, we normalize
-pseudocounts by library size. This approach is principled and
-recommended in edgeR and DESeq2, as it ensures regularization strength
-adapts to overall sequencing depth.
+Pseudocounts are critical for statistical robustness when applying
+rank-based tests to sparse RNA-seq count data. RNA-seq experiments
+typically contain many zero or near-zero counts, which creates two
+problems for rank-based nonparametric methods:
+
+1.  **Ties in rankings:** Sparse counts produce many tied values
+    (especially zeros), which reduces the discriminatory power of rank
+    tests. Rank-based statistics depend on unique orderings; when many
+    observations are identical, the test statistic contains less
+    information, reducing statistical power.
+
+2.  **Library size artifacts:** Small count differences due to
+    sequencing depth variations overshadow true biological differences.
+    Normalized library sizes (accounting for sequencing depth) ensure
+    that entropy estimates reflect true biological diversity rather than
+    technical artifacts (Robinson et al. 2010; Love et al. 2014).
+
+By adding small pseudocounts proportional to library size, we achieve
+two benefits:
+
+- **Regularization** breaks ties and prevents zero-inflation bias that
+  compromises rank-based inference.
+- **Normalization** makes entropy estimates comparable across samples
+  with different sequencing depths. This approach is standard in RNA-seq
+  analysis and is particularly important for entropy-based diversity
+  metrics, which require positive values for logarithmic transforms.
+
+The
+[`calculate_diversity()`](https://gallardoalba.github.io/TSENAT/reference/calculate_diversity.md)
+function implements automatic pseudocount selection, scaling pseudocount
+magnitude and diversity estimates by median library size to ensure
+robust statistical inference across the range of sequencing depths in
+your dataset.
 
 ``` r
 
 # Compute diversity using S4 wrapper with bootstrap confidence intervals
-analysis <- calculate_diversity_s4(
+analysis <- calculate_diversity(
   analysis, 
   norm = TRUE,
   pseudocount = "auto"
 )
 ```
 
-## Rank-Based Approach (Friedman)
+## Rank-Based Approach (Scheirer-Ray-Hare)
+
+The Scheirer-Ray-Hare test provides a non-parametric validation of
+linear model results by leveraging the paired nature of the experimental
+design and the ordered structure of entropic indices. Unlike parametric
+methods that assume normality and homogeneity of variance, the
+Scheirer-Ray-Hare test operates solely on ranks, making it maximally
+robust to outliers and extreme values.
 
 ### Assumption Validation
 
 Before applying rank-based methods, we verify key assumptions for
-rank-based inference (Efron, Bradley and Tibshirani, Robert J. 1993;
-Hyndman and Athanasopoulos 2018). The Friedman test is a non-parametric
-alternative to repeated-measures ANOVA, making fewer distributional
-assumptions while maintaining validity for paired designs (Phipson and
-Smyth 2010):
+rank-based inference.
 
 ``` r
 
-# Validate Friedman test assumptions using S4 wrapper
-analysis <- test_rankbased_assumptions_s4(
+# Validate Scheirer-Ray-Hare test assumptions
+analysis <- calculate_rank_assumptions(
     analysis
 )
 
-# Extract the result object from metadata using accessor function
+# Extract the result object
 rank_assumptions <- metadata(analysis, "rankbased_assumptions")$result
 ```
 
-| Metric                               |            Value |
-|:-------------------------------------|-----------------:|
-| Genes tested                         |               88 |
-| Samples (q-values $`\times`$ groups) |              656 |
-| Entropy range                        | 0.0000 to 1.0000 |
-| Mean entropy                         |           0.6676 |
-| Median entropy                       |           0.7425 |
-| Missing values                       |                0 |
+| Metric | Value |
+|:---|---:|
+| Genes tested | 88 |
+| Samples (entropic order indices × groups) | 656 |
+| Entropy range | 0.0000 to 1.0000 |
+| Mean entropy | 0.6676 |
+| Median entropy | 0.7425 |
+| Missing values | 0 |
+| Note: |  |
+|  Data from complete entropy matrix across all q-values and samples. |  |
 
-**Supplementary Table 1 \| Rank-Based Entropy Matrix Properties.**
-Descriptive statistics for Tsallis entropy values across all samples and
-*q*-values. Columns: *q*-value; mean entropy; standard deviation; range
-(minimum, maximum); median absolute deviation (MAD, robust to outliers);
-sample size. Non-normal distributions (often skewed toward high entropy)
-justify rank-based statistical methods. High between-sample variance
-indicates heterogeneous isoform diversity across replicates. {.table
+Supplementary Table 1 \| Rank-Based Entropy Matrix Properties. {.table
 .table .table-striped .table-hover .table-condensed
-style="margin-left: auto; margin-right: auto;"}
+style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
-| Characteristic      | Test             |  Result |
-|:--------------------|:-----------------|--------:|
-| Paired Structure    | Permutation test | p=1.000 |
-| Gene Heterogeneity  | Spearman r       | r=0.304 |
-| Subject Consistency | Kendall’s W      | W=0.000 |
+| Characteristic | Test | Result |
+|:---|:---|---:|
+| Paired Structure | Permutation test | p=1.000 |
+| Gene Heterogeneity | Spearman r | r=0.304 |
+| Subject Consistency | Kendall’s W | W=0.000 |
+| Note: |  |  |
+|  All metrics support validity of paired-design rank-based inference. |  |  |
 
-**Supplementary Table 2 \| Entropy Matrix Validation Metrics.** Three
-core properties validating suitability for rank-based analysis. Rows:
-Paired Structure (exchangeability test ensures independence), Gene
+Supplementary Table 2 \| Entropy Matrix Validation Metrics. Three core
+properties validating suitability for rank-based analysis. Rows: Paired
+Structure (exchangeability test ensures independence), Gene
 Heterogeneity (Spearman rank correlation), Subject Consistency
 (Kendall’s *W* concordance). Values reported as *P*-values, correlation
 coefficients *r*, and concordance *W* (0-1 range). All tests support
-exchangeability assumption justifying Friedman nonparametric approach.
-{.table .table .table-striped .table-hover .table-condensed
-style="margin-left: auto; margin-right: auto;"}
+exchangeability assumption justifying Scheirer-Ray-Hare nonparametric
+approach. {.table .table .table-striped .table-hover .table-condensed
+style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
+
+### Scheirer-Ray-Hare Test: Testing q $`\times`$ Condition Interactions
+
+Now we will use the Scheirer-Ray-Hare test to evaluate whether entropy
+patterns across entropic indices (q-values) differ between normal and
+tumor samples. The Scheirer-Ray-Hare test is a non-parametric
+alternative to the paired t-test and repeated measures ANOVA, making it
+ideal for paired designs where distributional assumptions may be
+violated (Zhang and Yuan 2018).
 
 ``` r
 
-# Run Friedman test for q * condition INTERACTION (FIXED - March 2026)
-# IMPORTANT: Now tests whether q-effect differs between conditions (tumor vs normal)
-# PREVIOUS BEHAVIOR (INCORRECT): Tested only q main effect, ignoring condition
-# NEW BEHAVIOR (CORRECT): Tests if entropy pattern across q-values differs by condition
-# 
-# With condition_col="sample_type", automatically uses:
-#  - Two-way Friedman test (paired=TRUE: q within-subjects, condition between-subjects)
-#  - Westfall-Young permutation correction respects AR(1) q-correlation + condition structure
-analysis <- rank_test_q_condition_s4(
+# Run Scheirer-Ray-Hare test for q * condition INTERACTION
+analysis <- calculate_rank_test(
     analysis,
     multicorr = "hochberg"
 )
 
-# Extract results from S4 object using accessor
-friedman_results <- rankResults(analysis)
+# Extract ALL results (no filtering) for summary statistics
+srh_results_all <- results(analysis, type = "rank_test", rankBy = "pvalue")
+
+# Extract top significant genes for display
+srh_results <- results(analysis, type = "rank_test", rankBy = "pvalue", n = 20, filterFDR = 0.05)
+print(head(srh_results, n = 10))
 ```
 
-| Metric                                       | Value |
-|:---------------------------------------------|------:|
-| Genes tested                                 |    88 |
-| Significant (p \< 0.05)                      |    10 |
-| Significant (adj_p \< 0.05, FWER-controlled) |     6 |
-| NAs                                          |     0 |
-| Mean effect size (eta^2)                     | 43.4% |
-| Median effect size (eta^2)                   | 40.3% |
-| Strong effect genes (eta^2 \> 10%)           |     8 |
+| Metric | Value |
+|:---|---:|
+| Genes tested | 88 |
+| Significant (p \< 0.05) | 10 |
+| Significant (adj_p \< 0.05, FWER-controlled) | 6 |
+| NAs | 0 |
+| Mean effect size ($`\eta^2`$) | 43.4% |
+| Median effect size ($`\eta^2`$) | 40.3% |
+| Strong effect genes ($`\eta^2`$ \> 10%) | 8 |
+| Note: |  |
+|  Scheirer-Ray-Hare test: nonparametric rank-based ANOVA for paired designs. |  |
 
-**Supplementary Table 3 \| Friedman Test Results Summary.** Rank-based
-nonparametric test of *q* \* condition interactions. Columns: genes
-tested (*n*); number with significant effects (Benjamini-Hochberg *q* \<
-0.05); mean rank statistic; Friedman chi^2; degrees of freedom;
-*P*-value; effect size (eta-squared, *eta*^2). Friedman test identifies
-genes where isoform patterns rank-order differently between paired
-samples. {.table .table .table-striped .table-hover .table-condensed
-style="margin-left: auto; margin-right: auto;"}
+Supplementary Table 3 \| Scheirer-Ray-Hare Test Results Summary.
+Rank-based nonparametric test of *q* × condition interactions. {.table
+.table .table-striped .table-hover .table-condensed
+style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
-| Gene | P-value | Adj. P-value | F-Statistic | Effect Size (eta^2) | Test Method | Interaction Class |
-|:---|---:|---:|---:|---:|:---|:---|
-| CXCL12 | 0.000 | 0.000 | 14.483 | 0.299 | srh_paired | Strongly q-dependent |
-| LINC03040 | 0.000 | 0.000 | 7.039 | 0.074 | srh_paired | Moderately q-dependent |
-| PNRC2 | 0.000 | 0.000 | 4.757 | 0.961 | srh_paired | Strongly q-dependent |
-| FAM114A2 | 0.000 | 0.001 | 2.358 | 0.256 | srh_paired | Strongly q-dependent |
-| HDAC2 | 0.000 | 0.010 | 2.116 | 0.576 | srh_paired | Strongly q-dependent |
-| ATG5 | 0.000 | 0.020 | 2.043 | 0.679 | srh_paired | Strongly q-dependent |
-| SRP72 | 0.001 | 0.117 | 1.853 | 0.362 | srh_paired | Strongly q-dependent |
-| METTL26 | 0.002 | 0.178 | 1.805 | 0.281 | srh_paired | Strongly q-dependent |
-| PTGER4 | 0.694 | 1.000 | 0.873 | 0.930 | srh_paired | Robust across q |
-| GSR | 0.999 | 1.000 | 0.443 | 0.897 | srh_paired | Robust across q |
+| Gene | P-value | Adj. P-value | F-Statistic | Effect Size (η²) | Test Method | Interaction Class |
+|:---|:---|:---|:---|:---|:---|:---|
+| CXCL12 | 1.9e-63 | 1.6e-61 | 14.4833 | 0.2993 | Scheirer-Ray-Hare (paired) | Strongly q-dependent |
+| LINC03040 | 1.1e-29 | 9.5e-28 | 7.0391 | 0.0735 | Scheirer-Ray-Hare (paired) | Moderately q-dependent |
+| PNRC2 | 6.8e-18 | 5.8e-16 | 4.7573 | 0.9610 | Scheirer-Ray-Hare (paired) | Strongly q-dependent |
+| FAM114A2 | 9.8e-06 | 0.000831 | 2.3578 | 0.2556 | Scheirer-Ray-Hare (paired) | Strongly q-dependent |
+| HDAC2 | 0.000116 | 0.009751 | 2.1161 | 0.5758 | Scheirer-Ray-Hare (paired) | Strongly q-dependent |
+| ATG5 | 0.000239 | 0.019839 | 2.0427 | 0.6787 | Scheirer-Ray-Hare (paired) | Strongly q-dependent |
+| Note: |  |  |  |  |  |  |
+|  Effect size η² quantifies strength of *q* × condition interaction; top 10 genes ranked by significance. P-values \< 0.0001 shown in scientific notation for precision. |  |  |  |  |  |  |
 
-**Supplementary Table 4 \| Top genes identified by Friedman rank-based
-test.** Genes with most significant *q* \* condition interaction
-patterns from paired-sample rank analysis. Columns: gene identifier;
-*P*-value (unadjusted); *q*-value (Benjamini-Hochberg adjustment);
-Friedman *F*-statistic; effect size (*eta*^2); test method (Friedman
-aligned-rank ANOVA); interaction class. Ranked by adjusted significance.
-{.table .table .table-striped .table-hover .table-condensed
-style="margin-left: auto; margin-right: auto;"}
+Supplementary Table 4 \| Top genes identified by Scheirer-Ray-Hare
+rank-based test. {.table .table .table-striped .table-hover
+.table-condensed
+style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 Visualize q-curves for top genes:
 
 ``` r
 
-top_genes_plot <- plot_tsallis_q_curve_s4(analysis, lm_res = friedman_results, n_top = 4)
+# Plot top genes from Scheirer-Ray-Hare test
+top_genes_plot <- plot_diversity_spectrum(analysis, lm_res = srh_results, n_top = 4)
 print(top_genes_plot)
 ```
 
-![\*\*Extended Data Figure 1 \| Scale-dependent isoform diversity from
-rank-based analysis.\*\* \*Friedman rank test identifies genes with
-heterogeneous isoform rank-ordering patterns between paired samples.\*
-X-axis, diversity sensitivity \*q\* (0-2). Y-axis, Tsallis entropy (0-1
-range). Each line represents a paired sample or condition. Parallel
-curves indicate rank-stable condition differences across all
-\*q\*-scales; diverging or crossing curves reveal genes with
-\*q\*-dependent isoform switching where isoform dominance rank-order
-differs between conditions at specific scales. Friedman rank test
-statistic quantifies nonparametric evidence for scale-dependent isoform
-heterogeneity.](TSENAT_appendix_B_files/figure-html/extended-fig-1-friedman-q-curves-1.png)
+![Extended Data Figure 1 \| Scheirer-Ray-Hare rank test results for
+scale-dependent isoform
+switching.](TSENAT_appendix_B_files/figure-html/extended-fig-1-srh-q-curves-1.png)
 
-**Extended Data Figure 1 \| Scale-dependent isoform diversity from
-rank-based analysis.** *Friedman rank test identifies genes with
-heterogeneous isoform rank-ordering patterns between paired samples.*
-X-axis, diversity sensitivity *q* (0-2). Y-axis, Tsallis entropy (0-1
-range). Each line represents a paired sample or condition. Parallel
-curves indicate rank-stable condition differences across all *q*-scales;
-diverging or crossing curves reveal genes with *q*-dependent isoform
-switching where isoform dominance rank-order differs between conditions
-at specific scales. Friedman rank test statistic quantifies
-nonparametric evidence for scale-dependent isoform heterogeneity.
-
-### Friedman Test: Testing q $`\times`$ Condition Interactions
-
-The Friedman test evaluates whether entropy patterns across q-values
-differ between normal and tumor samples (Unknown 2020). It ranks
-observations within each subject, preserving the paired structure
-critical for valid inference in paired designs (Phipson and Smyth 2010).
-This rank-based approach is particularly robust for skewed distributions
-like entropy values (Phipson and Smyth 2010), and the Westfall-Young
-permutation correction used here is asymptotically optimal for dependent
-test statistics (Meinshausen et al. 2012).
-
-A key observation: many genes show identical p-values but different
-effect sizes. This reflects the rank-based nature of the test (Efron,
-Bradley and Tibshirani, Robert J. 1993). Effect size eta^2 directly
-quantifies the strength of the q-value \* condition dependence and
-serves as the practical ranking metric when p-values cluster (Unknown
-2020):
-
-``` math
-\eta^2 = \frac{SS_\text{between}}{SS_\text{total}}
-```
-
-This represents the proportion of total variance in entropy explained by
-changes in q-values. Genes with eta^2 = 96.1% (e.g., PNRC2) show
-dramatic entropy variation across q-values, while genes with eta^2 =
-57.6% (e.g., HDAC2) show moderate variation.
-
-### Interpreting Identical p-values and Effect Size Ranking
-
-A key observation in this analysis is that **many genes share identical
-p-values** (p=0.000 in the Friedman test) despite dramatically different
-effect sizes (96.1%, 67.9%, 57.6%). This is **not a statistical error**
-but rather a fundamental property of the two-way Friedman test applied
-to q $`\times`$ condition interaction:
-
-**Why identical p-values occur in two-way Friedman:** The test statistic
-depends on the **rank patterns** of entropy values across q-levels
-within each condition and subject (Unknown 2020). When genes show
-similar interaction structure (e.g., Q-entropy consistently higher in
-tumors vs normals at all q-values), they produce identical test
-statistics despite different magnitudes of entropy change. This property
-of rank statistics (Efron, Bradley and Tibshirani, Robert J. 1993) is
-characteristic of non-parametric testing when distributions are heavily
-skewed or bounded. For multifactorial designs, aligned rank transform
-methods (Elkin and Kay 2023) provide robust alternatives to traditional
-ANOVA.
-
-**How to rank genes when p-values cluster:** In this scenario, **effect
-size (eta^2) becomes the practical ranking metric** (Unknown 2020)
-because it directly quantifies the strength of the q-value \* entropy
-dependence: - eta^2 captures the proportion of variance explained by
-q-values (Unknown 2020) - Higher eta^2 = stronger biological effect for
-that gene - Effect size properly reflects the magnitude of entropy
-change across q-values
-
-The vignette table sorts genes by (1) p-value and (2) effect size as
-tiebreaker. This strategy ensures that statistically significant genes
-are listed first, with effect size distinguishing between genes with
-identical statistical significance.
-
-**Recommendations:** - Focus on genes with eta^2 \> 0.3 for robust
-biological findings - Cross-validate significant genes using
-complementary methods (e.g., GAM section below) - Remember that
-statistical significance (p-value) indicates q-dependence exists, while
-effect size says how strong it is
+Extended Data Figure 1 \| Scheirer-Ray-Hare rank test results for
+scale-dependent isoform switching.
 
 ------------------------------------------------------------------------
 
 ## Generalized Additive Model Approach (GAM)
 
-This section loads precomputed GAM results **generated in the main
-vignette**
+This section loads precomputed GAM results generated in the main
+vignette
 ([TSENAT.Rmd](https://gallardoalba.github.io/TSENAT/articles/TSENAT.Rmd)).
-The GAM analysis provides a complementary parametric approach to detect
-q-value $`\times`$ group interactions. Results are integrated into the
-TSENATAnalysis object for S4 workflow consistency:
-
-- **Model:** Generalized Additive Models (GAM) with ARIMA(1,1,0)
-  transformations (can be combined with rank-based quasi-likelihood
-  regularization) (Goude 2024; Correia and Abebe 2021)
-- **Approach:** Smooth functions fit across q-values for each gene
-- **Correction:** Hochberg multiple testing correction accounting for
-  AR(1) correlation
-- **Assumptions:** Assumes continuous underlying distribution (better
-  for nonlinear patterns)
-- **Source:** Precomputed results from main vignette analysis (see
-  [TSENAT.Rmd](https://gallardoalba.github.io/TSENAT/articles/TSENAT.Rmd)
-  for generation details)
-
-The precomputed results include effect sizes, model convergence
-diagnostics, and heteroscedasticity detection. Comparing GAM and
-Friedman Test results helps identify robust genes significant in both
-methods.
 
 ``` r
 
-# Load precomputed GAM results from TSV file
-gam_results <- read.delim(
-    system.file("extdata", "lm_interaction_results.tsv", package = "TSENAT"),
-    stringsAsFactors = FALSE
+# Load precomputed LM analysis object from RDS file
+analysis_lm <- readRDS(
+    system.file("extdata", "analysis_lm.rds", package = "TSENAT")
 )
+
+# Extract GAM/LM results for inspection using accessor function
+gam_results <- results(analysis_lm, type = "lm", rankBy = "pvalue")
 ```
 
-| Metric                                   |  Value |
-|:-----------------------------------------|-------:|
-| Genes tested                             |     87 |
-| Significant (p \< 0.05)                  |     70 |
-| Concordant (p \< 0.05 AND adj_p \< 0.05) |     61 |
-| NAs                                      |      0 |
-| Mean effect size                         |  20.1% |
-| Median effect size                       |  15.8% |
-| Strong effect genes (effect_size \> 30%) |     20 |
-| Model convergence rate                   | 100.0% |
+| Metric | Value |
+|:---|---:|
+| Genes tested | 76 |
+| Significant (p \< 0.05) | 65 |
+| Concordant (p \< 0.05 AND adj_p \< 0.05) | 59 |
+| NAs | 0 |
+| Mean effect size | 20.1% |
+| Median effect size | 15.4% |
+| Strong effect genes (effect_size \> 30%) | 17 |
+| Model convergence rate | 100.0% |
+| Note: |  |
+|  Aggregate statistics across all genes tested by GAM method; effect size \> 30% indicates strong biological signal. |  |
 
 GAM Results Summary {.table .table .table-striped .table-hover
-.table-condensed style="margin-left: auto; margin-right: auto;"}
+.table-condensed
+style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
-| Gene      | p (interaction) | Adjusted p | Effect size | Test statistic |  df |
-|:----------|----------------:|-----------:|------------:|---------------:|----:|
-| CXCL12    |               0 |          0 |       81.3% |         752.51 | 640 |
-| MEF2A     |               0 |          0 |       27.3% |         465.59 | 640 |
-| PNPT1     |               0 |          0 |       65.8% |         359.04 | 640 |
-| ING3      |               0 |          0 |       35.3% |         352.59 | 640 |
-| SNHG10    |               0 |          0 |       30.7% |         296.73 | 640 |
-| FAXDC2    |               0 |          0 |       18.6% |         283.83 | 640 |
-| HDAC2     |               0 |          0 |       59.4% |         273.11 | 640 |
-| LINC03040 |               0 |          0 |       73.8% |         261.24 | 643 |
-| CENPV     |               0 |          0 |       15.7% |         234.77 | 640 |
-| THY1      |               0 |          0 |       31.0% |         233.01 | 640 |
+| Gene | p (interaction) | Adjusted p | Effect size | Test statistic | df |
+|:---|---:|---:|---:|---:|---:|
+| CXCL12 | 0e+00 | 0e+00 | 81.3% | 752.51 | 640 |
+| THY1 | 0e+00 | 0e+00 | 60.1% | 442.14 | 640 |
+| ING3 | 0e+00 | 0e+00 | 35.3% | 352.59 | 640 |
+| SNHG10 | 0e+00 | 0e+00 | 5.1% | 340.82 | 640 |
+| LINC03040 | 0e+00 | 0e+00 | 73.8% | 261.24 | 643 |
+| HDAC2 | 0e+00 | 0e+00 | 28.4% | 232.94 | 640 |
+| ENSG00000274322 | 0e+00 | 0e+00 | 4.7% | 217.93 | 640 |
+| MEF2A | 0e+00 | 0e+00 | 19.3% | 197.39 | 640 |
+| RAP1GDS1 | 0e+00 | 0e+00 | 54.8% | 170.93 | 640 |
+| PDE7A | 0e+00 | 0e+00 | 0.4% | 169.40 | 640 |
+| Note: |  |  |  |  |  |
+|  Top 10 genes ranked by significance; p-values \< 0.001 shown in scientific notation; effect size range 0-100%. |  |  |  |  |  |
 
-Top 10 Genes by GAM p-value (with Effect Size &amp; Test Statistics)
+Top 10 Genes by GAM p-value (with Effect Size and Test Statistics)
 {.table .table .table-striped .table-hover .table-condensed
-style="margin-left: auto; margin-right: auto;"}
+style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 ------------------------------------------------------------------------
 
 ## Method Concordance Analysis
 
+A critical validation step is to compare whether the Scheirer-Ray-Hare
+rank-based test and GAM produce consistent results. High concordance
+between methods (i.e., genes significant in both approaches) provides
+strong evidence that discoveries are robust to methodological choice.
+Discordant genes—those significant in only one method—warrant closer
+inspection: they may represent genuine biological signals revealed by
+one method’s specific advantages, or artifacts of that method’s
+assumptions. This section quantifies agreement between approaches and
+identifies high-confidence genes significant across both statistical
+frameworks.
+
 ``` r
 
-# Compute concordance analysis using S4 wrapper
-# Pass GAM results directly - the function handles storage automatically
-analysis_with_concordance <- compute_method_concordance_s4(
-    analysis,
-    gam_method = "gam_results",
-    friedman_method = "rank_test",
-    gam_results = gam_results,
+# Compute concordance analysis using new two-object API
+# Compares LM results (from analysis_lm) with rank test results (from analysis)
+analysis_with_concordance <- calculate_concordance(
+    analysis_lm = analysis_lm,
+    analysis_rank = analysis,
+    lm_method = "lm_interaction",
+    rank_method = "rank_test",
     verbose = TRUE
 )
 
@@ -478,207 +404,108 @@ high_conf <- concordance_result$high_confidence
 agreement_table <- concordance_result$agreement_table
 ```
 
-| Metric                               |        Value |
-|:-------------------------------------|-------------:|
-| Total genes compared                 |           87 |
-| Spearman correlation (p-values)      | rho = 0.3264 |
-| Both methods significant (p \< 0.05) |     6 (6.9%) |
-| GAM only significant                 |   55 (63.2%) |
-| Friedman only significant            |     0 (0.0%) |
-| Neither significant                  |   26 (29.9%) |
-| Concordance rate                     |        36.8% |
-| Discordance rate                     |        63.2% |
+| Metric | Value |
+|:---|---:|
+| Total genes compared | 76 |
+| Spearman correlation (p-values) | rho = 0.3571 |
+| Both methods significant (p \< 0.05) | 5 (6.6%) |
+| LM only significant | 54 (71.1%) |
+| Rank test only significant | 0 (0.0%) |
+| Neither significant | 17 (22.4%) |
+| Concordance rate | 28.9% |
+| Discordance rate | 71.1% |
+| Note: |  |
+|  Comparison of significant genes (p \< 0.05) detected by GAM vs Scheirer-Ray-Hare methods; high concordance validates robustness. |  |
 
-Global Concordance Metrics: GAM vs Friedman Methods {.table .table
-.table-striped .table-hover .table-condensed
-style="margin-left: auto; margin-right: auto;"}
+Global Concordance Metrics: GAM vs Scheirer-Ray-Hare Methods {.table
+.table .table-striped .table-hover .table-condensed
+style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
-| Agreement Category  | Number of Genes | Percentage |
-|:--------------------|----------------:|-----------:|
-| Both significant    |               6 |       6.9% |
-| GAM only            |              55 |      63.2% |
-| Neither significant |              26 |      29.9% |
+| Agreement Category | Number of Genes | Percentage |
+|:---|---:|---:|
+| Both significant | 5 | 6.6% |
+| LM only | 54 | 71.1% |
+| Neither significant | 17 | 22.4% |
+| Note: |  |  |
+|  Categories: Concordant (both methods, p \< 0.05); GAM-only; Scheirer-Ray-Hare-only; Neither (both p ≥ 0.05). |  |  |
 
 Method Agreement Distribution {.table .table .table-striped .table-hover
-.table-condensed style="margin-left: auto; margin-right: auto;"}
+.table-condensed
+style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
-| Gene      |  GAM adj p | Friedman adj p | GAM Effect | Friedman eta^2 |
-|:----------|-----------:|---------------:|-----------:|---------------:|
-| CXCL12    | 3.423e-162 |      1.640e-61 |      81.3% |          0.299 |
-| HDAC2     |  4.017e-58 |      9.751e-03 |      59.4% |          0.576 |
-| LINC03040 |  1.500e-55 |      9.502e-28 |      73.8% |          0.074 |
-| FAM114A2  |  2.079e-29 |      8.306e-04 |      49.2% |          0.256 |
-| PNRC2     |  3.218e-11 |      5.816e-16 |      22.9% |          0.961 |
-| ATG5      |  1.690e-06 |      1.984e-02 |      55.1% |          0.679 |
+| Gene | LM adj p | Rank test adj p | LM Effect | Rank test $`\eta^2`$ |
+|:---|---:|---:|---:|---:|
+| CXCL12 | 2.990e-162 | 1.640e-61 | 81.3% | 0.299 |
+| LINC03040 | 1.350e-55 | 9.502e-28 | 73.8% | 0.074 |
+| HDAC2 | 1.855e-49 | 9.751e-03 | 28.4% | 0.576 |
+| FAM114A2 | 6.136e-27 | 8.306e-04 | 46.4% | 0.256 |
+| ATG5 | 2.301e-24 | 1.984e-02 | 43.1% | 0.679 |
+| Note: |  |  |  |  |
+|  High-confidence genes: significant by both GAM and Scheirer-Ray-Hare rank test (adj p \< 0.05); $`\eta^2`$ = rank test effect size. |  |  |  |  |
 
-Robust q-value Interactions: High-Confidence Genes Detected by Both
-Methods (n=6, ranked by statistical significance) {.table .table
+Robust Entropic Order Index Interactions: High-Confidence Genes Detected
+by Both Methods (n=5, ranked by statistical significance) {.table .table
 .table-striped .table-hover .table-condensed
-style="margin-left: auto; margin-right: auto;"}
+style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
+
+### Statistical Power vs. Robustness: Understanding Method Discordance
+
+The striking discordance between GAM and Scheirer-Ray-Hare results
+(71.1% significant in GAM only, 0% in rank test only, 28.9% total
+concordance) reflects a fundamental trade-off in statistical
+methodology: **parametric methods maximize power when assumptions hold,
+while nonparametric methods sacrifice power for robustness to assumption
+violations**.
+
+GAM’s superior power derives from two factors:
+
+1.  Distributional assumptions: GAM assumes approximately normal
+    residuals and homogeneous variance, which are reasonable after
+    appropriate transformation for entropy data. Under these
+    assumptions, parametric methods are theoretically optimal, achieving
+    maximum power for a given type I error rate. The rank-based
+    Scheirer-Ray-Hare test is assumption-free but necessarily discards
+    quantitative information by converting measurements to ranks, which
+    reduces statistical power when the underlying data are approximately
+    normal.
+
+2.  Model flexibility with penalty: GAM uses thin-plate splines with
+    smoothness penalties that simultaneously fit nonlinear patterns
+    while controlling degrees of freedom. This flexibility allows GAM to
+    detect subtle entropic index × group interactions across all
+    q-values. The Scheirer-Ray-Hare test, by contrast, operates on rank
+    patterns only, which is inherently less sensitive to continuous
+    relationships across the ordering (q-values).
+
+This complementary approach—combining high-power parametric tests with
+robust nonparametric alternatives—provides confidence that discoveries
+are methodologically sound rather than artifacts of statistical
+assumptions.
 
 ### Visualization: Method Comparison
+
+Visual comparison of concordance patterns provides intuitive assessment
+of which genes align between methods and which are method-specific. The
+following plots display significance calls, effect sizes, and agreement
+metrics in a format that facilitates interpretation of both robust
+discoveries and method-specific findings.
 
 ``` r
 
 # Create comparison plot using S4 wrapper
-p <- plot_method_concordance_s4(analysis_with_concordance, verbose = TRUE)
-  print(p)
+# Check if concordance analysis was successful
+concordance_results <- metadata(analysis_with_concordance, "method_concordance")
+
+p <- plot_concordance(analysis_with_concordance, verbose = TRUE)
+print(p)
 ```
 
-![\*\*Method concordance visualization\*\* comparing Friedman rank-based
-and GAM approaches for detecting q\$\times\$condition interactions.
-Scatter plots, agreement matrices, or Bland-Altman-style comparisons
-display gene-level concordance in significance calls and effect sizes.
-Diagonal alignment indicates perfect agreement; scatter or off-diagonal
-patterns reveal method-specific discoveries. Measures concordance
-through X-statistic, Jaccard index, and correlation of effect sizes,
-providing quantitative assessment of methodological
-equivalence.](TSENAT_appendix_B_files/figure-html/visualize-method-concordance-1.png)
+![Method concordance visualization comparing Scheirer-Ray-Hare
+rank-based and GAM approaches for detecting q × condition
+interactions.](TSENAT_appendix_B_files/figure-html/visualize-method-concordance-1.png)
 
-**Method concordance visualization** comparing Friedman rank-based and
-GAM approaches for detecting q$`\times`$condition interactions. Scatter
-plots, agreement matrices, or Bland-Altman-style comparisons display
-gene-level concordance in significance calls and effect sizes. Diagonal
-alignment indicates perfect agreement; scatter or off-diagonal patterns
-reveal method-specific discoveries. Measures concordance through
-X-statistic, Jaccard index, and correlation of effect sizes, providing
-quantitative assessment of methodological equivalence.
-
-------------------------------------------------------------------------
-
-## Complete S4 Workflow Guide
-
-This vignette demonstrates the modern S4-based analysis workflow for
-method comparison. The following functions are used in their S4 wrapper
-forms for consistent class-based integration:
-
-### S4 Functions Used in This Vignette
-
-| Function | Purpose | Input | Output |
-|----|----|----|----|
-| [`calculate_diversity_s4()`](https://gallardoalba.github.io/TSENAT/reference/calculate_diversity_s4.md) | Compute Tsallis entropy across multiple q-values | TSENATAnalysis + `q`, `norm` params | Updated analysis with diversity results |
-| [`test_rankbased_assumptions_s4()`](https://gallardoalba.github.io/TSENAT/reference/test_rankbased_assumptions_s4.md) | Validate Friedman test assumptions | TSENATAnalysis | Stores results in metadata via `metadata(analysis, "rankbased_assumptions")` |
-| [`rank_test_q_condition_s4()`](https://gallardoalba.github.io/TSENAT/reference/rank_test_q_condition_s4.md) | Run Friedman test for q$`\times`$group interactions | TSENATAnalysis + design params | Updated analysis with results via [`rankResults()`](https://gallardoalba.github.io/TSENAT/reference/rankResults.md) |
-| [`plot_tsallis_q_curve_s4()`](https://gallardoalba.github.io/TSENAT/reference/plot_tsallis_q_curve_s4.md) | Plot q-curves for significant genes | TSENATAnalysis + `lm_res` | ggplot2 visualization |
-| [`compute_method_concordance_s4()`](https://gallardoalba.github.io/TSENAT/reference/compute_method_concordance_s4.md) | Compare GAM and Friedman results | TSENATAnalysis with LM results via [`lmResults()`](https://gallardoalba.github.io/TSENAT/reference/lmResults.md) and rank test results via [`rankResults()`](https://gallardoalba.github.io/TSENAT/reference/rankResults.md) | Updated analysis with results via `metadata()` |
-| [`plot_method_concordance_s4()`](https://gallardoalba.github.io/TSENAT/reference/plot_method_concordance_s4.md) | Visualize method concordance | TSENATAnalysis (after concordance computed) | ggplot2 comparison plot |
-
-### Workflow Advantages
-
-- **Consistent class structure:** All results integrated into
-  TSENATAnalysis object
-- **Automatic metadata tracking:** No global variables polluting
-  environment
-- **Seamless integration:** Methods pass results through accessor
-  methods `metadata()`,
-  [`lmResults()`](https://gallardoalba.github.io/TSENAT/reference/lmResults.md),
-  and
-  [`rankResults()`](https://gallardoalba.github.io/TSENAT/reference/rankResults.md)
-- **Reproducibility:** Clear, standardized workflow for complex
-  multi-method analyses
-- **Documentation:** S4 methods maintain Roxygen documentation and
-  inheritance
-
-### Workflow Reconstruction
-
-If needed, this complete workflow can be recreated step-by-step:
-
-``` r
-
-# 1. Initialize analysis
-analysis <- TSENATAnalysis(se = se, config = list())
-
-# 2. Calculate diversity
-analysis <- calculate_diversity_s4(analysis, q = seq(0.1, 2, by = 0.05), norm = TRUE)
-
-# 3. Validate assumptions
-rank_assumptions <- test_rankbased_assumptions_s4(analysis, verbose = TRUE)
-
-# 4. Friedman test (rank-based)
-analysis <- rank_test_q_condition_s4(
-    analysis,
-    condition_col = "condition",
-    paired = TRUE,
-    subject_col = "paired_samples",
-    multicorr = "hochberg",
-    verbose = TRUE
-)
-
-# 5. Load GAM results and pass directly to concordance function
-gam_results_loaded <- read.csv("lm_interaction_results.csv")
-
-# 6. Compare methods (gam_results parameter handles storage automatically)
-analysis <- compute_method_concordance_s4(
-    analysis,
-    gam_method = "gam_results",
-    friedman_method = "rank_test",
-    gam_results = gam_results_loaded,
-    verbose = TRUE
-)
-
-# 7. Visualize concordance
-plot_method_concordance_s4(analysis, verbose = TRUE)
-
-# 8. Plot top genes (optional)
-plot_tsallis_q_curve_s4(
-    analysis,
-    condition_col = "condition",
-    rank_res = rankResults(analysis),
-    n_top = 4
-)
-```
-
-------------------------------------------------------------------------
-
-## Recommendations
-
-### S4 Wrapper Integration Overview
-
-This vignette demonstrates the modern S4 wrapper approach for method
-concordance analysis:
-
-- **[`compute_method_concordance_s4()`](https://gallardoalba.github.io/TSENAT/reference/compute_method_concordance_s4.md)**:
-  Integrates seamlessly with TSENATAnalysis objects, storing results
-  accessed via `metadata(analysis, "method_concordance")`
-- **[`plot_method_concordance_s4()`](https://gallardoalba.github.io/TSENAT/reference/plot_method_concordance_s4.md)**:
-  Creates publication-ready concordance visualizations from S4-stored
-  results
-- **Benefits**: Consistent class structure, automatic metadata tracking
-  via accessor methods, reduced variable proliferation in global
-  environment
-
-For standard (non-S4) analyses, the original functions
-(`compute_method_concordance()` and `plot_method_concordance()`) remain
-available and fully supported.
-
-### Best Practices for Analysis
-
-We recommend a **complementary two-method approach** for robust
-detection of q-value $`\times`$ group interactions:
-
-**Primary analysis:** Start with the Friedman Test for q $`\times`$
-condition interaction, which provides correct statistical inference for
-paired/blocked designs by: 1. **Testing the interaction**: Does the
-q-effect differ between conditions? (Not just whether entropy varies
-across q-values) 2. **Respecting the repeated-measures structure**: 8
-paired tumor-normal samples, testing if entropy patterns across q-values
-differ by condition 3. **Accounting for within-subject correlation**:
-Friedman test properly handles paired structure 4. **Multiple testing
-correction**: Westfall-Young permutation respects AR(1) correlation
-structure across q-values 5. **Condition-aware**: Uses two-way Friedman
-(q within-subjects, condition between-subjects)
-
-**Validation step:** Confirm findings with GAM to validate against
-parametric assumptions and identify condition-specific nonlinear
-q-entropy patterns that may be missed by rank-based methods.
-
-**High-confidence genes** are those significant in *both* methods-these
-provide the strongest evidence of genuine q $`\times`$ condition
-interactions and are recommended for downstream biological validation.
-The Friedman Test is particularly appropriate for paired designs and
-provides distribution-free inference without requiring assumptions about
-data normality, while properly accounting for the q $`\times`$ condition
-interaction structure.
+Method concordance visualization comparing Scheirer-Ray-Hare rank-based
+and GAM approaches for detecting q × condition interactions.
 
 ------------------------------------------------------------------------
 
@@ -743,40 +570,3 @@ sessionInfo()
 #> [61] jsonlite_2.0.0      R6_2.6.1            systemfonts_1.3.2  
 #> [64] fs_1.6.7
 ```
-
-------------------------------------------------------------------------
-
-## References
-
-Correia, Hannah E., and Asheber Abebe. 2021. “Regularised Rank
-Quasi-Likelihood Estimation for Generalised Additive Models.” *Journal
-of Nonparametric Statistics* 33 (1): 101–17.
-<https://doi.org/10.1080/10485252.2021.1921176>.
-
-Efron, Bradley and Tibshirani, Robert J. 1993. *An Introduction to the
-Bootstrap*. No. 57. Monographs on Statistics and Applied Probability.
-Chapman; Hall.
-
-Elkin, Lisa A., and Matthew Kay. 2023. “An Aligned Rank Transform
-Procedure for Multifactor Contrast Tests.” *Journal of Statistical
-Software* forthcoming.
-
-Goude, Yannig. 2024. *Forecasting at EDF: Generalized Additive Models
-for Time Series*. EDF R&D, EDF Lab Saclay.
-
-Hyndman, Rob J., and George Athanasopoulos. 2018. *Forecasting:
-Principles and Practice*. 2nd ed.
-[Https://otexts.com/fpp2/](https://otexts.com/fpp2/).
-
-Meinshausen, Nicolai, Marloes H. Maathuis, and Peter Bühlmann. 2012.
-“Asymptotic Optimality of the Westfall-Young Permutation Procedure for
-Multiple Testing Under Dependence.” *The Annals of Statistics* 39 (6):
-3369–91. <https://doi.org/10.1214/11-AOS946>.
-
-Phipson, Belinda, and Gordon K. Smyth. 2010. “Permutation P-Values
-Should Never Be Zero: Calculating Exact P-Values When Permutations Are
-Ranked.” *Statistical Applications in Genetics and Molecular Biology* 9
-(1): 39. <https://doi.org/10.2202/1544-6115.1585>.
-
-Unknown. 2020. *Autocorrelated Time Series: ARIMA(1,1,1) Model
-Forecasting Techniques*.

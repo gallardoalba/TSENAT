@@ -94,31 +94,31 @@ and detects genes with asymmetric isoform distributions that traditional metrics
     <h2 id="core-functions">Core Functions<a class="anchor" aria-label="anchor" href="#core-functions"></a></h2>
 
 
-<dl><dt><code><a href="tsenat.html">tsenat</a></code></dt>
+<dl><dt><code><a href="TSENAT.html">TSENAT</a></code></dt>
 <dd><p>Main orchestration function. Executes complete pipeline with
     configurable method backends and parallelization.</p></dd>
 
-  <dt><code><a href="tsenat_config.html">tsenat_config</a></code></dt>
+  <dt><code><a href="TSENAT_config.html">TSENAT_config</a></code></dt>
 <dd><p>Configure analysis parameters: q-values, condition
     grouping, sample pairing, and method selection.</p></dd>
 
-  <dt><code><a href="calculate_diversity_s4.html">calculate_diversity_s4</a></code></dt>
+  <dt><code><a href="calculate_diversity.html">calculate_diversity</a></code></dt>
 <dd><p>Compute Tsallis entropy and Hill numbers.
     Vectorized over genes and q-values with numerical stability safeguards.</p></dd>
 
-  <dt><code><a href="jackknife_entropy_outliers_s4.html">jackknife_entropy_outliers_s4</a></code></dt>
+  <dt><code><a href="calculate_jeo.html">calculate_jeo</a></code></dt>
 <dd><p>Resampling-based confidence intervals
     for diversity. Identifies outlier genes and validates q-value signal.</p></dd>
 
-  <dt><code><a href="calculate_lm_interaction_s4.html">calculate_lm_interaction_s4</a></code></dt>
+  <dt><code><a href="calculate_lm.html">calculate_lm</a></code></dt>
 <dd><p>Statistical testing for gene-by-condition
     interactions. LMM, GAM, and rank-based approaches.</p></dd>
 
-  <dt><code><a href="calculate_divergence_s4.html">calculate_divergence_s4</a></code></dt>
+  <dt><code><a href="calculate_divergence.html">calculate_divergence</a></code></dt>
 <dd><p>Tsallis divergence between groups with
     effect size (Cohen's d, rank-biserial) and hypothesis testing.</p></dd>
 
-  <dt><code><a href="filter_analysis_s4.html">filter_analysis_s4</a></code></dt>
+  <dt><code><a href="filter_analysis.html">filter_analysis</a></code></dt>
 <dd><p>Filter genes by diversity, effect size, or
     interaction significance (adjustable FDR, Benjamini-Hochberg).</p></dd>
 
@@ -218,14 +218,16 @@ and detects genes with asymmetric isoform distributions that traditional metrics
 
 
 <p><code><a href="TSENATAnalysis-class.html">TSENATAnalysis-class</a></code> — Central container unifying all analysis components.
-Access results via accessor methods: <code><a href="diversity.html">diversity</a></code>, <code><a href="lmResults.html">lmResults</a></code>,
-<code><a href="jeoResults.html">jeoResults</a></code>, <code><a href="jisResults.html">jisResults</a></code>, <code><a href="getMeta.html">getMeta</a></code>, <code><a href="getSE.html">getSE</a></code>.</p>
+Access results via slots: <code>@diversity_results</code>, <code>@lm_results</code>,
+<code>@jackknife_results</code>, <code>@divergence_results</code>,
+or accessor methods <code><a href="TSENATAnalysis-se.html">se</a></code>, <code>metadata&lt;-</code>, and <code><a href="results.html">results</a></code>.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p>Useful links:</p><ul><li><p><a href="https://gallardoalba.github.io/TSENAT">https://gallardoalba.github.io/TSENAT</a></p></li>
-<li><p>Report bugs at <a href="https://github.com/gallardoalba/TSENAT/issues" class="external-link">https://github.com/gallardoalba/TSENAT/issues</a></p></li>
-</ul></div>
+    <div class="dont-index"><p><code><a href="TSENAT.html">TSENAT</a></code> for running the complete analysis pipeline.
+<code><a href="TSENATAnalysis-se.html">se</a></code>, <code>metadata&lt;-</code>, and <code><a href="results.html">results</a></code> for accessor functions.
+<code><a href="TSENATAnalysis-class.html">TSENATAnalysis-class</a></code> for the S4 object structure.
+<code><a href="build_analysis.html">build_analysis</a></code> for creating TSENATAnalysis objects.</p></div>
     </div>
     <div class="section level2">
     <h2 id="author">Author<a class="anchor" aria-label="anchor" href="#author"></a></h2>

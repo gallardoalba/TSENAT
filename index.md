@@ -1,7 +1,7 @@
 # TSENAT: Tsallis Entropy Analysis Toolbox
 
 TSENAT is a R package for quantifying and modeling **isoform-usage
-diversity** across RNA-seq samples using **Tsallis entropy** - a
+complexity** across RNA-seq samples using **Tsallis entropy** - a
 scale-dependent information-theoretic measure of transcript
 heterogeneity.
 
@@ -17,9 +17,9 @@ abundance-focused methods.
 
 ## The Solution
 
-TSENAT captures **isoform complexity** independently of which specific
+TSENAT captures **isoform diversity** independently of which specific
 isoforms are abundant. The method uses **Tsallis entropy** with a
-sensitivity parameter `q` that acts like a lens:
+sensitivity parameter `q` (the entropic index) that acts like a lens:
 
 - **Low q** (e.g., 0.5): Focuses on rare isoforms - detects if diversity
   is maintained or collapsed
@@ -30,9 +30,9 @@ sensitivity parameter `q` that acts like a lens:
 - **High q** (e.g., 2.0): Focuses on dominant isoforms - detects
   dominance shifts
 
-By examining diversity across multiple q-values, you identify
-**scale-dependent** diversity changes - the hallmark of coordinate
-isoform switching.
+By examining diversity across multiple entropic indices (q-values), you
+identify **scale-dependent** diversity changes - the hallmark of
+coordinate isoform switching.
 
 ## The Mathematics Behind Tsallis Entropy
 
@@ -49,7 +49,7 @@ S_q = \frac{1 - \sum_{i=1}^{n} p_i^q}{q - 1}
 ```
 
 This elegant formula unifies diverse diversity concepts at specific
-q-values:
+entropic indices (q-values):
 
 - **q = 0**: Richness — Simple count of expressed isoforms; emphasizes
   rare variants most strongly.
@@ -58,9 +58,9 @@ q-values:
 - **q = 2**: Gini-Simpson index — Probability that two randomly-drawn
   transcripts are different; robust to rare variants.
 
-By examining diversity across multiple q-values, you identify
-**scale-dependent** diversity changes—the hallmark of coordinate isoform
-switching.
+By examining diversity across multiple entropic indices (q-values), you
+identify **scale-dependent** diversity changes—the hallmark of
+coordinate isoform switching.
 
 ### Divergence Analysis: Measuring Information-Theoretic Distance Between Conditions
 
@@ -68,13 +68,15 @@ While Tsallis entropy quantifies diversity *within* a single
 distribution, **Tsallis divergence** $`D_q`$ measures the
 information-theoretic distance *between* two distributions.
 
-**Mathematical Definition**: For two probability distributions $`P`$ and
-$`Q`$ representing isoform proportions in control and treatment
-conditions, Tsallis divergence is:
+**Mathematical Definition** (Furuichi formula): For two probability
+distributions $`P`$ and $`Q`$ representing isoform proportions in
+control and treatment conditions, Tsallis divergence is:
 
 ``` math
-D_q(P||Q) = \frac{\sum_i p_i^q - \sum_i p_i \cdot q_i^{q-1}}{(q-1) \sum_i p_i}
+D_q(P||Q) = \frac{1 - \sum_i p_i^q \cdot q_i^{1-q}}{q-1}
 ```
+
+where $`p_i`$ and $`q_i`$ are the probability values at position $`i`$.
 
 Tsallis divergence enables the quantification of how fundamentally
 different the isoform complexity patterns are between experimental
@@ -126,7 +128,8 @@ metadata_df <- read.table(
   header = TRUE,
   sep = "\t")
 
-gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+gff3_file <- system.file(
+  "extdata", "annotation.gff3.gz", package = "TSENAT")
 ```
 
 ### Create configuration and build analysis
@@ -139,17 +142,17 @@ caught immediately before processing begins.
 ``` r
 
 ## Create configuration file
-config <- tsenat_config(
+config <- TSENAT_config(
   sample_col = "sample",
   condition_col = "condition",
   subject_col = "paired_samples",
-  q_values = seq(0, 2, by = 0.05),
+  q = seq(0, 2, by = 0.05),
   nthreads = 2,
   paired = TRUE,
   control = "normal")
 
 ## Build TSENATAnalysis object
-analysis <- build_analysis_s4(
+analysis <- build_analysis(
   readcounts = readcounts, 
   tx2gene = gff3_file,
   metadata = metadata_df,
@@ -161,21 +164,22 @@ analysis <- build_analysis_s4(
 ### Orchestration Function
 
 The
-[`tsenat()`](https://gallardoalba.github.io/TSENAT/reference/tsenat.md)
+[`TSENAT()`](https://gallardoalba.github.io/TSENAT/reference/TSENAT.md)
 function provides a complete, automated analysis pipeline in a single
 call. It takes your configured `TSENATAnalysis` object and executes all
 downstream analysis steps: entropy computation, statistical testing for
-q×condition interactions, and rich visualization. This is the
-recommended entry point for most users—it orchestrates the full workflow
-while respecting your configuration parameters (q-values, design,
-bootstrap settings, etc.) and handles output management seamlessly. For
-advanced customization, use individual functions directly as shown in
-the step-by-step workflow below.
+entropic index (q-value) by condition interactions, and rich
+visualization. This is the recommended entry point for most users—it
+orchestrates the full workflow while respecting your configuration
+parameters (entropic indices, design, bootstrap settings, etc.) and
+handles output management seamlessly. For advanced customization, use
+individual functions directly as shown in the step-by-step workflow
+below.
 
 ``` r
 
 # Returns: Fully configured TSENATAnalysis object
-result <- tsenat(analysis)
+result <- TSENAT(analysis)
 ```
 
 For a complete walkthrough of the analysis pipeline with real biological
@@ -185,21 +189,48 @@ This includes theory background, step-by-step explanations of each
 analysis function, and interpretation guidance for understanding your
 results.
 
+### Accessing Results
+
+After running the analysis, retrieve results using the unified
+[`results()`](https://gallardoalba.github.io/TSENAT/reference/results.md)
+interface:
+
+``` r
+
+# Unified interface: request results by type
+diversity_results <- results(result, type = "diversity")
+lm_results <- results(result, type = "lm")
+rank_results <- results(result, type = "rank_test")
+jackknife_results <- results(result, type = "jackknife", q = 1)
+
+# Filter and rank results flexibly
+ranked_lm <- results(result, type = "lm", rankBy = "padj", n = 50)
+filtered_diversity <- results(result, type = "diversity", q = 1.0)
+```
+
 ## Statistical Inference Methods
 
 TSENAT provides a flexible statistical framework optimized for
 entropy-based diversity analysis. The recommended main workflow relies
 on **Generalized Additive Models (GAM)** via
 [`mgcv::gam()`](https://CRAN.R-project.org/package=mgcv) combined with
-ARIMA differencing to robustly detect q×condition interactions.
+ARIMA differencing.
 
-Tsallis entropy’s fundamental non-additivity (Tirnakli et al., 2025,
-*Entropy Special Issue*) —a violation of the additivity axiom underlying
-classical statistics— makes GAM the natural choice for TSENAT. Unlike
-linear models, GAM’s flexible splines accommodate this non-additivity,
-capture q×condition interactions, and estimate heteroscedasticity in the
-bounded, skewed residuals characteristic of entropy data. ARIMA(1,1,0)
-differencing removes temporal autocorrelation before GAM fitting.
+The statistical methods available in TSENAT include:
+
+- Wilcoxon/Permutation: Distribution-free testing for pairwise
+  comparisons
+- Linear Mixed Models (LMM): Parametric testing with AR(1) correlation
+  structure for repeated measures. GAM, LMM, GEE and FPCA are all
+  parameterized to handle non-normality and heteroscedasticity
+  characteristic of entropy data.
+- Scheirer-Ray-Hare rank tests: The test operates solely on ranks,
+  making it robust to outliers and extreme values. However, it shows
+  lower power for interactions and can inflate Type I errors under
+  heterogeneous variance. These limitations are mitigated through
+  Hochberg multiple testing correction.
+- M-estimation: Outlier-resistant effect size calculations.
+- Jackknife leave-one-out for identifying outlier-influential samples.
 
 ## Related Packages
 
@@ -207,11 +238,11 @@ Below is how TSENAT complements other Bioconductor tools:
 
 | Tool | Answers | TSENAT Difference |
 |----|----|----|
-| DESeq2, edgeR, limma | Which genes change in *total abundance*? | TSENAT detects isoform diversity changes independent of total abundance |
-| DRIMSeq | Which *individual transcripts* shift usage? | TSENAT measures overall isoform diversity, not individual transcript shifts |
-| IsoformSwitchAnalyzeR | Which *individual isoforms* switch; what are the *functional consequences*? | TSENAT measures overall isoform diversity and diversity shifts rather than cataloging individual transcript switches or predicting functional consequences; complements switch identification with diversity patterns |
-| SplicingFactory | What is the overall isoform diversity? | TSENAT extends with scale-dependent diversity (q-spectrum) vs fixed measures |
-| Kallisto, Salmon | How many reads per transcript? | TSENAT uses their quantification as input; adds diversity analysis layer |
+| **DESeq2, edgeR, limma** | Which genes change in *total abundance*? | TSENAT detects isoform diversity changes independent of total abundance |
+| **DRIMSeq** | Which *individual transcripts* shift usage? | TSENAT measures overall isoform diversity, not individual transcript shifts |
+| **IsoformSwitchAnalyzeR** | Which *individual isoforms* switch; what are the *functional consequences*? | TSENAT measures overall isoform diversity and diversity shifts rather than cataloging individual transcript switches or predicting functional consequences; complements switch identification with diversity patterns |
+| **SplicingFactory** | What is the *overall isoform diversity*? | TSENAT extends with scale-dependent diversity (q-spectrum) vs fixed measures |
+| **Kallisto, Salmon** | How many reads per transcript? | TSENAT uses their quantification as input; adds diversity analysis layer |
 
 ## Native Salmon Integration
 
@@ -234,14 +265,16 @@ To get started with Salmon-quantified data:
 suppressMessages(library(TSENAT))
 
 # Prepare configuration FIRST
-config <- tsenat_config(
+config <- TSENAT_config(
   q_values = seq(0, 2, by = 0.1),
-  condition_col = "condition"
+  condition_col = "condition",
+  sample_col = "sample",
+  subject_col = "paired_samples"
 )
 
 # Build analysis directly from Salmon output directory
 # IMPORTANT: Use named parameters (salmon_dir=, tx2gene=)
-analysis <- build_analysis_s4(
+analysis <- build_analysis(
   salmon_dir = "path/to/salmon_output",  # Auto-discovers all quant.sf files
   tx2gene = "path/to/annotation.gff3.gz",  # Transcript-to-gene mapping
   metadata = metadata_df,  # Sample metadata (see structure below)
@@ -249,8 +282,7 @@ analysis <- build_analysis_s4(
 )
 
 # Run analysis pipeline
-analysis <- filter_analysis_s4(analysis, stringency = "severe")
-analysis <- calculate_diversity_s4(analysis)  # Salmon-informed length-normalized entropy
+analysis <- TSENAT(analysis)
 ```
 
 ### Salmon Directory Structure
@@ -288,6 +320,13 @@ Key requirements:
 - `condition` column: experimental groups.
 - `paired_samples` column: required if using paired designs; identifier
   for matched samples.
+
+## Tests coverage
+
+Testing is vital in research as it ensures the validity and reliability
+of results, which is essential for accurately interpreting findings. The
+report about the current testing coverage can be found
+[here](https://app.codecov.io/gh/gallardoalba/TSENAT).
 
 ## Citation
 
