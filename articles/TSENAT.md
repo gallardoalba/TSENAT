@@ -10,10 +10,7 @@ tuning a sensitivity parameter `q`, users examine diversity at different
 scales: rare variants (low `q`) or dominant isoforms (high `q`). This
 package enables computing Tsallis entropy from transcript-level
 abundance estimates, comparing measures between groups, and visualizing
-scale-dependent differences via q-curves. Results integrate seamlessly
-with Bioconductor’s `SummarizedExperiment`, capturing scale-dependent
-isoform complexity that often signals cellular state changes independent
-of total abundance shifts.
+scale-dependent differences via q-curves.
 
 ### Motivation and Bioconductor Contribution
 
@@ -30,9 +27,7 @@ summaries.
 In this guide, we demonstrate the complete workflow: preprocessing
 transcript counts, computing entropy across entropic indices, testing
 for between-group differences, and visualizing scale-dependent
-complexity. All results integrate seamlessly with Bioconductor’s
-`SummarizedExperiment`, making TSENAT a natural complement to existing
-DTU and abundance-focused tools in the ecosystem.
+complexity.
 
 ### High-level workflow
 
@@ -119,36 +114,6 @@ p_qcurve <- plot_diversity_spectrum(
     dev_height = 8)
 print(p_qcurve)
 ```
-
-### Data Structures: Scale-Dependent Organization
-
-TSENAT organizes results around **multiple diversity scales** (entropic
-indices), not individual genes or samples. The **TSENATAnalysis** S4
-object encapsulates:
-
-- `@se`: SummarizedExperiment with transcript counts and entropy values
-  across entropic indices.
-- `@config`: Configuration parameters (sample/condition columns,
-  q-spectrum, design, bootstrap settings).
-- `@diversity_results`: Median entropy ± confidence intervals per group
-  and entropic index.
-- `@lm_results`: Linear/GAM/GEE interaction statistics testing if
-  entropy differences vary across entropic indices.
-- `@rank_test_results`: Non-parametric rank test results
-  (Scheirer-Ray-Hare, Kruskal-Wallis) for scale-dependent effects.
-- `@pairwise_results`: Pairwise comparisons between groups at individual
-  entropic indices.
-- `@jackknife_results`: Jackknife confidence intervals and
-  transcript-level contributions to entropy change.
-- `@divergence_results`: Pairwise group divergence
-  (information-theoretic distance) at each entropic index.
-- `@plots`: Pre-generated visualizations (q-curves, interaction plots,
-  heatmaps, divergence spectra).
-- `@metadata`: Processing metadata including function call history and
-  timestamps.
-
-This scale-dependent structure is TSENAT’s core innovation: a single
-q-curve reveals how diversity patterns shift across diversity scales.
 
 ## What is Entropy and Tsallis Entropy?
 
@@ -247,43 +212,11 @@ The **q parameter acts as a sensitivity dial** that controls which
 aspects of the distribution become visible:
 
 - **q \< 1** (e.g., 0.5): Emphasizes rare, low-abundance isoforms;
-  useful for discovering cryptic or condition-specific variants
+  useful for discovering cryptic or condition-specific variants.
 - **q = 1**: Recovers Shannon entropy; provides balanced sensitivity
-  across all abundance scales
-- **q = 2** (and beyond): Emphasizes dominant, abundant isoforms;
-  captures core expression architecture
-
-Consider a simple example: - A gene with 5 equally abundant isoforms has
-high entropy at all q values - A gene where 1 isoform dominates shows
-different patterns: at low q, rare variants still contribute high
-entropy; at high q, the entropy drops sharply toward the dominant form
-
-This scale-dependent nature reveals biological signal invisible to
-abundance- or proportion-based summaries alone. In TSENAT, you’ll
-explore this multi-scale landscape using
-[`calculate_diversity()`](https://gallardoalba.github.io/TSENAT/reference/calculate_diversity.md)
-and visualize q-curves with
-[`plot_diversity_spectrum()`](https://gallardoalba.github.io/TSENAT/reference/plot_diversity_spectrum.md).
-
-### Special Cases and Limiting Behavior
-
-Tsallis entropy exhibits important special cases (Masi 2005) that appear
-when you set specific entropic indices:
-
-- **q = 0 (Richness)**: $`S_0 = m - 1`$ (number of expressed isoforms).
-  Pure species count, most minimal assumption.
-- **q = 1 (Shannon)**: $`S_1(p) = -\sum_i p_i \log p_i`$. Standard
-  information entropy (Shannon 1948); optimal estimator of information
-  content.
-- **q = 2 (Gini-Simpson)**: $`S_2 = 1 - \sum_i p_i^2`$. Probability that
-  two randomly drawn transcripts differ (Simpson 1949); robust to rare
-  variants.
-
-**Normalized entropy**: For genes with different isoform counts,
-normalize by maximum possible entropy:
-$`\tilde{S}_q = \frac{S_q(p)}{S_{q,\max}(m)}`$ where
-$`S_{q,\max}(m) = \frac{1-m^{1-q}}{q-1}`$. This enables fair comparison
-across genes.
+  across all abundance scales.
+- **q \> 1**: Emphasizes dominant, abundant isoforms; captures core
+  expression architecture.
 
 ### Biological Potentiality: Why TSENAT Matters
 
@@ -295,14 +228,14 @@ diversity distribution-which aspects of isoform heterogeneity become
 visible depends on the entropic index chosen (Anastasiadis 2012;
 Ramírez-Reyes et al. 2016; Alomani and Kayid 2023).
 
-As stated explicitly in the mathematical literature (Masi 2005): “This
-introduces the formal possibility not to set rare and common events on
-the same footing, as in BG or Shannon statistics, but it enhances or
-depresses them according to the parameter chosen.” This principle is
-formalized in the Hill numbers framework (Chao et al. 2010), which
-unifies diverse entropy-based measures (richness, Shannon, Simpson) as
-different manifestations of the same parametric family with varying
-sensitivity to abundance scales.
+As stated explicitly in the mathematical literature: “This introduces
+the formal possibility not to set rare and common events on the same
+footing, as in BG or Shannon statistics, but it enhances or depresses
+them according to the parameter chosen.” This principle is formalized in
+the Hill numbers framework (Chao et al. 2010), which unifies diverse
+entropy-based measures (richness, Shannon, Simpson) as different
+manifestations of the same parametric family with varying sensitivity to
+abundance scales.
 
 The flexibility is crucial for isoform analysis. The concept of “true
 diversity” (Chao et al. 2010) emphasizes that diversity can be
@@ -566,7 +499,7 @@ results(analysis, type = "diversity", display_table = TRUE, n_genes = 4)
 
 **Table 1:** Tsallis entropy for first 4 genes across three diversity
 scales (sample: SRR14800481) {.table .table .table-striped .table-hover
-.table-condensed style="margin-left: auto; margin-right: auto;"}
+style="margin-left: auto; margin-right: auto;"}
 
 With the q-spectrum we can produce a q-curve per sample and gene. These
 curves show how diversity emphasis shifts from rare to dominant isoforms
@@ -656,8 +589,7 @@ magnitude of resampling-based influence values. Columns: Sample
 identifier; mean and standard deviation of Tsallis entropy; distance
 from centroid; outlier status. M-estimation identifies influential
 samples for sensitivity analysis. {.table .table .table-striped
-.table-hover .table-condensed
-style="margin-left: auto; margin-right: auto;"}
+.table-hover style="margin-left: auto; margin-right: auto;"}
 
 **Interpretation:** Samples with distance from centroid \>1.5 or
 proportion of affected genes \>0.85 are flagged for quality control
@@ -755,13 +687,12 @@ showing significant q$`\times`$condition effects (Benjamini-Hochberg q
 
 ### Transcript Switching Across Diversity Scales
 
-The LM interaction test (from
-[`calculate_lm()`](https://gallardoalba.github.io/TSENAT/reference/calculate_lm.md))
-tests whether condition effects depend on which diversity scale
-(q-value) you examine. This section identifies **which individual
-transcripts** drive these scale-dependent patterns, revealing whether
-the same transcripts switch across all scales or whether different
-regulatory mechanisms dominate at rare versus abundant isoform scales.
+The LM interaction tests whether condition effects depend on which
+diversity scale (q-value) you examine. This section identifies **which
+individual transcripts** drive these scale-dependent patterns, revealing
+whether the same transcripts switch across all scales or whether
+different regulatory mechanisms dominate at rare versus abundant isoform
+scales.
 
 #### Two-Stage Analysis Approach
 
@@ -964,8 +895,7 @@ head(divergence_results, n = 10)
 (distance) between conditions from Tsallis entropy framework. Columns:
 gene identifier; pairwise comparison; divergence value; confidence
 interval (95%). Ranked by magnitude. {.table .table .table-striped
-.table-hover .table-condensed
-style="margin-left: auto; margin-right: auto;"}
+.table-hover style="margin-left: auto; margin-right: auto;"}
 
 ``` r
 
@@ -1001,7 +931,7 @@ top_genes_result <- results(
 **Table 5 \| Top genes by linear model significance with effect sizes
 and q-spectrum patterns.** Ranked by statistical significance (ascending
 *P*-values, Benjamini-Hochberg *q*-value \< 0.05). {.table .table
-.table-striped .table-hover .table-condensed
+.table-striped .table-hover
 style="margin-left: auto; margin-right: auto;"}
 
 Interpretation of Pattern Types:

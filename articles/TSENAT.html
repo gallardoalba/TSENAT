@@ -84,11 +84,7 @@ scale-dependent diversity measure distinct from abundance-focused tools
 variants (low <code>q</code>) or dominant isoforms (high
 <code>q</code>). This package enables computing Tsallis entropy from
 transcript-level abundance estimates, comparing measures between groups,
-and visualizing scale-dependent differences via q-curves. Results
-integrate seamlessly with Bioconductor’s
-<code>SummarizedExperiment</code>, capturing scale-dependent isoform
-complexity that often signals cellular state changes independent of
-total abundance shifts.</p>
+and visualizing scale-dependent differences via q-curves.</p>
 <div class="section level3">
 <h3 id="motivation-and-bioconductor-contribution">Motivation and Bioconductor Contribution<a class="anchor" aria-label="anchor" href="#motivation-and-bioconductor-contribution"></a>
 </h3>
@@ -105,9 +101,7 @@ summaries.</p>
 <p>In this guide, we demonstrate the complete workflow: preprocessing
 transcript counts, computing entropy across entropic indices, testing
 for between-group differences, and visualizing scale-dependent
-complexity. All results integrate seamlessly with Bioconductor’s
-<code>SummarizedExperiment</code>, making TSENAT a natural complement to
-existing DTU and abundance-focused tools in the ecosystem.</p>
+complexity.</p>
 </div>
 <div class="section level3">
 <h3 id="high-level-workflow">High-level workflow<a class="anchor" aria-label="anchor" href="#high-level-workflow"></a>
@@ -193,48 +187,6 @@ workflow:</p>
 <span>    dev_width <span class="op">=</span> <span class="fl">12</span>,</span>
 <span>    dev_height <span class="op">=</span> <span class="fl">8</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_qcurve</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="data-structures-scale-dependent-organization">Data Structures: Scale-Dependent Organization<a class="anchor" aria-label="anchor" href="#data-structures-scale-dependent-organization"></a>
-</h3>
-<p>TSENAT organizes results around <strong>multiple diversity
-scales</strong> (entropic indices), not individual genes or samples. The
-<strong>TSENATAnalysis</strong> S4 object encapsulates:</p>
-<ul>
-<li>
-<code>@se</code>: SummarizedExperiment with transcript counts and
-entropy values across entropic indices.</li>
-<li>
-<code>@config</code>: Configuration parameters (sample/condition
-columns, q-spectrum, design, bootstrap settings).</li>
-<li>
-<code>@diversity_results</code>: Median entropy ± confidence
-intervals per group and entropic index.</li>
-<li>
-<code>@lm_results</code>: Linear/GAM/GEE interaction statistics
-testing if entropy differences vary across entropic indices.</li>
-<li>
-<code>@rank_test_results</code>: Non-parametric rank test results
-(Scheirer-Ray-Hare, Kruskal-Wallis) for scale-dependent effects.</li>
-<li>
-<code>@pairwise_results</code>: Pairwise comparisons between groups
-at individual entropic indices.</li>
-<li>
-<code>@jackknife_results</code>: Jackknife confidence intervals and
-transcript-level contributions to entropy change.</li>
-<li>
-<code>@divergence_results</code>: Pairwise group divergence
-(information-theoretic distance) at each entropic index.</li>
-<li>
-<code>@plots</code>: Pre-generated visualizations (q-curves,
-interaction plots, heatmaps, divergence spectra).</li>
-<li>
-<code>@metadata</code>: Processing metadata including function call
-history and timestamps.</li>
-</ul>
-<p>This scale-dependent structure is TSENAT’s core innovation: a single
-q-curve reveals how diversity patterns shift across diversity
-scales.</p>
 </div>
 </div>
 <div class="section level2">
@@ -340,53 +292,15 @@ controls which aspects of the distribution become visible:</p>
 <li>
 <strong>q &lt; 1</strong> (e.g., 0.5): Emphasizes rare,
 low-abundance isoforms; useful for discovering cryptic or
-condition-specific variants</li>
+condition-specific variants.</li>
 <li>
 <strong>q = 1</strong>: Recovers Shannon entropy; provides balanced
-sensitivity across all abundance scales</li>
+sensitivity across all abundance scales.</li>
 <li>
-<strong>q = 2</strong> (and beyond): Emphasizes dominant, abundant
-isoforms; captures core expression architecture</li>
+<strong>q &gt; 1</strong>: Emphasizes dominant, abundant isoforms;
+captures core expression architecture.</li>
 </ul>
-<p>Consider a simple example: - A gene with 5 equally abundant isoforms
-has high entropy at all q values - A gene where 1 isoform dominates
-shows different patterns: at low q, rare variants still contribute high
-entropy; at high q, the entropy drops sharply toward the dominant
-form</p>
-<p>This scale-dependent nature reveals biological signal invisible to
-abundance- or proportion-based summaries alone. In TSENAT, you’ll
-explore this multi-scale landscape using
-<code><a href="../reference/calculate_diversity.html">calculate_diversity()</a></code> and visualize q-curves with
-<code><a href="../reference/plot_diversity_spectrum.html">plot_diversity_spectrum()</a></code>.</p>
 </div>
-</div>
-<div class="section level3">
-<h3 id="special-cases-and-limiting-behavior">Special Cases and Limiting Behavior<a class="anchor" aria-label="anchor" href="#special-cases-and-limiting-behavior"></a>
-</h3>
-<p>Tsallis entropy exhibits important special cases <span class="citation">(Masi 2005)</span> that appear when you set specific
-entropic indices:</p>
-<ul>
-<li>
-<strong>q = 0 (Richness)</strong>:
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mn>0</mn></msub><mo>=</mo><mi>m</mi><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">S_0 = m - 1</annotation></semantics></math>
-(number of expressed isoforms). Pure species count, most minimal
-assumption.</li>
-<li>
-<strong>q = 1 (Shannon)</strong>:
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mn>1</mn></msub><mo stretchy="false" form="prefix">(</mo><mi>p</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>−</mi><msub><mo>∑</mo><mi>i</mi></msub><msub><mi>p</mi><mi>i</mi></msub><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><msub><mi>p</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">S_1(p) = -\sum_i p_i \log p_i</annotation></semantics></math>.
-Standard information entropy <span class="citation">(Shannon
-1948)</span>; optimal estimator of information content.</li>
-<li>
-<strong>q = 2 (Gini-Simpson)</strong>:
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mn>2</mn></msub><mo>=</mo><mn>1</mn><mo>−</mo><msub><mo>∑</mo><mi>i</mi></msub><msubsup><mi>p</mi><mi>i</mi><mn>2</mn></msubsup></mrow><annotation encoding="application/x-tex">S_2 = 1 - \sum_i p_i^2</annotation></semantics></math>.
-Probability that two randomly drawn transcripts differ <span class="citation">(Simpson 1949)</span>; robust to rare variants.</li>
-</ul>
-<p><strong>Normalized entropy</strong>: For genes with different isoform
-counts, normalize by maximum possible entropy:
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mover><mi>S</mi><mo accent="true">̃</mo></mover><mi>q</mi></msub><mo>=</mo><mfrac><mrow><msub><mi>S</mi><mi>q</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>p</mi><mo stretchy="false" form="postfix">)</mo></mrow><mrow><msub><mi>S</mi><mrow><mi>q</mi><mo>,</mo><mi mathvariant="normal">max</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo></mrow></mfrac></mrow><annotation encoding="application/x-tex">\tilde{S}_q = \frac{S_q(p)}{S_{q,\max}(m)}</annotation></semantics></math>
-where
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mrow><mi>q</mi><mo>,</mo><mi mathvariant="normal">max</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mfrac><mrow><mn>1</mn><mo>−</mo><msup><mi>m</mi><mrow><mn>1</mn><mo>−</mo><mi>q</mi></mrow></msup></mrow><mrow><mi>q</mi><mo>−</mo><mn>1</mn></mrow></mfrac></mrow><annotation encoding="application/x-tex">S_{q,\max}(m) = \frac{1-m^{1-q}}{q-1}</annotation></semantics></math>.
-This enables fair comparison across genes.</p>
 </div>
 <div class="section level3">
 <h3 id="biological-potentiality-why-tsenat-matters">Biological Potentiality: Why TSENAT Matters<a class="anchor" aria-label="anchor" href="#biological-potentiality-why-tsenat-matters"></a>
@@ -400,14 +314,14 @@ sensitivity to different aspects of the diversity distribution-which
 aspects of isoform heterogeneity become visible depends on the entropic
 index chosen <span class="citation">(Anastasiadis 2012; Ramírez-Reyes et
 al. 2016; Alomani and Kayid 2023)</span>.</p>
-<p>As stated explicitly in the mathematical literature <span class="citation">(Masi 2005)</span>: “This introduces the formal
-possibility not to set rare and common events on the same footing, as in
-BG or Shannon statistics, but it enhances or depresses them according to
-the parameter chosen.” This principle is formalized in the Hill numbers
-framework <span class="citation">(Chao et al. 2010)</span>, which
-unifies diverse entropy-based measures (richness, Shannon, Simpson) as
-different manifestations of the same parametric family with varying
-sensitivity to abundance scales.</p>
+<p>As stated explicitly in the mathematical literature: “This introduces
+the formal possibility not to set rare and common events on the same
+footing, as in BG or Shannon statistics, but it enhances or depresses
+them according to the parameter chosen.” This principle is formalized in
+the Hill numbers framework <span class="citation">(Chao et al.
+2010)</span>, which unifies diverse entropy-based measures (richness,
+Shannon, Simpson) as different manifestations of the same parametric
+family with varying sensitivity to abundance scales.</p>
 <p>The flexibility is crucial for isoform analysis. The concept of “true
 diversity” <span class="citation">(Chao et al. 2010)</span> emphasizes
 that diversity can be decomposed into two independent components:
@@ -649,7 +563,7 @@ isoform heterogeneity at multiple scales <span class="citation">(Ramírez-Reyes 
 <span></span>
 <span><span class="co"># Extract and display diversity results with formatted table</span></span>
 <span><span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"diversity"</span>, display_table <span class="op">=</span> <span class="cn">TRUE</span>, n_genes <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span></code></pre></div>
-<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;">
+<table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
 <caption>
 <strong>Table 1:</strong> Tsallis entropy for first 4 genes across three
 diversity scales (sample: SRR14800481)
@@ -812,7 +726,7 @@ samples are reviewed).</p>
 <span><span class="co"># Extract results from metadata using accessor function</span></span>
 <span><span class="va">sample_qc</span> <span class="op">&lt;-</span> <span class="fu">metadata</span><span class="op">(</span><span class="va">analysis</span>, <span class="st">"m_estimate_results"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">sample_qc</span><span class="op">)</span></span></code></pre></div>
-<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;">
+<table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
 <caption>
 <strong>Table 2 | Sample Influence Assessment via M-estimation.</strong>
 Ranked by magnitude of resampling-based influence values. Columns:
@@ -1532,13 +1446,12 @@ effects (Benjamini-Hochberg q &lt; 0.05).
 <div class="section level3">
 <h3 id="transcript-switching-across-diversity-scales">Transcript Switching Across Diversity Scales<a class="anchor" aria-label="anchor" href="#transcript-switching-across-diversity-scales"></a>
 </h3>
-<p>The LM interaction test (from <code><a href="../reference/calculate_lm.html">calculate_lm()</a></code>) tests
-whether condition effects depend on which diversity scale (q-value) you
-examine. This section identifies <strong>which individual
-transcripts</strong> drive these scale-dependent patterns, revealing
-whether the same transcripts switch across all scales or whether
-different regulatory mechanisms dominate at rare versus abundant isoform
-scales.</p>
+<p>The LM interaction tests whether condition effects depend on which
+diversity scale (q-value) you examine. This section identifies
+<strong>which individual transcripts</strong> drive these
+scale-dependent patterns, revealing whether the same transcripts switch
+across all scales or whether different regulatory mechanisms dominate at
+rare versus abundant isoform scales.</p>
 <div class="section level4">
 <h4 id="two-stage-analysis-approach">Two-Stage Analysis Approach<a class="anchor" aria-label="anchor" href="#two-stage-analysis-approach"></a>
 </h4>
@@ -1611,7 +1524,7 @@ emphasize different transcripts.</p>
 <div class="section level5">
 <h5 id="gene-cxcl12-ensg00000107562-18">Gene: CXCL12 (ENSG00000107562.18)<a class="anchor" aria-label="anchor" href="#gene-cxcl12-ensg00000107562-18"></a>
 </h5>
-<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;">
+<table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
 <thead><tr>
 <th style="text-align:left;">
 Transcript
@@ -1719,7 +1632,7 @@ Mixed directions
 <div class="section level5">
 <h5 id="gene-thy1-ensg00000154096-15">Gene: THY1 (ENSG00000154096.15)<a class="anchor" aria-label="anchor" href="#gene-thy1-ensg00000154096-15"></a>
 </h5>
-<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;">
+<table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
 <thead><tr>
 <th style="text-align:left;">
 Transcript
@@ -1926,7 +1839,7 @@ al.</span> 2002)</span>.</p>
 <span><span class="co"># Extract divergence results</span></span>
 <span><span class="va">divergence_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"divergence"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">divergence_results</span>, n <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span></code></pre></div>
-<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;">
+<table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
 <caption>
 <strong>Table 3 | Pairwise Tsallis divergence estimates.</strong>
 Divergence (distance) between conditions from Tsallis entropy framework.
@@ -2020,7 +1933,7 @@ SNX4
 <span>    top_n <span class="op">=</span> <span class="fl">6</span>,</span>
 <span>    sort_by <span class="op">=</span> <span class="st">"p_value_interaction"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;">
+<table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
 <caption>
 <strong>Table 5 | Top genes by linear model significance with effect
 sizes and q-spectrum patterns.</strong> Ranked by statistical

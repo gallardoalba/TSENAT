@@ -219,7 +219,7 @@ rank_assumptions <- metadata(analysis, "rankbased_assumptions")$result
 |  Data from complete entropy matrix across all q-values and samples. |  |
 
 Supplementary Table 1 \| Rank-Based Entropy Matrix Properties. {.table
-.table .table-striped .table-hover .table-condensed
+.table .table-striped .table-hover
 style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 | Characteristic | Test | Result |
@@ -237,7 +237,7 @@ Heterogeneity (Spearman rank correlation), Subject Consistency
 (Kendall’s *W* concordance). Values reported as *P*-values, correlation
 coefficients *r*, and concordance *W* (0-1 range). All tests support
 exchangeability assumption justifying Scheirer-Ray-Hare nonparametric
-approach. {.table .table .table-striped .table-hover .table-condensed
+approach. {.table .table .table-striped .table-hover
 style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 ### Scheirer-Ray-Hare Test: Testing q $`\times`$ Condition Interactions
@@ -279,7 +279,7 @@ print(head(srh_results, n = 10))
 
 Supplementary Table 3 \| Scheirer-Ray-Hare Test Results Summary.
 Rank-based nonparametric test of *q* × condition interactions. {.table
-.table .table-striped .table-hover .table-condensed
+.table .table-striped .table-hover
 style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 | Gene | P-value | Adj. P-value | F-Statistic | Effect Size (η²) | Test Method | Interaction Class |
@@ -295,7 +295,6 @@ style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 Supplementary Table 4 \| Top genes identified by Scheirer-Ray-Hare
 rank-based test. {.table .table .table-striped .table-hover
-.table-condensed
 style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 Visualize q-curves for top genes:
@@ -347,7 +346,6 @@ gam_results <- results(analysis_lm, type = "lm", rankBy = "pvalue")
 |  Aggregate statistics across all genes tested by GAM method; effect size \> 30% indicates strong biological signal. |  |
 
 GAM Results Summary {.table .table .table-striped .table-hover
-.table-condensed
 style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 | Gene | p (interaction) | Adjusted p | Effect size | Test statistic | df |
@@ -366,7 +364,7 @@ style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 |  Top 10 genes ranked by significance; p-values \< 0.001 shown in scientific notation; effect size range 0-100%. |  |  |  |  |  |
 
 Top 10 Genes by GAM p-value (with Effect Size and Test Statistics)
-{.table .table .table-striped .table-hover .table-condensed
+{.table .table .table-striped .table-hover
 style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 ------------------------------------------------------------------------
@@ -418,7 +416,7 @@ agreement_table <- concordance_result$agreement_table
 |  Comparison of significant genes (p \< 0.05) detected by GAM vs Scheirer-Ray-Hare methods; high concordance validates robustness. |  |
 
 Global Concordance Metrics: GAM vs Scheirer-Ray-Hare Methods {.table
-.table .table-striped .table-hover .table-condensed
+.table .table-striped .table-hover
 style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 | Agreement Category | Number of Genes | Percentage |
@@ -430,7 +428,6 @@ style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 |  Categories: Concordant (both methods, p \< 0.05); GAM-only; Scheirer-Ray-Hare-only; Neither (both p ≥ 0.05). |  |  |
 
 Method Agreement Distribution {.table .table .table-striped .table-hover
-.table-condensed
 style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 | Gene | LM adj p | Rank test adj p | LM Effect | Rank test $`\eta^2`$ |
@@ -445,7 +442,7 @@ style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 Robust Entropic Order Index Interactions: High-Confidence Genes Detected
 by Both Methods (n=5, ranked by statistical significance) {.table .table
-.table-striped .table-hover .table-condensed
+.table-striped .table-hover
 style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 ### Statistical Power vs. Robustness: Understanding Method Discordance

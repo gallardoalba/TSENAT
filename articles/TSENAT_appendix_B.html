@@ -309,7 +309,7 @@ rank-based inference.</p>
 <span></span>
 <span><span class="co"># Extract the result object</span></span>
 <span><span class="va">rank_assumptions</span> <span class="op">&lt;-</span> <span class="fu">metadata</span><span class="op">(</span><span class="va">analysis</span>, <span class="st">"rankbased_assumptions"</span><span class="op">)</span><span class="op">$</span><span class="va">result</span></span></code></pre></div>
-<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
+<table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption>
 Supplementary Table 1 | Rank-Based Entropy Matrix Properties.
 </caption>
@@ -385,7 +385,7 @@ samples.
 </tr>
 </tfoot>
 </table>
-<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
+<table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption>
 Supplementary Table 2 | Entropy Matrix Validation Metrics. Three core
 properties validating suitability for rank-based analysis. Rows: Paired
@@ -481,7 +481,7 @@ violated <span class="citation">(Zhang and Yuan 2018)</span>.</p>
 <span><span class="co"># Extract top significant genes for display</span></span>
 <span><span class="va">srh_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"rank_test"</span>, rankBy <span class="op">=</span> <span class="st">"pvalue"</span>, n <span class="op">=</span> <span class="fl">20</span>, filterFDR <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">srh_results</span>, n <span class="op">=</span> <span class="fl">10</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
+<table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption>
 Supplementary Table 3 | Scheirer-Ray-Hare Test Results Summary.
 Rank-based nonparametric test of <em>q</em> × condition interactions.
@@ -570,7 +570,7 @@ paired designs.
 </tr>
 </tfoot>
 </table>
-<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
+<table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption>
 Supplementary Table 4 | Top genes identified by Scheirer-Ray-Hare
 rank-based test.
@@ -780,7 +780,7 @@ vignette (<a href="TSENAT.Rmd">TSENAT.Rmd</a>).</p>
 <span></span>
 <span><span class="co"># Extract GAM/LM results for inspection using accessor function</span></span>
 <span><span class="va">gam_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis_lm</span>, type <span class="op">=</span> <span class="st">"lm"</span>, rankBy <span class="op">=</span> <span class="st">"pvalue"</span><span class="op">)</span></span></code></pre></div>
-<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
+<table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption>
 GAM Results Summary
 </caption>
@@ -872,7 +872,7 @@ effect size &gt; 30% indicates strong biological signal.
 </tr>
 </tfoot>
 </table>
-<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
+<table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption>
 Top 10 Genes by GAM p-value (with Effect Size and Test Statistics)
 </caption>
@@ -1144,7 +1144,7 @@ statistical frameworks.</p>
 <span><span class="va">spearman_rho</span> <span class="op">&lt;-</span> <span class="va">concordance_result</span><span class="op">$</span><span class="va">spearman_rho</span></span>
 <span><span class="va">high_conf</span> <span class="op">&lt;-</span> <span class="va">concordance_result</span><span class="op">$</span><span class="va">high_confidence</span></span>
 <span><span class="va">agreement_table</span> <span class="op">&lt;-</span> <span class="va">concordance_result</span><span class="op">$</span><span class="va">agreement_table</span></span></code></pre></div>
-<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
+<table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption>
 Global Concordance Metrics: GAM vs Scheirer-Ray-Hare Methods
 </caption>
@@ -1236,7 +1236,7 @@ GAM vs Scheirer-Ray-Hare methods; high concordance validates robustness.
 </tr>
 </tfoot>
 </table>
-<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
+<table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption>
 Method Agreement Distribution
 </caption>
@@ -1300,7 +1300,7 @@ GAM-only; Scheirer-Ray-Hare-only; Neither (both p ≥ 0.05).
 </tr>
 </tfoot>
 </table>
-<table class="table table table-striped table-hover table-condensed" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
+<table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption>
 Robust Entropic Order Index Interactions: High-Confidence Genes Detected
 by Both Methods (n=5, ranked by statistical significance)

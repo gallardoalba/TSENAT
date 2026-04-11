@@ -258,7 +258,7 @@ SplicingFactory (Laplace approximation to Shannon) and TSENAT (Tsallis
 *q*=1) show comparable statistical power and effect size detection,
 validating mathematical equivalence. Convergence of results confirms
 Tsallis framework encompasses classical Shannon entropy. {.table .table
-.table-striped .table-hover .table-condensed
+.table-striped .table-hover
 style="margin-left: auto; margin-right: auto;"}
 
 **Interpretation**: Both methods similarly identify significantly
@@ -290,7 +290,7 @@ fold-change effect size; unadjusted *P*-value; Benjamini-Hochberg
 adjusted *P*-value. Validation reference: SplicingFactory is an
 established R package for isoform diversity analysis using classical
 Shannon entropy. {.table .table .table-striped .table-hover
-.table-condensed style="margin-left: auto; margin-right: auto;"}
+style="margin-left: auto; margin-right: auto;"}
 
 ##### Top 10 Significant Genes - TSENAT (Tsallis q=1)
 
@@ -314,7 +314,7 @@ Tsallis entropy at *q*=1 (Shannon equivalence).** Ranked by adjusted
 *P*; adjuste d *P*-value. Validation: Tsallis entropy at *q*-\>1
 converges to Shannon entropy (classical diversity metric), demonstrating
 TSENAT encompasses established methods as special cases. {.table .table
-.table-striped .table-hover .table-condensed
+.table-striped .table-hover
 style="margin-left: auto; margin-right: auto;"}
 
 ``` r
@@ -414,7 +414,7 @@ fold-change; standard deviation. Both SplicingFactory (Simpson index)
 and TSENAT (Tsallis *q*=2) show equivalent statistical power. Simpson
 index emphasizes common (dominant) isoforms; mathematically equivalent
 to Tsallis *q*=2, validating multi-*q* framework. {.table .table
-.table-striped .table-hover .table-condensed
+.table-striped .table-hover
 style="margin-left: auto; margin-right: auto;"}
 
 **Interpretation**: Simpson index results parallel Shannon entropy
@@ -444,7 +444,7 @@ adjusted *P*-value (ascending). Columns: gene identifier; Normal mean;
 Tumor mean; mean difference; log2 fold-change; unadjusted *P*; adjusted
 *P*-value. Simpson index differs from Shannon by emphasizing
 abundant/dominant transcripts (low parameter sensitivity to rare
-isoforms). {.table .table .table-striped .table-hover .table-condensed
+isoforms). {.table .table .table-striped .table-hover
 style="margin-left: auto; margin-right: auto;"}
 
 ##### Top 10 Significant Genes - TSENAT (Tsallis q=2)
@@ -469,7 +469,7 @@ difference; log2 fold-change; unadjusted *P*; adjusted *P*-value.
 Validation: Tsallis *q*=2 produces Gini-Simpson index (emphasizes
 dominant isoforms), demonstrating TSENAT multi-*q* framework recovers
 classical diversity metrics as special cases. {.table .table
-.table-striped .table-hover .table-condensed
+.table-striped .table-hover
 style="margin-left: auto; margin-right: auto;"}
 
 ``` r
