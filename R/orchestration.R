@@ -42,6 +42,7 @@
 #' }
 #'
 #' @examples
+#' \donttest{
 #' data(readcounts, package = "TSENAT")
 #' metadata_df <- read.table(
 #'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
@@ -52,7 +53,7 @@
 #' config <- TSENAT_config(
 #'   sample_col = "sample",
 #'   condition_col = "condition",
-#'   q = 1.0,
+#'   q = seq(0, 2, length.out = 10),
 #'   generate_plots = FALSE
 #' )
 #' analysis <- build_analysis(
@@ -65,6 +66,7 @@
 #' )
 #' 
 #' result <- TSENAT(analysis)
+#' }
 #'
 #' @export
 TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, output_format = "tsv", verbose = TRUE) {

@@ -100,6 +100,7 @@ setGeneric("getPlot", function(object, ...) standardGeneric("getPlot"))
 #' @return invisible(object) for method chaining
 #'
 #' @examples
+#' \donttest{
 #' # Create a simple plot and add to analysis
 #' data(readcounts, package = 'TSENAT')
 #' metadata <- read.table(
@@ -114,7 +115,7 @@ setGeneric("getPlot", function(object, ...) standardGeneric("getPlot"))
 #'               dimnames = dimnames(readcounts))
 #' effective_length <- matrix(100, nrow = nrow(readcounts), ncol = ncol(readcounts))
 #' 
-#' config <- TSENAT_config(q = 1.0, generate_plots = FALSE)
+#' config <- TSENAT_config(q = seq(0, 2, length.out = 10), generate_plots = FALSE)
 #' analysis <- build_analysis(readcounts, tx2gene = gff3_file,
 #'     metadata = metadata, tpm = tpm, effective_length = effective_length,
 #'     config = config)
@@ -123,6 +124,7 @@ setGeneric("getPlot", function(object, ...) standardGeneric("getPlot"))
 #' 
 #' # Create and cache a plot
 #' p <- plot_diversity_spectrum(analysis)
+#' }
 #' @noRd
 setGeneric("addPlot", function(object, type, plot, replace = FALSE) standardGeneric("addPlot"))
 
