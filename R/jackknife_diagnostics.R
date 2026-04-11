@@ -18,7 +18,7 @@
 #' counts. If NULL, must provide `se` and `res`.
 #' @param se Optional SummarizedExperiment object containing
 #' transcript-level counts with 'counts' assay.
-#' @param res Optional data.frame of results from `.calculate_difference()`
+#' @param res Optional data.frame of results from statistical testing
 #' to extract top genes.
 #' @param top_n Numeric: Number of top genes to analyze (default 5).
 #' @param q Numeric: Tsallis entropy order (default 1). Can be vector for
@@ -145,15 +145,12 @@
 #' **Use cases:**
 #' - Identify genes with one dominant isoform (suspect for splicing errors)
 #' - Quality control: detect when one transcript has anomalous counts
-#' - Understand which transcripts drive group differences (see
-#' calculate_difference)
+#' - Assess transcript stability and contribution to diversity measures
 #' - Compare stability across genes or conditions
 #'
 #' **Relationship to other functions:**
 #' - \code{. calculate_tsallis_entropy()}:
 #'  computes entropy (stability as background)
-#' - \code{\link{calculate_difference}}:  tests if 
-#' differences are significant (jackknife validates stability)
 #'
 #' **IMPORTANT - Raw Count Requirement:**
 #' This function requires a SummarizedExperiment with original raw
@@ -173,8 +170,8 @@
 #' **Recommended workflow:**
 #' ```
 #' se <- your_data  # SummarizedExperiment with raw counts
-#' res <- .calculate_difference(se, ...)  # Test for significance
-#' jack_result <- jackknife_tsallis_entropy(se = se, res = res, ...)
+#' # Perform statistical testing to identify top genes
+#' jack_result <- jackknife_tsallis_entropy(se = se, top_n = 5, ...)
 #' # The se parameter must have the 'counts' assay available
 #' ```
 #'
@@ -217,8 +214,7 @@
 #'
 #' @seealso
 #' \code{.calculate_tsallis_entropy()} for entropy calculation,
-#' \code{\link{calculate_diversity}} for computing diversity across genes,
-#' \code{\link{calculate_difference}} for testing differences between groups.
+#' \code{\link{calculate_diversity}} for computing diversity across genes.
 #'
 #' @examples
 #' # Example 1: Vector input - single gene

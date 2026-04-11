@@ -1483,43 +1483,6 @@ test_that("S4 Wrappers: all calculate_diversity arguments are accepted", {
   }
 })
 
-test_that("S4 Wrappers: calculate_difference accepts new arguments", {
-  # Pre-compute diversity to have valid input data
-  analysis <- .create_test_analysis(precompute_diversity = TRUE)
-  
-  # Ensure diversity results exist
-  if (length(analysis@diversity_results) == 0) {
-    skip_on_cran()
-  }
-  
-  # Test each argument individually
-  args_to_test <- list(
-    list(method = "mean"),
-    list(test = "wilcoxon"),
-    list(randomizations = 10),
-    list(pcorr = "BH"),
-    list(paired = FALSE),
-    list(pseudocount = 0),
-    list(nthreads = 1)
-  )
-  
-  for (args in args_to_test) {
-    arg_string <- paste(names(args), collapse = ", ")
-    # Test that arguments are accepted
-    result <- tryCatch({
-      do.call(calculate_difference, 
-              c(list(analysis = analysis, control = "control", q = 0.5, verbose = FALSE), args))
-    }, error = function(e) {
-      list(error = paste("Error:", e$message))
-    })
-    
-    # Should accept arguments without syntax errors
-    expect_true(!is.list(result) || !("error" %in% names(result)),
-                info = paste("Argument should be accepted:", arg_string,
-                            "Error:", if(is.list(result) && "error" %in% names(result)) result$error else "None"))
-  }
-})
-
 
 test_that("S4 Wrappers: calculate_divergence accepts new arguments", {
   # Pre-compute diversity to have valid input data

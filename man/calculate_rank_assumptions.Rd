@@ -3,7 +3,7 @@
 \name{calculate_rank_assumptions}
 \alias{calculate_rank_assumptions}
 \alias{calculate_rank_assumptions,TSENATAnalysis-method}
-\title{Test rank-based method assumptions in TSENATAnalysis}
+\title{Calculate Difference Between Control and Treatment Groups (S4 Wrapper)}
 \usage{
 calculate_rank_assumptions(
   analysis,
@@ -34,15 +34,102 @@ If NULL, uses the first available diversity result or q=1.0.}
 \item{alpha}{\code{numeric}. Significance level for tests (default: 0.05).}
 
 \item{...}{Additional arguments (for future extensibility).}
+
+\item{control}{Character string specifying the control group identifier.
+If \code{NULL},
+ attempts to retrieve from \code{analysis@config$control}.}
+
+\item{condition_col}{\code{character} or  \code{NULL}.
+Column name in colData identifying sample conditions.
+ If NULL, reads from \code{@config$condition_col} or auto-detects.}
+
+\item{method}{\code{character}.  Difference calculation method.  Default:
+'mean'.
+ If NULL, reads from \code{@config$method} if available.}
+
+\item{test}{\code{character}. Statistical test type. Default: 'wilcoxon'.
+If NULL, reads from \code{@config$test} if available.}
+
+\item{randomizations}{\code{numeric}. Number of randomizations. Default: 100.
+If NULL, reads from \code{@config$randomizations} if available.}
+
+\item{pcorr}{\code{character}. P-value correction method. Default: 'BH'.
+If NULL, reads from \code{@config$pcorr} if available.}
+
+\item{assayno}{\code{numeric}. Assay number to use. Default: 1.
+If NULL, reads from \code{@config$assayno} if available.}
+
+\item{verbose}{\code{logical}. Print progress messages. Default: TRUE.
+If not specified, reads from \code{@config$verbose} if available.}
+
+\item{paired}{\code{logical}. Whether data is paired. Default: FALSE.
+If not specified, reads from \code{@config$paired} if available.}
+
+\item{pairs}{\code{character} or \code{numeric} vector or \code{NULL}. 
+Pairing information for paired designs.
+  When \code{paired = TRUE}, specifies which samples are paired 
+  (e.g., c(1,1,2,2,3,3) for 3 pairs).
+  Default: NULL. When NULL with \code{paired = TRUE}, auto-extracted 
+  from colData 'sample_base' column if available.}
+
+\item{exact}{\code{logical}. Use exact test. Default: FALSE.
+If not specified, reads from \code{@config$exact} if available.}
+
+\item{pseudocount}{\code{numeric}. Pseudocount for normalization. Default: 0.
+If NULL, reads from \code{@config$pseudocount} if available.}
+
+\item{nthreads}{\code{numeric} or  \code{NULL}.  Number of CPU threads for 
+parallel processing.
+  If NULL, reads from \code{@config$nthreads} (or defaults to 1).}
+
+\item{robust_loss_type}{\code{character}.  Robust regression loss type.
+Default:  'huber'.
+ If NULL, reads from \code{@config$robust_loss_type} if available.}
+
+\item{robust_scale_method}{\code{character}.  Robust scaling method.
+Default:  'mad'.
+ If NULL, reads from \code{@config$robust_scale_method} if available.}
+
+\item{output_file}{\code{character} or  \code{NULL}.
+ Optional file path to save results.
+Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables).
+Default: NULL (no file output).}
 }
 \value{
+Returns the modified \code{analysis} object invisibly with 
+results stored in
+  \code{analysis@pairwise_results$difference}.
+
 Modified TSENATAnalysis object with assumption test results stored
   in \code{@metadata$rankbased_assumptions}.
 }
 \description{
-Test rank-based method assumptions in TSENATAnalysis
+S4 wrapper that operates on TSENATAnalysis objects to calculate differences
+between control and  treatment groups.
+ Uses diversity results from \code{@diversity_results} 
+slot (from \code{calculate_diversity()}) and 
+stores results in the \code{lm_results} slot.
 }
 \details{
+**IMPORTANT:
+** Requires diversity results to exist first via \code{calculate_diversity()}.
+This wrapper extracts the diversity SummarizedExperiment from \code{@diversity_results},
+not the raw input data in \code{@se}.
+ This ensures you're comparing diversity values
+between control and treatment groups, not raw abundance data.
+
+**Parameter resolution priority** (explicit > @config > auto-detect > error):
+\itemize{
+  \item \code{control}:  Uses explicit arg,  else \code{@config$control},
+ else error
+  \item \code{nthreads}:  Uses explicit arg,  else \code{@config$nthreads},
+ else 1
+  \item \code{condition_col} (sample grouping):
+ Uses \code{@config$condition_col},
+else auto-detects from colData columns: 'group', 'sample_type',
+'condition'
+}
+
 This wrapper calls \code{.calculate_rank_assumptions()} on diversity data
 extracted from the analysis object. Results include:
 
@@ -60,6 +147,30 @@ temporal/spatial ordering effects}
  extracts from cached combined result (\code{@metadata$diversity_combined})
 }
 \examples{
+# Load example data (matching TSENAT.Rmd workflow)
+data(readcounts)
+readcounts <- as.matrix(readcounts)
+mode(readcounts) <- 'numeric'
+metadata_df <- read.table(
+  system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t'
+)
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+'TSENAT')
+
+# Load TPM and effective length from vignette data
+data(readcounts)  # Also loads tpm and effective_length
+
+# Create config (metadata passed as explicit parameter to build_analysis)
+config <- TSENAT_config(
+  sample_col = 'sample',
+  condition_col = 'condition',
+  q = seq(0, 2, by = 0.05),
+  paired = FALSE
+)
+
+Test rank-based method assumptions in TSENATAnalysis
+
 # Load example data (matching TSENAT.Rmd workflow)
 data(readcounts)
 readcounts <- as.matrix(readcounts)
@@ -92,4 +203,7 @@ analysis <- calculate_rank_assumptions(analysis, q = 1.0)
 # Check results using rank_test accessor
 results_df <- results(analysis, type = 'rank_test')
 
+}
+\seealso{
+\code{\link{calculate_diversity}} for computing diversity.
 }

@@ -3,7 +3,7 @@
 \name{calculate_concordance}
 \alias{calculate_concordance}
 \alias{calculate_concordance,TSENATAnalysis-method}
-\title{Compute concordance between two analysis methods in TSENATAnalysis}
+\title{Compare method concordance for differential analysis results}
 \usage{
 calculate_concordance(analysis_lm, analysis_rank = NULL, ...)
 
@@ -17,7 +17,8 @@ calculate_concordance(analysis_lm, analysis_rank = NULL, ...)
 )
 }
 \arguments{
-\item{analysis_lm}{\code{TSENATAnalysis} object with LM/GAM results.}
+\item{analysis_lm}{\code{TSENATAnalysis} object containing LM/GAM analysis results
+(from \code{calculate_lm()}).}
 
 \item{analysis_rank}{\code{TSENATAnalysis} object or NULL. If NULL, uses legacy 
 single-object API with analysis_lm containing both results. If provided, 
@@ -50,7 +51,9 @@ Modified TSENATAnalysis object with concordance results stored in:
   }
 }
 \description{
-Compute concordance between two analysis methods in TSENATAnalysis
+Compares statistical results from two different methods (typically LM/GAM for
+continuous data and Scheirer-Ray-Hare rank tests) to assess agreement and identify
+genes detected by one method but not the other.
 }
 \details{
 Compares results from two different statistical methods (typically GAM

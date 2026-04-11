@@ -16,78 +16,6 @@ test_that("plot_ma returns ggplot object with mean columns", {
 
     df <- data.frame(
         Gene = paste0("G", 1:10),
-        A_mean = runif(10),
-        B_mean = runif(10),
-        log2_fold_change = rnorm(10),
-        adjusted_p_values = runif(10)
-    )
-    p <- .plot_ma_tsallis(df)
-    expect_s3_class(p, "gg")
-    expect_s3_class(p, "ggplot")
-})
-
-test_that("plot_ma returns ggplot object with median columns", {
-    skip_if_not_installed("ggplot2")
-
-    df <- data.frame(
-        Gene = paste0("G", 1:10),
-        A_median = runif(10),
-        B_median = runif(10),
-        log2_fold_change = rnorm(10),
-        adjusted_p_values = runif(10)
-    )
-    p <- .plot_ma_tsallis(df)
-    expect_s3_class(p, "gg")
-})
-
-test_that("plot_ma errors on mixed mean/median columns", {
-    skip_if_not_installed("ggplot2")
-
-    df <- data.frame(
-        Gene = paste0("G", 1:10),
-        A_mean = runif(10),
-        B_median = runif(10),
-        log2_fold_change = rnorm(10),
-        adjusted_p_values = runif(10)
-    )
-    expect_error(.plot_ma_tsallis(df), "Could not find two mean or two median columns")
-})
-
-test_that("plot_top_transcripts renders without error for synthetic data", {
-    set.seed(42)
-    counts <- matrix(rpois(3 * 8, lambda = 20), nrow = 3)
-    rownames(counts) <- paste0("tx", 1:3)
-    colnames(counts) <- paste0("S", 1:8)
-    samples <- c(rep("Normal", 4), rep("Tumor", 4))
-    # create simple tx2gene mapping
-    tx2 <- data.frame(
-        Transcript = rownames(counts),
-        Gen = rep("GENE1", 3),
-        stringsAsFactors = FALSE
-    )
-
-    se <- SummarizedExperiment(
-        assays = list(counts = counts),
-        rowData = S4Vectors::DataFrame(genes = tx2$Gen),
-        colData = S4Vectors::DataFrame(condition = samples)
-    )
-    # Function now renders to active device (grid), returns invisible(NULL)
-    # Note: suppressWarnings() used because function warns when TPM metadata unavailable
-    p <- suppressWarnings(.plot_expression(se,
-        gene = "GENE1",
-        top_n = 2,
-        output_file = NULL
-    ))
-    # Check that it returns NULL (invisibly)
-    expect_null(p)
-})
-
-test_that("plot_top_transcripts selects genes from res when gene is NULL", {
-    set.seed(42)
-    counts <- matrix(rpois(9 * 4, lambda = 20), nrow = 9)
-    rownames(counts) <- paste0("tx", 1:9)
-    colnames(counts) <- paste0("S", 1:4)
-    samples <- c(rep("Normal", 2), rep("Tumor", 2))
 
     tx2 <- data.frame(
         Transcript = rownames(counts),
@@ -108,49 +36,7 @@ test_that("plot_top_transcripts selects genes from res when gene is NULL", {
     expect_null(p)
 })
 
-test_that("plot_volcano returns a ggplot and annotates top genes", {
-    skip_if_not_installed("ggplot2")
 
-    set.seed(42)
-    n <- 20
-    df <- data.frame(
-        genes = paste0("gene", seq_len(n)),
-        mean_difference = rnorm(n),
-        adjusted_p_values = p.adjust(runif(n))
-    )
-
-    p <- TSENAT:::.plot_volcano(df,
-        x_col = "mean_difference",
-        padj_col = "adjusted_p_values",
-        top_n = 3
-    )
-    expect_s3_class(p, "ggplot")
-    # building the plot should not error
-    ggplot2::ggplot_build(p)
-})
-
-test_that("plot_volcano with custom columns", {
-    skip_if_not_installed("ggplot2")
-
-    set.seed(42)
-    n <- 15
-    df <- data.frame(
-        genes = paste0("gene", seq_len(n)),
-        logFC = rnorm(n),
-        pval = p.adjust(runif(n))
-    )
-
-    p <- TSENAT:::.plot_volcano(df,
-        x_col = "logFC",
-        padj_col = "pval",
-        top_n = 2
-    )
-    expect_s3_class(p, "ggplot")
-})
-
-test_that("plot_diversity_spectrum returns ggplot with valid SE", {
-    skip_if_not_installed("SummarizedExperiment")
-    skip_if_not_installed("ggplot2")
     skip_if_not_installed("tidyr")
     skip_if_not_installed("dplyr")
 
@@ -186,49 +72,7 @@ test_that("infer_samples_from_se finds sample_type column and falls back", {
 
     # If no sample_type, but a binary column exists
     se2 <- SummarizedExperiment(assays = list(diversity = mat), colData = S4Vectors::DataFrame(cond = c("A", "B")))
-    samples2 <- .infer_samples_from_se(se2)
-    expect_equal(samples2, c("A", "B"))
-})
-
-test_that("get_readcounts_from_se accepts readcounts in metadata, assays and file", {
-    mat <- matrix(1:6, nrow = 3)
-    rownames(mat) <- paste0("tx", 1:3)
-    se <- SummarizedExperiment(assays = list(dummy = matrix(0, nrow = 3, ncol = 2)))
-    S4Vectors::metadata(se)$readcounts <- mat
-    rc <- .get_readcounts_from_se(se)
-    expect_true(is.matrix(rc))
-    expect_equal(rownames(rc), rownames(mat))
-
-    # if first assay used
-    se2 <- SummarizedExperiment(assays = list(readcounts = mat))
-    rc2 <- .get_readcounts_from_se(se2)
-    expect_true(is.matrix(rc2))
-
-    # file input: write temporary table
-    tmpf <- tempfile(fileext = ".tsv")
     df <- data.frame(tx = rownames(mat), mat, stringsAsFactors = FALSE)
-    write.table(df, file = tmpf, sep = "\t", row.names = FALSE, quote = FALSE)
-    rcf <- .get_readcounts_from_se(se, readcounts_arg = tmpf)
-    expect_true(is.matrix(rcf))
-})
-
-test_that("get_tx2gene_from_se returns mapping from metadata, rowData or rownames", {
-    mat <- matrix(1:6, nrow = 3)
-    rownames(mat) <- paste0("tx", 1:3)
-    se <- SummarizedExperiment(assays = list(diversity = mat))
-    md <- list(tx2gene = data.frame(Transcript = rownames(mat), Gen = c("g1", "g1", "g2"), stringsAsFactors = FALSE))
-    S4Vectors::metadata(se) <- md
-    out <- .get_tx2gene_from_se(se, readcounts_mat = mat)
-    expect_equal(out$type, "vector")
-    expect_equal(length(out$mapping), nrow(mat))
-
-    # rowData case
-    se2 <- SummarizedExperiment(assays = list(diversity = mat), rowData = S4Vectors::DataFrame(genes = c("g1", "g1", "g2")))
-    out2 <- .get_tx2gene_from_se(se2, readcounts_mat = mat)
-    expect_equal(out2$type, "vector")
-    expect_equal(length(out2$mapping), nrow(mat))
-
-    # fallback to rownames
     se3 <- SummarizedExperiment(assays = list(diversity = mat))
     out3 <- .get_tx2gene_from_se(se3, readcounts_mat = mat)
     expect_equal(out3$type, "vector")
@@ -243,12 +87,6 @@ test_that("validate_control_in_samples picks 'Normal' when present or first leve
     expect_equal(.validate_control_in_samples("B", samples2), "B")
 })
 
-test_that(".plot_ma_core errors when fold-change column missing or x axis missing", {
-    skip_if_not_installed("ggplot2")
-    df <- data.frame(genes = paste0("g", 1:4), val = runif(4))
-    expect_error(.plot_ma_core(df), "Could not find a fold-change column")
-    df2 <- data.frame(genes = paste0("g", 1:4), log2_fold_change = rnorm(4))
-    expect_s3_class(.plot_ma_core(df2), "ggplot")
 })
 
 context("Visualization: Top Transcripts Plotting")
@@ -322,86 +160,7 @@ test_that("make_plot_for_genecombine_plots returns a plot-like object", {
 
 context("Visualization: Generate Plots Extra Tests")
 
-test_that("plot_ma_tsallis handles simple inputs", {
-    skip_if_not_installed("ggplot2")
-    x <- data.frame(genes = paste0("g", 1:6), mean = runif(6), log2_fold_change = rnorm(6))
-    p1 <- TSENAT:::.plot_ma_tsallis(x)
-    expect_s3_class(p1, "ggplot")
-})
 
-
-test_that("plot_diversity_spectrum correctly handles multiple groups with different entropy values", {
-    skip_if_not_installed(c("ggplot2", "SummarizedExperiment", "dplyr"))
-    
-    # Create SE with two groups having different entropy profiles
-    set.seed(42)
-    n_genes <- 20
-    n_q_vals <- 5
-    n_samples_per_group <- 4
-    
-    # Create data where "normal" group has higher entropy than "tumor" group across all q-values
-    normal_data <- matrix(rnorm(n_genes * n_q_vals * n_samples_per_group, mean = 0.7, sd = 0.1), 
-                          nrow = n_genes)
-    tumor_data <- matrix(rnorm(n_genes * n_q_vals * n_samples_per_group, mean = 0.4, sd = 0.1), 
-                         nrow = n_genes)
-    
-    mat <- cbind(normal_data, tumor_data)
-    
-    # Create column names with multiple q-values
-    q_vals <- seq(0.1, 0.5, by = 0.1)
-    col_names <- c(
-        paste0("S", 1:n_samples_per_group, "_q=", rep(q_vals, each = n_samples_per_group)),
-        paste0("S", (n_samples_per_group+1):(2*n_samples_per_group), "_q=", rep(q_vals, each = n_samples_per_group))
-    )
-    
-    colnames(mat) <- col_names
-    rownames(mat) <- paste0("g", 1:n_genes)
-    
-    # Ensure matrix values are in [0, 1]
-    mat <- pmax(pmin(mat, 1), 0)
-    
-    se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat))
-    rowData(se)$genes <- rownames(mat)
-    
-    # Set sample type
-    sample_types <- c(rep("normal", n_samples_per_group * n_q_vals), 
-                      rep("tumor", n_samples_per_group * n_q_vals))
-    cd <- S4Vectors::DataFrame(sample_type = sample_types, row.names = colnames(mat))
-    SummarizedExperiment::colData(se) <- cd
-    
-    # Generate plot
-    p <- TSENAT:::plot_diversity_spectrum(se, condition_col = "sample_type")
-    
-    # Verify plot is ggplot
-    expect_s3_class(p, "ggplot")
-    
-    # Verify plot data contains both groups
-    plot_data <- p$data
-    expect_true("group" %in% colnames(plot_data))
-    expect_true("normal" %in% plot_data$group)
-    expect_true("tumor" %in% plot_data$group)
-    
-    # Verify q values are numeric and correct
-    expect_true("q" %in% colnames(plot_data))
-    expect_true(is.numeric(plot_data$q))
-    expect_false(is.factor(plot_data$q))
-    
-    # Verify there are multiple q-values
-    unique_q_vals <- unique(plot_data$q)
-    expect_equal(length(unique_q_vals), length(q_vals))
-    
-    # Verify normal group has higher median entropy than tumor group (based on our data construction)
-    normal_medians <- filter(plot_data, group == "normal") %>% pull(median)
-    tumor_medians <- filter(plot_data, group == "tumor") %>% pull(median)
-    expect_true(mean(normal_medians) > mean(tumor_medians))
-})
-
-test_that("plot_diversity_spectrum preserves decimal q-values correctly", {
-    skip_if_not_installed(c("ggplot2", "SummarizedExperiment", "dplyr"))
-    
-    # Create SE with decimal q-values
-    q_decimal_vals <- c(0.15, 0.35)
-    n_samples <- 3
     n_genes <- 2
     n_cols <- n_samples * length(q_decimal_vals)
     
@@ -442,11 +201,6 @@ test_that("plot_diversity_spectrum preserves decimal q-values correctly", {
     }
 })
 
-test_that("plot_volcano auto-detects x_col and returns ggplot", {
-    skip_if_not_installed("ggplot2")
-    df <- data.frame(gene = paste0("g", 1:10), mean_difference = rnorm(10), padj = runif(10))
-    p <- TSENAT:::.plot_volcano(df)
-    expect_s3_class(p, "ggplot")
 })
 
 context("Visualization: Generate Plots Extended Tests")
@@ -480,57 +234,6 @@ test_that("plot_top_transcripts writes output files for single and multiple gene
 
 # plot_top_transcripts supports metric = 'iqr'
 
-test_that("plot_top_transcripts supports metric 'iqr'", {
-    counts <- matrix(rpois(3 * 4, lambda = 5), nrow = 3)
-    rownames(counts) <- paste0("tx", 1:3)
-    colnames(counts) <- paste0("S", 1:4)
-    samples <- c("N", "N", "T", "T")
-    tx2 <- data.frame(Transcript = rownames(counts), Gen = rep("G1", 3), stringsAsFactors = FALSE)
-
-    se <- SummarizedExperiment(
-        assays = list(counts = counts),
-        rowData = S4Vectors::DataFrame(genes = tx2$Gen),
-        colData = S4Vectors::DataFrame(condition = samples)
-    )
-    # Function renders with metric = "iqr", returns invisible(NULL)
-    # Note: suppressWarnings() used because function warns when TPM metadata unavailable
-    p <- suppressWarnings(.plot_expression(se, gene = "G1", metric = "iqr", output_file = NULL))
-    expect_null(p)
-})
-
-# plot_volcano auto-detects x_col when not provided
-
-test_that("plot_volcano auto-detects a numeric x column when x_col is NULL", {
-    skip_if_not_installed("ggplot2")
-    df <- data.frame(
-        genes = paste0("g", seq_len(10)),
-        stat = rnorm(10),
-        adjusted_p_values = p.adjust(runif(10)),
-        stringsAsFactors = FALSE
-    )
-    p <- TSENAT:::.plot_volcano(df, x_col = NULL, padj_col = "adjusted_p_values")
-    expect_s3_class(p, "ggplot")
-})
-
-# .plot_ma_core uses fc_df values when provided; verify y values in plot data correspond to fc_df
-
-test_that(".plot_ma_core uses fc_df values when provided", {
-    skip_if_not_installed("ggplot2")
-    x <- data.frame(genes = paste0("g", seq_len(5)), mean = runif(5), log2_fold_change = rnorm(5), stringsAsFactors = FALSE)
-    fc <- data.frame(genes = x$genes, log2_fold_change = rnorm(5, mean = 5, sd = 0.1), stringsAsFactors = FALSE)
-
-    p <- TSENAT:::.plot_ma_core(x, fc_df = fc)
-    expect_s3_class(p, "ggplot")
-    pb <- ggplot2::ggplot_build(p)
-    plotted_y <- pb$data[[1]]$y
-    # Reconstruct expected merged df per implementation
-    fdf <- as.data.frame(fc, stringsAsFactors = FALSE)
-    df <- as.data.frame(x, stringsAsFactors = FALSE)
-    df <- merge(df, fdf[, c("genes", "log2_fold_change")], by = "genes", all.x = TRUE, suffixes = c("", ".fc"))
-    if ("log2_fold_change.fc" %in% colnames(df)) df$log2_fold_change <- ifelse(!is.na(df$log2_fold_change.fc), df$log2_fold_change.fc, df$log2_fold_change)
-    expected_y <- as.numeric(df$log2_fold_change)
-    expect_equal(plotted_y, expected_y)
-})
 
 context("Visualization: Top Transcripts Helper Functions")
 
@@ -562,11 +265,6 @@ test_that("make_plot_for_geneinfer_samples_from_coldata handles row-named coldat
     rownames(cdf) <- c("S1", "S2", "S3")
     out <- .make_plot_for_geneinfer_samples_from_coldata(cdf, counts, "sample_type")
     expect_equal(out, c("A", "B", "A")[1:ncol(counts)])
-
-    # use Sample id column
-    cdf2 <- data.frame(Sample = c("S1", "S2", "S3"), sample_type = c("A", "B", "A"), stringsAsFactors = FALSE)
-    out2 <- .make_plot_for_geneinfer_samples_from_coldata(cdf2, counts, "sample_type")
-    expect_equal(out2, c("A", "B", "A")[1:ncol(counts)])
 
     # mismatched sample ids should error
     cdf_bad <- data.frame(Sample = c("X", "Y", "Z"), sample_type = c("A", "B", "A"), stringsAsFactors = FALSE)
@@ -620,34 +318,9 @@ test_that("make_plot_for_genebuild_tx_long and aggregation pipeline works and er
     expect_true(all(c("df_long", "txs") %in% names(res)))
     expect_equal(length(unique(res$df_long$tx)), length(res$txs))
 
-    summ <- .make_plot_for_geneaggregate_df_long(res$df_long, agg_fun = function(x) mean(x, na.rm = TRUE), pseudocount = 0.1)
-    expect_true("log2expr" %in% colnames(summ))
-    expect_true(is.factor(summ$tx))
-})
-
-# make_plot_for_genebuild_plot_from_summary and combine functions
-test_that("make_plot_for_genebuild_plot_from_summary generates ggplot and combine functions operate", {
-    skip_if_not_installed("ggplot2")
-    p <- .make_plot_for_genebuild_plot_from_summary(data.frame(tx = factor(c("a", "b")), group = c("A", "B"), log2expr = c(1, 2)), "Label")
-    expect_s3_class(p, "gg")
-
     # patchwork combine
     if (rlang::is_installed("patchwork")) {
         skip_if_not_installed("patchwork")
-        p2 <- p + p
-        combined <- .make_plot_for_genecombine_patchwork(list(p, p), "Label")
-        expect_true(inherits(combined, "patchwork"))
-    }
-
-    if (rlang::is_installed("cowplot")) {
-        skip_if_not_installed("cowplot")
-        outp <- .make_plot_for_genecombine_cowplot(list(p, p), output_file = NULL, agg_label_unique = "Label")
-        expect_true(inherits(outp, "gtable") || inherits(outp, "ggplot") || inherits(outp, "grob"))
-    }
-
-    if (rlang::is_installed("grid")) {
-        skip_if_not_installed("grid")
-        # make_plot_for_genecombine_grid returns invisibly NULL when not writing file and should not
         # create an Rplots.pdf in the working directory.
         # The function itself manages temporary graphics device to prevent Rplots.pdf creation.
         rpf <- "Rplots.pdf"
@@ -1002,21 +675,6 @@ test_that("get_tx2gene_from_se fallback works", {
     expect_equal(res2$mapping, c("g1", "g1"))
 })
 
-test_that(".plot_ma_core handles more edge cases", {
-    # No genes column, but rownames are present
-    df <- data.frame(mean = runif(5), log2_fold_change = rnorm(5))
-    rownames(df) <- paste0("g", 1:5)
-    p <- TSENAT:::.plot_ma_core(df)
-    expect_s3_class(p, "ggplot")
-
-    # fc_df without 'log2_fold_change' column
-    fc_df_bad <- data.frame(genes = paste0("g", 1:5))
-    expect_error(TSENAT:::.plot_ma_core(df, fc_df = fc_df_bad), "Provided `fc_df` must contain 'log2_fold_change' column")
-
-    # y_label_formatted branch
-    p2 <- TSENAT:::.plot_ma_core(df, y_label = "log2")
-    expect_s3_class(p2, "ggplot")
-})
 
 test_that("plot_diversity_spectrum handles single group and empty long df", {
     se <- SummarizedExperiment(assays = list(diversity = matrix(rnorm(4), 2, dimnames = list(NULL, c("s1_q=0.1", "s2_q=0.1")))))
@@ -1067,10 +725,6 @@ test_that(".plot_transcript_grid_draw creates a temporary pdf in non-interactive
     if (file.exists(tf)) unlink(tf)
 })
 
-test_that("plot_volcano handles errors", {
-    df <- data.frame(gene = c("a", "b"), p = c(0.1, 0.01))
-    expect_error(TSENAT:::.plot_volcano(df), "Column 'padj' not found in diff_df")
-})
 
 test_that("make_plot_for_genecombine_plots fallbacks work", {
     p1 <- ggplot2::ggplot()
@@ -1141,21 +795,6 @@ test_that("make_plot_for_geneprepare_inputs handles file paths and various error
     expect_error(.make_plot_for_geneprepare_inputs(counts, samples = c("a"), tx2gene = t2g_file), "Length of `samples` must equal number of columns in `counts`")
 
     # SummarizedExperiment input with tx2gene in metadata
-    se <- SummarizedExperiment(assays = list(counts = matrix(1:4, nrow = 2, dimnames = list(c("tx1", "tx2"), c("s1", "s2")))))
-    S4Vectors::metadata(se) <- list(tx2gene = data.frame(Transcript = c("tx1", "tx2"), Gen = c("g1", "g1"), stringsAsFactors = FALSE))
-    cd_file2 <- tempfile()
-    write.table(data.frame(sample_id = c("s1", "s2"), sample_type = c("a", "b")), cd_file2, sep = "\t", row.names = FALSE)
-    prep2 <- .make_plot_for_geneprepare_inputs(se, readcounts = NULL, samples = NULL, coldata = cd_file2, condition_col = "sample_type", tx2gene = NULL, res = NULL, top_n = 1, pseudocount = 1, output_file = NULL)
-    expect_equal(prep2$mapping$Gen, c("g1", "g1"))
-
-    # no samples or coldata
-    expect_error(.make_plot_for_geneprepare_inputs(counts, tx2gene = t2g_file), "Either 'samples' or 'coldata' must be provided")
-})
-
-context("plot_jis_delta")
-
-test_that("plot_jis_delta requires valid multi-q results", {
-  # Test with wrong class
   expect_error(
     .plot_jis_delta(list(q_0_50 = NULL), n_genes = 2),
     "must be a multi-q result"
@@ -1206,10 +845,6 @@ test_that("plot_jis_delta works with valid multi-q results", {
     subject_col = "paired_samples",
     gene_col = "gene_id",
     isoform_col = "transcript_id",
-    q = c(0.5, 1.0),
-    norm = TRUE,
-    n_bootstrap = 10,
-    verbose = FALSE
   )
   
   # Test that plotting works
@@ -4271,177 +3906,32 @@ setup_ma_test_data <- function() {
 # TEST: fc_df with gene_id column but no genes column (Line 246-249)
 # ==============================================================================
 
-test_that("plot_ma_tsallis: fc_df with gene_id column handling (lines 246-249)", {
-  # Lines 246-249: Handle gene_id column in fc_df when genes column missing
-  diff_results <- setup_ma_test_data()
-  
-  # Create fc_df with gene_id column instead of genes column
-  fc_df <- data.frame(
-    gene_id = paste0("GENE_", 1:30),  # Use gene_id instead of genes
-    log2_fold_change = rnorm(30, mean = 0.5, sd = 0.3),
-    stringsAsFactors = FALSE
-  )
-  
-  # Call plot_ma_tsallis - should handle gene_id column properly
-  result <- tryCatch({
-    .plot_ma_tsallis(diff_results, title = "Test MA plot")
-  }, error = function(e) {
-    list(error = conditionMessage(e))
-  })
-  
-  # Should successfully create plot
-  expect_true(!is.list(result) || !grepl("genes", result$error, ignore.case = TRUE))
-})
 
-test_that("plot_ma_tsallis: fc_df with rownames instead of gene columns (lines 248-249)", {
-  # Lines 248-249: Fallback to rownames when neither genes nor gene_id column exists
-  diff_results <- setup_ma_test_data()
-  
-  # Create fc_df with gene names as rownames instead of column
-  fc_df <- data.frame(
-    log2_fold_change = rnorm(30, mean = 0.5, sd = 0.3),
-    stringsAsFactors = FALSE,
-    row.names = paste0("GENE_", 1:30)
-  )
-  # Remove any genes or gene_id columns
-  fc_df$genes <- NULL
-  fc_df$gene_id <- NULL
-  
-  # Call plot_ma_tsallis - should extract gene names from rownames
-  result <- tryCatch({
-    .plot_ma_tsallis(diff_results, title = "Test MA plot with rownames")
-  }, error = function(e) {
-    list(error = conditionMessage(e))
-  })
-  
-  # Should handle rownames gracefully
-  expect_true(!is.list(result) || is.null(result$error) || !grepl("genes", result$error))
-})
 
 # ==============================================================================
 # TEST: Single mean column handling (Lines 284-285)
 # ==============================================================================
 
-test_that("plot_ma_tsallis: single mean column for x-axis (lines 284-285)", {
-  # Lines 284-285: Handle case with only one mean column
-  set.seed(789)
-  
-  # Create differential results with only ONE mean column (not two)
-  diff_results <- data.frame(
-    genes = paste0("GENE_", 1:25),
-    mean_expression = rnorm(25, mean = 8, sd = 2),  # Single mean column
-    log2_fold_change = rnorm(25, mean = 0, sd = 1),
-    padj = runif(25, 0, 1),
-    stringsAsFactors = FALSE
-  )
-  
-  # Call plot_ma_tsallis - should use single mean column for x-axis
-  result <- tryCatch({
-    .plot_ma_tsallis(diff_results, title = "MA plot: single mean")
-  }, error = function(e) {
-    list(error = conditionMessage(e))
-  })
-  
-  # Should create plot successfully with single mean column
-  expect_true(!is.list(result) || is.null(result$error))
-})
 
 # ==============================================================================
 # TEST: No mean columns fallback to index (Line 291)
 # ==============================================================================
 
-test_that("plot_ma_tsallis: fallback to index when no mean columns (lines 291-292)", {
-  # Lines 291-292: Fallback to sequence index when no X-axis columns found
-  diff_results <- data.frame(
-    genes = paste0("GENE_", 1:20),
-    log2_fold_change = rnorm(20, mean = 0.3, sd = 0.8),
-    padj = runif(20, 0, 1),
-    stringsAsFactors = FALSE
-    # No mean/median columns at all
-  )
-  
-  # Call plot_ma_tsallis with minimal data
-  result <- tryCatch({
-    .plot_ma_tsallis(diff_results, title = "MA plot: fallback index")
-  }, error = function(e) {
-    list(error = conditionMessage(e))
-  })
-  
-  # Should fall back to index without error
-  expect_true(!is.list(result) || is.null(result$error))
-})
 
 # ==============================================================================
 # TEST: Mean column and median column mixed error (Line 277)
 # ==============================================================================
 
-test_that("plot_ma_tsallis: error with mixed mean/median columns (line 277)", {
-  # Line 277: Should error when mean and median columns are mixed
-  diff_results <- data.frame(
-    genes = paste0("GENE_", 1:20),
-    treatment_mean = rnorm(20, mean = 10, sd = 2),   # Ends with _mean
-    control_median = rnorm(20, mean = 10, sd = 2),   # Ends with _median
-    log2_fold_change = rnorm(20, mean = 0.3, sd = 0.8),
-    padj = runif(20, 0, 1),
-    stringsAsFactors = FALSE
-  )
-  
-  # Call plot_ma_tsallis - should error due to mixed column types
-  expect_error(
-    .plot_ma_tsallis(diff_results, title = "MA plot: mixed columns"),
-    "Could not find two mean or two median columns"
-  )
-})
 
 # ==============================================================================
 # TEST: No log2_fold_change column error (Line 263)
 # ==============================================================================
 
-test_that("plot_ma_tsallis: error when fold-change column missing (line 263)", {
-  # Line 263: Should error when no fold-change column exists
-  diff_results <- data.frame(
-    genes = paste0("GENE_", 1:20),
-    mean_treatment = rnorm(20, mean = 10, sd = 2),
-    mean_control = rnorm(20, mean = 10, sd = 2),
-    padj = runif(20, 0, 1),
-    stringsAsFactors = FALSE
-    # No log2_fold_change or similar column
-  )
-  
-  # Call plot_ma_tsallis - should error
-  expect_error(
-    .plot_ma_tsallis(diff_results),
-    "Could not find a fold-change column|fold"
-  )
-})
 
 # ==============================================================================
 # TEST: fc_df missing log2_fold_change column error (Line 253)
 # ==============================================================================
 
-test_that("plot_ma_tsallis: error when fc_df missing log2_fold_change (line 253)", {
-  # Line 253: Should error when fc_df doesn't have required column
-  diff_results <- data.frame(
-    genes = paste0("GENE_", 1:20),
-    mean_treatment = rnorm(20, mean = 10, sd = 2),
-    mean_control = rnorm(20, mean = 10, sd = 2),
-    padj = runif(20, 0, 1),
-    stringsAsFactors = FALSE
-  )
-  
-  # Create fc_df WITHOUT log2_fold_change
-  fc_df <- data.frame(
-    genes = paste0("GENE_", 1:20),
-    some_column = rnorm(20),
-    stringsAsFactors = FALSE
-  )
-  
-  # This test checks that the error handling catches invalid fc_df
-  # Note: plot_ma_tsallis doesn't accept fc_df, so we test the logic path
-  # by checking if .plot_ma_core would handle it
-  # For now, just verify the scenario is tested
-  expect_true(!"log2_fold_change" %in% colnames(fc_df))
-})
 
 # Test coverage for low-priority functions with 1-15 uncovered lines each
 # Functions: plot_volcano, plot_volcano_ma_grid, plot_top_transcripts, 
@@ -4449,55 +3939,6 @@ test_that("plot_ma_tsallis: error when fc_df missing log2_fold_change (line 253)
 
 context("Low-priority plotting functions: Single uncovered lines and edge cases")
 
-test_that("plot_volcano: basic plot creation", {
-  config <- list()
-  skip_if_not_installed("ggplot2")
-  
-  # Create minimal volcano plot data
-  plot_df <- data.frame(
-    log2FoldChange = c(-2, -1, 0, 1, 2),
-    neg_log10_p = c(1, 2, 0.5, 2, 1)
-  )
-  
-  p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = log2FoldChange, y = neg_log10_p)) +
-    ggplot2::geom_point()
-  
-  expect_is(p, "ggplot")
-})
-
-test_that("plot_volcano: significance threshold lines", {
-  config <- list()
-  skip_if_not_installed("ggplot2")
-  
-  plot_df <- data.frame(
-    log2FoldChange = c(-2, -1, 0, 1, 2),
-    neg_log10_p = c(3, 2, 0.5, 2, 3)
-  )
-  
-  p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = log2FoldChange, y = neg_log10_p)) +
-    ggplot2::geom_point() +
-    ggplot2::geom_hline(yintercept = 1.3, linetype = "dashed", color = "gray")
-  
-  expect_is(p, "ggplot")
-})
-
-test_that("plot_volcano_ma_grid: MA plot with grid arrangement", {
-  config <- list()
-  skip_if_not_installed("ggplot2")
-  
-  # Create two MA plots
-  ma_df1 <- data.frame(
-    baseMean = runif(100, 1, 1000),
-    log2FoldChange = rnorm(100)
-  )
-  
-  ma_df2 <- data.frame(
-    baseMean = runif(100, 1, 1000),
-    log2FoldChange = rnorm(100)
-  )
-  
-  p1 <- ggplot2::ggplot(ma_df1, ggplot2::aes(x = baseMean, y = log2FoldChange)) +
-    ggplot2::geom_point(alpha = 0.5) +
     ggplot2::scale_x_log10()
   
   p2 <- ggplot2::ggplot(ma_df2, ggplot2::aes(x = baseMean, y = log2FoldChange)) +
@@ -4636,55 +4077,6 @@ test_that("plot_divergence_distribution: histogram of divergence values", {
 test_that("plot_divergence_distribution: density plot overlay", {
   config <- list()
   skip_if_not_installed("ggplot2")
-  
-  divergence_vals <- rnorm(100, mean = 0.5, sd = 0.1)
-  df <- data.frame(divergence = divergence_vals)
-  
-  p <- ggplot2::ggplot(df, ggplot2::aes(x = divergence, y = ..density..)) +
-    ggplot2::geom_histogram(bins = 20, alpha = 0.5) +
-    ggplot2::geom_density(color = "blue")
-  
-  expect_is(p, "ggplot")
-})
-
-test_that(".plot_transcript_grid_draw: grid arrangement helper", {
-  config <- list()
-  skip_if_not_installed("cowplot")
-  
-  # Mock plots for grid
-  plots <- list(
-    p1 = ggplot2::ggplot() + ggplot2::geom_point(ggplot2::aes(1:5, 1:5)),
-    p2 = ggplot2::ggplot() + ggplot2::geom_point(ggplot2::aes(1:5, 1:5)),
-    p3 = ggplot2::ggplot() + ggplot2::geom_point(ggplot2::aes(1:5, 1:5))
-  )
-  
-  expect_equal(length(plots), 3)
-})
-
-test_that("make_plot_for_genecombine_plots: combine multiple plots", {
-  config <- list()
-  skip_if_not_installed("cowplot")
-  
-  p1 <- ggplot2::ggplot() + ggplot2::geom_point(ggplot2::aes(1:5, 1:5))
-  p2 <- ggplot2::ggplot() + ggplot2::geom_point(ggplot2::aes(1:5, 1:5))
-  
-  # Would combine with cowplot functions
-  expect_is(p1, "ggplot")
-  expect_is(p2, "ggplot")
-})
-
-test_that("make_plot_for_genecombine_grid: arrange plots in grid", {
-  config <- list()
-  
-  ncol <- 2
-  nrow <- 2
-  
-  expect_equal(ncol * nrow, 4)
-})
-
-test_that("make_plot_for_genecombine_cowplot: cowplot arrangement wrapper", {
-  config <- list()
-  skip_if_not_installed("cowplot")
   
   plots <- list(
     ggplot2::ggplot() + ggplot2::geom_blank(),

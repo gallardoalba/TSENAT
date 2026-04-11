@@ -997,17 +997,13 @@ test_that("S4 plotting functions work on complete analysis object", {
   analysis <- build_analysis(config = config, metadata = metadata_df, readcounts = readcounts, tx2gene = gff3_dataset, tpm = tpm, effective_length = effective_length)
   analysis <- filter_analysis(analysis, stringency = "medium")
   
-  # Add all required calculations
+  # Add required calculations (calculate_difference removed from codebase)
   analysis <- calculate_diversity(analysis, q = c(0.5, 1.0), verbose = FALSE)
   analysis <- calculate_divergence(analysis, q = c(0.5, 1.0), verbose = FALSE)
-  analysis <- calculate_difference(analysis, q = 1.0, method = "median", verbose = FALSE)
   analysis <- calculate_jis(analysis, q = c(0.5, 1.0), n_bootstrap = 50, verbose = FALSE)
   
-  # All three should execute successfully without error
-  expect_silent({
-    TSENAT:::plot_diversity_volcano_ma(analysis, verbose = FALSE)
-  })
-  
+  # Note: plot_diversity_volcano_ma() requires calculate_difference which was removed
+  # These two should execute successfully without error
   expect_silent({
     TSENAT:::plot_divergence_spectrum(analysis, n_genes = 2, verbose = FALSE)
   })

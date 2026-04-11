@@ -319,8 +319,7 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
 #' @param q \code{numeric}. Q-value(s) for Tsallis entropy (single value or vector). 
 #'   Default: 1.0 (Shannon entropy).
 #'   Usage: \code{calculate_diversity/divergence} use this for spectrum computation 
-#'   (if vector) or as default fallback (if single);
-#'   \code{calculate_difference} requires single value for statistical tests.
+#'   (if vector) or as default fallback (if single).
 #' @param condition_col \code{character}. Column name in colData containing conditions. Default: 'condition'.
 #' @param subject_col \code{character}. Column name in colData containing subject IDs (for paired designs). Default: NULL.
 #' @param sample_col \code{character}. Column name in colData containing sample IDs. Default: 'sample'.

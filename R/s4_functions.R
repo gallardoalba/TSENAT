@@ -3,13 +3,6 @@
 # from TSENATAnalysis slots, run analysis, and store results back to
 # appropriate slots.
 
-
-
-
-
-
-
-
 # ============================================================================
 # CALCULATE DIFFERENCE WRAPPER
 # ============================================================================
@@ -127,187 +120,6 @@
 #'   paired = FALSE
 #' )
 #' 
-#' # Build analysis from vignette data - metadata as explicit parameter
-#' analysis <- build_analysis(
-#'   readcounts = readcounts,
-#'   metadata = metadata_df,
-#'   tx2gene = gff3_dataset,
-#'   config = config,
-#'   tpm = tpm,
-#'   effective_length = effective_length
-#' )
-#' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = 200)
-#' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
-#' result <- calculate_difference(analysis, q = 1.0, control = 'normal')
-#'
-#' @export
-# ============================================================================
-# CALCULATE DIFFERENCE WRAPPER
-# ============================================================================
-# Purpose: Wrapper around .calculate_difference() that tests for significant
-# q-dependent differences between control and treatment conditions. Detects
-# genes with condition-specific isoform remodeling patterns.  Key Features: -
-# Multiple test methods: Wilcoxon (unpaired), paired t-test, permutation tests
-# - Multi-q support: Test across full q-spectrum simultaneously - Flexible
-# control group: Compare any/all conditions pairwise - Multiple testing
-# correction: Hochberg, Benjamini-Hochberg, or permutation-based - Bootstrap
-# confidence intervals: Quantify uncertainty in effect sizes - Paired designs:
-# Supports repeated measures/longitudinal data BASE FUNCTION ARGUMENTS EXPOSED
-# IN S4 WRAPPER: All arguments from .calculate_difference() are exposed: -
-# control: Group identifier for control samples - condition_col: Column name
-# for sample grouping - method: Difference calculation method ('mean',
-# 'median', 'm_estimate') - test: Statistical test ('wilcoxon', 'shuffle',
-# 't-test') - randomizations: Number of permutations (for shuffle/bootstrap) -
-# pcorr: P-value correction ('BH', 'bonferroni', 'hochberg', 'none') - assayno:
-# Assay index in SummarizedExperiment (default: 1) - verbose: Print progress
-# messages (logical) - paired: Paired/repeated measures design (logical) -
-# pairs: Pairing structure (character/numeric vector or NULL) - exact: Exact
-# p-value computation for tests (logical) - pseudocount: Small constant for
-# zero-offset handling (numeric) - nthreads: CPU threads for parallel
-# processing (numeric) - seed: Random seed for reproducibility (numeric or
-# NULL) - robust_loss_type: Robust regression loss ('huber', 'lad', etc.)  -
-# robust_scale_method: Scale estimation ('mad', 'qn', etc.)  S4-SPECIFIC
-# ARGUMENTS: - analysis: TSENATAnalysis object with @diversity_results - q:
-# Q-value for diversity analysis (if NULL, uses first available) - output_file:
-# File path to save results (TSV, CSV, RDS formats) Mathematical Background:
-# Tests null hypothesis: H0: Entropy distribution is IDENTICAL between control
-# and treatment vs Alternative: H1: Entropy distribution differs (control !=
-# treatment at some q-value) Test statistic: Depends on method chosen (Wilcoxon
-# U, t-statistic, etc.)  Appropriate for non-normal data (rank-based tests
-# preferred for entropy).  Example: Normal samples: H_q ~0.3 (single dominant
-# isoform per gene) Tumor samples: H_q ~0.7 (multiple isoforms expressed
-# equally) Result: Significant divergence indicates isoform switching in
-# disease.
-# ============================================================================
-calculate_difference <- function(analysis, control = NULL, q = NULL, condition_col = NULL,
-    method = NULL, test = NULL, randomizations = NULL, pcorr = NULL, assayno = NULL,
-    verbose = NULL, paired = FALSE, exact = FALSE, pseudocount = NULL, nthreads = NULL,
-    robust_loss_type = NULL, robust_scale_method = NULL, pairs = NULL, output_file = NULL,
-    ...) {
-    if (!is(analysis, "TSENATAnalysis")) {
-        stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
-    }
-
-    # Check prerequisites: diversity results must exist
-    if (length(analysis@diversity_results) == 0) {
-        stop("Diversity results required. Run calculate_diversity() first.", call. = FALSE)
-    }
-
-    # Priority 1: Use explicit parameter Priority 2: Use @config$control
-    if (is.null(control)) {
-        if ("control" %in% names(analysis@config)) {
-            control <- analysis@config$control
-        } else {
-            stop("'control' must be specified (control group identifier) or set in config",
-                call. = FALSE)
-        }
-    }
-
-    # Determine q-value for difference calculation
-    # Does NOT read from config - only explicit argument or auto-detect from diversity
-    q_source <- "explicit"
-    
-    if (is.null(q)) {
-        # Check how many q-values are in diversity results
-        available_q_keys <- names(analysis@diversity_results)
-        if (length(available_q_keys) == 1) {
-            # Only one q-value available - use it automatically
-            q_key_extracted <- available_q_keys[1]
-            q <- as.numeric(sub("q_", "", q_key_extracted))
-            q_source <- "auto-detected"
-        } else if (length(available_q_keys) > 1) {
-            # Multiple q-values available - q must be explicitly specified
-            stop("'q' must be explicitly specified. Multiple q-values available: ",
-                paste(gsub("q_", "", available_q_keys), collapse=", "), call. = FALSE)
-        } else {
-            # No diversity results
-            stop("No diversity results found. Run calculate_diversity() first.", call. = FALSE)
-        }
-    }
-    
-    # Show message about q-value being used
-    verbose_check <- resolve_slot_param(NULL, analysis@config, "verbose", TRUE)
-    if (q_source != "explicit" && verbose_check) {
-        message("[calculate_difference] Using q = ", formatC(q, format="f", digits=3), 
-                " (", q_source, ")")
-    }
-    
-    # Determine which diversity result to use
-    q_key <- paste0("q_", formatC(q, format = "f", digits = 3))
-    if (!(q_key %in% names(analysis@diversity_results))) {
-        stop("Diversity not calculated for q=", q, ". Available: ", paste(names(analysis@diversity_results),
-            collapse = ", "), call. = FALSE)
-    }
-    diversity_se <- analysis@diversity_results[[q_key]]
-    q_used <- q
-
-    # Determine condition column to use
-    condition_col <- resolve_slot_param(condition_col, analysis@config, "condition_col",
-        NULL)
-
-    # Resolve remaining parameters using centralized handler
-    method <- resolve_slot_param(method, analysis@config, "method", "mean")
-    test <- resolve_slot_param(test, analysis@config, "test", "wilcoxon")
-    randomizations <- resolve_slot_param(randomizations, analysis@config, "randomizations",
-        100)
-    pcorr <- resolve_slot_param(pcorr, analysis@config, "pcorr", "BH")
-    assayno <- resolve_slot_param(assayno, analysis@config, "assayno", 1)
-    verbose <- resolve_slot_param(verbose, analysis@config, "verbose", TRUE)
-    pseudocount <- resolve_slot_param(pseudocount, analysis@config, "pseudocount",
-        0)
-    nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
-    robust_loss_type <- resolve_slot_param(robust_loss_type, analysis@config, "robust_loss_type",
-        "huber")
-    robust_scale_method <- resolve_slot_param(robust_scale_method, analysis@config,
-        "robust_scale_method", "mad")
-
-    # Parameters with logical defaults (check config if FALSE)
-    if (!paired && "paired" %in% names(analysis@config)) {
-        paired <- analysis@config$paired
-    }
-    if (!exact && "exact" %in% names(analysis@config)) {
-        exact <- analysis@config$exact
-    }
-
-    # Optional parameters (may be NULL)
-    pairs <- resolve_slot_param(pairs, analysis@config, "pairs", NULL)
-
-    # Run difference calculation on diversity results Note: diversity_se and
-    # its colData are already prepared by calculate_diversity
-    result <- tryCatch({
-        .calculate_difference(x = diversity_se, condition_col = condition_col, control = control,
-            method = method, test = test, randomizations = randomizations, pcorr = pcorr,
-            assayno = assayno, verbose = verbose, paired = paired, exact = exact,
-            pseudocount = pseudocount, nthreads = nthreads, robust_loss_type = robust_loss_type,
-            robust_scale_method = robust_scale_method, pairs = pairs, ...)
-    }, error = function(e) {
-        stop("Difference calculation failed:\n", e$message, call. = FALSE)
-    })
-
-    # Store in pairwise_results under 'difference' key
-    if (is.list(analysis@pairwise_results)) {
-        analysis@pairwise_results$difference <- result
-    } else {
-        analysis@pairwise_results <- list(difference = result)
-    }
-
-    # Track metadata
-    analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("calculate_difference[q=",
-        q_used, ", control=", control, "]"))
-
-    # Save if output_file provided (using centralized output handler)
-    if (!is.null(output_file)) {
-        diff_data <- if (!is.null(analysis@pairwise_results$difference$results)) {
-            analysis@pairwise_results$difference$results
-        } else {
-            as.data.frame(analysis@pairwise_results$difference)
-        }
-        save_analysis_output(diff_data, output_file, object = analysis, verbose = verbose,
-            func_name = "calculate_difference")
-    }
-
-    analysis
-}
 
 # ============================================================================
 # TEST RANKBASED ASSUMPTIONS WRAPPER
@@ -496,197 +308,14 @@ setMethod("calculate_rank_assumptions", signature(analysis = "TSENATAnalysis"),
     as.numeric(sub("^q_", "", key))
 }
 
-#' Plot Volcano and MA Grid from Differential Analysis Results (S4 Wrapper)
+#' Compare method concordance for differential analysis results
 #'
-#' S4 wrapper that extracts differential analysis results from a TSENATAnalysis
-#' object and creates side-by-side volcano and MA plots for comparing control
-#' and treatment groups.
+#' Compares statistical results from two different methods (typically LM/GAM for
+#' continuous data and Scheirer-Ray-Hare rank tests) to assess agreement and identify
+#' genes detected by one method but not the other.
 #'
-#' @param analysis \code{TSENATAnalysis} object with calculated differences
-#'   (typically via \code{\link{calculate_difference}}).
-#' @param x_col \code{character}. Column name for x-axis in MA plot.
-#'   Default: NULL (uses mean_difference if available, else mean fold-change).
-#' @param padj_col \code{character}. Column name for adjusted p-values.
-#'   Default: 'padj' (the standard column name from calculate_difference).
-#' @param label_thresh \code{numeric}. P-value threshold for labeling top genes.
-#'   Genes with adjusted p-value below this threshold are labeled.
-#'   Default: 0.1.
-#' @param sig_alpha \code{numeric}.  Significance threshold for 
-#' coloring significant
-#'   differences. Points with adjusted p-value below sig_alpha are highlighted.
-#'   Default: 0.05.
-#' @param top_n \code{integer}. Number of top genes (by significance) to label
-#'   in volcano plot. Default: 5.
-#' @param title_volcano \code{character}. Title for volcano plot.
-#'   Default: NULL (no title).
-#' @param title_ma \code{character}. Title for MA plot.
-#'   Default: 'Tsallis-based MA plot'.
-#' @param verbose \code{logical}. Print status messages. Default: FALSE.
-#' @param output_file \code{character} or  \code{NULL}.
-#'  Optional file path to save the plot.
-#'   Default: NULL (no file output).
-#' @param width \code{numeric}.  Width of the output plot in inches (default:
-#'  12).
-#'   Only used if output_file is provided.
-#' @param height \code{numeric}.
-#'  Height of the output plot in inches (default:  7. 2).
-#'   Only used if output_file is provided.
-#' @param ... Additional arguments passed to the base plotting function.
-#'
-#' @return
-#' Invisibly returns a cowplot grid object containing both volcano and MA plots
-#' combined side-by-side. If the plot cannot be created, returns NULL invisibly.
-#'
-#' @details
-#' This wrapper extracts the difference results data frame from
-#' \code{analysis@pairwise_results$difference} and passes it to the base
-#' \code{.plot_diversity_volcano_ma()} function.
-#'
-#' **Required Data:**
-#' \itemize{
-#'   \item Differential analysis must be computed via \code{calculate_difference()}
-#'   \item Results are stored in \code{analysis@pairwise_results$difference}
-#' }
-#'
-#' **Expected Columns in Difference Results:**
-#' \itemize{
-#'   \item \code{genes} or \code{gene_id}: Gene identifiers
-#'   \item \code{Normal_mean},  \code{Tumor_mean}:  Group means (or 
-#' equivalent controls/treatments)
-#'   \item \code{mean_difference}: Calculated difference between groups
-#'   \item \code{log2_fold_change}: Log2 fold-change values
-#'   \item \code{raw_p_values} or \code{pvalue}: Un-adjusted p-values
-#'   \item \code{adjusted_p_values} or  \code{padj}:
-#'  Adjusted p-values (default column used)
-#' }
-#'
-#' **Volcano Plot Features:**
-#' \itemize{
-#'   \item X-axis: log2 fold-change or mean difference
-#'   \item Y-axis: -log10(adjusted p-value)
-#'   \item Top significant genes labeled
-#'   \item Points colored by significance threshold
-#' }
-#'
-#' **MA Plot Features:**
-#' \itemize{
-#'   \item X-axis: Average expression level (A)
-#'   \item Y-axis: Log2 fold-change (M)
-#'   \item Loess curve showing trend
-#'   \item Significant changes highlighted
-#' }
-#'
-#' @examples
-#' # Load example data (matching TSENAT.Rmd workflow)
-#' data(readcounts)
-#' readcounts <- as.matrix(readcounts)
-#' mode(readcounts) <- 'numeric'
-#' metadata_df <- read.table(
-#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
-#'   header = TRUE, sep = '\t'
-#' )
-#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
-#' 'TSENAT')
-#'
-#' # Create config (metadata passed as explicit parameter to build_analysis)
-#' config <- TSENAT_config(
-#'   sample_col = 'sample',
-#'   condition_col = 'condition',
-#'   q_values = seq(0, 2, by = 0.05),
-#'   paired = FALSE
-#' )
-#' 
-#' # Build analysis from vignette data and create small subset
-#' analysis <- build_analysis(
-#'   readcounts = readcounts,
-#'   tx2gene = gff3_dataset,
-#'   metadata = metadata_df,
-#'   config = config,
-#'   tpm = tpm,
-#'   effective_length = effective_length
-#' )
-#' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = 200)
-#' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
-#' analysis <- calculate_difference(analysis, q = 1.0, control = 'normal')
-#'   
-#' # Plot volcano and MA plots
-#' p <- plot_diversity_volcano_ma(analysis, sig_alpha = 0.05, top_n = 3)
-#' print(p)
-#'
-#' @seealso
-#' \code{\link{calculate_difference}} for computing differential analysis.
-#'
-#' @export
-plot_diversity_volcano_ma <- function(analysis, x_col = NULL, padj_col = "padj", label_thresh = 0.1,
-    sig_alpha = 0.05, top_n = 5, title_volcano = NULL, title_ma = "Tsallis-based MA plot",
-    verbose = FALSE, output_file = NULL, width = 12, height = 7.2, ...) {
-
-    # Load visualization dependencies (ggplot2, cowplot, etc.)
-    .load_visualization_deps()
-
-    # Extract verbose parameter if not provided
-    verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
-
-    # Validate input
-    if (!is(analysis, "TSENATAnalysis")) {
-        stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
-    }
-
-    # Extract difference results from S4 object
-    if (is.null(analysis@pairwise_results) || !is.list(analysis@pairwise_results)) {
-        stop("No pairwise results found in analysis@pairwise_results. ", "Run calculate_difference() first.",
-            call. = FALSE)
-    }
-
-    if (!("difference" %in% names(analysis@pairwise_results))) {
-        stop("Difference results not found in analysis@pairwise_results$difference. ",
-            "Run calculate_difference() first.", call. = FALSE)
-    }
-
-    diff_df <- analysis@pairwise_results$difference
-
-    if (!is.data.frame(diff_df) || nrow(diff_df) == 0) {
-        stop("Difference results are empty or not a data frame", call. = FALSE)
-    }
-
-    # Auto-detect column names - padj_col with fallbacks, x_col for effect size
-    actual_padj_col <- auto_detect_column(colnames(diff_df), analysis@config, "padj_col",
-        c("padj", "adjusted_p_values", "pvalue"), verbose = verbose, param_name = "padj_col")
-
-    if (is.null(x_col)) {
-        x_col <- auto_detect_column(colnames(diff_df), analysis@config, "x_col",
-            c("mean_difference", "log2_fold_change", "effect_size"), verbose = verbose,
-            param_name = "x_col")
-    }
-
-    plot_obj <- tryCatch({
-        .plot_diversity_volcano_ma(diff_df = diff_df, x_col = x_col, padj_col = actual_padj_col,
-            label_thresh = label_thresh, sig_alpha = sig_alpha, top_n = top_n, title_volcano = title_volcano,
-            title_ma = title_ma, ...)
-    }, error = function(e) {
-        stop("[plot_diversity_volcano_ma]", conditionMessage(e), call. = FALSE)
-    })
-
-    if (verbose) {
-        message("[plot_diversity_volcano_ma] Plot created successfully")
-    }
-
-    # Save plot to file if requested
-    if (!is.null(output_file)) {
-        save_analysis_output(plot_obj, output_file, object = analysis, verbose = verbose,
-            func_name = "plot_diversity_volcano_ma", width = width, height = height)
-    }
-
-    return(invisible(plot_obj))
-}
-
-# ============================================================================
-# CONCORDANCE WRAPPER - Compute Method Concordance (GAM vs Scheirer-Ray-Hare)
-# ============================================================================
-
-#' Compute concordance between two analysis methods in TSENATAnalysis
-#'
-#' @param analysis_lm \code{TSENATAnalysis} object with LM/GAM results.
+#' @param analysis_lm \code{TSENATAnalysis} object containing LM/GAM analysis results
+#'   (from \code{calculate_lm()}).
 #' @param analysis_rank \code{TSENATAnalysis} object or NULL. If NULL, uses legacy 
 #'   single-object API with analysis_lm containing both results. If provided, 
 #'   compares LM results from analysis_lm with rank-test results from analysis_rank.
@@ -1260,8 +889,6 @@ setMethod("plot_concordance", "TSENATAnalysis", function(analysis, verbose = FAL
     return(NULL)
 }
 
-
-
 #' Plot Top Transcripts from TSENATAnalysis Object
 #'
 #' S4 wrapper for  \code{. plot_expression()} that 
@@ -1651,7 +1278,6 @@ plot_divergence_distribution <- function(analysis, threshold = 0.1, output_file 
     # figure rendering File is saved separately if output_file provided
     invisible(p)
 }
-
 
 #' Plot Multi-Q Delta Influence Heatmaps from TSENATAnalysis Object
 #'
@@ -2061,8 +1687,6 @@ plot_lm_gam <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL,
     # Return the plot object directly (not the analysis object)
     result
 }
-
-
 
 #' M-Estimation for Sample Quality (S4 Wrapper)
 #'

@@ -897,8 +897,7 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
 #'           Required when  \code{x} is NULL.
 #'  The function will extract counts and  gene names
 #'           from this object using the 'counts' assay.
-#' @param res Optional: A data.frame of results (e.g., from
-#' .calculate_difference()).
+#' @param res Optional: A data.frame of results from statistical testing.
 #'          When provided with  \code{se},
 #'  the function extracts the top gene from \code{res}
 #'          and performs bootstrap analysis on its transcript counts.
@@ -1077,8 +1076,8 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
 #' **Workflow:**
 #' ```
 #' se <- your_data  # SummarizedExperiment with raw counts
-#' res <- .calculate_difference(se, ...)  # Test for significance
-#' ci_result <- .calculate_tsallis_entropy_bootstrap(se = se, res = res, ...)
+#' # Perform statistical testing to get results
+#' ci_result <- .calculate_tsallis_entropy_bootstrap(se = se, res = results, ...)
 #' # The se parameter must have the 'counts' assay available
 #' ```
 #'

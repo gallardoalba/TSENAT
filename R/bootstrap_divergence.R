@@ -17,8 +17,7 @@
 #'           Required when  using automatic data extraction (when 
 #' \code{x} is NULL).
 #'           Uses the 'counts' assay.
-#' @param res Optional: A data.frame of results (e.g., from
-#' .calculate_difference()).
+#' @param res Optional: A data.frame of results from statistical testing.
 #'            When provided with  \code{se},  extracts the top gene(s) for 
 #' bootstrap
 #'            analysis. Gene names must be in rownames(res).

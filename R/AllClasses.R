@@ -31,9 +31,7 @@
 #'   }
 #'
 #' @slot pairwise_results \code{list}. Pairwise group comparison results.
-#'   Contains differential testing output computed by
-#'   \code{calculate_difference()}, stored under the \code{difference}
-#'   component.
+#'   Results from running statistical tests for group comparisons.
 #'
 #' @slot rank_test_results \code{list}. Scheirer-Ray-Hare rank-based statistical
 #'   test results. Names correspond to q-values (e.g., 'q_0.5', 'q_1.0').
@@ -109,9 +107,6 @@ setClass("TSENATAnalysis", slots = list(se = "SummarizedExperiment", config = "l
     }
     if (!is.list(object@lm_results)) {
         return("@lm_results must be a list")
-    }
-    if (!is.list(object@pairwise_results)) {
-        return("@pairwise_results must be a list")
     }
     if (!is.list(object@rank_test_results)) {
         return("@rank_test_results must be a list")

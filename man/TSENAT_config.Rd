@@ -37,8 +37,7 @@ TSENAT_config(
 \item{q}{\code{numeric}. Q-value(s) for Tsallis entropy (single value or vector). 
 Default: 1.0 (Shannon entropy).
 Usage: \code{calculate_diversity/divergence} use this for spectrum computation 
-(if vector) or as default fallback (if single);
-\code{calculate_difference} requires single value for statistical tests.}
+(if vector) or as default fallback (if single).}
 
 \item{condition_col}{\code{character}. Column name in colData containing conditions. Default: 'condition'.}
 

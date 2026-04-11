@@ -217,7 +217,7 @@
 #' ## Use Cases
 #'
 #' - **`.calculate_m_estimator()`**: Full diagnostic output (influence values, scale history)
-#' - **`.calculate_difference()`**: Efficient group summaries (returns weights for meta-analysis)
+#' - **M-estimation in group summaries**: Robust location estimates for differential analysis
 #'
 #' @param y numeric; vector of observations (may contain NA values)
 #' @param loss_type character; robust loss function:

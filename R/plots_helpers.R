@@ -1,187 +1,8 @@
 # ============================================================================
-# UTILITY FUNCTIONS
+# PLOT EXPRESSION HELPERS
 # ============================================================================
 
-#' Check and load required packages
-#'
-#' Verifies that required packages are installed and loaded.
-#' Stops with an informative error if any package is missing.
-#'
-#' @param pkgs Character vector of package names to check
-#'
-#' @return Invisibly returns TRUE if all packages are available
-#' @noRd
-
-require_pkgs <- function(pkgs) {
-    if (is.null(pkgs))
-        return(invisible(TRUE))
-
-    # If single string, convert to character vector
-    if (is.character(pkgs) && length(pkgs) == 1) {
-        pkgs <- c(pkgs)
-    }
-
-    for (pkg in pkgs) {
-        if (!requireNamespace(pkg, quietly = TRUE)) {
-            stop(sprintf("%s required for this function", pkg), call. = FALSE)
-        }
-    }
-
-    invisible(TRUE)
-}
-
-# ============================================================================
-# VOLCANO PLOT DATA PREPARATION
-# ============================================================================
-
-#' Prepare volcano plot data frame
-#'
-#' Formats and validates differential analysis data for volcano plot visualization.
-#' Auto-detects x-axis column if not specified, flags significant genes based on
-#' thresholds, and returns formatted labels.
-#'
-#' @param diff_df Data frame from differential analysis results
-#' @param x_col Column name for x-axis (e.g., 'mean_difference'). If NULL, auto-detected.
-#' @param padj_col Column name for adjusted p-values (default: 'adjusted_p_values')
-#' @param label_thresh Threshold for labeling significance (default: 0.1)
-#' @param sig_alpha Significance threshold for adjusted p-values (default: 0.05)
-#' @param title Optional title for plot
-#'
-#' @return List with elements:
-#'   - df: Processed data frame with xval, padj, significant columns
-#'   - x_col: Selected x-axis column name
-#'   - padj_col: Selected p-value column name
-#'   - x_label_formatted: Formatted x-axis label
-#'   - padj_label_formatted: Formatted p-value label
-#'   - title_use: Plot title
-#'
-#' @noRd
-
-.prepare_volcano_df <- function(diff_df, x_col = NULL, padj_col = "adjusted_p_values",
-    label_thresh = 0.1, sig_alpha = 0.05, title = NULL) {
-    df <- as.data.frame(diff_df)
-    cn <- colnames(df)
-
-    # Auto-detect x-axis column if not specified
-    if (is.null(x_col)) {
-        diff_cols <- grep("_difference$", cn, value = TRUE, ignore.case = TRUE)
-        if (length(diff_cols) > 0) {
-            x_col <- diff_cols[1]
-        } else {
-            numeric_cols <- vapply(df, is.numeric, logical(1))
-            p_cols <- grep("p_value|p.value", cn, ignore.case = TRUE)
-            numeric_cols[p_cols] <- FALSE
-            if (any(numeric_cols)) {
-                x_col <- cn[which(numeric_cols)[1]]
-            } else {
-                stop("Could not find suitable column for x-axis. Specify 'x_col' explicitly.")
-            }
-        }
-    }
-
-    # Verify columns
-    if (!(x_col %in% cn)) {
-        stop(sprintf("Column '%s' not found in diff_df", x_col))
-    }
-    if (!(padj_col %in% cn)) {
-        stop(sprintf("Column '%s' not found in diff_df", padj_col))
-    }
-
-    df$xval <- as.numeric(df[[x_col]])
-    df$padj <- as.numeric(df[[padj_col]])
-    df$padj[is.na(df$padj)] <- 1
-    df$padj[df$padj <= 0] <- .Machine$double.xmin
-
-    df$significant <- ifelse(abs(df$xval) >= label_thresh & df$padj < sig_alpha,
-        "significant", "non-significant")
-    df <- df[is.finite(df$xval) & is.finite(df$padj), ]
-
-    if (nrow(df) == 0) {
-        stop("No valid points to plot")
-    }
-
-    metric_label <- if (grepl("median", x_col, ignore.case = TRUE)) {
-        "Median"
-    } else if (grepl("mean", x_col, ignore.case = TRUE)) {
-        "Mean"
-    } else {
-        "Value"
-    }
-
-    title_use <- title %||% "Volcano plot: fold-change vs significance"
-
-    x_label_formatted <- .format_label(x_col)
-    padj_label_formatted <- .format_label(padj_col)
-
-    list(df = df, x_col = x_col, padj_col = padj_col, x_label_formatted = x_label_formatted,
-        padj_label_formatted = padj_label_formatted, title_use = title_use)
-}
-
-#' Prepare MA plot data frame
-#'
-#' Formats differential analysis data for MA (mean-average) plot visualization.
-#' Detects x-axis (log mean) and y-axis (log fold-change) values, flags significant
-#' genes based on p-value threshold, and returns formatted labels.
-#'
-#' @param df Data frame with differential analysis results
-#' @param fold_col Column name for fold-change values (y-axis)
-#' @param mean_cols Column name(s) for mean expression values (x-axis)
-#' @param x_label Optional x-axis label override
-#' @param y_label Optional y-axis label override
-#'
-#' @return List with elements:
-#'   - plot_df: Data frame with x, y, padj, significant columns
-#'   - x_label: X-axis label
-#'   - y_label: Y-axis label
-#'
-#' @noRd
-
-.prepare_ma_plot_df <- function(df, fold_col, mean_cols, x_label, y_label) {
-    # Detect x-axis values
-    if (length(mean_cols) >= 2) {
-        xvals <- rowMeans(df[, mean_cols[seq_len(2)], drop = FALSE], na.rm = TRUE)
-        x_label <- x_label %||% paste0(mean_cols[1], " vs ", mean_cols[2])
-    } else if (length(mean_cols) == 1) {
-        xvals <- as.numeric(df[[mean_cols[1]]])
-        x_label <- x_label %||% mean_cols[1]
-    } else if ("mean" %in% colnames(df)) {
-        xvals <- as.numeric(df$mean)
-        x_label <- x_label %||% "Mean"
-    } else {
-        xvals <- seq_len(nrow(df))
-        x_label <- x_label %||% "Index"
-    }
-
-    yvals <- as.numeric(df[[fold_col]])
-
-    padj_candidates <- c("adjusted_p_values", "adj_p_value", "adj_p", "padj", "p.adjust")
-    padj_col <- intersect(padj_candidates, colnames(df))
-    padj_col <- if (length(padj_col)) {
-        padj_col[1]
-    } else {
-        NULL
-    }
-
-    padj <- if (!is.null(padj_col)) {
-        as.numeric(df[[padj_col]])
-    } else {
-        rep(1, length(yvals))
-    }
-    padj[is.na(padj)] <- 1
-
-    sig_flag <- ifelse(abs(yvals) > 0 & padj < 0.05, "significant", "non-significant")
-
-    plot_df <- data.frame(genes = df$genes, x = xvals, y = yvals, padj = padj, significant = sig_flag,
-        stringsAsFactors = FALSE)
-
-    list(plot_df = plot_df, x_label = x_label, y_label = y_label)
-}
-
-# ============================================================================
-# PLOT TOP TRANSCRIPTS HELPERS
-# ============================================================================
-
-#' Prepare inputs for top transcripts plot
+#' Prepare inputs for expression plot
 #'
 #' Validates and normalizes counts, samples, and tx2gene mapping for transcripts plot.
 #'
@@ -199,7 +20,6 @@ require_pkgs <- function(pkgs) {
 #'
 #' @return List with normalized counts, samples, mapping, aggregation function
 #' @noRd
-
 .make_plot_for_geneprepare_inputs <- function(counts, readcounts = NULL, samples = NULL,
     coldata = NULL, condition_col = "condition", tx2gene = NULL, res = NULL, top_n = NULL,
     pseudocount = 0, output_file = NULL, metric = c("median", "mean", "variance",
@@ -317,7 +137,6 @@ require_pkgs <- function(pkgs) {
 #'
 #' @return ggplot2 object
 #' @noRd
-
 .make_plot_for_genemake_plot_for_gene <- function(gene_single, mapping, counts, samples,
     top_n, agg_fun, pseudocount, agg_label_unique, fill_limits = NULL, font_scale = 1) {
     built <- .make_plot_for_genebuild_tx_long(gene_single, mapping, counts, samples,
@@ -875,9 +694,7 @@ require_pkgs <- function(pkgs) {
 #'
 #' @return Character vector of top gene IDs, sorted by p-value (smallest first).
 #'
-
 #' @noRd
-
 .select_top_genes <- function(results, p_col = NULL, gene_col = NULL, n_genes = 4) {
 
 
@@ -3130,47 +2947,7 @@ require_pkgs <- function(pkgs) {
     do.call(ggplot2::theme, theme_list)
 }
 
-# ============================================================================
-# PHASE 3 HELPERS: ADVANCED PATTERN CONSOLIDATION
-# ============================================================================
 
-#' Normalize Plot Scales for MA/Volcano Plots
-#'
-#' Consolidates complex scale detection and normalization logic (7x occurrences).
-#' Handles variable column naming conventions and computes normalized positions.
-#'
-#' @param df Data frame with potential fold-change and mean columns
-#' @param fold_col_candidates Character vector of possible fold-change column names
-#' @param mean_col_pattern Character pattern to match mean columns (default: '_mean$|_median$')
-#' @param scale_type Character: 'log2fold' (default) or 'effect_size'
-#'
-#' @return Data frame with normalized columns: $x_norm, $y_norm, $fold_col, $mean_cols
-#'
-#' @noRd
-.normalize_plot_scales <- function(df, fold_col_candidates = c("log2_fold_change",
-    "logFC", "fold"), mean_col_pattern = "_mean$|_median$", scale_type = "log2fold") {
-
-    # Find fold-change column
-    fold_col <- intersect(fold_col_candidates, colnames(df))[1]
-    if (is.na(fold_col)) {
-        warning("No fold-change column found in candidates: ", paste(fold_col_candidates,
-            collapse = ", "))
-        return(NULL)
-    }
-
-    # Find mean/median columns
-    mean_cols <- grep(mean_col_pattern, colnames(df), value = TRUE, perl = TRUE)
-    if (length(mean_cols) < 2) {
-        warning("Expected 2+ mean/median columns, found: ", length(mean_cols))
-        return(NULL)
-    }
-
-    # Compute normalized positions
-    df$x_norm <- rowMeans(df[, mean_cols[seq_len(2)], drop = FALSE], na.rm = TRUE)
-    df$y_norm <- df[[fold_col]]
-
-    list(df = df, fold_col = fold_col, mean_cols = mean_cols[seq_len(2)])
-}
 
 #' Create Publication-Ready Line Plot
 #'
@@ -3697,145 +3474,6 @@ require_pkgs <- function(pkgs) {
 }
 
 
-# Core MA plotting implementation documentation moved to internal block
-#' Plot MA using Tsallis-based fold changes
-#'
-#' Wrapper around `plot_ma(..., type = 'tsallis')` for convenience and
-#' clearer API separation.
-#'
-#' @param x Data.frame from `.calculate_difference()`.
-#' @param sig_alpha Numeric significance threshold for adjusted p-values
-#' (default: 0.05).
-#' @param x_label Optional x-axis label passed to `plot_ma`.
-#' @param y_label Optional y-axis label passed to `plot_ma`.
-#' @param title Optional plot title passed to `plot_ma`.
-#' @param ... Additional arguments passed to `plot_ma()`.
-#' @return A `ggplot2` object representing the MA plot.
-#' @noRd
-
-.plot_ma_tsallis <- function(x, sig_alpha = 0.05, x_label = NULL, y_label = NULL,
-    title = NULL, ...) {
-    title_use <- title %||% "Tsallis-based MA plot"
-    x_label_use <- x_label %||% "mean_difference"
-    y_label_use <- y_label %||% "Log10 fold-change of entropy"
-    .plot_ma_core(x, fc_df = NULL, sig_alpha = sig_alpha, x_label = x_label_use,
-        y_label = y_label_use, title = title_use)
-}
-
-
-
-# Core MA plotting implementation used by wrappers above. Accepts a
-# differential results `x` (data.frame) and an optional `fc_df` with
-# fold-changes (genes as rownames or a `genes` column). Returns a `ggplot`
-# MA-plot.
-#' Core MA plotting implementation (internal)
-#'
-#' This is an internal helper used by `.plot_ma_tsallis()`.
-#' It is documented here for developers but is not exported.
-#' @noRd
-.plot_ma_core <- function(x, fc_df = NULL, diff_res = NULL, sig_alpha = 0.05, x_label = NULL,
-    y_label = NULL, title = NULL, ...) {
-
-    df <- as.data.frame(x, stringsAsFactors = FALSE)
-    # Ensure gene identifier column exists
-    if (!("genes" %in% colnames(df))) {
-        if ("gene_id" %in% colnames(df)) {
-            df$genes <- df$gene_id
-        } else if (!is.null(rownames(df))) {
-            df$genes <- rownames(df)
-        }
-    }
-
-    # If external fc_df provided, merge fold values
-    if (!is.null(fc_df)) {
-        fdf <- as.data.frame(fc_df, stringsAsFactors = FALSE)
-        if (!("genes" %in% colnames(fdf))) {
-            if ("gene_id" %in% colnames(fdf)) {
-                fdf$genes <- fdf$gene_id
-            } else if (!is.null(rownames(fdf))) {
-                fdf$genes <- rownames(fdf)
-            }
-        }
-        if (!("log2_fold_change" %in% colnames(fdf))) {
-            stop("Provided `fc_df` must contain 'log2_fold_change' column")
-        }
-        df <- merge(df, fdf[, c("genes", "log2_fold_change")], by = "genes", all.x = TRUE,
-            suffixes = c("", ".fc"))
-        if ("log2_fold_change.fc" %in% colnames(df))
-            df$log2_fold_change <- ifelse(!is.na(df$log2_fold_change.fc), df$log2_fold_change.fc,
-                df$log2_fold_change)
-    }
-
-    # Use helper for fold/mean column detection
-    fold_col_candidates <- c("log2_fold_change", "logFC", "fold", "estimate_interaction",
-        "fold_change")
-    fold_col <- intersect(fold_col_candidates, colnames(df))
-    if (length(fold_col) == 0)
-        stop("Could not find a fold-change column in input")
-    fold_col <- fold_col[1]
-
-    # Detect p-value column for significance flagging
-    padj_candidates <- c("padj", "adjusted_p_values", "adj_p_value", "adj_p", "p.adjust")
-    padj_col <- intersect(padj_candidates, colnames(df))
-    padj_col <- if (length(padj_col))
-        padj_col[1] else NULL
-    padj <- if (!is.null(padj_col))
-        as.numeric(df[[padj_col]]) else rep(1, nrow(df))
-    padj[is.na(padj)] <- 1
-
-    # Validate mean/median column consistency
-    mean_cols <- grep("_mean$", colnames(df), ignore.case = TRUE, value = TRUE)
-    median_cols <- grep("_median$", colnames(df), ignore.case = TRUE, value = TRUE)
-
-    if (length(mean_cols) > 0 && length(median_cols) > 0) {
-        stop("Could not find two mean or two median columns - found both mean and median columns. ",
-            "Ensure input contains either mean columns (e.g., A_mean, B_mean) OR median columns (e.g., A_median, B_median), not both.")
-    }
-
-    if (length(mean_cols) > 0 && length(mean_cols) < 2) {
-        stop("Could not find two mean or two median columns - found ", length(mean_cols),
-            " mean column(s). ", "Ensure input contains at least two mean columns (e.g., A_mean, B_mean).")
-    }
-
-    if (length(median_cols) > 0 && length(median_cols) < 2) {
-        stop("Could not find two mean or two median columns - found ", length(median_cols),
-            " median column(s). ", "Ensure input contains at least two median columns (e.g., A_median, B_median).")
-    }
-
-    # Determine which columns to use for mean calculation
-    mean_cols_to_use <- if (length(mean_cols) > 0)
-        mean_cols else if (length(median_cols) > 0)
-        median_cols else NULL
-
-    # Prepare MA plot data with label formatting
-    prep <- .prepare_ma_plot_df(df, fold_col = fold_col, mean_cols = mean_cols_to_use,
-        x_label = x_label, y_label = y_label)
-    plot_df <- prep$plot_df
-    plot_df$padj <- padj[match(plot_df$genes, df$genes)]
-    plot_df$significant <- ifelse(abs(plot_df$y) > 0 & plot_df$padj < sig_alpha,
-        "significant", "non-significant")
-
-    # Format labels
-    x_label_formatted <- .format_label(prep$x_label)
-    y_label_raw <- prep$y_label %||% fold_col
-    y_label_formatted <- .format_label(y_label_raw)
-    if (!is.null(y_label_formatted)) {
-        y_label_formatted <- sub("\\blog2\\b", "log10", y_label_formatted, ignore.case = TRUE)
-    }
-
-    # Build plot with significance coloring
-    p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = x, y = y, color = significant)) +
-        ggplot2::geom_point(alpha = 0.75, size = 3.2) + ggplot2::scale_color_manual(values = .significance_colors(),
-        guide = "none") + ggplot2::labs(x = x_label_formatted, y = y_label_formatted)
-
-    # Apply publication theme and settings
-    p <- .apply_publication_theme(p, title = title %||% "MA plot: mean vs log10 fold-change",
-        base_size = 11) + ggplot2::theme(axis.title = ggplot2::element_text(face = "bold"))
-
-    p
-}
-
-
 #' Violin plot of Tsallis entropy for a single q value
 #'
 #' Creates a violin plot showing the distribution of Tsallis entropy for a
@@ -4078,50 +3716,6 @@ plot_diversity_violin_density <- function(se, assay_name = "diversity", title = 
 #' column if one is not provided and expects an adjusted p-value column for
 #' significance coloring.
 #'
-#' @param diff_df Data.frame with differential expression results.
-#'   Should contain p-values and optionally fold-change columns.
-#' @param x_col Optional column name for the x-axis. If `NULL`, the function
-#'   will try to auto-detect a suitable numeric column (excluding p-values).
-#' @param padj_col Adjusted p-value column name (default: 'padj').
-#' @param label_thresh Fold-change threshold used to annotate points
-#' (default: 0.1).
-#' @param sig_alpha Adjusted p-value cutoff for significance (default: 0.05).
-#' @param top_n Number of top significant genes to label (default: 5).
-#' @param title Optional plot title; if `NULL` a default title is used.
-#'
-#' @return A `ggplot2` object.
-#' @noRd
-
-.plot_volcano <- function(diff_df, x_col = NULL, padj_col = "padj", label_thresh = 0.1,
-    sig_alpha = 0.05, top_n = 5, title = NULL) {
-    if (!requireNamespace("ggplot2", quietly = TRUE)) {
-        stop("ggplot2 required")
-    }
-
-    prep_volcano <- .prepare_volcano_df(diff_df = diff_df, x_col = x_col, padj_col = padj_col,
-        label_thresh = label_thresh, sig_alpha = sig_alpha, title = title)
-    df <- prep_volcano$df
-    x_col <- prep_volcano$x_col
-    padj_col <- prep_volcano$padj_col
-    x_label_formatted <- prep_volcano$x_label_formatted
-    padj_label_formatted <- prep_volcano$padj_label_formatted
-    title_use <- prep_volcano$title_use
-
-    p <- ggplot2::ggplot(df, ggplot2::aes(x = xval, y = -log10(padj), color = significant)) +
-        ggplot2::geom_point(alpha = 0.75, size = 3.4) + ggplot2::scale_color_manual(values = .significance_colors(),
-        guide = "none")
-
-    # Add reference lines using Phase 5 helper
-    p <- .add_reference_lines(p, h_intercept = -log10(sig_alpha), v_intercept = c(-label_thresh,
-        label_thresh), h_color = "gray50", v_color = "gray50")
-
-    p <- .apply_publication_theme(p, title = title_use, base_size = 11) + ggplot2::labs(x = x_label_formatted,
-        y = paste0("-Log10(", padj_label_formatted, ")"))
-
-    p
-}
-
-
 #' Combine Volcano and MA-Tsallis Plots in a Grid Layout
 #'
 #' Creates a side-by-side grid layout with a volcano plot on the left and an
@@ -4152,34 +3746,7 @@ plot_diversity_violin_density <- function(se, assay_name = "diversity", title = 
 #'   padj = runif(20, 1e-5, 0.1),
 #'   log2_fold_change = rnorm(20, sd = 0.8)
 #' )
-#' # Placeholder: actual usage would require valid differential results
-#' # .plot_diversity_volcano_ma(x, sig_alpha = 0.05)
-#'
 
-#' @noRd
-
-.plot_diversity_volcano_ma <- function(diff_df, x_col = NULL, padj_col = "padj", label_thresh = 0.1,
-    sig_alpha = 0.05, top_n = 5, title_volcano = NULL, title_ma = "Tsallis-based MA plot",
-    ...) {
-    # Require cowplot for grid arrangement
-    if (!requireNamespace("cowplot", quietly = TRUE)) {
-        stop("cowplot package required for .plot_diversity_volcano_ma()")
-    }
-
-    # Create volcano plot
-    p_volcano <- .plot_volcano(diff_df = diff_df, x_col = x_col, padj_col = padj_col,
-        label_thresh = label_thresh, sig_alpha = sig_alpha, top_n = top_n, title = title_volcano)
-
-    # Create MA plot
-    p_ma <- .plot_ma_tsallis(x = diff_df, sig_alpha = sig_alpha, title = title_ma,
-        ...)
-
-    # Arrange plots side by side: volcano on left, MA on right
-    grid <- cowplot::plot_grid(p_volcano, p_ma, nrow = 1, ncol = 2, align = "h",
-        axis = "b")
-
-    return(grid)
-}
 
 
 #' Internal helper to compute fill limits across multiple genes (not exported)
@@ -4774,66 +4341,6 @@ NULL
         stringsAsFactors = FALSE)
 
     list(plot_df = plot_df, x_label = x_label, y_label = y_label)
-}
-
-.prepare_volcano_df <- function(diff_df, x_col = NULL, padj_col = "adjusted_p_values",
-    label_thresh = 0.1, sig_alpha = 0.05, title = NULL) {
-    df <- as.data.frame(diff_df)
-    cn <- colnames(df)
-
-    # Auto-detect x-axis column if not specified
-    if (is.null(x_col)) {
-        diff_cols <- grep("_difference$", cn, value = TRUE, ignore.case = TRUE)
-        if (length(diff_cols) > 0) {
-            x_col <- diff_cols[1]
-        } else {
-            numeric_cols <- vapply(df, is.numeric, logical(1))
-            p_cols <- grep("p_value|p.value", cn, ignore.case = TRUE)
-            numeric_cols[p_cols] <- FALSE
-            if (any(numeric_cols)) {
-                x_col <- cn[which(numeric_cols)[1]]
-            } else {
-                stop("Could not find suitable column for x-axis. Specify 'x_col' explicitly.")
-            }
-        }
-    }
-
-    # Verify columns
-    if (!(x_col %in% cn)) {
-        stop(sprintf("Column '%s' not found in diff_df", x_col))
-    }
-    if (!(padj_col %in% cn)) {
-        stop(sprintf("Column '%s' not found in diff_df", padj_col))
-    }
-
-    df$xval <- as.numeric(df[[x_col]])
-    df$padj <- as.numeric(df[[padj_col]])
-    df$padj[is.na(df$padj)] <- 1
-    df$padj[df$padj <= 0] <- .Machine$double.xmin
-
-    df$significant <- ifelse(abs(df$xval) >= label_thresh & df$padj < sig_alpha,
-        "significant", "non-significant")
-    df <- df[is.finite(df$xval) & is.finite(df$padj), ]
-
-    if (nrow(df) == 0) {
-        stop("No valid points to plot")
-    }
-
-    metric_label <- if (grepl("median", x_col, ignore.case = TRUE)) {
-        "Median"
-    } else if (grepl("mean", x_col, ignore.case = TRUE)) {
-        "Mean"
-    } else {
-        "Value"
-    }
-
-    title_use <- title %||% "Volcano plot: fold-change vs significance"
-
-    x_label_formatted <- .format_label(x_col)
-    padj_label_formatted <- .format_label(padj_col)
-
-    list(df = df, x_col = x_col, padj_col = padj_col, x_label_formatted = x_label_formatted,
-        padj_label_formatted = padj_label_formatted, title_use = title_use)
 }
 
 

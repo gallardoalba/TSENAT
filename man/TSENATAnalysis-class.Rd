@@ -66,9 +66,7 @@ statistical testing. Top-level names identify analysis type:
 }}
 
 \item{\code{pairwise_results}}{\code{list}. Pairwise group comparison results.
-Contains differential testing output computed by
-\code{calculate_difference()}, stored under the \code{difference}
-component.}
+Results from running statistical tests for group comparisons.}
 
 \item{\code{rank_test_results}}{\code{list}. Scheirer-Ray-Hare rank-based statistical
 test results. Names correspond to q-values (e.g., 'q_0.5', 'q_1.0').

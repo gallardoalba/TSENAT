@@ -679,7 +679,6 @@ test_that(".resolve_rank_test_params handles explicit arguments over config", {
     dots <- result$dots
     
     # Check explicit args took precedence
-    expect_equal(dots$test, "friedman")
     expect_equal(dots$multicorr, "benjamini-yekutieli")
     expect_equal(dots$nperm_mode, "standard")
     expect_equal(dots$nthreads, 4)
@@ -704,7 +703,6 @@ test_that(".resolve_rank_test_params falls back to config when args not provided
     # Call without explicit arguments (should use config)
     result <- TSENAT:::.resolve_rank_test_params(
         analysis,
-        test = NULL,
         multicorr = NULL,
         nperm_mode = NULL,
         paired = NULL,
@@ -728,8 +726,7 @@ test_that(".resolve_rank_test_params validates enum arguments", {
     expect_error(
         TSENAT:::.resolve_rank_test_params(
             analysis,
-            test = "invalid_test",
-            multicorr = NULL,
+            multicorr = "invalid_multicorr",
             nperm_mode = NULL,
             paired = NULL,
             subject_col = NULL,
@@ -951,28 +948,6 @@ test_that(".resolve_rank_test_params handles all multicorr methods", {
         )
         
         expect_equal(result$dots$multicorr, method)
-    }
-})
-
-test_that(".resolve_rank_test_params handles all test methods", {
-    analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
-    
-    for (method in c("auto", "kruskal-wallis", "friedman", "art")) {
-        result <- TSENAT:::.resolve_rank_test_params(
-            analysis,
-            test = method,
-            multicorr = "hochberg",
-            nperm_mode = "standard",
-            paired = FALSE,
-            subject_col = NULL,
-            nthreads = 1,
-            wy_randomizations = 100,
-            entropy_col = "diversity",
-            q_col = "q",
-            gene_col = "gene"
-        )
-        
-        expect_equal(result$dots$test, method)
     }
 })
 
