@@ -230,6 +230,7 @@ setReplaceMethod("metadata", "TSENATAnalysis", function(x, value) {
 })
 
 #' @exportMethod '['
+#' @noRd
 setMethod("[", signature(x = "TSENATAnalysis"), function(x, i, j, drop = TRUE) {
     # Get SE dimensions for default arguments
     se <- x@se

@@ -147,11 +147,11 @@
 #' \code{\link{TSENATAnalysis-class}} --- Central container unifying all analysis components.
 #' Access results via slots: \code{@diversity_results}, \code{@lm_results}, 
 #' \code{@jackknife_results}, \code{@divergence_results}, 
-#' or accessor methods \code{\link{TSENATAnalysis-methods}}.
+#' or accessor methods \code{\link{TSENATAnalysis-se}}, \code{\link{TSENATAnalysis-metadata}}, and \code{\link{results}}.
 #'
 #' @seealso
 #' \code{\link{TSENAT}} for running the complete analysis pipeline.
-#' \code{\link{TSENATAnalysis-methods}} for accessor functions (getSE, getMeta, getConfig, results).
+#' \code{\link{TSENATAnalysis-se}}, \code{\link{TSENATAnalysis-metadata}}, and \code{\link{results}} for accessor functions.
 #' \code{\link{TSENATAnalysis-class}} for the S4 object structure.
 #' \code{\link{build_analysis}} for creating TSENATAnalysis objects.
 #'
