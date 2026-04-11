@@ -17,6 +17,10 @@
 
 \item{drop}{Ignored for TSENATAnalysis objects; included for S4 method signature compatibility.}
 }
+\value{
+A new \code{\linkS4class{TSENATAnalysis}} object containing only the specified
+genes and samples, with all associated results and metadata preserved.
+}
 \description{
 Central container for unified analysis workflows in TSENAT.
 }

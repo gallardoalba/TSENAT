@@ -234,6 +234,9 @@ setReplaceMethod("metadata", "TSENATAnalysis", function(x, value) {
 #' @param drop Ignored for TSENATAnalysis objects; included for S4 method signature compatibility.
 #' @param x A \code{\linkS4class{TSENATAnalysis}} object to subset.
 #'
+#' @return A new \code{\linkS4class{TSENATAnalysis}} object containing only the specified
+#' genes and samples, with all associated results and metadata preserved.
+#'
 #' @rdname TSENATAnalysis-class
 #' @exportMethod '['
 setMethod("[", signature(x = "TSENATAnalysis"), function(x, i, j, drop = TRUE) {
