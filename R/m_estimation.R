@@ -1,51 +1,122 @@
-#' Internal Helper Functions for M-Estimation
+# ============================================================================
+# M-ESTIMATION FOR ROBUST GROUP COMPARISON
+# ============================================================================
 
-#' @noRd
-NULL
-
-#' Robust Statistical Methods for Differential Analysis
+#' M-Estimation for Robust Location Comparison
 #'
-#' Alternative statistical approaches that are resistant to outliers and
-#' extreme values, particularly useful for RNA-seq data with unusual
-#' distributions or unexpected outliers.
+#' Estimates location differences between groups using M-estimation
+#' (iteratively re-weighted least squares), which is more robust to
+#' outliers than standard least squares.
 #'
-#' @details
-#' **Trimmed Wilcoxon Test:**
-#' Combines the robustness of trimming extreme values with the power of
-#' non-parametric rank-based testing. Extreme values are excluded from
-#' the analysis before computing ranks, making the test resistant to
-#' influential outliers.
+#' @param x Matrix of values (rows = features, columns = samples), or a
+#'   SummarizedExperiment object with multi-q entropy data
+#' @param samples Character vector indicating group membership. If x is a
+#'   SummarizedExperiment, this should be a column name in colData.
+#'   For multi-q data, can also specify 'multi_q_analysis' to automatically
+#'   handle q-value collapsing and leave-one-out influence analysis.
+#' @param loss_type Type of loss function: 'huber' (default, robust),
+#'        'tukey' (more aggressive), or 'lsq' (least squares, for comparison)
+#' @param scale Numeric. Scale parameter for Huber loss (default: 1.345*MAD).
+#'        Controls how much weight is given to outliers.
+#' @param max_iter Integer. Maximum iterations for IRLS. Default: 50
+#' @param tol Numeric. Convergence tolerance. Default: 1e-6
+#' @param paired Logical. If TRUE, use paired design. Default: FALSE
+#' @param pcorr P-value correction method. Default: 'BH'
+#' @param q_combine_method Character. For multi-q data: 'mean' (default) or 
+#'   'median' for summarizing across q values
+#' @param influence_threshold Numeric. Quantile threshold (0-1) for flagging
+#' high-influence
+#'   samples in multi-q analysis. Default: 0.75 (75th percentile)
+#' @param scale_method Character. Scale selection method: 'mad' (default,
+#' Median Absolute Deviation),
+#'   'proposal2' (Huber's Proposal 2 for automatic scale selection), or 
+#'   's-estimator' (S-estimator for high breakdown point). Default: 'mad'
 #'
-#' **M-Estimation:**
-#' Uses iteratively re-weighted least squares (IRLS) to estimate location
-#' differences while down-weighting outliers. The Huber loss function
-#' provides a compromise between least squares (sensitive to outliers)
-#' and absolute deviations (less efficient).
-#'
-#' **Influence Diagnostics (DFBETA Standardization):**
-#' Identifies samples that have disproportionate influence on the fitted model.
-#' Uses leave-one-out (LOO) analysis with standardized DFBETA statistics:
-#'   DFBETA_i = (coef_full - coef_{-i}) / SE(coef_full)
-#' 
-#' This approach standardizes influence by the precision of the estimate,
-#' allowing meaningful comparison across genes with different levels of 
-#' variability. Samples with |DFBETA| > 2/sqrt(n) are flagged as problematic.
-#' 
-#' This is analogous to classical regression diagnostics (Cook's distance,
-#' DFBETA) but applied in the robust M-estimation context.
+#' @return Data frame with columns:
+#'   - location_diff: Estimated location difference (from M-estimation)
+#'   - se_diff: Standard error of difference
+#'   - t_stat: t-statistic
+#'   - pvalue: Two-tailed p-value
+#'   - padj: Adjusted p-value
+#'   - n_down_weighted: Number of observations down-weighted as outliers
+#'   - max_weight: Maximum weight assigned (1 = no down-weighting)
+#'   
+#'   For multi-q analysis on SummarizedExperiment, returns sample-level
+#'   influence scores (proportion of genes with >2% change when sample removed).
 #'
 #' @references
-#' Wilkinson, L. (2005). The grammar of graphics. Springer.
 #' Huber, P. J. (1981). Robust Statistics. John Wiley & Sons.
 #' Maronna, R. A., Martin, R. D., & Yohai, V. J. (2006).
 #' Robust Statistics: Theory and Methods. John Wiley & Sons.
-#' Cook, R. D., & Weisberg, S. (1982). Residuals and influence in regression.
-#' Chapman & Hall.
-#' Fox, J. (2016). Applied regression analysis and generalized linear models
-#' (3rd ed.). SAGE Publications.
+#' Lopuhaä, H. P., & Rousseeuw, P. J. (1991). Breakdown points of affine
+#' equivariant
+#' estimators of multivariate location and covariance matrices. Annals of
+#' Statistics, 19(1), 229-248.
+#'
+#' @details
+#' M-estimation uses the Huber loss function by default:
+#' L(u) = u^2/2 if |u| <= k (quadratic, like LSQ)
+#' L(u) = k|u| - k^2/2 if |u| > k (linear, like absolute value)
+#'
+#' This provides a compromise: near the center, it's as efficient as LSQ,
+#' but observations far from the center (outliers) have reduced influence.
+#'
+#' The default scale k = 1.345 * MAD detects outliers beyond 1.345 standard
+#' deviations (scaled by the median absolute deviation).
+#'
+#' For multi-q SummarizedExperiment data, the function automatically:
+#' 1. Extracts the multi-q entropy assay
+#' 2. Collapses samples across q values (using mean or median)
+#' 3. Performs leave-one-out influence analysis
+#' 4. Returns sample influence scores
+#'
+#' **Scale Estimation Methods:**
+#' - **mad (default):** Scale = 1.345 * MAD (Median Absolute Deviation).
+#'   Fast, consistent for normal data. Detects outliers at ~1.345 sigma.
+#'
+#' - **proposal2:** Huber's Proposal 2. Iteratively selects optimal k 
+#'   to balance efficiency and robustness. More adaptive but slower.
+#'   Good for data with unknown error distribution.
+#'
+#' - **s-estimator:** S-estimator with high breakdown point (~50%).
+#'   More robust to extreme contamination than M-estimation (~25%).
+#'   Recommended when data contamination is suspected.
+#'
+#' @noRd
+.calculate_m_estimator <- function(x, samples, loss_type = "huber", scale = NULL, max_iter = 50,
+    tol = 1e-06, paired = FALSE, pcorr = "BH", q_combine_method = "mean", influence_threshold = 0.75,
+    scale_method = "mad", verbose = FALSE) {
+    # Handle SummarizedExperiment input with multi-q analysis
+    if (inherits(x, "SummarizedExperiment")) {
+        return(.handleMEstimateSEInput(x, samples, q_combine_method, paired, scale,
+            loss_type, max_iter, tol, pcorr, scale_method, influence_threshold, verbose))
+    }
+
+    # Validate inputs for matrix-based estimation
+    .validateMEstimateInputs(x, samples, loss_type, scale_method, paired)
+
+    # Ensure x is a matrix
+    if (!is.matrix(x) && !is.data.frame(x)) {
+        x <- as.matrix(x)
+    }
+
+    n_features <- nrow(x)
+    results_list <- list()
+
+    # Process each feature using helper function
+    for (i in seq_len(n_features)) {
+        results_list[[i]] <- .processMEstimateFeature(i, x, samples, loss_type, scale,
+            max_iter, tol, paired, scale_method)
+    }
+
+    # Combine and adjust p-values
+    result <- do.call(rbind, results_list)
+    result$padj <- p.adjust(result$pvalue, method = pcorr)
+
+    return(result)
+}
 
 #' Helper function: Huber's Proposal 2 scale
-
 #' @noRd
 .huber_proposal2_scale <- function(y) {
     # Iteratively determines optimal scale for M-estimation Based on finding
@@ -118,18 +189,64 @@ NULL
 # ============================================================================
 # MODULAR IRLS CORE (Approach 3)
 # ============================================================================
-# Single vector robust location estimation using Iteratively Re-Weighted Least
-# Squares. Extracted into standalone function for reuse in: 1. .m_estimate() -
-# full diagnostic output 2. .calculate_difference() - efficient group summaries
-# @param y Numeric vector of observations (may contain NA) @param loss_type
-# Character: 'huber' (default), 'tukey', or 'lsq' @param scale Numeric scale
-# parameter (default: auto-computed) @param scale_method Character: 'mad'
-# (default), 'proposal2', 's-estimator' @param max_iter Integer: max IRLS
-# iterations (default: 50) @param tol Numeric: convergence tolerance (default:
-# 1e-6) @param return_weights Logical: if TRUE, return final weights; else just
-# estimate @return If return_weights=FALSE: location_diff (numeric scalar) If
-# return_weights=TRUE: list(location_diff, weights, scale_used) @keywords
-# internal
+#' Internal IRLS Robust Location Estimation
+#'
+#' Single vector robust location estimation using Iteratively Re-Weighted Least Squares (IRLS).
+#' Returns a robust estimate of the location (center) parameter resistant to outliers and
+#' extreme values. Extracted as standalone function for reuse across multiple contexts.
+#'
+#' ## Algorithm Overview
+#'
+#' IRLS is a two-step iterative method that improves robustness:
+#'
+#' 1. **Loss Function Selection**: Choose robust loss (Huber, Tukey biweight, or OLS)
+#'    - Huber: hybrid, nearly normal efficiency, moderate robustness
+#'    - Tukey biweight: bounded influence, highest robustness
+#'    - LSQ: classical least squares (no robustness)
+#'
+#' 2. **Scale Estimation**: Determine standardization for residuals
+#'    - MAD (Median Absolute Deviation): fast, 50% asymptotic breakdown
+#'    - Proposal 2: Huber's adaptive scale balancing efficiency/robustness
+#'    - S-estimator: high breakdown (50%), minimizes scale with constraint
+#'
+#' 3. **IRLS Iteration**: Repeat until convergence (max 50 iterations)
+#'    - Compute residuals and weights from chosen loss function
+#'    - Update location using weighted median or weighted mean
+#'    - Check convergence (relative change < tolerance)
+#'
+#' ## Use Cases
+#'
+#' - **`.calculate_m_estimator()`**: Full diagnostic output (influence values, scale history)
+#' - **`.calculate_difference()`**: Efficient group summaries (returns weights for meta-analysis)
+#'
+#' @param y numeric; vector of observations (may contain NA values)
+#' @param loss_type character; robust loss function:
+#'   - `"huber"` (default): Symmetric loss balancing efficiency and robustness
+#'   - `"tukey"`: Tukey biweight, quadratic on [−c, c], zero beyond
+#'   - `"lsq"`: Classical least squares (no robustness)
+#' @param scale numeric or NULL; scale/standardization parameter. If NULL (default),
+#'   computed automatically using `scale_method`. Pre-specified values are useful
+#'   for standardizing across groups
+#' @param scale_method character; method for automatic scale estimation (if `scale = NULL`):
+#'   - `"mad"` (default): Median Absolute Deviation, fast and robust
+#'   - `"proposal2"`: Huber's Proposal 2, adapts for light or heavy tails
+#'   - `"s-estimator"`: S-estimator, maximum breakdown point (50%), slower
+#' @param max_iter integer; maximum number of IRLS iterations. Default 50.
+#'   Increase if convergence plots show incomplete iteration cycles
+#' @param tol numeric; relative convergence tolerance. Default 1e-6.
+#'   Iteration stops when |location_new - location_old| / |location_old| < tol
+#' @param return_weights logical; determines return format:
+#'   - If FALSE (default): Returns numeric scalar (final location estimate)
+#'   - If TRUE: Returns list with final weights and scale (for diagnostics or meta-analysis)
+#'
+#' @return Depends on `return_weights` argument:
+#'   - **If `return_weights = FALSE`**: numeric scalar, the robust location estimate (often median-like center)
+#'   - **If `return_weights = TRUE`**: list with elements:
+#'     - `location_diff`: numeric scalar, robust location estimate
+#'     - `weights`: numeric vector, final IRLS weights (one per observation)
+#'     - `scale_used`: numeric scalar, scale parameter used for standardization
+#'
+#' @noRd
 .mest_irls_location <- function(y, loss_type = "huber", scale = NULL, scale_method = "mad",
     max_iter = 50, tol = 1e-06, return_weights = FALSE) {
     # Input validation
@@ -300,7 +417,7 @@ NULL
         }
 
         # LOO M-estimate
-        m_est_subset <- .m_estimate(entropy_subset, samples = group_subset, loss_type = loss_type,
+        m_est_subset <- .calculate_m_estimator(entropy_subset, samples = group_subset, loss_type = loss_type,
             scale = scale, max_iter = max_iter, tol = tol, paired = FALSE, pcorr = pcorr,
             scale_method = scale_method)
 
@@ -381,7 +498,7 @@ NULL
 
     # Calculate M-estimate with ALL samples as baseline
     m_est_full <- tryCatch({
-        .m_estimate(entropy_by_sample, samples = group_assignment_unique, loss_type = loss_type,
+        .calculate_m_estimator(entropy_by_sample, samples = group_assignment_unique, loss_type = loss_type,
             scale = scale, max_iter = max_iter, tol = tol, paired = paired, pcorr = pcorr,
             scale_method = scale_method)
     }, error = function(e) {
@@ -724,123 +841,5 @@ NULL
         row.names = rownames(x)[feature_idx])
 }
 
-# ============================================================================
-# M-ESTIMATION FOR ROBUST GROUP COMPARISON
-# ============================================================================
 
-#' M-Estimation for Robust Location Comparison
-#'
-#' Estimates location differences between groups using M-estimation
-#' (iteratively re-weighted least squares), which is more robust to
-#' outliers than standard least squares.
-#'
-#' @param x Matrix of values (rows = features, columns = samples), or a
-#'   SummarizedExperiment object with multi-q entropy data
-#' @param samples Character vector indicating group membership. If x is a
-#'   SummarizedExperiment, this should be a column name in colData.
-#'   For multi-q data, can also specify 'multi_q_analysis' to automatically
-#'   handle q-value collapsing and leave-one-out influence analysis.
-#' @param loss_type Type of loss function: 'huber' (default, robust),
-#'        'tukey' (more aggressive), or 'lsq' (least squares, for comparison)
-#' @param scale Numeric. Scale parameter for Huber loss (default: 1.345*MAD).
-#'        Controls how much weight is given to outliers.
-#' @param max_iter Integer. Maximum iterations for IRLS. Default: 50
-#' @param tol Numeric. Convergence tolerance. Default: 1e-6
-#' @param paired Logical. If TRUE, use paired design. Default: FALSE
-#' @param pcorr P-value correction method. Default: 'BH'
-#' @param q_combine_method Character. For multi-q data: 'mean' (default) or 
-#'   'median' for summarizing across q values
-#' @param influence_threshold Numeric. Quantile threshold (0-1) for flagging
-#' high-influence
-#'   samples in multi-q analysis. Default: 0.75 (75th percentile)
-#' @param scale_method Character. Scale selection method: 'mad' (default,
-#' Median Absolute Deviation),
-#'   'proposal2' (Huber's Proposal 2 for automatic scale selection), or 
-#'   's-estimator' (S-estimator for high breakdown point). Default: 'mad'
-#'
-#' @return Data frame with columns:
-#'   - location_diff: Estimated location difference (from M-estimation)
-#'   - se_diff: Standard error of difference
-#'   - t_stat: t-statistic
-#'   - pvalue: Two-tailed p-value
-#'   - padj: Adjusted p-value
-#'   - n_down_weighted: Number of observations down-weighted as outliers
-#'   - max_weight: Maximum weight assigned (1 = no down-weighting)
-#'   
-#'   For multi-q analysis on SummarizedExperiment, returns sample-level
-#'   influence scores (proportion of genes with >2% change when sample removed).
-#'
-#' @references
-#' Huber, P. J. (1981). Robust Statistics. John Wiley & Sons.
-#' Maronna, R. A., Martin, R. D., & Yohai, V. J. (2006).
-#' Robust Statistics: Theory and Methods. John Wiley & Sons.
-#' Lopuhaä, H. P., & Rousseeuw, P. J. (1991). Breakdown points of affine
-#' equivariant
-#' estimators of multivariate location and covariance matrices. Annals of
-#' Statistics, 19(1), 229-248.
-#'
-
-#' @noRd
-#' @details
-#' M-estimation uses the Huber loss function by default:
-#' L(u) = u^2/2 if |u| <= k (quadratic, like LSQ)
-#' L(u) = k|u| - k^2/2 if |u| > k (linear, like absolute value)
-#'
-#' This provides a compromise: near the center, it's as efficient as LSQ,
-#' but observations far from the center (outliers) have reduced influence.
-#'
-#' The default scale k = 1.345 * MAD detects outliers beyond 1.345 standard
-#' deviations (scaled by the median absolute deviation).
-#'
-#' For multi-q SummarizedExperiment data, the function automatically:
-#' 1. Extracts the multi-q entropy assay
-#' 2. Collapses samples across q values (using mean or median)
-#' 3. Performs leave-one-out influence analysis
-#' 4. Returns sample influence scores
-#'
-#' **Scale Estimation Methods:**
-#' - **mad (default):** Scale = 1.345 * MAD (Median Absolute Deviation).
-#'   Fast, consistent for normal data. Detects outliers at ~1.345 sigma.
-#'
-#' - **proposal2:** Huber's Proposal 2. Iteratively selects optimal k 
-#'   to balance efficiency and robustness. More adaptive but slower.
-#'   Good for data with unknown error distribution.
-#'
-#' - **s-estimator:** S-estimator with high breakdown point (~50%).
-#'   More robust to extreme contamination than M-estimation (~25%).
-#'   Recommended when data contamination is suspected.
-#'
-
-.m_estimate <- function(x, samples, loss_type = "huber", scale = NULL, max_iter = 50,
-    tol = 1e-06, paired = FALSE, pcorr = "BH", q_combine_method = "mean", influence_threshold = 0.75,
-    scale_method = "mad", verbose = FALSE) {
-    # Handle SummarizedExperiment input with multi-q analysis
-    if (inherits(x, "SummarizedExperiment")) {
-        return(.handleMEstimateSEInput(x, samples, q_combine_method, paired, scale,
-            loss_type, max_iter, tol, pcorr, scale_method, influence_threshold, verbose))
-    }
-
-    # Validate inputs for matrix-based estimation
-    .validateMEstimateInputs(x, samples, loss_type, scale_method, paired)
-
-    # Ensure x is a matrix
-    if (!is.matrix(x) && !is.data.frame(x)) {
-        x <- as.matrix(x)
-    }
-
-    n_features <- nrow(x)
-    results_list <- list()
-
-    # Process each feature using helper function
-    for (i in seq_len(n_features)) {
-        results_list[[i]] <- .processMEstimateFeature(i, x, samples, loss_type, scale,
-            max_iter, tol, paired, scale_method)
-    }
-
-    # Combine and adjust p-values
-    result <- do.call(rbind, results_list)
-    result$padj <- p.adjust(result$pvalue, method = pcorr)
-
-    return(result)
-}
 

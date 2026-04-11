@@ -82,20 +82,20 @@ make_test_tsenat_for_filter <- function(
 # TEST GROUP 1: Filtering Reproducibility
 # ===========================================================================
 
-test_that("filter_analysis_s4 produces identical results with identical parameters", {
+test_that("filter_analysis produces identical results with identical parameters", {
   
   analysis1 <- make_test_tsenat_for_filter(n_genes = 8, n_samples = 6, seed = 100)
   analysis2 <- make_test_tsenat_for_filter(n_genes = 8, n_samples = 6, seed = 100)
   
   # Apply identical filtering
-  filtered1 <- TSENAT::filter_analysis_s4(
+  filtered1 <- TSENAT::filter_analysis(
     analysis1,
     min_tpm = 1,
     min_samples = 2,
     verbose = FALSE
   )
   
-  filtered2 <- TSENAT::filter_analysis_s4(
+  filtered2 <- TSENAT::filter_analysis(
     analysis2,
     min_tpm = 1,
     min_samples = 2,
@@ -116,13 +116,13 @@ test_that("filter_analysis_s4 produces identical results with identical paramete
   expect_equal(colnames(filtered1@se), colnames(filtered2@se))
 })
 
-test_that("filter_analysis_s4 is deterministic across multiple runs", {
+test_that("filter_analysis is deterministic across multiple runs", {
   
   analysis <- make_test_tsenat_for_filter(n_genes = 12, n_samples = 8, seed = 200)
   
   # Run filtering three times with identical parameters
   filtered_runs <- lapply(1:3, function(i) {
-    TSENAT::filter_analysis_s4(
+    TSENAT::filter_analysis(
       analysis,
       min_tpm = 2,
       min_samples = 3,
@@ -143,20 +143,20 @@ test_that("filter_analysis_s4 is deterministic across multiple runs", {
   expect_equal(nrow(filtered_runs[[2]]@se), nrow(filtered_runs[[3]]@se))
 })
 
-test_that("filter_analysis_s4 filtering masks are consistent", {
+test_that("filter_analysis filtering masks are consistent", {
   
   analysis1 <- make_test_tsenat_for_filter(n_genes = 10, n_samples = 6, seed = 300)
   analysis2 <- make_test_tsenat_for_filter(n_genes = 10, n_samples = 6, seed = 300)
   
   # Filter with specific stringency
-  filtered1 <- TSENAT::filter_analysis_s4(
+  filtered1 <- TSENAT::filter_analysis(
     analysis1,
     min_tpm = 5,
     min_samples = 2,
     verbose = FALSE
   )
   
-  filtered2 <- TSENAT::filter_analysis_s4(
+  filtered2 <- TSENAT::filter_analysis(
     analysis2,
     min_tpm = 5,
     min_samples = 2,
@@ -172,19 +172,19 @@ test_that("filter_analysis_s4 filtering masks are consistent", {
 # TEST GROUP 2: Stringency-Based Filtering Reproducibility
 # ===========================================================================
 
-test_that("filter_analysis_s4 with stringency='soft' is reproducible", {
+test_that("filter_analysis with stringency='soft' is reproducible", {
   
   analysis1 <- make_test_tsenat_for_filter(n_genes = 8, n_samples = 8, seed = 400)
   analysis2 <- make_test_tsenat_for_filter(n_genes = 8, n_samples = 8, seed = 400)
   
-  filtered1 <- TSENAT::filter_analysis_s4(
+  filtered1 <- TSENAT::filter_analysis(
     analysis1,
     stringency = "soft",
     pair_col = "pair_id",
     verbose = FALSE
   )
   
-  filtered2 <- TSENAT::filter_analysis_s4(
+  filtered2 <- TSENAT::filter_analysis(
     analysis2,
     stringency = "soft",
     pair_col = "pair_id",
@@ -199,19 +199,19 @@ test_that("filter_analysis_s4 with stringency='soft' is reproducible", {
   )
 })
 
-test_that("filter_analysis_s4 with stringency='medium' is reproducible", {
+test_that("filter_analysis with stringency='medium' is reproducible", {
   
   analysis1 <- make_test_tsenat_for_filter(n_genes = 8, n_samples = 8, seed = 500)
   analysis2 <- make_test_tsenat_for_filter(n_genes = 8, n_samples = 8, seed = 500)
   
-  filtered1 <- TSENAT::filter_analysis_s4(
+  filtered1 <- TSENAT::filter_analysis(
     analysis1,
     stringency = "medium",
     pair_col = "pair_id",
     verbose = FALSE
   )
   
-  filtered2 <- TSENAT::filter_analysis_s4(
+  filtered2 <- TSENAT::filter_analysis(
     analysis2,
     stringency = "medium",
     pair_col = "pair_id",
@@ -225,19 +225,19 @@ test_that("filter_analysis_s4 with stringency='medium' is reproducible", {
   )
 })
 
-test_that("filter_analysis_s4 with stringency='severe' is reproducible", {
+test_that("filter_analysis with stringency='severe' is reproducible", {
   
   analysis1 <- make_test_tsenat_for_filter(n_genes = 8, n_samples = 8, seed = 600)
   analysis2 <- make_test_tsenat_for_filter(n_genes = 8, n_samples = 8, seed = 600)
   
-  filtered1 <- TSENAT::filter_analysis_s4(
+  filtered1 <- TSENAT::filter_analysis(
     analysis1,
     stringency = "severe",
     pair_col = "pair_id",
     verbose = FALSE
   )
   
-  filtered2 <- TSENAT::filter_analysis_s4(
+  filtered2 <- TSENAT::filter_analysis(
     analysis2,
     stringency = "severe",
     pair_col = "pair_id",
@@ -255,13 +255,13 @@ test_that("filter_analysis_s4 with stringency='severe' is reproducible", {
 # TEST GROUP 3: Subsetting Reproducibility (Seed-Based)
 # ===========================================================================
 
-test_that("filter_analysis_s4 with subset_n_genes and seed is reproducible", {
+test_that("filter_analysis with subset_n_genes and seed is reproducible", {
   
   analysis1 <- make_test_tsenat_for_filter(n_genes = 20, n_samples = 6, seed = 700)
   analysis2 <- make_test_tsenat_for_filter(n_genes = 20, n_samples = 6, seed = 700)
   
   # Filter and subset with identical seed
-  filtered1 <- TSENAT::filter_analysis_s4(
+  filtered1 <- TSENAT::filter_analysis(
     analysis1,
     min_tpm = 1,
     min_samples = 2,
@@ -270,7 +270,7 @@ test_that("filter_analysis_s4 with subset_n_genes and seed is reproducible", {
     verbose = FALSE
   )
   
-  filtered2 <- TSENAT::filter_analysis_s4(
+  filtered2 <- TSENAT::filter_analysis(
     analysis2,
     min_tpm = 1,
     min_samples = 2,
@@ -289,12 +289,12 @@ test_that("filter_analysis_s4 with subset_n_genes and seed is reproducible", {
   )
 })
 
-test_that("filter_analysis_s4 random subsetting with same seed produces same genes", {
+test_that("filter_analysis random subsetting with same seed produces same genes", {
   
   analysis <- make_test_tsenat_for_filter(n_genes = 30, n_samples = 6, seed = 800)
   
   # Run random subsetting twice with same seed
-  filtered1 <- TSENAT::filter_analysis_s4(
+  filtered1 <- TSENAT::filter_analysis(
     analysis,
     min_tpm = 1,
     min_samples = 1,
@@ -307,7 +307,7 @@ test_that("filter_analysis_s4 random subsetting with same seed produces same gen
   # Make a fresh copy for second run
   analysis_copy <- make_test_tsenat_for_filter(n_genes = 30, n_samples = 6, seed = 800)
   
-  filtered2 <- TSENAT::filter_analysis_s4(
+  filtered2 <- TSENAT::filter_analysis(
     analysis_copy,
     min_tpm = 1,
     min_samples = 1,
@@ -324,13 +324,13 @@ test_that("filter_analysis_s4 random subsetting with same seed produces same gen
   expect_equal(rownames(filtered1@se), rownames(filtered2@se))
 })
 
-test_that("filter_analysis_s4 variance-based subsetting is reproducible", {
+test_that("filter_analysis variance-based subsetting is reproducible", {
   
   analysis1 <- make_test_tsenat_for_filter(n_genes = 24, n_samples = 6, seed = 900)
   analysis2 <- make_test_tsenat_for_filter(n_genes = 24, n_samples = 6, seed = 900)
   
   # Variance-based subsetting doesn't require seed but should be deterministic
-  filtered1 <- TSENAT::filter_analysis_s4(
+  filtered1 <- TSENAT::filter_analysis(
     analysis1,
     min_tpm = 1,
     min_samples = 1,
@@ -339,7 +339,7 @@ test_that("filter_analysis_s4 variance-based subsetting is reproducible", {
     verbose = FALSE
   )
   
-  filtered2 <- TSENAT::filter_analysis_s4(
+  filtered2 <- TSENAT::filter_analysis(
     analysis2,
     min_tpm = 1,
     min_samples = 1,
@@ -357,13 +357,13 @@ test_that("filter_analysis_s4 variance-based subsetting is reproducible", {
 # TEST GROUP 4: Combined Filtering + Subsetting Reproducibility
 # ===========================================================================
 
-test_that("filter_analysis_s4 combined filtering and subsetting is reproducible", {
+test_that("filter_analysis combined filtering and subsetting is reproducible", {
   
   analysis1 <- make_test_tsenat_for_filter(n_genes = 25, n_samples = 8, seed = 1000)
   analysis2 <- make_test_tsenat_for_filter(n_genes = 25, n_samples = 8, seed = 1000)
   
   # Apply both filtering and subsetting
-  filtered1 <- TSENAT::filter_analysis_s4(
+  filtered1 <- TSENAT::filter_analysis(
     analysis1,
     min_tpm = 3,
     min_samples = 2,
@@ -373,7 +373,7 @@ test_that("filter_analysis_s4 combined filtering and subsetting is reproducible"
     verbose = FALSE
   )
   
-  filtered2 <- TSENAT::filter_analysis_s4(
+  filtered2 <- TSENAT::filter_analysis(
     analysis2,
     min_tpm = 3,
     min_samples = 2,
@@ -392,12 +392,12 @@ test_that("filter_analysis_s4 combined filtering and subsetting is reproducible"
   )
 })
 
-test_that("filter_analysis_s4 different seeds produce different subsets", {
+test_that("filter_analysis different seeds produce different subsets", {
   
   analysis <- make_test_tsenat_for_filter(n_genes = 30, n_samples = 6, seed = 1100)
   
   # Apply subsetting with two different seeds
-  filtered_seed1 <- TSENAT::filter_analysis_s4(
+  filtered_seed1 <- TSENAT::filter_analysis(
     analysis,
     min_tpm = 1,
     min_samples = 1,
@@ -410,7 +410,7 @@ test_that("filter_analysis_s4 different seeds produce different subsets", {
   # Make fresh copy
   analysis_copy <- make_test_tsenat_for_filter(n_genes = 30, n_samples = 6, seed = 1100)
   
-  filtered_seed2 <- TSENAT::filter_analysis_s4(
+  filtered_seed2 <- TSENAT::filter_analysis(
     analysis_copy,
     min_tpm = 1,
     min_samples = 1,
@@ -431,7 +431,7 @@ test_that("filter_analysis_s4 different seeds produce different subsets", {
 # TEST GROUP 5: Data Integrity After Filtering
 # ===========================================================================
 
-test_that("filter_analysis_s4 preserves assay values without modification", {
+test_that("filter_analysis preserves assay values without modification", {
   
   analysis <- make_test_tsenat_for_filter(n_genes = 12, n_samples = 6, seed = 1200)
   
@@ -439,7 +439,7 @@ test_that("filter_analysis_s4 preserves assay values without modification", {
   original_counts <- SummarizedExperiment::assay(analysis@se, "counts")
   
   # Apply filtering
-  filtered <- TSENAT::filter_analysis_s4(
+  filtered <- TSENAT::filter_analysis(
     analysis,
     min_tpm = 2,
     min_samples = 2,
@@ -461,7 +461,7 @@ test_that("filter_analysis_s4 preserves assay values without modification", {
   }
 })
 
-test_that("filter_analysis_s4 maintains sample order and metadata", {
+test_that("filter_analysis maintains sample order and metadata", {
   
   analysis <- make_test_tsenat_for_filter(n_genes = 10, n_samples = 8, seed = 1300)
   
@@ -470,7 +470,7 @@ test_that("filter_analysis_s4 maintains sample order and metadata", {
   original_coldata <- SummarizedExperiment::colData(analysis@se)
   
   # Apply filtering
-  filtered <- TSENAT::filter_analysis_s4(
+  filtered <- TSENAT::filter_analysis(
     analysis,
     min_tpm = 1,
     min_samples = 2,
@@ -494,19 +494,19 @@ test_that("filter_analysis_s4 maintains sample order and metadata", {
 # TEST GROUP 6: Numerical Consistency with Extreme Parameters
 # ===========================================================================
 
-test_that("filter_analysis_s4 with min_tpm=0 is reproducible", {
+test_that("filter_analysis with min_tpm=0 is reproducible", {
   
   analysis1 <- make_test_tsenat_for_filter(n_genes = 8, n_samples = 6, seed = 1400)
   analysis2 <- make_test_tsenat_for_filter(n_genes = 8, n_samples = 6, seed = 1400)
   
-  filtered1 <- TSENAT::filter_analysis_s4(
+  filtered1 <- TSENAT::filter_analysis(
     analysis1,
     min_tpm = 0,
     min_samples = 1,
     verbose = FALSE
   )
   
-  filtered2 <- TSENAT::filter_analysis_s4(
+  filtered2 <- TSENAT::filter_analysis(
     analysis2,
     min_tpm = 0,
     min_samples = 1,
@@ -521,20 +521,20 @@ test_that("filter_analysis_s4 with min_tpm=0 is reproducible", {
   )
 })
 
-test_that("filter_analysis_s4 with strict filtering is reproducible", {
+test_that("filter_analysis with strict filtering is reproducible", {
   
   analysis1 <- make_test_tsenat_for_filter(n_genes = 12, n_samples = 6, seed = 1500)
   analysis2 <- make_test_tsenat_for_filter(n_genes = 12, n_samples = 6, seed = 1500)
   
   # Very strict filtering
-  filtered1 <- TSENAT::filter_analysis_s4(
+  filtered1 <- TSENAT::filter_analysis(
     analysis1,
     min_tpm = 100,
     min_samples = 5,
     verbose = FALSE
   )
   
-  filtered2 <- TSENAT::filter_analysis_s4(
+  filtered2 <- TSENAT::filter_analysis(
     analysis2,
     min_tpm = 100,
     min_samples = 5,
@@ -550,13 +550,13 @@ test_that("filter_analysis_s4 with strict filtering is reproducible", {
 # TEST GROUP 7: Subsetting Selection Methods Reproducibility
 # ===========================================================================
 
-test_that("filter_analysis_s4 mean-based subsetting is reproducible", {
+test_that("filter_analysis mean-based subsetting is reproducible", {
   
   analysis1 <- make_test_tsenat_for_filter(n_genes = 24, n_samples = 6, seed = 1600)
   analysis2 <- make_test_tsenat_for_filter(n_genes = 24, n_samples = 6, seed = 1600)
   
   # Mean-based subsetting is deterministic
-  filtered1 <- TSENAT::filter_analysis_s4(
+  filtered1 <- TSENAT::filter_analysis(
     analysis1,
     min_tpm = 1,
     min_samples = 1,
@@ -565,7 +565,7 @@ test_that("filter_analysis_s4 mean-based subsetting is reproducible", {
     verbose = FALSE
   )
   
-  filtered2 <- TSENAT::filter_analysis_s4(
+  filtered2 <- TSENAT::filter_analysis(
     analysis2,
     min_tpm = 1,
     min_samples = 1,
@@ -583,12 +583,12 @@ test_that("filter_analysis_s4 mean-based subsetting is reproducible", {
 # TEST GROUP 8: Isoform-Level Filtering Reproducibility
 # ===========================================================================
 
-test_that("filter_analysis_s4 with min_isoform_abundance is reproducible", {
+test_that("filter_analysis with min_isoform_abundance is reproducible", {
   
   analysis1 <- make_test_tsenat_for_filter(n_genes = 10, n_samples = 6, seed = 1700)
   analysis2 <- make_test_tsenat_for_filter(n_genes = 10, n_samples = 6, seed = 1700)
   
-  filtered1 <- TSENAT::filter_analysis_s4(
+  filtered1 <- TSENAT::filter_analysis(
     analysis1,
     min_tpm = 1,
     min_samples = 1,
@@ -596,7 +596,7 @@ test_that("filter_analysis_s4 with min_isoform_abundance is reproducible", {
     verbose = FALSE
   )
   
-  filtered2 <- TSENAT::filter_analysis_s4(
+  filtered2 <- TSENAT::filter_analysis(
     analysis2,
     min_tpm = 1,
     min_samples = 1,
@@ -612,12 +612,12 @@ test_that("filter_analysis_s4 with min_isoform_abundance is reproducible", {
   )
 })
 
-test_that("filter_analysis_s4 with min_tx_per_gene is reproducible", {
+test_that("filter_analysis with min_tx_per_gene is reproducible", {
   
   analysis1 <- make_test_tsenat_for_filter(n_genes = 8, n_samples = 6, seed = 1800)
   analysis2 <- make_test_tsenat_for_filter(n_genes = 8, n_samples = 6, seed = 1800)
   
-  filtered1 <- TSENAT::filter_analysis_s4(
+  filtered1 <- TSENAT::filter_analysis(
     analysis1,
     min_tpm = 1,
     min_samples = 1,
@@ -625,7 +625,7 @@ test_that("filter_analysis_s4 with min_tx_per_gene is reproducible", {
     verbose = FALSE
   )
   
-  filtered2 <- TSENAT::filter_analysis_s4(
+  filtered2 <- TSENAT::filter_analysis(
     analysis2,
     min_tpm = 1,
     min_samples = 1,
@@ -644,11 +644,11 @@ test_that("filter_analysis_s4 with min_tx_per_gene is reproducible", {
 # TEST GROUP 9: Filtering Output Structure Consistency
 # ===========================================================================
 
-test_that("filter_analysis_s4 output has valid S4 structure after filtering", {
+test_that("filter_analysis output has valid S4 structure after filtering", {
   
   analysis <- make_test_tsenat_for_filter(n_genes = 10, n_samples = 6, seed = 1900)
   
-  filtered <- TSENAT::filter_analysis_s4(
+  filtered <- TSENAT::filter_analysis(
     analysis,
     min_tpm = 2,
     min_samples = 2,
@@ -670,12 +670,12 @@ test_that("filter_analysis_s4 output has valid S4 structure after filtering", {
   expect_true(length(SummarizedExperiment::assays(filtered@se)) > 0)
 })
 
-test_that("filter_analysis_s4 maintains config across filtering", {
+test_that("filter_analysis maintains config across filtering", {
   
   analysis <- make_test_tsenat_for_filter(n_genes = 8, n_samples = 6, seed = 2000)
   analysis@config <- list(param1 = "value1", param2 = 42)
   
-  filtered <- TSENAT::filter_analysis_s4(
+  filtered <- TSENAT::filter_analysis(
     analysis,
     min_tpm = 1,
     min_samples = 2,
@@ -691,7 +691,7 @@ test_that("filter_analysis_s4 maintains config across filtering", {
 # TEST GROUP 10: Multiple min_tpm/min_samples Combinations
 # ===========================================================================
 
-test_that("filter_analysis_s4 with various min_tpm thresholds is reproducible", {
+test_that("filter_analysis with various min_tpm thresholds is reproducible", {
   
   test_tpm_values <- c(0.5, 1, 2, 5, 10)
   results_first_run <- list()
@@ -701,14 +701,14 @@ test_that("filter_analysis_s4 with various min_tpm thresholds is reproducible", 
     analysis1 <- make_test_tsenat_for_filter(n_genes = 12, n_samples = 6, seed = 2100)
     analysis2 <- make_test_tsenat_for_filter(n_genes = 12, n_samples = 6, seed = 2100)
     
-    filtered1 <- TSENAT::filter_analysis_s4(
+    filtered1 <- TSENAT::filter_analysis(
       analysis1,
       min_tpm = tpm_val,
       min_samples = 2,
       verbose = FALSE
     )
     
-    filtered2 <- TSENAT::filter_analysis_s4(
+    filtered2 <- TSENAT::filter_analysis(
       analysis2,
       min_tpm = tpm_val,
       min_samples = 2,
@@ -727,7 +727,7 @@ test_that("filter_analysis_s4 with various min_tpm thresholds is reproducible", 
   expect_true(length(results_first_run) > 0)
 })
 
-test_that("filter_analysis_s4 with various min_samples values is reproducible", {
+test_that("filter_analysis with various min_samples values is reproducible", {
   
   test_samples_values <- c(1L, 2L, 3L, 4L, 5L)
   
@@ -735,14 +735,14 @@ test_that("filter_analysis_s4 with various min_samples values is reproducible", 
     analysis1 <- make_test_tsenat_for_filter(n_genes = 10, n_samples = 6, seed = 2200)
     analysis2 <- make_test_tsenat_for_filter(n_genes = 10, n_samples = 6, seed = 2200)
     
-    filtered1 <- TSENAT::filter_analysis_s4(
+    filtered1 <- TSENAT::filter_analysis(
       analysis1,
       min_tpm = 1,
       min_samples = min_samp,
       verbose = FALSE
     )
     
-    filtered2 <- TSENAT::filter_analysis_s4(
+    filtered2 <- TSENAT::filter_analysis(
       analysis2,
       min_tpm = 1,
       min_samples = min_samp,
@@ -755,7 +755,7 @@ test_that("filter_analysis_s4 with various min_samples values is reproducible", 
   }
 })
 
-test_that("filter_analysis_s4 with combined min_tpm and min_samples variations is reproducible", {
+test_that("filter_analysis with combined min_tpm and min_samples variations is reproducible", {
   
   param_combinations <- list(
     list(tpm = 0.5, samples = 1L),
@@ -769,14 +769,14 @@ test_that("filter_analysis_s4 with combined min_tpm and min_samples variations i
     analysis1 <- make_test_tsenat_for_filter(n_genes = 15, n_samples = 8, seed = 2300)
     analysis2 <- make_test_tsenat_for_filter(n_genes = 15, n_samples = 8, seed = 2300)
     
-    filtered1 <- TSENAT::filter_analysis_s4(
+    filtered1 <- TSENAT::filter_analysis(
       analysis1,
       min_tpm = combo$tpm,
       min_samples = combo$samples,
       verbose = FALSE
     )
     
-    filtered2 <- TSENAT::filter_analysis_s4(
+    filtered2 <- TSENAT::filter_analysis(
       analysis2,
       min_tpm = combo$tpm,
       min_samples = combo$samples,
@@ -792,7 +792,7 @@ test_that("filter_analysis_s4 with combined min_tpm and min_samples variations i
 # TEST GROUP 11: min_tx_per_gene Combinations
 # ===========================================================================
 
-test_that("filter_analysis_s4 with various min_tx_per_gene values is reproducible", {
+test_that("filter_analysis with various min_tx_per_gene values is reproducible", {
   
   test_tx_values <- c(1L, 2L, 3L, 4L, 5L)
   
@@ -800,7 +800,7 @@ test_that("filter_analysis_s4 with various min_tx_per_gene values is reproducibl
     analysis1 <- make_test_tsenat_for_filter(n_genes = 10, n_samples = 6, seed = 2400)
     analysis2 <- make_test_tsenat_for_filter(n_genes = 10, n_samples = 6, seed = 2400)
     
-    filtered1 <- TSENAT::filter_analysis_s4(
+    filtered1 <- TSENAT::filter_analysis(
       analysis1,
       min_tpm = 1,
       min_samples = 1,
@@ -808,7 +808,7 @@ test_that("filter_analysis_s4 with various min_tx_per_gene values is reproducibl
       verbose = FALSE
     )
     
-    filtered2 <- TSENAT::filter_analysis_s4(
+    filtered2 <- TSENAT::filter_analysis(
       analysis2,
       min_tpm = 1,
       min_samples = 1,
@@ -821,12 +821,12 @@ test_that("filter_analysis_s4 with various min_tx_per_gene values is reproducibl
   }
 })
 
-test_that("filter_analysis_s4 with min_tx_per_gene and other filters combined is reproducible", {
+test_that("filter_analysis with min_tx_per_gene and other filters combined is reproducible", {
   
   analysis1 <- make_test_tsenat_for_filter(n_genes = 15, n_samples = 8, seed = 2500)
   analysis2 <- make_test_tsenat_for_filter(n_genes = 15, n_samples = 8, seed = 2500)
   
-  filtered1 <- TSENAT::filter_analysis_s4(
+  filtered1 <- TSENAT::filter_analysis(
     analysis1,
     min_tpm = 2,
     min_samples = 3,
@@ -834,7 +834,7 @@ test_that("filter_analysis_s4 with min_tx_per_gene and other filters combined is
     verbose = FALSE
   )
   
-  filtered2 <- TSENAT::filter_analysis_s4(
+  filtered2 <- TSENAT::filter_analysis(
     analysis2,
     min_tpm = 2,
     min_samples = 3,
@@ -853,12 +853,12 @@ test_that("filter_analysis_s4 with min_tx_per_gene and other filters combined is
 # TEST GROUP 12: Sample Subsetting Reproducibility
 # ===========================================================================
 
-test_that("filter_analysis_s4 with subset_n_samples is reproducible", {
+test_that("filter_analysis with subset_n_samples is reproducible", {
   
   analysis1 <- make_test_tsenat_for_filter(n_genes = 10, n_samples = 10, seed = 2600)
   analysis2 <- make_test_tsenat_for_filter(n_genes = 10, n_samples = 10, seed = 2600)
   
-  filtered1 <- TSENAT::filter_analysis_s4(
+  filtered1 <- TSENAT::filter_analysis(
     analysis1,
     min_tpm = 1,
     min_samples = 1,
@@ -867,7 +867,7 @@ test_that("filter_analysis_s4 with subset_n_samples is reproducible", {
     verbose = FALSE
   )
   
-  filtered2 <- TSENAT::filter_analysis_s4(
+  filtered2 <- TSENAT::filter_analysis(
     analysis2,
     min_tpm = 1,
     min_samples = 1,
@@ -883,11 +883,11 @@ test_that("filter_analysis_s4 with subset_n_samples is reproducible", {
   expect_equal(colnames(filtered1@se), colnames(filtered2@se))
 })
 
-test_that("filter_analysis_s4 with subset_n_samples different seeds produce different samples", {
+test_that("filter_analysis with subset_n_samples different seeds produce different samples", {
   
   analysis <- make_test_tsenat_for_filter(n_genes = 10, n_samples = 10, seed = 2700)
   
-  filtered_seed1 <- TSENAT::filter_analysis_s4(
+  filtered_seed1 <- TSENAT::filter_analysis(
     analysis,
     min_tpm = 1,
     min_samples = 1,
@@ -898,7 +898,7 @@ test_that("filter_analysis_s4 with subset_n_samples different seeds produce diff
   
   analysis_copy <- make_test_tsenat_for_filter(n_genes = 10, n_samples = 10, seed = 2700)
   
-  filtered_seed2 <- TSENAT::filter_analysis_s4(
+  filtered_seed2 <- TSENAT::filter_analysis(
     analysis_copy,
     min_tpm = 1,
     min_samples = 1,
@@ -916,12 +916,12 @@ test_that("filter_analysis_s4 with subset_n_samples different seeds produce diff
 # TEST GROUP 13: Combining Genes and Samples Subsetting
 # ===========================================================================
 
-test_that("filter_analysis_s4 with both subset_n_genes and subset_n_samples is reproducible", {
+test_that("filter_analysis with both subset_n_genes and subset_n_samples is reproducible", {
   
   analysis1 <- make_test_tsenat_for_filter(n_genes = 20, n_samples = 10, seed = 2800)
   analysis2 <- make_test_tsenat_for_filter(n_genes = 20, n_samples = 10, seed = 2800)
   
-  filtered1 <- TSENAT::filter_analysis_s4(
+  filtered1 <- TSENAT::filter_analysis(
     analysis1,
     min_tpm = 1,
     min_samples = 1,
@@ -931,7 +931,7 @@ test_that("filter_analysis_s4 with both subset_n_genes and subset_n_samples is r
     verbose = FALSE
   )
   
-  filtered2 <- TSENAT::filter_analysis_s4(
+  filtered2 <- TSENAT::filter_analysis(
     analysis2,
     min_tpm = 1,
     min_samples = 1,
@@ -956,12 +956,12 @@ test_that("filter_analysis_s4 with both subset_n_genes and subset_n_samples is r
 # TEST GROUP 14: Isoform Abundance with Other Parameters
 # ===========================================================================
 
-test_that("filter_analysis_s4 with min_isoform_abundance and other parameters is reproducible", {
+test_that("filter_analysis with min_isoform_abundance and other parameters is reproducible", {
   
   analysis1 <- make_test_tsenat_for_filter(n_genes = 12, n_samples = 6, seed = 2900)
   analysis2 <- make_test_tsenat_for_filter(n_genes = 12, n_samples = 6, seed = 2900)
   
-  filtered1 <- TSENAT::filter_analysis_s4(
+  filtered1 <- TSENAT::filter_analysis(
     analysis1,
     min_tpm = 1,
     min_samples = 2,
@@ -970,7 +970,7 @@ test_that("filter_analysis_s4 with min_isoform_abundance and other parameters is
     verbose = FALSE
   )
   
-  filtered2 <- TSENAT::filter_analysis_s4(
+  filtered2 <- TSENAT::filter_analysis(
     analysis2,
     min_tpm = 1,
     min_samples = 2,
@@ -986,7 +986,7 @@ test_that("filter_analysis_s4 with min_isoform_abundance and other parameters is
   )
 })
 
-test_that("filter_analysis_s4 with different isoform_abundance thresholds is reproducible", {
+test_that("filter_analysis with different isoform_abundance thresholds is reproducible", {
   
   test_abund_values <- c(0.01, 0.05, 0.1, 0.2)
   
@@ -994,7 +994,7 @@ test_that("filter_analysis_s4 with different isoform_abundance thresholds is rep
     analysis1 <- make_test_tsenat_for_filter(n_genes = 10, n_samples = 6, seed = 3000)
     analysis2 <- make_test_tsenat_for_filter(n_genes = 10, n_samples = 6, seed = 3000)
     
-    filtered1 <- TSENAT::filter_analysis_s4(
+    filtered1 <- TSENAT::filter_analysis(
       analysis1,
       min_tpm = 1,
       min_samples = 1,
@@ -1002,7 +1002,7 @@ test_that("filter_analysis_s4 with different isoform_abundance thresholds is rep
       verbose = FALSE
     )
     
-    filtered2 <- TSENAT::filter_analysis_s4(
+    filtered2 <- TSENAT::filter_analysis(
       analysis2,
       min_tpm = 1,
       min_samples = 1,
@@ -1019,7 +1019,7 @@ test_that("filter_analysis_s4 with different isoform_abundance thresholds is rep
 # TEST GROUP 15: Complex Multi-Parameter Combinations
 # ===========================================================================
 
-test_that("filter_analysis_s4 with complex parameter combinations is reproducible", {
+test_that("filter_analysis with complex parameter combinations is reproducible", {
   
   complex_params <- list(
     list(min_tpm = 1, min_samples = 2, min_tx_per_gene = 2, min_isoform_abundance = 0.05),
@@ -1034,7 +1034,7 @@ test_that("filter_analysis_s4 with complex parameter combinations is reproducibl
     analysis1 <- make_test_tsenat_for_filter(n_genes = 15, n_samples = 8, seed = 3100 + i)
     analysis2 <- make_test_tsenat_for_filter(n_genes = 15, n_samples = 8, seed = 3100 + i)
     
-    filtered1 <- TSENAT::filter_analysis_s4(
+    filtered1 <- TSENAT::filter_analysis(
       analysis1,
       min_tpm = params$min_tpm,
       min_samples = params$min_samples,
@@ -1043,7 +1043,7 @@ test_that("filter_analysis_s4 with complex parameter combinations is reproducibl
       verbose = FALSE
     )
     
-    filtered2 <- TSENAT::filter_analysis_s4(
+    filtered2 <- TSENAT::filter_analysis(
       analysis2,
       min_tpm = params$min_tpm,
       min_samples = params$min_samples,
@@ -1064,19 +1064,19 @@ test_that("filter_analysis_s4 with complex parameter combinations is reproducibl
 # TEST GROUP 16: Edge Cases and Boundary Conditions
 # ===========================================================================
 
-test_that("filter_analysis_s4 with very small dataset is reproducible", {
+test_that("filter_analysis with very small dataset is reproducible", {
   
   analysis1 <- make_test_tsenat_for_filter(n_genes = 2, n_samples = 3, seed = 3200)
   analysis2 <- make_test_tsenat_for_filter(n_genes = 2, n_samples = 3, seed = 3200)
   
-  filtered1 <- TSENAT::filter_analysis_s4(
+  filtered1 <- TSENAT::filter_analysis(
     analysis1,
     min_tpm = 0.1,
     min_samples = 1,
     verbose = FALSE
   )
   
-  filtered2 <- TSENAT::filter_analysis_s4(
+  filtered2 <- TSENAT::filter_analysis(
     analysis2,
     min_tpm = 0.1,
     min_samples = 1,
@@ -1086,20 +1086,20 @@ test_that("filter_analysis_s4 with very small dataset is reproducible", {
   expect_equal(nrow(filtered1@se), nrow(filtered2@se))
 })
 
-test_that("filter_analysis_s4 with filtering that removes many transcripts is reproducible", {
+test_that("filter_analysis with filtering that removes many transcripts is reproducible", {
   
   analysis1 <- make_test_tsenat_for_filter(n_genes = 20, n_samples = 6, seed = 3300)
   analysis2 <- make_test_tsenat_for_filter(n_genes = 20, n_samples = 6, seed = 3300)
   
   # Very strict filtering
-  filtered1 <- TSENAT::filter_analysis_s4(
+  filtered1 <- TSENAT::filter_analysis(
     analysis1,
     min_tpm = 50,
     min_samples = 5,
     verbose = FALSE
   )
   
-  filtered2 <- TSENAT::filter_analysis_s4(
+  filtered2 <- TSENAT::filter_analysis(
     analysis2,
     min_tpm = 50,
     min_samples = 5,
@@ -1110,13 +1110,13 @@ test_that("filter_analysis_s4 with filtering that removes many transcripts is re
   expect_equal(nrow(filtered1@se), nrow(filtered2@se))
 })
 
-test_that("filter_analysis_s4 chained subsetting operations is reproducible", {
+test_that("filter_analysis chained subsetting operations is reproducible", {
   
   analysis1 <- make_test_tsenat_for_filter(n_genes = 30, n_samples = 10, seed = 3400)
   analysis2 <- make_test_tsenat_for_filter(n_genes = 30, n_samples = 10, seed = 3400)
   
   # Chain with multiple subsetting operations
-  filtered1 <- TSENAT::filter_analysis_s4(
+  filtered1 <- TSENAT::filter_analysis(
     analysis1,
     min_tpm = 1,
     min_samples = 1,
@@ -1127,7 +1127,7 @@ test_that("filter_analysis_s4 chained subsetting operations is reproducible", {
     verbose = FALSE
   )
   
-  filtered2 <- TSENAT::filter_analysis_s4(
+  filtered2 <- TSENAT::filter_analysis(
     analysis2,
     min_tpm = 1,
     min_samples = 1,
@@ -1176,7 +1176,7 @@ test_that("filter_analysis modifies SE in analysis object", {
   analysis <- TSENATAnalysis(se)
   
   # Apply filtering
-  filtered_analysis <- filter_analysis_s4(analysis, stringency = "severe", verbose = FALSE)
+  filtered_analysis <- filter_analysis(analysis, stringency = "severe", verbose = FALSE)
   
   # Check that analysis is returned
   expect_true(inherits(filtered_analysis, "TSENATAnalysis"))
@@ -1195,7 +1195,7 @@ test_that("filter_analysis preserves colData", {
   SummarizedExperiment::colData(se) <- coldata
   
   analysis <- TSENATAnalysis(se)
-  filtered_analysis <- filter_analysis_s4(analysis, stringency = "soft", verbose = FALSE)
+  filtered_analysis <- filter_analysis(analysis, stringency = "soft", verbose = FALSE)
   
   # colData should preserve original columns (sample_id is added by constructor)
   filtered_coldata <- SummarizedExperiment::colData(filtered_analysis@se)
@@ -1210,7 +1210,7 @@ test_that("filter_analysis validates input type", {
   bad_input <- "not_an_analysis"
   
   expect_error(
-    filter_analysis_s4(bad_input),
+    filter_analysis(bad_input),
     "TSENATAnalysis"
   )
 })
@@ -1226,7 +1226,7 @@ test_that("filter_analysis accepts stringency parameter", {
   
   # Test different stringency levels
   for (stringency in c("soft", "medium", "severe")) {
-    result <- filter_analysis_s4(analysis, stringency = stringency, verbose = FALSE)
+    result <- filter_analysis(analysis, stringency = stringency, verbose = FALSE)
     expect_true(inherits(result, "TSENATAnalysis"))
   }
 })

@@ -116,18 +116,11 @@
 #' divergence computation and properties across q-parameters. q-parameter
 #' effects
 #'   on divergence magnitude are theoretically grounded (q_weight = 0.5 + q).
-#' - **S063-S067** (Power analysis): Empirical validation of divergence-based
-#' statistical power. Bootstrap methodology confirmed to maintain Type I
-#' error control.
 #' - **Ramsay (2005), Springer Series in Statistics, Li (2023), R Package 'hillR', S018, S030** (Bootstrap methodology): Percentile and BCa
 #' bootstrap
 #' performance validated. Coverage probabilities for entropy/divergence
 #' estimates
 #'   confirmed with confidence level >= 0.95 using nboot >= 500.
-#' - **I004** (Validation study): Explicit validation of divergence computation
-#' showing different q-parameters produce different divergence values
-#' reflecting
-#'   different aspects of distribution differences.
 #'
 #' This function's implementation (percentile and BCa methods) aligns with
 #' approaches

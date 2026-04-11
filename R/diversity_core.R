@@ -205,7 +205,8 @@
     verbose = FALSE, show_messages = FALSE, q = 2, what = c("S", "D"), nthreads = 1,
     pseudocount = 0, min_valid_frac = 0.75, shrinkage = "none", effective_length = NULL,
     metadata = NULL, bootstrap = FALSE, bootstrap_nboot = NULL, bootstrap_method = "percentile",
-    bootstrap_ci = 0.95, bootstrap_include_diagnostics = TRUE) {
+    bootstrap_ci = 0.95, bootstrap_include_diagnostics = TRUE, sample_col = "sample",
+    condition_col = NULL, subject_col = NULL) {
 
     # Store original input and validate parameters
     original_x <- x
@@ -241,7 +242,8 @@
 
     # Build and return SummarizedExperiment
     .build_diversity_se_output(result, output_structure, original_x, se_assay_mat,
-        bootstrap_ci_results, bootstrap, metadata, verbose, what, q, genes)
+        bootstrap_ci_results, bootstrap, metadata, verbose, what, q, genes, sample_col,
+        condition_col, subject_col)
 }
 
 # ============================================================================
@@ -677,7 +679,8 @@
 #' @noRd
 #' @noRd
 .build_diversity_se_output <- function(result, output_structure, original_x, se_assay_mat,
-    bootstrap_ci_results, bootstrap, metadata, verbose, what, q, genes) {
+    bootstrap_ci_results, bootstrap, metadata, verbose, what, q, genes, sample_col = "sample",
+    condition_col = NULL, subject_col = NULL) {
 
     result_assay <- output_structure$result_assay
     filtered_gene_ids <- as.character(result[, 1])
@@ -734,7 +737,8 @@
         colData = output_structure$colData, metadata = result_meta_list)
 
     if (!is.null(metadata)) {
-        result <- .map_metadata_se(result, metadata)
+        result <- .map_metadata_se(result, metadata, sample_col = sample_col,
+            condition_col = condition_col, subject_col = subject_col)
     }
 
     result

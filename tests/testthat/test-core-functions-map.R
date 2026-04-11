@@ -19,7 +19,7 @@ test_that("Exact match maps all samples and preserves order", {
         assays = list(diversity = mat)
     )
 
-    se2 <- TSENAT:::.map_metadata_se(se, coldata)
+    se2 <- TSENAT:::.map_metadata_se(se, coldata, sample_col = "Sample", condition_col = "Condition")
     mapped_base <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(se2)))
     expect_equal(length(mapped_base), length(sample_names))
     expect_equal(mapped_base, sample_names)
@@ -37,7 +37,7 @@ test_that("Reversed coldata reorders SE to follow coldata", {
         assays = list(diversity = mat)
     )
 
-    se2 <- TSENAT:::.map_metadata_se(se, coldata_rev)
+    se2 <- TSENAT:::.map_metadata_se(se, coldata_rev, sample_col = "Sample", condition_col = "Condition")
     mapped_base <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(se2)))
     expect_equal(
         mapped_base[seq_len(nrow(coldata_rev))],
@@ -57,7 +57,7 @@ test_that("Missing sample in coldata triggers error (auto-detected pairing)", {
     )
 
     expect_error(
-        TSENAT:::.map_metadata_se(se, coldata_missing),
+        TSENAT:::.map_metadata_se(se, coldata_missing, sample_col = "Sample", condition_col = "Condition"),
         "unmatched samples in 'coldata'"
     )
 })
@@ -74,7 +74,7 @@ test_that("Missing sample in coldata errors when insufficient columns", {
     )
 
     expect_error(
-        TSENAT:::.map_metadata_se(se, coldata_missing),
+        TSENAT:::.map_metadata_se(se, coldata_missing, sample_col = "Sample", condition_col = "Condition"),
         "unmatched samples in 'coldata'"
     )
 })
@@ -94,7 +94,7 @@ test_that("Extra sample in coldata does not error via auto-detection", {
         assays = list(diversity = mat)
     )
 
-    se2 <- TSENAT:::.map_metadata_se(se, coldata_extra)
+    se2 <- TSENAT:::.map_metadata_se(se, coldata_extra, sample_col = "Sample", condition_col = "Condition")
     expect_equal(
         ncol(SummarizedExperiment::assay(se2)),
         length(cols)
@@ -117,7 +117,7 @@ test_that("Extra sample in coldata does not error when paired is FALSE", {
         assays = list(diversity = mat)
     )
 
-    se2 <- TSENAT:::.map_metadata_se(se, coldata_extra)
+    se2 <- TSENAT:::.map_metadata_se(se, coldata_extra, sample_col = "Sample", condition_col = "Condition")
     expect_equal(
         ncol(SummarizedExperiment::assay(se2)),
         length(cols)
@@ -136,7 +136,7 @@ test_that("Case mismatch in coldata errors (case-sensitive)", {
     )
 
     expect_error(
-        TSENAT:::.map_metadata_se(se, coldata_case),
+        TSENAT:::.map_metadata_se(se, coldata_case, sample_col = "Sample", condition_col = "Condition"),
         "unmatched samples in 'coldata'"
     )
 })
@@ -152,7 +152,7 @@ test_that("SE with extra sample errors due to unmatched sample", {
     )
 
     expect_error(
-        TSENAT:::.map_metadata_se(se, coldata),
+        TSENAT:::.map_metadata_se(se, coldata, sample_col = "Sample", condition_col = "Condition"),
         "unmatched samples in 'coldata'"
     )
 })
@@ -167,7 +167,7 @@ test_that("Multiple q columns are handled and mapped per-sample", {
         assays = list(diversity = mat)
     )
 
-    se2 <- TSENAT:::.map_metadata_se(se, coldata)
+    se2 <- TSENAT:::.map_metadata_se(se, coldata, sample_col = "Sample", condition_col = "Condition")
     mapped_base <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(se2)))
     # each base sample appears twice
     tbl <- table(mapped_base)
@@ -189,13 +189,11 @@ test_that("Non-data.frame coldata is ignored and SE remains unchanged", {
         assays = list(diversity = mat)
     )
 
-    se2 <- TSENAT:::.map_metadata_se(se, named_vec)
-    # mapping should be a no-op because map_coldata_to_se expects a data.frame
-    expect_equal(
-        colnames(SummarizedExperiment::assay(se2)),
-        colnames(SummarizedExperiment::assay(se))
+    # Non-data.frame input should throw an error
+    expect_error(
+        TSENAT:::.map_metadata_se(se, named_vec),
+        "metadata must be a data.frame"
     )
-    expect_null(SummarizedExperiment::colData(se2)$sample_type)
 })
 
 test_that("colData rownames and sample_base are aligned to assay columns", {
@@ -208,7 +206,7 @@ test_that("colData rownames and sample_base are aligned to assay columns", {
         assays = list(diversity = mat)
     )
 
-    se2 <- TSENAT:::.map_metadata_se(se, coldata)
+    se2 <- TSENAT:::.map_metadata_se(se, coldata, sample_col = "Sample", condition_col = "Condition")
     cd <- SummarizedExperiment::colData(se2)
     expect_equal(rownames(cd), colnames(SummarizedExperiment::assay(se2)))
     expect_true("sample_base" %in% colnames(cd))
@@ -236,11 +234,46 @@ test_that("Auto-detection accepts complete pairs with suffix-based pairing", {
         expect_error(force(expr), NA)
     }
 
-    expect_error_free(TSENAT:::.map_metadata_se(se, coldata_small))
+    expect_error_free(TSENAT:::.map_metadata_se(se, coldata_small, sample_col = "Sample", condition_col = "Condition"))
 })
 
-context("Metadata Mapping: Additional Tests")
+test_that("map_metadata warns when only one condition is present", {
+    coldata <- data.frame(
+        Sample = c("S1", "S2", "S3"),
+        Condition = c("control", "control", "control"),
+        stringsAsFactors = FALSE
+    )
+    
+    sample_names <- as.character(coldata$Sample)
+    cols <- paste0(sample_names, "_q=0.1")
+    mat <- matrix(runif(length(cols)), nrow = 1)
+    colnames(mat) <- cols
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(diversity = mat)
+    )
+    
+    # Should warn about only one condition
+    expect_warning(
+        TSENAT:::.map_metadata_se(se, coldata, sample_col = "Sample", condition_col = "Condition"),
+        "Only one condition detected"
+    )
+})
 
+test_that("map_metadata does not warn when multiple conditions are present", {
+    coldata <- toy_coldata  # Has both "Normal" and "Tumor" conditions
+    sample_names <- as.character(coldata$Sample)
+    cols <- paste0(sample_names, "_q=0.1")
+    mat <- matrix(runif(length(cols)), nrow = 1)
+    colnames(mat) <- cols
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(diversity = mat)
+    )
+    
+    # Should NOT warn when multiple conditions are present
+    expect_no_warning(
+        TSENAT:::.map_metadata_se(se, coldata, sample_col = "Sample", condition_col = "Condition")
+    )
+})
 
 test_that("map_tx_to_readcounts assigns rownames when sizes match", {
     rc <- matrix(1:4, nrow = 2)
@@ -340,18 +373,25 @@ test_that("map_metadata handles NULL/invalid coldata and maps sample types + met
     mat <- matrix(1:6, nrow = 3)
     colnames(mat) <- c("S1_q=1", "S2_q=1")
     se <- SummarizedExperiment(assays = SimpleList(diversity = mat))
-    # NULL coldata returns same
-    se2 <- TSENAT:::.map_metadata_se(se, NULL)
-    expect_identical(se2, se)
-    # Less than 2 columns returns same
+    
+    # NULL coldata should throw an error
+    expect_error(
+        TSENAT:::.map_metadata_se(se, NULL),
+        "metadata must be a data.frame"
+    )
+    
+    # Less than 2 columns should throw an error
     bad <- data.frame(A = 1:2)
-    se3 <- TSENAT:::.map_metadata_se(se, bad)
-    expect_identical(se3, se)
+    expect_error(
+        TSENAT:::.map_metadata_se(se, bad),
+        "metadata must have at least 2 columns"
+    )
+    
     # proper mapping: create coldata with Sample and Condition
     coldata <- data.frame(Sample = c("S1", "S2"), Condition = c("N", "T"), stringsAsFactors = FALSE)
     # Note: globalenv() lookups removed for reproducibility
     # readcounts and tx2gene must be explicitly provided or already in SE metadata
-    se4 <- TSENAT:::.map_metadata_se(se, coldata)
+    se4 <- TSENAT:::.map_metadata_se(se, coldata, sample_col = "Sample", condition_col = "Condition")
     expect_true("sample_type" %in% colnames(SummarizedExperiment::colData(se4)))
     expect_true("sample_base" %in% colnames(SummarizedExperiment::colData(se4)))
     md <- S4Vectors::metadata(se4)
@@ -465,60 +505,27 @@ test_that("map_tx_to_readcounts supports custom tx_col and data.frame input", {
 })
 
 test_that("map_metadata with pairing column in coldata validates pairs", {
-    mat <- matrix(1:8, nrow = 2)
-    colnames(mat) <- c("B1_q=1", "B2_q=1", "B1_q=2", "B2_q=2")
+    mat <- matrix(1:12, nrow = 2)
+    # SE data: 4 samples with 3 q-values each = 12 columns
+    colnames(mat) <- c("A_N_q=1", "A_N_q=2", "A_T_q=1", "A_T_q=2", "B_N_q=1", "B_N_q=2")
     se <- SummarizedExperiment(assays = S4Vectors::SimpleList(diversity = mat))
-    # create coldata WITH explicit pairing column (column 3) 
-    # B1 has both conditions, B2 only has N (unpaired)
+    
+    # Create coldata WITH both conditions but pair2 lacks treatment
+    # pair1: complete (has both N and T from individual samples)
+    # pair2: incomplete (only has N)
     coldata <- data.frame(
-        Sample = c("B1", "B1", "B2"), 
-        Condition = c("N", "T", "N"), 
-        pairing = c("pair1", "pair1", "pair2"),
+        Sample = c("A_N", "A_T", "B_N"),
+        Condition = c("normal", "treated", "normal"),
+        pair_id = c("pair1", "pair1", "pair2"),
         stringsAsFactors = FALSE
     )
-    expect_error(TSENAT:::.map_metadata_se(se, coldata), "Unpaired samples found in coldata")
+    
+    # Should error because pair2 only has condition "normal", missing "treated"
+    expect_error(
+        TSENAT:::.map_metadata_se(se, coldata, sample_col = "Sample", condition_col = "Condition", subject_col = "pair_id"), 
+        "Unpaired subjects found"
+    )
 })
-# Tests for tx2gene/txmap environment lookup (lines 148-155)
-context("Metadata Mapping: Environment-Based Transcript Lookups")
-
-test_that("map_metadata finds txmap in parent.frame", {
-    # This test covers environment-based lookup behavior
-    # Note: as of recent changes, .map_metadata_se() no longer looks up txmap from parent.frame
-    # to ensure reproducible, self-contained workflows. This test verifies the function
-    # still works without errors, and that tx2gene metadata is not auto-populated.
-    wrapper_func <- function() {
-        # Define txmap in this function's environment
-        txmap <- data.frame(
-            transcript_id = c("t1", "t2", "t3"),
-            gene_id = c("g1", "g1", "g2"),
-            stringsAsFactors = FALSE
-        )
-        
-        coldata <- data.frame(
-            Sample = c("S1", "S2"),
-            Condition = c("A", "B"),
-            stringsAsFactors = FALSE
-        )
-        
-        mat <- matrix(rnorm(4), nrow = 2)
-        colnames(mat) <- c("S1_q=0.5", "S2_q=0.5")
-        se <- SummarizedExperiment(assays = S4Vectors::SimpleList(assay1 = mat))
-        
-        # Call map_metadata - function runs without error
-        result <- TSENAT:::.map_metadata_se(se, coldata)
-        
-        # Verify that function completed successfully
-        expect_true(inherits(result, "SummarizedExperiment"))
-        
-        # Verify that tx2gene is NOT automatically populated from parent frame
-        # (this behavior was deliberately removed for reproducibility)
-        md <- S4Vectors::metadata(result)
-        expect_true(is.null(md$tx2gene) || is.na(md$tx2gene))
-    }
-    wrapper_func()
-})
-
-# REMOVED: globalenv() lookup tests eliminated for reproducibility
 
 test_that("map_metadata with no tx2gene/txmap leaves metadata tx2gene NULL", {
     # When neither tx2gene nor txmap exist, tx2gene should remain NULL
@@ -532,7 +539,7 @@ test_that("map_metadata with no tx2gene/txmap leaves metadata tx2gene NULL", {
     colnames(mat) <- c("S1_q=0.5", "S2_q=0.5")
     se <- SummarizedExperiment(assays = S4Vectors::SimpleList(assay1 = mat))
     
-    result <- TSENAT:::.map_metadata_se(se, coldata)
+    result <- TSENAT:::.map_metadata_se(se, coldata, sample_col = "Sample", condition_col = "Condition")
     
     # Verify that tx2gene was not set (remains NULL)
     md <- S4Vectors::metadata(result)
@@ -556,7 +563,7 @@ test_that("map_metadata creates paired_samples column from third column of colda
     colnames(mat) <- paste0(c("SRR_001", "SRR_002", "SRR_003", "SRR_004"), "_q=0.5")
     se <- SummarizedExperiment(assays = S4Vectors::SimpleList(diversity = mat))
     
-    result <- TSENAT:::.map_metadata_se(se, coldata)
+    result <- TSENAT:::.map_metadata_se(se, coldata, sample_col = "Sample", condition_col = "Condition")
     cd <- colData(result)
     
     # Verify paired_samples column exists
@@ -581,7 +588,7 @@ test_that("map_metadata preserves paired_samples column name from metadata", {
     colnames(mat) <- paste0(c("S1", "S2", "S3", "S4"), "_q=1.0")
     se <- SummarizedExperiment(assays = S4Vectors::SimpleList(diversity = mat))
     
-    result <- TSENAT:::.map_metadata_se(se, coldata)
+    result <- TSENAT:::.map_metadata_se(se, coldata, sample_col = "Sample", condition_col = "Condition")
     cd <- colData(result)
     
     # Verify the pairing column exists with the original name
@@ -615,7 +622,7 @@ test_that("map_metadata maps paired_samples correctly with multiple q values", {
     colnames(mat) <- cols
     se <- SummarizedExperiment(assays = S4Vectors::SimpleList(diversity = mat))
     
-    result <- TSENAT:::.map_metadata_se(se, coldata)
+    result <- TSENAT:::.map_metadata_se(se, coldata, sample_col = "Sample", condition_col = "Condition")
     cd <- colData(result)
     
     # Verify paired_samples is repeated correctly for each q value
@@ -632,7 +639,7 @@ test_that("map_metadata maps paired_samples correctly with multiple q values", {
 })
 
 test_that("map_metadata validates pairing structure when third column present", {
-    # Create incomplete pairing (pair A missing treatment)
+    # Create incomplete pairing (pair1 missing treatment condition)
     coldata_bad <- data.frame(
         Sample = c("S1", "S2", "S3"),
         Condition = c("control", "control", "treated"),
@@ -644,10 +651,10 @@ test_that("map_metadata validates pairing structure when third column present", 
     colnames(mat) <- paste0(c("S1", "S2", "S3"), "_q=0.5")
     se <- SummarizedExperiment(assays = S4Vectors::SimpleList(diversity = mat))
     
-    # Should error because pair1 lacks both conditions
+    # Should error because pair1 lacks both conditions (S1 and S2 both have "control")
     expect_error(
-        TSENAT:::.map_metadata_se(se, coldata_bad),
-        "Unpaired samples found in coldata"
+        TSENAT:::.map_metadata_se(se, coldata_bad, sample_col = "Sample", condition_col = "Condition", subject_col = "paired_id"),
+        "Unpaired subjects found"
     )
 })
 
@@ -663,7 +670,7 @@ test_that("map_metadata without third column creates sample_base from suffix", {
     colnames(mat) <- paste0(c("SRR_001", "SRR_002", "SRR_003", "SRR_004"), "_q=0.5")
     se <- SummarizedExperiment(assays = S4Vectors::SimpleList(diversity = mat))
     
-    result <- TSENAT:::.map_metadata_se(se, coldata)
+    result <- TSENAT:::.map_metadata_se(se, coldata, sample_col = "Sample", condition_col = "Condition")
     cd <- colData(result)
     
     # paired_samples should not exist (no third column)
@@ -695,7 +702,7 @@ test_that("map_metadata expands colData correctly with paired_samples", {
     colnames(mat) <- cols
     se <- SummarizedExperiment::SummarizedExperiment(assays = S4Vectors::SimpleList(diversity = mat))
     
-    result <- TSENAT:::.map_metadata_se(se, coldata)
+    result <- TSENAT:::.map_metadata_se(se, coldata, sample_col = "Sample", condition_col = "Condition")
     cd <- colData(result)
     
     # Verify expanded dimensions
@@ -731,7 +738,7 @@ test_that("map_metadata with metadata.tsv structure works", {
     colnames(mat) <- paste0(c("SRR14800481", "SRR14800479", "SRR14800480", "SRR14800478"), "_q=1.0")
     se <- SummarizedExperiment(assays = S4Vectors::SimpleList(diversity = mat))
     
-    result <- TSENAT:::.map_metadata_se(se, coldata)
+    result <- TSENAT:::.map_metadata_se(se, coldata, sample_col = "Sample", condition_col = "condition")
     cd <- colData(result)
     
     # Verify sample_type mapped correctly

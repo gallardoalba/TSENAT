@@ -1,7 +1,7 @@
 # Test coverage for medium-priority functions
-# Covers: .plot_lm_interaction_gam(updated), .plot_multiq_delta_influence_heatmaps(45)
+# Covers: .plot_lm_gam(updated), .plot_jis_delta(45)
 
-context("plot_lm_interaction_gam_s4: S4 wrapper for GAM-based interaction visualization")
+context("plot_lm_gam: S4 wrapper for GAM-based interaction visualization")
 library(SummarizedExperiment)
 library(testthat)
 library(ggplot2)
@@ -9,7 +9,7 @@ library(ggplot2)
 
 
 
-test_that("plot_lm_interaction_gam_s4: requires LM interaction results", {
+test_that("plot_lm_gam: requires LM interaction results", {
   skip_if_not_installed("SummarizedExperiment")
   
   set.seed(123)
@@ -27,12 +27,12 @@ test_that("plot_lm_interaction_gam_s4: requires LM interaction results", {
   
   # Should error when no LM results
   expect_error(
-    TSENAT::plot_lm_interaction_gam_s4(analysis),
+    TSENAT::plot_lm_gam(analysis),
     regex = "No LM interaction results"
   )
 })
 
-test_that("plot_lm_interaction_gam_s4: requires diversity results", {
+test_that("plot_lm_gam: requires diversity results", {
   skip_if_not_installed("SummarizedExperiment")
   
   set.seed(124)
@@ -51,20 +51,20 @@ test_that("plot_lm_interaction_gam_s4: requires diversity results", {
   # Should error if diversity_results is empty
   if (length(analysis@diversity_results) == 0) {
     expect_error(
-      TSENAT::plot_lm_interaction_gam_s4(analysis),
+      TSENAT::plot_lm_gam(analysis),
       regex = "No diversity results"
     )
   } else {
     # If test setup includes diversity, function should work or return error gracefully
     result <- tryCatch(
-      TSENAT::plot_lm_interaction_gam_s4(analysis),
+      TSENAT::plot_lm_gam(analysis),
       error = function(e) NULL
     )
     expect_true(is.null(result) || inherits(result, "ggplot") || is.list(result))
   }
 })
 
-test_that("plot_lm_interaction_gam_s4: auto-detects condition column", {
+test_that("plot_lm_gam: auto-detects condition column", {
   skip_if_not_installed("SummarizedExperiment")
   
   set.seed(125)
@@ -81,14 +81,14 @@ test_that("plot_lm_interaction_gam_s4: auto-detects condition column", {
   
   # Should work with auto-detection if colData has standard columns
   result <- tryCatch(
-    TSENAT::plot_lm_interaction_gam_s4(analysis),
+    TSENAT::plot_lm_gam(analysis),
     error = function(e) NULL
   )
   
   expect_true(is.null(result) || inherits(result, "ggplot") || is.list(result))
 })
 
-test_that("plot_lm_interaction_gam_s4: handles n_top parameter", {
+test_that("plot_lm_gam: handles n_top parameter", {
   skip_if_not_installed("SummarizedExperiment")
   
   set.seed(126)
@@ -106,16 +106,16 @@ test_that("plot_lm_interaction_gam_s4: handles n_top parameter", {
   # Test with different n_top values
   for (n in c(1, 3, 5)) {
     result <- tryCatch(
-      TSENAT::plot_lm_interaction_gam_s4(analysis, n_top = n),
+      TSENAT::plot_lm_gam(analysis, n_top = n),
       error = function(e) NULL
     )
     expect_true(is.null(result) || inherits(result, "ggplot") || is.list(result))
   }
 })
 
-context("plot_multiq_delta_influence_heatmaps: Multi-q heatmap comparison")
+context("plot_jis_delta: Multi-q heatmap comparison")
 
-test_that("plot_multiq_delta_influence_heatmaps: class validation", {
+test_that("plot_jis_delta: class validation", {
   config <- list()
   
   # Mock result class
@@ -127,7 +127,7 @@ test_that("plot_multiq_delta_influence_heatmaps: class validation", {
   expect_true(inherits(switching_results, "tsenat_isoform_switching_multiq"))
 })
 
-test_that("plot_multiq_delta_influence_heatmaps: q_result_keys extraction", {
+test_that("plot_jis_delta: q_result_keys extraction", {
   config <- list()
   
   switching_results <- list(
@@ -141,7 +141,7 @@ test_that("plot_multiq_delta_influence_heatmaps: q_result_keys extraction", {
   expect_equal(length(q_result_keys), 3)
 })
 
-test_that("plot_multiq_delta_influence_heatmaps: gene ID extraction", {
+test_that("plot_jis_delta: gene ID extraction", {
   config <- list()
   
   first_result <- list(
@@ -154,7 +154,7 @@ test_that("plot_multiq_delta_influence_heatmaps: gene ID extraction", {
   expect_equal(length(gene_ids), 3)
 })
 
-test_that("plot_multiq_delta_influence_heatmaps: top N genes selection", {
+test_that("plot_jis_delta: top N genes selection", {
   config <- list()
   
   gene_ids <- c("g1", "g2", "g3", "g4", "g5")
@@ -165,7 +165,7 @@ test_that("plot_multiq_delta_influence_heatmaps: top N genes selection", {
   expect_equal(length(top_genes), 4)
 })
 
-test_that("plot_multiq_delta_influence_heatmaps: lm_results integration", {
+test_that("plot_jis_delta: lm_results integration", {
   config <- list()
   
   lm_results <- data.frame(
@@ -176,7 +176,7 @@ test_that("plot_multiq_delta_influence_heatmaps: lm_results integration", {
   expect_true("gene_id" %in% colnames(lm_results))
 })
 
-test_that("plot_multiq_delta_influence_heatmaps: p-value ranking", {
+test_that("plot_jis_delta: p-value ranking", {
   config <- list()
   
   gene_ids <- c("g1", "g2", "g3", "g4")
@@ -188,7 +188,7 @@ test_that("plot_multiq_delta_influence_heatmaps: p-value ranking", {
   expect_equal(top_genes, c("g2", "g3"))
 })
 
-test_that("plot_multiq_delta_influence_heatmaps: q-value string parsing", {
+test_that("plot_jis_delta: q-value string parsing", {
   config <- list()
   
   q_key <- "q_0_01"
@@ -197,7 +197,7 @@ test_that("plot_multiq_delta_influence_heatmaps: q-value string parsing", {
   expect_equal(q_str, "0.01")
 })
 
-test_that("plot_multiq_delta_influence_heatmaps: delta_influence extraction", {
+test_that("plot_jis_delta: delta_influence extraction", {
   config <- list()
   
   delta_vals <- c(0.1, 0.05, 0.15, 0.08)
@@ -205,7 +205,7 @@ test_that("plot_multiq_delta_influence_heatmaps: delta_influence extraction", {
   expect_equal(length(delta_vals), 4)
 })
 
-test_that("plot_multiq_delta_influence_heatmaps: Inf/NaN handling", {
+test_that("plot_jis_delta: Inf/NaN handling", {
   config <- list()
   
   delta_vals <- c(0.1, Inf, 0.05, NaN, 0.12)
@@ -214,7 +214,7 @@ test_that("plot_multiq_delta_influence_heatmaps: Inf/NaN handling", {
   expect_true(all(is.na(delta_vals[c(2, 4)])))
 })
 
-test_that("plot_multiq_delta_influence_heatmaps: transcript ID tracking", {
+test_that("plot_jis_delta: transcript ID tracking", {
   config <- list()
   
   transcript_ids <- c("ENST001", "ENST002", "ENST003")
@@ -227,7 +227,7 @@ test_that("plot_multiq_delta_influence_heatmaps: transcript ID tracking", {
   expect_equal(nrow(heatmap_data), 3)
 })
 
-test_that("plot_multiq_delta_influence_heatmaps: gene name lookup", {
+test_that("plot_jis_delta: gene name lookup", {
   config <- list()
   
   gene_ids <- c("g1", "g2", "g3")
@@ -239,7 +239,7 @@ test_that("plot_multiq_delta_influence_heatmaps: gene name lookup", {
   expect_equal(gene_name, "TP53")
 })
 
-test_that("plot_multiq_delta_influence_heatmaps: validity tracking", {
+test_that("plot_jis_delta: validity tracking", {
   config <- list()
   
   validity_report <- list(
@@ -251,7 +251,7 @@ test_that("plot_multiq_delta_influence_heatmaps: validity tracking", {
   expect_true("gene_id" %in% names(validity_report))
 })
 
-test_that("plot_multiq_delta_influence_heatmaps: multiple genes iteration", {
+test_that("plot_jis_delta: multiple genes iteration", {
   config <- list()
   
   genes <- c("g1", "g2", "g3")
@@ -262,7 +262,7 @@ test_that("plot_multiq_delta_influence_heatmaps: multiple genes iteration", {
   }
 })
 
-test_that("plot_multiq_delta_influence_heatmaps: across all q-values iteration", {
+test_that("plot_jis_delta: across all q-values iteration", {
   config <- list()
   
   q_result_keys <- c("q_0_5", "q_1_0", "q_1_5")
@@ -272,7 +272,7 @@ test_that("plot_multiq_delta_influence_heatmaps: across all q-values iteration",
   }
 })
 
-test_that("plot_multiq_delta_influence_heatmaps: data alignment validation", {
+test_that("plot_jis_delta: data alignment validation", {
   config <- list()
   
   heatmap_data_row1 <- data.frame(transcript = "t1", q_0_5 = 0.1)

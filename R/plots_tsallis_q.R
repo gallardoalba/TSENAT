@@ -26,9 +26,9 @@
 #' @param lm_res Data frame (optional); gene interaction test results with
 #' `gene` column and
 #'   p-value column. Accepts either:
-#' - Results from `.calculate_lm_interaction()` (has `adj_p_interaction` or
+#' - Results from `.calculate_lm()` (has `adj_p_interaction` or
 #' `p_interaction` columns)
-#' - Results from `.rank_test_q_condition()` (has `adj_p_value` or `p_value`
+#' - Results from `.calculate_rank_test()` (has `adj_p_value` or `p_value`
 #' columns from Friedman/Wilcoxon tests)
 #' If provided (and `gene` is NULL), plots top `n_top` genes ranked by
 #' p-value.
@@ -49,6 +49,14 @@
 #' @param output_file \code{character} or  \code{NULL}.
 #'  Optional file path to save the plot.
 #'   Default: NULL (no file output).
+#' @param dev_width Numeric or NULL; width in inches for the graphics device
+#'   when displaying the plot interactively.
+#'   If specified (along with dev_height), creates a new device with this width.
+#'   Default: NULL (uses current device).
+#' @param dev_height Numeric or NULL; height in inches for the graphics device
+#'   when displaying the plot interactively.
+#'   If specified (along with dev_width), creates a new device with this height.
+#'   Default: NULL (uses current device).
 #'
 #' @return
 #' **Aggregate mode (gene=NULL, lm_res=NULL)**:
@@ -92,7 +100,7 @@
 #' - This function automatically detects these assays and displays bootstrap
 #' confidence interval
 #'   bands instead of IQR. No additional parameter needed.
-#' - For confidence bands to appear, use `calculate_diversity_s4(...,
+#' - For confidence bands to appear, use `calculate_diversity(...,
 #' bootstrap=TRUE, nboot=1000)`
 #'   or appropriate divergence function with bootstrap enabled.
 #'
@@ -101,6 +109,7 @@
 #' @importFrom dplyr filter group_by summarise pull
 #' @importFrom SummarizedExperiment assayNames assay colData rowData
 #' @importFrom tidyr pivot_longer
+#' @importFrom grDevices dev.new
 #'
 #' @examples
 #' # Plot 7: Tsallis entropy q-curve (combined across all sample diversity)
@@ -114,19 +123,27 @@
 #' readcounts <- as.matrix(readcounts)
 #' mode(readcounts) <- 'numeric'
 #' 
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
-#' gff3_dataset, metadata = metadata_df,
+#' # Create configuration (required when metadata is provided)
+#' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
+#' analysis <- build_analysis(readcounts = readcounts, tx2gene =
+#' gff3_dataset, metadata = metadata_df, config = config,
 #'   tpm = tpm, effective_length = effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 #' = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = seq(0.5, 2, by = 0.5),
+#' analysis <- calculate_diversity(analysis, q = seq(0, 2, by = 0.5),
 #' )
-#' p <- plot_tsallis_q_curve_s4(analysis)
+#' p <- plot_diversity_spectrum(analysis)
 #' if (!is.null(p)) print(p)
 #'
 #' @export
-plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col = NULL,
-    gene = NULL, lm_res = NULL, n_top = NULL, metric = "iqr", output_file = NULL) {
+plot_diversity_spectrum <- function(se, assay_name = "diversity", condition_col = NULL,
+    gene = NULL, lm_res = NULL, n_top = NULL, metric = "iqr", output_file = NULL,
+    dev_width = NULL, dev_height = NULL) {
+    # Create graphics device if width/height specified
+    if (!is.null(dev_width) && !is.null(dev_height)) {
+        dev.new(width = dev_width, height = dev_height)
+    }
+
     # Validate metric parameter
     metric <- match.arg(tolower(metric), c("iqr", "sd"))
 
@@ -201,7 +218,7 @@ plot_tsallis_q_curve_s4 <- function(se, assay_name = "diversity", condition_col 
     }
 
     # Basic aggregate mode with specified metric
-    .plot_tsallis_basic(long, metric, output_file)
+    return(.plot_tsallis_basic(long, metric, output_file))
 }
 
 # ============================================================================

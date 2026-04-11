@@ -1,348 +1,3 @@
-
-
-# ============================================================================
-# HELPER FUNCTIONS FOR JACKKNIFE_ENTROPY_OUTLIERS (9 total)
-# ============================================================================
-
-#' Internal: Validate jackknife parameters
-
-#' @noRd
-.jackknife_validate_params <- function(q, threshold) {
-    # Guard against NA values in q before comparison
-    if (!is.numeric(q) || any(is.na(q)) || any(q < 0, na.rm = TRUE)) {
-        stop("'q' must be non-negative numeric value(s) (q >= 0)")
-    }
-    if (!is.numeric(threshold) || is.na(threshold) || threshold < 0 || threshold >
-        100) {
-        stop("'threshold' must be between 0 and 100")
-    }
-}
-
-#' Internal: Process multi-q values with optional parallelization
-
-#' @noRd
-.jackknife_process_multiq <- function(x, se, res, top_n, q, norm, log_base, pseudocount,
-    threshold, verbose, nthreads, .cluster) {
-    n_cores <- .get_nthreads_auto_detect(nthreads)
-    create_cluster <- is.null(.cluster) && n_cores > 1 && length(q) > 2 && requireNamespace("parallel",
-        quietly = TRUE)
-
-    if (create_cluster) {
-        .cluster <- parallel::makeCluster(n_cores, type = "PSOCK")
-        on.exit(parallel::stopCluster(.cluster), add = TRUE)
-
-        # Load required packages on cluster nodes
-        parallel::clusterCall(.cluster, function() {
-            requireNamespace("TSENAT", quietly = TRUE)
-            requireNamespace("SummarizedExperiment", quietly = TRUE)
-            requireNamespace("stats", quietly = TRUE)
-        })
-
-        # Export main function and all helper functions for parallel execution
-        helper_funcs <- c(".jackknife_entropy_outliers", ".entropy_single", ".jackknife_validate_params",
-            ".jackknife_process_multiq", ".jackknife_process_se", ".jackknife_process_matrix",
-            ".jackknife_process_vector_core", ".jackknife_compute_estimates", ".jackknife_calculate_influence_and_outliers",
-            ".jackknife_warn_on_q_parameters", ".jackknife_format_verbose_output_matrix")
-        parallel::clusterExport(.cluster, helper_funcs, envir = asNamespace("TSENAT"))
-    }
-
-    if (!is.null(.cluster)) {
-        results_list <- parallel::parLapply(.cluster, q, function(q_val) {
-            .jackknife_entropy_outliers(x = x, se = se, res = res, top_n = top_n,
-                q = q_val, norm = norm, log_base = log_base, pseudocount = pseudocount,
-                threshold = threshold, verbose = FALSE, .cluster = NULL)
-        })
-    } else {
-        results_list <- lapply(q, function(q_val) {
-            .jackknife_entropy_outliers(x = x, se = se, res = res, top_n = top_n,
-                q = q_val, norm = norm, log_base = log_base, pseudocount = pseudocount,
-                threshold = threshold, verbose = FALSE, .cluster = NULL)
-        })
-    }
-
-    names(results_list) <- paste0("q=", q)
-    class(results_list) <- c("tsenat_jackknife_list_multiq", "list")
-
-    if (verbose && !is.null(x) && (is.vector(x) || length(q) > 1)) {
-        output_lines <- c("Jackknife Stability Analysis for Multiple q Values", "====================================================")
-        for (i in seq_along(results_list)) {
-            output_lines <- c(output_lines, sprintf("q = %s", q[i]))
-            res <- results_list[[i]]
-            if (is.list(res) && "estimate" %in% names(res)) {
-                output_lines <- c(output_lines, sprintf("  Estimate:            %.4f",
-                  res$estimate), sprintf("  Jackknife SE:        %.4f", res$jackknife_se),
-                  sprintf("  Max influence:       %.4f", max(res$influence)), sprintf("  Outliers detected:   %d",
-                    length(res$outlier_indices)))
-            }
-        }
-        message(paste(output_lines, collapse = "\n"))
-    }
-    invisible(results_list)
-}
-
-#' Internal: Process SummarizedExperiment input
-
-#' @noRd
-.jackknife_process_se <- function(se, res, top_n, q, norm, log_base, pseudocount,
-    threshold, verbose, nthreads, .cluster) {
-    if (!methods::is(se, "SummarizedExperiment")) {
-        stop("'se' must be a SummarizedExperiment object")
-    }
-    if (!is.data.frame(res)) {
-        stop("'res' must be a data.frame")
-    }
-
-    res_genes <- if ("gene_id" %in% colnames(res))
-        res$gene_id else rownames(res)
-    top_genes <- head(res_genes, top_n)
-
-    counts_assay <- as.matrix(SummarizedExperiment::assay(se, "counts"))
-    rd <- SummarizedExperiment::rowData(se)
-    se_rownames <- rownames(se)
-
-    rownames_lookup <- setNames(seq_along(se_rownames), se_rownames)
-    rowdata_lookups <- list()
-    rd_cols <- if (!is.null(rd))
-        colnames(rd) else character(0)
-
-    if ("gene_name" %in% rd_cols && !is.null(rd$gene_name)) {
-        rowdata_lookups$gene_name <- tapply(seq_len(nrow(rd)), rd$gene_name, list,
-            simplify = FALSE)
-    }
-    if ("gene_id" %in% rd_cols && !is.null(rd$gene_id)) {
-        rowdata_lookups$gene_id <- tapply(seq_len(nrow(rd)), rd$gene_id, list, simplify = FALSE)
-    }
-
-    results_temp <- lapply(top_genes, function(gene) {
-        tx_idx <- NULL
-        if (gene %in% names(rownames_lookup)) {
-            tx_idx <- rownames_lookup[[gene]]
-        }
-        if (is.null(tx_idx) && !is.null(rowdata_lookups$gene_name) && gene %in% names(rowdata_lookups$gene_name)) {
-            tx_idx <- rowdata_lookups$gene_name[[gene]]
-        }
-        if (is.null(tx_idx) && !is.null(rowdata_lookups$gene_id) && gene %in% names(rowdata_lookups$gene_id)) {
-            tx_idx <- rowdata_lookups$gene_id[[gene]]
-        }
-
-        if (is.null(tx_idx) || length(tx_idx) == 0) {
-            warning("Gene '", gene, "' not found in 'se'. Skipping.")
-            return(NULL)
-        }
-
-        if (is.list(tx_idx))
-            tx_idx <- unlist(tx_idx)
-        gene_counts <- as.numeric(colSums(counts_assay[tx_idx, , drop = FALSE]))
-
-        if (any(is.na(gene_counts)) || any(gene_counts < 0)) {
-            warning("Gene '", gene, "' has invalid counts. Skipping.")
-            return(NULL)
-        }
-
-        list(counts = gene_counts, name = gene)
-    })
-
-    is_valid <- !vapply(results_temp, is.null, logical(1))
-    valid_results <- results_temp[is_valid]
-
-    if (length(valid_results) == 0) {
-        stop("None of the top genes found in 'se' with valid counts")
-    }
-
-    counts_matrix <- do.call(rbind, lapply(valid_results, "[[", "counts"))
-    rownames(counts_matrix) <- vapply(valid_results, "[[", "name", FUN.VALUE = character(1))
-
-    .jackknife_entropy_outliers(x = counts_matrix, q = q, norm = norm, log_base = log_base,
-        pseudocount = pseudocount, threshold = threshold, verbose = verbose, nthreads = nthreads,
-        .cluster = .cluster)
-}
-
-#' Internal: Process matrix input (multiple genes)
-
-#' @noRd
-.jackknife_process_matrix <- function(x, q, norm, log_base, pseudocount, threshold,
-    verbose) {
-    # Guard against empty matrices
-    if (nrow(x) == 0) {
-        stop("Cannot compute jackknife on empty matrix (0 genes). ", "All genes may have been filtered during diversity calculation. ",
-            "Try using a larger gene selection or relaxing filtering thresholds.",
-            call. = FALSE)
-    }
-
-    # Direct processing without tryCatch: .jackknife_process_vector_core() now
-    # handles invalid estimates by returning NA result structures instead of
-    # throwing errors
-    results <- lapply(seq_len(nrow(x)), function(i) {
-        .jackknife_process_vector_core(x[i, ], q, norm, log_base, pseudocount, threshold,
-            paste0("Gene", i), verbose = FALSE)
-    })
-    names(results) <- rownames(x)
-    class(results) <- c("tsenat_jackknife_list", "list")
-
-    if (verbose) {
-        message(.jackknife_format_verbose_output_matrix(results))
-    }
-    results
-}
-
-#' Internal: Core jackknife computation for a vector
-
-#' @noRd
-.jackknife_process_vector_core <- function(x, q, norm, log_base, pseudocount, threshold,
-    gene_name = NULL, verbose = FALSE) {
-    n <- length(x)
-    if (n < 2)
-        stop("Need at least 2 transcripts")
-
-    .jackknife_warn_on_q_parameters(x, q, verbose)
-
-    p <- (x + pseudocount)/(sum(x) + length(x) * pseudocount)
-    jackknife_estimates <- .jackknife_compute_estimates(p, q, log_base, n)
-
-    if (norm) {
-        # .entropy_single now consolidated in entropy_core.R
-        estimate <- .entropy_single(x, q = q, norm = TRUE, log_base = log_base, pseudocount = pseudocount)
-        n_jackknife <- n - 1
-        if (abs(q - 1) < 1e-06) {
-            max_entropy <- log(n_jackknife)/log(log_base)
-        } else {
-            # Tsallis: no log_base applied (unlike Shannon)
-            max_entropy <- (1/(q - 1)) * (1 - n_jackknife^(1 - q))
-        }
-        if (!is.na(max_entropy) && !is.nan(max_entropy) && max_entropy > 0 && is.finite(max_entropy)) {
-            jackknife_estimates <- jackknife_estimates/max_entropy
-        }
-    } else {
-        if (abs(q - 1) < 1e-06) {
-            p_nonzero <- p[p > 1e-15]
-            estimate <- if (length(p_nonzero) > 0)
-                -sum(p_nonzero * log(p_nonzero))/log(log_base) else 0
-        } else {
-            estimate <- (1/(q - 1)) * (1 - sum(p^q))/log(log_base)
-        }
-    }
-
-    # Return NA result structure if estimate is invalid This is mathematically
-    # and statistically appropriate: invalid estimates mean the gene cannot be
-    # reliably analyzed, so we return NA values instead of failing
-    if (is.na(estimate) || is.nan(estimate) || !is.finite(estimate)) {
-        warning("Gene unable to compute jackknife (diversity estimate is ", if (is.na(estimate))
-            "NA" else if (is.nan(estimate))
-            "NaN" else "Inf", "). Likely cause: zero or near-zero counts. Returning NA result.",
-            call. = FALSE)
-        return(list(estimate = NA_real_, jackknife_estimates = rep(NA_real_, n),
-            influence = rep(NA_real_, n), jackknife_se = NA_real_, outlier_indices = integer(0),
-            outlier_threshold = threshold, outlier_cutoff_value = NA_real_, n_transcripts = n,
-            q = q, norm = norm))
-    }
-
-    .jackknife_calculate_influence_and_outliers(jackknife_estimates, estimate, threshold,
-        q, n, norm)
-}
-
-#' Internal: Compute jackknife estimates
-
-#' @noRd
-.jackknife_compute_estimates <- function(p, q, log_base, n) {
-    jackknife_estimates <- numeric(n)
-    if (abs(q - 1) < 1e-06) {
-        for (i in seq_len(n)) {
-            denom <- 1 - p[i]
-            # Guard against NA/NaN in denom before using in if() statement
-            if (!is.na(denom) && !is.nan(denom) && denom > 1e-10) {
-                p_minus_i <- p/denom
-                p_minus_i[i] <- 0
-                p_nonzero <- p_minus_i[p_minus_i > 1e-15]
-                jackknife_estimates[i] <- if (length(p_nonzero) > 0)
-                  -sum(p_nonzero * log(p_nonzero))/log(log_base) else 0
-            } else {
-                jackknife_estimates[i] <- NA_real_
-            }
-        }
-    } else {
-        for (i in seq_len(n)) {
-            denom <- 1 - p[i]
-            # Guard against NA/NaN in denom before using in if() statement
-            jackknife_estimates[i] <- if (!is.na(denom) && !is.nan(denom) && denom >
-                1e-10)
-                (1/(q - 1)) * (1 - sum((p/denom)^q))/log(log_base) else NA_real_
-        }
-    }
-    jackknife_estimates
-}
-
-#' Internal: Calculate influence and outliers
-
-#' @noRd
-.jackknife_calculate_influence_and_outliers <- function(jackknife_estimates, estimate,
-    threshold, q, n, norm) {
-    influence <- abs(jackknife_estimates - estimate)
-    theta_jack_mean <- mean(jackknife_estimates, na.rm = TRUE)
-    jackknife_se <- sqrt(((n - 1)/n) * sum((jackknife_estimates - theta_jack_mean)^2,
-        na.rm = TRUE))
-
-    outlier_cutoff <- stats::quantile(influence, threshold/100, na.rm = TRUE)
-    # Guard against NA in outlier_cutoff (happens if influence is all NAs)
-    if (is.na(outlier_cutoff)) {
-        outlier_indices <- integer(0)
-    } else {
-        outlier_indices <- which(influence > outlier_cutoff & !is.na(influence))
-    }
-
-    result <- list(estimate = estimate, jackknife_estimates = jackknife_estimates,
-        influence = influence, jackknife_se = jackknife_se, outlier_indices = outlier_indices,
-        outlier_threshold = threshold, outlier_cutoff_value = as.numeric(outlier_cutoff),
-        n_transcripts = n, q = q, norm = norm)
-    class(result) <- c("tsenat_jackknife", "list")
-    result
-}
-
-#' Internal: Warn on q parameters
-
-#' @noRd
-.jackknife_warn_on_q_parameters <- function(x, q, verbose = FALSE) {
-    total_count <- sum(x)
-    if (total_count < 10) {
-        warning("Total count (", total_count, ") below recommended minimum (10-20).\n",
-            "Jackknife estimates may be unreliable (per papers S111, S114).\n", "Consider aggregating samples or filtering genes with low abundance.")
-    }
-
-    # Guard against NA or non-scalar q values
-    if (is.na(q) || length(q) != 1 || !is.numeric(q)) {
-        return(invisible(NULL))
-    }
-
-    if (q < 0.5) {
-        message("Low q (", q, ") heavily underweights rare isoforms and emphasizes common ones.\n",
-            "  -> Jackknife results may have large influence from abundant transcripts.\n",
-            "  -> Better for detecting changes in dominant isoforms (papers S111, I004).")
-    } else if (q > 2) {
-        message("High q (", q, ") may be insensitive to rare isoform diversity.\n",
-            "  -> Jackknife results focus on most abundant transcripts only.\n",
-            "  -> May miss important rare transcript contributions (papers S111, I004).\n",
-            "  -> Consider q in [0.5, 2] for balanced diversity assessment.")
-    } else if (verbose) {
-        message("q = ", q, " is in the recommended range [0.5, 2].\n", "  -> Balanced sensitivity to rare and abundant isoforms.\n",
-            "  -> Jackknife results should be reliable for diversity assessment (papers S111, I004).")
-    }
-}
-
-#' Internal: Format verbose output for matrix results
-
-#' @noRd
-.jackknife_format_verbose_output_matrix <- function(results) {
-    output_lines <- c("Jackknife Stability Analysis for Top Genes", "==========================================")
-    for (i in seq_along(results)) {
-        jr <- results[[i]]
-        output_lines <- c(output_lines, sprintf("Gene: %s", names(results)[i]), sprintf("  Transcripts: %d",
-            jr$n_transcripts), sprintf("  Diversity estimate: %.4f", jr$estimate),
-            sprintf("  Jackknife SE: %.4f", jr$jackknife_se), sprintf("  Max transcript influence: %.4f",
-                max(jr$influence)), sprintf("  Outliers detected: %d", length(jr$outlier_indices)))
-    }
-    output_lines <- c(output_lines, "", "Interpretation: High SE = unstable diversity; Many outliers = non-uniform isoforms")
-    paste(output_lines, collapse = "\n")
-}
-
 #' Jackknife Diagnostics for Tsallis Entropy Stability
 #'
 #' Performs leave-one-out jackknife analysis on Tsallis entropy estimates to
@@ -569,7 +224,7 @@
 #' # Example 1: Vector input - single gene
 #' set.seed(42)
 #' counts <- c(1000, 500, 200, 100, 50)  # 5 transcripts, decreasing abundance
-#' results <- .jackknife_entropy_outliers(
+#' results <- .calculate_jeo(
 #'   x = counts,
 #'   q = 1,
 #'   norm = TRUE
@@ -581,7 +236,7 @@
 #'   'Gene1' = c(1000, 500, 200, 100, 50),
 #'   'Gene2' = c(800, 400, 300, 200, 100)
 #' )
-#' jack_list <- .jackknife_entropy_outliers(
+#' jack_list <- .calculate_jeo(
 #'   x = counts_matrix,
 #'   q = 1,
 #'   norm = TRUE,
@@ -589,7 +244,7 @@
 #' )
 #' 
 #' # Example 2b: Multiple q values for robustness checking
-#' jack_multiq <- .jackknife_entropy_outliers(
+#' jack_multiq <- .calculate_jeo(
 #'   x = counts_matrix[1, ],  # First gene
 #'   q = c(0.5, 1, 1.5, 2),
 #'   norm = TRUE,
@@ -598,7 +253,7 @@
 #' 
 #' # Example 3: SummarizedExperiment input with automatic data extraction
 #' # Requires se (SummarizedExperiment with counts) and res (results data.frame)
-#' # jack_results <- .jackknife_entropy_outliers(
+#' # jack_results <- .calculate_jeo(
 #' #     se = ts_se,
 #' #     res = res,
 #' #     top_n = 5,
@@ -607,10 +262,8 @@
 #' #     verbose = TRUE  # Auto-extracts top 5 genes and displays summary
 #' # )
 #'
-
 #' @noRd
-
-.jackknife_entropy_outliers <- function(x = NULL, se = NULL, res = NULL, top_n = 5,
+.calculate_jeo <- function(x = NULL, se = NULL, res = NULL, top_n = 5,
     q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0, threshold = 90, verbose = FALSE,
     nthreads = 1, .cluster = NULL) {
     # Input validation
@@ -661,6 +314,378 @@
         NULL, verbose))
 }
 
+# ============================================================================
+# HELPER FUNCTIONS FOR JACKKNIFE_ENTROPY_OUTLIERS (9 total)
+# ============================================================================
+
+#' Internal: Validate jackknife parameters
+
+#' @noRd
+.jackknife_validate_params <- function(q, threshold) {
+    # Guard against NA values in q before comparison
+    if (!is.numeric(q) || any(is.na(q)) || any(q < 0, na.rm = TRUE)) {
+        stop("'q' must be non-negative numeric value(s) (q >= 0)")
+    }
+    if (!is.numeric(threshold) || is.na(threshold) || threshold < 0 || threshold >
+        100) {
+        stop("'threshold' must be between 0 and 100")
+    }
+}
+
+#' Internal: Process multi-q values with optional parallelization
+
+#' @noRd
+.jackknife_process_multiq <- function(x, se, res, top_n, q, norm, log_base, pseudocount,
+    threshold, verbose, nthreads, .cluster) {
+    n_cores <- .get_nthreads_auto_detect(nthreads)
+    create_cluster <- is.null(.cluster) && n_cores > 1 && length(q) > 2 && requireNamespace("parallel",
+        quietly = TRUE)
+
+    if (create_cluster) {
+        .cluster <- parallel::makeCluster(n_cores, type = "PSOCK")
+        on.exit(parallel::stopCluster(.cluster), add = TRUE)
+
+        # Load required packages on cluster nodes
+        parallel::clusterCall(.cluster, function() {
+            requireNamespace("TSENAT", quietly = TRUE)
+            requireNamespace("SummarizedExperiment", quietly = TRUE)
+            requireNamespace("stats", quietly = TRUE)
+        })
+
+        # Export main function and all helper functions for parallel execution
+        helper_funcs <- c(".calculate_jeo", ".entropy_single", ".jackknife_validate_params",
+            ".jackknife_process_multiq", ".jackknife_process_se", ".jackknife_process_matrix",
+            ".jackknife_process_vector_core", ".jackknife_compute_estimates", ".jackknife_calculate_influence_and_outliers",
+            ".jackknife_warn_on_total_count", ".jackknife_warn_on_q_parameters_q_only", ".jackknife_format_verbose_output_matrix")
+        parallel::clusterExport(.cluster, helper_funcs, envir = asNamespace("TSENAT"))
+    }
+
+    if (!is.null(.cluster)) {
+        results_list <- parallel::parLapply(.cluster, q, function(q_val) {
+            .calculate_jeo(x = x, se = se, res = res, top_n = top_n,
+                q = q_val, norm = norm, log_base = log_base, pseudocount = pseudocount,
+                threshold = threshold, verbose = FALSE, .cluster = NULL)
+        })
+    } else {
+        results_list <- lapply(q, function(q_val) {
+            .calculate_jeo(x = x, se = se, res = res, top_n = top_n,
+                q = q_val, norm = norm, log_base = log_base, pseudocount = pseudocount,
+                threshold = threshold, verbose = FALSE, .cluster = NULL)
+        })
+    }
+
+    names(results_list) <- paste0("q=", q)
+    class(results_list) <- c("tsenat_jackknife_list_multiq", "list")
+
+    # Print q-parameter warnings once per q-value (Option 1: move outside per-gene loop)
+    # Only when verbose=TRUE (Option 2: respect verbose flag)
+    if (verbose) {
+        for (q_val in q) {
+            .jackknife_warn_on_q_parameters_q_only(q_val, verbose = TRUE)
+        }
+    }
+
+    if (verbose && !is.null(x) && (is.vector(x) || length(q) > 1)) {
+        output_lines <- c("Jackknife Stability Analysis for Multiple q Values", "====================================================")
+        for (i in seq_along(results_list)) {
+            output_lines <- c(output_lines, sprintf("q = %s", q[i]))
+            res <- results_list[[i]]
+            if (is.list(res) && "estimate" %in% names(res)) {
+                output_lines <- c(output_lines, sprintf("  Estimate:            %.4f",
+                  res$estimate), sprintf("  Jackknife SE:        %.4f", res$jackknife_se),
+                  sprintf("  Max influence:       %.4f", max(res$influence)), sprintf("  Outliers detected:   %d",
+                    length(res$outlier_indices)))
+            }
+        }
+        message(paste(output_lines, collapse = "\n"))
+    }
+    invisible(results_list)
+}
+
+#' Internal: Process SummarizedExperiment input
+
+#' @noRd
+.jackknife_process_se <- function(se, res, top_n, q, norm, log_base, pseudocount,
+    threshold, verbose, nthreads, .cluster) {
+    if (!methods::is(se, "SummarizedExperiment")) {
+        stop("'se' must be a SummarizedExperiment object")
+    }
+    if (!is.data.frame(res)) {
+        stop("'res' must be a data.frame")
+    }
+
+    res_genes <- if ("gene_id" %in% colnames(res))
+        res$gene_id else rownames(res)
+    top_genes <- head(res_genes, top_n)
+
+    counts_assay <- as.matrix(SummarizedExperiment::assay(se, "counts"))
+    rd <- SummarizedExperiment::rowData(se)
+    se_rownames <- rownames(se)
+
+    rownames_lookup <- setNames(seq_along(se_rownames), se_rownames)
+    rowdata_lookups <- list()
+    rd_cols <- if (!is.null(rd))
+        colnames(rd) else character(0)
+
+    if ("gene_name" %in% rd_cols && !is.null(rd$gene_name)) {
+        rowdata_lookups$gene_name <- tapply(seq_len(nrow(rd)), rd$gene_name, list,
+            simplify = FALSE)
+    }
+    if ("gene_id" %in% rd_cols && !is.null(rd$gene_id)) {
+        rowdata_lookups$gene_id <- tapply(seq_len(nrow(rd)), rd$gene_id, list, simplify = FALSE)
+    }
+
+    results_temp <- lapply(top_genes, function(gene) {
+        tx_idx <- NULL
+        if (gene %in% names(rownames_lookup)) {
+            tx_idx <- rownames_lookup[[gene]]
+        }
+        if (is.null(tx_idx) && !is.null(rowdata_lookups$gene_name) && gene %in% names(rowdata_lookups$gene_name)) {
+            tx_idx <- rowdata_lookups$gene_name[[gene]]
+        }
+        if (is.null(tx_idx) && !is.null(rowdata_lookups$gene_id) && gene %in% names(rowdata_lookups$gene_id)) {
+            tx_idx <- rowdata_lookups$gene_id[[gene]]
+        }
+
+        if (is.null(tx_idx) || length(tx_idx) == 0) {
+            warning("Gene '", gene, "' not found in 'se'. Skipping.")
+            return(NULL)
+        }
+
+        if (is.list(tx_idx))
+            tx_idx <- unlist(tx_idx)
+        gene_counts <- as.numeric(colSums(counts_assay[tx_idx, , drop = FALSE]))
+
+        if (any(is.na(gene_counts)) || any(gene_counts < 0)) {
+            warning("Gene '", gene, "' has invalid counts. Skipping.")
+            return(NULL)
+        }
+
+        list(counts = gene_counts, name = gene)
+    })
+
+    is_valid <- !vapply(results_temp, is.null, logical(1))
+    valid_results <- results_temp[is_valid]
+
+    if (length(valid_results) == 0) {
+        stop("None of the top genes found in 'se' with valid counts")
+    }
+
+    counts_matrix <- do.call(rbind, lapply(valid_results, "[[", "counts"))
+    rownames(counts_matrix) <- vapply(valid_results, "[[", "name", FUN.VALUE = character(1))
+
+    .calculate_jeo(x = counts_matrix, q = q, norm = norm, log_base = log_base,
+        pseudocount = pseudocount, threshold = threshold, verbose = verbose, nthreads = nthreads,
+        .cluster = .cluster)
+}
+
+#' Internal: Process matrix input (multiple genes)
+
+#' @noRd
+.jackknife_process_matrix <- function(x, q, norm, log_base, pseudocount, threshold,
+    verbose) {
+    # Guard against empty matrices
+    if (nrow(x) == 0) {
+        stop("Cannot compute jackknife on empty matrix (0 genes). ", "All genes may have been filtered during diversity calculation. ",
+            "Try using a larger gene selection or relaxing filtering thresholds.",
+            call. = FALSE)
+    }
+
+    # Direct processing without tryCatch: .jackknife_process_vector_core() now
+    # handles invalid estimates by returning NA result structures instead of
+    # throwing errors
+    results <- lapply(seq_len(nrow(x)), function(i) {
+        .jackknife_process_vector_core(x[i, ], q, norm, log_base, pseudocount, threshold,
+            paste0("Gene", i), verbose = FALSE)
+    })
+    names(results) <- rownames(x)
+    class(results) <- c("tsenat_jackknife_list", "list")
+
+    if (verbose) {
+        message(.jackknife_format_verbose_output_matrix(results))
+    }
+    results
+}
+
+#' Internal: Core jackknife computation for a vector
+
+#' @noRd
+.jackknife_process_vector_core <- function(x, q, norm, log_base, pseudocount, threshold,
+    gene_name = NULL, verbose = FALSE) {
+    n <- length(x)
+    if (n < 2)
+        stop("Need at least 2 transcripts")
+
+    # Only check total count warning (per-gene specific)
+    # q-parameter warnings moved to .jackknife_process_multiq() (Option 1)
+    .jackknife_warn_on_total_count(x)
+
+    p <- (x + pseudocount)/(sum(x) + length(x) * pseudocount)
+    jackknife_estimates <- .jackknife_compute_estimates(p, q, log_base, n)
+
+    if (norm) {
+        # .entropy_single now consolidated in entropy_core.R
+        estimate <- .entropy_single(x, q = q, norm = TRUE, log_base = log_base, pseudocount = pseudocount)
+        n_jackknife <- n - 1
+        if (abs(q - 1) < 1e-06) {
+            max_entropy <- log(n_jackknife)/log(log_base)
+        } else {
+            # Tsallis: no log_base applied (unlike Shannon)
+            max_entropy <- (1/(q - 1)) * (1 - n_jackknife^(1 - q))
+        }
+        if (!is.na(max_entropy) && !is.nan(max_entropy) && max_entropy > 0 && is.finite(max_entropy)) {
+            jackknife_estimates <- jackknife_estimates/max_entropy
+        }
+    } else {
+        if (abs(q - 1) < 1e-06) {
+            p_nonzero <- p[p > 1e-15]
+            estimate <- if (length(p_nonzero) > 0)
+                -sum(p_nonzero * log(p_nonzero))/log(log_base) else 0
+        } else {
+            estimate <- (1/(q - 1)) * (1 - sum(p^q))/log(log_base)
+        }
+    }
+
+    # Return NA result structure if estimate is invalid This is mathematically
+    # and statistically appropriate: invalid estimates mean the gene cannot be
+    # reliably analyzed, so we return NA values instead of failing
+    if (is.na(estimate) || is.nan(estimate) || !is.finite(estimate)) {
+        warning("Gene unable to compute jackknife (diversity estimate is ", if (is.na(estimate))
+            "NA" else if (is.nan(estimate))
+            "NaN" else "Inf", "). Likely cause: zero or near-zero counts. Returning NA result.",
+            call. = FALSE)
+        return(list(estimate = NA_real_, jackknife_estimates = rep(NA_real_, n),
+            influence = rep(NA_real_, n), jackknife_se = NA_real_, outlier_indices = integer(0),
+            outlier_threshold = threshold, outlier_cutoff_value = NA_real_, n_transcripts = n,
+            q = q, norm = norm))
+    }
+
+    .jackknife_calculate_influence_and_outliers(jackknife_estimates, estimate, threshold,
+        q, n, norm)
+}
+
+#' Internal: Compute jackknife estimates
+
+#' @noRd
+.jackknife_compute_estimates <- function(p, q, log_base, n) {
+    jackknife_estimates <- numeric(n)
+    if (abs(q - 1) < 1e-06) {
+        for (i in seq_len(n)) {
+            denom <- 1 - p[i]
+            # Guard against NA/NaN in denom before using in if() statement
+            if (!is.na(denom) && !is.nan(denom) && denom > 1e-10) {
+                p_minus_i <- p/denom
+                p_minus_i[i] <- 0
+                p_nonzero <- p_minus_i[p_minus_i > 1e-15]
+                jackknife_estimates[i] <- if (length(p_nonzero) > 0)
+                  -sum(p_nonzero * log(p_nonzero))/log(log_base) else 0
+            } else {
+                jackknife_estimates[i] <- NA_real_
+            }
+        }
+    } else {
+        for (i in seq_len(n)) {
+            denom <- 1 - p[i]
+            # Guard against NA/NaN in denom before using in if() statement
+            jackknife_estimates[i] <- if (!is.na(denom) && !is.nan(denom) && denom >
+                1e-10)
+                (1/(q - 1)) * (1 - sum((p/denom)^q))/log(log_base) else NA_real_
+        }
+    }
+    jackknife_estimates
+}
+
+#' Internal: Calculate influence and outliers
+
+#' @noRd
+.jackknife_calculate_influence_and_outliers <- function(jackknife_estimates, estimate,
+    threshold, q, n, norm) {
+    influence <- abs(jackknife_estimates - estimate)
+    theta_jack_mean <- mean(jackknife_estimates, na.rm = TRUE)
+    jackknife_se <- sqrt(((n - 1)/n) * sum((jackknife_estimates - theta_jack_mean)^2,
+        na.rm = TRUE))
+
+    outlier_cutoff <- stats::quantile(influence, threshold/100, na.rm = TRUE)
+    # Guard against NA in outlier_cutoff (happens if influence is all NAs)
+    if (is.na(outlier_cutoff)) {
+        outlier_indices <- integer(0)
+    } else {
+        outlier_indices <- which(influence > outlier_cutoff & !is.na(influence))
+    }
+
+    result <- list(estimate = estimate, jackknife_estimates = jackknife_estimates,
+        influence = influence, jackknife_se = jackknife_se, outlier_indices = outlier_indices,
+        outlier_threshold = threshold, outlier_cutoff_value = as.numeric(outlier_cutoff),
+        n_transcripts = n, q = q, norm = norm)
+    class(result) <- c("tsenat_jackknife", "list")
+    result
+}
+
+#' Internal: Warn on total count (per-gene specific)
+#'
+#' @noRd
+.jackknife_warn_on_total_count <- function(x) {
+    total_count <- sum(x)
+    if (total_count < 10) {
+        warning("Total count (", total_count, ") below recommended minimum (10-20).\n",
+            "Jackknife estimates may be unreliable (per papers S111, S114).\n", "Consider aggregating samples or filtering genes with low abundance.")
+    }
+}
+
+#' Internal: Warn on q parameters (q-only, called once per q-value)
+#'
+#' @noRd
+.jackknife_warn_on_q_parameters_q_only <- function(q, verbose = FALSE) {
+    # Guard against NA or non-scalar q values
+    if (is.na(q) || length(q) != 1 || !is.numeric(q)) {
+        return(invisible(NULL))
+    }
+
+    # Only print when verbose=TRUE (Option 2: respect verbose flag)
+    if (verbose) {
+        if (q < 0.5) {
+            message("Low q (", q, ") heavily underweights rare isoforms and emphasizes common ones.\n",
+                "  -> Jackknife results may have large influence from abundant transcripts.\n",
+                "  -> Better for detecting changes in dominant isoforms (papers S111, I004).")
+        } else if (q > 2) {
+            message("High q (", q, ") may be insensitive to rare isoform diversity.\n",
+                "  -> Jackknife results focus on most abundant transcripts only.\n",
+                "  -> May miss important rare transcript contributions (papers S111, I004).\n",
+                "  -> Consider q in [0.5, 2] for balanced diversity assessment.")
+        } else {
+            message("q = ", q, " is in the recommended range [0.5, 2].\n", "  -> Balanced sensitivity to rare and abundant isoforms.\n",
+                "  -> Jackknife results should be reliable for diversity assessment (papers S111, I004).")
+        }
+    }
+}
+
+#' Internal: Warn on q parameters (legacy - for backward compatibility)
+#'
+#' @noRd
+.jackknife_warn_on_q_parameters <- function(x, q, verbose = FALSE) {
+    # Deprecated: use .jackknife_warn_on_total_count() and .jackknife_warn_on_q_parameters_q_only() instead
+    .jackknife_warn_on_total_count(x)
+    .jackknife_warn_on_q_parameters_q_only(q, verbose = verbose)
+}
+
+#' Internal: Format verbose output for matrix results
+
+#' @noRd
+.jackknife_format_verbose_output_matrix <- function(results) {
+    output_lines <- c("Jackknife Stability Analysis for Top Genes", "==========================================")
+    for (i in seq_along(results)) {
+        jr <- results[[i]]
+        output_lines <- c(output_lines, sprintf("Gene: %s", names(results)[i]), sprintf("  Transcripts: %d",
+            jr$n_transcripts), sprintf("  Diversity estimate: %.4f", jr$estimate),
+            sprintf("  Jackknife SE: %.4f", jr$jackknife_se), sprintf("  Max transcript influence: %.4f",
+                max(jr$influence)), sprintf("  Outliers detected: %d", length(jr$outlier_indices)))
+    }
+    output_lines <- c(output_lines, "", "Interpretation: High SE = unstable diversity; Many outliers = non-uniform isoforms")
+    paste(output_lines, collapse = "\n")
+}
+
+
+
 #' Print Jackknife Diagnostics Results
 #'
 #' @param x A \code{tsenat_jackknife} object
@@ -668,7 +693,6 @@
 #'
 #' @noRd
 #' @method print tsenat_jackknife
-
 print.tsenat_jackknife <- function(x, ...) {
     message("Jackknife Diagnostics for Tsallis Entropy (q = ", x$q, ")")
     message("Estimate: ", sprintf("%.6f", x$estimate))
@@ -756,7 +780,15 @@ print.tsenat_jackknife_list <- function(x, ...) {
 
     # Parse q-values from keys (format: 'q_0_01', 'q_0_50', etc.)
     q_keys_clean <- gsub("^q_", "", q_keys)  # Remove leading 'q_'
-    q_vector <- as.numeric(gsub("_", ".", q_keys_clean))  # Convert '0_01' to '0.01'
+    # Filter to only valid Q key formats before conversion
+    valid_q_keys <- q_keys_clean[grep("^[0-9]+_[0-9]{2}$", q_keys_clean)]
+    if (length(valid_q_keys) == 0) {
+        stop(sprintf("No valid q-value keys found. Got: %s", paste(q_keys_clean, collapse = ", ")))
+    }
+    q_vector <- as.numeric(gsub("_", ".", valid_q_keys))  # Convert '0_01' to '0.01'
+    if (any(is.na(q_vector))) {
+        stop(sprintf("Failed to parse q-values from keys: %s", paste(valid_q_keys, collapse = ", ")))
+    }
     q_vector <- sort(q_vector)  # Ensure numeric order
 
     if (verbose) {

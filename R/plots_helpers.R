@@ -2140,12 +2140,12 @@ require_pkgs <- function(pkgs) {
     }
 
     if (!is.data.frame(lm_res) || !("gene" %in% colnames(lm_res))) {
-        stop("lm_res must be either:\n  1. A data.frame with 'gene' column from .calculate_lm_interaction()\n  2. A list with $results and $model_data from return_model_data = TRUE",
+        stop("lm_res must be either:\n  1. A data.frame with 'gene' column from .calculate_lm()\n  2. A list with $results and $model_data from return_model_data = TRUE",
             call. = FALSE)
     }
 
     if (nrow(lm_res) == 0) {
-        stop("lm_res has no rows; .calculate_lm_interaction() returned no genes",
+        stop("lm_res has no rows; .calculate_lm() returned no genes",
             call. = FALSE)
     }
 
@@ -2156,7 +2156,7 @@ require_pkgs <- function(pkgs) {
 #'
 #' Validates model_data and extracts/normalizes q-values for GAM analysis.
 #'
-#' @param model_data List from .calculate_lm_interaction(...,
+#' @param model_data List from .calculate_lm(...,
 #' return_model_data = TRUE)$model_data
 #'
 #' @return Numeric vector of q-values
@@ -2169,7 +2169,7 @@ require_pkgs <- function(pkgs) {
     }
 
     if (!is.list(model_data)) {
-        stop("model_data must be a list from .calculate_lm_interaction(..., return_model_data = TRUE)",
+        stop("model_data must be a list from .calculate_lm(..., return_model_data = TRUE)",
             call. = FALSE)
     }
 
@@ -3853,7 +3853,7 @@ require_pkgs <- function(pkgs) {
 #'  
 #' @noRd
 
-.plot_tsallis_violin_singleq <- function(se, assay_name = "diversity", title = NULL) {
+.plot_diversity_violin_singleq <- function(se, assay_name = "diversity", title = NULL) {
 
     # Try to extract q from SE metadata first (best source for single-q SE)
     q_val <- NA
@@ -3916,7 +3916,7 @@ require_pkgs <- function(pkgs) {
 #'
 #' @noRd
 
-.plot_tsallis_density_singleq <- function(se, assay_name = "diversity", title = NULL) {
+.plot_diversity_density_singleq <- function(se, assay_name = "diversity", title = NULL) {
 
     # Try to extract q from SE metadata first (best source for single-q SE)
     q_val <- NA
@@ -3994,16 +3994,17 @@ require_pkgs <- function(pkgs) {
 #' readcounts <- as.matrix(readcounts)
 #' mode(readcounts) <- 'numeric'
 #' 
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
-#' gff3_dataset, metadata = metadata_df,
+#' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
+#' analysis <- build_analysis(readcounts = readcounts, tx2gene =
+#' gff3_dataset, metadata = metadata_df, config = config,
 #'   tpm = tpm, effective_length = effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 #' = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = 1.0)
-#' p <- plot_tsallis_violin_density_grid_s4(analysis)
+#' analysis <- calculate_diversity(analysis, q = 1.0)
+#' p <- plot_diversity_violin_density(analysis)
 #' if (!is.null(p)) print(p)
 #'
-plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", title = NULL,
+plot_diversity_violin_density <- function(se, assay_name = "diversity", title = NULL,
     output_file = NULL) {
     # Load visualization dependencies (ggplot2, cowplot, etc.)
     .load_visualization_deps()
@@ -4011,7 +4012,7 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
     # Handle TSENATAnalysis objects - extract first diversity result
     if (methods::is(se, "TSENATAnalysis")) {
         if (length(se@diversity_results) == 0) {
-            stop("No diversity results found in TSENATAnalysis object. Run calculate_diversity_s4() first.")
+            stop("No diversity results found in TSENATAnalysis object. Run calculate_diversity() first.")
         }
         # Extract first diversity result
         se <- se@diversity_results[[1]]
@@ -4043,9 +4044,9 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
     base_title <- title %||% sprintf("Tsallis entropy at q = %g", q_val)
 
     # Create individual plots
-    p_violin <- .plot_tsallis_violin_singleq(se = se, assay_name = assay_name, title = "Violin")
+    p_violin <- .plot_diversity_violin_singleq(se = se, assay_name = assay_name, title = "Violin")
 
-    p_density <- .plot_tsallis_density_singleq(se = se, assay_name = assay_name,
+    p_density <- .plot_diversity_density_singleq(se = se, assay_name = assay_name,
         title = "Density")
 
     # Arrange plots side by side: violin on left, density on right
@@ -4152,17 +4153,17 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
 #'   log2_fold_change = rnorm(20, sd = 0.8)
 #' )
 #' # Placeholder: actual usage would require valid differential results
-#' # .plot_volcano_ma_grid(x, sig_alpha = 0.05)
+#' # .plot_diversity_volcano_ma(x, sig_alpha = 0.05)
 #'
 
 #' @noRd
 
-.plot_volcano_ma_grid <- function(diff_df, x_col = NULL, padj_col = "padj", label_thresh = 0.1,
+.plot_diversity_volcano_ma <- function(diff_df, x_col = NULL, padj_col = "padj", label_thresh = 0.1,
     sig_alpha = 0.05, top_n = 5, title_volcano = NULL, title_ma = "Tsallis-based MA plot",
     ...) {
     # Require cowplot for grid arrangement
     if (!requireNamespace("cowplot", quietly = TRUE)) {
-        stop("cowplot package required for .plot_volcano_ma_grid()")
+        stop("cowplot package required for .plot_diversity_volcano_ma()")
     }
 
     # Create volcano plot
@@ -4847,7 +4848,7 @@ NULL
 #' with per-q divergence estimates.
 #' Must contain columns matching the pattern `effect_size_D_q*` (e.g.,
 #' `effect_size_D_q0_5`, `effect_size_D_q1_0`).
-#'   Typically the result from [.effect_sizes_divergence()].
+#'   Typically the result from [.calculate_effect_sizes()].
 #'
 #' @param threshold Numeric. Effect size threshold for visual marking.
 #' Default is 0.1 (information-theoretic significance level).

@@ -23,7 +23,7 @@
 #' (default 90).
 #' @param n_bootstrap Numeric: number of bootstrap resamples (default 1000).
 #' @param verbose Logical: print results and verbose output? (default TRUE).
-#' @param lm_results Data frame: results from .calculate_lm_interaction()
+#' @param lm_results Data frame: results from .calculate_lm()
 #' with 'gene' column.
 #' Can contain either gene names or gene IDs; function automatically maps
 #' names to IDs
@@ -75,8 +75,7 @@
 #' across the TSENAT package.
 #'
 #' @noRd
-# MAIN FUNCTION - Refactored to ~45 lines using helper functions
-.jackknife_isoform_switching <- function(se = NULL, condition_col = "condition",
+.calculate_jis <- function(se = NULL, condition_col = "condition",
     subject_col = NULL, gene_col = NULL, isoform_col = NULL, q = 1, norm = TRUE,
     log_base = exp(1), pseudocount = 0, threshold = 90, n_bootstrap = 1000, verbose = TRUE,
     lm_results = NULL, lm_p_threshold = 0.05, use_lm_fdr = TRUE) {
@@ -541,7 +540,7 @@
 #' @noRd
 .jis_handle_multi_q <- function(se, q, q_params, verbose) {
     results_list <- lapply(q, function(q_val) {
-        do.call(.jackknife_isoform_switching, c(list(se = se, q = q_val, verbose = FALSE),
+        do.call(.calculate_jis, c(list(se = se, q = q_val, verbose = FALSE),
             q_params))
     })
     names(results_list) <- paste0("q_", gsub("\\.", "_", sprintf("%.2f", q)))

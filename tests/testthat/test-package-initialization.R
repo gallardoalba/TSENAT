@@ -98,9 +98,9 @@ test_that("Main TSENAT classes and functions are exported", {
     expect_true(isClass("TSENATAnalysis", where = asNamespace("TSENAT")))
     
     # Check main functions are exported
-    expect_true(exists("tsenat", where = asNamespace("TSENAT")))
-    expect_true(exists("calculate_diversity_s4", where = asNamespace("TSENAT")))
-    expect_true(exists("calculate_divergence_s4", where = asNamespace("TSENAT")))
+    expect_true(exists("TSENAT", where = asNamespace("TSENAT")))
+    expect_true(exists("calculate_diversity", where = asNamespace("TSENAT")))
+    expect_true(exists("calculate_divergence", where = asNamespace("TSENAT")))
 })
 
 # ============================================================================
@@ -113,7 +113,7 @@ test_that("NAMESPACE file exports main functions", {
     ns_exports <- getNamespaceExports("TSENAT")
     
     # Should export the main S4 function
-    expect_true("tsenat" %in% ns_exports)
+    expect_true("TSENAT" %in% ns_exports)
     expect_true("TSENATAnalysis" %in% ns_exports)
 })
 

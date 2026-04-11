@@ -154,7 +154,8 @@
 #' # se <- .build_se(readcounts, 'path/to/annotation.gff3.gz')
 #' @noRd
 .build_se <- function(readcounts, tx2gene, assay_name = "counts", skip = FALSE, tpm = NULL,
-    effective_length = NULL, metadata = NULL, verbose = TRUE) {
+    effective_length = NULL, metadata = NULL, sample_col = "sample", condition_col = NULL,
+    subject_col = NULL, verbose = TRUE) {
     # Load and validate tx2gene
     tx2gene_data <- .load_tx2gene_data(tx2gene, verbose = verbose)
     tx2gene_df <- tx2gene_data$tx2gene_df
@@ -191,7 +192,8 @@
 
     # Apply optional metadata mapping
     if (!is.null(metadata)) {
-        se <- .map_metadata_se(se, metadata)
+        se <- .map_metadata_se(se, metadata, sample_col = sample_col, condition_col = condition_col,
+            subject_col = subject_col)
     }
 
     se

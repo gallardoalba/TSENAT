@@ -1,7 +1,7 @@
-# Tests for effect_sizes_divergence and results integration
+# Tests for calculate_effect_sizes and results integration
 # Covers uncovered lines from divergence_coverage.txt
 
-test_that("effect_sizes_divergence aligns gene datasets", {
+test_that("calculate_effect_sizes aligns gene datasets", {
   # Create mock data matching expected structure
   lm_res <- data.frame(
     gene = c("gene1", "gene2", "gene3"),
@@ -23,7 +23,7 @@ test_that("effect_sizes_divergence aligns gene datasets", {
   
   # Should align and compute effect sizes
   expect_error(
-    .effect_sizes_divergence(
+    .calculate_effect_sizes(
       lm_res = lm_res,
       divergence_results_se = div_se,
       verbose = FALSE
@@ -32,7 +32,7 @@ test_that("effect_sizes_divergence aligns gene datasets", {
   )
 })
 
-test_that("effect_sizes_divergence filters non-matching genes", {
+test_that("calculate_effect_sizes filters non-matching genes", {
   # lm_res with different genes
   lm_res <- data.frame(
     gene = c("gene_A", "gene_B"),
@@ -53,7 +53,7 @@ test_that("effect_sizes_divergence filters non-matching genes", {
   )
   
   # Should handle gene filtering gracefully
-  result <- .effect_sizes_divergence(
+  result <- .calculate_effect_sizes(
     lm_res = lm_res,
     divergence_results_se = div_se,
     verbose = FALSE
@@ -63,7 +63,7 @@ test_that("effect_sizes_divergence filters non-matching genes", {
   expect_true(is.data.frame(result) || is.list(result))
 })
 
-test_that("effect_sizes_divergence handles significance threshold", {
+test_that("calculate_effect_sizes handles significance threshold", {
   # Test with different significance thresholds
   lm_res <- data.frame(
     gene = c("gene1", "gene2", "gene3"),
@@ -83,7 +83,7 @@ test_that("effect_sizes_divergence handles significance threshold", {
   )
   
   # Test with strict threshold
-  result_strict <- .effect_sizes_divergence(
+  result_strict <- .calculate_effect_sizes(
     lm_res = lm_res,
     divergence_results_se = div_se,
     significance_threshold = 0.01,
@@ -91,7 +91,7 @@ test_that("effect_sizes_divergence handles significance threshold", {
   )
   
   # Test with lenient threshold
-  result_lenient <- .effect_sizes_divergence(
+  result_lenient <- .calculate_effect_sizes(
     lm_res = lm_res,
     divergence_results_se = div_se,
     significance_threshold = 0.1,
@@ -103,7 +103,7 @@ test_that("effect_sizes_divergence handles significance threshold", {
   expect_true(is.data.frame(result_lenient) || is.list(result_lenient))
 })
 
-test_that("effect_sizes_divergence enriches per-q patterns", {
+test_that("calculate_effect_sizes enriches per-q patterns", {
   # Test with enrich_per_q_pattern = TRUE
   lm_res <- data.frame(
     gene = c("gene1", "gene2"),
@@ -128,7 +128,7 @@ test_that("effect_sizes_divergence enriches per-q patterns", {
     )
   )
   
-  result <- .effect_sizes_divergence(
+  result <- .calculate_effect_sizes(
     lm_res = lm_res,
     divergence_results_se = div_se,
     enrich_per_q_pattern = TRUE,
@@ -138,7 +138,7 @@ test_that("effect_sizes_divergence enriches per-q patterns", {
   expect_true(!is.null(result))
 })
 
-test_that("effect_sizes_divergence formats output correctly", {
+test_that("calculate_effect_sizes formats output correctly", {
   # Test output formatting and structure
   lm_res <- data.frame(
     gene = c("gene1"),
@@ -157,7 +157,7 @@ test_that("effect_sizes_divergence formats output correctly", {
     )
   )
   
-  result <- .effect_sizes_divergence(
+  result <- .calculate_effect_sizes(
     lm_res = lm_res,
     divergence_results_se = div_se,
     verbose = FALSE
@@ -167,7 +167,7 @@ test_that("effect_sizes_divergence formats output correctly", {
   expect_true(!is.null(result))
 })
 
-test_that("effect_sizes_divergence handles zero divergence", {
+test_that("calculate_effect_sizes handles zero divergence", {
   # Test handling of zero divergence estimates
   lm_res <- data.frame(
     gene = c("gene1", "gene2"),
@@ -186,7 +186,7 @@ test_that("effect_sizes_divergence handles zero divergence", {
     )
   )
   
-  result <- .effect_sizes_divergence(
+  result <- .calculate_effect_sizes(
     lm_res = lm_res,
     divergence_results_se = div_se,
     verbose = FALSE
@@ -195,7 +195,7 @@ test_that("effect_sizes_divergence handles zero divergence", {
   expect_true(is.data.frame(result) || is.list(result))
 })
 
-test_that("effect_sizes_divergence handles NA divergence estimates", {
+test_that("calculate_effect_sizes handles NA divergence estimates", {
   # Test handling of NA estimates
   lm_res <- data.frame(
     gene = c("gene1", "gene2"),
@@ -214,7 +214,7 @@ test_that("effect_sizes_divergence handles NA divergence estimates", {
     )
   )
   
-  result <- .effect_sizes_divergence(
+  result <- .calculate_effect_sizes(
     lm_res = lm_res,
     divergence_results_se = div_se,
     verbose = FALSE
@@ -223,7 +223,7 @@ test_that("effect_sizes_divergence handles NA divergence estimates", {
   expect_true(!is.null(result))
 })
 
-test_that("effect_sizes_divergence with verbose output", {
+test_that("calculate_effect_sizes with verbose output", {
   # Test verbose output path
   lm_res <- data.frame(
     gene = c("gene1"),
@@ -243,7 +243,7 @@ test_that("effect_sizes_divergence with verbose output", {
   )
   
   # Capture output to verify verbose = TRUE produces messages
-  result <- .effect_sizes_divergence(
+  result <- .calculate_effect_sizes(
     lm_res = lm_res,
     divergence_results_se = div_se,
     verbose = TRUE
@@ -622,7 +622,7 @@ test_that(".classify_q_pattern returns NA for empty input", {
 # INTEGRATION TESTS FOR COMPLETE WORKFLOW
 # ============================================================================
 
-test_that("effect_sizes_divergence returns list with required components", {
+test_that("calculate_effect_sizes returns list with required components", {
   lm_res <- data.frame(
     gene = c("gene1", "gene2"),
     adj_p_interaction = c(0.01, 0.05)
@@ -638,7 +638,7 @@ test_that("effect_sizes_divergence returns list with required components", {
     )
   )
   
-  result <- .effect_sizes_divergence(
+  result <- .calculate_effect_sizes(
     lm_res = lm_res,
     divergence_results_se = div_se,
     verbose = FALSE
@@ -649,7 +649,7 @@ test_that("effect_sizes_divergence returns list with required components", {
   expect_true("validation_stats" %in% names(result))
 })
 
-test_that("effect_sizes_divergence validation stats are accurate", {
+test_that("calculate_effect_sizes validation stats are accurate", {
   lm_res <- data.frame(
     gene = c("gene1", "gene2", "gene3"),
     adj_p_interaction = c(0.01, 0.05, 0.5)
@@ -665,7 +665,7 @@ test_that("effect_sizes_divergence validation stats are accurate", {
     )
   )
   
-  result <- .effect_sizes_divergence(
+  result <- .calculate_effect_sizes(
     lm_res = lm_res,
     divergence_results_se = div_se,
     significance_threshold = 0.05,
@@ -679,7 +679,7 @@ test_that("effect_sizes_divergence validation stats are accurate", {
   expect_true(stats$passed_lmm >= 0)
 })
 
-test_that("effect_sizes_divergence with disable enrichment", {
+test_that("calculate_effect_sizes with disable enrichment", {
   lm_res <- data.frame(
     gene = c("gene1"),
     adj_p_interaction = c(0.01)
@@ -696,7 +696,7 @@ test_that("effect_sizes_divergence with disable enrichment", {
   )
   
   # Run with enrichment disabled
-  result <- .effect_sizes_divergence(
+  result <- .calculate_effect_sizes(
     lm_res = lm_res,
     divergence_results_se = div_se,
     enrich_per_q_pattern = FALSE,
@@ -707,7 +707,7 @@ test_that("effect_sizes_divergence with disable enrichment", {
   expect_true(!is.null(result$interaction_results))
 })
 
-test_that("effect_sizes_divergence handles empty matching results", {
+test_that("calculate_effect_sizes handles empty matching results", {
   # Create data with no overlapping genes
   lm_res <- data.frame(
     gene = c("gene_A", "gene_B"),
@@ -724,7 +724,7 @@ test_that("effect_sizes_divergence handles empty matching results", {
     )
   )
   
-  result <- .effect_sizes_divergence(
+  result <- .calculate_effect_sizes(
     lm_res = lm_res,
     divergence_results_se = div_se,
     verbose = FALSE
@@ -735,7 +735,7 @@ test_that("effect_sizes_divergence handles empty matching results", {
   expect_equal(result$validation_stats$total_genes, 0)
 })
 
-test_that("effect_sizes_divergence with mixed NA and valid divergence", {
+test_that("calculate_effect_sizes with mixed NA and valid divergence", {
   lm_res <- data.frame(
     gene = c("gene1", "gene2", "gene3"),
     adj_p_interaction = c(0.01, 0.02, 0.03)
@@ -751,7 +751,7 @@ test_that("effect_sizes_divergence with mixed NA and valid divergence", {
     )
   )
   
-  result <- .effect_sizes_divergence(
+  result <- .calculate_effect_sizes(
     lm_res = lm_res,
     divergence_results_se = div_se,
     verbose = FALSE
@@ -1204,7 +1204,7 @@ test_that("complete workflow with multi-q divergence produces correct output", {
     )
   )
   
-  result <- .effect_sizes_divergence(
+  result <- .calculate_effect_sizes(
     lm_res = lm_res,
     divergence_results_se = div_se,
     significance_threshold = 0.05,
@@ -1220,7 +1220,7 @@ test_that("complete workflow with multi-q divergence produces correct output", {
               "effect_size_D_q2_0" %in% colnames(result$interaction_results))
 })
 
-test_that("effect_sizes_divergence maintains data integrity through pipeline", {
+test_that("calculate_effect_sizes maintains data integrity through pipeline", {
   skip_on_cran()
   
   lm_res <- data.frame(
@@ -1239,7 +1239,7 @@ test_that("effect_sizes_divergence maintains data integrity through pipeline", {
     )
   )
   
-  result <- .effect_sizes_divergence(
+  result <- .calculate_effect_sizes(
     lm_res = lm_res,
     divergence_results_se = div_se,
     significance_threshold = 0.1,
@@ -1360,7 +1360,7 @@ test_that("formatMultiQResult handles negative divergence with absolute value", 
   expect_equal(result$D_q0_5_upper_ci, -0.7123, tolerance = 1e-10)
 })
 
-test_that("effect_sizes_divergence produces exact numerical output for known input", {
+test_that("calculate_effect_sizes produces exact numerical output for known input", {
   # Test with precise known values to validate numerical correctness
   lm_res <- data.frame(
     gene = c("g1", "g2"),
@@ -1377,7 +1377,7 @@ test_that("effect_sizes_divergence produces exact numerical output for known inp
     )
   )
   
-  result <- .effect_sizes_divergence(
+  result <- .calculate_effect_sizes(
     lm_res = lm_res,
     divergence_results_se = div_se,
     significance_threshold = 0.1,
@@ -1391,7 +1391,7 @@ test_that("effect_sizes_divergence produces exact numerical output for known inp
   expect_equal(result$interaction_results$D_upper_ci[1], 0.6543, tolerance = 1e-10)
 })
 
-test_that("effect_sizes_divergence handles zero values correctly", {
+test_that("calculate_effect_sizes handles zero values correctly", {
   # Test edge case with zero divergence
   lm_res <- data.frame(
     gene = c("zero_gene"),
@@ -1408,7 +1408,7 @@ test_that("effect_sizes_divergence handles zero values correctly", {
     )
   )
   
-  result <- .effect_sizes_divergence(
+  result <- .calculate_effect_sizes(
     lm_res = lm_res,
     divergence_results_se = div_se,
     verbose = FALSE
@@ -1420,7 +1420,7 @@ test_that("effect_sizes_divergence handles zero values correctly", {
   expect_equal(result$interaction_results$D_upper_ci[1], 0.0)
 })
 
-test_that("effect_sizes_divergence handles very small numbers correctly", {
+test_that("calculate_effect_sizes handles very small numbers correctly", {
   # Test with very small numbers (but not zero)
   lm_res <- data.frame(
     gene = c("tiny_gene"),
@@ -1437,7 +1437,7 @@ test_that("effect_sizes_divergence handles very small numbers correctly", {
     )
   )
   
-  result <- .effect_sizes_divergence(
+  result <- .calculate_effect_sizes(
     lm_res = lm_res,
     divergence_results_se = div_se,
     verbose = FALSE
@@ -1448,7 +1448,7 @@ test_that("effect_sizes_divergence handles very small numbers correctly", {
   expect_equal(result$interaction_results$D_lower_ci[1], 5e-11, tolerance = 1e-20)
 })
 
-test_that("effect_sizes_divergence handles large numbers correctly", {
+test_that("calculate_effect_sizes handles large numbers correctly", {
   # Test with large divergence values
   lm_res <- data.frame(
     gene = c("large_gene"),
@@ -1465,7 +1465,7 @@ test_that("effect_sizes_divergence handles large numbers correctly", {
     )
   )
   
-  result <- .effect_sizes_divergence(
+  result <- .calculate_effect_sizes(
     lm_res = lm_res,
     divergence_results_se = div_se,
     verbose = FALSE
@@ -1591,7 +1591,7 @@ test_that("Effect size calculation preserves full precision through pipeline", {
     )
   )
   
-  result <- .effect_sizes_divergence(
+  result <- .calculate_effect_sizes(
     lm_res = lm_res,
     divergence_results_se = div_se,
     verbose = FALSE
@@ -1632,7 +1632,7 @@ test_that("Multi-q output maintains numerical ordering consistency", {
     )
   )
   
-  result <- .effect_sizes_divergence(
+  result <- .calculate_effect_sizes(
     lm_res = lm_res,
     divergence_results_se = div_se,
     verbose = FALSE
@@ -1893,7 +1893,7 @@ test_that(".store_effect_sizes_results_in_metadata tracks function calls", {
   
   calls <- analysis_updated@metadata$function_calls
   expect_equal(length(calls), 3)
-  expect_true(any(grepl("effect_sizes_divergence", calls)))
+  expect_true(any(grepl("calculate_effect_sizes", calls)))
 })
 
 test_that(".save_effect_sizes_output writes TSV files", {
@@ -1981,7 +1981,7 @@ test_that(".save_effect_sizes_output handles NULL output_file", {
   )
 })
 
-test_that("effect_sizes_divergence_s4 orchestrates helpers correctly", {
+test_that("calculate_effect_sizes orchestrates helpers correctly", {
   # Replicate roxygen documentation example exactly
   data(readcounts)
   readcounts <- as.matrix(readcounts)
@@ -2000,47 +2000,50 @@ test_that("effect_sizes_divergence_s4 orchestrates helpers correctly", {
   effective_length <- rep(1000, nrow(readcounts))
   names(effective_length) <- rownames(readcounts)
   
-  analysis <- build_analysis_s4(
+  # Create config FIRST with required metadata column parameters
+  config <- TSENAT_config(
+    q_values = seq(0, 2, by = 0.05),
+    sample_col = 'sample',
+    condition_col = 'condition',
+    subject_col = 'paired_samples',
+    paired = TRUE,
+    control = 'normal'
+  )
+  
+  analysis <- build_analysis(
+    config = config,
     readcounts = readcounts,
-    tx2gene = gff3_dataset,
     metadata = metadata_df,
+    tx2gene = gff3_dataset,
     tpm = tpm,
     effective_length = effective_length,
     verbose = FALSE
   )
   
-  config <- tsenat_config(
-    condition_col = 'condition',
-    subject_col = 'paired_samples',
-    paired = TRUE,
-    control = 'normal',
-    metadata = metadata_df
-  )
-  analysis <- setConfig(analysis, config)
-  
-  analysis <- filter_analysis_s4(analysis, stringency = 'severe', verbose = FALSE)
-  analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-  analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+  analysis <- filter_analysis(analysis, stringency = 'severe', verbose = FALSE)
+  analysis <- calculate_diversity(analysis, q = c(0.5, 0.75, 1.0, 1.5, 2.0), verbose = FALSE)
+  analysis <- calculate_divergence(analysis, q = c(0.5, 0.75, 1.0, 1.5, 2.0), verbose = FALSE)
   analysis <- suppressWarnings(
-    calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
+    calculate_lm(analysis, method = 'gam', verbose = FALSE)
   )
   
   # Compute effect sizes from divergence results
-  analysis <- effect_sizes_divergence_s4(
+  analysis <- calculate_effect_sizes(
     analysis,
     significance_threshold = 0.05, 
     verbose = FALSE
   )
   
-  # Access results using metadata accessor
-  effect_size_results <- getMeta(analysis, 'effect_sizes_divergence')
+  # Access results directly from metadata (getMeta now filters to essential fields only)
+  # For internal testing, access @metadata directly instead of public accessor
+  effect_size_results <- analysis@metadata$effect_sizes_divergence
   
   # Verify structure of results
   expect_true(!is.null(effect_size_results))
   expect_true(is.list(effect_size_results))
 })
 
-test_that("effect_sizes_divergence_s4 respects output_file parameter", {
+test_that("calculate_effect_sizes respects output_file parameter", {
   # Replicate roxygen documentation example with output_file
   data(readcounts)
   readcounts <- as.matrix(readcounts)
@@ -2059,36 +2062,38 @@ test_that("effect_sizes_divergence_s4 respects output_file parameter", {
   effective_length <- rep(1000, nrow(readcounts))
   names(effective_length) <- rownames(readcounts)
   
-  analysis <- build_analysis_s4(
+  # Create config FIRST with required metadata column parameters
+  config <- TSENAT_config(
+    q_values = seq(0, 2, by = 0.05),
+    sample_col = 'sample',
+    condition_col = 'condition',
+    subject_col = 'paired_samples',
+    paired = TRUE,
+    control = 'normal'
+  )
+  
+  analysis <- build_analysis(
+    config = config,
     readcounts = readcounts,
-    tx2gene = gff3_dataset,
     metadata = metadata_df,
+    tx2gene = gff3_dataset,
     tpm = tpm,
     effective_length = effective_length,
     verbose = FALSE
   )
   
-  config <- tsenat_config(
-    condition_col = 'condition',
-    subject_col = 'paired_samples',
-    paired = TRUE,
-    control = 'normal',
-    metadata = metadata_df
-  )
-  analysis <- setConfig(analysis, config)
-  
-  analysis <- filter_analysis_s4(analysis, stringency = 'severe', verbose = FALSE)
-  analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-  analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+  analysis <- filter_analysis(analysis, stringency = 'severe', verbose = FALSE)
+  analysis <- calculate_diversity(analysis, q = c(0.5, 0.75, 1.0, 1.5, 2.0), verbose = FALSE)
+  analysis <- calculate_divergence(analysis, q = c(0.5, 0.75, 1.0, 1.5, 2.0), verbose = FALSE)
   analysis <- suppressWarnings(
-    calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
+    calculate_lm(analysis, method = 'gam', verbose = FALSE)
   )
   
   # Create temporary file for TSV output
   temp_output <- tempfile(fileext = ".tsv")
   
   # Compute effect sizes and save to file
-  analysis <- effect_sizes_divergence_s4(
+  analysis <- calculate_effect_sizes(
     analysis,
     significance_threshold = 0.05,
     output_file = temp_output,

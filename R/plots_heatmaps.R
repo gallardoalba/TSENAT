@@ -41,6 +41,10 @@
 #' Following pheatmap best practices for publication-quality figures.
 #' Applies to
 #'   row labels (q-values) and column labels (transcript IDs).
+#' @param width Output image width in inches. If NULL, automatically
+#' calculated (12 inches).
+#' @param height Output image height in inches. If NULL, automatically
+#' calculated based on number of layout rows.
 #'
 #' @return Character path to saved PNG file containing the combined heatmaps.
 #'   The plot is automatically saved to a temporary file and can be displayed
@@ -73,7 +77,7 @@
 #'
 #' @examples
 #' # Example: Create synthetic multi-q switching results
-#' # For real analysis, use .jackknife_isoform_switching() output
+#' # For real analysis, use .calculate_jis() output
 #' set.seed(123)
 #' gene_names <- paste0('gene_', 1:4)
 #' names(gene_names) <- 1:4
@@ -97,7 +101,7 @@
 #' )
 #' 
 #' # Create heatmap visualization
-#' .plot_multiq_delta_influence_heatmaps(switching_results, n_genes = 2)
+#' .plot_jis_delta(switching_results, n_genes = 2)
 #'
 #' @import grid
 #' @import pheatmap
@@ -105,9 +109,9 @@
 
 #' @noRd
 
-.plot_multiq_delta_influence_heatmaps <- function(switching_results, n_genes = 4,
+.plot_jis_delta <- function(switching_results, n_genes = 4,
     lm_results = NULL, verbose = FALSE, cellwidth = 0, cellheight = 0, fontsize = 18,
-    layout_ncol = 2, output_file = NULL) {
+    layout_ncol = 2, output_file = NULL, width = NULL, height = NULL) {
     # Phase 1: Validate input
     result_data <- .validate_multiq_input(switching_results)
     q_result_keys <- result_data$q_result_keys
@@ -132,7 +136,7 @@
         layout_ncol > 0, layout_ncol = layout_ncol)
     gene_layout <- layout_result$layout
     n_layout_rows <- layout_result$n_layout_rows
-    dims <- .calculate_heatmap_dimensions(n_layout_rows, length(q_result_keys))
+    dims <- .calculate_heatmap_dimensions(n_layout_rows, length(q_result_keys), width_in = if (is.null(width)) 12 else width, height_in = height)
 
     # Phase 5: Create heatmaps (using refactored loop)
     all_gene_matrices <- list()
@@ -259,7 +263,7 @@
 #' Must have a 'genes' column in rowData specifying which gene each
 #' transcript belongs to.
 #' If `use_tpm = TRUE`, requires TPM data in metadata (provided to
-#' `build_analysis_s4()` or `.build_se()`).
+#' `build_analysis()` or `.build_se()`).
 #' @param gene Character vector; gene symbol(s) to inspect. If NULL and
 #' `res` is provided,
 #'   top genes are selected by p-value.
@@ -269,11 +273,11 @@
 #' @param res Optional result data.frame from differential/interaction
 #' analysis with gene identifiers and p-values.
 #'   Supported sources:
-#' - `.calculate_lm_interaction(..., return_model_data = TRUE)` returns a
+#' - `.calculate_lm(..., return_model_data = TRUE)` returns a
 #' list with $results and $model_data
-#' - `.calculate_lm_interaction(..., return_model_data = FALSE)` returns a
+#' - `.calculate_lm(..., return_model_data = FALSE)` returns a
 #' data.frame with adj_p_interaction column
-#' - `.rank_test_q_condition()` returns a data.frame with adj_p_value column
+#' - `.calculate_rank_test()` returns a data.frame with adj_p_value column
 #' (for Friedman/Kruskal-Wallis tests)
 #'   If provided and `gene` is NULL, top genes are selected by adjusted p-value.
 #' @param top_n Integer number of transcripts to show (default = 3). Use
@@ -287,7 +291,7 @@
 #' (default: FALSE). TPM is normalized for sequencing depth and is
 #' recommended for comparing
 #' expression across samples. Requires TPM data in `metadata(se)$tpm`
-#' from `build_analysis_s4()` or `.build_se()`
+#' from `build_analysis()` or `.build_se()`
 #' with `tpm` parameter. Raises error if TPM not available and `use_tpm =
 #' TRUE`.
 #' @param width Output image width in inches. If NULL, automatically
@@ -317,7 +321,7 @@
 #' between cells.
 #'
 #' Architecture follows the pattern established by
-#' `.plot_multiq_delta_influence_heatmaps()`:
+#' `.plot_jis_delta()`:
 #' - Phase 1: Input validation and extraction
 #' - Phase 2: Gene/condition selection
 #' - Phase 3: Layout planning (before creating heatmaps)
@@ -334,12 +338,12 @@
 #' se <- SummarizedExperiment(assays = list(counts = counts), 
 #'                           rowData = rowData_df, colData = colData_df)
 #' # Plot top transcripts
-#' .plot_top_transcripts(se, gene = 'G1', top_n = 2, output_file =
+#' .plot_expression(se, gene = 'G1', top_n = 2, output_file =
 #' '/tmp/heatmap.png')
 
 #' @noRd
 
-.plot_top_transcripts <- function(se, gene = NULL, condition_col = "condition", res = NULL,
+.plot_expression <- function(se, gene = NULL, condition_col = "condition", res = NULL,
     top_n = 3, output_file = NULL, metric = c("median", "mean", "variance", "iqr"),
     use_tpm = TRUE, width = NULL, height = NULL, fontsize = 16, cellwidth = 0, cellheight = 0,
     layout_ncol = 2) {
@@ -379,6 +383,14 @@
     }
     if (is.null(gene)) {
         stop("gene must be provided or derivable from res", call. = FALSE)
+    }
+
+    # Resolve gene identifiers: convert gene names/transcript IDs to gene IDs
+    gene <- .resolve_gene_identifiers(gene, tx2gene, rd, gene_col)
+    
+    if (FALSE) {  # Debug mode - set to TRUE if needed
+        message("[DEBUG] After resolution, genes: ", paste(gene, collapse=", "))
+        message("[DEBUG] tx2gene$Gen unique values (first 10): ", paste(head(unique(tx2gene$Gen), 10), collapse=", "))
     }
 
     # Phase 3: Plan layout
@@ -423,9 +435,13 @@
             cellwidth, cellheight, fontsize)
 
         # Create pheatmap
-        heatmap_plots[[gene_idx]] <- .create_pheatmap_grob(mat, title = gene_name,
-            cellw = cells$cellwidth, cellh = cells$cellheight, fontsize = cells$fontsize_adj,
-            cluster_rows = FALSE)
+        heatmap_plots[[gene_idx]] <- tryCatch({
+            .create_pheatmap_grob(mat, title = gene_name,
+                cellw = cells$cellwidth, cellh = cells$cellheight, fontsize = cells$fontsize_adj,
+                cluster_rows = FALSE)
+        }, error = function(e) {
+            NULL
+        })
     }
 
     if (all(vapply(heatmap_plots, is.null, logical(1)))) {
@@ -455,7 +471,7 @@
 # Internal Helper Functions for Heatmap Refactoring
 # ============================================================================
 # This file contains shared helper functions extracted to support
-# .plot_multiq_delta_influence_heatmaps() and .plot_top_transcripts()
+# .plot_jis_delta() and .plot_expression()
 # refactoring to meet Bioconductor's 50-line function guideline.  All functions
 # marked @keywords internal @noRd are NOT exported.
 # ============================================================================
@@ -482,7 +498,7 @@
 #' @noRd
 .validate_multiq_input <- function(switching_results) {
     if (!inherits(switching_results, "tsenat_isoform_switching_multiq")) {
-        stop("switching_results must be a multi-q result from .jackknife_isoform_switching()",
+        stop("switching_results must be a multi-q result from .calculate_jis()",
             call. = FALSE)
     }
 
@@ -519,22 +535,85 @@
 #'   - condition_col: validated condition column name
 #'
 
+#' @keywords internal
+#' @noRd
+.resolve_gene_identifiers <- function(genes, tx2gene, rd, gene_col) {
+    # Flexible gene identifier resolution
+    # Accepts: gene IDs, gene names, or transcript IDs
+    # Returns: vector of gene IDs for lookup in tx2gene
+    
+    if (is.null(genes) || length(genes) == 0) {
+        return(genes)
+    }
+    
+    genes <- as.character(genes)
+    
+    # Get available identifiers from rowData
+    gene_ids <- if ("gene_id" %in% colnames(rd)) {
+        as.character(rd$gene_id)
+    } else {
+        NULL
+    }
+    gene_names <- if ("gene_name" %in% colnames(rd)) {
+        as.character(rd$gene_name)
+    } else {
+        NULL
+    }
+    transcript_ids <- tx2gene$Transcript
+    
+    # Key: tx2gene$Gen is built from rd[[gene_col]], so we need to resolve TO that column
+    # If gene_col="gene_name", we need to convert gene_ids to gene_names
+    target_col <- as.character(rd[[gene_col]])
+    
+    # Try to resolve each gene
+    resolved_genes <- character(length(genes))
+    
+    for (i in seq_along(genes)) {
+        gene_input <- genes[i]
+        
+        # Direct match: already in target column
+        if (gene_input %in% target_col) {
+            resolved_genes[i] <- gene_input
+            next
+        }
+        
+        # Is it a gene_id that needs mapping to target_col?
+        if (!is.null(gene_ids) && gene_input %in% gene_ids) {
+            idx <- which(gene_ids == gene_input)[1]
+            resolved_genes[i] <- target_col[idx]
+            next
+        }
+        
+        # Is it a transcript ID?
+        if (gene_input %in% transcript_ids) {
+            idx <- which(transcript_ids == gene_input)[1]
+            resolved_genes[i] <- tx2gene$Gen[idx]
+            next
+        }
+        
+        # If not found, keep original (will fail downstream with informative error)
+        resolved_genes[i] <- gene_input
+    }
+    
+    resolved_genes
+}
+
 #' @noRd
 .validate_se_for_heatmaps <- function(se, gene_col = NULL, condition_col = NULL) {
     if (!inherits(se, "SummarizedExperiment")) {
         stop("se must be a SummarizedExperiment object", call. = FALSE)
     }
 
-    # Validate/auto-detect gene column
+    # Validate/auto-detect gene column (prefer gene_name for human readability)
     if (is.null(gene_col)) {
-        gene_col <- if ("genes" %in% colnames(rowData(se))) {
-            "genes"
-        } else if ("gene_name" %in% colnames(rowData(se))) {
+        gene_col <- if ("gene_name" %in% colnames(rowData(se))) {
             "gene_name"
+        } else if ("genes" %in% colnames(rowData(se))) {
+            "genes"
         } else if ("gene_id" %in% colnames(rowData(se))) {
             "gene_id"
         } else {
-            stop("rowData(se) must contain 'genes', 'gene_name', or 'gene_id' column",
+            stop("rowData(se) must contain 'gene_name', 'genes', or 'gene_id' column",
                 call. = FALSE)
         }
     } else {
@@ -803,7 +882,7 @@
 
     # Scale height: 3 inches per layout row + gaps
     height_per_layout_row <- 3 * (n_data_rows/5)
-    gap_between_rows <- 1.5
+    gap_between_rows <- 1.8
     heatmap_height <- height_per_layout_row * n_layout_rows + gap_between_rows *
         (n_layout_rows - 1)
 
@@ -871,6 +950,9 @@
         final_cellheight <- base_cellheight * scale_factor_height
     }
 
+    final_cellwidth <- final_cellwidth * 0.95
+    final_cellheight <- final_cellheight * 0.591
+
     list(cellwidth = final_cellwidth, cellheight = final_cellheight, fontsize_adj = fontsize *
         0.7)
 }
@@ -936,6 +1018,11 @@
     title = "Heatmap Analysis", subtitle = "") {
     # Open PNG if specified
     if (!is.null(output_file)) {
+        # Create parent directories if they don't exist
+        output_dir <- dirname(output_file)
+        if (!dir.exists(output_dir)) {
+            dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+        }
         grDevices::png(output_file, width = png_width, height = png_height, units = "in",
             res = 100)
     }
@@ -961,9 +1048,9 @@
     n_grid_rows <- n_layout_rows * 2 - 1
     row_heights <- rep(c(1, 0.15), n_layout_rows)[seq_len(n_grid_rows)]
 
-    grid::pushViewport(grid::viewport(x = 0.5, y = 0.48, width = 0.96, height = 0.85,
+    grid::pushViewport(grid::viewport(x = 0.5, y = 0.47, width = 0.99, height = 0.85,
         layout = grid::grid.layout(n_grid_rows, 3, heights = grid::unit(row_heights,
-            "null"), widths = c(1, 0.12, 1), respect = FALSE)))
+            "null"), widths = c(1, 0.08, 1), respect = FALSE)))
 
     invisible(NULL)
 }

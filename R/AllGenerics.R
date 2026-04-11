@@ -50,10 +50,17 @@ if (getRversion() >= "2.15.1") {
 #' # These accessor methods follow Bioconductor conventions
 #' # lmResults, jeoResults, jisResults, getMeta provide structured access
 
-#' @export
+#' Get metadata from TSENATAnalysis
+#' @param object TSENATAnalysis object
+#' @param key Optional metadata key to retrieve
+#' @return list containing metadata or specific key value
+#' @noRd
 setGeneric("getMeta", function(object, ...) standardGeneric("getMeta"))
 
-#' @export
+#' Get configuration from TSENATAnalysis
+#' @param object TSENATAnalysis object
+#' @return list containing configuration parameters
+#' @noRd
 setGeneric("getConfig", function(object, ...) standardGeneric("getConfig"))
 
 #' Get cached plot
@@ -72,14 +79,13 @@ setGeneric("getConfig", function(object, ...) standardGeneric("getConfig"))
 #' = 'TSENAT'),
 #'   header = TRUE, sep = '\t')
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
-#' gff3_file, metadata = metadata_df,
+#' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
+#' analysis <- build_analysis(readcounts = readcounts, tx2gene =
+#' gff3_file, metadata = metadata_df, config = config,
 #'   tpm = tpm, effective_length = effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 #' = 200)
-#' all_plots <- getPlot(analysis)
-#'
-#' @export
+#' @noRd
 setGeneric("getPlot", function(object, ...) standardGeneric("getPlot"))
 
 #' Add or cache a plot in TSENATAnalysis object
@@ -101,19 +107,23 @@ setGeneric("getPlot", function(object, ...) standardGeneric("getPlot"))
 #'   header = TRUE, sep = '\t'
 #' )
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+#'
+#' # TPM and effective_length REQUIRED for filter_analysis()
+#' tpm <- matrix(runif(nrow(readcounts) * ncol(readcounts), 0.1, 10),
+#'               nrow = nrow(readcounts), ncol = ncol(readcounts),
+#'               dimnames = dimnames(readcounts))
+#' effective_length <- matrix(100, nrow = nrow(readcounts), ncol = ncol(readcounts))
 #' 
-#' config <- tsenat_config(q_values = c(0.5, 1.0), generate_plots = FALSE)
-#' analysis <- build_analysis_s4(readcounts, tx2gene = gff3_file,
+#' config <- TSENAT_config(q = 1.0, generate_plots = FALSE)
+#' analysis <- build_analysis(readcounts, tx2gene = gff3_file,
 #'     metadata = metadata, tpm = tpm, effective_length = effective_length,
 #'     config = config)
-#' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-#' analysis <- calculate_diversity_s4(analysis, norm = TRUE)
+#' analysis <- filter_analysis(analysis, stringency = 'severe')
+#' analysis <- calculate_diversity(analysis, norm = TRUE)
 #' 
 #' # Create and cache a plot
-#' p <- plot_tsallis_q_curve_s4(analysis)
-#' analysis <- addPlot(analysis, type = 'tsallis_q_curve', plot = p)
-#'
-#' @export
+#' p <- plot_diversity_spectrum(analysis)
+#' @noRd
 setGeneric("addPlot", function(object, type, plot, replace = FALSE) standardGeneric("addPlot"))
 
 #' Extract SummarizedExperiment from TSENATAnalysis
@@ -140,9 +150,13 @@ setGeneric("addPlot", function(object, type, plot, replace = FALSE) standardGene
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #'
 #' # Build TSENATAnalysis object
-#' analysis <- build_analysis_s4(readcounts = readcounts, 
+#' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
+#' analysis <- build_analysis(readcounts = readcounts, 
 #'                              tx2gene = gff3_file, 
-#'                              metadata = metadata_df)
+#'                              metadata = metadata_df,
+#'                              config = config,
+#'                              tpm = tpm,
+#'                              effective_length = effective_length)
 #'
 #' # Extract the underlying SummarizedExperiment
 #' se <- getSE(analysis)
@@ -151,7 +165,59 @@ setGeneric("addPlot", function(object, type, plot, replace = FALSE) standardGene
 #' nrow(se)  # Number of transcripts
 #' ncol(se)  # Number of samples
 #' SummarizedExperiment::assayNames(se)  # Available assay matrices
-#' SummarizedExperiment::colData(se)  # Sample metadata
-#' 
-#' @export
+#' @noRd
 setGeneric("getSE", function(object, ...) standardGeneric("getSE"))
+
+#' @noRd
+setGeneric("setConfig", function(object, value) standardGeneric("setConfig"))
+
+#' @noRd
+setGeneric("setConfigValue", function(object, key, value) standardGeneric("setConfigValue"))
+
+#' Extract SummarizedExperiment from TSENATAnalysis
+#'
+#' @param object TSENATAnalysis object
+#' @return SummarizedExperiment object
+#' @examples
+#' # Create a simple TSENATAnalysis object
+#' library(SummarizedExperiment)
+#' counts <- matrix(rpois(100, lambda = 10), nrow = 10, ncol = 10)
+#' colnames(counts) <- paste0('sample_', 1:10)
+#' rownames(counts) <- paste0('gene_', 1:10)
+#'
+#' se <- SummarizedExperiment(assays = list(counts = counts))
+#' analysis <- new('TSENATAnalysis', se = se, config = list())
+#'
+#' # Extract the SummarizedExperiment
+#' extracted_se <- se(analysis)
+#' dim(extracted_se)
+#' @rdname TSENATAnalysis-se
+#' @export
+setGeneric("se", function(object) standardGeneric("se"))
+
+#' @noRd
+if (!isGeneric("metadata")) {
+    setGeneric("metadata", function(x, key = NULL) standardGeneric("metadata"))
+}
+
+#' Set metadata for TSENATAnalysis object
+#'
+# metadata<- generic for TSENATAnalysis
+# Defines the replacement method for modifying @metadata slot
+#' @param x TSENATAnalysis object
+#' @param value Replacement value for metadata (typically a list)
+#' @return TSENATAnalysis object with updated metadata
+#' @examples
+#' \donttest{
+#' # For complete examples including the metadata<- setter method, 
+#' # see the TSENATAnalysis-metadata help page
+#' library(SummarizedExperiment)
+#' se <- SummarizedExperiment(assays = list(counts = matrix(1:100, nrow = 10)))
+#' analysis <- new('TSENATAnalysis', se = se, config = list())
+#' 
+#' # Get metadata (this works immediately)
+#' metadata(analysis)
+#' }
+#' @rdname TSENATAnalysis-metadata
+#' @keywords internal
+setGeneric("metadata<-", function(x, value) standardGeneric("metadata<-"))

@@ -22,14 +22,14 @@ make_test_analysis_diversity <- function(n_genes = 8, n_samples_per_group = 4,
 # TEST GROUP 1: Output File Generation
 # ===========================================================================
 
-test_that("calculate_diversity_s4 generates diversity_results.tsv file without bootstrap", {
+test_that("calculate_diversity generates diversity_results.tsv file without bootstrap", {
   
   analysis <- make_test_analysis_diversity(n_genes = 8, n_samples_per_group = 2)
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_diversity_noboot.tsv")
   
   # Calculate diversity without bootstrap
-  result <- TSENAT::calculate_diversity_s4(
+  result <- TSENAT::calculate_diversity(
     analysis,
     q = c(0.5, 1.0),
     bootstrap = FALSE,
@@ -49,13 +49,13 @@ test_that("calculate_diversity_s4 generates diversity_results.tsv file without b
   if (file.exists(output_file)) unlink(output_file)
 })
 
-test_that("calculate_diversity_s4 generates both diversity_results.tsv and _diversity_spectrum.tsv with output_file", {
+test_that("calculate_diversity generates both diversity_results.tsv and _diversity_spectrum.tsv with output_file", {
   
   analysis <- make_test_analysis_diversity(n_genes = 8, n_samples_per_group = 2)
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_diversity_dual.tsv")
   
-  result <- TSENAT::calculate_diversity_s4(
+  result <- TSENAT::calculate_diversity(
     analysis,
     q = c(0.5, 1.0),
     bootstrap = FALSE,
@@ -79,14 +79,14 @@ test_that("calculate_diversity_s4 generates both diversity_results.tsv and _dive
   if (file.exists(spectrum_file)) unlink(spectrum_file)
 })
 
-test_that("calculate_diversity_s4 generates diversity_results.tsv with CI columns when bootstrap=TRUE", {
+test_that("calculate_diversity generates diversity_results.tsv with CI columns when bootstrap=TRUE", {
   skip_on_cran()
   
   analysis <- make_test_analysis_diversity(n_genes = 8, n_samples_per_group = 2)
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_diversity_boot.tsv")
   
-  result <- suppressWarnings(TSENAT::calculate_diversity_s4(
+  result <- suppressWarnings(TSENAT::calculate_diversity(
     analysis,
     q = c(0.5, 1.0),
     bootstrap = TRUE,
@@ -127,7 +127,7 @@ test_that("diversity_results.tsv has correct row count (genes x samples x q-valu
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_diversity_rowcount.tsv")
   
-  result <- TSENAT::calculate_diversity_s4(
+  result <- TSENAT::calculate_diversity(
     analysis,
     q = q_vals,
     bootstrap = FALSE,
@@ -154,7 +154,7 @@ test_that("diversity_results.tsv contains all expected q-values", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_diversity_qvals.tsv")
   
-  result <- TSENAT::calculate_diversity_s4(
+  result <- TSENAT::calculate_diversity(
     analysis,
     q = q_vals,
     bootstrap = FALSE,
@@ -186,7 +186,7 @@ test_that("diversity_results.tsv has no NA values in diversity column", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_diversity_nona.tsv")
   
-  result <- TSENAT::calculate_diversity_s4(
+  result <- TSENAT::calculate_diversity(
     analysis,
     q = c(0.5, 1.0),
     bootstrap = FALSE,
@@ -211,7 +211,7 @@ test_that("diversity values are in reasonable range [0, Inf)", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_diversity_range.tsv")
   
-  result <- TSENAT::calculate_diversity_s4(
+  result <- TSENAT::calculate_diversity(
     analysis,
     q = c(0.0, 0.5, 1.0, 2.0),
     bootstrap = FALSE,
@@ -243,7 +243,7 @@ test_that("CI columns exist when bootstrap=TRUE", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_diversity_ci_exist.tsv")
   
-  result <- suppressWarnings(TSENAT::calculate_diversity_s4(
+  result <- suppressWarnings(TSENAT::calculate_diversity(
     analysis,
     q = c(0.5, 1.0),
     bootstrap = TRUE,
@@ -272,7 +272,7 @@ test_that("CI bounds are valid (ci_lower <= diversity <= ci_upper)", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_diversity_ci_bounds.tsv")
   
-  result <- suppressWarnings(TSENAT::calculate_diversity_s4(
+  result <- suppressWarnings(TSENAT::calculate_diversity(
     analysis,
     q = c(0.5, 1.0),
     bootstrap = TRUE,
@@ -328,7 +328,7 @@ test_that("CI width decreases with higher bootstrap replicates (nboot)", {
   output_file_high <- file.path(output_dir, "test_diversity_ci_high_nboot.tsv")
   
   # Low nboot
-  result_low <- suppressWarnings(TSENAT::calculate_diversity_s4(
+  result_low <- suppressWarnings(TSENAT::calculate_diversity(
     analysis_low,
     q = c(1.0),
     bootstrap = TRUE,
@@ -338,7 +338,7 @@ test_that("CI width decreases with higher bootstrap replicates (nboot)", {
   ))
   
   # High nboot (use 50 instead of 2000 to keep tests fast)
-  result_high <- suppressWarnings(TSENAT::calculate_diversity_s4(
+  result_high <- suppressWarnings(TSENAT::calculate_diversity(
     analysis_high,
     q = c(1.0),
     bootstrap = TRUE,
@@ -393,7 +393,7 @@ test_that("Point estimates are identical with/without bootstrap", {
   output_file_boot <- file.path(output_dir, "test_diversity_boot_compare.tsv")
   
   # Without bootstrap
-  result_noboot <- TSENAT::calculate_diversity_s4(
+  result_noboot <- TSENAT::calculate_diversity(
     analysis,
     q = c(0.5, 1.0),
     bootstrap = FALSE,
@@ -404,7 +404,7 @@ test_that("Point estimates are identical with/without bootstrap", {
   # With bootstrap (separate analysis with same data)
   # Note: Use new instance to ensure same underlying data
   analysis2 <- make_test_analysis_diversity(n_genes = 10, n_samples_per_group = 3, seed = 456)
-  result_boot <- suppressWarnings(TSENAT::calculate_diversity_s4(
+  result_boot <- suppressWarnings(TSENAT::calculate_diversity(
     analysis2,
     q = c(0.5, 1.0),
     bootstrap = TRUE,
@@ -441,7 +441,7 @@ test_that("Diversity values differ across diverse and non-diverse samples", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_diversity_distribution.tsv")
   
-  result <- TSENAT::calculate_diversity_s4(
+  result <- TSENAT::calculate_diversity(
     analysis,
     q = c(1.0),
     bootstrap = FALSE,
@@ -466,7 +466,7 @@ test_that("Spectrum file aggregates correctly across samples", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_diversity_spectrum_check.tsv")
   
-  result <- TSENAT::calculate_diversity_s4(
+  result <- TSENAT::calculate_diversity(
     analysis,
     q = c(0.5, 1.0, 1.5),
     bootstrap = FALSE,
@@ -508,7 +508,7 @@ test_that("Multiple q-values produce consistent sample/gene combinations", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_diversity_multiQ.tsv")
   
-  result <- TSENAT::calculate_diversity_s4(
+  result <- TSENAT::calculate_diversity(
     analysis,
     q = q_vals,
     bootstrap = FALSE,
@@ -535,7 +535,7 @@ test_that("Diversity typically varies across q-values for same gene/sample", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_diversity_q_variation.tsv")
   
-  result <- TSENAT::calculate_diversity_s4(
+  result <- TSENAT::calculate_diversity(
     analysis,
     q = c(0.5, 1.0, 1.5),
     bootstrap = FALSE,
@@ -570,7 +570,7 @@ test_that("Norm vs non-norm calculations produce different results", {
   output_file_nonorm <- file.path(output_dir, "test_diversity_nonorm.tsv")
   
   # With normalization
-  result_norm <- TSENAT::calculate_diversity_s4(
+  result_norm <- TSENAT::calculate_diversity(
     analysis_norm,
     q = c(1.0),
     norm = TRUE,
@@ -580,7 +580,7 @@ test_that("Norm vs non-norm calculations produce different results", {
   )
   
   # Without normalization
-  result_nonorm <- TSENAT::calculate_diversity_s4(
+  result_nonorm <- TSENAT::calculate_diversity(
     analysis_nonorm,
     q = c(1.0),
     norm = FALSE,
@@ -614,7 +614,7 @@ test_that("Output TSV is properly formatted (readable and parseable)", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_diversity_format.tsv")
   
-  result <- suppressWarnings(TSENAT::calculate_diversity_s4(
+  result <- suppressWarnings(TSENAT::calculate_diversity(
     analysis,
     q = c(0.5, 1.0),
     bootstrap = TRUE,
@@ -647,7 +647,7 @@ test_that("Data types are correct in output file", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_diversity_dtypes.tsv")
   
-  result <- TSENAT::calculate_diversity_s4(
+  result <- TSENAT::calculate_diversity(
     analysis,
     q = c(0.5, 1.0),
     bootstrap = FALSE,
@@ -692,7 +692,7 @@ test_that("PRIORITY2: Zero counts handled with bootstrap=TRUE", {
   
   # Use larger nboot to avoid that warning, focus on zero count warning
   result <- suppressWarnings(
-    TSENAT::calculate_diversity_s4(
+    TSENAT::calculate_diversity(
       analysis,
       q = 1.0,
       bootstrap = TRUE,
@@ -710,7 +710,7 @@ test_that("PRIORITY2: Very small nboot produces bootstrap warning", {
   analysis <- make_test_analysis_diversity(n_genes = 2, n_samples_per_group = 2)
   
   expect_warning(
-    result <- TSENAT::calculate_diversity_s4(
+    result <- TSENAT::calculate_diversity(
       analysis,
       q = 1.0,
       bootstrap = TRUE,
@@ -732,7 +732,7 @@ test_that("PRIORITY2: Extreme q values trigger validation warning", {
   # Test extreme q values (both very small and very large)
   # Small q
   result1 <- suppressWarnings(
-    TSENAT::calculate_diversity_s4(
+    TSENAT::calculate_diversity(
       analysis,
       q = 0.001,  # Below 0.01
       bootstrap = FALSE,
@@ -743,7 +743,7 @@ test_that("PRIORITY2: Extreme q values trigger validation warning", {
   
   # Large q
   result2 <- suppressWarnings(
-    TSENAT::calculate_diversity_s4(
+    TSENAT::calculate_diversity(
       analysis,
       q = 150,  # Above 100
       bootstrap = FALSE,
@@ -765,7 +765,7 @@ test_that("PRIORITY2: Small total counts produce reliability warning", {
   # Should warn about small total count when bootstrap=TRUE
   # (validation happens in bootstrap pipeline)
   result <- suppressWarnings(
-    TSENAT::calculate_diversity_s4(
+    TSENAT::calculate_diversity(
       analysis,
       q = 1.0,
       bootstrap = TRUE,
@@ -791,7 +791,7 @@ test_that("PRIORITY2: Correct effective_length dimensions work", {
   
   # Should work without error
   result <- suppressWarnings(
-    TSENAT::calculate_diversity_s4(
+    TSENAT::calculate_diversity(
       analysis,
       q = 1.0,
       effective_length = el,
@@ -816,7 +816,7 @@ test_that("diversity values are non-negative for all samples and q-values", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_diversity_nonneg.tsv")
   
-  result <- TSENAT::calculate_diversity_s4(
+  result <- TSENAT::calculate_diversity(
     analysis,
     q = c(0.5, 1.0, 1.5, 2.0),
     bootstrap = FALSE,
@@ -847,7 +847,7 @@ test_that("identical distributions have similar diversity values", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_diversity_identical.tsv")
   
-  result <- TSENAT::calculate_diversity_s4(
+  result <- TSENAT::calculate_diversity(
     analysis,
     q = c(1.0),
     bootstrap = FALSE,
@@ -884,7 +884,7 @@ test_that("diversity respects q-parameter: q=1 is Shannon entropy", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_diversity_shannon.tsv")
   
-  result <- TSENAT::calculate_diversity_s4(
+  result <- TSENAT::calculate_diversity(
     analysis,
     q = c(1.0),
     bootstrap = FALSE,
@@ -918,7 +918,7 @@ test_that("diversity increases with decreasing q for same distribution", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_diversity_q_trend.tsv")
   
-  result <- TSENAT::calculate_diversity_s4(
+  result <- TSENAT::calculate_diversity(
     analysis,
     q = c(0.5, 1.0, 2.0),
     bootstrap = FALSE,
@@ -968,7 +968,7 @@ test_that("diversity computation is stable and reproducible", {
   output_file1 <- file.path(output_dir, "test_diversity_repro1.tsv")
   output_file2 <- file.path(output_dir, "test_diversity_repro2.tsv")
   
-  result1 <- TSENAT::calculate_diversity_s4(
+  result1 <- TSENAT::calculate_diversity(
     analysis1,
     q = c(1.0),
     bootstrap = FALSE,
@@ -976,7 +976,7 @@ test_that("diversity computation is stable and reproducible", {
     verbose = FALSE
   )
   
-  result2 <- TSENAT::calculate_diversity_s4(
+  result2 <- TSENAT::calculate_diversity(
     analysis2,
     q = c(1.0),
     bootstrap = FALSE,
@@ -1016,7 +1016,7 @@ test_that("bootstrap diversity estimates maintain mathematical properties", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_diversity_boot_props.tsv")
   
-  result <- suppressWarnings(TSENAT::calculate_diversity_s4(
+  result <- suppressWarnings(TSENAT::calculate_diversity(
     analysis,
     q = c(0.5, 1.0, 1.5),
     bootstrap = TRUE,
@@ -1056,7 +1056,7 @@ test_that("diversity increases monotonically with species richness", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_diversity_monotone.tsv")
   
-  result <- TSENAT::calculate_diversity_s4(
+  result <- TSENAT::calculate_diversity(
     analysis,
     q = c(1.0),
     bootstrap = FALSE,
@@ -1387,7 +1387,7 @@ test_that(".build_diversity_output_table creates output from results", {
   analysis <- make_test_analysis_helpers()
   
   # First compute diversity to populate diversity_results
-  analysis <- TSENAT::calculate_diversity_s4(
+  analysis <- TSENAT::calculate_diversity(
     analysis,
     q = c(0.5, 1.0),
     verbose = FALSE
@@ -1413,7 +1413,7 @@ test_that("Helper functions work together in full pipeline", {
   analysis <- make_test_analysis_helpers(n_genes = 5, n_samples_per_group = 2)
   
   # Call main function which uses all helpers
-  result <- TSENAT::calculate_diversity_s4(
+  result <- TSENAT::calculate_diversity(
     analysis,
     q = c(0.5, 1.0),
     norm_method = "default",
@@ -1439,11 +1439,11 @@ test_that("Helper functions produce consistent results across runs", {
   
   # Run 1
   analysis1 <- make_test_analysis_helpers(seed = 111)
-  result1 <- TSENAT::calculate_diversity_s4(analysis1, q = 1.0, verbose = FALSE)
+  result1 <- TSENAT::calculate_diversity(analysis1, q = 1.0, verbose = FALSE)
   
   # Run 2 (same seed)
   analysis2 <- make_test_analysis_helpers(seed = 111)
-  result2 <- TSENAT::calculate_diversity_s4(analysis2, q = 1.0, verbose = FALSE)
+  result2 <- TSENAT::calculate_diversity(analysis2, q = 1.0, verbose = FALSE)
   
   # Should have same structure
   expect_equal(
@@ -1472,7 +1472,7 @@ test_that("Helper functions handle edge case: single sample", {
   )
   
   # Should not fail
-  result <- TSENAT::calculate_diversity_s4(
+  result <- TSENAT::calculate_diversity(
     analysis,
     q = 1.0,
     verbose = FALSE
@@ -1496,7 +1496,7 @@ test_that("Helper functions handle edge case: single q-value", {
   )
   
   # Call with explicit q to override config
-  result <- TSENAT::calculate_diversity_s4(
+  result <- TSENAT::calculate_diversity(
     analysis,
     q = 0.5,  # Explicit single q-value
     verbose = FALSE
@@ -1523,7 +1523,7 @@ test_that("Helper functions handle edge case: many q-values", {
   many_q <- seq(0.1, 2.0, by = 0.2)
   
   # Call with explicit many q-values
-  result <- TSENAT::calculate_diversity_s4(
+  result <- TSENAT::calculate_diversity(
     analysis,
     q = many_q,  # Override config with many q values
     verbose = FALSE
@@ -1543,7 +1543,7 @@ test_that("Helpers produce meaningful error messages on invalid input", {
   
   # q = NA should produce a clear error
   expect_error(
-    TSENAT::calculate_diversity_s4(analysis, q = NA, verbose = FALSE),
+    TSENAT::calculate_diversity(analysis, q = NA, verbose = FALSE),
     "must be numeric"
   )
 })
@@ -1552,7 +1552,7 @@ test_that("Helper functions preserve audit trail information", {
   
   analysis <- make_test_analysis_helpers()
   
-  result <- TSENAT::calculate_diversity_s4(
+  result <- TSENAT::calculate_diversity(
     analysis,
     q = c(0.5, 1.0),
     norm = TRUE,

@@ -15,9 +15,9 @@
 #' }
 #'
 #' @param analysis \code{TSENATAnalysis} object.
-#' @param q \code{numeric}. Q-value(s) for Tsallis entropy.
-#'   If NULL,  uses q_values from \code{analysis@config$q_values} if 
-#' available,  else defaults to seq(0. 01,  2,  by = 0. 05).
+#' @param q \code{numeric}. Q-value(s) for Tsallis entropy (single value or vector).
+#'   If NULL, reads from \code{analysis@config$q}. If not in config, defaults to 
+#'   seq(0.01, 2, by = 0.05) for full spectrum computation.
 #' @param norm \code{logical} or  \code{character}.  Normalization method:
 #'  TRUE,  FALSE,  'none',  'range',  'zscore',  'log_odds_ratio',
 #'  'relative_reference'.
@@ -34,10 +34,6 @@
 #'     \item \code{NULL} - No post-hoc normalization (default)
 #'   }
 #'   If NULL, reads from \code{@config$norm_method} if available.
-#' @param tpm \code{logical}. TPM normalization. Default: FALSE.
-#'   If not specified, reads from \code{@config$tpm} if available.
-#' @param assayno \code{numeric}. Assay number to use. Default: 1.
-#'   If NULL, reads from \code{@config$assayno} if available.
 #' @param verbose \code{logical}. Print progress messages. Default: TRUE.
 #'   If not specified, reads from \code{@config$verbose} if available.
 #' @param what \code{character}.  Output type:  'S' (entropy) or 
@@ -57,14 +53,6 @@
 #' @param shrinkage \code{character}.  Shrinkage method:  'none' or 
 #' 'empirical_bayes'.  Default:  'none'.
 #'   If NULL, reads from \code{@config$shrinkage} if available.
-#' @param genes \code{character} or  \code{NULL}.  Gene set specification.
-#'  Default:  NULL (use all genes).
-#'   If NULL, reads from \code{@config$genes} if available.
-#' @param effective_length \code{numeric} or  \code{NULL}.
-#'  Effective gene lengths.  Default:  NULL.
-#'   If NULL, reads from \code{@config$effective_length} if available.
-#' @param metadata \code{list} or  \code{NULL}.  Additional metadata.
-#'  Default:  NULL.
 #' @param bootstrap \code{logical}.  Compute bootstrap confidence intervals.
 #'  Default:  FALSE.
 #'   If not specified, reads from \code{@config$bootstrap} if available.
@@ -156,10 +144,8 @@
 #'
 #' **Parameter Priority Resolution:**
 #' \describe{
-#'   \item{q}{Priority 1 (explicit) > Priority 2 (\code{@config$q_values}) > Priority 3 (default:
-#'  seq(0. 01,  2,  by = 0. 05))\cr
-#'     **Note: ** If explicit q AND \code{@config$q_values} both provided,
-#'  explicit wins. }
+#'   \item{q}{Priority 1 (explicit) > Priority 2 (\code{@config$q}) > Priority 3 (default: seq(0.01, 2, by=0.05)). \cr
+#'     Accepts single or multiple q-values (for spectrum computation). }
 #'   \item{nthreads}{Priority: explicit > \code{@config$nthreads} > 1}
 #'   \item{verbose}{Priority: explicit > \code{@config$verbose} > TRUE}
 #'   \item{bootstrap}{Priority: explicit > \code{@config$bootstrap} > FALSE}
@@ -191,18 +177,19 @@
 #' readcounts <- as.matrix(readcounts)
 #' mode(readcounts) <- 'numeric'
 #' 
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
-#' gff3_dataset, metadata = metadata_df,
+#' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
+#' analysis <- build_analysis(readcounts = readcounts, tx2gene =
+#' gff3_dataset, metadata = metadata_df, config = config,
 #'   tpm = tpm, effective_length = effective_length)
 #' 
 #' # Filter to manageable size (use 200+ genes to survive diversity filtering)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' 
-#' # Compute diversity and access results
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0), verbose =
+#' # Compute diversity and access results using unified accessor
+#' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0), verbose =
 #' FALSE)
-#' head(diversity(analysis, q = 1.0))
+#' head(results(analysis, type = "diversity", q = 1.0))
 #'
 #' @details
 #' For additional details on diversity spectrum calculations and
@@ -211,10 +198,10 @@
 #'
 #' @export
 #' @importFrom utils write.table
-calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method = NULL,
-    reference_group = NULL, tpm = FALSE, assayno = NULL, verbose = NULL, show_messages = FALSE,
+calculate_diversity <- function(analysis, q = NULL, norm = TRUE, norm_method = NULL,
+    reference_group = NULL, verbose = NULL, show_messages = FALSE,
     what = NULL, nthreads = NULL, pseudocount = NULL, min_valid_frac = NULL, shrinkage = NULL,
-    genes = NULL, effective_length = NULL, metadata = NULL, bootstrap = NULL, nboot = NULL,
+    bootstrap = NULL, nboot = NULL,
     bootstrap_method = NULL, bootstrap_ci = NULL, bootstrap_include_diagnostics = NULL,
     output_file = NULL, ...) {
     # Validate input
@@ -222,8 +209,8 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
 
     # Prepare parameters and build calculation
     params <- .prepare_diversity_params(analysis, q, norm, norm_method, reference_group,
-        tpm, assayno, verbose, what, nthreads, pseudocount, min_valid_frac, shrinkage,
-        genes, effective_length, metadata, bootstrap, nboot, bootstrap_method, bootstrap_ci,
+        verbose, what, nthreads, pseudocount, min_valid_frac, shrinkage,
+        bootstrap, nboot, bootstrap_method, bootstrap_ci,
         bootstrap_include_diagnostics, show_messages)
     .validate_norm_method(params$norm_method)
 
@@ -282,7 +269,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
         pseudocount_resolved <- .handle_pseudocount_auto(params$pseudocount, analysis@se,
             verbose = FALSE)
         if (params$verbose) {
-            message(sprintf("[calculate_diversity_s4] Resolved pseudocount (auto) = %.4f",
+            message(sprintf("[calculate_diversity] Resolved pseudocount (auto) = %.4f",
                 pseudocount_resolved))
         }
     }
@@ -374,10 +361,10 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     }, error = function(e) {
         error_msg <- conditionMessage(e)
         if (params$bootstrap && grepl("bootstrap", error_msg, ignore.case = TRUE)) {
-            stop("[calculate_diversity_s4] Bootstrap CI computation failed for q=",
+            stop("[calculate_diversity] Bootstrap CI computation failed for q=",
                 q_val, ": ", error_msg, call. = FALSE)
         } else {
-            stop("[calculate_diversity_s4] Failed to compute diversity for q=", q_val,
+            stop("[calculate_diversity] Failed to compute diversity for q=", q_val,
                 ":\n", error_msg, call. = FALSE)
         }
     })
@@ -410,7 +397,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     }
 
     if (length(q_cols) == 0) {
-        stop("[calculate_diversity_s4] No columns found for q=", q_val, call. = FALSE)
+        stop("[calculate_diversity] No columns found for q=", q_val, call. = FALSE)
     }
     q_cols
 }
@@ -475,19 +462,19 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     }
 
     if (length(SummarizedExperiment::assays(result_se)) == 0) {
-        stop("[calculate_diversity_s4] Converted SE for q=", q_val, " has no assays",
+        stop("[calculate_diversity] Converted SE for q=", q_val, " has no assays",
             call. = FALSE)
     }
 
     test_assay <- tryCatch({
         SummarizedExperiment::assay(result_se, 1)
     }, error = function(e) {
-        stop("[calculate_diversity_s4] Cannot access assay for q=", q_val, ": ",
+        stop("[calculate_diversity] Cannot access assay for q=", q_val, ": ",
             conditionMessage(e), call. = FALSE)
     })
 
     if (is.null(test_assay) || nrow(test_assay) == 0) {
-        warning("[calculate_diversity_s4] Assay for q=", q_val, " is empty", call. = FALSE)
+        warning("[calculate_diversity] Assay for q=", q_val, " is empty", call. = FALSE)
     }
     TRUE
 }
@@ -521,7 +508,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
 
     if (params$nthreads > 1) {
         analysis@metadata$parallel_processing <- c(analysis@metadata$parallel_processing,
-            paste0("calculate_diversity_s4: nthreads=", params$nthreads, " (", length(params$q),
+            paste0("calculate_diversity: nthreads=", params$nthreads, " (", length(params$q),
                 " q-values)"))
     }
     analysis
@@ -570,11 +557,11 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
             row.names = FALSE, quote = FALSE)
 
         if (params$verbose) {
-            message("[calculate_diversity_s4] Saved diversity spectrum to: ", spectrum_file)
+            message("[calculate_diversity] Saved diversity spectrum to: ", spectrum_file)
         }
         analysis@metadata$diversity_spectrum <- diversity_spectrum
     }, error = function(e) {
-        warning("[calculate_diversity_s4] Could not compute diversity spectrum: ",
+        warning("[calculate_diversity] Could not compute diversity spectrum: ",
             conditionMessage(e), call. = FALSE)
     })
     analysis
@@ -593,13 +580,13 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
         }
 
         save_analysis_output(output_data, output_file, verbose = params$verbose,
-            func_name = "calculate_diversity_s4")
+            func_name = "calculate_diversity")
 
         if (params$verbose) {
-            message("[calculate_diversity_s4] Saved diversity results to: ", output_file)
+            message("[calculate_diversity] Saved diversity results to: ", output_file)
         }
     }, error = function(e) {
-        warning("[calculate_diversity_s4] Could not save diversity results: ", conditionMessage(e),
+        warning("[calculate_diversity] Could not save diversity results: ", conditionMessage(e),
             call. = FALSE)
     })
     analysis
@@ -716,22 +703,43 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
 # ============================================================================
 #' @noRd
 .prepare_diversity_params <- function(analysis, q = NULL, norm = NULL, norm_method = NULL,
-    reference_group = NULL, tpm = FALSE, assayno = NULL, verbose = NULL, what = NULL,
+    reference_group = NULL, verbose = NULL, what = NULL,
     nthreads = NULL, pseudocount = NULL, min_valid_frac = NULL, shrinkage = NULL,
-    genes = NULL, effective_length = NULL, metadata = NULL, bootstrap = NULL, nboot = NULL,
+    bootstrap = NULL, nboot = NULL,
     bootstrap_method = NULL, bootstrap_ci = NULL, bootstrap_include_diagnostics = NULL,
-    show_messages = FALSE) {
-    # Extract q parameter with default range
+    show_messages = FALSE, ...) {
+    # ... captures deprecated parameters (tpm, assayno, genes, effective_length, metadata)
+    # that were removed from public API but may still be passed by old test code
+    
+    # Extract q parameter - can be single or multiple values
+    q_source <- "explicit"  # Track where q came from
     if (is.null(q)) {
-        q <- if ("q_values" %in% names(analysis@config)) {
-            analysis@config$q_values
+        if ("q" %in% names(analysis@config)) {
+            q <- analysis@config$q
+            q_source <- "config"
         } else {
-            seq(0.01, 2, by = 0.05)
+            q <- seq(0.01, 2, by = 0.05)  # Default: full q-spectrum
+            q_source <- "default"
         }
     }
 
     if (!is.numeric(q)) {
         stop("'q' must be numeric", call. = FALSE)
+    }
+    
+    # Resolve verbose first so we can use it in conditions
+    verbose_resolved <- resolve_slot_param(verbose, analysis@config, "verbose", TRUE)
+    
+    # Show message about q-values being used
+    if (q_source != "explicit" && verbose_resolved) {
+        if (length(q) == 1) {
+            message("[calculate_diversity] Using q = ", formatC(q, format="f", digits=3), 
+                    " (", q_source, ")")
+        } else {
+            message("[calculate_diversity] Using q spectrum: ", 
+                    paste(formatC(q, format="f", digits=3), collapse=", "),
+                    " (", q_source, ")")
+        }
     }
 
     # Validate q values are finite
@@ -748,34 +756,21 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
         stop("'nthreads' must be a positive integer", call. = FALSE)
     }
 
-    # Ensure tpm is logical
-    if (is.null(tpm)) {
-        # If tpm is NULL, check config
-        tpm <- if ("tpm" %in% names(analysis@config)) {
-            as.logical(analysis@config$tpm)
-        } else {
-            FALSE  # Default to FALSE
-        }
-    } else {
-        # If tpm is provided, coerce to logical
-        tpm <- as.logical(tpm)
-    }
 
-    list(q = q, nthreads = nthreads_resolved, verbose = resolve_slot_param(verbose,
-        analysis@config, "verbose", TRUE), show_messages = show_messages, bootstrap = resolve_slot_param(bootstrap,
+
+    list(q = q, nthreads = nthreads_resolved, verbose = verbose_resolved, show_messages = show_messages, bootstrap = resolve_slot_param(bootstrap,
         analysis@config, "bootstrap", FALSE), pseudocount = resolve_slot_param(pseudocount,
         analysis@config, "pseudocount", 0), min_valid_frac = resolve_slot_param(min_valid_frac,
         analysis@config, "min_valid_frac", 0.75), norm = resolve_slot_param(norm,
         analysis@config, "norm", TRUE), what = resolve_slot_param(what, analysis@config,
-        "what", "S"), assayno = resolve_slot_param(assayno, analysis@config, "assayno",
+        "what", "S"), assayno = resolve_slot_param(NULL, analysis@config, "assayno",
         1), shrinkage = resolve_slot_param(shrinkage, analysis@config, "shrinkage",
         "none"), bootstrap_method = resolve_slot_param(bootstrap_method, analysis@config,
         "bootstrap_method", "percentile"), bootstrap_ci = resolve_slot_param(bootstrap_ci,
-        analysis@config, "bootstrap_ci", 0.95), tpm = tpm, genes = resolve_slot_param(genes,
-        analysis@config, "genes", NULL), effective_length = resolve_slot_param(effective_length,
-        analysis@config, "effective_length", NULL), nboot = resolve_slot_param(nboot,
+        analysis@config, "bootstrap_ci", 0.95), tpm = FALSE, genes = resolve_slot_param(NULL,
+        analysis@config, "genes", NULL), nboot = resolve_slot_param(nboot,
         analysis@config, "nboot", NULL), bootstrap_include_diagnostics = resolve_slot_param(bootstrap_include_diagnostics,
-        analysis@config, "bootstrap_include_diagnostics", TRUE), metadata = resolve_slot_param(metadata,
+        analysis@config, "bootstrap_include_diagnostics", TRUE), metadata = resolve_slot_param(NULL,
         analysis@config, "metadata", NULL), norm_method = resolve_slot_param(norm_method,
         analysis@config, "norm_method", NULL), reference_group = resolve_slot_param(reference_group,
         analysis@config, "reference_group", NULL))
@@ -797,12 +792,15 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     if (!is.null(params$genes)) {
         calc_args$genes <- params$genes
     }
-    if (!is.null(params$effective_length)) {
-        calc_args$effective_length <- params$effective_length
-    }
     if (!is.null(params$metadata)) {
         calc_args$metadata <- params$metadata
     }
+    
+    # Extract and pass column mapping parameters from config (required for metadata mapping)
+    config <- getConfig(analysis)
+    calc_args$sample_col <- config$sample_col
+    calc_args$condition_col <- config$condition_col
+    calc_args$subject_col <- config$subject_col
 
     # Add any additional parameters from dots
     c(calc_args, dots)
@@ -862,7 +860,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
         if (!is.null(ci_upper_assay))
             ci_upper_assay <- .normalize_zscore(ci_upper_assay, per_q = TRUE)
         if (verbose)
-            message("[calculate_diversity_s4] Applied z-score normalization for q=",
+            message("[calculate_diversity] Applied z-score normalization for q=",
                 q_val)
     } else if (norm_method == "log_odds_ratio" && !is.null(params$genes)) {
         n_isoforms_vec <- table(params$genes)
@@ -875,7 +873,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
             ci_upper_assay <- .normalize_log_odds_ratio(ci_upper_assay, n_isoforms = n_isoforms_vec,
                 q = q_val)
         if (verbose)
-            message("[calculate_diversity_s4] Applied log-odds ratio normalization for q=",
+            message("[calculate_diversity] Applied log-odds ratio normalization for q=",
                 q_val)
     } else if (norm_method == "relative_reference" && !is.null(params$reference_group)) {
         coldata <- SummarizedExperiment::colData(result_se)
@@ -890,7 +888,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
                 ci_upper_assay <- .normalize_relative_reference(ci_upper_assay, group_vector = group_vector,
                   reference_group = params$reference_group)
             if (verbose)
-                message("[calculate_diversity_s4] Applied relative reference normalization for q=",
+                message("[calculate_diversity] Applied relative reference normalization for q=",
                   q_val)
         }
     }

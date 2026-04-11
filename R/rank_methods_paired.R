@@ -42,16 +42,6 @@
 #' - Threshold: |skewness| > 2 indicates extreme heavy tails
 #' - Robust median test appropriate when normality assumption strongly violated
 #'
-
-#' @noRd
-
-# Helper: Safe extraction with error handling
-.safe_extract <- function(expr, default = NA) {
-    result <- try(expr, silent = TRUE)
-    if (inherits(result, "try-error"))
-        default else result
-}
-
 #' @noRd
 .select_rank_test_paired <- function(data, value_col = "entropy", group_col = "q",
     subject_col = "paired_samples", verbose = FALSE) {
@@ -156,6 +146,16 @@
     return(list(test_selected = test_selected, characteristics = characteristics,
         reasons = reasons))
 }
+
+
+#' @noRd
+.safe_extract <- function(expr, default = NA) {
+    result <- try(expr, silent = TRUE)
+    if (inherits(result, "try-error"))
+        default else result
+}
+
+
 
 #' Apply Robust Friedman Test (Mood's Median Test adapted for blocks)
 #'

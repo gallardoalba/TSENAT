@@ -597,10 +597,13 @@ test_that(".gam_interaction handles edge case: too few observations", {
     df <- test_data$df
     
     result <- tryCatch({
-        .gam_interaction(
-            df = df,
-            q_vals = test_data$q_vals,
-            g = "test_gene_small"
+        expect_warning(
+            .gam_interaction(
+                df = df,
+                q_vals = test_data$q_vals,
+                g = "test_gene_small"
+            ),
+            "Insufficient"
         )
     }, error = function(e) NULL)
     
@@ -770,7 +773,7 @@ test_that("gam method attaches p_interaction to rowData when mgcv available", {
 
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
 
-    res <- suppressWarnings(.calculate_lm_interaction(se, condition_col = "sample_type", method = "gam", min_obs = 8))
+    res <- suppressWarnings(.calculate_lm(se, condition_col = "sample_type", method = "gam", min_obs = 8))
     if (is.data.frame(res)) {
         rd_out <- as.data.frame(res)
     } else {
@@ -931,7 +934,7 @@ test_that("GAM with PCA mode (no regularization) works", {
     se <- create_test_se_gam_integration(n_samples = 20, n_genes = 5)
     
     # Test with PCA regularization (should be equivalent to no regularization)
-    result <- suppressWarnings(.calculate_lm_interaction(
+    result <- suppressWarnings(.calculate_lm(
         se,
         condition_col = "group",
         method = "gam",
@@ -960,7 +963,7 @@ test_that("GAM with spline regularization works", {
     se <- create_test_se_gam_integration(n_samples = 20, n_genes = 5)
     
     # Test with spline regularization
-    result <- suppressWarnings(.calculate_lm_interaction(
+    result <- suppressWarnings(.calculate_lm(
         se,
         condition_col = "group",
         method = "gam",
@@ -987,7 +990,7 @@ test_that("GAM with GAMSEL regularization works", {
     se <- create_test_se_gam_integration(n_samples = 20, n_genes = 5)
     
     # Test with GAMSEL regularization
-    result <- suppressWarnings(.calculate_lm_interaction(
+    result <- suppressWarnings(.calculate_lm(
         se,
         condition_col = "group",
         method = "gam",
@@ -1050,7 +1053,7 @@ test_that("GAM regularization handles small sample sizes gracefully", {
     se <- create_test_se_gam_integration(n_samples = 12, n_genes = 3)
     
     # Apply spline regularization with small samples
-    result <- suppressWarnings(.calculate_lm_interaction(
+    result <- suppressWarnings(.calculate_lm(
         se,
         condition_col = "group",
         method = "gam",
@@ -1073,7 +1076,7 @@ test_that("Regularization parameter validation works for GAM", {
     
     # Test that invalid regularization values are caught
     expect_error(
-        .calculate_lm_interaction(
+        .calculate_lm(
             se,
             condition_col = "group",
             method = "gam",
@@ -1091,7 +1094,7 @@ test_that("GAM regularization consistency across multiple runs", {
     se <- create_test_se_gam_integration(n_samples = 20, n_genes = 5, seed = 123)
     
     set.seed(123)
-    result1 <- suppressWarnings(.calculate_lm_interaction(
+    result1 <- suppressWarnings(.calculate_lm(
         se,
         condition_col = "group",
         method = "gam",
@@ -1102,7 +1105,7 @@ test_that("GAM regularization consistency across multiple runs", {
     ))
     
     set.seed(123)
-    result2 <- suppressWarnings(.calculate_lm_interaction(
+    result2 <- suppressWarnings(.calculate_lm(
         se,
         condition_col = "group",
         method = "gam",
@@ -1128,7 +1131,7 @@ test_that("GAM regularization vs non-regularized gives comparable results", {
         se <- create_test_se_gam_integration(n_samples = 20, n_genes = 5)
         
         # Run both with and without regularization
-        result_no_reg <- .calculate_lm_interaction(
+        result_no_reg <- .calculate_lm(
             se,
             condition_col = "group",
             method = "gam",
@@ -1138,7 +1141,7 @@ test_that("GAM regularization vs non-regularized gives comparable results", {
             verbose = FALSE
         )
         
-        result_spline <- .calculate_lm_interaction(
+        result_spline <- .calculate_lm(
             se,
             condition_col = "group",
             method = "gam",
@@ -1179,7 +1182,7 @@ test_that("GAM regularization works with paired samples", {
     se <- create_test_se_gam_integration(n_samples = 20, n_genes = 5)
     
     # Test with paired data
-    result <- suppressWarnings(.calculate_lm_interaction(
+    result <- suppressWarnings(.calculate_lm(
         se,
         condition_col = "group",
         method = "gam",
@@ -1233,7 +1236,7 @@ test_that("GAM works with continuous q-value patterns", {
     # Use larger sample size and wider q-range for better GAM convergence
     se <- create_test_se_gam_integration(n_samples = 50, n_genes = 8)
     
-    result <- .calculate_lm_interaction(
+    result <- .calculate_lm(
         se,
         condition_col = "group",
         method = "gam",
@@ -1312,7 +1315,7 @@ test_that("GAM bias correction is disabled when bias_correction=FALSE", {
         se <- create_test_se_small_gam(n_samples = 12, n_genes = 3)
         
         # Test with bias_correction=FALSE
-        result <- .calculate_lm_interaction(
+        result <- .calculate_lm(
             se,
             condition_col = "group",
             method = "gam",
@@ -1339,7 +1342,7 @@ test_that("GAM bias correction is applied for small samples", {
         se <- create_test_se_small_gam(n_samples = 12, n_genes = 3)
         
         # Test with bias_correction=TRUE (default)
-        result <- .calculate_lm_interaction(
+        result <- .calculate_lm(
             se,
             condition_col = "group",
             method = "gam",
@@ -1912,7 +1915,7 @@ test_that("Bias correction with GAM spline regularization", {
         se <- create_test_se_small_gam(n_samples = 12, n_genes = 3)
         
         # Test combining spline regularization with bias correction
-        result <- .calculate_lm_interaction(
+        result <- .calculate_lm(
             se,
             condition_col = "group",
             method = "gam",
@@ -1934,7 +1937,7 @@ test_that("Large samples ignore bias correction threshold (n >= 20)", {
         se <- create_test_se_small_gam(n_samples = 20, n_genes = 3)
         
         # Even with bias_correction=TRUE, large samples shouldn't trigger it
-        result_large <- .calculate_lm_interaction(
+        result_large <- .calculate_lm(
             se,
             condition_col = "group",
             method = "gam",
@@ -1958,7 +1961,7 @@ test_that("Bias correction consistency with paired GAM", {
         se <- create_test_se_small_gam(n_samples = 12, n_genes = 3)
         
         # Test with paired design
-        result <- .calculate_lm_interaction(
+        result <- .calculate_lm(
             se,
             condition_col = "group",
             method = "gam",

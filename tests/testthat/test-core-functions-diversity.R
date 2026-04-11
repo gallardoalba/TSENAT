@@ -1082,7 +1082,7 @@ test_that(".prepare_diversity_input handles SummarizedExperiment variants and tx
     expect_error(.prepare_diversity_input(se, genes = NULL, assayno = 10), "provide a valid assay number")
 })
 
-skip_on_bioc()
+skip_on_cran()
 
 context("Tsallis Entropy: Additional Function Tests")
 
@@ -2077,7 +2077,7 @@ test_that("calculate_diversity preserves counts for jackknife compatibility", {
     # Test that jackknife works with the diversity-transformed SE
     # This verifies that counts assay is accessible and usable
     expect_no_error({
-        result <- .jackknife_entropy_outliers(
+        result <- .calculate_jeo(
             x = SummarizedExperiment::assay(div_se, "counts")[1, ],
             q = 1,
             norm = TRUE
@@ -2176,7 +2176,7 @@ test_that("output file generation and numerical correctness without bootstrap", 
     # Calculate diversity without bootstrap
     results_se <- .calculate_diversity(se, genes = genes, q = 0.5, norm = TRUE, bootstrap = FALSE)
     
-    # Convert to long format (mimicking calculate_diversity_s4 behavior)
+    # Convert to long format (mimicking calculate_diversity behavior)
     genes_vec <- rownames(results_se)
     samples_vec <- colnames(results_se)
     diversity_mat <- SummarizedExperiment::assay(results_se, "diversity")
@@ -2227,7 +2227,7 @@ test_that("output file generation and numerical correctness with bootstrap", {
     }, error = function(e) NULL)
     
     if (!is.null(results_se)) {
-        # Convert to long format with CIs (mimicking calculate_diversity_s4 behavior)
+        # Convert to long format with CIs (mimicking calculate_diversity behavior)
         genes_vec <- rownames(results_se)
         samples_vec <- colnames(results_se)
         diversity_mat <- SummarizedExperiment::assay(results_se, "diversity")

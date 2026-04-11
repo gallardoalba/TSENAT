@@ -40,19 +40,19 @@
 #'
 #' @section Core Functions:
 #' \describe{
-#'   \item{\code{\link{tsenat}}}{Main orchestration function. Executes complete pipeline with 
+#'   \item{\code{\link{TSENAT}}}{Main orchestration function. Executes complete pipeline with 
 #'     configurable method backends and parallelization.}
-#'   \item{\code{\link{tsenat_config}}}{Configure analysis parameters: q-values, condition 
+#'   \item{\code{\link{TSENAT_config}}}{Configure analysis parameters: q-values, condition 
 #'     grouping, sample pairing, and method selection.}
-#'   \item{\code{\link{calculate_diversity_s4}}}{Compute Tsallis entropy and Hill numbers. 
+#'   \item{\code{\link{calculate_diversity}}}{Compute Tsallis entropy and Hill numbers. 
 #'     Vectorized over genes and q-values with numerical stability safeguards.}
-#'   \item{\code{\link{jackknife_entropy_outliers_s4}}}{Resampling-based confidence intervals 
+#'   \item{\code{\link{calculate_jeo}}}{Resampling-based confidence intervals 
 #'     for diversity. Identifies outlier genes and validates q-value signal.}
-#'   \item{\code{\link{calculate_lm_interaction_s4}}}{Statistical testing for gene-by-condition 
+#'   \item{\code{\link{calculate_lm}}}{Statistical testing for gene-by-condition 
 #'     interactions. LMM, GAM, and rank-based approaches.}
-#'   \item{\code{\link{calculate_divergence_s4}}}{Tsallis divergence between groups with 
+#'   \item{\code{\link{calculate_divergence}}}{Tsallis divergence between groups with 
 #'     effect size (Cohen's d, rank-biserial) and hypothesis testing.}
-#'   \item{\code{\link{filter_analysis_s4}}}{Filter genes by diversity, effect size, or 
+#'   \item{\code{\link{filter_analysis}}}{Filter genes by diversity, effect size, or 
 #'     interaction significance (adjustable FDR, Benjamini-Hochberg).}
 #' }
 #'
@@ -108,7 +108,7 @@
 #' \itemize{
 #'   \item \strong{q-value sweeps reveal biological complexity}: Genes showing entropy 
 #'     peaks at intermediate q-values (0.5-1.5) suggest balanced isoform distributions; 
-#'     peaks at q → ∞ indicate dominant-isoform architectures.
+#'     peaks at q \\to \\infty indicate dominant-isoform architectures.
 #'   \item \strong{Interaction q-profiles}: q-dependent gene-by-condition interactions signal 
 #'     condition-specific isoform switching; flat profiles indicate constitutive splicing.
 #'   \item \strong{Divergence as biological distance}: Tsallis divergence quantifies 
@@ -144,9 +144,16 @@
 #' }
 #'
 #' @section S4 Container:
-#' \code{\link{TSENATAnalysis-class}} — Central container unifying all analysis components.
-#' Access results via accessor methods: \code{\link{diversity}}, \code{\link{lmResults}}, 
-#' \code{\link{jeoResults}}, \code{\link{jisResults}}, \code{\link{getMeta}}, \code{\link{getSE}}.
+#' \code{\link{TSENATAnalysis-class}} --- Central container unifying all analysis components.
+#' Access results via slots: \code{@diversity_results}, \code{@lm_results}, 
+#' \code{@jackknife_results}, \code{@divergence_results}, 
+#' or accessor methods \code{\link{se}}, \code{\link{metadata<-}}, and \code{\link{results}}.
+#'
+#' @seealso
+#' \code{\link{TSENAT}} for running the complete analysis pipeline.
+#' \code{\link{se}}, \code{\link{metadata<-}}, and \code{\link{results}} for accessor functions.
+#' \code{\link{TSENATAnalysis-class}} for the S4 object structure.
+#' \code{\link{build_analysis}} for creating TSENATAnalysis objects.
 #'
 #' @docType package
 #' @keywords internal

@@ -3,10 +3,10 @@ library(TSENAT)
 library(SummarizedExperiment)
 
 # ============================================================================
-# Tests for rank_test_q_condition_s4() S4 wrapper function
+# Tests for calculate_rank_test() S4 wrapper function
 # ============================================================================
 
-context("S4 Rank Test: rank_test_q_condition_s4")
+context("S4 Rank Test: calculate_rank_test")
 
 # CACHE LEVEL 1: Base analysis (built once from full dataset)
 .test_analysis_cache <- NULL
@@ -37,7 +37,14 @@ context("S4 Rank Test: rank_test_q_condition_s4")
     gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
     
     # Build analysis once (but NOT diversity calculation yet)
-    analysis <- build_analysis_s4(
+    config <- TSENAT_config(
+        sample_col = "sample",
+        condition_col = "condition",
+        subject_col = "paired_samples"
+    )
+    
+    analysis <- build_analysis(
+        config = config,
         readcounts = readcounts,
         tx2gene = gff3_file,
         metadata = metadata_df,
@@ -51,7 +58,7 @@ context("S4 Rank Test: rank_test_q_condition_s4")
 }
 
 # Helper function to create test subset (FAST - uses diversity cache when available)
-setup_rank_test_analysis <- function(n_genes = 10, n_samples = 4) {
+setup_rank_test_analysis <- function(n_genes = 100, n_samples = 4) {
     # Create cache key for this filter combination
     cache_key <- paste0("genes_", n_genes, "_samples_", n_samples)
     
@@ -64,10 +71,15 @@ setup_rank_test_analysis <- function(n_genes = 10, n_samples = 4) {
     analysis <- .get_cached_analysis()
     
     # Filter to subset for this test (much faster than rebuilding)
-    analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = n_genes, subset_n_samples = n_samples)
+    # Use larger gene subset (100+ genes) to avoid sparsity issues
+    analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = n_genes, subset_n_samples = n_samples)
     
     # Calculate diversity AFTER filtering (this is the correct order)
-    analysis <- calculate_diversity_s4(analysis, norm = TRUE)
+    # Use very low min_valid_frac (0.05) to handle small sparse test subsets
+    # This ensures genes aren't filtered out when testing with smaller sample sizes
+    # Calculate with multiple q-values to ensure Q×Condition interaction can be tested
+    analysis <- calculate_diversity(analysis, norm = TRUE, min_valid_frac = 0.05, 
+                                    q = c(0.5, 1.0, 1.5))
     
     # Cache for next test with same parameters
     .test_analysis_diversity_cache[[cache_key]] <<- analysis
@@ -79,18 +91,18 @@ setup_rank_test_analysis <- function(n_genes = 10, n_samples = 4) {
 # Test 1: Basic functionality with real data
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 returns TSENATAnalysis with results", {
+test_that("calculate_rank_test returns TSENATAnalysis with results", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 12)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition"
     )
     
     # Should return modified TSENATAnalysis
     expect_is(result, "TSENATAnalysis")
-    # Should have q_interactions stored (data frame)
-    rank_res <- TSENAT::rankResults(result)
+    # Should have rank_test stored (data frame)
+    rank_res <- results(result, type = "rank_test")
     expect_is(rank_res, "data.frame")
     expect_true(nrow(rank_res) > 0)
 })
@@ -99,11 +111,11 @@ test_that("rank_test_q_condition_s4 returns TSENATAnalysis with results", {
 # Test 2: Paired design with subject_col
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 runs with paired design", {
+test_that("calculate_rank_test runs with paired design", {
     skip_on_cran()
     analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         paired = TRUE,
@@ -111,7 +123,7 @@ test_that("rank_test_q_condition_s4 runs with paired design", {
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -119,17 +131,17 @@ test_that("rank_test_q_condition_s4 runs with paired design", {
 # Test 3: Parameter resolution - explicit args override config
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 respects explicit parameters over config", {
+test_that("calculate_rank_test respects explicit parameters over config", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         test = "kruskal-wallis"
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -137,17 +149,17 @@ test_that("rank_test_q_condition_s4 respects explicit parameters over config", {
 # Test 4: Different test methods - Kruskal-Wallis (unpaired)
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 works with Kruskal-Wallis test", {
+test_that("calculate_rank_test works with Kruskal-Wallis test", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         test = "kruskal-wallis"
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
     expect_true("p_value" %in% colnames(rank_res))
 })
@@ -156,10 +168,10 @@ test_that("rank_test_q_condition_s4 works with Kruskal-Wallis test", {
 # Test 5: Different test methods - Friedman (paired)
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 works with Friedman test for paired design", {
+test_that("calculate_rank_test works with Friedman test for paired design", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         test = "friedman",
@@ -168,7 +180,7 @@ test_that("rank_test_q_condition_s4 works with Friedman test for paired design",
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -176,17 +188,17 @@ test_that("rank_test_q_condition_s4 works with Friedman test for paired design",
 # Test 6: Different multiple correction methods - Hochberg
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 works with Hochberg correction", {
+test_that("calculate_rank_test works with Hochberg correction", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         multicorr = "hochberg"
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
     expect_true("adj_p_value" %in% colnames(rank_res))
 })
@@ -195,17 +207,17 @@ test_that("rank_test_q_condition_s4 works with Hochberg correction", {
 # Test 7: Different multiple correction methods - Benjamini-Yekutieli
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 works with Benjamini-Yekutieli correction", {
+test_that("calculate_rank_test works with Benjamini-Yekutieli correction", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         multicorr = "benjamini-yekutieli"
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -213,17 +225,17 @@ test_that("rank_test_q_condition_s4 works with Benjamini-Yekutieli correction", 
 # Test 8: Multiple correction method - None
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 works with no multiple correction", {
+test_that("calculate_rank_test works with no multiple correction", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         multicorr = "none"
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -231,17 +243,17 @@ test_that("rank_test_q_condition_s4 works with no multiple correction", {
 # Test 9: Auto test selection
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 auto-selects appropriate test method", {
+test_that("calculate_rank_test auto-selects appropriate test method", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         test = "auto"
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -249,28 +261,28 @@ test_that("rank_test_q_condition_s4 auto-selects appropriate test method", {
 # Test 10: Error handling - missing required condition_col
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 requires condition_col argument", {
+test_that("calculate_rank_test requires condition_col argument", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # Calling without condition_col should not error (defaults to "condition")
     # but should work if condition column exists in metadata
-    result <- rank_test_q_condition_s4(analysis)
+    result <- calculate_rank_test(analysis)
     expect_is(result, "TSENATAnalysis")
     
     # Invalid condition_col should error
-    expect_error(rank_test_q_condition_s4(analysis, condition_col = "nonexistent"))
+    expect_error(calculate_rank_test(analysis, condition_col = "nonexistent"))
 })
 
 # ============================================================================
 # Test 11: Invalid condition column
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 errors with invalid condition_col", {
+test_that("calculate_rank_test errors with invalid condition_col", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # Should error when condition column doesn't exist in metadata
     expect_error(
-        rank_test_q_condition_s4(
+        calculate_rank_test(
             analysis,
             condition_col = "nonexistent_column"
         ),
@@ -282,12 +294,12 @@ test_that("rank_test_q_condition_s4 errors with invalid condition_col", {
 # Test 12: Paired design requires subject_col
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 requires subject_col when paired=TRUE", {
+test_that("calculate_rank_test requires subject_col when paired=TRUE", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # Should error when subject column doesn't exist but paired=TRUE
     expect_error(
-        rank_test_q_condition_s4(
+        calculate_rank_test(
             analysis,
             condition_col = "condition",
             paired = TRUE,
@@ -300,19 +312,19 @@ test_that("rank_test_q_condition_s4 requires subject_col when paired=TRUE", {
 # Test 13: Results contain expected columns
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 results have correct structure", {
+test_that("calculate_rank_test results have correct structure", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         multicorr = "hochberg"
     )
     
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     q_int_res <- rank_res
     
-    # Check for essential columns in q_interactions
+    # Check for essential columns in rank_test
     expect_true("gene" %in% colnames(q_int_res))
     expect_true("p_value" %in% colnames(q_int_res))
     expect_true("adj_p_value" %in% colnames(q_int_res))
@@ -323,17 +335,17 @@ test_that("rank_test_q_condition_s4 results have correct structure", {
 # Test 14: Multiple genes with varying p-values
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 handles multiple genes with varying significance", {
+test_that("calculate_rank_test handles multiple genes with varying significance", {
     skip_on_cran()
-    analysis <- setup_rank_test_analysis(n_genes = 30, n_samples = 8)
+    analysis <- setup_rank_test_analysis(n_genes = 100, n_samples = 12)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         multicorr = "hochberg"
     )
     
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     q_int_res <- rank_res
     
     # Should have results for tested genes
@@ -348,18 +360,18 @@ test_that("rank_test_q_condition_s4 handles multiple genes with varying signific
 # Test 15: ART (Aligned Rank Transform) test method
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 works with ART (Aligned Rank Transform)", {
+test_that("calculate_rank_test works with ART (Aligned Rank Transform)", {
     skip_on_cran()
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         test = "art"
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
     expect_true("test_method" %in% colnames(rank_res))
 })
@@ -368,11 +380,11 @@ test_that("rank_test_q_condition_s4 works with ART (Aligned Rank Transform)", {
 # Test 16: Westfall-Young correction method
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 works with Westfall-Young correction", {
+test_that("calculate_rank_test works with Westfall-Young correction", {
     skip_on_cran()
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         multicorr = "westfall-young",
@@ -380,7 +392,7 @@ test_that("rank_test_q_condition_s4 works with Westfall-Young correction", {
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
     expect_true("adj_p_value" %in% colnames(rank_res))
 })
@@ -389,18 +401,18 @@ test_that("rank_test_q_condition_s4 works with Westfall-Young correction", {
 # Test 17: Explicit q-values parameter
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 accepts explicit q parameter", {
+test_that("calculate_rank_test accepts explicit q parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Specify subset of q-values to test
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         q = c(0.5, 1.0, 1.5)
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -408,18 +420,18 @@ test_that("rank_test_q_condition_s4 accepts explicit q parameter", {
 # Test 18: Custom entropy column name
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 accepts custom entropy_col parameter", {
+test_that("calculate_rank_test accepts custom entropy_col parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Default entropy_col is "diversity"
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         entropy_col = "diversity"
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -427,17 +439,17 @@ test_that("rank_test_q_condition_s4 accepts custom entropy_col parameter", {
 # Test 19: Custom q column name
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 accepts custom q_col parameter", {
+test_that("calculate_rank_test accepts custom q_col parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         q_col = "q"
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -445,17 +457,17 @@ test_that("rank_test_q_condition_s4 accepts custom q_col parameter", {
 # Test 20: Custom gene column name
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 accepts custom gene_col parameter", {
+test_that("calculate_rank_test accepts custom gene_col parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         gene_col = "gene"
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
     expect_true("gene" %in% colnames(rank_res))
 })
@@ -464,17 +476,17 @@ test_that("rank_test_q_condition_s4 accepts custom gene_col parameter", {
 # Test 21: nthreads parameter for parallelization
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 accepts nthreads parameter", {
+test_that("calculate_rank_test accepts nthreads parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         nthreads = 1
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -482,18 +494,18 @@ test_that("rank_test_q_condition_s4 accepts nthreads parameter", {
 # Test 22: verbose parameter for progress output
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 accepts verbose parameter", {
+test_that("calculate_rank_test accepts verbose parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Verbose may or may not produce output, but should not error
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         verbose = FALSE
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -501,18 +513,18 @@ test_that("rank_test_q_condition_s4 accepts verbose parameter", {
 # Test 23: nperm_mode parameter (permutation estimation mode)
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 accepts nperm_mode parameter", {
+test_that("calculate_rank_test accepts nperm_mode parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Test with different permutation modes
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         nperm_mode = "standard"
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -520,11 +532,11 @@ test_that("rank_test_q_condition_s4 accepts nperm_mode parameter", {
 # Test 24: wy_randomizations parameter (Westfall-Young permutations)
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 wy_randomizations controls WY permutations", {
+test_that("calculate_rank_test wy_randomizations controls WY permutations", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Test with explicit WY randomizations count
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         multicorr = "westfall-young",
@@ -532,7 +544,7 @@ test_that("rank_test_q_condition_s4 wy_randomizations controls WY permutations",
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
@@ -540,13 +552,13 @@ test_that("rank_test_q_condition_s4 wy_randomizations controls WY permutations",
 # Test 25: output_file parameter (optional file output)
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 accepts output_file parameter", {
+test_that("calculate_rank_test accepts output_file parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Create temporary file path
     temp_file <- tempfile(fileext = ".rds")
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         output_file = temp_file
@@ -561,11 +573,11 @@ test_that("rank_test_q_condition_s4 accepts output_file parameter", {
 # Test 26: Combined parameters - multiple options together
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 handles combined parameter specifications", {
+test_that("calculate_rank_test handles combined parameter specifications", {
     skip_on_cran()
     analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         test = "friedman",
@@ -578,7 +590,7 @@ test_that("rank_test_q_condition_s4 handles combined parameter specifications", 
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
     expect_true("adj_p_value" %in% colnames(rank_res))
 })
@@ -664,7 +676,6 @@ test_that(".resolve_rank_test_params handles explicit arguments over config", {
         test = "friedman",
         multicorr = "benjamini-yekutieli",
         nperm_mode = "standard",
-        q = c(0.5, 1.0, 1.5),
         paired = TRUE,
         subject_col = "explicit_subject",
         nthreads = 4,
@@ -706,7 +717,6 @@ test_that(".resolve_rank_test_params falls back to config when args not provided
         test = NULL,
         multicorr = NULL,
         nperm_mode = NULL,
-        q = NULL,
         paired = NULL,
         subject_col = NULL,
         nthreads = NULL,
@@ -719,7 +729,6 @@ test_that(".resolve_rank_test_params falls back to config when args not provided
     # Note: need to handle the way the function checks for missing vs NULL
     # This is a basic structure test
     expect_true("dots" %in% names(result))
-    expect_true("q_extracted" %in% names(result))
 })
 
 test_that(".resolve_rank_test_params validates enum arguments", {
@@ -732,7 +741,6 @@ test_that(".resolve_rank_test_params validates enum arguments", {
             test = "invalid_test",
             multicorr = NULL,
             nperm_mode = NULL,
-            q = NULL,
             paired = NULL,
             subject_col = NULL,
             nthreads = NULL,
@@ -795,7 +803,7 @@ test_that(".prepare_multi_q_se uses cached combined SE when available", {
 # Test: .store_rank_test_results() helper function
 # ============================================================================
 
-test_that(".store_rank_test_results stores results in lm_results", {
+test_that(".store_rank_test_results stores results in rank_test_results", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # Create dummy results data frame (mock output from rank test)
@@ -815,16 +823,16 @@ test_that(".store_rank_test_results stores results in lm_results", {
     )
     
     # Check results are stored in correct location
-    expect_true(is.list(analysis_stored@lm_results))
-    expect_true("q_interactions" %in% names(analysis_stored@lm_results))
-    expect_equal(nrow(analysis_stored@lm_results$q_interactions), 3)
+    expect_true(is.list(analysis_stored@rank_test_results))
+    expect_true("rank_test" %in% names(analysis_stored@rank_test_results))
+    expect_equal(nrow(analysis_stored@rank_test_results$rank_test), 3)
 })
 
-test_that(".store_rank_test_results creates lm_results list when needed", {
+test_that(".store_rank_test_results creates rank_test_results list when needed", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
-    # Clear lm_results to test list creation
-    analysis@lm_results <- list()
+    # Clear rank_test_results to test list creation
+    analysis@rank_test_results <- list()
     
     mock_results <- data.frame(
         gene = "gene1",
@@ -841,8 +849,8 @@ test_that(".store_rank_test_results creates lm_results list when needed", {
     )
     
     # Check list was created properly
-    expect_true(is.list(analysis_stored@lm_results))
-    expect_true("q_interactions" %in% names(analysis_stored@lm_results))
+    expect_true(is.list(analysis_stored@rank_test_results))
+    expect_true("rank_test" %in% names(analysis_stored@rank_test_results))
 })
 
 test_that(".store_rank_test_results returns modified TSENATAnalysis", {
@@ -880,7 +888,6 @@ test_that("Helper functions integrate correctly in rank test workflow", {
         test = "auto",
         multicorr = "hochberg",
         nperm_mode = "standard",
-        q = NULL,
         paired = FALSE,
         subject_col = NULL,
         nthreads = 1,
@@ -905,7 +912,7 @@ test_that("Helper functions integrate correctly in rank test workflow", {
     )
     
     expect_is(analysis_final, "TSENATAnalysis")
-    expect_true("q_interactions" %in% names(analysis_final@lm_results))
+    expect_true("rank_test" %in% names(analysis_final@rank_test_results))
 })
 
 # ============================================================================
@@ -946,7 +953,6 @@ test_that(".resolve_rank_test_params handles all multicorr methods", {
             test = "auto",
             multicorr = method,
             nperm_mode = "standard",
-            q = NULL,
             paired = FALSE,
             subject_col = NULL,
             nthreads = 1,
@@ -969,7 +975,6 @@ test_that(".resolve_rank_test_params handles all test methods", {
             test = method,
             multicorr = "hochberg",
             nperm_mode = "standard",
-            q = NULL,
             paired = FALSE,
             subject_col = NULL,
             nthreads = 1,
@@ -992,7 +997,6 @@ test_that(".resolve_rank_test_params handles all nperm_mode values", {
             test = "auto",
             multicorr = "westfall-young",
             nperm_mode = mode,
-            q = NULL,
             paired = FALSE,
             subject_col = NULL,
             nthreads = 1,
@@ -1014,7 +1018,6 @@ test_that(".resolve_rank_test_params preserves custom column names", {
         test = "auto",
         multicorr = "hochberg",
         nperm_mode = "standard",
-        q = NULL,
         paired = FALSE,
         subject_col = NULL,
         nthreads = 1,
@@ -1039,7 +1042,6 @@ test_that(".resolve_rank_test_params handles nthreads appropriately", {
             test = "auto",
             multicorr = "hochberg",
             nperm_mode = "standard",
-            q = NULL,
             paired = FALSE,
             subject_col = NULL,
             nthreads = nthreads_val,
@@ -1118,11 +1120,11 @@ test_that(".store_rank_test_results handles empty results data frame", {
         verbose = FALSE
     )
     
-    expect_true("q_interactions" %in% names(analysis_stored@lm_results))
-    expect_equal(nrow(analysis_stored@lm_results$q_interactions), 0)
+    expect_true("rank_test" %in% names(analysis_stored@rank_test_results))
+    expect_equal(nrow(analysis_stored@rank_test_results$rank_test), 0)
 })
 
-test_that(".store_rank_test_results preserves existing lm_results", {
+test_that(".store_rank_test_results preserves existing rank_test_results", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # Add existing results
@@ -1131,7 +1133,7 @@ test_that(".store_rank_test_results preserves existing lm_results", {
         p_value = 0.001,
         adj_p_value = 0.01
     )
-    analysis@lm_results <- list(
+    analysis@rank_test_results <- list(
         some_other_results = existing_results
     )
     
@@ -1149,20 +1151,20 @@ test_that(".store_rank_test_results preserves existing lm_results", {
     )
     
     # Check both lists exist
-    expect_true("some_other_results" %in% names(analysis_stored@lm_results))
-    expect_true("q_interactions" %in% names(analysis_stored@lm_results))
+    expect_true("some_other_results" %in% names(analysis_stored@rank_test_results))
+    expect_true("rank_test" %in% names(analysis_stored@rank_test_results))
 })
 
 # ============================================================================
-# Test: rank_test_q_condition_s4 with verbose output
+# Test: calculate_rank_test with verbose output
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 respects verbose parameter", {
+test_that("calculate_rank_test respects verbose parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Capture output with verbose = TRUE
     output <- capture.output({
-        result <- rank_test_q_condition_s4(
+        result <- calculate_rank_test(
             analysis,
             condition_col = "condition",
             test = "auto",
@@ -1176,69 +1178,69 @@ test_that("rank_test_q_condition_s4 respects verbose parameter", {
 })
 
 # ============================================================================
-# Test: rank_test_q_condition_s4 with different multicorr methods
+# Test: calculate_rank_test with different multicorr methods
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 works with benjamini-yekutieli correction", {
+test_that("calculate_rank_test works with benjamini-yekutieli correction", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         multicorr = "benjamini-yekutieli"
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true("adj_p_value" %in% colnames(rank_res))
 })
 
-test_that("rank_test_q_condition_s4 works with no multiple correction", {
+test_that("calculate_rank_test works with no multiple correction", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         multicorr = "none"
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     
     # With no correction, adj_p_value should equal p_value
     expect_true(all(rank_res$adj_p_value == rank_res$p_value, na.rm = TRUE))
 })
 
 # ============================================================================
-# Test: rank_test_q_condition_s4 with explicit q-values
+# Test: calculate_rank_test with explicit q-values
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 respects explicit q parameter", {
+test_that("calculate_rank_test respects explicit q parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Explicitly pass q-values
-    result_explicit <- rank_test_q_condition_s4(
+    result_explicit <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         q = c(0.5, 1.0, 1.5)
     )
     
     expect_is(result_explicit, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result_explicit)
+    rank_res <- results(result_explicit, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
 # ============================================================================
-# Test: rank_test_q_condition_s4 with nthreads parameter
+# Test: calculate_rank_test with nthreads parameter
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 respects nthreads parameter", {
+test_that("calculate_rank_test respects nthreads parameter", {
     skip_if_not_installed("parallel")
     
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Test with 1 thread (should work on any system)
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         nthreads = 1
@@ -1248,13 +1250,13 @@ test_that("rank_test_q_condition_s4 respects nthreads parameter", {
 })
 
 # ============================================================================
-# Test: rank_test_q_condition_s4 with different entropy columns
+# Test: calculate_rank_test with different entropy columns
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 handles custom entropy column names", {
+test_that("calculate_rank_test handles custom entropy column names", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         entropy_col = "diversity"  # Default column name
@@ -1267,10 +1269,10 @@ test_that("rank_test_q_condition_s4 handles custom entropy column names", {
 # Test: Integration - Full workflow with different parameter combinations
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 full workflow with art test method", {
+test_that("calculate_rank_test full workflow with art test method", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         test = "art",
@@ -1278,19 +1280,19 @@ test_that("rank_test_q_condition_s4 full workflow with art test method", {
     )
     
     expect_is(result, "TSENATAnalysis")
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     expect_true(nrow(rank_res) > 0)
 })
 
-test_that("rank_test_q_condition_s4 preserves effect size calculations", {
+test_that("calculate_rank_test preserves effect size calculations", {
     analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition"
     )
     
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     res_df <- rank_res
     
     # Check that effect size columns are present
@@ -1300,15 +1302,15 @@ test_that("rank_test_q_condition_s4 preserves effect size calculations", {
     expect_true(all(res_df$effect_size_eta2 >= 0 & res_df$effect_size_eta2 <= 1, na.rm = TRUE))
 })
 
-test_that("rank_test_q_condition_s4 classifies q-dependence correctly", {
+test_that("calculate_rank_test classifies q-dependence correctly", {
     analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition"
     )
     
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     res_df <- rank_res
     
     # Check that interaction_class column exists with valid values
@@ -1321,15 +1323,15 @@ test_that("rank_test_q_condition_s4 classifies q-dependence correctly", {
 # Test: Data integrity and consistency checks
 # ============================================================================
 
-test_that("rank_test_q_condition_s4 results contain expected columns", {
+test_that("calculate_rank_test results contain expected columns", {
     analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition"
     )
     
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     res_df <- if (is.data.frame(rank_res)) rank_res else as.data.frame(rank_res)
     
     expected_cols <- c(
@@ -1342,15 +1344,15 @@ test_that("rank_test_q_condition_s4 results contain expected columns", {
     }
 })
 
-test_that("rank_test_q_condition_s4 results are sorted by adjusted p-value", {
+test_that("calculate_rank_test results are sorted by adjusted p-value", {
     analysis <- setup_rank_test_analysis(n_genes = 30, n_samples = 8)
     
-    result <- rank_test_q_condition_s4(
+    result <- calculate_rank_test(
         analysis,
         condition_col = "condition"
     )
     
-    rank_res <- TSENAT::rankResults(result)
+    rank_res <- results(result, type = "rank_test")
     res_df <- if (is.data.frame(rank_res)) rank_res else as.data.frame(rank_res)
     
     # Check that results are sorted by adj_p_value (primary) and effect size (secondary)
@@ -1360,27 +1362,27 @@ test_that("rank_test_q_condition_s4 results are sorted by adjusted p-value", {
     }
 })
 
-test_that("rank_test_q_condition_s4 generates consistent results", {
+test_that("calculate_rank_test generates consistent results", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Run twice and compare
-    result1 <- rank_test_q_condition_s4(
+    result1 <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         test = "auto",
         multicorr = "hochberg"
     )
     
-    result2 <- rank_test_q_condition_s4(
+    result2 <- calculate_rank_test(
         analysis,
         condition_col = "condition",
         test = "auto",
         multicorr = "hochberg"
     )
     
-    res1_df <- TSENAT::rankResults(result1)
+    res1_df <- results(result1, type = "rank_test")
     if (is.list(res1_df)) res1_df <- as.data.frame(res1_df)
-    res2_df <- TSENAT::rankResults(result2)
+    res2_df <- results(result2, type = "rank_test")
     if (is.list(res2_df)) res2_df <- as.data.frame(res2_df)
     
     # Results should be identical (deterministic)
@@ -1398,7 +1400,7 @@ test_that("rank_test output file (TSV format) contains valid p-values", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_rank_pvalues.tsv")
   
-  result <- rank_test_q_condition_s4(
+  result <- calculate_rank_test(
     analysis,
     condition_col = "condition",
     test = "kruskal-wallis",
@@ -1441,7 +1443,7 @@ test_that("rank_test output file (CSV format) preserves numerical properties acr
   csv_file <- file.path(output_dir, "test_rank_format_csv.csv")
   
   # Run test with TSV output
-  result_tsv <- rank_test_q_condition_s4(
+  result_tsv <- calculate_rank_test(
     analysis,
     condition_col = "condition",
     test = "kruskal-wallis",
@@ -1450,7 +1452,7 @@ test_that("rank_test output file (CSV format) preserves numerical properties acr
   )
   
   # Run test with CSV output
-  result_csv <- rank_test_q_condition_s4(
+  result_csv <- calculate_rank_test(
     analysis,
     condition_col = "condition",
     test = "kruskal-wallis",
@@ -1483,7 +1485,7 @@ test_that("rank_test statistics respect monotonicity: adj_p >= p_value", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_rank_monotone.tsv")
   
-  result <- rank_test_q_condition_s4(
+  result <- calculate_rank_test(
     analysis,
     condition_col = "condition",
     multicorr = "hochberg",
@@ -1515,7 +1517,7 @@ test_that("rank_test results are consistent across different multicorr methods",
   
   # Test with no correction
   file_none <- file.path(output_dir, "test_rank_none.tsv")
-  result_none <- rank_test_q_condition_s4(
+  result_none <- calculate_rank_test(
     analysis,
     condition_col = "condition",
     test = "kruskal-wallis",
@@ -1526,7 +1528,7 @@ test_that("rank_test results are consistent across different multicorr methods",
   
   # Test with Hochberg correction
   file_bh <- file.path(output_dir, "test_rank_bh.tsv")
-  result_bh <- rank_test_q_condition_s4(
+  result_bh <- calculate_rank_test(
     analysis,
     condition_col = "condition",
     test = "kruskal-wallis",
@@ -1536,8 +1538,8 @@ test_that("rank_test results are consistent across different multicorr methods",
   )
   
   # Check in-memory results
-  data_none <- TSENAT::rankResults(result_none)
-  data_bh <- TSENAT::rankResults(result_bh)
+  data_none <- results(result_none, type = "rank_test")
+  data_bh <- results(result_bh, type = "rank_test")
   
   # Both should have results
   expect_gt(nrow(data_none), 0)
@@ -1596,7 +1598,7 @@ test_that("rank_test results with different test methods produce valid statistic
   output_dir <- tempdir()
   file_kw <- file.path(output_dir, "test_rank_kw.tsv")
   
-  result <- rank_test_q_condition_s4(
+  result <- calculate_rank_test(
     analysis,
     condition_col = "condition",
     test = "kruskal-wallis",
@@ -1636,7 +1638,7 @@ test_that("rank_test paired designs produce mathematically valid results", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_rank_paired.tsv")
   
-  result <- rank_test_q_condition_s4(
+  result <- calculate_rank_test(
     analysis,
     condition_col = "condition",
     test = "friedman",
@@ -1673,7 +1675,7 @@ test_that("rank_test results are deterministic and reproducible", {
   file1 <- file.path(output_dir, "test_rank_repro1.tsv")
   file2 <- file.path(output_dir, "test_rank_repro2.tsv")
   
-  result1 <- rank_test_q_condition_s4(
+  result1 <- calculate_rank_test(
     analysis,
     condition_col = "condition",
     test = "kruskal-wallis",
@@ -1681,7 +1683,7 @@ test_that("rank_test results are deterministic and reproducible", {
     verbose = FALSE
   )
   
-  result2 <- rank_test_q_condition_s4(
+  result2 <- calculate_rank_test(
     analysis,
     condition_col = "condition",
     test = "kruskal-wallis",

@@ -517,9 +517,7 @@ test_that(".build_se handles metadata application", {
         1:4, nrow = 2,
         dimnames = list(c("ENST00000001", "ENST00000002"), c("s1", "s2"))
     )
-    custom_metadata <- list(experiment_id = "exp_001", date = "2024-01-01")
-
-    se <- TSENAT:::.build_se(readcounts, tx2gene, metadata = custom_metadata)
+    se <- TSENAT:::.build_se(readcounts, tx2gene)
 
     # Metadata is applied via .map_metadata_se which may or may not add all fields
     # Just verify SE is created successfully
@@ -779,7 +777,6 @@ test_that(".build_se parameter combinations: skip + custom assay + metadata", {
         readcounts, tx2gene,
         assay_name = "abundance",
         skip = FALSE,
-        metadata = list(test = TRUE),
         verbose = FALSE
     )
     

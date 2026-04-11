@@ -24,7 +24,7 @@ test_that("test_rankbased_assumptions calculates consistency with high concordan
   colnames(data) <- paste0("Sample_", 1:n_samples)
   
   # Run consistency check
-  result <- .test_rankbased_assumptions(data, checks = "consistency")
+  result <- .calculate_rank_assumptions(data, checks = "consistency")
   
   # Extract checks from attributes
   checks <- attr(result, "checks")
@@ -57,7 +57,7 @@ test_that("test_rankbased_assumptions calculates Kendall's W correctly", {
   rownames(data) <- paste0("Gene_", 1:5)
   colnames(data) <- paste0("Sample_", 1:3)
   
-  result <- .test_rankbased_assumptions(data, checks = "consistency")
+  result <- .calculate_rank_assumptions(data, checks = "consistency")
   checks <- attr(result, "checks")
   
   # Check that Kendall's W was calculated (between 0 and 1)
@@ -81,7 +81,7 @@ test_that("test_rankbased_assumptions high Kendall's W assigns PASS status", {
   rownames(data) <- paste0("Gene_", 1:5)
   colnames(data) <- paste0("Sample_", 1:3)
   
-  result <- .test_rankbased_assumptions(data, checks = "consistency")
+  result <- .calculate_rank_assumptions(data, checks = "consistency")
   checks <- attr(result, "checks")
   
   # Perfect consistency: Kendall's W should be non-negative
@@ -108,7 +108,7 @@ test_that("test_rankbased_assumptions moderate Kendall's W assigns ACCEPTABLE st
   rownames(data) <- paste0("Gene_", 1:5)
   colnames(data) <- paste0("Sample_", 1:3)
   
-  result <- .test_rankbased_assumptions(data, checks = "consistency")
+  result <- .calculate_rank_assumptions(data, checks = "consistency")
   checks <- attr(result, "checks")
   
   # Verify Kendall's W is calculated
@@ -131,7 +131,7 @@ test_that("test_rankbased_assumptions low Kendall's W assigns LOW CONSISTENCY st
   rownames(data) <- paste0("Gene_", 1:10)
   colnames(data) <- paste0("Sample_", 1:5)
   
-  result <- .test_rankbased_assumptions(data, checks = "consistency")
+  result <- .calculate_rank_assumptions(data, checks = "consistency")
   checks <- attr(result, "checks")
   
   # Verify Kendall's W is calculated
@@ -158,7 +158,7 @@ test_that("test_rankbased_assumptions calculates ICC correctly", {
   rownames(data) <- paste0("Gene_", 1:5)
   colnames(data) <- paste0("Sample_", 1:3)
   
-  result <- .test_rankbased_assumptions(data, checks = "consistency")
+  result <- .calculate_rank_assumptions(data, checks = "consistency")
   checks <- attr(result, "checks")
   
   # ICC should be between 0 and 1 (or NA)
@@ -179,7 +179,7 @@ test_that("test_rankbased_assumptions details string contains metrics", {
   rownames(data) <- paste0("Gene_", 1:6)
   colnames(data) <- paste0("Sample_", 1:5)
   
-  result <- .test_rankbased_assumptions(data, checks = "consistency")
+  result <- .calculate_rank_assumptions(data, checks = "consistency")
   checks <- attr(result, "checks")
   
   # Details string should contain Kendall W and ICC values
@@ -194,7 +194,7 @@ test_that("test_rankbased_assumptions skips consistency with insufficient data (
   rownames(data) <- "Gene_1"
   colnames(data) <- paste0("Sample_", 1:5)
   
-  result <- .test_rankbased_assumptions(data, checks = "consistency")
+  result <- .calculate_rank_assumptions(data, checks = "consistency")
   checks <- attr(result, "checks")
   
   # Should set status to SKIP
@@ -208,7 +208,7 @@ test_that("test_rankbased_assumptions skips consistency with insufficient data (
   rownames(data) <- paste0("Gene_", 1:5)
   colnames(data) <- "Sample_1"
   
-  result <- .test_rankbased_assumptions(data, checks = "consistency")
+  result <- .calculate_rank_assumptions(data, checks = "consistency")
   checks <- attr(result, "checks")
   
   # Should set status to SKIP
@@ -229,7 +229,7 @@ test_that("test_rankbased_assumptions consistency matrix operations work", {
   rownames(data) <- paste0("Gene_", 1:3)
   colnames(data) <- paste0("Sample_", 1:3)
   
-  result <- .test_rankbased_assumptions(data, checks = "consistency")
+  result <- .calculate_rank_assumptions(data, checks = "consistency")
   checks <- attr(result, "checks")
   
   # Verify that result is valid
@@ -252,7 +252,7 @@ test_that("test_rankbased_assumptions consistency with missing values", {
   colnames(data) <- paste0("Sample_", 1:3)
   
   # Should handle NA gracefully
-  result <- .test_rankbased_assumptions(data, checks = "consistency")
+  result <- .calculate_rank_assumptions(data, checks = "consistency")
   checks <- attr(result, "checks")
   
   # Result should still be generated (with na.rm = TRUE in calculations)
@@ -270,7 +270,7 @@ test_that("test_rankbased_assumptions consistency handles single gene with NA", 
   rownames(data) <- "Gene_1"
   colnames(data) <- paste0("Sample_", 1:3)
   
-  result <- .test_rankbased_assumptions(data, checks = "consistency")
+  result <- .calculate_rank_assumptions(data, checks = "consistency")
   checks <- attr(result, "checks")
   
   # n=1 case should be skipped
@@ -292,7 +292,7 @@ test_that("test_rankbased_assumptions all consistency message formats", {
   rownames(data) <- paste0("Gene_", 1:5)
   colnames(data) <- paste0("Sample_", 1:3)
   
-  result <- .test_rankbased_assumptions(data, checks = "consistency")
+  result <- .calculate_rank_assumptions(data, checks = "consistency")
   checks <- attr(result, "checks")
   
   # Verify all expected fields exist

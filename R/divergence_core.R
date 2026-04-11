@@ -1,3 +1,241 @@
+# =========================================================================
+# MAIN FUNCTION: Calculate Bootstrap Divergence
+# =========================================================================
+
+#' Calculate Bootstrap Divergence Confidence Intervals Across Genes
+#'
+#' **NEW ARCHITECTURE: Transcript-level counts -> Gene-level aggregation ->
+#' Tsallis divergence**
+#' 
+#' Computes bootstrap confidence intervals for Tsallis divergence comparing
+#' two groups across multiple genes. Automatically aggregates
+#' transcript-level counts
+#' to gene-level (per Paper I033: gene-level analysis for
+#' information-theoretic diversity).
+#' Supports both sequential and parallel computation, with optional support
+#' for paired sample designs.
+#' 
+#' Returns a SummarizedExperiment object containing:
+#' - **assay**: genes * q matrix of divergence estimates (one per q value)
+#' - **rowData**: gene metadata including per-q divergence estimates, CIs,
+#' pattern classification
+#' - **colData**: one row per q value with q-specific metadata
+#' - **metadata**: processing parameters and summary statistics
+#'
+#' **INPUT & OUTPUT ARCHITECTURE:**
+#' ```
+#' .calculate_divergence(se, res=NULL, ...)  
+#'   Input:  SummarizedExperiment (raw TRANSCRIPT-level counts)
+#'           Each row is a transcript;
+#'  rowData must have gene_names/gene_name column
+#'   Step 1: Auto-aggregates transcripts -> genes via colSums
+#'   Step 2: Computes divergence for each gene across q values
+#'   Output: SummarizedExperiment with:
+#'           - assay: genes * q_values matrix (divergence estimates)
+#'           - rowData: gene_name, per_q_pattern, estimate_q*, lower_ci_q*, etc.
+#'           - colData: one row per q value
+#'           - metadata: parameters, timing, sample sizes
+#' ```
+#' Matches `.calculate_diversity()` input/output pattern: transcript counts
+#' SE -> gene-level derivative SE
+#'
+#' **DESIGN PRINCIPLE - Transcript-to-Gene Aggregation:**
+#' Following Paper I033 ('Application of information theoretical approaches
+#' to assess diversity
+#' in single-cell transcriptomics'), divergence analysis operates on
+#' GENE-LEVEL expression profiles.
+#' When input is transcript-level data (typical RNA-seq output), this
+#' function automatically:
+#'   1. Identifies all transcripts for each gene (via rowData gene_names column)
+#'   2. Sums counts across transcripts for each gene
+#'   3. Computes divergence on aggregated gene-level counts
+#' This ensures statistical validity (one observation per gene per sample)
+#' and biological relevance.
+#'
+#' @param se SummarizedExperiment object with transcript-level counts
+#'           (assay called 'counts', rowData with gene identifier columns)
+#' @param group_col Character; colData column for group membership (optional).
+#'            If NULL,  auto-detects in this order:  'group',  'condition',
+#'  'treatment',  
+#'            'sample_type'. If no match found, an error is raised.
+#'            (default: NULL, auto-detect)
+#' @param control_group Character; reference group name (optional).
+#' If NULL, auto-detects by: (1) looking for 'Normal', 'Control', 'WT',
+#' etc.,
+#'            or  (2) selecting the group with 
+#' fewer samples (typical case-control),
+#'            or (3) first alphabetically.
+#'            (default: NULL, auto-detect)
+#' @param q Tsallis parameter (scalar or vector) (default: 1)
+#' @param paired Logical; if TRUE or if paired_samples column detected, uses
+#' paired sample design.
+#'               With bootstrap=TRUE,
+#'  automatically detects paired samples from metadata
+#' column names (searched in order: 'paired_samples', 'pair_id',
+#' 'pair_samples',
+#' 'subject_id', 'patient_id') and applies pair-respecting bootstrap
+#' resampling
+#'               to preserve within-pair correlations (Papers Ramsay (2005), Springer Series in Statistics, S102-S109).
+#'               (default: FALSE)
+#' @param bootstrap Logical; if TRUE, computes bootstrap confidence
+#' intervals (~2-3 sec/gene).
+#'                  If FALSE,  computes point estimates only (~0. 02-0.
+#' 05 sec/gene).
+#'                  (default: FALSE)
+#' @param nboot Number of bootstrap replicates (default: 1000)
+#'               Note: ignored if bootstrap=FALSE
+#' @param ci Confidence level (default: 0.95)
+#' @param method Bootstrap method: 'percentile' or 'bca' (default: 'percentile')
+#' @param log_base Logarithm base (default: exp(1), natural log)
+#' @param norm Logical or character; normalization/standardization mode
+#' (default: TRUE).
+#'        Backward compatible: TRUE = 'range', FALSE = 'none'.
+#'        Options:
+#'        - 'none': Raw divergence values, no standardization
+#'        - 'range': Range standardization [0,1] per q (classic approach)
+#'        - 'zscore': Z-score standardization per q: (D_q - mean) / sd
+#'          Useful for cross-study comparison; results in mean=0, sd=1
+#'        - 'log_odds_ratio': Log ratio relative to theoretical maximum
+#'          D_norm = log(D_q / D_max) where D_max depends on q-value
+#'          Interpretation: 0 = theoretical max, <0 = below max
+#'        - 'relative_reference': Ratio to reference group (requires group_col)
+#'          Interpretation: Reference = 1, >1 higher than reference
+#' @param pseudocount Pseudocount for stability (default: 0.5)
+#' @param nthreads Number of CPU threads for parallel processing (default: 1).
+#'                 Set to > 1 to parallelize gene-level bootstrap computations.
+#'                 nthreads=NULL auto-detects available cores minus 1.
+#' @param progress Logical; show progress bar and timing (default: TRUE)
+#' @param seed Random seed (optional; NULL for non-reproducible)
+#'
+#' @return SummarizedExperiment object with:
+#'   **assays** (genes * q matrices):
+#'     - divergence: Divergence point estimates for each gene
+#'   
+#'   **rowData** (data frame with one row per gene):
+#'     - gene_name: Gene identifier
+#'     - estimate: Point estimate of divergence
+#'     - lower_ci: Lower CI bound (NA if bootstrap=FALSE)
+#'     - upper_ci: Upper CI bound (NA if bootstrap=FALSE)
+#'     - ci_width: Width of confidence interval (NA if bootstrap=FALSE)
+#'     - q: Tsallis parameter(s) used
+#'     - nboot: Number of bootstrap replicates
+#'     - method: Bootstrap method ('percentile', 'bca', or NA)
+#'     - computation_time_sec: Wall-clock time per gene (seconds)
+#'     - error: Error message if computation failed, NA_character_ otherwise
+#'   
+#'   **colData**:
+#'     - Inherited from input `se` (sample grouping, pairing info, etc.)
+#'   
+#'   **metadata** (list):
+#'     - summary_stats: list with counts (total, successful, failed)
+#'     - elapsed_time_sec: Total computation time
+#'     - avg_time_per_gene: Average time per gene
+#'     - genes_per_minute: Processing rate
+#'     - bootstrap_config: list with bootstrap parameters (nboot, ci, method)
+#'     - computation_mode: 'sequential' or 'parallel'
+#'
+#' @details
+#' **Paired Sample Auto-Detection (NEW FEATURE):**
+#' When bootstrap=TRUE, the function automatically detects paired sample
+#' metadata from colData:
+#' - Searches for columns: 'paired_samples', 'pair_id', 'pair_samples',
+#' 'subject_id', 'patient_id'
+#' - If found, uses **pair-respecting bootstrap resampling**:
+#'   * Resamples pair indices (not individual samples) with replacement
+#'   * Preserves within-pair correlations critical for matched designs
+#'   * Maintains statistical validity in paired experimental designs
+#' - If paired=TRUE but no pairing detected, falls back to independent
+#' bootstrap with warning
+#' 
+#' **Scientific Justification (Papers validating auto-detection):**
+#' - Papers Ramsay (2005), Springer Series in Statistics: Bootstrap for confidence intervals requires preserving
+#' data structure
+#' - Papers S102-S109: Paired design standards and statistical methods
+#' - Papers I002-I004: Tsallis divergence mathematical foundation
+#' 
+#' **Computation Mode Selection:**
+#' The function automatically selects between sequential and parallel
+#' processing:
+#' - nthreads=1 (default): Direct sequential loop, minimal overhead
+#' - nthreads > 1 & num_genes >= 5: Parallel PSOCK cluster
+#' - nthreads > 1 & num_genes < 5: Falls back to sequential (overhead not
+#' warranted)
+#'
+#' **Performance Characteristics:**
+#' - With bootstrap=TRUE (default):
+#'   - Sequential: ~2-3 seconds per gene (nboot=1000, percentile method)
+#'   - Parallel overhead: ~1-2 seconds initial cluster setup
+#'   - Break-even point: ~10-20 genes
+#' - With bootstrap=FALSE (point estimates only):
+#'   - Sequential: ~0.02-0.05 seconds per gene (50-100* faster)
+#'
+#' **Gene Filtering:**
+#' - Always process all genes in se
+#'
+#' **Database Verification (tsenat_papers.db):**
+#' - Tsallis divergence mathematical foundation: Papers I001-I004 validate
+#'   divergence formula and q-parameter effects
+#' - Bootstrap methodology: Papers Ramsay (2005), Springer Series in Statistics, S018, S030 validate percentile and BCa
+#'   bootstrap for entropy/divergence estimates with confidence level >= 0.95
+#' - Transcript aggregation: Paper C105 validates gene-level aggregation
+#' - Divergence normalization: Papers C112, S196, S201 validate normalization
+#' approaches for effect size comparability (S197 - DESeq2 independent
+#' filtering)
+
+#' @noRd
+#' @details
+#' **Reproducibility and RNG (Bioconductor-compliant):**
+#' For reproducible results with bootstrap CIs, use `set.seed()` before calling
+#' this function, following Bioconductor guidelines for RNG control.
+#' The function does NOT accept a `seed` parameter; RNG state is managed by the caller.
+#' This approach ensures compatibility with BiocParallel parallel backends:
+#' when `nthreads > 1`, BiocParallel automatically distributes seeds to worker threads.
+#' Example:
+#'   set.seed(42)
+#'   result <- .calculate_divergence(se, q=1, nboot=100, nthreads=2)
+
+.calculate_divergence <- function(se, group_col = NULL, control_group = NULL, q = 1,
+    paired = FALSE, bootstrap = FALSE, nboot = "auto", ci = 0.95, method = "percentile",
+    norm = TRUE, log_base = exp(1), pseudocount = 0.5, nthreads = 1, progress = FALSE,
+    verbose = TRUE) {
+
+    # =========================================================================
+    # INPUT VALIDATION - Must be done BEFORE implementation Following
+    # Bioconductor guidelines: fail fast with clear error messages
+    # =========================================================================
+
+    # Validate bootstrap parameter
+    if (!is.logical(bootstrap) || length(bootstrap) != 1 || is.na(bootstrap)) {
+        stop("bootstrap must be a logical", call. = FALSE)
+    }
+
+    # Validate paired parameter
+    if (!is.logical(paired) || length(paired) != 1 || is.na(paired)) {
+        stop("paired must be a logical", call. = FALSE)
+    }
+
+    # Validate method parameter
+    if (!is.null(method) && (!is.character(method) || length(method) == 0 || is.na(method[1]))) {
+        stop("method must be a character string", call. = FALSE)
+    }
+
+    # Validate nthreads parameter
+    if (!is.null(nthreads)) {
+        if (!is.numeric(nthreads) || length(nthreads) != 1 || is.na(nthreads)) {
+            stop("nthreads must be a positive integer", call. = FALSE)
+        }
+    }
+
+    # Validate progress parameter
+    if (!is.logical(progress) || length(progress) != 1 || is.na(progress)) {
+        stop("progress must be a logical", call. = FALSE)
+    }
+
+    # Call implementation directly - errors will propagate clearly
+    .calculate_divergence_impl(se, group_col, control_group, q, paired, bootstrap,
+        nboot, ci, method, norm, log_base, pseudocount, nthreads, progress, verbose)
+}
+
 # ========================================================================= NEW
 # ORCHESTRATOR HELPERS (March 2026 refactoring)
 # =========================================================================
@@ -235,245 +473,6 @@
             }
         }
     }
-}
-
-
-# =========================================================================
-# MAIN FUNCTION: Calculate Bootstrap Divergence
-# =========================================================================
-
-#' Calculate Bootstrap Divergence Confidence Intervals Across Genes
-#'
-#' **NEW ARCHITECTURE: Transcript-level counts -> Gene-level aggregation ->
-#' Tsallis divergence**
-#' 
-#' Computes bootstrap confidence intervals for Tsallis divergence comparing
-#' two groups across multiple genes. Automatically aggregates
-#' transcript-level counts
-#' to gene-level (per Paper I033: gene-level analysis for
-#' information-theoretic diversity).
-#' Supports both sequential and parallel computation, with optional support
-#' for paired sample designs.
-#' 
-#' Returns a SummarizedExperiment object containing:
-#' - **assay**: genes * q matrix of divergence estimates (one per q value)
-#' - **rowData**: gene metadata including per-q divergence estimates, CIs,
-#' pattern classification
-#' - **colData**: one row per q value with q-specific metadata
-#' - **metadata**: processing parameters and summary statistics
-#'
-#' **INPUT & OUTPUT ARCHITECTURE:**
-#' ```
-#' .calculate_divergence(se, res=NULL, ...)  
-#'   Input:  SummarizedExperiment (raw TRANSCRIPT-level counts)
-#'           Each row is a transcript;
-#'  rowData must have gene_names/gene_name column
-#'   Step 1: Auto-aggregates transcripts -> genes via colSums
-#'   Step 2: Computes divergence for each gene across q values
-#'   Output: SummarizedExperiment with:
-#'           - assay: genes * q_values matrix (divergence estimates)
-#'           - rowData: gene_name, per_q_pattern, estimate_q*, lower_ci_q*, etc.
-#'           - colData: one row per q value
-#'           - metadata: parameters, timing, sample sizes
-#' ```
-#' Matches `.calculate_diversity()` input/output pattern: transcript counts
-#' SE -> gene-level derivative SE
-#'
-#' **DESIGN PRINCIPLE - Transcript-to-Gene Aggregation:**
-#' Following Paper I033 ('Application of information theoretical approaches
-#' to assess diversity
-#' in single-cell transcriptomics'), divergence analysis operates on
-#' GENE-LEVEL expression profiles.
-#' When input is transcript-level data (typical RNA-seq output), this
-#' function automatically:
-#'   1. Identifies all transcripts for each gene (via rowData gene_names column)
-#'   2. Sums counts across transcripts for each gene
-#'   3. Computes divergence on aggregated gene-level counts
-#' This ensures statistical validity (one observation per gene per sample)
-#' and biological relevance.
-#'
-#' @param se SummarizedExperiment object with transcript-level counts
-#'           (assay called 'counts', rowData with gene identifier columns)
-#' @param group_col Character; colData column for group membership (optional).
-#'            If NULL,  auto-detects in this order:  'group',  'condition',
-#'  'treatment',  
-#'            'sample_type'. If no match found, an error is raised.
-#'            (default: NULL, auto-detect)
-#' @param control_group Character; reference group name (optional).
-#' If NULL, auto-detects by: (1) looking for 'Normal', 'Control', 'WT',
-#' etc.,
-#'            or  (2) selecting the group with 
-#' fewer samples (typical case-control),
-#'            or (3) first alphabetically.
-#'            (default: NULL, auto-detect)
-#' @param q Tsallis parameter (scalar or vector) (default: 1)
-#' @param paired Logical; if TRUE or if paired_samples column detected, uses
-#' paired sample design.
-#'               With bootstrap=TRUE,
-#'  automatically detects paired samples from metadata
-#' column names (searched in order: 'paired_samples', 'pair_id',
-#' 'pair_samples',
-#' 'subject_id', 'patient_id') and applies pair-respecting bootstrap
-#' resampling
-#'               to preserve within-pair correlations (Papers Ramsay (2005), Springer Series in Statistics, S102-S109).
-#'               (default: FALSE)
-#' @param bootstrap Logical; if TRUE, computes bootstrap confidence
-#' intervals (~2-3 sec/gene).
-#'                  If FALSE,  computes point estimates only (~0. 02-0.
-#' 05 sec/gene).
-#'                  (default: FALSE)
-#' @param nboot Number of bootstrap replicates (default: 1000)
-#'               Note: ignored if bootstrap=FALSE
-#' @param ci Confidence level (default: 0.95)
-#' @param method Bootstrap method: 'percentile' or 'bca' (default: 'percentile')
-#' @param log_base Logarithm base (default: exp(1), natural log)
-#' @param norm Logical or character; normalization/standardization mode
-#' (default: TRUE).
-#'        Backward compatible: TRUE = 'range', FALSE = 'none'.
-#'        Options:
-#'        - 'none': Raw divergence values, no standardization
-#'        - 'range': Range standardization [0,1] per q (classic approach)
-#'        - 'zscore': Z-score standardization per q: (D_q - mean) / sd
-#'          Useful for cross-study comparison; results in mean=0, sd=1
-#'        - 'log_odds_ratio': Log ratio relative to theoretical maximum
-#'          D_norm = log(D_q / D_max) where D_max depends on q-value
-#'          Interpretation: 0 = theoretical max, <0 = below max
-#'        - 'relative_reference': Ratio to reference group (requires group_col)
-#'          Interpretation: Reference = 1, >1 higher than reference
-#' @param pseudocount Pseudocount for stability (default: 0.5)
-#' @param nthreads Number of CPU threads for parallel processing (default: 1).
-#'                 Set to > 1 to parallelize gene-level bootstrap computations.
-#'                 nthreads=NULL auto-detects available cores minus 1.
-#' @param progress Logical; show progress bar and timing (default: TRUE)
-#' @param seed Random seed (optional; NULL for non-reproducible)
-#'
-#' @return SummarizedExperiment object with:
-#'   **assays** (genes * q matrices):
-#'     - divergence: Divergence point estimates for each gene
-#'   
-#'   **rowData** (data frame with one row per gene):
-#'     - gene_name: Gene identifier
-#'     - estimate: Point estimate of divergence
-#'     - lower_ci: Lower CI bound (NA if bootstrap=FALSE)
-#'     - upper_ci: Upper CI bound (NA if bootstrap=FALSE)
-#'     - ci_width: Width of confidence interval (NA if bootstrap=FALSE)
-#'     - q: Tsallis parameter(s) used
-#'     - nboot: Number of bootstrap replicates
-#'     - method: Bootstrap method ('percentile', 'bca', or NA)
-#'     - computation_time_sec: Wall-clock time per gene (seconds)
-#'     - error: Error message if computation failed, NA_character_ otherwise
-#'   
-#'   **colData**:
-#'     - Inherited from input `se` (sample grouping, pairing info, etc.)
-#'   
-#'   **metadata** (list):
-#'     - summary_stats: list with counts (total, successful, failed)
-#'     - elapsed_time_sec: Total computation time
-#'     - avg_time_per_gene: Average time per gene
-#'     - genes_per_minute: Processing rate
-#'     - bootstrap_config: list with bootstrap parameters (nboot, ci, method)
-#'     - computation_mode: 'sequential' or 'parallel'
-#'
-#' @details
-#' **Paired Sample Auto-Detection (NEW FEATURE):**
-#' When bootstrap=TRUE, the function automatically detects paired sample
-#' metadata from colData:
-#' - Searches for columns: 'paired_samples', 'pair_id', 'pair_samples',
-#' 'subject_id', 'patient_id'
-#' - If found, uses **pair-respecting bootstrap resampling**:
-#'   * Resamples pair indices (not individual samples) with replacement
-#'   * Preserves within-pair correlations critical for matched designs
-#'   * Maintains statistical validity in paired experimental designs
-#' - If paired=TRUE but no pairing detected, falls back to independent
-#' bootstrap with warning
-#' 
-#' **Scientific Justification (Papers validating auto-detection):**
-#' - Papers Ramsay (2005), Springer Series in Statistics: Bootstrap for confidence intervals requires preserving
-#' data structure
-#' - Papers S102-S109: Paired design standards and statistical methods
-#' - Papers I002-I004: Tsallis divergence mathematical foundation
-#' 
-#' **Computation Mode Selection:**
-#' The function automatically selects between sequential and parallel
-#' processing:
-#' - nthreads=1 (default): Direct sequential loop, minimal overhead
-#' - nthreads > 1 & num_genes >= 5: Parallel PSOCK cluster
-#' - nthreads > 1 & num_genes < 5: Falls back to sequential (overhead not
-#' warranted)
-#'
-#' **Performance Characteristics:**
-#' - With bootstrap=TRUE (default):
-#'   - Sequential: ~2-3 seconds per gene (nboot=1000, percentile method)
-#'   - Parallel overhead: ~1-2 seconds initial cluster setup
-#'   - Break-even point: ~10-20 genes
-#' - With bootstrap=FALSE (point estimates only):
-#'   - Sequential: ~0.02-0.05 seconds per gene (50-100* faster)
-#'
-#' **Gene Filtering:**
-#' - Always process all genes in se
-#'
-#' **Database Verification (tsenat_papers.db):**
-#' - Tsallis divergence mathematical foundation: Papers I001-I004 validate
-#'   divergence formula and q-parameter effects
-#' - Bootstrap methodology: Papers Ramsay (2005), Springer Series in Statistics, S018, S030 validate percentile and BCa
-#'   bootstrap for entropy/divergence estimates with confidence level >= 0.95
-#' - Transcript aggregation: Paper C105 validates gene-level aggregation
-#' - Divergence normalization: Papers C112, S196, S201 validate normalization
-#' approaches for effect size comparability (S197 - DESeq2 independent
-#' filtering)
-
-#' @noRd
-#' @details
-#' **Reproducibility and RNG (Bioconductor-compliant):**
-#' For reproducible results with bootstrap CIs, use `set.seed()` before calling
-#' this function, following Bioconductor guidelines for RNG control.
-#' The function does NOT accept a `seed` parameter; RNG state is managed by the caller.
-#' This approach ensures compatibility with BiocParallel parallel backends:
-#' when `nthreads > 1`, BiocParallel automatically distributes seeds to worker threads.
-#' Example:
-#'   set.seed(42)
-#'   result <- .calculate_divergence(se, q=1, nboot=100, nthreads=2)
-
-.calculate_divergence <- function(se, group_col = NULL, control_group = NULL, q = 1,
-    paired = FALSE, bootstrap = FALSE, nboot = "auto", ci = 0.95, method = "percentile",
-    norm = TRUE, log_base = exp(1), pseudocount = 0.5, nthreads = 1, progress = FALSE,
-    verbose = TRUE) {
-
-    # =========================================================================
-    # INPUT VALIDATION - Must be done BEFORE implementation Following
-    # Bioconductor guidelines: fail fast with clear error messages
-    # =========================================================================
-
-    # Validate bootstrap parameter
-    if (!is.logical(bootstrap) || length(bootstrap) != 1 || is.na(bootstrap)) {
-        stop("bootstrap must be a logical", call. = FALSE)
-    }
-
-    # Validate paired parameter
-    if (!is.logical(paired) || length(paired) != 1 || is.na(paired)) {
-        stop("paired must be a logical", call. = FALSE)
-    }
-
-    # Validate method parameter
-    if (!is.null(method) && (!is.character(method) || length(method) == 0 || is.na(method[1]))) {
-        stop("method must be a character string", call. = FALSE)
-    }
-
-    # Validate nthreads parameter
-    if (!is.null(nthreads)) {
-        if (!is.numeric(nthreads) || length(nthreads) != 1 || is.na(nthreads)) {
-            stop("nthreads must be a positive integer", call. = FALSE)
-        }
-    }
-
-    # Validate progress parameter
-    if (!is.logical(progress) || length(progress) != 1 || is.na(progress)) {
-        stop("progress must be a logical", call. = FALSE)
-    }
-
-    # Call implementation directly - errors will propagate clearly
-    .calculate_divergence_impl(se, group_col, control_group, q, paired, bootstrap,
-        nboot, ci, method, norm, log_base, pseudocount, nthreads, progress, verbose)
 }
 
 #' Implementation of calculate_divergence with parameter validation

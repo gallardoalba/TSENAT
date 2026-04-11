@@ -12,7 +12,7 @@ test_that("BUG ALERT: Tsallis formula uses wrong denominator (q-1 vs 1-q) - prod
   results <- data.frame()
   
   for (q in q_vals) {
-    # WRONG formula (current jackknife_isoform_switching.R line 93)
+    # WRONG formula (current calculate_jis.R line 93)
     h_wrong <- (1 / (1 - q)) * (1 - p_q_sum)
     
     # CORRECT formula (entropy_core.R line 56, C++ line 641)
@@ -44,7 +44,7 @@ test_that("BUG ALERT: Normalized Tsallis uses wrong denominator - produces oppos
   results <- data.frame()
   
   for (q in q_vals) {
-    # WRONG formula (current jackknife_isoform_switching.R line 97)
+    # WRONG formula (current calculate_jis.R line 97)
     max_h_wrong <- (1 - n_tx^(1 - q)) / (1 - q)
     
     # CORRECT formula (entropy_core.R line 70, C++ line 645)

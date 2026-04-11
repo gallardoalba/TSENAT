@@ -502,7 +502,7 @@ test_that(".assemble_model_metadata computes per-group statistics", {
 
 context("LM Refactored Main Function Integration")
 
-test_that("calculate_lm_interaction works with refactored code", {
+test_that("calculate_lm works with refactored code", {
     skip_if_not_installed("SummarizedExperiment")
 
     # Use a larger, more realistic dataset to avoid numerical issues
@@ -555,7 +555,7 @@ test_that("calculate_lm_interaction works with refactored code", {
     )
 
     # Call refactored function with realistic data
-    results <- .calculate_lm_interaction(
+    results <- .calculate_lm(
         se,
         condition_col = "condition",
         method = "lmm",
@@ -579,7 +579,7 @@ test_that("calculate_lm_interaction works with refactored code", {
     )
 })
 
-test_that("calculate_lm_interaction returns model_data when requested", {
+test_that("calculate_lm returns model_data when requested", {
     skip_if_not_installed("SummarizedExperiment")
 
     # Use realistic entropy-like data (bounded between 0 and 1, realistic slopes)
@@ -626,7 +626,7 @@ test_that("calculate_lm_interaction returns model_data when requested", {
     )
 
     # Call with return_model_data = TRUE
-    output <- .calculate_lm_interaction(
+    output <- .calculate_lm(
         se,
         condition_col = "condition",
         method = "lmm",

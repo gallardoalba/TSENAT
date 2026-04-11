@@ -33,16 +33,18 @@
 #' readcounts <- as.matrix(readcounts)
 #' mode(readcounts) <- 'numeric'
 #' 
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
-#' gff3_dataset, metadata = metadata_df,
+#' # Create configuration (required when metadata is provided)
+#' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
+#' analysis <- build_analysis(readcounts = readcounts, tx2gene =
+#' gff3_dataset, metadata = metadata_df, config = config,
 #'   tpm = tpm, effective_length = effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 #' = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = 1.0)
-#' p <- plot_tsallis_violin_density_grid_s4(analysis)
+#' analysis <- calculate_diversity(analysis, q = 1.0)
+#' p <- plot_diversity_violin_density(analysis)
 #' if (!is.null(p)) print(p)
 #'
-plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", title = NULL,
+plot_diversity_violin_density <- function(se, assay_name = "diversity", title = NULL,
     output_file = NULL) {
     # Load visualization dependencies (ggplot2, cowplot, etc.)
     .load_visualization_deps()
@@ -50,7 +52,7 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
     # Handle TSENATAnalysis objects - extract first diversity result
     if (methods::is(se, "TSENATAnalysis")) {
         if (length(se@diversity_results) == 0) {
-            stop("No diversity results found in TSENATAnalysis object. Run calculate_diversity_s4() first.")
+            stop("No diversity results found in TSENATAnalysis object. Run calculate_diversity() first.")
         }
         # Extract first diversity result
         se <- se@diversity_results[[1]]
@@ -82,9 +84,9 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
     base_title <- title %||% sprintf("Tsallis entropy at q = %g", q_val)
 
     # Create individual plots
-    p_violin <- .plot_tsallis_violin_singleq(se = se, assay_name = assay_name, title = "Violin")
+    p_violin <- .plot_diversity_violin_singleq(se = se, assay_name = assay_name, title = "Violin")
 
-    p_density <- .plot_tsallis_density_singleq(se = se, assay_name = assay_name,
+    p_density <- .plot_diversity_density_singleq(se = se, assay_name = assay_name,
         title = "Density")
 
     # Arrange plots side by side: violin on left, density on right
@@ -122,7 +124,7 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
 #' @return A `ggplot2` object showing a density plot colored by group.
 #'
 #' @noRd
-.plot_tsallis_density_singleq <- function(se, assay_name = "diversity", title = NULL) {
+.plot_diversity_density_singleq <- function(se, assay_name = "diversity", title = NULL) {
     suppressPackageStartupMessages({
     })
 
@@ -182,7 +184,7 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
 #' @return A `ggplot2` object showing a violin plot with groups on the x-axis.
 #'  
 #' @noRd
-.plot_tsallis_violin_singleq <- function(se, assay_name = "diversity", title = NULL) {
+.plot_diversity_violin_singleq <- function(se, assay_name = "diversity", title = NULL) {
     suppressPackageStartupMessages({
     })
 

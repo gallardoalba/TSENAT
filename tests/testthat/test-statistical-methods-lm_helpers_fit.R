@@ -15,12 +15,15 @@ test_that(".fit_one_interaction linear branch handles min_obs and returns p", {
     q_vals <- c(0.1, 0.2, 0.3)
     sample_names <- paste0("s", seq_along(q_vals))
     group_vec <- c("A", "A", "B")
-    # min_obs > non-missing -> NULL
-    res_null <- .fit_one_interaction("g1",
-        se = NULL, mat = mat, q_vals = q_vals,
-        sample_names = sample_names, group_vec = group_vec, method = "lmm",
-        pvalue = "lrt", subject_col = NULL, paired = FALSE, min_obs = 10, verbose = FALSE,
-        suppress_lme4_warnings = TRUE, progress = FALSE
+    # min_obs > non-missing -> NULL with expected warning
+    res_null <- expect_warning(
+        .fit_one_interaction("g1",
+            se = NULL, mat = mat, q_vals = q_vals,
+            sample_names = sample_names, group_vec = group_vec, method = "lmm",
+            pvalue = "lrt", subject_col = NULL, paired = FALSE, min_obs = 10, verbose = FALSE,
+            suppress_lme4_warnings = TRUE, progress = FALSE
+        ),
+        "Insufficient"
     )
     expect_null(res_null)
 
@@ -88,11 +91,14 @@ test_that(".fit_one_interaction lmm returns NULL with <2 subjects", {
     mat <- matrix(rnorm(length(qv)), nrow = 1)
     rownames(mat) <- "g1"
 
-    res <- .fit_one_interaction("g1",
-        se = se, mat = mat, q_vals = qv,
-        sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "lrt",
-        subject_col = NULL, paired = TRUE, min_obs = 2, verbose = FALSE,
-        suppress_lme4_warnings = TRUE, progress = FALSE
+    res <- expect_warning(
+        .fit_one_interaction("g1",
+            se = se, mat = mat, q_vals = qv,
+            sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "lrt",
+            subject_col = NULL, paired = TRUE, min_obs = 2, verbose = FALSE,
+            suppress_lme4_warnings = TRUE, progress = FALSE
+        ),
+        "Insufficient|subjects"
     )
     expect_null(res)
 })
@@ -106,13 +112,22 @@ test_that(".fit_one_interaction lmm returns NULL with <2 subjects", {
 # ═══════════════════════════════════════════════════════════════════════════
 
 test_that(".fit_one_interaction dispatches to gam and fpca methods", {
-    # FPCA dispatch
-    sample_names <- rep(paste0("s", 1:4), each = 2)
-    q_vals <- rep(1:2, times = 4)
-    group_vec <- rep(c("A", "B", "A", "B"), each = 2)
-    obs <- rnorm(8)
+    # FPCA dispatch - create sufficient data structure
+    set.seed(1)
+    n_samples <- 6
+    n_q <- 5
+    sample_names <- rep(paste0("s", 1:n_samples), each = n_q)
+    q_vals <- rep(seq(0.5, 2, length.out = n_q), n_samples)
+    group_vec <- rep(c("A", "B"), each = n_q * n_samples / 2)
+    
+    # Create entropy with group structure
+    entropy_a <- 0.8 + 0.3 * q_vals[1:(n_q * n_samples/2)] + rnorm(n_q * n_samples/2, 0, 0.1)
+    entropy_b <- 1.2 + 0.5 * q_vals[(n_q * n_samples/2 + 1):(n_q * n_samples)] + rnorm(n_q * n_samples/2, 0, 0.1)
+    obs <- c(entropy_a, entropy_b)
+    
     mat <- matrix(obs, nrow = 1)
     rownames(mat) <- "g1"
+    
     out_fpca <- .fit_one_interaction("g1", se = NULL, mat = mat, q_vals = q_vals, sample_names = sample_names, group_vec = group_vec, method = "fpca", pvalue = "lrt", subject_col = NULL, paired = FALSE, min_obs = 2, verbose = FALSE, suppress_lme4_warnings = TRUE, progress = FALSE)
     expect_true(is.null(out_fpca) || (is.data.frame(out_fpca) && "p_interaction" %in% colnames(out_fpca)))
 
@@ -211,28 +226,29 @@ test_that(".fit_one_interaction LMM method includes slope_diff in results", {
     set.seed(1001)
     
     # Create paired data with clear interaction signal
-    # Use 10 subjects, each with 5 q values per group = 100 observations total
-    n_subjects <- 10
-    n_q <- 5
-    n_groups <- 2
+    n_subjects <- 6
+    n_q <- 4
     
-    # Create vectors that repeat properly for the matrix structure
-    subject_ids <- rep(paste0("sub", 1:n_subjects), n_q * n_groups)
-    qv <- rep(seq(0.1, 1.5, length.out = n_q), n_subjects * n_groups)
+    # Structure: each subject has n_q observations per group (A and B)
+    subject_vec <- rep(1:n_subjects, each = n_q * 2)
+    qv <- rep(rep(seq(0.2, 1.5, length.out = n_q), 2), n_subjects)
     group_vec <- rep(rep(c("A", "B"), each = n_q), n_subjects)
     
-    n_total <- length(subject_ids)
+    n_total <- length(subject_vec)
+    sample_names_vec <- paste0("s", 1:n_total)
     
     # Add interaction effect: group B has steeper slope with q
     entropy <- 0.5 + 0.3 * qv + ifelse(group_vec == "B", 0.4 * qv, 0) + rnorm(n_total, 0, 0.05)
     
     mat <- matrix(entropy, nrow = 1)
     rownames(mat) <- "gene1"
+    colnames(mat) <- sample_names_vec
     
-    # Create proper colData with samples and sample_base columns
+    # Create colData with proper rownames matching sample names
     coldata <- S4Vectors::DataFrame(
-        samples = paste0("s", 1:n_total),
-        sample_base = subject_ids
+        samples = sample_names_vec,
+        sample_base = as.character(subject_vec),
+        row.names = sample_names_vec  # Critical: rownames must match sample_names!
     )
     
     se <- SummarizedExperiment::SummarizedExperiment(
@@ -245,7 +261,7 @@ test_that(".fit_one_interaction LMM method includes slope_diff in results", {
         se = se,
         mat = mat,
         q_vals = qv,
-        sample_names = paste0("s", 1:n_total),
+        sample_names = sample_names_vec,
         group_vec = group_vec,
         method = "lmm",
         pvalue = "lrt",
@@ -548,15 +564,22 @@ test_that(".fit_one_interaction FPCA with PCA regularization", {
     set.seed(303)
     
     # FPCA with PCA regularization (dimension reduction via PCA)
+    # Create sufficient data with multiple q-values and samples
+    n_samples <- 6
+    n_q <- 5
     genes <- "g1"
-    samples <- paste0("s", 1:8)
-    q_vals <- rep(c(0.1, 0.5, 1, 2), 2)
+    sample_names <- rep(paste0("s", 1:n_samples), each = n_q)
+    q_vals <- rep(seq(0.1, 2.0, length.out = n_q), n_samples)
     
-    mat <- matrix(rnorm(length(q_vals)), nrow = 1)
+    # Create entropy with group structure
+    entropy_a <- 0.8 + 0.3 * q_vals[1:(n_q * n_samples/2)] + rnorm(n_q * n_samples/2, 0, 0.1)
+    entropy_b <- 1.2 + 0.5 * q_vals[(n_q * n_samples/2 + 1):(n_q * n_samples)] + rnorm(n_q * n_samples/2, 0, 0.1)
+    obs <- c(entropy_a, entropy_b)
+    
+    mat <- matrix(obs, nrow = 1)
     rownames(mat) <- genes
     
-    sample_names <- samples
-    group_vec <- rep(c("A", "B"), each = 4)
+    group_vec <- rep(c("A", "B"), each = n_q * n_samples / 2)
     
     result <- .fit_one_interaction(
         g = genes,
@@ -1029,21 +1052,29 @@ test_that(".fit_one_interaction with many subjects", {
     skip_if_not_installed("nlme")
     set.seed(902)
     
-    n_subjects <- 30  # Many subjects
-    n_per <- 3
-    n_total <- n_subjects * n_per
+    n_subjects <- 20  # Many subjects
+    n_per_group <- 2  # per subject per group
+    n_q <- 3         # q-values
     
-    subject <- rep(1:n_subjects, each = n_per)
-    qv <- rep(seq(0.1, 1, length.out = n_per), n_subjects)
-    group <- rep(c("A", "B"), length.out = n_total)
-    entropy <- 0.5 + 0.2 * qv + 0.1 * (group == "B") + rnorm(n_total, 0, 0.05)
+    # Create proper subject structure: each subject has observations for each group and q-value
+    subject_vec <- rep(1:n_subjects, each = n_per_group * n_q * 2)
+    qv <- rep(rep(seq(0.1, 1, length.out = n_q), 2), n_subjects * n_per_group)
+    group_vec <- rep(rep(c("A", "B"), each = n_q), n_subjects * n_per_group)
+    
+    n_total <- length(subject_vec)
+    sample_names_vec <- paste0("s", 1:n_total)
+    
+    entropy <- 0.5 + 0.2 * qv + 0.1 * (group_vec == "B") + rnorm(n_total, 0, 0.05)
     
     mat <- matrix(entropy, nrow = 1)
     rownames(mat) <- "gene_many_subj"
+    colnames(mat) <- sample_names_vec
     
+    # Create colData with proper rownames matching sample names
     coldata <- S4Vectors::DataFrame(
-        samples = paste0("s", 1:n_total),
-        sample_base = subject
+        samples = sample_names_vec,
+        sample_base = as.character(subject_vec),
+        row.names = sample_names_vec  # Critical: rownames must match sample_names!
     )
     
     se <- SummarizedExperiment::SummarizedExperiment(
@@ -1056,8 +1087,8 @@ test_that(".fit_one_interaction with many subjects", {
         se = se,
         mat = mat,
         q_vals = qv,
-        sample_names = paste0("s", 1:n_total),
-        group_vec = group,
+        sample_names = sample_names_vec,
+        group_vec = group_vec,
         method = "lmm",
         pvalue = "lrt",
         subject_col = NULL,
@@ -1090,9 +1121,10 @@ test_that(".setup_interaction_data validates gene exists in matrix", {
     
     expect_true(is.data.frame(result))
     expect_equal(nrow(result), 3)
-    expect_equal(colnames(result), c("entropy", "q", "group"))
+    expect_equal(colnames(result), c("entropy", "q", "group", "sample_name"))
     expect_equal(result$entropy, c(1, 2, 3))
     expect_equal(result$q, q_vals)
+    expect_equal(levels(result$sample_name), c("S1", "S2", "S3"))
 })
 
 test_that(".setup_interaction_data throws error for missing gene", {
@@ -1119,10 +1151,14 @@ test_that(".setup_interaction_data returns correct data frame structure", {
     expect_equal(result$q, q_vals)
     expect_equal(levels(result$group), c("ctrl", "treat"))
     expect_true(is.factor(result$group))
+    expect_equal(levels(result$sample_name), c("S1", "S2", "S3", "S4"))
 })
 
 test_that(".setup_interaction_data handles numeric entropy values correctly", {
-    mat <- matrix(as.numeric(NA), nrow = 1)
+    # Create a matrix with matching dimensions: 1 gene, 2 columns (for 2 q-values)
+    # All values are NA to test NA handling
+    mat <- matrix(as.numeric(NA), nrow = 1, ncol = 2)
+    colnames(mat) <- c("s1", "s2")
     rownames(mat) <- "g1"
     q_vals <- c(0.1, 0.2)
     group_vec <- c("A", "B")
@@ -1130,8 +1166,11 @@ test_that(".setup_interaction_data handles numeric entropy values correctly", {
     result <- TSENAT:::.setup_interaction_data("g1", mat, q_vals, group_vec)
     
     expect_true(is.data.frame(result))
-    # Entropy values should be NA (converted to numeric)
+    expect_equal(nrow(result), 2)  # Should have 2 rows (matching q_vals and group_vec)
+    # Entropy values should be NA (from the NA matrix)
     expect_true(all(is.na(result$entropy)))
+    expect_equal(result$q, q_vals)
+    expect_equal(as.character(result$group), group_vec)
 })
 
 test_that(".setup_interaction_data preserves matrix column order in entropy extraction", {
@@ -1144,6 +1183,7 @@ test_that(".setup_interaction_data preserves matrix column order in entropy extr
     
     # Matrix fills by column: [5,1,2; 3,4,6], so gene_B (row 2) is c(3, 4, 6)
     expect_equal(result$entropy, c(3, 4, 6))
+    expect_equal(levels(result$sample_name), c("S1", "S2", "S3"))
 })
 
 test_that(".setup_interaction_data with large number of features", {
@@ -1158,6 +1198,7 @@ test_that(".setup_interaction_data with large number of features", {
     
     expect_equal(nrow(result), n_features)
     expect_equal(length(unique(result$group)), 2)
+    expect_equal(length(unique(result$sample_name)), n_features)  # Each sample should be unique
 })
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1453,7 +1494,10 @@ test_that(".check_lmm_sample_sizes returns NULL when insufficient observations",
         subject = c(1, 2, 3)
     )
     
-    result <- TSENAT:::.check_lmm_sample_sizes(df, min_obs = 5)
+    result <- expect_warning(
+        TSENAT:::.check_lmm_sample_sizes(df, min_obs = 5),
+        "Insufficient"
+    )
     
     expect_null(result)
 })
@@ -1466,7 +1510,10 @@ test_that(".check_lmm_sample_sizes returns NULL with <2 subjects", {
         subject = rep(1, 10)  # Only one subject
     )
     
-    result <- TSENAT:::.check_lmm_sample_sizes(df, min_obs = 3)
+    result <- expect_warning(
+        TSENAT:::.check_lmm_sample_sizes(df, min_obs = 3),
+        "Insufficient|subjects"
+    )
     
     expect_null(result)
 })
@@ -1497,9 +1544,12 @@ test_that(".check_lmm_sample_sizes with exact boundary conditions", {
     result_exact <- TSENAT:::.check_lmm_sample_sizes(df_exact, min_obs = 5)
     expect_true(result_exact)
     
-    # Just below min_obs
+    # Just below min_obs - expect warning
     df_below <- df_exact[-5, ]
-    result_below <- TSENAT:::.check_lmm_sample_sizes(df_below, min_obs = 5)
+    result_below <- expect_warning(
+        TSENAT:::.check_lmm_sample_sizes(df_below, min_obs = 5),
+        "Insufficient"
+    )
     expect_null(result_below)
 })
 
@@ -1605,8 +1655,11 @@ test_that("Helper functions handle problematic data gracefully", {
     # Add single subject for validation
     df_weighted$subject <- c(1, 1)
     
-    # Will fail because <2 subjects
-    check_result <- TSENAT:::.check_lmm_sample_sizes(df_weighted, min_obs = 1)
+    # Will fail because <2 subjects - expect warning
+    check_result <- expect_warning(
+        TSENAT:::.check_lmm_sample_sizes(df_weighted, min_obs = 1),
+        "Insufficient|subjects"
+    )
     
     expect_null(check_result)
 })

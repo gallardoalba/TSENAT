@@ -76,7 +76,6 @@
 #' # Gene-specific divergence spectrum
 #' p_gene <- .plot_divergence_spectrum(divergence_se, gene = 'gene_1')
 #'
-
 #' @noRd
 .spectrum_extract_q_values <- function(col_names) {
     extracted <- gsub("^q[_=]", "", col_names)

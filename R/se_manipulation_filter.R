@@ -179,10 +179,8 @@
         return(list(mat = as.matrix(assays_list[["abundance"]]), source = "assay 'abundance' (tximport format)"))
     }
 
-    # Fallback with warning
-    idx <- .resolve_assay_index(assay_name, names(assays_list))
-    return(list(mat = as.matrix(assays_list[[idx]]), source = sprintf("assay '%s' (fallback - NOT TPM!)",
-        names(assays_list)[idx]), is_fallback = TRUE))
+    # No TPM found - error instead of fallback
+    return(NULL)
 }
 
 # ============================================================================
@@ -247,7 +245,7 @@
 
     if (length(mean_tpm_nonzero) == 0) {
         warning("No non-zero values in assay. Using default min_tpm = 0.1", call. = FALSE)
-        return(0.1)
+        return(list(min_tpm = 0.1, quant_label = "default"))
     }
 
     # Select quantile based on stringency level
@@ -261,7 +259,7 @@
         quantile_prob <- 0.75
         quant_label <- "Q3"
     } else {
-        return(NULL)
+        return(list(min_tpm = 0.1, quant_label = "default"))
     }
 
     min_tpm_estimated <- as.numeric(quantile(mean_tpm_nonzero, probs = quantile_prob,
@@ -295,6 +293,9 @@
     } else {
         return(NULL)
     }
+
+    # Cap min_samples to n_samples to ensure filtering is possible
+    min_samples <- min(min_samples, n_samples)
 
     list(min_samples = min_samples, min_tx_per_gene = min_tx_per_gene, min_isoform_abundance = min_isoform_abundance)
 }
@@ -544,16 +545,25 @@
     # Get assays and discover TPM source
     assays_list <- SummarizedExperiment::assays(se)
     tpm_result <- .get_assay_filtering(se, assays_list, tpm_assay_name, assay_name)
+    
+    # Validate that TPM was found
+    if (is.null(tpm_result)) {
+        stop("TPM data is required for diversity filtering but was not found.\n",
+             "To resolve this, ensure TPM is provided when building the analysis:\n\n",
+             "  analysis <- build_analysis(\n",
+             "    readcounts = readcounts,\n",
+             "    metadata = metadata_df,\n",
+             "    tx2gene = gff3_file,\n",
+             "    tpm = tpm,                    # Required: TPM matrix from SALMON\n",
+             "    effective_length = effective_length,\n",
+             "    config = config\n",
+             "  )\n\n",
+             "TPM will be stored in metadata(se)$tpm and used for filtering.",
+             call. = FALSE)
+    }
+    
     assay_mat <- tpm_result$mat
     assay_source <- tpm_result$source
-
-    # Warn if fallback (not TPM)
-    if (!is.null(tpm_result$is_fallback) && tpm_result$is_fallback) {
-        warning("No TPM data found in assays or metadata. Falling back to assay '",
-            assay_name, "'.", "\nThis may produce INCORRECT results if '", assay_name,
-            "' contains raw counts.", "\nEnsure TPM data is added as an assay or in metadata with tpm/tpm.",
-            call. = FALSE)
-    }
 
     # Get gene IDs for downstream filtering
     genes_vec <- .get_gene_ids(se)
@@ -585,19 +595,20 @@
             }
 
             if (is.na(pair_col)) {
-                cols_str <- paste(colnames(col_data), collapse = ", ")
-                stop("Could not auto-detect pair column in colData or metadata. Available columns: ",
-                  cols_str, ". Please specify 'pair_col' parameter.", call. = FALSE)
-            }
-            if (verbose) {
+                # No pair column found - treat as unpaired design
+                if (verbose) {
+                    message("No pair column detected. Treating as unpaired design.")
+                }
+                pair_col <- NULL
+            } else if (verbose) {
                 message(sprintf("Auto-detected pair column: '%s'", pair_col))
             }
         } else {
             col_data <- SummarizedExperiment::colData(se)
         }
 
-        # Verify pair column exists
-        if (!(pair_col %in% colnames(col_data))) {
+        # Verify pair column exists if it was specified/detected
+        if (!is.null(pair_col) && !(pair_col %in% colnames(col_data))) {
             cols_str <- paste(colnames(col_data), collapse = ", ")
             stop(sprintf("Pair column '%s' not found. Available columns: %s", pair_col,
                 cols_str), call. = FALSE)
@@ -606,7 +617,7 @@
 
         # Calculate stringency-based thresholds
         n_samples <- ncol(se)
-        n_pairs <- length(unique(col_data[[pair_col]]))
+        n_pairs <- if (!is.null(pair_col)) length(unique(col_data[[pair_col]])) else NULL
         stringency_result <- .calculate_stringency_thresholds(stringency, n_samples,
             n_pairs)
         min_samples <- stringency_result$min_samples
@@ -795,17 +806,17 @@
 #'
 #' # Subset to top genes (use 200 to ensure adequate data for downstream
 #' analysis)
-#' small_analysis <- filter_analysis_s4(analysis, min_samples = 1,
+#' small_analysis <- filter_analysis(analysis, min_samples = 1,
 #' subset_n_genes = 200)
 #'
 #' # Subset to genes with minimum 1 total count across all samples
 #' # This ensures data adequacy filtering (recommended: min_count = 10-20
 #' for robust estimates)
-#' filtered <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' filtered <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 #' = 100, subset_min_count = 1)
 #'
 #' # Subset to specific genes only
-#' subset_genes <- filter_analysis_s4(
+#' subset_genes <- filter_analysis(
 #'   analysis,
 #'   min_samples = 1,
 #'   subset_genes = c('TX_1', 'TX_2', 'TX_3'),
@@ -813,7 +824,7 @@
 #' )
 #'
 #' # Random selection of genes (reproducible with seed)
-#' random_subset <- filter_analysis_s4(
+#' random_subset <- filter_analysis(
 #'   analysis,
 #'   min_samples = 1,
 #'   subset_n_genes = 8,
@@ -823,7 +834,7 @@
 #' )
 #'
 #' # Keep specific samples only
-#' control_only <- filter_analysis_s4(
+#' control_only <- filter_analysis(
 #'   analysis,
 #'   min_samples = 1,
 #'   subset_samples = colnames(se(analysis))[

@@ -1,32 +1,47 @@
-# ============================================================================
-# DETECT Q×CONDITION GENE INTERACTIONS WRAPPER
-# ============================================================================
-# Purpose: Wrapper around .rank_test_q_condition() that manages TSENATAnalysis
-# object.  Tests for genes with CONDITION-SPECIFIC q-dependent entropy patterns
-# by testing whether the effect of q-values DIFFERS between experimental
-# conditions.  Key Features: - Q×Condition interaction: Tests if entropy
-# patterns across q-values differ by condition - Multi-q analysis: Combines
-# diversity results for multiple q-values into a single SummarizedExperiment
-# for joint hypothesis testing - Rank-based statistics: Kruskal-Wallis
-# (unpaired) or Friedman (paired) - Scheirer-Ray-Hare test: Two-way
-# non-parametric ANOVA on ranks - Multiple testing correction: Hochberg,
-# Benjamini-Yekutieli, or Westfall-Young permutation procedure - AR(1)
-# correlation handling: Westfall-Young preserves q-value correlations - Effect
-# sizes: Eta-squared (η²) for q×condition interactions Mathematical Background:
-# Tests null hypothesis: H0 = 'Gene entropy q-effect does NOT differ between
-# conditions' vs Alternative: H1 = 'Gene entropy q-dependence is
-# CONDITION-SPECIFIC' Example: Gene shows strong isoform switching (q-dependent
-# entropy) in tumor cells but NOT in healthy cells → Identified as
-# disease-relevant q-dependent gene.  For condition-specific q-dependent genes:
-# - Condition A: Strong entropy variation across q (q-dependent) - Condition B:
-# Flat entropy profile across q (q-independent) - Interaction:
-# Condition-specific q-dependence pattern reveals biological process
-# ============================================================================
 #' Detect q-dependent gene interactions
 #'
+#' Wrapper around [.calculate_rank_test()] that manages TSENATAnalysis object.
+#' Tests for genes with condition-specific q-dependent entropy patterns by
+#' testing whether the effect of q-values DIFFERS between experimental conditions.
+#' This detects disease-relevant or condition-specific isoform switching patterns.
+#'
+#' ## Key Features
+#'
+#' - **Q×Condition Interaction**: Tests if entropy patterns across q-values differ
+#'   by condition (main discovery goal)
+#' - **Multi-q Analysis**: Combines diversity results for multiple q-values into
+#'   a single SummarizedExperiment for joint hypothesis testing
+#' - **Rank-Based Statistics**: Kruskal-Wallis (unpaired) or Friedman (paired)
+#' - **Scheirer-Ray-Hare Test**: Two-way non-parametric ANOVA on ranks
+#' - **Multiple Testing Correction**: Hochberg, Benjamini-Yekutieli, or permutation
+#'   (Westfall-Young) procedures
+#' - **AR(1) Correlation Handling**: Westfall-Young preserves q-value spatial
+#'   correlations (important for ordered q measurements)
+#' - **Effect Sizes**: Eta-squared (\eqn{\eta^2}) for q×condition interactions
+#'
+#' ## Statistical Hypotheses
+#'
+#' Tests the null hypothesis:
+#' - \strong{H\emph{0}} = Gene entropy q-effect does NOT differ between conditions (q-independent)
+#' - \strong{H\emph{1}} = Gene entropy q-dependence is CONDITION-SPECIFIC (interaction exists)
+#'
+#' A significant interaction indicates condition-specific patterns in how entropy
+#' varies across the q-value spectrum, revealing biological processes specific to
+#' that condition.
+#'
+#' ## Biological Example
+#'
+#' Gene shows strong isoform switching (q-dependent entropy) in tumor cells but
+#' NOT in healthy cells → Identified as disease-relevant q-dependent gene.
+#'
+#' For condition-specific q-dependent genes:
+#' - **Condition A**: Strong entropy variation across q (q-dependent isoform usage)
+#' - **Condition B**: Flat entropy profile across q (uniform isoform usage)
+#' - **Interaction**: Condition-specific q-dependence pattern reveals disease-associated
+#'   splicing regulation
+#'
 #' @param analysis \code{TSENATAnalysis} object.
-#' @param q \code{numeric} or \code{NULL}. Q-values to test across spectrum.
-#'   If NULL, auto-detects from \code{@config$q_values} or diversity results.
+
 #' @param output_file \code{character} or  \code{NULL}.
 #'  Optional file path to save results.
 #'   Supported formats: .rds (for S4 objects). Default: NULL (no file output).
@@ -77,7 +92,7 @@
 #'  when wy_randomizations='auto' (default: 100).
 #' @param max_nperm \code{integer}. Maximum permutations for automatic estimation
 #'  when wy_randomizations='auto' (default: 10000).
-#' @param ... Additional arguments passed to the base \code{.rank_test_q_condition()} function.
+#' @param ... Additional arguments passed to the base \code{.calculate_rank_test()} function.
 #'
 #' @return Modified TSENATAnalysis with interaction results in @lm_results.
 #'
@@ -89,8 +104,7 @@
 #' **Parameter resolution priority** (explicit > @config > default/auto-detect):
 #' \itemize{
 #'   \item \code{condition_col}: REQUIRED - must be explicitly provided
-#'   \item \code{q}:
-#'  explicit arg > \code{@config$q_values} > extract from diversity_results keys
+#'   \item \code{q}: ALWAYS auto-detected from diversity_results (all q-values tested together)
 #'   \item \code{paired}: explicit arg > \code{@config$paired} > FALSE (default)
 #'   \item \code{subject_col}: explicit arg > \code{@config$subject_col}
 #'   \item \code{multicorr}:
@@ -114,27 +128,30 @@
 #' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 #' 'TSENAT')
 #' 
+#' # Create config first (required when metadata is provided)
+#' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
+#' 
 #' # Build analysis from vignette data and create manageable subset
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
-#' gff3_dataset, metadata = metadata_df,
+#' analysis <- build_analysis(readcounts = readcounts, tx2gene =
+#' gff3_dataset, metadata = metadata_df, config = config,
 #'   tpm = tpm, effective_length = effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 #' = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5))
+#' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
 #' 
 #' # Test Q×Condition interaction (condition_col is REQUIRED)
-#' analysis <- rank_test_q_condition_s4(analysis, condition_col = 'condition', 
+#' analysis <- calculate_rank_test(analysis, condition_col = 'condition', 
 #'                                            multicorr = 'hochberg')
-#' # View results
-#' results <- lmResults(analysis)
-#' if (!is.null(results)) head(results$q_interactions)
+#' # View results using unified accessor
+#' rank_test_res <- results(analysis, type = "rank_test")
+#' if (!is.null(rank_test_res)) head(rank_test_res)
 #'
 #' @export
 #' @importFrom utils write.table
 # ============================================================================
 # S4 WRAPPER: Detect Q×Condition Gene Interactions (Rank-Based Testing)
 # ============================================================================
-rank_test_q_condition_s4 <- function(analysis, condition_col, q = NULL, output_file = NULL,
+calculate_rank_test <- function(analysis, condition_col, output_file = NULL,
     paired = NULL, subject_col = NULL, test = c("auto", "kruskal-wallis", "friedman",
         "art"), multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young",
         "none"), entropy_col = "diversity", q_col = "q", gene_col = "gene", wy_randomizations = 500,
@@ -146,8 +163,9 @@ rank_test_q_condition_s4 <- function(analysis, condition_col, q = NULL, output_f
     condition_col <- .validate_rank_test_input(analysis, condition_col)
 
     # PHASE 2: Resolve parameters from config + explicit args
+    # Note: q-values are ALWAYS auto-detected from diversity_results
     param_result <- .resolve_rank_test_params(analysis, test, multicorr, nperm_mode,
-        q, paired, subject_col, nthreads, wy_randomizations, entropy_col, q_col,
+        paired, subject_col, nthreads, wy_randomizations, entropy_col, q_col,
         gene_col)
     dots <- param_result$dots
     dots$condition_col <- condition_col
@@ -166,7 +184,7 @@ rank_test_q_condition_s4 <- function(analysis, condition_col, q = NULL, output_f
 
     # PHASE 4: Run core rank-based testing
     result <- tryCatch({
-        do.call(.rank_test_q_condition, c(list(data = se_multi_q), dots))
+        do.call(.calculate_rank_test, c(list(data = se_multi_q), dots))
     }, error = function(e) {
         stop("q-interaction detection failed:\n", e$message, call. = FALSE)
     })
@@ -194,7 +212,7 @@ rank_test_q_condition_s4 <- function(analysis, condition_col, q = NULL, output_f
     }
 
     if (length(analysis@diversity_results) == 0) {
-        stop("Diversity results required. Run calculate_diversity_s4() first.", call. = FALSE)
+        stop("Diversity results required. Run calculate_diversity() first.", call. = FALSE)
     }
 
     condition_col
@@ -203,7 +221,7 @@ rank_test_q_condition_s4 <- function(analysis, condition_col, q = NULL, output_f
 #' Internal: Resolve rank test parameters from config
 #'
 #' @noRd
-.resolve_rank_test_params <- function(analysis, test, multicorr, nperm_mode, q, paired,
+.resolve_rank_test_params <- function(analysis, test, multicorr, nperm_mode, paired,
     subject_col, nthreads, wy_randomizations, entropy_col, q_col, gene_col) {
     dots <- list()
 
@@ -236,7 +254,7 @@ rank_test_q_condition_s4 <- function(analysis, condition_col, q = NULL, output_f
     dots$gene_col <- gene_col
 
     # Use resolve_slot_param for remaining parameters
-    q <- resolve_slot_param(q, analysis@config, "q_values", NULL)
+    # Note: q is NOT resolved here - always auto-detected from diversity_results in .prepare_multi_q_se()
     paired <- resolve_slot_param(paired, analysis@config, "paired", NULL)
     subject_col <- resolve_slot_param(subject_col, analysis@config, "subject_col",
         NULL)
@@ -249,7 +267,7 @@ rank_test_q_condition_s4 <- function(analysis, condition_col, q = NULL, output_f
     dots$nthreads <- nthreads
     dots$wy_randomizations <- wy_randomizations
 
-    list(dots = dots, q_extracted = q)
+    list(dots = dots)
 }
 
 #' Internal: Prepare multi-Q SummarizedExperiment for testing
@@ -349,16 +367,17 @@ rank_test_q_condition_s4 <- function(analysis, condition_col, q = NULL, output_f
 #'
 #' @noRd
 .store_rank_test_results <- function(analysis, result, output_file, verbose) {
-    if (is.list(analysis@lm_results)) {
-        analysis@lm_results$q_interactions <- result
+    # Store in dedicated rank_test_results slot (not in lm_results)
+    if (is.list(analysis@rank_test_results)) {
+        analysis@rank_test_results$rank_test <- result
     } else {
-        analysis@lm_results <- list(q_interactions = result)
+        analysis@rank_test_results <- list(rank_test = result)
     }
 
     if (!is.null(output_file)) {
         result_df <- as.data.frame(result)
         save_analysis_output(result_df, output_file, object = analysis, verbose = verbose,
-            func_name = "rank_test_q_condition_s4")
+            func_name = "calculate_rank_test")
     }
 
     analysis

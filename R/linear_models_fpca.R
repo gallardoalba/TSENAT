@@ -1,40 +1,94 @@
-# FPCA interaction helper with paired design support Functional Principal
-# Component Analysis (FPCA) for entropy curves RESPECTS Q-VALUE ORDERING: -
-# Unlike independent q analysis, this method treats q-values as ORDERED
-# measurements - Creates 'curve matrix' with q-values as columns (ordered) and
-# samples as rows - PCA on ordered curves naturally yields smooth functional
-# components - This implicitly captures the AR(1) correlation structure
-# (Zimmerman & Harville, 1991) Papers S168-S171 validate AR(1) for ordered
-# measurements: - S171 (PRIMARY): Generalized AR(1) covariance in
-# functional/smooth data contexts - S168-S170: Theoretical foundation and
-# empirical validation of AR(1) ordering - S170: ACF structure confirms
-# correlation decays geometrically across q-order How FPCA respects ordering
-# and stationarity: 1. ARIMA(1,1,0) differencing (applied BEFORE curve matrix)
-# ensures stationarity - Removes monotone trend by differencing: DeltaH_q = H_q
-# - H_{q-1} - AR(1) correlation model fits to DeltaH_q (differenced data), not
-# raw H_q 2. Curve matrix has q-values as columns (preserves sequential order)
-# 3. PCA on differenced curves decomposes VARIANCE around mean (centered data)
-# - PC1 captures primary mode of shape variation (e.g., steepness of decrease)
-# - PC2, PC3 capture secondary shape variations - Each PC is orthogonal
-# functional basis (smooth patterns) 4. t-test on each PC tests whether curve
-# SHAPES differ by group (not AR(1) structure) - If groups have same curve
-# shape but different intercepts: PC1 differs, PC2+ match - If groups have
-# different curve shapes: multiple PCs differ - This tests functional/shape
-# differences, not correlation structure per se IMPORTANT CLARIFICATION: -
-# AR(1) correlation structure is modeled in differenced data (before PCA) - PCA
-# does NOT model AR(1) structure; it decomposes centered variance - FPCA
-# testing detects curve SHAPE differences between groups - TEST L.1.6
-# Validation confirms differenced data follow AR(1) pattern: rho(k) = phi^|k| -
-# Stationarity is achieved via differencing; functional basis (smooth PCs) is
-# appropriate for resulting stationary data
-.fpca_interaction <- function(mat, q_vals, sample_names, group_vec, g, min_obs = 10,
+#' Internal FPCA Interaction Helper (Paired Design Support)
+#'
+#' Performs Functional Principal Component Analysis (FPCA) for entropy curves,
+#' respecting the ordered structure of entropic indices (q-values).
+#'
+#' ## Design Philosophy
+#'
+#' Unlike independent q-value analysis, FPCA treats q-values as **ordered measurements**:
+#'
+#' - Creates 'curve matrix' with q-values as columns (ordered) and samples as rows
+#' - PCA on ordered curves yields smooth functional components
+#' - Implicitly captures AR(1) correlation structure (Zimmerman & Harville 1991)
+#'
+#' ## Literature Support
+#'
+#' Papers S168-S171 validate AR(1) for ordered measurements:
+#' - **S171 (PRIMARY)**: Generalized AR(1) covariance in functional/smooth data contexts
+#' - **S168-S170**: Theoretical foundation and empirical validation of AR(1) ordering
+#' - **S170**: ACF structure confirms geometric decay across q-order
+#'
+#' ## FPCA Methodology
+#'
+#' **1. ARIMA(1,1,0) Differencing**
+#'    - Applied BEFORE curve matrix construction
+#'    - Removes monotone trend: ΔH_q = H_q - H_{q-1}
+#'    - AR(1) model fits to differenced data (ΔH_q), not raw H_q
+#'
+#' **2. Curve Matrix Construction**
+#'    - Rows = samples; Columns = sorted q-values (preserves sequential order)
+#'    - Critical: q-ordering enables smooth curve interpolation
+#'
+#' **3. PCA on Differenced Curves**
+#'    - Decomposes variance around mean (centered data)
+#'    - PC1 = primary shape variation mode (e.g., steepness of change)
+#'    - PC2, PC3, ... = secondary shape variations
+#'    - Each PC is orthogonal functional basis (smooth patterns)
+#'
+#' **4. Group Testing via PC Scores**
+#'    - t-test on each PC scores whether curve SHAPES differ by group
+#'    - Same shape + different intercepts → PC1 differs, PC2+ match
+#'    - Different shapes → multiple PCs differ
+#'    - Tests functional/shape differences, not AR(1) structure per se
+#'
+#' ## Important Clarifications
+#'
+#' - **AR(1) modeling**: Occurs in differenced data (before PCA), not in PCA itself
+#' - **PCA function**: Decomposes centered variance; does NOT model AR(1) structure
+#' - **FPCA testing**: Detects curve SHAPE differences between groups
+#' - **Stationarity**: Achieved via differencing; smooth PCs appropriate for stationary data
+#' - **Validation**: TEST L.1.6 confirms differenced data follows rho(k) = φ^|k|
+#'
+#' @param mat Entropy matrix (genes × measurements)
+#' @param q_vals Entropic indices (q-parameter values)
+#' @param sample_names Sample identifiers
+#' @param group_vec Group assignments
+#' @param g Gene identifier
+#' @param min_obs Minimum observations per sample (default: 5)
+#' @param subject Subject identifiers for paired designs (NULL for unpaired)
+#' @param regularization Method: "pca" (default), "lasso", or "elasticnet"
+#' @param weights Optional sample weights
+#'
+#' @return Data frame with columns:
+#'   - `gene`: Gene identifier
+#'   - `p_interaction`: Interaction p-value (or min adjusted p from multiple PCs)
+#'   - `n_pcs_tested`: Number of principal components tested
+#'   - `min_pc_pvalue`: Minimum unadjusted p-value across tested PCs
+#'   - `slope_diff`: Effect size (NA for PCA method)
+#'   - `ci_weighted`: Boolean indicating use of weights
+#'
+#' @noRd
+.fpca_interaction <- function(mat, q_vals, sample_names, group_vec, g, min_obs = 5,
     subject = NULL, regularization = c("pca", "lasso", "elasticnet"), weights = NULL) {
     regularization <- match.arg(regularization)
 
     # Prepare data frame (entropy, q, group, subject, sample_name)
-    df <- data.frame(entropy = as.numeric(mat[g, ]), q = as.numeric(q_vals), group = factor(group_vec),
-        subject = if (!is.null(subject))
-            factor(subject) else factor(seq_along(q_vals)), sample_name = sample_names, stringsAsFactors = FALSE)
+    # BUGFIX (April 2026): Keep subject as NULL for unpaired designs
+    # Don't set to seq_along(q_vals) as that's not meaningful
+    # Build data.frame arguments conditionally to avoid NULL column issue
+    dfargs <- list(
+        entropy = as.numeric(mat[g, ]),
+        q = as.numeric(q_vals),
+        group = factor(group_vec),
+        sample_name = sample_names,
+        stringsAsFactors = FALSE
+    )
+    
+    if (!is.null(subject)) {
+        dfargs$subject <- factor(subject)
+    }
+    
+    df <- do.call(data.frame, dfargs)
     df <- df[!is.na(df$entropy), ]
 
     # Apply ARIMA(1,1,0) differencing for stationarity
@@ -42,8 +96,10 @@
 
     # Build ordered curve matrix (rows = samples, columns = sorted q-values)
     mat_sub <- .build_curve_matrix(df$entropy, df$q, df$sample_name, min_obs)
-    if (is.null(mat_sub))
+    if (is.null(mat_sub)) {
+        warning(sprintf(".fpca_interaction (gene %s): Failed to build curve matrix. Likely due to insufficient samples (<%d) after ARIMA differencing or data quality issues.", g, min_obs), call. = FALSE)
         return(NULL)
+    }
 
     # Impute missing values using column means
     mat_sub <- .impute_curve_matrix(mat_sub)
@@ -51,11 +107,16 @@
     # Extract sample info and validate
     used_samples <- rownames(mat_sub)
     grp_vals <- df$group[match(used_samples, df$sample_name)]
-    if (length(unique(na.omit(grp_vals))) < 2)
+    if (length(unique(na.omit(grp_vals))) < 2) {
+        warning(sprintf(".fpca_interaction (gene %s): Insufficient group variation. Found %d unique groups, minimum required: 2 for interaction testing.", g, length(unique(na.omit(grp_vals)))), call. = FALSE)
         return(NULL)
+    }
 
-    subj_vals <- if (!is.null(subject))
-        df$subject[match(used_samples, df$sample_name)] else NULL
+    subj_vals <- if (!is.null(df$subject) && "subject" %in% colnames(df)) {
+        df$subject[match(used_samples, df$sample_name)]
+    } else {
+        NULL
+    }
 
     # Test for group differences via PCA or regularization
     if (regularization == "pca") {
@@ -71,7 +132,7 @@
 # Helper for FPCA-style preprocessing used in calculate_lm_interaction fpca
 # method.  Builds curve_mat, filters good rows, imputes column means, and
 # returns list(mat_sub, used_samples)
-.prepare_fpca_matrix <- function(mat, sample_names, q_vals, min_obs = 10) {
+.prepare_fpca_matrix <- function(mat, sample_names, q_vals, min_obs = 5) {
     uq <- sort(unique(q_vals))
     samples_u <- unique(sample_names)
     curve_mat <- matrix(NA_real_, nrow = length(samples_u), ncol = length(uq))
@@ -144,29 +205,42 @@
 # sample_name columns @return Data frame with differenced values (or original
 # if unpaired)
 .apply_arima_differencing_fpca <- function(df) {
-    if (nrow(df) == 0 || is.null(df$subject)) {
+    if (nrow(df) == 0) {
         return(df)
     }
 
-    # Check if we have multiple subjects
-    n_subjects <- length(unique(df$subject))
-    if (n_subjects < 2) {
+    # Determine grouping for ARIMA differencing
+    # BUGFIX (April 2026): Use sample_name for unpaired designs (subject is seq_along(q_vals))
+    # Use subject for paired designs (subject is actual subject IDs)
+    grouping_var <- if (!is.null(df$subject) && !all(df$subject == seq_along(df$q))) {
+        # Paired design: subject is meaningful
+        df$subject
+    } else if ("sample_name" %in% colnames(df)) {
+        # Unpaired design: use sample_name for grouping
+        df$sample_name
+    } else {
+        return(df)  # Can't group, skip ARIMA
+    }
+
+    # Check if we have multiple groups
+    n_groups <- length(unique(grouping_var))
+    if (n_groups < 2) {
         return(df)
     }
 
-    # Sort by subject and q for proper within-subject differencing
-    df <- df[order(df$subject, df$q), ]
+    # Sort by grouping variable and q for proper within-group differencing
+    df <- df[order(grouping_var, df$q), ]
 
-    # Compute first differences within each subject
+    # Compute first differences within each group
     df_list <- list()
-    for (subj in unique(df$subject)) {
-        idx <- which(df$subject == subj)
+    for (grp in unique(grouping_var)) {
+        idx <- which(grouping_var == grp)
         if (length(idx) >= 2) {
-            subj_data <- df[idx, ]
-            n_diff <- nrow(subj_data) - 1
-            df_list[[as.character(subj)]] <- data.frame(entropy = diff(subj_data$entropy),
-                q = subj_data$q[-1], group = subj_data$group[-nrow(subj_data)], subject = rep(subj,
-                  n_diff), sample_name = subj_data$sample_name[-nrow(subj_data)],
+            grp_data <- df[idx, ]
+            n_diff <- nrow(grp_data) - 1
+            df_list[[as.character(grp)]] <- data.frame(entropy = diff(grp_data$entropy),
+                q = grp_data$q[-1], group = grp_data$group[-nrow(grp_data)], subject = rep(grp,
+                  n_diff), sample_name = grp_data$sample_name[-nrow(grp_data)],
                 stringsAsFactors = FALSE)
         }
     }
@@ -187,7 +261,7 @@
 # @param sample_names Sample identifiers @param min_obs Minimum observations
 # per sample @return Curve matrix (samples × ordered q-values, with column
 # indices respecting q-order) or NULL if insufficient data
-.build_curve_matrix <- function(entropy_vals, q_vals, sample_names, min_obs = 10) {
+.build_curve_matrix <- function(entropy_vals, q_vals, sample_names, min_obs = 5) {
     uq <- sort(unique(q_vals))
     samples_u <- unique(sample_names)
 
@@ -212,6 +286,7 @@
     # Filter samples with sufficient data
     good_rows <- which(rowSums(!is.na(curve_mat)) >= max(2, ceiling(ncol(curve_mat)/2)))
     if (length(good_rows) < min_obs) {
+        warning(sprintf(".build_curve_matrix: Insufficient samples for FPCA. Found %d samples, minimum required: %d. Consider reducing min_obs or providing more samples.", length(good_rows), min_obs), call. = FALSE)
         return(NULL)
     }
 

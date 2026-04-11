@@ -1,7 +1,7 @@
 #' Plot GAM q-curves for top genes identified by FPCA/GAM interaction tests
 #'
 #' Visualizes smooth q-curve profiles (GAM fits) for selected genes from
-#' `.calculate_lm_interaction()` results. Useful for understanding which
+#' `.calculate_lm()` results. Useful for understanding which
 #' q-ranges (rare
 #' vs. dominant isoforms) drive significant PC differences between groups.
 #'
@@ -9,7 +9,7 @@
 #' (multiple q values per sample). Typically output from
 #' `.calculate_diversity()`
 #'   with multiple q (e.g., q = seq(0.1, 2, by = 0.1)).
-#' @param lm_res A `data.frame` from `.calculate_lm_interaction()` with columns
+#' @param lm_res A `data.frame` from `.calculate_lm()` with columns
 #'   `gene`, `p_interaction`, and `adj_p_interaction`. Can be from method='fpca'
 #'   or method='gam'.
 #' @param condition_col Column name in `colData(se)` specifying group
@@ -27,7 +27,7 @@
 #' selecting top n.
 #' @param assay_name Name of the assay in `se` to extract (default:
 #' 'diversity').
-#' @param model_data Required list from `.calculate_lm_interaction(...,
+#' @param model_data Required list from `.calculate_lm(...,
 #' return_model_data = TRUE)$model_data`
 #' containing metadata (q_values, sample configuration, etc.). This is the
 #' preferred way to use
@@ -45,7 +45,7 @@
 #' 3. Generates smooth predictions for visualization
 #' 4. Overlays predicted curves for each group with a distinct color
 #'
-#' By providing `model_data` from `.calculate_lm_interaction()`, the
+#' By providing `model_data` from `.calculate_lm()`, the
 #' function can directly
 #' access the q-values used in the original analysis for more accurate
 #' visualization.
@@ -65,7 +65,7 @@
 #' genes <- rep(paste0('gene_', 1:5), each = 3)
 #' 
 #' # Calculate diversity across multiple q values
-#' se <- .calculate_diversity(counts, genes = genes, q = seq(0.5, 2, by =
+#' se <- .calculate_diversity(counts, genes = genes, q = seq(0, 2, by =
 #' 0.5), norm = TRUE)
 #' 
 #' # Add sample metadata
@@ -75,13 +75,13 @@
 #' )
 #' 
 #' # Run linear model analysis with model_data  
-#' lm_result <- .calculate_lm_interaction(se, condition_col = 'condition',
+#' lm_result <- .calculate_lm(se, condition_col = 'condition',
 #' method = 'gam',
 #'                                       return_model_data = TRUE)
 #' 
 #' # Plot GAM curves for top genes
 #' if (nrow(lm_result$results) > 0) {
-#' grid_plot <- .plot_lm_interaction_gam(se, lm_result$results,
+#' grid_plot <- .plot_lm_gam(se, lm_result$results,
 #' condition_col = 'condition',
 #'                                         n_top = 2,
 #'  model_data = lm_result$model_data)
@@ -93,7 +93,7 @@
 #' theme_minimal scale_color_brewer
 #' @importFrom cowplot plot_grid
 
-.plot_lm_interaction_gam <- function(se, lm_res, condition_col = "condition", genes = NULL,
+.plot_lm_gam <- function(se, lm_res, condition_col = "condition", genes = NULL,
     n_top = 6, sig_alpha = 0.05, assay_name = "diversity", model_data = NULL, output_file = NULL,
     width = NULL, height = NULL) {
 

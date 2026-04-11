@@ -20,14 +20,14 @@ make_test_analysis_divergence <- function(n_genes = 8, n_samples_per_group = 4, 
 # TEST GROUP 1: Output File Generation
 # ===========================================================================
 
-test_that("calculate_divergence_s4 generates divergence_results.tsv file without bootstrap", {
+test_that("calculate_divergence generates divergence_results.tsv file without bootstrap", {
   
   analysis <- make_test_analysis_divergence(n_genes = 8, n_samples_per_group = 2)
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_divergence_noboot.tsv")
   
   # Calculate divergence without bootstrap
-  result <- TSENAT::calculate_divergence_s4(
+  result <- TSENAT::calculate_divergence(
     analysis,
     q = c(0.5, 1.0),
     bootstrap = FALSE,
@@ -47,13 +47,13 @@ test_that("calculate_divergence_s4 generates divergence_results.tsv file without
   if (file.exists(output_file)) unlink(output_file)
 })
 
-test_that("calculate_divergence_s4 produces wide-format TSV with genes as rows and q-values as columns", {
+test_that("calculate_divergence produces wide-format TSV with genes as rows and q-values as columns", {
   
   analysis <- make_test_analysis_divergence(n_genes = 8, n_samples_per_group = 2)
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_divergence_format.tsv")
   
-  result <- TSENAT::calculate_divergence_s4(
+  result <- TSENAT::calculate_divergence(
     analysis,
     q = c(0.5, 1.0),
     bootstrap = FALSE,
@@ -83,13 +83,13 @@ test_that("calculate_divergence_s4 produces wide-format TSV with genes as rows a
   if (file.exists(output_file)) unlink(output_file)
 })
 
-test_that("calculate_divergence_s4 generates divergence TSV with bootstrap=TRUE", {
+test_that("calculate_divergence generates divergence TSV with bootstrap=TRUE", {
   
   analysis <- make_test_analysis_divergence(n_genes = 8, n_samples_per_group = 2)
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_divergence_boot.tsv")
   
-  result <- suppressWarnings(TSENAT::calculate_divergence_s4(
+  result <- suppressWarnings(TSENAT::calculate_divergence(
     analysis,
     q = c(0.5, 1.0),
     bootstrap = TRUE,
@@ -125,7 +125,7 @@ test_that("divergence_results.tsv has correct row count (one row per gene)", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_divergence_rowcount.tsv")
   
-  result <- TSENAT::calculate_divergence_s4(
+  result <- TSENAT::calculate_divergence(
     analysis,
     q = q_vals,
     bootstrap = FALSE,
@@ -155,7 +155,7 @@ test_that("divergence_results.tsv contains all expected q-value columns", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_divergence_qvals.tsv")
   
-  result <- TSENAT::calculate_divergence_s4(
+  result <- TSENAT::calculate_divergence(
     analysis,
     q = q_vals,
     bootstrap = FALSE,
@@ -187,7 +187,7 @@ test_that("divergence_results.tsv has minimal NA values", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_divergence_nona.tsv")
   
-  result <- TSENAT::calculate_divergence_s4(
+  result <- TSENAT::calculate_divergence(
     analysis,
     q = c(0.5, 1.0),
     bootstrap = FALSE,
@@ -217,7 +217,7 @@ test_that("divergence values are in reasonable range [0, Inf)", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_divergence_range.tsv")
   
-  result <- TSENAT::calculate_divergence_s4(
+  result <- TSENAT::calculate_divergence(
     analysis,
     q = c(0.5, 1.0, 2.0),
     bootstrap = FALSE,
@@ -251,7 +251,7 @@ test_that("bootstrap divergence produces output without errors", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_divergence_ci_exist.tsv")
   
-  result <- suppressWarnings(TSENAT::calculate_divergence_s4(
+  result <- suppressWarnings(TSENAT::calculate_divergence(
     analysis,
     q = c(0.5, 1.0),
     bootstrap = TRUE,
@@ -278,7 +278,7 @@ test_that("bootstrap divergence values are valid (non-negative, finite)", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_divergence_ci_bounds.tsv")
   
-  result <- suppressWarnings(TSENAT::calculate_divergence_s4(
+  result <- suppressWarnings(TSENAT::calculate_divergence(
     analysis,
     q = c(0.5, 1.0),
     bootstrap = TRUE,
@@ -314,7 +314,7 @@ test_that("divergence calculations are stable with different nboot values", {
   output_file_high <- file.path(output_dir, "test_divergence_nboot_high.tsv")
   
   # Low nboot
-  result_low <- suppressWarnings(TSENAT::calculate_divergence_s4(
+  result_low <- suppressWarnings(TSENAT::calculate_divergence(
     analysis_low,
     q = c(1.0),
     bootstrap = TRUE,
@@ -324,7 +324,7 @@ test_that("divergence calculations are stable with different nboot values", {
   ))
   
   # High nboot
-  result_high <- suppressWarnings(TSENAT::calculate_divergence_s4(
+  result_high <- suppressWarnings(TSENAT::calculate_divergence(
     analysis_high,
     q = c(1.0),
     bootstrap = TRUE,
@@ -361,7 +361,7 @@ test_that("divergence varies appropriately with different q-parameters", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_divergence_q_effect.tsv")
   
-  result <- TSENAT::calculate_divergence_s4(
+  result <- TSENAT::calculate_divergence(
     analysis,
     q = c(0.5, 1.0, 1.5, 2.0),
     bootstrap = FALSE,
@@ -396,7 +396,7 @@ test_that("divergence is computed consistently for similar samples", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_divergence_consistency.tsv")
   
-  result <- TSENAT::calculate_divergence_s4(
+  result <- TSENAT::calculate_divergence(
     analysis,
     q = c(1.0),
     bootstrap = FALSE,
@@ -431,7 +431,7 @@ test_that("Point estimates are identical with/without bootstrap", {
   output_file_boot <- file.path(output_dir, "test_divergence_boot_compare.tsv")
   
   # Without bootstrap
-  result_noboot <- TSENAT::calculate_divergence_s4(
+  result_noboot <- TSENAT::calculate_divergence(
     analysis,
     q = c(1.0),
     bootstrap = FALSE,
@@ -440,7 +440,7 @@ test_that("Point estimates are identical with/without bootstrap", {
   )
   
   # With bootstrap (same seed for repeatability)
-  result_boot <- suppressWarnings(TSENAT::calculate_divergence_s4(
+  result_boot <- suppressWarnings(TSENAT::calculate_divergence(
     analysis,
     q = c(1.0),
     bootstrap = TRUE,
@@ -476,7 +476,7 @@ test_that("divergence statistics are reasonable", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_divergence_scaling.tsv")
   
-  result <- TSENAT::calculate_divergence_s4(
+  result <- TSENAT::calculate_divergence(
     analysis,
     q = c(1.0),
     bootstrap = FALSE,
@@ -514,7 +514,7 @@ test_that("divergence computation handles edge cases correctly", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_divergence_zeros.tsv")
   
-  result <- TSENAT::calculate_divergence_s4(
+  result <- TSENAT::calculate_divergence(
     analysis,
     q = c(0.5, 1.0, 2.0),
     bootstrap = FALSE,
@@ -555,7 +555,7 @@ test_that("divergence computation is stable across multiple runs with same seed"
   output_file1 <- file.path(output_dir, "test_divergence_stable_1.tsv")
   output_file2 <- file.path(output_dir, "test_divergence_stable_2.tsv")
   
-  result1 <- TSENAT::calculate_divergence_s4(
+  result1 <- TSENAT::calculate_divergence(
     analysis1,
     q = c(1.0),
     bootstrap = FALSE,
@@ -563,7 +563,7 @@ test_that("divergence computation is stable across multiple runs with same seed"
     verbose = FALSE
   )
   
-  result2 <- TSENAT::calculate_divergence_s4(
+  result2 <- TSENAT::calculate_divergence(
     analysis2,
     q = c(1.0),
     bootstrap = FALSE,
@@ -602,7 +602,7 @@ test_that("identical distributions have near-zero divergence (boundary condition
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_divergence_boundary.tsv")
   
-  result <- TSENAT::calculate_divergence_s4(
+  result <- TSENAT::calculate_divergence(
     analysis,
     q = c(1.0),
     bootstrap = FALSE,
@@ -639,7 +639,7 @@ test_that("divergence satisfies non-negativity and finite properties", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_divergence_properties.tsv")
   
-  result <- TSENAT::calculate_divergence_s4(
+  result <- TSENAT::calculate_divergence(
     analysis,
     q = c(0.5, 1.0, 1.5, 2.0),
     bootstrap = FALSE,
@@ -692,7 +692,7 @@ test_that("divergence increases with distribution difference (monotonicity test)
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_divergence_monotone.tsv")
   
-  result <- TSENAT::calculate_divergence_s4(
+  result <- TSENAT::calculate_divergence(
     analysis,
     q = c(1.0),
     bootstrap = FALSE,
@@ -733,7 +733,7 @@ test_that("divergence formula consistency: KL divergence special case (q=1)", {
   output_dir <- tempdir()
   output_file_q1 <- file.path(output_dir, "test_divergence_kl_check.tsv")
   
-  result <- TSENAT::calculate_divergence_s4(
+  result <- TSENAT::calculate_divergence(
     analysis,
     q = c(1.0),
     bootstrap = FALSE,
@@ -776,7 +776,7 @@ test_that("divergence q-parameter scaling: smaller q emphasizes rare events", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_divergence_q_scaling.tsv")
   
-  result <- TSENAT::calculate_divergence_s4(
+  result <- TSENAT::calculate_divergence(
     analysis,
     q = c(0.5, 1.0, 2.0),
     bootstrap = FALSE,
@@ -830,7 +830,7 @@ test_that("bootstrap divergence estimates have valid numerical properties", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_divergence_bootstrap_numerical.tsv")
   
-  result <- suppressWarnings(TSENAT::calculate_divergence_s4(
+  result <- suppressWarnings(TSENAT::calculate_divergence(
     analysis,
     q = c(0.5, 1.0, 1.5),
     bootstrap = TRUE,

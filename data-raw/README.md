@@ -162,10 +162,17 @@ Rscript data-raw/scripts/preprocess.R \
 2. `metadata_file` - Sample metadata (default: `./inst/extdata/metadata.tsv`)
 3. `output_gff` - Output GFF3 location (default: `./inst/extdata/annotation.gff3.gz`)
 
+**Data Source:**
+- **Original source:** NCBI BioProject PRJNA737203
+- **Distribution:** Zenodo record 18837691 (mirror/preprocessed version)
+- **Reference:** https://www.ncbi.nlm.nih.gov/bioproject/PRJNA737203
+
 **Auto-provisioning:**
 - **Metadata**: Auto-downloads from Zenodo record 18837691 if missing
+  - Original source: PRJNA737203 sample annotations
 - **Gencode v49**: Auto-downloads from EBI FTP if missing (/tmp cache)
 - **Salmon samples**: Checks `/tmp/salmon`, prompts for Zenodo download if needed
+  - Original source: PRJNA737203 RNA-seq data via Salmon quantification
 
 ---
 
@@ -340,9 +347,9 @@ mkdir -p /tmp/salmon
 
 ### Biological Data
 - **Project ID:** PRJNA737203
-- **Sample Count:** 16 RNA-seq samples (8 normal breast, 8 BRCA)
-- **Source:** TCGA/GDC with paired normal-tumor design
-- **Zenodo:** https://zenodo.org/records/18837691
+- **Sample Count:** 16 RNA-seq samples (8 normal breast, 8 tumor breast)
+- **Source:** NCBI BioProject PRJNA737203 with paired normal-tumor design
+- **Zenodo:** https://zenodo.org/records/18837691 (mirror)
 
 ### Methods
 

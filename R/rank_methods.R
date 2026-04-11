@@ -1,74 +1,3 @@
-#' Rank-Based Methods for Multi-q Analysis
-#'
-#' Non-parametric rank-based methods for robust statistical testing across
-#' multiple q-values in RNA-seq data. Implements Aligned Rank Transform (ART),
-#' rank-based effect sizes, and robust multi-testing procedures.
-#'
-#' **Usage in TSENAT Appendix L:**
-#' The comprehensive rank-based methods test
-#' (TSENAT_Appendix_L_RankBased_test.R)
-#' demonstrates all four key rank-based functions working together on real
-#' RNA-seq
-#' entropy data (3514 -> 517 -> 106 genes after filtering):
-#'
-#' 2. **TEST L.2**: `compute_rank_correlation_multiq()` 
-#'    - Measures consistency of gene rankings across 6 q-values (0.1 to 2.5)
-#'    - Spearman rank correlation matrix showing which genes rank similarly
-#'    - Tells whether entropy signal is stable or q-dependent
-#'
-#' 3. **MULTI-Q FWER CONTROL**: See
-#' `.rank_test_q_condition(multicorr='westfall-young')`
-#'    - Built-in Westfall-Young permutation procedure for rank-based tests
-#'    - Permutation-based Family-Wise Error Rate control
-#'    - Accounts for correlations between multi-q tests
-#'    - Very conservative but guarantees Type I error control
-#'
-#' 4. **OTHER METHODS**: Complementary approaches
-#' - Westfall-Young stepdown: minimum p-value + monotonicity correction
-#' (parametric via `calculate_lm_interaction`)
-#'    - Storey FDR: pi0-adjusted Benjamini-Hochberg
-#'    - Both handle multi-q correlations better than standard FDR
-#'
-#' 5. **TEST L.5**: `.test_rankbased_assumptions()`
-#'    - Validates that rank-based analysis is appropriate
-#'    - Checks exchangeability, monotonicity, consistency
-#'
-#' **Why Rank-Based Methods for Entropy Data?**
-#' Tsallis entropy varies non-linearly across q-values and is often non-normally
-#' distributed (bounded 0 to log(isoforms), often skewed). Rank-based methods
-#' provide robust inference without distributional assumptions, ideal for this
-#' multi-q diversity analysis context.
-#'
-#' **Related Literature:**
-#' - S166, S165: Optimality of Westfall-Young permutation procedure (2011-2012)
-#' - S079, S077: Multiple Hypothesis Testing and FDR (2024)
-#' - S019: Permutation P-values (2010)
-#' - C077: Regularised Rank Quasi-likelihood (Computational Methods)
-#' - I023: Hill numbers and rank-based diversity indices (2017)
-#'
-#' **Key Advantages Over Parametric Methods:**
-#' - No distributional assumptions (beyond exchangeability)
-#' - Robust to outliers and non-normality
-#' - Handles zero-inflation in RNA-seq data naturally
-#' - Valid under dependence and weak assumptions
-#'
-#' @details
-#' **Why Rank-Based Methods for Multi-q?**
-#'
-#' Multi-q analysis tests same genes across multiple q-values (e.g., q=0.1,
-#' 0.5, 1.0).
-#' Rank-based methods excel here because:
-#'
-#' 1. **Robustness**: Insensitive to count-scale effects, extreme values
-#' 2. **Efficiency**: Non-parametric efficiency loss often <10% under normality
-#' 3. **Validity**: Exact permutation tests provide guaranteed Type I control
-#' 4. **Clarity**: Ranks have clear interpretation (ordering of effect sizes)
-#'
-#' **Implementation Strategy:**
-#' - ART: Converts ranks to normal-like scale, enables ANOVA-type tests
-#' - Rank correlation: Spearman/Kendall for effect strength across q-values
-#' - Rank-based FWER: Uses permutation of ranks for family-wise error control
-#'
 
 # ============================================================================
 # 5. UTILITY FUNCTIONS
@@ -86,10 +15,9 @@
 #'   Used in permutation tests to assess exchangeability and other assumptions.
 #'
 #' @return List with diagnostic results
-
 #' @noRd
 
-.test_rankbased_assumptions <- function(data, checks = c("exchangeability", "monotonicity",
+.calculate_rank_assumptions <- function(data, checks = c("exchangeability", "monotonicity",
     "consistency"), alpha = 0.05) {
 
     if (!is.matrix(data))
@@ -332,7 +260,7 @@ print.rank_correlation_ci <- function(x, ...) {
 #'
 #' Stratifies genes based on their sensitivity to q-parameter changes.
 #'
-#' @param interaction_results Data frame output from .rank_test_q_condition()
+#' @param interaction_results Data frame output from .calculate_rank_test()
 #' @param p_threshold Numeric: p-value threshold for significance (default:
 #' 0.05)
 #' @param eta2_threshold_moderate Numeric: Effect size threshold for
@@ -357,8 +285,6 @@ print.rank_correlation_ci <- function(x, ...) {
 #' - Moderate: Noticeable but not dramatic ranking shifts (Cohen's small-medium)
 #' - Strong: Substantial ranking changes (Cohen's large effect)
 #'
-
-#' @noRd
 #' @examples
 #' set.seed(42)
 #' # Create sample interaction results
@@ -371,6 +297,7 @@ print.rank_correlation_ci <- function(x, ...) {
 #' #   interaction_results, p_threshold = 0.05
 #' # )
 #' # table(classifications)
+#' @noRd
 
 .classify_q_dependency <- function(interaction_results, p_threshold = 0.05, eta2_threshold_moderate = 0.01,
     eta2_threshold_strong = 0.1) {
@@ -414,15 +341,6 @@ print.rank_correlation_ci <- function(x, ...) {
     return(classifications)
 }
 
-################################################################################ Internal
-################################################################################ Helper
-################################################################################ Functions
-################################################################################ for
-################################################################################ Multiple
-################################################################################ Testing
-################################################################################ Correction
-################################################################################ (March
-################################################################################ 2026)
 
 #' Hochberg Stepup Procedure for FWER Control
 #' 
@@ -617,9 +535,7 @@ print.rank_correlation_ci <- function(x, ...) {
 #' # Estimate optimal permutations for standard analysis
 #' # nperm <- .estimate_nperm(se, mode = 'standard')
 #'
-
 #' @noRd
-
 .estimate_nperm <- function(data, entropy_col = "diversity", q_col = "q", gene_col = "gene",
     mode = "standard", min_nperm = 100, max_nperm = 10000) {
 

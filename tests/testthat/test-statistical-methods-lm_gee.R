@@ -38,7 +38,7 @@ test_that("gee method returns expected columns (basic functionality)", {
         colData = cd
     )
     
-    res <- .calculate_lm_interaction(se,
+    res <- .calculate_lm(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 8
@@ -93,7 +93,7 @@ test_that("gee method with paired design and subject_col", {
         colData = cd
     )
     
-    res <- .calculate_lm_interaction(se,
+    res <- .calculate_lm(se,
         condition_col = "sample_type",
         method = "gee",
         subject_col = "sample_base",
@@ -142,7 +142,7 @@ test_that("gee method with paired=TRUE uses sample_base", {
         colData = cd
     )
     
-    res <- .calculate_lm_interaction(se,
+    res <- .calculate_lm(se,
         condition_col = "sample_type",
         method = "gee",
         paired = TRUE,
@@ -193,10 +193,13 @@ test_that("gee method filters genes with min_obs", {
         colData = cd
     )
     
-    res <- .calculate_lm_interaction(se,
-        condition_col = "samples",
-        method = "gee",
-        min_obs = 15  # strict cutoff
+    res <- expect_warning(
+        .calculate_lm(se,
+            condition_col = "samples",
+            method = "gee",
+            min_obs = 15  # strict cutoff
+        ),
+        "validation failed"
     )
     
     if (is.data.frame(res)) {
@@ -243,7 +246,7 @@ test_that("gee method handles missing subject_col gracefully", {
     
     # GEE should warn or use fallback when subject_col not provided for paired design
     # Should not crash
-    res <- .calculate_lm_interaction(se,
+    res <- .calculate_lm(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 8
@@ -290,7 +293,7 @@ test_that("gee with exchangeable correlation structure", {
     
     # Test that exchangeable correlation structure can be used
     # Note: This requires an additional parameter 'corstr' in the function
-    res <- .calculate_lm_interaction(se,
+    res <- .calculate_lm(se,
         condition_col = "sample_type",
         method = "gee",
         subject_col = "sample_base",
@@ -337,7 +340,7 @@ test_that("gee method produces p-values in valid range [0,1]", {
         colData = cd
     )
     
-    res <- .calculate_lm_interaction(se,
+    res <- .calculate_lm(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 8
@@ -389,14 +392,14 @@ test_that("gee method returns consistent results (reproducibility)", {
     
     # Run the same analysis twice
     set.seed(999)
-    res1 <- .calculate_lm_interaction(se,
+    res1 <- .calculate_lm(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 8
     )
     
     set.seed(999)
-    res2 <- .calculate_lm_interaction(se,
+    res2 <- .calculate_lm(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 8
@@ -454,7 +457,7 @@ test_that("gee requires geepack package", {
     if (requireNamespace("geepack", quietly = TRUE)) {
         # geepack is available: the function should run without error
         expect_silent(
-            .calculate_lm_interaction(se,
+            .calculate_lm(se,
                 condition_col = "samples",
                 method = "gee",
                 min_obs = 8
@@ -463,7 +466,7 @@ test_that("gee requires geepack package", {
     } else {
         # geepack missing: expect an informative error
         expect_error(
-            .calculate_lm_interaction(se,
+            .calculate_lm(se,
                 condition_col = "samples",
                 method = "gee",
                 min_obs = 8
@@ -506,7 +509,7 @@ test_that("gee produces lower p-values for strong interactions", {
         colData = cd
     )
     
-    res <- .calculate_lm_interaction(se,
+    res <- .calculate_lm(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 8
@@ -568,13 +571,13 @@ test_that("gee produces reasonable results compared to linear method", {
     )
     
     # Run both methods
-    res_lmm <- .calculate_lm_interaction(se,
+    res_lmm <- .calculate_lm(se,
         condition_col = "samples",
         method = "lmm",
         min_obs = 8
     )
     
-    res_gee <- .calculate_lm_interaction(se,
+    res_gee <- .calculate_lm(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 8
@@ -631,7 +634,7 @@ test_that("GEE method returns Shapiro-Wilk normality test results", {
         colData = cd
     )
     
-    res <- .calculate_lm_interaction(se,
+    res <- .calculate_lm(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 8
@@ -682,7 +685,7 @@ test_that("GEE Shapiro-Wilk test correctly flags non-normal residuals", {
         colData = cd
     )
     
-    res <- .calculate_lm_interaction(se,
+    res <- .calculate_lm(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 8
@@ -749,8 +752,8 @@ test_that("GEE bias_correction parameter affects p-values in small clusters", {
     )
     
     # Note: Check if function supports bias_correction parameter
-    # If not in .calculate_lm_interaction, test .gee_interaction directly if available
-    res <- .calculate_lm_interaction(se,
+    # If not in .calculate_lm, test .gee_interaction directly if available
+    res <- .calculate_lm(se,
         condition_col = "condition",
         method = "gee",
         subject_col = "cluster",
@@ -822,8 +825,8 @@ test_that("GEE t-distribution p-values differ from normal for small n_clusters",
         colData = cd2
     )
     
-    res1 <- .calculate_lm_interaction(se1, condition_col = "condition", method = "gee", subject_col = "cluster", min_obs = 5)
-    res2 <- .calculate_lm_interaction(se2, condition_col = "condition", method = "gee", subject_col = "cluster", min_obs = 5)
+    res1 <- .calculate_lm(se1, condition_col = "condition", method = "gee", subject_col = "cluster", min_obs = 5)
+    res2 <- .calculate_lm(se2, condition_col = "condition", method = "gee", subject_col = "cluster", min_obs = 5)
     
     if (is.data.frame(res1)) { p1 <- res1$p_interaction[1] } else { p1 <- SummarizedExperiment::rowData(res1)$p_interaction[1] }
     if (is.data.frame(res2)) { p2 <- res2$p_interaction[1] } else { p2 <- SummarizedExperiment::rowData(res2)$p_interaction[1] }
@@ -884,7 +887,7 @@ test_that("GEE with AR(1) correlation structure handles repeated measures", {
     )
     
     # GEE should handle AR(1) structure in subject=subject column
-    res <- .calculate_lm_interaction(se,
+    res <- .calculate_lm(se,
         condition_col = "condition",
         method = "gee",
         subject_col = "subject",
@@ -938,7 +941,7 @@ test_that("GEE detects heteroscedasticity and adjusts weights", {
     )
     
     # GEE should detect heteroscedasticity and use weights
-    res <- .calculate_lm_interaction(se,
+    res <- .calculate_lm(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 8
@@ -992,7 +995,7 @@ test_that("GEE handles ARIMA differencing for non-stationary data", {
     )
     
     # GEE should apply ARIMA differencing internally
-    res <- .calculate_lm_interaction(se,
+    res <- .calculate_lm(se,
         condition_col = "condition",
         method = "gee",
         subject_col = "subject",
@@ -1042,10 +1045,13 @@ test_that("GEE correctly filters genes below min_obs threshold", {
         colData = cd
     )
     
-    res <- .calculate_lm_interaction(se,
-        condition_col = "samples",
-        method = "gee",
-        min_obs = 15  # Strict threshold
+    res <- expect_warning(
+        .calculate_lm(se,
+            condition_col = "samples",
+            method = "gee",
+            min_obs = 15  # Strict threshold
+        ),
+        "validation failed"
     )
     
     if (is.data.frame(res)) {
@@ -1095,7 +1101,7 @@ test_that("GEE with no interaction effect produces high p-values", {
         colData = cd
     )
     
-    res <- .calculate_lm_interaction(se,
+    res <- .calculate_lm(se,
         condition_col = "condition",
         method = "gee",
         subject_col = "subject",
@@ -1148,7 +1154,7 @@ test_that("GEE with strong interaction effect produces low p-values", {
         colData = cd
     )
     
-    res <- .calculate_lm_interaction(se,
+    res <- .calculate_lm(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 8
@@ -1227,7 +1233,7 @@ test_that("GEE handles imbalanced clusters correctly", {
     )
     
     # GEE should handle imbalanced designs
-    res <- .calculate_lm_interaction(se,
+    res <- .calculate_lm(se,
         condition_col = "condition",
         method = "gee",
         subject_col = "cluster",
@@ -1273,7 +1279,7 @@ test_that("GEE produces different results for different correlation structures",
     )
     
     # Run GEE with default (auto-select) correlation structure
-    res_auto <- .calculate_lm_interaction(se,
+    res_auto <- .calculate_lm(se,
         condition_col = "condition",
         method = "gee",
         subject_col = "subject",
@@ -1843,7 +1849,7 @@ test_that("GEE with small clusters produces K-C corrected results", {
         colData = cd
     )
     
-    res <- .calculate_lm_interaction(se,
+    res <- .calculate_lm(se,
         condition_col = "condition",
         method = "gee",
         subject_col = "subject",
@@ -1897,7 +1903,7 @@ test_that("K-C correction increases p-values for small clusters", {
         colData = cd
     )
     
-    res <- .calculate_lm_interaction(se,
+    res <- .calculate_lm(se,
         condition_col = "condition",
         method = "gee",
         subject_col = "subject",
@@ -1959,7 +1965,7 @@ test_that("K-C correction with design effect properly accounts for multi-q", {
         colData = cd
     )
     
-    res <- .calculate_lm_interaction(se,
+    res <- .calculate_lm(se,
         condition_col = "condition",
         method = "gee",
         subject_col = "subject",
@@ -2013,7 +2019,7 @@ test_that("GEE backward compatible when n_eff > 30 (no K-C)", {
         colData = cd
     )
     
-    res <- .calculate_lm_interaction(se,
+    res <- .calculate_lm(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 10,
@@ -2080,7 +2086,7 @@ test_that("GEE results unchanged by K-C when n_clusters large", {
         colData = cd
     )
     
-    res <- .calculate_lm_interaction(se,
+    res <- .calculate_lm(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 8
@@ -2246,13 +2252,16 @@ test_that(".gee_interaction returns NULL for invalid inputs", {
     subject = c("S1")
   )
   
-  result <- TSENAT:::.gee_interaction(
-    df = df_invalid,
-    q_vals = "q",
-    g = NA_character_,
-    subject = "subject",
-    bias_correction = FALSE,
-    min_obs = 100  # More than available
+  result <- expect_warning(
+    TSENAT:::.gee_interaction(
+      df = df_invalid,
+      q_vals = "q",
+      g = NA_character_,
+      subject = "subject",
+      bias_correction = FALSE,
+      min_obs = 100  # More than available
+    ),
+    "validation failed"
   )
   
   expect_null(result)
@@ -2292,7 +2301,7 @@ test_that(".gee_interaction with valid data returns result", {
 
 context("Linear Models: GEE K-C Bias Correction Algorithm")
 
-test_that("bias_correction parameter is accepted by calculate_lm_interaction", {
+test_that("bias_correction parameter is accepted by calculate_lm", {
     skip_if_not_installed("geepack")
     
     # Create simple test data with small number of clusters (triggering K-C correction)
@@ -2343,7 +2352,7 @@ test_that("bias_correction parameter is accepted by calculate_lm_interaction", {
     )
     
     # Test that bias_correction parameter doesn't cause errors
-    res_with_correction <- .calculate_lm_interaction(se,
+    res_with_correction <- .calculate_lm(se,
         condition_col = "sample_type",
         method = "gee",
         subject_col = "sample_base",
@@ -2351,7 +2360,7 @@ test_that("bias_correction parameter is accepted by calculate_lm_interaction", {
         min_obs = 5
     )
     
-    res_without_correction <- .calculate_lm_interaction(se,
+    res_without_correction <- .calculate_lm(se,
         condition_col = "sample_type",
         method = "gee",
         subject_col = "sample_base",
@@ -2430,7 +2439,7 @@ test_that("K-C bias_correction is triggered only for small clusters (n<20)", {
     )
     
     # Run with small clusters
-    res_small <- .calculate_lm_interaction(se_small,
+    res_small <- .calculate_lm(se_small,
         condition_col = "sample_type",
         method = "gee",
         subject_col = "sample_base",
@@ -2475,7 +2484,7 @@ test_that("K-C bias_correction is triggered only for small clusters (n<20)", {
     )
     
     # Run with large clusters
-    res_large <- .calculate_lm_interaction(se_large,
+    res_large <- .calculate_lm(se_large,
         condition_col = "sample_type",
         method = "gee",
         subject_col = "sample_base",
@@ -2529,7 +2538,7 @@ test_that("K-C correction maintains theoretical Type I error rate for small samp
         colData = cd
     )
     
-    res <- .calculate_lm_interaction(se,
+    res <- .calculate_lm(se,
         condition_col = "sample_type",
         method = "gee",
         subject_col = "sample_base",
