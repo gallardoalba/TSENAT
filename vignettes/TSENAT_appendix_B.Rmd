@@ -56,24 +56,24 @@ This appendix provides two independent, non-parametric alternatives that:
 
 ## Two Complementary Validation Approaches
 
-### Method 1: Generalized Additive Models (GAM) with ARIMA-Ordered Measurement Structure
+**Method 1**: Generalized Additive Models (GAM) with ARIMA-Ordered Measurement Structure.
 
 - Distributional assumption: None required; uses non-parametric basis functions (thin-plate splines).
 - Treatment of entropic structure: Treats q-values as time-like ordered measurements, applies ARIMA(1,1,0) differencing for autocorrelation.
 - Heteroscedasticity handling: Automatically detects variance heterogeneity; applies optimal weighting.
 - Key advantage: Captures smooth nonlinear q * group effects with computational efficiency.
 
-### Method 2: Rank-Based Tests (Friedman with Hochberg Step-Up Correction)
+**Method 2**: Rank-Based Tests (Scheirer-Ray-Hare with Hochberg Step-Up Correction).
 
 - Distributional assumption: None; operates entirely on ranks (maximal robustness).
-- Treatment of q-ordering: Friedman two-way test for paired measurements across q and group.
+- Treatment of q-ordering: Scheirer-Ray-Hare two-way test for paired measurements across q and group.
 - Heteroscedasticity handling: Rank transformation inherently robust; Hochberg correction controls FWER.
 - Key advantage: Maximally robust to outliers; valid for any continuous distribution.
 
 
 ## Why Two Methods for One Question?
 
-Statistical testing in transcriptomics faces a fundamental challenge: **no single method is universally optimal**. Different approaches make different assumptions and have different strengths. TSENAT employs two complementary strategies: parametric methods (linear models) and non-parametric rank-based tests:
+Statistical testing in transcriptomics faces a fundamental challenge: no single method is universally optimal. Different approaches make different assumptions and have different strengths. TSENAT employs two complementary strategies: parametric methods (linear models) and non-parametric rank-based tests:
 
 | Aspect | Parametric (Linear Model / GAM) | Non-Parametric (Rank-Based) |
 |--------|--------------------------------|----------------------------|
@@ -83,15 +83,13 @@ Statistical testing in transcriptomics faces a fundamental challenge: **no singl
 | Interpretation | Parametric effect sizes, smooth curves | Effect ranks; robust p-values independent of distribution |
 | Outlier influence | High potential for bias | Minimal; rank transformation inherently resistant |
 
-Validation strategy: High concordance between parametric and non-parametric methods (>85% agreement) confirms that findings are **robust to modeling assumptions and generalize across statistical frameworks**. Method-specific signals suggest either:
-- Genuine biological effects masked by parametric assumptions in linear models, AND
-- Real patterns revealed only by the flexibility of GAM or robustness of rank-based methods
-
-Genes significant in linear models but NOT in non-parametric methods should be scrutinized: they may reflect model artifact rather than true biological signal.
+Validation strategy: High concordance between parametric and non-parametric methods  confirms that findings are robust to modeling assumptions and generalize across statistical frameworks.
 
 ***
 
 # Setup
+
+This section initializes the analysis environment by loading required packages, setting a random seed for reproducibility, and preparing the test dataset.
 
 ```{r load-packages, message=FALSE}
 suppressPackageStartupMessages({
@@ -103,9 +101,7 @@ suppressPackageStartupMessages({
 })
 
 set.seed(42)
-```
 
-```{r load-and-prepare-data, message=FALSE}
 # Load preprocessed dataset
 data(readcounts)
 readcounts <- as.matrix(readcounts)
@@ -148,9 +144,20 @@ analysis <- filter_analysis(
 )
 ```
 
-## Library Size Normalization for Pseudocounts
+## Computing Tsallis Entropy with Pseudocount Regularization
 
-For robust entropy estimation on sparse count data, we normalize pseudocounts by library size. This approach is principled and recommended in edgeR and DESeq2, as it ensures regularization strength adapts to overall sequencing depth.
+Pseudocounts are critical for statistical robustness when applying rank-based tests to sparse RNA-seq count data. RNA-seq experiments typically contain many zero or near-zero counts, which creates two problems for rank-based nonparametric methods:
+
+1. **Ties in rankings:** Sparse counts produce many tied values (especially zeros), which reduces the discriminatory power of rank tests. Rank-based statistics depend on unique orderings; when many observations are identical, the test statistic contains less information, reducing statistical power.
+
+2. **Library size artifacts:** Small count differences due to sequencing depth variations overshadow true biological differences. Normalized library sizes (accounting for sequencing depth) ensure that entropy estimates reflect true biological diversity rather than technical artifacts [@S195; @S069].
+
+By adding small pseudocounts proportional to library size, we achieve two benefits:
+
+- **Regularization** breaks ties and prevents zero-inflation bias that compromises rank-based inference.
+- **Normalization** makes entropy estimates comparable across samples with different sequencing depths. This approach is standard in RNA-seq analysis and is particularly important for entropy-based diversity metrics, which require positive values for logarithmic transforms.
+
+The `calculate_diversity()` function implements automatic pseudocount selection, scaling pseudocount magnitude and diversity estimates by median library size to ensure robust statistical inference across the range of sequencing depths in your dataset.
 
 ```{r compute-tsallis-entropy, message=FALSE, results='hide'}
 # Compute diversity using S4 wrapper with bootstrap confidence intervals
@@ -161,19 +168,21 @@ analysis <- calculate_diversity(
 )
 ```
 
-# Rank-Based Approach (Friedman)
+# Rank-Based Approach (Scheirer-Ray-Hare)
+
+The Scheirer-Ray-Hare test provides a non-parametric validation of linear model results by leveraging the paired nature of the experimental design and the ordered structure of entropic indices. Unlike parametric methods that assume normality and homogeneity of variance, the Scheirer-Ray-Hare test operates solely on ranks, making it maximally robust to outliers and extreme values.
 
 ## Assumption Validation
 
-Before applying rank-based methods, we verify key assumptions for rank-based inference [@S115; @S204]. The Friedman test is a non-parametric alternative to repeated-measures ANOVA, making fewer distributional assumptions while maintaining validity for paired designs [@S019]:
+Before applying rank-based methods, we verify key assumptions for rank-based inference.
 
-```{r validate-friedman-assumptions, message=FALSE}
-# Validate Friedman test assumptions
+```{r validate-srh-assumptions, message=FALSE}
+# Validate Scheirer-Ray-Hare test assumptions
 analysis <- calculate_rank_assumptions(
     analysis
 )
 
-# Extract the result object from metadata using accessor function
+# Extract the result object
 rank_assumptions <- metadata(analysis, "rankbased_assumptions")$result
 ```
 
@@ -203,7 +212,7 @@ entropy_summary <- data.frame(
 )
 
 knitr::kable(entropy_summary, 
-             caption = "**Supplementary Table 1 | Rank-Based Entropy Matrix Properties.** Descriptive statistics for Tsallis entropy values across all samples and *q*-values. Columns: *q*-value; mean entropy; standard deviation; range (minimum, maximum); median absolute deviation (MAD, robust to outliers); sample size. Non-normal distributions (often skewed toward high entropy) justify rank-based statistical methods. High between-sample variance indicates heterogeneous isoform diversity across replicates.",
+             caption = "Supplementary Table 1 | Rank-Based Entropy Matrix Properties.",
              label = "tab:rank-entropy-summary",
              align = c("l", "r"),
              format = if (knitr::is_latex_output()) "latex" else "html",
@@ -213,7 +222,7 @@ knitr::kable(entropy_summary,
     bootstrap_options = c("striped", "hover", "condensed"),
     latex_options = c("scale_down")
   ) %>%
-  kableExtra::footnote(general = "**Supplementary Note 1:** Data from complete entropy matrix across all q-values and samples.")
+  kableExtra::footnote(general = "Data from complete entropy matrix across all q-values and samples.")
 
 cat("\n")
 
@@ -233,7 +242,7 @@ data_characteristics <- data.frame(
 )
 
 knitr::kable(data_characteristics, 
-             caption = "**Supplementary Table 2 | Entropy Matrix Validation Metrics.** Three core properties validating suitability for rank-based analysis. Rows: Paired Structure (exchangeability test ensures independence), Gene Heterogeneity (Spearman rank correlation), Subject Consistency (Kendall's *W* concordance). Values reported as *P*-values, correlation coefficients *r*, and concordance *W* (0-1 range). All tests support exchangeability assumption justifying Friedman nonparametric approach.",
+             caption = "Supplementary Table 2 | Entropy Matrix Validation Metrics. Three core properties validating suitability for rank-based analysis. Rows: Paired Structure (exchangeability test ensures independence), Gene Heterogeneity (Spearman rank correlation), Subject Consistency (Kendall's *W* concordance). Values reported as *P*-values, correlation coefficients *r*, and concordance *W* (0-1 range). All tests support exchangeability assumption justifying Scheirer-Ray-Hare nonparametric approach.",
              align = c("l", "l", "r", "l"),
              format = if (knitr::is_latex_output()) "latex" else "html",
              longtable = knitr::is_latex_output(),
@@ -242,29 +251,30 @@ knitr::kable(data_characteristics,
     bootstrap_options = c("striped", "hover", "condensed"),
     latex_options = c("scale_down")
   ) %>%
-  kableExtra::footnote(general = "**Supplementary Note 2:** All metrics support validity of paired-design rank-based inference.")
+  kableExtra::footnote(general = "All metrics support validity of paired-design rank-based inference.")
 ```
 
- 
+## Scheirer-Ray-Hare Test: Testing q $\times$ Condition Interactions
 
+Now we will use the Scheirer-Ray-Hare test to evaluate whether entropy patterns across entropic indices (q-values) differ between normal and tumor samples. The Scheirer-Ray-Hare test is a non-parametric alternative to the paired t-test and repeated measures ANOVA, making it ideal for paired designs where distributional assumptions may be violated [@S030].
 
-```{r friedman-rank-test-analysis, message=FALSE, results='hide'}
-# Run Friedman test for q * condition INTERACTION
+```{r srh-rank-test-analysis, message=FALSE, results='hide'}
+# Run Scheirer-Ray-Hare test for q * condition INTERACTION
 analysis <- calculate_rank_test(
     analysis,
     multicorr = "hochberg"
 )
 
 # Extract results
-friedman_results <- results(analysis, type = "rank_test", rankBy = "pvalue", n = 20, filterFDR = 0.05)
-print(head(friedman_results, n = 10))
+srh_results <- results(analysis, type = "rank_test", rankBy = "pvalue", n = 20, filterFDR = 0.05)
+print(head(srh_results, n = 10))
 ```
 
-```{r friedman-results-summary, message=FALSE, echo=FALSE}
+```{r srh-results-summary, message=FALSE, echo=FALSE}
 # Create summary statistics table with additional metrics
 # Handle NA and NaN values properly
-mean_effect <- mean(friedman_results$effect_size_eta2, na.rm = TRUE)
-median_effect <- median(friedman_results$effect_size_eta2, na.rm = TRUE)
+mean_effect <- mean(srh_results$effect_size_eta2, na.rm = TRUE)
+median_effect <- median(srh_results$effect_size_eta2, na.rm = TRUE)
 
 rank_summary_stats <- data.frame(
   Metric = c(
@@ -277,25 +287,25 @@ rank_summary_stats <- data.frame(
     "Strong effect genes ($\\eta^2$ > 10%)"
   ),
   Value = c(
-    nrow(friedman_results),
-    sum(friedman_results$p_value < 0.05, na.rm = TRUE),
-    sum(friedman_results$adj_p_value < 0.05, na.rm = TRUE),
-    sum(is.na(friedman_results$p_value)),
+    nrow(srh_results),
+    sum(srh_results$p_value < 0.05, na.rm = TRUE),
+    sum(srh_results$adj_p_value < 0.05, na.rm = TRUE),
+    sum(is.na(srh_results$p_value)),
     if (is.na(mean_effect) || !is.finite(mean_effect)) "Not available" else sprintf("%.1f%%", mean_effect * 100),
     if (is.na(median_effect) || !is.finite(median_effect)) "Not available" else sprintf("%.1f%%", median_effect * 100),
-    sum(friedman_results$p_value < 0.05 & friedman_results$effect_size_eta2 > 0.10, na.rm = TRUE)
+    sum(srh_results$p_value < 0.05 & srh_results$effect_size_eta2 > 0.10, na.rm = TRUE)
   )
 )
 
-knitr::kable(rank_summary_stats, caption = "**Supplementary Table 3 | Friedman Test Results Summary.** Rank-based nonparametric test of *q* * condition interactions. Columns: genes tested (*n*); number with significant effects (Benjamini-Hochberg *q* < 0.05); mean rank statistic; Friedman chi^2; degrees of freedom; *P*-value; effect size (eta-squared, $\\eta^2$). Friedman test identifies genes where isoform patterns rank-order differently between paired samples.", label = "tab:friedman-test-summary", align = c("l", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
+knitr::kable(rank_summary_stats, caption = "Supplementary Table 3 | Scheirer-Ray-Hare Test Results Summary. Rank-based nonparametric test of *q* × condition interactions.", label = "tab:srh-test-summary", align = c("l", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
   kableExtra::kable_styling(
     bootstrap_options = c("striped", "hover", "condensed"),
     latex_options = c("scale_down")
   ) %>%
-  kableExtra::footnote(general = "**Supplementary Note 3:** Friedman test: nonparametric rank-based ANOVA for paired designs.")
+  kableExtra::footnote(general = "Scheirer-Ray-Hare test: nonparametric rank-based ANOVA for paired designs.")
 
 # Show top genes results
-rank_sig <- friedman_results[!is.na(friedman_results$p_value), ]
+rank_sig <- srh_results[!is.na(srh_results$p_value), ]
 if (nrow(rank_sig) > 0) {
   rank_sig <- rank_sig[order(rank_sig$adj_p_value), ]
   rank_sig <- rank_sig[1:min(10, nrow(rank_sig)), ]
@@ -307,25 +317,43 @@ if (nrow(rank_sig) > 0) {
   if (length(cols_to_show) > 0) {
     rank_display <- rank_sig[, cols_to_show, drop = FALSE]
     
-    # Format numeric columns: use scientific notation for p-values, regular for others
-    numeric_cols <- sapply(rank_display, is.numeric)
-    pval_cols <- grepl("^p_value|^adj_p_value", colnames(rank_display))
+    # Format p-values with scientific notation for very small values
+    if ("p_value" %in% colnames(rank_display)) {
+      rank_display$p_value <- sapply(rank_display$p_value, function(x) {
+        if (is.na(x)) "NA" else if (x < 0.0001) format(signif(x, 2), scientific=TRUE) else sprintf("%.6f", x)
+      })
+    }
     
-    # Round non-p-value numeric columns
-    rank_display[, numeric_cols & !pval_cols] <- round(rank_display[, numeric_cols & !pval_cols], 4)
+    if ("adj_p_value" %in% colnames(rank_display)) {
+      rank_display$adj_p_value <- sapply(rank_display$adj_p_value, function(x) {
+        if (is.na(x)) "NA" else if (x < 0.0001) format(signif(x, 2), scientific=TRUE) else sprintf("%.6f", x)
+      })
+    }
     
-    # Format p-values with scientific notation for precision
-    for (col in colnames(rank_display)) {
-      if (is.numeric(rank_display[[col]]) && grepl("^p_value|^adj_p_value", col)) {
-        rank_display[[col]] <- format(rank_display[[col]], scientific = TRUE, digits = 3)
-      }
+    # Replace test method name for clarity
+    if ("test_method" %in% colnames(rank_display)) {
+      rank_display$test_method <- sapply(rank_display$test_method, function(x) {
+        if (is.na(x)) "NA" else if (x == "srh_paired") "Scheirer-Ray-Hare (paired)" else x
+      })
+    }
+    
+    # Format other numeric columns
+    if ("f_statistic" %in% colnames(rank_display)) {
+      rank_display$f_statistic <- sapply(rank_display$f_statistic, function(x) {
+        if (is.na(x)) "NA" else sprintf("%.4f", x)
+      })
+    }
+    
+    if ("effect_size_eta2" %in% colnames(rank_display)) {
+      rank_display$effect_size_eta2 <- sapply(rank_display$effect_size_eta2, function(x) {
+        if (is.na(x)) "NA" else sprintf("%.4f", x)
+      })
     }
     
     knitr::kable(rank_display, 
-                 caption = "**Supplementary Table 4 | Top genes identified by Friedman rank-based test.** Genes with most significant *q* * condition interaction patterns from paired-sample rank analysis. Columns: gene identifier; *P*-value (unadjusted); *q*-value (Benjamini-Hochberg adjustment); Friedman *F*-statistic; effect size ($\\eta^2$); test method (Friedman aligned-rank ANOVA); interaction class. Ranked by adjusted significance.",
+                 caption = "Supplementary Table 4 | Top genes identified by Scheirer-Ray-Hare rank-based test. Genes with most significant *q* × condition interaction patterns from paired-sample rank analysis. Columns: gene identifier; *P*-value (unadjusted, scientific notation for p < 0.0001); adjusted *P*-value (Benjamini-Hochberg correction, scientific notation for p < 0.0001); Scheirer-Ray-Hare *F*-statistic; effect size ($\\eta^2$); test method; interaction class. Ranked by adjusted significance.",
                  col.names = c("Gene", "P-value", "Adj. P-value", "F-Statistic", 
-                               "Effect Size ($\\eta^2$)", "Test Method", "Interaction Class")[1:ncol(rank_display)],
-                 digits = 4,
+                               "Effect Size (η²)", "Test Method", "Interaction Class")[1:ncol(rank_display)],
                  format = if (knitr::is_latex_output()) "latex" else "html",
                  longtable = knitr::is_latex_output(),
                  linesep = "") %>%
@@ -333,62 +361,24 @@ if (nrow(rank_sig) > 0) {
       bootstrap_options = c("striped", "hover", "condensed"),
       latex_options = c("scale_down")
     ) %>%
-    kableExtra::footnote(general = "**Supplementary Note 4:** Effect size $\\eta^2$ quantifies strength of *q* × condition interaction; top 10 genes ranked by significance.")
+    kableExtra::footnote(general = "Effect size η² quantifies strength of *q* × condition interaction; top 10 genes ranked by significance. P-values < 0.0001 shown in scientific notation for precision.")
   }
 }
 ```
 
 Visualize q-curves for top genes:
 
-```{r extended-fig-1-friedman-q-curves, fig.width=12, fig.height=8, message=FALSE, out.width="98%", fig.pos="H", fig.cap="**Extended Data Figure 1 | Friedman rank test results for scale-dependent isoform switching.** X-axis: *q* (0-2), Y-axis: Tsallis entropy (0-1). Parallel curves indicate consistent condition effects across diversity scales; diverging curves reveal *q*-dependent switching patterns."}
-top_genes_plot <- plot_diversity_spectrum(analysis, lm_res = friedman_results, n_top = 4)
+```{r extended-fig-1-srh-q-curves, fig.width=12, fig.height=8, message=FALSE, out.width="98%", fig.pos="H", fig.cap="Extended Data Figure 1 | Scheirer-Ray-Hare rank test results for scale-dependent isoform switching. X-axis: *q* (0-2), Y-axis: Tsallis entropy (0-1). Parallel curves indicate consistent condition effects across diversity scales; diverging curves reveal *q*-dependent switching patterns."}
+top_genes_plot <- plot_diversity_spectrum(analysis, lm_res = srh_results, n_top = 4)
 print(top_genes_plot)
 ```
 
-
-## Friedman Test: Testing q $\times$ Condition Interactions
-
-The Friedman test evaluates whether entropy patterns across entropic indices (q-values) differ between normal and tumor samples [@K003]. It ranks observations within each subject, preserving the paired structure critical for valid inference in paired designs [@S019]. This rank-based approach is particularly robust for skewed distributions like entropy values [@S019], and the Westfall-Young permutation correction used here is asymptotically optimal for dependent test statistics [@S166].
-
-A key observation: many genes show identical p-values but different effect sizes. This reflects the rank-based nature of the test [@S115]. Effect size $\eta^2$ directly quantifies the strength of the entropic index (q-value) by condition dependence and serves as the practical ranking metric when p-values cluster [@K003]:
-
-$$\eta^2 = \frac{SS_\text{between}}{SS_\text{total}}$$
-
-This represents the proportion of total variance in entropy explained by changes in entropic indices. Genes with $\eta^2$ = 96.1% (e.g., PNRC2) show dramatic entropy variation across q-values, while genes with $\eta^2$ = 57.6% (e.g., HDAC2) show moderate variation.
-
-## Interpreting Identical p-values and Effect Size Ranking
-
-A key observation in this analysis is that **many genes share identical p-values** (p=0.000 in the Friedman test) despite dramatically different effect sizes (96.1%, 67.9%, 57.6%). This is **not a statistical error** but rather a fundamental property of the two-way Friedman test applied to q $\times$ condition interaction:
-
-**Why identical p-values occur in two-way Friedman:**
-The test statistic depends on the **rank patterns** of entropy values across entropic index levels within each condition and subject [@K003]. When genes show similar interaction structure (e.g., Q-entropy consistently higher in tumors vs normals at all q-values), they produce identical test statistics despite different magnitudes of entropy change. This property of rank statistics [@S115] is characteristic of non-parametric testing when distributions are heavily skewed or bounded. For multifactorial designs, aligned rank transform methods [@S187] provide robust alternatives to traditional ANOVA.
-
-**How to rank genes when p-values cluster:**
-In this scenario, **effect size ($\eta^2$) becomes the practical ranking metric** [@K003] because it directly quantifies the strength of the entropic order index × entropy dependence:
-- $\eta^2$ captures the proportion of variance explained by entropic indices (q-values) [@K003]
-- Higher $\eta^2$ = stronger biological effect for that gene
-- Effect size properly reflects the magnitude of entropy change across entropic indices
-
-The vignette table sorts genes by (1) p-value and (2) effect size as tiebreaker. This strategy ensures that statistically significant genes are listed first, with effect size distinguishing between genes with identical statistical significance.
-
-**Recommendations:**
-- Focus on genes with $\eta^2$ > 0.3 for robust biological findings
-- Cross-validate significant genes using complementary methods (e.g., GAM section below)
-- Remember that statistical significance (p-value) indicates q-dependence exists, while effect size says how strong it is
 
 ***
 
 # Generalized Additive Model Approach (GAM)
 
-This section loads precomputed GAM results **generated in the main vignette** ([TSENAT.Rmd](TSENAT.Rmd)). The GAM analysis provides a complementary parametric approach to detect entropic index (q-value) by group interactions. Results are integrated into the TSENATAnalysis object for S4 workflow consistency:
-
-- **Model:** Generalized Additive Models (GAM) with ARIMA(1,1,0) transformations (can be combined with rank-based quasi-likelihood regularization) [@C073; @C077]
-- **Approach:** Smooth functions fit across entropic indices (q-values) for each gene
-- **Correction:** Hochberg multiple testing correction accounting for AR(1) correlation
-- **Assumptions:** Assumes continuous underlying distribution (better for nonlinear patterns)
-- **Source:** Precomputed results from main vignette analysis (see [TSENAT.Rmd](TSENAT.Rmd) for generation details)
-
-The precomputed results include effect sizes, model convergence diagnostics, and heteroscedasticity detection. Comparing GAM and Friedman Test results helps identify robust genes significant in both methods.
+This section loads precomputed GAM results generated in the main vignette ([TSENAT.Rmd](TSENAT.Rmd)).
 
 ```{r generalized-additive-model-analysis, message=FALSE}
 # Load precomputed LM analysis object from RDS file
@@ -435,7 +425,7 @@ knitr::kable(summary_stats, caption = "GAM Results Summary", align = c("l", "r")
     bootstrap_options = c("striped", "hover", "condensed"),
     latex_options = c("scale_down")
   ) %>%
-  kableExtra::footnote(general = "**Supplementary Note 5:** Aggregate statistics across all genes tested by GAM method; effect size > 30% indicates strong biological signal.")
+  kableExtra::footnote(general = "Aggregate statistics across all genes tested by GAM method; effect size > 30% indicates strong biological signal.")
 
 # Show top genes with additional information
 if ("p_interaction" %in% colnames(gam_results)) {
@@ -459,13 +449,13 @@ if ("p_interaction" %in% colnames(gam_results)) {
       # Format p-value columns with scientific notation for very small values
       if ("p_interaction" %in% colnames(gam_display)) {
         gam_display$p_interaction <- sapply(gam_display$p_interaction, function(x) {
-          if (is.na(x)) "NA" else if (x < 0.001) sprintf("%.3e", x) else sprintf("%.6f", x)
+          if (is.na(x)) "NA" else if (x < 0.001) format(signif(x, 2), scientific=TRUE) else sprintf("%.6f", x)
         })
       }
       
       if ("adj_p_interaction" %in% colnames(gam_display)) {
         gam_display$adj_p_interaction <- sapply(gam_display$adj_p_interaction, function(x) {
-          if (is.na(x)) "NA" else if (x < 0.001) sprintf("%.3e", x) else sprintf("%.6f", x)
+          if (is.na(x)) "NA" else if (x < 0.001) format(signif(x, 2), scientific=TRUE) else sprintf("%.6f", x)
         })
       }
       
@@ -494,7 +484,7 @@ if ("p_interaction" %in% colnames(gam_results)) {
       colnames(gam_display) <- c("Gene", "p (interaction)", "Adjusted p", "Effect size", "Test statistic", "df")
       
       knitr::kable(gam_display, 
-                   caption = "Top 10 Genes by GAM p-value (with Effect Size \\& Test Statistics)",
+                   caption = "Top 10 Genes by GAM p-value (with Effect Size and Test Statistics)",
                    align = c("l", "r", "r", "r", "r", "r"),
                    format = if (knitr::is_latex_output()) "latex" else "html",
                    longtable = knitr::is_latex_output(),
@@ -503,7 +493,7 @@ if ("p_interaction" %in% colnames(gam_results)) {
         bootstrap_options = c("striped", "hover", "condensed"),
         latex_options = c("scale_down")
       ) %>%
-      kableExtra::footnote(general = "**Supplementary Note 6:** Top 10 genes ranked by significance; p-values < 0.001 shown in scientific notation; effect size range 0-100%.")
+      kableExtra::footnote(general = "Top 10 genes ranked by significance; p-values < 0.001 shown in scientific notation; effect size range 0-100%.")
     }
   }
 } else {
@@ -516,9 +506,9 @@ if ("p_interaction" %in% colnames(gam_results)) {
 
 # Method Concordance Analysis
 
-A critical validation step is to compare whether the Friedman rank-based test and GAM produce consistent results. High concordance between methods (i.e., genes significant in both approaches) provides strong evidence that discoveries are robust to methodological choice. Discordant genes—those significant in only one method—warrant closer inspection: they may represent genuine biological signals revealed by one method's specific advantages, or artifacts of that method's assumptions. This section quantifies agreement between approaches and identifies high-confidence genes significant across both statistical frameworks.
+A critical validation step is to compare whether the Scheirer-Ray-Hare rank-based test and GAM produce consistent results. High concordance between methods (i.e., genes significant in both approaches) provides strong evidence that discoveries are robust to methodological choice. Discordant genes—those significant in only one method—warrant closer inspection: they may represent genuine biological signals revealed by one method's specific advantages, or artifacts of that method's assumptions. This section quantifies agreement between approaches and identifies high-confidence genes significant across both statistical frameworks.
 
-```{r compare-friedman-gam-methods, message=FALSE}
+```{r compare-srh-gam-methods, message=FALSE}
 # Compute concordance analysis using new two-object API
 # Compares LM results (from analysis_lm) with rank test results (from analysis)
 analysis_with_concordance <- calculate_concordance(
@@ -569,7 +559,7 @@ concordance_metrics <- data.frame(
 )
 
 knitr::kable(concordance_metrics, 
-             caption = "Global Concordance Metrics: GAM vs Friedman Methods",
+             caption = "Global Concordance Metrics: GAM vs Scheirer-Ray-Hare Methods",
              align = c("l", "r"),
              format = if (knitr::is_latex_output()) "latex" else "html",
              longtable = knitr::is_latex_output(),
@@ -578,7 +568,7 @@ knitr::kable(concordance_metrics,
     bootstrap_options = c("striped", "hover", "condensed"),
     latex_options = c("scale_down")
   ) %>%
-  kableExtra::footnote(general = "**Supplementary Note 7:** Comparison of significant genes (p < 0.05) detected by GAM vs Friedman methods; high concordance validates robustness.")
+  kableExtra::footnote(general = "Comparison of significant genes (p < 0.05) detected by GAM vs Scheirer-Ray-Hare methods; high concordance validates robustness.")
 ```
 
 ```{r display-agreement-results, message=FALSE, echo=FALSE}
@@ -603,7 +593,7 @@ if (!is.null(agreement_table) && length(agreement_table) > 0) {
     bootstrap_options = c("striped", "hover", "condensed"),
     latex_options = c("scale_down")
   ) %>%
-  kableExtra::footnote(general = "**Supplementary Note 8:** Categories: Concordant (both methods, p < 0.05); GAM-only; Friedman-only; Neither (both p ≥ 0.05).")
+  kableExtra::footnote(general = "Categories: Concordant (both methods, p < 0.05); GAM-only; Scheirer-Ray-Hare-only; Neither (both p ≥ 0.05).")
 } else {
   cat("No agreement table available from concordance analysis.")
 }
@@ -635,41 +625,21 @@ if (!is.null(high_conf) && nrow(high_conf) > 0) {
     bootstrap_options = c("striped", "hover", "condensed"),
     latex_options = c("scale_down")
   ) %>%
-  kableExtra::footnote(general = "**Supplementary Note 9:** High-confidence genes: significant by both GAM and Friedman rank test (adj p < 0.05); $\\eta^2$ = rank test effect size.")
+  kableExtra::footnote(general = "High-confidence genes: significant by both GAM and Scheirer-Ray-Hare rank test (adj p < 0.05); $\\eta^2$ = rank test effect size.")
 } else {
-  cat("No high-confidence genes detected by both methods (p < 0.05 in both GAM and Friedman tests).")
+  cat("No high-confidence genes detected by both methods (p < 0.05 in both GAM and Scheirer-Ray-Hare tests).")
 }
 ```
 
 ## Statistical Power vs. Robustness: Understanding Method Discordance
 
-The striking discordance between GAM and Friedman results (71.1% significant in GAM only, 0% in rank test only, 28.9% total concordance) reflects a fundamental trade-off in statistical methodology: **parametric methods maximize power when assumptions hold, while nonparametric methods sacrifice power for robustness to assumption violations**.
-
-**Why GAM detects more significant genes than Friedman:**
+The striking discordance between GAM and Scheirer-Ray-Hare results (71.1% significant in GAM only, 0% in rank test only, 28.9% total concordance) reflects a fundamental trade-off in statistical methodology: **parametric methods maximize power when assumptions hold, while nonparametric methods sacrifice power for robustness to assumption violations**.
 
 GAM's superior power derives from two factors:
 
-1. **Distributional assumptions:** GAM assumes approximately normal residuals and homogeneous variance, which are reasonable after appropriate transformation for entropy data. Under these assumptions, parametric methods are theoretically optimal, achieving maximum power for a given type I error rate. The rank-based Friedman test is assumption-free but necessarily **discards quantitative information** by converting measurements to ranks, which reduces statistical power when the underlying data are approximately normal.
+1. Distributional assumptions: GAM assumes approximately normal residuals and homogeneous variance, which are reasonable after appropriate transformation for entropy data. Under these assumptions, parametric methods are theoretically optimal, achieving maximum power for a given type I error rate. The rank-based Scheirer-Ray-Hare test is assumption-free but necessarily discards quantitative information by converting measurements to ranks, which reduces statistical power when the underlying data are approximately normal.
 
-2. **Model flexibility with penalty:** GAM uses thin-plate splines with smoothness penalties that simultaneously fit nonlinear patterns while controlling degrees of freedom. This flexibility allows GAM to detect subtle **entropic index × group** interactions across all q-values. The Friedman test, by contrast, operates on rank patterns only, which is inherently less sensitive to continuous relationships across the ordering (q-values).
-
-**Why Friedman detected no genes uniquely (0%):**
-
-This absence of Friedman-only discoveries—whilst counterintuitive—is statistically expected when one method is more powerful than the other in the applicable problem domain. Friedman would only detect genes missed by GAM if:
-- The data severely violate GAM normality assumptions (unlikely after transformation), OR
-- The Friedman test possesses specific advantages for the interaction structure (unlikely given GAM's flexibility)
-
-Since neither applies here, Friedman's lower power produces a subset of GAM's discoveries, not a disjoint set.
-
-**Interpreting the 5 high-confidence genes (6.6% concordance):**
-
-These genes represent **gold-standard discoveries**, significant by both conservative (Friedman) and powerful (GAM) standards. The extremely low adjusted p-values in both methods (e.g., CXCL12: $2.99 \times 10^{-162}$ for GAM, $1.64 \times 10^{-61}$ for Friedman) indicate overwhelming evidence of entropic index × group interactions—effects so strong that they survive even nonparametric rank-based testing. These genes represent the most robust candidates for biological validation.
-
-**Practical recommendations:**
-
-- **High-confidence genes (Table above):** Pursue aggressively; supported by both methods
-- **GAM-only genes (54 genes, 71.1%):** Evaluate for biological plausibility; GAM's higher power may detect real but subtle effects, or effects specific to the parametric model structure. Cross-validate with the original linear model results (main vignette [@S019]) to distinguish signal from artifact
-- **Neither significant (17 genes, 22.4%):** No evidence of entropic index × group interactions; reliable negative findings
+2. Model flexibility with penalty: GAM uses thin-plate splines with smoothness penalties that simultaneously fit nonlinear patterns while controlling degrees of freedom. This flexibility allows GAM to detect subtle entropic index × group interactions across all q-values. The Scheirer-Ray-Hare test, by contrast, operates on rank patterns only, which is inherently less sensitive to continuous relationships across the ordering (q-values).
 
 This complementary approach—combining high-power parametric tests with robust nonparametric alternatives—provides confidence that discoveries are methodologically sound rather than artifacts of statistical assumptions.
 
@@ -677,7 +647,7 @@ This complementary approach—combining high-power parametric tests with robust 
 
 Visual comparison of concordance patterns provides intuitive assessment of which genes align between methods and which are method-specific. The following plots display significance calls, effect sizes, and agreement metrics in a format that facilitates interpretation of both robust discoveries and method-specific findings.
 
-```{r visualize-method-concordance, fig.width=10, fig.height=8, out.width="98%", fig.pos="H", fig.cap="**Method concordance visualization** comparing Friedman rank-based and GAM approaches for detecting q$\\times$condition interactions. Scatter plots, agreement matrices, or Bland-Altman-style comparisons display gene-level concordance in significance calls and effect sizes. Diagonal alignment indicates perfect agreement; scatter or off-diagonal patterns reveal method-specific discoveries. Measures concordance through X-statistic, Jaccard index, and correlation of effect sizes, providing quantitative assessment of methodological equivalence."}
+```{r visualize-method-concordance, fig.width=10, fig.height=8, out.width="98%", fig.pos="H", fig.cap="Method concordance visualization comparing Scheirer-Ray-Hare rank-based and GAM approaches for detecting q × condition interactions. Scatter plots, agreement matrices, or Bland-Altman-style comparisons display gene-level concordance in significance calls and effect sizes. Diagonal alignment indicates perfect agreement; scatter or off-diagonal patterns reveal method-specific discoveries. Measures concordance through X-statistic, Jaccard index, and correlation of effect sizes, providing quantitative assessment of methodological equivalence."}
 # Create comparison plot using S4 wrapper
 # Check if concordance analysis was successful
 concordance_results <- metadata(analysis_with_concordance, "method_concordance")

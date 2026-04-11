@@ -14,8 +14,6 @@
 #' model for a gene (default: 10).
 #' @param method Modeling method to use for interaction testing: one of
 #' \code{c('lmm', 'gam', 'fpca', 'gee')} (default: 'lmm').
-#' DEPRECATED: 'linear' (OLS) has been removed because it treats q-values as
-#' independent,
 #' which violates Tsallis entropy properties. Q-values are mathematically
 #' dependent
 #' (Papers S168-S175: AR(1) covariance structures). Use 'lmm' instead.
@@ -247,7 +245,6 @@
 #' Adaptive FDR estimation via λ0 proportion (used in
 #' multicorr='westfall-young-storey').
 #' More powerful than Hochberg when substantial proportion of nulls are true.
-#' @noRd
 #' @examples
 #' # Create example data
 #' set.seed(123)
@@ -272,6 +269,7 @@
 #' 
 #' # Run linear model interaction analysis
 #' results <- .calculate_lm(se, condition_col = 'condition')
+#' @noRd
 .calculate_lm <- function(se, condition_col = "condition", min_obs = 5,
     method = c("lmm", "gam", "fpca", "gee"), pvalue = c("satterthwaite", "lrt", "both"),
     subject_col = NULL, paired = FALSE, nthreads = 1, assay_name = "diversity", pcorr = "BH",

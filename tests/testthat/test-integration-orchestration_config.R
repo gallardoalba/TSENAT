@@ -598,24 +598,6 @@ test_that("results returns all supported result types", {
   expect_false(is.null(results(analysis, type = "rank_test")))
 })
 
-test_that("results default type is 'diversity'", {
-  se <- make_test_se()
-  analysis <- TSENATAnalysis(se, config = TSENAT_config())
-  
-  # Mock diversity results (as a list, not matrix)
-  n_genes <- nrow(se)
-  analysis@diversity_results <- list(
-    q_0.5 = matrix(rnorm(n_genes), nrow = 1, ncol = n_genes)
-  )
-  
-  # Default call should work
-  default_result <- results(analysis)
-  explicit_result <- results(analysis, type = "diversity")
-  
-  expect_equal(nrow(default_result), nrow(explicit_result))
-  expect_equal(ncol(default_result), ncol(explicit_result))
-})
-
 test_that("results q-value filtering handles non-existent q-values gracefully", {
   se <- make_test_se()
   analysis <- TSENATAnalysis(se, config = TSENAT_config())

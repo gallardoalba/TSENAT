@@ -1,13 +1,78 @@
-# ============================================================================
-# MAIN: GEE interaction helper with correlation structure validation @param df
-# data frame with entropy, q, group columns @param q_vals numeric vector of
-# q-values @param g gene identifier @param subject character vector of
-# subject/cluster IDs for grouping repeated measures @param min_obs integer
-# minimum observations required @param corstr character correlation structure:
-# 'auto' (select via QIC), 'ar1', 'exchangeable', 'independence' default 'auto'
-# tests all three and selects best @param bias_correction logical; apply
-# Kenward-Roger correction for small clusters @return data.frame with gene,
-# p_interaction, correlation_structure, and bias correction status
+#' Internal GEE Interaction Analysis with AR(1) Correlation
+#'
+#' Generalized Estimating Equations (GEE) for testing q-dependent interaction effects
+#' in Tsallis entropy data with repeated measurements. GEE is robust for correlated
+#' data and does not assume normality of random effects, making it ideal for
+#' entropy measurements structured by q-values.
+#'
+#' ## Methodology Overview
+#'
+#' GEE operates on the generalized linear model framework with user-specified
+#' correlation structure:
+#'
+#' 1. **Input Validation**: Check minimum observations, group structure, and subject IDs
+#' 2. **ARIMA Differencing**: Remove non-stationarity via first-differencing within subjects
+#' 3. **Weight Preparation**: Apply heteroscedasticity weights or bootstrap CI weights
+#' 4. **Correlation Structure Selection**: Choose AR(1), exchangeable, or independence via QIC
+#' 5. **Model Fitting**: Fit null (main effects) and alternative (interaction) models
+#' 6. **Interaction Testing**: Extract p-value with bias correction for small clusters
+#' 7. **Kauermann-Carroll Correction**: Apply HC1 bias reduction for n_clusters < 30
+#'
+#' ## Key References
+#'
+#' - Zimmerman & Harville (1991, S171): AR(1) for ordered covariate structures
+#' - Kauermann & Carroll (2001): Sandwich variance bias correction for small clusters
+#' - Pan (2001): QIC model selection criterion for GEE
+#' - Mancl & DeRouen (2001): Covariate-adjusted ANOVA-type tests with GEE
+#'
+#' ## Important Clarifications
+#'
+#' - **Correlation vs Random Effects**: GEE models within-subject correlation
+#'   directly (no random intercepts like mixed models). For AR(1), the pattern
+#'   Corr(q_i, q_j) = ρ^|i-j| accounts for ordered q-value measurements.
+#'
+#' - **Design Effect**: Multi-q measurements create effective sample size reduction
+#'   D_eff = (1 + ρ) / (1 - ρ). HC1 correction adjusts variance using n_effective = n_clusters / D_eff.
+#'
+#' - **Bias Correction**: Applied when n_clusters < 30. Uses t-distribution with
+#'   df = n_clusters - 1 for conservative (Type I error-protecting) p-values.
+#'
+#' @param df data.frame with columns: entropy (outcome), q, group, and optionally subject (for paired designs)
+#' @param q_vals numeric vector of q-values (used only for cluster size computation in design effect)
+#' @param g character; gene identifier for error messages and result tracking
+#' @param subject character or NULL; vector of subject/cluster IDs for repeated measurements.
+#'   If NULL, observations treated as independent (no repeated measures)
+#' @param min_obs integer >= 2; minimum required non-NA entropy observations. Default 5
+#' @param corstr character; correlation structure selection method. Options:
+#'   - `"auto"` (default): Test all three structures via QIC, select best
+#'   - `"ar1"`: Autoregressive order 1, Corr(i,j) = ρ^|i-j|
+#'   - `"exchangeable"`: Equal correlation across all pairs (no ordering assumed)
+#'   - `"independence"`: Null model, no within-subject correlation
+#' @param bias_correction logical; if TRUE (default), apply Kauermann-Carroll HC1
+#'   bias reduction when n_clusters < 30. Ensures Type I error control in small samples
+#' @param weights numeric or NULL; optional observation weights for heteroscedasticity
+#'   (e.g., from bootstrap CI computations). If provided, takes precedence over
+#'   internal heteroscedasticity detection
+#'
+#' @return data.frame (single row) with columns:
+#'   - **gene**: gene identifier (from `g` argument)
+#'   - **p_interaction**: p-value for q × group interaction (bias-corrected if applicable)
+#'   - **p_interaction_raw**: p-value before K-C correction (if applied)
+#'   - **n_clusters**: number of subjects/clusters in analysis
+#'   - **bias_correction_applied**: logical; whether HC1 adjustment was performed
+#'   - **correlation_structure**: selected structure ('ar1', 'exchangeable', 'independence')
+#'   - **corstr_selection_method**: 'QIC_based' or 'user_specified'
+#'   - **shapiro_p_value**: p-value for Shapiro-Wilk residual normality test
+#'   - **residuals_normal**: logical; normality test result (if computed)
+#'   - **ci_weighted**: logical; whether weights from bootstrap CI were applied
+#'   - **slope_diff**: estimated group slope difference from interaction coefficient
+#'   - **design_effect_ar1**: multiplier for effective sample size (D_eff)
+#'   - **rho_ar1_estimate**: estimated AR(1) autocorrelation from residuals
+#'   - **kc_bias_correction_applied**: logical; whether K-C correction was applied
+#'   - **kc_multiplier**: HC1 adjustment multiplier (n_eff / (n_eff - p))
+#'   - **n_effective**: effective sample size after design effect reduction
+#'   - **kc_method**: method applied ('hc1', 'hc3', or 'kc')
+#' @noRd
 .gee_interaction <- function(df, q_vals, g, subject = NULL, min_obs = 5, corstr = "auto",
     bias_correction = TRUE, weights = NULL) {
     if (!requireNamespace("geepack", quietly = TRUE)) {

@@ -81,7 +81,7 @@
 
     # Add global title with subtitle
     title_gg <- cowplot::ggdraw() + cowplot::draw_label("Comparing interaction detection across two statistical methods",
-        fontface = "bold", size = .font_sizes$title, x = 0.5, y = 0.75) + cowplot::draw_label("Concordance analysis between GAM and Friedman tests",
+        fontface = "bold", size = .font_sizes$title, x = 0.5, y = 0.75) + cowplot::draw_label("Concordance analysis between GAM and Scheirer-Ray-Hare tests",
         fontface = "italic", size = .font_sizes$subtitle, x = 0.5, y = 0.45, color = "gray40")
 
     # Combine all elements and convert to grob
@@ -102,9 +102,9 @@ print.gtable <- function(x, ...) {
 }
 
 
-#' Compute Method Concordance between GAM and Kruskal-Wallis Results
+#' Compute Method Concordance between GAM and Scheirer-Ray-Hare Test Results
 #'
-#' Analyzes agreement between GAM (flexible parametric) and Kruskal-Wallis
+#' Analyzes agreement between GAM (flexible parametric) and Scheirer-Ray-Hare
 #' (rank-based)
 #' statistical test results. Merges results, calculates correlation, categorizes
 #' agreement patterns, and identifies high-confidence genes significant in
@@ -118,11 +118,11 @@ print.gtable <- function(x, ...) {
 #'     \item \code{effect_size}: Effect size estimate (optional)
 #'   }
 #'
-#' @param kw_results A data.frame from Friedman test analysis with columns:
+#' @param kw_results A data.frame from Scheirer-Ray-Hare test analysis with columns:
 #'   \itemize{
 #'     \item \code{gene}: Gene identifiers (must match gam_results$gene)
-#'     \item \code{p_value}: Friedman test p-values
-#'     \item \code{adj_p_value}: Adjusted Friedman p-values (optional)
+#'     \item \code{p_value}: Scheirer-Ray-Hare test p-values
+#'     \item \code{adj_p_value}: Adjusted Scheirer-Ray-Hare p-values (optional)
 #'     \item \code{effect_size_eta2}: Effect size estimate (optional)
 #'   }
 #'
@@ -134,7 +134,7 @@ print.gtable <- function(x, ...) {
 #' padj_friedman, effect_friedman,
 #'       gam_sig, friedman_sig, agreement
 #'     \item \code{spearman_rho}:  Spearman correlation between GAM and 
-#' Friedman p-values
+#' Scheirer-Ray-Hare p-values
 #'     \item \code{high_conf}:  Subset of comparison_df for 
 #' genes significant in both methods,
 #'       ordered by minimum p-value
@@ -145,9 +145,9 @@ print.gtable <- function(x, ...) {
 #' Agreement categories are defined based on significance at adj_p < 0.05:
 #' \itemize{
 #'   \item 'Both significant':  Significant in both GAM and 
-#' Friedman (most reliable)
+#' Scheirer-Ray-Hare (most reliable)
 #'   \item 'GAM only': Significant only in GAM
-#'   \item 'Friedman only': Significant only in Friedman test
+#'   \item 'Scheirer-Ray-Hare only': Significant only in Scheirer-Ray-Hare test
 #'   \item 'Neither significant': Not significant in either method
 #' }
 #'

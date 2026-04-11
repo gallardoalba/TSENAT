@@ -1,32 +1,73 @@
-# FPCA interaction helper with paired design support Functional Principal
-# Component Analysis (FPCA) for entropy curves RESPECTS Q-VALUE ORDERING: -
-# Unlike independent q analysis, this method treats q-values as ORDERED
-# measurements - Creates 'curve matrix' with q-values as columns (ordered) and
-# samples as rows - PCA on ordered curves naturally yields smooth functional
-# components - This implicitly captures the AR(1) correlation structure
-# (Zimmerman & Harville, 1991) Papers S168-S171 validate AR(1) for ordered
-# measurements: - S171 (PRIMARY): Generalized AR(1) covariance in
-# functional/smooth data contexts - S168-S170: Theoretical foundation and
-# empirical validation of AR(1) ordering - S170: ACF structure confirms
-# correlation decays geometrically across q-order How FPCA respects ordering
-# and stationarity: 1. ARIMA(1,1,0) differencing (applied BEFORE curve matrix)
-# ensures stationarity - Removes monotone trend by differencing: DeltaH_q = H_q
-# - H_{q-1} - AR(1) correlation model fits to DeltaH_q (differenced data), not
-# raw H_q 2. Curve matrix has q-values as columns (preserves sequential order)
-# 3. PCA on differenced curves decomposes VARIANCE around mean (centered data)
-# - PC1 captures primary mode of shape variation (e.g., steepness of decrease)
-# - PC2, PC3 capture secondary shape variations - Each PC is orthogonal
-# functional basis (smooth patterns) 4. t-test on each PC tests whether curve
-# SHAPES differ by group (not AR(1) structure) - If groups have same curve
-# shape but different intercepts: PC1 differs, PC2+ match - If groups have
-# different curve shapes: multiple PCs differ - This tests functional/shape
-# differences, not correlation structure per se IMPORTANT CLARIFICATION: -
-# AR(1) correlation structure is modeled in differenced data (before PCA) - PCA
-# does NOT model AR(1) structure; it decomposes centered variance - FPCA
-# testing detects curve SHAPE differences between groups - TEST L.1.6
-# Validation confirms differenced data follow AR(1) pattern: rho(k) = phi^|k| -
-# Stationarity is achieved via differencing; functional basis (smooth PCs) is
-# appropriate for resulting stationary data
+#' Internal FPCA Interaction Helper (Paired Design Support)
+#'
+#' Performs Functional Principal Component Analysis (FPCA) for entropy curves,
+#' respecting the ordered structure of entropic indices (q-values).
+#'
+#' ## Design Philosophy
+#'
+#' Unlike independent q-value analysis, FPCA treats q-values as **ordered measurements**:
+#'
+#' - Creates 'curve matrix' with q-values as columns (ordered) and samples as rows
+#' - PCA on ordered curves yields smooth functional components
+#' - Implicitly captures AR(1) correlation structure (Zimmerman & Harville 1991)
+#'
+#' ## Literature Support
+#'
+#' Papers S168-S171 validate AR(1) for ordered measurements:
+#' - **S171 (PRIMARY)**: Generalized AR(1) covariance in functional/smooth data contexts
+#' - **S168-S170**: Theoretical foundation and empirical validation of AR(1) ordering
+#' - **S170**: ACF structure confirms geometric decay across q-order
+#'
+#' ## FPCA Methodology
+#'
+#' **1. ARIMA(1,1,0) Differencing**
+#'    - Applied BEFORE curve matrix construction
+#'    - Removes monotone trend: ΔH_q = H_q - H_{q-1}
+#'    - AR(1) model fits to differenced data (ΔH_q), not raw H_q
+#'
+#' **2. Curve Matrix Construction**
+#'    - Rows = samples; Columns = sorted q-values (preserves sequential order)
+#'    - Critical: q-ordering enables smooth curve interpolation
+#'
+#' **3. PCA on Differenced Curves**
+#'    - Decomposes variance around mean (centered data)
+#'    - PC1 = primary shape variation mode (e.g., steepness of change)
+#'    - PC2, PC3, ... = secondary shape variations
+#'    - Each PC is orthogonal functional basis (smooth patterns)
+#'
+#' **4. Group Testing via PC Scores**
+#'    - t-test on each PC scores whether curve SHAPES differ by group
+#'    - Same shape + different intercepts → PC1 differs, PC2+ match
+#'    - Different shapes → multiple PCs differ
+#'    - Tests functional/shape differences, not AR(1) structure per se
+#'
+#' ## Important Clarifications
+#'
+#' - **AR(1) modeling**: Occurs in differenced data (before PCA), not in PCA itself
+#' - **PCA function**: Decomposes centered variance; does NOT model AR(1) structure
+#' - **FPCA testing**: Detects curve SHAPE differences between groups
+#' - **Stationarity**: Achieved via differencing; smooth PCs appropriate for stationary data
+#' - **Validation**: TEST L.1.6 confirms differenced data follows rho(k) = φ^|k|
+#'
+#' @param mat Entropy matrix (genes × measurements)
+#' @param q_vals Entropic indices (q-parameter values)
+#' @param sample_names Sample identifiers
+#' @param group_vec Group assignments
+#' @param g Gene identifier
+#' @param min_obs Minimum observations per sample (default: 5)
+#' @param subject Subject identifiers for paired designs (NULL for unpaired)
+#' @param regularization Method: "pca" (default), "lasso", or "elasticnet"
+#' @param weights Optional sample weights
+#'
+#' @return Data frame with columns:
+#'   - `gene`: Gene identifier
+#'   - `p_interaction`: Interaction p-value (or min adjusted p from multiple PCs)
+#'   - `n_pcs_tested`: Number of principal components tested
+#'   - `min_pc_pvalue`: Minimum unadjusted p-value across tested PCs
+#'   - `slope_diff`: Effect size (NA for PCA method)
+#'   - `ci_weighted`: Boolean indicating use of weights
+#'
+#' @noRd
 .fpca_interaction <- function(mat, q_vals, sample_names, group_vec, g, min_obs = 5,
     subject = NULL, regularization = c("pca", "lasso", "elasticnet"), weights = NULL) {
     regularization <- match.arg(regularization)

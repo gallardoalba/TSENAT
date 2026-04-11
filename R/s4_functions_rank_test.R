@@ -1,28 +1,44 @@
-# ============================================================================
-# DETECT Q×CONDITION GENE INTERACTIONS WRAPPER
-# ============================================================================
-# Purpose: Wrapper around .calculate_rank_test() that manages TSENATAnalysis
-# object.  Tests for genes with CONDITION-SPECIFIC q-dependent entropy patterns
-# by testing whether the effect of q-values DIFFERS between experimental
-# conditions.  Key Features: - Q×Condition interaction: Tests if entropy
-# patterns across q-values differ by condition - Multi-q analysis: Combines
-# diversity results for multiple q-values into a single SummarizedExperiment
-# for joint hypothesis testing - Rank-based statistics: Kruskal-Wallis
-# (unpaired) or Friedman (paired) - Scheirer-Ray-Hare test: Two-way
-# non-parametric ANOVA on ranks - Multiple testing correction: Hochberg,
-# Benjamini-Yekutieli, or Westfall-Young permutation procedure - AR(1)
-# correlation handling: Westfall-Young preserves q-value correlations - Effect
-# sizes: Eta-squared (η²) for q×condition interactions Mathematical Background:
-# Tests null hypothesis: H0 = 'Gene entropy q-effect does NOT differ between
-# conditions' vs Alternative: H1 = 'Gene entropy q-dependence is
-# CONDITION-SPECIFIC' Example: Gene shows strong isoform switching (q-dependent
-# entropy) in tumor cells but NOT in healthy cells → Identified as
-# disease-relevant q-dependent gene.  For condition-specific q-dependent genes:
-# - Condition A: Strong entropy variation across q (q-dependent) - Condition B:
-# Flat entropy profile across q (q-independent) - Interaction:
-# Condition-specific q-dependence pattern reveals biological process
-# ============================================================================
 #' Detect q-dependent gene interactions
+#'
+#' Wrapper around [.calculate_rank_test()] that manages TSENATAnalysis object.
+#' Tests for genes with condition-specific q-dependent entropy patterns by
+#' testing whether the effect of q-values DIFFERS between experimental conditions.
+#' This detects disease-relevant or condition-specific isoform switching patterns.
+#'
+#' ## Key Features
+#'
+#' - **Q×Condition Interaction**: Tests if entropy patterns across q-values differ
+#'   by condition (main discovery goal)
+#' - **Multi-q Analysis**: Combines diversity results for multiple q-values into
+#'   a single SummarizedExperiment for joint hypothesis testing
+#' - **Rank-Based Statistics**: Kruskal-Wallis (unpaired) or Friedman (paired)
+#' - **Scheirer-Ray-Hare Test**: Two-way non-parametric ANOVA on ranks
+#' - **Multiple Testing Correction**: Hochberg, Benjamini-Yekutieli, or permutation
+#'   (Westfall-Young) procedures
+#' - **AR(1) Correlation Handling**: Westfall-Young preserves q-value spatial
+#'   correlations (important for ordered q measurements)
+#' - **Effect Sizes**: Eta-squared (η²) for q×condition interactions
+#'
+#' ## Statistical Hypotheses
+#'
+#' Tests the null hypothesis:
+#' - **H₀** = Gene entropy q-effect does NOT differ between conditions (q-independent)
+#' - **H₁** = Gene entropy q-dependence is CONDITION-SPECIFIC (interaction exists)
+#'
+#' A significant interaction indicates condition-specific patterns in how entropy
+#' varies across the q-value spectrum, revealing biological processes specific to
+#' that condition.
+#'
+#' ## Biological Example
+#'
+#' Gene shows strong isoform switching (q-dependent entropy) in tumor cells but
+#' NOT in healthy cells → Identified as disease-relevant q-dependent gene.
+#'
+#' For condition-specific q-dependent genes:
+#' - **Condition A**: Strong entropy variation across q (q-dependent isoform usage)
+#' - **Condition B**: Flat entropy profile across q (uniform isoform usage)
+#' - **Interaction**: Condition-specific q-dependence pattern reveals disease-associated
+#'   splicing regulation
 #'
 #' @param analysis \code{TSENATAnalysis} object.
 

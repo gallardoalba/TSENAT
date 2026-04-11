@@ -1,265 +1,4 @@
 ################################################################################
-#' Internal: Validate parameters for rank_test_q_condition
-
-#' @noRd
-.detect_q_validate_params <- function(paired, subject_col, wy_randomizations, nperm_mode,
-    verbose) {
-    nperm_mode <- tolower(nperm_mode)
-    nperm_mode <- match.arg(nperm_mode, c("standard", "conservative", "interactive"))
-
-    if (is.character(wy_randomizations) && tolower(wy_randomizations) == "auto") {
-        wy_randomizations <- "auto"  # Signal to estimate later
-    } else if (is.null(wy_randomizations)) {
-        wy_randomizations <- 500
-    } else if (!is.numeric(wy_randomizations)) {
-        stop("wy_randomizations must be numeric, 'auto', or NULL")
-    } else {
-        wy_randomizations <- as.integer(wy_randomizations)
-        if (wy_randomizations < 10) {
-            warning("wy_randomizations < 10 may give unreliable p-values; recommend >= 100")
-        }
-    }
-
-    if (paired && is.null(subject_col)) {
-        stop("paired=TRUE with subject_col=NULL is invalid", call. = FALSE)
-    }
-    if (!paired && !is.null(subject_col) && subject_col != "paired_samples") {
-        warning("subject_col provided but paired=FALSE; will be ignored")
-    }
-
-    return(list(wy_randomizations = wy_randomizations, nperm_mode = nperm_mode))
-}
-
-#' Internal: Convert SE to long format and validate data
-
-#' @noRd
-.detect_q_prepare_data <- function(data, entropy_col, q_col, gene_col, paired, subject_col,
-    condition_col, verbose) {
-    if (methods::is(data, "SummarizedExperiment")) {
-        if (verbose)
-            message("Converting SummarizedExperiment to long-format...")
-        all_assays <- SummarizedExperiment::assays(data)
-        if (length(all_assays) == 0)
-            stop("SummarizedExperiment has no assays")
-
-        entropy_matrix <- all_assays[[1]]
-        ts_coldata <- SummarizedExperiment::colData(data)
-
-        if (!"q" %in% colnames(ts_coldata)) {
-            stop("colData must contain 'q' column")
-        }
-        if (paired && !subject_col %in% colnames(ts_coldata)) {
-            stop("colData must contain '", subject_col, "' column for paired design")
-        }
-
-        # condition_col is REQUIRED
-        if (is.null(condition_col) || !condition_col %in% colnames(ts_coldata)) {
-            stop("condition_col='", condition_col, "' not found in colData. Required for QxCondition interaction testing.")
-        }
-
-        data <- data.frame(entropy = as.numeric(entropy_matrix), gene = rep(rownames(data),
-            ncol(data)), q = rep(ts_coldata$q, each = nrow(data)), condition = rep(ts_coldata[[condition_col]],
-            each = nrow(entropy_matrix)), stringsAsFactors = FALSE)
-
-        if (paired) {
-            data[[subject_col]] <- rep(ts_coldata[[subject_col]], each = nrow(entropy_matrix))
-        }
-
-        if (verbose)
-            message("Testing Q x Condition interaction")
-
-        entropy_col <- "entropy"
-        q_col <- "q"
-        gene_col <- "gene"
-        condition_col <- "condition"  # Already extracted and named as 'condition' above
-    }
-
-    # Validate columns exist
-    for (col in c(entropy_col, q_col, gene_col)) {
-        if (!col %in% colnames(data))
-            stop("Column '", col, "' not found")
-    }
-
-    # Handle condition_col: it must exist in the data
-    if (is.null(condition_col)) {
-        # Try default 'sample_type' column if no condition_col specified,
-        # fallback to 'condition'
-        if ("sample_type" %in% colnames(data)) {
-            condition_col <- "sample_type"
-        } else if ("condition" %in% colnames(data)) {
-            condition_col <- "condition"
-        } else {
-            stop("'condition_col' must be specified or 'sample_type'/'condition' column must exist in data. ",
-                "This function requires QxCondition interaction testing.", call. = FALSE)
-        }
-    } else if (!condition_col %in% colnames(data)) {
-        stop("Column '", condition_col, "' not found in data", call. = FALSE)
-    }
-
-    # Standardize column names with vectorized rename
-    rename_map <- c(entropy_col, q_col, gene_col)
-    rename_targets <- c("entropy", "q", "gene")
-    for (i in seq_along(rename_map)) {
-        if (rename_map[i] %in% colnames(data) && rename_map[i] != rename_targets[i]) {
-            colnames(data)[colnames(data) == rename_map[i]] <- rename_targets[i]
-        }
-    }
-    if (condition_col != "condition" && condition_col %in% colnames(data)) {
-        colnames(data)[colnames(data) == condition_col] <- "condition"
-    }
-
-    # OPTIMIZATION: Vectorized factor conversion Convert multiple columns to
-    # factors in batch instead of separately
-    factor_cols <- c("q", "gene", "condition")
-    data[factor_cols] <- lapply(data[factor_cols], factor)
-
-    if (paired) {
-        if (!subject_col %in% colnames(data)) {
-            stop("subject_col '", subject_col, "' not found in data")
-        }
-        data[[subject_col]] <- factor(data[[subject_col]])
-    }
-
-    return(list(data = data, has_condition = TRUE))
-}
-
-#' Internal: Analyze single gene for q-effects
-
-#' @noRd
-.detect_q_analyze_gene <- function(gene_data, paired, subject_col, has_condition) {
-    q_levels <- unique(gene_data$q)
-    if (length(q_levels) < 2) {
-        return(list(test_failed = TRUE, class = "Insufficient data", method = "insufficient"))
-    }
-
-    # Always run QxCondition interaction test (condition is now REQUIRED)
-    test_result <- tryCatch(.test_q_condition_interaction(gene_data, "entropy", "q",
-        "condition", paired, if (paired)
-            subject_col else NULL, pre_factored = TRUE), error = function(e) NULL)
-
-    if (is.null(test_result))
-        return(list(test_failed = TRUE, class = "Test failed", method = "failed"))
-
-    # Compute effect size
-    overall_mean <- mean(gene_data$entropy, na.rm = TRUE)
-    ss_total <- sum((gene_data$entropy - overall_mean)^2, na.rm = TRUE)
-
-    # Calculate per-q means and counts using tapply
-    q_means <- tapply(gene_data$entropy, gene_data$q, function(x) mean(x, na.rm = TRUE),
-        simplify = TRUE)
-    q_counts <- tapply(gene_data$entropy, gene_data$q, function(x) length(x), simplify = TRUE)
-
-    ss_q <- sum(q_counts * (q_means - overall_mean)^2, na.rm = TRUE)
-    ss_residual <- ss_total - ss_q
-
-    list(test_failed = FALSE, f_stat = as.numeric(test_result$statistic), p_val = as.numeric(test_result$p_value),
-        n_q = length(q_levels), df_interaction = length(q_levels) - 1, ss_interaction = ss_q,
-        ss_residual = ss_residual, eta2 = if (ss_total > 0) ss_q/ss_total else 0,
-        test_type = test_result$test_type, characteristics = test_result$characteristics)
-}
-
-#' Internal: Apply multiple testing correction
-
-#' @noRd
-.detect_q_apply_multicorr <- function(interaction_results, multicorr, wy_randomizations,
-    nperm_mode, data, paired, subject_col, has_condition, nthreads, verbose) {
-    if (multicorr == "westfall-young") {
-        permute_fn <- .detect_q_get_permute_function(data, paired, subject_col, has_condition)
-        perm_result <- .westfall_young_permutation_rank(nrow(interaction_results),
-            wy_randomizations, permute_fn, .detect_q_refit_permuted_tests(interaction_results,
-                data, paired, subject_col, has_condition), nthreads, verbose)
-
-        max_stats <- apply(perm_result$perm_stats_matrix, 2, max, na.rm = TRUE)
-        H_obs <- interaction_results$f_statistic
-        counts <- vapply(H_obs, function(h) {
-            if (is.na(h))
-                return(NA_real_) else sum(max_stats >= h, na.rm = TRUE)
-        }, numeric(1))
-        interaction_results$adj_p_value <- pmin(1, (counts + 1)/(wy_randomizations +
-            1))
-
-        interaction_results <- interaction_results[order(interaction_results$p_value),
-            , drop = FALSE]
-        interaction_results$adj_p_value <- cummax(interaction_results$adj_p_value)
-    } else if (multicorr == "hochberg") {
-        interaction_results$adj_p_value <- .hochberg_stepup(interaction_results$p_value)
-    } else if (multicorr == "benjamini-yekutieli") {
-        interaction_results$adj_p_value <- .benjamini_yekutieli(interaction_results$p_value)
-    } else {
-        interaction_results$adj_p_value <- interaction_results$p_value
-    }
-
-    return(interaction_results)
-}
-
-#' Internal: Get permutation function for WY test
-
-#' @noRd
-.detect_q_get_permute_function <- function(data, paired, subject_col, has_condition) {
-    data_orig <- data
-    # OPTIMIZATION: Pre-compute subject list once, not per permutation
-    if (paired) {
-        unique_subjects <- unique(data_orig[[subject_col]])
-        function() {
-            d <- data_orig
-            for (subj in unique_subjects) {
-                idx <- d[[subject_col]] == subj
-                if (sum(idx) > 0)
-                  d$condition[idx] <- as.character(sample(d$condition[idx]))
-            }
-            d
-        }
-    } else {
-        function() {
-            d <- data_orig
-            d$condition <- factor(sample(d$condition))
-            d
-        }
-    }
-}
-
-#' Internal: Refit function for WY permutations
-
-#' @noRd
-.detect_q_refit_permuted_tests <- function(interaction_results, data, paired, subject_col,
-    has_condition) {
-    # OPTIMIZATION: Pre-compute ranks once for all permutations During
-    # permutation refits, we only shuffle condition/q factors, not the rank
-    # values. This saves 500+ re-ranking operations per gene (30-40% speedup)
-    data_with_ranks <- data
-    if (!"ranks" %in% colnames(data_with_ranks)) {
-        data_with_ranks$ranks <- rank(data_with_ranks$entropy, na.last = "keep")
-    }
-
-    function(data_perm) {
-        # OPTIMIZATION: Reuse pre-computed ranks - data_perm already has them
-        # Just update the condition/q factors to permuted values
-        perm_stats <- perm_pvals <- numeric(nrow(interaction_results))
-
-        # Split permuted data by gene for batch processing
-        gene_data_list <- split(data_perm, data_perm$gene, drop = FALSE)
-
-        for (i in seq_len(nrow(interaction_results))) {
-            gene_id <- interaction_results$gene[i]
-            gene_data_perm <- gene_data_list[[as.character(gene_id)]]
-
-            if (!is.null(gene_data_perm) && nrow(gene_data_perm) > 0 && length(unique(gene_data_perm$q)) >=
-                2) {
-                # OPTIMIZATION: Pass pre_ranked=TRUE to skip re-ranking in test
-                # function Ranks are already computed from original data and
-                # shuffled with factors
-                test_result <- tryCatch(.test_q_condition_interaction(gene_data_perm,
-                  "entropy", "q", "condition", paired, if (paired)
-                    subject_col else NULL, pre_ranked = TRUE, pre_factored = TRUE), error = function(e) NULL)
-                if (!is.null(test_result) && !is.na(test_result$statistic)) {
-                  perm_stats[i] <- test_result$statistic
-                  perm_pvals[i] <- test_result$p_value
-                }
-            }
-        }
-        list(statistics = perm_stats, p_values = perm_pvals)
-    }
-}
 
 ################################################################################
 #' Detect QxCondition Interaction Terms
@@ -825,3 +564,266 @@
     rownames(interaction_results) <- NULL
     return(interaction_results)
 }
+
+#' Internal: Validate parameters for rank_test_q_condition
+#' @noRd
+.detect_q_validate_params <- function(paired, subject_col, wy_randomizations, nperm_mode,
+    verbose) {
+    nperm_mode <- tolower(nperm_mode)
+    nperm_mode <- match.arg(nperm_mode, c("standard", "conservative", "interactive"))
+
+    if (is.character(wy_randomizations) && tolower(wy_randomizations) == "auto") {
+        wy_randomizations <- "auto"  # Signal to estimate later
+    } else if (is.null(wy_randomizations)) {
+        wy_randomizations <- 500
+    } else if (!is.numeric(wy_randomizations)) {
+        stop("wy_randomizations must be numeric, 'auto', or NULL")
+    } else {
+        wy_randomizations <- as.integer(wy_randomizations)
+        if (wy_randomizations < 10) {
+            warning("wy_randomizations < 10 may give unreliable p-values; recommend >= 100")
+        }
+    }
+
+    if (paired && is.null(subject_col)) {
+        stop("paired=TRUE with subject_col=NULL is invalid", call. = FALSE)
+    }
+    if (!paired && !is.null(subject_col) && subject_col != "paired_samples") {
+        warning("subject_col provided but paired=FALSE; will be ignored")
+    }
+
+    return(list(wy_randomizations = wy_randomizations, nperm_mode = nperm_mode))
+}
+
+#' Internal: Convert SE to long format and validate data
+
+#' @noRd
+.detect_q_prepare_data <- function(data, entropy_col, q_col, gene_col, paired, subject_col,
+    condition_col, verbose) {
+    if (methods::is(data, "SummarizedExperiment")) {
+        if (verbose)
+            message("Converting SummarizedExperiment to long-format...")
+        all_assays <- SummarizedExperiment::assays(data)
+        if (length(all_assays) == 0)
+            stop("SummarizedExperiment has no assays")
+
+        entropy_matrix <- all_assays[[1]]
+        ts_coldata <- SummarizedExperiment::colData(data)
+
+        if (!"q" %in% colnames(ts_coldata)) {
+            stop("colData must contain 'q' column")
+        }
+        if (paired && !subject_col %in% colnames(ts_coldata)) {
+            stop("colData must contain '", subject_col, "' column for paired design")
+        }
+
+        # condition_col is REQUIRED
+        if (is.null(condition_col) || !condition_col %in% colnames(ts_coldata)) {
+            stop("condition_col='", condition_col, "' not found in colData. Required for QxCondition interaction testing.")
+        }
+
+        data <- data.frame(entropy = as.numeric(entropy_matrix), gene = rep(rownames(data),
+            ncol(data)), q = rep(ts_coldata$q, each = nrow(data)), condition = rep(ts_coldata[[condition_col]],
+            each = nrow(entropy_matrix)), stringsAsFactors = FALSE)
+
+        if (paired) {
+            data[[subject_col]] <- rep(ts_coldata[[subject_col]], each = nrow(entropy_matrix))
+        }
+
+        if (verbose)
+            message("Testing Q x Condition interaction")
+
+        entropy_col <- "entropy"
+        q_col <- "q"
+        gene_col <- "gene"
+        condition_col <- "condition"  # Already extracted and named as 'condition' above
+    }
+
+    # Validate columns exist
+    for (col in c(entropy_col, q_col, gene_col)) {
+        if (!col %in% colnames(data))
+            stop("Column '", col, "' not found")
+    }
+
+    # Handle condition_col: it must exist in the data
+    if (is.null(condition_col)) {
+        # Try default 'sample_type' column if no condition_col specified,
+        # fallback to 'condition'
+        if ("sample_type" %in% colnames(data)) {
+            condition_col <- "sample_type"
+        } else if ("condition" %in% colnames(data)) {
+            condition_col <- "condition"
+        } else {
+            stop("'condition_col' must be specified or 'sample_type'/'condition' column must exist in data. ",
+                "This function requires QxCondition interaction testing.", call. = FALSE)
+        }
+    } else if (!condition_col %in% colnames(data)) {
+        stop("Column '", condition_col, "' not found in data", call. = FALSE)
+    }
+
+    # Standardize column names with vectorized rename
+    rename_map <- c(entropy_col, q_col, gene_col)
+    rename_targets <- c("entropy", "q", "gene")
+    for (i in seq_along(rename_map)) {
+        if (rename_map[i] %in% colnames(data) && rename_map[i] != rename_targets[i]) {
+            colnames(data)[colnames(data) == rename_map[i]] <- rename_targets[i]
+        }
+    }
+    if (condition_col != "condition" && condition_col %in% colnames(data)) {
+        colnames(data)[colnames(data) == condition_col] <- "condition"
+    }
+
+    # OPTIMIZATION: Vectorized factor conversion Convert multiple columns to
+    # factors in batch instead of separately
+    factor_cols <- c("q", "gene", "condition")
+    data[factor_cols] <- lapply(data[factor_cols], factor)
+
+    if (paired) {
+        if (!subject_col %in% colnames(data)) {
+            stop("subject_col '", subject_col, "' not found in data")
+        }
+        data[[subject_col]] <- factor(data[[subject_col]])
+    }
+
+    return(list(data = data, has_condition = TRUE))
+}
+
+#' Internal: Analyze single gene for q-effects
+
+#' @noRd
+.detect_q_analyze_gene <- function(gene_data, paired, subject_col, has_condition) {
+    q_levels <- unique(gene_data$q)
+    if (length(q_levels) < 2) {
+        return(list(test_failed = TRUE, class = "Insufficient data", method = "insufficient"))
+    }
+
+    # Always run QxCondition interaction test (condition is now REQUIRED)
+    test_result <- tryCatch(.test_q_condition_interaction(gene_data, "entropy", "q",
+        "condition", paired, if (paired)
+            subject_col else NULL, pre_factored = TRUE), error = function(e) NULL)
+
+    if (is.null(test_result))
+        return(list(test_failed = TRUE, class = "Test failed", method = "failed"))
+
+    # Compute effect size
+    overall_mean <- mean(gene_data$entropy, na.rm = TRUE)
+    ss_total <- sum((gene_data$entropy - overall_mean)^2, na.rm = TRUE)
+
+    # Calculate per-q means and counts using tapply
+    q_means <- tapply(gene_data$entropy, gene_data$q, function(x) mean(x, na.rm = TRUE),
+        simplify = TRUE)
+    q_counts <- tapply(gene_data$entropy, gene_data$q, function(x) length(x), simplify = TRUE)
+
+    ss_q <- sum(q_counts * (q_means - overall_mean)^2, na.rm = TRUE)
+    ss_residual <- ss_total - ss_q
+
+    list(test_failed = FALSE, f_stat = as.numeric(test_result$statistic), p_val = as.numeric(test_result$p_value),
+        n_q = length(q_levels), df_interaction = length(q_levels) - 1, ss_interaction = ss_q,
+        ss_residual = ss_residual, eta2 = if (ss_total > 0) ss_q/ss_total else 0,
+        test_type = test_result$test_type, characteristics = test_result$characteristics)
+}
+
+#' Internal: Apply multiple testing correction
+
+#' @noRd
+.detect_q_apply_multicorr <- function(interaction_results, multicorr, wy_randomizations,
+    nperm_mode, data, paired, subject_col, has_condition, nthreads, verbose) {
+    if (multicorr == "westfall-young") {
+        permute_fn <- .detect_q_get_permute_function(data, paired, subject_col, has_condition)
+        perm_result <- .westfall_young_permutation_rank(nrow(interaction_results),
+            wy_randomizations, permute_fn, .detect_q_refit_permuted_tests(interaction_results,
+                data, paired, subject_col, has_condition), nthreads, verbose)
+
+        max_stats <- apply(perm_result$perm_stats_matrix, 2, max, na.rm = TRUE)
+        H_obs <- interaction_results$f_statistic
+        counts <- vapply(H_obs, function(h) {
+            if (is.na(h))
+                return(NA_real_) else sum(max_stats >= h, na.rm = TRUE)
+        }, numeric(1))
+        interaction_results$adj_p_value <- pmin(1, (counts + 1)/(wy_randomizations +
+            1))
+
+        interaction_results <- interaction_results[order(interaction_results$p_value),
+            , drop = FALSE]
+        interaction_results$adj_p_value <- cummax(interaction_results$adj_p_value)
+    } else if (multicorr == "hochberg") {
+        interaction_results$adj_p_value <- .hochberg_stepup(interaction_results$p_value)
+    } else if (multicorr == "benjamini-yekutieli") {
+        interaction_results$adj_p_value <- .benjamini_yekutieli(interaction_results$p_value)
+    } else {
+        interaction_results$adj_p_value <- interaction_results$p_value
+    }
+
+    return(interaction_results)
+}
+
+#' Internal: Get permutation function for WY test
+
+#' @noRd
+.detect_q_get_permute_function <- function(data, paired, subject_col, has_condition) {
+    data_orig <- data
+    # OPTIMIZATION: Pre-compute subject list once, not per permutation
+    if (paired) {
+        unique_subjects <- unique(data_orig[[subject_col]])
+        function() {
+            d <- data_orig
+            for (subj in unique_subjects) {
+                idx <- d[[subject_col]] == subj
+                if (sum(idx) > 0)
+                  d$condition[idx] <- as.character(sample(d$condition[idx]))
+            }
+            d
+        }
+    } else {
+        function() {
+            d <- data_orig
+            d$condition <- factor(sample(d$condition))
+            d
+        }
+    }
+}
+
+#' Internal: Refit function for WY permutations
+
+#' @noRd
+.detect_q_refit_permuted_tests <- function(interaction_results, data, paired, subject_col,
+    has_condition) {
+    # OPTIMIZATION: Pre-compute ranks once for all permutations During
+    # permutation refits, we only shuffle condition/q factors, not the rank
+    # values. This saves 500+ re-ranking operations per gene (30-40% speedup)
+    data_with_ranks <- data
+    if (!"ranks" %in% colnames(data_with_ranks)) {
+        data_with_ranks$ranks <- rank(data_with_ranks$entropy, na.last = "keep")
+    }
+
+    function(data_perm) {
+        # OPTIMIZATION: Reuse pre-computed ranks - data_perm already has them
+        # Just update the condition/q factors to permuted values
+        perm_stats <- perm_pvals <- numeric(nrow(interaction_results))
+
+        # Split permuted data by gene for batch processing
+        gene_data_list <- split(data_perm, data_perm$gene, drop = FALSE)
+
+        for (i in seq_len(nrow(interaction_results))) {
+            gene_id <- interaction_results$gene[i]
+            gene_data_perm <- gene_data_list[[as.character(gene_id)]]
+
+            if (!is.null(gene_data_perm) && nrow(gene_data_perm) > 0 && length(unique(gene_data_perm$q)) >=
+                2) {
+                # OPTIMIZATION: Pass pre_ranked=TRUE to skip re-ranking in test
+                # function Ranks are already computed from original data and
+                # shuffled with factors
+                test_result <- tryCatch(.test_q_condition_interaction(gene_data_perm,
+                  "entropy", "q", "condition", paired, if (paired)
+                    subject_col else NULL, pre_ranked = TRUE, pre_factored = TRUE), error = function(e) NULL)
+                if (!is.null(test_result) && !is.na(test_result$statistic)) {
+                  perm_stats[i] <- test_result$statistic
+                  perm_pvals[i] <- test_result$p_value
+                }
+            }
+        }
+        list(statistics = perm_stats, p_values = perm_pvals)
+    }
+}
+
+

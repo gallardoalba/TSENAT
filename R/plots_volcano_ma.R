@@ -31,9 +31,7 @@
 #' # Placeholder: actual usage would require valid differential results
 #' # .plot_diversity_volcano_ma(x, sig_alpha = 0.05)
 #'
-
 #' @noRd
-
 .plot_diversity_volcano_ma <- function(diff_df, x_col = NULL, padj_col = "padj", label_thresh = 0.1,
     sig_alpha = 0.05, top_n = 5, title_volcano = NULL, title_ma = "Tsallis-based MA plot",
     ...) {

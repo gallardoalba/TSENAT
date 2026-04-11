@@ -136,7 +136,7 @@ TSENAT organizes results around **multiple diversity scales** (entropic indices)
 - `@config`: Configuration parameters (sample/condition columns, q-spectrum, design, bootstrap settings).
 - `@diversity_results`: Median entropy ± confidence intervals per group and entropic index.
 - `@lm_results`: Linear/GAM/GEE interaction statistics testing if entropy differences vary across entropic indices.
-- `@rank_test_results`: Non-parametric rank test results (Friedman, Kruskal-Wallis) for scale-dependent effects.
+- `@rank_test_results`: Non-parametric rank test results (Scheirer-Ray-Hare, Kruskal-Wallis) for scale-dependent effects.
 - `@pairwise_results`: Pairwise comparisons between groups at individual entropic indices.
 - `@jackknife_results`: Jackknife confidence intervals and transcript-level contributions to entropy change.
 - `@divergence_results`: Pairwise group divergence (information-theoretic distance) at each entropic index.
