@@ -229,8 +229,12 @@ setReplaceMethod("metadata", "TSENATAnalysis", function(x, value) {
     x
 })
 
+#' @param i Gene indices (numeric, logical, or character vector). Defaults to all genes.
+#' @param j Sample indices (numeric, logical, or character vector). Defaults to all samples.
+#' @param drop Ignored for TSENATAnalysis objects; included for S4 method signature compatibility.
+#'
+#' @rdname TSENATAnalysis-class
 #' @exportMethod '['
-#' @noRd
 setMethod("[", signature(x = "TSENATAnalysis"), function(x, i, j, drop = TRUE) {
     # Get SE dimensions for default arguments
     se <- x@se
