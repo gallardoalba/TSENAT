@@ -13,13 +13,11 @@ metadata(x) <- value
 \S4method{metadata}{TSENATAnalysis}(x) <- value
 }
 \arguments{
-\item{x}{TSENATAnalysis object}
+\item{x}{A \code{\linkS4class{TSENATAnalysis}} object}
 
 \item{value}{A list of metadata to assign}
 
 \item{key}{Optional character string specifying a metadata key to retrieve}
-
-\item{x, object}{A \code{\linkS4class{TSENATAnalysis}} object}
 }
 \value{
 TSENATAnalysis object with updated metadata

@@ -1,14 +1,7 @@
-#' @name TSENATAnalysis-methods
-#' @rdname TSENATAnalysis-methods
-#' @keywords internal
-NULL
-
-#' @rdname TSENATAnalysis-methods
 setMethod("getSE", "TSENATAnalysis", function(object) {
     object@se
 })
 
-#' @rdname TSENATAnalysis-methods
 setMethod("getMeta", "TSENATAnalysis", function(object, key = NULL) {
     # Returns ONLY essential metadata (timestamps, version, workflow type)
     # Large result tables, sample stats, function logs are accessed via results(), etc.
@@ -51,7 +44,6 @@ setMethod("getMeta", "TSENATAnalysis", function(object, key = NULL) {
     essential_meta
 })
 
-#' @rdname TSENATAnalysis-methods
 setMethod("getConfig", "TSENATAnalysis", function(object, key = NULL) {
     if (is.null(key)) {
         return(object@config)
@@ -59,7 +51,6 @@ setMethod("getConfig", "TSENATAnalysis", function(object, key = NULL) {
     object@config[[key]]
 })
 
-#' @rdname TSENATAnalysis-methods
 setMethod("getPlot", "TSENATAnalysis", function(object, type = NULL) {
     if (is.null(type)) {
         return(object@plots)
@@ -67,7 +58,6 @@ setMethod("getPlot", "TSENATAnalysis", function(object, type = NULL) {
     object@plots[[type]]
 })
 
-#' @rdname TSENATAnalysis-methods
 setMethod("addPlot", "TSENATAnalysis", function(object, type, plot, replace = FALSE) {
     if (!replace && type %in% names(object@plots)) {
         warning("Plot type '", type, "' already exists. Set replace=TRUE to overwrite.",
@@ -78,7 +68,6 @@ setMethod("addPlot", "TSENATAnalysis", function(object, type, plot, replace = FA
     object
 })
 
-#' @rdname TSENATAnalysis-methods
 setMethod("show", "TSENATAnalysis", function(object) {
     n_genes <- nrow(object@se)
     n_samples <- ncol(object@se)
@@ -108,7 +97,6 @@ setMethod("show", "TSENATAnalysis", function(object) {
     message("")
 })
 
-#' @rdname TSENATAnalysis-methods
 setMethod("summary", "TSENATAnalysis", function(object) {
     message("TSENAT Analysis Summary")
     message("=======================\n")
@@ -145,7 +133,6 @@ setMethod("summary", "TSENATAnalysis", function(object) {
     invisible(object)
 })
 
-#' @rdname TSENATAnalysis-methods  
 setMethod("setConfig", "TSENATAnalysis", function(object, value) {
     if (inherits(value, "TSENATConfig")) {
         value <- unclass(value)
@@ -158,7 +145,6 @@ setMethod("setConfig", "TSENATAnalysis", function(object, value) {
     object
 })
 
-#' @rdname TSENATAnalysis-methods
 setMethod("setConfigValue", "TSENATAnalysis", function(object, key, value) {
     config <- getConfig(object)
     if (is.null(config)) {
@@ -179,7 +165,7 @@ setMethod("setConfigValue", "TSENATAnalysis", function(object, key, value) {
 #'
 #' @details
 #' Provides read-only access to the underlying SummarizedExperiment. To modify
-#' the SummarizedExperiment, use \code{\link{setConfig}} or directly access
+#' the SummarizedExperiment, use the configuration methods or directly access
 #' \code{object@se}.
 #'
 #' @aliases se,TSENATAnalysis-method
@@ -243,7 +229,6 @@ setReplaceMethod("metadata", "TSENATAnalysis", function(x, value) {
     x
 })
 
-#' @rdname TSENATAnalysis-methods
 #' @exportMethod '['
 setMethod("[", signature(x = "TSENATAnalysis"), function(x, i, j, drop = TRUE) {
     # Get SE dimensions for default arguments

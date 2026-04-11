@@ -138,93 +138,14 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
 }
 
 
+
 # ============================================================================
 # HELPER FUNCTIONS FOR RESULTS ACCESSOR
 # ============================================================================
 
-#' Extract analysis results from TSENATAnalysis object
+#' Internal: Validate results accessor parameters
 #'
-#' Provides flexible access to diversity, divergence, and statistical test results
-#' with options for ranking, filtering, and format conversion.
-#'
-#' @param analysis \code{TSENATAnalysis} object containing computed results.
-#' @param type \code{character}. Type of results to extract:
-#'   'diversity', 'divergence', 'lm', 'jackknife', 'rank_test', 'effect_sizes_divergence',
-#'   or 'switching_tables'. Default: 'diversity'.
-#' @param q \code{numeric}. For diversity results, optionally return results for 
-#'   a specific q-value only. When specified, returns a single SummarizedExperiment 
-#'   for that q-value instead of the full list. Default: NULL (return all q-values 
-#'   as list). Example: q = 1.0 returns only the q=1.0 results.
-#' @param rankBy \code{character}. For LM/Jackknife results, ranking method:
-#'   'none' (default), 'pvalue', 'effectSize', or 'qvalue'.
-#'   Applies to statistical test results. Default: 'none'.
-#' @param n \code{integer}. Return top N features/genes ranked by rankBy.
-#'   Use NA (default) to return all results. Requires rankBy != 'none'.
-#' @param filterFDR \code{numeric}. FDR threshold for significance filtering
-#'   (0.0-1.0). Only results with adjusted p-value <= filterFDR retained.
-#'   Default: NULL (no filtering).
-#' @param format \code{character}. Output format: 'auto' (sensible default for type),
-#'   'list', 'dataframe', or 'matrix'. Default: 'auto'.
-#'
-#' @return 
-#'   - For diversity with q=NULL: A named list of SummarizedExperiment objects, one per q-value
-#'   - For diversity with q specified: A single SummarizedExperiment for that q-value
-#'   - For divergence: A SummarizedExperiment (rows=genes, columns=q-values), data.frame, or other format depending on divergence computation method
-#'   - For lm/jackknife: A data.frame or list based on type and format
-#'   - For pairwise: A data.frame with pairwise comparison difference metrics
-#'   - For effect_sizes_divergence: A list containing effect size divergence results with components like interaction_results
-#'   - For switching_tables: A list containing gene switching comparison tables
-#'   Returns NULL if requested result type not computed or no results pass filtering.
-#'
-#' @details
-#' This function provides flexible access to all computed results with ranking,
-#' filtering, and format conversion. Compatible with DESeq2/edgeR design patterns
-#' for familiar result extraction workflows.
-#'
-#' **Lazy Computation for switching_tables:**
-#' When requesting \code{type = "switching_tables"}, the function automatically
-#' computes and caches the tables if they don't exist yet but the prerequisites
-#' do (LM and jackknife results). This eliminates the need for a separate
-#' \code{prepare_gene_switching_tables_s4()} call - simply request the results
-#' and they will be computed on-demand.
-#'
-#' @examples
-#' # Load example data
-#' data(readcounts, package = 'TSENAT')
-#'
-#' # Create TSENATAnalysis from count matrix
-#' config <- TSENAT_config(
-#'   q = 1.0,
-#'   condition_col = 'group'
-#' )
-#' se <- SummarizedExperiment::SummarizedExperiment(
-#'   assays = list(counts = readcounts),
-#'   colData = data.frame(
-#'     group = rep(c('A', 'B'), length.out = ncol(readcounts))
-#'   )
-#' )
-#' analysis <- TSENATAnalysis(se = se, config = config)
-#' analysis <- calculate_diversity(analysis)
-#'
-#' # Get all diversity results (list of SummarizedExperiment objects, one per q)
-#' div_all <- results(analysis, type = 'diversity')
-#'
-#' # Get diversity for specific q-value (single SummarizedExperiment)
-#' div_q1 <- results(analysis, type = 'diversity', q = 1.0)
-#'
-#' # Get results ranked by p-value, top 20 genes
-#' # Using accessor function instead of @ slot access
-#' top_lm <- results(analysis, type = 'lm', rankBy = 'pvalue', n = 20)
-#'
-#' # Get pairwise results (e.g., differential diversity metrics between conditions)
-#' pairwise_diff <- results(analysis, type = 'pairwise')
-#'
-#' # Get switching tables - automatically computed if prerequisites exist
-#' # (no need to call prepare_gene_switching_tables_s4 separately)
-#' switching <- results(analysis, type = 'switching_tables')
-#'
-#' @rdname TSENATAnalysis-methods
-#' @export
+#' @noRd
 .validate_results_params <- function(analysis, type, rankBy, format, filterFDR) {
     if (!is(analysis, "TSENATAnalysis")) {
         stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
