@@ -436,14 +436,8 @@
 .compute_wald_statistic <- function(fit_alt, ia_idx) {
     coefs_alt <- stats::coef(fit_alt)
 
-    vcov_robust <- try({
-        X <- model.matrix(fit_alt)
-        residuals_vec <- fit_alt$y - fit_alt$fitted.values
-        W <- diag(1/fit_alt$scale)
-        meat <- t(X) %*% W %*% (residuals_vec^2 * diag(nrow(X))) %*% W %*% X
-        bread <- solve(t(X) %*% W %*% X)
-        bread %*% meat %*% bread
-    }, silent = TRUE)
+    # Use vcov() directly - it handles all model types correctly
+    vcov_robust <- try(vcov(fit_alt), silent = TRUE)
 
     if (inherits(vcov_robust, "try-error") || is.null(vcov_robust)) {
         return(NA_real_)

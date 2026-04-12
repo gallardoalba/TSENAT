@@ -109,7 +109,7 @@
 results <- function(analysis, type, q = NULL, rankBy = "none", 
                        n = NA, filterFDR = NULL, format = "auto", display_table = FALSE,
                        n_genes = 4, q_values_table = c(0, 0.5, 1.0, 1.5, 2.0),
-                       top_n = NULL, sort_by = "adj_p_interaction") {
+                       top_n = NULL, sort_by = "adj_p_interaction", sample = NULL) {
     # Validate parameters
     .validate_results_params(analysis, type, rankBy, format, filterFDR)
     
@@ -126,15 +126,15 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
     # Route to type-specific processor
     switch(type,
         diversity = .process_diversity_results(result, q, display_table, analysis, 
-                                                n_genes, q_values_table),
+                                                n_genes, q_values_table, sample),
         divergence = .process_divergence_results(result, filterFDR, format),
         pairwise = .process_pairwise_results(result, filterFDR, format),
         lm = ,
         jackknife = ,
         rank_test = .process_statistical_results(result, type, filterFDR, rankBy, n, format),
-        effect_sizes_divergence = .process_effect_sizes_divergence_results(result, top_n, sort_by),
+        effect_sizes_divergence = .process_effect_sizes_divergence_results(result, top_n, sort_by, display_table, analysis),
         assumptions = result,
-        switching_tables = result,
+        switching_tables = .process_switching_tables_results(result, display_table),
         metadata = result,
         result
     )
@@ -217,9 +217,58 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
 }
 
 # ============================================================================
+# HELPER: Extract diversity table as a data.frame
+# ============================================================================
+.extract_diversity_table <- function(analysis, result, q, n_genes, q_values_table, sample = NULL) {
+    all_div_results <- if (is.null(q)) analysis@diversity_results else list(result)
+    
+    if (length(all_div_results) == 0) {
+        return(NULL)
+    }
+    
+    first_se <- all_div_results[[1]]
+    first_sample <- colnames(SummarizedExperiment::assay(first_se))[1]
+    
+    # Use specified sample if provided, validate it exists
+    if (!is.null(sample)) {
+        sample_names <- colnames(SummarizedExperiment::assay(first_se))
+        if (!sample %in% sample_names) {
+            stop("Sample '", sample, "' not found. Available samples: ",
+                 paste(sample_names, collapse = ", "), call. = FALSE)
+        }
+        first_sample <- sample
+    }
+    
+    # Build table as data.frame
+    n_show <- min(n_genes, nrow(SummarizedExperiment::assay(first_se)))
+    gene_names <- rownames(SummarizedExperiment::assay(first_se))[seq_len(n_show)]
+    
+    # Initialize with gene names
+    table_df <- data.frame(Gene = gene_names, stringsAsFactors = FALSE)
+    
+    # Add columns for each q-value
+    for (q_val in q_values_table) {
+        q_name <- paste0("q_", sprintf("%.3f", q_val))
+        col_name <- paste0("q_", sprintf("%.1f", q_val))
+        
+        if (q_name %in% names(all_div_results)) {
+            mat <- SummarizedExperiment::assay(all_div_results[[q_name]])
+            values <- mat[seq_len(n_show), first_sample]
+            table_df[[col_name]] <- values
+        }
+    }
+    
+    # Add sample and n_genes as attributes
+    attr(table_df, "sample") <- first_sample
+    attr(table_df, "n_genes_total") <- nrow(SummarizedExperiment::assay(first_se))
+    
+    table_df
+}
+
+# ============================================================================
 # HELPER: Display diversity table
 # ============================================================================
-.display_diversity_table <- function(analysis, result, q, n_genes, q_values_table) {
+.display_diversity_table <- function(analysis, result, q, n_genes, q_values_table, sample = NULL) {
     all_div_results <- if (is.null(q)) analysis@diversity_results else list(result)
     
     if (length(all_div_results) == 0) {
@@ -228,6 +277,16 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
     
     first_se <- all_div_results[[1]]
     first_sample <- colnames(SummarizedExperiment::assay(first_se))[1]
+    
+    # Use specified sample if provided, validate it exists
+    if (!is.null(sample)) {
+        sample_names <- colnames(SummarizedExperiment::assay(first_se))
+        if (!sample %in% sample_names) {
+            stop("Sample '", sample, "' not found. Available samples: ",
+                 paste(sample_names, collapse = ", "), call. = FALSE)
+        }
+        first_sample <- sample
+    }
     
     table_lines <- character()
     table_lines <- c(table_lines, "\n[results] Tsallis entropy across q-spectrum")
@@ -392,13 +451,16 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
 # HELPER: Process diversity results
 # ============================================================================
 .process_diversity_results <- function(result, q, display_table, analysis, n_genes, 
-                                       q_values_table) {
+                                       q_values_table, sample = NULL) {
     if (!is.null(q)) {
         result <- .get_diversity_q_value(result, q)
     }
     
     if (display_table) {
-        .display_diversity_table(analysis, result, q, n_genes, q_values_table)
+        .display_diversity_table(analysis, result, q, n_genes, q_values_table, sample)
+        # Return the table as a data.frame instead of the full list
+        table_df <- .extract_diversity_table(analysis, result, q, n_genes, q_values_table, sample)
+        return(invisible(table_df))
     }
     
     result
@@ -701,11 +763,129 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
 }
 
 # ============================================================================
+# ============================================================================
+# HELPER: Display effect sizes divergence table
+# ============================================================================
+.display_effect_sizes_table <- function(results_df, top_n) {
+    if (is.null(results_df) || nrow(results_df) == 0) {
+        return()
+    }
+    
+    table_lines <- character()
+    table_lines <- c(table_lines, "\n[results] Top genes by linear model significance with effect sizes and q-spectrum patterns")
+    table_lines <- c(table_lines, "[results] Ranked by statistical significance (ascending P-values, Benjamini-Hochberg q-value < 0.05)\n")
+    
+    # Build header - select key columns for display
+    header <- sprintf("%-20s", "Gene")
+    header <- paste0(header, sprintf("%16s", "Slope Diff"))
+    header <- paste0(header, sprintf("%16s", "Effect Size"))
+    header <- paste0(header, sprintf("%18s", "LM p-value"))
+    table_lines <- c(table_lines, header)
+    
+    # Build rows
+    for (i in seq_len(min(top_n, nrow(results_df)))) {
+        row_data <- results_df[i, ]
+        
+        # Gene name or ID
+        gene_name <- if ("gene" %in% colnames(results_df)) {
+            row_data$gene[1]
+        } else if ("gene_name" %in% colnames(results_df)) {
+            row_data$gene_name[1]
+        } else if ("name" %in% colnames(results_df)) {
+            row_data$name[1]
+        } else {
+            rownames(results_df)[i]
+        }
+        
+        row_str <- sprintf("%-20s", gene_name)
+        
+        # Slope difference (main effect size metric)
+        if ("slope_diff" %in% colnames(results_df)) {
+            row_str <- paste0(row_str, sprintf("%16.4f", row_data$slope_diff[1]))
+        } else {
+            row_str <- paste0(row_str, sprintf("%16s", "N/A"))
+        }
+        
+        # Effect size (use q=0.1 if available, otherwise q=0.05)
+        effect_size_val <- NA
+        if ("effect_size_D_q0_1" %in% colnames(results_df)) {
+            effect_size_val <- row_data$effect_size_D_q0_1[1]
+        } else if ("effect_size_D_q0_05" %in% colnames(results_df)) {
+            effect_size_val <- row_data$effect_size_D_q0_05[1]
+        } else if ("effect_size_D_q0_01" %in% colnames(results_df)) {
+            effect_size_val <- row_data$effect_size_D_q0_01[1]
+        }
+        
+        if (!is.na(effect_size_val)) {
+            row_str <- paste0(row_str, sprintf("%16.4f", effect_size_val))
+        } else {
+            row_str <- paste0(row_str, sprintf("%16s", "N/A"))
+        }
+        
+        # P-value (check for both column names)
+        pval_col <- if ("adj_p_interaction" %in% colnames(results_df)) {
+            "adj_p_interaction"
+        } else if ("p_value_interaction" %in% colnames(results_df)) {
+            "p_value_interaction"
+        } else {
+            NULL
+        }
+        
+        if (!is.null(pval_col)) {
+            pval <- row_data[[pval_col]][1]
+            if (pval < 0.001) {
+                pval_str <- sprintf("%.1e", pval)
+            } else {
+                pval_str <- sprintf("%.4f", pval)
+            }
+            row_str <- paste0(row_str, sprintf("%18s", pval_str))
+        } else {
+            row_str <- paste0(row_str, sprintf("%18s", "N/A"))
+        }
+        
+        table_lines <- c(table_lines, row_str)
+    }
+    
+    message(paste(table_lines, collapse = "\n"))
+}
+
+# ============================================================================
 # HELPER: Process effect_sizes_divergence results with sorting and filtering
 # ============================================================================
-.process_effect_sizes_divergence_results <- function(result, top_n = NULL, sort_by = "adj_p_interaction") {
+.process_effect_sizes_divergence_results <- function(result, top_n = NULL, sort_by = "adj_p_interaction", 
+                                                      display_table = FALSE, analysis = NULL) {
     if (is.null(result)) {
         return(NULL)
+    }
+    
+    # If result is already a data.frame, process directly (check this BEFORE is.list!)
+    if (is.data.frame(result)) {
+        results_df <- result
+        
+        if (!is.null(top_n) && !is.na(top_n) && top_n > 0) {
+            # Verify sort_by column exists
+            if (!(sort_by %in% colnames(results_df))) {
+                stop("Column '", sort_by, "' not found in results. ",
+                     "Available columns: ", paste(colnames(results_df), collapse = ", "),
+                     call. = FALSE)
+            }
+            
+            # Determine sort direction
+            decreasing <- !grepl("p_value|pvalue|padj|adj_p", sort_by, ignore.case = TRUE)
+            
+            # Sort and limit
+            order_idx <- order(results_df[[sort_by]], na.last = TRUE, decreasing = decreasing)
+            results_df <- results_df[order_idx, , drop = FALSE]
+            results_df <- head(results_df, top_n)
+        }
+        
+        # Display table if requested
+        if (display_table) {
+            display_top_n <- if (!is.null(top_n) && !is.na(top_n)) top_n else nrow(results_df)
+            .display_effect_sizes_table(results_df, display_top_n)
+        }
+        
+        return(if (display_table) invisible(results_df) else results_df)
     }
     
     # If result is a list, try to extract the main results data.frame
@@ -721,6 +901,8 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
             # No data.frame found, return as-is
             return(result)
         }
+        
+        original_results_df <- results_df
         
         # Apply sorting and limiting if top_n specified
         if (!is.null(top_n) && !is.na(top_n) && top_n > 0) {
@@ -742,42 +924,124 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
             results_df <- head(results_df, top_n)
         }
         
-        # Update the list with the processed data.frame
-        if ("results" %in% names(result)) {
-            result$results <- results_df
-        } else if ("interaction_results" %in% names(result)) {
-            result$interaction_results <- results_df
-        } else if (length(result) == 1) {
-            result[[1]] <- results_df
+        # Display table if requested
+        if (display_table) {
+            display_top_n <- if (!is.null(top_n) && !is.na(top_n)) top_n else nrow(results_df)
+            .display_effect_sizes_table(results_df, display_top_n)
         }
         
-        return(result)
-    }
-    
-    # If result is already a data.frame, process directly
-    if (is.data.frame(result)) {
-        if (!is.null(top_n) && !is.na(top_n) && top_n > 0) {
-            # Verify sort_by column exists
-            if (!(sort_by %in% colnames(result))) {
-                stop("Column '", sort_by, "' not found in results. ",
-                     "Available columns: ", paste(colnames(result), collapse = ", "),
-                     call. = FALSE)
-            }
-            
-            # Determine sort direction
-            decreasing <- !grepl("p_value|pvalue|padj|adj_p", sort_by, ignore.case = TRUE)
-            
-            # Sort and limit
-            order_idx <- order(result[[sort_by]], na.last = TRUE, decreasing = decreasing)
-            result <- result[order_idx, , drop = FALSE]
-            result <- head(result, top_n)
-        }
-        
-        return(result)
+        # Return the processed data.frame (not the list)
+        return(if (display_table) invisible(results_df) else results_df)
     }
     
     # Return as-is if it's some other type
     result
 }
 
+# ============================================================================
+# Switching Tables Result Processing
+# ============================================================================
+
+#' Process switching_tables results with optional display
+#'
+#' @keywords internal
+#' @noRd
+.process_switching_tables_results <- function(result, display_table = FALSE) {
+    if (is.null(result)) {
+        return(NULL)
+    }
+    
+    # Display formatted tables if requested
+    if (display_table && is.list(result) && !is.null(result$comparison_tables)) {
+        .display_switching_tables(result)
+    }
+    
+    # Return the original result (invisibly if displayed)
+    if (display_table) invisible(result) else result
+}
+
+#' Display switching tables in formatted output
+#'
+#' Displays transcript switching tables for each gene in a human-readable format,
+#' with transcript delta-influence values across q-spectrum and direction consistency.
+#'
+#' @keywords internal
+#' @noRd
+.display_switching_tables <- function(switching_tables_result) {
+    if (is.null(switching_tables_result)) {
+        return()
+    }
+    
+    comparison_tables <- switching_tables_result$comparison_tables
+    gene_headers <- switching_tables_result$gene_headers
+    q_metadata <- switching_tables_result$q_metadata
+    
+    if (is.null(comparison_tables) || length(comparison_tables) == 0) {
+        return()
+    }
+    
+    # Print each gene's switching table
+    for (i in seq_along(comparison_tables)) {
+        if (is.null(comparison_tables[[i]])) {
+            next
+        }
+        
+        # Print gene header
+        message("")
+        message(paste0("Gene: ", gene_headers[i]))
+        
+        table_data <- comparison_tables[[i]]
+        
+        # Get q-value metadata for this gene
+        q_info <- q_metadata[[i]]
+        q_values_available <- q_info$q_values_available
+        q_key_to_value <- q_info$q_key_to_value
+        
+        # Build header with column names
+        header_parts <- "Transcript"
+        
+        for (q_key in q_values_available) {
+            q_val <- q_key_to_value[[q_key]]
+            q_formatted <- sprintf("%.2f", q_val)
+            header_parts <- c(header_parts, paste0("q=", q_formatted))
+        }
+        
+        header_parts <- c(header_parts, "Direction Consistency")
+        
+        # Print header
+        # Calculate column widths: transcript gets 20 chars, each q-value gets 10, consistency gets 20
+        header_line <- sprintf("%-20s", header_parts[1])
+        for (j in 2:(length(header_parts)-1)) {
+            header_line <- paste0(header_line, sprintf("%10s", header_parts[j]))
+        }
+        header_line <- paste0(header_line, sprintf("  %-20s", header_parts[length(header_parts)]))
+        message(header_line)
+        
+        # Print data rows
+        for (row_idx in seq_len(nrow(table_data))) {
+            tx_name <- table_data$transcript[row_idx]
+            consistency <- table_data$Consistency[row_idx]
+            
+            if (is.na(consistency)) {
+                consistency <- "Unknown"
+            }
+            
+            row_line <- sprintf("%-20s", tx_name)
+            
+            # Add delta_influence values for each q
+            for (q_key in q_values_available) {
+                delta_val <- table_data[[q_key]][row_idx]
+                if (is.na(delta_val)) {
+                    row_line <- paste0(row_line, sprintf("%10s", "N/A"))
+                } else {
+                    row_line <- paste0(row_line, sprintf("%10.3f", delta_val))
+                }
+            }
+            
+            row_line <- paste0(row_line, sprintf("  %-20s", consistency))
+            
+            message(row_line)
+        }
+    }
+}
 

@@ -319,7 +319,10 @@ provide a comprehensive framework for assessing isoform heterogeneity at multipl
 We normalize entropy to [0,1] range (`norm = TRUE`) for comparable cross-q assessment.
 
 ```{r tsallis-entropy-computation, message = FALSE, warning = FALSE}
-# Compute diversity
+# Set random seed for reproducible bootstrap CI calculations
+set.seed(12345)
+
+# Compute diversity using S4 wrapper with bootstrap confidence intervals [@S232; @S115]
 # Uses q-spectrum from config (seq(0, 2, by=0.05) as configured above)
 analysis <- calculate_diversity(
     analysis,
@@ -327,7 +330,8 @@ analysis <- calculate_diversity(
 )
 
 # Extract and display diversity results with formatted table
-results(analysis, type = "diversity", display_table = TRUE, n_genes = 4)
+diversity <- results(analysis, type = "diversity", display_table = TRUE, n_genes = 4, sample = "SRR14800481")
+print(diversity)
 ```
 
 ```{r kable-tsallis-calc-sequence, echo = FALSE, results = "asis"}
@@ -569,7 +573,7 @@ The tables below show the transcript switching patterns for the top genes with s
 
 ```{r extract-switching-results, echo=TRUE}
 # Retrieve gene switching tables
-tables_result <- results(analysis, type = "switching_tables")
+tables_result <- results(analysis, type = "switching_tables", display_table = TRUE)
 ```
 
 ```{r display-switching-table, echo=FALSE, results='asis'}
@@ -721,154 +725,30 @@ top_genes_result <- results(
     analysis, 
     type = "effect_sizes_divergence",
     top_n = 6,
-    sort_by = "p_value_interaction"
+    sort_by = "p_value_interaction",
+    display_table = TRUE
 )
 ```
 
-```{r extract-divergence-results, echo=FALSE, results='hide'}
-# Extract results from calculate_effect_sizes using the new accessor
-divergence_results_se <- NULL
-lm_res_results <- NULL
+```{r extract-divergence-results, echo=TRUE}
+# Extract top 6 genes by statistical significance
+top_genes_result <- results(
+    analysis, 
+    type = "effect_sizes_divergence",
+    top_n = 6,
+    sort_by = "p_value_interaction",
+    display_table = TRUE
+)
 
-if (exists("analysis")) {
-    # Extract effect size divergence results using results accessor
-    effect_res <- results(analysis, type = "effect_sizes_divergence")
-    
-    if (!is.null(effect_res) && !is.null(effect_res$interaction_results)) {
-        lm_res_results <- effect_res$interaction_results
-    }
-}
-
-# Also extract raw divergence results (optional)
-if (exists("analysis")) {
-    divergence_results_se <- results(analysis, type = "divergence")
-}
+# Display the result (data.frame with effect size information)
+print(top_genes_result)
 ```
 
-```{r divergence-results-table, results='asis', echo = FALSE}
-# Display top divergence results from calculate_effect_sizes
-if (!is.null(lm_res_results) && nrow(lm_res_results) > 0) {
-    tryCatch({
-        # Check for required columns
-        if ("gene" %in% colnames(lm_res_results) && 
-            ("adj_p_interaction" %in% colnames(lm_res_results) || "p_value_interaction" %in% colnames(lm_res_results))) {
-            
-            # Determine which p-value column to use
-            p_col <- if ("adj_p_interaction" %in% colnames(lm_res_results)) {
-                "adj_p_interaction"
-            } else if ("p_value_interaction" %in% colnames(lm_res_results)) {
-                "p_value_interaction"
-            } else {
-                NULL
-            }
-            
-            if (!is.null(p_col)) {
-                # Find effect size columns (like effect_size_D_q0_1, effect_size_D_q1_0, etc.)
-                effect_cols <- grep("^effect_size_D", colnames(lm_res_results), value = TRUE)
-                
-                if (length(effect_cols) > 0) {
-                    # Build display table
-                    div_df <- data.frame(
-                        Gene = lm_res_results$gene,
-                        p_adj = lm_res_results[[p_col]],
-                        stringsAsFactors = FALSE
-                    )
-                    
-                    # Add first (or mean of) effect sizes for display
-                    if (length(effect_cols) > 0) {
-                        # Calculate mean effect size across q values for each gene
-                        div_df$Mean_Effect_Size <- rowMeans(
-                            lm_res_results[, effect_cols, drop = FALSE], na.rm = TRUE
-                        )
-                    }
-                    
-                    # Add pattern if available
-                    if ("per_q_pattern" %in% colnames(lm_res_results)) {
-                        div_df$Q_Pattern <- lm_res_results$per_q_pattern
-                        # If Q_Pattern contains pattern labels, they'll display as-is
-                        # If numeric fallback was used (old format), it would show commas
-                    }
-                    
-                    # Add pattern metrics if available (div_rare_median, div_abundant_median, q_ratio)
-                    if ("div_rare_median" %in% colnames(lm_res_results)) {
-                        div_df$div_rare_median <- lm_res_results$div_rare_median
-                    }
-                    if ("div_abundant_median" %in% colnames(lm_res_results)) {
-                        div_df$div_abundant_median <- lm_res_results$div_abundant_median
-                    }
-                    if ("q_ratio" %in% colnames(lm_res_results)) {
-                        div_df$q_ratio <- lm_res_results$q_ratio
-                    }
-                    
-                    # Sort and select top 10
-                    div_df <- div_df[order(div_df$p_adj, na.last = TRUE), ]
-                    div_df <- head(div_df, 10)
-                    
-                    # Remove rows with NA p-values
-                    div_df <- div_df[!is.na(div_df$p_adj), ]
-                    
-                    if (nrow(div_df) > 0) {
-                        # Format p-values
-                        div_df$p_adj <- format(as.numeric(div_df$p_adj), scientific = TRUE, digits = 2)
-                        
-                        # Format effect sizes
-                        if ("Mean_Effect_Size" %in% colnames(div_df)) {
-                            div_df$Mean_Effect_Size <- round(as.numeric(div_df$Mean_Effect_Size), 4)
-                        }
-                        
-                        # Format q-pattern metrics for clarity
-                        if ("div_rare_median" %in% colnames(div_df)) {
-                            div_df$div_rare_median <- round(as.numeric(div_df$div_rare_median), 4)
-                        }
-                        if ("div_abundant_median" %in% colnames(div_df)) {
-                            div_df$div_abundant_median <- round(as.numeric(div_df$div_abundant_median), 4)
-                        }
-                        if ("q_ratio" %in% colnames(div_df)) {
-                            div_df$q_ratio <- round(as.numeric(div_df$q_ratio), 2)
-                        }
-                        
-                        # Rename columns for display
-                        names(div_df)[names(div_df) == "p_adj"] <- "LM adj. p-value"
-                        names(div_df)[names(div_df) == "Mean_Effect_Size"] <- "Mean Divergence"
-                        names(div_df)[names(div_df) == "Q_Pattern"] <- "Q-Pattern"
-                        names(div_df)[names(div_df) == "div_rare_median"] <- "D_rare"
-                        names(div_df)[names(div_df) == "div_abundant_median"] <- "D_abundant"
-                        names(div_df)[names(div_df) == "q_ratio"] <- "Ratio"
-                        
-                        # Reorder columns: Gene -> Effect -> Pattern details -> Significance
-                        col_order <- c("Gene", "Mean Divergence", "Q-Pattern", "D_rare", "D_abundant", "Ratio", "LM adj. p-value")
-                        col_order <- col_order[col_order %in% colnames(div_df)]
-                        div_df <- div_df[, col_order, drop = FALSE]
-                        
-                        print(knitr::kable(div_df,
-                            caption = "**Table 5 | Top genes by linear model significance with effect sizes and q-spectrum patterns.** Ranked by statistical significance (ascending *P*-values, Benjamini-Hochberg *q*-value < 0.05).",
-                            row.names = FALSE,
-                            format = if (knitr::is_latex_output()) "latex" else "html",
-                            longtable = knitr::is_latex_output(),
-                            linesep = "") %>%
-                        kableExtra::kable_styling(
-                          bootstrap_options = c("striped", "hover"),
-                          full_width = TRUE,
-                          latex_options = c("scale_down")
-                        ))
-                    } else {
-                        cat("No valid divergence results to display.\n")
-                    }
-                } else {
-                    cat("Note: No effect size columns found in results\n")
-                }
-            } else {
-                cat("Note: No p-value column found in results\n")
-            }
-        } else {
-            cat("Note: Required 'gene' and 'p-value' columns not found in results\n")
-        }
-    }, error = function(e) {
-        cat("Note: Could not create divergence results table:", e$message, "\n")
-    })
-} else {
-    cat("Note: LM results from calculate_effect_sizes not available\n")
-}
+```{r divergence-results-table, results='markup', echo = FALSE}
+# The display_table=TRUE in the results() call above automatically formatted and displayed
+# the top 6 genes with their effect sizes and q-patterns in a human-readable format
+cat("Effect sizes reveal which genes show the most information-theoretic separation across the q-spectrum between paired treatment groups.\n")
+cat("Genes with Tsallis divergence D > 0.1 show substantial divergence, indicating fundamental differences in entropy distributions between conditions.\n")
 ```
 
 
