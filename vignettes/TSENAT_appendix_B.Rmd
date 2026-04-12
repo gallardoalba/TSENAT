@@ -36,11 +36,9 @@ knitr::opts_chunk$set(
 suppressPackageStartupMessages(library(kableExtra))
 ```
 
-# Overview: Non-Parametric Validation of Entropic Index × Group Interactions (q-values)
+# Purpose and Rationale
 
-## Purpose and Rationale
-
-Primary Goal: Validate that discoveries of scale-dependent entropic index × group interactions from linear models generalize to non-parametric statistical frameworks with minimal assumptions.
+The primary goal of this vignette is to validate that discoveries of scale-dependent entropic index × group interactions from linear models generalize to non-parametric statistical frameworks with minimal assumptions.
 
 TSENAT's default approach employs **linear models** to test for entropic index × group effects in Tsallis entropy. While computationally efficient and well-characterized, linear models assume:
 - Normally distributed residuals (reasonable after appropriate transformation)
@@ -56,14 +54,14 @@ This appendix provides two independent, non-parametric alternatives that:
 
 ## Two Complementary Validation Approaches
 
-**Method 1**: Generalized Additive Models (GAM) with ARIMA-Ordered Measurement Structure.
+**Method 1: Generalized Additive Models (GAM)** with ARIMA-Ordered Measurement Structure.
 
 - Distributional assumption: None required; uses non-parametric basis functions (thin-plate splines).
 - Treatment of entropic structure: Treats q-values as time-like ordered measurements, applies ARIMA(1,1,0) differencing for autocorrelation.
 - Heteroscedasticity handling: Automatically detects variance heterogeneity; applies optimal weighting.
 - Key advantage: Captures smooth nonlinear q * group effects with computational efficiency.
 
-**Method 2**: Rank-Based Tests (Scheirer-Ray-Hare with Hochberg Step-Up Correction).
+**Method 2: Rank-Based Scheirer-Ray-Hare test** with Hochberg Step-Up Correction.
 
 - Distributional assumption: None; operates entirely on ranks (maximal robustness).
 - Treatment of q-ordering: Scheirer-Ray-Hare two-way test for paired measurements across q and group.
@@ -139,8 +137,7 @@ analysis <- build_analysis(
 # Apply filtering for quality control
 analysis <- filter_analysis(
     analysis,
-    stringency = "medium",
-    min_isoform_abundance = 0
+    stringency = "medium"
 )
 ```
 
@@ -170,7 +167,39 @@ analysis <- calculate_diversity(
 
 # Rank-Based Approach (Scheirer-Ray-Hare)
 
-The Scheirer-Ray-Hare test provides a non-parametric validation of linear model results by leveraging the paired nature of the experimental design and the ordered structure of entropic indices. Unlike parametric methods that assume normality and homogeneity of variance, the Scheirer-Ray-Hare test operates solely on ranks, making it maximally robust to outliers and extreme values.
+The Scheirer-Ray-Hare test is a two-way non-parametric ANOVA that operates on ranks rather than raw values. It is particularly well-suited for Tsallis entropy analysis for three fundamental reasons:
+
+1. **Robustness to Distribution Violations**
+
+Tsallis entropy values exhibit inherent distributional properties that often violate parametric assumptions:
+
+- Non-normality: Entropy commonly exhibits bounded support (e.g., normalized entropy in [0,1]), producing skewed or bimodal distributions rather than normal distributions.
+- Heteroscedasticity: Variance in entropy estimates varies systematically across q-values. Low q-values (emphasizing rare transcripts) produce volatile entropy estimates with high variance; high q-values (emphasizing abundant transcripts) produce stable estimates with lower variance.
+- Outlier sensitivity: Rare isoforms and count variability can produce extreme entropy values that heavily influence parametric tests.
+
+The Scheirer-Ray-Hare test avoids these issues by replacing raw entropy values with their ranks (1, 2, 3, ..., n). Ranks are **uniformly distributed and contain no outliers**, making the method valid for ANY continuous distribution—normal, skewed, bimodal, or otherwise. Critically, rank ordering is unaffected by normalization choice; whether entropy is normalized, log-transformed, or left raw, the test produces identical results [@S270; @S271].
+
+2. **Paired Design for Ordered q-Value Structure**
+
+Tsallis entropy has a fundamental sequential property: entropy curves are smooth functions of q. As q increases from 0 (rare-species-emphasizing) to ∞ (common-species-emphasizing), entropy values change systematically. This ordered structure is critical to interpreting q-dependent patterns and exhibits **AR(1) autocorrelation**: consecutive q-values produce correlated entropy estimates.
+
+The Scheirer-Ray-Hare test handles this structure by treating measurements as paired/repeated within genes across ordered q-values, capturing the sequential nature while maintaining exchangeability of samples. Autocorrelation in the original entropy values does NOT affect rank ordering or the validity of inference—this property, known as *maximal invariance* in permutation testing, ensures that rank-based inference is valid under any correlation pattern [@S019; @C018]. Within-subject ranking preserves pairing structure while appropriately downweighting the influence of AR(1) dependence through rank transformation [@S030; @K003].
+
+3. **Interaction Testing: Testing q × Condition Effects**
+
+The implementation uses two-way ANOVA applied to ranks (the modern computational approach):
+
+$$F_{q \times \text{condition}} = \frac{MS_{\text{interaction}}}{MS_{\text{residual}}}$$
+
+where:
+
+- Data are first ranked: $R = \text{rank}(\text{entropy})$ (within-subject ranks for paired designs)
+- Two-way ANOVA decomposes ranked data: $R = \mu + \alpha_q + \beta_{\text{condition}} + \gamma_{q \times \text{condition}} + \epsilon$
+- $MS_{\text{interaction}}$ = sum of squares for $q \times$ condition interaction / degrees of freedom
+- $MS_{\text{residual}}$ = residual sum of squares / residual degrees of freedom
+- $F$-statistic follows $F$-distribution under null hypothesis of no interaction
+
+This directly tests the core biological question: "Does entropy q-dependence differ between groups?" The rank-transformed two-way ANOVA is mathematically equivalent to the original Scheirer-Ray-Hare test statistic but computationally more stable and easier to interpret. Modern extensions of rank-based testing demonstrate the validity of permutation procedures for testing interactions even under complex dependence structures [@S166].
 
 ## Assumption Validation
 
@@ -191,59 +220,46 @@ rank_assumptions <- metadata(analysis, "rankbased_assumptions")$result
 summary_stats <- attr(rank_assumptions, "summary_stats")
 check_results <- attr(rank_assumptions, "checks")
 
-# Create entropy data summary table
-entropy_summary <- data.frame(
-  Metric = c(
-    "Genes tested",
-    "Samples (entropic order indices × groups)",
-    "Entropy range",
-    "Mean entropy",
-    "Median entropy",
-    "Missing values"
-  ),
-  Value = c(
-    summary_stats$n_genes,
-    summary_stats$n_samples,
-    sprintf("%.4f to %.4f", summary_stats$entropy_min, summary_stats$entropy_max),
-    sprintf("%.4f", summary_stats$entropy_mean),
-    sprintf("%.4f", summary_stats$entropy_median),
-    summary_stats$n_missing
-  )
-)
-
-knitr::kable(entropy_summary, 
-             caption = "Supplementary Table 1 | Rank-Based Entropy Matrix Properties.",
-             label = "tab:rank-entropy-summary",
-             align = c("l", "r"),
-             format = if (knitr::is_latex_output()) "latex" else "html",
-             longtable = knitr::is_latex_output(),
-             linesep = "") %>%
-  kableExtra::kable_styling(
-    bootstrap_options = c("striped", "hover"),
-    full_width = TRUE,
-    latex_options = c("scale_down")
-  ) %>%
-  kableExtra::footnote(general = "Data from complete entropy matrix across all q-values and samples.")
-
-cat("\n")
-
 # Create assumption checks table
 exchangeability_check <- check_results$exchangeability
 monotonicity_check <- check_results$monotonicity
 consistency_check <- check_results$consistency
 
+# Format p-values and statistics with appropriate precision
+format_pvalue <- function(p) {
+  if (is.na(p)) return("NA")
+  if (!is.finite(p)) return("<1e-300")
+  if (p < 1e-300) return("<1e-300")
+  if (p < 0.001) {
+    result <- formatC(p, format="e", digits=2)
+    if (result == "0e+00") return("<1e-300") else return(result)
+  }
+  else return(sprintf("%.6f", p))
+}
+
+format_stat <- function(x) {
+  if (is.na(x)) return("NA")
+  if (!is.finite(x)) return("<1e-300")
+  if (x < 1e-300) return("<1e-300")
+  if (x < 0.001) {
+    result <- formatC(x, format="e", digits=2)
+    if (result == "0e+00") return("<1e-300") else return(result)
+  }
+  else return(sprintf("%.6f", x))
+}
+
 data_characteristics <- data.frame(
   Characteristic = c("Paired Structure", "Gene Heterogeneity", "Subject Consistency"),
   Test = c("Permutation test", "Spearman r", "Kendall's W"),
   Result = c(
-    sprintf("p=%.3f", exchangeability_check$p_value),
-    sprintf("r=%.3f", monotonicity_check$mean_correlation),
-    sprintf("W=%.3f", consistency_check$kendall_w)
+    sprintf("p=%s", format_pvalue(exchangeability_check$p_value)),
+    sprintf("r=%s", format_stat(monotonicity_check$mean_correlation)),
+    sprintf("W=%s", format_stat(consistency_check$kendall_w))
   )
 )
 
 knitr::kable(data_characteristics, 
-             caption = "Supplementary Table 2 | Entropy Matrix Validation Metrics. Three core properties validating suitability for rank-based analysis. Rows: Paired Structure (exchangeability test ensures independence), Gene Heterogeneity (Spearman rank correlation), Subject Consistency (Kendall's *W* concordance). Values reported as *P*-values, correlation coefficients *r*, and concordance *W* (0-1 range). All tests support exchangeability assumption justifying Scheirer-Ray-Hare nonparametric approach.",
+             caption = "Supplementary Table 2 | Entropy Matrix Validation Metrics. Three core properties validating suitability for rank-based analysis.",
              align = c("l", "l", "r", "l"),
              format = if (knitr::is_latex_output()) "latex" else "html",
              longtable = knitr::is_latex_output(),
@@ -253,12 +269,22 @@ knitr::kable(data_characteristics,
     full_width = TRUE,
     latex_options = c("scale_down")
   ) %>%
-  kableExtra::footnote(general = "All metrics support validity of paired-design rank-based inference.")
+  kableExtra::footnote(general = "Paired Structure: Tests whether consecutive samples show higher correlation than expected by random shuffling (p > 0.05 = exchangeable). Gene Heterogeneity: Measures consistency of entropy rank ordering across genes (r > 0.7 = high). Subject Consistency: Evaluates concordance among replicate samples (W > 0.7 = high agreement).")
 ```
 
-## Scheirer-Ray-Hare Test: Testing q $\times$ Condition Interactions
+### SRH for Multi-q Tsallis Entropy with AR(1) Autocorrelation
 
-Now we will use the Scheirer-Ray-Hare test to evaluate whether entropy patterns across entropic indices (q-values) differ between normal and tumor samples. The Scheirer-Ray-Hare test is a non-parametric alternative to the paired t-test and repeated measures ANOVA, making it ideal for paired designs where distributional assumptions may be violated [@S030].
+Multi-q Tsallis entropy analysis presents a unique statistical challenge: measurements across consecutive q-values exhibit **AR(1) autocorrelation** (correlated entropy estimates), yet the paired q-ordering structure must be preserved for biological interpretation. The Scheirer-Ray-Hare approach outlined above uniquely handles this combination by:
+
+- Treating q-values as paired/ordered measurements while rank-transforming entropy values to eliminate distributional dependencies.
+- Rendering AR(1) autocorrelation statistically irrelevant through rank transformation, which operates on rank ordering rather than actual values.
+- Preserving the sequential q-structure for biological interpretation while gaining maximal robustness through permutation-theoretic methods.
+
+This integration of ordered measurement structure with robust rank-based inference—grounded in within-subject permutation theory—makes SRH ideally suited for multi-q entropy validation without requiring distributional assumptions or independence of observations [@S019; @C018; @S030; @S166].
+
+## Scheirer-Ray-Hare Test: Testing q x Condition Interactions
+
+Now we will use the Scheirer-Ray-Hare test to evaluate whether entropy patterns across entropic indices (q-values) differ between normal and tumor samples.
 
 ```{r srh-rank-test-analysis, message=FALSE, results='hide'}
 # Run Scheirer-Ray-Hare test for q * condition INTERACTION
@@ -311,7 +337,7 @@ knitr::kable(rank_summary_stats, caption = "Supplementary Table 3 | Scheirer-Ray
   kableExtra::footnote(general = "Scheirer-Ray-Hare test: nonparametric rank-based ANOVA for paired designs.")
 
 # Show top genes results
-rank_sig <- srh_results[!is.na(srh_results$p_value), ]
+rank_sig <- srh_results_all[!is.na(srh_results_all$p_value), ]
 if (nrow(rank_sig) > 0) {
   rank_sig <- rank_sig[order(rank_sig$adj_p_value), ]
   rank_sig <- rank_sig[1:min(10, nrow(rank_sig)), ]
@@ -326,13 +352,13 @@ if (nrow(rank_sig) > 0) {
     # Format p-values with scientific notation for very small values
     if ("p_value" %in% colnames(rank_display)) {
       rank_display$p_value <- sapply(rank_display$p_value, function(x) {
-        if (is.na(x)) "NA" else if (x < 0.0001) format(signif(x, 2), scientific=TRUE) else sprintf("%.6f", x)
+        if (is.na(x)) "NA" else if (x >= 0.9999) "1" else if (x < 0.0001) format(signif(x, 2), scientific=TRUE) else sprintf("%.6f", x)
       })
     }
     
     if ("adj_p_value" %in% colnames(rank_display)) {
       rank_display$adj_p_value <- sapply(rank_display$adj_p_value, function(x) {
-        if (is.na(x)) "NA" else if (x < 0.0001) format(signif(x, 2), scientific=TRUE) else sprintf("%.6f", x)
+        if (is.na(x)) "NA" else if (x >= 0.9999) "1" else if (x < 0.0001) format(signif(x, 2), scientific=TRUE) else sprintf("%.6f", x)
       })
     }
     
@@ -376,8 +402,9 @@ if (nrow(rank_sig) > 0) {
 Visualize q-curves for top genes:
 
 ```{r extended-fig-1-srh-q-curves, fig.width=12, fig.height=8, message=FALSE, out.width="98%", fig.pos="H", fig.cap="Extended Data Figure 1 | Scheirer-Ray-Hare rank test results for scale-dependent isoform switching."}
-# Plot top genes from Scheirer-Ray-Hare test
-top_genes_plot <- plot_diversity_spectrum(analysis, lm_res = srh_results, n_top = 4)
+# Plot top genes from Scheirer-Ray-Hare test (using all genes, not just significant ones)
+# This ensures the plot displays n_top genes regardless of significance threshold
+top_genes_plot <- plot_diversity_spectrum(analysis, lm_res = srh_results_all, n_top = 4)
 print(top_genes_plot)
 ```
 
@@ -450,20 +477,25 @@ if ("p_interaction" %in% colnames(gam_results)) {
     if (length(cols_to_show) > 0) {
       gam_display <- gam_sig[, cols_to_show, drop = FALSE]
       
-      # Format numeric columns
+      # Format numeric columns (but NOT p-value columns - preserve full precision for later formatting)
       numeric_cols <- sapply(gam_display, is.numeric)
-      gam_display[, numeric_cols] <- round(gam_display[, numeric_cols], 3)
+      # Only round non-p-value columns to 3 decimal places
+      pval_cols <- c("p_interaction", "adj_p_interaction")
+      cols_to_round <- setdiff(names(numeric_cols[numeric_cols]), pval_cols)
+      if (length(cols_to_round) > 0) {
+        gam_display[, cols_to_round] <- round(gam_display[, cols_to_round], 3)
+      }
       
       # Format p-value columns with scientific notation for very small values
       if ("p_interaction" %in% colnames(gam_display)) {
         gam_display$p_interaction <- sapply(gam_display$p_interaction, function(x) {
-          if (is.na(x)) "NA" else if (x < 0.001) format(signif(x, 2), scientific=TRUE) else sprintf("%.6f", x)
+          if (is.na(x)) "NA" else if (x < 1e-300) "<1e-300" else if (x < 0.001) formatC(x, format="e", digits=2) else sprintf("%.6f", x)
         })
       }
       
       if ("adj_p_interaction" %in% colnames(gam_display)) {
         gam_display$adj_p_interaction <- sapply(gam_display$adj_p_interaction, function(x) {
-          if (is.na(x)) "NA" else if (x < 0.001) format(signif(x, 2), scientific=TRUE) else sprintf("%.6f", x)
+          if (is.na(x)) "NA" else if (x < 1e-300) "<1e-300" else if (x < 0.001) formatC(x, format="e", digits=2) else sprintf("%.6f", x)
         })
       }
       

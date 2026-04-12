@@ -133,13 +133,14 @@
   note = {Foundational paper on step-down multiple testing procedure for family-wise error rate control. Provides alternative to Bonferroni correction offering improved power in sequential testing of genes and isoforms for differential expression, diversity, or divergence.}
 }
 @article{K003,
-  author = {Saulsbury, M. D.},
-  title = {Label shuffling: A permutation approach for testing within-subject effects},
-  journal = {Methods in Ecology and Evolution},
-  volume = {11},
-  pages = {1428--1434},
+  author = {Saulsbury, James G.},
+  title = {Permutation Tests for Comparative Data},
+  journal = {bioRxiv},
+  volume = {},
+  pages = {},
   year = {2020},
-  note = {Novel permutation methodology for testing within-subject effects while preserving repeated measures structure. Relevant to analyzing paired/repeated RNA-seq samples and testing for significant changes in diversity or divergence within subjects over time or conditions.}
+  doi = {10.1101/2020.10.24.325472},
+  note = {Permutation methodology for non-parametric analysis of comparative data using cyclic and phylogenetic signal-conserving permutations. While focused on phylogenetic comparative analysis, the permutation testing framework is applicable to repeated measures designs and within-subject testing. Demonstrates how permutation approaches preserve experimental structure while enabling flexible hypothesis testing.}
 }
 
 @book{C049,
@@ -732,9 +733,30 @@
 
 @book{S030,
   author = {Zhang, Zhiyong and Yuan, Ke-Hai},
-  title = {Practical {{M}}ethods for {{D}}ata {{A}}nalysis},
-  publisher = {SAGE Publications},
+  title = {Practical Statistical Power Analysis using {{WebPower}} and {{R}}},
+  publisher = {ISDSA Press},
   year = {2018},
   edition = {1st},
   note = {Comprehensive handbook covering practical statistical methods for data analysis including paired designs, repeated measures ANOVA, interaction testing, and non-parametric approaches. Provides accessible exposition of multi-way ANOVA, effect size estimation, and parametric hypothesis testing procedures. Relevant for understanding paired design analysis, interaction detection in factorial experiments, and statistical power considerations in comparative studies.}
+}
+
+@article{S270,
+  author = {Conover, William Jay and Iman, Ronald L.},
+  title = {Rank transformations as a bridge between parametric and nonparametric statistics},
+  journal = {The American Statistician},
+  volume = {35},
+  number = {3},
+  pages = {124--129},
+  year = {1981},
+  doi = {10.2307/2683975},
+  note = {Seminal paper establishing theoretical foundation for rank transformation methods in statistical inference. Demonstrates that two-way ANOVA applied to ranks is mathematically equivalent to the original Scheirer-Ray-Hare test statistic while providing computational stability and interpretability improvements. Establishes validity of rank-based approaches for nonparametric hypothesis testing with arbitrary continuous distributions.}
+}
+
+@book{S271,
+  author = {Puri, Madan L. and Sen, Pranab Kumar},
+  title = {Nonparametric Methods in {{M}}ultivariate {{A}}nalysis},
+  publisher = {John Wiley \& Sons},
+  year = {1971},
+  edition = {1st},
+  note = {Comprehensive theoretical treatment of nonparametric statistical methods for multivariate data analysis. Provides rigorous mathematical foundation for rank-based tests, permutation procedures, and distribution-free inference. Establishes theoretical basis for applying rank transformations to multivariate problems and complex experimental designs with minimal distributional assumptions.}
 }

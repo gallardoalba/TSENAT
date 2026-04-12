@@ -30,44 +30,57 @@
         na.rm = TRUE), entropy_max = max(data, na.rm = TRUE), entropy_mean = mean(data,
         na.rm = TRUE), entropy_median = median(data, na.rm = TRUE), n_missing = sum(is.na(data)))
 
-    # Check 1: Exchangeability (permutation test for temporal/spatial ordering
-    # effects)
+    # Check 1: Exchangeability (permutation test for serial correlation in samples)
     if ("exchangeability" %in% checks) {
-        # Permutation test: compare variance of within-row means vs between-row
-        # means Hypothesis: if data is exchangeable, permuting column order
-        # shouldn't affect patterns
+        # Hypothesis: Under exchangeability, consecutive samples should show
+        # similar correlation to random sample pairs. Ordering effects would
+        # manifest as higher correlation in consecutive samples than expected
+        # by chance.
 
-        # Original statistic: autocorrelation of row means
-        row_means <- rowMeans(data, na.rm = TRUE)
-        original_acf <- if (length(row_means) > 1) {
-            cor(row_means[-length(row_means)], row_means[-1], use = "complete.obs")
-        } else {
-            0
-        }
-
-        # Permutation test: resample column order 999 times
-        n_perms <- 99
-        perm_acf <- numeric(n_perms)
-        # Seed handling left to caller for Bioconductor compliance
-        for (i in seq_len(n_perms)) {
-            perm_idx <- sample(seq_len(ncol(data)))
-            perm_data <- data[, perm_idx]
-            perm_means <- rowMeans(perm_data, na.rm = TRUE)
-            perm_acf[i] <- if (length(perm_means) > 1) {
-                cor(perm_means[-length(perm_means)], perm_means[-1], use = "complete.obs")
-            } else {
-                0
+        # Test statistic: mean Pearson correlation between consecutive samples (columns)
+        if (ncol(data) > 2) {
+            # Compute correlations between consecutive samples
+            consecutive_cors <- numeric(ncol(data) - 1)
+            for (i in seq_len(ncol(data) - 1)) {
+                consecutive_cors[i] <- stats::cor(data[, i], data[, i + 1],
+                  method = "pearson", use = "complete.obs")
             }
+            original_stat <- mean(consecutive_cors, na.rm = TRUE)
+
+            # Permutation test: shuffle column order and recompute
+            n_perms <- 99
+            perm_stats <- numeric(n_perms)
+            # Seed handling left to caller for Bioconductor compliance
+            for (perm in seq_len(n_perms)) {
+                # Shuffle column (sample) order
+                perm_idx <- sample(seq_len(ncol(data)))
+                perm_data <- data[, perm_idx]
+
+                # Recompute consecutive correlations
+                perm_cors <- numeric(ncol(perm_data) - 1)
+                for (i in seq_len(ncol(perm_data) - 1)) {
+                  perm_cors[i] <- stats::cor(perm_data[, i], perm_data[, i + 1],
+                    method = "pearson", use = "complete.obs")
+                }
+                perm_stats[perm] <- mean(perm_cors, na.rm = TRUE)
+            }
+
+            # P-value: proportion of permutations with mean_consecutive >= original
+            # High p-value: original correlation within random variation (exchangeable)
+            # Low p-value: original shows ordering effect (NOT exchangeable)
+            p_exchangeability <- mean(perm_stats >= original_stat, na.rm = TRUE)
+
+            results$exchangeability <- list(description = "Sample exchangeability (serial correlation in sequence)",
+                method = "Permutation test (consecutive sample correlations vs. shuffled)",
+                test_statistic = original_stat, p_value = p_exchangeability,
+                status = if (p_exchangeability > alpha) "[OK] PASS" else "? REORDER",
+                details = sprintf("Mean consec. corr=%.3f, p=%.3f (permutation test, 99 replicates)",
+                  original_stat, p_exchangeability))
+        } else {
+            results$exchangeability <- list(description = "Sample exchangeability",
+                method = "Insufficient samples (need >= 3)", status = "? SKIP",
+                details = "Requires at least 3 samples to test exchangeability")
         }
-
-        # P-value: proportion of permutations with |acf| >= |original|
-        p_exchangeability <- mean(abs(perm_acf) >= abs(original_acf))
-
-        results$exchangeability <- list(description = "Sample exchangeability (no strong ordering effects)",
-            method = "Permutation test (row mean autocorrelation)", test_statistic = original_acf,
-            p_value = p_exchangeability, status = if (p_exchangeability > alpha) "[OK] PASS" else "? FAIL",
-            details = sprintf("Autocorr=%.3f, p=%.3f (permutation test, 99 replicates)",
-                original_acf, p_exchangeability))
     }
 
     # Check 2: Monotonicity (Spearman correlation stability across rows)
