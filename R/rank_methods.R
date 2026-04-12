@@ -833,15 +833,6 @@
 #' @param data Matrix of predictor values
 #' @return List with basis adequacy assessment
 #' @noRd
-#' Compute Basis Function Adequacy
-#'
-#' Finds optimal spline basis dimension by minimizing GCV across k=[3,5,8,10,15].
-#' Tests per-gene GAMs to find appropriate basis dimension for entropy curves.
-#'
-#' @param data Matrix of entropy values (rows=genes, cols=q-values)
-#' @param q_values Optional numeric vector of q-values for per-gene GAM fitting
-#' @return List with optimal basis dimension and status
-#' @noRd
 .compute_basis_adequacy <- function(data, q_values = NULL) {
     
     if (!inherits(data, "matrix")) {

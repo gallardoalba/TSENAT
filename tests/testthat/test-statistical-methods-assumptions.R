@@ -1,4 +1,4 @@
-context("Statistical Methods - Rank-Based Assumptions Testing")
+context("Statistical Methods - Statistical Assumptions Testing")
 
 # Helper function for assertion validation
 assert_rankbased_result_valid <- function(result, check_type = NULL) {
@@ -11,10 +11,10 @@ assert_rankbased_result_valid <- function(result, check_type = NULL) {
 }
 
 # ============================================================================
-# TEST: calculate_rank_assumptions - Line 92 (matrix conversion)
+# TEST: calculate_assumptions - Line 92 (matrix conversion)
 # ============================================================================
 
-test_that("calculate_rank_assumptions: converts data.frame to matrix", {
+test_that("calculate_assumptions: converts data.frame to matrix", {
   # Line 92: if (!is.matrix(data)) data <- as.matrix(data)
   
   # Create a TSENATAnalysis object with diversity results
@@ -37,7 +37,7 @@ test_that("calculate_rank_assumptions: converts data.frame to matrix", {
   analysis@diversity_results$q_1.0 <- div_se
   
   # This should not error even with data.frame assay
-  result <- TSENAT:::calculate_rank_assumptions(
+  result <- TSENAT:::calculate_assumptions(
     analysis,
     checks = c("exchangeability")
   )
@@ -47,10 +47,10 @@ test_that("calculate_rank_assumptions: converts data.frame to matrix", {
 })
 
 # ============================================================================
-# TEST: calculate_rank_assumptions - Line 117 (single row edge case)
+# TEST: calculate_assumptions - Line 117 (single row edge case)
 # ============================================================================
 
-test_that("calculate_rank_assumptions: handles small data in exchangeability", {
+test_that("calculate_assumptions: handles small data in exchangeability", {
   # Line 117: 0 (when length(row_means) <= 1) - ensure at least 2 rows
   
   se <- SummarizedExperiment::SummarizedExperiment(
@@ -74,7 +74,7 @@ test_that("calculate_rank_assumptions: handles small data in exchangeability", {
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::calculate_rank_assumptions(
+  result <- TSENAT:::calculate_assumptions(
     analysis,
     checks = c("exchangeability")
   )
@@ -84,10 +84,10 @@ test_that("calculate_rank_assumptions: handles small data in exchangeability", {
 })
 
 # ============================================================================
-# TEST: calculate_rank_assumptions - Line 131 (permutation with single row)
+# TEST: calculate_assumptions - Line 131 (permutation with single row)
 # ============================================================================
 
-test_that("calculate_rank_assumptions: permutation handles small data", {
+test_that("calculate_assumptions: permutation handles small data", {
   # Line 131: 0 (when length(perm_means) <= 1 in permutation loop)
   
   se <- SummarizedExperiment::SummarizedExperiment(
@@ -111,7 +111,7 @@ test_that("calculate_rank_assumptions: permutation handles small data", {
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::calculate_rank_assumptions(
+  result <- TSENAT:::calculate_assumptions(
     analysis,
     checks = c("exchangeability")
   )
@@ -121,10 +121,10 @@ test_that("calculate_rank_assumptions: permutation handles small data", {
 })
 
 # ============================================================================
-# TEST: calculate_rank_assumptions - Line 169 (High correlation status)
+# TEST: calculate_assumptions - Line 169 (High correlation status)
 # ============================================================================
 
-test_that("calculate_rank_assumptions: returns PASS status for high monotonicity", {
+test_that("calculate_assumptions: returns PASS status for high monotonicity", {
   # Line 169: "[OK] PASS" status when mean_cor > 0.7 && sd_cor < 0.2
   
   se <- SummarizedExperiment::SummarizedExperiment(
@@ -149,7 +149,7 @@ test_that("calculate_rank_assumptions: returns PASS status for high monotonicity
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::calculate_rank_assumptions(
+  result <- TSENAT:::calculate_assumptions(
     analysis,
     checks = c("monotonicity")
   )
@@ -159,10 +159,10 @@ test_that("calculate_rank_assumptions: returns PASS status for high monotonicity
 })
 
 # ============================================================================
-# TEST: calculate_rank_assumptions - Line 171 (Acceptable correlation status)
+# TEST: calculate_assumptions - Line 171 (Acceptable correlation status)
 # ============================================================================
 
-test_that("calculate_rank_assumptions: returns ACCEPTABLE status for moderate monotonicity", {
+test_that("calculate_assumptions: returns ACCEPTABLE status for moderate monotonicity", {
   # Line 171: "? ACCEPTABLE" status when mean_cor > 0.4
   
   se <- SummarizedExperiment::SummarizedExperiment(
@@ -186,7 +186,7 @@ test_that("calculate_rank_assumptions: returns ACCEPTABLE status for moderate mo
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::calculate_rank_assumptions(
+  result <- TSENAT:::calculate_assumptions(
     analysis,
     checks = c("monotonicity")
   )
@@ -196,10 +196,10 @@ test_that("calculate_rank_assumptions: returns ACCEPTABLE status for moderate mo
 })
 
 # ============================================================================
-# TEST: calculate_rank_assumptions - Line 224 (High Kendall's W status)
+# TEST: calculate_assumptions - Line 224 (High Kendall's W status)
 # ============================================================================
 
-test_that("calculate_rank_assumptions: returns PASS status for high Kendall's W", {
+test_that("calculate_assumptions: returns PASS status for high Kendall's W", {
   # Line 224: "[OK] PASS" status when kendall_w > 0.7
   
   se <- SummarizedExperiment::SummarizedExperiment(
@@ -223,7 +223,7 @@ test_that("calculate_rank_assumptions: returns PASS status for high Kendall's W"
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::calculate_rank_assumptions(
+  result <- TSENAT:::calculate_assumptions(
     analysis,
     checks = c("consistency")
   )
@@ -233,10 +233,10 @@ test_that("calculate_rank_assumptions: returns PASS status for high Kendall's W"
 })
 
 # ============================================================================
-# TEST: calculate_rank_assumptions - Line 226 (Acceptable Kendall's W status)
+# TEST: calculate_assumptions - Line 226 (Acceptable Kendall's W status)
 # ============================================================================
 
-test_that("calculate_rank_assumptions: returns ACCEPTABLE status for moderate Kendall's W", {
+test_that("calculate_assumptions: returns ACCEPTABLE status for moderate Kendall's W", {
   # Line 226: "? ACCEPTABLE" status when kendall_w > 0.4
   
   se <- SummarizedExperiment::SummarizedExperiment(
@@ -257,7 +257,7 @@ test_that("calculate_rank_assumptions: returns ACCEPTABLE status for moderate Ke
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::calculate_rank_assumptions(
+  result <- TSENAT:::calculate_assumptions(
     analysis,
     checks = c("consistency")
   )
@@ -289,7 +289,7 @@ test_that("print.rank_assumptions: prints header and check details", {
   )
   analysis@diversity_results$q_1.0 <- div_se
   
-  result <- TSENAT:::calculate_rank_assumptions(
+  result <- TSENAT:::calculate_assumptions(
     analysis,
     checks = c("exchangeability")
   )
@@ -826,12 +826,12 @@ test_that("Bootstrap stability: SE relationships with CI width", {
 # Test: Integration Tests
 # ==============================================================================
 
-test_that("FPCA metrics integrate with calculate_rank_assumptions()", {
+test_that("FPCA metrics integrate with calculate_assumptions()", {
     set.seed(42)
     data <- matrix(rnorm(50 * 10, mean = 10, sd = 2), nrow = 50, ncol = 10)
     
     result <- tryCatch(
-        .calculate_rank_assumptions(data, checks = c("fpca_metrics")),
+        .calculate_assumptions(data, checks = c("fpca_metrics")),
         error = function(e) NULL
     )
     
@@ -848,7 +848,7 @@ test_that("FPCA metrics included in 'all' checks preset", {
     data <- matrix(rnorm(40 * 8, mean = 10, sd = 2), nrow = 40, ncol = 8)
     
     result <- tryCatch(
-        .calculate_rank_assumptions(data, checks = "all"),
+        .calculate_assumptions(data, checks = "all"),
         error = function(e) NULL
     )
     
@@ -1222,15 +1222,15 @@ test_that("get_gam_metrics failures in one metric don't stop others", {
 # INTEGRATION WITH CALCULATE_RANK_ASSUMPTIONS TESTS
 # ============================================================================
 
-test_that("calculate_rank_assumptions accepts gam_metrics check", {
-    result <- TSENAT:::.calculate_rank_assumptions(x, checks = c("gam_metrics"), q_values = q_values)
+test_that("calculate_assumptions accepts gam_metrics check", {
+    result <- TSENAT:::.calculate_assumptions(x, checks = c("gam_metrics"), q_values = q_values)
     
     check_results <- attr(result, "checks")
     expect_true("gam_metrics" %in% names(check_results))
 })
 
-test_that("calculate_rank_assumptions with gam_metrics produces 4 metrics", {
-    result <- TSENAT:::.calculate_rank_assumptions(x, checks = c("gam_metrics"), q_values = q_values)
+test_that("calculate_assumptions with gam_metrics produces 4 metrics", {
+    result <- TSENAT:::.calculate_assumptions(x, checks = c("gam_metrics"), q_values = q_values)
     
     check_results <- attr(result, "checks")
     gam_metrics <- check_results$gam_metrics
@@ -1238,9 +1238,9 @@ test_that("calculate_rank_assumptions with gam_metrics produces 4 metrics", {
     expect_equal(length(gam_metrics), 5)  # 4 metrics + consolidated
 })
 
-test_that("calculate_rank_assumptions combines rank and GAM checks", {
+test_that("calculate_assumptions combines rank and GAM checks", {
     # Use "all" preset which includes both
-    result <- TSENAT:::.calculate_rank_assumptions(x, checks = "all", q_values = q_values)
+    result <- TSENAT:::.calculate_assumptions(x, checks = "all", q_values = q_values)
     
     check_results <- attr(result, "checks")
     
@@ -1254,7 +1254,7 @@ test_that("calculate_rank_assumptions combines rank and GAM checks", {
 
 test_that("print.rank_assumptions handles GAM metrics", {
     result <- suppressWarnings(
-        TSENAT:::.calculate_rank_assumptions(x, checks = c("gam_metrics"), q_values = q_values)
+        TSENAT:::.calculate_assumptions(x, checks = c("gam_metrics"), q_values = q_values)
     )
     
     # Verify structure contains GAM metrics
@@ -1277,7 +1277,7 @@ test_that("print.rank_assumptions handles GAM metrics", {
 
 test_that("print.rank_assumptions displays both rank and GAM checks", {
     result <- suppressWarnings(
-        TSENAT:::.calculate_rank_assumptions(
+        TSENAT:::.calculate_assumptions(
             x,
             checks = c("exchangeability", "gam_metrics"),
             q_values = q_values
@@ -2108,16 +2108,16 @@ test_that("Individual metrics are consistent with wrapper", {
 })
 
 # ==============================================================================
-# Test: Integration with calculate_rank_assumptions
+# Test: Integration with calculate_assumptions
 # ==============================================================================
 
-test_that("GEE metrics integrate with calculate_rank_assumptions()", {
+test_that("GEE metrics integrate with calculate_assumptions()", {
     set.seed(42)
     data <- matrix(rnorm(50 * 10, mean = 10, sd = 2), nrow = 50, ncol = 10)
     
     # Test that gee_metrics check can be requested
     result <- tryCatch(
-        .calculate_rank_assumptions(data, checks = c("gee_metrics")),
+        .calculate_assumptions(data, checks = c("gee_metrics")),
         error = function(e) NULL
     )
     
@@ -2134,7 +2134,7 @@ test_that("GEE metrics included in 'all' checks preset", {
     data <- matrix(rnorm(40 * 8, mean = 10, sd = 2), nrow = 40, ncol = 8)
     
     result <- tryCatch(
-        .calculate_rank_assumptions(data, checks = "all"),
+        .calculate_assumptions(data, checks = "all"),
         error = function(e) NULL
     )
     
@@ -2768,12 +2768,12 @@ test_that("Wrapped metrics: consolidated status is COMBINED", {
 # Test: Integration Tests
 # ==============================================================================
 
-test_that("LMM metrics integrate with calculate_rank_assumptions()", {
+test_that("LMM metrics integrate with calculate_assumptions()", {
     set.seed(42)
     data <- matrix(rnorm(50 * 10, mean = 10, sd = 2), nrow = 50, ncol = 10)
     
     result <- tryCatch(
-        .calculate_rank_assumptions(data, checks = c("lmm_metrics")),
+        .calculate_assumptions(data, checks = c("lmm_metrics")),
         error = function(e) NULL
     )
     
@@ -2790,7 +2790,7 @@ test_that("LMM metrics included in 'all' checks preset", {
     data <- matrix(rnorm(40 * 8, mean = 10, sd = 2), nrow = 40, ncol = 8)
     
     result <- tryCatch(
-        .calculate_rank_assumptions(data, checks = "all"),
+        .calculate_assumptions(data, checks = "all"),
         error = function(e) NULL
     )
     

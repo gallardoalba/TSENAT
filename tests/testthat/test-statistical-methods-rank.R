@@ -18,7 +18,7 @@ test_that("test_rankbased_assumptions validates assumptions", {
   )
   
   # Call the function and verify it returns a result
-  result <- .calculate_rank_assumptions(
+  result <- .calculate_assumptions(
     data = expr_data,
     checks = c("exchangeability", "monotonicity")
   )

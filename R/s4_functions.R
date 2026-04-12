@@ -4,10 +4,10 @@
 # appropriate slots.
 
 # ============================================================================
-# TEST RANKBASED ASSUMPTIONS WRAPPER
+# TEST STATISTICAL ASSUMPTIONS WRAPPER
 # ============================================================================
 
-#' Test rank-based method assumptions in TSENATAnalysis
+#' Test statistical assumptions on diversity data in TSENATAnalysis
 #'
 #' @param analysis \code{TSENATAnalysis} object with diversity results stored
 #'   in \code{@diversity_results}.
@@ -15,8 +15,8 @@
 #'   If NULL, uses the first available diversity result or q=1.0.
 #' @param checks \code{character}. Which assumptions to test (default: 'rank').
 #'   Presets:
-#'   - 'rank': rank-based checks only
-#'   - 'all': rank + GAM metrics
+#'   - 'rank': core assumption checks (exchangeability, monotonicity, consistency)
+#'   - 'all': all checks including GAM diagnostics
 #'   Explicit: character vector like \code{c('exchangeability', 'monotonicity')}.
 #' @param alpha \code{numeric}. Significance level for tests (default: 0.05).
 #' @param ... Additional arguments (for future extensibility).
@@ -25,13 +25,13 @@
 #'   in \code{@metadata$rankbased_assumptions}.
 #'
 #' @details
-#' This wrapper calls \code{.calculate_rank_assumptions()} on diversity data
-#' extracted from the analysis object. Results include:
+#' This wrapper calls \code{.calculate_assumptions()} on diversity data
+#' extracted from the analysis object. Evaluates data stability and 
+#' consistency across dimensions. Results include:
 #'
 #' \describe{
-#'   \item{exchangeability}{Permutation test for 
-#' temporal/spatial ordering effects}
-#'   \item{monotonicity}{Spearman correlation stability across rows}
+#'   \item{exchangeability}{Permutation test for independence and temporal/spatial structure}
+#'   \item{monotonicity}{Spearman correlation consistency across rows}
 #'   \item{consistency}{Kendall's W concordance and ICC across samples}
 #' }
 #'
@@ -70,19 +70,19 @@
 #' )
 #' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = 200)
 #' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
-#' analysis <- calculate_rank_assumptions(analysis, q = 1.0)
+#' analysis <- calculate_assumptions(analysis, q = 1.0)
 #' # Check results using rank_test accessor
 #' results_df <- results(analysis, type = 'rank_test')
 #'
 #' @export
-#' @rdname calculate_rank_assumptions
-setGeneric("calculate_rank_assumptions", function(analysis, q = NULL, checks = "rank",
+#' @rdname calculate_assumptions
+setGeneric("calculate_assumptions", function(analysis, q = NULL, checks = "rank",
     alpha = 0.05, ...) {
-    standardGeneric("calculate_rank_assumptions")
+    standardGeneric("calculate_assumptions")
 })
 
-#' @rdname calculate_rank_assumptions
-setMethod("calculate_rank_assumptions", signature(analysis = "TSENATAnalysis"),
+#' @rdname calculate_assumptions
+setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"),
     function(analysis, q = NULL, checks = "rank", alpha = 0.05, ...) {
 
         # Validate inputs
@@ -176,9 +176,9 @@ setMethod("calculate_rank_assumptions", signature(analysis = "TSENATAnalysis"),
 
         # Run assumptions test
         result <- tryCatch({
-            .calculate_rank_assumptions(data = diversity_data, checks = checks, alpha = alpha, q_values = q_values)
+            .calculate_assumptions(data = diversity_data, checks = checks, alpha = alpha, q_values = q_values)
         }, error = function(e) {
-            stop("Rankbased assumptions test failed:\n", e$message, call. = FALSE)
+            stop("Assumptions test failed:\n", e$message, call. = FALSE)
         })
 
         # Store results
@@ -186,7 +186,7 @@ setMethod("calculate_rank_assumptions", signature(analysis = "TSENATAnalysis"),
             checks_performed = checks, alpha_used = alpha, timestamp = Sys.time())
 
         # Track function call
-        analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("calculate_rank_assumptions[q=",
+        analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("calculate_assumptions[q=",
             q_used, "]"))
 
         analysis
@@ -276,7 +276,7 @@ setMethod("calculate_rank_assumptions", signature(analysis = "TSENATAnalysis"),
 #' analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
 #' analysis <- suppressWarnings(calculate_lm(analysis, method = 'gam'))
 #' # Note: calculate_concordance requires results from both
-#' # calculate_rank_test and calculate_rank_assumptions
+#' # calculate_rank_test and calculate_assumptions
 #'
 #' @aliases calculate_concordance
 #' @export

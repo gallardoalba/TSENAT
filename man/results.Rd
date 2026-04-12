@@ -24,7 +24,7 @@ results(
 
 \item{type}{\code{character}. \strong{Required.} Type of results to extract:
 'diversity', 'divergence', 'lm', 'jackknife', 'rank_test', 'effect_sizes_divergence',
-or 'switching_tables'.}
+'assumptions', or 'switching_tables'.}
 
 \item{q}{\code{numeric}. For diversity results, optionally return results for 
 a specific q-value only. When specified, returns a single SummarizedExperiment 
@@ -70,6 +70,7 @@ Default: 'adj_p_interaction' (most significant first).}
   - For lm/jackknife: A data.frame or list based on type and format
   - For pairwise: A data.frame with pairwise comparison difference metrics
   - For effect_sizes_divergence: A list containing effect size divergence results with components like interaction_results
+  - For assumptions: A list containing rank-based assumption checks (exchangeability, monotonicity, consistency) and optional method-specific diagnostics (gam_metrics, gee_metrics, lmm_metrics, fpca_metrics)
   - For switching_tables: A list containing gene switching comparison tables
   Returns NULL if requested result type not computed or no results pass filtering.
 }

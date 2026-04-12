@@ -203,13 +203,13 @@ This directly tests the core biological question: "Does entropy q-dependence dif
 
 ## Assumption Validation
 
-Before applying rank-based methods, we verify key assumptions for rank-based inference.
+To ensure valid statistical inference, we verify key data assumptions across multiple dimensions.
 
 ```{r validate-srh-assumptions, message=FALSE}
-# Validate Scheirer-Ray-Hare test assumptions (including GAM diagnostics)
-analysis <- calculate_rank_assumptions(
+# Validate statistical assumptions (including GAM diagnostics)
+analysis <- calculate_assumptions(
     analysis,
-    checks = "all"  # Include rank-based checks + GAM diagnostics
+    checks = "all"  # Include core checks + GAM diagnostics
 )
 
 # Extract the assumption check results
@@ -219,7 +219,7 @@ check_results <- results(analysis, type = "assumptions")
 ```{r display-assumption-results, message=FALSE, echo=FALSE}
 # check_results now contains all diagnostic results directly
 
-# Create assumption checks table for rank-based checks
+# Create assumption checks table
 exchangeability_check <- check_results$exchangeability
 monotonicity_check <- check_results$monotonicity
 consistency_check <- check_results$consistency
@@ -616,7 +616,7 @@ if (!is.null(check_results$fpca_metrics)) {
 }
 
 knitr::kable(data_characteristics, 
-             caption = "Supplementary Table 2 | Entropy Matrix Validation Metrics. Rank-based assumptions, GAM diagnostics, GEE diagnostics, LMM diagnostics, and FPCA diagnostics.",
+             caption = "Supplementary Table 2 | Entropy Matrix Validation Metrics. Statistical assumptions (exchangeability, monotonicity, consistency), GAM diagnostics, GEE diagnostics, LMM diagnostics, and FPCA diagnostics.",
              align = c("l", "l", "r", "l"),
              format = if (knitr::is_latex_output()) "latex" else "html",
              longtable = knitr::is_latex_output(),

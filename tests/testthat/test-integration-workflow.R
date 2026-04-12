@@ -88,6 +88,25 @@ run_tsenat_standard <- function(analysis) {
     TSENAT(analysis, output_dir = NULL, verbose = FALSE)
 }
 
+# Cached wrapper to avoid expensive TSENAT() recomputation across multiple tests
+# OPTIMIZATION: TSENAT() runs full orchestration (~8-10s) - cache result for reuse
+setup_tsenat_cached <- local({
+    .cache <- NULL
+    function() {
+        if (is.null(.cache)) {
+            data_list <- setup_workflow_data_cached()
+            # Run full TSENAT orchestration once and cache result
+            .cache <<- TSENAT(
+                data_list$analysis,
+                output_dir = NULL,
+                save_output = FALSE,
+                verbose = FALSE
+            )
+        }
+        .cache
+    }
+})
+
 # ============================================================================
 # TEST SUITE 1: Basic Workflow Execution
 # ============================================================================
@@ -97,11 +116,10 @@ run_tsenat_standard <- function(analysis) {
 # ============================================================================
 
 test_that("TSENAT() basic execution: returns valid result with structure preserved", {
+    # OPTIMIZATION: Reuse cached TSENAT() result instead of recomputing
+    result <- setup_tsenat_cached()
     data_list <- setup_workflow_data_cached()
     se_original <- se(data_list$analysis)
-    
-    # Execute standard TSENAT pipeline
-    result <- run_tsenat_standard(data_list$analysis)
     
     # Validate result structure and config
     assert_valid_tsenat_result(result)
@@ -157,12 +175,10 @@ test_that("TSENAT() output handling: manages output_dir and verbose control corr
 })
 
 test_that("TSENAT() filtering and statistical parameters: respects filter and config", {
+    # OPTIMIZATION: Reuse cached TSENAT() result instead of recomputing
+    result <- setup_tsenat_cached()
     data_list <- setup_workflow_data_cached()
-    
     n_genes_original <- nrow(se(data_list$analysis))
-    
-    # Run standard pipeline
-    result <- run_tsenat_standard(data_list$analysis)
     
     # Verify structure and filtering effects
     assert_valid_tsenat_result(result)
@@ -203,20 +219,8 @@ test_that("TSENAT() error handling: rejects invalid input, handles edge cases", 
 # ============================================================================
 
 test_that("TSENAT() paired: produces LM results, significant genes, plots generate", {
-    # Use setup_workflow_data() which already has proper paired config
-    data_list <- setup_workflow_data_cached()
-    
-    # Note: setup_workflow_data() already configured with:
-    # condition_col="condition", subject_col="paired_samples", 
-    # q_values=seq(0,2,by=0.05), paired=TRUE, control="normal"
-    # Retrieve config from analysis instead of using undefined variable
-    config <- getConfig(data_list$analysis)
-    
-    result <- TSENAT(
-        data_list$analysis,
-        output_dir = NULL,
-        verbose = FALSE
-    )
+    # OPTIMIZATION: Reuse cached TSENAT() result instead of recomputing
+    result <- setup_tsenat_cached()
     
     # Test LM results structure
     expect_s4_class(result, "TSENATAnalysis")
@@ -263,6 +267,7 @@ context("Integration Tests: setConfig Bug Detection")
 # Solution: Config should only be set during build_analysis(), never via TSENAT().
 
 test_that("setConfig: does not corrupt SummarizedExperiment dimensions", {
+    # Get fresh analysis for setConfig testing (not orchestrated)
     data_list <- setup_workflow_data_cached()
     analysis <- data_list$analysis
     se_orig <- se(analysis)
@@ -301,28 +306,8 @@ test_that("TSENAT() WITHOUT config parameter: produces correct diversity values"
 
 test_that("TSENAT() WITHOUT config: produces IDENTICAL results to manual workflow", {
     # REGRESSION TEST: Verify that TSENAT() orchestration doesn't corrupt data
-    # Setup two identical analyses
-    set.seed(42)
-    data_list1 <- setup_workflow_data_cached()
-    analysis1 <- data_list1$analysis
-    
-    set.seed(42)
-    data_list2 <- setup_workflow_data_cached()
-    analysis2 <- data_list2$analysis
-    
-    # Both should have same starting dimensions
-    se1_before <- se(analysis1)
-    se2_before <- se(analysis2)
-    expect_equal(dim(se1_before), dim(se2_before),
-                 info = "Both analysis objects should start with identical dimensions")
-    
-    # Apply TSENAT() to analyze2 (full orchestration)
-    analysis2 <- TSENAT(
-        analysis2,
-        output_dir = NULL,
-        save_output = FALSE,
-        verbose = FALSE
-    )
+    # OPTIMIZATION: Reuse cached TSENAT() result
+    analysis2 <- setup_tsenat_cached()
     
     # After orchestration, analysis2 should still be a valid TSENATAnalysis
     expect_is(analysis2, "TSENATAnalysis",
@@ -449,10 +434,13 @@ test_that("CONFIG EMBEDDING: Settings applied once via build_analysis, not redun
 
 test_that("IDEMPOTENCY CHECK: setConfig produces consistent state across calls", {
     # If setConfig is truly idempotent, multiple calls should produce identical state
+    # OPTIMIZATION: Reuse cached TSENAT() result for config reference
+    cached_result <- setup_tsenat_cached()
+    config <- getConfig(cached_result)
     
+    # Get fresh analysis for setConfig testing
     data_list <- setup_workflow_data_cached()
     analysis <- data_list$analysis
-    config <- getConfig(analysis)
     
     # Call setConfig multiple times
     analysis_1x <- setConfig(analysis, config)
@@ -476,10 +464,12 @@ test_that("IDEMPOTENCY CHECK: setConfig produces consistent state across calls",
 
 test_that("WORKFLOW EQUIVALENCE: Manual orchestration matches TSENAT() function", {
     # Compare orchestration patterns to ensure no hidden side effects
-    # Pattern A (manual): filter → calculate_diversity (no setConfig)
-    # Pattern B (orchestrated): TSENAT() (may call setConfig internally)
+    # OPTIMIZATION: Use cached TSENAT() result for comparison
     
-    set.seed(42)
+    # Pattern B (orchestrated): TSENAT() result from cache
+    analysis_B <- setup_tsenat_cached()
+    
+    # Pattern A (manual): filter → calculate_diversity (no setConfig)
     data_list_A <- setup_workflow_data_cached()
     analysis_A <- data_list_A$analysis
     
@@ -493,7 +483,10 @@ test_that("WORKFLOW EQUIVALENCE: Manual orchestration matches TSENAT() function"
     
     # Both should have valid diversity results
     div_A <- results(analysis_A, type = "diversity", q = 0)
+    div_B <- results(analysis_B, type = "diversity", q = 0)
     
     expect_is(div_A, "SummarizedExperiment",
               info = "Manual pattern should produce valid diversity SE")
+    expect_is(div_B, "SummarizedExperiment",
+              info = "Orchestrated TSENAT() should produce valid diversity SE")
 })

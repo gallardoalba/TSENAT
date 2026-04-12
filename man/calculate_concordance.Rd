@@ -100,6 +100,6 @@ analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
 analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
 analysis <- suppressWarnings(calculate_lm(analysis, method = 'gam'))
 # Note: calculate_concordance requires results from both
-# calculate_rank_test and calculate_rank_assumptions
+# calculate_rank_test and calculate_assumptions
 
 }

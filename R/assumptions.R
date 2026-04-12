@@ -49,7 +49,7 @@
 #' - GAM: @S150 (2023), @S143 (2015), @S137 (1979)
 #'
 #' @noRd
-.calculate_rank_assumptions <- function(data, checks = "rank", alpha = 0.05, q_values = NULL, gee_params = list()) {
+.calculate_assumptions <- function(data, checks = "rank", alpha = 0.05, q_values = NULL, gee_params = list()) {
     
     # Expand convenience presets
     if (is.character(checks) && length(checks) == 1) {
@@ -2110,7 +2110,7 @@ print.rank_correlation_ci <- function(x, ...) {
 #' @param max_components Maximum components to compute (default: min(p, n-1))
 #'
 #' @return List with eigenvalues, cumulative variance, and interpretation
-#'
+#' @noRd
 .compute_cumulative_variance_fpca <- function(data, max_components = NULL) {
     
     if (!inherits(data, "matrix")) {
@@ -2210,7 +2210,7 @@ print.rank_correlation_ci <- function(x, ...) {
 #' @param n_components Number of principal components to evaluate (default: 3)
 #'
 #' @return List with bootstrap stability metrics
-#'
+#' @noRd
 .compute_fpca_bootstrap_stability <- function(data, n_bootstrap = 500, n_components = 3) {
     
     if (!inherits(data, "matrix")) {
@@ -2319,7 +2319,7 @@ print.rank_correlation_ci <- function(x, ...) {
 #' @param fpca_params List of FPCA parameters (optional)
 #'
 #' @return List containing variance adequacy, bootstrap stability, and consolidated result
-#'
+#' @noRd
 .get_fpca_metrics <- function(data, fpca_params = list()) {
     
     # Extract parameters with defaults
