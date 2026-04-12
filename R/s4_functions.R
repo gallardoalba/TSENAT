@@ -213,7 +213,7 @@ setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"),
 #' @param lm_method \code{character}. Key for LM/GAM interaction results in 
 #'   \code{@lm_results}. Default: NULL (auto-detects from analysis_lm).
 #' @param rank_method \code{character}. Key for rank-based test results in 
-#'   \code{@lm_results}. Default: 'rank_test' (from \code{calculate_rank_test}).
+#'   \code{@lm_results}. Default: 'rank_test' (from \code{calculate_srh}).
 #' @param verbose \code{logical}. Print progress messages (default: FALSE).
 #' @param output_file \code{character} or NULL. Optional file path to save results.
 #'   Supported formats: .rds (for S4 objects). Default: NULL (no file output).
@@ -276,7 +276,7 @@ setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"),
 #' analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
 #' analysis <- suppressWarnings(calculate_lm(analysis, method = 'gam'))
 #' # Note: calculate_concordance requires results from both
-#' # calculate_rank_test and calculate_assumptions
+#' # calculate_srh and calculate_assumptions
 #'
 #' @aliases calculate_concordance
 #' @export
@@ -387,7 +387,7 @@ setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_lm, analy
     # Check rank_test_results
     if (is.null(analysis_lm@rank_test_results) || !(rank_method %in% names(analysis_lm@rank_test_results))) {
         stop("Rank test method '", rank_method, "' not found in rank_test_results. ",
-            "Run calculate_rank_test() first.", call. = FALSE)
+            "Run calculate_srh() first.", call. = FALSE)
     }
 
     # Extract results

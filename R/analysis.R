@@ -215,7 +215,7 @@ print.gtable <- function(x, ...) {
     # Extract rank test results
     if (is.null(analysis_rank@rank_test_results) || length(analysis_rank@rank_test_results) ==
         0) {
-        stop("No rank test results found in analysis_rank@rank_test_results. Run calculate_rank_test() first.",
+        stop("No rank test results found in analysis_rank@rank_test_results. Run calculate_srh() first.",
             call. = FALSE)
     }
 

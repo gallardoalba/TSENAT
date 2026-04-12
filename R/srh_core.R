@@ -376,7 +376,7 @@
 #' = 0.25))
 #' 
 #' # Unpaired analysis (default): Scheirer-Ray-Hare + multi-test correction for AR(1) q-values
-#' results <- .calculate_rank_test(ts_se, multicorr = 'hochberg')
+#' results <- .calculate_srh(ts_se, multicorr = 'hochberg')
 #' head(results)
 #' 
 #' # Paired analysis with metadata
@@ -390,7 +390,7 @@
 #' SummarizedExperiment::colData(ts_se) <- coldata
 #' 
 #' # Paired analysis with blocked permutations
-#' results_paired <- .calculate_rank_test(
+#' results_paired <- .calculate_srh(
 #'   ts_se, 
 #'   paired = TRUE,
 #'   subject_col = 'patient_id',
@@ -398,10 +398,8 @@
 #'   wy_randomizations = 100
 #' )
 #' head(results_paired)
-
 #' @noRd
-
-.calculate_rank_test <- function(data, entropy_col = "diversity", q_col = "q",
+.calculate_srh <- function(data, entropy_col = "diversity", q_col = "q",
     gene_col = "gene", condition_col = NULL, paired = FALSE, subject_col = "paired_samples",
     multicorr = c("hochberg",
         "benjamini-yekutieli", "westfall-young", "none"), wy_randomizations = 500,

@@ -30,7 +30,7 @@ compares LM results from analysis_lm with rank-test results from analysis_rank.}
 \code{@lm_results}. Default: NULL (auto-detects from analysis_lm).}
 
 \item{rank_method}{\code{character}. Key for rank-based test results in 
-\code{@lm_results}. Default: 'rank_test' (from \code{calculate_rank_test}).}
+\code{@lm_results}. Default: 'rank_test' (from \code{calculate_srh}).}
 
 \item{verbose}{\code{logical}. Print progress messages (default: FALSE).}
 
@@ -100,6 +100,6 @@ analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
 analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
 analysis <- suppressWarnings(calculate_lm(analysis, method = 'gam'))
 # Note: calculate_concordance requires results from both
-# calculate_rank_test and calculate_assumptions
+# calculate_srh and calculate_assumptions
 
 }

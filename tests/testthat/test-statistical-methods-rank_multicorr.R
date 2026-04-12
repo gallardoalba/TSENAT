@@ -241,7 +241,7 @@ test_that("detect_q_gene_interactions produces adj_p_value column", {
     stringsAsFactors = FALSE
   )
   
-  result <- .calculate_rank_test(model_data, condition_col = "condition", multicorr = "hochberg")
+  result <- .calculate_srh(model_data, condition_col = "condition", multicorr = "hochberg")
   
   expect_true("adj_p_value" %in% colnames(result))
   expect_equal(length(result$adj_p_value), 2)  # 2 genes
@@ -259,7 +259,7 @@ test_that("detect_q_gene_interactions multicorr=hochberg adjusts p-values correc
     stringsAsFactors = FALSE
   )
   
-  result <- .calculate_rank_test(model_data, condition_col = "condition", multicorr = "hochberg")
+  result <- .calculate_srh(model_data, condition_col = "condition", multicorr = "hochberg")
   
   # Adjusted p-values should be >= raw p-values
   expect_true(all(result$adj_p_value >= result$p_value, na.rm = TRUE))
@@ -279,7 +279,7 @@ test_that("detect_q_gene_interactions multicorr=benjamini-yekutieli produces adj
     stringsAsFactors = FALSE
   )
   
-  result <- .calculate_rank_test(model_data, condition_col = "condition", multicorr = "benjamini-yekutieli")
+  result <- .calculate_srh(model_data, condition_col = "condition", multicorr = "benjamini-yekutieli")
   
   # Adjusted p-values should be >= raw p-values
   expect_true(all(result$adj_p_value >= result$p_value, na.rm = TRUE))
@@ -297,7 +297,7 @@ test_that("detect_q_gene_interactions multicorr=none returns raw p-values as adj
     stringsAsFactors = FALSE
   )
   
-  result <- .calculate_rank_test(model_data, condition_col = "condition", multicorr = "none")
+  result <- .calculate_srh(model_data, condition_col = "condition", multicorr = "none")
   
   # With multicorr="none", should be identical to raw p-values
   expect_equal(result$adj_p_value, result$p_value)
@@ -315,8 +315,8 @@ test_that("detect_q_gene_interactions default multicorr is hochberg", {
     stringsAsFactors = FALSE
   )
   
-  result_default <- .calculate_rank_test(model_data, condition_col = "condition")
-  result_explicit <- .calculate_rank_test(model_data, condition_col = "condition", multicorr = "hochberg")
+  result_default <- .calculate_srh(model_data, condition_col = "condition")
+  result_explicit <- .calculate_srh(model_data, condition_col = "condition", multicorr = "hochberg")
   
   # Default should match explicit hochberg
   expect_equal(result_default$adj_p_value, result_explicit$adj_p_value)
@@ -335,7 +335,7 @@ test_that("detect_q_gene_interactions output is sorted by adj_p_value", {
     stringsAsFactors = FALSE
   )
   
-  result <- .calculate_rank_test(model_data, condition_col = "condition", multicorr = "hochberg")
+  result <- .calculate_srh(model_data, condition_col = "condition", multicorr = "hochberg")
   
   # Check that adj_p_values are sorted in ascending order (ignoring NAs)
   non_na_idx <- !is.na(result$adj_p_value)
@@ -356,9 +356,9 @@ test_that("detect_q_gene_interactions respects multicorr parameter passing", {
   ) # Already correct - times=30
   
   # Test that each method produces different results
-  result_hoch <- .calculate_rank_test(model_data, condition_col = "condition", multicorr = "hochberg")
-  result_by <- .calculate_rank_test(model_data, condition_col = "condition", multicorr = "benjamini-yekutieli")
-  result_none <- .calculate_rank_test(model_data, condition_col = "condition", multicorr = "none")
+  result_hoch <- .calculate_srh(model_data, condition_col = "condition", multicorr = "hochberg")
+  result_by <- .calculate_srh(model_data, condition_col = "condition", multicorr = "benjamini-yekutieli")
+  result_none <- .calculate_srh(model_data, condition_col = "condition", multicorr = "none")
   
   # None should match raw p-values
   expect_equal(result_none$adj_p_value, result_none$p_value)
@@ -379,7 +379,7 @@ test_that("detect_q_gene_interactions invalid multicorr parameter raises error",
   )
   
   expect_error(
-    .calculate_rank_test(model_data, multicorr = "invalid_method"),
+    .calculate_srh(model_data, multicorr = "invalid_method"),
     "should be one of"  # match.arg error message for invalid choice
   )
 })
@@ -397,7 +397,7 @@ test_that("detect_q_gene_interactions multicorr handles NA p-values correctly", 
     stringsAsFactors = FALSE
   )
   
-  result <- .calculate_rank_test(model_data, condition_col = "condition", multicorr = "hochberg")
+  result <- .calculate_srh(model_data, condition_col = "condition", multicorr = "hochberg")
   
   # Should run without errors
   expect_equal(nrow(result), 2)
@@ -432,8 +432,8 @@ test_that("detect_q_gene_interactions more genes = more deflation with Hochberg"
     stringsAsFactors = FALSE
   )
   
-  result_5 <- .calculate_rank_test(model_data_5, condition_col = "condition", multicorr = "hochberg")
-  result_10 <- .calculate_rank_test(model_data_10, condition_col = "condition", multicorr = "hochberg")
+  result_5 <- .calculate_srh(model_data_5, condition_col = "condition", multicorr = "hochberg")
+  result_10 <- .calculate_srh(model_data_10, condition_col = "condition", multicorr = "hochberg")
   
   # With more genes, Hochberg multiplier increases (m - rank + 1)
   # So if genes have similar raw p-values, those in 5-gene set should have 
@@ -463,8 +463,8 @@ test_that("detect_q_gene_interactions Benjamini-Yekutieli is less deflating than
     stringsAsFactors = FALSE
   )
   
-  result_hoch <- .calculate_rank_test(model_data, condition_col = "condition", multicorr = "hochberg")
-  result_by <- .calculate_rank_test(model_data, condition_col = "condition", multicorr = "benjamini-yekutieli")
+  result_hoch <- .calculate_srh(model_data, condition_col = "condition", multicorr = "hochberg")
+  result_by <- .calculate_srh(model_data, condition_col = "condition", multicorr = "benjamini-yekutieli")
   
   # Benjamini-Yekutieli should generally be less deflating (smaller adjusted p-values)
   # at least for the more significant genes

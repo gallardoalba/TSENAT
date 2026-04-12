@@ -28,7 +28,7 @@
 #'   p-value column. Accepts either:
 #' - Results from `.calculate_lm()` (has `adj_p_interaction` or
 #' `p_interaction` columns)
-#' - Results from `.calculate_rank_test()` (has `adj_p_value` or `p_value`
+#' - Results from `.calculate_srh()` (has `adj_p_value` or `p_value`
 #' columns from Scheirer-Ray-Hare rank tests)
 #' If provided (and `gene` is NULL), plots top `n_top` genes ranked by
 #' p-value.

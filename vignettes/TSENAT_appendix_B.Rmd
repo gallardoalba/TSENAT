@@ -660,7 +660,7 @@ Now we will use the Scheirer-Ray-Hare test to evaluate whether entropy patterns 
 
 ```{r srh-rank-test-analysis, message=FALSE, results='hide'}
 # Run Scheirer-Ray-Hare test for q * condition INTERACTION
-analysis <- calculate_rank_test(
+analysis <- calculate_srh(
     analysis,
     multicorr = "hochberg"
 )

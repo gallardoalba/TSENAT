@@ -277,7 +277,7 @@
 #' list with $results and $model_data
 #' - `.calculate_lm(..., return_model_data = FALSE)` returns a
 #' data.frame with adj_p_interaction column
-#' - `.calculate_rank_test()` returns a data.frame with adj_p_value column
+#' - `.calculate_srh()` returns a data.frame with adj_p_value column
 #' (for Scheirer-Ray-Hare rank tests)
 #'   If provided and `gene` is NULL, top genes are selected by adjusted p-value.
 #' @param top_n Integer number of transcripts to show (default = 3). Use

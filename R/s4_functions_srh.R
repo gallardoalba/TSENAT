@@ -1,6 +1,6 @@
 #' Detect q-dependent gene interactions
 #'
-#' Wrapper around [.calculate_rank_test()] that manages TSENATAnalysis object.
+#' Wrapper around [.calculate_srh()] that manages TSENATAnalysis object.
 #' Tests for genes with condition-specific q-dependent entropy patterns by
 #' testing whether the effect of q-values DIFFERS between experimental conditions.
 #' This detects disease-relevant or condition-specific isoform switching patterns.
@@ -89,7 +89,7 @@
 #'  when wy_randomizations='auto' (default: 100).
 #' @param max_nperm \code{integer}. Maximum permutations for automatic estimation
 #'  when wy_randomizations='auto' (default: 10000).
-#' @param ... Additional arguments passed to the base \code{.calculate_rank_test()} function.
+#' @param ... Additional arguments passed to the base \code{.calculate_srh()} function.
 #'
 #' @return Modified TSENATAnalysis with interaction results in @lm_results.
 #'
@@ -145,7 +145,7 @@
 #' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
 #' 
 #' # Test Q×Condition interaction (condition_col is REQUIRED)
-#' analysis <- calculate_rank_test(
+#' analysis <- calculate_srh(
 #'   analysis,
 #'   condition_col = 'condition',
 #'   multicorr = 'hochberg'
@@ -156,7 +156,7 @@
 #'
 #' @export
 #' @importFrom utils write.table
-calculate_rank_test <- function(analysis, condition_col, output_file = NULL,
+calculate_srh <- function(analysis, condition_col, output_file = NULL,
     paired = NULL, subject_col = NULL, multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young",
         "none"), entropy_col = "diversity", q_col = "q", gene_col = "gene", wy_randomizations = 500,
     nperm_mode = c("standard", "conservative", "interactive"), nthreads = NULL, alpha = 0.05,
@@ -164,11 +164,11 @@ calculate_rank_test <- function(analysis, condition_col, output_file = NULL,
     min_nperm = 100, max_nperm = 10000, verbose = FALSE, ...) {
 
     # PHASE 1: Validate input and prerequisites
-    condition_col <- .validate_rank_test_input(analysis, condition_col)
+    condition_col <- .validate_srh_input(analysis, condition_col)
 
     # PHASE 2: Resolve parameters from config + explicit args
     # Note: q-values are ALWAYS auto-detected from diversity_results
-    param_result <- .resolve_rank_test_params(analysis, multicorr, nperm_mode,
+    param_result <- .resolve_srh_params(analysis, multicorr, nperm_mode,
         paired, subject_col, nthreads, wy_randomizations, entropy_col, q_col,
         gene_col)
     dots <- param_result$dots
@@ -188,21 +188,21 @@ calculate_rank_test <- function(analysis, condition_col, output_file = NULL,
 
     # PHASE 4: Run core rank-based testing
     result <- tryCatch({
-        do.call(.calculate_rank_test, c(list(data = se_multi_q), dots))
+        do.call(.calculate_srh, c(list(data = se_multi_q), dots))
     }, error = function(e) {
         stop("q-interaction detection failed:\n", e$message, call. = FALSE)
     })
 
     # PHASE 5: Store results and save if requested
-    analysis <- .store_rank_test_results(analysis, result, output_file, verbose)
+    analysis <- .store_srh_results(analysis, result, output_file, verbose)
 
     analysis
 }
 
-#' Internal: Validate rank test input and prerequisites
+#' Internal: Validate SRH input and prerequisites
 #'
 #' @noRd
-.validate_rank_test_input <- function(analysis, condition_col) {
+.validate_srh_input <- function(analysis, condition_col) {
     if (!is(analysis, "TSENATAnalysis")) {
         stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }
@@ -222,10 +222,10 @@ calculate_rank_test <- function(analysis, condition_col, output_file = NULL,
     condition_col
 }
 
-#' Internal: Resolve rank test parameters from config
+#' Internal: Resolve SRH parameters from config
 #'
 #' @noRd
-.resolve_rank_test_params <- function(analysis, multicorr, nperm_mode, paired,
+.resolve_srh_params <- function(analysis, multicorr, nperm_mode, paired,
     subject_col, nthreads, wy_randomizations, entropy_col, q_col, gene_col) {
     dots <- list()
 
@@ -360,10 +360,10 @@ calculate_rank_test <- function(analysis, condition_col, output_file = NULL,
     se_multi_q
 }
 
-#' Internal: Store rank test results in analysis object
+#' Internal: Store SRH results in analysis object
 #'
 #' @noRd
-.store_rank_test_results <- function(analysis, result, output_file, verbose) {
+.store_srh_results <- function(analysis, result, output_file, verbose) {
     # Store in dedicated rank_test_results slot (not in lm_results)
     if (is.list(analysis@rank_test_results)) {
         analysis@rank_test_results$rank_test <- result
@@ -374,7 +374,7 @@ calculate_rank_test <- function(analysis, condition_col, output_file = NULL,
     if (!is.null(output_file)) {
         result_df <- as.data.frame(result)
         save_analysis_output(result_df, output_file, object = analysis, verbose = verbose,
-            func_name = "calculate_rank_test")
+            func_name = "calculate_srh")
     }
 
     analysis

@@ -35,7 +35,7 @@
 #'
 #' @slot rank_test_results \code{list}. Scheirer-Ray-Hare rank-based statistical
 #'   test results. Names correspond to q-values (e.g., 'q_0.5', 'q_1.0').
-#'   Computed by \code{calculate_rank_test()} as a non-parametric alternative
+#'   Computed by \code{calculate_srh()} as a non-parametric alternative
 #'   to linear mixed model testing.
 #'
 #' @slot jackknife_results \code{list}. Resampling-based confidence intervals.
