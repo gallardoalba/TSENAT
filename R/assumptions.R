@@ -70,9 +70,24 @@
 
     results <- list()
 
+    # Guard against empty data input: check matrix dimensions
+    # This prevents errors when diversity calculation creates empty assays
+    if (nrow(data) == 0 || ncol(data) == 0) {
+        return(structure(list(overall_summary = "Cannot evaluate assumptions on empty data matrix"),
+            class = "rank_assumptions", checks = results,
+            summary_stats = list(n_genes = 0, n_samples = 0, entropy_min = NA_real_,
+                entropy_max = NA_real_, entropy_mean = NA_real_, entropy_median = NA_real_, n_missing = 0)))
+    }
+
     # Calculate summary statistics for entropy data
-    summary_stats <- list(n_genes = nrow(data), n_samples = ncol(data), entropy_min = min(data,
-        na.rm = TRUE), entropy_max = max(data, na.rm = TRUE), entropy_mean = mean(data,
+    # Guard against empty data: check for valid values before min/max
+    has_valid_data <- (nrow(data) > 0 && ncol(data) > 0 && sum(!is.na(data)) > 0)
+    
+    entropy_min <- if (has_valid_data) min(data, na.rm = TRUE) else NA_real_
+    entropy_max <- if (has_valid_data) max(data, na.rm = TRUE) else NA_real_
+    
+    summary_stats <- list(n_genes = nrow(data), n_samples = ncol(data), entropy_min = entropy_min,
+        entropy_max = entropy_max, entropy_mean = mean(data,
         na.rm = TRUE), entropy_median = median(data, na.rm = TRUE), n_missing = sum(is.na(data)))
 
     # Check 1: Exchangeability (permutation test for serial correlation in samples)
@@ -145,7 +160,10 @@
         # Summary statistics of correlation stability
         mean_cor <- mean(spearman_cors, na.rm = TRUE)
         sd_cor <- stats::sd(spearman_cors, na.rm = TRUE)
-        min_cor <- min(spearman_cors, na.rm = TRUE)
+        
+        # Guard against empty correlation vector
+        has_valid_cors <- sum(!is.na(spearman_cors)) > 0
+        min_cor <- if (has_valid_cors) min(spearman_cors, na.rm = TRUE) else NA_real_
 
         # Status: high and stable correlations indicate good monotonicity
         # Interpretation: degree of heterogeneity in rank ordering
@@ -2272,7 +2290,10 @@ print.rank_correlation_ci <- function(x, ...) {
         # Stability assessment
         # Stable if SE is small relative to eigenvalue, CI excludes zero
         prop_stable <- sum(bootstrap_ci_lower > 0, na.rm = TRUE) / n_components
-        max_cv <- max(cv_eigenvalues, na.rm = TRUE)
+        
+        # Guard against empty cv_eigenvalues vector
+        has_valid_cv <- sum(!is.na(cv_eigenvalues)) > 0
+        max_cv <- if (has_valid_cv) max(cv_eigenvalues, na.rm = TRUE) else NA_real_
         
         if (max_cv < 0.2 && prop_stable > 0.9) {
             status <- "stable"

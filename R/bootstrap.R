@@ -24,7 +24,6 @@
 #' Input must have even length (pairs). Accelerated for speed.
 #'
 #' @noRd
-#' @noRd
 block_bootstrap_compute_cpp_wrapper <- function(x, q = 1, normalize = TRUE, nboot = 1000L,
     log_base = exp(1), pseudocount = 0) {
     # Input must have even length (pairs)
@@ -75,7 +74,6 @@ block_bootstrap_compute_cpp_wrapper <- function(x, q = 1, normalize = TRUE, nboo
 #' Handles vector pseudocounts by applying them upfront.
 #'
 #' @noRd
-#' @noRd
 bootstrap_compute_cpp_wrapper <- function(x, q = 1, normalize = TRUE, nboot = 1000L,
     log_base = exp(1), pseudocount = 0) {
     # Handle vector pseudocount by converting to scalar (sum per-element
@@ -118,7 +116,6 @@ bootstrap_compute_cpp_wrapper <- function(x, q = 1, normalize = TRUE, nboot = 10
 #' For paired=TRUE, resamples pairs as units maintaining correlation structure.
 #' For paired=FALSE (default), resamples x and y independently.
 #'
-#' @noRd
 #' @noRd
 divergence_bootstrap_compute_cpp_wrapper <- function(x, y, q = 1, nboot = 1000L,
     paired = FALSE, pseudocount = 0, log_base = exp(1)) {
@@ -190,7 +187,6 @@ divergence_bootstrap_compute_cpp_wrapper <- function(x, y, q = 1, nboot = 1000L,
 #' 3. Aggregating counts per resampled pair
 #' 4. Computing divergence between resampled distributions
 #'
-#' @noRd
 #' @noRd
 divergence_bootstrap_paired_cpp_wrapper <- function(x, y, pair_ids, nboot = 1000L,
     q = 1, pseudocount = 0, log_base = exp(1)) {
@@ -2135,7 +2131,7 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
         use_bca <- !is.null(method) && identical(method, "bca")
         nboot <- .suggest_nboot(num_genes, use_bca = use_bca, nthreads = nthreads)
         if (isTRUE(progress)) {
-            message("Auto-selected nboot =", nboot, "for", num_genes, "genes")
+            message("Auto-selected nboot = ", nboot, " for ", num_genes, " genes")
         }
     }
 

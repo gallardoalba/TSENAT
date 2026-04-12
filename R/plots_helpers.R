@@ -448,11 +448,18 @@
 
 .create_color_scale <- function(palette = "blue_red", direction = 1, name = NULL) {
 
-    if (palette == "blue_red") {
-        colors <- .palette_blue_red()
-    } else if (palette == "continuous_diverging") {
-        colors <- .palette_continuous_diverging()
+    # Handle palette parameter: if length 1 string, check if it's a named palette,
+    # otherwise treat as vector of colors
+    if (is.character(palette) && length(palette) == 1) {
+        if (palette == "blue_red") {
+            colors <- .palette_blue_red()
+        } else if (palette == "continuous_diverging") {
+            colors <- .palette_continuous_diverging()
+        } else {
+            colors <- .palette_blue_red()
+        }
     } else if (is.character(palette)) {
+        # palette is a vector of color codes
         colors <- palette
     } else {
         colors <- .palette_blue_red()
@@ -486,7 +493,8 @@
 .create_fill_scale <- function(palette = "blue_red", direction = 1, name = NULL,
     breaks = 50) {
 
-    if (palette == "continuous_diverging") {
+    # Handle palette: check if it's a single string first (safe for equality comparison)
+    if (is.character(palette) && length(palette) == 1 && palette == "continuous_diverging") {
         colors <- .palette_continuous_diverging(n = breaks)
     } else {
         colors <- .palette_blue_red()
@@ -3091,7 +3099,8 @@
 #'
 #' @noRd
 .apply_publication_aesthetics <- function(plot, title = NULL, base_size = 11, base_theme = "theme_base",
-    group_col = NULL, palette = "blue_red", group_levels = NULL, subtitle = NULL) {
+    group_col = NULL, palette = "blue_red", group_levels = NULL, subtitle = NULL, legend_name = "Group",
+    legend_position = "bottom") {
 
     # Apply publication theme first
     p <- .apply_publication_theme(plot, title = title, base_size = base_size, base_theme = base_theme,

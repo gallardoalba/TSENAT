@@ -22,7 +22,7 @@ test_that("fpca method attaches p_interaction to rowData", {
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
 
     # lower min_obs so test is robust; 4 samples with full q coverage should pass
-    res <- .calculate_lm(se, condition_col = "sample_type", method = "fpca", min_obs = 2)
+    res <- TSENAT:::.calculate_lm(se, condition_col = "sample_type", method = "fpca", min_obs = 2)
     if (is.data.frame(res)) {
         rd_out <- as.data.frame(res)
     } else {
@@ -139,7 +139,7 @@ test_that(".fpca_interaction computes a p-value with reasonable input", {
     sample_names <- rep(paste0("S", 1:n_samples), each = n_q)
     group_vec <- rep(c("A", "B"), each = n_q * n_samples / 2)
     
-    res <- .fpca_interaction(mat, q_vals = q_vals, sample_names = sample_names, group_vec = group_vec, g = 1, min_obs = 5)
+    res <- TSENAT:::.fpca_interaction(mat, q_vals = q_vals, sample_names = sample_names, group_vec = group_vec, g = 1, min_obs = 5)
     
     # Should produce a result with these data
     if (!is.null(res)) {
@@ -163,7 +163,7 @@ test_that(".fpca_interaction returns NULL for non-diverse groups and handles imp
     rownames(mat) <- "g1"
     group_vec <- rep("A", length.out = length(q_vals))
     
-    res <- expect_warning(.fpca_interaction(mat, q_vals = q_vals, sample_names = samples, group_vec = group_vec, g = 1, min_obs = 1), 
+    res <- expect_warning(TSENAT:::.fpca_interaction(mat, q_vals = q_vals, sample_names = samples, group_vec = group_vec, g = 1, min_obs = 1), 
                           "Insufficient group variation")
     expect_null(res)
 
@@ -177,7 +177,7 @@ test_that(".fpca_interaction returns NULL for non-diverse groups and handles imp
     group_vec2 <- rep(c("A", "B"), times = 3)
     
     # This has groups but only 3 samples per group with 1 q-value - should trigger insufficient data warning
-    res2 <- expect_warning(.fpca_interaction(mat2, q_vals = q_vals2, sample_names = sample_names2, group_vec = group_vec2, g = 1, min_obs = 1),
+    res2 <- expect_warning(TSENAT:::.fpca_interaction(mat2, q_vals = q_vals2, sample_names = sample_names2, group_vec = group_vec2, g = 1, min_obs = 1),
                            "Insufficient|Failed")
     expect_null(res2)
 })
@@ -193,7 +193,7 @@ test_that(".fpca_interaction handles prcomp and t.test failures gracefully", {
     sample_names1 <- rep(paste0("s", 1:n_samples), each = n_q)
     group_vec1 <- rep("A", length.out = n_q * n_samples)  # Only one group - should return NULL
     
-    res1 <- expect_warning(.fpca_interaction(mat1, q_vals = q_vals1, sample_names = sample_names1, group_vec = group_vec1, g = 1, min_obs = 2),
+    res1 <- expect_warning(TSENAT:::.fpca_interaction(mat1, q_vals = q_vals1, sample_names = sample_names1, group_vec = group_vec1, g = 1, min_obs = 2),
                            "Insufficient group variation")
     expect_null(res1)  # Should be NULL due to insufficient group diversity
     
@@ -205,7 +205,7 @@ test_that(".fpca_interaction handles prcomp and t.test failures gracefully", {
     sample_names2 <- rep(paste0("s", 1:2), each = 5)
     group_vec2 <- rep(c("A", "B"), each = 5)
     
-    res2 <- expect_warning(.fpca_interaction(mat2, q_vals = q_vals2, sample_names = sample_names2, group_vec = group_vec2, g = 1, min_obs = 1),
+    res2 <- expect_warning(TSENAT:::.fpca_interaction(mat2, q_vals = q_vals2, sample_names = sample_names2, group_vec = group_vec2, g = 1, min_obs = 1),
                             "Failed to build curve matrix")
     # With sparse data, typically returns NULL
     expect_true(is.null(res2) || is.data.frame(res2))
@@ -229,7 +229,7 @@ test_that(".fpca_interaction includes slope_diff in results", {
     sample_names <- rep(paste0("s", 1:n_samples), each = n_q)
     group_vec <- rep(c("A", "B"), each = n_q * n_samples / 2)
     
-    result <- .fpca_interaction(
+    result <- TSENAT:::.fpca_interaction(
         mat,
         q_vals = q_vals,
         sample_names = sample_names,
@@ -288,7 +288,7 @@ test_that(".fpca_interaction works with all regularization methods", {
     )
     
     # Test PCA regularization
-    res_pca <- .calculate_lm(se,
+    res_pca <- TSENAT:::.calculate_lm(se,
         condition_col = "sample_type",
         method = "fpca",
         regularization = "pca",
@@ -297,7 +297,7 @@ test_that(".fpca_interaction works with all regularization methods", {
     
     # Test LASSO regularization
     res_lasso <- suppressWarnings({
-        .calculate_lm(se,
+        TSENAT:::.calculate_lm(se,
             condition_col = "sample_type",
             method = "fpca",
             regularization = "lasso",
@@ -307,7 +307,7 @@ test_that(".fpca_interaction works with all regularization methods", {
     
     # Test Elastic Net regularization
     res_elasticnet <- suppressWarnings({
-        .calculate_lm(se,
+        TSENAT:::.calculate_lm(se,
             condition_col = "sample_type",
             method = "fpca",
             regularization = "elasticnet",
@@ -376,14 +376,14 @@ test_that("FPCA with regularization='pca' (default) works correctly", {
     )
     
     # Default method should be "pca"
-    res_default <- .calculate_lm(se,
+    res_default <- TSENAT:::.calculate_lm(se,
         condition_col = "sample_type",
         method = "fpca",
         min_obs = 2
     )
     
     # Explicit "pca" method should give same result
-    res_pca <- .calculate_lm(se,
+    res_pca <- TSENAT:::.calculate_lm(se,
         condition_col = "sample_type",
         method = "fpca",
         regularization = "pca",
@@ -443,7 +443,7 @@ test_that("FPCA with regularization='lasso' produces valid results", {
         colData = cd
     )
     
-    res_lasso <- .calculate_lm(se,
+    res_lasso <- TSENAT:::.calculate_lm(se,
         condition_col = "sample_type",
         method = "fpca",
         regularization = "lasso",
@@ -497,7 +497,7 @@ test_that("FPCA with regularization='elasticnet' produces valid results", {
         colData = cd
     )
     
-    res_elasticnet <- .calculate_lm(se,
+    res_elasticnet <- TSENAT:::.calculate_lm(se,
         condition_col = "sample_type",
         method = "fpca",
         regularization = "elasticnet",
@@ -552,21 +552,21 @@ test_that("FPCA regularization methods produce reasonable p-value differences", 
     )
     
     # Compare all three methods
-    res_pca <- .calculate_lm(se,
+    res_pca <- TSENAT:::.calculate_lm(se,
         condition_col = "sample_type",
         method = "fpca",
         regularization = "pca",
         min_obs = 2
     )
     
-    res_lasso <- .calculate_lm(se,
+    res_lasso <- TSENAT:::.calculate_lm(se,
         condition_col = "sample_type",
         method = "fpca",
         regularization = "lasso",
         min_obs = 2
     )
     
-    res_elasticnet <- .calculate_lm(se,
+    res_elasticnet <- TSENAT:::.calculate_lm(se,
         condition_col = "sample_type",
         method = "fpca",
         regularization = "elasticnet",
@@ -652,7 +652,7 @@ test_that("FPCA regularization with paired design works correctly", {
     )
     
     # Test regularization with paired design (with sufficient observations for glmnet)
-    res <- .calculate_lm(se,
+    res <- TSENAT:::.calculate_lm(se,
         condition_col = "sample_type",
         method = "fpca",
         subject_col = "sample_base",
@@ -684,7 +684,7 @@ test_that(".apply_arima_differencing_fpca applies differencing for paired design
         stringsAsFactors = FALSE
     )
     
-    result <- TSENAT:::.apply_arima_differencing_fpca(df)
+    result <- .apply_arima_differencing_fpca(df)
     
     # For each subject, differencing reduces rows by 1
     # 2 subjects * 2 differences each = 4 rows
@@ -707,7 +707,7 @@ test_that(".apply_arima_differencing_fpca handles single subject", {
         stringsAsFactors = FALSE
     )
     
-    result <- TSENAT:::.apply_arima_differencing_fpca(df)
+    result <- .apply_arima_differencing_fpca(df)
     
     # Single subject should return original (no differencing)
     expect_equal(nrow(result), 3)
@@ -720,7 +720,7 @@ test_that(".build_curve_matrix constructs ordered matrix", {
     q_vals <- rep(c(0.5, 1.0, 1.5), 2)
     sample_names <- c("S1", "S1", "S1", "S2", "S2", "S2")
     
-    mat <- TSENAT:::.build_curve_matrix(entropy_vals, q_vals, sample_names, min_obs = 2)
+    mat <- .build_curve_matrix(entropy_vals, q_vals, sample_names, min_obs = 2)
     
     expect_is(mat, "matrix")
     expect_equal(nrow(mat), 2)  # 2 samples
@@ -738,7 +738,7 @@ test_that(".build_curve_matrix returns NULL for insufficient data", {
     q_vals <- c(0.5, 1.0)
     sample_names <- c("S1", "S2")
     
-    mat <- expect_warning(TSENAT:::.build_curve_matrix(entropy_vals, q_vals, sample_names, min_obs = 3),
+    mat <- expect_warning(.build_curve_matrix(entropy_vals, q_vals, sample_names, min_obs = 3),
                           "Insufficient samples")
     
     # Should return NULL because min_obs=3 but only 2 unique samples
@@ -750,7 +750,7 @@ test_that(".impute_curve_matrix fills NAs with column means", {
     mat <- matrix(c(1.0, 2.0, NA, 3.0, NA, 4.0), nrow = 3, ncol = 2)
     rownames(mat) <- c("S1", "S2", "S3")
     
-    result <- TSENAT:::.impute_curve_matrix(mat)
+    result <- .impute_curve_matrix(mat)
     
     # Check no NAs remain
     expect_true(!anyNA(result))
@@ -768,8 +768,8 @@ test_that(".aggregate_by_subject computes subject means", {
     group_vec <- c("A", "A", "B", "B")
     subject_vec <- c("S1", "S1", "S2", "S2")
     
-    result_a <- TSENAT:::.aggregate_by_subject(values, group_vec, subject_vec, "A")
-    result_b <- TSENAT:::.aggregate_by_subject(values, group_vec, subject_vec, "B")
+    result_a <- .aggregate_by_subject(values, group_vec, subject_vec, "A")
+    result_b <- .aggregate_by_subject(values, group_vec, subject_vec, "B")
     
     # Group A: mean of (1, 2) = 1.5
     expect_equal(as.numeric(result_a["S1"]), 1.5)
@@ -784,7 +784,7 @@ test_that(".select_npc selects appropriate PC count", {
     mat <- matrix(rnorm(100), nrow = 20)
     pca <- prcomp(mat, center = TRUE, scale. = FALSE)
     
-    n_pc <- TSENAT:::.select_npc(pca)
+    n_pc <- .select_npc(pca)
     
     # Should select between 2 and 5 PCs
     expect_true(n_pc >= 2)
@@ -798,7 +798,7 @@ test_that(".test_pc_groupdiff performs t-test on PC values", {
     pc_vals <- c(rnorm(15, mean = 0, sd = 0.1), rnorm(15, mean = 2, sd = 0.1))  # Very clear separation
     grp_vals <- rep(c("A", "B"), each = 15)
     
-    pval <- TSENAT:::.test_pc_groupdiff(pc_vals, grp_vals, NULL, "A", "B")
+    pval <- .test_pc_groupdiff(pc_vals, grp_vals, NULL, "A", "B")
     
     # Should return a p-value
     expect_is(pval, "numeric")
@@ -814,7 +814,7 @@ test_that(".test_pc_groupdiff handles paired t-test", {
     grp_vals <- rep(c("A", "B"), 4)
     subj_vals <- rep(c("S1", "S2", "S3", "S4"), 2)
     
-    pval <- TSENAT:::.test_pc_groupdiff(pc_vals, grp_vals, subj_vals, "A", "B")
+    pval <- .test_pc_groupdiff(pc_vals, grp_vals, subj_vals, "A", "B")
     
     # Should return a p-value
     expect_is(pval, "numeric")
@@ -828,7 +828,7 @@ test_that(".test_all_pcs returns correct structure", {
     
     grp_vals <- rep(c("A", "B"), 10)
     
-    result <- TSENAT:::.test_all_pcs(pca, grp_vals, NULL)
+    result <- .test_all_pcs(pca, grp_vals, NULL)
     
     # Check result structure
     expect_is(result, "list")
@@ -847,7 +847,7 @@ test_that(".fpca_pca_method produces valid output", {
     rownames(mat_sub) <- paste0("S", 1:20)
     grp_vals <- rep(c("A", "B"), 10)
     
-    result <- TSENAT:::.fpca_pca_method(mat_sub, grp_vals, NULL, "gene1", NULL)
+    result <- .fpca_pca_method(mat_sub, grp_vals, NULL, "gene1", NULL)
     
     # Result should be a data frame or NULL
     if (!is.null(result)) {
@@ -869,7 +869,7 @@ test_that(".fpca_regularization_method produces valid output", {
     grp_vals <- rep(c("A", "B"), 20)  # 20 per group (>8 observations)
     
     suppressWarnings({
-        result <- TSENAT:::.fpca_regularization_method(mat_sub, grp_vals, NULL, 
+        result <- .fpca_regularization_method(mat_sub, grp_vals, NULL, 
                                                         "gene1", "lasso", NULL)
     })
     
