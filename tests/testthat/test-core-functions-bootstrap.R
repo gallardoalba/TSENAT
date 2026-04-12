@@ -5371,3 +5371,401 @@ test_that("generic summary function dispatches to S3 method correctly", {
   
   expect_message(summary(div_ci), "Summary of Divergence Bootstrap")
 })
+
+# ============================================================================
+# NEW BOOTSTRAP TESTS FOR COVERAGE IMPROVEMENT
+# ============================================================================
+# These tests target uncovered lines identified in bootstrap_coverage_analysis.md
+# Coverage gaps: vector pseudocount validation, validation error paths, edge cases
+#
+# Add these tests to: tests/testthat/test-rcpp-bootstrap.R
+# ============================================================================
+
+# ============================================================================
+# SECTION 1: Vector Pseudocount Error Handling
+# ============================================================================
+# Addresses uncovered lines in:
+#   - bootstrap_compute_cpp_wrapper (lines 84-85, 88-89)
+#   - block_bootstrap_compute_cpp_wrapper (lines 37-38, 41-42)
+
+test_that("bootstrap_compute_cpp_wrapper rejects mismatched pseudocount vector", {
+  # Pseudocount vector length != x length should error
+  expect_error(
+    bootstrap_compute_cpp_wrapper(
+      x = c(100, 50, 25, 10),           # length 4
+      q = 1.0,
+      normalize = TRUE,
+      nboot = 10L,
+      log_base = exp(1),
+      pseudocount = c(1, 2, 3)           # length 3 - MISMATCH
+    ),
+    "pseudocount must have length 1 or equal to x length"
+  )
+})
+
+test_that("bootstrap_compute_cpp_wrapper accepts matching pseudocount vector", {
+  # Pseudocount vector length == x length should work
+  result <- bootstrap_compute_cpp_wrapper(
+    x = c(100, 50, 25, 10),              # length 4
+    q = 1.0,
+    normalize = TRUE,
+    nboot = 10L,
+    log_base = exp(1),
+    pseudocount = c(1, 2, 3, 4)          # length 4 - MATCHING
+  )
+  
+  expect_is(result, "numeric")
+  expect_length(result, 10)
+  expect_true(all(is.finite(result)))
+})
+
+test_that("block_bootstrap_compute_cpp_wrapper rejects mismatched pseudocount vector", {
+  # Even-length x with mismatched pseudocount vector
+  expect_error(
+    block_bootstrap_compute_cpp_wrapper(
+      x = c(100, 95, 110, 105),          # length 4 (2 pairs)
+      q = 1.0,
+      normalize = TRUE,
+      nboot = 10L,
+      log_base = exp(1),
+      pseudocount = c(1, 2, 3)           # length 3 - MISMATCH
+    ),
+    "pseudocount must have length 1 or equal to x length"
+  )
+})
+
+test_that("block_bootstrap_compute_cpp_wrapper accepts matching pseudocount vector", {
+  # Even-length x with matching pseudocount vector
+  result <- block_bootstrap_compute_cpp_wrapper(
+    x = c(100, 95, 110, 105),            # length 4 (2 pairs)
+    q = 1.0,
+    normalize = TRUE,
+    nboot = 10L,
+    log_base = exp(1),
+    pseudocount = c(1, 2, 3, 4)          # length 4 - MATCHING
+  )
+  
+  expect_is(result, "numeric")
+  expect_length(result, 10)
+  expect_true(all(is.finite(result)))
+})
+
+# ============================================================================
+# SECTION 2: Divergence Bootstrap Input Validation
+# ============================================================================
+# Addresses uncovered lines in:
+#   - divergence_bootstrap_compute_cpp_wrapper (lines 127-156)
+
+test_that("divergence_bootstrap_compute_cpp_wrapper rejects non-numeric inputs", {
+  # x must be numeric
+  expect_error(
+    divergence_bootstrap_compute_cpp_wrapper(
+      x = c("a", "b", "c"),              # non-numeric
+      y = c(100, 50, 25),
+      q = 1.0,
+      nboot = 10L,
+      paired = FALSE,
+      pseudocount = 0,
+      log_base = exp(1)
+    ),
+    "x and y must be numeric vectors"
+  )
+  
+  # y must be numeric
+  expect_error(
+    divergence_bootstrap_compute_cpp_wrapper(
+      x = c(100, 50, 25),
+      y = c("a", "b", "c"),              # non-numeric
+      q = 1.0,
+      nboot = 10L,
+      paired = FALSE,
+      pseudocount = 0,
+      log_base = exp(1)
+    ),
+    "x and y must be numeric vectors"
+  )
+})
+
+test_that("divergence_bootstrap_compute_cpp_wrapper requires equal length for x and y", {
+  expect_error(
+    divergence_bootstrap_compute_cpp_wrapper(
+      x = c(100, 50, 25, 10),            # length 4
+      y = c(75, 40),                     # length 2 - MISMATCH
+      q = 1.0,
+      nboot = 10L,
+      paired = FALSE,
+      pseudocount = 0,
+      log_base = exp(1)
+    ),
+    "x and y must have the same length"
+  )
+})
+
+test_that("divergence_bootstrap_compute_cpp_wrapper rejects negative values", {
+  # Negative in x
+  expect_error(
+    divergence_bootstrap_compute_cpp_wrapper(
+      x = c(100, -50, 25),               # negative value
+      y = c(75, 40, 30),
+      q = 1.0,
+      nboot = 10L,
+      paired = FALSE,
+      pseudocount = 0,
+      log_base = exp(1)
+    ),
+    "x and y must contain non-negative values only"
+  )
+  
+  # Negative in y
+  expect_error(
+    divergence_bootstrap_compute_cpp_wrapper(
+      x = c(100, 50, 25),
+      y = c(75, -40, 30),                # negative value
+      q = 1.0,
+      nboot = 10L,
+      paired = FALSE,
+      pseudocount = 0,
+      log_base = exp(1)
+    ),
+    "x and y must contain non-negative values only"
+  )
+})
+
+test_that("divergence_bootstrap_compute_cpp_wrapper validates q parameter", {
+  expect_error(
+    divergence_bootstrap_compute_cpp_wrapper(
+      x = c(100, 50, 25),
+      y = c(75, 40, 30),
+      q = -1.0,                          # negative q
+      nboot = 10L,
+      paired = FALSE,
+      pseudocount = 0,
+      log_base = exp(1)
+    ),
+    "q must be a non-negative numeric value"
+  )
+})
+
+test_that("divergence_bootstrap_compute_cpp_wrapper validates nboot parameter", {
+  expect_error(
+    divergence_bootstrap_compute_cpp_wrapper(
+      x = c(100, 50, 25),
+      y = c(75, 40, 30),
+      q = 1.0,
+      nboot = 0L,                        # invalid nboot
+      paired = FALSE,
+      pseudocount = 0,
+      log_base = exp(1)
+    ),
+    "nboot must be a positive integer"
+  )
+})
+
+test_that("divergence_bootstrap_compute_cpp_wrapper validates paired parameter", {
+  expect_error(
+    divergence_bootstrap_compute_cpp_wrapper(
+      x = c(100, 50, 25),
+      y = c(75, 40, 30),
+      q = 1.0,
+      nboot = 10L,
+      paired = c(TRUE, FALSE),           # not single logical
+      pseudocount = 0,
+      log_base = exp(1)
+    ),
+    "paired must be a single logical value"
+  )
+})
+
+test_that("divergence_bootstrap_compute_cpp_wrapper requires even length for paired=TRUE", {
+  expect_error(
+    divergence_bootstrap_compute_cpp_wrapper(
+      x = c(100, 50, 25),                # odd length (3)
+      y = c(75, 40, 30),
+      q = 1.0,
+      nboot = 10L,
+      paired = TRUE,                     # paired requires even length
+      pseudocount = 0,
+      log_base = exp(1)
+    ),
+    "For paired=TRUE, x and y must have even length"
+  )
+})
+
+# ============================================================================
+# SECTION 3: Validation Data Tests (.validate_bootstrap_data)
+# ============================================================================
+# Addresses uncovered lines in:
+#   - .validate_bootstrap_data (lines 478-521, 52.2% coverage)
+
+test_that("validate_bootstrap_data rejects empty input", {
+  expect_error(
+    TSENAT:::.validate_bootstrap_data(
+      x = numeric(0),
+      effective_length = NULL,
+      pseudocount = 0
+    ),
+    "Input x must be a non-empty vector"
+  )
+})
+
+test_that("validate_bootstrap_data rejects all zeros without pseudocount", {
+  expect_error(
+    TSENAT:::.validate_bootstrap_data(
+      x = c(0, 0, 0, 0),
+      effective_length = NULL,
+      pseudocount = 0
+    ),
+    "All counts are zero and pseudocount = 0"
+  )
+})
+
+test_that("validate_bootstrap_data warns on all zeros with pseudocount", {
+  expect_warning(
+    TSENAT:::.validate_bootstrap_data(
+      x = c(0, 0, 0, 0),
+      effective_length = NULL,
+      pseudocount = 1.0
+    ),
+    "All counts are zero"
+  )
+})
+
+test_that("validate_bootstrap_data detects effective_length mismatch", {
+  expect_error(
+    TSENAT:::.validate_bootstrap_data(
+      x = c(100, 50, 25, 10),            # length 4
+      effective_length = c(1.0, 1.0, 1.0),  # length 3 - MISMATCH
+      pseudocount = 0
+    ),
+    "Length mismatch: effective_length"
+  )
+})
+
+test_that("validate_bootstrap_data warns on non-positive effective_length", {
+  expect_warning(
+    TSENAT:::.validate_bootstrap_data(
+      x = c(100, 50, 25, 10),
+      effective_length = c(1.0, 0.0, -1.0, 1.0),  # has 0 and negative
+      pseudocount = 0
+    ),
+    "Found.*position.*effective_length <= 0"
+  )
+})
+
+test_that("validate_bootstrap_data warns on single isoform", {
+  expect_warning(
+    TSENAT:::.validate_bootstrap_data(
+      x = c(100),                        # only 1 isoform
+      effective_length = c(1.0),
+      pseudocount = 0
+    ),
+    "Single isoform detected"
+  )
+})
+
+test_that("validate_bootstrap_data warns on high proportion of zeros", {
+  expect_warning(
+    TSENAT:::.validate_bootstrap_data(
+      x = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 100),  # 90% zeros
+      effective_length = rep(1.0, 10),
+      pseudocount = 0
+    ),
+    "High proportion of zeros"
+  )
+})
+
+test_that("validate_bootstrap_data returns TRUE invisibly on valid input", {
+  result <- TSENAT:::.validate_bootstrap_data(
+    x = c(100, 50, 25, 10),
+    effective_length = c(1.0, 1.0, 1.0, 1.0),
+    pseudocount = 0
+  )
+  
+  expect_equal(result, TRUE)
+  expect_true(is.logical(result))
+})
+
+# ============================================================================
+# SECTION 4: Edge Cases and Boundary Conditions
+# ============================================================================
+
+test_that("bootstrap functions handle very small pseudocount values", {
+  result <- bootstrap_compute_cpp_wrapper(
+    x = c(0, 0, 0, 100),                # mostly zeros
+    q = 1.0,
+    normalize = TRUE,
+    nboot = 10L,
+    log_base = exp(1),
+    pseudocount = 1e-8                  # very small but nonzero
+  )
+  
+  expect_is(result, "numeric")
+  expect_length(result, 10)
+  expect_true(all(is.finite(result)))
+})
+
+test_that("block_bootstrap with vector pseudocount produces different results than scalar", {
+  x <- c(100, 95, 110, 105)
+  
+  result_scalar <- block_bootstrap_compute_cpp_wrapper(
+    x = x,
+    q = 1.0,
+    normalize = TRUE,
+    nboot = 100L,
+    log_base = exp(1),
+    pseudocount = 1.0
+  )
+  
+  result_vector <- block_bootstrap_compute_cpp_wrapper(
+    x = x,
+    q = 1.0,
+    normalize = TRUE,
+    nboot = 100L,
+    log_base = exp(1),
+    pseudocount = c(1, 1, 1, 1)
+  )
+  
+  # Should be equivalent (vector applied upfront)
+  expect_equal(length(result_scalar), length(result_vector))
+  # Results should be similar (not exactly equal due to randomness, but similar distributions)
+  expect_true(abs(mean(result_scalar) - mean(result_vector)) < 0.1)
+})
+
+# ============================================================================
+# SECTION 5: Paired Design Validation
+# ============================================================================
+
+test_that("divergence_bootstrap_paired rejects odd-length pairs", {
+  expect_error(
+    divergence_bootstrap_paired_cpp_wrapper(
+      x = c(100, 50, 25),                # odd length
+      y = c(75, 40, 30),
+      pair_ids = c(1, 1, 2),
+      q = 1.0,
+      nboot = 10L,
+      pseudocount = 0,
+      log_base = exp(1)
+    ),
+    "must have same length"
+  )
+})
+
+test_that("divergence_bootstrap_flexible rejects mismatched group lengths", {
+  expect_error(
+    divergence_bootstrap_flexible_cpp_wrapper(
+      x = c(100, 50, 25, 10),
+      y = c(75, 40, 30),                 # length 3
+      x_pair_ids = c(1, 1, 2, 2),
+      y_pair_ids = c(1, 1),              # length 2, doesn't match y length 3
+      q = 1.0,
+      nboot = 10L,
+      pseudocount = 0,
+      log_base = exp(1)
+    ),
+    "y and y_pair_ids must have same length"
+  )
+})
+
+# ============================================================================
+# END OF NEW TESTS
+# ============================================================================

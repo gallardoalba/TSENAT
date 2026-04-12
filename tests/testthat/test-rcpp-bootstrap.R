@@ -1653,10 +1653,10 @@ test_that("divergence_bootstrap_paired_cpp_wrapper compiles and is available", {
 
 test_that("divergence_bootstrap_paired_cpp_wrapper respects nboot parameter", {
   
-  # Paired data: one control and one treatment per pair
-  x <- c(100, 80, 120)
-  y <- c(90, 85, 110)
-  pair_ids <- c(1L, 2L, 3L)
+  # Paired data: one control and one treatment per pair (must be even number of elements)
+  x <- c(100, 80, 120, 95)
+  y <- c(90, 85, 110, 100)
+  pair_ids <- c(1L, 2L, 3L, 4L)
   
   for (nboot in c(10L, 50L, 100L)) {
     result <- divergence_bootstrap_paired_cpp_wrapper(
@@ -1692,8 +1692,8 @@ test_that("divergence_bootstrap_paired_cpp_wrapper works with various q values",
 
 test_that("divergence_bootstrap_paired_cpp_wrapper handles multiple pairs", {
   
-  # Test with increasing numbers of pairs
-  for (n_pairs in c(2, 5, 10)) {
+  # Test with increasing numbers of pairs (must be even)
+  for (n_pairs in c(2, 4, 10)) {
     x <- rnorm(n_pairs, mean = 100, sd = 20)
     x <- pmax(x, 1)  # Ensure positive counts
     y <- rnorm(n_pairs, mean = 90, sd = 20)
@@ -1753,9 +1753,9 @@ test_that("divergence_bootstrap_paired_cpp validates input lengths", {
 
 test_that("divergence_bootstrap_paired_cpp handles pseudocount", {
   
-  x <- c(100, 80, 120)
-  y <- c(90, 85, 110)
-  pair_ids <- c(1L, 2L, 3L)
+  x <- c(100, 80, 120, 95)
+  y <- c(90, 85, 110, 100)
+  pair_ids <- c(1L, 2L, 3L, 4L)
   
   # Test with different pseudocount values
   result_0 <- divergence_bootstrap_paired_cpp_wrapper(
@@ -2220,8 +2220,8 @@ test_that("divergence_bootstrap_compute_cpp_wrapper respects log_base parameter"
 
 test_that("divergence_bootstrap_paired_cpp_wrapper handles multiple pairs efficiently", {
   
-  # Test with increasing numbers of pairs to verify performance doesn't degrade
-  for (n_pairs in c(5, 10, 15)) {
+  # Test with increasing numbers of pairs to verify performance doesn't degrade (must be even)
+  for (n_pairs in c(4, 10, 16)) {
     x <- rnorm(n_pairs, mean = 100, sd = 20)
     x <- pmax(x, 1)
     y <- rnorm(n_pairs, mean = 95, sd = 20)

@@ -212,46 +212,12 @@ analysis <- calculate_rank_assumptions(
     checks = "all"  # Include rank-based checks + GAM diagnostics
 )
 
-# Extract the result object
-rank_assumptions <- metadata(analysis, "rankbased_assumptions")$result
+# Extract the assumption check results
+check_results <- results(analysis, type = "assumptions")
 ```
 
 ```{r display-assumption-results, message=FALSE, echo=FALSE}
-# Extract summary statistics and test results from rank_assumptions object
-summary_stats <- attr(rank_assumptions, "summary_stats")
-check_results <- attr(rank_assumptions, "checks")
-
-# DIAGNOSTIC: Show what was actually computed
-cat("Diagnostic: Available checks in result:\n")
-cat(paste(names(check_results), collapse = ", "), "\n\n")
-
-# Additional diagnostic for GAM metrics
-if (!is.null(check_results$gam_metrics)) {
-  cat("GAM metrics structure:\n")
-  cat("  Names:", paste(names(check_results$gam_metrics), collapse = ", "), "\n\n")
-  
-  # Check each metric in detail
-  for (metric_name in c("concurvity", "edf", "nonlinearity", "basis_adequacy")) {
-    metric <- check_results$gam_metrics[[metric_name]]
-    if (!is.null(metric)) {
-      cat(sprintf("  %s:\n", metric_name))
-      cat(sprintf("    - description: %s\n", if (!is.null(metric$description)) metric$description else "NULL"))
-      cat(sprintf("    - status: %s\n", if (!is.null(metric$status)) metric$status else "NULL"))
-      
-      # Show the actual data fields
-      if (metric_name == "concurvity" && !is.null(metric$overall_concurvity)) {
-        cat(sprintf("    - overall_concurvity: %s (is.na=%s)\n", metric$overall_concurvity, is.na(metric$overall_concurvity)))
-      } else if (metric_name == "edf" && !is.null(metric$edf_ratio)) {
-        cat(sprintf("    - edf_ratio: %s (is.na=%s)\n", metric$edf_ratio, is.na(metric$edf_ratio)))
-      } else if (metric_name == "nonlinearity" && !is.null(metric$r2_improvement_percent)) {
-        cat(sprintf("    - r2_improvement_percent: %s (is.na=%s)\n", metric$r2_improvement_percent, is.na(metric$r2_improvement_percent)))
-      } else if (metric_name == "basis_adequacy" && !is.null(metric$optimal_basis_dimension)) {
-        cat(sprintf("    - optimal_basis_dimension: %s (is.na=%s)\n", metric$optimal_basis_dimension, is.na(metric$optimal_basis_dimension)))
-      }
-    }
-  }
-  cat("\n")
-}
+# check_results now contains all diagnostic results directly
 
 # Create assumption checks table for rank-based checks
 exchangeability_check <- check_results$exchangeability
@@ -289,7 +255,13 @@ data_characteristics <- data.frame(
     exchangeability_check$details,
     monotonicity_check$details,
     consistency_check$details
-  )
+  ),
+  Interpretation = c(
+    gsub("✓|⚠|✗", "", exchangeability_check$status),
+    gsub("✓|⚠|✗", "", monotonicity_check$status),
+    gsub("✓|⚠|✗", "", consistency_check$status)
+  ),
+  stringsAsFactors = FALSE
 )
 
 # Add GAM metrics if available and successful
@@ -300,21 +272,25 @@ if (!is.null(check_results$gam_metrics) && !isTRUE(check_results$gam_metrics$err
     Characteristic = character(),
     Test = character(),
     Result = character(),
+    Interpretation = character(),
     stringsAsFactors = FALSE
   )
   
   # Concurvity - include even if empty/error
   if (!is.null(gam_metrics$concurvity)) {
     metric <- gam_metrics$concurvity
-    result_str <- if (isTRUE(metric$error) || is.na(metric$overall_concurvity)) {
-      sprintf("NA (%s)", if (isTRUE(metric$error)) "computation error" else gsub("✓|⚠|✗", "", metric$status))
+    if (isTRUE(metric$error) || is.na(metric$overall_concurvity)) {
+      result_str <- "NA"
+      interp_str <- if (isTRUE(metric$error)) "computation error" else gsub("✓|⚠|✗", "", metric$status)
     } else {
-      sprintf("Index=%.3f (%s)", metric$overall_concurvity, gsub("✓|⚠|✗", "", metric$status))
+      result_str <- sprintf("Index=%.3f", metric$overall_concurvity)
+      interp_str <- gsub("✓|⚠|✗", "", metric$status)
     }
     gam_rows <- rbind(gam_rows, data.frame(
-      Characteristic = "GAM Concurvity",
+      Characteristic = "Concurvity",
       Test = "Smooth term collinearity",
       Result = result_str,
+      Interpretation = interp_str,
       stringsAsFactors = FALSE
     ))
   }
@@ -322,15 +298,18 @@ if (!is.null(check_results$gam_metrics) && !isTRUE(check_results$gam_metrics$err
   # EDF ratio - include even if empty/error
   if (!is.null(gam_metrics$edf)) {
     metric <- gam_metrics$edf
-    result_str <- if (isTRUE(metric$error) || is.na(metric$edf_ratio)) {
-      sprintf("NA (%s)", if (isTRUE(metric$error)) "computation error" else gsub("✓|⚠", "", metric$status))
+    if (isTRUE(metric$error) || is.na(metric$edf_ratio)) {
+      result_str <- "NA"
+      interp_str <- if (isTRUE(metric$error)) "computation error" else gsub("✓|⚠", "", metric$status)
     } else {
-      sprintf("Ratio=%.3f (%s)", metric$edf_ratio, gsub("✓|⚠", "", metric$status))
+      result_str <- sprintf("Ratio=%.3f", metric$edf_ratio)
+      interp_str <- gsub("✓|⚠", "", metric$status)
     }
     gam_rows <- rbind(gam_rows, data.frame(
-      Characteristic = "GAM Effective DoF",
+      Characteristic = "Effective DoF",
       Test = "Smoothing adequacy",
       Result = result_str,
+      Interpretation = interp_str,
       stringsAsFactors = FALSE
     ))
   }
@@ -338,15 +317,18 @@ if (!is.null(check_results$gam_metrics) && !isTRUE(check_results$gam_metrics$err
   # Non-linearity contribution - include even if empty/error
   if (!is.null(gam_metrics$nonlinearity)) {
     metric <- gam_metrics$nonlinearity
-    result_str <- if (isTRUE(metric$error) || is.na(metric$r2_improvement_percent)) {
-      sprintf("NA (%s)", if (isTRUE(metric$error)) "computation error" else gsub("✓|⚠", "", metric$status))
+    if (isTRUE(metric$error) || is.na(metric$r2_improvement_percent)) {
+      result_str <- "NA"
+      interp_str <- if (isTRUE(metric$error)) "computation error" else gsub("✓|⚠", "", metric$status)
     } else {
-      sprintf("Δ R²=%.1f%% (%s)", metric$r2_improvement_percent, gsub("✓|⚠", "", metric$status))
+      result_str <- sprintf("Δ R²=%.1f%%", metric$r2_improvement_percent)
+      interp_str <- gsub("✓|⚠", "", metric$status)
     }
     gam_rows <- rbind(gam_rows, data.frame(
-      Characteristic = "GAM Non-linearity",
+      Characteristic = "Non-linearity",
       Test = "LM vs GAM improvement",
       Result = result_str,
+      Interpretation = interp_str,
       stringsAsFactors = FALSE
     ))
   }
@@ -354,15 +336,18 @@ if (!is.null(check_results$gam_metrics) && !isTRUE(check_results$gam_metrics$err
   # Basis adequacy - include even if empty/error
   if (!is.null(gam_metrics$basis_adequacy)) {
     metric <- gam_metrics$basis_adequacy
-    result_str <- if (isTRUE(metric$error) || is.na(metric$optimal_basis_dimension)) {
-      sprintf("NA (%s)", if (isTRUE(metric$error)) "computation error" else gsub("✓|⚠|✗", "", metric$status))
+    if (isTRUE(metric$error) || is.na(metric$optimal_basis_dimension)) {
+      result_str <- "NA"
+      interp_str <- if (isTRUE(metric$error)) "computation error" else gsub("✓|⚠|✗", "", metric$status)
     } else {
-      sprintf("k=%d (%s)", metric$optimal_basis_dimension, gsub("✓|⚠|✗", "", metric$status))
+      result_str <- sprintf("k=%d", metric$optimal_basis_dimension)
+      interp_str <- gsub("✓|⚠|✗", "", metric$status)
     }
     gam_rows <- rbind(gam_rows, data.frame(
-      Characteristic = "GAM Basis Dimension",
+      Characteristic = "Basis Dimension",
       Test = "Basis function adequacy",
       Result = result_str,
+      Interpretation = interp_str,
       stringsAsFactors = FALSE
     ))
   }
@@ -372,9 +357,267 @@ if (!is.null(check_results$gam_metrics) && !isTRUE(check_results$gam_metrics$err
   }
 }
 
+# Add GEE metrics to table (if available)
+if (!is.null(check_results$gee_metrics)) {
+  gee_metrics <- check_results$gee_metrics
+  gee_rows <- data.frame(
+    Characteristic = character(),
+    Test = character(),
+    Result = character(),
+    Interpretation = character(),
+    stringsAsFactors = FALSE
+  )
+  
+  # Working Correlation Structure Fit
+  if (!is.null(gee_metrics$correlation_fit)) {
+    metric <- gee_metrics$correlation_fit
+    has_error <- isTRUE(metric$error)
+    has_structure <- !is.null(metric$assumed_structure)
+    if (has_error || !has_structure) {
+      result_str <- "NA"
+      interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status)
+    } else {
+      result_str <- sprintf("Structure=%s", metric$assumed_structure)
+      interp_str <- gsub("✓|⚠|✗", "", metric$status)
+    }
+    gee_rows <- rbind(gee_rows, data.frame(
+      Characteristic = "Correlation Structure",
+      Test = "Working correlation fit",
+      Result = result_str,
+      Interpretation = interp_str,
+      stringsAsFactors = FALSE
+    ))
+  }
+  
+  # Cluster Size Variation
+  if (!is.null(gee_metrics$cluster_variation)) {
+    metric <- gee_metrics$cluster_variation
+    has_error <- isTRUE(metric$error)
+    cv_valid <- !is.null(metric$cv_cluster_size) && !is.na(metric$cv_cluster_size)
+    if (has_error || !cv_valid) {
+      result_str <- "NA"
+      interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status)
+    } else {
+      result_str <- sprintf("CV=%.3f", metric$cv_cluster_size)
+      interp_str <- gsub("✓|⚠|✗", "", metric$status)
+    }
+    gee_rows <- rbind(gee_rows, data.frame(
+      Characteristic = "Cluster Variation",
+      Test = "Cluster size homogeneity",
+      Result = result_str,
+      Interpretation = interp_str,
+      stringsAsFactors = FALSE
+    ))
+  }
+  
+  # Independence of Residuals
+  if (!is.null(gee_metrics$independence)) {
+    metric <- gee_metrics$independence
+    has_error <- isTRUE(metric$error)
+    corr_valid <- !is.null(metric$mean_residual_correlation) && !is.na(metric$mean_residual_correlation)
+    if (has_error || !corr_valid) {
+      result_str <- "NA"
+      interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status)
+    } else {
+      result_str <- sprintf("Corr=%.3f", metric$mean_residual_correlation)
+      interp_str <- gsub("✓|⚠|✗", "", metric$status)
+    }
+    gee_rows <- rbind(gee_rows, data.frame(
+      Characteristic = "Independence",
+      Test = "Within-cluster residual correlation",
+      Result = result_str,
+      Interpretation = interp_str,
+      stringsAsFactors = FALSE
+    ))
+  }
+  
+  # Scale Parameter (Dispersion)
+  if (!is.null(gee_metrics$scale_parameter)) {
+    metric <- gee_metrics$scale_parameter
+    has_error <- isTRUE(metric$error)
+    phi_valid <- !is.null(metric$scale_parameter) && !is.na(metric$scale_parameter)
+    if (has_error || !phi_valid) {
+      result_str <- "NA"
+      interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status)
+    } else {
+      result_str <- sprintf("φ=%.3f", metric$scale_parameter)
+      interp_str <- gsub("✓|⚠|✗", "", metric$status)
+    }
+    gee_rows <- rbind(gee_rows, data.frame(
+      Characteristic = "Scale Parameter",
+      Test = "Dispersion parameter",
+      Result = result_str,
+      Interpretation = interp_str,
+      stringsAsFactors = FALSE
+    ))
+  }
+  
+  if (nrow(gee_rows) > 0) {
+    data_characteristics <- rbind(data_characteristics, gee_rows)
+  }
+}
+
+# Add LMM (Linear Mixed Models) metrics to table (if available)
+if (!is.null(check_results$lmm_metrics)) {
+  lmm_metrics <- check_results$lmm_metrics
+  lmm_rows <- data.frame(
+    Characteristic = character(),
+    Test = character(),
+    Result = character(),
+    Interpretation = character(),
+    stringsAsFactors = FALSE
+  )
+  
+  # Variance Components (ICC)
+  if (!is.null(lmm_metrics$variance_components)) {
+    metric <- lmm_metrics$variance_components
+    has_error <- isTRUE(metric$error)
+    icc_valid <- !is.null(metric$icc) && !is.na(metric$icc)
+    if (has_error || !icc_valid) {
+      result_str <- "NA"
+      interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status)
+    } else {
+      result_str <- sprintf("ICC=%.3f", metric$icc)
+      interp_str <- gsub("✓|⚠|✗", "", metric$status)
+    }
+    lmm_rows <- rbind(lmm_rows, data.frame(
+      Characteristic = "Variance Components",
+      Test = "Intraclass correlation",
+      Result = result_str,
+      Interpretation = interp_str,
+      stringsAsFactors = FALSE
+    ))
+  }
+  
+  # Random Effects Normality
+  if (!is.null(lmm_metrics$normality)) {
+    metric <- lmm_metrics$normality
+    has_error <- isTRUE(metric$error)
+    pval_valid <- !is.null(metric$shapiro_pvalue) && !is.na(metric$shapiro_pvalue)
+    if (has_error || !pval_valid) {
+      result_str <- "NA"
+      interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status)
+    } else {
+      result_str <- sprintf("W p=%.3f", metric$shapiro_pvalue)
+      interp_str <- gsub("✓|⚠|✗", "", metric$status)
+    }
+    lmm_rows <- rbind(lmm_rows, data.frame(
+      Characteristic = "Random Effects Normality",
+      Test = "Shapiro-Wilk test",
+      Result = result_str,
+      Interpretation = interp_str,
+      stringsAsFactors = FALSE
+    ))
+  }
+  
+  # Variance Homogeneity
+  if (!is.null(lmm_metrics$homogeneity)) {
+    metric <- lmm_metrics$homogeneity
+    has_error <- isTRUE(metric$error)
+    pval_valid <- !is.null(metric$levene_pvalue) && !is.na(metric$levene_pvalue)
+    if (has_error || !pval_valid) {
+      result_str <- "NA"
+      interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status)
+    } else {
+      result_str <- sprintf("Levene p=%.3f", metric$levene_pvalue)
+      interp_str <- gsub("✓|⚠|✗", "", metric$status)
+    }
+    lmm_rows <- rbind(lmm_rows, data.frame(
+      Characteristic = "Variance Homogeneity",
+      Test = "Levene's test",
+      Result = result_str,
+      Interpretation = interp_str,
+      stringsAsFactors = FALSE
+    ))
+  }
+  
+  # Outlier Influence
+  if (!is.null(lmm_metrics$influence)) {
+    metric <- lmm_metrics$influence
+    has_error <- isTRUE(metric$error)
+    inf_valid <- !is.null(metric$n_influential) && !is.na(metric$n_influential)
+    if (has_error || !inf_valid) {
+      result_str <- "NA"
+      interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status)
+    } else {
+      result_str <- sprintf("Influential=%.1f%%", metric$prop_influential * 100)
+      interp_str <- gsub("✓|⚠|✗", "", metric$status)
+    }
+    lmm_rows <- rbind(lmm_rows, data.frame(
+      Characteristic = "Outlier Influence",
+      Test = "Cook's distance assessment",
+      Result = result_str,
+      Interpretation = interp_str,
+      stringsAsFactors = FALSE
+    ))
+  }
+  
+  if (nrow(lmm_rows) > 0) {
+    data_characteristics <- rbind(data_characteristics, lmm_rows)
+  }
+}
+
+# Add FPCA (Functional Principal Component Analysis) metrics to table (if available)
+if (!is.null(check_results$fpca_metrics)) {
+  fpca_metrics <- check_results$fpca_metrics
+  fpca_rows <- data.frame(
+    Characteristic = character(),
+    Test = character(),
+    Result = character(),
+    Interpretation = character(),
+    stringsAsFactors = FALSE
+  )
+  
+  # Cumulative Variance Explained
+  if (!is.null(fpca_metrics$variance_adequacy)) {
+    metric <- fpca_metrics$variance_adequacy
+    has_error <- isTRUE(metric$error)
+    n_comp_valid <- !is.null(metric$n_components_95) && !is.na(metric$n_components_95)
+    if (has_error || !n_comp_valid) {
+      result_str <- "NA"
+      interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status)
+    } else {
+      result_str <- sprintf("Components for 95%%=%.0f", metric$n_components_95)
+      interp_str <- gsub("✓|⚠|✗", "", metric$status)
+    }
+    fpca_rows <- rbind(fpca_rows, data.frame(
+      Characteristic = "Variance Adequacy",
+      Test = "Cumulative variance explained",
+      Result = result_str,
+      Interpretation = interp_str,
+      stringsAsFactors = FALSE
+    ))
+  }
+  
+  # Bootstrap Stability
+  if (!is.null(fpca_metrics$bootstrap_stability)) {
+    metric <- fpca_metrics$bootstrap_stability
+    has_error <- isTRUE(metric$error)
+    cv_valid <- !is.null(metric$cv_mean) && !is.na(metric$cv_mean)
+    if (has_error || !cv_valid) {
+      result_str <- "NA"
+      interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status)
+    } else {
+      result_str <- sprintf("CV=%.3f", metric$cv_mean)
+      interp_str <- gsub("✓|⚠|✗", "", metric$status)
+    }
+    fpca_rows <- rbind(fpca_rows, data.frame(
+      Characteristic = "Bootstrap Stability",
+      Test = "PC loading stability via bootstrap",
+      Result = result_str,
+      Interpretation = interp_str,
+      stringsAsFactors = FALSE
+    ))
+  }
+  
+  if (nrow(fpca_rows) > 0) {
+    data_characteristics <- rbind(data_characteristics, fpca_rows)
+  }
+}
+
 knitr::kable(data_characteristics, 
-             caption = "Supplementary Table 2 | Entropy Matrix Validation Metrics. Rank-based assumptions and optional GAM diagnostics.",
-             align = c("l", "l", "r"),
+             caption = "Supplementary Table 2 | Entropy Matrix Validation Metrics. Rank-based assumptions, GAM diagnostics, GEE diagnostics, LMM diagnostics, and FPCA diagnostics.",
+             align = c("l", "l", "r", "l"),
              format = if (knitr::is_latex_output()) "latex" else "html",
              longtable = knitr::is_latex_output(),
              linesep = "") %>%
@@ -383,7 +626,7 @@ knitr::kable(data_characteristics,
     full_width = TRUE,
     latex_options = c("scale_down")
   ) %>%
-  kableExtra::footnote(general = "Rank-based checks validate suitability for rank-based analysis. Paired Structure: Tests exchangeability (p > 0.05 = independent). Gene Heterogeneity: Consistency of rank ordering (r > 0.7 = stable). Subject Consistency: Replicate concordance (W > 0.7 = high). GAM diagnostics assess generalized additive model assumptions: Concurvity (0=uncorrelated smooths, higher=collinearity issues), Effective DoF (ratio of effective to nominal degrees of freedom), Non-linearity (R² improvement from GAM over linear model), Basis Dimension (optimal k for spline basis). NA indicates metric could not be computed from the data.")
+  kableExtra::footnote(general = "Rank-based checks validate suitability for rank-based analysis.")
 ```
 
 <!-- Diagnostic note for GAM metrics -->
@@ -393,8 +636,6 @@ if (!is.null(check_results$gam_metrics)) {
     cat("**Note:** GAM diagnostics were requested but not computed:\n")
     cat(sprintf("- Reason: %s\n", check_results$gam_metrics$message))
     cat(sprintf("- Details: %s\n", check_results$gam_metrics$reason))
-  } else if (length(check_results$gam_metrics) > 0 && nrow(data_characteristics) > 3) {
-    cat("**Note:** GAM diagnostic metrics successfully computed (see table above).\n")
   }
 } else {
   cat("")  # No output if not requested

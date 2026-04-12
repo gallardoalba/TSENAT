@@ -10,7 +10,7 @@
 #' @param analysis \code{TSENATAnalysis} object containing computed results.
 #' @param type \code{character}. \strong{Required.} Type of results to extract:
 #'   'diversity', 'divergence', 'lm', 'jackknife', 'rank_test', 'effect_sizes_divergence',
-#'   or 'switching_tables'.
+#'   'assumptions', or 'switching_tables'.
 #' @param q \code{numeric}. For diversity results, optionally return results for 
 #'   a specific q-value only. When specified, returns a single SummarizedExperiment 
 #'   for that q-value instead of the full list. Default: NULL (return all q-values 
@@ -45,6 +45,7 @@
 #'   - For lm/jackknife: A data.frame or list based on type and format
 #'   - For pairwise: A data.frame with pairwise comparison difference metrics
 #'   - For effect_sizes_divergence: A list containing effect size divergence results with components like interaction_results
+#'   - For assumptions: A list containing rank-based assumption checks (exchangeability, monotonicity, consistency) and optional method-specific diagnostics (gam_metrics, gee_metrics, lmm_metrics, fpca_metrics)
 #'   - For switching_tables: A list containing gene switching comparison tables
 #'   Returns NULL if requested result type not computed or no results pass filtering.
 #'
@@ -132,6 +133,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
         jackknife = ,
         rank_test = .process_statistical_results(result, type, filterFDR, rankBy, n, format),
         effect_sizes_divergence = .process_effect_sizes_divergence_results(result, top_n, sort_by),
+        assumptions = result,
         switching_tables = result,
         result
     )
@@ -279,9 +281,17 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
         } else NULL,
         pairwise = if (length(analysis@pairwise_results) > 0) analysis@pairwise_results else NULL,
         effect_sizes_divergence = S4Vectors::metadata(analysis)$effect_sizes_divergence,
+        assumptions = {
+            meta <- S4Vectors::metadata(analysis)$rankbased_assumptions
+            if (!is.null(meta) && is.list(meta) && !is.null(meta$result)) {
+                attr(meta$result, "checks")
+            } else {
+                NULL
+            }
+        },
         switching_tables = .extract_or_compute_switching_tables(analysis),
         stop("Unknown result type: '", type, "'. Must be one of: ", 
-             "diversity, divergence, lm, jackknife, rank_test, pairwise, effect_sizes_divergence, switching_tables", 
+             "diversity, divergence, lm, jackknife, rank_test, pairwise, effect_sizes_divergence, assumptions, switching_tables", 
              call. = FALSE)
     )
 }
