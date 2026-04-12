@@ -94,6 +94,15 @@
         stop("'se' must be a SummarizedExperiment", call. = FALSE)
     }
 
+    # Validate that the primary assay (assay_name) is numeric - must be checked
+    # even if we use TPM for filtering
+    assays_list <- SummarizedExperiment::assays(se)
+    if (!is.null(assay_name) && assay_name %in% names(assays_list)) {
+        if (!is.numeric(assays_list[[assay_name]])) {
+            stop("Assay '", assay_name, "' must be numeric.", call. = FALSE)
+        }
+    }
+
     # Phase 1: Consolidate parameter resolution (manual vs stringency-based)
     params <- .resolve_filter_parameters(se, min_samples, min_tpm, stringency, pair_col,
         tpm_assay_name, assay_name, min_tx_per_gene, min_isoform_abundance, verbose = verbose)
@@ -162,24 +171,23 @@
             tpm_assay_name)))
     }
 
-    # Priority 2: metadata
+    # Priority 2: metadata TPM (SALMON preprocessed)
     md <- S4Vectors::metadata(se)
     if (!is.null(md$tpm) && is.matrix(md$tpm)) {
         return(list(mat = as.matrix(md$tpm), source = "metadata$tpm (SALMON preprocessed)"))
     }
-    if (!is.null(md$tpm) && is.matrix(md$tpm)) {
-        return(list(mat = as.matrix(md$tpm), source = "metadata$tpm"))
-    }
 
-    # Priority 3: auto-detect by name
+    # Priority 3: auto-detect 'tpm' assay by name
     if ("tpm" %in% names(assays_list)) {
         return(list(mat = as.matrix(assays_list[["tpm"]]), source = "assay 'tpm' (auto-detected)"))
     }
+
+    # Priority 4: auto-detect 'abundance' assay (tximport format)
     if ("abundance" %in% names(assays_list)) {
         return(list(mat = as.matrix(assays_list[["abundance"]]), source = "assay 'abundance' (tximport format)"))
     }
 
-    # No TPM found - error instead of fallback
+    # No TPM found - error
     return(NULL)
 }
 
@@ -283,7 +291,12 @@
         min_tx_per_gene <- 2L
         min_isoform_abundance <- 0.01  # 1% - permissive
     } else if (stringency == "medium") {
-        min_samples <- max(3L, ceiling(0.5 * n_samples))
+        # For paired designs with few pairs (< 3), relax the min_samples requirement
+        if (!is.null(n_pairs) && n_pairs < 3) {
+            min_samples <- ceiling(0.5 * n_samples)
+        } else {
+            min_samples <- max(3L, ceiling(0.5 * n_samples))
+        }
         min_tx_per_gene <- 2L
         min_isoform_abundance <- 0.05  # 5% - balanced (default)
     } else if (stringency == "severe") {
