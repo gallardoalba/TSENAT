@@ -13,8 +13,11 @@
 #'   in \code{@diversity_results}.
 #' @param q \code{numeric}. Q-value(s) to extract from diversity results.
 #'   If NULL, uses the first available diversity result or q=1.0.
-#' @param checks \code{character}. Which assumptions to test. Default includes:
-#'   'exchangeability', 'monotonicity', 'consistency'.
+#' @param checks \code{character}. Which assumptions to test (default: 'rank').
+#'   Presets:
+#'   - 'rank': rank-based checks only
+#'   - 'all': rank + GAM metrics
+#'   Explicit: character vector like \code{c('exchangeability', 'monotonicity')}.
 #' @param alpha \code{numeric}. Significance level for tests (default: 0.05).
 #' @param ... Additional arguments (for future extensibility).
 #'
@@ -73,15 +76,14 @@
 #'
 #' @export
 #' @rdname calculate_rank_assumptions
-setGeneric("calculate_rank_assumptions", function(analysis, q = NULL, checks = c("exchangeability",
-    "monotonicity", "consistency"), alpha = 0.05, ...) {
+setGeneric("calculate_rank_assumptions", function(analysis, q = NULL, checks = "rank",
+    alpha = 0.05, ...) {
     standardGeneric("calculate_rank_assumptions")
 })
 
 #' @rdname calculate_rank_assumptions
 setMethod("calculate_rank_assumptions", signature(analysis = "TSENATAnalysis"),
-    function(analysis, q = NULL, checks = c("exchangeability", "monotonicity", "consistency"),
-        alpha = 0.05, ...) {
+    function(analysis, q = NULL, checks = "rank", alpha = 0.05, ...) {
 
         # Validate inputs
         if (!methods::is(analysis, "TSENATAnalysis")) {
@@ -165,9 +167,16 @@ setMethod("calculate_rank_assumptions", signature(analysis = "TSENATAnalysis"),
             diversity_data <- as.matrix(diversity_data)
         }
 
+        # Extract q-values from diversity_results names for GAM metrics
+        q_values <- NULL
+        if (q_used == "all" && length(analysis@diversity_results) > 1) {
+            q_names <- names(analysis@diversity_results)
+            q_values <- as.numeric(gsub("q_", "", q_names))
+        }
+
         # Run assumptions test
         result <- tryCatch({
-            .calculate_rank_assumptions(data = diversity_data, checks = checks, alpha = alpha)
+            .calculate_rank_assumptions(data = diversity_data, checks = checks, alpha = alpha, q_values = q_values)
         }, error = function(e) {
             stop("Rankbased assumptions test failed:\n", e$message, call. = FALSE)
         })

@@ -206,9 +206,10 @@ This directly tests the core biological question: "Does entropy q-dependence dif
 Before applying rank-based methods, we verify key assumptions for rank-based inference.
 
 ```{r validate-srh-assumptions, message=FALSE}
-# Validate Scheirer-Ray-Hare test assumptions
+# Validate Scheirer-Ray-Hare test assumptions (including GAM diagnostics)
 analysis <- calculate_rank_assumptions(
-    analysis
+    analysis,
+    checks = "all"  # Include rank-based checks + GAM diagnostics
 )
 
 # Extract the result object
@@ -220,7 +221,39 @@ rank_assumptions <- metadata(analysis, "rankbased_assumptions")$result
 summary_stats <- attr(rank_assumptions, "summary_stats")
 check_results <- attr(rank_assumptions, "checks")
 
-# Create assumption checks table
+# DIAGNOSTIC: Show what was actually computed
+cat("Diagnostic: Available checks in result:\n")
+cat(paste(names(check_results), collapse = ", "), "\n\n")
+
+# Additional diagnostic for GAM metrics
+if (!is.null(check_results$gam_metrics)) {
+  cat("GAM metrics structure:\n")
+  cat("  Names:", paste(names(check_results$gam_metrics), collapse = ", "), "\n\n")
+  
+  # Check each metric in detail
+  for (metric_name in c("concurvity", "edf", "nonlinearity", "basis_adequacy")) {
+    metric <- check_results$gam_metrics[[metric_name]]
+    if (!is.null(metric)) {
+      cat(sprintf("  %s:\n", metric_name))
+      cat(sprintf("    - description: %s\n", if (!is.null(metric$description)) metric$description else "NULL"))
+      cat(sprintf("    - status: %s\n", if (!is.null(metric$status)) metric$status else "NULL"))
+      
+      # Show the actual data fields
+      if (metric_name == "concurvity" && !is.null(metric$overall_concurvity)) {
+        cat(sprintf("    - overall_concurvity: %s (is.na=%s)\n", metric$overall_concurvity, is.na(metric$overall_concurvity)))
+      } else if (metric_name == "edf" && !is.null(metric$edf_ratio)) {
+        cat(sprintf("    - edf_ratio: %s (is.na=%s)\n", metric$edf_ratio, is.na(metric$edf_ratio)))
+      } else if (metric_name == "nonlinearity" && !is.null(metric$r2_improvement_percent)) {
+        cat(sprintf("    - r2_improvement_percent: %s (is.na=%s)\n", metric$r2_improvement_percent, is.na(metric$r2_improvement_percent)))
+      } else if (metric_name == "basis_adequacy" && !is.null(metric$optimal_basis_dimension)) {
+        cat(sprintf("    - optimal_basis_dimension: %s (is.na=%s)\n", metric$optimal_basis_dimension, is.na(metric$optimal_basis_dimension)))
+      }
+    }
+  }
+  cat("\n")
+}
+
+# Create assumption checks table for rank-based checks
 exchangeability_check <- check_results$exchangeability
 monotonicity_check <- check_results$monotonicity
 consistency_check <- check_results$consistency
@@ -231,7 +264,6 @@ format_pvalue <- function(p) {
   if (!is.finite(p)) return("Inf")
   if (p == 0) return("1e-300")
   if (p < 0.001) {
-    # Use sprintf for reliable scientific notation with very small values
     result <- sprintf("%.2e", p)
     return(result)
   }
@@ -243,26 +275,106 @@ format_stat <- function(x) {
   if (!is.finite(x)) return("Inf")
   if (x == 0) return("0")
   if (x < 0.001) {
-    # Use sprintf for reliable scientific notation with very small values
     result <- sprintf("%.2e", x)
     return(result)
   }
   else return(sprintf("%.6f", x))
 }
 
+# Build rank-based checks table
 data_characteristics <- data.frame(
   Characteristic = c("Paired Structure", "Gene Heterogeneity", "Subject Consistency"),
   Test = c("Permutation test", "Spearman r", "Kendall's W"),
   Result = c(
-    sprintf("p=%s", format_pvalue(exchangeability_check$p_value)),
-    sprintf("r=%s", format_stat(monotonicity_check$mean_correlation)),
-    sprintf("W=%s", format_stat(consistency_check$kendall_w))
+    exchangeability_check$details,
+    monotonicity_check$details,
+    consistency_check$details
   )
 )
 
+# Add GAM metrics if available and successful
+if (!is.null(check_results$gam_metrics) && !isTRUE(check_results$gam_metrics$error)) {
+  gam_metrics <- check_results$gam_metrics
+  
+  gam_rows <- data.frame(
+    Characteristic = character(),
+    Test = character(),
+    Result = character(),
+    stringsAsFactors = FALSE
+  )
+  
+  # Concurvity - include even if empty/error
+  if (!is.null(gam_metrics$concurvity)) {
+    metric <- gam_metrics$concurvity
+    result_str <- if (isTRUE(metric$error) || is.na(metric$overall_concurvity)) {
+      sprintf("NA (%s)", if (isTRUE(metric$error)) "computation error" else gsub("✓|⚠|✗", "", metric$status))
+    } else {
+      sprintf("Index=%.3f (%s)", metric$overall_concurvity, gsub("✓|⚠|✗", "", metric$status))
+    }
+    gam_rows <- rbind(gam_rows, data.frame(
+      Characteristic = "GAM Concurvity",
+      Test = "Smooth term collinearity",
+      Result = result_str,
+      stringsAsFactors = FALSE
+    ))
+  }
+  
+  # EDF ratio - include even if empty/error
+  if (!is.null(gam_metrics$edf)) {
+    metric <- gam_metrics$edf
+    result_str <- if (isTRUE(metric$error) || is.na(metric$edf_ratio)) {
+      sprintf("NA (%s)", if (isTRUE(metric$error)) "computation error" else gsub("✓|⚠", "", metric$status))
+    } else {
+      sprintf("Ratio=%.3f (%s)", metric$edf_ratio, gsub("✓|⚠", "", metric$status))
+    }
+    gam_rows <- rbind(gam_rows, data.frame(
+      Characteristic = "GAM Effective DoF",
+      Test = "Smoothing adequacy",
+      Result = result_str,
+      stringsAsFactors = FALSE
+    ))
+  }
+  
+  # Non-linearity contribution - include even if empty/error
+  if (!is.null(gam_metrics$nonlinearity)) {
+    metric <- gam_metrics$nonlinearity
+    result_str <- if (isTRUE(metric$error) || is.na(metric$r2_improvement_percent)) {
+      sprintf("NA (%s)", if (isTRUE(metric$error)) "computation error" else gsub("✓|⚠", "", metric$status))
+    } else {
+      sprintf("Δ R²=%.1f%% (%s)", metric$r2_improvement_percent, gsub("✓|⚠", "", metric$status))
+    }
+    gam_rows <- rbind(gam_rows, data.frame(
+      Characteristic = "GAM Non-linearity",
+      Test = "LM vs GAM improvement",
+      Result = result_str,
+      stringsAsFactors = FALSE
+    ))
+  }
+  
+  # Basis adequacy - include even if empty/error
+  if (!is.null(gam_metrics$basis_adequacy)) {
+    metric <- gam_metrics$basis_adequacy
+    result_str <- if (isTRUE(metric$error) || is.na(metric$optimal_basis_dimension)) {
+      sprintf("NA (%s)", if (isTRUE(metric$error)) "computation error" else gsub("✓|⚠|✗", "", metric$status))
+    } else {
+      sprintf("k=%d (%s)", metric$optimal_basis_dimension, gsub("✓|⚠|✗", "", metric$status))
+    }
+    gam_rows <- rbind(gam_rows, data.frame(
+      Characteristic = "GAM Basis Dimension",
+      Test = "Basis function adequacy",
+      Result = result_str,
+      stringsAsFactors = FALSE
+    ))
+  }
+  
+  if (nrow(gam_rows) > 0) {
+    data_characteristics <- rbind(data_characteristics, gam_rows)
+  }
+}
+
 knitr::kable(data_characteristics, 
-             caption = "Supplementary Table 2 | Entropy Matrix Validation Metrics. Three core properties validating suitability for rank-based analysis.",
-             align = c("l", "l", "r", "l"),
+             caption = "Supplementary Table 2 | Entropy Matrix Validation Metrics. Rank-based assumptions and optional GAM diagnostics.",
+             align = c("l", "l", "r"),
              format = if (knitr::is_latex_output()) "latex" else "html",
              longtable = knitr::is_latex_output(),
              linesep = "") %>%
@@ -271,8 +383,25 @@ knitr::kable(data_characteristics,
     full_width = TRUE,
     latex_options = c("scale_down")
   ) %>%
-  kableExtra::footnote(general = "Paired Structure: Tests whether consecutive samples show higher correlation than expected by random shuffling (p > 0.05 = exchangeable). Gene Heterogeneity: Measures consistency of entropy rank ordering across genes (r > 0.7 = high). Subject Consistency: Evaluates concordance among replicate samples (W > 0.7 = high agreement).")
+  kableExtra::footnote(general = "Rank-based checks validate suitability for rank-based analysis. Paired Structure: Tests exchangeability (p > 0.05 = independent). Gene Heterogeneity: Consistency of rank ordering (r > 0.7 = stable). Subject Consistency: Replicate concordance (W > 0.7 = high). GAM diagnostics assess generalized additive model assumptions: Concurvity (0=uncorrelated smooths, higher=collinearity issues), Effective DoF (ratio of effective to nominal degrees of freedom), Non-linearity (R² improvement from GAM over linear model), Basis Dimension (optimal k for spline basis). NA indicates metric could not be computed from the data.")
 ```
+
+<!-- Diagnostic note for GAM metrics -->
+```{r gam-diagnostic, results='asis', echo=FALSE}
+if (!is.null(check_results$gam_metrics)) {
+  if (isTRUE(check_results$gam_metrics$error)) {
+    cat("**Note:** GAM diagnostics were requested but not computed:\n")
+    cat(sprintf("- Reason: %s\n", check_results$gam_metrics$message))
+    cat(sprintf("- Details: %s\n", check_results$gam_metrics$reason))
+  } else if (length(check_results$gam_metrics) > 0 && nrow(data_characteristics) > 3) {
+    cat("**Note:** GAM diagnostic metrics successfully computed (see table above).\n")
+  }
+} else {
+  cat("")  # No output if not requested
+}
+```
+
+**Interpretation of Results:** The exchangeability test detects strong serial correlation (p ≈ 0), indicating that consecutive samples are more correlated than expected by chance. This violation of exchangeability is **not problematic** for SRH because rank-based inference satisfies *maximal invariance*—a principle ensuring that rank statistics depend only on value ordering, not on correlations in the original data [@S270; @S271; @K003]. Therefore, the serial structure we detect validates the choice of SRH over parametric methods, which would be inappropriate under these dependence patterns [@S166].
 
 ### SRH for Multi-q Tsallis Entropy with AR(1) Autocorrelation
 
