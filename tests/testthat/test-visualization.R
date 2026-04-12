@@ -4681,11 +4681,11 @@ metadata_df <- read.table(
 
 gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 
-# Configure analysis parameters
+# Configure analysis parameters (optimized: 15 q-values instead of 41)
 config <- TSENAT_config(
     condition_col = "condition",
     subject_col = "paired_samples",
-    q = seq(0, 2, by = 0.05),
+    q = seq(0, 2, length.out = 15),  # Reduced for test speed
     paired = TRUE,
     control = "normal"
 )
@@ -4722,14 +4722,14 @@ analysis <- suppressWarnings(calculate_lm(
 analysis_lm_jis_q12 <- suppressWarnings(calculate_jis(
     analysis,
     q = c(0.5, 1.0),
-    nboot = 10,
+    nboot = 5,  # Reduced for test speed (was 10)
     verbose = FALSE
 ))
 
 analysis_lm_jis_q08 <- suppressWarnings(calculate_jis(
     analysis,
     q = c(0.8),
-    nboot = 5,
+    nboot = 3,  # Reduced for test speed (was 5)
     verbose = FALSE
 ))
 

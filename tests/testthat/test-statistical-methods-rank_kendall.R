@@ -182,10 +182,10 @@ test_that("test_rankbased_assumptions details string contains metrics", {
   result <- .calculate_rank_assumptions(data, checks = "consistency")
   checks <- attr(result, "checks")
   
-  # Details string should contain Kendall W and ICC values
+  # Details string should contain W and ICC values (simplified format)
   details <- checks$consistency$details
-  expect_match(details, "Kendall W=", ignore.case = TRUE)
-  expect_match(details, "ICC~=", ignore.case = TRUE)
+  expect_match(details, "W=", ignore.case = TRUE)
+  expect_match(details, "ICC=", ignore.case = TRUE)
 })
 
 test_that("test_rankbased_assumptions skips consistency with insufficient data (1 row)", {

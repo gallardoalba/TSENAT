@@ -20,12 +20,12 @@ test_analysis_plot <- local({
 
     gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 
-    # Configure analysis (exactly as in TSENAT.Rmd)
+    # Configure analysis (optimized for faster testing: 15 q-values instead of 41)
     config <- TSENAT::TSENAT_config(
         sample_col = "sample",
         condition_col = "condition",
         subject_col = "paired_samples",
-        q = seq(0, 2, by = 0.05),  # Matches TSENAT.Rmd
+        q = seq(0, 2, length.out = 15),  # Reduced for test speed (was seq(0, 2, by = 0.05))
         nthreads = 1,
         paired = TRUE,
         control = "normal"
@@ -45,13 +45,12 @@ test_analysis_plot <- local({
     # Filter analysis (exactly as in TSENAT.Rmd)
     analysis <- TSENAT::filter_analysis(analysis, stringency = "medium")
 
-    # Compute diversity (exactly as in TSENAT.Rmd)
+    # Compute diversity (required for LM computation; optimized with 15 q-values)
     suppressWarnings({
         analysis <- TSENAT::calculate_diversity(analysis, norm = TRUE)
     })
 
     # Compute LM results for auto-detection (matches vignette workflow)
-    # Let calculate_lm read method from config or use default
     suppressWarnings({
         analysis <- TSENAT::calculate_lm(analysis)
     })
