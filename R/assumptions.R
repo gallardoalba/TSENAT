@@ -2,6 +2,23 @@
 # 5. UTILITY FUNCTIONS
 # ============================================================================
 
+#' Format numeric values for table display
+#' 
+#' Convert 0 to "0", small values to short scientific notation, others to 3 decimals
+#' @noRd
+.format_table_value <- function(x, decimals = 3) {
+    if (is.na(x) || !is.finite(x)) {
+        return(as.character(x))
+    }
+    if (x == 0) {
+        return("0")
+    }
+    if (abs(x) < 0.001 && x != 0) {
+        return(sprintf("%.2e", x))
+    }
+    return(sprintf(paste0("%.", decimals, "f"), x))
+}
+
 #' Test Rank-Based and Method-Specific Assumptions
 #'
 #' Diagnostic checks to verify rank-based methods and parametric models are
@@ -143,7 +160,7 @@
         results$monotonicity <- list(description = "Rank ordering stability (Spearman correlation across rows)",
             method = "Pairwise Spearman correlations between consecutive rows", mean_correlation = mean_cor,
             sd_correlation = sd_cor, min_correlation = min_cor, status = heterogeneity_interpretation,
-            details = sprintf("r=%.6f", mean_cor))
+            details = paste0("r=", .format_table_value(mean_cor)))
     }
 
     # Check 3: Consistency (ICC for replicate consistency)
@@ -195,9 +212,7 @@
             results$consistency <- list(description = "Rank consistency evaluation (Kendall's W & ICC)",
                 method = "Kendall's W concordance coefficient + ICC approximation",
                 kendall_w = kendall_w, icc_simplified = icc_simplified, status = status,
-                details = sprintf("Kendall W=%.6f, ICC~=%.6f", 
-                                if (is.na(kendall_w)) 0 else kendall_w, 
-                                if (is.na(icc_simplified)) 0 else icc_simplified))
+                details = paste0("W=", .format_table_value(if (is.na(kendall_w)) 0 else kendall_w), ", ICC=", .format_table_value(if (is.na(icc_simplified)) 0 else icc_simplified)))
         } else {
             results$consistency <- list(description = "Rank consistency evaluation",
                 method = "Insufficient data for consistency test", status = "? SKIP",
@@ -1192,8 +1207,11 @@ print.rank_assumptions <- function(x, ...) {
             col_data <- data[, j]
             col_data <- col_data[!is.na(col_data)]
             if (length(col_data) > 1) {
-                ac <- stats::cor(col_data[-length(col_data)], col_data[-1], use = "complete.obs")
-                if (!is.na(ac)) autocorr_vals <- c(autocorr_vals, ac)
+                # Check for zero variance before computing correlation
+                if (stats::sd(col_data, na.rm = TRUE) > 0) {
+                    ac <- suppressWarnings(stats::cor(col_data[-length(col_data)], col_data[-1], use = "complete.obs"))
+                    if (!is.na(ac)) autocorr_vals <- c(autocorr_vals, ac)
+                }
             }
         }
         
@@ -1387,6 +1405,15 @@ print.rank_assumptions <- function(x, ...) {
         data <- as.matrix(data)
     }
     
+    # Check if geepack is available (required for proper GEE analysis)
+    if (!requireNamespace("geepack", quietly = TRUE)) {
+        return(list(
+            description = "GEE Scale Parameter (Dispersion)",
+            status = "? SKIP - geepack not available",
+            details = "Install geepack package to compute scale parameter"
+        ))
+    }
+    
     tryCatch({
         # Estimate scale parameter (phi) from data variance
         # phi ≈ variance / mean for Poisson-like data
@@ -1399,7 +1426,7 @@ print.rank_assumptions <- function(x, ...) {
         if (length(data_clean) < 2) {
             return(list(
                 description = "GEE Scale Parameter (Dispersion)",
-                status = "? SKIP",
+                status = "? SKIP - geepack not available",
                 details = "Insufficient data to estimate scale parameter"
             ))
         }
@@ -1421,11 +1448,13 @@ print.rank_assumptions <- function(x, ...) {
         
         # Interpretation: phi ≈ 1 is ideal
         if (scale_param < 0.8) {
-            status <- "under-dispersed"
+            status <- "under-dispersed (rare)"
         } else if (scale_param <= 1.2) {
             status <- "correct dispersion"
-        } else {
+        } else if (scale_param <= 3) {
             status <- "over-dispersed"
+        } else {
+            status <- "unknown"
         }
         
         return(list(
@@ -1435,7 +1464,7 @@ print.rank_assumptions <- function(x, ...) {
             variance = var_val,
             n_obs = length(data_clean),
             status = status,
-            details = sprintf("Scale=%.3f (dispersion: %s)", scale_param, tolower(status))
+            details = paste0("φ=", .format_table_value(scale_param))
         ))
         
     }, error = function(e) {
@@ -1696,9 +1725,7 @@ print.rank_correlation_ci <- function(x, ...) {
             re_proportion = icc,
             n_clusters = ncol(data),
             status = status,
-            details = sprintf("ICC=%.3f; Between=%.3f, Within=%.3f", 
-                            if (is.na(icc)) 0 else icc,
-                            between_var, within_var)
+            details = paste0("ICC=", .format_table_value(if (is.na(icc)) 0 else icc), "; B=", .format_table_value(between_var), ", W=", .format_table_value(within_var))
         ))
         
     }, error = function(e) {
@@ -1786,10 +1813,7 @@ print.rank_correlation_ci <- function(x, ...) {
             kurtosis = kurtosis,
             n_re_samples = length(re_clean),
             status = status,
-            details = sprintf("Shapiro p=%.4f; Skew=%.3f, Kurt=%.3f", 
-                            if (is.na(p_val)) 0 else p_val,
-                            if (is.na(skewness)) 0 else skewness,
-                            if (is.na(kurtosis)) 0 else kurtosis)
+            details = paste0("p=", .format_table_value(if (is.na(p_val)) 0 else p_val, 4))
         ))
         
     }, error = function(e) {
@@ -1895,10 +1919,7 @@ print.rank_correlation_ci <- function(x, ...) {
             cv_group_variance = cv_group_var,
             n_groups = length(group_variances),
             status = status,
-            details = sprintf("Levene F=%.3f (p=%.4f); CV=%.3f", 
-                            if (is.na(levene_statistic)) 0 else levene_statistic,
-                            if (is.na(levene_pvalue)) 0 else levene_pvalue,
-                            if (is.na(cv_group_var)) 0 else cv_group_var)
+            details = paste0("p=", .format_table_value(if (is.na(levene_pvalue)) 0 else levene_pvalue, 4), "; CV=", .format_table_value(if (is.na(cv_group_var)) 0 else cv_group_var))
         ))
         
     }, error = function(e) {
