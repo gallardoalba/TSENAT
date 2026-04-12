@@ -319,10 +319,7 @@ provide a comprehensive framework for assessing isoform heterogeneity at multipl
 We normalize entropy to [0,1] range (`norm = TRUE`) for comparable cross-q assessment.
 
 ```{r tsallis-entropy-computation, message = FALSE, warning = FALSE}
-# Set random seed for reproducible bootstrap CI calculations
-set.seed(12345)
-
-# Compute diversity using S4 wrapper with bootstrap confidence intervals [@S232; @S115]
+# Compute diversity
 # Uses q-spectrum from config (seq(0, 2, by=0.05) as configured above)
 analysis <- calculate_diversity(
     analysis,

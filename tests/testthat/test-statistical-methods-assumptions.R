@@ -2838,7 +2838,7 @@ test_that("Individual LMM metrics are consistent with wrapper", {
     expect_equal(norm_sep$shapiro_pvalue, wrapper_result$normality$shapiro_pvalue)
 })
 
-ontext("assumptions: Uncovered lines from cobertura analysis")
+context("assumptions: Uncovered lines from cobertura analysis")
 library(testthat)
 library(TSENAT)
 library(SummarizedExperiment)
