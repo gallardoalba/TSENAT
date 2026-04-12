@@ -202,6 +202,11 @@ divergence_bootstrap_paired_cpp_wrapper <- function(x, y, pair_ids, nboot = 1000
     if (length(x) != length(pair_ids)) {
         stop("pair_ids must have same length as x and y")
     }
+    
+    # Paired designs require even-length vectors for proper pairing
+    if (length(x) %% 2 != 0) {
+        stop("x and y must have same length, with even number of elements for paired bootstrap")
+    }
 
     # Handle vector pseudocount
     if (length(pseudocount) > 1) {
@@ -513,7 +518,7 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
     # Check 6: Very high proportion of zeros
     n_zeros <- sum(x == 0)
     frac_zeros <- n_zeros/length(x)
-    if (frac_zeros > 0.9) {
+    if (frac_zeros >= 0.9) {
         warning("High proportion of zeros (", round(frac_zeros * 100, 1), "%). Bootstrap distribution may be concentrated in few categories.")
     }
 

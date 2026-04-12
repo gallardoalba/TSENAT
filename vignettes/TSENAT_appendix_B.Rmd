@@ -228,22 +228,24 @@ consistency_check <- check_results$consistency
 # Format p-values and statistics with appropriate precision
 format_pvalue <- function(p) {
   if (is.na(p)) return("NA")
-  if (!is.finite(p)) return("<1e-300")
-  if (p < 1e-300) return("<1e-300")
+  if (!is.finite(p)) return("Inf")
+  if (p == 0) return("1e-300")
   if (p < 0.001) {
-    result <- formatC(p, format="e", digits=2)
-    if (result == "0e+00") return("<1e-300") else return(result)
+    # Use sprintf for reliable scientific notation with very small values
+    result <- sprintf("%.2e", p)
+    return(result)
   }
   else return(sprintf("%.6f", p))
 }
 
 format_stat <- function(x) {
   if (is.na(x)) return("NA")
-  if (!is.finite(x)) return("<1e-300")
-  if (x < 1e-300) return("<1e-300")
+  if (!is.finite(x)) return("Inf")
+  if (x == 0) return("0")
   if (x < 0.001) {
-    result <- formatC(x, format="e", digits=2)
-    if (result == "0e+00") return("<1e-300") else return(result)
+    # Use sprintf for reliable scientific notation with very small values
+    result <- sprintf("%.2e", x)
+    return(result)
   }
   else return(sprintf("%.6f", x))
 }
@@ -489,13 +491,13 @@ if ("p_interaction" %in% colnames(gam_results)) {
       # Format p-value columns with scientific notation for very small values
       if ("p_interaction" %in% colnames(gam_display)) {
         gam_display$p_interaction <- sapply(gam_display$p_interaction, function(x) {
-          if (is.na(x)) "NA" else if (x < 1e-300) "<1e-300" else if (x < 0.001) formatC(x, format="e", digits=2) else sprintf("%.6f", x)
+          if (is.na(x)) "NA" else if (x < 0.001) sprintf("%.2e", x) else sprintf("%.6f", x)
         })
       }
       
       if ("adj_p_interaction" %in% colnames(gam_display)) {
         gam_display$adj_p_interaction <- sapply(gam_display$adj_p_interaction, function(x) {
-          if (is.na(x)) "NA" else if (x < 1e-300) "<1e-300" else if (x < 0.001) formatC(x, format="e", digits=2) else sprintf("%.6f", x)
+          if (is.na(x)) "NA" else if (x < 0.001) sprintf("%.2e", x) else sprintf("%.6f", x)
         })
       }
       
