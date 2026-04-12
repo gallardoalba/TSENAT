@@ -135,6 +135,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
         effect_sizes_divergence = .process_effect_sizes_divergence_results(result, top_n, sort_by),
         assumptions = result,
         switching_tables = result,
+        metadata = result,
         result
     )
 }
@@ -280,9 +281,9 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
             analysis@rank_test_results$rank_test
         } else NULL,
         pairwise = if (length(analysis@pairwise_results) > 0) analysis@pairwise_results else NULL,
-        effect_sizes_divergence = S4Vectors::metadata(analysis)$effect_sizes_divergence,
+        effect_sizes_divergence = .get_metadata_field(analysis, "effect_sizes_divergence"),
         assumptions = {
-            meta <- S4Vectors::metadata(analysis)$rankbased_assumptions
+            meta <- .get_metadata_field(analysis, "rankbased_assumptions")
             if (!is.null(meta) && is.list(meta) && !is.null(meta$result)) {
                 attr(meta$result, "checks")
             } else {
@@ -290,10 +291,29 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
             }
         },
         switching_tables = .extract_or_compute_switching_tables(analysis),
+        metadata = analysis@metadata,
         stop("Unknown result type: '", type, "'. Must be one of: ", 
-             "diversity, divergence, lm, jackknife, rank_test, pairwise, effect_sizes_divergence, assumptions, switching_tables", 
+             "diversity, divergence, lm, jackknife, rank_test, pairwise, effect_sizes_divergence, assumptions, switching_tables, metadata", 
              call. = FALSE)
     )
+}
+
+# ============================================================================
+# HELPER: Metadata accessor
+# ============================================================================
+.get_metadata_field <- function(analysis, field) {
+    if (is.null(analysis@metadata)) {
+        return(NULL)
+    }
+    analysis@metadata[[field]]
+}
+
+.set_metadata_field <- function(analysis, field, value) {
+    if (is.null(analysis@metadata)) {
+        analysis@metadata <- list()
+    }
+    analysis@metadata[[field]] <- value
+    analysis
 }
 
 # ============================================================================
@@ -322,7 +342,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
 # HELPER: Extract or compute switching tables
 # ============================================================================
 .extract_or_compute_switching_tables <- function(analysis) {
-    existing_tables <- metadata(analysis)$switching_tables
+    existing_tables <- .get_metadata_field(analysis, "switching_tables")
     if (!is.null(existing_tables)) {
         return(existing_tables)
     }
@@ -361,9 +381,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
             verbose = FALSE
         )
         
-        meta <- metadata(analysis)
-        meta$switching_tables <- computed_tables
-        metadata(analysis) <- meta
+        analysis <- .set_metadata_field(analysis, "switching_tables", computed_tables)
         computed_tables
     }, error = function(e) {
         NULL
