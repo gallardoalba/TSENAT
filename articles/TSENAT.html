@@ -64,7 +64,7 @@
 Gallardo <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2026-04-13</h4>
+            <h4 data-toc-skip class="date">2026-04-14</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gallardoalba/TSENAT/blob/HEAD/vignettes/TSENAT.Rmd" class="external-link"><code>vignettes/TSENAT.Rmd</code></a></small>
       <div class="d-none name"><code>TSENAT.Rmd</code></div>
@@ -331,14 +331,7 @@ identical Shannon entropy yet differ dramatically in isoform structure:
 one might be dominated by a single abundant isoform (maximizing apparent
 heterogeneity at low <code>q</code> where rare variants matter), while
 another distributes transcripts across many isoforms equally (maximizing
-heterogeneity across all <code>q</code> values). By tuning the
-q-parameter according to Tsallis entropy theory <span class="citation">(Anastasiadis 2012; Tsallis 2017)</span>, we can vary
-the weight on rare events (high q) to reveal dominant isoform patterns,
-or enhance rare-event weight (low q) to reveal cryptic isoform
-complexity. TSENAT’s multi-<em>q</em> approach captures this full
-spectrum of isoform diversity, enabling researchers to detect both rare
-isoform innovations and robust isoform usage patterns <span class="citation">(Seweryn et al. 2020)</span> by exploring the q-curve
-across multiple scales.</p>
+heterogeneity across all <code>q</code> values).</p>
 </div>
 <div class="section level3">
 <h3 id="applications-and-evidence-why-multi-scale-entropy-matters">Applications and Evidence: Why Multi-Scale Entropy Matters<a class="anchor" aria-label="anchor" href="#applications-and-evidence-why-multi-scale-entropy-matters"></a>
@@ -395,44 +388,20 @@ accumulate genetic and epigenetic perturbations that systematically
 increase disorder in gene regulatory networks. Tarabichi and colleagues
 demonstrate that “Increased entropy of signaling (or gene interaction
 networks) has been well studied as a cancer characteristic: Network
-entropy increases along with cancer progresses” <span class="citation">(Tarabichi et al. 2013)</span>. Nijman’s complementary
-analysis reveals the mechanism: “cancer-associated perturbations
-collectively disrupt normal gene regulatory networks by increasing their
-entropy. Importantly, in this model both somatic driver and passenger
-alterations contribute to ‘perturbation-driven entropy’, thereby
-increasing phenotypic heterogeneity and evolvability” <span class="citation">(Nijman 2020)</span>. This framework elegantly explains
-observed cancer heterogeneity without requiring that every genetic
-change confers an advantage—some mutations contribute entropy directly
-through network disruption. Increased entropy in gene regulatory
-networks thus drives phenotypic heterogeneity and cellular plasticity,
-suggesting that transcript-level entropy captures similar organizational
-principles <span class="citation">(Nijman 2020)</span>.</p>
-<p><strong>Single-cell validation of systematic isoform
-organization</strong>: Cao and colleagues’ landmark study provided
-empirical validation that transcript-level organization varies
-systematically across cell types: “expression levels of mRNA species are
-linked to cellular function and therefore can be used to classify cell
-types” <span class="citation">(Cao et al. 2017)</span>. Their
-comprehensive profiling of <em>C. elegans</em> demonstrates that
-individual cells maintain specific, consistent isoform compositions
-reflecting cellular identity—establishing that isoform complexity is not
-noise but a fundamental aspect of cellular differentiation and
-function.</p>
-</div>
-<div class="section level4">
-<h4 id="synthesis-from-theory-to-application">Synthesis: From Theory to Application<a class="anchor" aria-label="anchor" href="#synthesis-from-theory-to-application"></a>
-</h4>
-<p>These perspectives—entropy as driver of cancer evolution,
-perturbations as network disruption mechanisms, and single-cell evidence
-for systematic isoform organization—converge on a unified framework.
-Measuring entropy at multiple scales captures biologically meaningful
-variation in cellular organization and adaptation. Entropy concepts have
-mechanistic relevance beyond abstract information theory: they explain
-how perturbations increase heterogeneity and plasticity in living
-systems. Tsallis entropy, through its parametric q-spectrum, provides a
-systematic framework for exploring this multi-scale organization at the
-transcript and isoform level, enabling TSENAT to detect biological
-signals that would remain invisible to single-scale approaches.</p>
+entropy increases along with cancer progresses” <span class="citation">(Tarabichi et al. 2013)</span>.</p>
+<p>Nijman’s complementary analysis reveals the mechanism:
+“cancer-associated perturbations collectively disrupt normal gene
+regulatory networks by increasing their entropy. Importantly, in this
+model both somatic driver and passenger alterations contribute to
+‘perturbation-driven entropy’, thereby increasing phenotypic
+heterogeneity and evolvability” <span class="citation">(Nijman
+2020)</span>. This framework elegantly explains observed cancer
+heterogeneity without requiring that every genetic change confers an
+advantage—some mutations contribute entropy directly through network
+disruption. Increased entropy in gene regulatory networks thus drives
+phenotypic heterogeneity and cellular plasticity, suggesting that
+transcript-level entropy captures similar organizational principles
+<span class="citation">(Nijman 2020)</span>.</p>
 </div>
 </div>
 </div>
@@ -554,15 +523,18 @@ isoform heterogeneity at multiple scales <span class="citation">(Ramírez-Reyes 
 <code class="sourceCode R"><span><span class="co"># Set random seed for reproducible bootstrap CI calculations</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">12345</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Compute diversity using S4 wrapper with bootstrap confidence intervals [@S232; @S115]</span></span>
-<span><span class="co"># Uses q-spectrum from config (seq(0, 2, by=0.05) as configured above)</span></span>
+<span><span class="co"># Compute diversity</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span></span>
 <span>    <span class="va">analysis</span>,</span>
 <span>    norm <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Extract and display diversity results</span></span>
-<span><span class="va">diversity</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"diversity"</span>, n_genes <span class="op">=</span> <span class="fl">4</span>, sample <span class="op">=</span> <span class="st">"SRR14800481"</span><span class="op">)</span></span>
+<span><span class="va">diversity</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>,</span>
+<span>    type <span class="op">=</span> <span class="st">"diversity"</span>,</span>
+<span>    n_genes <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>    sample <span class="op">=</span> <span class="st">"SRR14800481"</span><span class="op">)</span></span>
+<span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">diversity</span><span class="op">)</span></span></code></pre></div>
 <p>Note: Diversity results not available for the requested q-values.
 Ensure calculate_diversity() was run with appropriate q-value
@@ -626,9 +598,9 @@ samples are reviewed).</p>
 <caption>
 <strong>Table 2 | Sample Influence Assessment via M-estimation.</strong>
 Ranked by magnitude of resampling-based influence values. Columns:
-Sample identifier; mean and standard deviation of Tsallis entropy;
-distance from centroid; outlier status. M-estimation identifies
-influential samples for sensitivity analysis.
+Sample identifier; condition; proportion affected; distance from
+centroid; outlier status. M-estimation identifies influential samples
+for sensitivity analysis.
 </caption>
 <thead><tr>
 <th style="text-align:left;">
@@ -639,15 +611,6 @@ Condition
 </th>
 <th style="text-align:right;">
 Proportion_Affected
-</th>
-<th style="text-align:right;">
-Genes_Affected
-</th>
-<th style="text-align:right;">
-Entropy_Mean
-</th>
-<th style="text-align:right;">
-Entropy_SD
 </th>
 <th style="text-align:right;">
 Distance_from_Centroid
@@ -668,15 +631,6 @@ normal
 0.847
 </td>
 <td style="text-align:right;">
-64.4
-</td>
-<td style="text-align:right;">
-0.6936
-</td>
-<td style="text-align:right;">
-0.2364
-</td>
-<td style="text-align:right;">
 1.7930
 </td>
 <td style="text-align:left;">
@@ -692,15 +646,6 @@ normal
 </td>
 <td style="text-align:right;">
 0.806
-</td>
-<td style="text-align:right;">
-61.2
-</td>
-<td style="text-align:right;">
-0.7345
-</td>
-<td style="text-align:right;">
-0.1972
 </td>
 <td style="text-align:right;">
 1.2384
@@ -720,15 +665,6 @@ normal
 0.833
 </td>
 <td style="text-align:right;">
-63.3
-</td>
-<td style="text-align:right;">
-0.6896
-</td>
-<td style="text-align:right;">
-0.2852
-</td>
-<td style="text-align:right;">
 1.5809
 </td>
 <td style="text-align:left;">
@@ -744,15 +680,6 @@ normal
 </td>
 <td style="text-align:right;">
 0.889
-</td>
-<td style="text-align:right;">
-67.6
-</td>
-<td style="text-align:right;">
-0.7310
-</td>
-<td style="text-align:right;">
-0.2329
 </td>
 <td style="text-align:right;">
 0.9118
@@ -772,15 +699,6 @@ normal
 0.861
 </td>
 <td style="text-align:right;">
-65.4
-</td>
-<td style="text-align:right;">
-0.6774
-</td>
-<td style="text-align:right;">
-0.2435
-</td>
-<td style="text-align:right;">
 1.6796
 </td>
 <td style="text-align:left;">
@@ -796,15 +714,6 @@ normal
 </td>
 <td style="text-align:right;">
 0.849
-</td>
-<td style="text-align:right;">
-64.5
-</td>
-<td style="text-align:right;">
-0.6843
-</td>
-<td style="text-align:right;">
-0.2357
 </td>
 <td style="text-align:right;">
 1.3522
@@ -824,15 +733,6 @@ normal
 0.875
 </td>
 <td style="text-align:right;">
-66.5
-</td>
-<td style="text-align:right;">
-0.7339
-</td>
-<td style="text-align:right;">
-0.2426
-</td>
-<td style="text-align:right;">
 1.0969
 </td>
 <td style="text-align:left;">
@@ -848,15 +748,6 @@ normal
 </td>
 <td style="text-align:right;">
 0.861
-</td>
-<td style="text-align:right;">
-65.4
-</td>
-<td style="text-align:right;">
-0.6738
-</td>
-<td style="text-align:right;">
-0.2649
 </td>
 <td style="text-align:right;">
 1.6536
@@ -876,15 +767,6 @@ tumor
 0.861
 </td>
 <td style="text-align:right;">
-65.4
-</td>
-<td style="text-align:right;">
-0.6842
-</td>
-<td style="text-align:right;">
-0.2721
-</td>
-<td style="text-align:right;">
 2.2114
 </td>
 <td style="text-align:left;">
@@ -900,15 +782,6 @@ tumor
 </td>
 <td style="text-align:right;">
 0.903
-</td>
-<td style="text-align:right;">
-68.6
-</td>
-<td style="text-align:right;">
-0.7345
-</td>
-<td style="text-align:right;">
-0.2440
 </td>
 <td style="text-align:right;">
 1.5721
@@ -928,15 +801,6 @@ tumor
 0.861
 </td>
 <td style="text-align:right;">
-65.4
-</td>
-<td style="text-align:right;">
-0.7257
-</td>
-<td style="text-align:right;">
-0.2193
-</td>
-<td style="text-align:right;">
 1.2201
 </td>
 <td style="text-align:left;">
@@ -952,15 +816,6 @@ tumor
 </td>
 <td style="text-align:right;">
 0.903
-</td>
-<td style="text-align:right;">
-68.6
-</td>
-<td style="text-align:right;">
-0.7207
-</td>
-<td style="text-align:right;">
-0.2497
 </td>
 <td style="text-align:right;">
 1.4798
@@ -980,15 +835,6 @@ tumor
 0.861
 </td>
 <td style="text-align:right;">
-65.4
-</td>
-<td style="text-align:right;">
-0.7334
-</td>
-<td style="text-align:right;">
-0.2131
-</td>
-<td style="text-align:right;">
 1.4140
 </td>
 <td style="text-align:left;">
@@ -1004,15 +850,6 @@ tumor
 </td>
 <td style="text-align:right;">
 0.889
-</td>
-<td style="text-align:right;">
-67.6
-</td>
-<td style="text-align:right;">
-0.7382
-</td>
-<td style="text-align:right;">
-0.2095
 </td>
 <td style="text-align:right;">
 1.1499
@@ -1032,15 +869,6 @@ tumor
 0.861
 </td>
 <td style="text-align:right;">
-65.4
-</td>
-<td style="text-align:right;">
-0.7425
-</td>
-<td style="text-align:right;">
-0.2283
-</td>
-<td style="text-align:right;">
 1.6020
 </td>
 <td style="text-align:left;">
@@ -1056,15 +884,6 @@ tumor
 </td>
 <td style="text-align:right;">
 0.917
-</td>
-<td style="text-align:right;">
-69.7
-</td>
-<td style="text-align:right;">
-0.7186
-</td>
-<td style="text-align:right;">
-0.2446
 </td>
 <td style="text-align:right;">
 1.6711
@@ -1709,18 +1528,14 @@ and treatment groups at all scales (rare to abundant isoforms). Values
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>&gt;</mo><mn>0.1</mn></mrow><annotation encoding="application/x-tex">D &gt; 0.1</annotation></semantics></math>
 indicate meaningful information-theoretic separation between conditions,
 revealing that isoform complexity patterns fundamentally differ between
-treatment groups across all q-dependent scales <span class="citation">(R0̆0e9 and Azad 2014)</span>. This
-information-theoretic measure automatically respects Tsallis entropy
-properties and adapts to each q value, enabling scale-dependent effect
-size estimation <span class="citation">(<span class="nocase">Shiner et
-al.</span> 2002)</span>.</p>
+treatment groups across all q-dependent scales <span class="citation">(Ré and Azad 2014)</span>. This information-theoretic
+measure automatically respects Tsallis entropy properties and adapts to
+each q value, enabling scale-dependent effect size estimation <span class="citation">(<span class="nocase">Shiner et al.</span>
+2002)</span>.</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Computes pairwise information-theoretic distance (Tsallis divergence)</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_divergence.html">calculate_divergence</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Extract divergence results</span></span>
-<span><span class="va">divergence_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"divergence"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">divergence_results</span>, n <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_divergence.html">calculate_divergence</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></code></pre></div>
+<div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
 <table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
 <caption>
 <strong>Table 3 | Pairwise Tsallis divergence estimates.</strong>
@@ -1729,15 +1544,15 @@ Columns: gene identifier; pairwise comparison; divergence value;
 confidence interval (95%). Ranked by magnitude.
 </caption>
 <thead><tr>
-<th style="text-align:left;">
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 </th>
-<th style="text-align:right;">
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 q_0.01
 </th>
-<th style="text-align:right;">
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 q_0.05
 </th>
-<th style="text-align:right;">
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 q_0.1
 </th>
 </tr></thead>
@@ -1800,6 +1615,7 @@ SNX4
 </tr>
 </tbody>
 </table>
+</div>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Compute effect sizes</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_effect_sizes.html">calculate_effect_sizes</a></span><span class="op">(</span></span>
@@ -1843,12 +1659,6 @@ D(q=2.0)
 <th style="text-align:left;">
 Pattern
 </th>
-<th style="text-align:right;">
-Rare Median
-</th>
-<th style="text-align:right;">
-Abundant Median
-</th>
 </tr></thead>
 <tbody>
 <tr>
@@ -1873,12 +1683,6 @@ CXCL12
 <td style="text-align:left;">
 Balanced
 </td>
-<td style="text-align:right;">
-0.3063
-</td>
-<td style="text-align:right;">
-0.2712
-</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -1901,12 +1705,6 @@ THY1
 </td>
 <td style="text-align:left;">
 Balanced
-</td>
-<td style="text-align:right;">
-0.1455
-</td>
-<td style="text-align:right;">
-0.1142
 </td>
 </tr>
 <tr>
@@ -1931,12 +1729,6 @@ ING3
 <td style="text-align:left;">
 Rare driven
 </td>
-<td style="text-align:right;">
-0.0120
-</td>
-<td style="text-align:right;">
-0.0085
-</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -1959,12 +1751,6 @@ SNHG10
 </td>
 <td style="text-align:left;">
 Rare driven
-</td>
-<td style="text-align:right;">
-0.0861
-</td>
-<td style="text-align:right;">
-0.0591
 </td>
 </tr>
 <tr>
@@ -1989,12 +1775,6 @@ LINC03040
 <td style="text-align:left;">
 Rare driven
 </td>
-<td style="text-align:right;">
-0.2813
-</td>
-<td style="text-align:right;">
-0.2057
-</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -2017,12 +1797,6 @@ HDAC2
 </td>
 <td style="text-align:left;">
 Rare driven
-</td>
-<td style="text-align:right;">
-0.0642
-</td>
-<td style="text-align:right;">
-0.0425
 </td>
 </tr>
 </tbody>
@@ -2120,9 +1894,10 @@ encode fundamentally different mechanisms <span class="citation">(Sason
 2022)</span>.</p></li>
 <li><p>q=1 (KL divergence): The middle point corresponds to ordinary
 Kullback-Leibler divergence <span class="citation">(Kullback and Leibler
-1951; R0̆0e9 and Azad 2014)</span>, where in the limit q-&gt;1 the
-Tsallis divergence reduces to standard KL divergence <span class="citation">(R0̆0e9 and Azad 2014)</span>. This weights all isoforms
-equally. This is the “average” effect.</p></li>
+1951; Ré and Azad 2014)</span>, where in the limit q-&gt;1 the Tsallis
+divergence reduces to standard KL divergence <span class="citation">(Ré
+and Azad 2014)</span>. This weights all isoforms equally. This is the
+“average” effect.</p></li>
 <li><p>q &lt; 1 (rare isoforms): Emphasizes how much low-abundance
 transcripts differ between groups <span class="citation">(Ramírez-Reyes
 et al. 2016; Gao et al. 2019; Gandrillon et al. 2021)</span>. If
@@ -2192,47 +1967,106 @@ B</a></strong></p>
 <ol style="list-style-type: decimal">
 <li><p>Adami, C. (2004). “Information theory in molecular biology.”
 <em>Physics of Life Reviews</em>, 1(1), 3–22. <a href="https://doi.org/10.1016/j.plrev.2004.01.002" class="external-link uri">https://doi.org/10.1016/j.plrev.2004.01.002</a></p></li>
+<li><p>Alomani, G., &amp; Kayid, M. (2023). “Further Properties of
+Tsallis Entropy and Its Application.” <em>Entropy</em>, 25(2), 199. <a href="https://doi.org/10.3390/e25020199" class="external-link uri">https://doi.org/10.3390/e25020199</a></p></li>
+<li><p>Anastasiadis, A. (2012). “Entropy Properties and Multiple Tsallis
+Distributions.” <em>Entropy</em>, 14, 174–176. <a href="https://doi.org/10.3390/e14020174" class="external-link uri">https://doi.org/10.3390/e14020174</a></p></li>
 <li><p>Bajic, D. (2024). “Information Theory, Living Systems, and
-Communication Engineering.” <em>Entropy</em>, 26(5), 430. <a href="https://doi.org/10.3390/e26050430" class="external-link uri">https://doi.org/10.3390/e26050430</a>.</p></li>
+Communication Engineering.” <em>Entropy</em>, 26(5), 430. <a href="https://doi.org/10.3390/e26050430" class="external-link uri">https://doi.org/10.3390/e26050430</a></p></li>
 <li><p>Bartal, A., &amp; Jagodnik, K. M. (2022). “Progress in and
 Opportunities for Applying Information Theory to Computational Biology
-and Bioinformatics.” <em>Entropy</em>, 24(7), 925. <a href="https://doi.org/10.3390/e24070925" class="external-link uri">https://doi.org/10.3390/e24070925</a>.</p></li>
+and Bioinformatics.” <em>Entropy</em>, 24(7), 925. <a href="https://doi.org/10.3390/e24070925" class="external-link uri">https://doi.org/10.3390/e24070925</a></p></li>
+<li><p>Benjamini, Y., &amp; Hochberg, Y. (1995). “Controlling the false
+discovery rate: a practical and powerful approach to multiple testing.”
+<em>Journal of the Royal Statistical Society B</em>, 57(1),
+289–300</p></li>
+<li><p>Cao, J., Packer, J. S., Ramani, V., Cusanovich, D. A., Huynh, C.,
+Daza, R., … &amp; Shendure, J. (2017). “Comprehensive single-cell
+transcriptional profiling of a multicellular organism.”
+<em>Science</em>, 357, 661–667. <a href="https://doi.org/10.1126/science.aam8940" class="external-link uri">https://doi.org/10.1126/science.aam8940</a></p></li>
+<li><p>Chakraborty, T. (2019). <em>Introductory Time Series
+Analysis</em>. Indian Statistical Institute, Kolkata</p></li>
 <li><p>Chanda, P., Costa, E., Hu, J., Sukumar, S., Van Hemert, J., &amp;
 Walia, R. (2020). “Information Theory in Computational Biology: Where We
-Stand Today.” <em>Entropy</em>, 22(6), 627. <a href="https://doi.org/10.3390/e22060627" class="external-link uri">https://doi.org/10.3390/e22060627</a>.</p></li>
+Stand Today.” <em>Entropy</em>, 22(6), 627. <a href="https://doi.org/10.3390/e22060627" class="external-link uri">https://doi.org/10.3390/e22060627</a></p></li>
+<li><p>Chao, A., Chiu, C.-H., &amp; Jost, L. (2010). “Phylogenetic
+Diversity Measures Based on Hill Numbers.” <em>Philosophical
+Transactions of the Royal Society B</em>, 365(1558), 3599–3609. <a href="https://doi.org/10.1098/rstb.2010.0272" class="external-link uri">https://doi.org/10.1098/rstb.2010.0272</a></p></li>
 <li><p>Cover, T. M., &amp; Thomas, J. A. (2006). <em>Elements of
 Information Theory</em> (2nd ed.). Wiley-Interscience.</p></li>
-<li><p>Derian, N., Pham, H.-P., Nehar-Belaid, D., et al. (2022). “The
-Tsallis Generalized Entropy Enhances the Interpretation of
-Transcriptomics Datasets.” <em>PLOS ONE</em>, 17(4), e0266618. <a href="https://doi.org/10.1371/journal.pone.0266618" class="external-link uri">https://doi.org/10.1371/journal.pone.0266618</a>.</p></li>
-<li><p>Furuichi, S. (2006). “Information Theoretical Properties of
-Tsallis Entropies.” <em>Journal of Mathematical Physics</em>, 47,
-023302. <a href="https://doi.org/10.1063/1.2165744" class="external-link uri">https://doi.org/10.1063/1.2165744</a>.</p></li>
+<li><p>Efron, B., &amp; Tibshirani, R. J. (1993). <em>An Introduction to
+the Bootstrap</em> (2nd ed.). Chapman and Hall</p></li>
+<li><p>Erhard, F., Hense, B., Jafari, M., Siebourg-Polster, J., Dölken,
+L., &amp; Zimmer, R. (2018). “Improved Ribo-seq puromycin target
+reliability using Bayesian nonparametrics.” <em>Bioinformatics</em>,
+34(12), 2096–2102</p></li>
+<li><p>Ernst, M. D. (2004). “Permutation Methods: A Basis for Exact
+Inference.” <em>Statistical Science</em>, 19(4), 676–685</p></li>
+<li><p>Furuichi, S. (2006). “Information theoretical properties of
+Tsallis entropies.” <em>Journal of Mathematical Physics</em>, 47,
+023302. <a href="https://doi.org/10.1063/1.2165744" class="external-link uri">https://doi.org/10.1063/1.2165744</a></p></li>
 <li><p>Gandrillon, O., Gaillard, M., Espinasse, T., et al. (2021).
 “Entropy as a Measure of Variability and Stemness in Single-Cell
-Transcriptomics.” <em>Entropy</em>, 21(5), 450.</p></li>
-<li><p>Golomb, R., Yoles, M., Fishilevich, S., et al. (2026). “An
-Information Content Principle Explains Regulatory Patterns of Gene
-Expression Across Human Tissues.” <em>bioRxiv</em>, ahead of print. <a href="https://doi.org/10.64898/2026.02.19.706555" class="external-link uri">https://doi.org/10.64898/2026.02.19.706555</a>.</p></li>
-</ol>
-<!-- Commented out: TechRxiv preprint no longer available (404)
-10. Hinostroza Fuentes, V. G., Toledo Tan, M. J., Kapetanaki, M., Rashidi, P., Huang, K., & Benos, P. V. (2026). "Information-Theoretic Methods in Spatial Transcriptomics." *TechRxiv*, ahead of print. https://doi.org/10.36227/techrxiv.177155947.
---><ol start="11" style="list-style-type: decimal">
+Transcriptomics.” <em>Entropy</em>, 21(5), 450</p></li>
+<li><p>Gao, X., Tsai, S.-B., Liu, F., Pan, L., &amp; Deng, Y. (2019).
+“Uncertainty Measure Based on Tsallis Entropy in Evidence Theory.”
+<em>International Journal of Intelligent Systems</em>, 34(6), 1626–1647.
+<a href="https://doi.org/10.1002/int.22185" class="external-link uri">https://doi.org/10.1002/int.22185</a></p></li>
+<li><p>Golomb, R., Yoles, M., Fishilevich, S., Cohen, O., Savariego
+Peled, E., Dahary, D., … &amp; Pilpel, Y. (2026). “An Information
+Content Principle Explains Regulatory Patterns.” <em>bioRxiv</em>, ahead
+of print. <a href="https://doi.org/10.1101/2026.02.19.706555" class="external-link uri">https://doi.org/10.1101/2026.02.19.706555</a></p></li>
+<li><p>Hyndman, R. J., &amp; Athanasopoulos, G. (2018). <em>Forecasting:
+Principles and Practice</em> (2nd ed.). <a href="https://otexts.com/fpp2/" class="external-link uri">https://otexts.com/fpp2/</a></p></li>
 <li><p>Jost, L. (2006). “Entropy and Diversity.” <em>Oikos</em>, 113(2),
-363-375. <a href="https://doi.org/10.1111/j.2006.0030-1299.14714.x" class="external-link uri">https://doi.org/10.1111/j.2006.0030-1299.14714.x</a>.</p></li>
-<li><p>Renyi, A. (1961). “On Measures of Entropy and Information.”
-<em>Proceedings of the Fourth Berkeley Symposium on Mathematical
-Statistics and Probability</em>, 1, 547-561.</p></li>
+363–375. <a href="https://doi.org/10.1111/j.2006.0030-1299.14714.x" class="external-link uri">https://doi.org/10.1111/j.2006.0030-1299.14714.x</a></p></li>
+<li><p>Jose, J., &amp; Lal, P. S. (2013). “Application of ARIMA(1,1,0)
+Model for Predicting Time Delay of Search Engine Crawlers.”
+<em>Informatica Economică</em>, 17(4), 26–39. <a href="https://doi.org/10.12948/issn14531305/17.4.2013.03" class="external-link uri">https://doi.org/10.12948/issn14531305/17.4.2013.03</a></p></li>
+<li><p>Kullback, S., &amp; Leibler, R. A. (1951). “On information and
+sufficiency.” <em>Annals of Mathematical Statistics</em>, 22(1), 79–86.
+<a href="https://doi.org/10.1214/aoms/1177729694" class="external-link uri">https://doi.org/10.1214/aoms/1177729694</a></p></li>
+<li><p>Nijman, S. M. B. (2020). “Perturbation-driven entropy as a source
+of cancer cell heterogeneity.” <em>Trends in Cancer</em>, 6(6), 454–462.
+<a href="https://doi.org/10.1016/j.trecan.2020.02.016" class="external-link uri">https://doi.org/10.1016/j.trecan.2020.02.016</a></p></li>
+<li><p>Phipson, B., &amp; Smyth, G. K. (2010). “Permutation P-values
+should never be zero.” <em>Statistical Applications in Genetics and
+Molecular Biology</em>, 9(1), Article 39</p></li>
+<li><p>Ramírez-Reyes, A., Hernández-Montoya, A. R., Herrera-Corral, G.,
+&amp; Domínguez-Jiménez, I. (2016). “Determining the Entropic Index q of
+Tsallis Entropy in Images through Redundancy.” <em>Entropy</em>, 18(8),
+299. <a href="https://doi.org/10.3390/e18080299" class="external-link uri">https://doi.org/10.3390/e18080299</a></p></li>
+<li><p>Ré, M. A., &amp; Azad, R. K. (2014). “Generalization of Entropy
+Based Divergence Measures for Symbolic Sequence Analysis.” <em>PLoS
+ONE</em>, 9(4), e93532. <a href="https://doi.org/10.1371/journal.pone.0093532" class="external-link uri">https://doi.org/10.1371/journal.pone.0093532</a></p></li>
+<li><p>Sason, I. (2022). “Divergence Measures: Mathematical Foundations
+and Applications in Information-Theoretic and Statistical Problems.”
+<em>Entropy</em>, 24(5), 712. <a href="https://doi.org/10.3390/e24050712" class="external-link uri">https://doi.org/10.3390/e24050712</a></p></li>
 <li><p>Seweryn, M. T., Pietrzak, M., &amp; Ma, Q. (2020). “Application
 of Information Theoretical Approaches to Assess Diversity and Similarity
 in Single-Cell Transcriptomics.” <em>Computational and Structural
-Biotechnology Journal</em>, 18, 1830-1837. <a href="https://doi.org/10.1016/j.csbj.2020.05.006" class="external-link uri">https://doi.org/10.1016/j.csbj.2020.05.006</a>.</p></li>
+Biotechnology Journal</em>, 18, 1830–1837. <a href="https://doi.org/10.1016/j.csbj.2020.05.006" class="external-link uri">https://doi.org/10.1016/j.csbj.2020.05.006</a></p></li>
 <li><p>Shannon, C. E. (1948). “A Mathematical Theory of Communication.”
-<em>The Bell System Technical Journal</em>, 27(3-4), 379-423.</p></li>
-<li><p>Simpson, E. H. (1949). “Measurement of Diversity.”
-<em>Nature</em>, 163, 688. <a href="https://doi.org/10.1038/163688a0" class="external-link uri">https://doi.org/10.1038/163688a0</a>.</p></li>
-<li><p>Tsallis, C. (1988). “Possible Generalization of Boltzmann-Gibbs
-Statistics.” <em>Journal of Statistical Physics</em>, 52(1), 479-487. <a href="https://doi.org/10.1007/BF01016429" class="external-link uri">https://doi.org/10.1007/BF01016429</a>.</p></li>
+<em>The Bell System Technical Journal</em>, 27(3–4), 379–423</p></li>
+<li><p>Shiner, J. S., Emelyanova, N. A., &amp; Gafarov, F. M. (2002).
+<em>Entropy and Entropy Generation: Fundamentals and Applications</em>.
+Kluwer Academic Publishers</p></li>
+<li><p>Simpson, E. H. (1949). “Measurement of diversity.”
+<em>Nature</em>, 163, 688. <a href="https://doi.org/10.1038/163688a0" class="external-link uri">https://doi.org/10.1038/163688a0</a></p></li>
+<li><p>Tarabichi, M., Antoniou, A., Saiselet, M., Pita, J. M., Andry,
+G., Dumont, J. E., … &amp; Maenhaut, C. (2013). “Systems biology of
+cancer: entropy, disorder, and selection-driven evolution to
+independence, invasion and ‘swarm intelligence’.” <em>Cancer Metastasis
+Reviews</em>, 32, 403–421. <a href="https://doi.org/10.1007/s10555-013-9431-y" class="external-link uri">https://doi.org/10.1007/s10555-013-9431-y</a></p></li>
+<li><p>Tsallis, C. (2017). “On the foundations of statistical
+mechanics.” <em>European Physical Journal Special Topics</em>, 226,
+1433–1443. <a href="https://doi.org/10.1140/epjst/e2016-60252-2" class="external-link uri">https://doi.org/10.1140/epjst/e2016-60252-2</a></p></li>
+<li><p>Van Erven, T., &amp; Harremoes, P. (2014). “Rényi divergence and
+Kullback-Leibler divergence.” <em>IEEE Transactions on Information
+Theory</em>, 60(7), 3797–3820. <a href="https://doi.org/10.1109/TIT.2014.2320500" class="external-link uri">https://doi.org/10.1109/TIT.2014.2320500</a></p></li>
+<li><p>Yulmetyev, R. M., Emelyanova, N. A., &amp; Gafarov, F. M. (2004).
+“Dynamical Shannon Entropy and Information.” <em>Physica A</em>, 341,
+649–676. <a href="https://doi.org/10.1016/j.physa.2004.03.094" class="external-link uri">https://doi.org/10.1016/j.physa.2004.03.094</a></p></li>
 </ol>
 </div>
 <div class="section level3">

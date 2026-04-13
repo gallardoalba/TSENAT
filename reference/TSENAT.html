@@ -174,7 +174,7 @@ Default: TRUE. If FALSE, no TSV/CSV output files are written to disk.</p></dd>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Plot generated</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 4/14] Running sample influence QC analysis (m-estimator)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] M-estimate QC complete</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 5/14] Testing LM interactions with GAM smoother</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 5/14] Testing LM interactions with GAM</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>nlminb problem, convergence error code = 1</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span>   message = singular convergence (7)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] LM interaction analysis complete</span>
@@ -210,11 +210,11 @@ Default: TRUE. If FALSE, no TSV/CSV output files are written to disk.</p></dd>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [RESULTS] Results Summary</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [PERF] Performance</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   Total time ........... 26.4s</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Total time ........... 26.2s</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Slowest steps:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     1. lm_interaction       13.2s (50.0%)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     2. jackknife            4.4s (16.8%)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     3. lm_plot              2.4s (9.1%)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     1. lm_interaction       12.4s (47.5%)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     2. jackknife            4.6s (17.6%)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     3. lm_plot              2.6s (10.0%)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [OUTPUT] Output</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Directory ........... tsenat_outputs</span>
@@ -238,8 +238,8 @@ Default: TRUE. If FALSE, no TSV/CSV output files are written to disk.</p></dd>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>                 rankBy = 'pvalue', n = 10)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   # Visualizations</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   results(result, type = 'diversity', plot = TRUE)  # Diversity spectrum</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   results(result, type = 'lm', plot = TRUE)  # LM interaction</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   plot_diversity &lt;- results(result, type = 'diversity', plot = TRUE)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   plot_lm &lt;- results(result, type = 'lm', plot = TRUE)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>

@@ -246,14 +246,7 @@ differ dramatically in isoform structure: one might be dominated by a
 single abundant isoform (maximizing apparent heterogeneity at low `q`
 where rare variants matter), while another distributes transcripts
 across many isoforms equally (maximizing heterogeneity across all `q`
-values). By tuning the q-parameter according to Tsallis entropy theory
-(Anastasiadis 2012; Tsallis 2017), we can vary the weight on rare events
-(high q) to reveal dominant isoform patterns, or enhance rare-event
-weight (low q) to reveal cryptic isoform complexity. TSENAT’s multi-*q*
-approach captures this full spectrum of isoform diversity, enabling
-researchers to detect both rare isoform innovations and robust isoform
-usage patterns (Seweryn et al. 2020) by exploring the q-curve across
-multiple scales.
+values).
 
 ### Applications and Evidence: Why Multi-Scale Entropy Matters
 
@@ -307,42 +300,20 @@ and epigenetic perturbations that systematically increase disorder in
 gene regulatory networks. Tarabichi and colleagues demonstrate that
 “Increased entropy of signaling (or gene interaction networks) has been
 well studied as a cancer characteristic: Network entropy increases along
-with cancer progresses” (Tarabichi et al. 2013). Nijman’s complementary
-analysis reveals the mechanism: “cancer-associated perturbations
-collectively disrupt normal gene regulatory networks by increasing their
-entropy. Importantly, in this model both somatic driver and passenger
-alterations contribute to ‘perturbation-driven entropy’, thereby
-increasing phenotypic heterogeneity and evolvability” (Nijman 2020).
-This framework elegantly explains observed cancer heterogeneity without
-requiring that every genetic change confers an advantage—some mutations
-contribute entropy directly through network disruption. Increased
-entropy in gene regulatory networks thus drives phenotypic heterogeneity
-and cellular plasticity, suggesting that transcript-level entropy
-captures similar organizational principles (Nijman 2020).
+with cancer progresses” (Tarabichi et al. 2013).
 
-**Single-cell validation of systematic isoform organization**: Cao and
-colleagues’ landmark study provided empirical validation that
-transcript-level organization varies systematically across cell types:
-“expression levels of mRNA species are linked to cellular function and
-therefore can be used to classify cell types” (Cao et al. 2017). Their
-comprehensive profiling of *C. elegans* demonstrates that individual
-cells maintain specific, consistent isoform compositions reflecting
-cellular identity—establishing that isoform complexity is not noise but
-a fundamental aspect of cellular differentiation and function.
-
-#### Synthesis: From Theory to Application
-
-These perspectives—entropy as driver of cancer evolution, perturbations
-as network disruption mechanisms, and single-cell evidence for
-systematic isoform organization—converge on a unified framework.
-Measuring entropy at multiple scales captures biologically meaningful
-variation in cellular organization and adaptation. Entropy concepts have
-mechanistic relevance beyond abstract information theory: they explain
-how perturbations increase heterogeneity and plasticity in living
-systems. Tsallis entropy, through its parametric q-spectrum, provides a
-systematic framework for exploring this multi-scale organization at the
-transcript and isoform level, enabling TSENAT to detect biological
-signals that would remain invisible to single-scale approaches.
+Nijman’s complementary analysis reveals the mechanism:
+“cancer-associated perturbations collectively disrupt normal gene
+regulatory networks by increasing their entropy. Importantly, in this
+model both somatic driver and passenger alterations contribute to
+‘perturbation-driven entropy’, thereby increasing phenotypic
+heterogeneity and evolvability” (Nijman 2020). This framework elegantly
+explains observed cancer heterogeneity without requiring that every
+genetic change confers an advantage—some mutations contribute entropy
+directly through network disruption. Increased entropy in gene
+regulatory networks thus drives phenotypic heterogeneity and cellular
+plasticity, suggesting that transcript-level entropy captures similar
+organizational principles (Nijman 2020).
 
 ## TSENAT Main Workflow
 
@@ -479,15 +450,18 @@ Gandrillon et al. 2021). We normalize entropy to \[0,1\] range
 # Set random seed for reproducible bootstrap CI calculations
 set.seed(12345)
 
-# Compute diversity using S4 wrapper with bootstrap confidence intervals [@S232; @S115]
-# Uses q-spectrum from config (seq(0, 2, by=0.05) as configured above)
+# Compute diversity
 analysis <- calculate_diversity(
     analysis,
     norm = TRUE
 )
 
 # Extract and display diversity results
-diversity <- results(analysis, type = "diversity", n_genes = 4, sample = "SRR14800481")
+diversity <- results(analysis,
+    type = "diversity",
+    n_genes = 4,
+    sample = "SRR14800481")
+
 print(diversity)
 ```
 
@@ -558,31 +532,31 @@ sample_qc <- metadata(analysis, "m_estimate_results")
 print(sample_qc)
 ```
 
-| Sample | Condition | Proportion_Affected | Genes_Affected | Entropy_Mean | Entropy_SD | Distance_from_Centroid | Status |
-|:---|:---|---:|---:|---:|---:|---:|:---|
-| SRR14800481 | normal | 0.847 | 64.4 | 0.6936 | 0.2364 | 1.7930 | OK |
-| SRR14800480 | normal | 0.806 | 61.2 | 0.7345 | 0.1972 | 1.2384 | OK |
-| SRR14800477 | normal | 0.833 | 63.3 | 0.6896 | 0.2852 | 1.5809 | OK |
-| SRR14800476 | normal | 0.889 | 67.6 | 0.7310 | 0.2329 | 0.9118 | OK |
-| SRR14800475 | normal | 0.861 | 65.4 | 0.6774 | 0.2435 | 1.6796 | OK |
-| SRR14800490 | normal | 0.849 | 64.5 | 0.6843 | 0.2357 | 1.3522 | OK |
-| SRR14800489 | normal | 0.875 | 66.5 | 0.7339 | 0.2426 | 1.0969 | OK |
-| SRR14800488 | normal | 0.861 | 65.4 | 0.6738 | 0.2649 | 1.6536 | OK |
-| SRR14800479 | tumor | 0.861 | 65.4 | 0.6842 | 0.2721 | 2.2114 | OK |
-| SRR14800478 | tumor | 0.903 | 68.6 | 0.7345 | 0.2440 | 1.5721 | Flag for QC |
-| SRR14800487 | tumor | 0.861 | 65.4 | 0.7257 | 0.2193 | 1.2201 | OK |
-| SRR14800486 | tumor | 0.903 | 68.6 | 0.7207 | 0.2497 | 1.4798 | Flag for QC |
-| SRR14800485 | tumor | 0.861 | 65.4 | 0.7334 | 0.2131 | 1.4140 | OK |
-| SRR14800484 | tumor | 0.889 | 67.6 | 0.7382 | 0.2095 | 1.1499 | OK |
-| SRR14800483 | tumor | 0.861 | 65.4 | 0.7425 | 0.2283 | 1.6020 | OK |
-| SRR14800482 | tumor | 0.917 | 69.7 | 0.7186 | 0.2446 | 1.6711 | Flag for QC |
+| Sample      | Condition | Proportion_Affected | Distance_from_Centroid | Status      |
+|:------------|:----------|--------------------:|-----------------------:|:------------|
+| SRR14800481 | normal    |               0.847 |                 1.7930 | OK          |
+| SRR14800480 | normal    |               0.806 |                 1.2384 | OK          |
+| SRR14800477 | normal    |               0.833 |                 1.5809 | OK          |
+| SRR14800476 | normal    |               0.889 |                 0.9118 | OK          |
+| SRR14800475 | normal    |               0.861 |                 1.6796 | OK          |
+| SRR14800490 | normal    |               0.849 |                 1.3522 | OK          |
+| SRR14800489 | normal    |               0.875 |                 1.0969 | OK          |
+| SRR14800488 | normal    |               0.861 |                 1.6536 | OK          |
+| SRR14800479 | tumor     |               0.861 |                 2.2114 | OK          |
+| SRR14800478 | tumor     |               0.903 |                 1.5721 | Flag for QC |
+| SRR14800487 | tumor     |               0.861 |                 1.2201 | OK          |
+| SRR14800486 | tumor     |               0.903 |                 1.4798 | Flag for QC |
+| SRR14800485 | tumor     |               0.861 |                 1.4140 | OK          |
+| SRR14800484 | tumor     |               0.889 |                 1.1499 | OK          |
+| SRR14800483 | tumor     |               0.861 |                 1.6020 | OK          |
+| SRR14800482 | tumor     |               0.917 |                 1.6711 | Flag for QC |
 
 **Table 2 \| Sample Influence Assessment via M-estimation.** Ranked by
 magnitude of resampling-based influence values. Columns: Sample
-identifier; mean and standard deviation of Tsallis entropy; distance
-from centroid; outlier status. M-estimation identifies influential
-samples for sensitivity analysis. {.table .table .table-striped
-.table-hover style="margin-left: auto; margin-right: auto;"}
+identifier; condition; proportion affected; distance from centroid;
+outlier status. M-estimation identifies influential samples for
+sensitivity analysis. {.table .table .table-striped .table-hover
+style="margin-left: auto; margin-right: auto;"}
 
 **Interpretation:** Samples with distance from centroid \>1.5 or
 proportion of affected genes \>0.85 are flagged for quality control
@@ -864,7 +838,7 @@ automatically capturing how entropy distributions differ between control
 and treatment groups at all scales (rare to abundant isoforms). Values
 $`D > 0.1`$ indicate meaningful information-theoretic separation between
 conditions, revealing that isoform complexity patterns fundamentally
-differ between treatment groups across all q-dependent scales (R0̆0e9 and
+differ between treatment groups across all q-dependent scales (Ré and
 Azad 2014). This information-theoretic measure automatically respects
 Tsallis entropy properties and adapts to each q value, enabling
 scale-dependent effect size estimation (Shiner et al. 2002).
@@ -873,10 +847,6 @@ scale-dependent effect size estimation (Shiner et al. 2002).
 
 # Computes pairwise information-theoretic distance (Tsallis divergence)
 analysis <- calculate_divergence(analysis)
-
-# Extract divergence results
-divergence_results <- results(analysis, type = "divergence")
-head(divergence_results, n = 10)
 ```
 
 |         |  q_0.01 |  q_0.05 |   q_0.1 |
@@ -912,14 +882,14 @@ top_genes_result <- results(
 print(top_genes_result)
 ```
 
-| Gene | P-value | Slope Diff | D(q=0.5) | D(q=1.0) | D(q=2.0) | Pattern | Rare Median | Abundant Median |
-|:---|---:|---:|---:|---:|---:|:---|---:|---:|
-| CXCL12 | 0 | -0.3725 | 0.3115 | 0.3697 | 0.1643 | Balanced | 0.3063 | 0.2712 |
-| THY1 | 0 | 0.2928 | 0.1481 | 0.1720 | 0.0589 | Balanced | 0.1455 | 0.1142 |
-| ING3 | 0 | 0.1136 | 0.0122 | 0.0137 | 0.0040 | Rare driven | 0.0120 | 0.0085 |
-| SNHG10 | 0 | 0.1203 | 0.0874 | 0.0956 | 0.0283 | Rare driven | 0.0861 | 0.0591 |
-| LINC03040 | 0 | 0.1063 | 0.2850 | 0.3119 | 0.1098 | Rare driven | 0.2813 | 0.2057 |
-| HDAC2 | 0 | 0.1244 | 0.0651 | 0.0699 | 0.0201 | Rare driven | 0.0642 | 0.0425 |
+| Gene      | P-value | Slope Diff | D(q=0.5) | D(q=1.0) | D(q=2.0) | Pattern     |
+|:----------|--------:|-----------:|---------:|---------:|---------:|:------------|
+| CXCL12    |       0 |    -0.3725 |   0.3115 |   0.3697 |   0.1643 | Balanced    |
+| THY1      |       0 |     0.2928 |   0.1481 |   0.1720 |   0.0589 | Balanced    |
+| ING3      |       0 |     0.1136 |   0.0122 |   0.0137 |   0.0040 | Rare driven |
+| SNHG10    |       0 |     0.1203 |   0.0874 |   0.0956 |   0.0283 | Rare driven |
+| LINC03040 |       0 |     0.1063 |   0.2850 |   0.3119 |   0.1098 | Rare driven |
+| HDAC2     |       0 |     0.1244 |   0.0651 |   0.0699 |   0.0201 | Rare driven |
 
 Top 6 Genes by Effect Size (Tsallis Divergence) {.table .table
 .table-striped .table-hover
@@ -998,10 +968,10 @@ Interpreting the Q-Spectrum Curve:
   encode fundamentally different mechanisms (Sason 2022).
 
 - q=1 (KL divergence): The middle point corresponds to ordinary
-  Kullback-Leibler divergence (Kullback and Leibler 1951; R0̆0e9 and Azad
+  Kullback-Leibler divergence (Kullback and Leibler 1951; Ré and Azad
   2014), where in the limit q-\>1 the Tsallis divergence reduces to
-  standard KL divergence (R0̆0e9 and Azad 2014). This weights all
-  isoforms equally. This is the “average” effect.
+  standard KL divergence (Ré and Azad 2014). This weights all isoforms
+  equally. This is the “average” effect.
 
 - q \< 1 (rare isoforms): Emphasizes how much low-abundance transcripts
   differ between groups (Ramírez-Reyes et al. 2016; Gao et al. 2019;
@@ -1079,65 +1049,147 @@ B](https://gallardoalba.github.io/TSENAT/articles/TSENAT_appendix_B.md)**
     *Physics of Life Reviews*, 1(1), 3–22.
     <https://doi.org/10.1016/j.plrev.2004.01.002>
 
-2.  Bajic, D. (2024). “Information Theory, Living Systems, and
-    Communication Engineering.” *Entropy*, 26(5), 430.
-    <https://doi.org/10.3390/e26050430>.
+2.  Alomani, G., & Kayid, M. (2023). “Further Properties of Tsallis
+    Entropy and Its Application.” *Entropy*, 25(2), 199.
+    <https://doi.org/10.3390/e25020199>
 
-3.  Bartal, A., & Jagodnik, K. M. (2022). “Progress in and Opportunities
+3.  Anastasiadis, A. (2012). “Entropy Properties and Multiple Tsallis
+    Distributions.” *Entropy*, 14, 174–176.
+    <https://doi.org/10.3390/e14020174>
+
+4.  Bajic, D. (2024). “Information Theory, Living Systems, and
+    Communication Engineering.” *Entropy*, 26(5), 430.
+    <https://doi.org/10.3390/e26050430>
+
+5.  Bartal, A., & Jagodnik, K. M. (2022). “Progress in and Opportunities
     for Applying Information Theory to Computational Biology and
     Bioinformatics.” *Entropy*, 24(7), 925.
-    <https://doi.org/10.3390/e24070925>.
+    <https://doi.org/10.3390/e24070925>
 
-4.  Chanda, P., Costa, E., Hu, J., Sukumar, S., Van Hemert, J., &
+6.  Benjamini, Y., & Hochberg, Y. (1995). “Controlling the false
+    discovery rate: a practical and powerful approach to multiple
+    testing.” *Journal of the Royal Statistical Society B*, 57(1),
+    289–300
+
+7.  Cao, J., Packer, J. S., Ramani, V., Cusanovich, D. A., Huynh, C.,
+    Daza, R., … & Shendure, J. (2017). “Comprehensive single-cell
+    transcriptional profiling of a multicellular organism.” *Science*,
+    357, 661–667. <https://doi.org/10.1126/science.aam8940>
+
+8.  Chakraborty, T. (2019). *Introductory Time Series Analysis*. Indian
+    Statistical Institute, Kolkata
+
+9.  Chanda, P., Costa, E., Hu, J., Sukumar, S., Van Hemert, J., &
     Walia, R. (2020). “Information Theory in Computational Biology:
     Where We Stand Today.” *Entropy*, 22(6), 627.
-    <https://doi.org/10.3390/e22060627>.
+    <https://doi.org/10.3390/e22060627>
 
-5.  Cover, T. M., & Thomas, J. A. (2006). *Elements of Information
+10. Chao, A., Chiu, C.-H., & Jost, L. (2010). “Phylogenetic Diversity
+    Measures Based on Hill Numbers.” *Philosophical Transactions of the
+    Royal Society B*, 365(1558), 3599–3609.
+    <https://doi.org/10.1098/rstb.2010.0272>
+
+11. Cover, T. M., & Thomas, J. A. (2006). *Elements of Information
     Theory* (2nd ed.). Wiley-Interscience.
 
-6.  Derian, N., Pham, H.-P., Nehar-Belaid, D., et al. (2022). “The
-    Tsallis Generalized Entropy Enhances the Interpretation of
-    Transcriptomics Datasets.” *PLOS ONE*, 17(4), e0266618.
-    <https://doi.org/10.1371/journal.pone.0266618>.
+12. Efron, B., & Tibshirani, R. J. (1993). *An Introduction to the
+    Bootstrap* (2nd ed.). Chapman and Hall
 
-7.  Furuichi, S. (2006). “Information Theoretical Properties of Tsallis
-    Entropies.” *Journal of Mathematical Physics*, 47, 023302.
-    <https://doi.org/10.1063/1.2165744>.
+13. Erhard, F., Hense, B., Jafari, M., Siebourg-Polster, J., Dölken, L.,
+    & Zimmer, R. (2018). “Improved Ribo-seq puromycin target reliability
+    using Bayesian nonparametrics.” *Bioinformatics*, 34(12), 2096–2102
 
-8.  Gandrillon, O., Gaillard, M., Espinasse, T., et al. (2021). “Entropy
+14. Ernst, M. D. (2004). “Permutation Methods: A Basis for Exact
+    Inference.” *Statistical Science*, 19(4), 676–685
+
+15. Furuichi, S. (2006). “Information theoretical properties of Tsallis
+    entropies.” *Journal of Mathematical Physics*, 47, 023302.
+    <https://doi.org/10.1063/1.2165744>
+
+16. Gandrillon, O., Gaillard, M., Espinasse, T., et al. (2021). “Entropy
     as a Measure of Variability and Stemness in Single-Cell
-    Transcriptomics.” *Entropy*, 21(5), 450.
+    Transcriptomics.” *Entropy*, 21(5), 450
 
-9.  Golomb, R., Yoles, M., Fishilevich, S., et al. (2026). “An
-    Information Content Principle Explains Regulatory Patterns of Gene
-    Expression Across Human Tissues.” *bioRxiv*, ahead of print.
-    <https://doi.org/10.64898/2026.02.19.706555>.
+17. Gao, X., Tsai, S.-B., Liu, F., Pan, L., & Deng, Y. (2019).
+    “Uncertainty Measure Based on Tsallis Entropy in Evidence Theory.”
+    *International Journal of Intelligent Systems*, 34(6), 1626–1647.
+    <https://doi.org/10.1002/int.22185>
 
-&nbsp;
+18. Golomb, R., Yoles, M., Fishilevich, S., Cohen, O., Savariego Peled,
+    E., Dahary, D., … & Pilpel, Y. (2026). “An Information Content
+    Principle Explains Regulatory Patterns.” *bioRxiv*, ahead of print.
+    <https://doi.org/10.1101/2026.02.19.706555>
 
-11. Jost, L. (2006). “Entropy and Diversity.” *Oikos*, 113(2), 363-375.
-    <https://doi.org/10.1111/j.2006.0030-1299.14714.x>.
+19. Hyndman, R. J., & Athanasopoulos, G. (2018). *Forecasting:
+    Principles and Practice* (2nd ed.). <https://otexts.com/fpp2/>
 
-12. Renyi, A. (1961). “On Measures of Entropy and Information.”
-    *Proceedings of the Fourth Berkeley Symposium on Mathematical
-    Statistics and Probability*, 1, 547-561.
+20. Jost, L. (2006). “Entropy and Diversity.” *Oikos*, 113(2), 363–375.
+    <https://doi.org/10.1111/j.2006.0030-1299.14714.x>
 
-13. Seweryn, M. T., Pietrzak, M., & Ma, Q. (2020). “Application of
+21. Jose, J., & Lal, P. S. (2013). “Application of ARIMA(1,1,0) Model
+    for Predicting Time Delay of Search Engine Crawlers.” *Informatica
+    Economică*, 17(4), 26–39.
+    <https://doi.org/10.12948/issn14531305/17.4.2013.03>
+
+22. Kullback, S., & Leibler, R. A. (1951). “On information and
+    sufficiency.” *Annals of Mathematical Statistics*, 22(1), 79–86.
+    <https://doi.org/10.1214/aoms/1177729694>
+
+23. Nijman, S. M. B. (2020). “Perturbation-driven entropy as a source of
+    cancer cell heterogeneity.” *Trends in Cancer*, 6(6), 454–462.
+    <https://doi.org/10.1016/j.trecan.2020.02.016>
+
+24. Phipson, B., & Smyth, G. K. (2010). “Permutation P-values should
+    never be zero.” *Statistical Applications in Genetics and Molecular
+    Biology*, 9(1), Article 39
+
+25. Ramírez-Reyes, A., Hernández-Montoya, A. R., Herrera-Corral, G., &
+    Domínguez-Jiménez, I. (2016). “Determining the Entropic Index q of
+    Tsallis Entropy in Images through Redundancy.” *Entropy*,
+    18(8), 299. <https://doi.org/10.3390/e18080299>
+
+26. Ré, M. A., & Azad, R. K. (2014). “Generalization of Entropy Based
+    Divergence Measures for Symbolic Sequence Analysis.” *PLoS ONE*,
+    9(4), e93532. <https://doi.org/10.1371/journal.pone.0093532>
+
+27. Sason, I. (2022). “Divergence Measures: Mathematical Foundations and
+    Applications in Information-Theoretic and Statistical Problems.”
+    *Entropy*, 24(5), 712. <https://doi.org/10.3390/e24050712>
+
+28. Seweryn, M. T., Pietrzak, M., & Ma, Q. (2020). “Application of
     Information Theoretical Approaches to Assess Diversity and
     Similarity in Single-Cell Transcriptomics.” *Computational and
-    Structural Biotechnology Journal*, 18, 1830-1837.
-    <https://doi.org/10.1016/j.csbj.2020.05.006>.
+    Structural Biotechnology Journal*, 18, 1830–1837.
+    <https://doi.org/10.1016/j.csbj.2020.05.006>
 
-14. Shannon, C. E. (1948). “A Mathematical Theory of Communication.”
-    *The Bell System Technical Journal*, 27(3-4), 379-423.
+29. Shannon, C. E. (1948). “A Mathematical Theory of Communication.”
+    *The Bell System Technical Journal*, 27(3–4), 379–423
 
-15. Simpson, E. H. (1949). “Measurement of Diversity.” *Nature*,
-    163, 688. <https://doi.org/10.1038/163688a0>.
+30. Shiner, J. S., Emelyanova, N. A., & Gafarov, F. M. (2002). *Entropy
+    and Entropy Generation: Fundamentals and Applications*. Kluwer
+    Academic Publishers
 
-16. Tsallis, C. (1988). “Possible Generalization of Boltzmann-Gibbs
-    Statistics.” *Journal of Statistical Physics*, 52(1), 479-487.
-    <https://doi.org/10.1007/BF01016429>.
+31. Simpson, E. H. (1949). “Measurement of diversity.” *Nature*,
+    163, 688. <https://doi.org/10.1038/163688a0>
+
+32. Tarabichi, M., Antoniou, A., Saiselet, M., Pita, J. M., Andry, G.,
+    Dumont, J. E., … & Maenhaut, C. (2013). “Systems biology of cancer:
+    entropy, disorder, and selection-driven evolution to independence,
+    invasion and ‘swarm intelligence’.” *Cancer Metastasis Reviews*, 32,
+    403–421. <https://doi.org/10.1007/s10555-013-9431-y>
+
+33. Tsallis, C. (2017). “On the foundations of statistical mechanics.”
+    *European Physical Journal Special Topics*, 226, 1433–1443.
+    <https://doi.org/10.1140/epjst/e2016-60252-2>
+
+34. Van Erven, T., & Harremoes, P. (2014). “Rényi divergence and
+    Kullback-Leibler divergence.” *IEEE Transactions on Information
+    Theory*, 60(7), 3797–3820.
+    <https://doi.org/10.1109/TIT.2014.2320500>
+
+35. Yulmetyev, R. M., Emelyanova, N. A., & Gafarov, F. M. (2004).
+    “Dynamical Shannon Entropy and Information.” *Physica A*, 341,
+    649–676. <https://doi.org/10.1016/j.physa.2004.03.094>
 
 ### Session Information
 

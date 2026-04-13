@@ -165,7 +165,7 @@ result <- TSENAT(analysis)
 #>           [OK] Plot generated
 #> [>] [ 4/14] Running sample influence QC analysis (m-estimator)
 #>           [OK] M-estimate QC complete
-#> [>] [ 5/14] Testing LM interactions with GAM smoother
+#> [>] [ 5/14] Testing LM interactions with GAM
 #> Warning: nlminb problem, convergence error code = 1
 #>   message = singular convergence (7)
 #>           [OK] LM interaction analysis complete
@@ -201,11 +201,11 @@ result <- TSENAT(analysis)
 #> [RESULTS] Results Summary
 #> 
 #> [PERF] Performance
-#>   Total time ........... 26.4s
+#>   Total time ........... 26.2s
 #>   Slowest steps:
-#>     1. lm_interaction       13.2s (50.0%)
-#>     2. jackknife            4.4s (16.8%)
-#>     3. lm_plot              2.4s (9.1%)
+#>     1. lm_interaction       12.4s (47.5%)
+#>     2. jackknife            4.6s (17.6%)
+#>     3. lm_plot              2.6s (10.0%)
 #> 
 #> [OUTPUT] Output
 #>   Directory ........... tsenat_outputs
@@ -229,8 +229,8 @@ result <- TSENAT(analysis)
 #>                 rankBy = 'pvalue', n = 10)
 #> 
 #>   # Visualizations
-#>   results(result, type = 'diversity', plot = TRUE)  # Diversity spectrum
-#>   results(result, type = 'lm', plot = TRUE)  # LM interaction
+#>   plot_diversity <- results(result, type = 'diversity', plot = TRUE)
+#>   plot_lm <- results(result, type = 'lm', plot = TRUE)
 #> 
 # }
 ```
