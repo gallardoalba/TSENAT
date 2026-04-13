@@ -65,6 +65,11 @@ Default: NULL (return all results). Use NA to return all.}
 Common choices: 'adj_p_interaction' (p-value, ascending), 'Mean_Divergence' (descending).
 Default: 'adj_p_interaction' (most significant first).}
 
+\item{sample}{\code{character} or NULL. For diversity results, optionally filter to specific sample(s).
+If NULL (default), returns results for all samples.
+If character, filters to matching sample identifiers from colData.
+Default: NULL (all samples).}
+
 \item{plot}{\code{logical}. Extract cached plot for the specified analysis type.
 - If FALSE (default): Return results as usual
 - If TRUE: Return the plot object for the given type
@@ -79,15 +84,14 @@ Default: FALSE (no plot extraction).}
   - For lm/jackknife: A data.frame or list based on type and format
   - For effect_sizes_divergence: A list containing effect size divergence results with components like interaction_results
   - For assumptions: A list containing rank-based assumption checks (exchangeability, monotonicity, consistency) and optional method-specific diagnostics (gam_metrics, gee_metrics, lmm_metrics, fpca_metrics)
-  - For switching_tables with format='human' (default): A list with components:
+  - For switching_tables with format='text' (default): A list with components:
     \itemize{
-      \item{\code{$gene_headers}}{Character vector of gene headers ("GeneName (ENSG00...)")}
-      \item{\code{$comparison_tables}}{List of data frames, one per gene, with columns: 
-        Transcript, q=0.00, q=0.50, ..., Direction Consistency}
-      \item{\code{$q_metadata}}{List with per-gene metadata: q_values_available and q_key_to_value mapping}
+      \item{\code{$gene_headers}} Character vector of gene headers ("GeneName (ENSG00...)")
+      \item{\code{$comparison_tables}} List of data frames, one per gene, with columns: Transcript, q=0.00, q=0.50, ..., Direction Consistency
+      \item{\code{$q_metadata}} List with per-gene metadata: q_values_available and q_key_to_value mapping
     }
   - For switching_tables with format='raw': Original named list where names are gene headers and values are
-    data frames with same column structure as format='human'
+    data frames with same column structure as format='text'
   Returns NULL if requested result type not computed or no results pass filtering.
 }
 \description{

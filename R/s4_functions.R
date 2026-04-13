@@ -271,10 +271,6 @@ setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"),
 #' @param analysis_rank \code{TSENATAnalysis} object or NULL. If NULL, uses legacy 
 #'   single-object API with analysis_lm containing both results. If provided, 
 #'   compares LM results from analysis_lm with rank-test results from analysis_rank.
-#' @param lm_method \code{character}. Key for LM/GAM interaction results in 
-#'   \code{@lm_results}. Default: NULL (auto-detects from analysis_lm).
-#' @param rank_method \code{character}. Key for rank-based test results in 
-#'   \code{@lm_results}. Default: 'rank_test' (from \code{calculate_srh}).
 #' @param verbose \code{logical}. Print progress messages (default: FALSE).
 #' @param output_file \code{character} or NULL. Optional file path to save results.
 #'   Supported formats: .rds (for S4 objects). Default: NULL (no file output).

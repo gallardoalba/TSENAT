@@ -28,12 +28,6 @@ compares LM results from analysis_lm with rank-test results from analysis_rank.}
 
 \item{output_file}{\code{character} or NULL. Optional file path to save results.
 Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
-
-\item{lm_method}{\code{character}. Key for LM/GAM interaction results in 
-\code{@lm_results}. Default: NULL (auto-detects from analysis_lm).}
-
-\item{rank_method}{\code{character}. Key for rank-based test results in 
-\code{@lm_results}. Default: 'rank_test' (from \code{calculate_srh}).}
 }
 \value{
 Modified TSENATAnalysis object with concordance results stored in:

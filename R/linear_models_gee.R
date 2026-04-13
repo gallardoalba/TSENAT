@@ -72,6 +72,7 @@
 #'   - **kc_multiplier**: HC1 adjustment multiplier (n_eff / (n_eff - p))
 #'   - **n_effective**: effective sample size after design effect reduction
 #'   - **kc_method**: method applied ('hc1', 'hc3', or 'kc')
+#' @importFrom stats vcov
 #' @noRd
 .gee_interaction <- function(df, q_vals, g, subject = NULL, min_obs = 5, corstr = "auto",
     bias_correction = TRUE, weights = NULL) {

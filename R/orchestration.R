@@ -358,6 +358,11 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
 #' @param lm_pcorr \code{character}. P-value correction: 'BH', 'bonferroni', 'hochberg', 'holm'. Default: 'BH'.
 #' @param jis_use_lm_fdr \code{logical}. Filter jackknife genes using LM p-values. Default: TRUE.
 #' @param divergence_ci \code{numeric}. Confidence level for divergence CIs. Default: 0.95.
+#' @param assumptions_checks \code{character}. Which assumptions to test (default: 'all').
+#'   Presets:
+#'   - 'rank': core assumption checks (exchangeability, monotonicity, consistency)
+#'   - 'all': all checks including method-specific diagnostics (GAM, GEE, LMM, FPCA)
+#'   Explicit: character vector like \code{c('exchangeability', 'monotonicity')}.
 #' @param nthreads \code{integer}. Parallel threads. Default: 1.
 #' @param ... Additional configuration parameters (stored as-is).
 #'

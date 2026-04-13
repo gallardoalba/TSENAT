@@ -40,6 +40,10 @@
 #' @param sort_by \code{character}. For effect_sizes_divergence, column name to sort by.
 #'   Common choices: 'adj_p_interaction' (p-value, ascending), 'Mean_Divergence' (descending).
 #'   Default: 'adj_p_interaction' (most significant first).
+#' @param sample \code{character} or NULL. For diversity results, optionally filter to specific sample(s).
+#'   If NULL (default), returns results for all samples.
+#'   If character, filters to matching sample identifiers from colData.
+#'   Default: NULL (all samples).
 #' @param plot \code{logical}. Extract cached plot for the specified analysis type.
 #'   - If FALSE (default): Return results as usual
 #'   - If TRUE: Return the plot object for the given type
@@ -53,15 +57,14 @@
 #'   - For lm/jackknife: A data.frame or list based on type and format
 #'   - For effect_sizes_divergence: A list containing effect size divergence results with components like interaction_results
 #'   - For assumptions: A list containing rank-based assumption checks (exchangeability, monotonicity, consistency) and optional method-specific diagnostics (gam_metrics, gee_metrics, lmm_metrics, fpca_metrics)
-#'   - For switching_tables with format='human' (default): A list with components:
+#'   - For switching_tables with format='text' (default): A list with components:
 #'     \itemize{
-#'       \item{\code{$gene_headers}}{Character vector of gene headers ("GeneName (ENSG00...)")}
-#'       \item{\code{$comparison_tables}}{List of data frames, one per gene, with columns: 
-#'         Transcript, q=0.00, q=0.50, ..., Direction Consistency}
-#'       \item{\code{$q_metadata}}{List with per-gene metadata: q_values_available and q_key_to_value mapping}
+#'       \item{\code{$gene_headers}} Character vector of gene headers ("GeneName (ENSG00...)")
+#'       \item{\code{$comparison_tables}} List of data frames, one per gene, with columns: Transcript, q=0.00, q=0.50, ..., Direction Consistency
+#'       \item{\code{$q_metadata}} List with per-gene metadata: q_values_available and q_key_to_value mapping
 #'     }
 #'   - For switching_tables with format='raw': Original named list where names are gene headers and values are
-#'     data frames with same column structure as format='human'
+#'     data frames with same column structure as format='text'
 #'   Returns NULL if requested result type not computed or no results pass filtering.
 #'
 #' @details
@@ -776,7 +779,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
         ci_cols <- grep("_lower_ci$|_upper_ci$", colnames(results_df), value = TRUE)
         if (length(ci_cols) > 0) {
             # Check if CI columns are all NA
-            all_na_cols <- sapply(ci_cols, function(col) all(is.na(results_df[[col]])))
+            all_na_cols <- vapply(ci_cols, function(col) all(is.na(results_df[[col]])), logical(1))
             if (all(all_na_cols)) {
                 # Remove all CI columns if they're all NA
                 results_df <- results_df[, !colnames(results_df) %in% ci_cols, drop = FALSE]
@@ -827,7 +830,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
         ci_cols <- grep("_lower_ci$|_upper_ci$", colnames(results_df), value = TRUE)
         if (length(ci_cols) > 0) {
             # Check if CI columns are all NA
-            all_na_cols <- sapply(ci_cols, function(col) all(is.na(results_df[[col]])))
+            all_na_cols <- vapply(ci_cols, function(col) all(is.na(results_df[[col]])), logical(1))
             if (all(all_na_cols)) {
                 # Remove all CI columns if they're all NA
                 results_df <- results_df[, !colnames(results_df) %in% ci_cols, drop = FALSE]
@@ -921,7 +924,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
         } else "Unknown"
         rows[[length(rows) + 1]] <- list(
             Characteristic = "Monotonicity",
-            Test = "Spearman ρ",
+            Test = "Spearman rho",
             Result = paste0("r=", r_val),
             Interpretation = interp
         )
@@ -1001,7 +1004,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
             interp <- if (!val_valid || has_error) "Unknown" else if (metric$r2_improvement_percent < 1) "Use linear" else "Use GAM"
             rows[[length(rows) + 1]] <- list(
                 Characteristic = "Non-linearity",
-                Test = "ΔR² vs LM",
+                Test = "Delta R^2 vs LM",
                 Result = result_str,
                 Interpretation = interp
             )
@@ -1046,7 +1049,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
             } else "N/A"
             
             test_val <- if (!is.null(metric$method)) sub("^[^:]*:\\s*", "", metric$method) else capitalize_first(metric_name)
-            interp_val <- if (!is.null(metric$status)) gsub("✓|⚠|✗", "", metric$status) else "unknown"
+            interp_val <- if (!is.null(metric$status)) gsub("OK|WARNING|FAIL", "", metric$status) else "unknown"
             
             row_item <- list(
                 Characteristic = capitalize_first(metric_name),
@@ -1076,7 +1079,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
             } else "N/A"
             
             test_val <- if (!is.null(metric$method)) sub("^[^:]*:\\s*", "", metric$method) else capitalize_first(metric_name)
-            interp_val <- if (!is.null(metric$status)) gsub("✓|⚠|✗", "", metric$status) else "unknown"
+            interp_val <- if (!is.null(metric$status)) gsub("OK|WARNING|FAIL", "", metric$status) else "unknown"
             
             row_item <- list(
                 Characteristic = capitalize_first(metric_name),
@@ -1106,7 +1109,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
             } else "N/A"
             
             test_val <- if (!is.null(metric$method)) sub("^[^:]*:\\s*", "", metric$method) else capitalize_first(metric_name)
-            interp_val <- if (!is.null(metric$status)) gsub("✓|⚠|✗", "", metric$status) else "unknown"
+            interp_val <- if (!is.null(metric$status)) gsub("OK|WARNING|FAIL", "", metric$status) else "unknown"
             
             row_item <- list(
                 Characteristic = capitalize_first(metric_name),
@@ -1160,7 +1163,8 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
 #'
 #' @return Invisibly returns the input object
 #'
-#' @exportS3Method base::print
+#' @noRd
+#' @method print assumptions_text
 print.assumptions_text <- function(x, ...) {
     cat(x)
     invisible(x)
@@ -1226,9 +1230,9 @@ print.assumptions_text <- function(x, ...) {
         q_cols <- grep("^q=", colnames(df), value = TRUE)
         
         # Parse q-values from column names
-        q_values <- sapply(q_cols, function(col) {
+        q_values <- vapply(q_cols, function(col) {
             as.numeric(gsub("^q=", "", col))
-        }, USE.NAMES = FALSE)
+        }, numeric(1), USE.NAMES = FALSE)
         
         # Handle case where no q-value columns found
         if (length(q_values) == 0) {
@@ -1351,14 +1355,14 @@ print.assumptions_text <- function(x, ...) {
     if (!is.null(high_conf) && nrow(high_conf) > 0) {
         high_conf_table <- data.frame(
             Gene = high_conf$gene,
-            "LM adj p" = sapply(high_conf$padj_lm, function(x) {
+            "LM adj p" = vapply(high_conf$padj_lm, function(x) {
                 if (x < 1e-50) sprintf("%.2e", x) else sprintf("%.3e", x)
-            }),
-            "Rank test adj p" = sapply(high_conf$padj_rank, function(x) {
+            }, character(1)),
+            "Rank test adj p" = vapply(high_conf$padj_rank, function(x) {
                 if (x < 1e-50) sprintf("%.2e", x) else sprintf("%.3e", x)
-            }),
+            }, character(1)),
             "LM Effect" = sprintf("%.1f%%", high_conf$effect_lm * 100),
-            "Rank test η²" = sprintf("%.3f", high_conf$effect_rank),
+            "Rank test rho^2" = sprintf("%.3f", high_conf$effect_rank),
             stringsAsFactors = FALSE,
             check.names = FALSE
         )
@@ -1372,7 +1376,7 @@ print.assumptions_text <- function(x, ...) {
         "Rank test p" = comparison_df$p_rank,
         "Rank test adj p" = comparison_df$padj_rank,
         "LM Effect" = comparison_df$effect_lm,
-        "Rank test η²" = comparison_df$effect_rank,
+        "Rank test rho^2" = comparison_df$effect_rank,
         Agreement = comparison_df$agreement,
         stringsAsFactors = FALSE,
         check.names = FALSE
@@ -1435,9 +1439,9 @@ print.assumptions_text <- function(x, ...) {
     df_char <- as.data.frame(lapply(df, as.character), stringsAsFactors = FALSE)
     
     # Calculate column widths
-    col_widths <- sapply(seq_len(ncol(df_char)), function(j) {
+    col_widths <- vapply(seq_len(ncol(df_char)), function(j) {
         max(nchar(colnames(df_char)[j]), max(nchar(df_char[[j]])))
-    })
+    }, numeric(1))
     
     # Format header
     header <- paste(
@@ -1466,7 +1470,8 @@ print.assumptions_text <- function(x, ...) {
 # DISPLAY METHOD: Print method for concordance_text class
 # ============================================================================
 
-#' @exportS3Method base::print
+#' @noRd
+#' @method print concordance_text
 print.concordance_text <- function(x, ...) {
     cat(x)
     invisible(x)

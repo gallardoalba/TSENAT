@@ -481,7 +481,7 @@
             description = "Concurvity Index",
             overall_concurvity = 0,
             pairwise_concurvities = NULL,
-            status = "✓ N/A",
+            status = "OK N/A",
             details = "Concurvity requires >= 2 predictors"
         ))
     }
@@ -546,7 +546,7 @@
         # Extract model complexity from fitted GAM models
         # Note: Classical concurvity is undefined for single-term GAMs
         # Instead: measure relative model complexity via effective DOF and GCV score
-        # High complexity (~complex curvature) → higher entropy curve variability
+        # High complexity (~complex curvature) -> higher entropy curve variability
         concurv_list <- lapply(gam_models, function(model) {
             tryCatch({
                 # Compute relative model complexity:
@@ -559,11 +559,11 @@
                 
                 # Normalize: typical edf ranges 1-10 for simple smooths
                 # Scale to approximate [0, 1] where 1 = very complex
-                # Use sigmoid-like scaling: complexity ≈ 1 - exp(-edf/3)
+                # Use sigmoid-like scaling: complexity ~ 1 - exp(-edf/3)
                 if (is.na(edf_val) || edf_val <= 1) {
                     0.0  # Linear: no effective "curving"
                 } else {
-                    # Map edf to [0, 1]: edf=1→0, edf=3→0.63, edf=10→0.96
+                    # Map edf to [0, 1]: edf=1->0, edf=3->0.63, edf=10->0.96
                     1 - exp(-edf_val / 3)
                 }
             }, error = function(e) NA_real_)
@@ -760,7 +760,8 @@
                 tryCatch({
                     # Linear model
                     lm_fit <- stats::lm(entropy ~ q, data = gam_data)
-                    r2_lm <- suppressWarnings(summary(lm_fit))$r.squared
+                    # Directly extract r.squared - summary warnings are non-critical
+                    r2_lm <- {s <- summary(lm_fit); if (!is.null(s$r.squared)) s$r.squared else NA_real_}
                     
                     # GAM model
                     k_val <- min(length(unique(gam_data$q)) - 1, 10)
@@ -879,7 +880,7 @@
             
             tryCatch({
                 # Fit GAM models with different k values
-                gcv_scores <- numeric(length(k_candidates))
+                gcv_scores <- rep(NA_real_, length(k_candidates))
                 
                 for (i in seq_along(k_candidates)) {
                     k <- k_candidates[i]
@@ -894,7 +895,7 @@
                                             control = list(maxit = 100))
                         gcv_scores[i] <- gam_fit$gcv.ubre
                     }, error = function(e) {
-                        gcv_scores[i] <<- NA_real_
+                        # On error, gcv_scores[i] remains NA (already initialized)
                     })
                 }
                 
@@ -1056,12 +1057,12 @@
         }
     }
     
-    # 3. Non-linearity (R² improvement)
+    # 3. Non-linearity (R^2 improvement)
     if (!is.null(results$nonlinearity) && !isTRUE(results$nonlinearity$error)) {
         if (!is.na(results$nonlinearity$r2_improvement_percent)) {
             status_clean <- gsub("^[^a-z]+", "", tolower(results$nonlinearity$status))
             consolidated_parts <- c(consolidated_parts,
-                sprintf("Δ R²=%.1f%% (%s)", results$nonlinearity$r2_improvement_percent, status_clean))
+                sprintf("Delta R^2=%.1f%% (%s)", results$nonlinearity$r2_improvement_percent, status_clean))
         }
     }
     

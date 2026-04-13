@@ -88,6 +88,12 @@ Usage: \code{calculate_diversity/divergence} use this for spectrum computation
 
 \item{divergence_ci}{\code{numeric}. Confidence level for divergence CIs. Default: 0.95.}
 
+\item{assumptions_checks}{\code{character}. Which assumptions to test (default: 'all').
+Presets:
+- 'rank': core assumption checks (exchangeability, monotonicity, consistency)
+- 'all': all checks including method-specific diagnostics (GAM, GEE, LMM, FPCA)
+Explicit: character vector like \code{c('exchangeability', 'monotonicity')}.}
+
 \item{...}{Additional configuration parameters (stored as-is).}
 }
 \value{

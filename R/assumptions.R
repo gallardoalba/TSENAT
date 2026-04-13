@@ -223,9 +223,9 @@
             # Use diag(cor(X, Y)) to get paired correlations efficiently
             data_1 <- data[, seq_len(ncol(data) - 1)]
             data_2 <- data[, seq_len(ncol(data) - 1) + 1]
-            consecutive_cors <- sapply(seq_len(ncol(data) - 1), function(i) {
+            consecutive_cors <- vapply(seq_len(ncol(data) - 1), function(i) {
                 stats::cor(data[, i], data[, i + 1], method = "pearson", use = "complete.obs")
-            })
+            }, numeric(1))
             original_stat <- mean(consecutive_cors, na.rm = TRUE)
 
             # Permutation test: shuffle column order and recompute (vectorized)
@@ -238,9 +238,9 @@
                 perm_data <- data[, perm_idx]
 
                 # Recompute consecutive correlations (vectorized)
-                perm_cors <- sapply(seq_len(ncol(perm_data) - 1), function(i) {
+                perm_cors <- vapply(seq_len(ncol(perm_data) - 1), function(i) {
                   stats::cor(perm_data[, i], perm_data[, i + 1], method = "pearson", use = "complete.obs")
-                })
+                }, numeric(1))
                 perm_stats[perm] <- mean(perm_cors, na.rm = TRUE)
             }
 
@@ -362,56 +362,60 @@
 
     # Check 4: GAM metrics (new - April 2026)
     if ("gam_metrics" %in% checks) {
-        tryCatch({
-            results$gam_metrics <- .get_gam_metrics(data, q_values = q_values, method_params = list())
+        gam_result <- tryCatch({
+            .get_gam_metrics(data, q_values = q_values, method_params = list())
         }, error = function(e) {
-            results$gam_metrics <<- list(
+            list(
                 error = TRUE,
                 message = paste("GAM metrics computation failed:", e$message),
                 reason = "Check if mgcv package is installed and data has sufficient variation"
             )
         })
+        results$gam_metrics <- gam_result
     }
 
     # Check 5: GEE metrics (new - April 2026)
     if ("gee_metrics" %in% checks) {
-        tryCatch({
-            results$gee_metrics <- .get_gee_metrics(data, gee_params = gee_params)
+        gee_result <- tryCatch({
+            .get_gee_metrics(data, gee_params = gee_params)
         }, error = function(e) {
-            results$gee_metrics <<- list(
+            list(
                 error = TRUE,
                 message = paste("GEE metrics computation failed:", e$message),
                 reason = "Check if geepack package is installed"
             )
         })
+        results$gee_metrics <- gee_result
     }
 
     # Check 6: LMM metrics (new - April 2026)
     if ("lmm_metrics" %in% checks) {
-        tryCatch({
+        lmm_result <- tryCatch({
             lmm_params <- list(assumed_re_structure = "random_intercept", cluster_col = NULL)
-            results$lmm_metrics <- .get_lmm_metrics(data, lmm_params = lmm_params)
+            .get_lmm_metrics(data, lmm_params = lmm_params)
         }, error = function(e) {
-            results$lmm_metrics <<- list(
+            list(
                 error = TRUE,
                 message = paste("LMM metrics computation failed:", e$message),
                 reason = "Check data structure and dimensionality"
             )
         })
+        results$lmm_metrics <- lmm_result
     }
 
     # Check 7: FPCA metrics (new - April 2026)
     if ("fpca_metrics" %in% checks) {
-        tryCatch({
+        fpca_result <- tryCatch({
             fpca_params <- list(max_components = NULL, n_bootstrap = 500, n_components = 3)
-            results$fpca_metrics <- .get_fpca_metrics(data, fpca_params = fpca_params)
+            .get_fpca_metrics(data, fpca_params = fpca_params)
         }, error = function(e) {
-            results$fpca_metrics <<- list(
+            list(
                 error = TRUE,
                 message = paste("FPCA metrics computation failed:", e$message),
                 reason = "Check data dimensionality (need >1 observation and column)"
             )
         })
+        results$fpca_metrics <- fpca_result
     }
 
     structure(list(overall_summary = paste("Rank-based assumptions evaluated with",
@@ -512,7 +516,7 @@ print.rank_assumptions <- function(x, ...) {
                     }
                 } else if (metric_name == "nonlinearity") {
                     if (!is.na(metric$r2_improvement_percent)) {
-                        message(sprintf("  R² Improvement: %.1f%%", metric$r2_improvement_percent))
+                        message(sprintf("  R^2 Improvement: %.1f%%", metric$r2_improvement_percent))
                     }
                 } else if (metric_name == "basis_adequacy") {
                     if (!is.na(metric$optimal_basis_dimension)) {
@@ -711,7 +715,7 @@ print.rank_assumptions <- function(x, ...) {
             description = "Concurvity Index",
             overall_concurvity = 0,
             pairwise_concurvities = NULL,
-            status = "✓ N/A",
+            status = "OK N/A",
             details = "Concurvity requires >= 2 predictors"
         ))
     }
@@ -748,7 +752,7 @@ print.rank_assumptions <- function(x, ...) {
         # Extract model complexity from fitted GAM models
         # Note: Classical concurvity is undefined for single-term GAMs
         # Instead: measure relative model complexity via effective DOF and GCV score
-        # High complexity (~complex curvature) → higher entropy curve variability
+        # High complexity (~complex curvature) -> higher entropy curve variability
         concurv_list <- lapply(gam_models, function(model) {
             tryCatch({
                 # Compute relative model complexity:
@@ -761,11 +765,11 @@ print.rank_assumptions <- function(x, ...) {
                 
                 # Normalize: typical edf ranges 1-10 for simple smooths
                 # Scale to approximate [0, 1] where 1 = very complex
-                # Use sigmoid-like scaling: complexity ≈ 1 - exp(-edf/3)
+                # Use sigmoid-like scaling: complexity ~ 1 - exp(-edf/3)
                 if (is.na(edf_val) || edf_val <= 1) {
                     0.0  # Linear: no effective "curving"
                 } else {
-                    # Map edf to [0, 1]: edf=1→0, edf=3→0.63, edf=10→0.96
+                    # Map edf to [0, 1]: edf=1->0, edf=3->0.63, edf=10->0.96
                     1 - exp(-edf_val / 3)
                 }
             }, error = function(e) NA_real_)
@@ -850,10 +854,10 @@ print.rank_assumptions <- function(x, ...) {
             }
             
             # Extract EDF ratios from all models (ensure scalar extraction)
-            edf_ratios <- sapply(gam_models, function(model) {
+            edf_ratios <- vapply(gam_models, function(model) {
                 edf_val <- if (!is.null(model$edf) && length(model$edf) > 0) model$edf[1] else NA_real_
                 as.numeric(edf_val) / length(q_values)
-            })
+            }, numeric(1))
             edf_ratios <- as.numeric(edf_ratios)  # Ensure vector of scalars
             
             if (length(edf_ratios) == 0 || all(is.na(edf_ratios))) {
@@ -944,7 +948,7 @@ print.rank_assumptions <- function(x, ...) {
             gene_indices_cache <- as.numeric(names(gam_models))
             
             # Compute improvements for cached models
-            improvements <- sapply(seq_along(gam_models), function(i) {
+            improvements <- vapply(seq_along(gam_models), function(i) {
                 gene_idx <- gene_indices_cache[i]
                 gam_fit <- gam_models[[i]]
                 entropy_curve <- data[gene_idx, ]
@@ -956,7 +960,8 @@ print.rank_assumptions <- function(x, ...) {
                 tryCatch({
                     # Linear model
                     lm_fit <- stats::lm(entropy ~ q, data = gam_data)
-                    r2_lm <- suppressWarnings(summary(lm_fit))$r.squared
+                    # Directly extract r.squared - summary warnings are non-critical
+                    r2_lm <- {s <- summary(lm_fit); if (!is.null(s$r.squared)) s$r.squared else NA_real_}
                     
                     # Deviance explained from cached GAM
                     gam_deviance <- (gam_fit$null.deviance - sum(gam_fit$residuals^2)) / gam_fit$null.deviance
@@ -1059,7 +1064,7 @@ print.rank_assumptions <- function(x, ...) {
         }
         
         # Extract k values and GCV from cached models (ensure scalar values)
-        optimal_k_per_gene <- sapply(gam_models, function(model) {
+        optimal_k_per_gene <- vapply(gam_models, function(model) {
             tryCatch({
                 if (!is.null(model$smooth) && length(model$smooth) > 0) {
                     smooth_term <- model$smooth[[1]]
@@ -1074,9 +1079,9 @@ print.rank_assumptions <- function(x, ...) {
             }, error = function(e) 5L)
         })
         
-        gcv_min_per_gene <- sapply(gam_models, function(model) {
+        gcv_min_per_gene <- vapply(gam_models, function(model) {
             if (!is.null(model$gcv.ubre)) as.numeric(model$gcv.ubre[1]) else NA_real_
-        })
+        }, numeric(1))
         
         optimal_k_per_gene <- as.integer(optimal_k_per_gene[is.finite(as.numeric(optimal_k_per_gene))])
         gcv_min_per_gene <- gcv_min_per_gene[is.finite(gcv_min_per_gene)]
@@ -1271,12 +1276,12 @@ print.rank_assumptions <- function(x, ...) {
         }
     }
     
-    # 3. Non-linearity (R² improvement)
+    # 3. Non-linearity (R^2 improvement)
     if (!is.null(results$nonlinearity) && !isTRUE(results$nonlinearity$error)) {
         if (!is.na(results$nonlinearity$r2_improvement_percent)) {
             status_clean <- gsub("^[^a-z]+", "", tolower(results$nonlinearity$status))
             consolidated_parts <- c(consolidated_parts,
-                sprintf("Δ R²=%.1f%% (%s)", results$nonlinearity$r2_improvement_percent, status_clean))
+                sprintf("Delta R^2=%.1f%% (%s)", results$nonlinearity$r2_improvement_percent, status_clean))
         }
     }
     
@@ -1327,7 +1332,8 @@ print.rank_assumptions <- function(x, ...) {
         
         # Option 1: Independence structure assessment - vectorized autocorr computation
         # Check if data shows autocorrelation (would violate independence)
-        autocorr_vals <- suppressWarnings(sapply(seq_len(ncol(data)), function(j) {
+        # Note: vapply already protected against invalid correlation calculations by guards above
+        autocorr_vals <- vapply(seq_len(ncol(data)), function(j) {
             col_data <- data[, j]
             col_data <- col_data[!is.na(col_data)]
             if (length(col_data) > 1 && stats::sd(col_data, na.rm = TRUE) > 0) {
@@ -1335,7 +1341,7 @@ print.rank_assumptions <- function(x, ...) {
             } else {
                 NA_real_
             }
-        }))
+        }, numeric(1))
         
         autocorr_vals <- autocorr_vals[!is.na(autocorr_vals)]
         mean_autocorr <- if (length(autocorr_vals) > 0) mean(autocorr_vals, na.rm = TRUE) else 0
@@ -1539,7 +1545,7 @@ print.rank_assumptions <- function(x, ...) {
     
     tryCatch({
         # Estimate scale parameter (phi) from data variance
-        # phi ≈ variance / mean for Poisson-like data
+        # phi ~ variance / mean for Poisson-like data
         # phi = 1 indicates correct dispersion, >1 is over-dispersed, <1 is under-dispersed
         
         # Calculate overall mean and variance
@@ -1569,7 +1575,7 @@ print.rank_assumptions <- function(x, ...) {
         # Cap at reasonable bounds for interpretation
         scale_param <- pmax(0.1, pmin(scale_param, 10))
         
-        # Interpretation: phi ≈ 1 is ideal
+        # Interpretation: phi ~ 1 is ideal
         if (scale_param < 0.8) {
             status <- "under-dispersed (rare)"
         } else if (scale_param <= 1.2) {
@@ -1587,7 +1593,7 @@ print.rank_assumptions <- function(x, ...) {
             variance = var_val,
             n_obs = length(data_clean),
             status = status,
-            details = paste0("φ=", .format_table_value(scale_param))
+            details = paste0("phi=", .format_table_value(scale_param))
         ))
         
     }, error = function(e) {
@@ -2267,7 +2273,7 @@ print.rank_correlation_ci <- function(x, ...) {
         
         # Limit to max_components if specified
         if (!is.null(max_components) && max_components < length(eigenvalues)) {
-            eigenvalues <- eigenvalues[1:max_components]
+            eigenvalues <- eigenvalues[seq_len(max_components)]
         }
         
         # Cumulative variance explained
@@ -2348,7 +2354,7 @@ print.rank_correlation_ci <- function(x, ...) {
             return(list(
                 description = "FPCA Bootstrap Stability",
                 status = "? SKIP",
-                details = "Insufficient data for bootstrap (need ≥5 observations)"
+                details = "Insufficient data for bootstrap (need >=5 observations)"
             ))
         }
         
@@ -2360,18 +2366,18 @@ print.rank_correlation_ci <- function(x, ...) {
         data_centered <- scale(data, center = TRUE, scale = FALSE)
         svd_orig <- svd(data_centered)
         eigenvalues_orig <- (svd_orig$d^2) / (n_obs - 1)
-        eigenvalues_orig <- eigenvalues_orig[1:n_components]
+        eigenvalues_orig <- eigenvalues_orig[seq_len(n_components)]
         
         # OPTIMIZATION: Vectorized bootstrap resampling with pre-allocated matrix
         bootstrap_eigenvalues <- matrix(NA_real_, nrow = n_bootstrap, ncol = n_components)
         
         # Pre-generate all bootstrap indices at once (vectorized)
-        boot_indices <- lapply(1:n_bootstrap, function(b) {
-            sample(1:n_obs, size = n_obs, replace = TRUE)
+        boot_indices <- lapply(seq_len(n_bootstrap), function(b) {
+            sample(seq_len(n_obs), size = n_obs, replace = TRUE)
         })
         
         # Apply SVD to bootstrap samples (vectorized loop)
-        for (b in 1:n_bootstrap) {
+        for (b in seq_len(n_bootstrap)) {
             idx_boot <- boot_indices[[b]]
             data_boot <- data[idx_boot, , drop = FALSE]
             
@@ -2385,7 +2391,7 @@ print.rank_correlation_ci <- function(x, ...) {
                 
                 # Store first n_components (pad with NA if fewer exist)
                 n_eig <- min(length(eig_boot), n_components)
-                bootstrap_eigenvalues[b, 1:n_eig] <- eig_boot[1:n_eig]
+                bootstrap_eigenvalues[b, seq_len(n_eig)] <- eig_boot[seq_len(n_eig)]
             }, error = function(e) NULL)
         }
         
