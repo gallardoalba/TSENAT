@@ -65,11 +65,11 @@
 #'
 #' @details
 #' Access results via the unified \code{results(obj, type = ...)} accessor method:
-#' - \code{type="diversity"} for Tsallis entropy across q-values
-#' - \code{type="lm"} for linear model interaction results
-#' - \code{type="rank_test"} for Scheirer-Ray-Hare rank-based test results
-#' - \code{type="divergence"} for divergence metrics
-#' - \code{type="jackknife"} for jackknife resampling results
+#' - \code{type='diversity'} for Tsallis entropy across q-values
+#' - \code{type='lm'} for linear model interaction results
+#' - \code{type='rank_test'} for Scheirer-Ray-Hare rank-based test results
+#' - \code{type='divergence'} for divergence metrics
+#' - \code{type='jackknife'} for jackknife resampling results
 #' Use \code{metadata(obj)} to access reproducibility metadata.
 #'
 #' @rdname TSENATAnalysis-class
@@ -78,95 +78,94 @@
 #' @importFrom S4Vectors metadata
 #'
 setClass("TSENATAnalysis", slots = list(se = "SummarizedExperiment", config = "list",
-    diversity_results = "list", lm_results = "list", pairwise_results = "list", 
-    rank_test_results = "list", jackknife_results = "list",
-    divergence_results = "list", plots = "list", metadata = "list"), prototype = list(config = list(),
-    diversity_results = list(), lm_results = list(), pairwise_results = list(), rank_test_results = list(),
-    jackknife_results = list(),
-    divergence_results = list(), plots = list(), metadata = list(function_calls = character(0),
-        function_timestamps = character(0))), validity = function(object) {
-    # Check @se is SummarizedExperiment
-    if (!inherits(object@se, "SummarizedExperiment")) {
-        return("@se must be a SummarizedExperiment object")
-    }
-
-    # Check SE has data
-    if (nrow(object@se) == 0 || ncol(object@se) == 0) {
-        return("@se has zero dimensions (no genes or samples)")
-    }
-
-    # Check @config is list-like (list, TSENATConfig, or other list-based
-    # structure)
-    if (!is.list(object@config)) {
-        return("@config must be a list or list-based config object")
-    }
-
-    # Check all results slots are lists
-    if (!is.list(object@diversity_results)) {
-        return("@diversity_results must be a list")
-    }
-    if (!is.list(object@lm_results)) {
-        return("@lm_results must be a list")
-    }
-    if (!is.list(object@rank_test_results)) {
-        return("@rank_test_results must be a list")
-    }
-    if (!is.list(object@jackknife_results)) {
-        return("@jackknife_results must be a list")
-    }
-    if (!is.list(object@divergence_results)) {
-        return("@divergence_results must be a list")
-    }
-    if (!is.list(object@plots)) {
-        return("@plots must be a list")
-    }
-    if (!is.list(object@metadata)) {
-        return("@metadata must be a list")
-    }
-
-    # Check colData has required columns if sample metadata expected
-    cdata <- colData(object@se)
-    if (!is.null(cdata) && ncol(cdata) > 0) {
-        if (!"sample_id" %in% colnames(cdata)) {
-            return("colData missing 'sample_id' column required for analysis")
+    diversity_results = "list", lm_results = "list", pairwise_results = "list", rank_test_results = "list",
+    jackknife_results = "list", divergence_results = "list", plots = "list", metadata = "list"),
+    prototype = list(config = list(), diversity_results = list(), lm_results = list(),
+        pairwise_results = list(), rank_test_results = list(), jackknife_results = list(),
+        divergence_results = list(), plots = list(), metadata = list(function_calls = character(0),
+            function_timestamps = character(0))), validity = function(object) {
+        # Check @se is SummarizedExperiment
+        if (!inherits(object@se, "SummarizedExperiment")) {
+            return("@se must be a SummarizedExperiment object")
         }
-    }
 
-    # Check rowData has gene identifiers if results computed
-    rdata <- rowData(object@se)
-    if (!is.null(rdata) && ncol(rdata) > 0) {
-        if (!"gene_id" %in% colnames(rdata) && !"transcript_id" %in% colnames(rdata)) {
-            return("rowData missing 'gene_id' or 'transcript_id' column")
+        # Check SE has data
+        if (nrow(object@se) == 0 || ncol(object@se) == 0) {
+            return("@se has zero dimensions (no genes or samples)")
         }
-    }
 
-    # NEW: Validate config parameters against SE metadata
-    if (length(object@config) > 0) {
+        # Check @config is list-like (list, TSENATConfig, or other list-based
+        # structure)
+        if (!is.list(object@config)) {
+            return("@config must be a list or list-based config object")
+        }
+
+        # Check all results slots are lists
+        if (!is.list(object@diversity_results)) {
+            return("@diversity_results must be a list")
+        }
+        if (!is.list(object@lm_results)) {
+            return("@lm_results must be a list")
+        }
+        if (!is.list(object@rank_test_results)) {
+            return("@rank_test_results must be a list")
+        }
+        if (!is.list(object@jackknife_results)) {
+            return("@jackknife_results must be a list")
+        }
+        if (!is.list(object@divergence_results)) {
+            return("@divergence_results must be a list")
+        }
+        if (!is.list(object@plots)) {
+            return("@plots must be a list")
+        }
+        if (!is.list(object@metadata)) {
+            return("@metadata must be a list")
+        }
+
+        # Check colData has required columns if sample metadata expected
         cdata <- colData(object@se)
-
-        # Validate condition_col if specified
-        if ("condition_col" %in% names(object@config)) {
-            col <- object@config$condition_col
-            if (!is.null(col) && !col %in% colnames(cdata)) {
-                return(sprintf("@config$condition_col '%s' not found in colData. Available: %s",
-                  col, paste(colnames(cdata), collapse = ", ")))
+        if (!is.null(cdata) && ncol(cdata) > 0) {
+            if (!"sample_id" %in% colnames(cdata)) {
+                return("colData missing 'sample_id' column required for analysis")
             }
         }
 
-        # Validate subject_col if specified and paired=TRUE
-        if ("subject_col" %in% names(object@config)) {
-            if (isTRUE(object@config$paired)) {
-                col <- object@config$subject_col
+        # Check rowData has gene identifiers if results computed
+        rdata <- rowData(object@se)
+        if (!is.null(rdata) && ncol(rdata) > 0) {
+            if (!"gene_id" %in% colnames(rdata) && !"transcript_id" %in% colnames(rdata)) {
+                return("rowData missing 'gene_id' or 'transcript_id' column")
+            }
+        }
+
+        # NEW: Validate config parameters against SE metadata
+        if (length(object@config) > 0) {
+            cdata <- colData(object@se)
+
+            # Validate condition_col if specified
+            if ("condition_col" %in% names(object@config)) {
+                col <- object@config$condition_col
                 if (!is.null(col) && !col %in% colnames(cdata)) {
-                  return(sprintf("@config$subject_col '%s' not found in colData. Available: %s",
+                  return(sprintf("@config$condition_col '%s' not found in colData. Available: %s",
                     col, paste(colnames(cdata), collapse = ", ")))
                 }
             }
-        }
-    }
 
-    TRUE
-})
+            # Validate subject_col if specified and paired=TRUE
+            if ("subject_col" %in% names(object@config)) {
+                if (isTRUE(object@config$paired)) {
+                  col <- object@config$subject_col
+                  if (!is.null(col) && !col %in% colnames(cdata)) {
+                    return(sprintf("@config$subject_col '%s' not found in colData. Available: %s",
+                      col, paste(colnames(cdata), collapse = ", ")))
+                  }
+                }
+            }
+        }
+
+        TRUE
+    })
 
 #' Subset TSENATAnalysis Objects
 #'
@@ -218,4 +217,4 @@ setClass("TSENATAnalysis", slots = list(se = "SummarizedExperiment", config = "l
 #' analysis_subset2 <- analysis[paste0('TX_', 1:5), ]
 #'
 
-# NOTE: Subsetting method "[" defined in methods-TSENATAnalysis.R
+# NOTE: Subsetting method '[' defined in methods-TSENATAnalysis.R

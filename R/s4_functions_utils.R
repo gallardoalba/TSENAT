@@ -283,11 +283,11 @@ save_analysis_output <- function(data, output_file, object = NULL, verbose = FAL
                 6 else height
 
             if (ext == ".pdf") {
-                ggplot2::ggsave(output_file, plot = data, width = plot_width, 
-                               height = plot_height, device = "pdf")
+                ggplot2::ggsave(output_file, plot = data, width = plot_width, height = plot_height,
+                  device = "pdf")
             } else {
-                ggplot2::ggsave(output_file, plot = data, width = plot_width, 
-                               height = plot_height, device = "png", dpi = 300)
+                ggplot2::ggsave(output_file, plot = data, width = plot_width, height = plot_height,
+                  device = "png", dpi = 300)
             }
 
             if (verbose) {

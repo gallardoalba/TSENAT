@@ -109,9 +109,9 @@
 
 #' @noRd
 
-.plot_jis_delta <- function(switching_results, n_genes = 4,
-    lm_results = NULL, verbose = FALSE, cellwidth = 0, cellheight = 0, fontsize = 18,
-    layout_ncol = 2, output_file = NULL, width = NULL, height = NULL) {
+.plot_jis_delta <- function(switching_results, n_genes = 4, lm_results = NULL, verbose = FALSE,
+    cellwidth = 0, cellheight = 0, fontsize = 18, layout_ncol = 2, output_file = NULL,
+    width = NULL, height = NULL) {
     # Phase 1: Validate input
     result_data <- .validate_multiq_input(switching_results)
     q_result_keys <- result_data$q_result_keys
@@ -136,7 +136,8 @@
         layout_ncol > 0, layout_ncol = layout_ncol)
     gene_layout <- layout_result$layout
     n_layout_rows <- layout_result$n_layout_rows
-    dims <- .calculate_heatmap_dimensions(n_layout_rows, length(q_result_keys), width_in = if (is.null(width)) 12 else width, height_in = height)
+    dims <- .calculate_heatmap_dimensions(n_layout_rows, length(q_result_keys), width_in = if (is.null(width))
+        12 else width, height_in = height)
 
     # Phase 5: Create heatmaps (using refactored loop)
     all_gene_matrices <- list()
@@ -387,10 +388,12 @@
 
     # Resolve gene identifiers: convert gene names/transcript IDs to gene IDs
     gene <- .resolve_gene_identifiers(gene, tx2gene, rd, gene_col)
-    
-    if (FALSE) {  # Debug mode - set to TRUE if needed
-        message("[DEBUG] After resolution, genes: ", paste(gene, collapse=", "))
-        message("[DEBUG] tx2gene$Gen unique values (first 10): ", paste(head(unique(tx2gene$Gen), 10), collapse=", "))
+
+    if (FALSE) {
+        # Debug mode - set to TRUE if needed
+        message("[DEBUG] After resolution, genes: ", paste(gene, collapse = ", "))
+        message("[DEBUG] tx2gene$Gen unique values (first 10): ", paste(head(unique(tx2gene$Gen),
+            10), collapse = ", "))
     }
 
     # Phase 3: Plan layout
@@ -436,9 +439,8 @@
 
         # Create pheatmap
         heatmap_plots[[gene_idx]] <- tryCatch({
-            .create_pheatmap_grob(mat, title = gene_name,
-                cellw = cells$cellwidth, cellh = cells$cellheight, fontsize = cells$fontsize_adj,
-                cluster_rows = FALSE)
+            .create_pheatmap_grob(mat, title = gene_name, cellw = cells$cellwidth,
+                cellh = cells$cellheight, fontsize = cells$fontsize_adj, cluster_rows = FALSE)
         }, error = function(e) {
             NULL
         })
@@ -471,9 +473,9 @@
 # Internal Helper Functions for Heatmap Refactoring
 # ============================================================================
 # This file contains shared helper functions extracted to support
-# .plot_jis_delta() and .plot_expression()
-# refactoring to meet Bioconductor's 50-line function guideline.  All functions
-# marked @keywords internal @noRd are NOT exported.
+# .plot_jis_delta() and .plot_expression() refactoring to meet Bioconductor's
+# 50-line function guideline.  All functions marked @keywords internal @noRd
+# are NOT exported.
 # ============================================================================
 
 # ============================================================================
@@ -538,16 +540,15 @@
 #' @keywords internal
 #' @noRd
 .resolve_gene_identifiers <- function(genes, tx2gene, rd, gene_col) {
-    # Flexible gene identifier resolution
-    # Accepts: gene IDs, gene names, or transcript IDs
-    # Returns: vector of gene IDs for lookup in tx2gene
-    
+    # Flexible gene identifier resolution Accepts: gene IDs, gene names, or
+    # transcript IDs Returns: vector of gene IDs for lookup in tx2gene
+
     if (is.null(genes) || length(genes) == 0) {
         return(genes)
     }
-    
+
     genes <- as.character(genes)
-    
+
     # Get available identifiers from rowData
     gene_ids <- if ("gene_id" %in% colnames(rd)) {
         as.character(rd$gene_id)
@@ -560,41 +561,43 @@
         NULL
     }
     transcript_ids <- tx2gene$Transcript
-    
-    # Key: tx2gene$Gen is built from rd[[gene_col]], so we need to resolve TO that column
-    # If gene_col="gene_name", we need to convert gene_ids to gene_names
+
+    # Key: tx2gene$Gen is built from rd[[gene_col]], so we need to resolve TO
+    # that column If gene_col='gene_name', we need to convert gene_ids to
+    # gene_names
     target_col <- as.character(rd[[gene_col]])
-    
+
     # Try to resolve each gene
     resolved_genes <- character(length(genes))
-    
+
     for (i in seq_along(genes)) {
         gene_input <- genes[i]
-        
+
         # Direct match: already in target column
         if (gene_input %in% target_col) {
             resolved_genes[i] <- gene_input
             next
         }
-        
+
         # Is it a gene_id that needs mapping to target_col?
         if (!is.null(gene_ids) && gene_input %in% gene_ids) {
             idx <- which(gene_ids == gene_input)[1]
             resolved_genes[i] <- target_col[idx]
             next
         }
-        
+
         # Is it a transcript ID?
         if (gene_input %in% transcript_ids) {
             idx <- which(transcript_ids == gene_input)[1]
             resolved_genes[i] <- tx2gene$Gen[idx]
             next
         }
-        
-        # If not found, keep original (will fail downstream with informative error)
+
+        # If not found, keep original (will fail downstream with informative
+        # error)
         resolved_genes[i] <- gene_input
     }
-    
+
     resolved_genes
 }
 

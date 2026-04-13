@@ -737,8 +737,8 @@
         colData = output_structure$colData, metadata = result_meta_list)
 
     if (!is.null(metadata)) {
-        result <- .map_metadata_se(result, metadata, sample_col = sample_col,
-            condition_col = condition_col, subject_col = subject_col)
+        result <- .map_metadata_se(result, metadata, sample_col = sample_col, condition_col = condition_col,
+            subject_col = subject_col)
     }
 
     result

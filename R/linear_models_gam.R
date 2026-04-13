@@ -157,7 +157,8 @@
     # Validate minimum observations requirement
     n_obs <- nrow(df)
     if (n_obs < min_obs) {
-        warning(sprintf(".gam_interaction (gene %s): Insufficient observations for GAM fitting. Found %d rows, minimum required: %d. Consider reducing min_obs or providing more samples.", g, n_obs, min_obs), call. = FALSE)
+        warning(sprintf(".gam_interaction (gene %s): Insufficient observations for GAM fitting. Found %d rows, minimum required: %d. Consider reducing min_obs or providing more samples.",
+            g, n_obs, min_obs), call. = FALSE)
         return(NULL)
     }
 
@@ -178,7 +179,9 @@
     # Validate that at least one model fit succeeded
     if (is.null(fit_result$fit_alt)) {
         # Model fitting completely failed - return NULL
-        warning(sprintf(".gam_interaction (gene %s): GAM model fitting failed. This may indicate insufficient data variation, perfect separation, or numerical instability. df has %d rows, %d unique q-values, %d groups.", g, nrow(prep_result$df), length(unique(prep_result$df$q)), length(unique(prep_result$df$group))), call. = FALSE)
+        warning(sprintf(".gam_interaction (gene %s): GAM model fitting failed. This may indicate insufficient data variation, perfect separation, or numerical instability. df has %d rows, %d unique q-values, %d groups.",
+            g, nrow(prep_result$df), length(unique(prep_result$df$q)), length(unique(prep_result$df$group))),
+            call. = FALSE)
         return(NULL)
     }
 
@@ -403,20 +406,20 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
     # stationarity assumption (constant mean) required for valid modeling.
     # Solution: Use first differences DeltaH_q = H_q - H_{q-1} to remove trend
     # - Bounded-support data [0, log(m)] after differencing approximates
-    # normality - Enables valid hypothesis testing
-    # - Information preserved: interaction effects remain in differenced data
-    # NOTE (BUGFIX April 2026): ARIMA applies to BOTH paired and unpaired designs.
-    # Paired: subject parameter provided -> use for grouping
-    # Unpaired: subject is NULL -> use df$sample_name for grouping
-    # CRITICAL: ARIMA is applied AFTER heteroscedasticity detection on original data
+    # normality - Enables valid hypothesis testing - Information preserved:
+    # interaction effects remain in differenced data NOTE (BUGFIX April 2026):
+    # ARIMA applies to BOTH paired and unpaired designs.  Paired: subject
+    # parameter provided -> use for grouping Unpaired: subject is NULL -> use
+    # df$sample_name for grouping CRITICAL: ARIMA is applied AFTER
+    # heteroscedasticity detection on original data
 
     use_arima <- FALSE
     gam_weights <- gam_weights_original
     n_samples_original <- nrow(df)
 
-    # Determine subject vector for ARIMA differencing
-    # Paired design: use subject parameter (e.g., paired subject IDs)
-    # Unpaired design: use df$sample_name if available (for entropy grouping)
+    # Determine subject vector for ARIMA differencing Paired design: use
+    # subject parameter (e.g., paired subject IDs) Unpaired design: use
+    # df$sample_name if available (for entropy grouping)
     subject_for_arima <- if (!is.null(subject)) {
         subject
     } else if ("sample_name" %in% colnames(df)) {
@@ -433,10 +436,10 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
         df <- arima_result$df
         use_arima <- TRUE
 
-        # FIX: When ARIMA is applied, DON'T use weights computed on
-        # original data Reason: Differencing changes the variance
-        # structure, weights would be invalid Conservative approach: Better
-        # to lose efficiency than introduce bias
+        # FIX: When ARIMA is applied, DON'T use weights computed on original
+        # data Reason: Differencing changes the variance structure, weights
+        # would be invalid Conservative approach: Better to lose efficiency
+        # than introduce bias
         gam_weights <- NULL
     }
 
@@ -452,14 +455,14 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
 # ===============================================================================
 # HELPER FUNCTION: Compute adaptive spline knots
 # ===============================================================================
-# Selects knot parameters based on sample size and data complexity
-# IMPORTANT: After ARIMA differencing, df$q has fewer unique values than the
-# original q_vals parameter. We must compute k based on ACTUAL unique q values
-# in df, not original parameter values.
+# Selects knot parameters based on sample size and data complexity IMPORTANT:
+# After ARIMA differencing, df$q has fewer unique values than the original
+# q_vals parameter. We must compute k based on ACTUAL unique q values in df,
+# not original parameter values.
 .compute_adaptive_knots <- function(df, q_vals, adaptive_knots) {
-    # Compute unique q values from the df (post-ARIMA) not from parameter
-    # After ARIMA, df may have fewer unique q values due to differencing
-    # E.g., original [0.5, 1, 1.5] -> after ARIMA becomes [1, 1.5]
+    # Compute unique q values from the df (post-ARIMA) not from parameter After
+    # ARIMA, df may have fewer unique q values due to differencing E.g.,
+    # original [0.5, 1, 1.5] -> after ARIMA becomes [1, 1.5]
     if ("q" %in% colnames(df)) {
         # Post-ARIMA: q is in the df
         uq_len <- length(unique(na.omit(df$q)))
@@ -984,13 +987,14 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
         2L else if (nrow(df) < 50)
         3L else 4L
     k_q_marginal <- as.integer(max(min_k_adaptive, min(k_q, max(min_k_adaptive, nrow(df)/25))))
-    
+
     # Interaction terms require higher k minimum (consistent with paired
     # design) min=3L ensures by=group smooths have sufficient basis dimension
-    # CRITICAL FIX: Cap k_q_interaction to actual unique q values in df
-    # After ARIMA, may only have 2 unique q values -> k cannot exceed 2
-    # mgcv::gam requires k <= number of unique covariate combinations
-    max_k_allowed <- if ("q" %in% colnames(df)) length(unique(na.omit(df$q))) else k_q
+    # CRITICAL FIX: Cap k_q_interaction to actual unique q values in df After
+    # ARIMA, may only have 2 unique q values -> k cannot exceed 2 mgcv::gam
+    # requires k <= number of unique covariate combinations
+    max_k_allowed <- if ("q" %in% colnames(df))
+        length(unique(na.omit(df$q))) else k_q
     k_q_interaction <- as.integer(max(2L, min(k_q, max(2L, nrow(df)/20), max_k_allowed)))
 
     # Step 2: Fit null and alternative models

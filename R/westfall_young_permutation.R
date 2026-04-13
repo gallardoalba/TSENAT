@@ -333,15 +333,15 @@
 # WESTFALL-YOUNG PERMUTATION HELPER (March 2026)
 # ════════════════════════════════════════════════════════════════════════════════
 # Consolidates redundant WY permutation logic shared between: 1.
-# .calculate_lm() - parametric tests (GAM, LMM, GEE) 2.
-# .calculate_srh() - rank-based tests (Scheirer-Ray-Hare only, March 2026)
-# rank) DESIGN PATTERN: - Core permutation loop is identical in both functions
-# (~70% code duplication) - Model refitting logic differs (parametric vs
-# rank-based) - Solution: Extract permutation machinery, supply model-specific
-# refit_fn callback USAGE: perm_result <- .westfall_young_permutation( n_genes
-# = nrow(results), wy_randomizations = 1000, permute_fn = function() { ...
-# return permutation_assignment ... }, refit_fn = function(perm_assignment) {
-# ... return perm_pvalues_vector ... }, verbose = FALSE ) RETURNS: List with: -
+# .calculate_lm() - parametric tests (GAM, LMM, GEE) 2.  .calculate_srh() -
+# rank-based tests (Scheirer-Ray-Hare only, March 2026) rank) DESIGN PATTERN: -
+# Core permutation loop is identical in both functions (~70% code duplication)
+# - Model refitting logic differs (parametric vs rank-based) - Solution:
+# Extract permutation machinery, supply model-specific refit_fn callback USAGE:
+# perm_result <- .westfall_young_permutation( n_genes = nrow(results),
+# wy_randomizations = 1000, permute_fn = function() { ...  return
+# permutation_assignment ... }, refit_fn = function(perm_assignment) { ...
+# return perm_pvalues_vector ... }, verbose = FALSE ) RETURNS: List with: -
 # perm_minima: numeric vector of length wy_randomizations (minimum p-value per
 # permutation) - n_permutations: integer (wy_randomizations) - message:
 # character string (if verbose=TRUE) WESTFALL-YOUNG STEP-DOWN PROCEDURE

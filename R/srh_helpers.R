@@ -360,7 +360,7 @@
 #' @return List with:
 #'   - statistic: F-statistic for interaction
 #'   - p_value: p-value from interaction test
-#'   - method: Description of test used ("Scheirer-Ray-Hare")
+#'   - method: Description of test used ('Scheirer-Ray-Hare')
 #'   - test_type: 'srh_interaction', 'srh_failed', or 'srh_error'
 #'
 
@@ -457,134 +457,112 @@
 #' @return List with concurvity metrics and status
 #' @noRd
 .compute_concurvity_index <- function(data, q_values = NULL) {
-    
+
     if (!inherits(data, "matrix")) {
         data <- as.matrix(data)
     }
-    
+
     if (!requireNamespace("mgcv", quietly = TRUE)) {
-        return(list(
-            description = "Concurvity Index",
-            overall_concurvity = NA_real_,
-            pairwise_concurvities = NULL,
-            status = "? SKIP - mgcv not available",
-            details = "Install mgcv package to compute concurvity"
-        ))
+        return(list(description = "Concurvity Index", overall_concurvity = NA_real_,
+            pairwise_concurvities = NULL, status = "? SKIP - mgcv not available",
+            details = "Install mgcv package to compute concurvity"))
     }
-    
-    # Concurvity only meaningful with 2+ predictors
-    # Data matrix format: rows=genes, cols=samples/q-values
+
+    # Concurvity only meaningful with 2+ predictors Data matrix format:
+    # rows=genes, cols=samples/q-values
     n_predictors <- ncol(data)
-    
+
     if (n_predictors < 2) {
-        return(list(
-            description = "Concurvity Index",
-            overall_concurvity = 0,
-            pairwise_concurvities = NULL,
-            status = "OK N/A",
-            details = "Concurvity requires >= 2 predictors"
-        ))
+        return(list(description = "Concurvity Index", overall_concurvity = 0, pairwise_concurvities = NULL,
+            status = "OK N/A", details = "Concurvity requires >= 2 predictors"))
     }
-    
+
     # q-values are required for meaningful concurvity analysis
     if (is.null(q_values) || length(q_values) < 2) {
-        return(list(
-            description = "Concurvity Index",
-            overall_concurvity = NA_real_,
-            status = "? ERROR",
-            details = "q-values required but not provided; cannot compute concurvity for entropy curves"
-        ))
+        return(list(description = "Concurvity Index", overall_concurvity = NA_real_,
+            status = "? ERROR", details = "q-values required but not provided; cannot compute concurvity for entropy curves"))
     }
-    
+
     tryCatch({
-        # For per-gene GAM models: entropy ~ s(q)
-        # Concurvity only relevant if multiple q-dependent curves being compared
-        # For now: fit one GAM across all genes to assess overall q-smoothness
-        
+        # For per-gene GAM models: entropy ~ s(q) Concurvity only relevant if
+        # multiple q-dependent curves being compared For now: fit one GAM
+        # across all genes to assess overall q-smoothness
+
         gam_models <- list()
         concurvity_values <- numeric()
-        
+
         # Fit GAM for selected genes (subset to avoid computational burden)
         n_genes <- nrow(data)
-        gene_indices <- seq(1, n_genes, by = max(1, floor(n_genes / 10)))  # ~10 genes sampled
-        
+        gene_indices <- seq(1, n_genes, by = max(1, floor(n_genes/10)))  # ~10 genes sampled
+
         for (gene_idx in gene_indices) {
             entropy_curve <- data[gene_idx, ]
-            
+
             # Create data frame for GAM
-            gam_data <- data.frame(
-                q = q_values,
-                entropy = entropy_curve
-            )
-            
+            gam_data <- data.frame(q = q_values, entropy = entropy_curve)
+
             # Remove rows with NA entropy
             gam_data <- gam_data[!is.na(gam_data$entropy), , drop = FALSE]
-            
-            if (nrow(gam_data) < 5) next  # Skip if insufficient data
-            
+
+            if (nrow(gam_data) < 5)
+                next  # Skip if insufficient data
+
             tryCatch({
-                # Fit GAM: entropy ~ s(q)
-                # Use k=min(length(unique(q))-1, 10) to avoid overfitting
+                # Fit GAM: entropy ~ s(q) Use k=min(length(unique(q))-1, 10) to
+                # avoid overfitting
                 k_val <- min(length(unique(gam_data$q)) - 1, 10)
-                if (k_val < 3) k_val <- 3
-                
-                gam_fit <- mgcv::gam(entropy ~ s(q, k = k_val), data = gam_data, method = "GCV.Cp")
+                if (k_val < 3)
+                  k_val <- 3
+
+                gam_fit <- mgcv::gam(entropy ~ s(q, k = k_val), data = gam_data,
+                  method = "GCV.Cp")
                 gam_models[[as.character(gene_idx)]] <- gam_fit
             }, error = function(e) NULL)
         }
-        
+
         if (length(gam_models) == 0) {
-            return(list(
-                description = "Concurvity Index",
-                overall_concurvity = NA_real_,
-                n_genes_tested = 0,
-                status = "? ERROR",
-                details = "Could not fit any GAM models; data may have insufficient variation"
-            ))
+            return(list(description = "Concurvity Index", overall_concurvity = NA_real_,
+                n_genes_tested = 0, status = "? ERROR", details = "Could not fit any GAM models; data may have insufficient variation"))
         }
-        
-        # Extract model complexity from fitted GAM models
-        # Note: Classical concurvity is undefined for single-term GAMs
-        # Instead: measure relative model complexity via effective DOF and GCV score
-        # High complexity (~complex curvature) -> higher entropy curve variability
+
+        # Extract model complexity from fitted GAM models Note: Classical
+        # concurvity is undefined for single-term GAMs Instead: measure
+        # relative model complexity via effective DOF and GCV score High
+        # complexity (~complex curvature) -> higher entropy curve variability
         concurv_list <- lapply(gam_models, function(model) {
             tryCatch({
-                # Compute relative model complexity:
-                # - edf (effective degrees of freedom) from smooth term
-                # - Normalized by max possible edf, then scaled to [0,1]
-                # Higher edf = more complex/curved entropy pattern
-                
+                # Compute relative model complexity: - edf (effective degrees
+                # of freedom) from smooth term - Normalized by max possible
+                # edf, then scaled to [0,1] Higher edf = more complex/curved
+                # entropy pattern
+
                 # Extract EDF from smooth term
                 edf_val <- model$edf[1]  # First (only) smooth term
-                
-                # Normalize: typical edf ranges 1-10 for simple smooths
-                # Scale to approximate [0, 1] where 1 = very complex
-                # Use sigmoid-like scaling: complexity ~ 1 - exp(-edf/3)
+
+                # Normalize: typical edf ranges 1-10 for simple smooths Scale
+                # to approximate [0, 1] where 1 = very complex Use sigmoid-like
+                # scaling: complexity ~ 1 - exp(-edf/3)
                 if (is.na(edf_val) || edf_val <= 1) {
-                    0.0  # Linear: no effective "curving"
+                  0  # Linear: no effective 'curving'
                 } else {
-                    # Map edf to [0, 1]: edf=1->0, edf=3->0.63, edf=10->0.96
-                    1 - exp(-edf_val / 3)
+                  # Map edf to [0, 1]: edf=1->0, edf=3->0.63, edf=10->0.96
+                  1 - exp(-edf_val/3)
                 }
             }, error = function(e) NA_real_)
         })
-        
+
         overall_concurv <- median(unlist(concurv_list), na.rm = TRUE)
-        
+
         if (is.na(overall_concurv) || !is.finite(overall_concurv)) {
-            return(list(
-                description = "Concurvity Index",
-                overall_concurvity = NA_real_,
-                status = "? ERROR",
-                details = "Could not compute concurvity; GAM fits may have failed"
-            ))
+            return(list(description = "Concurvity Index", overall_concurvity = NA_real_,
+                status = "? ERROR", details = "Could not compute concurvity; GAM fits may have failed"))
         }
-        
+
         # Interpret concurvity (model complexity / entropy curve curvature)
-        # Metric: normalized effective DOF from GAM smooths
-        # LOW: mostly linear entropy-q relationship
-        # MODERATE: noticeable curvature/complexity in entropy patterns
-        # HIGH: highly complex/curved entropy profiles (potential instability)
+        # Metric: normalized effective DOF from GAM smooths LOW: mostly linear
+        # entropy-q relationship MODERATE: noticeable curvature/complexity in
+        # entropy patterns HIGH: highly complex/curved entropy profiles
+        # (potential instability)
         if (overall_concurv < 0.6) {
             status <- "low"
         } else if (overall_concurv < 0.8) {
@@ -592,23 +570,15 @@
         } else {
             status <- "high"
         }
-        
+
         # Return the computed results
-        return(list(
-            description = "Concurvity Index (Model Complexity)",
-            overall_concurvity = overall_concurv,
-            n_genes_tested = length(gam_models),
-            status = status,
-            details = sprintf("Median EDF-based complexity across %d genes: %.4f (lower = less curved entropy profiles)", length(gam_models), overall_concurv)
-        ))
-        
+        return(list(description = "Concurvity Index (Model Complexity)", overall_concurvity = overall_concurv,
+            n_genes_tested = length(gam_models), status = status, details = sprintf("Median EDF-based complexity across %d genes: %.4f (lower = less curved entropy profiles)",
+                length(gam_models), overall_concurv)))
+
     }, error = function(e) {
-        return(list(
-            description = "Concurvity Index",
-            overall_concurvity = NA_real_,
-            status = "? ERROR",
-            details = paste("Failed:", e$message)
-        ))
+        return(list(description = "Concurvity Index", overall_concurvity = NA_real_,
+            status = "? ERROR", details = paste("Failed:", e$message)))
     })
 }
 
@@ -623,97 +593,81 @@
 #' @return List with EDF metrics and interpretation
 #' @noRd
 .compute_edf_metric <- function(data, q_values = NULL) {
-    
+
     if (!inherits(data, "matrix")) {
         data <- as.matrix(data)
     }
-    
+
     if (!requireNamespace("mgcv", quietly = TRUE)) {
-        return(list(
-            description = "Effective Degrees of Freedom",
-            edf_ratio = NA_real_,
-            status = "? SKIP - mgcv not available"
-        ))
+        return(list(description = "Effective Degrees of Freedom", edf_ratio = NA_real_,
+            status = "? SKIP - mgcv not available"))
     }
-    
+
     # If q_values provided, fit per-gene GAMs and aggregate EDF
     if (!is.null(q_values) && length(q_values) >= 2) {
         tryCatch({
             gam_models <- list()
             edf_ratios <- numeric()
-            
+
             # Fit GAM for selected genes
             n_genes <- nrow(data)
-            gene_indices <- seq(1, n_genes, by = max(1, floor(n_genes / 10)))
-            
+            gene_indices <- seq(1, n_genes, by = max(1, floor(n_genes/10)))
+
             for (gene_idx in gene_indices) {
                 entropy_curve <- data[gene_idx, ]
-                
+
                 gam_data <- data.frame(q = q_values, entropy = entropy_curve)
                 gam_data <- gam_data[!is.na(gam_data$entropy), , drop = FALSE]
-                
-                if (nrow(gam_data) < 5) next
-                
+
+                if (nrow(gam_data) < 5)
+                  next
+
                 tryCatch({
-                    k_val <- min(length(unique(gam_data$q)) - 1, 10)
-                    if (k_val < 3) k_val <- 3
-                    
-                    gam_fit <- mgcv::gam(entropy ~ s(q, k = k_val), data = gam_data, method = "GCV.Cp")
-                    gam_models[[as.character(gene_idx)]] <- gam_fit
-                    
-                    # EDF is the effective degrees of freedom from the smooth term
-                    edf <- gam_fit$edf[1]  # First (and only) smooth term
-                    edf_ratios <- c(edf_ratios, edf / length(q_values))
+                  k_val <- min(length(unique(gam_data$q)) - 1, 10)
+                  if (k_val < 3)
+                    k_val <- 3
+
+                  gam_fit <- mgcv::gam(entropy ~ s(q, k = k_val), data = gam_data,
+                    method = "GCV.Cp")
+                  gam_models[[as.character(gene_idx)]] <- gam_fit
+
+                  # EDF is the effective degrees of freedom from the smooth
+                  # term
+                  edf <- gam_fit$edf[1]  # First (and only) smooth term
+                  edf_ratios <- c(edf_ratios, edf/length(q_values))
                 }, error = function(e) NULL)
             }
-            
+
             if (length(edf_ratios) == 0) {
-                return(list(
-                    description = "Effective Degrees of Freedom",
-                    edf_ratio = NA_real_,
-                    status = "? ERROR",
-                    details = "Could not fit any GAM models"
-                ))
+                return(list(description = "Effective Degrees of Freedom", edf_ratio = NA_real_,
+                  status = "? ERROR", details = "Could not fit any GAM models"))
             }
-            
+
             # Aggregate EDF ratio across genes
             mean_edf_ratio <- mean(edf_ratios, na.rm = TRUE)
-            
+
             # Interpretation
             if (mean_edf_ratio < 0.5) {
                 status <- "over-smoothed"
-            } else if (mean_edf_ratio <= 2.0) {
+            } else if (mean_edf_ratio <= 2) {
                 status <- "appropriate"
             } else {
                 status <- "under-smoothed"
             }
-            
-            return(list(
-                description = "Effective Degrees of Freedom",
-                total_edf = NA_real_,
-                edf_ratio = mean_edf_ratio,
-                n_genes_tested = length(gam_models),
-                status = status,
-                details = sprintf("Mean EDF ratio=%.3f across %d genes (%s)", 
-                                mean_edf_ratio, length(gam_models), tolower(status))
-            ))
+
+            return(list(description = "Effective Degrees of Freedom", total_edf = NA_real_,
+                edf_ratio = mean_edf_ratio, n_genes_tested = length(gam_models),
+                status = status, details = sprintf("Mean EDF ratio=%.3f across %d genes (%s)",
+                  mean_edf_ratio, length(gam_models), tolower(status))))
         }, error = function(e) {
-            return(list(
-                description = "Effective Degrees of Freedom",
-                edf_ratio = NA_real_,
-                status = "? ERROR",
-                details = paste("Failed:", e$message)
-            ))
+            return(list(description = "Effective Degrees of Freedom", edf_ratio = NA_real_,
+                status = "? ERROR", details = paste("Failed:", e$message)))
         })
     }
-    
+
     # q-values are required for meaningful EDF analysis
-    return(list(
-        description = "Effective Degrees of Freedom",
-        edf_ratio = NA_real_,
-        status = "? ERROR",
-        details = "q-values required but not provided; cannot compute EDF for entropy curves"
-    ))
+    return(list(description = "Effective Degrees of Freedom", edf_ratio = NA_real_,
+        status = "? ERROR", details = "q-values required but not provided; cannot compute EDF for entropy curves"))
 }
 
 
@@ -727,68 +681,69 @@
 #' @return List with improvement metrics
 #' @noRd
 .compute_nonlinearity_contribution <- function(data, q_values = NULL) {
-    
+
     if (!inherits(data, "matrix")) {
         data <- as.matrix(data)
     }
-    
+
     if (!requireNamespace("mgcv", quietly = TRUE)) {
-        return(list(
-            description = "Non-linearity Contribution",
-            r2_improvement_percent = NA_real_,
-            status = "? SKIP - mgcv not available"
-        ))
+        return(list(description = "Non-linearity Contribution", r2_improvement_percent = NA_real_,
+            status = "? SKIP - mgcv not available"))
     }
-    
+
     # If q_values provided, fit per-gene GAMs and aggregate improvement
     if (!is.null(q_values) && length(q_values) >= 2) {
         tryCatch({
             improvements <- numeric()
-            
+
             # Fit per-gene models
             n_genes <- nrow(data)
-            gene_indices <- seq(1, n_genes, by = max(1, floor(n_genes / 10)))
-            
+            gene_indices <- seq(1, n_genes, by = max(1, floor(n_genes/10)))
+
             for (gene_idx in gene_indices) {
                 entropy_curve <- data[gene_idx, ]
-                
+
                 gam_data <- data.frame(q = q_values, entropy = entropy_curve)
                 gam_data <- gam_data[!is.na(gam_data$entropy), , drop = FALSE]
-                
-                if (nrow(gam_data) < 5) next
-                
+
+                if (nrow(gam_data) < 5)
+                  next
+
                 tryCatch({
-                    # Linear model
-                    lm_fit <- stats::lm(entropy ~ q, data = gam_data)
-                    # Directly extract r.squared - summary warnings are non-critical
-                    r2_lm <- {s <- summary(lm_fit); if (!is.null(s$r.squared)) s$r.squared else NA_real_}
-                    
-                    # GAM model
-                    k_val <- min(length(unique(gam_data$q)) - 1, 10)
-                    if (k_val < 3) k_val <- 3
-                    gam_fit <- mgcv::gam(entropy ~ s(q, k = k_val), data = gam_data, method = "GCV.Cp")
-                    
-                    # Deviance explained
-                    gam_deviance <- (gam_fit$null.deviance - sum(gam_fit$residuals^2)) / gam_fit$null.deviance
-                    
-                    # Improvement percentage
-                    improvement <- ((gam_deviance - r2_lm) / max(r2_lm, 0.001)) * 100
-                    improvements <- c(improvements, improvement)
+                  # Linear model
+                  lm_fit <- stats::lm(entropy ~ q, data = gam_data)
+                  # Directly extract r.squared - summary warnings are
+                  # non-critical
+                  r2_lm <- {
+                    s <- summary(lm_fit)
+                    if (!is.null(s$r.squared))
+                      s$r.squared else NA_real_
+                  }
+
+                  # GAM model
+                  k_val <- min(length(unique(gam_data$q)) - 1, 10)
+                  if (k_val < 3)
+                    k_val <- 3
+                  gam_fit <- mgcv::gam(entropy ~ s(q, k = k_val), data = gam_data,
+                    method = "GCV.Cp")
+
+                  # Deviance explained
+                  gam_deviance <- (gam_fit$null.deviance - sum(gam_fit$residuals^2))/gam_fit$null.deviance
+
+                  # Improvement percentage
+                  improvement <- ((gam_deviance - r2_lm)/max(r2_lm, 0.001)) * 100
+                  improvements <- c(improvements, improvement)
                 }, error = function(e) NULL)
             }
-            
+
             if (length(improvements) == 0) {
-                return(list(
-                    description = "Non-linearity Contribution",
-                    r2_improvement_percent = NA_real_,
-                    status = "? ERROR",
-                    details = "Could not fit any models"
-                ))
+                return(list(description = "Non-linearity Contribution", r2_improvement_percent = NA_real_,
+                  status = "? ERROR", details = "Could not fit any models"))
             }
-            
+
             # Aggregate improvement
             mean_improvement <- mean(improvements, na.rm = TRUE)
-            
+
             # Interpretation
             if (mean_improvement < 5) {
                 status <- "use linear"
@@ -797,32 +752,19 @@
             } else {
                 status <- "gam essential"
             }
-            
-            return(list(
-                description = "Non-linearity Contribution",
-                r2_improvement_percent = mean_improvement,
-                n_genes_tested = length(gene_indices),
-                status = status,
-                details = sprintf("Mean improvement=%.1f%% across %d genes (%s)", 
-                                mean_improvement, length(gene_indices), tolower(status))
-            ))
+
+            return(list(description = "Non-linearity Contribution", r2_improvement_percent = mean_improvement,
+                n_genes_tested = length(gene_indices), status = status, details = sprintf("Mean improvement=%.1f%% across %d genes (%s)",
+                  mean_improvement, length(gene_indices), tolower(status))))
         }, error = function(e) {
-            return(list(
-                description = "Non-linearity Contribution",
-                r2_improvement_percent = NA_real_,
-                status = "? ERROR",
-                details = paste("Failed:", e$message)
-            ))
+            return(list(description = "Non-linearity Contribution", r2_improvement_percent = NA_real_,
+                status = "? ERROR", details = paste("Failed:", e$message)))
         })
     }
-    
+
     # q-values are required for meaningful non-linearity analysis
-    return(list(
-        description = "Non-linearity Contribution",
-        r2_improvement_percent = NA_real_,
-        status = "? ERROR",
-        details = "q-values required but not provided; cannot assess non-linearity for entropy curves"
-    ))
+    return(list(description = "Non-linearity Contribution", r2_improvement_percent = NA_real_,
+        status = "? ERROR", details = "q-values required but not provided; cannot assess non-linearity for entropy curves"))
 }
 
 
@@ -835,93 +777,82 @@
 #' @return List with basis adequacy assessment
 #' @noRd
 .compute_basis_adequacy <- function(data, q_values = NULL) {
-    
+
     if (!inherits(data, "matrix")) {
         data <- as.matrix(data)
     }
-    
+
     if (!requireNamespace("mgcv", quietly = TRUE)) {
-        return(list(
-            description = "Basis Function Adequacy",
-            optimal_basis_dimension = NA_integer_,
-            status = "? SKIP - mgcv not available"
-        ))
+        return(list(description = "Basis Function Adequacy", optimal_basis_dimension = NA_integer_,
+            status = "? SKIP - mgcv not available"))
     }
-    
+
     # q-values are required for meaningful basis adequacy analysis
     if (is.null(q_values) || length(q_values) < 2) {
-        return(list(
-            description = "Basis Function Adequacy",
-            optimal_basis_dimension = NA_integer_,
-            status = "? ERROR",
-            details = "q-values required but not provided; cannot find optimal basis dimension"
-        ))
+        return(list(description = "Basis Function Adequacy", optimal_basis_dimension = NA_integer_,
+            status = "? ERROR", details = "q-values required but not provided; cannot find optimal basis dimension"))
     }
-    
+
     tryCatch({
         # Fit per-gene models to find optimal k
         optimal_k_per_gene <- numeric()
         gcv_min_per_gene <- numeric()
-        
+
         # Fit GAM for selected genes
         n_genes <- nrow(data)
-        gene_indices <- seq(1, n_genes, by = max(1, floor(n_genes / 5)))  # ~5 genes for efficiency
-        
+        gene_indices <- seq(1, n_genes, by = max(1, floor(n_genes/5)))  # ~5 genes for efficiency
+
         # Range of basis dimensions to test
         k_candidates <- c(3, 5, 8, 10, 15)
-        
+
         for (gene_idx in gene_indices) {
             entropy_curve <- data[gene_idx, ]
-            
+
             gam_data <- data.frame(q = q_values, entropy = entropy_curve)
             gam_data <- gam_data[!is.na(gam_data$entropy), , drop = FALSE]
-            
-            if (nrow(gam_data) < 5) next
-            
+
+            if (nrow(gam_data) < 5)
+                next
+
             tryCatch({
                 # Fit GAM models with different k values
                 gcv_scores <- rep(NA_real_, length(k_candidates))
-                
+
                 for (i in seq_along(k_candidates)) {
-                    k <- k_candidates[i]
-                    # Ensure k doesn't exceed available data points - 1
-                    k_actual <- min(k, length(unique(gam_data$q)) - 1)
-                    if (k_actual < 3) k_actual <- 3
-                    
-                    tryCatch({
-                        gam_fit <- mgcv::gam(entropy ~ s(q, k = k_actual), 
-                                            data = gam_data, 
-                                            method = "GCV.Cp",
-                                            control = list(maxit = 100))
-                        gcv_scores[i] <- gam_fit$gcv.ubre
-                    }, error = function(e) {
-                        # On error, gcv_scores[i] remains NA (already initialized)
-                    })
+                  k <- k_candidates[i]
+                  # Ensure k doesn't exceed available data points - 1
+                  k_actual <- min(k, length(unique(gam_data$q)) - 1)
+                  if (k_actual < 3)
+                    k_actual <- 3
+
+                  tryCatch({
+                    gam_fit <- mgcv::gam(entropy ~ s(q, k = k_actual), data = gam_data,
+                      method = "GCV.Cp", control = list(maxit = 100))
+                    gcv_scores[i] <- gam_fit$gcv.ubre
+                  }, error = function(e) {
+                    # On error, gcv_scores[i] remains NA (already initialized)
+                  })
                 }
-                
+
                 # Find optimal k for this gene
                 valid_gcv <- gcv_scores[is.finite(gcv_scores)]
                 if (length(valid_gcv) > 0) {
-                    optimal_idx <- which.min(gcv_scores)
-                    optimal_k_per_gene <- c(optimal_k_per_gene, k_candidates[optimal_idx])
-                    gcv_min_per_gene <- c(gcv_min_per_gene, min(valid_gcv))
+                  optimal_idx <- which.min(gcv_scores)
+                  optimal_k_per_gene <- c(optimal_k_per_gene, k_candidates[optimal_idx])
+                  gcv_min_per_gene <- c(gcv_min_per_gene, min(valid_gcv))
                 }
             }, error = function(e) NULL)
         }
-        
+
         if (length(optimal_k_per_gene) == 0) {
-            return(list(
-                description = "Basis Function Adequacy",
-                optimal_basis_dimension = NA_integer_,
-                status = "? ERROR",
-                details = "Could not fit any GAM models"
-            ))
+            return(list(description = "Basis Function Adequacy", optimal_basis_dimension = NA_integer_,
+                status = "? ERROR", details = "Could not fit any GAM models"))
         }
-        
+
         # Aggregate optimal k across genes (use mode/most common)
         k_counts <- table(optimal_k_per_gene)
         aggregated_k <- as.integer(names(k_counts)[which.max(k_counts)])
-        
+
         # Check convergence pattern
         max_k_tested <- max(k_candidates)
         if (aggregated_k >= max_k_tested) {
@@ -929,28 +860,18 @@
         } else {
             status <- "adequate"
         }
-        
+
         # Compute mean GCV for reporting
         mean_gcv <- mean(gcv_min_per_gene, na.rm = TRUE)
-        
-        return(list(
-            description = "Basis Function Adequacy",
-            optimal_basis_dimension = aggregated_k,
-            n_genes_tested = length(optimal_k_per_gene),
-            mean_gcv = mean_gcv,
-            status = status,
+
+        return(list(description = "Basis Function Adequacy", optimal_basis_dimension = aggregated_k,
+            n_genes_tested = length(optimal_k_per_gene), mean_gcv = mean_gcv, status = status,
             details = sprintf("Optimal k=%d (mean GCV=%.4f) across %d genes (%s)",
-                            aggregated_k, mean_gcv, length(optimal_k_per_gene), 
-                            tolower(status))
-        ))
-        
+                aggregated_k, mean_gcv, length(optimal_k_per_gene), tolower(status))))
+
     }, error = function(e) {
-        return(list(
-            description = "Basis Function Adequacy",
-            optimal_basis_dimension = NA_integer_,
-            status = "? ERROR",
-            details = paste("Failed:", e$message)
-        ))
+        return(list(description = "Basis Function Adequacy", optimal_basis_dimension = NA_integer_,
+            status = "? ERROR", details = paste("Failed:", e$message)))
     })
 }
 
@@ -965,129 +886,90 @@
 #' @return List containing all 4 GAM metric results
 #' @noRd
 .get_gam_metrics <- function(data, q_values = NULL, method_params = list()) {
-    
+
     if (!inherits(data, "matrix")) {
         data <- as.matrix(data)
     }
-    
+
     # Check if mgcv is available early
     has_mgcv <- requireNamespace("mgcv", quietly = TRUE)
-    
+
     if (!has_mgcv) {
-        return(list(
-            concurvity = list(
-                description = "Concurvity Index",
-                status = "? SKIPPED",
-                reason = "mgcv package not installed"
-            ),
-            edf = list(
-                description = "Effective Degrees of Freedom",
-                status = "? SKIPPED",
-                reason = "mgcv package not installed"
-            ),
-            nonlinearity = list(
-                description = "Non-linearity Contribution",
-                status = "? SKIPPED",
-                reason = "mgcv package not installed"
-            ),
-            basis_adequacy = list(
-                description = "Basis Function Adequacy",
-                status = "? SKIPPED",
-                reason = "mgcv package not installed"
-            )
-        ))
+        return(list(concurvity = list(description = "Concurvity Index", status = "? SKIPPED",
+            reason = "mgcv package not installed"), edf = list(description = "Effective Degrees of Freedom",
+            status = "? SKIPPED", reason = "mgcv package not installed"), nonlinearity = list(description = "Non-linearity Contribution",
+            status = "? SKIPPED", reason = "mgcv package not installed"), basis_adequacy = list(description = "Basis Function Adequacy",
+            status = "? SKIPPED", reason = "mgcv package not installed")))
     }
-    
+
     # If q_values not provided, can only produce placeholders
     if (is.null(q_values) || length(q_values) < 2) {
-        return(list(
-            concurvity = list(
-                description = "Concurvity Index",
-                overall_concurvity = NA_real_,
-                status = "? ERROR",
-                details = "q-values not provided; cannot fit meaningful GAM models"
-            ),
-            edf = list(
-                description = "Effective Degrees of Freedom",
-                edf_ratio = NA_real_,
-                status = "? ERROR",
-                details = "q-values not provided; cannot fit meaningful GAM models"
-            ),
-            nonlinearity = list(
-                description = "Non-linearity Contribution",
-                r2_improvement_percent = NA_real_,
-                status = "? ERROR",
-                details = "q-values not provided; cannot fit meaningful GAM models"
-            ),
-            basis_adequacy = list(
-                description = "Basis Function Adequacy",
-                optimal_basis_dimension = NA_real_,
-                status = "? ERROR",
-                details = "q-values not provided; cannot fit meaningful GAM models"
-            )
-        ))
+        return(list(concurvity = list(description = "Concurvity Index", overall_concurvity = NA_real_,
+            status = "? ERROR", details = "q-values not provided; cannot fit meaningful GAM models"),
+            edf = list(description = "Effective Degrees of Freedom", edf_ratio = NA_real_,
+                status = "? ERROR", details = "q-values not provided; cannot fit meaningful GAM models"),
+            nonlinearity = list(description = "Non-linearity Contribution", r2_improvement_percent = NA_real_,
+                status = "? ERROR", details = "q-values not provided; cannot fit meaningful GAM models"),
+            basis_adequacy = list(description = "Basis Function Adequacy", optimal_basis_dimension = NA_real_,
+                status = "? ERROR", details = "q-values not provided; cannot fit meaningful GAM models")))
     }
-    
-    # Compute each metric independently (with q-values for per-gene GAM fitting)
-    results <- list(
-        concurvity = .compute_concurvity_index(data, q_values = q_values),
-        edf = .compute_edf_metric(data, q_values = q_values),
-        nonlinearity = .compute_nonlinearity_contribution(data, q_values = q_values),
-        basis_adequacy = .compute_basis_adequacy(data, q_values = q_values)
-    )
-    
+
+    # Compute each metric independently (with q-values for per-gene GAM
+    # fitting)
+    results <- list(concurvity = .compute_concurvity_index(data, q_values = q_values),
+        edf = .compute_edf_metric(data, q_values = q_values), nonlinearity = .compute_nonlinearity_contribution(data,
+            q_values = q_values), basis_adequacy = .compute_basis_adequacy(data,
+            q_values = q_values))
+
     # Create consolidated result combining all four metrics
     consolidated_parts <- character()
-    
+
     # 1. Concurvity Index
     if (!is.null(results$concurvity) && !isTRUE(results$concurvity$error)) {
         if (!is.na(results$concurvity$overall_concurvity)) {
             status_clean <- gsub("^[^a-z]+", "", tolower(results$concurvity$status))
-            consolidated_parts <- c(consolidated_parts, 
-                sprintf("Index=%.3f (%s)", results$concurvity$overall_concurvity, status_clean))
+            consolidated_parts <- c(consolidated_parts, sprintf("Index=%.3f (%s)",
+                results$concurvity$overall_concurvity, status_clean))
         }
     }
-    
+
     # 2. EDF Ratio
     if (!is.null(results$edf) && !isTRUE(results$edf$error)) {
         if (!is.na(results$edf$edf_ratio)) {
             status_clean <- gsub("^[^a-z]+", "", tolower(results$edf$status))
-            consolidated_parts <- c(consolidated_parts,
-                sprintf("Ratio=%.3f (%s)", results$edf$edf_ratio, status_clean))
+            consolidated_parts <- c(consolidated_parts, sprintf("Ratio=%.3f (%s)",
+                results$edf$edf_ratio, status_clean))
         }
     }
-    
+
     # 3. Non-linearity (R^2 improvement)
     if (!is.null(results$nonlinearity) && !isTRUE(results$nonlinearity$error)) {
         if (!is.na(results$nonlinearity$r2_improvement_percent)) {
             status_clean <- gsub("^[^a-z]+", "", tolower(results$nonlinearity$status))
-            consolidated_parts <- c(consolidated_parts,
-                sprintf("Delta R^2=%.1f%% (%s)", results$nonlinearity$r2_improvement_percent, status_clean))
+            consolidated_parts <- c(consolidated_parts, sprintf("Delta R^2=%.1f%% (%s)",
+                results$nonlinearity$r2_improvement_percent, status_clean))
         }
     }
-    
+
     # 4. Basis adequacy (k value)
     if (!is.null(results$basis_adequacy) && !isTRUE(results$basis_adequacy$error)) {
         if (!is.na(results$basis_adequacy$optimal_basis_dimension)) {
             status_clean <- gsub("^[^a-z]+", "", tolower(results$basis_adequacy$status))
-            consolidated_parts <- c(consolidated_parts,
-                sprintf("k=%d (%s)", results$basis_adequacy$optimal_basis_dimension, status_clean))
+            consolidated_parts <- c(consolidated_parts, sprintf("k=%d (%s)", results$basis_adequacy$optimal_basis_dimension,
+                status_clean))
         }
     }
-    
+
     # Combine all parts with period separators
     consolidated_result <- if (length(consolidated_parts) > 0) {
         paste(consolidated_parts, collapse = ". ")
     } else {
         "NA (insufficient data)"
     }
-    
+
     # Add consolidated result to the list
-    results$consolidated <- list(
-        description = "Smooth term collinearity",
-        result = consolidated_result,
-        status = "COMBINED"
-    )
-    
+    results$consolidated <- list(description = "Smooth term collinearity", result = consolidated_result,
+        status = "COMBINED")
+
     return(results)
 }

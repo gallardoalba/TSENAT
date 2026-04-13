@@ -189,7 +189,7 @@
 #' # Compute diversity and access results using unified accessor
 #' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0), verbose =
 #' FALSE)
-#' head(results(analysis, type = "diversity", q = 1.0))
+#' head(results(analysis, type = 'diversity', q = 1.0))
 #'
 #' @details
 #' For additional details on diversity spectrum calculations and
@@ -199,19 +199,17 @@
 #' @export
 #' @importFrom utils write.table
 calculate_diversity <- function(analysis, q = NULL, norm = TRUE, norm_method = NULL,
-    reference_group = NULL, verbose = NULL, show_messages = FALSE,
-    what = NULL, nthreads = NULL, pseudocount = NULL, min_valid_frac = NULL, shrinkage = NULL,
-    bootstrap = NULL, nboot = NULL,
-    bootstrap_method = NULL, bootstrap_ci = NULL, bootstrap_include_diagnostics = NULL,
+    reference_group = NULL, verbose = NULL, show_messages = FALSE, what = NULL, nthreads = NULL,
+    pseudocount = NULL, min_valid_frac = NULL, shrinkage = NULL, bootstrap = NULL,
+    nboot = NULL, bootstrap_method = NULL, bootstrap_ci = NULL, bootstrap_include_diagnostics = NULL,
     output_file = NULL, ...) {
     # Validate input
     .validate_diversity_analysis_input(analysis)
 
     # Prepare parameters and build calculation
     params <- .prepare_diversity_params(analysis, q, norm, norm_method, reference_group,
-        verbose, what, nthreads, pseudocount, min_valid_frac, shrinkage,
-        bootstrap, nboot, bootstrap_method, bootstrap_ci,
-        bootstrap_include_diagnostics, show_messages)
+        verbose, what, nthreads, pseudocount, min_valid_frac, shrinkage, bootstrap,
+        nboot, bootstrap_method, bootstrap_ci, bootstrap_include_diagnostics, show_messages)
     .validate_norm_method(params$norm_method)
 
     # Execute diversity calculation
@@ -469,8 +467,8 @@ calculate_diversity <- function(analysis, q = NULL, norm = TRUE, norm_method = N
     test_assay <- tryCatch({
         SummarizedExperiment::assay(result_se, 1)
     }, error = function(e) {
-        stop("[calculate_diversity] Cannot access assay for q=", q_val, ": ",
-            conditionMessage(e), call. = FALSE)
+        stop("[calculate_diversity] Cannot access assay for q=", q_val, ": ", conditionMessage(e),
+            call. = FALSE)
     })
 
     if (is.null(test_assay) || nrow(test_assay) == 0) {
@@ -561,8 +559,8 @@ calculate_diversity <- function(analysis, q = NULL, norm = TRUE, norm_method = N
         }
         analysis@metadata$diversity_spectrum <- diversity_spectrum
     }, error = function(e) {
-        warning("[calculate_diversity] Could not compute diversity spectrum: ",
-            conditionMessage(e), call. = FALSE)
+        warning("[calculate_diversity] Could not compute diversity spectrum: ", conditionMessage(e),
+            call. = FALSE)
     })
     analysis
 }
@@ -703,14 +701,14 @@ calculate_diversity <- function(analysis, q = NULL, norm = TRUE, norm_method = N
 # ============================================================================
 #' @noRd
 .prepare_diversity_params <- function(analysis, q = NULL, norm = NULL, norm_method = NULL,
-    reference_group = NULL, verbose = NULL, what = NULL,
-    nthreads = NULL, pseudocount = NULL, min_valid_frac = NULL, shrinkage = NULL,
-    bootstrap = NULL, nboot = NULL,
-    bootstrap_method = NULL, bootstrap_ci = NULL, bootstrap_include_diagnostics = NULL,
-    show_messages = FALSE, ...) {
-    # ... captures deprecated parameters (tpm, assayno, genes, effective_length, metadata)
-    # that were removed from public API but may still be passed by old test code
-    
+    reference_group = NULL, verbose = NULL, what = NULL, nthreads = NULL, pseudocount = NULL,
+    min_valid_frac = NULL, shrinkage = NULL, bootstrap = NULL, nboot = NULL, bootstrap_method = NULL,
+    bootstrap_ci = NULL, bootstrap_include_diagnostics = NULL, show_messages = FALSE,
+    ...) {
+    # ... captures deprecated parameters (tpm, assayno, genes,
+    # effective_length, metadata) that were removed from public API but may
+    # still be passed by old test code
+
     # Extract q parameter - can be single or multiple values
     q_source <- "explicit"  # Track where q came from
     if (is.null(q)) {
@@ -726,19 +724,18 @@ calculate_diversity <- function(analysis, q = NULL, norm = TRUE, norm_method = N
     if (!is.numeric(q)) {
         stop("'q' must be numeric", call. = FALSE)
     }
-    
+
     # Resolve verbose first so we can use it in conditions
     verbose_resolved <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
-    
+
     # Show message about q-values being used
     if (q_source != "explicit" && verbose_resolved) {
         if (length(q) == 1) {
-            message("[calculate_diversity] Using q = ", formatC(q, format="f", digits=3), 
-                    " (", q_source, ")")
+            message("[calculate_diversity] Using q = ", formatC(q, format = "f",
+                digits = 3), " (", q_source, ")")
         } else {
-            message("[calculate_diversity] Using q spectrum: ", 
-                    paste(formatC(q, format="f", digits=3), collapse=", "),
-                    " (", q_source, ")")
+            message("[calculate_diversity] Using q spectrum: ", paste(formatC(q,
+                format = "f", digits = 3), collapse = ", "), " (", q_source, ")")
         }
     }
 
@@ -758,22 +755,23 @@ calculate_diversity <- function(analysis, q = NULL, norm = TRUE, norm_method = N
 
 
 
-    list(q = q, nthreads = nthreads_resolved, verbose = verbose_resolved, show_messages = show_messages, bootstrap = resolve_slot_param(bootstrap,
-        analysis@config, "bootstrap", FALSE), pseudocount = resolve_slot_param(pseudocount,
-        analysis@config, "pseudocount", 0), min_valid_frac = resolve_slot_param(min_valid_frac,
-        analysis@config, "min_valid_frac", 0.75), norm = resolve_slot_param(norm,
-        analysis@config, "norm", TRUE), what = resolve_slot_param(what, analysis@config,
-        "what", "S"), assayno = resolve_slot_param(NULL, analysis@config, "assayno",
-        1), shrinkage = resolve_slot_param(shrinkage, analysis@config, "shrinkage",
-        "none"), bootstrap_method = resolve_slot_param(bootstrap_method, analysis@config,
-        "bootstrap_method", "percentile"), bootstrap_ci = resolve_slot_param(bootstrap_ci,
-        analysis@config, "bootstrap_ci", 0.95), tpm = FALSE, genes = resolve_slot_param(NULL,
-        analysis@config, "genes", NULL), nboot = resolve_slot_param(nboot,
-        analysis@config, "nboot", NULL), bootstrap_include_diagnostics = resolve_slot_param(bootstrap_include_diagnostics,
-        analysis@config, "bootstrap_include_diagnostics", TRUE), metadata = resolve_slot_param(NULL,
-        analysis@config, "metadata", NULL), norm_method = resolve_slot_param(norm_method,
-        analysis@config, "norm_method", NULL), reference_group = resolve_slot_param(reference_group,
-        analysis@config, "reference_group", NULL))
+    list(q = q, nthreads = nthreads_resolved, verbose = verbose_resolved, show_messages = show_messages,
+        bootstrap = resolve_slot_param(bootstrap, analysis@config, "bootstrap", FALSE),
+        pseudocount = resolve_slot_param(pseudocount, analysis@config, "pseudocount",
+            0), min_valid_frac = resolve_slot_param(min_valid_frac, analysis@config,
+            "min_valid_frac", 0.75), norm = resolve_slot_param(norm, analysis@config,
+            "norm", TRUE), what = resolve_slot_param(what, analysis@config, "what",
+            "S"), assayno = resolve_slot_param(NULL, analysis@config, "assayno",
+            1), shrinkage = resolve_slot_param(shrinkage, analysis@config, "shrinkage",
+            "none"), bootstrap_method = resolve_slot_param(bootstrap_method, analysis@config,
+            "bootstrap_method", "percentile"), bootstrap_ci = resolve_slot_param(bootstrap_ci,
+            analysis@config, "bootstrap_ci", 0.95), tpm = FALSE, genes = resolve_slot_param(NULL,
+            analysis@config, "genes", NULL), nboot = resolve_slot_param(nboot, analysis@config,
+            "nboot", NULL), bootstrap_include_diagnostics = resolve_slot_param(bootstrap_include_diagnostics,
+            analysis@config, "bootstrap_include_diagnostics", TRUE), metadata = resolve_slot_param(NULL,
+            analysis@config, "metadata", NULL), norm_method = resolve_slot_param(norm_method,
+            analysis@config, "norm_method", NULL), reference_group = resolve_slot_param(reference_group,
+            analysis@config, "reference_group", NULL))
 }
 
 # ============================================================================
@@ -795,8 +793,9 @@ calculate_diversity <- function(analysis, q = NULL, norm = TRUE, norm_method = N
     if (!is.null(params$metadata)) {
         calc_args$metadata <- params$metadata
     }
-    
-    # Extract and pass column mapping parameters from config (required for metadata mapping)
+
+    # Extract and pass column mapping parameters from config (required for
+    # metadata mapping)
     config <- getConfig(analysis)
     calc_args$sample_col <- config$sample_col
     calc_args$condition_col <- config$condition_col

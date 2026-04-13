@@ -174,7 +174,7 @@ analysis <- suppressWarnings(calculate_lm(
 ))
 
 # View top interaction results using unified accessor (first 3 genes)
-res <- results(analysis, type = "lm")
+res <- results(analysis, type = 'lm')
 if (!is.null(res)) head(res, 3)
 
 }

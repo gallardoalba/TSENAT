@@ -100,7 +100,7 @@
 #' analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5))
 #' 
 #' # Check divergence results using unified accessor
-#' head(results(analysis, type = "divergence"))
+#' head(results(analysis, type = 'divergence'))
 #'
 #' @export
 #' @importFrom utils write.table
@@ -120,16 +120,16 @@ calculate_divergence <- function(analysis, q = NULL, verbose = FALSE, nthreads =
     # Step 3: Resolve and process parameters
     params <- .resolve_divergence_parameters(q, control_group, method, nthreads,
         nboot, paired, bootstrap, analysis)
-    
+
     # Show message about q-values being used
     if (params$q_source != "explicit" && verbose) {
         if (length(params$q) == 1) {
-            message("[calculate_divergence] Using q = ", formatC(params$q, format="f", digits=3), 
-                    " (", params$q_source, ")")
+            message("[calculate_divergence] Using q = ", formatC(params$q, format = "f",
+                digits = 3), " (", params$q_source, ")")
         } else {
-            message("[calculate_divergence] Using q spectrum: ", 
-                    paste(formatC(params$q, format="f", digits=3), collapse=", "),
-                    " (", params$q_source, ")")
+            message("[calculate_divergence] Using q spectrum: ", paste(formatC(params$q,
+                format = "f", digits = 3), collapse = ", "), " (", params$q_source,
+                ")")
         }
     }
 
@@ -192,8 +192,8 @@ calculate_divergence <- function(analysis, q = NULL, verbose = FALSE, nthreads =
 #' @noRd
 .resolve_divergence_parameters <- function(q, control_group, method, nthreads, nboot,
     paired, bootstrap, analysis) {
-    # Extract parameters using utility functions
-    # q can be single or multiple values
+    # Extract parameters using utility functions q can be single or multiple
+    # values
     q_source <- "explicit"  # Track where q came from
     q <- resolve_slot_param(q, analysis@config, "q", NULL)
     if (is.null(q)) {
@@ -239,7 +239,7 @@ calculate_divergence <- function(analysis, q = NULL, verbose = FALSE, nthreads =
         method <- "percentile"
     }
 
-    list(q = q, q_source = q_source, control_group = control_group, method = method, 
+    list(q = q, q_source = q_source, control_group = control_group, method = method,
         nthreads = nthreads, nboot = nboot, paired = paired, bootstrap = bootstrap)
 }
 
@@ -344,8 +344,7 @@ calculate_divergence <- function(analysis, q = NULL, verbose = FALSE, nthreads =
                 write.table(write_data, file = output_file, sep = sep, quote = FALSE,
                   row.names = TRUE)
             } else {
-                warning("[calculate_divergence] No divergence results to save",
-                  call. = FALSE)
+                warning("[calculate_divergence] No divergence results to save", call. = FALSE)
             }
         }, error = function(e) {
             warning("[calculate_divergence] Could not write divergence results: ",
@@ -434,13 +433,12 @@ calculate_divergence <- function(analysis, q = NULL, verbose = FALSE, nthreads =
                 row.names = FALSE)
 
             if (isTRUE(verbose)) {
-                message("[calculate_divergence] Saved bootstrap results to: ",
-                  bootstrap_file)
+                message("[calculate_divergence] Saved bootstrap results to: ", bootstrap_file)
             }
         }
     }, error = function(e) {
-        warning("[calculate_divergence] Could not write bootstrap results: ",
-            conditionMessage(e), call. = FALSE)
+        warning("[calculate_divergence] Could not write bootstrap results: ", conditionMessage(e),
+            call. = FALSE)
     })
 
     invisible(NULL)

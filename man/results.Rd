@@ -86,7 +86,7 @@ Default: FALSE (no plot extraction).}
   - For assumptions: A list containing rank-based assumption checks (exchangeability, monotonicity, consistency) and optional method-specific diagnostics (gam_metrics, gee_metrics, lmm_metrics, fpca_metrics)
   - For switching_tables with format='text' (default): A list with components:
     \itemize{
-      \item{\code{$gene_headers}} Character vector of gene headers ("GeneName (ENSG00...)")
+      \item{\code{$gene_headers}} Character vector of gene headers ('GeneName (ENSG00...)')
       \item{\code{$comparison_tables}} List of data frames, one per gene, with columns: Transcript, q=0.00, q=0.50, ..., Direction Consistency
       \item{\code{$q_metadata}} List with per-gene metadata: q_values_available and q_key_to_value mapping
     }
@@ -104,7 +104,7 @@ filtering, and format conversion. Compatible with DESeq2/edgeR design patterns
 for familiar result extraction workflows.
 
 **Lazy Computation for switching_tables:**
-When requesting \code{type = "switching_tables"}, the function automatically
+When requesting \code{type = 'switching_tables'}, the function automatically
 computes and caches the tables if they don't exist yet but the prerequisites
 do (LM and jackknife results). This eliminates the need for a separate
 \code{prepare_gene_switching_tables_s4()} call - simply request the results

@@ -56,13 +56,13 @@ metadata(analysis)
 
 \donttest{
 # Set metadata
-metadata(analysis) <- list(processing_date = Sys.Date(), method = "test")
+metadata(analysis) <- list(processing_date = Sys.Date(), method = 'test')
 
 # Retrieve all metadata
 metadata(analysis)
 
 # Retrieve specific metadata key
-metadata(analysis, key = "method")
+metadata(analysis, key = 'method')
 }
 
 }

@@ -56,25 +56,26 @@
 
     # Create comparison plot
     p1 <- ggplot2::ggplot(comparison_df, ggplot2::aes(x = -log10(.data$p_lm), y = -log10(.data$p_rank),
-        color = .data$agreement)) + ggplot2::geom_point(size = 2.5, alpha = 0.6) + ggplot2::geom_vline(xintercept = -log10(0.05),
-        linetype = "dashed", color = "gray50") + ggplot2::geom_hline(yintercept = -log10(0.05),
-        linetype = "dashed", color = "gray50") + ggplot2::scale_color_manual(values = c(`Both significant` = "#2ecc71",
-        `LM only` = "#3498db", `Rank test only` = "#e74c3c", `Neither significant` = "#95a5a6"),
-        breaks = c("Both significant", "LM only", "Rank test only", "Neither significant")) +
-        ggplot2::labs(title = "Method Concordance", x = "-log10(p-value, LM)", y = "-log10(p-value, Rank test)",
-            color = "Significance") + .theme_base(base_size = 11) + ggplot2::theme(plot.title = ggplot2::element_text(size = 12,
+        color = .data$agreement)) + ggplot2::geom_point(size = 2.5, alpha = 0.6) +
+        ggplot2::geom_vline(xintercept = -log10(0.05), linetype = "dashed", color = "gray50") +
+        ggplot2::geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "gray50") +
+        ggplot2::scale_color_manual(values = c(`Both significant` = "#2ecc71", `LM only` = "#3498db",
+            `Rank test only` = "#e74c3c", `Neither significant` = "#95a5a6"), breaks = c("Both significant",
+            "LM only", "Rank test only", "Neither significant")) + ggplot2::labs(title = "Method Concordance",
+        x = "-log10(p-value, LM)", y = "-log10(p-value, Rank test)", color = "Significance") +
+        .theme_base(base_size = 11) + ggplot2::theme(plot.title = ggplot2::element_text(size = 12,
         face = "plain", hjust = 0.5), legend.position = "bottomright", panel.grid.major = ggplot2::element_line(color = "gray90"))
 
     # P-value distribution comparison
-    p_long <- data.frame(p_value = c(comparison_df$p_lm, comparison_df$p_rank),
-        method = c(rep("LM", nrow(comparison_df)), rep("Rank test", nrow(comparison_df))),
-        stringsAsFactors = FALSE)
+    p_long <- data.frame(p_value = c(comparison_df$p_lm, comparison_df$p_rank), method = c(rep("LM",
+        nrow(comparison_df)), rep("Rank test", nrow(comparison_df))), stringsAsFactors = FALSE)
 
     p2 <- ggplot2::ggplot(p_long, ggplot2::aes(x = p_value, fill = method)) + ggplot2::geom_histogram(bins = 30,
         alpha = 0.6, position = "identity") + ggplot2::scale_fill_manual(values = c(LM = "#3498db",
-        `Rank test` = "#e74c3c")) + ggplot2::labs(title = "P-value Distributions", x = "P-value",
-        y = "Frequency", fill = "Method") + .theme_base(base_size = 11) + ggplot2::theme(plot.title = ggplot2::element_text(size = 12,
-        face = "plain", hjust = 0.5))
+        `Rank test` = "#e74c3c")) + ggplot2::labs(title = "P-value Distributions",
+        x = "P-value", y = "Frequency", fill = "Method") + .theme_base(base_size = 11) +
+        ggplot2::theme(plot.title = ggplot2::element_text(size = 12, face = "plain",
+            hjust = 0.5))
 
     # Combine plots with global title using cowplot approach
     main_grid <- gridExtra::arrangeGrob(p1, p2, ncol = 2)
@@ -226,8 +227,8 @@ print.gtable <- function(x, ...) {
 
     if (!(rank_method %in% names(analysis_rank@rank_test_results))) {
         available_methods <- paste(names(analysis_rank@rank_test_results), collapse = ", ")
-        stop("Rank test method '", rank_method, "' not found. Available: ",
-            available_methods, call. = FALSE)
+        stop("Rank test method '", rank_method, "' not found. Available: ", available_methods,
+            call. = FALSE)
     }
 
     kw_results <- analysis_rank@rank_test_results[[rank_method]]
@@ -293,39 +294,32 @@ print.gtable <- function(x, ...) {
         kw_idx <- match(common_genes, kw_results$gene)
 
         # Build comparison data frame with all available columns
-        comparison_df <- data.frame(
-            gene = common_genes,
-            p_lm = gam_results[[lm_p_col]][gam_idx],
+        comparison_df <- data.frame(gene = common_genes, p_lm = gam_results[[lm_p_col]][gam_idx],
             padj_lm = if (!is.na(lm_padj_col)) {
                 gam_results[[lm_padj_col]][gam_idx]
             } else {
                 rep(NA_real_, length(gam_idx))
-            },
-            effect_lm = if ("effect_size" %in% colnames(gam_results)) {
+            }, effect_lm = if ("effect_size" %in% colnames(gam_results)) {
                 gam_results$effect_size[gam_idx]
             } else {
                 rep(NA_real_, length(gam_idx))
-            },
-            p_rank = kw_results[[rank_p_col]][kw_idx],
-            padj_rank = if (!is.na(rank_padj_col)) {
+            }, p_rank = kw_results[[rank_p_col]][kw_idx], padj_rank = if (!is.na(rank_padj_col)) {
                 kw_results[[rank_padj_col]][kw_idx]
             } else {
                 rep(NA_real_, length(kw_idx))
-            },
-            effect_rank = if ("effect_size_eta2" %in% colnames(kw_results)) {
+            }, effect_rank = if ("effect_size_eta2" %in% colnames(kw_results)) {
                 kw_results$effect_size_eta2[kw_idx]
             } else {
                 rep(NA_real_, length(kw_idx))
-            },
-            stringsAsFactors = FALSE
-        )
+            }, stringsAsFactors = FALSE)
 
-        # Calculate Spearman correlation on ADJUSTED p-values (for consistency with significance
-        # threshold)
+        # Calculate Spearman correlation on ADJUSTED p-values (for consistency
+        # with significance threshold)
         spearman_rho <- stats::cor(comparison_df$padj_lm, comparison_df$padj_rank,
             method = "spearman", use = "complete.obs")
 
-        # Categorize agreement based on adjusted p-value significance (adj_p < 0.05)
+        # Categorize agreement based on adjusted p-value significance (adj_p <
+        # 0.05)
         comparison_df$lm_sig <- comparison_df$padj_lm < 0.05
         comparison_df$rank_sig <- comparison_df$padj_rank < 0.05
 
@@ -338,23 +332,19 @@ print.gtable <- function(x, ...) {
         agreement_table <- table(comparison_df$agreement)
 
         # Extract high-confidence genes (significant in both methods)
-        high_conf <- comparison_df[comparison_df$lm_sig & comparison_df$rank_sig, ]
+        high_conf <- comparison_df[comparison_df$lm_sig & comparison_df$rank_sig,
+            ]
 
         # Sort by minimum p-value across methods
         if (nrow(high_conf) > 0) {
-            high_conf <- high_conf[order(pmax(high_conf$p_lm, high_conf$p_rank)), ]
+            high_conf <- high_conf[order(pmax(high_conf$p_lm, high_conf$p_rank)),
+                ]
         }
     }
 
     # Return results as list
-    list(
-        comparison_df = comparison_df,
-        spearman_rho = spearman_rho,
-        high_conf = high_conf,
-        agreement_table = agreement_table,
-        lm_method = lm_method,
-        rank_method = rank_method
-    )
+    list(comparison_df = comparison_df, spearman_rho = spearman_rho, high_conf = high_conf,
+        agreement_table = agreement_table, lm_method = lm_method, rank_method = rank_method)
 }
 
 # ============================================================================
@@ -362,62 +352,44 @@ print.gtable <- function(x, ...) {
 # ============================================================================
 
 #' @noRd
-.format_top_genes <- function(results_df, gene_col, padj_col, n_top = 10, 
-                             select_cols = NULL, col_names = NULL) {
+.format_top_genes <- function(results_df, gene_col, padj_col, n_top = 10, select_cols = NULL,
+    col_names = NULL) {
     # Default columns to display
     if (is.null(select_cols)) {
-        select_cols <- c(gene_col, "Normal_mean", "Tumor_mean", "mean_difference", 
-                        "log2_fold_change", "pvalue", padj_col)
+        select_cols <- c(gene_col, "Normal_mean", "Tumor_mean", "mean_difference",
+            "log2_fold_change", "pvalue", padj_col)
     }
-    
+
     top_genes <- results_df %>%
         dplyr::arrange(dplyr::across(dplyr::all_of(padj_col))) %>%
         dplyr::slice(seq_len(min(n_top, nrow(results_df)))) %>%
         dplyr::select(dplyr::all_of(intersect(select_cols, colnames(results_df)))) %>%
-        dplyr::mutate(
-            dplyr::across(dplyr::where(is.numeric) & !dplyr::matches("abundance|mean|fold|stat"), 
-                         ~ format(., scientific = TRUE, digits = 3)),
-            dplyr::across(dplyr::matches("_mean$|mean_"), ~ round(., 4)),
-            dplyr::across(dplyr::matches("fold_change|difference"), ~ round(., 4))
-        )
+        dplyr::mutate(dplyr::across(dplyr::where(is.numeric) & !dplyr::matches("abundance|mean|fold|stat"),
+            ~format(., scientific = TRUE, digits = 3)), dplyr::across(dplyr::matches("_mean$|mean_"),
+            ~round(., 4)), dplyr::across(dplyr::matches("fold_change|difference"),
+            ~round(., 4)))
     # Rename columns if provided
     if (!is.null(col_names) && length(col_names) == ncol(top_genes)) {
         colnames(top_genes) <- col_names
     }
-    
+
     top_genes
 }
 
 #' @noRd
-.create_summary_stats <- function(method1_results, method2_results, 
-                                 method1_name, method2_name,
-                                 padj_col1 = "adjusted_p_values", 
-                                 padj_col2 = "padj") {
-    data.frame(
-        Method = c(method1_name, method2_name),
-        "Genes Tested" = c(nrow(method1_results), nrow(method2_results)),
-        "Significant padj<0.05" = c(
-            sum(method1_results[[padj_col1]] < 0.05, na.rm = TRUE),
-            sum(method2_results[[padj_col2]] < 0.05, na.rm = TRUE)
-        ),
-        "Significant padj<0.01" = c(
-            sum(method1_results[[padj_col1]] < 0.01, na.rm = TRUE),
-            sum(method2_results[[padj_col2]] < 0.01, na.rm = TRUE)
-        ),
-        "Mean log2FC" = c(
-            round(mean(method1_results$log2_fold_change, na.rm = TRUE), 3),
-            round(mean(method2_results$log2_fold_change, na.rm = TRUE), 3)
-        ),
-        "Median log2FC" = c(
-            round(median(method1_results$log2_fold_change, na.rm = TRUE), 3),
-            round(median(method2_results$log2_fold_change, na.rm = TRUE), 3)
-        ),
-        "Min padj" = c(
-            format(min(method1_results[[padj_col1]], na.rm = TRUE), scientific = TRUE, digits = 3),
-            format(min(method2_results[[padj_col2]], na.rm = TRUE), scientific = TRUE, digits = 3)
-        ),
-        stringsAsFactors = FALSE
-    )
+.create_summary_stats <- function(method1_results, method2_results, method1_name,
+    method2_name, padj_col1 = "adjusted_p_values", padj_col2 = "padj") {
+    data.frame(Method = c(method1_name, method2_name), `Genes Tested` = c(nrow(method1_results),
+        nrow(method2_results)), `Significant padj<0.05` = c(sum(method1_results[[padj_col1]] <
+        0.05, na.rm = TRUE), sum(method2_results[[padj_col2]] < 0.05, na.rm = TRUE)),
+        `Significant padj<0.01` = c(sum(method1_results[[padj_col1]] < 0.01, na.rm = TRUE),
+            sum(method2_results[[padj_col2]] < 0.01, na.rm = TRUE)), `Mean log2FC` = c(round(mean(method1_results$log2_fold_change,
+            na.rm = TRUE), 3), round(mean(method2_results$log2_fold_change, na.rm = TRUE),
+            3)), `Median log2FC` = c(round(median(method1_results$log2_fold_change,
+            na.rm = TRUE), 3), round(median(method2_results$log2_fold_change, na.rm = TRUE),
+            3)), `Min padj` = c(format(min(method1_results[[padj_col1]], na.rm = TRUE),
+            scientific = TRUE, digits = 3), format(min(method2_results[[padj_col2]],
+            na.rm = TRUE), scientific = TRUE, digits = 3)), stringsAsFactors = FALSE)
 }
 
 # ============================================================================
@@ -425,60 +397,42 @@ print.gtable <- function(x, ...) {
 # ============================================================================
 
 #' @noRd
-.format_top_genes <- function(results_df, gene_col, padj_col, n_top = 10, 
-                             select_cols = NULL, col_names = NULL) {
+.format_top_genes <- function(results_df, gene_col, padj_col, n_top = 10, select_cols = NULL,
+    col_names = NULL) {
     # Default columns to display
     if (is.null(select_cols)) {
-        select_cols <- c(gene_col, "Normal_mean", "Tumor_mean", "mean_difference", 
-                        "log2_fold_change", "pvalue", padj_col)
+        select_cols <- c(gene_col, "Normal_mean", "Tumor_mean", "mean_difference",
+            "log2_fold_change", "pvalue", padj_col)
     }
-    
+
     top_genes <- results_df %>%
         dplyr::arrange(dplyr::across(dplyr::all_of(padj_col))) %>%
         dplyr::slice(seq_len(min(n_top, nrow(results_df)))) %>%
         dplyr::select(dplyr::all_of(intersect(select_cols, colnames(results_df)))) %>%
-        dplyr::mutate(
-            dplyr::across(dplyr::where(is.numeric) & !dplyr::matches("abundance|mean|fold|stat"), 
-                         ~ format(., scientific = TRUE, digits = 3)),
-            dplyr::across(dplyr::matches("_mean$|mean_"), ~ round(., 4)),
-            dplyr::across(dplyr::matches("fold_change|difference"), ~ round(., 4))
-        )
+        dplyr::mutate(dplyr::across(dplyr::where(is.numeric) & !dplyr::matches("abundance|mean|fold|stat"),
+            ~format(., scientific = TRUE, digits = 3)), dplyr::across(dplyr::matches("_mean$|mean_"),
+            ~round(., 4)), dplyr::across(dplyr::matches("fold_change|difference"),
+            ~round(., 4)))
     # Rename columns if provided
     if (!is.null(col_names) && length(col_names) == ncol(top_genes)) {
         colnames(top_genes) <- col_names
     }
-    
+
     top_genes
 }
 
 #' @noRd
-.create_summary_stats <- function(method1_results, method2_results, 
-                                 method1_name, method2_name,
-                                 padj_col1 = "adjusted_p_values", 
-                                 padj_col2 = "padj") {
-    data.frame(
-        Method = c(method1_name, method2_name),
-        "Genes Tested" = c(nrow(method1_results), nrow(method2_results)),
-        "Significant padj<0.05" = c(
-            sum(method1_results[[padj_col1]] < 0.05, na.rm = TRUE),
-            sum(method2_results[[padj_col2]] < 0.05, na.rm = TRUE)
-        ),
-        "Significant padj<0.01" = c(
-            sum(method1_results[[padj_col1]] < 0.01, na.rm = TRUE),
-            sum(method2_results[[padj_col2]] < 0.01, na.rm = TRUE)
-        ),
-        "Mean log2FC" = c(
-            round(mean(method1_results$log2_fold_change, na.rm = TRUE), 3),
-            round(mean(method2_results$log2_fold_change, na.rm = TRUE), 3)
-        ),
-        "Median log2FC" = c(
-            round(median(method1_results$log2_fold_change, na.rm = TRUE), 3),
-            round(median(method2_results$log2_fold_change, na.rm = TRUE), 3)
-        ),
-        "Min padj" = c(
-            format(min(method1_results[[padj_col1]], na.rm = TRUE), scientific = TRUE, digits = 3),
-            format(min(method2_results[[padj_col2]], na.rm = TRUE), scientific = TRUE, digits = 3)
-        ),
-        stringsAsFactors = FALSE
-    )
+.create_summary_stats <- function(method1_results, method2_results, method1_name,
+    method2_name, padj_col1 = "adjusted_p_values", padj_col2 = "padj") {
+    data.frame(Method = c(method1_name, method2_name), `Genes Tested` = c(nrow(method1_results),
+        nrow(method2_results)), `Significant padj<0.05` = c(sum(method1_results[[padj_col1]] <
+        0.05, na.rm = TRUE), sum(method2_results[[padj_col2]] < 0.05, na.rm = TRUE)),
+        `Significant padj<0.01` = c(sum(method1_results[[padj_col1]] < 0.01, na.rm = TRUE),
+            sum(method2_results[[padj_col2]] < 0.01, na.rm = TRUE)), `Mean log2FC` = c(round(mean(method1_results$log2_fold_change,
+            na.rm = TRUE), 3), round(mean(method2_results$log2_fold_change, na.rm = TRUE),
+            3)), `Median log2FC` = c(round(median(method1_results$log2_fold_change,
+            na.rm = TRUE), 3), round(median(method2_results$log2_fold_change, na.rm = TRUE),
+            3)), `Min padj` = c(format(min(method1_results[[padj_col1]], na.rm = TRUE),
+            scientific = TRUE, digits = 3), format(min(method2_results[[padj_col2]],
+            na.rm = TRUE), scientific = TRUE, digits = 3)), stringsAsFactors = FALSE)
 }

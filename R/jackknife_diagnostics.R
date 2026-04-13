@@ -259,9 +259,9 @@
 #' # )
 #'
 #' @noRd
-.calculate_jeo <- function(x = NULL, se = NULL, res = NULL, top_n = 5,
-    q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0, threshold = 90, verbose = FALSE,
-    nthreads = 1, .cluster = NULL) {
+.calculate_jeo <- function(x = NULL, se = NULL, res = NULL, top_n = 5, q = 1, norm = TRUE,
+    log_base = exp(1), pseudocount = 0, threshold = 90, verbose = FALSE, nthreads = 1,
+    .cluster = NULL) {
     # Input validation
     .jackknife_validate_params(q, threshold)
 
@@ -352,29 +352,30 @@
         helper_funcs <- c(".calculate_jeo", ".entropy_single", ".jackknife_validate_params",
             ".jackknife_process_multiq", ".jackknife_process_se", ".jackknife_process_matrix",
             ".jackknife_process_vector_core", ".jackknife_compute_estimates", ".jackknife_calculate_influence_and_outliers",
-            ".jackknife_warn_on_total_count", ".jackknife_warn_on_q_parameters_q_only", ".jackknife_format_verbose_output_matrix")
+            ".jackknife_warn_on_total_count", ".jackknife_warn_on_q_parameters_q_only",
+            ".jackknife_format_verbose_output_matrix")
         parallel::clusterExport(.cluster, helper_funcs, envir = asNamespace("TSENAT"))
     }
 
     if (!is.null(.cluster)) {
         results_list <- parallel::parLapply(.cluster, q, function(q_val) {
-            .calculate_jeo(x = x, se = se, res = res, top_n = top_n,
-                q = q_val, norm = norm, log_base = log_base, pseudocount = pseudocount,
-                threshold = threshold, verbose = FALSE, .cluster = NULL)
+            .calculate_jeo(x = x, se = se, res = res, top_n = top_n, q = q_val, norm = norm,
+                log_base = log_base, pseudocount = pseudocount, threshold = threshold,
+                verbose = FALSE, .cluster = NULL)
         })
     } else {
         results_list <- lapply(q, function(q_val) {
-            .calculate_jeo(x = x, se = se, res = res, top_n = top_n,
-                q = q_val, norm = norm, log_base = log_base, pseudocount = pseudocount,
-                threshold = threshold, verbose = FALSE, .cluster = NULL)
+            .calculate_jeo(x = x, se = se, res = res, top_n = top_n, q = q_val, norm = norm,
+                log_base = log_base, pseudocount = pseudocount, threshold = threshold,
+                verbose = FALSE, .cluster = NULL)
         })
     }
 
     names(results_list) <- paste0("q=", q)
     class(results_list) <- c("tsenat_jackknife_list_multiq", "list")
 
-    # Print q-parameter warnings once per q-value (Option 1: move outside per-gene loop)
-    # Only when verbose=TRUE (Option 2: respect verbose flag)
+    # Print q-parameter warnings once per q-value (Option 1: move outside
+    # per-gene loop) Only when verbose=TRUE (Option 2: respect verbose flag)
     if (verbose) {
         for (q_val in q) {
             .jackknife_warn_on_q_parameters_q_only(q_val, verbose = TRUE)
@@ -470,9 +471,8 @@
     counts_matrix <- do.call(rbind, lapply(valid_results, "[[", "counts"))
     rownames(counts_matrix) <- vapply(valid_results, "[[", "name", FUN.VALUE = character(1))
 
-    .calculate_jeo(x = counts_matrix, q = q, norm = norm, log_base = log_base,
-        pseudocount = pseudocount, threshold = threshold, verbose = verbose, nthreads = nthreads,
-        .cluster = .cluster)
+    .calculate_jeo(x = counts_matrix, q = q, norm = norm, log_base = log_base, pseudocount = pseudocount,
+        threshold = threshold, verbose = verbose, nthreads = nthreads, .cluster = .cluster)
 }
 
 #' Internal: Process matrix input (multiple genes)
@@ -512,8 +512,8 @@
     if (n < 2)
         stop("Need at least 2 transcripts")
 
-    # Only check total count warning (per-gene specific)
-    # q-parameter warnings moved to .jackknife_process_multiq() (Option 1)
+    # Only check total count warning (per-gene specific) q-parameter warnings
+    # moved to .jackknife_process_multiq() (Option 1)
     .jackknife_warn_on_total_count(x)
 
     p <- (x + pseudocount)/(sum(x) + length(x) * pseudocount)
@@ -659,7 +659,8 @@
 #'
 #' @noRd
 .jackknife_warn_on_q_parameters <- function(x, q, verbose = FALSE) {
-    # Deprecated: use .jackknife_warn_on_total_count() and .jackknife_warn_on_q_parameters_q_only() instead
+    # Deprecated: use .jackknife_warn_on_total_count() and
+    # .jackknife_warn_on_q_parameters_q_only() instead
     .jackknife_warn_on_total_count(x)
     .jackknife_warn_on_q_parameters_q_only(q, verbose = verbose)
 }
@@ -779,11 +780,13 @@ print.tsenat_jackknife_list <- function(x, ...) {
     # Filter to only valid Q key formats before conversion
     valid_q_keys <- q_keys_clean[grep("^[0-9]+_[0-9]{2}$", q_keys_clean)]
     if (length(valid_q_keys) == 0) {
-        stop(sprintf("No valid q-value keys found. Got: %s", paste(q_keys_clean, collapse = ", ")))
+        stop(sprintf("No valid q-value keys found. Got: %s", paste(q_keys_clean,
+            collapse = ", ")))
     }
     q_vector <- as.numeric(gsub("_", ".", valid_q_keys))  # Convert '0_01' to '0.01'
     if (any(is.na(q_vector))) {
-        stop(sprintf("Failed to parse q-values from keys: %s", paste(valid_q_keys, collapse = ", ")))
+        stop(sprintf("Failed to parse q-values from keys: %s", paste(valid_q_keys,
+            collapse = ", ")))
     }
     q_vector <- sort(q_vector)  # Ensure numeric order
 
@@ -926,31 +929,31 @@ print.tsenat_jackknife_list <- function(x, ...) {
             q_info <- q_metadata[[gene_idx]]
             q_values_available <- q_info$q_values_available
             q_key_to_value <- q_info$q_key_to_value
-            
+
             # Get the comparison data
             table_data <- comparison_tables[[gene_idx]]
-            
+
             # Format for display: convert q_keys to numeric values
             formatted_table <- data.frame(Transcript = table_data$transcript, stringsAsFactors = FALSE)
-            
+
             # Add q-value columns with formatted numeric values
             for (q_key in q_values_available) {
                 q_val <- q_key_to_value[[q_key]]
                 col_name <- sprintf("q=%.2f", q_val)
                 formatted_table[[col_name]] <- table_data[[q_key]]
             }
-            
+
             # Add direction consistency
             formatted_table[["Direction Consistency"]] <- table_data$Consistency
-            
+
             formatted_results[[gene_name]] <- formatted_table
         }
     }
-    
+
     # If no genes were formatted, return empty list
     if (length(formatted_results) == 0) {
         return(list())
     }
-    
+
     formatted_results
 }

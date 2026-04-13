@@ -201,7 +201,7 @@ analysis <- calculate_srh(
   multicorr = 'hochberg'
 )
 # View results using unified accessor
-rank_test_res <- results(analysis, type = "rank_test")
+rank_test_res <- results(analysis, type = 'rank_test')
 if (!is.null(rank_test_res)) head(rank_test_res)
 
 }

@@ -170,10 +170,10 @@
 #' analysis <- calculate_diversity(analysis, q = 1)
 #' 
 #' @export
-calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL,
-    gene_col = NULL, isoform_col = NULL, q = c(0, 0.5, 1, 1.5, 2), norm = NULL, log_base = NULL, threshold = 90,
-    nboot = 1000, pseudocount = NULL, lm_results = NULL, lm_p_threshold = 0.05,
-    use_lm_fdr = TRUE, output_file = NULL, verbose = FALSE, ...) {
+calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL, gene_col = NULL,
+    isoform_col = NULL, q = c(0, 0.5, 1, 1.5, 2), norm = NULL, log_base = NULL, threshold = 90,
+    nboot = 1000, pseudocount = NULL, lm_results = NULL, lm_p_threshold = 0.05, use_lm_fdr = TRUE,
+    output_file = NULL, verbose = FALSE, ...) {
     # Validate input and extract SummarizedExperiment
     se <- .validate_jis_input(analysis)
 
@@ -188,7 +188,8 @@ calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL,
     # Extract or validate LM results
     lm_results <- .extract_lm_results(analysis, lm_results, verbose)
 
-    # Resolve and validate all parameters (including threshold and lm_p_threshold)
+    # Resolve and validate all parameters (including threshold and
+    # lm_p_threshold)
     params <- .resolve_and_validate_jis_params(q, norm, log_base, pseudocount, nboot,
         threshold, lm_p_threshold, analysis, verbose)
 
@@ -236,8 +237,7 @@ calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL,
 
     se <- analysis@se
     if (!inherits(se, "SummarizedExperiment")) {
-        stop("[calculate_jis] @se must be a SummarizedExperiment object",
-            call. = FALSE)
+        stop("[calculate_jis] @se must be a SummarizedExperiment object", call. = FALSE)
     }
 
     se
@@ -271,16 +271,15 @@ calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL,
     } else {
         # Validate explicit condition_col exists
         if (!condition_col %in% cd_cols) {
-            stop("[calculate_jis] condition_col '", condition_col,
-                "' not found in colData.\n", "  Available columns: ", paste(cd_cols,
-                  collapse = ", "), call. = FALSE)
+            stop("[calculate_jis] condition_col '", condition_col, "' not found in colData.\n",
+                "  Available columns: ", paste(cd_cols, collapse = ", "), call. = FALSE)
         }
     }
 
     if (is.null(condition_col)) {
-        stop("[calculate_jis] Cannot auto-detect condition_col.\n",
-            "  Available colData columns: ", paste(cd_cols, collapse = ", "), "\n\n",
-            "SOLUTION: Set @config$condition_col or pass explicit parameter\n", call. = FALSE)
+        stop("[calculate_jis] Cannot auto-detect condition_col.\n", "  Available colData columns: ",
+            paste(cd_cols, collapse = ", "), "\n\n", "SOLUTION: Set @config$condition_col or pass explicit parameter\n",
+            call. = FALSE)
     }
 
     # Extract rowData columns
@@ -360,15 +359,15 @@ calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL,
 
     q_vals <- if (is.numeric(q))
         q else c(q)
-    
-    # Use intersection of requested and available q-values
-    # This allows jackknife to work with any set of q-values from diversity
+
+    # Use intersection of requested and available q-values This allows
+    # jackknife to work with any set of q-values from diversity
     usable_q <- intersect(q_vals, available_q)
-    
+
     if (length(usable_q) == 0) {
-        warning("[calculate_jis] No matching q-values found.\n",
-                "  Requested: ", paste(q_vals, collapse = ", "), "\n",
-                "  Available: ", paste(available_q, collapse = ", "), call. = FALSE)
+        warning("[calculate_jis] No matching q-values found.\n", "  Requested: ",
+            paste(q_vals, collapse = ", "), "\n", "  Available: ", paste(available_q,
+                collapse = ", "), call. = FALSE)
     } else if (verbose) {
         message("[calculate_jis] Using q-values: ", paste(usable_q, collapse = ", "))
     }
@@ -389,25 +388,28 @@ calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL,
 #' @return List with resolved parameters and q_vals (numeric vector)
 #'
 #' @noRd
-.resolve_and_validate_jis_params <- function(q, norm = NULL, log_base = NULL, pseudocount = NULL, nboot = 1000,
-    threshold = NULL, lm_p_threshold = NULL, analysis, verbose = FALSE) {
-    # Resolve q: use config if available, otherwise use the provided value (which has function default)
+.resolve_and_validate_jis_params <- function(q, norm = NULL, log_base = NULL, pseudocount = NULL,
+    nboot = 1000, threshold = NULL, lm_p_threshold = NULL, analysis, verbose = FALSE) {
+    # Resolve q: use config if available, otherwise use the provided value
+    # (which has function default)
     if (is.null(q) && "q" %in% names(analysis@config)) {
         q <- analysis@config$q
     }
-    
+
     # Convert q to numeric vector
     q_vals <- if (is.numeric(q))
         q else as.numeric(q)
 
-    # Resolve all parameters from config using standard resolver
-    # Defaults match TSENAT.Rmd vignette usage
+    # Resolve all parameters from config using standard resolver Defaults match
+    # TSENAT.Rmd vignette usage
     norm <- resolve_slot_param(norm, analysis@config, "norm", TRUE)
     log_base <- resolve_slot_param(log_base, analysis@config, "log_base", exp(1))
-    pseudocount <- resolve_slot_param(pseudocount, analysis@config, "pseudocount", 0)
+    pseudocount <- resolve_slot_param(pseudocount, analysis@config, "pseudocount",
+        0)
     nboot <- resolve_slot_param(nboot, analysis@config, "nboot", 1000)
     threshold <- resolve_slot_param(threshold, analysis@config, "threshold", 90)
-    lm_p_threshold <- resolve_slot_param(lm_p_threshold, analysis@config, "lm_p_threshold", 0.05)
+    lm_p_threshold <- resolve_slot_param(lm_p_threshold, analysis@config, "lm_p_threshold",
+        0.05)
 
     # Validate nboot
     if (!is.numeric(nboot) || length(nboot) != 1 || nboot < 1) {
@@ -415,8 +417,7 @@ calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL,
     }
 
     if (nboot < 50) {
-        warning("nboot = ", nboot, " is less than recommended minimum 50",
-            call. = FALSE)
+        warning("nboot = ", nboot, " is less than recommended minimum 50", call. = FALSE)
     }
 
     # Validate threshold
@@ -465,8 +466,8 @@ calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL,
             } else if (length(q_vals) == 1) {
                 analysis@jackknife_results[[q_key]] <- result
             } else {
-                warning("[calculate_jis] Result for q=", q_vals[i],
-                  " (key: ", q_key, ") not found", call. = FALSE)
+                warning("[calculate_jis] Result for q=", q_vals[i], " (key: ", q_key,
+                  ") not found", call. = FALSE)
             }
 
             if (verbose) {
@@ -477,8 +478,8 @@ calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL,
 
     # Update metadata
     if (is.list(analysis@metadata)) {
-        call_str <- sprintf("calculate_jis[q=%s, condition_col=%s]",
-            paste(q_vals, collapse = ","), condition_col)
+        call_str <- sprintf("calculate_jis[q=%s, condition_col=%s]", paste(q_vals,
+            collapse = ","), condition_col)
         analysis@metadata$function_calls <- c(analysis@metadata$function_calls, call_str)
         analysis@metadata$function_timestamps <- c(analysis@metadata$function_timestamps,
             as.character(Sys.time()))
@@ -510,8 +511,7 @@ calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL,
                 message("[calculate_jis] Saved to ", output_file)
             }
         }, error = function(e) {
-            warning("[calculate_jis] Failed to save: ", conditionMessage(e),
-                call. = FALSE)
+            warning("[calculate_jis] Failed to save: ", conditionMessage(e), call. = FALSE)
         })
     }
 }

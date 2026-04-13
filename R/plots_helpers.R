@@ -448,8 +448,8 @@
 
 .create_color_scale <- function(palette = "blue_red", direction = 1, name = NULL) {
 
-    # Handle palette parameter: if length 1 string, check if it's a named palette,
-    # otherwise treat as vector of colors
+    # Handle palette parameter: if length 1 string, check if it's a named
+    # palette, otherwise treat as vector of colors
     if (is.character(palette) && length(palette) == 1) {
         if (palette == "blue_red") {
             colors <- .palette_blue_red()
@@ -493,7 +493,8 @@
 .create_fill_scale <- function(palette = "blue_red", direction = 1, name = NULL,
     breaks = 50) {
 
-    # Handle palette: check if it's a single string first (safe for equality comparison)
+    # Handle palette: check if it's a single string first (safe for equality
+    # comparison)
     if (is.character(palette) && length(palette) == 1 && palette == "continuous_diverging") {
         colors <- .palette_continuous_diverging(n = breaks)
     } else {
@@ -1976,8 +1977,7 @@
     }
 
     if (nrow(lm_res) == 0) {
-        stop("lm_res has no rows; .calculate_lm() returned no genes",
-            call. = FALSE)
+        stop("lm_res has no rows; .calculate_lm() returned no genes", call. = FALSE)
     }
 
     list(se = se, lm_res = lm_res, model_data = model_data)
@@ -3105,8 +3105,8 @@
 #'
 #' @noRd
 .apply_publication_aesthetics <- function(plot, title = NULL, base_size = 11, base_theme = "theme_base",
-    group_col = NULL, palette = "blue_red", group_levels = NULL, subtitle = NULL, legend_name = "Group",
-    legend_position = "bottom") {
+    group_col = NULL, palette = "blue_red", group_levels = NULL, subtitle = NULL,
+    legend_name = "Group", legend_position = "bottom") {
 
     # Apply publication theme first
     p <- .apply_publication_theme(plot, title = title, base_size = base_size, base_theme = base_theme,
@@ -3697,7 +3697,8 @@ plot_diversity_violin_density <- function(se, assay_name = "diversity", title = 
     base_title <- title %||% sprintf("Tsallis entropy at q = %g", q_val)
 
     # Create individual plots
-    p_violin <- .plot_diversity_violin_singleq(se = se, assay_name = assay_name, title = "Violin")
+    p_violin <- .plot_diversity_violin_singleq(se = se, assay_name = assay_name,
+        title = "Violin")
 
     p_density <- .plot_diversity_density_singleq(se = se, assay_name = assay_name,
         title = "Density")
@@ -4413,8 +4414,8 @@ NULL
             "= meaningful information separation)"), y = "Number of genes", caption = paste("Red dashed line: D =",
             threshold, "filtering threshold (information-theoretic significance for q-dependent entropy)")) +
         .theme_base(base_size = 11) + ggplot2::theme(panel.grid.major = ggplot2::element_line(color = "gray90"),
-            plot.title = ggplot2::element_text(size = 14, hjust = 0.5),
-            plot.subtitle = ggplot2::element_text(size = 11, hjust = 0.5))
+        plot.title = ggplot2::element_text(size = 14, hjust = 0.5), plot.subtitle = ggplot2::element_text(size = 11,
+            hjust = 0.5))
 
     # Add reference line using Phase 5 helper
     p_effect <- .add_reference_lines(p_effect, v_intercept = threshold, v_color = "red",

@@ -85,14 +85,13 @@
 #' # Run jackknife estimation
 #' analysis <- calculate_jeo(analysis, q = c(0.5, 1.0, 1.5))
 #' # Check jackknife results using unified accessor
-#' jackknife_res <- results(analysis, type = "jackknife")
+#' jackknife_res <- results(analysis, type = 'jackknife')
 #' if (!is.null(jackknife_res)) names(jackknife_res)
 #'
 #' @export
 #' @importFrom utils write.table
-calculate_jeo <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
-    top_n = NULL, verbose = NULL, nthreads = NULL, pseudocount = NULL, output_file = NULL,
-    ...) {
+calculate_jeo <- function(analysis, q = NULL, norm = NULL, log_base = NULL, top_n = NULL,
+    verbose = NULL, nthreads = NULL, pseudocount = NULL, output_file = NULL, ...) {
     if (!is(analysis, "TSENATAnalysis")) {
         stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }
@@ -111,20 +110,19 @@ calculate_jeo <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
     } else if (!is.null(analysis@config$q) && identical(q, analysis@config$q)) {
         q_source <- "config"
     }
-    
+
     # Show message about q-value(s) being used
     verbose_resolved <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
     if (verbose_resolved && q_source != "explicit") {
         if (length(q) == 1) {
-            message("[calculate_jeo] Using q = ", formatC(q, format="f", digits=3), 
-                    " (", q_source, ")")
+            message("[calculate_jeo] Using q = ", formatC(q, format = "f", digits = 3),
+                " (", q_source, ")")
         } else {
-            message("[calculate_jeo] Using q spectrum: ", 
-                    paste(formatC(q, format="f", digits=3), collapse=", "),
-                    " (", q_source, ")")
+            message("[calculate_jeo] Using q spectrum: ", paste(formatC(q, format = "f",
+                digits = 3), collapse = ", "), " (", q_source, ")")
         }
     }
-    
+
     norm <- resolve_slot_param(norm, analysis@config, "norm", TRUE)
     log_base <- resolve_slot_param(log_base, analysis@config, "log_base", exp(1))
     top_n <- resolve_slot_param(top_n, analysis@config, "top_n", 5)
@@ -156,9 +154,9 @@ calculate_jeo <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
             # Extract counts matrix from SummarizedExperiment
             counts_matrix <- SummarizedExperiment::assay(analysis@se, "counts")
 
-            result <- .calculate_jeo(x = counts_matrix, q = q_val, norm = norm,
-                log_base = log_base, top_n = top_n, pseudocount = pseudocount, verbose = verbose,
-                nthreads = nthreads, ...)
+            result <- .calculate_jeo(x = counts_matrix, q = q_val, norm = norm, log_base = log_base,
+                top_n = top_n, pseudocount = pseudocount, verbose = verbose, nthreads = nthreads,
+                ...)
 
             # Store with key 'q_X.XXX' (consistent 3 decimal formatting)
             jk_key <- paste0("q_", formatC(q_val, format = "f", digits = 3))
@@ -227,8 +225,7 @@ calculate_jeo <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
                     row.names = FALSE)
 
                   if (verbose) {
-                    message("[calculate_jeo] Results saved to ",
-                      output_file)
+                    message("[calculate_jeo] Results saved to ", output_file)
                   }
                 }
             }, error = function(e) {
@@ -239,8 +236,7 @@ calculate_jeo <- function(analysis, q = NULL, norm = NULL, log_base = NULL,
             # Default to RDS for S4 object
             saveRDS(analysis, file = output_file)
             if (verbose) {
-                message("[calculate_jeo] Analysis object saved to ",
-                  output_file)
+                message("[calculate_jeo] Analysis object saved to ", output_file)
             }
         }
     }

@@ -132,7 +132,7 @@ cfg <- TSENAT_config(
 # With bootstrap CIs for uncertainty quantification (recommended)
 cfg <- TSENAT_config(
   bootstrap = TRUE,                # Enable bootstrap confidence intervals
-  bootstrap_method = "bca",         # Bias-corrected (better for skewed entropy)
+  bootstrap_method = 'bca',         # Bias-corrected (better for skewed entropy)
   nboot = 1000,                     # 1000 resamples
   bootstrap_ci = 0.95               # 95\% CI
 )

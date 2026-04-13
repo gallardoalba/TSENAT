@@ -24,8 +24,8 @@ if (getRversion() >= "2.15.1") {
     utils::globalVariables(c("xval", "x", "y", "padj", "padj_num", "padj_clean",
         "label_flag", "sample_q", "qnum", "significant", "prcomp", "predict", ".data",
         "divergence", "lower", "upper", "central", "spread", "ci_lower", "ci_upper",
-        "entropy", "entropy_fit", "p_gam", "agreement", "p_value",
-        "method", "direction", "gene", "calculate_tsallis_divergence_paired_gene"))
+        "entropy", "entropy_fit", "p_gam", "agreement", "p_value", "method", "direction",
+        "gene", "calculate_tsallis_divergence_paired_gene"))
 }
 
 # ============================================================================

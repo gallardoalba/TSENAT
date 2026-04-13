@@ -75,10 +75,10 @@
 #' across the TSENAT package.
 #'
 #' @noRd
-.calculate_jis <- function(se = NULL, condition_col = "condition",
-    subject_col = NULL, gene_col = NULL, isoform_col = NULL, q = 1, norm = TRUE,
-    log_base = exp(1), pseudocount = 0, threshold = 90, nboot = 1000, verbose = TRUE,
-    lm_results = NULL, lm_p_threshold = 0.05, use_lm_fdr = TRUE) {
+.calculate_jis <- function(se = NULL, condition_col = "condition", subject_col = NULL,
+    gene_col = NULL, isoform_col = NULL, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0,
+    threshold = 90, nboot = 1000, verbose = TRUE, lm_results = NULL, lm_p_threshold = 0.05,
+    use_lm_fdr = TRUE) {
     # 1. Validate input
     conditions <- .jis_validate_input(se, condition_col, gene_col, isoform_col)
 
@@ -86,8 +86,8 @@
     if (is.numeric(q) && length(q) > 1) {
         q_params <- list(condition_col = condition_col, subject_col = subject_col,
             gene_col = gene_col, isoform_col = isoform_col, norm = norm, log_base = log_base,
-            pseudocount = pseudocount, threshold = threshold, nboot = nboot,
-            lm_results = lm_results, lm_p_threshold = lm_p_threshold, use_lm_fdr = use_lm_fdr)
+            pseudocount = pseudocount, threshold = threshold, nboot = nboot, lm_results = lm_results,
+            lm_p_threshold = lm_p_threshold, use_lm_fdr = use_lm_fdr)
         return(.jis_handle_multi_q(se, q, q_params, verbose))
     }
 
@@ -281,13 +281,11 @@
 
         # Fallback to R implementation
         .compute_delta_statistics(counts_A, counts_B, delta_influence, q = q, norm = norm,
-            log_base = log_base, pseudocount = pseudocount, nboot = nboot,
-            n_transcripts = n_transcripts)
+            log_base = log_base, pseudocount = pseudocount, nboot = nboot, n_transcripts = n_transcripts)
     }, error = function(e) {
         # Fallback to R if C++ fails
         .compute_delta_statistics(counts_A, counts_B, delta_influence, q = q, norm = norm,
-            log_base = log_base, pseudocount = pseudocount, nboot = nboot,
-            n_transcripts = n_transcripts)
+            log_base = log_base, pseudocount = pseudocount, nboot = nboot, n_transcripts = n_transcripts)
     })
 }
 
@@ -470,7 +468,7 @@
                 gene_name <- as.character(gn)
         }
 
-        df <- data.frame(gene = gene, gene_name = gene_name, transcript_id = res$transcript_ids, 
+        df <- data.frame(gene = gene, gene_name = gene_name, transcript_id = res$transcript_ids,
             pvalue = pval_vals, fdr = fdr_vals, stringsAsFactors = FALSE)
         if (!is.null(res$lm_p_interaction))
             df$lm_p_interaction <- res$lm_p_interaction
@@ -548,8 +546,7 @@
 #' @noRd
 .jis_handle_multi_q <- function(se, q, q_params, verbose) {
     results_list <- lapply(q, function(q_val) {
-        do.call(.calculate_jis, c(list(se = se, q = q_val, verbose = FALSE),
-            q_params))
+        do.call(.calculate_jis, c(list(se = se, q = q_val, verbose = FALSE), q_params))
     })
     names(results_list) <- paste0("q_", gsub("\\.", "_", sprintf("%.2f", q)))
     for (gene_idx in seq_along(results_list[[1]]$results_per_gene)) {

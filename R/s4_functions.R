@@ -20,8 +20,8 @@
 #'   Explicit: character vector like \code{c('exchangeability', 'monotonicity')}.
 #' @param alpha \code{numeric}. Significance level for tests (default: 0.05).
 #' @param format \code{character}. Output format when used with \code{results()}.
-#'   "text" (default): formatted text output for display
-#'   "list": returns structured list for programmatic access.
+#'   'text' (default): formatted text output for display
+#'   'list': returns structured list for programmatic access.
 #' @param ... Additional arguments (output_file, verbose for file output).
 #'
 #' @return Modified TSENATAnalysis object with assumption test results stored
@@ -85,134 +85,135 @@ setGeneric("calculate_assumptions", function(analysis, q = NULL, checks = "rank"
 })
 
 #' @rdname calculate_assumptions
-setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"),
-    function(analysis, q = NULL, checks = "rank", alpha = 0.05, format = "text", ...) {
+setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"), function(analysis,
+    q = NULL, checks = "rank", alpha = 0.05, format = "text", ...) {
 
-        # Validate inputs
-        if (!methods::is(analysis, "TSENATAnalysis")) {
-            stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
+    # Validate inputs
+    if (!methods::is(analysis, "TSENATAnalysis")) {
+        stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
+    }
+
+    # Extract diversity data
+    diversity_data <- NULL
+    q_used <- q
+
+    # If q is specified, try to get that specific q-value
+    if (!is.null(q)) {
+        q_key <- if (nchar(as.character(q)) > 3) {
+            paste0("q_", round(q, 1))
+        } else {
+            paste0("q_", q)
         }
 
-        # Extract diversity data
-        diversity_data <- NULL
-        q_used <- q
-
-        # If q is specified, try to get that specific q-value
-        if (!is.null(q)) {
-            q_key <- if (nchar(as.character(q)) > 3) {
-                paste0("q_", round(q, 1))
-            } else {
-                paste0("q_", q)
-            }
-
-            if (q_key %in% names(analysis@diversity_results)) {
-                div_se <- analysis@diversity_results[[q_key]]
-                diversity_data <- assay(div_se, "diversity")
-            }
-        }
-
-        # If q is NULL and multiple diversity results exist, combine all
-        # q-values
-        if (is.null(diversity_data) && is.null(q) && length(analysis@diversity_results) >
-            1) {
-            entropy_list <- lapply(analysis@diversity_results, function(se) {
-                mat <- assay(se, "diversity")
-                if (!is.matrix(mat)) {
-                  mat <- as.matrix(mat)
-                }
-                return(mat)
-            })
-
-            # Use complete case analysis: keep only genes present in ALL
-            # q-value matrices. This is mathematically sound for rank-based
-            # tests (Scheirer-Ray-Hare) and follows best practices per scholarly
-            # literature (Springer Handbook, Permutation Tests)
-            all_genes <- lapply(entropy_list, rownames)
-            common_genes <- Reduce(intersect, all_genes)
-
-            # Subset all matrices to common genes in same order
-            entropy_list <- lapply(entropy_list, function(mat) {
-                mat[common_genes, , drop = FALSE]
-            })
-
-            # Combine all matrices column-wise (genes x all samples across
-            # q-values)
-            diversity_data <- do.call(cbind, entropy_list)
-            # Keep natural column names from cbind to preserve structure
-            q_used <- "all"
-        }
-
-        # If q is NULL and only one result, use it
-        if (is.null(diversity_data) && is.null(q) && length(analysis@diversity_results) ==
-            1) {
-            div_se <- analysis@diversity_results[[1]]
+        if (q_key %in% names(analysis@diversity_results)) {
+            div_se <- analysis@diversity_results[[q_key]]
             diversity_data <- assay(div_se, "diversity")
-            q_used <- .extract_q_from_key(names(analysis@diversity_results)[1])
         }
+    }
 
-        # Fallback: use first diversity result
-        if (is.null(diversity_data) && length(analysis@diversity_results) > 0) {
-            div_se <- analysis@diversity_results[[1]]
-            diversity_data <- assay(div_se, "diversity")
-            if (is.null(q_used) || is.na(q_used)) {
-                q_used <- .extract_q_from_key(names(analysis@diversity_results)[1])
+    # If q is NULL and multiple diversity results exist, combine all q-values
+    if (is.null(diversity_data) && is.null(q) && length(analysis@diversity_results) >
+        1) {
+        entropy_list <- lapply(analysis@diversity_results, function(se) {
+            mat <- assay(se, "diversity")
+            if (!is.matrix(mat)) {
+                mat <- as.matrix(mat)
             }
-        }
-
-        # Check that we have data
-        if (is.null(diversity_data)) {
-            stop("No diversity results found in analysis object. ", "Run calculate_diversity() first.",
-                call. = FALSE)
-        }
-
-        # Ensure we have a matrix
-        if (!is.matrix(diversity_data)) {
-            diversity_data <- as.matrix(diversity_data)
-        }
-
-        # Extract q-values from diversity_results names for GAM metrics
-        q_values <- NULL
-        if (q_used == "all" && length(analysis@diversity_results) > 1) {
-            q_names <- names(analysis@diversity_results)
-            q_values <- as.numeric(gsub("q_", "", q_names))
-        }
-
-        # Run assumptions test
-        result <- tryCatch({
-            .calculate_assumptions(data = diversity_data, checks = checks, alpha = alpha, q_values = q_values)
-        }, error = function(e) {
-            stop("Assumptions test failed:\n", e$message, call. = FALSE)
+            return(mat)
         })
 
-        # Store results
-        analysis@metadata$rankbased_assumptions <- list(result = result, q_value_tested = q_used,
-            checks_performed = checks, alpha_used = alpha, timestamp = Sys.time())
+        # Use complete case analysis: keep only genes present in ALL q-value
+        # matrices. This is mathematically sound for rank-based tests
+        # (Scheirer-Ray-Hare) and follows best practices per scholarly
+        # literature (Springer Handbook, Permutation Tests)
+        all_genes <- lapply(entropy_list, rownames)
+        common_genes <- Reduce(intersect, all_genes)
 
-        # Track function call
-        analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("calculate_assumptions[q=",
-            q_used, "]"))
+        # Subset all matrices to common genes in same order
+        entropy_list <- lapply(entropy_list, function(mat) {
+            mat[common_genes, , drop = FALSE]
+        })
 
-        # Handle output file and verbose from ... arguments
-        dots <- list(...)
-        output_file <- dots$output_file
-        verbose <- if (is.null(dots$verbose)) FALSE else dots$verbose
+        # Combine all matrices column-wise (genes x all samples across
+        # q-values)
+        diversity_data <- do.call(cbind, entropy_list)
+        # Keep natural column names from cbind to preserve structure
+        q_used <- "all"
+    }
 
-        # Save results to file if output_file specified
-        if (!is.null(output_file)) {
-            # Convert assumptions results to data frame for output
-            assumptions_df <- .format_assumptions_for_output(result)
-            
-            tryCatch({
-                save_analysis_output(assumptions_df, output_file, object = analysis, verbose = verbose,
-                    func_name = "calculate_assumptions")
-            }, error = function(e) {
-                warning("[calculate_assumptions] Could not write assumptions results to file: ",
-                    conditionMessage(e), call. = FALSE)
-            })
+    # If q is NULL and only one result, use it
+    if (is.null(diversity_data) && is.null(q) && length(analysis@diversity_results) ==
+        1) {
+        div_se <- analysis@diversity_results[[1]]
+        diversity_data <- assay(div_se, "diversity")
+        q_used <- .extract_q_from_key(names(analysis@diversity_results)[1])
+    }
+
+    # Fallback: use first diversity result
+    if (is.null(diversity_data) && length(analysis@diversity_results) > 0) {
+        div_se <- analysis@diversity_results[[1]]
+        diversity_data <- assay(div_se, "diversity")
+        if (is.null(q_used) || is.na(q_used)) {
+            q_used <- .extract_q_from_key(names(analysis@diversity_results)[1])
         }
+    }
 
-        analysis
+    # Check that we have data
+    if (is.null(diversity_data)) {
+        stop("No diversity results found in analysis object. ", "Run calculate_diversity() first.",
+            call. = FALSE)
+    }
+
+    # Ensure we have a matrix
+    if (!is.matrix(diversity_data)) {
+        diversity_data <- as.matrix(diversity_data)
+    }
+
+    # Extract q-values from diversity_results names for GAM metrics
+    q_values <- NULL
+    if (q_used == "all" && length(analysis@diversity_results) > 1) {
+        q_names <- names(analysis@diversity_results)
+        q_values <- as.numeric(gsub("q_", "", q_names))
+    }
+
+    # Run assumptions test
+    result <- tryCatch({
+        .calculate_assumptions(data = diversity_data, checks = checks, alpha = alpha,
+            q_values = q_values)
+    }, error = function(e) {
+        stop("Assumptions test failed:\n", e$message, call. = FALSE)
     })
+
+    # Store results
+    analysis@metadata$rankbased_assumptions <- list(result = result, q_value_tested = q_used,
+        checks_performed = checks, alpha_used = alpha, timestamp = Sys.time())
+
+    # Track function call
+    analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("calculate_assumptions[q=",
+        q_used, "]"))
+
+    # Handle output file and verbose from ... arguments
+    dots <- list(...)
+    output_file <- dots$output_file
+    verbose <- if (is.null(dots$verbose))
+        FALSE else dots$verbose
+
+    # Save results to file if output_file specified
+    if (!is.null(output_file)) {
+        # Convert assumptions results to data frame for output
+        assumptions_df <- .format_assumptions_for_output(result)
+
+        tryCatch({
+            save_analysis_output(assumptions_df, output_file, object = analysis,
+                verbose = verbose, func_name = "calculate_assumptions")
+        }, error = function(e) {
+            warning("[calculate_assumptions] Could not write assumptions results to file: ",
+                conditionMessage(e), call. = FALSE)
+        })
+    }
+
+    analysis
+})
 
 # Helper function to extract q-value from key
 
@@ -224,38 +225,35 @@ setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"),
 # Helper: Format assumptions results for output
 #' @noRd
 .format_assumptions_for_output <- function(result) {
-    # Use the new .process_assumptions_results formatter from orchestration_results
-    # Convert structured assumptions to formatted data frame suitable for TSV output
-    
+    # Use the new .process_assumptions_results formatter from
+    # orchestration_results Convert structured assumptions to formatted data
+    # frame suitable for TSV output
+
     if (!is.list(result)) {
         return(data.frame(check = "assumptions", status = "error", details = "Invalid result format"))
     }
-    
-    # Process using the orchestration_results formatter with format="list"
+
+    # Process using the orchestration_results formatter with format='list'
     processed <- .process_assumptions_results(result, format = "list")
-    
+
     if (is.null(processed) || is.null(processed$assumptions_table)) {
         return(data.frame(check = "assumptions", status = "error", details = "No checks found"))
     }
-    
+
     # Get the assumptions table
     assumptions_df <- processed$assumptions_table
-    
+
     # Ensure it has the expected columns
     if (!all(c("Characteristic", "Test", "Result", "Interpretation") %in% colnames(assumptions_df))) {
         return(data.frame(check = "assumptions", status = "error", details = "Invalid table structure"))
     }
-    
-    # Format for TSV output - keep original column names but convert to row format for readability
-    output_df <- data.frame(
-        check = "assumption",
-        characteristic = assumptions_df$Characteristic,
-        test = assumptions_df$Test,
-        result = assumptions_df$Result,
-        interpretation = assumptions_df$Interpretation,
-        stringsAsFactors = FALSE
-    )
-    
+
+    # Format for TSV output - keep original column names but convert to row
+    # format for readability
+    output_df <- data.frame(check = "assumption", characteristic = assumptions_df$Characteristic,
+        test = assumptions_df$Test, result = assumptions_df$Result, interpretation = assumptions_df$Interpretation,
+        stringsAsFactors = FALSE)
+
     output_df
 }
 
@@ -378,48 +376,44 @@ setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_lm, analy
         final_rank_method <- concordance_result$rank_method
 
         # Store results in the LM analysis object's metadata
-        analysis_lm@metadata$method_concordance <- list(
-            comparison_df = concordance_result$comparison_df,
-            spearman_rho = concordance_result$spearman_rho,
-            high_confidence = concordance_result$high_conf,
-            agreement_table = concordance_result$agreement_table,
-            lm_method = final_lm_method,
-            rank_method = final_rank_method,
-            timestamp = Sys.time()
-        )
+        analysis_lm@metadata$method_concordance <- list(comparison_df = concordance_result$comparison_df,
+            spearman_rho = concordance_result$spearman_rho, high_confidence = concordance_result$high_conf,
+            agreement_table = concordance_result$agreement_table, lm_method = final_lm_method,
+            rank_method = final_rank_method, timestamp = Sys.time())
 
         # Track function call
         analysis_lm@metadata$function_calls <- c(analysis_lm@metadata$function_calls,
-            paste0("calculate_concordance[", final_lm_method, " vs ", final_rank_method, "]"))
+            paste0("calculate_concordance[", final_lm_method, " vs ", final_rank_method,
+                "]"))
 
         if (verbose) {
             message("[calculate_concordance] Concordance computed successfully")
             if (!is.na(concordance_result$spearman_rho)) {
-                message("[calculate_concordance] Spearman correlation = ",
-                  round(concordance_result$spearman_rho, 3))
+                message("[calculate_concordance] Spearman correlation = ", round(concordance_result$spearman_rho,
+                  3))
             }
         }
 
         # Always generate and save formatted concordance results to txt file
         concordance_text <- results(analysis_lm, type = "concordance")
-        
+
         # Use provided output_file or generate default
         if (is.null(output_file)) {
             output_file <- "concordance_results.txt"
         }
-        
+
         # Ensure file has .txt extension
         if (!grepl("\\.txt$", output_file, ignore.case = TRUE)) {
             output_file <- paste0(output_file, ".txt")
         }
-        
+
         # Write formatted results to file
         writeLines(concordance_text, con = output_file)
-        
+
         if (verbose) {
             message("[calculate_concordance] Results written to: ", output_file)
         }
-        
+
         # Store the output file path in metadata
         analysis_lm@metadata$concordance_results_file <- output_file
 
@@ -448,12 +442,13 @@ setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_lm, analy
             available_methods, call. = FALSE)
     }
 
-    # Auto-detect rank method (use "rank_test" if available, otherwise first available)
+    # Auto-detect rank method (use 'rank_test' if available, otherwise first
+    # available)
     rank_method <- "rank_test"
-    if (is.null(analysis_lm@rank_test_results) || 
-        !("rank_test" %in% names(analysis_lm@rank_test_results))) {
-        if (is.null(analysis_lm@rank_test_results) || length(analysis_lm@rank_test_results) == 0) {
-            stop("No rank test results found in rank_test_results. Run calculate_srh() first.", 
+    if (is.null(analysis_lm@rank_test_results) || !("rank_test" %in% names(analysis_lm@rank_test_results))) {
+        if (is.null(analysis_lm@rank_test_results) || length(analysis_lm@rank_test_results) ==
+            0) {
+            stop("No rank test results found in rank_test_results. Run calculate_srh() first.",
                 call. = FALSE)
         }
         rank_method <- names(analysis_lm@rank_test_results)[1]
@@ -477,8 +472,8 @@ setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_lm, analy
     # ===================================================================
 
     if (verbose) {
-        message("[calculate_concordance] Computing concordance between ",
-            default_lm_method, " and ", rank_method)
+        message("[calculate_concordance] Computing concordance between ", default_lm_method,
+            " and ", rank_method)
     }
 
     # Create temporary analysis objects for the refactored function
@@ -497,48 +492,44 @@ setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_lm, analy
     # RESULTS
     # ===================================================================
 
-    analysis_lm@metadata$method_concordance <- list(
-        comparison_df = concordance_result$comparison_df,
-        spearman_rho = concordance_result$spearman_rho,
-        high_confidence = concordance_result$high_conf,
-        agreement_table = concordance_result$agreement_table,
-        lm_method = default_lm_method,
-        rank_method = rank_method,
-        timestamp = Sys.time()
-    )
+    analysis_lm@metadata$method_concordance <- list(comparison_df = concordance_result$comparison_df,
+        spearman_rho = concordance_result$spearman_rho, high_confidence = concordance_result$high_conf,
+        agreement_table = concordance_result$agreement_table, lm_method = default_lm_method,
+        rank_method = rank_method, timestamp = Sys.time())
 
     # Track function call
     analysis_lm@metadata$function_calls <- c(analysis_lm@metadata$function_calls,
-        paste0("calculate_concordance[", default_lm_method, " vs ", rank_method, "]"))
+        paste0("calculate_concordance[", default_lm_method, " vs ", rank_method,
+            "]"))
 
     if (verbose) {
         message("[calculate_concordance] Concordance computed successfully")
         if (!is.na(concordance_result$spearman_rho)) {
-            message("[calculate_concordance] Spearman correlation = ",
-              round(concordance_result$spearman_rho, 3))
+            message("[calculate_concordance] Spearman correlation = ", round(concordance_result$spearman_rho,
+                3))
         }
     }
 
     # Always generate and save formatted concordance results to txt file
     concordance_text <- results(analysis_lm, type = "concordance")
-    
+
     # Use provided output_file or generate default
     if (is.null(output_file)) {
         output_file <- "concordance_results.txt"
     }
-    
+
     # Ensure file has .txt extension
     if (!grepl("\\.txt$", output_file, ignore.case = TRUE)) {
         output_file <- paste0(output_file, ".txt")
     }
-    
+
     # Write formatted results to file
     writeLines(concordance_text, con = output_file)
-    
+
     if (verbose) {
         message("[calculate_concordance] Results written to: ", output_file)
     }
-    
+
     # Store the output file path in metadata
     analysis_lm@metadata$concordance_results_file <- output_file
 
@@ -797,8 +788,7 @@ setMethod("plot_concordance", "TSENATAnalysis", function(analysis, verbose = FAL
 
     # Validate that concordance results exist
     if (is.null(analysis@metadata$method_concordance)) {
-        stop("[plot_concordance] No concordance results found in @metadata.\n",
-            "  Please run calculate_concordance() first.)")
+        stop("[plot_concordance] No concordance results found in @metadata.\n", "  Please run calculate_concordance() first.)")
     }
 
     concordance_results <- analysis@metadata$method_concordance
@@ -1008,10 +998,10 @@ setMethod("plot_concordance", "TSENATAnalysis", function(analysis, verbose = FAL
 #'
 #' @export
 #' @importFrom methods is
-plot_expression <- function(analysis, gene = NULL, condition_col = NULL,
-    top_n = 4, output_file = NULL, metric = c("median", "mean", "variance", "iqr"),
-    use_tpm = TRUE, width = NULL, height = NULL, fontsize = 16, cellwidth = 0, cellheight = 0,
-    layout_ncol = 2, verbose = FALSE, ...) {
+plot_expression <- function(analysis, gene = NULL, condition_col = NULL, top_n = 4,
+    output_file = NULL, metric = c("median", "mean", "variance", "iqr"), use_tpm = TRUE,
+    width = NULL, height = NULL, fontsize = 16, cellwidth = 0, cellheight = 0, layout_ncol = 2,
+    verbose = FALSE, ...) {
 
     # Load visualization dependencies (ggplot2, cowplot, pheatmap, etc.)
     .load_visualization_deps()
@@ -1068,8 +1058,8 @@ plot_expression <- function(analysis, gene = NULL, condition_col = NULL,
                   "gene_col", c("gene", "gene_name", "gene_id"), verbose = FALSE,
                   param_name = "gene_col")
 
-                if (!is.null(p_col) && !is.null(gene_col) && p_col %in% colnames(lm_results_df) && 
-                    gene_col %in% colnames(lm_results_df)) {
+                if (!is.null(p_col) && !is.null(gene_col) && p_col %in% colnames(lm_results_df) &&
+                  gene_col %in% colnames(lm_results_df)) {
                   # Get top genes (sorted by p-value, select top_n)
                   top_indices <- order(lm_results_df[[p_col]])[seq_len(min(top_n,
                     nrow(lm_results_df)))]
@@ -1095,20 +1085,18 @@ plot_expression <- function(analysis, gene = NULL, condition_col = NULL,
     # =========================================================================
     if (verbose) {
         if (length(gene) > 1) {
-            message("[plot_expression] Calling .plot_expression() for genes: ",
-                paste(gene, collapse = ", "))
+            message("[plot_expression] Calling .plot_expression() for genes: ", paste(gene,
+                collapse = ", "))
         } else {
-            message("[plot_expression] Calling .plot_expression() for gene: ",
-                gene)
+            message("[plot_expression] Calling .plot_expression() for gene: ", gene)
         }
     }
 
     plot_file <- tryCatch({
-        .plot_expression(se = se, gene = gene, condition_col = condition_col,
-            res = lm_results_df, top_n = top_n, output_file = output_file, metric = metric[1],
-            use_tpm = use_tpm, width = width, height = height, fontsize = fontsize,
-            cellwidth = cellwidth, cellheight = cellheight, layout_ncol = layout_ncol,
-            ...)
+        .plot_expression(se = se, gene = gene, condition_col = condition_col, res = lm_results_df,
+            top_n = top_n, output_file = output_file, metric = metric[1], use_tpm = use_tpm,
+            width = width, height = height, fontsize = fontsize, cellwidth = cellwidth,
+            cellheight = cellheight, layout_ncol = layout_ncol, ...)
     }, error = function(e) {
         stop("[plot_expression]", conditionMessage(e), call. = FALSE)
     })
@@ -1373,8 +1361,8 @@ plot_divergence_distribution <- function(analysis, threshold = 0.1, output_file 
 #'
 #' @export
 #' @importFrom methods is
-plot_jis_delta <- function(analysis, n_genes = 4, lm_results = NULL,
-    verbose = FALSE, output_file = NULL, ...) {
+plot_jis_delta <- function(analysis, n_genes = 4, lm_results = NULL, verbose = FALSE,
+    output_file = NULL, ...) {
 
     # Load visualization dependencies (ggplot2, cowplot, pheatmap, etc.)
     .load_visualization_deps()
@@ -1447,9 +1435,8 @@ plot_jis_delta <- function(analysis, n_genes = 4, lm_results = NULL,
 
     # Call base function with extracted parameters Note: output_file parameter
     # can be used to save heatmap as PNG file
-    result <- .plot_jis_delta(switching_results = switching_results,
-        n_genes = n_genes, lm_results = lm_results, verbose = verbose, output_file = output_file,
-        ...)
+    result <- .plot_jis_delta(switching_results = switching_results, n_genes = n_genes,
+        lm_results = lm_results, verbose = verbose, output_file = output_file, ...)
 
     if (verbose) {
         message("[OK] Heatmap plot generated successfully")
@@ -1563,9 +1550,9 @@ plot_jis_delta <- function(analysis, n_genes = 4, lm_results = NULL,
 #' # print(p_gam)
 #'
 #' @export
-plot_lm <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL,
-    sig_alpha = 0.05, assay_name = "diversity", output_file = NULL, width = 12, height = NULL,
-    verbose = FALSE, ...) {
+plot_lm <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL, sig_alpha = 0.05,
+    assay_name = "diversity", output_file = NULL, width = 12, height = NULL, verbose = FALSE,
+    ...) {
     # Load visualization dependencies (ggplot2, cowplot, mgcv, etc.)
     .load_visualization_deps()
 
@@ -1585,14 +1572,13 @@ plot_lm <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL,
     lm_res <- analysis@lm_results$lm_interaction
 
     if (!is.data.frame(lm_res)) {
-        stop("[plot_lm] @lm_results$lm_interaction must be a data.frame",
-            call. = FALSE)
+        stop("[plot_lm] @lm_results$lm_interaction must be a data.frame", call. = FALSE)
     }
 
     # Check that diversity results exist (needed for SE reconstruction)
     if (length(analysis@diversity_results) == 0) {
-        stop("[plot_lm] No diversity results found in @diversity_results. ",
-            "Run calculate_diversity() first.", call. = FALSE)
+        stop("[plot_lm] No diversity results found in @diversity_results. ", "Run calculate_diversity() first.",
+            call. = FALSE)
     }
 
     # =========================================================================
@@ -1607,9 +1593,8 @@ plot_lm <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL,
 
     # Validate that condition_col exists in colData
     if (!(condition_col %in% colnames(colData(analysis@se)))) {
-        stop("[plot_lm] Specified condition_col='", condition_col,
-            "' not found in colData. Available columns: ", paste(colnames(colData(analysis@se)),
-                collapse = ", "), call. = FALSE)
+        stop("[plot_lm] Specified condition_col='", condition_col, "' not found in colData. Available columns: ",
+            paste(colnames(colData(analysis@se)), collapse = ", "), call. = FALSE)
     }
 
     # =========================================================================
@@ -1625,8 +1610,8 @@ plot_lm <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL,
         .calculate_diversity(x = analysis@se, q = sort(q_computed), norm = TRUE,
             verbose = verbose, bootstrap = FALSE)
     }, error = function(e) {
-        stop("[plot_lm] Failed to reconstruct diversity SE:\n",
-            conditionMessage(e), call. = FALSE)
+        stop("[plot_lm] Failed to reconstruct diversity SE:\n", conditionMessage(e),
+            call. = FALSE)
     })
 
     # =========================================================================
@@ -1811,8 +1796,8 @@ plot_lm <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL,
 #'
 #' @export
 #' @importFrom utils write.table
-calculate_m_estimator <- function(analysis, condition_col = NULL, loss_type = "huber", scale = NULL,
-    max_iter = 50, tol = 1e-06, paired = NULL, pcorr = "BH", q_combine_method = "mean",
+calculate_m_estimator <- function(analysis, condition_col = NULL, loss_type = "huber",
+    scale = NULL, max_iter = 50, tol = 1e-06, paired = NULL, pcorr = "BH", q_combine_method = "mean",
     influence_threshold = 0.75, scale_method = "mad", output_file = NULL, verbose = FALSE) {
 
     # Validate input
@@ -1823,8 +1808,7 @@ calculate_m_estimator <- function(analysis, condition_col = NULL, loss_type = "h
     # Check for diversity results
     if (is.null(analysis@diversity_results) || length(analysis@diversity_results) ==
         0) {
-        stop("Diversity results not found. Run calculate_diversity() first.",
-            call. = FALSE)
+        stop("Diversity results not found. Run calculate_diversity() first.", call. = FALSE)
     }
 
     # Validate that diversity_results is a properly structured named list
@@ -1916,10 +1900,10 @@ calculate_m_estimator <- function(analysis, condition_col = NULL, loss_type = "h
     }
 
     m_est_results <- tryCatch({
-        result <- .calculate_m_estimator(x = combined_se, samples = condition_col, loss_type = loss_type,
-            scale = scale, max_iter = max_iter, tol = tol, paired = paired, pcorr = pcorr,
-            q_combine_method = q_combine_method, influence_threshold = influence_threshold,
-            scale_method = scale_method)
+        result <- .calculate_m_estimator(x = combined_se, samples = condition_col,
+            loss_type = loss_type, scale = scale, max_iter = max_iter, tol = tol,
+            paired = paired, pcorr = pcorr, q_combine_method = q_combine_method,
+            influence_threshold = influence_threshold, scale_method = scale_method)
         result
     }, error = function(e) {
         stop("M-estimation failed:\n", e$message, call. = FALSE)
@@ -2101,15 +2085,15 @@ calculate_m_estimator <- function(analysis, condition_col = NULL, loss_type = "h
 # Sample coverage: Require genes present in minimum number of samples - Min
 # transcripts per gene: Filter genes with too few isoforms - Isoform abundance
 # thresholds: Exclude rare isoforms from analysis - Subsetting options: Random
-# or variance-based gene/sample selection - Stringency presets: Default 'medium'
-# (balanced), 'soft' (permissive), or 'severe' (stringent) filtering profiles.
-# Mathematical Background: QC filtering removes noise that would artificially
-# inflate entropy/divergence. Genes with single isoform (H=0) or all absent
-# samples contribute no signal. Rare transcripts have unreliable expression
-# values -> exclude them. Example: Raw data: 88 genes × 12 samples (many genes
-# expressed in <50% samples) After filter: 50 genes × 12 samples (multi-isoform,
-# well-represented genes) Result: More reliable diversity estimates and smaller
-# multiple-testing burden.
+# or variance-based gene/sample selection - Stringency presets: Default
+# 'medium' (balanced), 'soft' (permissive), or 'severe' (stringent) filtering
+# profiles.  Mathematical Background: QC filtering removes noise that would
+# artificially inflate entropy/divergence. Genes with single isoform (H=0) or
+# all absent samples contribute no signal. Rare transcripts have unreliable
+# expression values -> exclude them. Example: Raw data: 88 genes × 12 samples
+# (many genes expressed in <50% samples) After filter: 50 genes × 12 samples
+# (multi-isoform, well-represented genes) Result: More reliable diversity
+# estimates and smaller multiple-testing burden.
 # ============================================================================
 filter_analysis <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min_samples = 5L,
     stringency = "medium", pair_col = NULL, min_tx_per_gene = 2L, min_isoform_abundance = NULL,
@@ -2450,42 +2434,38 @@ build_analysis <- function(readcounts = NULL, salmon_dir = NULL, tx2gene, assay_
         stop("[build_analysis] Either 'readcounts' or 'salmon_dir' must be provided\n",
             "  readcounts: matrix/data.frame of transcript counts\n", "  salmon_dir: path to Salmon quantification output directory")
     }
-    
+
     # Validate column parameters when metadata is provided
     if (!is.null(metadata)) {
         missing_cols <- c()
-        
+
         if (is.null(config$sample_col)) {
             missing_cols <- c(missing_cols, "sample_col")
         }
         if (is.null(config$condition_col)) {
             missing_cols <- c(missing_cols, "condition_col")
         }
-        
+
         if (length(missing_cols) > 0) {
             stop("[build_analysis] Metadata provided but required column parameters missing: ",
-                paste(missing_cols, collapse = ", "), "\n",
-                "  These parameters MUST be provided in TSENAT_config():\n",
-                "    config <- TSENAT_config(\n",
-                "      sample_col = 'sample',        # Column name with sample identifiers\n",
+                paste(missing_cols, collapse = ", "), "\n", "  These parameters MUST be provided in TSENAT_config():\n",
+                "    config <- TSENAT_config(\n", "      sample_col = 'sample',        # Column name with sample identifiers\n",
                 "      condition_col = 'condition', # Column name with condition/treatment labels\n",
-                "      ...\n",
-                "    )\n",
-                "    analysis <- build_analysis(config = config, metadata = metadata_df, ...)",
+                "      ...\n", "    )\n", "    analysis <- build_analysis(config = config, metadata = metadata_df, ...)",
                 call. = FALSE)
         }
     }
-    
-    # Build SummarizedExperiment
-    # Extract column names from config
-    sample_col_value <- if (!is.null(config$sample_col)) config$sample_col else "sample"
+
+    # Build SummarizedExperiment Extract column names from config
+    sample_col_value <- if (!is.null(config$sample_col))
+        config$sample_col else "sample"
     condition_col_value <- config$condition_col  # May be NULL for non-paired analysis
-    subject_col_value <- config$subject_col      # Optional for paired analysis
-    
+    subject_col_value <- config$subject_col  # Optional for paired analysis
+
     se <- .build_se(readcounts = readcounts, tx2gene = tx2gene, assay_name = assay_name,
         metadata = metadata, sample_col = sample_col_value, condition_col = condition_col_value,
-        subject_col = subject_col_value, tpm = tpm, effective_length = effective_length, skip = skip,
-        verbose = verbose)
+        subject_col = subject_col_value, tpm = tpm, effective_length = effective_length,
+        skip = skip, verbose = verbose)
 
     # Ensure sample_id column exists in colData (required by TSENATAnalysis)
     # OPTIMIZATION: Only add if not already present
@@ -2493,8 +2473,7 @@ build_analysis <- function(readcounts = NULL, salmon_dir = NULL, tx2gene, assay_
         SummarizedExperiment::colData(se)$sample_id <- colnames(se)
     }
 
-    # Store metadata in config for later use (e.g., in
-    # calculate_lm)
+    # Store metadata in config for later use (e.g., in calculate_lm)
     if (!is.null(metadata)) {
         config$metadata <- metadata
     }

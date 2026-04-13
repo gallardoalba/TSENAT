@@ -84,7 +84,8 @@ plot_diversity_violin_density <- function(se, assay_name = "diversity", title = 
     base_title <- title %||% sprintf("Tsallis entropy at q = %g", q_val)
 
     # Create individual plots
-    p_violin <- .plot_diversity_violin_singleq(se = se, assay_name = assay_name, title = "Violin")
+    p_violin <- .plot_diversity_violin_singleq(se = se, assay_name = assay_name,
+        title = "Violin")
 
     p_density <- .plot_diversity_density_singleq(se = se, assay_name = assay_name,
         title = "Density")

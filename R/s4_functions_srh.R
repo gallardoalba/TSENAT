@@ -151,13 +151,13 @@
 #'   multicorr = 'hochberg'
 #' )
 #' # View results using unified accessor
-#' rank_test_res <- results(analysis, type = "rank_test")
+#' rank_test_res <- results(analysis, type = 'rank_test')
 #' if (!is.null(rank_test_res)) head(rank_test_res)
 #'
 #' @export
 #' @importFrom utils write.table
-calculate_srh <- function(analysis, condition_col, output_file = NULL,
-    paired = NULL, subject_col = NULL, multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young",
+calculate_srh <- function(analysis, condition_col, output_file = NULL, paired = NULL,
+    subject_col = NULL, multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young",
         "none"), entropy_col = "diversity", q_col = "q", gene_col = "gene", wy_randomizations = 500,
     nperm_mode = c("standard", "conservative", "interactive"), nthreads = NULL, alpha = 0.05,
     p_threshold = 0.05, eta2_threshold_moderate = 0.01, eta2_threshold_strong = 0.1,
@@ -166,11 +166,10 @@ calculate_srh <- function(analysis, condition_col, output_file = NULL,
     # PHASE 1: Validate input and prerequisites
     condition_col <- .validate_srh_input(analysis, condition_col)
 
-    # PHASE 2: Resolve parameters from config + explicit args
-    # Note: q-values are ALWAYS auto-detected from diversity_results
-    param_result <- .resolve_srh_params(analysis, multicorr, nperm_mode,
-        paired, subject_col, nthreads, wy_randomizations, entropy_col, q_col,
-        gene_col)
+    # PHASE 2: Resolve parameters from config + explicit args Note: q-values
+    # are ALWAYS auto-detected from diversity_results
+    param_result <- .resolve_srh_params(analysis, multicorr, nperm_mode, paired,
+        subject_col, nthreads, wy_randomizations, entropy_col, q_col, gene_col)
     dots <- param_result$dots
     dots$condition_col <- condition_col
     dots$verbose <- verbose
@@ -225,8 +224,8 @@ calculate_srh <- function(analysis, condition_col, output_file = NULL,
 #' Internal: Resolve SRH parameters from config
 #'
 #' @noRd
-.resolve_srh_params <- function(analysis, multicorr, nperm_mode, paired,
-    subject_col, nthreads, wy_randomizations, entropy_col, q_col, gene_col) {
+.resolve_srh_params <- function(analysis, multicorr, nperm_mode, paired, subject_col,
+    nthreads, wy_randomizations, entropy_col, q_col, gene_col) {
     dots <- list()
 
     # Match enums early
@@ -250,8 +249,9 @@ calculate_srh <- function(analysis, condition_col, output_file = NULL,
     dots$q_col <- q_col
     dots$gene_col <- gene_col
 
-    # Use resolve_slot_param for remaining parameters
-    # Note: q is NOT resolved here - always auto-detected from diversity_results in .prepare_multi_q_se()
+    # Use resolve_slot_param for remaining parameters Note: q is NOT resolved
+    # here - always auto-detected from diversity_results in
+    # .prepare_multi_q_se()
     paired <- resolve_slot_param(paired, analysis@config, "paired", NULL)
     subject_col <- resolve_slot_param(subject_col, analysis@config, "subject_col",
         NULL)

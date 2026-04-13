@@ -150,8 +150,7 @@ calculate_effect_sizes <- function(analysis, significance_threshold = NULL, enri
     }
     # Check slots directly to avoid warnings from accessors
     if (length(analysis@divergence_results) == 0) {
-        stop("Divergence results required. Run calculate_divergence() first.",
-            call. = FALSE)
+        stop("Divergence results required. Run calculate_divergence() first.", call. = FALSE)
     }
     # Check for LM interaction results (exclude rank_test which belongs to
     # rankResults)
@@ -278,9 +277,10 @@ calculate_effect_sizes <- function(analysis, significance_threshold = NULL, enri
 #' @noRd
 .store_effect_sizes_results_in_metadata <- function(analysis, result, significance_threshold,
     verbose = FALSE) {
-    # Internal function: access object@metadata directly for large result storage
-    # getMeta() will filter these out when users call it (returns only essential metadata)
-    
+    # Internal function: access object@metadata directly for large result
+    # storage getMeta() will filter these out when users call it (returns only
+    # essential metadata)
+
     if (is.null(analysis@metadata))
         analysis@metadata <- list()
     analysis@metadata$effect_sizes_divergence <- result

@@ -73,8 +73,8 @@
     # Validate explicit column names are provided
     if (is.null(condition_col)) {
         stop("[.map_metadata_se] condition_col (column name for sample conditions) must be provided explicitly.\n",
-            "  Example: condition_col = 'condition'\n",
-            "  Available columns: ", paste(colnames(coldata), collapse = ", "), call. = FALSE)
+            "  Example: condition_col = 'condition'\n", "  Available columns: ",
+            paste(colnames(coldata), collapse = ", "), call. = FALSE)
     }
 
     # Detect and validate column indices using helper
@@ -432,24 +432,24 @@
 #'
 #' @noRd
 .map_metadata_detect_columns <- function(coldata, sample_col, condition_col) {
-    # Explicit column detection ONLY - no fallbacks, no position-based detection
-    # Both sample_col and condition_col must be provided and must exist in metadata
-    
+    # Explicit column detection ONLY - no fallbacks, no position-based
+    # detection Both sample_col and condition_col must be provided and must
+    # exist in metadata
+
     # EXACT match required for sample column (case-sensitive)
     if (!(sample_col %in% colnames(coldata))) {
         stop("[.map_metadata_detect_columns] Sample column '", sample_col, "' not found in metadata.\n",
-             "  Available columns: ", paste(colnames(coldata), collapse = ", "),
-             "\n  Ensure sample_col parameter EXACTLY matches a column name in your metadata (case-sensitive).",
-             call. = FALSE)
+            "  Available columns: ", paste(colnames(coldata), collapse = ", "), "\n  Ensure sample_col parameter EXACTLY matches a column name in your metadata (case-sensitive).",
+            call. = FALSE)
     }
     sample_col_idx <- which(colnames(coldata) == sample_col)[1]
-    
+
     # EXACT match required for condition column (case-sensitive)
     if (!(condition_col %in% colnames(coldata))) {
-        stop("[.map_metadata_detect_columns] Condition column '", condition_col, "' not found in metadata.\n",
-             "  Available columns: ", paste(colnames(coldata), collapse = ", "),
-             "\n  Ensure condition_col parameter EXACTLY matches a column name in your metadata (case-sensitive).",
-             call. = FALSE)
+        stop("[.map_metadata_detect_columns] Condition column '", condition_col,
+            "' not found in metadata.\n", "  Available columns: ", paste(colnames(coldata),
+                collapse = ", "), "\n  Ensure condition_col parameter EXACTLY matches a column name in your metadata (case-sensitive).",
+            call. = FALSE)
     }
     condition_col_idx <- which(colnames(coldata) == condition_col)[1]
 
@@ -478,8 +478,8 @@
 
     # Warn if only one condition is present
     if (length(conds) == 1) {
-        warning("[.map_metadata_detect_conditions] Only one condition detected: '", conds, "'\n",
-            "  Consider using multiple conditions for meaningful statistical analysis.",
+        warning("[.map_metadata_detect_conditions] Only one condition detected: '",
+            conds, "'\n", "  Consider using multiple conditions for meaningful statistical analysis.",
             call. = FALSE)
     }
 
@@ -488,9 +488,8 @@
         # subject_col explicitly provided - use it for pairing
         if (!(subject_col %in% colnames(coldata))) {
             stop("[.map_metadata_detect_conditions] Subject column '", subject_col,
-                "' not found in metadata.\n",
-                "  Available columns: ", paste(colnames(coldata), collapse = ", "),
-                "\n  Ensure subject_col parameter EXACTLY matches a column name in your metadata (case-sensitive).",
+                "' not found in metadata.\n", "  Available columns: ", paste(colnames(coldata),
+                  collapse = ", "), "\n  Ensure subject_col parameter EXACTLY matches a column name in your metadata (case-sensitive).",
                 call. = FALSE)
         }
         subject_col_idx <- which(colnames(coldata) == subject_col)[1]
@@ -507,14 +506,14 @@
             if (length(bad) > 0) {
                 bad_list <- paste(bad, collapse = ", ")
                 cond_list <- paste(conds, collapse = ", ")
-                msg <- paste0("[.map_metadata_detect_conditions] Unpaired subjects found: ", bad_list,
-                  "\n  Each subject must have all conditions: ", cond_list)
+                msg <- paste0("[.map_metadata_detect_conditions] Unpaired subjects found: ",
+                  bad_list, "\n  Each subject must have all conditions: ", cond_list)
                 stop(msg, call. = FALSE)
             }
         }
     } else {
-        # No subject_col provided - unpaired analysis
-        # Do NOT auto-extract from sample names (no implicit fallback)
+        # No subject_col provided - unpaired analysis Do NOT auto-extract from
+        # sample names (no implicit fallback)
         coldata_base <- coldata_sample_col_values
         has_pairing <- FALSE
     }

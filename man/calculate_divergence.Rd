@@ -134,6 +134,6 @@ analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
 analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5))
 
 # Check divergence results using unified accessor
-head(results(analysis, type = "divergence"))
+head(results(analysis, type = 'divergence'))
 
 }

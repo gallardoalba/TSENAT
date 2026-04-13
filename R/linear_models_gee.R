@@ -44,10 +44,10 @@
 #'   If NULL, observations treated as independent (no repeated measures)
 #' @param min_obs integer >= 2; minimum required non-NA entropy observations. Default 5
 #' @param corstr character; correlation structure selection method. Options:
-#'   - `"auto"` (default): Test all three structures via QIC, select best
-#'   - `"ar1"`: Autoregressive order 1, Corr(i,j) = ρ^|i-j|
-#'   - `"exchangeable"`: Equal correlation across all pairs (no ordering assumed)
-#'   - `"independence"`: Null model, no within-subject correlation
+#'   - `'auto'` (default): Test all three structures via QIC, select best
+#'   - `'ar1'`: Autoregressive order 1, Corr(i,j) = ρ^|i-j|
+#'   - `'exchangeable'`: Equal correlation across all pairs (no ordering assumed)
+#'   - `'independence'`: Null model, no within-subject correlation
 #' @param bias_correction logical; if TRUE (default), apply Kauermann-Carroll HC1
 #'   bias reduction when n_clusters < 30. Ensures Type I error control in small samples
 #' @param weights numeric or NULL; optional observation weights for heteroscedasticity
@@ -89,7 +89,8 @@
     # Validate inputs
     validation <- .validate_gee_inputs(df, subject, min_obs, weights)
     if (!validation$valid) {
-        warning(sprintf(".gee_interaction (gene %s): GEE input validation failed. Check that min_obs=%d is met, sufficient groups present, and subject structure is valid.", g, min_obs), call. = FALSE)
+        warning(sprintf(".gee_interaction (gene %s): GEE input validation failed. Check that min_obs=%d is met, sufficient groups present, and subject structure is valid.",
+            g, min_obs), call. = FALSE)
         return(NULL)
     }
     df <- validation$df
@@ -114,7 +115,8 @@
 
     # Final validation
     if (sum(!is.na(df$entropy)) < 2) {
-        warning(sprintf(".gee_interaction (gene %s): Insufficient non-NA entropy values after preprocessing (<%d observations).", g, 2), call. = FALSE)
+        warning(sprintf(".gee_interaction (gene %s): Insufficient non-NA entropy values after preprocessing (<%d observations).",
+            g, 2), call. = FALSE)
         return(NULL)
     }
 
@@ -129,7 +131,8 @@
     # Fit GEE models
     model_result <- .fit_gee_models(df, selected_corstr, gee_weights)
     if (is.null(model_result)) {
-        warning(sprintf(".gee_interaction (gene %s): GEE model fitting failed with correlation structure '%s'. May indicate singularity, separation, or convergence issues.", g, selected_corstr), call. = FALSE)
+        warning(sprintf(".gee_interaction (gene %s): GEE model fitting failed with correlation structure '%s'. May indicate singularity, separation, or convergence issues.",
+            g, selected_corstr), call. = FALSE)
         return(NULL)
     }
     fit_null <- model_result$fit_null

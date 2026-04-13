@@ -134,15 +134,15 @@
 #' ))
 #' 
 #' # View top interaction results using unified accessor (first 3 genes)
-#' res <- results(analysis, type = "lm")
+#' res <- results(analysis, type = 'lm')
 #' if (!is.null(res)) head(res, 3)
 #'
 #' @export
 #' @importFrom utils write.table
-calculate_lm <- function(analysis, fdr_threshold = NULL, formula = NULL,
-    condition_col = NULL, method = "gam", paired = NULL, subject_col = NULL, nthreads = NULL,
-    multicorr = NULL, corstr = NULL, pcorr = NULL, verbose = NULL, return_model_data = NULL,
-    output_file = NULL, ...) {
+calculate_lm <- function(analysis, fdr_threshold = NULL, formula = NULL, condition_col = NULL,
+    method = "gam", paired = NULL, subject_col = NULL, nthreads = NULL, multicorr = NULL,
+    corstr = NULL, pcorr = NULL, verbose = NULL, return_model_data = NULL, output_file = NULL,
+    ...) {
     # Validate input
     if (!is(analysis, "TSENATAnalysis")) {
         stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
@@ -179,14 +179,15 @@ calculate_lm <- function(analysis, fdr_threshold = NULL, formula = NULL,
     # Combine diversity results across q-values
     diversity_combined <- .combine_diversity_results_for_lm(analysis@diversity_results)
 
-    # REQUIREMENT: Check that we have at least 5 unique q-values
-    # ARIMA(1,1,0) differencing removes 1 observation per subject, leaving (n_q - 1) unique values
-    # With 5 q-values: after ARIMA -> 4 unique q-values
-    # This provides sufficient degrees of freedom for GAM spline fitting (k=3 or k=4 works with 4 unique values)
+    # REQUIREMENT: Check that we have at least 5 unique q-values ARIMA(1,1,0)
+    # differencing removes 1 observation per subject, leaving (n_q - 1) unique
+    # values With 5 q-values: after ARIMA -> 4 unique q-values This provides
+    # sufficient degrees of freedom for GAM spline fitting (k=3 or k=4 works
+    # with 4 unique values)
     q_values <- sort(as.numeric(unique(sub(".*q=", "", colnames(diversity_combined)))))
     if (length(q_values) < 5) {
-        stop(sprintf("[calculate_lm] At least 5 unique q-values are required for interaction analysis. Current data has only %d unique q-value(s). Ensure diversity_results contains >=5 distinct q values. After ARIMA(1,1,0) differencing, this leaves sufficient degrees of freedom for GAM fitting.", 
-                     length(q_values)), call. = FALSE)
+        stop(sprintf("[calculate_lm] At least 5 unique q-values are required for interaction analysis. Current data has only %d unique q-value(s). Ensure diversity_results contains >=5 distinct q values. After ARIMA(1,1,0) differencing, this leaves sufficient degrees of freedom for GAM fitting.",
+            length(q_values)), call. = FALSE)
     }
 
     # Build arguments for LM calculation
@@ -274,8 +275,8 @@ calculate_lm <- function(analysis, fdr_threshold = NULL, formula = NULL,
     pcorr <- resolve_slot_param(pcorr, analysis@config, "pcorr", "BH")
     nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", NULL)
 
-    # Note: 'paired' is already resolved by calling function
-    # (calculate_lm) to avoid duplicate resolution. Use as-is.
+    # Note: 'paired' is already resolved by calling function (calculate_lm) to
+    # avoid duplicate resolution. Use as-is.
 
     # Log condition_col info
     if (is.null(condition_col)) {

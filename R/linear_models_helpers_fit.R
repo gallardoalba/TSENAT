@@ -463,7 +463,7 @@
 
     # Extract entropy values and build data frame
     vals <- as.numeric(mat[g, ])
-    
+
     # Extract sample names from column names (remove q-value suffix if present)
     # If colnames are NULL, generate generic sample names
     if (is.null(colnames(mat))) {
@@ -472,14 +472,9 @@
         sample_names_extracted <- colnames(mat)
         sample_names_extracted <- sub("_q=.*", "", sample_names_extracted)
     }
-    
-    df <- data.frame(
-        entropy = vals, 
-        q = q_vals, 
-        group = factor(group_vec),
-        sample_name = factor(sample_names_extracted),
-        stringsAsFactors = FALSE
-    )
+
+    df <- data.frame(entropy = vals, q = q_vals, group = factor(group_vec), sample_name = factor(sample_names_extracted),
+        stringsAsFactors = FALSE)
     df
 }
 
@@ -570,13 +565,15 @@
 #' @noRd
 .check_lmm_sample_sizes <- function(df, min_obs = 3) {
     if (nrow(df) < min_obs) {
-        warning(sprintf(".check_lmm_sample_sizes: Insufficient observations in model data. Found %d rows, minimum required: %d.", nrow(df), min_obs), call. = FALSE)
+        warning(sprintf(".check_lmm_sample_sizes: Insufficient observations in model data. Found %d rows, minimum required: %d.",
+            nrow(df), min_obs), call. = FALSE)
         return(NULL)  # Not enough observations
     }
 
     n_subjects <- length(unique(na.omit(df$subject)))
     if (n_subjects < 2) {
-        warning(sprintf(".check_lmm_sample_sizes: Insufficient subjects for random intercept model. Found %d unique subjects, minimum required: 2.", n_subjects), call. = FALSE)
+        warning(sprintf(".check_lmm_sample_sizes: Insufficient subjects for random intercept model. Found %d unique subjects, minimum required: 2.",
+            n_subjects), call. = FALSE)
         return(NULL)  # Not enough subjects for random intercept
     }
 

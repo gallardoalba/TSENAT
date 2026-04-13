@@ -244,6 +244,6 @@ analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 # Compute diversity and access results using unified accessor
 analysis <- calculate_diversity(analysis, q = c(0.5, 1.0), verbose =
 FALSE)
-head(results(analysis, type = "diversity", q = 1.0))
+head(results(analysis, type = 'diversity', q = 1.0))
 
 }

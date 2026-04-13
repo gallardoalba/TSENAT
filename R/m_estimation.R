@@ -83,9 +83,9 @@
 #'   Recommended when data contamination is suspected.
 #'
 #' @noRd
-.calculate_m_estimator <- function(x, samples, loss_type = "huber", scale = NULL, max_iter = 50,
-    tol = 1e-06, paired = FALSE, pcorr = "BH", q_combine_method = "mean", influence_threshold = 0.75,
-    scale_method = "mad", verbose = FALSE) {
+.calculate_m_estimator <- function(x, samples, loss_type = "huber", scale = NULL,
+    max_iter = 50, tol = 1e-06, paired = FALSE, pcorr = "BH", q_combine_method = "mean",
+    influence_threshold = 0.75, scale_method = "mad", verbose = FALSE) {
     # Handle SummarizedExperiment input with multi-q analysis
     if (inherits(x, "SummarizedExperiment")) {
         return(.handleMEstimateSEInput(x, samples, q_combine_method, paired, scale,
@@ -221,16 +221,16 @@
 #'
 #' @param y numeric; vector of observations (may contain NA values)
 #' @param loss_type character; robust loss function:
-#'   - `"huber"` (default): Symmetric loss balancing efficiency and robustness
-#'   - `"tukey"`: Tukey biweight, quadratic on [−c, c], zero beyond
-#'   - `"lsq"`: Classical least squares (no robustness)
+#'   - `'huber'` (default): Symmetric loss balancing efficiency and robustness
+#'   - `'tukey'`: Tukey biweight, quadratic on [−c, c], zero beyond
+#'   - `'lsq'`: Classical least squares (no robustness)
 #' @param scale numeric or NULL; scale/standardization parameter. If NULL (default),
 #'   computed automatically using `scale_method`. Pre-specified values are useful
 #'   for standardizing across groups
 #' @param scale_method character; method for automatic scale estimation (if `scale = NULL`):
-#'   - `"mad"` (default): Median Absolute Deviation, fast and robust
-#'   - `"proposal2"`: Huber's Proposal 2, adapts for light or heavy tails
-#'   - `"s-estimator"`: S-estimator, maximum breakdown point (50%), slower
+#'   - `'mad'` (default): Median Absolute Deviation, fast and robust
+#'   - `'proposal2'`: Huber's Proposal 2, adapts for light or heavy tails
+#'   - `'s-estimator'`: S-estimator, maximum breakdown point (50%), slower
 #' @param max_iter integer; maximum number of IRLS iterations. Default 50.
 #'   Increase if convergence plots show incomplete iteration cycles
 #' @param tol numeric; relative convergence tolerance. Default 1e-6.
@@ -417,9 +417,9 @@
         }
 
         # LOO M-estimate
-        m_est_subset <- .calculate_m_estimator(entropy_subset, samples = group_subset, loss_type = loss_type,
-            scale = scale, max_iter = max_iter, tol = tol, paired = FALSE, pcorr = pcorr,
-            scale_method = scale_method)
+        m_est_subset <- .calculate_m_estimator(entropy_subset, samples = group_subset,
+            loss_type = loss_type, scale = scale, max_iter = max_iter, tol = tol,
+            paired = FALSE, pcorr = pcorr, scale_method = scale_method)
 
         # Calculate DFBETA
         dfbeta <- (m_est_full$location_diff - m_est_subset$location_diff)/pmax(m_est_full$se_diff,
@@ -498,9 +498,9 @@
 
     # Calculate M-estimate with ALL samples as baseline
     m_est_full <- tryCatch({
-        .calculate_m_estimator(entropy_by_sample, samples = group_assignment_unique, loss_type = loss_type,
-            scale = scale, max_iter = max_iter, tol = tol, paired = paired, pcorr = pcorr,
-            scale_method = scale_method)
+        .calculate_m_estimator(entropy_by_sample, samples = group_assignment_unique,
+            loss_type = loss_type, scale = scale, max_iter = max_iter, tol = tol,
+            paired = paired, pcorr = pcorr, scale_method = scale_method)
     }, error = function(e) {
         stop(e)
     })

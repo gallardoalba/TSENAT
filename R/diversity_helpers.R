@@ -314,21 +314,22 @@
         md <- NULL
         try(md <- S4Vectors::metadata(x), silent = TRUE)
         se_assay_mat <- NULL
-        
-        # Only use md$readcounts if dimensions match current SE (not filtered/subset)
+
+        # Only use md$readcounts if dimensions match current SE (not
+        # filtered/subset)
         if (!is.null(md) && !is.null(md$readcounts)) {
             md_readcounts_dims <- dim(md$readcounts)
             current_se_dims <- c(nrow(x), ncol(x))
-            
+
             # Use md$readcounts only if dimensions match exactly
             if (!is.na(md_readcounts_dims[1]) && !is.na(md_readcounts_dims[2]) &&
-                md_readcounts_dims[1] == current_se_dims[1] &&
-                md_readcounts_dims[2] == current_se_dims[2]) {
+                md_readcounts_dims[1] == current_se_dims[1] && md_readcounts_dims[2] ==
+                current_se_dims[2]) {
                 se_assay_mat <- as.matrix(md$readcounts)
                 x <- se_assay_mat
             }
         }
-        
+
         # If md$readcounts wasn't used, extract from SE assays directly
         if (is.null(se_assay_mat)) {
             # NEW: Support tpm parameter for SummarizedExperiment If tpm=TRUE

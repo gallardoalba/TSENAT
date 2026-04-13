@@ -198,9 +198,9 @@ divergence_bootstrap_paired_cpp_wrapper <- function(x, y, pair_ids, nboot = 1000
     if (length(x) != length(pair_ids)) {
         stop("pair_ids must have same length as x and y")
     }
-    
+
     # Paired designs require even-length vectors for proper pairing
-    if (length(x) %% 2 != 0) {
+    if (length(x)%%2 != 0) {
         stop("x and y must have same length, with even number of elements for paired bootstrap")
     }
 

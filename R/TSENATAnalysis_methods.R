@@ -4,11 +4,12 @@ setMethod("getSE", "TSENATAnalysis", function(object) {
 
 setMethod("getMeta", "TSENATAnalysis", function(object, key = NULL) {
     # Returns ONLY essential metadata (timestamps, version, workflow type)
-    # Large result tables, sample stats, function logs are accessed via results(), etc.
-    
+    # Large result tables, sample stats, function logs are accessed via
+    # results(), etc.
+
     # Filter metadata to essential fields only
     essential_meta <- list()
-    
+
     if ("created_at" %in% names(object@metadata)) {
         essential_meta$created_at <- object@metadata$created_at
     }
@@ -28,18 +29,15 @@ setMethod("getMeta", "TSENATAnalysis", function(object, key = NULL) {
         # Extract only essential workflow info
         workflow_info <- object@metadata$workflow
         if (is.list(workflow_info)) {
-            essential_meta$workflow <- list(
-                type = workflow_info$workflow_type,
-                completion_time = workflow_info$completion_time
-            )
+            essential_meta$workflow <- list(type = workflow_info$workflow_type, completion_time = workflow_info$completion_time)
         }
     }
-    
+
     # If key specified, return specific field
     if (!is.null(key)) {
         return(essential_meta[[key]])
     }
-    
+
     # Return filtered essential metadata only
     essential_meta
 })
@@ -76,10 +74,14 @@ setMethod("show", "TSENATAnalysis", function(object) {
     has_jackknife <- length(object@jackknife_results) > 0
     has_divergence <- length(object@divergence_results) > 0
     status_parts <- c()
-    if (has_diversity) status_parts <- c(status_parts, "DIVERSITY")
-    if (has_lm) status_parts <- c(status_parts, "LM")
-    if (has_jackknife) status_parts <- c(status_parts, "JACKKNIFE")
-    if (has_divergence) status_parts <- c(status_parts, "DIVERGENCE")
+    if (has_diversity)
+        status_parts <- c(status_parts, "DIVERSITY")
+    if (has_lm)
+        status_parts <- c(status_parts, "LM")
+    if (has_jackknife)
+        status_parts <- c(status_parts, "JACKKNIFE")
+    if (has_divergence)
+        status_parts <- c(status_parts, "DIVERGENCE")
     status_str <- if (length(status_parts) > 0) {
         paste(status_parts, collapse = " | ")
     } else {
@@ -203,13 +205,13 @@ setMethod("se", "TSENATAnalysis", function(object) {
 #'
 #' \donttest{
 #' # Set metadata
-#' metadata(analysis) <- list(processing_date = Sys.Date(), method = "test")
+#' metadata(analysis) <- list(processing_date = Sys.Date(), method = 'test')
 #'
 #' # Retrieve all metadata
 #' metadata(analysis)
 #'
 #' # Retrieve specific metadata key
-#' metadata(analysis, key = "method")
+#' metadata(analysis, key = 'method')
 #' }
 #'
 #' @rdname TSENATAnalysis-metadata

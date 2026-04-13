@@ -945,9 +945,9 @@ if (getOption("TSENAT.memoization", TRUE)) {
 
 
 
-# Helper functions for .calculate_lm() These internal functions
-# decompose the main function logic into focused, testable components that each
-# handle a single responsibility.
+# Helper functions for .calculate_lm() These internal functions decompose the
+# main function logic into focused, testable components that each handle a
+# single responsibility.
 
 #' @title Validate Input Parameters for LM Interaction Testing
 #'

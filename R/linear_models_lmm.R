@@ -136,15 +136,15 @@
     # Strategy 1: Try nlme::lme() - more stable than lme4 for some datasets
     if (requireNamespace("nlme", quietly = TRUE)) {
         if (verbose) {
-            fit0_nlme <- try(nlme::lme(entropy ~ q + group, random = ~1 | subject, data = df,
-                method = "ML"), silent = TRUE)
-            fit1_nlme <- try(nlme::lme(entropy ~ q * group, random = ~1 | subject, data = df,
-                method = "ML"), silent = TRUE)
+            fit0_nlme <- try(nlme::lme(entropy ~ q + group, random = ~1 | subject,
+                data = df, method = "ML"), silent = TRUE)
+            fit1_nlme <- try(nlme::lme(entropy ~ q * group, random = ~1 | subject,
+                data = df, method = "ML"), silent = TRUE)
         } else {
-            fit0_nlme <- try(nlme::lme(entropy ~ q + group, random = ~1 | subject, data = df,
-                method = "ML"), silent = TRUE)
-            fit1_nlme <- try(nlme::lme(entropy ~ q * group, random = ~1 | subject, data = df,
-                method = "ML"), silent = TRUE)
+            fit0_nlme <- try(nlme::lme(entropy ~ q + group, random = ~1 | subject,
+                data = df, method = "ML"), silent = TRUE)
+            fit1_nlme <- try(nlme::lme(entropy ~ q * group, random = ~1 | subject,
+                data = df, method = "ML"), silent = TRUE)
         }
         if (!inherits(fit0_nlme, "try-error") && !inherits(fit1_nlme, "try-error")) {
             if (verbose)

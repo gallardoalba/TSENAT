@@ -93,8 +93,8 @@
 #' theme_minimal scale_color_brewer
 #' @importFrom cowplot plot_grid
 
-.plot_lm <- function(se, lm_res, condition_col = "condition", genes = NULL,
-    n_top = 6, sig_alpha = 0.05, assay_name = "diversity", model_data = NULL, output_file = NULL,
+.plot_lm <- function(se, lm_res, condition_col = "condition", genes = NULL, n_top = 6,
+    sig_alpha = 0.05, assay_name = "diversity", model_data = NULL, output_file = NULL,
     width = NULL, height = NULL) {
 
     # Validate and extract inputs

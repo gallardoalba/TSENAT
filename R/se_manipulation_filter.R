@@ -291,7 +291,8 @@
         min_tx_per_gene <- 2L
         min_isoform_abundance <- 0.01  # 1% - permissive
     } else if (stringency == "medium") {
-        # For paired designs with few pairs (< 3), relax the min_samples requirement
+        # For paired designs with few pairs (< 3), relax the min_samples
+        # requirement
         if (!is.null(n_pairs) && n_pairs < 3) {
             min_samples <- ceiling(0.5 * n_samples)
         } else {
@@ -558,23 +559,18 @@
     # Get assays and discover TPM source
     assays_list <- SummarizedExperiment::assays(se)
     tpm_result <- .get_assay_filtering(se, assays_list, tpm_assay_name, assay_name)
-    
+
     # Validate that TPM was found
     if (is.null(tpm_result)) {
         stop("TPM data is required for diversity filtering but was not found.\n",
-             "To resolve this, ensure TPM is provided when building the analysis:\n\n",
-             "  analysis <- build_analysis(\n",
-             "    readcounts = readcounts,\n",
-             "    metadata = metadata_df,\n",
-             "    tx2gene = gff3_file,\n",
-             "    tpm = tpm,                    # Required: TPM matrix from SALMON\n",
-             "    effective_length = effective_length,\n",
-             "    config = config\n",
-             "  )\n\n",
-             "TPM will be stored in metadata(se)$tpm and used for filtering.",
-             call. = FALSE)
+            "To resolve this, ensure TPM is provided when building the analysis:\n\n",
+            "  analysis <- build_analysis(\n", "    readcounts = readcounts,\n",
+            "    metadata = metadata_df,\n", "    tx2gene = gff3_file,\n", "    tpm = tpm,                    # Required: TPM matrix from SALMON\n",
+            "    effective_length = effective_length,\n", "    config = config\n",
+            "  )\n\n", "TPM will be stored in metadata(se)$tpm and used for filtering.",
+            call. = FALSE)
     }
-    
+
     assay_mat <- tpm_result$mat
     assay_source <- tpm_result$source
 
@@ -610,7 +606,7 @@
             if (is.na(pair_col)) {
                 # No pair column found - treat as unpaired design
                 if (verbose) {
-                    message("No pair column detected. Treating as unpaired design.")
+                  message("No pair column detected. Treating as unpaired design.")
                 }
                 pair_col <- NULL
             } else if (verbose) {
@@ -630,7 +626,8 @@
 
         # Calculate stringency-based thresholds
         n_samples <- ncol(se)
-        n_pairs <- if (!is.null(pair_col)) length(unique(col_data[[pair_col]])) else NULL
+        n_pairs <- if (!is.null(pair_col))
+            length(unique(col_data[[pair_col]])) else NULL
         stringency_result <- .calculate_stringency_thresholds(stringency, n_samples,
             n_pairs)
         min_samples <- stringency_result$min_samples

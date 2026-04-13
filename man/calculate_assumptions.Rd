@@ -39,8 +39,8 @@ Explicit: character vector like \code{c('exchangeability', 'monotonicity')}.}
 \item{alpha}{\code{numeric}. Significance level for tests (default: 0.05).}
 
 \item{format}{\code{character}. Output format when used with \code{results()}.
-"text" (default): formatted text output for display
-"list": returns structured list for programmatic access.}
+'text' (default): formatted text output for display
+'list': returns structured list for programmatic access.}
 
 \item{...}{Additional arguments (output_file, verbose for file output).}
 }

@@ -270,11 +270,11 @@
 #' # Run linear model interaction analysis
 #' results <- .calculate_lm(se, condition_col = 'condition')
 #' @noRd
-.calculate_lm <- function(se, condition_col = "condition", min_obs = 5,
-    method = c("lmm", "gam", "fpca", "gee"), pvalue = c("satterthwaite", "lrt", "both"),
-    subject_col = NULL, paired = FALSE, nthreads = 1, assay_name = "diversity", pcorr = "BH",
-    verbose = FALSE, bias_correction = TRUE, regularization = c("pca", "lasso", "elasticnet",
-        "gamsel", "spline"), corstr = c("ar1", "exchangeable", "independence"), multicorr = c("hochberg",
+.calculate_lm <- function(se, condition_col = "condition", min_obs = 5, method = c("lmm",
+    "gam", "fpca", "gee"), pvalue = c("satterthwaite", "lrt", "both"), subject_col = NULL,
+    paired = FALSE, nthreads = 1, assay_name = "diversity", pcorr = "BH", verbose = FALSE,
+    bias_correction = TRUE, regularization = c("pca", "lasso", "elasticnet", "gamsel",
+        "spline"), corstr = c("ar1", "exchangeable", "independence"), multicorr = c("hochberg",
         "westfall-young", "benjamini-yekutieli"), storey = FALSE, wy_randomizations = 1000,
     adaptive_knots = TRUE, return_model_data = FALSE) {
     # Normalize and validate arguments
@@ -339,8 +339,7 @@
 
     # Fit models to all genes
     if (verbose)
-        message("[.calculate_lm] Starting .fit_all_genes() for ", nrow(mat),
-            " genes")
+        message("[.calculate_lm] Starting .fit_all_genes() for ", nrow(mat), " genes")
 
     # Phase 15: Wrap .fit_all_genes in try-error to catch any errors during
     # fitting
@@ -357,8 +356,8 @@
         } else {
             as.character(res)
         }
-        warning("[.calculate_lm] .fit_all_genes() failed with: ", error_msg,
-            "\n[Returning empty results]", call. = FALSE)
+        warning("[.calculate_lm] .fit_all_genes() failed with: ", error_msg, "\n[Returning empty results]",
+            call. = FALSE)
         res <- data.frame()
     }
 

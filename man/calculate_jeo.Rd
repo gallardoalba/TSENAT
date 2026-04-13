@@ -112,7 +112,7 @@ analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
 # Run jackknife estimation
 analysis <- calculate_jeo(analysis, q = c(0.5, 1.0, 1.5))
 # Check jackknife results using unified accessor
-jackknife_res <- results(analysis, type = "jackknife")
+jackknife_res <- results(analysis, type = 'jackknife')
 if (!is.null(jackknife_res)) names(jackknife_res)
 
 }

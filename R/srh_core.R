@@ -399,9 +399,8 @@
 #' )
 #' head(results_paired)
 #' @noRd
-.calculate_srh <- function(data, entropy_col = "diversity", q_col = "q",
-    gene_col = "gene", condition_col = NULL, paired = FALSE, subject_col = "paired_samples",
-    multicorr = c("hochberg",
+.calculate_srh <- function(data, entropy_col = "diversity", q_col = "q", gene_col = "gene",
+    condition_col = NULL, paired = FALSE, subject_col = "paired_samples", multicorr = c("hochberg",
         "benjamini-yekutieli", "westfall-young", "none"), wy_randomizations = 500,
     nperm_mode = "standard", nthreads = 1, alpha = 0.05, p_threshold = 0.05, eta2_threshold_moderate = 0.01,
     eta2_threshold_strong = 0.1, min_nperm = 100, max_nperm = 10000, n_permutations = 5000,
