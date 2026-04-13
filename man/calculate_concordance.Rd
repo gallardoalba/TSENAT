@@ -11,7 +11,16 @@ calculate_concordance(analysis_lm, analysis_rank = NULL, ...)
   analysis_lm,
   analysis_rank = NULL,
   verbose = FALSE,
-  output_file = NULL
+  output_file = NULL,
+  ...
+)
+
+\S4method{calculate_concordance}{TSENATAnalysis}(
+  analysis_lm,
+  analysis_rank = NULL,
+  verbose = FALSE,
+  output_file = NULL,
+  ...
 )
 }
 \arguments{
