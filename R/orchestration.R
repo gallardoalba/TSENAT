@@ -420,7 +420,7 @@ TSENAT_config <- function(q = 1.0, condition_col = "condition", subject_col = NU
     stringency = "medium", nthreads = 1, norm = TRUE, 
     bootstrap_ci = 0.95, bootstrap_include_diagnostics = TRUE, min_valid_frac = 0.75,
     norm_method = NULL, pseudocount = 0, shrinkage = "none", lm_method = "gam",
-    lm_pcorr = "BH", jis_use_lm_fdr = TRUE, divergence_ci = 0.95, ...) {
+    lm_pcorr = "BH", jis_use_lm_fdr = TRUE, divergence_ci = 0.95, assumptions_checks = "all", ...) {
     # Validate always-required parameters
     if (is.null(sample_col) || !is.character(sample_col)) {
         stop("'sample_col' is required and must be character (column name for samples)",
@@ -465,6 +465,13 @@ TSENAT_config <- function(q = 1.0, condition_col = "condition", subject_col = NU
         stop("'divergence_ci' must be a probability in (0, 1)", call. = FALSE)
     }
 
+    # Validate assumptions_checks
+    valid_assumptions_checks <- c("rank", "gam", "all")
+    if (!assumptions_checks %in% valid_assumptions_checks) {
+        stop("'assumptions_checks' must be one of: ", paste(valid_assumptions_checks, collapse = ", "),
+            call. = FALSE)
+    }
+
     # Build config list with all parameters
     config <- list(
         q = q,
@@ -491,7 +498,8 @@ TSENAT_config <- function(q = 1.0, condition_col = "condition", subject_col = NU
         lm_method = lm_method,
         lm_pcorr = lm_pcorr,
         jis_use_lm_fdr = jis_use_lm_fdr,
-        divergence_ci = divergence_ci
+        divergence_ci = divergence_ci,
+        assumptions_checks = assumptions_checks
     )
 
     # Add any additional parameters (except metadata - should be explicit to build_analysis)
@@ -901,8 +909,11 @@ TSENAT_config <- function(q = 1.0, condition_col = "condition", subject_col = NU
     if (verbose)
         message(sprintf("[>] [%2d/17] Validating rank-based test assumptions", 15))
     
+    cfg <- getConfig(analysis)
+    checks_type <- cfg$assumptions_checks %||% "all"
+    
     output_file <- .build_output_file("assumptions_check", output_dir, output_format)
-    analysis <- calculate_assumptions(analysis, checks = "all", verbose = FALSE, 
+    analysis <- calculate_assumptions(analysis, checks = checks_type, verbose = FALSE, 
                                      output_file = output_file)
     
     if (verbose)
@@ -1015,13 +1026,18 @@ TSENAT_config <- function(q = 1.0, condition_col = "condition", subject_col = NU
         }
         
         output <- paste0(output,
-            "\n[TIPS] Next steps:\n",
-            "  show(result)             - View object structure and slots\n",
-            "  summary(result)          - Print detailed statistics summary\n",
-            "  results(result)          - Extract numerical results (diversity, divergence, etc.)\n",
-            "  getPlot(result, type)    - Retrieve specific visualization (e.g., 'diversity', 'volcano')\n",
-            "  metadata(result)         - Access metadata and workflow parameters\n",
-            "  se(result)               - Get SummarizedExperiment object for downstream analysis\n",
+            "\n[TIPS] Extract Results - Common Examples:\n",
+            "  # View object structure\n",
+            "  show(result)\n\n",
+            "  # View detailed statistics summary\n",
+            "  summary(result)\n\n",
+            "  # Tsallis Entropy Diversity (get results for specific sample at q=1.0)\n",
+            "  div <- results(result, type = 'diversity', n_genes = 4, sample = 'SRR14800481')\n\n",
+            "  # Linear Model Interaction Results (top 10 genes by p-value)\n",
+            "  lm <- results(result, type = 'lm', rankBy = 'pvalue', n = 10)\n\n",
+            "  # Visualizations\n",
+            "  getPlot(result, type = 'diversity')     # Diversity spectrum plot\n",
+            "  getPlot(result, type = 'lm_gam')        # LM interaction GAM curves\n",
             "\n"
         )
         

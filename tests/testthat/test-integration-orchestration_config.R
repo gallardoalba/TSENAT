@@ -54,18 +54,30 @@ make_test_se <- function() {
 # ============================================================================
 
 test_that("TSENAT_config creates and stores configurations", {
-  # Test 1: Defaults
-  config <- TSENAT_config()
+  # Test 1: Minimal required parameters
+  config <- TSENAT_config(
+    sample_col = "sample",
+    condition_col = "condition",
+    q = 1.0
+  )
   expect_true(is.list(config))
   expect_true("q" %in% names(config))
   
-  # Test 2: Custom parameters
-  config <- TSENAT_config(p_threshold = 0.01, seed = 123)
+  # Test 2: Custom parameters with required ones
+  config <- TSENAT_config(
+    sample_col = "sample",
+    condition_col = "condition",
+    q = 1.0,
+    p_threshold = 0.01,
+    seed = 123
+  )
   expect_equal(config$p_threshold, 0.01)
   expect_equal(config$seed, 123)
   
   # Test 3: All provided arguments
   config <- TSENAT_config(
+    sample_col = "sample",
+    condition_col = "condition",
     p_threshold = 0.05,
     q = c(0.5, 1.0, 1.5),
     norm = "none"
@@ -77,12 +89,21 @@ test_that("TSENAT_config creates and stores configurations", {
 
 test_that("TSENAT_config validates parameters", {
   # Test q validation
-  config <- TSENAT_config(q = c(0.5, 1.0, 1.5))
+  config <- TSENAT_config(
+    sample_col = "sample",
+    condition_col = "condition",
+    q = c(0.5, 1.0, 1.5)
+  )
   expect_true(is.numeric(config$q))
   expect_true(length(config$q) >= 1)
   
   # Test stringency parameter
-  config <- TSENAT_config(stringency = "medium")
+  config <- TSENAT_config(
+    sample_col = "sample",
+    condition_col = "condition",
+    q = 1.0,
+    stringency = "medium"
+  )
   expect_equal(config$stringency, "medium")
 })
 
@@ -90,16 +111,31 @@ test_that("TSENAT_config/getConfig/setConfig integration", {
   se <- make_test_se()
   
   # getConfig test
-  analysis <- TSENATAnalysis(se, config = TSENAT_config(seed = 99))
+  analysis <- TSENATAnalysis(se, config = TSENAT_config(
+    sample_col = "sample",
+    condition_col = "condition",
+    q = 1.0,
+    seed = 99
+  ))
   config <- getConfig(analysis)
   expect_equal(config$seed, 99)
   
   # setConfig test
-  analysis_new <- setConfig(analysis, TSENAT_config(seed = 2))
+  analysis_new <- setConfig(analysis, TSENAT_config(
+    sample_col = "sample",
+    condition_col = "condition",
+    q = 1.0,
+    seed = 2
+  ))
   expect_equal(analysis_new@config$seed, 2)
   
   # Preserves SE data
-  new_config <- TSENAT_config(p_threshold = 0.001)
+  new_config <- TSENAT_config(
+    sample_col = "sample",
+    condition_col = "condition",
+    q = 1.0,
+    p_threshold = 0.001
+  )
   analysis_new <- setConfig(analysis, new_config)
   expect_identical(
     SummarizedExperiment::assay(analysis_new@se, "counts"),
@@ -129,7 +165,13 @@ test_that("tsenat pipeline requires TSENATAnalysis object", {
 
 test_that("tsenat passes config parameters through pipeline", {
   se <- make_test_se()
-  config <- TSENAT_config(p_threshold = 0.001, seed = 777)
+  config <- TSENAT_config(
+    sample_col = "sample",
+    condition_col = "condition",
+    q = 1.0,
+    p_threshold = 0.001,
+    seed = 777
+  )
   analysis <- TSENATAnalysis(se, config = config)
   
   expect_equal(getConfig(analysis)$seed, 777)
@@ -142,7 +184,11 @@ test_that("tsenat passes config parameters through pipeline", {
 
 test_that(".validate_analysis_object accepts valid objects", {
   se <- make_test_se()
-  analysis <- TSENATAnalysis(se, config = TSENAT_config())
+  analysis <- TSENATAnalysis(se, config = TSENAT_config(
+    sample_col = "sample",
+    condition_col = "condition",
+    q = 1.0
+  ))
   
   # Should not raise error for valid object
   expect_no_error(.validate_analysis_object(analysis))
@@ -150,7 +196,11 @@ test_that(".validate_analysis_object accepts valid objects", {
 
 test_that(".validate_analysis_object rejects invalid configurations", {
   se <- make_test_se()
-  analysis <- TSENATAnalysis(se, config = TSENAT_config())
+  analysis <- TSENATAnalysis(se, config = TSENAT_config(
+    sample_col = "sample",
+    condition_col = "condition",
+    q = 1.0
+  ))
   
   # Test: Empty SE
   analysis_empty <- analysis
@@ -173,7 +223,11 @@ test_that(".validate_analysis_object rejects invalid configurations", {
 
 test_that(".validate_analysis_object handles missing columns gracefully", {
   se <- make_test_se()
-  analysis <- TSENATAnalysis(se, config = TSENAT_config())
+  analysis <- TSENATAnalysis(se, config = TSENAT_config(
+    sample_col = "sample",
+    condition_col = "condition",
+    q = 1.0
+  ))
   
   # Remove condition column
   coldata <- SummarizedExperiment::colData(analysis@se)
@@ -243,7 +297,12 @@ test_that(".finalize_tsenat_analysis verbose parameter works", {
 
 test_that(".track_analysis_metadata records workflow information", {
   se <- make_test_se()
-  config <- TSENAT_config(fdr_threshold = 0.01, q = c(0.5, 1.0, 1.5))
+  config <- TSENAT_config(
+    sample_col = "sample",
+    condition_col = "condition",
+    fdr_threshold = 0.01,
+    q = c(0.5, 1.0, 1.5)
+  )
   analysis <- TSENATAnalysis(se, config = config)
   
   analysis_tracked <- .track_analysis_metadata(analysis, config)
@@ -261,7 +320,11 @@ test_that(".track_analysis_metadata records workflow information", {
 
 test_that(".track_analysis_metadata preserves and timestamps", {
   se <- make_test_se()
-  config <- TSENAT_config(condition_col = "condition")
+  config <- TSENAT_config(
+    sample_col = "sample",
+    condition_col = "condition",
+    q = 1.0
+  )
   analysis <- TSENATAnalysis(se, config = config)
   analysis@metadata$custom_field <- "custom_value"
   
@@ -287,7 +350,11 @@ test_that(".track_analysis_metadata preserves and timestamps", {
 
 test_that("results returns NULL/errors for edge cases", {
   se <- make_test_se()
-  analysis <- TSENATAnalysis(se, config = TSENAT_config())
+  analysis <- TSENATAnalysis(se, config = TSENAT_config(
+    sample_col = "sample",
+    condition_col = "condition",
+    q = 1.0
+  ))
   
   # Uncomputed results
   expect_null(results(analysis, type = "diversity", format = "table"))
@@ -303,7 +370,11 @@ test_that("results returns NULL/errors for edge cases", {
 
 test_that("results handles diversity with q-value filtering", {
   se <- make_test_se()
-  analysis <- TSENATAnalysis(se, config = TSENAT_config())
+  analysis <- TSENATAnalysis(se, config = TSENAT_config(
+    sample_col = "sample",
+    condition_col = "condition",
+    q = 1.0
+  ))
   
   n_genes <- nrow(se)
   n_samples <- ncol(se)
@@ -337,7 +408,11 @@ test_that("results handles diversity with q-value filtering", {
 
 test_that("results returns all supported result types", {
   se <- make_test_se()
-  analysis <- TSENATAnalysis(se, config = TSENAT_config())
+  analysis <- TSENATAnalysis(se, config = TSENAT_config(
+    sample_col = "sample",
+    condition_col = "condition",
+    q = 1.0
+  ))
   
   n_genes <- nrow(se)
   n_samples <- ncol(se)

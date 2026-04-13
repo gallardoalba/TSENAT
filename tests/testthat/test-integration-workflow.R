@@ -85,7 +85,7 @@ assert_se_dimensions_unchanged <- function(se_original, se_result, operation = "
 
 # Standard TSENAT orchestration call
 run_tsenat_standard <- function(analysis) {
-    TSENAT(analysis, output_dir = NULL, verbose = FALSE)
+    suppressWarnings(TSENAT(analysis, output_dir = NULL, verbose = FALSE))
 }
 
 # Cached wrapper to avoid expensive TSENAT() recomputation across multiple tests
@@ -96,12 +96,12 @@ setup_tsenat_cached <- local({
         if (is.null(.cache)) {
             data_list <- setup_workflow_data_cached()
             # Run full TSENAT orchestration once and cache result
-            .cache <<- TSENAT(
+            .cache <<- suppressWarnings(TSENAT(
                 data_list$analysis,
                 output_dir = NULL,
                 save_output = FALSE,
                 verbose = FALSE
-            )
+            ))
         }
         .cache
     }
@@ -147,30 +147,30 @@ test_that("TSENAT() output handling: manages output_dir and verbose control corr
     output_dir <- tempdir()
     
     # Test 1: With output_dir
-    result_with_output <- TSENAT(
+    result_with_output <- suppressWarnings(TSENAT(
         data_list$analysis,
         output_dir = output_dir,
         verbose = FALSE
-    )
+    ))
     assert_valid_tsenat_result(result_with_output)
     expect_true(dir.exists(output_dir))
     
     # Test 2: With NULL output_dir (no file saving)
-    result_no_output <- TSENAT(
+    result_no_output <- suppressWarnings(TSENAT(
         data_list$analysis,
         output_dir = NULL,
         verbose = FALSE
-    )
+    ))
     assert_valid_tsenat_result(result_no_output)
     
     # Test 3: Verbose output control
-    output <- capture.output({
+    output <- suppressWarnings(capture.output({
         result_verbose <- TSENAT(
             data_list$analysis,
             output_dir = NULL,
             verbose = TRUE
         )
-    })
+    }))
     assert_valid_tsenat_result(result_verbose)
 })
 
