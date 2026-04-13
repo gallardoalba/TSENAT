@@ -294,6 +294,17 @@ setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"), funct
 #' - Genes detected by one method only (potential false positives or method-specific signal)
 #' - Spearman correlation of p-values (overall agreement trends)
 #'
+#' @usage
+#' calculate_concordance(analysis_lm, analysis_rank = NULL, ...)
+#'
+#' \S4method{calculate_concordance}{TSENATAnalysis}(
+#'   analysis_lm,
+#'   analysis_rank = NULL,
+#'   verbose = FALSE,
+#'   output_file = NULL,
+#'   ...
+#' )
+#'
 #' @examples
 #' # Load example data (matching TSENAT.Rmd workflow)
 #' data(readcounts)
