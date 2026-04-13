@@ -217,12 +217,16 @@ if (!is.null(check_results) && !is.null(check_results$assumptions_table)) {
   knitr::kable(
     assumptions_df,
     caption = "Assumption Checks for Scheirer-Ray-Hare Test",
-    format = "html"
+    format = if (knitr::is_latex_output()) "latex" else "html",
+    longtable = knitr::is_latex_output(),
+    linesep = ""
   ) %>%
     kableExtra::kable_styling(
       bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+      full_width = TRUE,
       latex_options = c("scale_down")
-    )
+    ) %>%
+    kableExtra::scroll_box(width = "100%", height = "auto")
 }
 ```
 
@@ -299,7 +303,8 @@ knitr::kable(rank_summary_stats, caption = "Supplementary Table 3 | Scheirer-Ray
     full_width = TRUE,
     latex_options = c("scale_down")
   ) %>%
-  kableExtra::footnote(general = "Scheirer-Ray-Hare test: nonparametric rank-based ANOVA for paired designs.")
+  kableExtra::footnote(general = "Scheirer-Ray-Hare test: nonparametric rank-based ANOVA for paired designs.") %>%
+  kableExtra::scroll_box(width = "100%", height = "auto")
 
 # Show top genes results
 rank_sig <- srh_results_all[!is.na(srh_results_all$p_value), ]
@@ -359,7 +364,8 @@ if (nrow(rank_sig) > 0) {
       full_width = TRUE,
       latex_options = c("scale_down")
     ) %>%
-    kableExtra::footnote(general = "Effect size η² quantifies strength of *q* × condition interaction; top 10 genes ranked by significance. P-values < 0.0001 shown in scientific notation for precision.")
+    kableExtra::footnote(general = "Effect size η² quantifies strength of *q* × condition interaction; top 10 genes ranked by significance. P-values < 0.0001 shown in scientific notation for precision.") %>%
+    kableExtra::scroll_box(width = "100%", height = "auto")
   }
 }
 ```
@@ -426,7 +432,8 @@ knitr::kable(summary_stats, caption = "GAM Results Summary", align = c("l", "r")
     full_width = TRUE,
     latex_options = c("scale_down")
   ) %>%
-  kableExtra::footnote(general = "Aggregate statistics across all genes tested by GAM method; effect size > 30% indicates strong biological signal.")
+  kableExtra::footnote(general = "Aggregate statistics across all genes tested by GAM method; effect size > 30% indicates strong biological signal.") %>%
+  kableExtra::scroll_box(width = "100%", height = "auto")
 
 # Show top genes with additional information
 if ("p_interaction" %in% colnames(gam_results)) {
@@ -500,7 +507,8 @@ if ("p_interaction" %in% colnames(gam_results)) {
         full_width = TRUE,
         latex_options = c("scale_down")
       ) %>%
-      kableExtra::footnote(general = "Top 10 genes ranked by significance; p-values < 0.001 shown in scientific notation; effect size range 0-100%.")
+      kableExtra::footnote(general = "Top 10 genes ranked by significance; p-values < 0.001 shown in scientific notation; effect size range 0-100%.") %>%
+      kableExtra::scroll_box(width = "100%", height = "auto")
     }
   }
 } else {
@@ -535,12 +543,15 @@ if (!is.null(concordance_results) && is.list(concordance_results)) {
     print(knitr::kable(concordance_results$summary_table, 
                        caption = "Global Concordance Metrics: GAM vs Scheirer-Ray-Hare Methods",
                        align = c("l", "r"),
-                       format = if (knitr::is_latex_output()) "latex" else "html") %>%
+                       format = if (knitr::is_latex_output()) "latex" else "html",
+                       longtable = knitr::is_latex_output(),
+                       linesep = "") %>%
             kableExtra::kable_styling(
               bootstrap_options = c("striped", "hover"),
               full_width = TRUE,
               latex_options = c("scale_down")
-            ))
+            ) %>%
+            kableExtra::scroll_box(width = "100%", height = "auto"))
   }
   
   # Display agreement distribution
@@ -549,12 +560,15 @@ if (!is.null(concordance_results) && is.list(concordance_results)) {
     print(knitr::kable(concordance_results$agreement_dist, 
                        caption = "Agreement Distribution: Concordance by Gene Category",
                        align = c("l", "r", "r"),
-                       format = if (knitr::is_latex_output()) "latex" else "html") %>%
+                       format = if (knitr::is_latex_output()) "latex" else "html",
+                       longtable = knitr::is_latex_output(),
+                       linesep = "") %>%
             kableExtra::kable_styling(
               bootstrap_options = c("striped", "hover"),
               full_width = TRUE,
               latex_options = c("scale_down")
-            ))
+            ) %>%
+            kableExtra::scroll_box(width = "100%", height = "auto"))
   }
   
   # Display high-confidence genes (concordant in both methods)
@@ -564,13 +578,16 @@ if (!is.null(concordance_results) && is.list(concordance_results)) {
     print(knitr::kable(concordance_results$high_conf_table, 
                        caption = paste0("Robust Entropic Order Index Interactions: High-Confidence Genes Detected by Both Methods (n=", n_hc, ", ranked by statistical significance)"),
                        align = c("l", "r", "r", "r", "r"),
-                       format = if (knitr::is_latex_output()) "latex" else "html") %>%
+                       format = if (knitr::is_latex_output()) "latex" else "html",
+                       longtable = knitr::is_latex_output(),
+                       linesep = "") %>%
             kableExtra::kable_styling(
               bootstrap_options = c("striped", "hover"),
               full_width = TRUE,
               latex_options = c("scale_down")
             ) %>%
-            kableExtra::footnote(general = "High-confidence genes: significant by both GAM and Scheirer-Ray-Hare rank test (adj p < 0.05); η² = rank test effect size."))
+            kableExtra::footnote(general = "High-confidence genes: significant by both GAM and Scheirer-Ray-Hare rank test (adj p < 0.05); η² = rank test effect size.") %>%
+            kableExtra::scroll_box(width = "100%", height = "auto"))
   }
 } else {
   cat("Concordance results not available\n")

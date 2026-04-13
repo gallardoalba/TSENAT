@@ -295,8 +295,10 @@ shannon_summary <- data.frame(
 knitr::kable(shannon_summary, row.names = FALSE, 
              col.names = c("Method", "Genes Tested", "Significant (padj<0.05)", "Mean log2FC", "SD log2FC"),
              caption = "**Supplementary Table 5 | Shannon Entropy Analysis Summary Statistics.** Differential analysis comparing Normal (N=8) vs Tumor (N=8) samples using SplicingFactory's `calculate_difference()` method.", 
-             align = c("l", "r", "r", "r", "r"), 
-             format = if (knitr::is_latex_output()) "latex" else "html") %>%
+             align = c("l", "r", "r", "r", "r"),
+             format = if (knitr::is_latex_output()) "latex" else "html",
+             longtable = knitr::is_latex_output(),
+             linesep = "") %>%
   kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = TRUE, latex_options = c("scale_down"))
 ```
 
@@ -314,7 +316,8 @@ shannon_sf_top <- TSENAT:::.format_top_genes(
   col_names = c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
 )
 knitr::kable(shannon_sf_top, row.names = FALSE, caption = "**Supplementary Table 6a | SplicingFactory method - Top 10 genes identified by Shannon entropy (naive mode).** Ranked by adjusted *P*-value.", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
-kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = TRUE, latex_options = c("scale_down"))
+kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = TRUE, latex_options = c("scale_down")) %>%
+kableExtra::scroll_box(width = "100%", height = "auto")
 ```
 
 #### Top 10 Significant Genes - TSENAT (Tsallis q=1)
@@ -330,7 +333,8 @@ shannon_tsenat_top <- TSENAT:::.format_top_genes(
   col_names = c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
 )
 knitr::kable(shannon_tsenat_top, row.names = FALSE, caption = "**Supplementary Table 6b | TSENAT method - Top 10 genes identified by Tsallis entropy at q=1 (Shannon equivalence).** Results obtained using SplicingFactory's `calculate_difference()` method applied to TSENAT Tsallis q=1 diversity values. Ranked by adjusted *P*-value.", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
-kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = TRUE, latex_options = c("scale_down"))
+kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = TRUE, latex_options = c("scale_down")) %>%
+kableExtra::scroll_box(width = "100%", height = "auto")
 ```
 
 
@@ -366,7 +370,9 @@ knitr::kable(simpson_summary, row.names = FALSE,
              col.names = c("Method", "Genes Tested", "Significant (padj<0.05)", "Mean log2FC", "SD log2FC"),
              caption = "**Supplementary Table 8 | Simpson Index Analysis Summary Statistics.** Differential analysis using Simpson diversity metric (Gini-Simpson index) comparing Normal (N=8) vs Tumor (N=8) samples using SplicingFactory's `calculate_difference()` method.",
              align = c("l", "r", "r", "r", "r"),
-             format = if (knitr::is_latex_output()) "latex" else "html") %>%
+             format = if (knitr::is_latex_output()) "latex" else "html",
+             longtable = knitr::is_latex_output(),
+             linesep = "") %>%
   kableExtra::kable_styling(
     bootstrap_options = c("striped", "hover"),
     full_width = TRUE,
@@ -392,7 +398,8 @@ kableExtra::kable_styling(
   bootstrap_options = c("striped", "hover"),
   full_width = TRUE,
   latex_options = c("scale_down")
-)
+) %>%
+kableExtra::scroll_box(width = "100%", height = "auto")
 ```
 
 #### Top 10 Significant Genes - TSENAT (Tsallis q=2)
@@ -412,7 +419,8 @@ kableExtra::kable_styling(
   bootstrap_options = c("striped", "hover"),
   full_width = TRUE,
   latex_options = c("scale_down")
-)
+) %>%
+kableExtra::scroll_box(width = "100%", height = "auto")
 ```
 
 

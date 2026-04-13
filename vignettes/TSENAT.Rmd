@@ -389,7 +389,8 @@ if (!is.null(sample_data) && nrow(sample_data) > 0) {
       bootstrap_options = c("striped", "hover"),
       full_width = TRUE,
       latex_options = c("scale_down")
-    )
+    ) %>%
+    kableExtra::scroll_box(width = "100%", height = "auto")
 } else {
   cat("Note: Diversity results not available for the requested q-values. ",
       "Ensure calculate_diversity() was run with appropriate q-value configuration.")
@@ -456,7 +457,8 @@ if (!is.null(sample_qc) && nrow(sample_qc) > 0) {
     bootstrap_options = c("striped", "hover"),
     full_width = TRUE,
     latex_options = c("scale_down")
-  )
+  ) %>%
+  kableExtra::scroll_box(width = "100%", height = "auto")
 }
 ```
 
@@ -515,8 +517,16 @@ if (!is.null(lm_res) && is.data.frame(lm_res) && nrow(lm_res) > 0) {
     knitr::kable(display, 
                 caption = "**Table 3 | Leading genes with scale-dependent condition effects from generalized additive models.** We display the 6 genes with lowest adjusted p-values (*q* < 0.05). Benjamini-Hochberg correction applied; columns show gene identifier, effect size, test statistic, convergence status, and heteroscedasticity detection. Methods: GAMs with *q* and condition as smooth predictors [@S190].",
                 col.names = c("Gene", "Gene Name", "P-value", "Adj. P-value", "Effect Size", "Test Statistic", "Model Converged", "Heteroscedasticity"),
-                digits = 4, row.names = FALSE) %>%
-    kableExtra::kable_styling(latex_options = c("scale_down"))
+                digits = 4, row.names = FALSE,
+                format = if (knitr::is_latex_output()) "latex" else "html",
+                longtable = knitr::is_latex_output(),
+                linesep = "") %>%
+    kableExtra::kable_styling(
+      bootstrap_options = c("striped", "hover"),
+      full_width = TRUE,
+      latex_options = c("scale_down")
+    ) %>%
+    kableExtra::scroll_box(width = "100%", height = "auto")
 }
 ```
 
@@ -569,9 +579,7 @@ We configure three key parameters for the switching analysis: `nboot = 100` spec
 The tables below show the transcript switching patterns for the top genes with strongest q×condition interactions, automatically computed via bootstrap resampling. The `Direction Consistency` column classifies each transcript: "Consistent" indicates stable switching across entropic indices, while "Mixed" indicates scale-dependent switching. This reveals whether isoform shifts involve the same transcripts across scales or whether different entropic indices emphasize different transcripts.
 
 ```{r extract-switching-results, echo=TRUE}
-# Retrieve gene switching tables (default format="text" returns structured list)
-# format="text" returns: $gene_headers, $comparison_tables, $q_metadata for vignette display
-# format="raw" returns original named list of data frames per gene for direct access
+# Retrieve gene switching tables
 tables_result <- results(analysis, type = "switching_tables")
 ```
 
@@ -608,7 +616,8 @@ if (exists("tables_result") && is.list(tables_result) &&
               bootstrap_options = c("striped", "hover"),
               full_width = TRUE,
               latex_options = c("scale_down")
-            ))
+            ) %>%
+            kableExtra::scroll_box(width = "100%", height = "auto"))
     }
     
     cat("\n")
@@ -761,7 +770,8 @@ kableExtra::kable_styling(
   bootstrap_options = c("striped", "hover"),
   full_width = TRUE,
   latex_options = c("scale_down")
-)
+) %>%
+kableExtra::scroll_box(width = "100%", height = "auto")
 ```
 
 ### Interpretation of Pattern Types:
