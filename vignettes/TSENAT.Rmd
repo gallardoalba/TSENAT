@@ -766,16 +766,12 @@ kableExtra::kable_styling(
 
 ### Interpretation of Pattern Types:
 
-| Pattern Type | Signature | Biological Meaning |
-|--------------|-----------|-------------------|
-| Rare driven | D(q=0.5) >> D(q=2.0) | Low-abundance isoforms are condition-specific; treatment group preferentially expresses rare transcripts not seen in control |
-| Abundant driver | D(q=0.5) << D(q=2.0) | High-abundance isoforms shift between conditions; treatment remodels the dominant transcript landscape without rare variants changing |
-| Balanced | D(q=0.5) ~= D(q=2.0) | All isoforms shift proportionally; no preferential weighting to rare or abundant forms; suggests systematic rebalancing |
+- Rare driven: D(q=0.5) >> D(q=2.0). Low-abundance isoforms are condition-specific; treatment group preferentially expresses rare transcripts not seen in control.
+- Abundant driver: D(q=0.5) << D(q=2.0). High-abundance isoforms shift between conditions; treatment remodels the dominant transcript landscape without rare variants changing.
+- Balanced: D(q=0.5) ~= D(q=2.0). All isoforms shift proportionally; no preferential weighting to rare or abundant forms; suggests systematic rebalancing.
 
 The effect sizes reveal which genes show the most information-theoretic separation 
-across the q-spectrum **between paired treatment groups**. Genes with Tsallis divergence D > 0.1 show 
-substantial divergence, indicating that entropy distributions differ fundamentally between conditions 
-across the full q-spectrum.
+across the q-spectrum **between paired treatment groups**. Genes with Tsallis divergence D > 0.1 show substantial divergence, indicating that entropy distributions differ fundamentally between conditions across the full q-spectrum.
 
 **Biological Interpretation:** Following Tsallis entropy theory and information-theoretic principles [@I002; @I003; @I004; @S204], 
 effect size quantification [@I029] 
@@ -833,17 +829,12 @@ print(p)
 
 Statistical Validation During Interpretation:
 
-1. Bootstrap CI validity: Per-q CIs should narrow as q increases [@S232; @S115] (higher q = aggregation 
-   effect, less variance). If CIs grow with q, check for data quality issues.
+1. Bootstrap CI validity: Per-q CIs should narrow as q increases (higher q = aggregation effect, less variance). If CIs grow with q, check for data quality issues [@S232; @S115].
 
-2. Monotonicity check: By Tsallis entropy theory [@I002], entropy is monotone decreasing in q. Divergence 
-   should NOT show erratic increases with q. Small fluctuations are normal, but large spikes 
-   indicate numerical instability.
+2. Monotonicity check: By Tsallis entropy theory , entropy is monotone decreasing in q. Divergence should NOT show erratic increases with q. Small fluctuations are normal, but large spikes indicate numerical instability [@I002].
 
 3. Comparison with genome-wide patterns: Compute q-spectra for housekeeping genes (GAPDH, 
-   ACTB, etc.) [@S023]. These should show BALANCED patterns. If not, revisit normalization parameters.
-
-
+   ACTB, etc.). These should show BALANCED patterns. If not, revisit normalization parameters [@S023].
 
 # Appendices
 
@@ -893,13 +884,13 @@ Objective: Validate q-value * group interaction detection results from statistic
 
 15. Furuichi, S. (2006). "Information theoretical properties of Tsallis entropies." *Journal of Mathematical Physics*, 47, 023302. https://doi.org/10.1063/1.2165744
 
-16. Gandrillon, O., Gaillard, M., Espinasse, T., et al. (2021). "Entropy as a Measure of Variability and Stemness in Single-Cell Transcriptomics." *Entropy*, 21(5), 450
+16. Gandrillon, O., Gaillard, M., Espinasse, T., Garnier, N. B., Dussiau, C., Kosmider, O., & Sujobert, P. (2021). "Entropy as a Measure of Variability and Stemness in Single-Cell Transcriptomics." *Entropy*, 24(1), e93532. https://doi.org/10.3390/e24010018
 
 17. Gao, X., Tsai, S.-B., Liu, F., Pan, L., & Deng, Y. (2019). "Uncertainty Measure Based on Tsallis Entropy in Evidence Theory." *International Journal of Intelligent Systems*, 34(6), 1626–1647. https://doi.org/10.1002/int.22185
 
 18. Golomb, R., Yoles, M., Fishilevich, S., Cohen, O., Savariego Peled, E., Dahary, D., ... & Pilpel, Y. (2026). "An Information Content Principle Explains Regulatory Patterns." *bioRxiv*, ahead of print. https://doi.org/10.1101/2026.02.19.706555
 
-19. Hyndman, R. J., & Athanasopoulos, G. (2018). *Forecasting: Principles and Practice* (2nd ed.). https://otexts.com/fpp2/
+19. Hyndman, R. J., & Athanasopoulos, G. (2018). *Forecasting: Principles and Practice* (2nd ed.). OTexts. https://otexts.com/fpp2/
 
 20. Jost, L. (2006). "Entropy and Diversity." *Oikos*, 113(2), 363–375. https://doi.org/10.1111/j.2006.0030-1299.14714.x
 
@@ -929,7 +920,7 @@ Objective: Validate q-value * group interaction detection results from statistic
 
 33. Tsallis, C. (2017). "On the foundations of statistical mechanics." *European Physical Journal Special Topics*, 226, 1433–1443. https://doi.org/10.1140/epjst/e2016-60252-2
 
-34. Van Erven, T., & Harremoes, P. (2014). "Rényi divergence and Kullback-Leibler divergence." *IEEE Transactions on Information Theory*, 60(7), 3797–3820. https://doi.org/10.1109/TIT.2014.2320500
+34. Van Erven, T., & Harremoes, P. (2014). "Rényi Divergence and Kullback-Leibler Divergence." *IEEE Transactions on Information Theory*, 60(7), 3797–3820. https://doi.org/10.1109/TIT.2014.2320500
 
 35. Yulmetyev, R. M., Emelyanova, N. A., & Gafarov, F. M. (2004). "Dynamical Shannon Entropy and Information." *Physica A*, 341, 649–676. https://doi.org/10.1016/j.physa.2004.03.094
 
