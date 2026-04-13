@@ -24,7 +24,7 @@ results(
 
 \item{type}{\code{character}. \strong{Required.} Type of results to extract:
 'diversity', 'divergence', 'lm', 'jackknife', 'rank_test', 'effect_sizes_divergence',
-'assumptions', or 'switching_tables'.}
+'assumptions', 'concordance', or 'switching_tables'.}
 
 \item{q}{\code{numeric}. For diversity results, optionally return results for 
 a specific q-value only. When specified, returns a single SummarizedExperiment 
@@ -42,8 +42,13 @@ Use NA (default) to return all results. Requires rankBy != 'none'.}
 (0.0-1.0). Only results with adjusted p-value <= filterFDR retained.
 Default: NULL (no filtering).}
 
-\item{format}{\code{character}. Output format: 'auto' (sensible default for type),
-'list', 'dataframe', or 'matrix'. Default: 'auto'.}
+\item{format}{\code{character}. Output format: 'text' (pre-formatted character vector,
+default) or 'list' (structured components). For diversity results with format='se', 
+returns the SummarizedExperiment object directly (useful for downstream processing 
+with other packages like SplicingFactory). For concordance results, 'text' returns 
+pre-formatted character vector for display, while 'list' returns structured components 
+(summary_table, agreement_dist, high_conf, etc.) suitable for custom display.
+Default: 'text'.}
 
 \item{n_genes}{\code{integer}. Number of genes to display in diversity results.
 Default: 4.}
@@ -61,10 +66,10 @@ Default: 'adj_p_interaction' (most significant first).}
 }
 \value{
 - For diversity with q=NULL: A named list of SummarizedExperiment objects, one per q-value
-  - For diversity with q specified: A single SummarizedExperiment for that q-value
+  - For diversity with q specified and format='auto' or 'table': A data.frame table for display
+  - For diversity with q specified and format='se': The SummarizedExperiment object directly (useful for SplicingFactory)
   - For divergence: A SummarizedExperiment (rows=genes, columns=q-values), data.frame, or other format depending on divergence computation method
   - For lm/jackknife: A data.frame or list based on type and format
-  - For pairwise: A data.frame with pairwise comparison difference metrics
   - For effect_sizes_divergence: A list containing effect size divergence results with components like interaction_results
   - For assumptions: A list containing rank-based assumption checks (exchangeability, monotonicity, consistency) and optional method-specific diagnostics (gam_metrics, gee_metrics, lmm_metrics, fpca_metrics)
   - For switching_tables: A list containing gene switching comparison tables
@@ -107,15 +112,15 @@ analysis <- calculate_diversity(analysis)
 # Get all diversity results (list of SummarizedExperiment objects, one per q)
 div_all <- results(analysis, type = 'diversity')
 
-# Get diversity for specific q-value (single SummarizedExperiment)
+# Get diversity for specific q-value (single SummarizedExperiment table for display)
 div_q1 <- results(analysis, type = 'diversity', q = 1.0)
+
+# Get diversity for specific q-value as SummarizedExperiment for downstream processing (e.g., SplicingFactory)
+div_q1_se <- results(analysis, type = 'diversity', q = 1.0, format = 'se')
 
 # Get results ranked by p-value, top 20 genes
 # Using accessor function instead of @ slot access
 top_lm <- results(analysis, type = 'lm', rankBy = 'pvalue', n = 20)
-
-# Get pairwise results (e.g., differential diversity metrics between conditions)
-pairwise_diff <- results(analysis, type = 'pairwise')
 
 # Get effect size results, top 6 genes by p-value (most significant first)
 top_effect_sizes <- results(analysis, type = 'effect_sizes_divergence', 

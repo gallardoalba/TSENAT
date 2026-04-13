@@ -312,8 +312,7 @@ setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_lm, analy
 
         # Call the refactored function with two objects (auto-detect methods)
         concordance_result <- tryCatch({
-            .calculate_concordance(analysis_lm = analysis_lm, analysis_rank = analysis_rank,
-                lm_method = NULL, rank_method = NULL)
+            .calculate_concordance(analysis_lm = analysis_lm, analysis_rank = analysis_rank)
         }, error = function(e) {
             stop("[calculate_concordance] ", conditionMessage(e), call. = FALSE)
         })
@@ -344,13 +343,28 @@ setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_lm, analy
             }
         }
 
-        # Save to file if requested
-        if (!is.null(output_file)) {
-            if (verbose) {
-                message("[calculate_concordance] Writing results to: ", output_file)
-            }
-            saveRDS(analysis_lm, file = output_file)
+        # Always generate and save formatted concordance results to txt file
+        concordance_text <- results(analysis_lm, type = "concordance")
+        
+        # Use provided output_file or generate default
+        if (is.null(output_file)) {
+            output_file <- "concordance_results.txt"
         }
+        
+        # Ensure file has .txt extension
+        if (!grepl("\\.txt$", output_file, ignore.case = TRUE)) {
+            output_file <- paste0(output_file, ".txt")
+        }
+        
+        # Write formatted results to file
+        writeLines(concordance_text, con = output_file)
+        
+        if (verbose) {
+            message("[calculate_concordance] Results written to: ", output_file)
+        }
+        
+        # Store the output file path in metadata
+        analysis_lm@metadata$concordance_results_file <- output_file
 
         return(analysis_lm)
     }
@@ -417,8 +431,7 @@ setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_lm, analy
     temp_rank@rank_test_results <- list(temp = rank_test_results)
 
     concordance_result <- tryCatch({
-        .calculate_concordance(analysis_lm = temp_lm, analysis_rank = temp_rank,
-            lm_method = "temp", rank_method = "temp")
+        .calculate_concordance(analysis_lm = temp_lm, analysis_rank = temp_rank)
     }, error = function(e) {
         stop("[calculate_concordance] ", conditionMessage(e), call. = FALSE)
     })
@@ -449,16 +462,28 @@ setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_lm, analy
         }
     }
 
-    # =================================================================== SAVE
-    # TO FILE (if output_file provided)
-    # ===================================================================
-
-    if (!is.null(output_file)) {
-        if (verbose) {
-            message("[calculate_concordance] Writing results to: ", output_file)
-        }
-        saveRDS(analysis_lm, file = output_file)
+    # Always generate and save formatted concordance results to txt file
+    concordance_text <- results(analysis_lm, type = "concordance")
+    
+    # Use provided output_file or generate default
+    if (is.null(output_file)) {
+        output_file <- "concordance_results.txt"
     }
+    
+    # Ensure file has .txt extension
+    if (!grepl("\\.txt$", output_file, ignore.case = TRUE)) {
+        output_file <- paste0(output_file, ".txt")
+    }
+    
+    # Write formatted results to file
+    writeLines(concordance_text, con = output_file)
+    
+    if (verbose) {
+        message("[calculate_concordance] Results written to: ", output_file)
+    }
+    
+    # Store the output file path in metadata
+    analysis_lm@metadata$concordance_results_file <- output_file
 
     analysis_lm
 })

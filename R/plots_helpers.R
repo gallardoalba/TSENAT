@@ -1825,8 +1825,7 @@
         return(genes)
     }
 
-    # Select top genes by p-value (does not filter by significance threshold)
-    # sig_alpha is used for visualization highlighting, not gene selection
+    # Identify p-value column
     if ("adj_p_interaction" %in% colnames(lm_res)) {
         p_col <- "adj_p_interaction"
     } else if ("p_interaction" %in% colnames(lm_res)) {
@@ -1836,13 +1835,17 @@
             call. = FALSE)
     }
 
-    # Sort by p-value and select top n_top genes (regardless of sig_alpha threshold)
-    top_idx <- order(lm_res[[p_col]])[seq_len(min(n_top, nrow(lm_res)))]
-    top_genes <- lm_res[top_idx, , drop = FALSE]
+    # Filter to significant genes (p-value < sig_alpha)
+    sig_genes <- lm_res[lm_res[[p_col]] < sig_alpha, , drop = FALSE]
 
-    if (nrow(top_genes) == 0) {
+    # If no significant genes, return NULL
+    if (nrow(sig_genes) == 0) {
         return(NULL)
     }
+
+    # Sort by p-value and select top n_top genes
+    top_idx <- order(sig_genes[[p_col]])[seq_len(min(n_top, nrow(sig_genes)))]
+    top_genes <- sig_genes[top_idx, , drop = FALSE]
 
     # Return gene names sorted by p-value
     top_genes$gene

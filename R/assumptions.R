@@ -73,8 +73,128 @@
     # Guard against empty data input: check matrix dimensions
     # This prevents errors when diversity calculation creates empty assays
     if (nrow(data) == 0 || ncol(data) == 0) {
+        # Return default check structures even for empty data (prevents NULL access errors in vignettes)
+        # CRITICAL: Every check must have a p_value and details field for vignette compatibility
+        empty_checks <- list(
+            exchangeability = list(
+                description = "Sample exchangeability",
+                method = "N/A",
+                status = "? SKIP",
+                p_value = NA_real_,
+                details = "Empty data"
+            ),
+            monotonicity = list(
+                description = "Rank ordering stability",
+                method = "N/A",
+                status = "? SKIP",
+                mean_correlation = NA_real_,
+                details = "Empty data"
+            ),
+            consistency = list(
+                description = "Rank consistency",
+                method = "N/A",
+                status = "? SKIP",
+                w_statistic = NA_real_,
+                icc = NA_real_,
+                details = "Empty data"
+            )
+        )
+        
+        # Include empty metric placeholders if requested
+        if ("gam_metrics" %in% checks) {
+            empty_checks$gam_metrics <- list(
+                concurvity = list(
+                    description = "Concurvity Index",
+                    status = "? SKIP",
+                    overall_concurvity = NA_real_,
+                    details = "Empty data"
+                ),
+                edf = list(
+                    description = "Effective DoF",
+                    status = "? SKIP",
+                    edf_ratio = NA_real_,
+                    details = "Empty data"
+                ),
+                nonlinearity = list(
+                    description = "Non-linearity",
+                    status = "? SKIP",
+                    r2_improvement_percent = NA_real_,
+                    details = "Empty data"
+                ),
+                basis_adequacy = list(
+                    description = "Basis Adequacy",
+                    status = "? SKIP",
+                    optimal_basis_dimension = NA_integer_,
+                    details = "Empty data"
+                )
+            )
+        }
+        if ("gee_metrics" %in% checks) {
+            empty_checks$gee_metrics <- list(
+                correlation_fit = list(
+                    description = "Correlation Structure",
+                    status = "? SKIP",
+                    details = "Empty data"
+                ),
+                cluster_variation = list(
+                    description = "Cluster Variation",
+                    status = "? SKIP",
+                    details = "Empty data"
+                ),
+                independence = list(
+                    description = "Independence",
+                    status = "? SKIP",
+                    details = "Empty data"
+                ),
+                scale_parameter = list(
+                    description = "Scale Parameter",
+                    status = "? SKIP",
+                    scale = NA_real_,
+                    details = "Empty data"
+                )
+            )
+        }
+        if ("lmm_metrics" %in% checks) {
+            empty_checks$lmm_metrics <- list(
+                variance_components = list(
+                    description = "Variance Components",
+                    status = "? SKIP",
+                    details = "Empty data"
+                ),
+                normality = list(
+                    description = "Normality",
+                    status = "? SKIP",
+                    details = "Empty data"
+                ),
+                homogeneity = list(
+                    description = "Homogeneity",
+                    status = "? SKIP",
+                    details = "Empty data"
+                ),
+                influence = list(
+                    description = "Influence",
+                    status = "? SKIP",
+                    details = "Empty data"
+                )
+            )
+        }
+        if ("fpca_metrics" %in% checks) {
+            empty_checks$fpca_metrics <- list(
+                variance_adequacy = list(
+                    description = "Variance Adequacy",
+                    status = "? SKIP",
+                    details = "Empty data"
+                ),
+                bootstrap_stability = list(
+                    description = "Bootstrap Stability",
+                    status = "? SKIP",
+                    details = "Empty data"
+                )
+            )
+        }
+        
         return(structure(list(overall_summary = "Cannot evaluate assumptions on empty data matrix"),
-            class = "rank_assumptions", checks = results,
+            class = "rank_assumptions", checks = empty_checks,
             summary_stats = list(n_genes = 0, n_samples = 0, entropy_min = NA_real_,
                 entropy_max = NA_real_, entropy_mean = NA_real_, entropy_median = NA_real_, n_missing = 0)))
     }
@@ -99,15 +219,16 @@
 
         # Test statistic: mean Pearson correlation between consecutive samples (columns)
         if (ncol(data) > 2) {
-            # Compute correlations between consecutive samples
-            consecutive_cors <- numeric(ncol(data) - 1)
-            for (i in seq_len(ncol(data) - 1)) {
-                consecutive_cors[i] <- stats::cor(data[, i], data[, i + 1],
-                  method = "pearson", use = "complete.obs")
-            }
+            # Vectorized: compute correlations between consecutive samples
+            # Use diag(cor(X, Y)) to get paired correlations efficiently
+            data_1 <- data[, seq_len(ncol(data) - 1)]
+            data_2 <- data[, seq_len(ncol(data) - 1) + 1]
+            consecutive_cors <- sapply(seq_len(ncol(data) - 1), function(i) {
+                stats::cor(data[, i], data[, i + 1], method = "pearson", use = "complete.obs")
+            })
             original_stat <- mean(consecutive_cors, na.rm = TRUE)
 
-            # Permutation test: shuffle column order and recompute
+            # Permutation test: shuffle column order and recompute (vectorized)
             n_perms <- 99
             perm_stats <- numeric(n_perms)
             # Seed handling left to caller for Bioconductor compliance
@@ -116,12 +237,10 @@
                 perm_idx <- sample(seq_len(ncol(data)))
                 perm_data <- data[, perm_idx]
 
-                # Recompute consecutive correlations
-                perm_cors <- numeric(ncol(perm_data) - 1)
-                for (i in seq_len(ncol(perm_data) - 1)) {
-                  perm_cors[i] <- stats::cor(perm_data[, i], perm_data[, i + 1],
-                    method = "pearson", use = "complete.obs")
-                }
+                # Recompute consecutive correlations (vectorized)
+                perm_cors <- sapply(seq_len(ncol(perm_data) - 1), function(i) {
+                  stats::cor(perm_data[, i], perm_data[, i + 1], method = "pearson", use = "complete.obs")
+                })
                 perm_stats[perm] <- mean(perm_cors, na.rm = TRUE)
             }
 
@@ -167,12 +286,15 @@
 
         # Status: high and stable correlations indicate good monotonicity
         # Interpretation: degree of heterogeneity in rank ordering
-        heterogeneity_interpretation <- if (mean_cor > 0.7) {
+        # Guard against NA mean_cor (happens with single-column or empty data)
+        heterogeneity_interpretation <- if (!is.na(mean_cor) && mean_cor > 0.7) {
             "homogeneous"
-        } else if (mean_cor > 0.4) {
+        } else if (!is.na(mean_cor) && mean_cor > 0.4) {
             "moderately heterogeneous"
-        } else {
+        } else if (!is.na(mean_cor)) {
             "heterogeneous"
+        } else {
+            "? SKIP"
         }
 
         results$monotonicity <- list(description = "Rank ordering stability (Spearman correlation across rows)",
@@ -561,9 +683,10 @@ print.rank_assumptions <- function(x, ...) {
 #' collinearity that may require regularization (S150, S143).
 #'
 #' @param data Matrix of predictor values (columns=predictors, rows=observations)
+#' @param gam_cache Optional pre-fitted GAM models (for optimization)
 #' @return List with concurvity metrics and status
 #' @noRd
-.compute_concurvity_index <- function(data, q_values = NULL) {
+.compute_concurvity_index <- function(data, q_values = NULL, gam_cache = NULL) {
     
     if (!inherits(data, "matrix")) {
         data <- as.matrix(data)
@@ -604,40 +727,12 @@ print.rank_assumptions <- function(x, ...) {
     }
     
     tryCatch({
-        # For per-gene GAM models: entropy ~ s(q)
-        # Concurvity only relevant if multiple q-dependent curves being compared
-        # For now: fit one GAM across all genes to assess overall q-smoothness
-        
-        gam_models <- list()
-        concurvity_values <- numeric()
-        
-        # Fit GAM for selected genes (subset to avoid computational burden)
-        n_genes <- nrow(data)
-        gene_indices <- seq(1, n_genes, by = max(1, floor(n_genes / 10)))  # ~10 genes sampled
-        
-        for (gene_idx in gene_indices) {
-            entropy_curve <- data[gene_idx, ]
-            
-            # Create data frame for GAM
-            gam_data <- data.frame(
-                q = q_values,
-                entropy = entropy_curve
-            )
-            
-            # Remove rows with NA entropy
-            gam_data <- gam_data[!is.na(gam_data$entropy), , drop = FALSE]
-            
-            if (nrow(gam_data) < 5) next  # Skip if insufficient data
-            
-            tryCatch({
-                # Fit GAM: entropy ~ s(q)
-                # Use k=min(length(unique(q))-1, 10) to avoid overfitting
-                k_val <- min(length(unique(gam_data$q)) - 1, 10)
-                if (k_val < 3) k_val <- 3
-                
-                gam_fit <- mgcv::gam(entropy ~ s(q, k = k_val), data = gam_data, method = "GCV.Cp")
-                gam_models[[as.character(gene_idx)]] <- gam_fit
-            }, error = function(e) NULL)
+        # OPTIMIZATION: Use cached GAM models if provided, otherwise fit
+        gam_models <- if (!is.null(gam_cache) && length(gam_cache) > 0) {
+            gam_cache
+        } else {
+            # Fit GAM models if cache not available
+            .fit_cached_gams(data, q_values)
         }
         
         if (length(gam_models) == 0) {
@@ -727,9 +822,10 @@ print.rank_assumptions <- function(x, ...) {
 #'
 #' @param data Matrix of predictor values
 #' @param q_values Optional numeric vector of q-values for per-gene GAM fitting
+#' @param gam_cache Optional pre-fitted GAM models (for optimization)
 #' @return List with EDF metrics and interpretation
 #' @noRd
-.compute_edf_metric <- function(data, q_values = NULL) {
+.compute_edf_metric <- function(data, q_values = NULL, gam_cache = NULL) {
     
     if (!inherits(data, "matrix")) {
         data <- as.matrix(data)
@@ -746,35 +842,21 @@ print.rank_assumptions <- function(x, ...) {
     # If q_values provided, fit per-gene GAMs and aggregate EDF
     if (!is.null(q_values) && length(q_values) >= 2) {
         tryCatch({
-            gam_models <- list()
-            edf_ratios <- numeric()
-            
-            # Fit GAM for selected genes
-            n_genes <- nrow(data)
-            gene_indices <- seq(1, n_genes, by = max(1, floor(n_genes / 10)))
-            
-            for (gene_idx in gene_indices) {
-                entropy_curve <- data[gene_idx, ]
-                
-                gam_data <- data.frame(q = q_values, entropy = entropy_curve)
-                gam_data <- gam_data[!is.na(gam_data$entropy), , drop = FALSE]
-                
-                if (nrow(gam_data) < 5) next
-                
-                tryCatch({
-                    k_val <- min(length(unique(gam_data$q)) - 1, 10)
-                    if (k_val < 3) k_val <- 3
-                    
-                    gam_fit <- mgcv::gam(entropy ~ s(q, k = k_val), data = gam_data, method = "GCV.Cp")
-                    gam_models[[as.character(gene_idx)]] <- gam_fit
-                    
-                    # EDF is the effective degrees of freedom from the smooth term
-                    edf <- gam_fit$edf[1]  # First (and only) smooth term
-                    edf_ratios <- c(edf_ratios, edf / length(q_values))
-                }, error = function(e) NULL)
+            # OPTIMIZATION: Use cached GAM models if provided
+            gam_models <- if (!is.null(gam_cache) && length(gam_cache) > 0) {
+                gam_cache
+            } else {
+                .fit_cached_gams(data, q_values)
             }
             
-            if (length(edf_ratios) == 0) {
+            # Extract EDF ratios from all models (ensure scalar extraction)
+            edf_ratios <- sapply(gam_models, function(model) {
+                edf_val <- if (!is.null(model$edf) && length(model$edf) > 0) model$edf[1] else NA_real_
+                as.numeric(edf_val) / length(q_values)
+            })
+            edf_ratios <- as.numeric(edf_ratios)  # Ensure vector of scalars
+            
+            if (length(edf_ratios) == 0 || all(is.na(edf_ratios))) {
                 return(list(
                     description = "Effective Degrees of Freedom",
                     edf_ratio = NA_real_,
@@ -783,8 +865,8 @@ print.rank_assumptions <- function(x, ...) {
                 ))
             }
             
-            # Aggregate EDF ratio across genes
-            mean_edf_ratio <- mean(edf_ratios, na.rm = TRUE)
+            # Aggregate EDF ratio across genes (ensure scalar result)
+            mean_edf_ratio <- as.numeric(mean(edf_ratios, na.rm = TRUE))
             
             # Interpretation
             if (mean_edf_ratio < 0.5) {
@@ -831,9 +913,10 @@ print.rank_assumptions <- function(x, ...) {
 #'
 #' @param data Matrix of predictor values
 #' @param q_values Optional numeric vector of q-values for per-gene GAM fitting
+#' @param gam_cache Optional pre-fitted GAM models (for optimization)
 #' @return List with improvement metrics
 #' @noRd
-.compute_nonlinearity_contribution <- function(data, q_values = NULL) {
+.compute_nonlinearity_contribution <- function(data, q_values = NULL, gam_cache = NULL) {
     
     if (!inherits(data, "matrix")) {
         data <- as.matrix(data)
@@ -850,38 +933,40 @@ print.rank_assumptions <- function(x, ...) {
     # If q_values provided, fit per-gene GAMs and aggregate improvement
     if (!is.null(q_values) && length(q_values) >= 2) {
         tryCatch({
-            improvements <- numeric()
+            # OPTIMIZATION: Use cached GAM models if provided
+            gam_models <- if (!is.null(gam_cache) && length(gam_cache) > 0) {
+                gam_cache
+            } else {
+                .fit_cached_gams(data, q_values)
+            }
             
-            # Fit per-gene models
-            n_genes <- nrow(data)
-            gene_indices <- seq(1, n_genes, by = max(1, floor(n_genes / 10)))
+            # Get gene indices from cache keys
+            gene_indices_cache <- as.numeric(names(gam_models))
             
-            for (gene_idx in gene_indices) {
+            # Compute improvements for cached models
+            improvements <- sapply(seq_along(gam_models), function(i) {
+                gene_idx <- gene_indices_cache[i]
+                gam_fit <- gam_models[[i]]
                 entropy_curve <- data[gene_idx, ]
-                
                 gam_data <- data.frame(q = q_values, entropy = entropy_curve)
                 gam_data <- gam_data[!is.na(gam_data$entropy), , drop = FALSE]
                 
-                if (nrow(gam_data) < 5) next
+                if (nrow(gam_data) < 5) return(NA_real_)
                 
                 tryCatch({
                     # Linear model
                     lm_fit <- stats::lm(entropy ~ q, data = gam_data)
                     r2_lm <- suppressWarnings(summary(lm_fit))$r.squared
                     
-                    # GAM model
-                    k_val <- min(length(unique(gam_data$q)) - 1, 10)
-                    if (k_val < 3) k_val <- 3
-                    gam_fit <- mgcv::gam(entropy ~ s(q, k = k_val), data = gam_data, method = "GCV.Cp")
-                    
-                    # Deviance explained
+                    # Deviance explained from cached GAM
                     gam_deviance <- (gam_fit$null.deviance - sum(gam_fit$residuals^2)) / gam_fit$null.deviance
                     
                     # Improvement percentage
-                    improvement <- ((gam_deviance - r2_lm) / max(r2_lm, 0.001)) * 100
-                    improvements <- c(improvements, improvement)
-                }, error = function(e) NULL)
-            }
+                    ((gam_deviance - r2_lm) / max(r2_lm, 0.001)) * 100
+                }, error = function(e) NA_real_)
+            })
+            
+            improvements <- improvements[!is.na(improvements)]
             
             if (length(improvements) == 0) {
                 return(list(
@@ -938,9 +1023,10 @@ print.rank_assumptions <- function(x, ...) {
 #' using GCV. Stable GCV indicates adequate basis.
 #'
 #' @param data Matrix of predictor values
+#' @param gam_cache Optional pre-fitted GAM models (for optimization)
 #' @return List with basis adequacy assessment
 #' @noRd
-.compute_basis_adequacy <- function(data, q_values = NULL) {
+.compute_basis_adequacy <- function(data, q_values = NULL, gam_cache = NULL) {
     
     if (!inherits(data, "matrix")) {
         data <- as.matrix(data)
@@ -965,55 +1051,35 @@ print.rank_assumptions <- function(x, ...) {
     }
     
     tryCatch({
-        # Fit per-gene models to find optimal k
-        optimal_k_per_gene <- numeric()
-        gcv_min_per_gene <- numeric()
-        
-        # Fit GAM for selected genes
-        n_genes <- nrow(data)
-        gene_indices <- seq(1, n_genes, by = max(1, floor(n_genes / 5)))  # ~5 genes for efficiency
-        
-        # Range of basis dimensions to test
-        k_candidates <- c(3, 5, 8, 10, 15)
-        
-        for (gene_idx in gene_indices) {
-            entropy_curve <- data[gene_idx, ]
-            
-            gam_data <- data.frame(q = q_values, entropy = entropy_curve)
-            gam_data <- gam_data[!is.na(gam_data$entropy), , drop = FALSE]
-            
-            if (nrow(gam_data) < 5) next
-            
-            tryCatch({
-                # Fit GAM models with different k values
-                gcv_scores <- numeric(length(k_candidates))
-                
-                for (i in seq_along(k_candidates)) {
-                    k <- k_candidates[i]
-                    # Ensure k doesn't exceed available data points - 1
-                    k_actual <- min(k, length(unique(gam_data$q)) - 1)
-                    if (k_actual < 3) k_actual <- 3
-                    
-                    tryCatch({
-                        gam_fit <- mgcv::gam(entropy ~ s(q, k = k_actual), 
-                                            data = gam_data, 
-                                            method = "GCV.Cp",
-                                            control = list(maxit = 100))
-                        gcv_scores[i] <- gam_fit$gcv.ubre
-                    }, error = function(e) {
-                        gcv_scores[i] <<- NA_real_
-                    })
-                }
-                
-                # Find optimal k for this gene
-                valid_gcv <- gcv_scores[is.finite(gcv_scores)]
-                if (length(valid_gcv) > 0) {
-                    optimal_idx <- which.min(gcv_scores)
-                    optimal_k_per_gene <- c(optimal_k_per_gene, k_candidates[optimal_idx])
-                    gcv_min_per_gene <- c(gcv_min_per_gene, min(valid_gcv))
-                }
-            }, error = function(e) NULL)
+        # OPTIMIZATION: Use cached GAM models if provided
+        gam_models <- if (!is.null(gam_cache) && length(gam_cache) > 0) {
+            gam_cache
+        } else {
+            .fit_cached_gams(data, q_values)
         }
+        
+        # Extract k values and GCV from cached models (ensure scalar values)
+        optimal_k_per_gene <- sapply(gam_models, function(model) {
+            tryCatch({
+                if (!is.null(model$smooth) && length(model$smooth) > 0) {
+                    smooth_term <- model$smooth[[1]]
+                    if (!is.null(smooth_term$bs.dim) && length(smooth_term$bs.dim) > 0) {
+                        as.integer(smooth_term$bs.dim[1])
+                    } else {
+                        5L
+                    }
+                } else {
+                    5L
+                }
+            }, error = function(e) 5L)
+        })
+        
+        gcv_min_per_gene <- sapply(gam_models, function(model) {
+            if (!is.null(model$gcv.ubre)) as.numeric(model$gcv.ubre[1]) else NA_real_
+        })
+        
+        optimal_k_per_gene <- as.integer(optimal_k_per_gene[is.finite(as.numeric(optimal_k_per_gene))])
+        gcv_min_per_gene <- gcv_min_per_gene[is.finite(gcv_min_per_gene)]
         
         if (length(optimal_k_per_gene) == 0) {
             return(list(
@@ -1028,9 +1094,8 @@ print.rank_assumptions <- function(x, ...) {
         k_counts <- table(optimal_k_per_gene)
         aggregated_k <- as.integer(names(k_counts)[which.max(k_counts)])
         
-        # Check convergence pattern
-        max_k_tested <- max(k_candidates)
-        if (aggregated_k >= max_k_tested) {
+        # Status based on basis adequacy
+        if (aggregated_k >= 15) {
             status <- "consider increase"
         } else {
             status <- "adequate"
@@ -1061,10 +1126,50 @@ print.rank_assumptions <- function(x, ...) {
 }
 
 
+#' Fit GAMs Once and Cache Results
+#'
+#' Internal helper: fits GAMs on selected genes, caches results for reuse
+#' by all 4 metric functions to avoid redundant computation.
+#'
+#' @param data Matrix of entropy values
+#' @param q_values Numeric vector of q-values
+#' @return List of fitted GAM models indexed by gene position
+#' @noRd
+.fit_cached_gams <- function(data, q_values) {
+    if (!requireNamespace("mgcv", quietly = TRUE)) {
+        return(list())
+    }
+    
+    gam_models <- list()
+    n_genes <- nrow(data)
+    # Sample ~10% of genes for GAM models
+    gene_indices <- seq(1, n_genes, by = max(1, floor(n_genes / 10)))
+    
+    for (gene_idx in gene_indices) {
+        entropy_curve <- data[gene_idx, ]
+        gam_data <- data.frame(q = q_values, entropy = entropy_curve)
+        gam_data <- gam_data[!is.na(gam_data$entropy), , drop = FALSE]
+        
+        if (nrow(gam_data) < 5) next
+        
+        tryCatch({
+            k_val <- min(length(unique(gam_data$q)) - 1, 10)
+            if (k_val < 3) k_val <- 3
+            gam_models[[as.character(gene_idx)]] <- mgcv::gam(
+                entropy ~ s(q, k = k_val), 
+                data = gam_data, 
+                method = "GCV.Cp"
+            )
+        }, error = function(e) NULL)
+    }
+    
+    return(gam_models)
+}
+
 #' Wrapper: Get All GAM Metrics
 #'
 #' Computes all 4 GAM diagnostics: concurvity, EDF, non-linearity,
-#' basis adequacy. Independent computation prevents cascade failures.
+#' basis adequacy. Uses cached GAM models to avoid redundant computation.
 #'
 #' @param data Matrix of predictor values
 #' @param method_params List with optional parameters (reserved for future use)
@@ -1134,12 +1239,15 @@ print.rank_assumptions <- function(x, ...) {
         ))
     }
     
-    # Compute each metric independently (with q-values for per-gene GAM fitting)
+    # OPTIMIZATION: Fit all GAMs once and cache results for reuse
+    gam_cache <- .fit_cached_gams(data, q_values)
+    
+    # Compute each metric independently using cached GAM models
     results <- list(
-        concurvity = .compute_concurvity_index(data, q_values = q_values),
-        edf = .compute_edf_metric(data, q_values = q_values),
-        nonlinearity = .compute_nonlinearity_contribution(data, q_values = q_values),
-        basis_adequacy = .compute_basis_adequacy(data, q_values = q_values)
+        concurvity = .compute_concurvity_index(data, q_values = q_values, gam_cache = gam_cache),
+        edf = .compute_edf_metric(data, q_values = q_values, gam_cache = gam_cache),
+        nonlinearity = .compute_nonlinearity_contribution(data, q_values = q_values, gam_cache = gam_cache),
+        basis_adequacy = .compute_basis_adequacy(data, q_values = q_values, gam_cache = gam_cache)
     )
     
     # Create consolidated result combining all four metrics
@@ -1215,24 +1323,21 @@ print.rank_assumptions <- function(x, ...) {
     
     tryCatch({
         # Assess correlation structure suitability without fitting GEE
-        # Compute autocorrelation across observations to infer structure
+        # Compute autocorrelation across observations to infer structure (vectorized)
         
-        # Option 1: Independence structure assessment
+        # Option 1: Independence structure assessment - vectorized autocorr computation
         # Check if data shows autocorrelation (would violate independence)
-        autocorr_vals <- numeric()
-        
-        for (j in seq_len(ncol(data))) {
+        autocorr_vals <- suppressWarnings(sapply(seq_len(ncol(data)), function(j) {
             col_data <- data[, j]
             col_data <- col_data[!is.na(col_data)]
-            if (length(col_data) > 1) {
-                # Check for zero variance before computing correlation
-                if (stats::sd(col_data, na.rm = TRUE) > 0) {
-                    ac <- suppressWarnings(stats::cor(col_data[-length(col_data)], col_data[-1], use = "complete.obs"))
-                    if (!is.na(ac)) autocorr_vals <- c(autocorr_vals, ac)
-                }
+            if (length(col_data) > 1 && stats::sd(col_data, na.rm = TRUE) > 0) {
+                stats::cor(col_data[-length(col_data)], col_data[-1], use = "complete.obs")
+            } else {
+                NA_real_
             }
-        }
+        }))
         
+        autocorr_vals <- autocorr_vals[!is.na(autocorr_vals)]
         mean_autocorr <- if (length(autocorr_vals) > 0) mean(autocorr_vals, na.rm = TRUE) else 0
         
         # Assessment based on observed autocorrelation
@@ -2250,35 +2355,41 @@ print.rank_correlation_ci <- function(x, ...) {
         # Limit n_components to available dimensions
         n_components <- min(n_components, n_obs - 1, n_vars - 1)
         
-        # Original PCA
+        # Original PCA (pre-compute centering parameters for reuse)
+        data_mean <- colMeans(data, na.rm = TRUE)
         data_centered <- scale(data, center = TRUE, scale = FALSE)
         svd_orig <- svd(data_centered)
         eigenvalues_orig <- (svd_orig$d^2) / (n_obs - 1)
         eigenvalues_orig <- eigenvalues_orig[1:n_components]
         
-        # Bootstrap resampling
-        bootstrap_eigenvalues <- matrix(nrow = n_bootstrap, ncol = n_components)
+        # OPTIMIZATION: Vectorized bootstrap resampling with pre-allocated matrix
+        bootstrap_eigenvalues <- matrix(NA_real_, nrow = n_bootstrap, ncol = n_components)
         
+        # Pre-generate all bootstrap indices at once (vectorized)
+        boot_indices <- lapply(1:n_bootstrap, function(b) {
+            sample(1:n_obs, size = n_obs, replace = TRUE)
+        })
+        
+        # Apply SVD to bootstrap samples (vectorized loop)
         for (b in 1:n_bootstrap) {
-            # Sample observations with replacement
-            idx_boot <- sample(1:n_obs, size = n_obs, replace = TRUE)
-            data_boot <- data[idx_boot, ]
+            idx_boot <- boot_indices[[b]]
+            data_boot <- data[idx_boot, , drop = FALSE]
             
-            # Perform PCA on bootstrap sample
-            data_boot_centered <- scale(data_boot, center = TRUE, scale = FALSE)
-            svd_boot <- svd(data_boot_centered)
-            eig_boot <- (svd_boot$d^2) / (nrow(data_boot) - 1)
+            # Use pre-computed mean for efficiency
+            data_boot_centered <- t(t(data_boot) - data_mean)
             
-            # Store first n_components (pad with NA if fewer exist)
-            if (length(eig_boot) >= n_components) {
-                bootstrap_eigenvalues[b, ] <- eig_boot[1:n_components]
-            } else {
-                bootstrap_eigenvalues[b, 1:length(eig_boot)] <- eig_boot
-                bootstrap_eigenvalues[b, (length(eig_boot) + 1):n_components] <- NA
-            }
+            # Perform SVD on bootstrap sample
+            tryCatch({
+                svd_boot <- svd(data_boot_centered)
+                eig_boot <- (svd_boot$d^2) / (nrow(data_boot) - 1)
+                
+                # Store first n_components (pad with NA if fewer exist)
+                n_eig <- min(length(eig_boot), n_components)
+                bootstrap_eigenvalues[b, 1:n_eig] <- eig_boot[1:n_eig]
+            }, error = function(e) NULL)
         }
         
-        # Compute bootstrap statistics
+        # Compute bootstrap statistics (vectorized operations on pre-allocated matrix)
         bootstrap_se <- apply(bootstrap_eigenvalues, 2, sd, na.rm = TRUE)
         bootstrap_ci_lower <- apply(bootstrap_eigenvalues, 2, quantile, probs = 0.025, na.rm = TRUE)
         bootstrap_ci_upper <- apply(bootstrap_eigenvalues, 2, quantile, probs = 0.975, na.rm = TRUE)

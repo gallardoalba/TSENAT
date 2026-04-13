@@ -1943,7 +1943,7 @@ test_that("results() accessor for diversity works", {
     }, error = function(e) return(analysis))
     
     result <- tryCatch({
-      TSENAT::results(analysis, type = "diversity")
+      TSENAT::results(analysis, type = "diversity", format = "table")
     }, error = function(e) NULL)
     
     # Just verify it returns something valid or NULL

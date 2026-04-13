@@ -217,416 +217,13 @@ check_results <- results(analysis, type = "assumptions")
 ```
 
 ```{r display-assumption-results, message=FALSE, echo=FALSE}
-# check_results now contains all diagnostic results directly
+# Extract assumption check results - results() handles all complex formatting internally
+check_results <- results(analysis, type = "assumptions")
 
-# Create assumption checks table
-exchangeability_check <- check_results$exchangeability
-monotonicity_check <- check_results$monotonicity
-consistency_check <- check_results$consistency
-
-# Format p-values and statistics with appropriate precision
-format_pvalue <- function(p) {
-  if (is.na(p)) return("NA")
-  if (!is.finite(p)) return("Inf")
-  if (p == 0) return("1e-300")
-  if (p < 0.001) {
-    result <- sprintf("%.2e", p)
-    return(result)
-  }
-  else return(sprintf("%.6f", p))
-}
-
-format_stat <- function(x) {
-  if (is.na(x)) return("NA")
-  if (!is.finite(x)) return("Inf")
-  if (x == 0) return("0")
-  if (x < 0.001) {
-    result <- sprintf("%.2e", x)
-    return(result)
-  }
-  else return(sprintf("%.6f", x))
-}
-
-# Build rank-based checks table
-data_characteristics <- data.frame(
-  Characteristic = c("Paired Structure", "Gene Heterogeneity", "Subject Consistency"),
-  Test = c("Permutation test", "Spearman r", "Kendall's W"),
-  Result = c(
-    exchangeability_check$details,
-    monotonicity_check$details,
-    consistency_check$details
-  ),
-  Interpretation = c(
-    gsub("✓|⚠|✗", "", exchangeability_check$status),
-    gsub("✓|⚠|✗", "", monotonicity_check$status),
-    gsub("✓|⚠|✗", "", consistency_check$status)
-  ),
-  stringsAsFactors = FALSE
-)
-
-# Add GAM metrics if available and successful
-if (!is.null(check_results$gam_metrics) && !isTRUE(check_results$gam_metrics$error)) {
-  gam_metrics <- check_results$gam_metrics
-  
-  gam_rows <- data.frame(
-    Characteristic = character(),
-    Test = character(),
-    Result = character(),
-    Interpretation = character(),
-    stringsAsFactors = FALSE
-  )
-  
-  # Concurvity - include even if empty/error
-  if (!is.null(gam_metrics$concurvity)) {
-    metric <- gam_metrics$concurvity
-    if (isTRUE(metric$error) || is.na(metric$overall_concurvity)) {
-      result_str <- "NA"
-      interp_str <- if (isTRUE(metric$error)) "computation error" else gsub("✓|⚠|✗", "", metric$status)
-    } else {
-      result_str <- sprintf("Index=%.3f", metric$overall_concurvity)
-      interp_str <- gsub("✓|⚠|✗", "", metric$status)
-    }
-    gam_rows <- rbind(gam_rows, data.frame(
-      Characteristic = "Concurvity",
-      Test = "Smooth term collinearity",
-      Result = result_str,
-      Interpretation = interp_str,
-      stringsAsFactors = FALSE
-    ))
-  }
-  
-  # EDF ratio - include even if empty/error
-  if (!is.null(gam_metrics$edf)) {
-    metric <- gam_metrics$edf
-    if (isTRUE(metric$error) || is.na(metric$edf_ratio)) {
-      result_str <- "NA"
-      interp_str <- if (isTRUE(metric$error)) "computation error" else gsub("✓|⚠", "", metric$status)
-    } else {
-      result_str <- sprintf("Ratio=%.3f", metric$edf_ratio)
-      interp_str <- gsub("✓|⚠", "", metric$status)
-    }
-    gam_rows <- rbind(gam_rows, data.frame(
-      Characteristic = "Effective DoF",
-      Test = "Smoothing adequacy",
-      Result = result_str,
-      Interpretation = interp_str,
-      stringsAsFactors = FALSE
-    ))
-  }
-  
-  # Non-linearity contribution - include even if empty/error
-  if (!is.null(gam_metrics$nonlinearity)) {
-    metric <- gam_metrics$nonlinearity
-    if (isTRUE(metric$error) || is.na(metric$r2_improvement_percent)) {
-      result_str <- "NA"
-      interp_str <- if (isTRUE(metric$error)) "computation error" else gsub("✓|⚠", "", metric$status)
-    } else {
-      result_str <- sprintf("Δ R²=%.1f%%", metric$r2_improvement_percent)
-      interp_str <- gsub("✓|⚠", "", metric$status)
-    }
-    gam_rows <- rbind(gam_rows, data.frame(
-      Characteristic = "Non-linearity",
-      Test = "LM vs GAM improvement",
-      Result = result_str,
-      Interpretation = interp_str,
-      stringsAsFactors = FALSE
-    ))
-  }
-  
-  # Basis adequacy - include even if empty/error
-  if (!is.null(gam_metrics$basis_adequacy)) {
-    metric <- gam_metrics$basis_adequacy
-    if (isTRUE(metric$error) || is.na(metric$optimal_basis_dimension)) {
-      result_str <- "NA"
-      interp_str <- if (isTRUE(metric$error)) "computation error" else gsub("✓|⚠|✗", "", metric$status)
-    } else {
-      result_str <- sprintf("k=%d", metric$optimal_basis_dimension)
-      interp_str <- gsub("✓|⚠|✗", "", metric$status)
-    }
-    gam_rows <- rbind(gam_rows, data.frame(
-      Characteristic = "Basis Dimension",
-      Test = "Basis function adequacy",
-      Result = result_str,
-      Interpretation = interp_str,
-      stringsAsFactors = FALSE
-    ))
-  }
-  
-  if (nrow(gam_rows) > 0) {
-    data_characteristics <- rbind(data_characteristics, gam_rows)
-  }
-}
-
-# Add GEE metrics to table (if available)
-if (!is.null(check_results$gee_metrics)) {
-  gee_metrics <- check_results$gee_metrics
-  gee_rows <- data.frame(
-    Characteristic = character(),
-    Test = character(),
-    Result = character(),
-    Interpretation = character(),
-    stringsAsFactors = FALSE
-  )
-  
-  # Working Correlation Structure Fit
-  if (!is.null(gee_metrics$correlation_fit)) {
-    metric <- gee_metrics$correlation_fit
-    has_error <- isTRUE(metric$error)
-    has_structure <- !is.null(metric$assumed_structure)
-    if (has_error || !has_structure) {
-      result_str <- "NA"
-      interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status)
-    } else {
-      result_str <- sprintf("Structure=%s", metric$assumed_structure)
-      interp_str <- gsub("✓|⚠|✗", "", metric$status)
-    }
-    gee_rows <- rbind(gee_rows, data.frame(
-      Characteristic = "Correlation Structure",
-      Test = "Working correlation fit",
-      Result = result_str,
-      Interpretation = interp_str,
-      stringsAsFactors = FALSE
-    ))
-  }
-  
-  # Cluster Size Variation
-  if (!is.null(gee_metrics$cluster_variation)) {
-    metric <- gee_metrics$cluster_variation
-    has_error <- isTRUE(metric$error)
-    cv_valid <- !is.null(metric$cv_cluster_size) && !is.na(metric$cv_cluster_size)
-    if (has_error || !cv_valid) {
-      result_str <- "NA"
-      interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status)
-    } else {
-      result_str <- sprintf("CV=%.3f", metric$cv_cluster_size)
-      interp_str <- gsub("✓|⚠|✗", "", metric$status)
-    }
-    gee_rows <- rbind(gee_rows, data.frame(
-      Characteristic = "Cluster Variation",
-      Test = "Cluster size homogeneity",
-      Result = result_str,
-      Interpretation = interp_str,
-      stringsAsFactors = FALSE
-    ))
-  }
-  
-  # Independence of Residuals
-  if (!is.null(gee_metrics$independence)) {
-    metric <- gee_metrics$independence
-    has_error <- isTRUE(metric$error)
-    corr_valid <- !is.null(metric$mean_residual_correlation) && !is.na(metric$mean_residual_correlation)
-    if (has_error || !corr_valid) {
-      result_str <- "NA"
-      interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status)
-    } else {
-      result_str <- sprintf("Corr=%.3f", metric$mean_residual_correlation)
-      interp_str <- gsub("✓|⚠|✗", "", metric$status)
-    }
-    gee_rows <- rbind(gee_rows, data.frame(
-      Characteristic = "Independence",
-      Test = "Within-cluster residual correlation",
-      Result = result_str,
-      Interpretation = interp_str,
-      stringsAsFactors = FALSE
-    ))
-  }
-  
-  # Scale Parameter (Dispersion)
-  if (!is.null(gee_metrics$scale_parameter)) {
-    metric <- gee_metrics$scale_parameter
-    has_error <- isTRUE(metric$error)
-    phi_valid <- !is.null(metric$scale_parameter) && !is.na(metric$scale_parameter)
-    if (has_error || !phi_valid) {
-      result_str <- "NA"
-      interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status)
-    } else {
-      result_str <- sprintf("φ=%.3f", metric$scale_parameter)
-      interp_str <- gsub("✓|⚠|✗", "", metric$status)
-    }
-    gee_rows <- rbind(gee_rows, data.frame(
-      Characteristic = "Scale Parameter",
-      Test = "Dispersion parameter",
-      Result = result_str,
-      Interpretation = interp_str,
-      stringsAsFactors = FALSE
-    ))
-  }
-  
-  if (nrow(gee_rows) > 0) {
-    data_characteristics <- rbind(data_characteristics, gee_rows)
-  }
-}
-
-# Add LMM (Linear Mixed Models) metrics to table (if available)
-if (!is.null(check_results$lmm_metrics)) {
-  lmm_metrics <- check_results$lmm_metrics
-  lmm_rows <- data.frame(
-    Characteristic = character(),
-    Test = character(),
-    Result = character(),
-    Interpretation = character(),
-    stringsAsFactors = FALSE
-  )
-  
-  # Variance Components (ICC)
-  if (!is.null(lmm_metrics$variance_components)) {
-    metric <- lmm_metrics$variance_components
-    has_error <- isTRUE(metric$error)
-    icc_valid <- !is.null(metric$icc) && !is.na(metric$icc)
-    if (has_error || !icc_valid) {
-      result_str <- "NA"
-      interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status)
-    } else {
-      result_str <- sprintf("ICC=%.3f", metric$icc)
-      interp_str <- gsub("✓|⚠|✗", "", metric$status)
-    }
-    lmm_rows <- rbind(lmm_rows, data.frame(
-      Characteristic = "Variance Components",
-      Test = "Intraclass correlation",
-      Result = result_str,
-      Interpretation = interp_str,
-      stringsAsFactors = FALSE
-    ))
-  }
-  
-  # Random Effects Normality
-  if (!is.null(lmm_metrics$normality)) {
-    metric <- lmm_metrics$normality
-    has_error <- isTRUE(metric$error)
-    pval_valid <- !is.null(metric$shapiro_pvalue) && !is.na(metric$shapiro_pvalue)
-    if (has_error || !pval_valid) {
-      result_str <- "NA"
-      interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status)
-    } else {
-      result_str <- sprintf("W p=%.3f", metric$shapiro_pvalue)
-      interp_str <- gsub("✓|⚠|✗", "", metric$status)
-    }
-    lmm_rows <- rbind(lmm_rows, data.frame(
-      Characteristic = "Random Effects Normality",
-      Test = "Shapiro-Wilk test",
-      Result = result_str,
-      Interpretation = interp_str,
-      stringsAsFactors = FALSE
-    ))
-  }
-  
-  # Variance Homogeneity
-  if (!is.null(lmm_metrics$homogeneity)) {
-    metric <- lmm_metrics$homogeneity
-    has_error <- isTRUE(metric$error)
-    pval_valid <- !is.null(metric$levene_pvalue) && !is.na(metric$levene_pvalue)
-    if (has_error || !pval_valid) {
-      result_str <- "NA"
-      interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status)
-    } else {
-      result_str <- sprintf("Levene p=%.3f", metric$levene_pvalue)
-      interp_str <- gsub("✓|⚠|✗", "", metric$status)
-    }
-    lmm_rows <- rbind(lmm_rows, data.frame(
-      Characteristic = "Variance Homogeneity",
-      Test = "Levene's test",
-      Result = result_str,
-      Interpretation = interp_str,
-      stringsAsFactors = FALSE
-    ))
-  }
-  
-  # Outlier Influence
-  if (!is.null(lmm_metrics$influence)) {
-    metric <- lmm_metrics$influence
-    has_error <- isTRUE(metric$error)
-    inf_valid <- !is.null(metric$n_influential) && !is.na(metric$n_influential)
-    if (has_error || !inf_valid) {
-      result_str <- "NA"
-      interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status)
-    } else {
-      result_str <- sprintf("Influential=%.1f%%", metric$prop_influential * 100)
-      interp_str <- gsub("✓|⚠|✗", "", metric$status)
-    }
-    lmm_rows <- rbind(lmm_rows, data.frame(
-      Characteristic = "Outlier Influence",
-      Test = "Cook's distance assessment",
-      Result = result_str,
-      Interpretation = interp_str,
-      stringsAsFactors = FALSE
-    ))
-  }
-  
-  if (nrow(lmm_rows) > 0) {
-    data_characteristics <- rbind(data_characteristics, lmm_rows)
-  }
-}
-
-# Add FPCA (Functional Principal Component Analysis) metrics to table (if available)
-if (!is.null(check_results$fpca_metrics)) {
-  fpca_metrics <- check_results$fpca_metrics
-  fpca_rows <- data.frame(
-    Characteristic = character(),
-    Test = character(),
-    Result = character(),
-    Interpretation = character(),
-    stringsAsFactors = FALSE
-  )
-  
-  # Cumulative Variance Explained
-  if (!is.null(fpca_metrics$variance_adequacy)) {
-    metric <- fpca_metrics$variance_adequacy
-    has_error <- isTRUE(metric$error)
-    n_comp_valid <- !is.null(metric$n_components_95) && !is.na(metric$n_components_95)
-    if (has_error || !n_comp_valid) {
-      result_str <- "NA"
-      interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status)
-    } else {
-      result_str <- sprintf("Components for 95%%=%.0f", metric$n_components_95)
-      interp_str <- gsub("✓|⚠|✗", "", metric$status)
-    }
-    fpca_rows <- rbind(fpca_rows, data.frame(
-      Characteristic = "Variance Adequacy",
-      Test = "Cumulative variance explained",
-      Result = result_str,
-      Interpretation = interp_str,
-      stringsAsFactors = FALSE
-    ))
-  }
-  
-  # Bootstrap Stability
-  if (!is.null(fpca_metrics$bootstrap_stability)) {
-    metric <- fpca_metrics$bootstrap_stability
-    has_error <- isTRUE(metric$error)
-    cv_valid <- !is.null(metric$cv_mean) && !is.na(metric$cv_mean)
-    if (has_error || !cv_valid) {
-      result_str <- "NA"
-      interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status)
-    } else {
-      result_str <- sprintf("CV=%.3f", metric$cv_mean)
-      interp_str <- gsub("✓|⚠|✗", "", metric$status)
-    }
-    fpca_rows <- rbind(fpca_rows, data.frame(
-      Characteristic = "Bootstrap Stability",
-      Test = "PC loading stability via bootstrap",
-      Result = result_str,
-      Interpretation = interp_str,
-      stringsAsFactors = FALSE
-    ))
-  }
-  
-  if (nrow(fpca_rows) > 0) {
-    data_characteristics <- rbind(data_characteristics, fpca_rows)
-  }
-}
-
-knitr::kable(data_characteristics, 
-             caption = "Supplementary Table 2 | Entropy Matrix Validation Metrics. Statistical assumptions (exchangeability, monotonicity, consistency), GAM diagnostics, GEE diagnostics, LMM diagnostics, and FPCA diagnostics.",
-             align = c("l", "l", "r", "l"),
-             format = if (knitr::is_latex_output()) "latex" else "html",
-             longtable = knitr::is_latex_output(),
-             linesep = "") %>%
-  kableExtra::kable_styling(
-    bootstrap_options = c("striped", "hover"),
-    full_width = TRUE,
-    latex_options = c("scale_down")
-  ) %>%
-  kableExtra::footnote(general = "Rank-based checks validate suitability for rank-based analysis.")
+# Display as formatted table
+knitr::kable(check_results, 
+             caption = "Assumption Checks for Scheirer-Ray-Hare Test",
+             format = "html")
 ```
 
 <!-- Diagnostic note for GAM metrics -->
@@ -659,7 +256,10 @@ This integration of ordered measurement structure with robust rank-based inferen
 Now we will use the Scheirer-Ray-Hare test to evaluate whether entropy patterns across entropic indices (q-values) differ between normal and tumor samples.
 
 ```{r srh-rank-test-analysis, message=FALSE, results='hide'}
-# Run Scheirer-Ray-Hare test for q * condition INTERACTION
+# IMPORTANT: Create a copy of analysis before running SRH
+# This preserves the GAM results in 'analysis' for later concordance comparison
+
+# Run Scheirer-Ray-Hare test for q * condition INTERACTION on the copy
 analysis <- calculate_srh(
     analysis,
     multicorr = "hochberg"
@@ -923,125 +523,63 @@ A critical validation step is to compare whether the Scheirer-Ray-Hare rank-base
 
 ```{r compare-srh-gam-methods, message=FALSE}
 # Compute concordance analysis using new two-object API
-# Compares LM results (from analysis_lm) with rank test results (from analysis)
-analysis_with_concordance <- calculate_concordance(
+analysis <- calculate_concordance(
     analysis_lm = analysis_lm,
     analysis_rank = analysis,
     verbose = TRUE
 )
 
-# Extract components from S4 results
-concordance_result <- metadata(analysis_with_concordance, "method_concordance")
-comparison_df <- concordance_result$comparison_df
-spearman_rho <- concordance_result$spearman_rho
-high_conf <- concordance_result$high_confidence
-agreement_table <- concordance_result$agreement_table
+# Extract concordance results with list format for component display
+concordance_results <- results(analysis, type = "concordance", format = "list")
 ```
 
-```{r compute-concordance-metrics, message=FALSE, echo=FALSE}
-# === GLOBAL CONCORDANCE METRICS ===
-total_genes <- nrow(comparison_df)
-both_sig <- sum(comparison_df$agreement == "Both significant")
-lm_only <- sum(comparison_df$agreement == "LM only")
-rank_only <- sum(comparison_df$agreement == "Rank test only")
-neither_sig <- sum(comparison_df$agreement == "Neither significant")
-
-concordance_metrics <- data.frame(
-  Metric = c(
-    "Total genes compared",
-    "Spearman correlation (p-values)",
-    "Both methods significant (p < 0.05)",
-    "LM only significant",
-    "Rank test only significant",
-    "Neither significant",
-    "Concordance rate",
-    "Discordance rate"
-  ),
-  Value = c(
-    sprintf("%d", total_genes),
-    sprintf("rho = %.4f", spearman_rho),
-    sprintf("%d (%.1f%%)", both_sig, 100 * both_sig / total_genes),
-    sprintf("%d (%.1f%%)", lm_only, 100 * lm_only / total_genes),
-    sprintf("%d (%.1f%%)", rank_only, 100 * rank_only / total_genes),
-    sprintf("%d (%.1f%%)", neither_sig, 100 * neither_sig / total_genes),
-    sprintf("%.1f%%", 100 * (both_sig + neither_sig) / total_genes),
-    sprintf("%.1f%%", 100 * (lm_only + rank_only) / total_genes)
-  )
-)
-
-knitr::kable(concordance_metrics, 
-             caption = "Global Concordance Metrics: GAM vs Scheirer-Ray-Hare Methods",
-             align = c("l", "r"),
-             format = if (knitr::is_latex_output()) "latex" else "html",
-             longtable = knitr::is_latex_output(),
-             linesep = "") %>%
-  kableExtra::kable_styling(
-    bootstrap_options = c("striped", "hover"),
-    full_width = TRUE,
-    latex_options = c("scale_down")
-  ) %>%
-  kableExtra::footnote(general = "Comparison of significant genes (p < 0.05) detected by GAM vs Scheirer-Ray-Hare methods; high concordance validates robustness.")
-```
-
-```{r display-agreement-results, message=FALSE, echo=FALSE}
-# === AGREEMENT CATEGORY BREAKDOWN ===
-if (!is.null(agreement_table) && length(agreement_table) > 0) {
-  agreement_breakdown <- data.frame(
-    Category = names(agreement_table),
-    Count = as.numeric(agreement_table),
-    Percentage = sprintf("%.1f%%", 100 * as.numeric(agreement_table) / sum(agreement_table)),
-    stringsAsFactors = FALSE
-  )
+```{r display-concordance-metrics, message=FALSE, echo=FALSE, results='asis'}
+# Display concordance summary - results() with format="list" returns structured components
+if (!is.null(concordance_results) && is.list(concordance_results)) {
+  # Display summary table
+  if (!is.null(concordance_results$summary_table) && nrow(concordance_results$summary_table) > 0) {
+    print(knitr::kable(concordance_results$summary_table, 
+                       caption = "Global Concordance Metrics: GAM vs Scheirer-Ray-Hare Methods",
+                       align = c("l", "r"),
+                       format = if (knitr::is_latex_output()) "latex" else "html") %>%
+            kableExtra::kable_styling(
+              bootstrap_options = c("striped", "hover"),
+              full_width = TRUE,
+              latex_options = c("scale_down")
+            ))
+  }
   
-  colnames(agreement_breakdown) <- c("Agreement Category", "Number of Genes", "Percentage")
+  # Display agreement distribution
+  if (!is.null(concordance_results$agreement_dist) && nrow(concordance_results$agreement_dist) > 0) {
+    cat("\n")
+    print(knitr::kable(concordance_results$agreement_dist, 
+                       caption = "Agreement Distribution: Concordance by Gene Category",
+                       align = c("l", "r", "r"),
+                       format = if (knitr::is_latex_output()) "latex" else "html") %>%
+            kableExtra::kable_styling(
+              bootstrap_options = c("striped", "hover"),
+              full_width = TRUE,
+              latex_options = c("scale_down")
+            ))
+  }
   
-  knitr::kable(agreement_breakdown,
-               caption = "Method Agreement Distribution",
-               align = c("l", "r", "r"),
-               format = if (knitr::is_latex_output()) "latex" else "html",
-               longtable = knitr::is_latex_output(),
-               linesep = "") %>%
-  kableExtra::kable_styling(
-    bootstrap_options = c("striped", "hover"),
-    full_width = TRUE,
-    latex_options = c("scale_down")
-  ) %>%
-  kableExtra::footnote(general = "Categories: Concordant (both methods, p < 0.05); GAM-only; Scheirer-Ray-Hare-only; Neither (both p ≥ 0.05).")
+  # Display high-confidence genes (concordant in both methods)
+  if (!is.null(concordance_results$high_conf_table) && nrow(concordance_results$high_conf_table) > 0) {
+    cat("\n")
+    n_hc <- nrow(concordance_results$high_conf_table)
+    print(knitr::kable(concordance_results$high_conf_table, 
+                       caption = paste0("Robust Entropic Order Index Interactions: High-Confidence Genes Detected by Both Methods (n=", n_hc, ", ranked by statistical significance)"),
+                       align = c("l", "r", "r", "r", "r"),
+                       format = if (knitr::is_latex_output()) "latex" else "html") %>%
+            kableExtra::kable_styling(
+              bootstrap_options = c("striped", "hover"),
+              full_width = TRUE,
+              latex_options = c("scale_down")
+            ) %>%
+            kableExtra::footnote(general = "High-confidence genes: significant by both GAM and Scheirer-Ray-Hare rank test (adj p < 0.05); η² = rank test effect size."))
+  }
 } else {
-  cat("No agreement table available from concordance analysis.")
-}
-```
-
-```{r high-confidence-calls, message=FALSE, echo=FALSE}
-# === HIGH-CONFIDENCE GENES (BOTH METHODS SIGNIFICANT) ===
-if (!is.null(high_conf) && nrow(high_conf) > 0) {
-  # Sort by LM adjusted p-value, then by Rank adjusted p-value (both ascending)
-  high_conf_sorted <- high_conf[order(high_conf$padj_lm, high_conf$padj_rank), ]
-  
-  hc_display <- high_conf_sorted[1:min(15, nrow(high_conf_sorted)), c("gene", "padj_lm", "padj_rank", "effect_lm", "effect_rank")]
-  
-  hc_display$padj_lm <- sprintf("%.3e", hc_display$padj_lm)
-  hc_display$padj_rank <- sprintf("%.3e", hc_display$padj_rank)
-  hc_display$effect_lm <- sprintf("%.1f%%", hc_display$effect_lm * 100)
-  hc_display$effect_rank <- sprintf("%.3f", hc_display$effect_rank)
-  
-  colnames(hc_display) <- c("Gene", "LM adj p", "Rank test adj p", "LM Effect", "Rank test $\\eta^2$")
-  rownames(hc_display) <- NULL
-  
-  knitr::kable(hc_display,
-               format = if (knitr::is_latex_output()) "latex" else "html",
-               longtable = knitr::is_latex_output(),
-               linesep = "",
-               caption = sprintf("Robust Entropic Order Index Interactions: High-Confidence Genes Detected by Both Methods (n=%d, ranked by statistical significance)", nrow(high_conf)),
-               align = c("l", "r", "r", "r", "r")) %>%
-  kableExtra::kable_styling(
-    bootstrap_options = c("striped", "hover"),
-    full_width = TRUE,
-    latex_options = c("scale_down")
-  ) %>%
-  kableExtra::footnote(general = "High-confidence genes: significant by both GAM and Scheirer-Ray-Hare rank test (adj p < 0.05); $\\eta^2$ = rank test effect size.")
-} else {
-  cat("No high-confidence genes detected by both methods (p < 0.05 in both GAM and Scheirer-Ray-Hare tests).")
+  cat("Concordance results not available\n")
 }
 ```
 
@@ -1063,10 +601,8 @@ Visual comparison of concordance patterns provides intuitive assessment of which
 
 ```{r visualize-method-concordance, fig.width=10, fig.height=8, out.width="98%", fig.pos="H", fig.cap="Method concordance visualization comparing Scheirer-Ray-Hare rank-based and GAM approaches for detecting q × condition interactions."}
 # Create comparison plot using S4 wrapper
-# Check if concordance analysis was successful
-concordance_results <- metadata(analysis_with_concordance, "method_concordance")
-
-p <- plot_concordance(analysis_with_concordance, verbose = TRUE)
+# Concordance analysis results are stored in analysis metadata after calculate_concordance()
+p <- plot_concordance(analysis, verbose = TRUE)
 print(p)
 ```
 

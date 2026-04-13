@@ -10,7 +10,7 @@
 #' @param analysis \code{TSENATAnalysis} object containing computed results.
 #' @param type \code{character}. \strong{Required.} Type of results to extract:
 #'   'diversity', 'divergence', 'lm', 'jackknife', 'rank_test', 'effect_sizes_divergence',
-#'   'assumptions', or 'switching_tables'.
+#'   'assumptions', 'concordance', or 'switching_tables'.
 #' @param q \code{numeric}. For diversity results, optionally return results for 
 #'   a specific q-value only. When specified, returns a single SummarizedExperiment 
 #'   for that q-value instead of the full list. Default: NULL (return all q-values 
@@ -23,10 +23,13 @@
 #' @param filterFDR \code{numeric}. FDR threshold for significance filtering
 #'   (0.0-1.0). Only results with adjusted p-value <= filterFDR retained.
 #'   Default: NULL (no filtering).
-#' @param format \code{character}. Output format: 'auto' (sensible default for type),
-#'   'list', 'dataframe', or 'matrix'. For diversity results with format='se', returns
-#'   the SummarizedExperiment object directly (useful for downstream processing with
-#'   other packages like SplicingFactory). Default: 'auto'.
+#' @param format \code{character}. Output format: 'text' (pre-formatted character vector,
+#'   default) or 'list' (structured components). For diversity results with format='se', 
+#'   returns the SummarizedExperiment object directly (useful for downstream processing 
+#'   with other packages like SplicingFactory). For concordance results, 'text' returns 
+#'   pre-formatted character vector for display, while 'list' returns structured components 
+#'   (summary_table, agreement_dist, high_conf, etc.) suitable for custom display.
+#'   Default: 'text'.
 #' @param n_genes \code{integer}. Number of genes to display in diversity results.
 #'   Default: 4.
 #' @param q_values_table \code{numeric}. Vector of q-values to include in diversity
@@ -43,7 +46,6 @@
 #'   - For diversity with q specified and format='se': The SummarizedExperiment object directly (useful for SplicingFactory)
 #'   - For divergence: A SummarizedExperiment (rows=genes, columns=q-values), data.frame, or other format depending on divergence computation method
 #'   - For lm/jackknife: A data.frame or list based on type and format
-#'   - For pairwise: A data.frame with pairwise comparison difference metrics
 #'   - For effect_sizes_divergence: A list containing effect size divergence results with components like interaction_results
 #'   - For assumptions: A list containing rank-based assumption checks (exchangeability, monotonicity, consistency) and optional method-specific diagnostics (gam_metrics, gee_metrics, lmm_metrics, fpca_metrics)
 #'   - For switching_tables: A list containing gene switching comparison tables
@@ -92,9 +94,6 @@
 #' # Using accessor function instead of @ slot access
 #' top_lm <- results(analysis, type = 'lm', rankBy = 'pvalue', n = 20)
 #'
-#' # Get pairwise results (e.g., differential diversity metrics between conditions)
-#' pairwise_diff <- results(analysis, type = 'pairwise')
-#'
 #' # Get effect size results, top 6 genes by p-value (most significant first)
 #' top_effect_sizes <- results(analysis, type = 'effect_sizes_divergence', 
 #'                              top_n = 6, sort_by = 'adj_p_interaction')
@@ -131,13 +130,13 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
         diversity = .process_diversity_results(result, q, analysis, 
                                                 n_genes, q_values_table, sample, format),
         divergence = .process_divergence_results(result, filterFDR, format),
-        pairwise = .process_pairwise_results(result, filterFDR, format),
         lm = ,
         jackknife = ,
         rank_test = .process_statistical_results(result, type, filterFDR, rankBy, n, format),
         effect_sizes_divergence = .process_effect_sizes_divergence_results(result, top_n, sort_by, analysis),
         assumptions = .process_assumptions_results(result),
         switching_tables = .process_switching_tables_results(result),
+        concordance = .process_concordance_results(result, format = format),
         metadata = result,
         result
     )
@@ -269,68 +268,13 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
 }
 
 # ============================================================================
-# HELPER: Display diversity table
-# ============================================================================
-.display_diversity_table <- function(analysis, result, q, n_genes, q_values_table, sample = NULL) {
-    all_div_results <- if (is.null(q)) analysis@diversity_results else list(result)
-    
-    if (length(all_div_results) == 0) {
-        return()
-    }
-    
-    first_se <- all_div_results[[1]]
-    first_sample <- colnames(SummarizedExperiment::assay(first_se))[1]
-    
-    # Use specified sample if provided, validate it exists
-    if (!is.null(sample)) {
-        sample_names <- colnames(SummarizedExperiment::assay(first_se))
-        if (!sample %in% sample_names) {
-            stop("Sample '", sample, "' not found. Available samples: ",
-                 paste(sample_names, collapse = ", "), call. = FALSE)
-        }
-        first_sample <- sample
-    }
-    
-    table_lines <- character()
-    table_lines <- c(table_lines, "\n[results] Tsallis entropy across q-spectrum")
-    table_lines <- c(table_lines, sprintf("[results] Sample: %s", first_sample))
-    table_lines <- c(table_lines, sprintf("[results] Gene count: %d (showing %d)\n", 
-                nrow(SummarizedExperiment::assay(first_se)), 
-                min(n_genes, nrow(SummarizedExperiment::assay(first_se)))))
-    
-    header <- sprintf("%-15s", "Gene")
-    for (q_val in q_values_table) {
-        header <- paste0(header, sprintf("%12s", paste0("q=", sprintf("%.1f", q_val))))
-    }
-    table_lines <- c(table_lines, header)
-    
-    for (gene_idx in seq_len(min(n_genes, nrow(SummarizedExperiment::assay(first_se))))) {
-        gene_name <- rownames(SummarizedExperiment::assay(first_se))[gene_idx]
-        row_str <- sprintf("%-15s", gene_name)
-        
-        for (q_val in q_values_table) {
-            q_name <- paste0("q_", sprintf("%.3f", q_val))
-            if (q_name %in% names(all_div_results)) {
-                mat <- SummarizedExperiment::assay(all_div_results[[q_name]])
-                if (gene_idx <= nrow(mat)) {
-                    val <- mat[gene_idx, first_sample]
-                    row_str <- paste0(row_str, sprintf("%12.5f", val))
-                }
-            }
-        }
-        table_lines <- c(table_lines, row_str)
-    }
-    
-    message(paste(table_lines, collapse = "\n"))
-}
-
-# ============================================================================
 # HELPER: Extract result by type from analysis object
 # ============================================================================
 .extract_result_by_type <- function(analysis, type) {
     switch(type, 
         diversity = if (length(analysis@diversity_results) > 0) analysis@diversity_results else NULL,
         divergence = if (length(analysis@divergence_results) > 0) analysis@divergence_results else NULL,
+        concordance = .get_metadata_field(analysis, "method_concordance"),
         lm = if (length(analysis@lm_results) > 0) {
             if ("lm_interaction" %in% names(analysis@lm_results)) {
                 analysis@lm_results$lm_interaction
@@ -342,7 +286,6 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
         rank_test = if (!is.null(analysis@rank_test_results) && "rank_test" %in% names(analysis@rank_test_results)) {
             analysis@rank_test_results$rank_test
         } else NULL,
-        pairwise = if (length(analysis@pairwise_results) > 0) analysis@pairwise_results else NULL,
         effect_sizes_divergence = .get_metadata_field(analysis, "effect_sizes_divergence"),
         assumptions = {
             meta <- .get_metadata_field(analysis, "rankbased_assumptions")
@@ -355,7 +298,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
         switching_tables = .extract_or_compute_switching_tables(analysis),
         metadata = analysis@metadata,
         stop("Unknown result type: '", type, "'. Must be one of: ", 
-             "diversity, divergence, lm, jackknife, rank_test, pairwise, effect_sizes_divergence, assumptions, switching_tables, metadata", 
+             "diversity, divergence, lm, jackknife, rank_test, effect_sizes_divergence, assumptions, switching_tables, concordance, metadata", 
              call. = FALSE)
     )
 }
@@ -732,129 +675,8 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
 }
 
 # ============================================================================
-# HELPER: Process pairwise results
-# ============================================================================
-.process_pairwise_results <- function(result, filterFDR, format) {
-    if (is.null(result)) {
-        return(NULL)
-    }
-    
-    if (is.list(result)) {
-        if ("difference" %in% names(result)) {
-            result <- result$difference
-        } else if (length(result) > 0) {
-            result <- result[[1]]
-        } else {
-            return(NULL)
-        }
-    }
-    
-    if (is.data.frame(result)) {
-        if (!is.null(filterFDR)) {
-            padj_col <- if ("padj" %in% colnames(result)) "padj"
-                       else if ("adj_p_value" %in% colnames(result)) "adj_p_value"
-                       else NULL
-            if (!is.null(padj_col)) {
-                result <- result[!is.na(result[[padj_col]]) & result[[padj_col]] <= filterFDR, , drop = FALSE]
-                if (nrow(result) == 0) return(NULL)
-            }
-        }
-        
-        if (format != "auto") {
-            result <- .convert_result_format(result, format, "pairwise")
-        }
-    }
-    
-    result
-}
-
-# ============================================================================
-# ============================================================================
 # HELPER: Display effect sizes divergence table
 # ============================================================================
-.display_effect_sizes_table <- function(results_df, top_n) {
-    if (is.null(results_df) || nrow(results_df) == 0) {
-        return()
-    }
-    
-    table_lines <- character()
-    table_lines <- c(table_lines, "\n[results] Top genes by linear model significance with effect sizes and q-spectrum patterns")
-    table_lines <- c(table_lines, "[results] Ranked by statistical significance (ascending P-values, Benjamini-Hochberg q-value < 0.05)\n")
-    
-    # Build header - select key columns for display
-    header <- sprintf("%-20s", "Gene")
-    header <- paste0(header, sprintf("%16s", "Slope Diff"))
-    header <- paste0(header, sprintf("%16s", "Effect Size"))
-    header <- paste0(header, sprintf("%18s", "LM p-value"))
-    table_lines <- c(table_lines, header)
-    
-    # Build rows
-    for (i in seq_len(min(top_n, nrow(results_df)))) {
-        row_data <- results_df[i, ]
-        
-        # Gene name or ID
-        gene_name <- if ("gene" %in% colnames(results_df)) {
-            row_data$gene[1]
-        } else if ("gene_name" %in% colnames(results_df)) {
-            row_data$gene_name[1]
-        } else if ("name" %in% colnames(results_df)) {
-            row_data$name[1]
-        } else {
-            rownames(results_df)[i]
-        }
-        
-        row_str <- sprintf("%-20s", gene_name)
-        
-        # Slope difference (main effect size metric)
-        if ("slope_diff" %in% colnames(results_df)) {
-            row_str <- paste0(row_str, sprintf("%16.4f", row_data$slope_diff[1]))
-        } else {
-            row_str <- paste0(row_str, sprintf("%16s", "N/A"))
-        }
-        
-        # Effect size (use q=0.1 if available, otherwise q=0.05)
-        effect_size_val <- NA
-        if ("effect_size_D_q0_1" %in% colnames(results_df)) {
-            effect_size_val <- row_data$effect_size_D_q0_1[1]
-        } else if ("effect_size_D_q0_05" %in% colnames(results_df)) {
-            effect_size_val <- row_data$effect_size_D_q0_05[1]
-        } else if ("effect_size_D_q0_01" %in% colnames(results_df)) {
-            effect_size_val <- row_data$effect_size_D_q0_01[1]
-        }
-        
-        if (!is.na(effect_size_val)) {
-            row_str <- paste0(row_str, sprintf("%16.4f", effect_size_val))
-        } else {
-            row_str <- paste0(row_str, sprintf("%16s", "N/A"))
-        }
-        
-        # P-value (check for both column names)
-        pval_col <- if ("adj_p_interaction" %in% colnames(results_df)) {
-            "adj_p_interaction"
-        } else if ("p_value_interaction" %in% colnames(results_df)) {
-            "p_value_interaction"
-        } else {
-            NULL
-        }
-        
-        if (!is.null(pval_col)) {
-            pval <- row_data[[pval_col]][1]
-            if (pval < 0.001) {
-                pval_str <- sprintf("%.1e", pval)
-            } else {
-                pval_str <- sprintf("%.4f", pval)
-            }
-            row_str <- paste0(row_str, sprintf("%18s", pval_str))
-        } else {
-            row_str <- paste0(row_str, sprintf("%18s", "N/A"))
-        }
-        
-        table_lines <- c(table_lines, row_str)
-    }
-    
-    message(paste(table_lines, collapse = "\n"))
-}
-
 # ============================================================================
 # HELPER: Process effect_sizes_divergence results with sorting and filtering
 # ============================================================================
@@ -1355,81 +1177,210 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
 #'
 #' @keywords internal
 #' @noRd
-.display_switching_tables <- function(switching_tables_result) {
-    if (is.null(switching_tables_result)) {
-        return()
+# ============================================================================
+# HELPER: Process concordance results
+# ============================================================================
+
+#' @noRd
+.process_concordance_results <- function(result, format = "text") {
+    if (is.null(result)) {
+        return(NULL)
     }
     
-    comparison_tables <- switching_tables_result$comparison_tables
-    gene_headers <- switching_tables_result$gene_headers
-    q_metadata <- switching_tables_result$q_metadata
-    
-    if (is.null(comparison_tables) || length(comparison_tables) == 0) {
-        return()
+    # If result is a plain data frame, return as-is
+    if (is.data.frame(result)) {
+        return(result)
     }
     
-    # Print each gene's switching table
-    for (i in seq_along(comparison_tables)) {
-        if (is.null(comparison_tables[[i]])) {
-            next
-        }
-        
-        # Print gene header
-        message("")
-        message(paste0("Gene: ", gene_headers[i]))
-        
-        table_data <- comparison_tables[[i]]
-        
-        # Get q-value metadata for this gene
-        q_info <- q_metadata[[i]]
-        q_values_available <- q_info$q_values_available
-        q_key_to_value <- q_info$q_key_to_value
-        
-        # Build header with column names
-        header_parts <- "Transcript"
-        
-        for (q_key in q_values_available) {
-            q_val <- q_key_to_value[[q_key]]
-            q_formatted <- sprintf("%.2f", q_val)
-            header_parts <- c(header_parts, paste0("q=", q_formatted))
-        }
-        
-        header_parts <- c(header_parts, "Direction Consistency")
-        
-        # Print header
-        # Calculate column widths: transcript gets 20 chars, each q-value gets 10, consistency gets 20
-        header_line <- sprintf("%-20s", header_parts[1])
-        for (j in 2:(length(header_parts)-1)) {
-            header_line <- paste0(header_line, sprintf("%10s", header_parts[j]))
-        }
-        header_line <- paste0(header_line, sprintf("  %-20s", header_parts[length(header_parts)]))
-        message(header_line)
-        
-        # Print data rows
-        for (row_idx in seq_len(nrow(table_data))) {
-            tx_name <- table_data$transcript[row_idx]
-            consistency <- table_data$Consistency[row_idx]
-            
-            if (is.na(consistency)) {
-                consistency <- "Unknown"
-            }
-            
-            row_line <- sprintf("%-20s", tx_name)
-            
-            # Add delta_influence values for each q
-            for (q_key in q_values_available) {
-                delta_val <- table_data[[q_key]][row_idx]
-                if (is.na(delta_val)) {
-                    row_line <- paste0(row_line, sprintf("%10s", "N/A"))
-                } else {
-                    row_line <- paste0(row_line, sprintf("%10.3f", delta_val))
-                }
-            }
-            
-            row_line <- paste0(row_line, sprintf("  %-20s", consistency))
-            
-            message(row_line)
-        }
+    # If result is a list with concordance data, build comprehensive summary
+    if (!is.list(result) || is.null(result$comparison_df)) {
+        return(result)
     }
+    
+    comparison_df <- result$comparison_df
+    spearman_rho <- result$spearman_rho %||% NA
+    high_conf <- result$high_conf %||% data.frame()
+    agreement_table <- result$agreement_table %||% table()
+    
+    n_total <- nrow(comparison_df)
+    
+    # Calculate agreement statistics
+    both_sig <- sum(comparison_df$agreement == "Both significant", na.rm = TRUE)
+    lm_only <- sum(comparison_df$agreement == "LM only", na.rm = TRUE)
+    rank_only <- sum(comparison_df$agreement == "Rank test only", na.rm = TRUE)
+    neither <- sum(comparison_df$agreement == "Neither significant", na.rm = TRUE)
+    
+    # Calculate rates
+    concordance_rate <- if (n_total > 0) (both_sig / n_total) * 100 else 0
+    discordance_rate <- if (n_total > 0) ((lm_only + rank_only) / n_total) * 100 else 0
+    
+    # ====== 1. SUMMARY METRICS TABLE ======
+    summary_table <- data.frame(
+        Metric = c(
+            "Total genes compared",
+            "Spearman correlation (p-values)",
+            "Both methods significant (p < 0.05)",
+            "LM only significant",
+            "Rank test only significant",
+            "Neither significant",
+            "Concordance rate",
+            "Discordance rate"
+        ),
+        Value = c(
+            paste0(n_total),
+            paste0("rho = ", sprintf("%.4f", spearman_rho)),
+            paste0(both_sig, " (", sprintf("%.1f%%", (both_sig/n_total)*100), ")"),
+            paste0(lm_only, " (", sprintf("%.1f%%", (lm_only/n_total)*100), ")"),
+            paste0(rank_only, " (", sprintf("%.1f%%", (rank_only/n_total)*100), ")"),
+            paste0(neither, " (", sprintf("%.1f%%", (neither/n_total)*100), ")"),
+            paste0(sprintf("%.1f%%", concordance_rate)),
+            paste0(sprintf("%.1f%%", discordance_rate))
+        ),
+        stringsAsFactors = FALSE
+    )
+    
+    # ====== 2. AGREEMENT DISTRIBUTION TABLE ======
+    agreement_dist <- data.frame(
+        "Agreement Category" = c(
+            "Both significant",
+            "LM only",
+            "Rank test only",
+            "Neither significant"
+        ),
+        "Number of Genes" = c(both_sig, lm_only, rank_only, neither),
+        "Percentage" = c(
+            sprintf("%.1f%%", (both_sig/n_total)*100),
+            sprintf("%.1f%%", (lm_only/n_total)*100),
+            sprintf("%.1f%%", (rank_only/n_total)*100),
+            sprintf("%.1f%%", (neither/n_total)*100)
+        ),
+        stringsAsFactors = FALSE,
+        check.names = FALSE
+    )
+    
+    # ====== 3. HIGH-CONFIDENCE GENES TABLE ======
+    high_conf_table <- NULL
+    if (!is.null(high_conf) && nrow(high_conf) > 0) {
+        high_conf_table <- data.frame(
+            Gene = high_conf$gene,
+            "LM adj p" = sapply(high_conf$padj_lm, function(x) {
+                if (x < 1e-50) sprintf("%.2e", x) else sprintf("%.3e", x)
+            }),
+            "Rank test adj p" = sapply(high_conf$padj_rank, function(x) {
+                if (x < 1e-50) sprintf("%.2e", x) else sprintf("%.3e", x)
+            }),
+            "LM Effect" = sprintf("%.1f%%", high_conf$effect_lm * 100),
+            "Rank test η²" = sprintf("%.3f", high_conf$effect_rank),
+            stringsAsFactors = FALSE,
+            check.names = FALSE
+        )
+    }
+    
+    # ====== 4. ALL GENES TABLE ======
+    all_genes_table <- data.frame(
+        Gene = comparison_df$gene,
+        "LM p" = comparison_df$p_lm,
+        "LM adj p" = comparison_df$padj_lm,
+        "Rank test p" = comparison_df$p_rank,
+        "Rank test adj p" = comparison_df$padj_rank,
+        "LM Effect" = comparison_df$effect_lm,
+        "Rank test η²" = comparison_df$effect_rank,
+        Agreement = comparison_df$agreement,
+        stringsAsFactors = FALSE,
+        check.names = FALSE
+    )
+    
+    # ====== BUILD FORMATTED TEXT OUTPUT ======
+    output_lines <- c()
+    
+    output_lines <- c(output_lines, "\nGlobal Concordance Metrics: LM vs Scheirer-Ray-Hare Methods\n")
+    output_lines <- c(output_lines, .format_data_frame_as_text(summary_table))
+    
+    output_lines <- c(output_lines, "\nMethod Agreement Distribution\n")
+    output_lines <- c(output_lines, .format_data_frame_as_text(agreement_dist))
+    
+    if (!is.null(high_conf_table) && nrow(high_conf_table) > 0) {
+        n_hc <- nrow(high_conf_table)
+        output_lines <- c(output_lines, 
+            paste0("\nRobust Entropic Order Index Interactions: High-Confidence Genes Detected by Both Methods (n=", n_hc, ", ranked by statistical significance)\n"))
+        output_lines <- c(output_lines, .format_data_frame_as_text(high_conf_table))
+    }
+    
+    output_lines <- c(output_lines, "\nAll Genes with Agreement Classification\n")
+    output_lines <- c(output_lines, .format_data_frame_as_text(all_genes_table))
+    
+    # Combine all lines into single text string
+    formatted_text <- paste(output_lines, collapse = "")
+    
+    # Return based on format parameter
+    if (format == "list") {
+        # Return structured list with all components
+        return(list(
+            summary_table = summary_table,
+            agreement_dist = agreement_dist,
+            high_conf = high_conf,
+            high_conf_table = high_conf_table,
+            all_genes_table = all_genes_table,
+            spearman_rho = spearman_rho,
+            concordance_rate = concordance_rate,
+            discordance_rate = discordance_rate
+        ))
+    }
+    
+    # Default (format = "text"): Return formatted text
+    # Add custom class for printing
+    class(formatted_text) <- c("concordance_text", "character")
+    formatted_text
+}
+
+# ============================================================================
+# HELPER: Format data frame as aligned text
+# ============================================================================
+
+#' @noRd
+.format_data_frame_as_text <- function(df) {
+    if (nrow(df) == 0) {
+        return("")
+    }
+    
+    # Convert to character for formatting
+    df_char <- as.data.frame(lapply(df, as.character), stringsAsFactors = FALSE)
+    
+    # Calculate column widths
+    col_widths <- sapply(seq_len(ncol(df_char)), function(j) {
+        max(nchar(colnames(df_char)[j]), max(nchar(df_char[[j]])))
+    })
+    
+    # Format header
+    header <- paste(
+        mapply(function(name, width) {
+            sprintf("%-*s", width, name)
+        }, colnames(df_char), col_widths),
+        collapse = " "
+    )
+    
+    # Format rows
+    rows <- apply(df_char, 1, function(row) {
+        paste(
+            mapply(function(val, width) {
+                sprintf("%-*s", width, val)
+            }, row, col_widths),
+            collapse = " "
+        )
+    })
+    
+    # Combine and add newlines
+    text_lines <- c(header, rows, "")
+    paste(text_lines, collapse = "\n")
+}
+
+# ============================================================================
+# DISPLAY METHOD: Print method for concordance_text class
+# ============================================================================
+
+#' @exportS3Method base::print
+print.concordance_text <- function(x, ...) {
+    cat(x)
+    invisible(x)
 }
 

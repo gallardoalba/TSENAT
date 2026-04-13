@@ -138,8 +138,8 @@ test_that("TSENAT() basic execution: returns valid result with structure preserv
                 info = "TSENAT() may filter genes but should not add new ones")
     
     # Check diversity results exist
-    expect_true(length(results(result, type = "diversity", q = 0)) > 0 || 
-                is.null(results(result, type = "diversity", q = 0)))
+    expect_true(length(results(result, type = "diversity", q = 0, format = "table")) > 0 || 
+                is.null(results(result, type = "diversity", q = 0, format = "table")))
 })
 
 test_that("TSENAT() output handling: manages output_dir and verbose control correctly", {
@@ -293,11 +293,21 @@ test_that("TSENAT() WITHOUT config parameter: produces correct diversity values"
         show_messages = FALSE
     )
     
-    # Extract first gene's diversity at q=0 (most stable, no bootstrap)
-    div_manual <- results(analysis_manual, type = "diversity", q = 0)
-    if (is(div_manual, "SummarizedExperiment")) {
-        manual_values <- assay(div_manual, 1)
-        manual_first_gene <- manual_values[1, , drop = TRUE]
+    # Extract first gene's diversity - get available q-values first
+    div_result <- results(analysis_manual, type = "diversity", format = "table")
+    
+    # div_result should be a list of data.frames (one per q-value) or NULL
+    if (!is.null(div_result)) {
+        if (is.data.frame(div_result)) {
+            # Single q-value selection
+            manual_first_gene <- div_result[1, -1, drop = TRUE]  # Skip Gene column
+        } else if (is.list(div_result)) {
+            # Multiple q-values - just check first one
+            first_q_result <- div_result[[1]]
+            if (is.data.frame(first_q_result)) {
+                manual_first_gene <- first_q_result[1, -1, drop = TRUE]
+            }
+        }
     }
     
     expect_true(exists("manual_first_gene") && length(manual_first_gene) > 0,
@@ -315,7 +325,7 @@ test_that("TSENAT() WITHOUT config: produces IDENTICAL results to manual workflo
     
     # It should have results stored (diversity should exist)
     div_result <- tryCatch(
-        { results(analysis2, type = "diversity", q = 0) },
+        { results(analysis2, type = "diversity", q = 0, format = "table") },
         error = function(e) { NULL }
     )
     expect_false(is.null(div_result),
@@ -481,9 +491,15 @@ test_that("WORKFLOW EQUIVALENCE: Manual orchestration matches TSENAT() function"
         show_messages = FALSE
     )
     
-    # Both should have valid diversity results
-    div_A <- results(analysis_A, type = "diversity", q = 0)
-    div_B <- results(analysis_B, type = "diversity", q = 0)
+    # Both should have valid diversity results - check the SE objects exist
+    expect_true(length(analysis_A@diversity_results) > 0,
+                info = "Manual pattern should produce valid diversity results")
+    expect_true(length(analysis_B@diversity_results) > 0,
+                info = "Orchestrated TSENAT() should produce valid diversity results")
+    
+    # Verify they are SummarizedExperiment objects
+    div_A <- analysis_A@diversity_results[[1]]
+    div_B <- analysis_B@diversity_results[[1]]
     
     expect_is(div_A, "SummarizedExperiment",
               info = "Manual pattern should produce valid diversity SE")

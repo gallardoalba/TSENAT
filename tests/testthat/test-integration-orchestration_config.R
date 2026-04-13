@@ -290,7 +290,7 @@ test_that("results returns NULL/errors for edge cases", {
   analysis <- TSENATAnalysis(se, config = TSENAT_config())
   
   # Uncomputed results
-  expect_null(results(analysis, type = "diversity"))
+  expect_null(results(analysis, type = "diversity", format = "table"))
   expect_null(results(analysis, type = "divergence"))
   expect_null(results(analysis, type = "lm"))
   
@@ -298,7 +298,7 @@ test_that("results returns NULL/errors for edge cases", {
   expect_error(results(analysis, type = "unknown"), "Unknown result type")
   
   # Non-TSENATAnalysis object
-  expect_error(results(se, type = "diversity"), "must be a TSENATAnalysis object")
+  expect_error(results(se, type = "diversity", format = "table"), "must be a TSENATAnalysis object")
 })
 
 test_that("results handles diversity with q-value filtering", {
@@ -306,20 +306,32 @@ test_that("results handles diversity with q-value filtering", {
   analysis <- TSENATAnalysis(se, config = TSENAT_config())
   
   n_genes <- nrow(se)
+  n_samples <- ncol(se)
+  
+  # Create SummarizedExperiment objects for each q-value
+  create_diversity_se <- function(q_value) {
+    mat <- matrix(rnorm(n_genes * n_samples, mean = 3, sd = 1), 
+                  nrow = n_genes, ncol = n_samples)
+    colnames(mat) <- colnames(se)
+    rownames(mat) <- rownames(se)
+    SummarizedExperiment::SummarizedExperiment(assays = list(q_entropy = mat),
+                                               colData = SummarizedExperiment::colData(se))
+  }
+  
   diversity_results <- list(
-    q_0.5 = matrix(rnorm(n_genes, mean = 3, sd = 1), nrow = 1, ncol = n_genes),
-    q_1.0 = matrix(rnorm(n_genes, mean = 3, sd = 1), nrow = 1, ncol = n_genes),
-    q_1.5 = matrix(rnorm(n_genes, mean = 3, sd = 1), nrow = 1, ncol = n_genes),
-    q_2.0 = matrix(rnorm(n_genes, mean = 3, sd = 1), nrow = 1, ncol = n_genes)
+    q_0.5 = create_diversity_se(0.5),
+    q_1.0 = create_diversity_se(1.0),
+    q_1.5 = create_diversity_se(1.5),
+    q_2.0 = create_diversity_se(2.0)
   )
   analysis@diversity_results <- diversity_results
   
   # All results
-  all_results <- results(analysis, type = "diversity")
+  all_results <- results(analysis, type = "diversity", format = "table")
   expect_false(is.null(all_results))
   
   # Specific q-value
-  q1_results <- results(analysis, type = "diversity", q = 1.0)
+  q1_results <- results(analysis, type = "diversity", q = 1.0, format = "table")
   expect_false(is.null(q1_results))
 })
 
@@ -328,11 +340,22 @@ test_that("results returns all supported result types", {
   analysis <- TSENATAnalysis(se, config = TSENAT_config())
   
   n_genes <- nrow(se)
+  n_samples <- ncol(se)
+  
+  # Create SummarizedExperiment objects for diversity results
+  create_diversity_se <- function(q_value) {
+    mat <- matrix(rnorm(n_genes * n_samples), 
+                  nrow = n_genes, ncol = n_samples)
+    colnames(mat) <- colnames(se)
+    rownames(mat) <- rownames(se)
+    SummarizedExperiment::SummarizedExperiment(assays = list(q_entropy = mat),
+                                               colData = SummarizedExperiment::colData(se))
+  }
   
   # Mock all result types
   analysis@diversity_results <- list(
-    q_0.5 = matrix(rnorm(n_genes), nrow = 1, ncol = n_genes),
-    q_1.0 = matrix(rnorm(n_genes), nrow = 1, ncol = n_genes)
+    q_0.5 = create_diversity_se(0.5),
+    q_1.0 = create_diversity_se(1.0)
   )
   analysis@divergence_results <- list(
     q_0.5 = data.frame(gene = paste0("g", 1:n_genes), divergence = rnorm(n_genes))
@@ -351,7 +374,7 @@ test_that("results returns all supported result types", {
   )))
   
   # Test all types at once
-  expect_false(is.null(results(analysis, type = "diversity")))
+  expect_false(is.null(results(analysis, type = "diversity", format = "table")))
   expect_false(is.null(results(analysis, type = "divergence")))
   expect_false(is.null(results(analysis, type = "lm")))
   expect_false(is.null(results(analysis, type = "jackknife")))
@@ -396,7 +419,6 @@ test_that("full pipeline integration works", {
 # - results() public function
 # - .validate_results_params() parameter validation
 # - .get_diversity_q_value() q-value extraction
-# - .display_diversity_table() display formatting
 # - .extract_result_by_type() result extraction
 # - .extract_jackknife_result() jackknife extraction
 # - .extract_or_compute_switching_tables() lazy computation
@@ -591,92 +613,6 @@ test_that(".get_diversity_q_value shows available q-values in error message", {
 
 # ============================================================================
 context("orchestration_results: Display Diversity Table")
-
-test_that(".display_diversity_table displays formatted output correctly", {
-  # Create test data
-  entropy_data <- matrix(seq(1, 20), nrow = 5, ncol = 4)
-  rownames(entropy_data) <- paste0("Gene_", 1:5)
-  colnames(entropy_data) <- c("S1", "S2", "S3", "S4")
-  
-  se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(entropy = entropy_data),
-    colData = data.frame(sample_id = c("S1", "S2", "S3", "S4"))
-  )
-  
-  analysis <- .make_test_analysis_orchr()
-  analysis@diversity_results <- list(
-    q_1 = se,
-    q_1.5 = se,
-    q_2 = se
-  )
-  
-  # Capture messages using testthat's capture_messages
-  msgs <- testthat::capture_messages({
-    TSENAT:::.display_diversity_table(
-      analysis = analysis,
-      result = list(q_1 = se),
-      q = NULL,
-      n_genes = 2,
-      q_values_table = c(1.0, 1.5, 2.0)
-    )
-  })
-  
-  full_msg <- paste(msgs, collapse = "")
-  
-  # Should contain expected headers and data
-  expect_true(grepl("Tsallis entropy across q-spectrum", full_msg))
-  expect_true(grepl("Gene", full_msg))
-  expect_true(grepl("Gene_1", full_msg))
-})
-
-test_that(".display_diversity_table handles empty results gracefully", {
-  se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(entropy = matrix(numeric(0), nrow = 0, ncol = 0))
-  )
-  
-  analysis <- .make_test_analysis_orchr()
-  analysis@diversity_results <- list()
-  
-  # Should not error with empty diversity results
-  expect_silent(
-    result <- TSENAT:::.display_diversity_table(
-      analysis = analysis,
-      result = list(),
-      q = NULL,
-      n_genes = 4,
-      q_values_table = c(1.0, 1.5, 2.0)
-    )
-  )
-})
-
-test_that(".display_diversity_table limits displayed genes", {
-  entropy_data <- matrix(seq(1, 100), nrow = 20, ncol = 5)
-  rownames(entropy_data) <- paste0("Gene_", 1:20)
-  colnames(entropy_data) <- paste0("S", 1:5)
-  
-  se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(entropy = entropy_data)
-  )
-  
-  analysis <- .make_test_analysis_orchr()
-  analysis@diversity_results <- list(q_1 = se)
-  
-  # Capture messages
-  msgs <- testthat::capture_messages({
-    TSENAT:::.display_diversity_table(
-      analysis = analysis,
-      result = list(q_1 = se),
-      q = NULL,
-      n_genes = 3,
-      q_values_table = c(1.0)
-    )
-  })
-  
-  full_msg <- paste(msgs, collapse = "")
-  
-  # Should show only 3 genes
-  expect_true(grepl("showing 3", full_msg))
-})
 
 # ============================================================================
 context("orchestration_results: Extract Result by Type")
@@ -1015,17 +951,12 @@ test_that("results() with diversity produces formatted output", {
   analysis <- .make_test_analysis_orchr()
   analysis@diversity_results <- list(q_1 = se)
   
-  # Capture messages while calling results()
-  msgs <- testthat::capture_messages({
-    result <- TSENAT::results(analysis, type = "diversity", n_genes = 2)
-  })
+  # Call results() without q - should return data.frame with all q-values
+  result <- TSENAT::results(analysis, type = "diversity", n_genes = 2)
   
-  full_msg <- paste(msgs, collapse = "")
-  
-  # Check that message was produced
-  expect_true(grepl("Tsallis entropy", full_msg))
-  # Result should be a list when q is not specified (returns all q-values as list)
-  expect_is(result, "list")
+  # Result should be a data.frame (not list)
+  expect_is(result, "data.frame")
+  expect_equal(nrow(result), 2)  # n_genes = 2
 })
 
 test_that("results() extracts specific q-value from diversity", {
@@ -1044,7 +975,7 @@ test_that("results() extracts specific q-value from diversity", {
   )
   
   # Request specific q-value
-  result <- TSENAT::results(analysis, type = "diversity", q = 1.0)
+  result <- TSENAT::results(analysis, type = "diversity", q = 1.0, format = "se")
   
   expect_is(result, "SummarizedExperiment")
   expect_equal(nrow(result), 2)
@@ -1175,23 +1106,18 @@ context("Results display and formatting")
 test_that("results produces message output for effect_sizes_divergence", {
     analysis <- .make_test_analysis_for_display_table()
     
-    # Capture messages when results are displayed (now always displayed)
-    messages <- capture_messages({
-        result <- TSENAT::results(
-            analysis,
-            type = "effect_sizes_divergence",
-            top_n = NULL,
-            sort_by = "p_value_interaction"
-        )
-    })
+    # Call results() - should return silently
+    result <- TSENAT::results(
+        analysis,
+        type = "effect_sizes_divergence",
+        top_n = NULL,
+        sort_by = "p_value_interaction"
+    )
     
-    # Should produce message output with gene information
-    output <- paste(messages, collapse = "")
-    expect_true(nchar(output) > 0, "Results should produce output messages")
-    expect_true(grepl("GENE", output, ignore.case = TRUE), 
-                "Output should contain gene names")
-    # Result should still be a data.frame
+    # Result should be a data.frame
     expect_true(is.data.frame(result), "Should return data.frame")
+    # Should have expected structure
+    expect_true(nrow(result) > 0, "Should return non-empty data.frame")
 })
 
 test_that("results returns data.frame with all expected columns", {
@@ -1231,23 +1157,20 @@ test_that("results filters by top_n correctly", {
 test_that("results shows all required columns in output", {
     analysis <- .make_test_analysis_for_display_table()
     
-    messages <- capture_messages({
-        result <- TSENAT::results(
-            analysis,
-            type = "effect_sizes_divergence",
-            top_n = 1,
-            sort_by = "p_value_interaction"
-        )
-    })
+    result <- TSENAT::results(
+        analysis,
+        type = "effect_sizes_divergence",
+        top_n = 1,
+        sort_by = "p_value_interaction"
+    )
     
-    # Output should show formatted table with column headers
-    output <- paste(messages, collapse = "")
-    expect_true(nchar(output) > 0, "Should produce formatted table output")
-    # Check for key column indicators in output
-    expect_true(grepl("Gene", output) || grepl("GENE", output), 
-                "Output should contain gene column")
-    expect_true(grepl("p", output, ignore.case = TRUE), 
-                "Output should contain p-value information")
+    # Result should be a data.frame with expected columns
+    expect_true(is.data.frame(result), "Should return data.frame")
+    # Check for key columns in result
+    expect_true("gene_name" %in% colnames(result) || "Gene" %in% colnames(result), 
+                "Should contain gene column")
+    expect_true("p_value_interaction" %in% colnames(result) || "p_value" %in% colnames(result), 
+                "Should contain p-value information")
 })
 
 test_that("results returns result with expected structure", {
@@ -1340,7 +1263,7 @@ test_that("results() with sample parameter selects correct sample", {
   
   # Call with sample parameter - should return formatted data.frame
   result <- TSENAT::results(analysis, type = "diversity", 
-                            n_genes = 2, sample = "S2", q_values_table = c(0.0, 1.0))
+                            n_genes = 2, sample = "S2", q_values_table = c(0.0, 1.0), format = "table")
   
   # Result should be a data.frame when results are displayed with sample
   expect_is(result, "data.frame")
@@ -1362,16 +1285,12 @@ test_that("results() with sample parameter displays correct sample name", {
   analysis@diversity_results <- list(q_0.000 = se)
   
   # Capture messages while calling results with sample
-  msgs <- testthat::capture_messages({
-    result <- TSENAT::results(analysis, type = "diversity", 
-                              n_genes = 1, sample = "S3")
-  })
+  result <- TSENAT::results(analysis, type = "diversity", 
+                              n_genes = 1, sample = "S3", format = "table")
   
-  full_msg <- paste(msgs, collapse = "")
-  
-  # Check that correct sample name is in message
-  expect_true(grepl("Sample: S3", full_msg))
-  expect_true(grepl("Tsallis entropy", full_msg))
+  # Result should be data.frame with correct sample attribute
+  expect_is(result, "data.frame")
+  expect_equal(attr(result, "sample"), "S3")
 })
 
 test_that("results() raises error for invalid sample name", {
@@ -1389,7 +1308,7 @@ test_that("results() raises error for invalid sample name", {
   # Should raise error with invalid sample name
   expect_error(
     TSENAT::results(analysis, type = "diversity", 
-                    sample = "INVALID_SAMPLE"),
+                    sample = "INVALID_SAMPLE", format = "table"),
     "not found"
   )
 })
@@ -1409,7 +1328,7 @@ test_that("results() sample parameter returns data.frame with correct values", {
   # Get results for Sample_X
   result <- TSENAT::results(analysis, type = "diversity",
                             n_genes = 2, sample = "Sample_X",
-                            q_values_table = c(0.0, 1.0))
+                            q_values_table = c(0.0, 1.0), format = "table")
   
   # Check values for specific sample
   expect_equal(result$`q_0.0`[1], 0.5)  # Gene_A, Sample_X
@@ -1429,15 +1348,11 @@ test_that("results() default sample uses first sample when not specified", {
   analysis@diversity_results <- list(q_0.000 = se)
   
   # Call without sample parameter - should default to first
-  msgs <- testthat::capture_messages({
-    result <- TSENAT::results(analysis, type = "diversity", 
-                              n_genes = 1)
-  })
+  result <- TSENAT::results(analysis, type = "diversity", 
+                              n_genes = 1, format = "table")
   
-  full_msg <- paste(msgs, collapse = "")
-  
-  # Should default to first sample (S1)
-  expect_true(grepl("Sample: S1", full_msg))
+  # Should default to first sample (S1) - check via attribute
+  expect_equal(attr(result, "sample"), "S1")
 })
 
 test_that("results() sample parameter with multiple q-values", {

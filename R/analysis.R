@@ -172,7 +172,7 @@ print.gtable <- function(x, ...) {
 #' @noRd
 
 .calculate_concordance <- function(analysis_lm, analysis_rank, lm_method = NULL,
-    rank_method = "rank_test") {
+    rank_method = NULL) {
 
     # Initialize outputs
     comparison_df <- NULL
@@ -217,6 +217,11 @@ print.gtable <- function(x, ...) {
         0) {
         stop("No rank test results found in analysis_rank@rank_test_results. Run calculate_srh() first.",
             call. = FALSE)
+    }
+
+    # If rank_method not specified, use the first available method
+    if (is.null(rank_method)) {
+        rank_method <- names(analysis_rank@rank_test_results)[1]
     }
 
     if (!(rank_method %in% names(analysis_rank@rank_test_results))) {
