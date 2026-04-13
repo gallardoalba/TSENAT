@@ -205,7 +205,7 @@ This directly tests the core biological question: "Does entropy q-dependence dif
 
 To ensure valid statistical inference, we verify key data assumptions across multiple dimensions.
 
-```{r validate-srh-assumptions, message=FALSE}
+```{r validate-srh-assumptions, message=FALSE, results='hide'}
 # Validate statistical assumptions (including GAM diagnostics)
 analysis <- calculate_assumptions(
     analysis,

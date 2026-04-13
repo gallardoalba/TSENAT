@@ -462,8 +462,16 @@
             0)
             res$delta_pvalue else rep(NA_real_, length(res$transcript_ids))
 
-        df <- data.frame(gene = gene, transcript_id = res$transcript_ids, pvalue = pval_vals,
-            fdr = fdr_vals, stringsAsFactors = FALSE)
+        # Extract gene name if available
+        gene_name <- gene
+        if ("gene_name" %in% colnames(rowData(se))) {
+            gn <- rowData(se)[which(rowData(se)[[gene_col]] == gene)[1], "gene_name"]
+            if (!is.na(gn))
+                gene_name <- as.character(gn)
+        }
+
+        df <- data.frame(gene = gene, gene_name = gene_name, transcript_id = res$transcript_ids, 
+            pvalue = pval_vals, fdr = fdr_vals, stringsAsFactors = FALSE)
         if (!is.null(res$lm_p_interaction))
             df$lm_p_interaction <- res$lm_p_interaction
         if (!is.null(res$lm_adj_p_interaction))

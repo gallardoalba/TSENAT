@@ -224,41 +224,39 @@ setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"),
 # Helper: Format assumptions results for output
 #' @noRd
 .format_assumptions_for_output <- function(result) {
-    # Convert list of assumptions checks to data frame for output
+    # Use the new .process_assumptions_results formatter from orchestration_results
+    # Convert structured assumptions to formatted data frame suitable for TSV output
+    
     if (!is.list(result)) {
         return(data.frame(check = "assumptions", status = "error", details = "Invalid result format"))
     }
     
-    rows <- list()
+    # Process using the orchestration_results formatter with format="list"
+    processed <- .process_assumptions_results(result, format = "list")
     
-    # Extract key information from each check
-    for (check_name in names(result)) {
-        check_obj <- result[[check_name]]
-        
-        if (is.list(check_obj)) {
-            # Extract p-value if available
-            p_value <- if (is.null(check_obj$p_value)) NA_real_ else check_obj$p_value
-            # Extract status if available
-            status <- if (is.null(check_obj$status)) "? UNKNOWN" else check_obj$status
-            # Extract description
-            description <- if (is.null(check_obj$description)) check_name else check_obj$description
-            
-            rows[[length(rows) + 1]] <- data.frame(
-                check = check_name,
-                description = description,
-                status = status,
-                p_value = p_value,
-                stringsAsFactors = FALSE
-            )
-        }
-    }
-    
-    if (length(rows) == 0) {
+    if (is.null(processed) || is.null(processed$assumptions_table)) {
         return(data.frame(check = "assumptions", status = "error", details = "No checks found"))
     }
     
-    # Combine all rows into single data frame
-    do.call(rbind, rows)
+    # Get the assumptions table
+    assumptions_df <- processed$assumptions_table
+    
+    # Ensure it has the expected columns
+    if (!all(c("Characteristic", "Test", "Result", "Interpretation") %in% colnames(assumptions_df))) {
+        return(data.frame(check = "assumptions", status = "error", details = "Invalid table structure"))
+    }
+    
+    # Format for TSV output - keep original column names but convert to row format for readability
+    output_df <- data.frame(
+        check = "assumption",
+        characteristic = assumptions_df$Characteristic,
+        test = assumptions_df$Test,
+        result = assumptions_df$Result,
+        interpretation = assumptions_df$Interpretation,
+        stringsAsFactors = FALSE
+    )
+    
+    output_df
 }
 
 

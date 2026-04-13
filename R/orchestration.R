@@ -1031,13 +1031,17 @@ TSENAT_config <- function(q = 1.0, condition_col = "condition", subject_col = NU
             "  show(result)\n\n",
             "  # View detailed statistics summary\n",
             "  summary(result)\n\n",
-            "  # Tsallis Entropy Diversity (get results for specific sample at q=1.0)\n",
-            "  div <- results(result, type = 'diversity', n_genes = 4, sample = 'SRR14800481')\n\n",
-            "  # Linear Model Interaction Results (top 10 genes by p-value)\n",
-            "  lm <- results(result, type = 'lm', rankBy = 'pvalue', n = 10)\n\n",
+            "  # Tsallis Entropy Diversity\n",
+            "  # Get results for specific sample at q=1.0\n",
+            "  div <- results(result, type = 'diversity',\n",
+            "                 n_genes = 4, sample = 'SRR14800481')\n\n",
+            "  # Linear Model Interaction Results\n",
+            "  # Top 10 genes by p-value\n",
+            "  lm <- results(result, type = 'lm',\n",
+            "                rankBy = 'pvalue', n = 10)\n\n",
             "  # Visualizations\n",
-            "  getPlot(result, type = 'diversity')     # Diversity spectrum plot\n",
-            "  getPlot(result, type = 'lm_gam')        # LM interaction GAM curves\n",
+            "  getPlot(result, type = 'diversity')  # Diversity spectrum\n",
+            "  getPlot(result, type = 'lm_gam')     # LM interaction\n",
             "\n"
         )
         

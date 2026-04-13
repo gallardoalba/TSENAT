@@ -776,6 +776,18 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
         return(result)
     }
     
+    # CRITICAL FIX: Extract checks from attribute if they're stored there
+    # The .calculate_assumptions() function uses structure() which stores checks
+    # as an attribute, not as top-level list elements
+    if (is.null(result$exchangeability) && !is.null(attr(result, "checks"))) {
+        # Move all checks from attribute into the main result list
+        # This allows rest of function to work with result$exchangeability, etc.
+        checks_attr <- attr(result, "checks")
+        for (check_name in names(checks_attr)) {
+            result[[check_name]] <- checks_attr[[check_name]]
+        }
+    }
+    
     # Build table as data frame
     rows <- list()
     
