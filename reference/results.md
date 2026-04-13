@@ -13,12 +13,13 @@ results(
   rankBy = "none",
   n = NA,
   filterFDR = NULL,
-  format = "auto",
-  display_table = FALSE,
+  format = "text",
   n_genes = 4,
   q_values_table = c(0, 0.5, 1, 1.5, 2),
   top_n = NULL,
-  sort_by = "adj_p_interaction"
+  sort_by = "adj_p_interaction",
+  sample = NULL,
+  plot = FALSE
 )
 ```
 
@@ -32,7 +33,8 @@ results(
 
   `character`. **Required.** Type of results to extract: 'diversity',
   'divergence', 'lm', 'jackknife', 'rank_test',
-  'effect_sizes_divergence', or 'switching_tables'.
+  'effect_sizes_divergence', 'assumptions', 'concordance', or
+  'switching_tables'.
 
 - q:
 
@@ -61,24 +63,25 @@ results(
 
 - format:
 
-  `character`. Output format: 'auto' (sensible default for type),
-  'list', 'dataframe', or 'matrix'. Default: 'auto'.
-
-- display_table:
-
-  `logical`. For diversity results with display_table=TRUE, returns a
-  formatted table showing diversity values across selected q-values for
-  each gene. Default: FALSE (returns SummarizedExperiment or list).
+  `character`. Output format. Behavior depends on result type: - For
+  diversity: 'text' (default, table format), 'se'
+  (SummarizedExperiment), or 'table' (data.frame) - For concordance:
+  'text' (default, pre-formatted), 'list' (structured for programmatic
+  access) - For switching_tables: 'list' (default, structured list with
+  \$gene_headers, \$comparison_tables, \$q_metadata for vignette
+  rendering) or 'raw' (original named list per gene) - For assumptions:
+  'text' (default, pre-formatted), 'list' (structured for programmatic
+  access) Default: 'text' for most types, 'list' for switching_tables.
 
 - n_genes:
 
-  `integer`. Number of genes to display in diversity tables when
-  display_table=TRUE. Default: 4.
+  `integer`. Number of genes to display in diversity results. Default:
+  4.
 
 - q_values_table:
 
-  `numeric`. Vector of q-values to include in diversity table display
-  when display_table=TRUE. Default: c(0, 0.5, 1.0, 1.5, 2.0).
+  `numeric`. Vector of q-values to include in diversity results.
+  Default: c(0, 0.5, 1.0, 1.5, 2.0).
 
 - top_n:
 
@@ -94,19 +97,51 @@ results(
   'Mean_Divergence' (descending). Default: 'adj_p_interaction' (most
   significant first).
 
+- sample:
+
+  `character` or NULL. For diversity results, optionally filter to
+  specific sample(s). If NULL (default), returns results for all
+  samples. If character, filters to matching sample identifiers from
+  colData. Default: NULL (all samples).
+
+- plot:
+
+  `logical`. Extract cached plot for the specified analysis type. - If
+  FALSE (default): Return results as usual - If TRUE: Return the plot
+  object for the given type Example:
+  `results(analysis, type = 'diversity', plot = TRUE)` returns the
+  diversity plot. Default: FALSE (no plot extraction).
+
 ## Value
 
 \- For diversity with q=NULL: A named list of SummarizedExperiment
-objects, one per q-value - For diversity with q specified: A single
-SummarizedExperiment for that q-value - For divergence: A
+objects, one per q-value - For diversity with q specified and
+format='text' or 'table': A data.frame table for display - For diversity
+with q specified and format='se': The SummarizedExperiment object
+directly (useful for SplicingFactory) - For divergence: A
 SummarizedExperiment (rows=genes, columns=q-values), data.frame, or
 other format depending on divergence computation method - For
 lm/jackknife: A data.frame or list based on type and format - For
-pairwise: A data.frame with pairwise comparison difference metrics - For
 effect_sizes_divergence: A list containing effect size divergence
-results with components like interaction_results - For switching_tables:
-A list containing gene switching comparison tables Returns NULL if
-requested result type not computed or no results pass filtering.
+results with components like interaction_results - For assumptions: A
+list containing rank-based assumption checks (exchangeability,
+monotonicity, consistency) and optional method-specific diagnostics
+(gam_metrics, gee_metrics, lmm_metrics, fpca_metrics) - For
+switching_tables with format='text' (default): A list with components:
+
+- `$gene_headers` Character vector of gene headers ('GeneName
+  (ENSG00...)')
+
+- `$comparison_tables` List of data frames, one per gene, with columns:
+  Transcript, q=0.00, q=0.50, ..., Direction Consistency
+
+- `$q_metadata` List with per-gene metadata: q_values_available and
+  q_key_to_value mapping
+
+\- For switching_tables with format='raw': Original named list where
+names are gene headers and values are data frames with same column
+structure as format='text' Returns NULL if requested result type not
+computed or no results pass filtering.
 
 ## Details
 
@@ -115,7 +150,7 @@ ranking, filtering, and format conversion. Compatible with DESeq2/edgeR
 design patterns for familiar result extraction workflows.
 
 \*\*Lazy Computation for switching_tables:\*\* When requesting
-`type = "switching_tables"`, the function automatically computes and
+`type = 'switching_tables'`, the function automatically computes and
 caches the tables if they don't exist yet but the prerequisites do (LM
 and jackknife results). This eliminates the need for a separate
 `prepare_gene_switching_tables_s4()` call - simply request the results
@@ -140,21 +175,20 @@ se <- SummarizedExperiment::SummarizedExperiment(
 )
 analysis <- TSENATAnalysis(se = se, config = config)
 analysis <- calculate_diversity(analysis)
-#> [calculate_diversity] Using q = 1.000 (config)
 #> Warning: [calculate_diversity] Assay for q=1 is empty
 
 # Get all diversity results (list of SummarizedExperiment objects, one per q)
 div_all <- results(analysis, type = 'diversity')
 
-# Get diversity for specific q-value (single SummarizedExperiment)
+# Get diversity for specific q-value (single SummarizedExperiment table for display)
 div_q1 <- results(analysis, type = 'diversity', q = 1.0)
+
+# Get diversity for specific q-value as SummarizedExperiment for downstream processing (e.g., SplicingFactory)
+div_q1_se <- results(analysis, type = 'diversity', q = 1.0, format = 'se')
 
 # Get results ranked by p-value, top 20 genes
 # Using accessor function instead of @ slot access
 top_lm <- results(analysis, type = 'lm', rankBy = 'pvalue', n = 20)
-
-# Get pairwise results (e.g., differential diversity metrics between conditions)
-pairwise_diff <- results(analysis, type = 'pairwise')
 
 # Get effect size results, top 6 genes by p-value (most significant first)
 top_effect_sizes <- results(analysis, type = 'effect_sizes_divergence', 
@@ -166,5 +200,37 @@ large_effects <- results(analysis, type = 'effect_sizes_divergence',
 
 # Get switching tables - automatically computed if prerequisites exist
 # (no need to call prepare_gene_switching_tables_s4 separately)
+# Default format='text' returns structured list for vignette rendering
 switching <- results(analysis, type = 'switching_tables')
+
+# Get switching tables in raw format (named list of data frames) for direct manipulation
+switching_raw <- results(analysis, type = 'switching_tables', format = 'raw')
+
+# ========================================================================
+# RETRIEVE CACHED PLOTS using the plot parameter
+# ========================================================================
+
+# Get the diversity spectrum plot
+diversity_plot <- results(analysis, type = 'diversity', plot = TRUE)
+#> Warning: Plot for type 'diversity' not found. Available plot types: diversity, lm, influence, jackknife, divergence. Available plots: none
+
+# Get the LM/linear model interaction plot (GAM, LMM, GEE, or FPCA)
+lm_plot <- results(analysis, type = 'lm', plot = TRUE)
+#> Warning: Plot for type 'lm' not found. Available plot types: diversity, lm, influence, jackknife, divergence. Available plots: none
+
+# Get the divergence distribution plot
+div_dist_plot <- results(analysis, type = 'divergence', plot = TRUE)
+#> Warning: Plot for type 'divergence' not found. Available plot types: diversity, lm, influence, jackknife, divergence. Available plots: none
+
+# Get the influence/m-estimator plot
+influence_plot <- results(analysis, type = 'influence', plot = TRUE)
+#> Warning: Plot for type 'influence' not found. Available plot types: diversity, lm, influence, jackknife, divergence. Available plots: none
+
+# Available plot types correspond to analysis types:
+# - type = 'diversity': Returns Tsallis entropy q-spectrum visualization
+# - type = 'lm': Returns linear model interaction plot (supports GAM, LMM, GEE, FPCA methods)
+# - type = 'divergence': Returns distribution of divergence metrics across genes
+# - type = 'influence': Returns m-estimator sample influence analysis
+# - type = 'rank_test': Returns Scheirer-Ray-Hare interaction visualization
+# - type = 'concordance': Returns method concordance comparison (LM vs rank test)
 ```

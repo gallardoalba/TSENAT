@@ -63,7 +63,7 @@ using jackknife resampling across samples to detect influential isoforms.</p>
 <span>  norm <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  log_base <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  threshold <span class="op">=</span> <span class="fl">90</span>,</span>
-<span>  n_bootstrap <span class="op">=</span> <span class="fl">1000</span>,</span>
+<span>  nboot <span class="op">=</span> <span class="fl">1000</span>,</span>
 <span>  pseudocount <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  lm_results <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  lm_p_threshold <span class="op">=</span> <span class="fl">0.05</span>,</span>
@@ -133,7 +133,7 @@ are classified
   as 'switching'.</p></dd>
 
 
-<dt id="arg-n-bootstrap">n_bootstrap<a class="anchor" aria-label="anchor" href="#arg-n-bootstrap"></a></dt>
+<dt id="arg-nboot">nboot<a class="anchor" aria-label="anchor" href="#arg-nboot"></a></dt>
 <dd><p><code>integer</code>.  Number of bootstrap resamples for
 confidence
   intervals (default: 1000).</p></dd>
@@ -208,7 +208,7 @@ analysis, multiple
 <li><p>Value from <code>analysis@config</code> (if key exists)</p></li>
 <li><p>Function default value</p></li>
 </ol><p>Affected parameters:</p><ul><li><p><code>q</code>: Multi-q vector c(0, 0.5, 1, 1.5, 2) if not provided, or <code>@config$q</code> if available</p></li>
-<li><p><code>n_bootstrap</code>: Uses <code>@config$n_bootstrap</code> if available, else 1000</p></li>
+<li><p><code>nboot</code>: Uses <code>@config$nboot</code> if available, else 1000</p></li>
 <li><p><code>threshold</code>: Uses <code>@config$threshold</code> if available, else 90</p></li>
 <li><p><code>lm_p_threshold</code>: Uses <code>@config$lm_p_threshold</code> if available, else 0.05</p></li>
 </ul><p>This allows setting defaults once in the config and reusing across multiple analyses.</p>
@@ -257,7 +257,6 @@ the underlying implementation,
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="filter_analysis.html">filter_analysis</a></span><span class="op">(</span><span class="va">analysis</span>, min_samples <span class="op">=</span> <span class="fl">1</span>, subset_n_genes</span></span>
 <span class="r-in"><span><span class="op">=</span> <span class="fl">20</span>, subset_n_samples <span class="op">=</span> <span class="fl">8</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">analysis</span>, q <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Note: 16 genes excluded (&lt; 75% valid values).</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

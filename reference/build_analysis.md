@@ -244,9 +244,9 @@ analysis
 #> ====================
 #> Genes:       30
 #> Samples:     10
-#> Configuration: 26 parameters
+#> Configuration: 27 parameters
 #> Analysis status: EMPTY
-#> Created: 2026-04-11 06:42:02.01542
+#> Created: 2026-04-13 23:03:29.030827
 #> 
 print(dim(analysis))
 #> NULL

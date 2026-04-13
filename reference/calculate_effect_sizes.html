@@ -169,10 +169,8 @@ Optional file path to save results.
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="filter_analysis.html">filter_analysis</a></span><span class="op">(</span><span class="va">analysis</span>, stringency <span class="op">=</span> <span class="st">'severe'</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [calculate_diversity] Using q spectrum: 0.000, 0.500, 1.000, 1.500, 2.000 (config)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Note: 7 genes excluded (&lt; 75% valid values).</span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_divergence.html">calculate_divergence</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_lm.html">calculate_lm</a></span><span class="op">(</span><span class="va">analysis</span>, method <span class="op">=</span> <span class="st">'gam'</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="calculate_lm.html">calculate_lm</a></span><span class="op">(</span><span class="va">analysis</span>, method <span class="op">=</span> <span class="st">'gam'</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Compute effect sizes from divergence results</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu">calculate_effect_sizes</span><span class="op">(</span><span class="va">analysis</span>,</span></span>
@@ -183,9 +181,19 @@ Optional file path to save results.
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># View structure of results</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">effect_size_results</span>, max.level <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> List of 2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ interaction_results:'data.frame':	8 obs. of  22 variables:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ validation_stats   :List of 5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 'data.frame':	8 obs. of  12 variables:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ gene               : chr  "ZNF493" "CENPV" "VRK2" "TLN2" ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ p_value_interaction: num  4.69e-08 1.21e-05 2.70e-04 2.40e-03 2.82e-03 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ slope_diff         : num  0.0404 0.0842 0.1841 0.1512 -0.1946 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ effect_size_D_q0_01: num  0.0579 0.5738 0.0842 1 0.2055 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ effect_size_D_q0_5 : num  0.0767 0.7017 0.1084 0.9172 0.2594 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ effect_size_D_q1   : num  0.0787 0.6995 0.1084 0.8251 0.2565 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ effect_size_D_q1_5 : num  0.0686 0.6239 0.0925 0.7475 0.2181 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ effect_size_D_q2   : num  0.0513 0.5025 0.0682 0.6592 0.1615 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ per_q_pattern      : chr  "Balanced" "Balanced" "Balanced" "Rare driven" ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ div_rare_median    : num  0.0673 0.6377 0.0963 0.9586 0.2325 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ div_abundant_median: num  0.0599 0.5632 0.0803 0.7034 0.1898 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ q_ratio            : num  1.12 1.13 1.2 1.36 1.22 ...</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

@@ -1,21 +1,20 @@
 # Detect q-dependent gene interactions
 
-Wrapper around \[.calculate_rank_test()\] that manages TSENATAnalysis
-object. Tests for genes with condition-specific q-dependent entropy
-patterns by testing whether the effect of q-values DIFFERS between
-experimental conditions. This detects disease-relevant or
-condition-specific isoform switching patterns.
+Wrapper around \[.calculate_srh()\] that manages TSENATAnalysis object.
+Tests for genes with condition-specific q-dependent entropy patterns by
+testing whether the effect of q-values DIFFERS between experimental
+conditions. This detects disease-relevant or condition-specific isoform
+switching patterns.
 
 ## Usage
 
 ``` r
-calculate_rank_test(
+calculate_srh(
   analysis,
   condition_col,
   output_file = NULL,
   paired = NULL,
   subject_col = NULL,
-  test = c("auto", "kruskal-wallis", "friedman", "art"),
   multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young", "none"),
   entropy_col = "diversity",
   q_col = "q",
@@ -38,7 +37,8 @@ calculate_rank_test(
 
 - analysis:
 
-  `TSENATAnalysis` object.
+  `TSENATAnalysis` object. Must have diversity results from
+  [`calculate_diversity()`](https://gallardoalba.github.io/TSENAT/reference/calculate_diversity.md).
 
 - condition_col:
 
@@ -61,11 +61,6 @@ calculate_rank_test(
   `character` or `NULL`. Column name for subject/block identifiers
   (required when `paired=TRUE`). If NULL, reads from
   `@config$subject_col`.
-
-- test:
-
-  `character`. Test method: 'auto' (default), 'kruskal-wallis'
-  (unpaired), 'friedman' (paired), or 'art' (aligned rank transform).
 
 - multicorr:
 
@@ -136,8 +131,7 @@ calculate_rank_test(
 
 - ...:
 
-  Additional arguments passed to the base `.calculate_rank_test()`
-  function.
+  Additional arguments passed to the base `.calculate_srh()` function.
 
 ## Value
 
@@ -151,9 +145,9 @@ Modified TSENATAnalysis with interaction results in @lm_results.
 q-values differ by condition (main discovery goal) - \*\*Multi-q
 Analysis\*\*: Combines diversity results for multiple q-values into a
 single SummarizedExperiment for joint hypothesis testing -
-\*\*Rank-Based Statistics\*\*: Kruskal-Wallis (unpaired) or Friedman
-(paired) - \*\*Scheirer-Ray-Hare Test\*\*: Two-way non-parametric ANOVA
-on ranks - \*\*Multiple Testing Correction\*\*: Hochberg,
+\*\*Rank-Based Statistics\*\*: Scheirer-Ray-Hare test (two-way ANOVA on
+ranked data, - \*\*Scheirer-Ray-Hare Test\*\*: Two-way non-parametric
+ANOVA on ranks - \*\*Multiple Testing Correction\*\*: Hochberg,
 Benjamini-Yekutieli, or permutation (Westfall-Young) procedures -
 \*\*AR(1) Correlation Handling\*\*: Westfall-Young preserves q-value
 spatial correlations (important for ordered q measurements) - \*\*Effect
@@ -182,8 +176,7 @@ B\*\*: Flat entropy profile across q (uniform isoform usage) -
 disease-associated splicing regulation
 
 Analyzes how gene interactions change across q-value spectrum using
-rank-based (Friedman/Kruskal-Wallis) or parametric (GAM) statistical
-tests.
+rank-based (Scheirer-Ray-Hare) or parametric (GAM) statistical tests.
 
 \*\*Parameter resolution priority\*\* (explicit \> @config \>
 default/auto-detect):
@@ -223,19 +216,29 @@ gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
 
 # Build analysis from vignette data and create manageable subset
-analysis <- build_analysis(readcounts = readcounts, tx2gene =
-gff3_dataset, metadata = metadata_df, config = config,
-  tpm = tpm, effective_length = effective_length)
-analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
-= 200)
+analysis <- build_analysis(
+  readcounts = readcounts,
+  tx2gene = gff3_dataset,
+  metadata = metadata_df,
+  config = config,
+  tpm = tpm,
+  effective_length = effective_length
+)
+analysis <- filter_analysis(
+  analysis,
+  min_samples = 1,
+  subset_n_genes = 200
+)
 analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
-#> Note: 37 genes excluded (< 75% valid values).
 
 # Test Q×Condition interaction (condition_col is REQUIRED)
-analysis <- calculate_rank_test(analysis, condition_col = 'condition', 
-                                           multicorr = 'hochberg')
+analysis <- calculate_srh(
+  analysis,
+  condition_col = 'condition',
+  multicorr = 'hochberg'
+)
 # View results using unified accessor
-rank_test_res <- results(analysis, type = "rank_test")
+rank_test_res <- results(analysis, type = 'rank_test')
 if (!is.null(rank_test_res)) head(rank_test_res)
 #>       gene n_q_values_tested f_statistic   p_value adj_p_value ss_interaction
 #> 1 SH3PXD2A                 3  0.10283830 0.9024993           1     0.35754547

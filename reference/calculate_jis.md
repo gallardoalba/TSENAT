@@ -17,7 +17,7 @@ calculate_jis(
   norm = NULL,
   log_base = NULL,
   threshold = 90,
-  n_bootstrap = 1000,
+  nboot = 1000,
   pseudocount = NULL,
   lm_results = NULL,
   lm_p_threshold = 0.05,
@@ -79,7 +79,7 @@ calculate_jis(
   (default: 90). Transcripts with delta_influence \>= threshold
   percentile are classified as 'switching'.
 
-- n_bootstrap:
+- nboot:
 
   `integer`. Number of bootstrap resamples for confidence intervals
   (default: 1000).
@@ -175,7 +175,7 @@ Affected parameters:
 - `q`: Multi-q vector c(0, 0.5, 1, 1.5, 2) if not provided, or
   `@config$q` if available
 
-- `n_bootstrap`: Uses `@config$n_bootstrap` if available, else 1000
+- `nboot`: Uses `@config$nboot` if available, else 1000
 
 - `threshold`: Uses `@config$threshold` if available, else 90
 
@@ -239,5 +239,4 @@ gff3_file, metadata = metadata_df, config = config,
 analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 = 20, subset_n_samples = 8)
 analysis <- calculate_diversity(analysis, q = 1)
-#> Note: 16 genes excluded (< 75% valid values).
 ```

@@ -1,6 +1,8 @@
-# Compute concordance between two analysis methods in TSENATAnalysis
+# Compare method concordance for differential analysis results
 
-Compute concordance between two analysis methods in TSENATAnalysis
+Compares statistical results from two different methods (typically
+LM/GAM for continuous data and Scheirer-Ray-Hare rank tests) to assess
+agreement and identify genes detected by one method but not the other.
 
 ## Usage
 
@@ -11,8 +13,6 @@ calculate_concordance(analysis_lm, analysis_rank = NULL, ...)
 calculate_concordance(
   analysis_lm,
   analysis_rank = NULL,
-  lm_method = NULL,
-  rank_method = "rank_test",
   verbose = FALSE,
   output_file = NULL
 )
@@ -22,7 +22,8 @@ calculate_concordance(
 
 - analysis_lm:
 
-  `TSENATAnalysis` object with LM/GAM results.
+  `TSENATAnalysis` object containing LM/GAM analysis results (from
+  [`calculate_lm()`](https://gallardoalba.github.io/TSENAT/reference/calculate_lm.md)).
 
 - analysis_rank:
 
@@ -33,16 +34,6 @@ calculate_concordance(
 - ...:
 
   Additional arguments for future extensibility.
-
-- lm_method:
-
-  `character`. Key for LM/GAM interaction results in `@lm_results`.
-  Default: NULL (auto-detects from analysis_lm).
-
-- rank_method:
-
-  `character`. Key for rank-based test results in `@lm_results`.
-  Default: 'rank_test' (from `calculate_rank_test`).
 
 - verbose:
 
@@ -89,8 +80,8 @@ Modified TSENATAnalysis object with concordance results stored in:
 ## Details
 
 Compares results from two different statistical methods (typically GAM
-for continuous and Friedman/Kruskal-Wallis for rank-based analysis) on
-the same data. Identifies: - Genes significant in both methods (high
+for continuous and Scheirer-Ray-Hare for rank-based analysis) on the
+same data. Identifies: - Genes significant in both methods (high
 confidence) - Genes detected by one method only (potential false
 positives or method-specific signal) - Spearman correlation of p-values
 (overall agreement trends)
@@ -131,15 +122,8 @@ analysis <- build_analysis(
 
 analysis <- filter_analysis(analysis, stringency = 'severe')
 analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
-#> Note: 7 genes excluded (< 75% valid values).
 analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
-analysis <- calculate_lm(analysis, method = 'gam')
-#> Warning: nlminb problem, convergence error code = 1
-#>   message = singular convergence (7)
-#> Warning: nlminb problem, convergence error code = 1
-#>   message = iteration limit reached without convergence (10)
-#> Warning: nlminb problem, convergence error code = 1
-#>   message = iteration limit reached without convergence (10)
+analysis <- suppressWarnings(calculate_lm(analysis, method = 'gam'))
 # Note: calculate_concordance requires results from both
-# calculate_rank_test and calculate_rank_assumptions
+# calculate_srh and calculate_assumptions
 ```

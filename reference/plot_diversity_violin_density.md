@@ -78,10 +78,8 @@ gff3_dataset, metadata = metadata_df, config = config,
 analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 = 200)
 analysis <- calculate_diversity(analysis, q = 1.0)
-#> Note: 37 genes excluded (< 75% valid values).
 p <- plot_diversity_violin_density(analysis)
-if (!is.null(p)) print(p)
-
+# if (!is.null(p)) print(p)
 
 # Plot 8: Violin and density plots of Tsallis entropy distribution
 data(readcounts)
@@ -102,8 +100,6 @@ gff3_dataset, metadata = metadata_df, config = config,
 analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 = 200)
 analysis <- calculate_diversity(analysis, q = 1.0)
-#> Note: 37 genes excluded (< 75% valid values).
 p <- plot_diversity_violin_density(analysis)
-if (!is.null(p)) print(p)
-
+# print(p)
 ```

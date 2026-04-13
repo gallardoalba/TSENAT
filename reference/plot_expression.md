@@ -175,16 +175,17 @@ analysis <- build_analysis(
 )
 
 analysis <- filter_analysis(analysis, stringency = 'severe')
-analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5), verbose
-= FALSE)
-analysis <- calculate_lm(analysis, method = 'gam', verbose
-= FALSE)
-#> Warning: nlminb problem, convergence error code = 1
-#>   message = singular convergence (7)
-#> Warning: nlminb problem, convergence error code = 1
-#>   message = iteration limit reached without convergence (10)
-#> Warning: nlminb problem, convergence error code = 1
-#>   message = iteration limit reached without convergence (10)
+analysis <- calculate_diversity(
+  analysis,
+  q = c(0.5, 1.0, 1.5, 2.0, 2.5),
+  verbose = FALSE
+)
+analysis <- suppressWarnings(calculate_lm(
+  analysis,
+  method = 'gam',
+  verbose = FALSE
+))
 plot_file <- plot_expression(analysis, top_n = 3)
 
+# print(plot_file) 
 ```

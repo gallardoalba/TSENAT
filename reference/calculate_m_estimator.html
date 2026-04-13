@@ -147,8 +147,7 @@ Default: NULL (no file output).</p></dd>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>Modified TSENATAnalysis object with M-estimation results stored in
 <code>analysis@metadata$m_estimate_results</code>. Contains data frame with
-influence scores, robustness weights, entropy statistics, and QC
-classifications.
+influence scores, robustness weights, entropy statistics, and QC classifications.
 Returns visibly to support method chaining and piping.</p>
     </div>
     <div class="section level2">
@@ -162,12 +161,10 @@ based
 on their residuals. Useful for detecting low-quality samples that show
 unusual diversity patterns.</p>
 <p>**M-Estimation Results include:**</p><ul><li><p><code>sample_influence</code>: How much each sample affects the overall fit</p></li>
-<li><p><code>robustness_weight</code>:
- Down-weighting factor (lower = more outlying)</p></li>
+<li><p><code>robustness_weight</code>: Down-weighting factor</p></li>
 <li><p><code>entropy_mean</code>: Average entropy for the sample</p></li>
 <li><p><code>entropy_sd</code>: Entropy variability within the sample</p></li>
-<li><p><code>Status</code>:  QC Classification ('OK' or  'Flag for
-QC' based on influence_threshold)</p></li>
+<li><p><code>Status</code>:  QC Classification</p></li>
 </ul><p>**Parameter resolution priority** (explicit &gt; @config &gt; error):</p><ul><li><p><code>samples</code>: Uses explicit arg, else <code>@config$condition_col</code>,
 else error. Note: despite parameter name 'samples', maps to condition
 grouping column</p></li>
@@ -212,7 +209,6 @@ grouping column</p></li>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="filter_analysis.html">filter_analysis</a></span><span class="op">(</span><span class="va">analysis</span>, min_samples <span class="op">=</span> <span class="fl">1</span>, subset_n_genes <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">analysis</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1.0</span>, <span class="fl">1.5</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Note: 37 genes excluded (&lt; 75% valid values).</span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu">calculate_m_estimator</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="va">analysis</span>,</span></span>
 <span class="r-in"><span>  condition_col <span class="op">=</span> <span class="st">'condition'</span>,</span></span>

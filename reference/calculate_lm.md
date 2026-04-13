@@ -190,14 +190,14 @@ analysis <- calculate_diversity(
 )
 
 # Calculate q x condition interactions using GAM
-analysis <- calculate_lm(
+analysis <- suppressWarnings(calculate_lm(
   analysis,
   condition_col = 'condition',
   method = 'gam'
-)
+))
 
 # View top interaction results using unified accessor (first 3 genes)
-res <- results(analysis, type = "lm")
+res <- results(analysis, type = 'lm')
 if (!is.null(res)) head(res, 3)
 #>      gene p_interaction        p_raw n_observations n_subjects n_effective
 #> 1  GENE_2  3.243028e-11 3.243028e-11             64         16    14.91552

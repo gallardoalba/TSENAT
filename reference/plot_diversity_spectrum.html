@@ -112,8 +112,8 @@ for each gene.</p></dd>
   p-value column. Accepts either:
 - Results from `.calculate_lm()` (has `adj_p_interaction` or
 `p_interaction` columns)
-- Results from `.calculate_rank_test()` (has `adj_p_value` or `p_value`
-columns from Friedman/Wilcoxon tests)
+- Results from `.calculate_srh()` (has `adj_p_value` or `p_value`
+columns from Scheirer-Ray-Hare rank tests)
 If provided (and `gene` is NULL), plots top `n_top` genes ranked by
 p-value.
   Useful for plotting significant genes from any interaction analysis.</p></dd>
@@ -226,10 +226,8 @@ bootstrap=TRUE, nboot=1000)`
 <span class="r-in"><span><span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">analysis</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Note: 37 genes excluded (&lt; 75% valid values).</span>
 <span class="r-in"><span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu">plot_diversity_spectrum</span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span></span></span>
-<span class="r-plt img"><img src="plot_diversity_spectrum-1.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span><span class="co"># print(p)</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

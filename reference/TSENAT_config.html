@@ -79,6 +79,7 @@ analyses.</p>
 <span>  lm_pcorr <span class="op">=</span> <span class="st">"BH"</span>,</span>
 <span>  jis_use_lm_fdr <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  divergence_ci <span class="op">=</span> <span class="fl">0.95</span>,</span>
+<span>  assumptions_checks <span class="op">=</span> <span class="st">"all"</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -91,8 +92,7 @@ analyses.</p>
 <dd><p><code>numeric</code>. Q-value(s) for Tsallis entropy (single value or vector).
 Default: 1.0 (Shannon entropy).
 Usage: <code>calculate_diversity/divergence</code> use this for spectrum computation
-(if vector) or as default fallback (if single);
-<code>calculate_difference</code> requires single value for statistical tests.</p></dd>
+(if vector) or as default fallback (if single).</p></dd>
 
 
 <dt id="arg-condition-col">condition_col<a class="anchor" aria-label="anchor" href="#arg-condition-col"></a></dt>
@@ -191,6 +191,14 @@ Usage: <code>calculate_diversity/divergence</code> use this for spectrum computa
 <dd><p><code>numeric</code>. Confidence level for divergence CIs. Default: 0.95.</p></dd>
 
 
+<dt id="arg-assumptions-checks">assumptions_checks<a class="anchor" aria-label="anchor" href="#arg-assumptions-checks"></a></dt>
+<dd><p><code>character</code>. Which assumptions to test (default: 'all').
+Presets:
+- 'rank': core assumption checks (exchangeability, monotonicity, consistency)
+- 'all': all checks including method-specific diagnostics (GAM, GEE, LMM, FPCA)
+Explicit: character vector like <code>c('exchangeability', 'monotonicity')</code>.</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Additional configuration parameters (stored as-is).</p></dd>
 
@@ -220,7 +228,7 @@ so only one q-value is specified in config.</p>
 <span class="r-in"><span>  control <span class="op">=</span> <span class="st">'untreated'</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># For Friedman/LM tests (multiple q-values)</span></span></span>
+<span class="r-in"><span><span class="co"># For Scheirer-Ray-Hare rank tests (multiple q-values)</span></span></span>
 <span class="r-in"><span><span class="va">cfg</span> <span class="op">&lt;-</span> <span class="fu">TSENAT_config</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,          <span class="co"># Multiple q-values for spectrum or advanced testing</span></span></span>
 <span class="r-in"><span>  condition_col <span class="op">=</span> <span class="st">'treatment'</span>,</span></span>
@@ -230,7 +238,7 @@ so only one q-value is specified in config.</p>
 <span class="r-in"><span><span class="co"># With bootstrap CIs for uncertainty quantification (recommended)</span></span></span>
 <span class="r-in"><span><span class="va">cfg</span> <span class="op">&lt;-</span> <span class="fu">TSENAT_config</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  bootstrap <span class="op">=</span> <span class="cn">TRUE</span>,                <span class="co"># Enable bootstrap confidence intervals</span></span></span>
-<span class="r-in"><span>  bootstrap_method <span class="op">=</span> <span class="st">"bca"</span>,         <span class="co"># Bias-corrected (better for skewed entropy)</span></span></span>
+<span class="r-in"><span>  bootstrap_method <span class="op">=</span> <span class="st">'bca'</span>,         <span class="co"># Bias-corrected (better for skewed entropy)</span></span></span>
 <span class="r-in"><span>  nboot <span class="op">=</span> <span class="fl">1000</span>,                     <span class="co"># 1000 resamples</span></span></span>
 <span class="r-in"><span>  bootstrap_ci <span class="op">=</span> <span class="fl">0.95</span>               <span class="co"># 95% CI</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>

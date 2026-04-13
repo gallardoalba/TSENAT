@@ -64,7 +64,7 @@
 Gallardo <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2026-04-11</h4>
+            <h4 data-toc-skip class="date">2026-04-13</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gallardoalba/TSENAT/blob/HEAD/vignettes/TSENAT.Rmd" class="external-link"><code>vignettes/TSENAT.Rmd</code></a></small>
       <div class="d-none name"><code>TSENAT.Rmd</code></div>
@@ -561,116 +561,12 @@ isoform heterogeneity at multiple scales <span class="citation">(Ramírez-Reyes 
 <span>    norm <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Extract and display diversity results with formatted table</span></span>
-<span><span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"diversity"</span>, display_table <span class="op">=</span> <span class="cn">TRUE</span>, n_genes <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span></code></pre></div>
-<table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
-<caption>
-<strong>Table 1:</strong> Tsallis entropy for first 4 genes across three
-diversity scales (sample: SRR14800481)
-</caption>
-<thead><tr>
-<th style="text-align:left;">
-Gene
-</th>
-<th style="text-align:right;">
-q=0.0
-</th>
-<th style="text-align:right;">
-q=0.5
-</th>
-<th style="text-align:right;">
-q=1.0
-</th>
-<th style="text-align:right;">
-q=1.5
-</th>
-<th style="text-align:right;">
-q=2.0
-</th>
-</tr></thead>
-<tbody>
-<tr>
-<td style="text-align:left;">
-FOXJ2
-</td>
-<td style="text-align:right;">
-0.66667
-</td>
-<td style="text-align:right;">
-0.53796
-</td>
-<td style="text-align:right;">
-0.48150
-</td>
-<td style="text-align:right;">
-0.46975
-</td>
-<td style="text-align:right;">
-0.48518
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-TMEM38A
-</td>
-<td style="text-align:right;">
-1.00000
-</td>
-<td style="text-align:right;">
-0.82704
-</td>
-<td style="text-align:right;">
-0.72526
-</td>
-<td style="text-align:right;">
-0.66965
-</td>
-<td style="text-align:right;">
-0.64401
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-CCNE1
-</td>
-<td style="text-align:right;">
-0.33333
-</td>
-<td style="text-align:right;">
-0.32256
-</td>
-<td style="text-align:right;">
-0.32749
-</td>
-<td style="text-align:right;">
-0.34571
-</td>
-<td style="text-align:right;">
-0.37418
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-MCOLN1
-</td>
-<td style="text-align:right;">
-1.00000
-</td>
-<td style="text-align:right;">
-0.39297
-</td>
-<td style="text-align:right;">
-0.21567
-</td>
-<td style="text-align:right;">
-0.16305
-</td>
-<td style="text-align:right;">
-0.15195
-</td>
-</tr>
-</tbody>
-</table>
+<span><span class="co"># Extract and display diversity results</span></span>
+<span><span class="va">diversity</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"diversity"</span>, n_genes <span class="op">=</span> <span class="fl">4</span>, sample <span class="op">=</span> <span class="st">"SRR14800481"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">diversity</span><span class="op">)</span></span></code></pre></div>
+<p>Note: Diversity results not available for the requested q-values.
+Ensure calculate_diversity() was run with appropriate q-value
+configuration.</p>
 <p>With the q-spectrum we can produce a q-curve per sample and gene.
 These curves show how diversity emphasis shifts from rare to dominant
 isoforms as <code>q</code> increases and form the basis for interaction
@@ -1429,7 +1325,7 @@ heterogeneity and warrant caution in result interpretation.</p>
 the linear-model interaction test.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot q-curve profiles for the top 4 genes using the S4 wrapper</span></span>
-<span><span class="va">combined_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_lm_gam.html">plot_lm_gam</a></span><span class="op">(</span></span>
+<span><span class="va">combined_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_lm.html">plot_lm</a></span><span class="op">(</span></span>
 <span>    <span class="va">analysis</span>,</span>
 <span>    n_top <span class="op">=</span> <span class="fl">4</span></span>
 <span><span class="op">)</span></span>
@@ -1519,7 +1415,9 @@ switching. This reveals whether isoform shifts involve the same
 transcripts across scales or whether different entropic indices
 emphasize different transcripts.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Retrieve gene switching tables</span></span>
+<code class="sourceCode R"><span><span class="co"># Retrieve gene switching tables (default format="text" returns structured list)</span></span>
+<span><span class="co"># format="text" returns: $gene_headers, $comparison_tables, $q_metadata for vignette display</span></span>
+<span><span class="co"># format="raw" returns original named list of data frames per gene for direct access</span></span>
 <span><span class="va">tables_result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"switching_tables"</span><span class="op">)</span></span></code></pre></div>
 <div class="section level5">
 <h5 id="gene-cxcl12-ensg00000107562-18">Gene: CXCL12 (ENSG00000107562.18)<a class="anchor" aria-label="anchor" href="#gene-cxcl12-ensg00000107562-18"></a>
@@ -1543,8 +1441,6 @@ q=1.50
 </th>
 <th style="text-align:right;">
 q=2.00
-</th>
-<th style="text-align:left;">
 </th>
 <th style="text-align:left;">
 Direction Consistency
@@ -1571,8 +1467,6 @@ ENST00000343575.11
 0.073
 </td>
 <td style="text-align:left;">
-</td>
-<td style="text-align:left;">
 Mixed directions
 </td>
 </tr>
@@ -1596,8 +1490,6 @@ ENST00000374426.6
 -0.035
 </td>
 <td style="text-align:left;">
-</td>
-<td style="text-align:left;">
 Mixed directions
 </td>
 </tr>
@@ -1619,8 +1511,6 @@ ENST00000374429.6
 </td>
 <td style="text-align:right;">
 0.112
-</td>
-<td style="text-align:left;">
 </td>
 <td style="text-align:left;">
 Mixed directions
@@ -1653,8 +1543,6 @@ q=1.50
 q=2.00
 </th>
 <th style="text-align:left;">
-</th>
-<th style="text-align:left;">
 Direction Consistency
 </th>
 </tr></thead>
@@ -1677,8 +1565,6 @@ ENST00000524970.5
 </td>
 <td style="text-align:right;">
 0.020
-</td>
-<td style="text-align:left;">
 </td>
 <td style="text-align:left;">
 Mixed directions
@@ -1704,8 +1590,6 @@ ENST00000900758.1
 0.016
 </td>
 <td style="text-align:left;">
-</td>
-<td style="text-align:left;">
 Consistent positive
 </td>
 </tr>
@@ -1727,8 +1611,6 @@ ENST00000956364.1
 </td>
 <td style="text-align:right;">
 -0.108
-</td>
-<td style="text-align:left;">
 </td>
 <td style="text-align:left;">
 Mixed directions
@@ -1932,35 +1814,40 @@ SNX4
 <span>    type <span class="op">=</span> <span class="st">"effect_sizes_divergence"</span>,</span>
 <span>    top_n <span class="op">=</span> <span class="fl">6</span>,</span>
 <span>    sort_by <span class="op">=</span> <span class="st">"p_value_interaction"</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">top_genes_result</span><span class="op">)</span></span></code></pre></div>
 <table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
 <caption>
-<strong>Table 5 | Top genes by linear model significance with effect
-sizes and q-spectrum patterns.</strong> Ranked by statistical
-significance (ascending <em>P</em>-values, Benjamini-Hochberg
-<em>q</em>-value &lt; 0.05).
+Top 6 Genes by Effect Size (Tsallis Divergence)
 </caption>
 <thead><tr>
 <th style="text-align:left;">
 Gene
 </th>
 <th style="text-align:right;">
-Mean Divergence
+P-value
+</th>
+<th style="text-align:right;">
+Slope Diff
+</th>
+<th style="text-align:right;">
+D(q=0.5)
+</th>
+<th style="text-align:right;">
+D(q=1.0)
+</th>
+<th style="text-align:right;">
+D(q=2.0)
 </th>
 <th style="text-align:left;">
-Q-Pattern
+Pattern
 </th>
 <th style="text-align:right;">
-D_rare
+Rare Median
 </th>
 <th style="text-align:right;">
-D_abundant
-</th>
-<th style="text-align:right;">
-Ratio
-</th>
-<th style="text-align:left;">
-LM adj. p-value
+Abundant Median
 </th>
 </tr></thead>
 <tbody>
@@ -1969,7 +1856,19 @@ LM adj. p-value
 CXCL12
 </td>
 <td style="text-align:right;">
-0.2846
+0
+</td>
+<td style="text-align:right;">
+-0.3725
+</td>
+<td style="text-align:right;">
+0.3115
+</td>
+<td style="text-align:right;">
+0.3697
+</td>
+<td style="text-align:right;">
+0.1643
 </td>
 <td style="text-align:left;">
 Balanced
@@ -1980,19 +1879,25 @@ Balanced
 <td style="text-align:right;">
 0.2712
 </td>
-<td style="text-align:right;">
-1.13
-</td>
-<td style="text-align:left;">
-3.0e-162
-</td>
 </tr>
 <tr>
 <td style="text-align:left;">
 THY1
 </td>
 <td style="text-align:right;">
-0.1279
+0
+</td>
+<td style="text-align:right;">
+0.2928
+</td>
+<td style="text-align:right;">
+0.1481
+</td>
+<td style="text-align:right;">
+0.1720
+</td>
+<td style="text-align:right;">
+0.0589
 </td>
 <td style="text-align:left;">
 Balanced
@@ -2003,19 +1908,25 @@ Balanced
 <td style="text-align:right;">
 0.1142
 </td>
-<td style="text-align:right;">
-1.27
-</td>
-<td style="text-align:left;">
-7.3e-95
-</td>
 </tr>
 <tr>
 <td style="text-align:left;">
 ING3
 </td>
 <td style="text-align:right;">
-0.0101
+0
+</td>
+<td style="text-align:right;">
+0.1136
+</td>
+<td style="text-align:right;">
+0.0122
+</td>
+<td style="text-align:right;">
+0.0137
+</td>
+<td style="text-align:right;">
+0.0040
 </td>
 <td style="text-align:left;">
 Rare driven
@@ -2026,19 +1937,25 @@ Rare driven
 <td style="text-align:right;">
 0.0085
 </td>
-<td style="text-align:right;">
-1.42
-</td>
-<td style="text-align:left;">
-2.0e-75
-</td>
 </tr>
 <tr>
 <td style="text-align:left;">
 SNHG10
 </td>
 <td style="text-align:right;">
-0.0714
+0
+</td>
+<td style="text-align:right;">
+0.1203
+</td>
+<td style="text-align:right;">
+0.0874
+</td>
+<td style="text-align:right;">
+0.0956
+</td>
+<td style="text-align:right;">
+0.0283
 </td>
 <td style="text-align:left;">
 Rare driven
@@ -2049,19 +1966,25 @@ Rare driven
 <td style="text-align:right;">
 0.0591
 </td>
-<td style="text-align:right;">
-1.46
-</td>
-<td style="text-align:left;">
-7.2e-73
-</td>
 </tr>
 <tr>
 <td style="text-align:left;">
 LINC03040
 </td>
 <td style="text-align:right;">
-0.2398
+0
+</td>
+<td style="text-align:right;">
+0.1063
+</td>
+<td style="text-align:right;">
+0.2850
+</td>
+<td style="text-align:right;">
+0.3119
+</td>
+<td style="text-align:right;">
+0.1098
 </td>
 <td style="text-align:left;">
 Rare driven
@@ -2072,19 +1995,25 @@ Rare driven
 <td style="text-align:right;">
 0.2057
 </td>
-<td style="text-align:right;">
-1.37
-</td>
-<td style="text-align:left;">
-1.3e-55
-</td>
 </tr>
 <tr>
 <td style="text-align:left;">
 HDAC2
 </td>
 <td style="text-align:right;">
-0.0525
+0
+</td>
+<td style="text-align:right;">
+0.1244
+</td>
+<td style="text-align:right;">
+0.0651
+</td>
+<td style="text-align:right;">
+0.0699
+</td>
+<td style="text-align:right;">
+0.0201
 </td>
 <td style="text-align:left;">
 Rare driven
@@ -2095,108 +2024,18 @@ Rare driven
 <td style="text-align:right;">
 0.0425
 </td>
-<td style="text-align:right;">
-1.51
-</td>
-<td style="text-align:left;">
-1.9e-49
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-ENSG00000274322
-</td>
-<td style="text-align:right;">
-0.1506
-</td>
-<td style="text-align:left;">
-Rare driven
-</td>
-<td style="text-align:right;">
-0.1852
-</td>
-<td style="text-align:right;">
-0.1206
-</td>
-<td style="text-align:right;">
-1.54
-</td>
-<td style="text-align:left;">
-3.3e-46
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-MEF2A
-</td>
-<td style="text-align:right;">
-0.0298
-</td>
-<td style="text-align:left;">
-Rare driven
-</td>
-<td style="text-align:right;">
-0.0382
-</td>
-<td style="text-align:right;">
-0.0225
-</td>
-<td style="text-align:right;">
-1.70
-</td>
-<td style="text-align:left;">
-9.5e-42
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-RAP1GDS1
-</td>
-<td style="text-align:right;">
-0.0139
-</td>
-<td style="text-align:left;">
-Rare driven
-</td>
-<td style="text-align:right;">
-0.0168
-</td>
-<td style="text-align:right;">
-0.0114
-</td>
-<td style="text-align:right;">
-1.47
-</td>
-<td style="text-align:left;">
-5.2e-36
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-PDE7A
-</td>
-<td style="text-align:right;">
-0.0419
-</td>
-<td style="text-align:left;">
-Rare driven
-</td>
-<td style="text-align:right;">
-0.0490
-</td>
-<td style="text-align:right;">
-0.0360
-</td>
-<td style="text-align:right;">
-1.36
-</td>
-<td style="text-align:left;">
-1.1e-35
-</td>
 </tr>
 </tbody>
 </table>
-<p>Interpretation of Pattern Types:</p>
+<p>The effect sizes reveal which genes show the most
+information-theoretic separation across the q-spectrum between paired
+treatment groups. Genes with Tsallis divergence D &gt; 0.1 show
+substantial divergence, indicating fundamental differences in entropy
+distributions between conditions.</p>
+</div>
+<div class="section level4">
+<h4 id="interpretation-of-pattern-types">Interpretation of Pattern Types:<a class="anchor" aria-label="anchor" href="#interpretation-of-pattern-types"></a>
+</h4>
 <table class="table">
 <colgroup>
 <col width="31%">

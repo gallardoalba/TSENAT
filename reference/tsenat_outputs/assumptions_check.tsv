@@ -1,0 +1,18 @@
+	check	characteristic	test	result	interpretation
+1	assumption	Exchangeability	Permutation test	p=0e+00	Ordering detected
+2	assumption	Monotonicity	Spearman rho	r=0.116	Heterogeneous
+3	assumption	Consistency	Kendall's W / ICC	W=0.011, ICC=0.058	Low
+4	assumption	Concurvity	Smooth collinearity	0.000	Low
+5	assumption	EDF Ratio	Smoothing	0.100	Adequate
+6	assumption	Non-linearity	Delta R^2 vs LM	0.0%	Use linear
+7	assumption	Basis Dimension	Spline basis	k=5	Adequate
+8	assumption	Correlation fit	Correlation fit	Observed autocorr=-0.050; independence suitable	Good fit
+9	assumption	Cluster variation	Cluster variation	Mean size=76.0 - homogeneous	Homogeneous
+10	assumption	Independence	Independence	Mean within-cluster residual correlation=-0.057	Independent
+11	assumption	Scale parameter	Scale parameter	phi=0.129	Under-dispersed (rare)
+12	assumption	Variance components	Variance components	ICC=0.060; B=0.004, W=0.063	Lmm justified
+13	assumption	Normality	Normality	p=4.77e-11	Non-normal
+14	assumption	Homogeneity	Homogeneity	p=0.0615; CV=0.222	Homogeneous
+15	assumption	Influence	Influence	Outliers=0, Extreme=0, Influential=26.4%	Many outliers
+16	assumption	Variance adequacy	Variance adequacy	Failed: infinite or missing values in 'x'	? ERROR
+17	assumption	Bootstrap stability	Bootstrap stability	Failed: infinite or missing values in 'x'	? ERROR

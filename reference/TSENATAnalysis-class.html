@@ -85,11 +85,11 @@ the analysis pipeline and provides consistent accessor methods for result
 retrieval.</p>
 
 <p>Access results via the unified <code>results(obj, type = ...)</code> accessor method:
-- <code>type="diversity"</code> for Tsallis entropy across q-values
-- <code>type="lm"</code> for linear model interaction results
-- <code>type="rank_test"</code> for Friedman rank-based test results
-- <code>type="divergence"</code> for divergence metrics
-- <code>type="jackknife"</code> for jackknife resampling results
+- <code>type='diversity'</code> for Tsallis entropy across q-values
+- <code>type='lm'</code> for linear model interaction results
+- <code>type='rank_test'</code> for Scheirer-Ray-Hare rank-based test results
+- <code>type='divergence'</code> for divergence metrics
+- <code>type='jackknife'</code> for jackknife resampling results
 Use <code>metadata(obj)</code> to access reproducibility metadata.</p>
     </div>
     <div class="section level2">
@@ -122,7 +122,7 @@ statistical testing. Top-level names identify analysis type:</p><dl><dt><code>lm
         <code>$results</code> data.frame, <code>$models</code> list, etc.)</p></dd>
 
   <dt><code>rank_test</code></dt>
-<dd><p>Friedman/rank-based test results</p></dd>
+<dd><p>Scheirer-Ray-Hare rank-based test results</p></dd>
 
   <dt><code>divergence_difference</code></dt>
 <dd><p>Differential divergence comparison</p></dd>
@@ -133,15 +133,13 @@ statistical testing. Top-level names identify analysis type:</p><dl><dt><code>lm
 
 <dt><code>pairwise_results</code></dt>
 <dd><p><code>list</code>. Pairwise group comparison results.
-Contains differential testing output computed by
-<code><a href="calculate_difference.html">calculate_difference()</a></code>, stored under the <code>difference</code>
-component.</p></dd>
+Results from running statistical tests for group comparisons.</p></dd>
 
 
 <dt><code>rank_test_results</code></dt>
-<dd><p><code>list</code>. Friedman and rank-based statistical
+<dd><p><code>list</code>. Scheirer-Ray-Hare rank-based statistical
 test results. Names correspond to q-values (e.g., 'q_0.5', 'q_1.0').
-Computed by <code><a href="calculate_rank_test.html">calculate_rank_test()</a></code> as a non-parametric alternative
+Computed by <code><a href="calculate_srh.html">calculate_srh()</a></code> as a non-parametric alternative
 to linear mixed model testing.</p></dd>
 
 

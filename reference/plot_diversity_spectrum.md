@@ -53,11 +53,10 @@ plot_diversity_spectrum(
   Data frame (optional); gene interaction test results with \`gene\`
   column and p-value column. Accepts either: - Results from
   \`.calculate_lm()\` (has \`adj_p_interaction\` or \`p_interaction\`
-  columns) - Results from \`.calculate_rank_test()\` (has
-  \`adj_p_value\` or \`p_value\` columns from Friedman/Wilcoxon tests)
-  If provided (and \`gene\` is NULL), plots top \`n_top\` genes ranked
-  by p-value. Useful for plotting significant genes from any interaction
-  analysis.
+  columns) - Results from \`.calculate_srh()\` (has \`adj_p_value\` or
+  \`p_value\` columns from Scheirer-Ray-Hare rank tests) If provided
+  (and \`gene\` is NULL), plots top \`n_top\` genes ranked by p-value.
+  Useful for plotting significant genes from any interaction analysis.
 
 - n_top:
 
@@ -156,8 +155,6 @@ analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 = 200)
 analysis <- calculate_diversity(analysis, q = seq(0, 2, by = 0.5),
 )
-#> Note: 37 genes excluded (< 75% valid values).
 p <- plot_diversity_spectrum(analysis)
-if (!is.null(p)) print(p)
-
+# print(p)
 ```

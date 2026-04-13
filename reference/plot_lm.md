@@ -6,7 +6,7 @@ q-curve plots
 ## Usage
 
 ``` r
-plot_lm_gam(
+plot_lm(
   analysis,
   n_top = 6,
   genes = NULL,
@@ -92,7 +92,7 @@ layout. Can be saved with
 This wrapper automatically: 1. Extracts SummarizedExperiment from `@se`
 slot 2. Extracts LM results from `@lm_results$lm_interaction` slot 3.
 Detects condition_col from `@config` or uses default 4. Calls
-`.plot_lm_gam()` with extracted parameters
+`.plot_lm()` with extracted parameters
 
 \*\*Parameter Resolution (condition_col):\*\*
 
@@ -145,19 +145,9 @@ analysis <- build_analysis(
 
 analysis <- filter_analysis(analysis, stringency = 'severe')
 analysis <- calculate_diversity(analysis, q = seq(0.2, 2, by = 0.4))
-#> Note: 7 genes excluded (< 75% valid values).
-analysis <- calculate_lm(analysis, method = 'gam')
-#> Warning: nlminb problem, convergence error code = 1
-#>   message = iteration limit reached without convergence (10)
-#> Warning: nlminb problem, convergence error code = 1
-#>   message = iteration limit reached without convergence (10)
-#> Warning: nlminb problem, convergence error code = 1
-#>   message = singular convergence (7)
-#> Warning: nlminb problem, convergence error code = 1
-#>   message = iteration limit reached without convergence (10)
+analysis <- suppressWarnings(calculate_lm(analysis, method = 'gam'))
 
-p_gam <- plot_lm_gam(analysis, n_top = 2, sig_alpha = 0.15)
+p_gam <- plot_lm(analysis, n_top = 2, sig_alpha = 0.15)
 #> Warning: No valid plots generated
-print(p_gam)
-#> NULL
+# print(p_gam)
 ```

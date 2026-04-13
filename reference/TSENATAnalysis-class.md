@@ -44,10 +44,10 @@ through the analysis pipeline and provides consistent accessor methods
 for result retrieval.
 
 Access results via the unified `results(obj, type = ...)` accessor
-method: - `type="diversity"` for Tsallis entropy across q-values -
-`type="lm"` for linear model interaction results - `type="rank_test"`
-for Friedman rank-based test results - `type="divergence"` for
-divergence metrics - `type="jackknife"` for jackknife resampling results
+method: - `type='diversity'` for Tsallis entropy across q-values -
+`type='lm'` for linear model interaction results - `type='rank_test'`
+for Scheirer-Ray-Hare rank-based test results - `type='divergence'` for
+divergence metrics - `type='jackknife'` for jackknife resampling results
 Use `metadata(obj)` to access reproducibility metadata.
 
 ## Slots
@@ -84,7 +84,7 @@ Use `metadata(obj)` to access reproducibility metadata.
 
   `rank_test`
 
-  :   Friedman/rank-based test results
+  :   Scheirer-Ray-Hare rank-based test results
 
   `divergence_difference`
 
@@ -92,16 +92,14 @@ Use `metadata(obj)` to access reproducibility metadata.
 
 - `pairwise_results`:
 
-  `list`. Pairwise group comparison results. Contains differential
-  testing output computed by
-  [`calculate_difference()`](https://gallardoalba.github.io/TSENAT/reference/calculate_difference.md),
-  stored under the `difference` component.
+  `list`. Pairwise group comparison results. Results from running
+  statistical tests for group comparisons.
 
 - `rank_test_results`:
 
-  `list`. Friedman and rank-based statistical test results. Names
+  `list`. Scheirer-Ray-Hare rank-based statistical test results. Names
   correspond to q-values (e.g., 'q_0.5', 'q_1.0'). Computed by
-  [`calculate_rank_test()`](https://gallardoalba.github.io/TSENAT/reference/calculate_rank_test.md)
+  [`calculate_srh()`](https://gallardoalba.github.io/TSENAT/reference/calculate_srh.md)
   as a non-parametric alternative to linear mixed model testing.
 
 - `jackknife_results`:

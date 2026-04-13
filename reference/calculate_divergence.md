@@ -160,13 +160,12 @@ analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = 200)
 
 # Compute diversity first (required for divergence)
 analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
-#> Note: 37 genes excluded (< 75% valid values).
 
 # Calculate divergence across q-values
 analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5))
 
 # Check divergence results using unified accessor
-head(results(analysis, type = "divergence"))
+head(results(analysis, type = 'divergence'))
 #>               q_0.5        q_1      q_1.5
 #> DES      1.00000000 0.97550617 0.37328802
 #> SYNM     0.95161102 0.86914555 0.28623852

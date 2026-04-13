@@ -301,14 +301,10 @@ analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 # Compute diversity and access results using unified accessor
 analysis <- calculate_diversity(analysis, q = c(0.5, 1.0), verbose =
 FALSE)
-head(results(analysis, type = "diversity", q = 1.0))
-#> class: SummarizedExperiment 
-#> dim: 6 16 
-#> metadata(11): q what ... sample_base_names samples
-#> assays(2): diversity counts
-#> rownames(6): SYNM REG3A ... HIGD1A CXCL12
-#> rowData names(2): gene_id gene_name
-#> colnames(16): SRR14800481 SRR14800480 ... SRR14800483 SRR14800482
-#> colData names(5): condition sample_type sample_base paired_samples
-#>   sample_id
+head(results(analysis, type = 'diversity', q = 1.0))
+#>       Gene
+#> 1     SYNM
+#> 2    REG3A
+#> 3 SH3PXD2A
+#> 4    GSKIP
 ```

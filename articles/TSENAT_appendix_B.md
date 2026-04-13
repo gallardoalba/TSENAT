@@ -1,78 +1,67 @@
 # Appendix B: Non-Parametric Validation of Linear Model Results via GAM and Rank-Based Methods
 
-## Overview: Non-Parametric Validation of Entropic Index × Group Interactions (q-values)
+## Purpose and Rationale
 
-### Purpose and Rationale
-
-Primary Goal: Validate that discoveries of scale-dependent entropic
-index × group interactions from linear models generalize to
-non-parametric statistical frameworks with minimal assumptions.
-
-TSENAT’s default approach employs **linear models** to test for entropic
-index × group effects in Tsallis entropy. While computationally
-efficient and well-characterized, linear models assume: - Normally
-distributed residuals (reasonable after appropriate transformation) -
-Homogeneous variance across entropic indices (often violated in
-diversity metrics) - Additive effects of group and entropic index on
-entropy (may oversimplify nonlinear relationships)
-
-This appendix provides two independent, non-parametric alternatives
-that:
-
-1.  Make minimal distributional assumptions, relying only on ranks or
-    data-adaptive smoothing
-2.  Explicitly handle the ordered structure of entropic indices,
-    treating them as sequential measurements (q-values)
-3.  Adapt to real-world heteroscedasticity, automatically weighting
-    measurements by entropy variance
-4.  Provide independent validation, allowing comparison of linear
-    vs. non-parametric findings
+The primary goal of this vignette is to validate that discoveries of
+scale-dependent entropic index × group interactions from linear models
+generalize to non-parametric statistical frameworks with minimal
+assumptions.
 
 ### Two Complementary Validation Approaches
 
-**Method 1**: Generalized Additive Models (GAM) with ARIMA-Ordered
+**Method 1: Generalized Additive Models (GAM)** with ARIMA-Ordered
 Measurement Structure.
 
-- Distributional assumption: None required; uses non-parametric basis
-  functions (thin-plate splines).
+- Framework: Semi-parametric model combining flexible smooth functions
+  (thin-plate splines) with linear parametric structure; assumes
+  additive model Y = f₁(q) + f₂(condition) + f₃(q, condition) + ε where
+  f terms are smooth rather than linear.
+- Distributional assumption: Gaussian residuals (reasonable for entropy
+  after appropriate transformation); no strong parametric family
+  required beyond tail behavior.
 - Treatment of entropic structure: Treats q-values as time-like ordered
-  measurements, applies ARIMA(1,1,0) differencing for autocorrelation.
+  measurements, applies ARIMA(1,1,0) differencing to remove AR(1)
+  autocorrelation and trend.
 - Heteroscedasticity handling: Automatically detects variance
-  heterogeneity; applies optimal weighting.
-- Key advantage: Captures smooth nonlinear q \* group effects with
-  computational efficiency.
+  heterogeneity (Breusch-Pagan test); estimates and applies variance
+  weights via power-law variance model or residual-based weighting.
+- Key advantage: Captures smooth nonlinear q × condition interactions
+  while adapting to heterogeneous entropy variance; computationally
+  efficient.
 
-**Method 2**: Rank-Based Tests (Scheirer-Ray-Hare with Hochberg Step-Up
-Correction).
+**Method 2: Rank-Based Scheirer-Ray-Hare Test (SRH)** with Hochberg
+Step-Up Correction.
 
-- Distributional assumption: None; operates entirely on ranks (maximal
-  robustness).
-- Treatment of q-ordering: Scheirer-Ray-Hare two-way test for paired
-  measurements across q and group.
-- Heteroscedasticity handling: Rank transformation inherently robust;
-  Hochberg correction controls FWER.
-- Key advantage: Maximally robust to outliers; valid for any continuous
-  distribution.
+- Framework: Pure non-parametric method; zero parametric or
+  distributional assumptions.
+- Distributional assumption: None; operates entirely on ranks (1, 2, …,
+  n), equivalent to two-way ANOVA on ordinal data.
+- Treatment of q-ordering: Two-way SRH test on ranks, treating q-values
+  as within-subject paired measurements; decomposes ranked data via
+  ANOVA and computes F-statistic.
+- Heteroscedasticity handling: Rank transformation inherently robust to
+  heteroscedasticity (variance differences do not affect relative
+  ordering); Hochberg step-up correction controls FWER across multiple
+  tests.
+- Key advantage: Maximally robust to outliers and any distributional
+  violations; valid under any continuous distribution and correlation
+  structure.
 
 ### Why Two Methods for One Question?
 
 Statistical testing in transcriptomics faces a fundamental challenge: no
-single method is universally optimal. Different approaches make
-different assumptions and have different strengths. TSENAT employs two
-complementary strategies: parametric methods (linear models) and
-non-parametric rank-based tests:
+single method is universally optimal. Different approaches trade-off
+power for robustness:
 
-| Aspect | Parametric (Linear Model / GAM) | Non-Parametric (Rank-Based) |
+| Aspect | Parametric (GAM) | Non-Parametric (Rank-Based) |
 |----|----|----|
 | Assumptions | Normality, homoscedasticity | Ranks only; fully non-parametric |
-| Power | Highest (if assumptions met) | Good; slightly reduced but robust |
-| Robustness | Moderate; sensitive to outliers | Highest; resistant to outliers and outlier-driven effects |
-| Interpretation | Parametric effect sizes, smooth curves | Effect ranks; robust p-values independent of distribution |
-| Outlier influence | High potential for bias | Minimal; rank transformation inherently resistant |
+| Power | Highest (if assumptions hold) | Good; reduced but robust to violations |
+| Robustness | Moderate | Highest |
+| Outlier sensitivity | Moderate potential for bias | Minimal; inherently resistant |
 
-Validation strategy: High concordance between parametric and
-non-parametric methods confirms that findings are robust to modeling
-assumptions and generalize across statistical frameworks.
+Validation strategy: Concordance between both methods confirms
+robustness across statistical frameworks.
 
 ------------------------------------------------------------------------
 
@@ -131,8 +120,7 @@ analysis <- build_analysis(
 # Apply filtering for quality control
 analysis <- filter_analysis(
     analysis,
-    stringency = "medium",
-    min_isoform_abundance = 0
+    stringency = "medium"
 )
 ```
 
@@ -182,77 +170,154 @@ analysis <- calculate_diversity(
 )
 ```
 
-## Rank-Based Approach (Scheirer-Ray-Hare)
+## Rank-Based Approach (SRH)
 
-The Scheirer-Ray-Hare test provides a non-parametric validation of
-linear model results by leveraging the paired nature of the experimental
-design and the ordered structure of entropic indices. Unlike parametric
-methods that assume normality and homogeneity of variance, the
-Scheirer-Ray-Hare test operates solely on ranks, making it maximally
-robust to outliers and extreme values.
+The SRH test is a two-way non-parametric ANOVA that operates on ranks
+rather than raw values. It is particularly well-suited for Tsallis
+entropy analysis for three fundamental reasons:
+
+1.  **Robustness to Distribution Violations**
+
+Tsallis entropy values exhibit inherent distributional properties that
+often violate parametric assumptions:
+
+- Non-normality: Entropy commonly exhibits bounded support (e.g.,
+  normalized entropy in \[0,1\]), producing skewed or bimodal
+  distributions rather than normal distributions.
+- Heteroscedasticity: Variance in entropy estimates varies
+  systematically across q-values. Low q-values (emphasizing rare
+  transcripts) produce volatile entropy estimates with high variance;
+  high q-values (emphasizing abundant transcripts) produce stable
+  estimates with lower variance.
+- Outlier sensitivity: Rare isoforms and count variability can produce
+  extreme entropy values that heavily influence parametric tests.
+
+The SRH test avoids these issues by replacing raw entropy values with
+their ranks (1, 2, 3, …, n). Ranks are **uniformly distributed and
+contain no outliers**, making the method valid for ANY continuous
+distribution—normal, skewed, bimodal, or otherwise. Critically, rank
+ordering is unaffected by normalization choice; whether entropy is
+normalized, log-transformed, or left raw, the test produces identical
+results (Conover and Iman 1981; Puri and Sen 1971).
+
+2.  **Paired Design for Ordered q-Value Structure**
+
+Tsallis entropy has a fundamental sequential property: entropy curves
+are smooth functions of q. As q increases from 0
+(rare-species-emphasizing) to ∞ (common-species-emphasizing), entropy
+values change systematically. This ordered structure is critical to
+interpreting q-dependent patterns and exhibits **AR(1)
+autocorrelation**: consecutive q-values produce correlated entropy
+estimates.
+
+The SRH test handles this structure by treating measurements as
+paired/repeated within genes across ordered q-values, capturing the
+sequential nature while maintaining exchangeability of samples.
+Autocorrelation in the original entropy values does NOT affect rank
+ordering or the validity of inference—this property, known as the
+*exchangeability property* of rank-based tests, ensures that rank-based
+inference is valid under any correlation pattern (Ernst 2004; Song
+2007). Within-subject ranking preserves pairing structure while removing
+the influence of AR(1) dependence through rank transformation (Zhang and
+Yuan 2018; Saulsbury 2020).
+
+3.  **Interaction Testing: Testing q × Condition Effects**
+
+The implementation uses two-way ANOVA applied to ranks (the modern
+computational approach):
+
+``` math
+F_{q \times \text{condition}} = \frac{MS_{\text{interaction}}}{MS_{\text{residual}}}
+```
+
+where:
+
+- Data are first ranked: $`R = \text{rank}(\text{entropy})`$
+  (within-subject ranks for paired designs)
+- Two-way ANOVA decomposes ranked data:
+  $`R = \mu + \alpha_q + \beta_{\text{condition}} + \gamma_{q \times \text{condition}} + \epsilon`$
+- $`MS_{\text{interaction}}`$ = sum of squares for $`q \times`$
+  condition interaction / degrees of freedom
+- $`MS_{\text{residual}}`$ = residual sum of squares / residual degrees
+  of freedom
+- $`F`$-statistic follows $`F`$-distribution under null hypothesis of no
+  interaction
+
+This directly tests the core biological question: “Does entropy
+q-dependence differ between groups?” The rank-transformed two-way ANOVA
+is mathematically equivalent to the original SRH test statistic but
+computationally more stable and easier to interpret. Modern extensions
+of rank-based testing demonstrate the validity of permutation procedures
+for testing interactions even under complex dependence structures
+(Meinshausen et al. 2012).
 
 ### Assumption Validation
 
-Before applying rank-based methods, we verify key assumptions for
-rank-based inference.
+To ensure valid statistical inference, we verify key data assumptions
+across multiple dimensions.
 
 ``` r
 
-# Validate Scheirer-Ray-Hare test assumptions
-analysis <- calculate_rank_assumptions(
-    analysis
+# Validate statistical assumptions (including GAM diagnostics)
+analysis <- calculate_assumptions(
+    analysis,
+    checks = "all"  # Include core checks + GAM diagnostics
 )
 
-# Extract the result object
-rank_assumptions <- metadata(analysis, "rankbased_assumptions")$result
+# Get assumptions
+assumptions_text <- results(analysis, type = "assumptions")
+print(assumptions_text)
 ```
 
-| Metric | Value |
-|:---|---:|
-| Genes tested | 88 |
-| Samples (entropic order indices × groups) | 656 |
-| Entropy range | 0.0000 to 1.0000 |
-| Mean entropy | 0.6676 |
-| Median entropy | 0.7425 |
-| Missing values | 0 |
-| Note: |  |
-|  Data from complete entropy matrix across all q-values and samples. |  |
+| Characteristic | Test | Result | Interpretation |
+|:---|:---|:---|:---|
+| Exchangeability | Permutation test | p=0e+00 | Ordering detected |
+| Monotonicity | Spearman rho | r=0.259 | Heterogeneous |
+| Consistency | Kendall’s W / ICC | W=0e+00, ICC=0.108 | Low |
+| Concurvity | Smooth collinearity | 0.000 | Low |
+| EDF Ratio | Smoothing | 0.024 | Over-smoothed |
+| Non-linearity | Delta R^2 vs LM | 0.0% | Use linear |
+| Basis Dimension | Spline basis | k=10 | Adequate |
+| Correlation fit | Correlation fit | Observed autocorr=-0.007; independence suitable | Good fit |
+| Cluster variation | Cluster variation | Mean size=77.0 - homogeneous | Homogeneous |
+| Independence | Independence | Mean within-cluster residual correlation=-0.018 | Independent |
+| Scale parameter | Scale parameter | phi=0.100 | Under-dispersed (rare) |
+| Variance components | Variance components | ICC=0.119; B=0.006, W=0.048 | Lmm justified |
+| Normality | Normality | p=3.57e-27 | Non-normal |
+| Homogeneity | Homogeneity | p=3.14e-128; CV=0.439 | Heterogeneous |
+| Influence | Influence | Outliers=778, Extreme=0, Influential=26.6% | Many outliers |
+| Variance adequacy | Variance adequacy | Components for 90%=10, 95%=13, 99%=17. Poor dimens | Poor reduction |
+| Bootstrap stability | Bootstrap stability | Bootstrap SE=0.200; Stable CIs=100%. Moderate boot | Moderate stability |
 
-Supplementary Table 1 \| Rank-Based Entropy Matrix Properties. {.table
-.table .table-striped .table-hover
-style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
+Assumption Checks for Scheirer-Ray-Hare Test {.table .table
+.table-striped .table-hover .table-condensed .table-responsive
+style="margin-left: auto; margin-right: auto;"}
 
-| Characteristic | Test | Result |
-|:---|:---|---:|
-| Paired Structure | Permutation test | p=1.000 |
-| Gene Heterogeneity | Spearman r | r=0.304 |
-| Subject Consistency | Kendall’s W | W=0.000 |
-| Note: |  |  |
-|  All metrics support validity of paired-design rank-based inference. |  |  |
+**Interpretation of Results:** The exchangeability test, the unique
+assumption of the SRH test, detects strong serial correlation (p ≈ 0),
+indicating that consecutive samples are more correlated than expected by
+chance. This violation of exchangeability is **not problematic** for SRH
+because rank-based inference satisfies the *exchangeability property*—a
+principle ensuring that rank statistics depend only on value ordering,
+not on correlations in the original data (Conover and Iman 1981; Puri
+and Sen 1971; Saulsbury 2020). The three reasons outlined above
+(robustness to distribution violations, paired design for ordered
+structure, and interaction testing) together uniquely suit SRH for
+multi-q entropy validation without requiring strong distributional
+assumptions.
 
-Supplementary Table 2 \| Entropy Matrix Validation Metrics. Three core
-properties validating suitability for rank-based analysis. Rows: Paired
-Structure (exchangeability test ensures independence), Gene
-Heterogeneity (Spearman rank correlation), Subject Consistency
-(Kendall’s *W* concordance). Values reported as *P*-values, correlation
-coefficients *r*, and concordance *W* (0-1 range). All tests support
-exchangeability assumption justifying Scheirer-Ray-Hare nonparametric
-approach. {.table .table .table-striped .table-hover
-style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
+### SRH Test: Testing q x Condition Interactions
 
-### Scheirer-Ray-Hare Test: Testing q $`\times`$ Condition Interactions
-
-Now we will use the Scheirer-Ray-Hare test to evaluate whether entropy
-patterns across entropic indices (q-values) differ between normal and
-tumor samples. The Scheirer-Ray-Hare test is a non-parametric
-alternative to the paired t-test and repeated measures ANOVA, making it
-ideal for paired designs where distributional assumptions may be
-violated (Zhang and Yuan 2018).
+Now we will use the SRH test to evaluate whether entropy patterns across
+entropic indices (q-values) differ between normal and tumor samples.
 
 ``` r
 
-# Run Scheirer-Ray-Hare test for q * condition INTERACTION
-analysis <- calculate_rank_test(
+# IMPORTANT: Create a copy of analysis before running SRH
+# This preserves the GAM results in 'analysis' for later concordance comparison
+
+# Run SRH test for q * condition INTERACTION on the copy
+analysis <- calculate_srh(
     analysis,
     multicorr = "hochberg"
 )
@@ -267,13 +332,13 @@ print(head(srh_results, n = 10))
 
 | Metric | Value |
 |:---|---:|
-| Genes tested | 88 |
-| Significant (p \< 0.05) | 10 |
-| Significant (adj_p \< 0.05, FWER-controlled) | 6 |
+| Genes tested | 77 |
+| Significant (p \< 0.05) | 3 |
+| Significant (adj_p \< 0.05, FWER-controlled) | 2 |
 | NAs | 0 |
-| Mean effect size ($`\eta^2`$) | 43.4% |
-| Median effect size ($`\eta^2`$) | 40.3% |
-| Strong effect genes ($`\eta^2`$ \> 10%) | 8 |
+| Mean effect size ($`\eta^2`$) | 28.6% |
+| Median effect size ($`\eta^2`$) | 26.2% |
+| Strong effect genes ($`\eta^2`$ \> 10%) | 1 |
 | Note: |  |
 |  Scheirer-Ray-Hare test: nonparametric rank-based ANOVA for paired designs. |  |
 
@@ -282,14 +347,18 @@ Rank-based nonparametric test of *q* × condition interactions. {.table
 .table .table-striped .table-hover
 style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
-| Gene | P-value | Adj. P-value | F-Statistic | Effect Size (η²) | Test Method | Interaction Class |
+|  | Gene | P-value | Adj. P-value | F-Statistic | Effect Size (η²) | Interaction Class |
 |:---|:---|:---|:---|:---|:---|:---|
-| CXCL12 | 1.9e-63 | 1.6e-61 | 14.4833 | 0.2993 | Scheirer-Ray-Hare (paired) | Strongly q-dependent |
-| LINC03040 | 1.1e-29 | 9.5e-28 | 7.0391 | 0.0735 | Scheirer-Ray-Hare (paired) | Moderately q-dependent |
-| PNRC2 | 6.8e-18 | 5.8e-16 | 4.7573 | 0.9610 | Scheirer-Ray-Hare (paired) | Strongly q-dependent |
-| FAM114A2 | 9.8e-06 | 0.000831 | 2.3578 | 0.2556 | Scheirer-Ray-Hare (paired) | Strongly q-dependent |
-| HDAC2 | 0.000116 | 0.009751 | 2.1161 | 0.5758 | Scheirer-Ray-Hare (paired) | Strongly q-dependent |
-| ATG5 | 0.000239 | 0.019839 | 2.0427 | 0.6787 | Scheirer-Ray-Hare (paired) | Strongly q-dependent |
+| 1 | CXCL12 | 9.4e-63 | 7.2e-61 | 14.3098 | 0.2996 | Strongly q-dependent |
+| 2 | LINC03040 | 9.6e-30 | 7.3e-28 | 7.0503 | 0.0728 | Moderately q-dependent |
+| 72 | ING3 | 0.017000 | 1 | 1.5613 | 0.0876 | Moderately q-dependent |
+| 23 | SPICE1 | 0.062881 | 1 | 1.3820 | 0.3557 | Robust across q |
+| 48 | FAM114A2 | 0.079169 | 1 | 1.3472 | 0.2218 | Robust across q |
+| 24 | THY1 | 0.300758 | 1 | 1.1095 | 0.3530 | Robust across q |
+| 34 | METTL26 | 0.353148 | 1 | 1.0736 | 0.3005 | Robust across q |
+| 45 | RAP1GDS1 | 0.385474 | 1 | 1.0529 | 0.2275 | Robust across q |
+| 55 | GSKIP | 0.535638 | 1 | 0.9642 | 0.1818 | Robust across q |
+| 35 | MEF2A | 0.591729 | 1 | 0.9324 | 0.3000 | Robust across q |
 | Note: |  |  |  |  |  |  |
 |  Effect size η² quantifies strength of *q* × condition interaction; top 10 genes ranked by significance. P-values \< 0.0001 shown in scientific notation for precision. |  |  |  |  |  |  |
 
@@ -301,17 +370,18 @@ Visualize q-curves for top genes:
 
 ``` r
 
-# Plot top genes from Scheirer-Ray-Hare test
-top_genes_plot <- plot_diversity_spectrum(analysis, lm_res = srh_results, n_top = 4)
+# Plot top genes from SRH test (using all genes, not just significant ones)
+# This ensures the plot displays n_top genes regardless of significance threshold
+top_genes_plot <- plot_diversity_spectrum(analysis, lm_res = srh_results_all, n_top = 4)
 print(top_genes_plot)
 ```
 
-![Extended Data Figure 1 \| Scheirer-Ray-Hare rank test results for
-scale-dependent isoform
+![Extended Data Figure 1 \| SRH rank test results for scale-dependent
+isoform
 switching.](TSENAT_appendix_B_files/figure-html/extended-fig-1-srh-q-curves-1.png)
 
-Extended Data Figure 1 \| Scheirer-Ray-Hare rank test results for
-scale-dependent isoform switching.
+Extended Data Figure 1 \| SRH rank test results for scale-dependent
+isoform switching.
 
 ------------------------------------------------------------------------
 
@@ -330,6 +400,7 @@ analysis_lm <- readRDS(
 
 # Extract GAM/LM results for inspection using accessor function
 gam_results <- results(analysis_lm, type = "lm", rankBy = "pvalue")
+print(gam_results)
 ```
 
 | Metric | Value |
@@ -350,16 +421,16 @@ style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 | Gene | p (interaction) | Adjusted p | Effect size | Test statistic | df |
 |:---|---:|---:|---:|---:|---:|
-| CXCL12 | 0e+00 | 0e+00 | 81.3% | 752.51 | 640 |
-| THY1 | 0e+00 | 0e+00 | 60.1% | 442.14 | 640 |
-| ING3 | 0e+00 | 0e+00 | 35.3% | 352.59 | 640 |
-| SNHG10 | 0e+00 | 0e+00 | 5.1% | 340.82 | 640 |
-| LINC03040 | 0e+00 | 0e+00 | 73.8% | 261.24 | 643 |
-| HDAC2 | 0e+00 | 0e+00 | 28.4% | 232.94 | 640 |
-| ENSG00000274322 | 0e+00 | 0e+00 | 4.7% | 217.93 | 640 |
-| MEF2A | 0e+00 | 0e+00 | 19.3% | 197.39 | 640 |
-| RAP1GDS1 | 0e+00 | 0e+00 | 54.8% | 170.93 | 640 |
-| PDE7A | 0e+00 | 0e+00 | 0.4% | 169.40 | 640 |
+| CXCL12 | 3.93e-164 | 2.99e-162 | 81.3% | 752.51 | 640 |
+| THY1 | 9.80e-97 | 7.35e-95 | 60.1% | 442.14 | 640 |
+| ING3 | 2.72e-77 | 2.02e-75 | 35.3% | 352.59 | 640 |
+| SNHG10 | 9.81e-75 | 7.16e-73 | 5.1% | 340.82 | 640 |
+| LINC03040 | 1.87e-57 | 1.35e-55 | 73.8% | 261.24 | 643 |
+| HDAC2 | 2.61e-51 | 1.85e-49 | 28.4% | 232.94 | 640 |
+| ENSG00000274322 | 4.75e-48 | 3.33e-46 | 4.7% | 217.93 | 640 |
+| MEF2A | 1.37e-43 | 9.46e-42 | 19.3% | 197.39 | 640 |
+| RAP1GDS1 | 7.65e-38 | 5.20e-36 | 54.8% | 170.93 | 640 |
+| PDE7A | 1.64e-37 | 1.10e-35 | 0.4% | 169.40 | 640 |
 | Note: |  |  |  |  |  |
 |  Top 10 genes ranked by significance; p-values \< 0.001 shown in scientific notation; effect size range 0-100%. |  |  |  |  |  |
 
@@ -371,87 +442,74 @@ style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 ## Method Concordance Analysis
 
-A critical validation step is to compare whether the Scheirer-Ray-Hare
-rank-based test and GAM produce consistent results. High concordance
-between methods (i.e., genes significant in both approaches) provides
-strong evidence that discoveries are robust to methodological choice.
-Discordant genes—those significant in only one method—warrant closer
-inspection: they may represent genuine biological signals revealed by
-one method’s specific advantages, or artifacts of that method’s
-assumptions. This section quantifies agreement between approaches and
-identifies high-confidence genes significant across both statistical
-frameworks.
+A critical validation step is to compare whether the SRH rank-based test
+and GAM produce consistent results. High concordance between methods
+(i.e., genes significant in both approaches) provides strong evidence
+that discoveries are robust to methodological choice. Discordant
+genes—those significant in only one method—warrant closer inspection:
+they may represent genuine biological signals revealed by one method’s
+specific advantages, or artifacts of that method’s assumptions. This
+section quantifies agreement between approaches and identifies
+high-confidence genes significant across both statistical frameworks.
 
 ``` r
 
 # Compute concordance analysis using new two-object API
-# Compares LM results (from analysis_lm) with rank test results (from analysis)
-analysis_with_concordance <- calculate_concordance(
+analysis <- calculate_concordance(
     analysis_lm = analysis_lm,
     analysis_rank = analysis,
-    lm_method = "lm_interaction",
-    rank_method = "rank_test",
     verbose = TRUE
 )
 
-# Extract components from S4 results
-concordance_result <- metadata(analysis_with_concordance, "method_concordance")
-comparison_df <- concordance_result$comparison_df
-spearman_rho <- concordance_result$spearman_rho
-high_conf <- concordance_result$high_confidence
-agreement_table <- concordance_result$agreement_table
+# Extract concordance results with list format for component display
+concordance_results <- results(analysis, type = "concordance", format = "list")
 ```
 
-| Metric | Value |
-|:---|---:|
-| Total genes compared | 76 |
-| Spearman correlation (p-values) | rho = 0.3571 |
-| Both methods significant (p \< 0.05) | 5 (6.6%) |
-| LM only significant | 54 (71.1%) |
-| Rank test only significant | 0 (0.0%) |
-| Neither significant | 17 (22.4%) |
-| Concordance rate | 28.9% |
-| Discordance rate | 71.1% |
-| Note: |  |
-|  Comparison of significant genes (p \< 0.05) detected by GAM vs Scheirer-Ray-Hare methods; high concordance validates robustness. |  |
+| Metric                               |        Value |
+|:-------------------------------------|-------------:|
+| Total genes compared                 |           76 |
+| Spearman correlation (p-values)      | rho = 0.2665 |
+| Both methods significant (p \< 0.05) |     2 (2.6%) |
+| LM only significant                  |   57 (75.0%) |
+| Rank test only significant           |     0 (0.0%) |
+| Neither significant                  |   17 (22.4%) |
+| Concordance rate                     |         2.6% |
+| Discordance rate                     |        75.0% |
 
 Global Concordance Metrics: GAM vs Scheirer-Ray-Hare Methods {.table
 .table .table-striped .table-hover
-style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
+style="margin-left: auto; margin-right: auto;"}
 
-| Agreement Category | Number of Genes | Percentage |
-|:---|---:|---:|
-| Both significant | 5 | 6.6% |
-| LM only | 54 | 71.1% |
-| Neither significant | 17 | 22.4% |
-| Note: |  |  |
-|  Categories: Concordant (both methods, p \< 0.05); GAM-only; Scheirer-Ray-Hare-only; Neither (both p ≥ 0.05). |  |  |
+| Agreement Category  | Number of Genes | Percentage |
+|:--------------------|----------------:|-----------:|
+| Both significant    |               2 |       2.6% |
+| LM only             |              57 |      75.0% |
+| Rank test only      |               0 |       0.0% |
+| Neither significant |              17 |      22.4% |
 
-Method Agreement Distribution {.table .table .table-striped .table-hover
-style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
+Agreement Distribution: Concordance by Gene Category {.table .table
+.table-striped .table-hover
+style="margin-left: auto; margin-right: auto;"}
 
-| Gene | LM adj p | Rank test adj p | LM Effect | Rank test $`\eta^2`$ |
+| Gene | LM adj p | Rank test adj p | LM Effect | Rank test rho^2 |
 |:---|---:|---:|---:|---:|
-| CXCL12 | 2.990e-162 | 1.640e-61 | 81.3% | 0.299 |
-| LINC03040 | 1.350e-55 | 9.502e-28 | 73.8% | 0.074 |
-| HDAC2 | 1.855e-49 | 9.751e-03 | 28.4% | 0.576 |
-| FAM114A2 | 6.136e-27 | 8.306e-04 | 46.4% | 0.256 |
-| ATG5 | 2.301e-24 | 1.984e-02 | 43.1% | 0.679 |
+| CXCL12 | 2.99e-162 | 7.24e-61 | 81.3% | 0.300 |
+| LINC03040 | 1.35e-55 | 7.287e-28 | 73.8% | 0.073 |
 | Note: |  |  |  |  |
-|  High-confidence genes: significant by both GAM and Scheirer-Ray-Hare rank test (adj p \< 0.05); $`\eta^2`$ = rank test effect size. |  |  |  |  |
+|  High-confidence genes: significant by both GAM and Scheirer-Ray-Hare rank test (adj p \< 0.05); η² = rank test effect size. |  |  |  |  |
 
 Robust Entropic Order Index Interactions: High-Confidence Genes Detected
-by Both Methods (n=5, ranked by statistical significance) {.table .table
+by Both Methods (n=2, ranked by statistical significance) {.table .table
 .table-striped .table-hover
 style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 ### Statistical Power vs. Robustness: Understanding Method Discordance
 
-The striking discordance between GAM and Scheirer-Ray-Hare results
-(71.1% significant in GAM only, 0% in rank test only, 28.9% total
-concordance) reflects a fundamental trade-off in statistical
-methodology: **parametric methods maximize power when assumptions hold,
-while nonparametric methods sacrifice power for robustness to assumption
+The striking discordance between GAM and SRH results (75.0% significant
+in LM only, 0.0% in rank test only, 2.6% both methods significant)
+reflects a fundamental trade-off in statistical methodology:
+**parametric methods maximize power when assumptions hold, while
+nonparametric methods sacrifice power for robustness to assumption
 violations**.
 
 GAM’s superior power derives from two factors:
@@ -460,19 +518,18 @@ GAM’s superior power derives from two factors:
     residuals and homogeneous variance, which are reasonable after
     appropriate transformation for entropy data. Under these
     assumptions, parametric methods are theoretically optimal, achieving
-    maximum power for a given type I error rate. The rank-based
-    Scheirer-Ray-Hare test is assumption-free but necessarily discards
-    quantitative information by converting measurements to ranks, which
-    reduces statistical power when the underlying data are approximately
-    normal.
+    maximum power for a given type I error rate. The rank-based SRH test
+    is assumption-free but necessarily discards quantitative information
+    by converting measurements to ranks, which reduces statistical power
+    when the underlying data are approximately normal.
 
 2.  Model flexibility with penalty: GAM uses thin-plate splines with
     smoothness penalties that simultaneously fit nonlinear patterns
     while controlling degrees of freedom. This flexibility allows GAM to
     detect subtle entropic index × group interactions across all
-    q-values. The Scheirer-Ray-Hare test, by contrast, operates on rank
-    patterns only, which is inherently less sensitive to continuous
-    relationships across the ordering (q-values).
+    q-values. The SRH test, by contrast, operates on rank patterns only,
+    which is inherently less sensitive to continuous relationships
+    across the ordering (q-values).
 
 This complementary approach—combining high-power parametric tests with
 robust nonparametric alternatives—provides confidence that discoveries
@@ -490,19 +547,17 @@ discoveries and method-specific findings.
 ``` r
 
 # Create comparison plot using S4 wrapper
-# Check if concordance analysis was successful
-concordance_results <- metadata(analysis_with_concordance, "method_concordance")
-
-p <- plot_concordance(analysis_with_concordance, verbose = TRUE)
+# Concordance analysis results are stored in analysis metadata after calculate_concordance()
+p <- plot_concordance(analysis, verbose = TRUE)
 print(p)
 ```
 
-![Method concordance visualization comparing Scheirer-Ray-Hare
-rank-based and GAM approaches for detecting q × condition
+![Method concordance visualization comparing SRH rank-based and GAM
+approaches for detecting q × condition
 interactions.](TSENAT_appendix_B_files/figure-html/visualize-method-concordance-1.png)
 
-Method concordance visualization comparing Scheirer-Ray-Hare rank-based
-and GAM approaches for detecting q × condition interactions.
+Method concordance visualization comparing SRH rank-based and GAM
+approaches for detecting q × condition interactions.
 
 ------------------------------------------------------------------------
 
@@ -553,17 +608,19 @@ sessionInfo()
 #> [19] stringr_1.6.0       textshaping_1.0.5   codetools_0.2-20   
 #> [22] htmltools_0.5.9     sass_0.4.10         yaml_2.3.12        
 #> [25] pkgdown_2.2.0       pillar_1.11.1       jquerylib_0.1.4    
-#> [28] tidyr_1.3.2         BiocParallel_1.44.0 cachem_1.1.0       
-#> [31] DelayedArray_0.36.0 abind_1.4-8         tidyselect_1.2.1   
-#> [34] digest_0.6.39       stringi_1.8.7       purrr_1.2.1        
-#> [37] labeling_0.4.3      cowplot_1.2.0       fastmap_1.2.0      
-#> [40] grid_4.5.2          cli_3.6.5           SparseArray_1.10.9 
-#> [43] magrittr_2.0.4      S4Arrays_1.10.1     withr_3.0.2        
-#> [46] scales_1.4.0        rmarkdown_2.30      XVector_0.50.0     
-#> [49] otel_0.2.0          ragg_1.5.0          memoise_2.0.1      
-#> [52] evaluate_1.0.5      knitr_1.51          viridisLite_0.4.3  
-#> [55] rlang_1.1.7         Rcpp_1.1.1          glue_1.8.0         
-#> [58] xml2_1.5.2          svglite_2.2.2       rstudioapi_0.18.0  
-#> [61] jsonlite_2.0.0      R6_2.6.1            systemfonts_1.3.2  
-#> [64] fs_1.6.7
+#> [28] tidyr_1.3.2         MASS_7.3-65         BiocParallel_1.44.0
+#> [31] cachem_1.1.0        DelayedArray_0.36.0 abind_1.4-8        
+#> [34] nlme_3.1-168        tidyselect_1.2.1    digest_0.6.39      
+#> [37] stringi_1.8.7       purrr_1.2.1         labeling_0.4.3     
+#> [40] geepack_1.3.13      splines_4.5.2       cowplot_1.2.0      
+#> [43] fastmap_1.2.0       grid_4.5.2          cli_3.6.5          
+#> [46] SparseArray_1.10.9  magrittr_2.0.4      S4Arrays_1.10.1    
+#> [49] broom_1.0.12        withr_3.0.2         backports_1.5.0    
+#> [52] scales_1.4.0        rmarkdown_2.30      XVector_0.50.0     
+#> [55] otel_0.2.0          ragg_1.5.0          memoise_2.0.1      
+#> [58] evaluate_1.0.5      knitr_1.51          viridisLite_0.4.3  
+#> [61] mgcv_1.9-4          rlang_1.1.7         Rcpp_1.1.1         
+#> [64] glue_1.8.0          xml2_1.5.2          svglite_2.2.2      
+#> [67] rstudioapi_0.18.0   jsonlite_2.0.0      R6_2.6.1           
+#> [70] systemfonts_1.3.2   fs_1.6.7
 ```

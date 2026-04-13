@@ -19,8 +19,8 @@
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/TSENATAnalysis.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/TSENAT_config.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/build_analysis.html</loc></url>
+<url><loc>https://gallardoalba.github.io/TSENAT/reference/calculate_assumptions.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/calculate_concordance.html</loc></url>
-<url><loc>https://gallardoalba.github.io/TSENAT/reference/calculate_difference.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/calculate_divergence.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/calculate_diversity.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/calculate_effect_sizes.html</loc></url>
@@ -28,8 +28,7 @@
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/calculate_jis.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/calculate_lm.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/calculate_m_estimator.html</loc></url>
-<url><loc>https://gallardoalba.github.io/TSENAT/reference/calculate_rank_assumptions.html</loc></url>
-<url><loc>https://gallardoalba.github.io/TSENAT/reference/calculate_rank_test.html</loc></url>
+<url><loc>https://gallardoalba.github.io/TSENAT/reference/calculate_srh.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/filter_analysis.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/index.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/plot_concordance.html</loc></url>
@@ -37,10 +36,9 @@
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/plot_divergence_spectrum.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/plot_diversity_spectrum.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/plot_diversity_violin_density.html</loc></url>
-<url><loc>https://gallardoalba.github.io/TSENAT/reference/plot_diversity_volcano_ma.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/plot_expression.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/plot_jis_delta.html</loc></url>
-<url><loc>https://gallardoalba.github.io/TSENAT/reference/plot_lm_gam.html</loc></url>
+<url><loc>https://gallardoalba.github.io/TSENAT/reference/plot_lm.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/readcounts.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/results.html</loc></url>
 </urlset>

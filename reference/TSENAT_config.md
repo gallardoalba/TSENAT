@@ -34,6 +34,7 @@ TSENAT_config(
   lm_pcorr = "BH",
   jis_use_lm_fdr = TRUE,
   divergence_ci = 0.95,
+  assumptions_checks = "all",
   ...
 )
 ```
@@ -45,8 +46,7 @@ TSENAT_config(
   `numeric`. Q-value(s) for Tsallis entropy (single value or vector).
   Default: 1.0 (Shannon entropy). Usage:
   `calculate_diversity/divergence` use this for spectrum computation (if
-  vector) or as default fallback (if single); `calculate_difference`
-  requires single value for statistical tests.
+  vector) or as default fallback (if single).
 
 - condition_col:
 
@@ -153,6 +153,14 @@ TSENAT_config(
 
   `numeric`. Confidence level for divergence CIs. Default: 0.95.
 
+- assumptions_checks:
+
+  `character`. Which assumptions to test (default: 'all'). Presets: -
+  'rank': core assumption checks (exchangeability, monotonicity,
+  consistency) - 'all': all checks including method-specific diagnostics
+  (GAM, GEE, LMM, FPCA) Explicit: character vector like
+  `c('exchangeability', 'monotonicity')`.
+
 - ...:
 
   Additional configuration parameters (stored as-is).
@@ -181,7 +189,7 @@ cfg <- TSENAT_config(
   control = 'untreated'
 )
 
-# For Friedman/LM tests (multiple q-values)
+# For Scheirer-Ray-Hare rank tests (multiple q-values)
 cfg <- TSENAT_config(
   q = seq(0, 2, by = 0.5),          # Multiple q-values for spectrum or advanced testing
   condition_col = 'treatment',
@@ -191,7 +199,7 @@ cfg <- TSENAT_config(
 # With bootstrap CIs for uncertainty quantification (recommended)
 cfg <- TSENAT_config(
   bootstrap = TRUE,                # Enable bootstrap confidence intervals
-  bootstrap_method = "bca",         # Bias-corrected (better for skewed entropy)
+  bootstrap_method = 'bca',         # Bias-corrected (better for skewed entropy)
   nboot = 1000,                     # 1000 resamples
   bootstrap_ci = 0.95               # 95% CI
 )

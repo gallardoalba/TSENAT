@@ -57,12 +57,13 @@ with options for ranking, filtering, and format conversion.</p>
 <span>  rankBy <span class="op">=</span> <span class="st">"none"</span>,</span>
 <span>  n <span class="op">=</span> <span class="cn">NA</span>,</span>
 <span>  filterFDR <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  format <span class="op">=</span> <span class="st">"auto"</span>,</span>
-<span>  display_table <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  format <span class="op">=</span> <span class="st">"text"</span>,</span>
 <span>  n_genes <span class="op">=</span> <span class="fl">4</span>,</span>
 <span>  q_values_table <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.5</span>, <span class="fl">1</span>, <span class="fl">1.5</span>, <span class="fl">2</span><span class="op">)</span>,</span>
 <span>  top_n <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  sort_by <span class="op">=</span> <span class="st">"adj_p_interaction"</span></span>
+<span>  sort_by <span class="op">=</span> <span class="st">"adj_p_interaction"</span>,</span>
+<span>  sample <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  plot <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -77,7 +78,7 @@ with options for ranking, filtering, and format conversion.</p>
 <dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>
 <dd><p><code>character</code>. <strong>Required.</strong> Type of results to extract:
 'diversity', 'divergence', 'lm', 'jackknife', 'rank_test', 'effect_sizes_divergence',
-or 'switching_tables'.</p></dd>
+'assumptions', 'concordance', or 'switching_tables'.</p></dd>
 
 
 <dt id="arg-q">q<a class="anchor" aria-label="anchor" href="#arg-q"></a></dt>
@@ -105,24 +106,23 @@ Default: NULL (no filtering).</p></dd>
 
 
 <dt id="arg-format">format<a class="anchor" aria-label="anchor" href="#arg-format"></a></dt>
-<dd><p><code>character</code>. Output format: 'auto' (sensible default for type),
-'list', 'dataframe', or 'matrix'. Default: 'auto'.</p></dd>
-
-
-<dt id="arg-display-table">display_table<a class="anchor" aria-label="anchor" href="#arg-display-table"></a></dt>
-<dd><p><code>logical</code>. For diversity results with display_table=TRUE,
-returns a formatted table showing diversity values across selected q-values
-for each gene. Default: FALSE (returns SummarizedExperiment or list).</p></dd>
+<dd><p><code>character</code>. Output format. Behavior depends on result type:
+- For diversity: 'text' (default, table format), 'se' (SummarizedExperiment), or 'table' (data.frame)
+- For concordance: 'text' (default, pre-formatted), 'list' (structured for programmatic access)
+- For switching_tables: 'list' (default, structured list with $gene_headers,
+  $comparison_tables, $q_metadata for vignette rendering) or 'raw' (original named list per gene)
+- For assumptions: 'text' (default, pre-formatted), 'list' (structured for programmatic access)
+Default: 'text' for most types, 'list' for switching_tables.</p></dd>
 
 
 <dt id="arg-n-genes">n_genes<a class="anchor" aria-label="anchor" href="#arg-n-genes"></a></dt>
-<dd><p><code>integer</code>. Number of genes to display in diversity tables
-when display_table=TRUE. Default: 4.</p></dd>
+<dd><p><code>integer</code>. Number of genes to display in diversity results.
+Default: 4.</p></dd>
 
 
 <dt id="arg-q-values-table">q_values_table<a class="anchor" aria-label="anchor" href="#arg-q-values-table"></a></dt>
 <dd><p><code>numeric</code>. Vector of q-values to include in diversity
-table display when display_table=TRUE. Default: c(0, 0.5, 1.0, 1.5, 2.0).</p></dd>
+results. Default: c(0, 0.5, 1.0, 1.5, 2.0).</p></dd>
 
 
 <dt id="arg-top-n">top_n<a class="anchor" aria-label="anchor" href="#arg-top-n"></a></dt>
@@ -136,16 +136,36 @@ Default: NULL (return all results). Use NA to return all.</p></dd>
 Common choices: 'adj_p_interaction' (p-value, ascending), 'Mean_Divergence' (descending).
 Default: 'adj_p_interaction' (most significant first).</p></dd>
 
+
+<dt id="arg-sample">sample<a class="anchor" aria-label="anchor" href="#arg-sample"></a></dt>
+<dd><p><code>character</code> or NULL. For diversity results, optionally filter to specific sample(s).
+If NULL (default), returns results for all samples.
+If character, filters to matching sample identifiers from colData.
+Default: NULL (all samples).</p></dd>
+
+
+<dt id="arg-plot">plot<a class="anchor" aria-label="anchor" href="#arg-plot"></a></dt>
+<dd><p><code>logical</code>. Extract cached plot for the specified analysis type.
+- If FALSE (default): Return results as usual
+- If TRUE: Return the plot object for the given type
+Example: <code>results(analysis, type = 'diversity', plot = TRUE)</code> returns the diversity plot.
+Default: FALSE (no plot extraction).</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>- For diversity with q=NULL: A named list of SummarizedExperiment objects, one per q-value
-  - For diversity with q specified: A single SummarizedExperiment for that q-value
+  - For diversity with q specified and format='text' or 'table': A data.frame table for display
+  - For diversity with q specified and format='se': The SummarizedExperiment object directly (useful for SplicingFactory)
   - For divergence: A SummarizedExperiment (rows=genes, columns=q-values), data.frame, or other format depending on divergence computation method
   - For lm/jackknife: A data.frame or list based on type and format
-  - For pairwise: A data.frame with pairwise comparison difference metrics
   - For effect_sizes_divergence: A list containing effect size divergence results with components like interaction_results
-  - For switching_tables: A list containing gene switching comparison tables
+  - For assumptions: A list containing rank-based assumption checks (exchangeability, monotonicity, consistency) and optional method-specific diagnostics (gam_metrics, gee_metrics, lmm_metrics, fpca_metrics)
+  - For switching_tables with format='text' (default): A list with components:</p><ul><li><p><code>$gene_headers</code> Character vector of gene headers ('GeneName (ENSG00...)')</p></li>
+<li><p><code>$comparison_tables</code> List of data frames, one per gene, with columns: Transcript, q=0.00, q=0.50, ..., Direction Consistency</p></li>
+<li><p><code>$q_metadata</code> List with per-gene metadata: q_values_available and q_key_to_value mapping</p></li>
+</ul><p>- For switching_tables with format='raw': Original named list where names are gene headers and values are
+    data frames with same column structure as format='text'
   Returns NULL if requested result type not computed or no results pass filtering.</p>
     </div>
     <div class="section level2">
@@ -154,7 +174,7 @@ Default: 'adj_p_interaction' (most significant first).</p></dd>
 filtering, and format conversion. Compatible with DESeq2/edgeR design patterns
 for familiar result extraction workflows.</p>
 <p>**Lazy Computation for switching_tables:**
-When requesting <code>type = "switching_tables"</code>, the function automatically
+When requesting <code>type = 'switching_tables'</code>, the function automatically
 computes and caches the tables if they don't exist yet but the prerequisites
 do (LM and jackknife results). This eliminates the need for a separate
 <code>prepare_gene_switching_tables_s4()</code> call - simply request the results
@@ -179,21 +199,20 @@ and they will be computed on-demand.</p>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="TSENATAnalysis.html">TSENATAnalysis</a></span><span class="op">(</span>se <span class="op">=</span> <span class="va">se</span>, config <span class="op">=</span> <span class="va">config</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [calculate_diversity] Using q = 1.000 (config)</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>[calculate_diversity] Assay for q=1 is empty</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Get all diversity results (list of SummarizedExperiment objects, one per q)</span></span></span>
 <span class="r-in"><span><span class="va">div_all</span> <span class="op">&lt;-</span> <span class="fu">results</span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">'diversity'</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Get diversity for specific q-value (single SummarizedExperiment)</span></span></span>
+<span class="r-in"><span><span class="co"># Get diversity for specific q-value (single SummarizedExperiment table for display)</span></span></span>
 <span class="r-in"><span><span class="va">div_q1</span> <span class="op">&lt;-</span> <span class="fu">results</span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">'diversity'</span>, q <span class="op">=</span> <span class="fl">1.0</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Get diversity for specific q-value as SummarizedExperiment for downstream processing (e.g., SplicingFactory)</span></span></span>
+<span class="r-in"><span><span class="va">div_q1_se</span> <span class="op">&lt;-</span> <span class="fu">results</span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">'diversity'</span>, q <span class="op">=</span> <span class="fl">1.0</span>, format <span class="op">=</span> <span class="st">'se'</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Get results ranked by p-value, top 20 genes</span></span></span>
 <span class="r-in"><span><span class="co"># Using accessor function instead of @ slot access</span></span></span>
 <span class="r-in"><span><span class="va">top_lm</span> <span class="op">&lt;-</span> <span class="fu">results</span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">'lm'</span>, rankBy <span class="op">=</span> <span class="st">'pvalue'</span>, n <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span></span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Get pairwise results (e.g., differential diversity metrics between conditions)</span></span></span>
-<span class="r-in"><span><span class="va">pairwise_diff</span> <span class="op">&lt;-</span> <span class="fu">results</span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">'pairwise'</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Get effect size results, top 6 genes by p-value (most significant first)</span></span></span>
 <span class="r-in"><span><span class="va">top_effect_sizes</span> <span class="op">&lt;-</span> <span class="fu">results</span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">'effect_sizes_divergence'</span>, </span></span>
@@ -205,7 +224,39 @@ and they will be computed on-demand.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Get switching tables - automatically computed if prerequisites exist</span></span></span>
 <span class="r-in"><span><span class="co"># (no need to call prepare_gene_switching_tables_s4 separately)</span></span></span>
+<span class="r-in"><span><span class="co"># Default format='text' returns structured list for vignette rendering</span></span></span>
 <span class="r-in"><span><span class="va">switching</span> <span class="op">&lt;-</span> <span class="fu">results</span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">'switching_tables'</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Get switching tables in raw format (named list of data frames) for direct manipulation</span></span></span>
+<span class="r-in"><span><span class="va">switching_raw</span> <span class="op">&lt;-</span> <span class="fu">results</span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">'switching_tables'</span>, format <span class="op">=</span> <span class="st">'raw'</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># ========================================================================</span></span></span>
+<span class="r-in"><span><span class="co"># RETRIEVE CACHED PLOTS using the plot parameter</span></span></span>
+<span class="r-in"><span><span class="co"># ========================================================================</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Get the diversity spectrum plot</span></span></span>
+<span class="r-in"><span><span class="va">diversity_plot</span> <span class="op">&lt;-</span> <span class="fu">results</span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">'diversity'</span>, plot <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Plot for type 'diversity' not found. Available plot types: diversity, lm, influence, jackknife, divergence. Available plots: none</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Get the LM/linear model interaction plot (GAM, LMM, GEE, or FPCA)</span></span></span>
+<span class="r-in"><span><span class="va">lm_plot</span> <span class="op">&lt;-</span> <span class="fu">results</span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">'lm'</span>, plot <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Plot for type 'lm' not found. Available plot types: diversity, lm, influence, jackknife, divergence. Available plots: none</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Get the divergence distribution plot</span></span></span>
+<span class="r-in"><span><span class="va">div_dist_plot</span> <span class="op">&lt;-</span> <span class="fu">results</span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">'divergence'</span>, plot <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Plot for type 'divergence' not found. Available plot types: diversity, lm, influence, jackknife, divergence. Available plots: none</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Get the influence/m-estimator plot</span></span></span>
+<span class="r-in"><span><span class="va">influence_plot</span> <span class="op">&lt;-</span> <span class="fu">results</span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">'influence'</span>, plot <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Plot for type 'influence' not found. Available plot types: diversity, lm, influence, jackknife, divergence. Available plots: none</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Available plot types correspond to analysis types:</span></span></span>
+<span class="r-in"><span><span class="co"># - type = 'diversity': Returns Tsallis entropy q-spectrum visualization</span></span></span>
+<span class="r-in"><span><span class="co"># - type = 'lm': Returns linear model interaction plot (supports GAM, LMM, GEE, FPCA methods)</span></span></span>
+<span class="r-in"><span><span class="co"># - type = 'divergence': Returns distribution of divergence metrics across genes</span></span></span>
+<span class="r-in"><span><span class="co"># - type = 'influence': Returns m-estimator sample influence analysis</span></span></span>
+<span class="r-in"><span><span class="co"># - type = 'rank_test': Returns Scheirer-Ray-Hare interaction visualization</span></span></span>
+<span class="r-in"><span><span class="co"># - type = 'concordance': Returns method concordance comparison (LM vs rank test)</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

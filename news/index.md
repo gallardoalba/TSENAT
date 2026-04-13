@@ -8,18 +8,15 @@
   count-based differential expression methods.
 
 - Core analysis via
-  [`calculate_diversity()`](https://gallardoalba.github.io/TSENAT/reference/calculate_diversity.md)
-  /
   [`calculate_diversity()`](https://gallardoalba.github.io/TSENAT/reference/calculate_diversity.md),
-  [`calculate_difference()`](https://gallardoalba.github.io/TSENAT/reference/calculate_difference.md)
-  /
-  [`calculate_difference()`](https://gallardoalba.github.io/TSENAT/reference/calculate_difference.md),
-  [`calculate_divergence()`](https://gallardoalba.github.io/TSENAT/reference/calculate_divergence.md)
-  /
   [`calculate_divergence()`](https://gallardoalba.github.io/TSENAT/reference/calculate_divergence.md),
-  and `calculate_lm_interaction()` / `calculate_lm_interaction_s4()`
-  supporting diverse statistical tests (Wilcoxon, Friedman, permutation,
-  jackknife bootstrap).
+  [`calculate_srh()`](https://gallardoalba.github.io/TSENAT/reference/calculate_srh.md)
+  for Q×Condition interaction testing,
+  [`calculate_lm()`](https://gallardoalba.github.io/TSENAT/reference/calculate_lm.md)
+  for linear models/GAM interaction analysis, and
+  [`calculate_concordance()`](https://gallardoalba.github.io/TSENAT/reference/calculate_concordance.md)
+  for method comparison. Supports Scheirer-Ray-Hare rank-based tests,
+  permutation tests, and jackknife bootstrap.
 
 - Parameter `q` tunes Tsallis entropy sensitivity: q \< 1 emphasizes
   rare isoforms, q ≈ 1 recovers Shannon entropy, q \> 1 emphasizes
@@ -29,8 +26,11 @@
   configuration, results, and cached plots with full subsetting and
   accessor support.
 
-- Data input: `read_salmon_samples()` for direct Salmon/Sailfish
-  quantification import with GFF3 annotation parsing.
+- Data input:
+  [`build_analysis()`](https://gallardoalba.github.io/TSENAT/reference/build_analysis.md)
+  for RNA-seq count matrices or Salmon quantification (via internal
+  utilities); supports GFF3 annotation files for transcript-to-gene
+  mapping via `tx2gene` parameter.
 
 - Quality control:
   [`filter_analysis()`](https://gallardoalba.github.io/TSENAT/reference/filter_analysis.md)
@@ -53,5 +53,5 @@
   workflows).
 
 - Comprehensive documentation: main vignette + 2 appendices
-  (SplicingFactory validation, advanced workflows), 46 exported
+  (SplicingFactory validation, advanced workflows), 25 exported
   functions with complete roxygen2 documentation.

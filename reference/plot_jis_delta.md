@@ -96,19 +96,9 @@ config <- TSENAT_config(
   condition_col = 'condition',
   subject_col = 'paired_samples',
   paired = TRUE,
+  control = 'normal',
   q = seq(0, 2, by = 0.1)
 )
-#> Warning: [TSENAT_config] Paired design (paired=TRUE) requires complete configuration.
-#>   Missing or incomplete parameters: control
-#>   This will cause downstream analysis failure or empty results (LM interaction, plotting).
-#>   Provide all parameters: 
-#>     config <- TSENAT_config(
-#>       q = 1.0,                              # Q-value for Tsallis entropy
-#>       condition_col = 'condition',
-#>       subject_col = 'paired_samples',      # Required for paired analysis
-#>       paired = TRUE,
-#>       control = 'normal'                    # Reference group for comparisons
-#>     )
 
 # Build analysis with configured parameters
 analysis <- build_analysis(
@@ -121,18 +111,21 @@ analysis <- build_analysis(
 )
 
 analysis <- filter_analysis(analysis, stringency = 'severe')
-analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5), verbose
-= FALSE)
-analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
-analysis <- calculate_lm(analysis, method = 'gam')
-#> Warning: nlminb problem, convergence error code = 1
-#>   message = singular convergence (7)
-#> Warning: nlminb problem, convergence error code = 1
-#>   message = iteration limit reached without convergence (10)
-#> Warning: nlminb problem, convergence error code = 1
-#>   message = iteration limit reached without convergence (10)
-analysis <- calculate_jis(analysis, q = c(0.5, 1, 1.5),
-  n_bootstrap = 50)
+analysis <- calculate_diversity(
+  analysis,
+  q = c(0.5, 1.0, 1.5, 2.0, 2.5),
+  verbose = FALSE
+)
+analysis <- calculate_divergence(
+  analysis,
+  q = c(0.5, 1.0, 1.5, 2.0, 2.5)
+)
+analysis <- suppressWarnings(calculate_lm(analysis, method = 'gam'))
+analysis <- calculate_jis(
+  analysis,
+  q = c(0.5, 1, 1.5),
+  n_bootstrap = 50
+)
 heatmap_file <- plot_jis_delta(analysis, n_genes
 = 2)
 

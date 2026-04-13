@@ -175,15 +175,23 @@ returns NULL invisibly with an informative message.</p>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="build_analysis.html">build_analysis</a></span><span class="op">(</span>readcounts <span class="op">=</span> <span class="va">readcounts</span>, tx2gene <span class="op">=</span></span></span>
 <span class="r-in"><span><span class="va">gff3_dataset</span>, metadata <span class="op">=</span> <span class="va">metadata_df</span>, config <span class="op">=</span> <span class="va">config</span>,</span></span>
 <span class="r-in"><span>  tpm <span class="op">=</span> <span class="va">tpm</span>, effective_length <span class="op">=</span> <span class="va">effective_length</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="filter_analysis.html">filter_analysis</a></span><span class="op">(</span><span class="va">analysis</span>, min_samples <span class="op">=</span> <span class="fl">1</span>, subset_n_genes</span></span>
-<span class="r-in"><span><span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">analysis</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1</span>, <span class="fl">1.5</span><span class="op">)</span>, verbose</span></span>
-<span class="r-in"><span><span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_divergence.html">calculate_divergence</a></span><span class="op">(</span><span class="va">analysis</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1</span>, <span class="fl">1.5</span><span class="op">)</span>, verbose</span></span>
-<span class="r-in"><span><span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="filter_analysis.html">filter_analysis</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="va">analysis</span>,</span></span>
+<span class="r-in"><span>  min_samples <span class="op">=</span> <span class="fl">1</span>,</span></span>
+<span class="r-in"><span>  subset_n_genes <span class="op">=</span> <span class="fl">200</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="va">analysis</span>,</span></span>
+<span class="r-in"><span>  q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1</span>, <span class="fl">1.5</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_divergence.html">calculate_divergence</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="va">analysis</span>,</span></span>
+<span class="r-in"><span>  q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1</span>, <span class="fl">1.5</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">p_global</span> <span class="op">&lt;-</span> <span class="fu">plot_divergence_spectrum</span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_global</span><span class="op">)</span></span></span>
-<span class="r-plt img"><img src="plot_divergence_spectrum-1.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span><span class="co"># print(p_global)</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

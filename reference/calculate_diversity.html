@@ -308,16 +308,12 @@ see the package vignettes.</p>
 <span class="r-in"><span><span class="co"># Compute diversity and access results using unified accessor</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu">calculate_diversity</span><span class="op">(</span><span class="va">analysis</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1.0</span><span class="op">)</span>, verbose <span class="op">=</span></span></span>
 <span class="r-in"><span><span class="cn">FALSE</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"diversity"</span>, q <span class="op">=</span> <span class="fl">1.0</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> class: SummarizedExperiment </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> dim: 6 16 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> metadata(11): q what ... sample_base_names samples</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> assays(2): diversity counts</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> rownames(6): SYNM REG3A ... HIGD1A CXCL12</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> rowData names(2): gene_id gene_name</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> colnames(16): SRR14800481 SRR14800480 ... SRR14800483 SRR14800482</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> colData names(5): condition sample_type sample_base paired_samples</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   sample_id</span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">'diversity'</span>, q <span class="op">=</span> <span class="fl">1.0</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Gene</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1     SYNM</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2    REG3A</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 SH3PXD2A</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4    GSKIP</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

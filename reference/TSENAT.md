@@ -1,7 +1,8 @@
 # Run complete TSENAT analysis pipeline
 
 Coordinates the full TSENAT workflow: diversity -\> jackknife -\> LM
-interactions -\> divergence -\> gene interactions -\> visualizations.
+interactions -\> divergence -\> gene interactions -\> rank-based tests
+-\> concordance -\> visualizations.
 
 ## Usage
 
@@ -25,7 +26,7 @@ TSENAT(
 - output_dir:
 
   `character`. Directory to save results and plots. Default:
-  "tsenat_outputs". Set to NULL to disable automatic output saving.
+  'tsenat_outputs'. Set to NULL to disable automatic output saving.
 
 - save_output:
 
@@ -66,8 +67,8 @@ Pipeline execution order (enforced, follows TSENAT.Rmd vignette):
 5.  [`calculate_lm()`](https://gallardoalba.github.io/TSENAT/reference/calculate_lm.md) -
     LM interaction testing
 
-6.  [`plot_lm_gam()`](https://gallardoalba.github.io/TSENAT/reference/plot_lm_gam.md) -
-    GAM visualization of LM results
+6.  [`plot_lm()`](https://gallardoalba.github.io/TSENAT/reference/plot_lm.md) -
+    LM results visualization
 
 7.  [`calculate_jis()`](https://gallardoalba.github.io/TSENAT/reference/calculate_jis.md) -
     Transcript switching detection
@@ -91,20 +92,29 @@ Pipeline execution order (enforced, follows TSENAT.Rmd vignette):
 13. [`plot_divergence_spectrum()`](https://gallardoalba.github.io/TSENAT/reference/plot_divergence_spectrum.md) -
     Divergence spectrum plot
 
+14. [`calculate_assumptions()`](https://gallardoalba.github.io/TSENAT/reference/calculate_assumptions.md) -
+    Validate rank-based test assumptions
+
+15. [`calculate_srh()`](https://gallardoalba.github.io/TSENAT/reference/calculate_srh.md) -
+    Scheirer-Ray-Hare rank-based interaction test
+
+16. [`calculate_concordance()`](https://gallardoalba.github.io/TSENAT/reference/calculate_concordance.md) -
+    Compare LM and rank test results
+
 ## Examples
 
 ``` r
 # \donttest{
-data(readcounts, package = "TSENAT")
+data(readcounts, package = 'TSENAT')
 metadata_df <- read.table(
-  system.file("extdata", "metadata.tsv", package = "TSENAT"),
-  header = TRUE, sep = "\t"
+  system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t'
 )
-gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 
 config <- TSENAT_config(
-  sample_col = "sample",
-  condition_col = "condition",
+  sample_col = 'sample',
+  condition_col = 'condition',
   q = seq(0, 2, length.out = 10),
   generate_plots = FALSE
 )
@@ -138,7 +148,7 @@ result <- TSENAT(analysis)
 #>   Design ............... unpaired
 #>   Filter stringency .... medium
 #>   Normalization ........ enabled [0-1]
-#>   Normalization method . RANGE (DEFAULT)
+#>   Normalization method . range (default)
 #>   Pseudocount .......... disabled
 #>   Shrinkage ............ disabled
 #>   Significance ......... p < 0.050 | FDR < 0.050
@@ -169,13 +179,19 @@ result <- TSENAT(analysis)
 #>           [OK] Top transcripts plot generated
 #> [>] [11/14] Computing divergence metrics
 #>           [OK] Divergence computed
-#> [>] [12/14] Computing effect sizes for divergence
+#> [>] [12/17] Computing effect sizes for divergence
 #>           [OK] Effect sizes computed
-#> [>] [13/14] Plotting divergence distribution
+#> [>] [13/17] Plotting divergence distribution
 #>           [OK] Divergence distribution plot generated
-#> [>] [14/14] Plotting divergence spectrum
+#> [>] [14/17] Plotting divergence spectrum
 #>           [OK] Global divergence spectrum plot generated
 #>           [OK] Multi-gene divergence spectrum plot generated
+#> [>] [15/17] Validating rank-based test assumptions
+#>           [OK] Assumptions validated
+#> [>] [16/17] Running Scheirer-Ray-Hare rank-based test
+#>           [OK] Scheirer-Ray-Hare test completed
+#> [>] [17/17] Computing concordance between LM and rank test results
+#>           [OK] Concordance analysis completed
 #> =============================================================
 #> 
 #> +============================================================+
@@ -185,23 +201,36 @@ result <- TSENAT(analysis)
 #> [RESULTS] Results Summary
 #> 
 #> [PERF] Performance
-#>   Total time ........... 25.2s
+#>   Total time ........... 26.4s
 #>   Slowest steps:
-#>     1. lm_interaction       12.2s (48.6%)
-#>     2. jackknife            5.1s (20.3%)
-#>     3. lm_plot              2.5s (9.8%)
+#>     1. lm_interaction       13.2s (50.0%)
+#>     2. jackknife            4.4s (16.8%)
+#>     3. lm_plot              2.4s (9.1%)
 #> 
 #> [OUTPUT] Output
 #>   Directory ........... tsenat_outputs
-#>   Files saved ......... 15
+#>   Files saved ......... 18
 #> 
-#> [TIPS] Next steps:
-#>   show(result)             - View object structure and slots
-#>   summary(result)          - Print detailed statistics summary
-#>   results(result)          - Extract numerical results (diversity, divergence, etc.)
-#>   getPlot(result, type)    - Retrieve specific visualization (e.g., 'diversity', 'volcano')
-#>   metadata(result)         - Access metadata and workflow parameters
-#>   se(result)               - Get SummarizedExperiment object for downstream analysis
+#> [TIPS] Extract Results - Common Examples:
+#>   # View object structure
+#>   show(result)
+#> 
+#>   # View detailed statistics summary
+#>   summary(result)
+#> 
+#>   # Tsallis Entropy Diversity
+#>   # Get results for specific sample at q=1.0
+#>   div <- results(result, type = 'diversity',
+#>                  n_genes = 4, sample = 'SRR14800481')
+#> 
+#>   # Linear Model Interaction Results
+#>   # Top 10 genes by p-value
+#>   lm <- results(result, type = 'lm',
+#>                 rankBy = 'pvalue', n = 10)
+#> 
+#>   # Visualizations
+#>   results(result, type = 'diversity', plot = TRUE)  # Diversity spectrum
+#>   results(result, type = 'lm', plot = TRUE)  # LM interaction
 #> 
 # }
 ```

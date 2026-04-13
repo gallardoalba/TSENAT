@@ -127,7 +127,7 @@ TSENAT implements a complete analytical pipeline:
   handles paired designs and maintains correlation structure.
 
 - **Multiple method backends**: nlme, MASS, geepack, or rank-based
-  (Friedman, sign test) for model flexibility.
+  (Scheirer-Ray-Hare, sign test) for model flexibility.
 
 - **FDR-corrected testing**: Benjamini-Hochberg adjustment across genes
   and q-values.

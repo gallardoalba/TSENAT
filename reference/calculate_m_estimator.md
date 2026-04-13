@@ -110,14 +110,13 @@ samples that show unusual diversity patterns.
 
 - `sample_influence`: How much each sample affects the overall fit
 
-- `robustness_weight`: Down-weighting factor (lower = more outlying)
+- `robustness_weight`: Down-weighting factor
 
 - `entropy_mean`: Average entropy for the sample
 
 - `entropy_sd`: Entropy variability within the sample
 
-- `Status`: QC Classification ('OK' or 'Flag for QC' based on
-  influence_threshold)
+- `Status`: QC Classification
 
 \*\*Parameter resolution priority\*\* (explicit \> @config \> error):
 
@@ -171,7 +170,6 @@ analysis <- build_analysis(
 )
 analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = 200)
 analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
-#> Note: 37 genes excluded (< 75% valid values).
 analysis <- calculate_m_estimator(
   analysis,
   condition_col = 'condition',

@@ -486,20 +486,13 @@ analysis <- calculate_diversity(
     norm = TRUE
 )
 
-# Extract and display diversity results with formatted table
-results(analysis, type = "diversity", display_table = TRUE, n_genes = 4)
+# Extract and display diversity results
+diversity <- results(analysis, type = "diversity", n_genes = 4, sample = "SRR14800481")
+print(diversity)
 ```
 
-| Gene    |   q=0.0 |   q=0.5 |   q=1.0 |   q=1.5 |   q=2.0 |
-|:--------|--------:|--------:|--------:|--------:|--------:|
-| FOXJ2   | 0.66667 | 0.53796 | 0.48150 | 0.46975 | 0.48518 |
-| TMEM38A | 1.00000 | 0.82704 | 0.72526 | 0.66965 | 0.64401 |
-| CCNE1   | 0.33333 | 0.32256 | 0.32749 | 0.34571 | 0.37418 |
-| MCOLN1  | 1.00000 | 0.39297 | 0.21567 | 0.16305 | 0.15195 |
-
-**Table 1:** Tsallis entropy for first 4 genes across three diversity
-scales (sample: SRR14800481) {.table .table .table-striped .table-hover
-style="margin-left: auto; margin-right: auto;"}
+Note: Diversity results not available for the requested q-values. Ensure
+calculate_diversity() was run with appropriate q-value configuration.
 
 With the q-spectrum we can produce a q-curve per sample and gene. These
 curves show how diversity emphasis shifts from rare to dominant isoforms
@@ -669,7 +662,7 @@ linear-model interaction test.
 ``` r
 
 # Plot q-curve profiles for the top 4 genes using the S4 wrapper
-combined_plot <- plot_lm_gam(
+combined_plot <- plot_lm(
     analysis,
     n_top = 4
 )
@@ -756,25 +749,27 @@ whether different entropic indices emphasize different transcripts.
 
 ``` r
 
-# Retrieve gene switching tables
+# Retrieve gene switching tables (default format="text" returns structured list)
+# format="text" returns: $gene_headers, $comparison_tables, $q_metadata for vignette display
+# format="raw" returns original named list of data frames per gene for direct access
 tables_result <- results(analysis, type = "switching_tables")
 ```
 
 ##### Gene: CXCL12 (ENSG00000107562.18)
 
-| Transcript         | q=0.00 | q=0.50 | q=1.00 | q=1.50 | q=2.00 |     | Direction Consistency |
-|:-------------------|-------:|-------:|-------:|-------:|-------:|:----|:----------------------|
-| ENST00000343575.11 | -0.033 |  0.000 |  0.041 |  0.062 |  0.073 |     | Mixed directions      |
-| ENST00000374426.6  |  0.046 | -0.063 | -0.051 | -0.040 | -0.035 |     | Mixed directions      |
-| ENST00000374429.6  | -0.033 |  0.164 |  0.156 |  0.123 |  0.112 |     | Mixed directions      |
+| Transcript         | q=0.00 | q=0.50 | q=1.00 | q=1.50 | q=2.00 | Direction Consistency |
+|:-------------------|-------:|-------:|-------:|-------:|-------:|:----------------------|
+| ENST00000343575.11 | -0.033 |  0.000 |  0.041 |  0.062 |  0.073 | Mixed directions      |
+| ENST00000374426.6  |  0.046 | -0.063 | -0.051 | -0.040 | -0.035 | Mixed directions      |
+| ENST00000374429.6  | -0.033 |  0.164 |  0.156 |  0.123 |  0.112 | Mixed directions      |
 
 ##### Gene: THY1 (ENSG00000154096.15)
 
-| Transcript        | q=0.00 | q=0.50 | q=1.00 | q=1.50 | q=2.00 |     | Direction Consistency |
-|:------------------|-------:|-------:|-------:|-------:|-------:|:----|:----------------------|
-| ENST00000524970.5 | -0.198 | -0.046 |  0.002 |  0.014 |  0.020 |     | Mixed directions      |
-| ENST00000900758.1 |  0.196 |  0.045 |  0.031 |  0.019 |  0.016 |     | Consistent positive   |
-| ENST00000956364.1 |  0.118 | -0.075 | -0.092 | -0.102 | -0.108 |     | Mixed directions      |
+| Transcript        | q=0.00 | q=0.50 | q=1.00 | q=1.50 | q=2.00 | Direction Consistency |
+|:------------------|-------:|-------:|-------:|-------:|-------:|:----------------------|
+| ENST00000524970.5 | -0.198 | -0.046 |  0.002 |  0.014 |  0.020 | Mixed directions      |
+| ENST00000900758.1 |  0.196 |  0.045 |  0.031 |  0.019 |  0.016 | Consistent positive   |
+| ENST00000956364.1 |  0.118 | -0.075 | -0.092 | -0.102 | -0.108 | Mixed directions      |
 
 #### Delta Influence Across Diversity Scales
 
@@ -913,28 +908,29 @@ top_genes_result <- results(
     top_n = 6,
     sort_by = "p_value_interaction"
 )
+
+print(top_genes_result)
 ```
 
-| Gene | Mean Divergence | Q-Pattern | D_rare | D_abundant | Ratio | LM adj. p-value |
-|:---|---:|:---|---:|---:|---:|:---|
-| CXCL12 | 0.2846 | Balanced | 0.3063 | 0.2712 | 1.13 | 3.0e-162 |
-| THY1 | 0.1279 | Balanced | 0.1455 | 0.1142 | 1.27 | 7.3e-95 |
-| ING3 | 0.0101 | Rare driven | 0.0120 | 0.0085 | 1.42 | 2.0e-75 |
-| SNHG10 | 0.0714 | Rare driven | 0.0861 | 0.0591 | 1.46 | 7.2e-73 |
-| LINC03040 | 0.2398 | Rare driven | 0.2813 | 0.2057 | 1.37 | 1.3e-55 |
-| HDAC2 | 0.0525 | Rare driven | 0.0642 | 0.0425 | 1.51 | 1.9e-49 |
-| ENSG00000274322 | 0.1506 | Rare driven | 0.1852 | 0.1206 | 1.54 | 3.3e-46 |
-| MEF2A | 0.0298 | Rare driven | 0.0382 | 0.0225 | 1.70 | 9.5e-42 |
-| RAP1GDS1 | 0.0139 | Rare driven | 0.0168 | 0.0114 | 1.47 | 5.2e-36 |
-| PDE7A | 0.0419 | Rare driven | 0.0490 | 0.0360 | 1.36 | 1.1e-35 |
+| Gene | P-value | Slope Diff | D(q=0.5) | D(q=1.0) | D(q=2.0) | Pattern | Rare Median | Abundant Median |
+|:---|---:|---:|---:|---:|---:|:---|---:|---:|
+| CXCL12 | 0 | -0.3725 | 0.3115 | 0.3697 | 0.1643 | Balanced | 0.3063 | 0.2712 |
+| THY1 | 0 | 0.2928 | 0.1481 | 0.1720 | 0.0589 | Balanced | 0.1455 | 0.1142 |
+| ING3 | 0 | 0.1136 | 0.0122 | 0.0137 | 0.0040 | Rare driven | 0.0120 | 0.0085 |
+| SNHG10 | 0 | 0.1203 | 0.0874 | 0.0956 | 0.0283 | Rare driven | 0.0861 | 0.0591 |
+| LINC03040 | 0 | 0.1063 | 0.2850 | 0.3119 | 0.1098 | Rare driven | 0.2813 | 0.2057 |
+| HDAC2 | 0 | 0.1244 | 0.0651 | 0.0699 | 0.0201 | Rare driven | 0.0642 | 0.0425 |
 
-**Table 5 \| Top genes by linear model significance with effect sizes
-and q-spectrum patterns.** Ranked by statistical significance (ascending
-*P*-values, Benjamini-Hochberg *q*-value \< 0.05). {.table .table
+Top 6 Genes by Effect Size (Tsallis Divergence) {.table .table
 .table-striped .table-hover
 style="margin-left: auto; margin-right: auto;"}
 
-Interpretation of Pattern Types:
+The effect sizes reveal which genes show the most information-theoretic
+separation across the q-spectrum between paired treatment groups. Genes
+with Tsallis divergence D \> 0.1 show substantial divergence, indicating
+fundamental differences in entropy distributions between conditions.
+
+#### Interpretation of Pattern Types:
 
 | Pattern Type | Signature | Biological Meaning |
 |----|----|----|

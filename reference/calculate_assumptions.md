@@ -1,24 +1,26 @@
-# Test rank-based method assumptions in TSENATAnalysis
+# Test statistical assumptions on diversity data in TSENATAnalysis
 
-Test rank-based method assumptions in TSENATAnalysis
+Test statistical assumptions on diversity data in TSENATAnalysis
 
 ## Usage
 
 ``` r
-calculate_rank_assumptions(
+calculate_assumptions(
   analysis,
   q = NULL,
-  checks = c("exchangeability", "monotonicity", "consistency"),
+  checks = "rank",
   alpha = 0.05,
+  format = "text",
   ...
 )
 
 # S4 method for class 'TSENATAnalysis'
-calculate_rank_assumptions(
+calculate_assumptions(
   analysis,
   q = NULL,
-  checks = c("exchangeability", "monotonicity", "consistency"),
+  checks = "rank",
   alpha = 0.05,
+  format = "text",
   ...
 )
 ```
@@ -37,16 +39,25 @@ calculate_rank_assumptions(
 
 - checks:
 
-  `character`. Which assumptions to test. Default includes:
-  'exchangeability', 'monotonicity', 'consistency'.
+  `character`. Which assumptions to test (default: 'rank'). Presets: -
+  'rank': core assumption checks (exchangeability, monotonicity,
+  consistency) - 'all': all checks including GAM diagnostics Explicit:
+  character vector like `c('exchangeability', 'monotonicity')`.
 
 - alpha:
 
   `numeric`. Significance level for tests (default: 0.05).
 
+- format:
+
+  `character`. Output format when used with
+  [`results()`](https://gallardoalba.github.io/TSENAT/reference/results.md).
+  'text' (default): formatted text output for display 'list': returns
+  structured list for programmatic access.
+
 - ...:
 
-  Additional arguments (for future extensibility).
+  Additional arguments (output_file, verbose for file output).
 
 ## Value
 
@@ -55,16 +66,17 @@ Modified TSENATAnalysis object with assumption test results stored in
 
 ## Details
 
-This wrapper calls `.calculate_rank_assumptions()` on diversity data
-extracted from the analysis object. Results include:
+This wrapper calls `.calculate_assumptions()` on diversity data
+extracted from the analysis object. Evaluates data stability and
+consistency across dimensions. Results include:
 
 - exchangeability:
 
-  Permutation test for temporal/spatial ordering effects
+  Permutation test for independence and temporal/spatial structure
 
 - monotonicity:
 
-  Spearman correlation stability across rows
+  Spearman correlation consistency across rows
 
 - consistency:
 
@@ -106,8 +118,7 @@ analysis <- build_analysis(
 )
 analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = 200)
 analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
-#> Note: 37 genes excluded (< 75% valid values).
-analysis <- calculate_rank_assumptions(analysis, q = 1.0)
+analysis <- calculate_assumptions(analysis, q = 1.0)
 # Check results using rank_test accessor
 results_df <- results(analysis, type = 'rank_test')
 ```
