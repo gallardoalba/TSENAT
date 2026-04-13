@@ -178,7 +178,7 @@ suppressMessages(library(TSENAT))
 
 # Prepare configuration FIRST
 config <- TSENAT_config(
-  q_values = seq(0, 2, by = 0.1),
+  q = seq(0, 2, by = 0.1),
   condition_col = "condition",
   sample_col = "sample",
   subject_col = "paired_samples"

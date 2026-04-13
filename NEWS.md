@@ -9,7 +9,7 @@
 
 * Unified S4 class `TSENATAnalysis` integrating SummarizedExperiment, configuration, results, and cached plots with full subsetting and accessor support.
 
-* Data input: `read_salmon_samples()` for direct Salmon/Sailfish quantification import with GFF3 annotation parsing.
+* Data input: `build_analysis()` for RNA-seq count matrices or Salmon quantification (via internal utilities); supports GFF3 annotation files for transcript-to-gene mapping via `tx2gene` parameter.
 
 * Quality control: `filter_analysis()` for multi-criteria filtering; `jackknife_entropy_outliers_s4()` for outlier detection.
 
@@ -19,4 +19,4 @@
 
 * Performance: Rcpp/RcppArmadillo for entropy calculations, BiocParallel support, lazy-loading of visualization libraries (~30% faster non-plot workflows).
 
-* Comprehensive documentation: main vignette + 2 appendices (SplicingFactory validation, advanced workflows), 46 exported functions with complete roxygen2 documentation.
+* Comprehensive documentation: main vignette + 2 appendices (SplicingFactory validation, advanced workflows), 25 exported functions with complete roxygen2 documentation.
