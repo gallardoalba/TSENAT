@@ -201,11 +201,11 @@ result <- TSENAT(analysis)
 #> [RESULTS] Results Summary
 #> 
 #> [PERF] Performance
-#>   Total time ........... 26.2s
+#>   Total time ........... 26.0s
 #>   Slowest steps:
-#>     1. lm_interaction       12.4s (47.5%)
-#>     2. jackknife            4.6s (17.6%)
-#>     3. lm_plot              2.6s (10.0%)
+#>     1. lm_interaction       12.5s (48.3%)
+#>     2. jackknife            4.6s (17.9%)
+#>     3. lm_plot              2.4s (9.4%)
 #> 
 #> [OUTPUT] Output
 #>   Directory ........... tsenat_outputs

@@ -1801,47 +1801,21 @@ Rare driven
 </tr>
 </tbody>
 </table>
-<p>The effect sizes reveal which genes show the most
-information-theoretic separation across the q-spectrum between paired
-treatment groups. Genes with Tsallis divergence D &gt; 0.1 show
-substantial divergence, indicating fundamental differences in entropy
-distributions between conditions.</p>
 </div>
 <div class="section level4">
 <h4 id="interpretation-of-pattern-types">Interpretation of Pattern Types:<a class="anchor" aria-label="anchor" href="#interpretation-of-pattern-types"></a>
 </h4>
-<table class="table">
-<colgroup>
-<col width="31%">
-<col width="25%">
-<col width="43%">
-</colgroup>
-<thead><tr class="header">
-<th>Pattern Type</th>
-<th>Signature</th>
-<th>Biological Meaning</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td>Rare driven</td>
-<td>D(q=0.5) &gt;&gt; D(q=2.0)</td>
-<td>Low-abundance isoforms are condition-specific; treatment group
-preferentially expresses rare transcripts not seen in control</td>
-</tr>
-<tr class="even">
-<td>Abundant driver</td>
-<td>D(q=0.5) &lt;&lt; D(q=2.0)</td>
-<td>High-abundance isoforms shift between conditions; treatment remodels
-the dominant transcript landscape without rare variants changing</td>
-</tr>
-<tr class="odd">
-<td>Balanced</td>
-<td>D(q=0.5) ~= D(q=2.0)</td>
-<td>All isoforms shift proportionally; no preferential weighting to rare
-or abundant forms; suggests systematic rebalancing</td>
-</tr>
-</tbody>
-</table>
+<ul>
+<li>Rare driven: D(q=0.5) &gt;&gt; D(q=2.0). Low-abundance isoforms are
+condition-specific; treatment group preferentially expresses rare
+transcripts not seen in control.</li>
+<li>Abundant driver: D(q=0.5) &lt;&lt; D(q=2.0). High-abundance isoforms
+shift between conditions; treatment remodels the dominant transcript
+landscape without rare variants changing.</li>
+<li>Balanced: D(q=0.5) ~= D(q=2.0). All isoforms shift proportionally;
+no preferential weighting to rare or abundant forms; suggests systematic
+rebalancing.</li>
+</ul>
 <p>The effect sizes reveal which genes show the most
 information-theoretic separation across the q-spectrum <strong>between
 paired treatment groups</strong>. Genes with Tsallis divergence D &gt;
@@ -1887,26 +1861,16 @@ abundant-driven).
 </div>
 <p>Interpreting the Q-Spectrum Curve:</p>
 <ul>
-<li><p>Shape matters more than single value: The
+<li><p><strong>Shape matters more than single value</strong>: The
 <strong>q-spectrum</strong> curve is the complete biological story <span class="citation">(Chao et al. 2010)</span>. A flat curve (balanced)
 vs. declining curve (rare driven) vs. rising curve (abundant driven)
 encode fundamentally different mechanisms <span class="citation">(Sason
-2022)</span>.</p></li>
-<li><p>q=1 (KL divergence): The middle point corresponds to ordinary
-Kullback-Leibler divergence <span class="citation">(Kullback and Leibler
-1951; Ré and Azad 2014)</span>, where in the limit q-&gt;1 the Tsallis
-divergence reduces to standard KL divergence <span class="citation">(Ré
-and Azad 2014)</span>. This weights all isoforms equally. This is the
-“average” effect.</p></li>
-<li><p>q &lt; 1 (rare isoforms): Emphasizes how much low-abundance
-transcripts differ between groups <span class="citation">(Ramírez-Reyes
-et al. 2016; Gao et al. 2019; Gandrillon et al. 2021)</span>. If
-D(q=0.5) &gt;&gt; D(q=1), the divergence is driven by changes in rare
-variants.</p></li>
-<li><p>q &gt; 1 (abundant isoforms): Emphasizes dominant transcripts
-<span class="citation">(Ramírez-Reyes et al. 2016; Gao et al.
-2019)</span>. If D(q=2) &gt;&gt; D(q=1), major isoforms rebalance while
-rare ones stay similar.</p></li>
+2022)</span>. As described in the pattern table above, genes falling
+into each category reveal different regulatory strategies.</p></li>
+<li><p><strong>q=1 (KL divergence)</strong>: The middle point
+corresponds to ordinary Kullback-Leibler divergence <span class="citation">(Kullback and Leibler 1951; Ré and Azad 2014)</span>,
+where the Tsallis divergence reduces to standard KL divergence in the
+limit q→1. This weights all isoforms equally.</p></li>
 </ul>
 <p>We can also plot the global divergence spectrum across all genes.
 This curve is the full biological signature of <strong>isoform
@@ -1928,17 +1892,18 @@ vs. abundant isoforms) are affected genome-wide.
 <p>Statistical Validation During Interpretation:</p>
 <ol style="list-style-type: decimal">
 <li><p>Bootstrap CI validity: Per-q CIs should narrow as q increases
-<span class="citation">(Efron and Tibshirani 1993; Efron, Bradley and
-Tibshirani, Robert J. 1993)</span> (higher q = aggregation effect, less
-variance). If CIs grow with q, check for data quality issues.</p></li>
-<li><p>Monotonicity check: By Tsallis entropy theory <span class="citation">(Furuichi 2006)</span>, entropy is monotone decreasing
-in q. Divergence should NOT show erratic increases with q. Small
-fluctuations are normal, but large spikes indicate numerical
-instability.</p></li>
+(higher q = aggregation effect, less variance). If CIs grow with q,
+check for data quality issues <span class="citation">(Efron and
+Tibshirani 1993; Efron, Bradley and Tibshirani, Robert J.
+1993)</span>.</p></li>
+<li><p>Monotonicity check: By Tsallis entropy theory , entropy is
+monotone decreasing in q. Divergence should NOT show erratic increases
+with q. Small fluctuations are normal, but large spikes indicate
+numerical instability <span class="citation">(Furuichi
+2006)</span>.</p></li>
 <li><p>Comparison with genome-wide patterns: Compute q-spectra for
-housekeeping genes (GAPDH, ACTB, etc.) <span class="citation">(Erhard et
-al. 2018)</span>. These should show BALANCED patterns. If not, revisit
-normalization parameters.</p></li>
+housekeeping genes (GAPDH, ACTB, etc.). These should show BALANCED
+patterns. If not, revisit normalization parameters <span class="citation">(Erhard et al. 2018)</span>.</p></li>
 </ol>
 </div>
 </div>
@@ -2005,9 +1970,10 @@ Inference.” <em>Statistical Science</em>, 19(4), 676–685</p></li>
 <li><p>Furuichi, S. (2006). “Information theoretical properties of
 Tsallis entropies.” <em>Journal of Mathematical Physics</em>, 47,
 023302. <a href="https://doi.org/10.1063/1.2165744" class="external-link uri">https://doi.org/10.1063/1.2165744</a></p></li>
-<li><p>Gandrillon, O., Gaillard, M., Espinasse, T., et al. (2021).
-“Entropy as a Measure of Variability and Stemness in Single-Cell
-Transcriptomics.” <em>Entropy</em>, 21(5), 450</p></li>
+<li><p>Gandrillon, O., Gaillard, M., Espinasse, T., Garnier, N. B.,
+Dussiau, C., Kosmider, O., &amp; Sujobert, P. (2021). “Entropy as a
+Measure of Variability and Stemness in Single-Cell Transcriptomics.”
+<em>Entropy</em>, 24(1), e93532. <a href="https://doi.org/10.3390/e24010018" class="external-link uri">https://doi.org/10.3390/e24010018</a></p></li>
 <li><p>Gao, X., Tsai, S.-B., Liu, F., Pan, L., &amp; Deng, Y. (2019).
 “Uncertainty Measure Based on Tsallis Entropy in Evidence Theory.”
 <em>International Journal of Intelligent Systems</em>, 34(6), 1626–1647.
@@ -2017,7 +1983,7 @@ Peled, E., Dahary, D., … &amp; Pilpel, Y. (2026). “An Information
 Content Principle Explains Regulatory Patterns.” <em>bioRxiv</em>, ahead
 of print. <a href="https://doi.org/10.1101/2026.02.19.706555" class="external-link uri">https://doi.org/10.1101/2026.02.19.706555</a></p></li>
 <li><p>Hyndman, R. J., &amp; Athanasopoulos, G. (2018). <em>Forecasting:
-Principles and Practice</em> (2nd ed.). <a href="https://otexts.com/fpp2/" class="external-link uri">https://otexts.com/fpp2/</a></p></li>
+Principles and Practice</em> (2nd ed.). OTexts. <a href="https://otexts.com/fpp2/" class="external-link uri">https://otexts.com/fpp2/</a></p></li>
 <li><p>Jost, L. (2006). “Entropy and Diversity.” <em>Oikos</em>, 113(2),
 363–375. <a href="https://doi.org/10.1111/j.2006.0030-1299.14714.x" class="external-link uri">https://doi.org/10.1111/j.2006.0030-1299.14714.x</a></p></li>
 <li><p>Jose, J., &amp; Lal, P. S. (2013). “Application of ARIMA(1,1,0)
@@ -2061,8 +2027,8 @@ Reviews</em>, 32, 403–421. <a href="https://doi.org/10.1007/s10555-013-9431-y"
 <li><p>Tsallis, C. (2017). “On the foundations of statistical
 mechanics.” <em>European Physical Journal Special Topics</em>, 226,
 1433–1443. <a href="https://doi.org/10.1140/epjst/e2016-60252-2" class="external-link uri">https://doi.org/10.1140/epjst/e2016-60252-2</a></p></li>
-<li><p>Van Erven, T., &amp; Harremoes, P. (2014). “Rényi divergence and
-Kullback-Leibler divergence.” <em>IEEE Transactions on Information
+<li><p>Van Erven, T., &amp; Harremoes, P. (2014). “Rényi Divergence and
+Kullback-Leibler Divergence.” <em>IEEE Transactions on Information
 Theory</em>, 60(7), 3797–3820. <a href="https://doi.org/10.1109/TIT.2014.2320500" class="external-link uri">https://doi.org/10.1109/TIT.2014.2320500</a></p></li>
 <li><p>Yulmetyev, R. M., Emelyanova, N. A., &amp; Gafarov, F. M. (2004).
 “Dynamical Shannon Entropy and Information.” <em>Physica A</em>, 341,

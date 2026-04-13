@@ -895,18 +895,17 @@ Top 6 Genes by Effect Size (Tsallis Divergence) {.table .table
 .table-striped .table-hover
 style="margin-left: auto; margin-right: auto;"}
 
-The effect sizes reveal which genes show the most information-theoretic
-separation across the q-spectrum between paired treatment groups. Genes
-with Tsallis divergence D \> 0.1 show substantial divergence, indicating
-fundamental differences in entropy distributions between conditions.
-
 #### Interpretation of Pattern Types:
 
-| Pattern Type | Signature | Biological Meaning |
-|----|----|----|
-| Rare driven | D(q=0.5) \>\> D(q=2.0) | Low-abundance isoforms are condition-specific; treatment group preferentially expresses rare transcripts not seen in control |
-| Abundant driver | D(q=0.5) \<\< D(q=2.0) | High-abundance isoforms shift between conditions; treatment remodels the dominant transcript landscape without rare variants changing |
-| Balanced | D(q=0.5) ~= D(q=2.0) | All isoforms shift proportionally; no preferential weighting to rare or abundant forms; suggests systematic rebalancing |
+- Rare driven: D(q=0.5) \>\> D(q=2.0). Low-abundance isoforms are
+  condition-specific; treatment group preferentially expresses rare
+  transcripts not seen in control.
+- Abundant driver: D(q=0.5) \<\< D(q=2.0). High-abundance isoforms shift
+  between conditions; treatment remodels the dominant transcript
+  landscape without rare variants changing.
+- Balanced: D(q=0.5) ~= D(q=2.0). All isoforms shift proportionally; no
+  preferential weighting to rare or abundant forms; suggests systematic
+  rebalancing.
 
 The effect sizes reveal which genes show the most information-theoretic
 separation across the q-spectrum **between paired treatment groups**.
@@ -962,25 +961,17 @@ pattern (rare-driven, balanced, or abundant-driven).
 
 Interpreting the Q-Spectrum Curve:
 
-- Shape matters more than single value: The **q-spectrum** curve is the
-  complete biological story (Chao et al. 2010). A flat curve (balanced)
-  vs. declining curve (rare driven) vs. rising curve (abundant driven)
-  encode fundamentally different mechanisms (Sason 2022).
+- **Shape matters more than single value**: The **q-spectrum** curve is
+  the complete biological story (Chao et al. 2010). A flat curve
+  (balanced) vs. declining curve (rare driven) vs. rising curve
+  (abundant driven) encode fundamentally different mechanisms (Sason
+  2022). As described in the pattern table above, genes falling into
+  each category reveal different regulatory strategies.
 
-- q=1 (KL divergence): The middle point corresponds to ordinary
+- **q=1 (KL divergence)**: The middle point corresponds to ordinary
   Kullback-Leibler divergence (Kullback and Leibler 1951; Ré and Azad
-  2014), where in the limit q-\>1 the Tsallis divergence reduces to
-  standard KL divergence (Ré and Azad 2014). This weights all isoforms
-  equally. This is the “average” effect.
-
-- q \< 1 (rare isoforms): Emphasizes how much low-abundance transcripts
-  differ between groups (Ramírez-Reyes et al. 2016; Gao et al. 2019;
-  Gandrillon et al. 2021). If D(q=0.5) \>\> D(q=1), the divergence is
-  driven by changes in rare variants.
-
-- q \> 1 (abundant isoforms): Emphasizes dominant transcripts
-  (Ramírez-Reyes et al. 2016; Gao et al. 2019). If D(q=2) \>\> D(q=1),
-  major isoforms rebalance while rare ones stay similar.
+  2014), where the Tsallis divergence reduces to standard KL divergence
+  in the limit q→1. This weights all isoforms equally.
 
 We can also plot the global divergence spectrum across all genes. This
 curve is the full biological signature of **isoform switching**-the
@@ -1006,20 +997,20 @@ isoforms) are affected genome-wide.
 
 Statistical Validation During Interpretation:
 
-1.  Bootstrap CI validity: Per-q CIs should narrow as q increases (Efron
-    and Tibshirani 1993; Efron, Bradley and Tibshirani, Robert J. 1993)
+1.  Bootstrap CI validity: Per-q CIs should narrow as q increases
     (higher q = aggregation effect, less variance). If CIs grow with q,
-    check for data quality issues.
+    check for data quality issues (Efron and Tibshirani 1993; Efron,
+    Bradley and Tibshirani, Robert J. 1993).
 
-2.  Monotonicity check: By Tsallis entropy theory (Furuichi 2006),
-    entropy is monotone decreasing in q. Divergence should NOT show
-    erratic increases with q. Small fluctuations are normal, but large
-    spikes indicate numerical instability.
+2.  Monotonicity check: By Tsallis entropy theory , entropy is monotone
+    decreasing in q. Divergence should NOT show erratic increases
+    with q. Small fluctuations are normal, but large spikes indicate
+    numerical instability (Furuichi 2006).
 
 3.  Comparison with genome-wide patterns: Compute q-spectra for
-    housekeeping genes (GAPDH, ACTB, etc.) (Erhard et al. 2018). These
-    should show BALANCED patterns. If not, revisit normalization
-    parameters.
+    housekeeping genes (GAPDH, ACTB, etc.). These should show BALANCED
+    patterns. If not, revisit normalization parameters (Erhard et al.
+    2018).
 
 ## Appendices
 
@@ -1106,9 +1097,10 @@ B](https://gallardoalba.github.io/TSENAT/articles/TSENAT_appendix_B.md)**
     entropies.” *Journal of Mathematical Physics*, 47, 023302.
     <https://doi.org/10.1063/1.2165744>
 
-16. Gandrillon, O., Gaillard, M., Espinasse, T., et al. (2021). “Entropy
-    as a Measure of Variability and Stemness in Single-Cell
-    Transcriptomics.” *Entropy*, 21(5), 450
+16. Gandrillon, O., Gaillard, M., Espinasse, T., Garnier, N. B.,
+    Dussiau, C., Kosmider, O., & Sujobert, P. (2021). “Entropy as a
+    Measure of Variability and Stemness in Single-Cell Transcriptomics.”
+    *Entropy*, 24(1), e93532. <https://doi.org/10.3390/e24010018>
 
 17. Gao, X., Tsai, S.-B., Liu, F., Pan, L., & Deng, Y. (2019).
     “Uncertainty Measure Based on Tsallis Entropy in Evidence Theory.”
@@ -1121,7 +1113,8 @@ B](https://gallardoalba.github.io/TSENAT/articles/TSENAT_appendix_B.md)**
     <https://doi.org/10.1101/2026.02.19.706555>
 
 19. Hyndman, R. J., & Athanasopoulos, G. (2018). *Forecasting:
-    Principles and Practice* (2nd ed.). <https://otexts.com/fpp2/>
+    Principles and Practice* (2nd ed.). OTexts.
+    <https://otexts.com/fpp2/>
 
 20. Jost, L. (2006). “Entropy and Diversity.” *Oikos*, 113(2), 363–375.
     <https://doi.org/10.1111/j.2006.0030-1299.14714.x>
@@ -1182,8 +1175,8 @@ B](https://gallardoalba.github.io/TSENAT/articles/TSENAT_appendix_B.md)**
     *European Physical Journal Special Topics*, 226, 1433–1443.
     <https://doi.org/10.1140/epjst/e2016-60252-2>
 
-34. Van Erven, T., & Harremoes, P. (2014). “Rényi divergence and
-    Kullback-Leibler divergence.” *IEEE Transactions on Information
+34. Van Erven, T., & Harremoes, P. (2014). “Rényi Divergence and
+    Kullback-Leibler Divergence.” *IEEE Transactions on Information
     Theory*, 60(7), 3797–3820.
     <https://doi.org/10.1109/TIT.2014.2320500>
 
