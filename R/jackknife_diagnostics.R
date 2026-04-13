@@ -918,7 +918,39 @@ print.tsenat_jackknife_list <- function(x, ...) {
         }
     }
 
-    # Return results
-    list(summary_df = summary_df, top_genes_list = top_genes_list, comparison_tables = comparison_tables,
-        gene_headers = gene_headers, q_metadata = q_metadata)
+    # Return formatted results as list of data frames per gene
+    formatted_results <- list()
+    for (gene_idx in seq_along(top_genes_list)) {
+        if (!is.null(comparison_tables[[gene_idx]])) {
+            gene_name <- gene_headers[gene_idx]
+            q_info <- q_metadata[[gene_idx]]
+            q_values_available <- q_info$q_values_available
+            q_key_to_value <- q_info$q_key_to_value
+            
+            # Get the comparison data
+            table_data <- comparison_tables[[gene_idx]]
+            
+            # Format for display: convert q_keys to numeric values
+            formatted_table <- data.frame(Transcript = table_data$transcript, stringsAsFactors = FALSE)
+            
+            # Add q-value columns with formatted numeric values
+            for (q_key in q_values_available) {
+                q_val <- q_key_to_value[[q_key]]
+                col_name <- sprintf("q=%.2f", q_val)
+                formatted_table[[col_name]] <- table_data[[q_key]]
+            }
+            
+            # Add direction consistency
+            formatted_table[["Direction Consistency"]] <- table_data$Consistency
+            
+            formatted_results[[gene_name]] <- formatted_table
+        }
+    }
+    
+    # If no genes were formatted, return empty list
+    if (length(formatted_results) == 0) {
+        return(list())
+    }
+    
+    formatted_results
 }

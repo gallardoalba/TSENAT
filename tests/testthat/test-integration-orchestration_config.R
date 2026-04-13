@@ -1003,7 +1003,7 @@ test_that("results() returns NULL for non-computed results", {
 # ============================================================================
 context("orchestration_results: Main Results Accessor - Diversity Processing")
 
-test_that("results() with display_table=TRUE produces output", {
+test_that("results() with diversity produces formatted output", {
   entropy_data <- matrix(seq(1, 12), nrow = 3, ncol = 4)
   rownames(entropy_data) <- c("Gene_1", "Gene_2", "Gene_3")
   colnames(entropy_data) <- paste0("S", 1:4)
@@ -1017,7 +1017,7 @@ test_that("results() with display_table=TRUE produces output", {
   
   # Capture messages while calling results()
   msgs <- testthat::capture_messages({
-    result <- TSENAT::results(analysis, type = "diversity", display_table = TRUE, n_genes = 2)
+    result <- TSENAT::results(analysis, type = "diversity", n_genes = 2)
   })
   
   full_msg <- paste(msgs, collapse = "")
@@ -1137,7 +1137,7 @@ test_that("results() warns about unsupported rankBy for switching_tables", {
     "not supported"
   )
 })
-context("Results display_table parameter for effect_sizes_divergence")
+context("Results display and formatting")
 
 # Helper to create minimal analysis with effect sizes
 .make_test_analysis_for_display_table <- function() {
@@ -1172,15 +1172,14 @@ context("Results display_table parameter for effect_sizes_divergence")
     return(analysis)
 }
 
-test_that("display_table=TRUE produces message output for effect_sizes_divergence", {
+test_that("results produces message output for effect_sizes_divergence", {
     analysis <- .make_test_analysis_for_display_table()
     
-    # Capture messages when display_table=TRUE (message() calls are not captured by capture_output)
+    # Capture messages when results are displayed (now always displayed)
     messages <- capture_messages({
         result <- TSENAT::results(
             analysis,
             type = "effect_sizes_divergence",
-            display_table = TRUE,
             top_n = NULL,
             sort_by = "p_value_interaction"
         )
@@ -1188,24 +1187,21 @@ test_that("display_table=TRUE produces message output for effect_sizes_divergenc
     
     # Should produce message output with gene information
     output <- paste(messages, collapse = "")
-    expect_true(nchar(output) > 0, "display_table=TRUE should produce output")
+    expect_true(nchar(output) > 0, "Results should produce output messages")
     expect_true(grepl("GENE", output, ignore.case = TRUE), 
                 "Output should contain gene names")
     # Result should still be a data.frame
-    expect_true(is.data.frame(result), "Should return data.frame when display_table=TRUE")
+    expect_true(is.data.frame(result), "Should return data.frame")
 })
 
-test_that("display_table=FALSE returns data.frame with minimal output", {
+test_that("results returns data.frame with all expected columns", {
     analysis <- .make_test_analysis_for_display_table()
     
-    output <- capture_output({
-        result <- TSENAT::results(
-            analysis,
-            type = "effect_sizes_divergence",
-            display_table = FALSE,
-            top_n = NULL
-        )
-    })
+    result <- TSENAT::results(
+        analysis,
+        type = "effect_sizes_divergence",
+        top_n = NULL
+    )
     
     # Should return data.frame
     expect_true(is.data.frame(result), "Should return data.frame")
@@ -1214,14 +1210,13 @@ test_that("display_table=FALSE returns data.frame with minimal output", {
     expect_true("p_value_interaction" %in% colnames(result), "Should have p-value column")
 })
 
-test_that("display_table=TRUE with top_n filters correctly", {
+test_that("results filters by top_n correctly", {
     analysis <- .make_test_analysis_for_display_table()
     
     output <- capture_output({
         result <- TSENAT::results(
             analysis,
             type = "effect_sizes_divergence",
-            display_table = TRUE,
             top_n = 2,
             sort_by = "p_value_interaction"
         )
@@ -1233,14 +1228,13 @@ test_that("display_table=TRUE with top_n filters correctly", {
     expect_equal(result$gene_name[1], "GENE1")
 })
 
-test_that("display_table=TRUE shows all required columns in message", {
+test_that("results shows all required columns in output", {
     analysis <- .make_test_analysis_for_display_table()
     
     messages <- capture_messages({
         result <- TSENAT::results(
             analysis,
             type = "effect_sizes_divergence",
-            display_table = TRUE,
             top_n = 1,
             sort_by = "p_value_interaction"
         )
@@ -1256,14 +1250,13 @@ test_that("display_table=TRUE shows all required columns in message", {
                 "Output should contain p-value information")
 })
 
-test_that("display_table=TRUE still returns result invisibly", {
+test_that("results returns result with expected structure", {
     analysis <- .make_test_analysis_for_display_table()
     
     # Call the function 
     result <- TSENAT::results(
         analysis,
         type = "effect_sizes_divergence",
-        display_table = TRUE,
         top_n = 1,
         sort_by = "p_value_interaction"
     )
@@ -1279,8 +1272,7 @@ test_that("Results contain expected columns for effect_sizes_divergence", {
     
     result <- TSENAT::results(
         analysis,
-        type = "effect_sizes_divergence",
-        display_table = FALSE
+        type = "effect_sizes_divergence"
     )
     
     # Verify all expected columns are present
@@ -1300,8 +1292,7 @@ test_that("Sorting by p_value_interaction works correctly", {
         analysis,
         type = "effect_sizes_divergence",
         sort_by = "p_value_interaction",
-        top_n = NULL,
-        display_table = FALSE
+        top_n = NULL
     )
     
     # Verify sorting is by p-value ascending
@@ -1347,11 +1338,11 @@ test_that("results() with sample parameter selects correct sample", {
     q_1.000 = se
   )
   
-  # Call with sample parameter - should return data.frame
-  result <- TSENAT::results(analysis, type = "diversity", display_table = TRUE, 
+  # Call with sample parameter - should return formatted data.frame
+  result <- TSENAT::results(analysis, type = "diversity", 
                             n_genes = 2, sample = "S2", q_values_table = c(0.0, 1.0))
   
-  # Result should be a data.frame when display_table=TRUE with sample
+  # Result should be a data.frame when results are displayed with sample
   expect_is(result, "data.frame")
   expect_equal(nrow(result), 2)  # n_genes = 2
   expect_true("Gene" %in% colnames(result))
@@ -1372,7 +1363,7 @@ test_that("results() with sample parameter displays correct sample name", {
   
   # Capture messages while calling results with sample
   msgs <- testthat::capture_messages({
-    result <- TSENAT::results(analysis, type = "diversity", display_table = TRUE, 
+    result <- TSENAT::results(analysis, type = "diversity", 
                               n_genes = 1, sample = "S3")
   })
   
@@ -1397,7 +1388,7 @@ test_that("results() raises error for invalid sample name", {
   
   # Should raise error with invalid sample name
   expect_error(
-    TSENAT::results(analysis, type = "diversity", display_table = TRUE, 
+    TSENAT::results(analysis, type = "diversity", 
                     sample = "INVALID_SAMPLE"),
     "not found"
   )
@@ -1416,7 +1407,7 @@ test_that("results() sample parameter returns data.frame with correct values", {
   analysis@diversity_results <- list(q_0.000 = se, q_1.000 = se)
   
   # Get results for Sample_X
-  result <- TSENAT::results(analysis, type = "diversity", display_table = TRUE,
+  result <- TSENAT::results(analysis, type = "diversity",
                             n_genes = 2, sample = "Sample_X",
                             q_values_table = c(0.0, 1.0))
   
@@ -1439,7 +1430,7 @@ test_that("results() default sample uses first sample when not specified", {
   
   # Call without sample parameter - should default to first
   msgs <- testthat::capture_messages({
-    result <- TSENAT::results(analysis, type = "diversity", display_table = TRUE, 
+    result <- TSENAT::results(analysis, type = "diversity", 
                               n_genes = 1)
   })
   
@@ -1470,7 +1461,7 @@ test_that("results() sample parameter with multiple q-values", {
   analysis@diversity_results <- list(q_0.000 = se_q0, q_1.000 = se_q1)
   
   # Get results for specific sample with multiple q-values in display
-  result <- TSENAT::results(analysis, type = "diversity", display_table = TRUE,
+  result <- TSENAT::results(analysis, type = "diversity",
                             n_genes = 2, sample = "S4",
                             q_values_table = c(0.0, 1.0))
   

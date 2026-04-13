@@ -24,14 +24,13 @@
 #'   (0.0-1.0). Only results with adjusted p-value <= filterFDR retained.
 #'   Default: NULL (no filtering).
 #' @param format \code{character}. Output format: 'auto' (sensible default for type),
-#'   'list', 'dataframe', or 'matrix'. Default: 'auto'.
-#' @param display_table \code{logical}. For diversity results with display_table=TRUE,
-#'   returns a formatted table showing diversity values across selected q-values
-#'   for each gene. Default: FALSE (returns SummarizedExperiment or list).
-#' @param n_genes \code{integer}. Number of genes to display in diversity tables
-#'   when display_table=TRUE. Default: 4.
+#'   'list', 'dataframe', or 'matrix'. For diversity results with format='se', returns
+#'   the SummarizedExperiment object directly (useful for downstream processing with
+#'   other packages like SplicingFactory). Default: 'auto'.
+#' @param n_genes \code{integer}. Number of genes to display in diversity results.
+#'   Default: 4.
 #' @param q_values_table \code{numeric}. Vector of q-values to include in diversity
-#'   table display when display_table=TRUE. Default: c(0, 0.5, 1.0, 1.5, 2.0).
+#'   results. Default: c(0, 0.5, 1.0, 1.5, 2.0).
 #' @param top_n \code{integer}. For effect_sizes_divergence, return top N genes ranked by sort_by.
 #'   When specified, results are sorted by sort_by column and limited to top N rows.
 #'   Default: NULL (return all results). Use NA to return all.
@@ -40,7 +39,8 @@
 #'   Default: 'adj_p_interaction' (most significant first).
 #' @return 
 #'   - For diversity with q=NULL: A named list of SummarizedExperiment objects, one per q-value
-#'   - For diversity with q specified: A single SummarizedExperiment for that q-value
+#'   - For diversity with q specified and format='auto' or 'table': A data.frame table for display
+#'   - For diversity with q specified and format='se': The SummarizedExperiment object directly (useful for SplicingFactory)
 #'   - For divergence: A SummarizedExperiment (rows=genes, columns=q-values), data.frame, or other format depending on divergence computation method
 #'   - For lm/jackknife: A data.frame or list based on type and format
 #'   - For pairwise: A data.frame with pairwise comparison difference metrics
@@ -82,8 +82,11 @@
 #' # Get all diversity results (list of SummarizedExperiment objects, one per q)
 #' div_all <- results(analysis, type = 'diversity')
 #'
-#' # Get diversity for specific q-value (single SummarizedExperiment)
+#' # Get diversity for specific q-value (single SummarizedExperiment table for display)
 #' div_q1 <- results(analysis, type = 'diversity', q = 1.0)
+#'
+#' # Get diversity for specific q-value as SummarizedExperiment for downstream processing (e.g., SplicingFactory)
+#' div_q1_se <- results(analysis, type = 'diversity', q = 1.0, format = 'se')
 #'
 #' # Get results ranked by p-value, top 20 genes
 #' # Using accessor function instead of @ slot access
@@ -107,7 +110,7 @@
 #' @rdname results
 #' @export
 results <- function(analysis, type, q = NULL, rankBy = "none", 
-                       n = NA, filterFDR = NULL, format = "auto", display_table = FALSE,
+                       n = NA, filterFDR = NULL, format = "auto",
                        n_genes = 4, q_values_table = c(0, 0.5, 1.0, 1.5, 2.0),
                        top_n = NULL, sort_by = "adj_p_interaction", sample = NULL) {
     # Validate parameters
@@ -125,16 +128,16 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
     
     # Route to type-specific processor
     switch(type,
-        diversity = .process_diversity_results(result, q, display_table, analysis, 
-                                                n_genes, q_values_table, sample),
+        diversity = .process_diversity_results(result, q, analysis, 
+                                                n_genes, q_values_table, sample, format),
         divergence = .process_divergence_results(result, filterFDR, format),
         pairwise = .process_pairwise_results(result, filterFDR, format),
         lm = ,
         jackknife = ,
         rank_test = .process_statistical_results(result, type, filterFDR, rankBy, n, format),
-        effect_sizes_divergence = .process_effect_sizes_divergence_results(result, top_n, sort_by, display_table, analysis),
-        assumptions = result,
-        switching_tables = .process_switching_tables_results(result, display_table),
+        effect_sizes_divergence = .process_effect_sizes_divergence_results(result, top_n, sort_by, analysis),
+        assumptions = .process_assumptions_results(result),
+        switching_tables = .process_switching_tables_results(result),
         metadata = result,
         result
     )
@@ -160,7 +163,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
              call. = FALSE)
     }
     
-    valid_formats <- c("auto", "list", "dataframe", "matrix")
+    valid_formats <- c("auto", "list", "dataframe", "matrix", "se", "table")
     if (!format %in% valid_formats) {
         stop("'format' must be one of: ", paste(valid_formats, collapse = ", "), 
              call. = FALSE)
@@ -450,20 +453,23 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
 # ============================================================================
 # HELPER: Process diversity results
 # ============================================================================
-.process_diversity_results <- function(result, q, display_table, analysis, n_genes, 
-                                       q_values_table, sample = NULL) {
+.process_diversity_results <- function(result, q, analysis, n_genes, 
+                                       q_values_table, sample = NULL, format = "auto") {
+    # Handle format = "se": Return SummarizedExperiment for downstream processing
+    # Useful for passing to other packages like SplicingFactory
+    if (format == "se" && !is.null(q)) {
+        result_se <- .get_diversity_q_value(result, q)
+        return(result_se)
+    }
+    
+    # Default (format = "auto" or "table"): Return formatted table for display
     if (!is.null(q)) {
         result <- .get_diversity_q_value(result, q)
     }
     
-    if (display_table) {
-        .display_diversity_table(analysis, result, q, n_genes, q_values_table, sample)
-        # Return the table as a data.frame instead of the full list
-        table_df <- .extract_diversity_table(analysis, result, q, n_genes, q_values_table, sample)
-        return(invisible(table_df))
-    }
-    
-    result
+    # Return formatted table without automatic display
+    table_df <- .extract_diversity_table(analysis, result, q, n_genes, q_values_table, sample)
+    table_df
 }
 
 # ============================================================================
@@ -853,7 +859,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
 # HELPER: Process effect_sizes_divergence results with sorting and filtering
 # ============================================================================
 .process_effect_sizes_divergence_results <- function(result, top_n = NULL, sort_by = "adj_p_interaction", 
-                                                      display_table = FALSE, analysis = NULL) {
+                                                      analysis = NULL) {
     if (is.null(result)) {
         return(NULL)
     }
@@ -879,13 +885,8 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
             results_df <- head(results_df, top_n)
         }
         
-        # Display table if requested
-        if (display_table) {
-            display_top_n <- if (!is.null(top_n) && !is.na(top_n)) top_n else nrow(results_df)
-            .display_effect_sizes_table(results_df, display_top_n)
-        }
-        
-        return(if (display_table) invisible(results_df) else results_df)
+        # Return the processed data frame (silently)
+        return(results_df)
     }
     
     # If result is a list, try to extract the main results data.frame
@@ -924,14 +925,8 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
             results_df <- head(results_df, top_n)
         }
         
-        # Display table if requested
-        if (display_table) {
-            display_top_n <- if (!is.null(top_n) && !is.na(top_n)) top_n else nrow(results_df)
-            .display_effect_sizes_table(results_df, display_top_n)
-        }
-        
-        # Return the processed data.frame (not the list)
-        return(if (display_table) invisible(results_df) else results_df)
+        # Return the processed data.frame (silently)
+        return(results_df)
     }
     
     # Return as-is if it's some other type
@@ -939,25 +934,418 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
 }
 
 # ============================================================================
-# Switching Tables Result Processing
+# Assumptions Result Processing
 # ============================================================================
 
-#' Process switching_tables results with optional display
+#' Process assumptions results into formatted table
+#'
+#' Converts nested assumption check list into formatted data frame
+#' with characteristic, test, result, and interpretation columns.
 #'
 #' @keywords internal
 #' @noRd
-.process_switching_tables_results <- function(result, display_table = FALSE) {
+.process_assumptions_results <- function(result) {
     if (is.null(result)) {
         return(NULL)
     }
     
-    # Display formatted tables if requested
-    if (display_table && is.list(result) && !is.null(result$comparison_tables)) {
-        .display_switching_tables(result)
+    # Check if result is a list of assumption checks
+    if (!is.list(result)) {
+        return(result)
     }
     
-    # Return the original result (invisibly if displayed)
-    if (display_table) invisible(result) else result
+    # Build table as data frame
+    rows <- list()
+    
+    # Helper to format p-values and test statistics
+    format_value <- function(x) {
+        if (is.null(x)) return("N/A")
+        # Handle vectors: extract first element
+        if (length(x) > 1) x <- x[1]
+        if (is.na(x)) return("N/A")
+        if (is.numeric(x)) {
+            if (x < 0.001) return(sprintf("%.0e", x))
+            if (x < 0.01) return(sprintf("%.4f", x))
+            return(sprintf("%.3f", x))
+        }
+        return(as.character(x))
+    }
+    
+    # ========== Rank-based tests (always present) ==========
+    
+    # Exchangeability
+    if (!is.null(result$exchangeability)) {
+        check <- result$exchangeability
+        rows[[length(rows) + 1]] <- list(
+            Characteristic = "Paired Structure",
+            Test = if (!is.null(check$method)) check$method else "Permutation test",
+            Result = paste0("p=", format_value(check$p_value)),
+            Interpretation = if (!is.null(check$status)) check$status else "unknown"
+        )
+    }
+    
+    # Monotonicity
+    if (!is.null(result$monotonicity)) {
+        check <- result$monotonicity
+        r_val <- format_value(check$mean_correlation)
+        rows[[length(rows) + 1]] <- list(
+            Characteristic = "Gene Heterogeneity",
+            Test = if (!is.null(check$method)) check$method else "Spearman r",
+            Result = paste0("r=", r_val),
+            Interpretation = if (!is.null(check$mean_correlation)) {
+                if (abs(check$mean_correlation) < 0.3) "heterogeneous" else "homogeneous"
+            } else "unknown"
+        )
+    }
+    
+    # Consistency
+    if (!is.null(result$consistency)) {
+        check <- result$consistency
+        w_val <- format_value(check$w_statistic)
+        icc_val <- format_value(check$icc)
+        rows[[length(rows) + 1]] <- list(
+            Characteristic = "Subject Consistency",
+            Test = if (!is.null(check$method)) check$method else "Kendall's W",
+            Result = paste0("W=", w_val, ", ICC=", icc_val),
+            Interpretation = if (!is.null(check$icc)) {
+                if (check$icc < 0.5) "low" else "moderate"
+            } else "unknown"
+        )
+    }
+    
+    # ========== GAM-specific tests ==========
+    
+    if (!is.null(result$gam_metrics)) {
+        gam_metrics <- result$gam_metrics
+        
+        # Concurvity - extract from nested metric object
+        if (!is.null(gam_metrics$concurvity_index)) {
+            metric <- gam_metrics$concurvity_index
+            has_error <- isTRUE(metric$error)
+            val_valid <- !is.null(metric$concurvity_index) && !is.na(metric$concurvity_index)
+            if (has_error || !val_valid) {
+                result_str <- "NA"
+                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
+            } else {
+                result_str <- sprintf("Index=%.3f", metric$concurvity_index)
+                interp_str <- if (metric$concurvity_index < 0.5) "low" else "high"
+            }
+            rows[[length(rows) + 1]] <- list(
+                Characteristic = "Concurvity",
+                Test = "Smooth term collinearity",
+                Result = result_str,
+                Interpretation = interp_str
+            )
+        }
+        
+        # Effective DoF
+        if (!is.null(gam_metrics$effective_df_ratio)) {
+            metric <- gam_metrics$effective_df_ratio
+            has_error <- isTRUE(metric$error)
+            val_valid <- !is.null(metric$effective_df_ratio) && !is.na(metric$effective_df_ratio)
+            if (has_error || !val_valid) {
+                result_str <- "NA"
+                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
+            } else {
+                result_str <- sprintf("Ratio=%.3f", metric$effective_df_ratio)
+                interp_str <- if (metric$effective_df_ratio < 0.1) "over-smoothed" else if (metric$effective_df_ratio > 0.9) "under-smoothed" else "adequate"
+            }
+            rows[[length(rows) + 1]] <- list(
+                Characteristic = "Effective DoF",
+                Test = "Smoothing adequacy",
+                Result = result_str,
+                Interpretation = interp_str
+            )
+        }
+        
+        # Non-linearity
+        if (!is.null(gam_metrics$r2_improvement)) {
+            metric <- gam_metrics$r2_improvement
+            has_error <- isTRUE(metric$error)
+            val_valid <- !is.null(metric$r2_improvement) && !is.na(metric$r2_improvement)
+            if (has_error || !val_valid) {
+                result_str <- "NA"
+                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
+            } else {
+                r2_pct <- metric$r2_improvement * 100
+                result_str <- sprintf("Δ R²=%.1f%%", r2_pct)
+                interp_str <- if (r2_pct < 1) "use linear" else "use GAM"
+            }
+            rows[[length(rows) + 1]] <- list(
+                Characteristic = "Non-linearity",
+                Test = "LM vs GAM improvement",
+                Result = result_str,
+                Interpretation = interp_str
+            )
+        }
+        
+        # Basis Dimension
+        if (!is.null(gam_metrics$basis_dimension)) {
+            metric <- gam_metrics$basis_dimension
+            has_error <- isTRUE(metric$error)
+            val_valid <- !is.null(metric$basis_dimension) && !is.na(metric$basis_dimension)
+            if (has_error || !val_valid) {
+                result_str <- "NA"
+                interp_str <- if (has_error) "computation error" else "adequate"
+            } else {
+                result_str <- sprintf("k=%d", metric$basis_dimension)
+                interp_str <- "adequate"
+            }
+            rows[[length(rows) + 1]] <- list(
+                Characteristic = "Basis Dimension",
+                Test = "Basis function adequacy",
+                Result = result_str,
+                Interpretation = interp_str
+            )
+        }
+    }
+    
+    # ========== GEE-specific tests ==========
+    
+    if (!is.null(result$gee_metrics)) {
+        gee_metrics <- result$gee_metrics
+        
+        # Correlation Structure
+        if (!is.null(gee_metrics$correlation_structure)) {
+            metric <- gee_metrics$correlation_structure
+            has_error <- isTRUE(metric$error)
+            val_valid <- !is.null(metric$correlation_structure) && !is.na(metric$correlation_structure)
+            if (has_error || !val_valid) {
+                result_str <- "NA"
+                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
+            } else {
+                result_str <- sprintf("Structure=%s", metric$correlation_structure)
+                interp_str <- "good fit"
+            }
+            rows[[length(rows) + 1]] <- list(
+                Characteristic = "Correlation Structure",
+                Test = "Working correlation fit",
+                Result = result_str,
+                Interpretation = interp_str
+            )
+        }
+        
+        # Cluster Variation
+        if (!is.null(gee_metrics$cluster_size_cv)) {
+            metric <- gee_metrics$cluster_size_cv
+            has_error <- isTRUE(metric$error)
+            val_valid <- !is.null(metric$cluster_size_cv) && !is.na(metric$cluster_size_cv)
+            if (has_error || !val_valid) {
+                result_str <- "NA"
+                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
+            } else {
+                result_str <- sprintf("CV=%.3f", metric$cluster_size_cv)
+                interp_str <- if (metric$cluster_size_cv < 0.5) "homogeneous" else "heterogeneous"
+            }
+            rows[[length(rows) + 1]] <- list(
+                Characteristic = "Cluster Variation",
+                Test = "Cluster size homogeneity",
+                Result = result_str,
+                Interpretation = interp_str
+            )
+        }
+        
+        # Independence
+        if (!is.null(gee_metrics$within_cluster_correlation)) {
+            metric <- gee_metrics$within_cluster_correlation
+            has_error <- isTRUE(metric$error)
+            val_valid <- !is.null(metric$within_cluster_correlation) && !is.na(metric$within_cluster_correlation)
+            if (has_error || !val_valid) {
+                result_str <- "NA"
+                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
+            } else {
+                result_str <- sprintf("Corr=%.3f", metric$within_cluster_correlation)
+                interp_str <- if (abs(metric$within_cluster_correlation) < 0.05) "independent" else "dependent"
+            }
+            rows[[length(rows) + 1]] <- list(
+                Characteristic = "Independence",
+                Test = "Within-cluster residual correlation",
+                Result = result_str,
+                Interpretation = interp_str
+            )
+        }
+        
+        # Scale Parameter
+        if (!is.null(gee_metrics$scale_parameter)) {
+            metric <- gee_metrics$scale_parameter
+            has_error <- isTRUE(metric$error)
+            val_valid <- !is.null(metric$scale_parameter) && !is.na(metric$scale_parameter)
+            if (has_error || !val_valid) {
+                result_str <- "NA"
+                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
+            } else {
+                result_str <- sprintf("φ=%.3f", metric$scale_parameter)
+                interp_str <- if (metric$scale_parameter < 1) "under-dispersed" else if (metric$scale_parameter > 1) "over-dispersed" else "adequate"
+            }
+            rows[[length(rows) + 1]] <- list(
+                Characteristic = "Scale Parameter",
+                Test = "Dispersion parameter",
+                Result = result_str,
+                Interpretation = interp_str
+            )
+        }
+    }
+    
+    # ========== LMM-specific tests ==========
+    
+    if (!is.null(result$lmm_metrics)) {
+        lmm_metrics <- result$lmm_metrics
+        
+        # Variance Components
+        if (!is.null(lmm_metrics$icc)) {
+            metric <- lmm_metrics$icc
+            has_error <- isTRUE(metric$error)
+            val_valid <- !is.null(metric$icc) && !is.na(metric$icc)
+            if (has_error || !val_valid) {
+                result_str <- "NA"
+                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
+            } else {
+                result_str <- sprintf("ICC=%.3f", metric$icc)
+                interp_str <- if (metric$icc > 0.1) "lmm justified" else "lmm not justified"
+            }
+            rows[[length(rows) + 1]] <- list(
+                Characteristic = "Variance Components",
+                Test = "Intraclass correlation",
+                Result = result_str,
+                Interpretation = interp_str
+            )
+        }
+        
+        # Random Effects Normality
+        if (!is.null(lmm_metrics$normality_p_value)) {
+            metric <- lmm_metrics$normality_p_value
+            has_error <- isTRUE(metric$error)
+            val_valid <- !is.null(metric$normality_p_value) && !is.na(metric$normality_p_value)
+            if (has_error || !val_valid) {
+                result_str <- "NA"
+                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
+            } else {
+                result_str <- sprintf("W p=%.3f", metric$normality_p_value)
+                interp_str <- if (metric$normality_p_value > 0.05) "normal" else "non-normal"
+            }
+            rows[[length(rows) + 1]] <- list(
+                Characteristic = "Random Effects Normality",
+                Test = "Shapiro-Wilk test",
+                Result = result_str,
+                Interpretation = interp_str
+            )
+        }
+    }
+    
+    # ========== FPCA-specific tests ==========
+    
+    if (!is.null(result$fpca_metrics)) {
+        fpca_metrics <- result$fpca_metrics
+        
+        # Variance Homogeneity (applies to FPCA)
+        if (!is.null(fpca_metrics$levene_p_value)) {
+            metric <- fpca_metrics$levene_p_value
+            has_error <- isTRUE(metric$error)
+            val_valid <- !is.null(metric$levene_p_value) && !is.na(metric$levene_p_value)
+            if (has_error || !val_valid) {
+                result_str <- "NA"
+                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
+            } else {
+                result_str <- sprintf("Levene p=%.3f", metric$levene_p_value)
+                interp_str <- if (metric$levene_p_value > 0.05) "homogeneous" else "heterogeneous"
+            }
+            rows[[length(rows) + 1]] <- list(
+                Characteristic = "Variance Homogeneity",
+                Test = "Levene's test",
+                Result = result_str,
+                Interpretation = interp_str
+            )
+        }
+        
+        # Outlier Influence
+        if (!is.null(fpca_metrics$outlier_percentage)) {
+            metric <- fpca_metrics$outlier_percentage
+            has_error <- isTRUE(metric$error)
+            val_valid <- !is.null(metric$outlier_percentage) && !is.na(metric$outlier_percentage)
+            if (has_error || !val_valid) {
+                result_str <- "NA"
+                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
+            } else {
+                result_str <- sprintf("Influential=%.1f%%", metric$outlier_percentage * 100)
+                interp_str <- if (metric$outlier_percentage < 0.1) "no outliers" else "many outliers"
+            }
+            rows[[length(rows) + 1]] <- list(
+                Characteristic = "Outlier Influence",
+                Test = "Cook's distance assessment",
+                Result = result_str,
+                Interpretation = interp_str
+            )
+        }
+        
+        # Variance Adequacy
+        if (!is.null(fpca_metrics$components_for_threshold)) {
+            metric <- fpca_metrics$components_for_threshold
+            has_error <- isTRUE(metric$error)
+            val_valid <- !is.null(metric$components_for_threshold) && !is.na(metric$components_for_threshold)
+            if (has_error || !val_valid) {
+                result_str <- "NA"
+                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
+            } else {
+                result_str <- sprintf("Components for 95%%=%.0f", metric$components_for_threshold)
+                interp_str <- if (metric$components_for_threshold <= 5) "good reduction" else "poor reduction"
+            }
+            rows[[length(rows) + 1]] <- list(
+                Characteristic = "Variance Adequacy",
+                Test = "Cumulative variance explained",
+                Result = result_str,
+                Interpretation = interp_str
+            )
+        }
+        
+        # Bootstrap Stability
+        if (!is.null(fpca_metrics$bootstrap_cv)) {
+            metric <- fpca_metrics$bootstrap_cv
+            has_error <- isTRUE(metric$error)
+            val_valid <- !is.null(metric$bootstrap_cv) && !is.na(metric$bootstrap_cv)
+            if (has_error || !val_valid) {
+                result_str <- "NA"
+                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
+            } else {
+                result_str <- sprintf("CV=%.3f", metric$bootstrap_cv)
+                interp_str <- if (metric$bootstrap_cv < 0.3) "stable" else "moderate stability"
+            }
+            rows[[length(rows) + 1]] <- list(
+                Characteristic = "Bootstrap Stability",
+                Test = "PC loading stability via bootstrap",
+                Result = result_str,
+                Interpretation = interp_str
+            )
+        }
+    }
+    
+    # Convert list of rows to data frame
+    if (length(rows) == 0) {
+        return(NULL)
+    }
+    
+    df <- do.call(rbind, lapply(rows, as.data.frame, stringsAsFactors = FALSE))
+    rownames(df) <- NULL
+    
+    # Return formatted data frame
+    df
+}
+
+# ============================================================================
+# Switching Tables Result Processing
+# ============================================================================
+
+#' Process switching_tables results
+#'
+#' @keywords internal
+#' @noRd
+.process_switching_tables_results <- function(result) {
+    if (is.null(result)) {
+        return(NULL)
+    }
+    
+    # Result is already formatted as a list of data frames per gene
+    # Simply return it
+    result
 }
 
 #' Display switching tables in formatted output

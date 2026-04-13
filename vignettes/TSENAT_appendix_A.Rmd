@@ -224,7 +224,7 @@ simpson_significance <- SplicingFactory::calculate_difference(
 # TSENAT: Differential analysis for Tsallis q=1 (Shannon equivalent)
 # Extract the diversity results for q=1 using the results() accessor
 # Returns SummarizedExperiment with diversity values (genes x samples)
-div_result_q1 <- results(tsenat_analysis_q1, type = "diversity", q = 1.0)
+div_result_q1 <- results(tsenat_analysis_q1, type = "diversity", q = 1.0, format = "se")
 
 # Apply SplicingFactory's calculate_difference to TSENAT q=1 diversity
 # Use "group" column already in colData (from se_data)
@@ -241,7 +241,7 @@ tsenat_shannon_diff <- SplicingFactory::calculate_difference(
 # TSENAT: Differential analysis for Tsallis q=2 (Simpson equivalent)
 # Extract the diversity results for q=2 using the results() accessor
 # Returns SummarizedExperiment with diversity values (genes x samples)
-div_result_q2 <- results(tsenat_analysis_q2, type = "diversity", q = 2.0)
+div_result_q2 <- results(tsenat_analysis_q2, type = "diversity", q = 2.0, format = "se")
 
 # Apply SplicingFactory's calculate_difference to TSENAT q=2 diversity
 # Use "group" column already in colData (from se_data)

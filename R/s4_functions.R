@@ -286,7 +286,7 @@ setGeneric("calculate_concordance", function(analysis_lm, analysis_rank = NULL, 
 
 #' @rdname calculate_concordance
 setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_lm, analysis_rank = NULL,
-    lm_method = NULL, rank_method = "rank_test", verbose = FALSE, output_file = NULL) {
+    verbose = FALSE, output_file = NULL) {
 
     # ===================================================================
     # VALIDATION
@@ -308,15 +308,12 @@ setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_lm, analy
 
         if (verbose) {
             message("[calculate_concordance] Using two TSENATAnalysis objects")
-            if (!is.null(lm_method))
-                message("  - LM method: ", lm_method)
-            message("  - Rank test method: ", rank_method)
         }
 
-        # Call the refactored function with two objects
+        # Call the refactored function with two objects (auto-detect methods)
         concordance_result <- tryCatch({
             .calculate_concordance(analysis_lm = analysis_lm, analysis_rank = analysis_rank,
-                lm_method = lm_method, rank_method = rank_method)
+                lm_method = NULL, rank_method = NULL)
         }, error = function(e) {
             stop("[calculate_concordance] ", conditionMessage(e), call. = FALSE)
         })
@@ -371,12 +368,8 @@ setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_lm, analy
             call. = FALSE)
     }
 
-    # Check for required methods
-    default_lm_method <- if (is.null(lm_method)) {
-        names(analysis_lm@lm_results)[1]
-    } else {
-        lm_method
-    }
+    # Auto-detect LM method (use first available)
+    default_lm_method <- names(analysis_lm@lm_results)[1]
 
     if (!(default_lm_method %in% names(analysis_lm@lm_results))) {
         available_methods <- paste(names(analysis_lm@lm_results), collapse = ", ")
@@ -384,10 +377,15 @@ setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_lm, analy
             available_methods, call. = FALSE)
     }
 
-    # Check rank_test_results
-    if (is.null(analysis_lm@rank_test_results) || !(rank_method %in% names(analysis_lm@rank_test_results))) {
-        stop("Rank test method '", rank_method, "' not found in rank_test_results. ",
-            "Run calculate_srh() first.", call. = FALSE)
+    # Auto-detect rank method (use "rank_test" if available, otherwise first available)
+    rank_method <- "rank_test"
+    if (is.null(analysis_lm@rank_test_results) || 
+        !("rank_test" %in% names(analysis_lm@rank_test_results))) {
+        if (is.null(analysis_lm@rank_test_results) || length(analysis_lm@rank_test_results) == 0) {
+            stop("No rank test results found in rank_test_results. Run calculate_srh() first.", 
+                call. = FALSE)
+        }
+        rank_method <- names(analysis_lm@rank_test_results)[1]
     }
 
     # Extract results

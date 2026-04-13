@@ -927,8 +927,6 @@ A critical validation step is to compare whether the Scheirer-Ray-Hare rank-base
 analysis_with_concordance <- calculate_concordance(
     analysis_lm = analysis_lm,
     analysis_rank = analysis,
-    lm_method = "lm_interaction",
-    rank_method = "rank_test",
     verbose = TRUE
 )
 

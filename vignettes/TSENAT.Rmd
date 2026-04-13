@@ -329,8 +329,8 @@ analysis <- calculate_diversity(
     norm = TRUE
 )
 
-# Extract and display diversity results with formatted table
-diversity <- results(analysis, type = "diversity", display_table = TRUE, n_genes = 4, sample = "SRR14800481")
+# Extract and display diversity results (automatically formatted)
+diversity <- results(analysis, type = "diversity", n_genes = 4, sample = "SRR14800481")
 print(diversity)
 ```
 
@@ -572,8 +572,8 @@ We configure three key parameters for the switching analysis: `nboot = 100` spec
 The tables below show the transcript switching patterns for the top genes with strongest q×condition interactions, automatically computed via bootstrap resampling. The `Direction Consistency` column classifies each transcript: "Consistent" indicates stable switching across entropic indices, while "Mixed" indicates scale-dependent switching. This reveals whether isoform shifts involve the same transcripts across scales or whether different entropic indices emphasize different transcripts.
 
 ```{r extract-switching-results, echo=TRUE}
-# Retrieve gene switching tables
-tables_result <- results(analysis, type = "switching_tables", display_table = TRUE)
+# Retrieve gene switching tables (automatically formatted)
+tables_result <- results(analysis, type = "switching_tables")
 ```
 
 ```{r display-switching-table, echo=FALSE, results='asis'}
@@ -725,8 +725,7 @@ top_genes_result <- results(
     analysis, 
     type = "effect_sizes_divergence",
     top_n = 6,
-    sort_by = "p_value_interaction",
-    display_table = TRUE
+    sort_by = "p_value_interaction"
 )
 ```
 
@@ -736,8 +735,7 @@ top_genes_result <- results(
     analysis, 
     type = "effect_sizes_divergence",
     top_n = 6,
-    sort_by = "p_value_interaction",
-    display_table = TRUE
+    sort_by = "p_value_interaction"
 )
 
 # Display the result (data.frame with effect size information)
@@ -745,7 +743,7 @@ print(top_genes_result)
 ```
 
 ```{r divergence-results-table, results='markup', echo = FALSE}
-# The display_table=TRUE in the results() call above automatically formatted and displayed
+# The results() call above automatically formatted and displayed
 # the top 6 genes with their effect sizes and q-patterns in a human-readable format
 cat("Effect sizes reveal which genes show the most information-theoretic separation across the q-spectrum between paired treatment groups.\n")
 cat("Genes with Tsallis divergence D > 0.1 show substantial divergence, indicating fundamental differences in entropy distributions between conditions.\n")

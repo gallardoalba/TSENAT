@@ -12,11 +12,11 @@ results(
   n = NA,
   filterFDR = NULL,
   format = "auto",
-  display_table = FALSE,
   n_genes = 4,
   q_values_table = c(0, 0.5, 1, 1.5, 2),
   top_n = NULL,
-  sort_by = "adj_p_interaction"
+  sort_by = "adj_p_interaction",
+  sample = NULL
 )
 }
 \arguments{
@@ -45,15 +45,11 @@ Default: NULL (no filtering).}
 \item{format}{\code{character}. Output format: 'auto' (sensible default for type),
 'list', 'dataframe', or 'matrix'. Default: 'auto'.}
 
-\item{display_table}{\code{logical}. For diversity results with display_table=TRUE,
-returns a formatted table showing diversity values across selected q-values
-for each gene. Default: FALSE (returns SummarizedExperiment or list).}
-
-\item{n_genes}{\code{integer}. Number of genes to display in diversity tables
-when display_table=TRUE. Default: 4.}
+\item{n_genes}{\code{integer}. Number of genes to display in diversity results.
+Default: 4.}
 
 \item{q_values_table}{\code{numeric}. Vector of q-values to include in diversity
-table display when display_table=TRUE. Default: c(0, 0.5, 1.0, 1.5, 2.0).}
+results. Default: c(0, 0.5, 1.0, 1.5, 2.0).}
 
 \item{top_n}{\code{integer}. For effect_sizes_divergence, return top N genes ranked by sort_by.
 When specified, results are sorted by sort_by column and limited to top N rows.

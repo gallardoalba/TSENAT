@@ -1825,24 +1825,27 @@
         return(genes)
     }
 
-    # Select top genes by p-value
+    # Select top genes by p-value (does not filter by significance threshold)
+    # sig_alpha is used for visualization highlighting, not gene selection
     if ("adj_p_interaction" %in% colnames(lm_res)) {
-        sig_mask <- lm_res$adj_p_interaction <= sig_alpha
+        p_col <- "adj_p_interaction"
     } else if ("p_interaction" %in% colnames(lm_res)) {
-        sig_mask <- lm_res$p_interaction <= sig_alpha
+        p_col <- "p_interaction"
     } else {
         stop("lm_res must contain 'adj_p_interaction' or 'p_interaction' column",
             call. = FALSE)
     }
 
-    sig_genes <- lm_res[sig_mask, , drop = FALSE]
+    # Sort by p-value and select top n_top genes (regardless of sig_alpha threshold)
+    top_idx <- order(lm_res[[p_col]])[seq_len(min(n_top, nrow(lm_res)))]
+    top_genes <- lm_res[top_idx, , drop = FALSE]
 
-    if (nrow(sig_genes) == 0) {
+    if (nrow(top_genes) == 0) {
         return(NULL)
     }
 
-    # Select top n
-    sig_genes$gene[seq_len(min(n_top, nrow(sig_genes)))]
+    # Return gene names sorted by p-value
+    top_genes$gene
 }
 
 #' Prepare gene CI data for plotting
@@ -2114,7 +2117,7 @@
         ncol = n_cols, align = "hv", axis = "lr")
 
     # Add main title and subtitle above the grid
-    title_plot <- .create_title_grob("GAM q-curve: Top genes with group interaction",
+    title_plot <- .create_title_grob("q-curve: Top genes with group interaction",
         subtitle = "Fitted smooth curves by group", title_size = 20, subtitle_size = 16)
 
     # Combine title, plots, and single legend at bottom
@@ -2233,9 +2236,9 @@
     p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = q, y = entropy, color = group)) +
         ggplot2::geom_point(data = plot_df, ggplot2::aes(x = q, y = entropy, color = group),
             alpha = 0.5, size = 2) + ggplot2::geom_line(data = pred_df, ggplot2::aes(x = q,
-        y = entropy_fit, color = group, linetype = "GAM fit"), linewidth = 1, alpha = 0.9) +
+        y = entropy_fit, color = group, linetype = "Model fit"), linewidth = 1, alpha = 0.9) +
         ggplot2::scale_color_manual(values = color_mapping, name = condition_col,
-            breaks = group_levels) + ggplot2::scale_linetype_manual(values = c(`GAM fit` = 1),
+            breaks = group_levels) + ggplot2::scale_linetype_manual(values = c(`Model fit` = 1),
         name = "") + ggplot2::labs(x = "q parameter", y = "Tsallis entropy", title = ifelse(gene_display_name !=
         gene, sprintf("%s (%s)", gene_display_name, gene), gene_display_name)) +
         .theme_spectrum(base_size = 11)

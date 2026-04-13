@@ -10,8 +10,6 @@ calculate_concordance(analysis_lm, analysis_rank = NULL, ...)
 \S4method{calculate_concordance}{TSENATAnalysis}(
   analysis_lm,
   analysis_rank = NULL,
-  lm_method = NULL,
-  rank_method = "rank_test",
   verbose = FALSE,
   output_file = NULL
 )
@@ -26,16 +24,16 @@ compares LM results from analysis_lm with rank-test results from analysis_rank.}
 
 \item{...}{Additional arguments for future extensibility.}
 
+\item{verbose}{\code{logical}. Print progress messages (default: FALSE).}
+
+\item{output_file}{\code{character} or NULL. Optional file path to save results.
+Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
+
 \item{lm_method}{\code{character}. Key for LM/GAM interaction results in 
 \code{@lm_results}. Default: NULL (auto-detects from analysis_lm).}
 
 \item{rank_method}{\code{character}. Key for rank-based test results in 
 \code{@lm_results}. Default: 'rank_test' (from \code{calculate_srh}).}
-
-\item{verbose}{\code{logical}. Print progress messages (default: FALSE).}
-
-\item{output_file}{\code{character} or NULL. Optional file path to save results.
-Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
 }
 \value{
 Modified TSENATAnalysis object with concordance results stored in:

@@ -129,7 +129,7 @@
     # Select genes to plot
     top_genes <- .plot_select_genes(lm_res, genes = genes, n_top = n_top, sig_alpha = sig_alpha)
     if (is.null(top_genes)) {
-        warning(sprintf("No genes significant at alpha = %g", sig_alpha), call. = FALSE)
+        warning("No genes found in lm_res to plot", call. = FALSE)
         return(NULL)
     }
 
