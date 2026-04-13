@@ -688,14 +688,17 @@ TSENAT_config <- function(q = 1, condition_col = "condition", subject_col = NULL
 #' Step 5: LM interaction testing
 #' @noRd
 .execute_lm_interaction_s4 <- function(analysis, verbose, output_dir, output_format) {
-    if (verbose)
-        message(sprintf("[>] [%2d/14] Testing LM interactions with GAM smoother",
-            5))
     tryCatch({
         cfg <- getConfig(analysis)
         fdr <- cfg$fdr_threshold %||% 0.05
         lm_method <- cfg$lm_method %||% "gam"
         lm_pcorr <- cfg$lm_pcorr %||% "BH"
+        
+        if (verbose) {
+            method_label <- toupper(lm_method)
+            message(sprintf("[>] [%2d/14] Testing LM interactions with %s", 5, method_label))
+        }
+        
         output_file <- .build_output_file("lm_interaction_results", output_dir, output_format)
         analysis <- calculate_lm(analysis, fdr_threshold = fdr, method = lm_method,
             pcorr = lm_pcorr, output_file = output_file)
@@ -1018,8 +1021,8 @@ TSENAT_config <- function(q = 1, condition_col = "condition", subject_col = NULL
             "  div <- results(result, type = 'diversity',\n", "                 n_genes = 4, sample = 'SRR14800481')\n\n",
             "  # Linear Model Interaction Results\n", "  # Top 10 genes by p-value\n",
             "  lm <- results(result, type = 'lm',\n", "                rankBy = 'pvalue', n = 10)\n\n",
-            "  # Visualizations\n", "  results(result, type = 'diversity', plot = TRUE)  # Diversity spectrum\n",
-            "  results(result, type = 'lm', plot = TRUE)  # LM interaction\n", "\n")
+            "  # Visualizations\n", "  plot_diversity <- results(result, type = 'diversity', plot = TRUE)\n",
+            "  plot_lm <- results(result, type = 'lm', plot = TRUE)\n", "\n")
 
         message(output)
     }

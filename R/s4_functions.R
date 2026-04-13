@@ -341,7 +341,15 @@ setGeneric("calculate_concordance", function(analysis_lm, analysis_rank = NULL, 
 
 #' @rdname calculate_concordance
 setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_lm, analysis_rank = NULL,
-    verbose = FALSE, output_file = NULL) {
+    verbose = FALSE, output_file = NULL, ...) {
+
+    # Check for unexpected arguments
+    extra_args <- list(...)
+    if (length(extra_args) > 0) {
+        arg_names <- paste(names(extra_args), collapse = ", ")
+        stop("The following argument(s) are not recognized and cannot be used: ", arg_names, 
+             call. = FALSE)
+    }
 
     # ===================================================================
     # VALIDATION
@@ -394,28 +402,26 @@ setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_lm, analy
             }
         }
 
-        # Always generate and save formatted concordance results to txt file
+        # Generate formatted concordance results
         concordance_text <- results(analysis_lm, type = "concordance")
 
-        # Use provided output_file or generate default
-        if (is.null(output_file)) {
-            output_file <- "concordance_results.txt"
+        # Only write to file if output_file is explicitly provided
+        if (!is.null(output_file)) {
+            # Ensure file has .txt extension
+            if (!grepl("\\.txt$", output_file, ignore.case = TRUE)) {
+                output_file <- paste0(output_file, ".txt")
+            }
+
+            # Write formatted results to file
+            writeLines(concordance_text, con = output_file)
+
+            if (verbose) {
+                message("[calculate_concordance] Results written to: ", output_file)
+            }
+
+            # Store the output file path in metadata
+            analysis_lm@metadata$concordance_results_file <- output_file
         }
-
-        # Ensure file has .txt extension
-        if (!grepl("\\.txt$", output_file, ignore.case = TRUE)) {
-            output_file <- paste0(output_file, ".txt")
-        }
-
-        # Write formatted results to file
-        writeLines(concordance_text, con = output_file)
-
-        if (verbose) {
-            message("[calculate_concordance] Results written to: ", output_file)
-        }
-
-        # Store the output file path in metadata
-        analysis_lm@metadata$concordance_results_file <- output_file
 
         return(analysis_lm)
     }
@@ -510,28 +516,26 @@ setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_lm, analy
         }
     }
 
-    # Always generate and save formatted concordance results to txt file
+    # Generate formatted concordance results
     concordance_text <- results(analysis_lm, type = "concordance")
 
-    # Use provided output_file or generate default
-    if (is.null(output_file)) {
-        output_file <- "concordance_results.txt"
+    # Only write to file if output_file is explicitly provided
+    if (!is.null(output_file)) {
+        # Ensure file has .txt extension
+        if (!grepl("\\.txt$", output_file, ignore.case = TRUE)) {
+            output_file <- paste0(output_file, ".txt")
+        }
+
+        # Write formatted results to file
+        writeLines(concordance_text, con = output_file)
+
+        if (verbose) {
+            message("[calculate_concordance] Results written to: ", output_file)
+        }
+
+        # Store the output file path in metadata
+        analysis_lm@metadata$concordance_results_file <- output_file
     }
-
-    # Ensure file has .txt extension
-    if (!grepl("\\.txt$", output_file, ignore.case = TRUE)) {
-        output_file <- paste0(output_file, ".txt")
-    }
-
-    # Write formatted results to file
-    writeLines(concordance_text, con = output_file)
-
-    if (verbose) {
-        message("[calculate_concordance] Results written to: ", output_file)
-    }
-
-    # Store the output file path in metadata
-    analysis_lm@metadata$concordance_results_file <- output_file
 
     analysis_lm
 })

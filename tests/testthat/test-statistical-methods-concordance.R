@@ -164,7 +164,7 @@ test_that("calculate_concordance() errors with unrecognized parameters", {
             lm_method = "nonexistent_method",
             verbose = FALSE
         ),
-        "argumento no fue usado"
+        "not recognized"
     )
 })
 
