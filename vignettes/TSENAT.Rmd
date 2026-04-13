@@ -572,7 +572,9 @@ We configure three key parameters for the switching analysis: `nboot = 100` spec
 The tables below show the transcript switching patterns for the top genes with strongest q×condition interactions, automatically computed via bootstrap resampling. The `Direction Consistency` column classifies each transcript: "Consistent" indicates stable switching across entropic indices, while "Mixed" indicates scale-dependent switching. This reveals whether isoform shifts involve the same transcripts across scales or whether different entropic indices emphasize different transcripts.
 
 ```{r extract-switching-results, echo=TRUE}
-# Retrieve gene switching tables (automatically formatted)
+# Retrieve gene switching tables (default format="text" returns structured list)
+# format="text" returns: $gene_headers, $comparison_tables, $q_metadata for vignette display
+# format="raw" returns original named list of data frames per gene for direct access
 tables_result <- results(analysis, type = "switching_tables")
 ```
 
@@ -596,7 +598,6 @@ if (exists("tables_result") && is.list(tables_result) &&
           q_num <- q_metadata$q_key_to_value[[qk]]
           paste0("q=", sprintf("%.2f", q_num))
         }),
-        "",
         "Direction Consistency"
       )
       
@@ -712,7 +713,7 @@ if (exists("analysis")) {
 }
 ```
 
-```{r effect-size-merge}
+```{r effect-size-merge, echo=TRUE}
 # Compute effect sizes
 analysis <- calculate_effect_sizes(
     analysis,
@@ -727,30 +728,50 @@ top_genes_result <- results(
     top_n = 6,
     sort_by = "p_value_interaction"
 )
-```
 
-```{r extract-divergence-results, echo=TRUE}
-# Extract top 6 genes by statistical significance
-top_genes_result <- results(
-    analysis, 
-    type = "effect_sizes_divergence",
-    top_n = 6,
-    sort_by = "p_value_interaction"
-)
-
-# Display the result (data.frame with effect size information)
 print(top_genes_result)
 ```
 
-```{r divergence-results-table, results='markup', echo = FALSE}
-# The results() call above automatically formatted and displayed
-# the top 6 genes with their effect sizes and q-patterns in a human-readable format
-cat("Effect sizes reveal which genes show the most information-theoretic separation across the q-spectrum between paired treatment groups.\n")
-cat("Genes with Tsallis divergence D > 0.1 show substantial divergence, indicating fundamental differences in entropy distributions between conditions.\n")
+```{r divergence-effect-sizes-table, echo=FALSE, results="asis"}
+# Select key columns for display (effect sizes at key q-values, pattern, and divergence metrics)
+display_cols <- c(
+    "gene", "p_value_interaction", "slope_diff",
+    "effect_size_D_q0_5", "effect_size_D_q1", "effect_size_D_q2",
+    "per_q_pattern", "div_rare_median", "div_abundant_median"
+)
+
+# Only keep columns that exist in the data
+display_cols <- display_cols[display_cols %in% colnames(top_genes_result)]
+top_genes_display <- top_genes_result[, display_cols, drop = FALSE]
+
+# Rename columns for better display
+col_names <- c(
+    "Gene", "P-value", "Slope Diff",
+    "D(q=0.5)", "D(q=1.0)", "D(q=2.0)",
+    "Pattern", "Rare Median", "Abundant Median"
+)
+colnames(top_genes_display) <- col_names[1:ncol(top_genes_display)]
+
+# Display the result as a formatted table
+knitr::kable(
+    top_genes_display, 
+    caption = "Top 6 Genes by Effect Size (Tsallis Divergence)",
+    digits = 4,
+    row.names = FALSE,
+    format = if (knitr::is_latex_output()) "latex" else "html",
+    longtable = knitr::is_latex_output(),
+    linesep = ""
+) %>%
+kableExtra::kable_styling(
+  bootstrap_options = c("striped", "hover"),
+  full_width = TRUE,
+  latex_options = c("scale_down")
+)
 ```
 
+The effect sizes reveal which genes show the most information-theoretic separation across the q-spectrum between paired treatment groups. Genes with Tsallis divergence D > 0.1 show substantial divergence, indicating fundamental differences in entropy distributions between conditions.
 
-Interpretation of Pattern Types:
+### Interpretation of Pattern Types:
 
 | Pattern Type | Signature | Biological Meaning |
 |--------------|-----------|-------------------|

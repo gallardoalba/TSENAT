@@ -1339,6 +1339,7 @@ plot_divergence_distribution <- function(analysis, threshold = 0.1, output_file 
 #'   condition_col = 'condition',
 #'   subject_col = 'paired_samples',
 #'   paired = TRUE,
+#'   control = 'normal',
 #'   q = seq(0, 2, by = 0.1)
 #' )
 #'

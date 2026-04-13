@@ -77,6 +77,7 @@ config <- TSENAT_config(
   condition_col = 'condition',
   subject_col = 'paired_samples',
   paired = TRUE,
+  control = 'normal',
   q = seq(0, 2, by = 0.1)
 )
 

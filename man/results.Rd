@@ -11,12 +11,13 @@ results(
   rankBy = "none",
   n = NA,
   filterFDR = NULL,
-  format = "auto",
+  format = "text",
   n_genes = 4,
   q_values_table = c(0, 0.5, 1, 1.5, 2),
   top_n = NULL,
   sort_by = "adj_p_interaction",
-  sample = NULL
+  sample = NULL,
+  plot = FALSE
 )
 }
 \arguments{
@@ -42,13 +43,13 @@ Use NA (default) to return all results. Requires rankBy != 'none'.}
 (0.0-1.0). Only results with adjusted p-value <= filterFDR retained.
 Default: NULL (no filtering).}
 
-\item{format}{\code{character}. Output format: 'text' (pre-formatted character vector,
-default) or 'list' (structured components). For diversity results with format='se', 
-returns the SummarizedExperiment object directly (useful for downstream processing 
-with other packages like SplicingFactory). For concordance results, 'text' returns 
-pre-formatted character vector for display, while 'list' returns structured components 
-(summary_table, agreement_dist, high_conf, etc.) suitable for custom display.
-Default: 'text'.}
+\item{format}{\code{character}. Output format. Behavior depends on result type:
+- For diversity: 'text' (default, table format), 'se' (SummarizedExperiment), or 'table' (data.frame)
+- For concordance: 'text' (default, pre-formatted), 'list' (structured for programmatic access)
+- For switching_tables: 'list' (default, structured list with $gene_headers, 
+  $comparison_tables, $q_metadata for vignette rendering) or 'raw' (original named list per gene)
+- For assumptions: 'text' (default, pre-formatted), 'list' (structured for programmatic access)
+Default: 'text' for most types, 'list' for switching_tables.}
 
 \item{n_genes}{\code{integer}. Number of genes to display in diversity results.
 Default: 4.}
@@ -63,16 +64,30 @@ Default: NULL (return all results). Use NA to return all.}
 \item{sort_by}{\code{character}. For effect_sizes_divergence, column name to sort by.
 Common choices: 'adj_p_interaction' (p-value, ascending), 'Mean_Divergence' (descending).
 Default: 'adj_p_interaction' (most significant first).}
+
+\item{plot}{\code{logical}. Extract cached plot for the specified analysis type.
+- If FALSE (default): Return results as usual
+- If TRUE: Return the plot object for the given type
+Example: \code{results(analysis, type = 'diversity', plot = TRUE)} returns the diversity plot.
+Default: FALSE (no plot extraction).}
 }
 \value{
 - For diversity with q=NULL: A named list of SummarizedExperiment objects, one per q-value
-  - For diversity with q specified and format='auto' or 'table': A data.frame table for display
+  - For diversity with q specified and format='text' or 'table': A data.frame table for display
   - For diversity with q specified and format='se': The SummarizedExperiment object directly (useful for SplicingFactory)
   - For divergence: A SummarizedExperiment (rows=genes, columns=q-values), data.frame, or other format depending on divergence computation method
   - For lm/jackknife: A data.frame or list based on type and format
   - For effect_sizes_divergence: A list containing effect size divergence results with components like interaction_results
   - For assumptions: A list containing rank-based assumption checks (exchangeability, monotonicity, consistency) and optional method-specific diagnostics (gam_metrics, gee_metrics, lmm_metrics, fpca_metrics)
-  - For switching_tables: A list containing gene switching comparison tables
+  - For switching_tables with format='human' (default): A list with components:
+    \itemize{
+      \item{\code{$gene_headers}}{Character vector of gene headers ("GeneName (ENSG00...)")}
+      \item{\code{$comparison_tables}}{List of data frames, one per gene, with columns: 
+        Transcript, q=0.00, q=0.50, ..., Direction Consistency}
+      \item{\code{$q_metadata}}{List with per-gene metadata: q_values_available and q_key_to_value mapping}
+    }
+  - For switching_tables with format='raw': Original named list where names are gene headers and values are
+    data frames with same column structure as format='human'
   Returns NULL if requested result type not computed or no results pass filtering.
 }
 \description{
@@ -132,6 +147,34 @@ large_effects <- results(analysis, type = 'effect_sizes_divergence',
 
 # Get switching tables - automatically computed if prerequisites exist
 # (no need to call prepare_gene_switching_tables_s4 separately)
+# Default format='text' returns structured list for vignette rendering
 switching <- results(analysis, type = 'switching_tables')
+
+# Get switching tables in raw format (named list of data frames) for direct manipulation
+switching_raw <- results(analysis, type = 'switching_tables', format = 'raw')
+
+# ========================================================================
+# RETRIEVE CACHED PLOTS using the plot parameter
+# ========================================================================
+
+# Get the diversity spectrum plot
+diversity_plot <- results(analysis, type = 'diversity', plot = TRUE)
+
+# Get the LM/linear model interaction plot (GAM, LMM, GEE, or FPCA)
+lm_plot <- results(analysis, type = 'lm', plot = TRUE)
+
+# Get the divergence distribution plot
+div_dist_plot <- results(analysis, type = 'divergence', plot = TRUE)
+
+# Get the influence/m-estimator plot
+influence_plot <- results(analysis, type = 'influence', plot = TRUE)
+
+# Available plot types correspond to analysis types:
+# - type = 'diversity': Returns Tsallis entropy q-spectrum visualization
+# - type = 'lm': Returns linear model interaction plot (supports GAM, LMM, GEE, FPCA methods)
+# - type = 'divergence': Returns distribution of divergence metrics across genes
+# - type = 'influence': Returns m-estimator sample influence analysis
+# - type = 'rank_test': Returns Scheirer-Ray-Hare interaction visualization
+# - type = 'concordance': Returns method concordance comparison (LM vs rank test)
 
 }

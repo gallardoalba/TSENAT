@@ -23,13 +23,13 @@
 #' @param filterFDR \code{numeric}. FDR threshold for significance filtering
 #'   (0.0-1.0). Only results with adjusted p-value <= filterFDR retained.
 #'   Default: NULL (no filtering).
-#' @param format \code{character}. Output format: 'text' (pre-formatted character vector,
-#'   default) or 'list' (structured components). For diversity results with format='se', 
-#'   returns the SummarizedExperiment object directly (useful for downstream processing 
-#'   with other packages like SplicingFactory). For concordance results, 'text' returns 
-#'   pre-formatted character vector for display, while 'list' returns structured components 
-#'   (summary_table, agreement_dist, high_conf, etc.) suitable for custom display.
-#'   Default: 'text'.
+#' @param format \code{character}. Output format. Behavior depends on result type:
+#'   - For diversity: 'text' (default, table format), 'se' (SummarizedExperiment), or 'table' (data.frame)
+#'   - For concordance: 'text' (default, pre-formatted), 'list' (structured for programmatic access)
+#'   - For switching_tables: 'list' (default, structured list with $gene_headers, 
+#'     $comparison_tables, $q_metadata for vignette rendering) or 'raw' (original named list per gene)
+#'   - For assumptions: 'text' (default, pre-formatted), 'list' (structured for programmatic access)
+#'   Default: 'text' for most types, 'list' for switching_tables.
 #' @param n_genes \code{integer}. Number of genes to display in diversity results.
 #'   Default: 4.
 #' @param q_values_table \code{numeric}. Vector of q-values to include in diversity
@@ -40,15 +40,28 @@
 #' @param sort_by \code{character}. For effect_sizes_divergence, column name to sort by.
 #'   Common choices: 'adj_p_interaction' (p-value, ascending), 'Mean_Divergence' (descending).
 #'   Default: 'adj_p_interaction' (most significant first).
+#' @param plot \code{logical}. Extract cached plot for the specified analysis type.
+#'   - If FALSE (default): Return results as usual
+#'   - If TRUE: Return the plot object for the given type
+#'   Example: \code{results(analysis, type = 'diversity', plot = TRUE)} returns the diversity plot.
+#'   Default: FALSE (no plot extraction).
 #' @return 
 #'   - For diversity with q=NULL: A named list of SummarizedExperiment objects, one per q-value
-#'   - For diversity with q specified and format='auto' or 'table': A data.frame table for display
+#'   - For diversity with q specified and format='text' or 'table': A data.frame table for display
 #'   - For diversity with q specified and format='se': The SummarizedExperiment object directly (useful for SplicingFactory)
 #'   - For divergence: A SummarizedExperiment (rows=genes, columns=q-values), data.frame, or other format depending on divergence computation method
 #'   - For lm/jackknife: A data.frame or list based on type and format
 #'   - For effect_sizes_divergence: A list containing effect size divergence results with components like interaction_results
 #'   - For assumptions: A list containing rank-based assumption checks (exchangeability, monotonicity, consistency) and optional method-specific diagnostics (gam_metrics, gee_metrics, lmm_metrics, fpca_metrics)
-#'   - For switching_tables: A list containing gene switching comparison tables
+#'   - For switching_tables with format='human' (default): A list with components:
+#'     \itemize{
+#'       \item{\code{$gene_headers}}{Character vector of gene headers ("GeneName (ENSG00...)")}
+#'       \item{\code{$comparison_tables}}{List of data frames, one per gene, with columns: 
+#'         Transcript, q=0.00, q=0.50, ..., Direction Consistency}
+#'       \item{\code{$q_metadata}}{List with per-gene metadata: q_values_available and q_key_to_value mapping}
+#'     }
+#'   - For switching_tables with format='raw': Original named list where names are gene headers and values are
+#'     data frames with same column structure as format='human'
 #'   Returns NULL if requested result type not computed or no results pass filtering.
 #'
 #' @details
@@ -104,14 +117,68 @@
 #'
 #' # Get switching tables - automatically computed if prerequisites exist
 #' # (no need to call prepare_gene_switching_tables_s4 separately)
+#' # Default format='text' returns structured list for vignette rendering
 #' switching <- results(analysis, type = 'switching_tables')
+#'
+#' # Get switching tables in raw format (named list of data frames) for direct manipulation
+#' switching_raw <- results(analysis, type = 'switching_tables', format = 'raw')
+#'
+#' # ========================================================================
+#' # RETRIEVE CACHED PLOTS using the plot parameter
+#' # ========================================================================
+#'
+#' # Get the diversity spectrum plot
+#' diversity_plot <- results(analysis, type = 'diversity', plot = TRUE)
+#'
+#' # Get the LM/linear model interaction plot (GAM, LMM, GEE, or FPCA)
+#' lm_plot <- results(analysis, type = 'lm', plot = TRUE)
+#'
+#' # Get the divergence distribution plot
+#' div_dist_plot <- results(analysis, type = 'divergence', plot = TRUE)
+#'
+#' # Get the influence/m-estimator plot
+#' influence_plot <- results(analysis, type = 'influence', plot = TRUE)
+#'
+#' # Available plot types correspond to analysis types:
+#' # - type = 'diversity': Returns Tsallis entropy q-spectrum visualization
+#' # - type = 'lm': Returns linear model interaction plot (supports GAM, LMM, GEE, FPCA methods)
+#' # - type = 'divergence': Returns distribution of divergence metrics across genes
+#' # - type = 'influence': Returns m-estimator sample influence analysis
+#' # - type = 'rank_test': Returns Scheirer-Ray-Hare interaction visualization
+#' # - type = 'concordance': Returns method concordance comparison (LM vs rank test)
 #'
 #' @rdname results
 #' @export
 results <- function(analysis, type, q = NULL, rankBy = "none", 
-                       n = NA, filterFDR = NULL, format = "auto",
+                       n = NA, filterFDR = NULL, format = "text",
                        n_genes = 4, q_values_table = c(0, 0.5, 1.0, 1.5, 2.0),
-                       top_n = NULL, sort_by = "adj_p_interaction", sample = NULL) {
+                       top_n = NULL, sort_by = "adj_p_interaction", sample = NULL, plot = FALSE) {
+    # Handle plot extraction first (takes precedence over other parameters)
+    if (isTRUE(plot)) {
+        # Map analysis type to plot cache name
+        plot_name_map <- list(
+            diversity = "q_curve",
+            lm = "lm_interaction",
+            influence = "influence_heatmap",
+            jackknife = "top_transcripts",
+            divergence = "divergence_distribution",
+            rank_test = "rank_test",
+            concordance = "concordance"
+        )
+        
+        plot_name <- plot_name_map[[type]]
+        if (!is.null(plot_name) && plot_name %in% names(analysis@plots)) {
+            return(analysis@plots[[plot_name]])
+        } else if (type %in% names(analysis@plots)) {
+            # Fallback: if type directly matches a cached plot name
+            return(analysis@plots[[type]])
+        } else {
+            available <- if (length(analysis@plots) > 0) paste(names(analysis@plots), collapse = ", ") else "none"
+            warning("Plot for type '", type, "' not found. Available plot types: diversity, lm, influence, jackknife, divergence. Available plots: ", available)
+            return(NULL)
+        }
+    }
+    
     # Validate parameters
     .validate_results_params(analysis, type, rankBy, format, filterFDR)
     
@@ -135,14 +202,12 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
         rank_test = .process_statistical_results(result, type, filterFDR, rankBy, n, format),
         effect_sizes_divergence = .process_effect_sizes_divergence_results(result, top_n, sort_by, analysis),
         assumptions = .process_assumptions_results(result, format = format),
-        switching_tables = .process_switching_tables_results(result),
+        switching_tables = .process_switching_tables_results(result, format = format),
         concordance = .process_concordance_results(result, format = format),
         metadata = result,
         result
     )
 }
-
-
 
 # ============================================================================
 # HELPER FUNCTIONS FOR RESULTS ACCESSOR
@@ -162,7 +227,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
              call. = FALSE)
     }
     
-    valid_formats <- c("auto", "list", "dataframe", "matrix", "se", "table")
+    valid_formats <- c("text", "list", "dataframe", "matrix", "se", "table", "raw")
     if (!format %in% valid_formats) {
         stop("'format' must be one of: ", paste(valid_formats, collapse = ", "), 
              call. = FALSE)
@@ -397,7 +462,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
 # HELPER: Process diversity results
 # ============================================================================
 .process_diversity_results <- function(result, q, analysis, n_genes, 
-                                       q_values_table, sample = NULL, format = "auto") {
+                                       q_values_table, sample = NULL, format = "text") {
     # Handle format = "se": Return SummarizedExperiment for downstream processing
     # Useful for passing to other packages like SplicingFactory
     if (format == "se" && !is.null(q)) {
@@ -405,7 +470,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
         return(result_se)
     }
     
-    # Default (format = "auto" or "table"): Return formatted table for display
+    # Default (format = "text" or "table"): Return formatted table for display
     if (!is.null(q)) {
         result <- .get_diversity_q_value(result, q)
     }
@@ -608,7 +673,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
     
     result <- .rank_statistical_results(result, type, rankBy, n)
     
-    if (format != "auto") {
+    if (format != "text") {
         result <- .convert_result_format(result, format, type)
     }
     
@@ -666,7 +731,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
             }
         }
         
-        if (format != "auto") {
+        if (format != "text") {
             result <- .convert_result_format(result, format, "divergence")
         }
     }
@@ -707,6 +772,17 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
             results_df <- head(results_df, top_n)
         }
         
+        # Remove CI columns if they're all NA (no bootstrap was used)
+        ci_cols <- grep("_lower_ci$|_upper_ci$", colnames(results_df), value = TRUE)
+        if (length(ci_cols) > 0) {
+            # Check if CI columns are all NA
+            all_na_cols <- sapply(ci_cols, function(col) all(is.na(results_df[[col]])))
+            if (all(all_na_cols)) {
+                # Remove all CI columns if they're all NA
+                results_df <- results_df[, !colnames(results_df) %in% ci_cols, drop = FALSE]
+            }
+        }
+        
         # Return the processed data frame (silently)
         return(results_df)
     }
@@ -745,6 +821,17 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
             
             # Limit to top_n
             results_df <- head(results_df, top_n)
+        }
+        
+        # Remove CI columns if they're all NA (no bootstrap was used)
+        ci_cols <- grep("_lower_ci$|_upper_ci$", colnames(results_df), value = TRUE)
+        if (length(ci_cols) > 0) {
+            # Check if CI columns are all NA
+            all_na_cols <- sapply(ci_cols, function(col) all(is.na(results_df[[col]])))
+            if (all(all_na_cols)) {
+                # Remove all CI columns if they're all NA
+                results_df <- results_df[, !colnames(results_df) %in% ci_cols, drop = FALSE]
+            }
         }
         
         # Return the processed data.frame (silently)
@@ -1085,16 +1172,90 @@ print.assumptions_text <- function(x, ...) {
 
 #' Process switching_tables results
 #'
+#' Formats switching table results for display or knitr rendering.
+#' By default returns structured list with gene_headers, 
+#' comparison_tables, and q_metadata fields for vignette rendering.
+#'
+#' @param result Named list of data frames (from .prepare_gene_switching_tables)
+#' @param format "text" (default) for structured display format, or "raw" for direct access
+#'
+#' @return List with structure:
+#'   - If format="list": list($gene_headers, $comparison_tables, $q_metadata)
+#'   - If format="raw": original named list of data frames per gene
+#'
 #' @keywords internal
 #' @noRd
-.process_switching_tables_results <- function(result) {
+.process_switching_tables_results <- function(result, format = "list") {
     if (is.null(result)) {
         return(NULL)
     }
     
-    # Result is already formatted as a list of data frames per gene
-    # Simply return it
-    result
+    # If result is not a list, return as-is
+    if (!is.list(result)) {
+        return(result)
+    }
+    
+    # Handle raw format (original named list)
+    if (format == "raw") {
+        return(result)
+    }
+    
+    # Handle list format (default) - structured for display
+    # Result should be a named list where:
+    # - names are gene headers (e.g., "CXCL12 (ENSG00000107562.18)")
+    # - values are data frames with columns: Transcript, q=0.00, q=0.50, ..., Direction Consistency
+    
+    if (length(result) == 0) {
+        return(list(
+            gene_headers = character(0),
+            comparison_tables = list(),
+            q_metadata = list()
+        ))
+    }
+    
+    # Extract gene headers and tables
+    gene_headers <- names(result)
+    comparison_tables <- unname(result)
+    
+    # Build q_metadata by inspecting column names of first table
+    q_metadata <- lapply(comparison_tables, function(df) {
+        if (is.null(df)) {
+            return(NULL)
+        }
+        # Extract q-value columns (format: "q=0.00", "q=0.50", etc.)
+        q_cols <- grep("^q=", colnames(df), value = TRUE)
+        
+        # Parse q-values from column names
+        q_values <- sapply(q_cols, function(col) {
+            as.numeric(gsub("^q=", "", col))
+        }, USE.NAMES = FALSE)
+        
+        # Handle case where no q-value columns found
+        if (length(q_values) == 0) {
+            return(list(
+                q_values_available = character(0),
+                q_key_to_value = list()
+            ))
+        }
+        
+        # Create q_key_to_value mapping
+        q_key_to_value <- setNames(
+            as.list(q_values),
+            paste0("q_", gsub("\\.", "_", sprintf("%.2f", q_values)))
+        )
+        
+        list(
+            q_values_available = paste0("q_", gsub("\\.", "_", sprintf("%.2f", q_values))),
+            q_key_to_value = q_key_to_value
+        )
+    })
+    
+    # Return structured format for vignette rendering
+    list(
+        gene_headers = gene_headers,
+        comparison_tables = comparison_tables,
+        q_metadata = q_metadata
+    )
 }
 
 #' Display switching tables in formatted output

@@ -537,7 +537,7 @@ context("orchestration_results: Parameter Validation")
 
 test_that(".validate_results_params rejects invalid TSENATAnalysis object", {
   expect_error(
-    TSENAT:::.validate_results_params("not_analysis", type = "diversity", rankBy = "none", format = "auto", filterFDR = NULL),
+    TSENAT:::.validate_results_params("not_analysis", type = "diversity", rankBy = "none", format = "text", filterFDR = NULL),
     "must be a TSENATAnalysis object",
     fixed = TRUE
   )
@@ -547,13 +547,13 @@ test_that(".validate_results_params rejects invalid rankBy values", {
   analysis <- .make_test_analysis_orchr()
   
   expect_error(
-    TSENAT:::.validate_results_params(analysis, type = "diversity", rankBy = "invalid", format = "auto", filterFDR = NULL),
+    TSENAT:::.validate_results_params(analysis, type = "diversity", rankBy = "invalid", format = "text", filterFDR = NULL),
     "must be one of",
     fixed = TRUE
   )
   
   expect_error(
-    TSENAT:::.validate_results_params(analysis, type = "diversity", rankBy = "byScore", format = "auto", filterFDR = NULL),
+    TSENAT:::.validate_results_params(analysis, type = "diversity", rankBy = "byScore", format = "text", filterFDR = NULL),
     "must be one of"
   )
 })
@@ -576,12 +576,12 @@ test_that(".validate_results_params rejects invalid filterFDR values", {
   analysis <- .make_test_analysis_orchr()
   
   expect_error(
-    TSENAT:::.validate_results_params(analysis, type = "diversity", rankBy = "none", format = "auto", filterFDR = -0.1),
+    TSENAT:::.validate_results_params(analysis, type = "diversity", rankBy = "none", format = "text", filterFDR = -0.1),
     "must be between 0 and 1"
   )
   
   expect_error(
-    TSENAT:::.validate_results_params(analysis, type = "diversity", rankBy = "none", format = "auto", filterFDR = 1.5),
+    TSENAT:::.validate_results_params(analysis, type = "diversity", rankBy = "none", format = "text", filterFDR = 1.5),
     "must be between 0 and 1"
   )
 })
@@ -1125,9 +1125,18 @@ test_that("results() with type='switching_tables' returns cached if available", 
   meta$switching_tables <- cached
   analysis@metadata <- meta
   
+  # With format="list" (default), the result is processed into a structured list
   result <- TSENAT::results(analysis, type = "switching_tables")
   
-  expect_identical(result, cached)
+  # Check that structured format is returned with expected components
+  expect_true(is.list(result))
+  expect_true("gene_headers" %in% names(result))
+  expect_true("comparison_tables" %in% names(result))
+  expect_true("q_metadata" %in% names(result))
+  
+  # With format="raw", the cached result is returned as-is
+  result_raw <- TSENAT::results(analysis, type = "switching_tables", format = "raw")
+  expect_identical(result_raw, cached)
 })
 
 test_that("results() warns about unsupported rankBy for switching_tables", {
@@ -1139,7 +1148,7 @@ test_that("results() warns about unsupported rankBy for switching_tables", {
   analysis@metadata <- meta
   
   expect_warning(
-    TSENAT::results(analysis, type = "switching_tables", rankBy = "pvalue"),
+    TSENAT::results(analysis, type = "switching_tables", rankBy = "pvalue", format = "raw"),
     "not supported"
   )
 })

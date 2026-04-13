@@ -590,7 +590,7 @@ TSENAT_config <- function(q = 1.0, condition_col = "condition", subject_col = NU
         "  Design ............... ", if (cfg$paired) "paired" else "unpaired", "\n",
         "  Filter stringency .... ", cfg$stringency %||% "medium", "\n",
         "  Normalization ........ ", if (cfg$norm) "enabled [0-1]" else "disabled", "\n",
-        "  Normalization method . ", if (cfg$norm) toupper(cfg$norm_method %||% "RANGE (default)") else "N/A", "\n",
+        "  Normalization method . ", if (cfg$norm) (cfg$norm_method %||% "range (default)") else "N/A", "\n",
         "  Pseudocount .......... ", if (cfg$pseudocount == 0) "disabled" else as.character(cfg$pseudocount), "\n",
         "  Shrinkage ............ ", if (tolower(cfg$shrinkage %||% "none") == "none") "disabled" else toupper(cfg$shrinkage), "\n",
         "  Significance ......... p < ", format(cfg$p_threshold %||% 0.05, nsmall = 3), 
@@ -1040,8 +1040,8 @@ TSENAT_config <- function(q = 1.0, condition_col = "condition", subject_col = NU
             "  lm <- results(result, type = 'lm',\n",
             "                rankBy = 'pvalue', n = 10)\n\n",
             "  # Visualizations\n",
-            "  getPlot(result, type = 'diversity')  # Diversity spectrum\n",
-            "  getPlot(result, type = 'lm_gam')     # LM interaction\n",
+            "  results(result, type = 'diversity', plot = TRUE)  # Diversity spectrum\n",
+            "  results(result, type = 'lm', plot = TRUE)  # LM interaction\n",
             "\n"
         )
         

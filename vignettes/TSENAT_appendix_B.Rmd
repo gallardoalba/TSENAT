@@ -40,48 +40,37 @@ suppressPackageStartupMessages(library(kableExtra))
 
 The primary goal of this vignette is to validate that discoveries of scale-dependent entropic index × group interactions from linear models generalize to non-parametric statistical frameworks with minimal assumptions.
 
-TSENAT's default approach employs **linear models** to test for entropic index × group effects in Tsallis entropy. While computationally efficient and well-characterized, linear models assume:
-- Normally distributed residuals (reasonable after appropriate transformation)
-- Homogeneous variance across entropic indices (often violated in diversity metrics)
-- Additive effects of group and entropic index on entropy (may oversimplify nonlinear relationships)
-
-This appendix provides two independent, non-parametric alternatives that:
-
-1. Make minimal distributional assumptions, relying only on ranks or data-adaptive smoothing
-2. Explicitly handle the ordered structure of entropic indices, treating them as sequential measurements (q-values)
-3. Adapt to real-world heteroscedasticity, automatically weighting measurements by entropy variance
-4. Provide independent validation, allowing comparison of linear vs. non-parametric findings
-
 ## Two Complementary Validation Approaches
 
 **Method 1: Generalized Additive Models (GAM)** with ARIMA-Ordered Measurement Structure.
 
-- Distributional assumption: None required; uses non-parametric basis functions (thin-plate splines).
-- Treatment of entropic structure: Treats q-values as time-like ordered measurements, applies ARIMA(1,1,0) differencing for autocorrelation.
-- Heteroscedasticity handling: Automatically detects variance heterogeneity; applies optimal weighting.
-- Key advantage: Captures smooth nonlinear q * group effects with computational efficiency.
+- Framework: Semi-parametric model combining flexible smooth functions (thin-plate splines) with linear parametric structure; assumes additive model Y = f₁(q) + f₂(condition) + f₃(q, condition) + ε where f terms are smooth rather than linear.
+- Distributional assumption: Gaussian residuals (reasonable for entropy after appropriate transformation); no strong parametric family required beyond tail behavior.
+- Treatment of entropic structure: Treats q-values as time-like ordered measurements, applies ARIMA(1,1,0) differencing to remove AR(1) autocorrelation and trend.
+- Heteroscedasticity handling: Automatically detects variance heterogeneity (Breusch-Pagan test); estimates and applies variance weights via power-law variance model or residual-based weighting.
+- Key advantage: Captures smooth nonlinear q × condition interactions while adapting to heterogeneous entropy variance; computationally efficient.
 
-**Method 2: Rank-Based Scheirer-Ray-Hare test** with Hochberg Step-Up Correction.
+**Method 2: Rank-Based Scheirer-Ray-Hare Test (SRH)** with Hochberg Step-Up Correction.
 
-- Distributional assumption: None; operates entirely on ranks (maximal robustness).
-- Treatment of q-ordering: Scheirer-Ray-Hare two-way test for paired measurements across q and group.
-- Heteroscedasticity handling: Rank transformation inherently robust; Hochberg correction controls FWER.
-- Key advantage: Maximally robust to outliers; valid for any continuous distribution.
+- Framework: Pure non-parametric method; zero parametric or distributional assumptions.
+- Distributional assumption: None; operates entirely on ranks (1, 2, ..., n), equivalent to two-way ANOVA on ordinal data.
+- Treatment of q-ordering: Two-way SRH test on ranks, treating q-values as within-subject paired measurements; decomposes ranked data via ANOVA and computes F-statistic.
+- Heteroscedasticity handling: Rank transformation inherently robust to heteroscedasticity (variance differences do not affect relative ordering); Hochberg step-up correction controls FWER across multiple tests.
+- Key advantage: Maximally robust to outliers and any distributional violations; valid under any continuous distribution and correlation structure.
 
 
 ## Why Two Methods for One Question?
 
-Statistical testing in transcriptomics faces a fundamental challenge: no single method is universally optimal. Different approaches make different assumptions and have different strengths. TSENAT employs two complementary strategies: parametric methods (linear models) and non-parametric rank-based tests:
+Statistical testing in transcriptomics faces a fundamental challenge: no single method is universally optimal. Different approaches trade-off power for robustness:
 
-| Aspect | Parametric (Linear Model / GAM) | Non-Parametric (Rank-Based) |
-|--------|--------------------------------|----------------------------|
+| Aspect | Parametric (GAM) | Non-Parametric (Rank-Based) |
+|--------|------------------|----------------------------|
 | Assumptions | Normality, homoscedasticity | Ranks only; fully non-parametric |
-| Power | Highest (if assumptions met) | Good; slightly reduced but robust |
-| Robustness | Moderate; sensitive to outliers | Highest; resistant to outliers and outlier-driven effects |
-| Interpretation | Parametric effect sizes, smooth curves | Effect ranks; robust p-values independent of distribution |
-| Outlier influence | High potential for bias | Minimal; rank transformation inherently resistant |
+| Power | Highest (if assumptions hold) | Good; reduced but robust to violations |
+| Robustness | Moderate | Highest |
+| Outlier sensitivity | Moderate potential for bias | Minimal; inherently resistant |
 
-Validation strategy: High concordance between parametric and non-parametric methods  confirms that findings are robust to modeling assumptions and generalize across statistical frameworks.
+Validation strategy: Concordance between both methods confirms robustness across statistical frameworks.
 
 ***
 
@@ -165,9 +154,9 @@ analysis <- calculate_diversity(
 )
 ```
 
-# Rank-Based Approach (Scheirer-Ray-Hare)
+# Rank-Based Approach (SRH)
 
-The Scheirer-Ray-Hare test is a two-way non-parametric ANOVA that operates on ranks rather than raw values. It is particularly well-suited for Tsallis entropy analysis for three fundamental reasons:
+The SRH test is a two-way non-parametric ANOVA that operates on ranks rather than raw values. It is particularly well-suited for Tsallis entropy analysis for three fundamental reasons:
 
 1. **Robustness to Distribution Violations**
 
@@ -177,13 +166,13 @@ Tsallis entropy values exhibit inherent distributional properties that often vio
 - Heteroscedasticity: Variance in entropy estimates varies systematically across q-values. Low q-values (emphasizing rare transcripts) produce volatile entropy estimates with high variance; high q-values (emphasizing abundant transcripts) produce stable estimates with lower variance.
 - Outlier sensitivity: Rare isoforms and count variability can produce extreme entropy values that heavily influence parametric tests.
 
-The Scheirer-Ray-Hare test avoids these issues by replacing raw entropy values with their ranks (1, 2, 3, ..., n). Ranks are **uniformly distributed and contain no outliers**, making the method valid for ANY continuous distribution—normal, skewed, bimodal, or otherwise. Critically, rank ordering is unaffected by normalization choice; whether entropy is normalized, log-transformed, or left raw, the test produces identical results [@S270; @S271].
+The SRH test avoids these issues by replacing raw entropy values with their ranks (1, 2, 3, ..., n). Ranks are **uniformly distributed and contain no outliers**, making the method valid for ANY continuous distribution—normal, skewed, bimodal, or otherwise. Critically, rank ordering is unaffected by normalization choice; whether entropy is normalized, log-transformed, or left raw, the test produces identical results [@S270; @S271].
 
 2. **Paired Design for Ordered q-Value Structure**
 
 Tsallis entropy has a fundamental sequential property: entropy curves are smooth functions of q. As q increases from 0 (rare-species-emphasizing) to ∞ (common-species-emphasizing), entropy values change systematically. This ordered structure is critical to interpreting q-dependent patterns and exhibits **AR(1) autocorrelation**: consecutive q-values produce correlated entropy estimates.
 
-The Scheirer-Ray-Hare test handles this structure by treating measurements as paired/repeated within genes across ordered q-values, capturing the sequential nature while maintaining exchangeability of samples. Autocorrelation in the original entropy values does NOT affect rank ordering or the validity of inference—this property, known as *maximal invariance* in permutation testing, ensures that rank-based inference is valid under any correlation pattern [@S019; @C018]. Within-subject ranking preserves pairing structure while appropriately downweighting the influence of AR(1) dependence through rank transformation [@S030; @K003].
+The SRH test handles this structure by treating measurements as paired/repeated within genes across ordered q-values, capturing the sequential nature while maintaining exchangeability of samples. Autocorrelation in the original entropy values does NOT affect rank ordering or the validity of inference—this property, known as the *exchangeability property* of rank-based tests, ensures that rank-based inference is valid under any correlation pattern [@S019; @C018]. Within-subject ranking preserves pairing structure while removing the influence of AR(1) dependence through rank transformation [@S030; @K003].
 
 3. **Interaction Testing: Testing q × Condition Effects**
 
@@ -199,7 +188,7 @@ where:
 - $MS_{\text{residual}}$ = residual sum of squares / residual degrees of freedom
 - $F$-statistic follows $F$-distribution under null hypothesis of no interaction
 
-This directly tests the core biological question: "Does entropy q-dependence differ between groups?" The rank-transformed two-way ANOVA is mathematically equivalent to the original Scheirer-Ray-Hare test statistic but computationally more stable and easier to interpret. Modern extensions of rank-based testing demonstrate the validity of permutation procedures for testing interactions even under complex dependence structures [@S166].
+This directly tests the core biological question: "Does entropy q-dependence differ between groups?" The rank-transformed two-way ANOVA is mathematically equivalent to the original SRH test statistic but computationally more stable and easier to interpret. Modern extensions of rank-based testing demonstrate the validity of permutation procedures for testing interactions even under complex dependence structures [@S166].
 
 ## Assumption Validation
 
@@ -253,27 +242,17 @@ if (!is.null(check_results) && !is.null(check_results$raw_result)) {
 }
 ```
 
-**Interpretation of Results:** The exchangeability test, the unique assumption of the SRH test, detects strong serial correlation (p ≈ 0), indicating that consecutive samples are more correlated than expected by chance. This violation of exchangeability is **not problematic** for SRH because rank-based inference satisfies *maximal invariance*—a principle ensuring that rank statistics depend only on value ordering, not on correlations in the original data [@S270; @S271; @K003].
+**Interpretation of Results:** The exchangeability test, the unique assumption of the SRH test, detects strong serial correlation (p ≈ 0), indicating that consecutive samples are more correlated than expected by chance. This violation of exchangeability is **not problematic** for SRH because rank-based inference satisfies the *exchangeability property*—a principle ensuring that rank statistics depend only on value ordering, not on correlations in the original data [@S270; @S271; @K003]. The three reasons outlined above (robustness to distribution violations, paired design for ordered structure, and interaction testing) together uniquely suit SRH for multi-q entropy validation without requiring strong distributional assumptions.
 
-### SRH for Multi-q Tsallis Entropy with AR(1) Autocorrelation
+## SRH Test: Testing q x Condition Interactions
 
-Multi-q Tsallis entropy analysis presents a unique statistical challenge: measurements across consecutive q-values exhibit **AR(1) autocorrelation** (correlated entropy estimates), yet the paired q-ordering structure must be preserved for biological interpretation. The Scheirer-Ray-Hare approach outlined above uniquely handles this combination by:
-
-- Treating q-values as paired/ordered measurements while rank-transforming entropy values to eliminate distributional dependencies.
-- Rendering AR(1) autocorrelation statistically irrelevant through rank transformation, which operates on rank ordering rather than actual values.
-- Preserving the sequential q-structure for biological interpretation while gaining maximal robustness through permutation-theoretic methods.
-
-This integration of ordered measurement structure with robust rank-based inference—grounded in within-subject permutation theory—makes SRH ideally suited for multi-q entropy validation without requiring distributional assumptions or independence of observations [@S019; @C018; @S030; @S166].
-
-## Scheirer-Ray-Hare Test: Testing q x Condition Interactions
-
-Now we will use the Scheirer-Ray-Hare test to evaluate whether entropy patterns across entropic indices (q-values) differ between normal and tumor samples.
+Now we will use the SRH test to evaluate whether entropy patterns across entropic indices (q-values) differ between normal and tumor samples.
 
 ```{r srh-rank-test-analysis, message=FALSE, results='hide'}
 # IMPORTANT: Create a copy of analysis before running SRH
 # This preserves the GAM results in 'analysis' for later concordance comparison
 
-# Run Scheirer-Ray-Hare test for q * condition INTERACTION on the copy
+# Run SRH test for q * condition INTERACTION on the copy
 analysis <- calculate_srh(
     analysis,
     multicorr = "hochberg"
@@ -387,8 +366,8 @@ if (nrow(rank_sig) > 0) {
 
 Visualize q-curves for top genes:
 
-```{r extended-fig-1-srh-q-curves, fig.width=12, fig.height=8, message=FALSE, out.width="98%", fig.pos="H", fig.cap="Extended Data Figure 1 | Scheirer-Ray-Hare rank test results for scale-dependent isoform switching."}
-# Plot top genes from Scheirer-Ray-Hare test (using all genes, not just significant ones)
+```{r extended-fig-1-srh-q-curves, fig.width=12, fig.height=8, message=FALSE, out.width="98%", fig.pos="H", fig.cap="Extended Data Figure 1 | SRH rank test results for scale-dependent isoform switching."}
+# Plot top genes from SRH test (using all genes, not just significant ones)
 # This ensures the plot displays n_top genes regardless of significance threshold
 top_genes_plot <- plot_diversity_spectrum(analysis, lm_res = srh_results_all, n_top = 4)
 print(top_genes_plot)
@@ -534,7 +513,7 @@ if ("p_interaction" %in% colnames(gam_results)) {
 
 # Method Concordance Analysis
 
-A critical validation step is to compare whether the Scheirer-Ray-Hare rank-based test and GAM produce consistent results. High concordance between methods (i.e., genes significant in both approaches) provides strong evidence that discoveries are robust to methodological choice. Discordant genes—those significant in only one method—warrant closer inspection: they may represent genuine biological signals revealed by one method's specific advantages, or artifacts of that method's assumptions. This section quantifies agreement between approaches and identifies high-confidence genes significant across both statistical frameworks.
+A critical validation step is to compare whether the SRH rank-based test and GAM produce consistent results. High concordance between methods (i.e., genes significant in both approaches) provides strong evidence that discoveries are robust to methodological choice. Discordant genes—those significant in only one method—warrant closer inspection: they may represent genuine biological signals revealed by one method's specific advantages, or artifacts of that method's assumptions. This section quantifies agreement between approaches and identifies high-confidence genes significant across both statistical frameworks.
 
 ```{r compare-srh-gam-methods, message=FALSE}
 # Compute concordance analysis using new two-object API
@@ -600,13 +579,13 @@ if (!is.null(concordance_results) && is.list(concordance_results)) {
 
 ## Statistical Power vs. Robustness: Understanding Method Discordance
 
-The striking discordance between GAM and Scheirer-Ray-Hare results (71.1% significant in GAM only, 0% in rank test only, 28.9% total concordance) reflects a fundamental trade-off in statistical methodology: **parametric methods maximize power when assumptions hold, while nonparametric methods sacrifice power for robustness to assumption violations**.
+The striking discordance between GAM and SRH results (75.0% significant in LM only, 0.0% in rank test only, 2.6% both methods significant) reflects a fundamental trade-off in statistical methodology: **parametric methods maximize power when assumptions hold, while nonparametric methods sacrifice power for robustness to assumption violations**.
 
 GAM's superior power derives from two factors:
 
-1. Distributional assumptions: GAM assumes approximately normal residuals and homogeneous variance, which are reasonable after appropriate transformation for entropy data. Under these assumptions, parametric methods are theoretically optimal, achieving maximum power for a given type I error rate. The rank-based Scheirer-Ray-Hare test is assumption-free but necessarily discards quantitative information by converting measurements to ranks, which reduces statistical power when the underlying data are approximately normal.
+1. Distributional assumptions: GAM assumes approximately normal residuals and homogeneous variance, which are reasonable after appropriate transformation for entropy data. Under these assumptions, parametric methods are theoretically optimal, achieving maximum power for a given type I error rate. The rank-based SRH test is assumption-free but necessarily discards quantitative information by converting measurements to ranks, which reduces statistical power when the underlying data are approximately normal.
 
-2. Model flexibility with penalty: GAM uses thin-plate splines with smoothness penalties that simultaneously fit nonlinear patterns while controlling degrees of freedom. This flexibility allows GAM to detect subtle entropic index × group interactions across all q-values. The Scheirer-Ray-Hare test, by contrast, operates on rank patterns only, which is inherently less sensitive to continuous relationships across the ordering (q-values).
+2. Model flexibility with penalty: GAM uses thin-plate splines with smoothness penalties that simultaneously fit nonlinear patterns while controlling degrees of freedom. This flexibility allows GAM to detect subtle entropic index × group interactions across all q-values. The SRH test, by contrast, operates on rank patterns only, which is inherently less sensitive to continuous relationships across the ordering (q-values).
 
 This complementary approach—combining high-power parametric tests with robust nonparametric alternatives—provides confidence that discoveries are methodologically sound rather than artifacts of statistical assumptions.
 
@@ -614,7 +593,7 @@ This complementary approach—combining high-power parametric tests with robust 
 
 Visual comparison of concordance patterns provides intuitive assessment of which genes align between methods and which are method-specific. The following plots display significance calls, effect sizes, and agreement metrics in a format that facilitates interpretation of both robust discoveries and method-specific findings.
 
-```{r visualize-method-concordance, fig.width=10, fig.height=8, out.width="98%", fig.pos="H", fig.cap="Method concordance visualization comparing Scheirer-Ray-Hare rank-based and GAM approaches for detecting q × condition interactions."}
+```{r visualize-method-concordance, fig.width=10, fig.height=8, out.width="98%", fig.pos="H", fig.cap="Method concordance visualization comparing SRH rank-based and GAM approaches for detecting q × condition interactions."}
 # Create comparison plot using S4 wrapper
 # Concordance analysis results are stored in analysis metadata after calculate_concordance()
 p <- plot_concordance(analysis, verbose = TRUE)
