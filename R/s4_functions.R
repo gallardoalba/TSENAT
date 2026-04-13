@@ -19,7 +19,10 @@
 #'   - 'all': all checks including GAM diagnostics
 #'   Explicit: character vector like \code{c('exchangeability', 'monotonicity')}.
 #' @param alpha \code{numeric}. Significance level for tests (default: 0.05).
-#' @param ... Additional arguments (for future extensibility).
+#' @param format \code{character}. Output format when used with \code{results()}.
+#'   "text" (default): formatted text output for display
+#'   "list": returns structured list for programmatic access.
+#' @param ... Additional arguments (output_file, verbose for file output).
 #'
 #' @return Modified TSENATAnalysis object with assumption test results stored
 #'   in \code{@metadata$rankbased_assumptions}.
@@ -77,13 +80,13 @@
 #' @export
 #' @rdname calculate_assumptions
 setGeneric("calculate_assumptions", function(analysis, q = NULL, checks = "rank",
-    alpha = 0.05, ...) {
+    alpha = 0.05, format = "text", ...) {
     standardGeneric("calculate_assumptions")
 })
 
 #' @rdname calculate_assumptions
 setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"),
-    function(analysis, q = NULL, checks = "rank", alpha = 0.05, ...) {
+    function(analysis, q = NULL, checks = "rank", alpha = 0.05, format = "text", ...) {
 
         # Validate inputs
         if (!methods::is(analysis, "TSENATAnalysis")) {
@@ -189,6 +192,25 @@ setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"),
         analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("calculate_assumptions[q=",
             q_used, "]"))
 
+        # Handle output file and verbose from ... arguments
+        dots <- list(...)
+        output_file <- dots$output_file
+        verbose <- if (is.null(dots$verbose)) FALSE else dots$verbose
+
+        # Save results to file if output_file specified
+        if (!is.null(output_file)) {
+            # Convert assumptions results to data frame for output
+            assumptions_df <- .format_assumptions_for_output(result)
+            
+            tryCatch({
+                save_analysis_output(assumptions_df, output_file, object = analysis, verbose = verbose,
+                    func_name = "calculate_assumptions")
+            }, error = function(e) {
+                warning("[calculate_assumptions] Could not write assumptions results to file: ",
+                    conditionMessage(e), call. = FALSE)
+            })
+        }
+
         analysis
     })
 
@@ -198,6 +220,47 @@ setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"),
     # Extract numeric part from 'q_X.X' format
     as.numeric(sub("^q_", "", key))
 }
+
+# Helper: Format assumptions results for output
+#' @noRd
+.format_assumptions_for_output <- function(result) {
+    # Convert list of assumptions checks to data frame for output
+    if (!is.list(result)) {
+        return(data.frame(check = "assumptions", status = "error", details = "Invalid result format"))
+    }
+    
+    rows <- list()
+    
+    # Extract key information from each check
+    for (check_name in names(result)) {
+        check_obj <- result[[check_name]]
+        
+        if (is.list(check_obj)) {
+            # Extract p-value if available
+            p_value <- if (is.null(check_obj$p_value)) NA_real_ else check_obj$p_value
+            # Extract status if available
+            status <- if (is.null(check_obj$status)) "? UNKNOWN" else check_obj$status
+            # Extract description
+            description <- if (is.null(check_obj$description)) check_name else check_obj$description
+            
+            rows[[length(rows) + 1]] <- data.frame(
+                check = check_name,
+                description = description,
+                status = status,
+                p_value = p_value,
+                stringsAsFactors = FALSE
+            )
+        }
+    }
+    
+    if (length(rows) == 0) {
+        return(data.frame(check = "assumptions", status = "error", details = "No checks found"))
+    }
+    
+    # Combine all rows into single data frame
+    do.call(rbind, rows)
+}
+
 
 #' Compare method concordance for differential analysis results
 #'
@@ -1451,7 +1514,7 @@ plot_jis_delta <- function(analysis, n_genes = 4, lm_results = NULL,
 #' 1. Extracts SummarizedExperiment from \code{@se} slot
 #' 2. Extracts LM results from \code{@lm_results$lm_interaction} slot
 #' 3. Detects condition_col from \code{@config} or uses default
-#' 4. Calls \code{.plot_lm_gam()} with extracted parameters
+#' 4. Calls \code{.plot_lm()} with extracted parameters
 #'
 #' **Parameter Resolution (condition_col):**
 #' \enumerate{
@@ -1501,11 +1564,11 @@ plot_jis_delta <- function(analysis, n_genes = 4, lm_results = NULL,
 #' analysis <- calculate_diversity(analysis, q = seq(0.2, 2, by = 0.4))
 #' analysis <- suppressWarnings(calculate_lm(analysis, method = 'gam'))
 #' 
-#' p_gam <- plot_lm_gam(analysis, n_top = 2, sig_alpha = 0.15)
+#' p_gam <- plot_lm(analysis, n_top = 2, sig_alpha = 0.15)
 #' # print(p_gam)
 #'
 #' @export
-plot_lm_gam <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL,
+plot_lm <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL,
     sig_alpha = 0.05, assay_name = "diversity", output_file = NULL, width = 12, height = NULL,
     verbose = FALSE, ...) {
     # Load visualization dependencies (ggplot2, cowplot, mgcv, etc.)
@@ -1520,20 +1583,20 @@ plot_lm_gam <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL,
 
     # Check that LM results exist
     if (is.null(analysis@lm_results) || is.null(analysis@lm_results$lm_interaction)) {
-        stop("[plot_lm_gam] No LM interaction results found in @lm_results$lm_interaction. ",
+        stop("[plot_lm] No LM interaction results found in @lm_results$lm_interaction. ",
             "Run calculate_lm() first.", call. = FALSE)
     }
 
     lm_res <- analysis@lm_results$lm_interaction
 
     if (!is.data.frame(lm_res)) {
-        stop("[plot_lm_gam] @lm_results$lm_interaction must be a data.frame",
+        stop("[plot_lm] @lm_results$lm_interaction must be a data.frame",
             call. = FALSE)
     }
 
     # Check that diversity results exist (needed for SE reconstruction)
     if (length(analysis@diversity_results) == 0) {
-        stop("[plot_lm_gam] No diversity results found in @diversity_results. ",
+        stop("[plot_lm] No diversity results found in @diversity_results. ",
             "Run calculate_diversity() first.", call. = FALSE)
     }
 
@@ -1549,7 +1612,7 @@ plot_lm_gam <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL,
 
     # Validate that condition_col exists in colData
     if (!(condition_col %in% colnames(colData(analysis@se)))) {
-        stop("[plot_lm_gam] Specified condition_col='", condition_col,
+        stop("[plot_lm] Specified condition_col='", condition_col,
             "' not found in colData. Available columns: ", paste(colnames(colData(analysis@se)),
                 collapse = ", "), call. = FALSE)
     }
@@ -1567,7 +1630,7 @@ plot_lm_gam <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL,
         .calculate_diversity(x = analysis@se, q = sort(q_computed), norm = TRUE,
             verbose = verbose, bootstrap = FALSE)
     }, error = function(e) {
-        stop("[plot_lm_gam] Failed to reconstruct diversity SE:\n",
+        stop("[plot_lm] Failed to reconstruct diversity SE:\n",
             conditionMessage(e), call. = FALSE)
     })
 
@@ -1606,12 +1669,12 @@ plot_lm_gam <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL,
     # CALL plot_lm_interaction_gam WITH RECONSTRUCTED DIVERSITY SE
     # =========================================================================
     result <- tryCatch({
-        .plot_lm_gam(se = diversity_combined, lm_res = lm_res, condition_col = condition_col,
+        .plot_lm(se = diversity_combined, lm_res = lm_res, condition_col = condition_col,
             n_top = n_top, genes = genes, sig_alpha = sig_alpha, assay_name = assay_name,
             model_data = model_data, output_file = output_file, width = width, height = height,
             ...)
     }, error = function(e) {
-        stop("[plot_lm_gam]", conditionMessage(e), call. = FALSE)
+        stop("[plot_lm]", conditionMessage(e), call. = FALSE)
     })
 
     # =========================================================================
@@ -1619,14 +1682,14 @@ plot_lm_gam <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL,
     # =========================================================================
     # Track that plotting occurred
     if (is.list(analysis@metadata)) {
-        analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("plot_lm_gam[n_top=",
+        analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("plot_lm[n_top=",
             n_top, ", condition_col=", condition_col, "]"))
     }
 
     # Save plot to file if requested (only if result is a valid ggplot)
     if (!is.null(output_file) && inherits(result, "ggplot")) {
         save_analysis_output(result, output_file, object = analysis, verbose = verbose,
-            func_name = "plot_lm_gam", width = width, height = height)
+            func_name = "plot_lm", width = width, height = height)
     }
 
     # Return the plot object directly (not the analysis object)

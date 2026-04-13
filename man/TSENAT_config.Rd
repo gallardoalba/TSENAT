@@ -30,6 +30,7 @@ TSENAT_config(
   lm_pcorr = "BH",
   jis_use_lm_fdr = TRUE,
   divergence_ci = 0.95,
+  assumptions_checks = "all",
   ...
 )
 }

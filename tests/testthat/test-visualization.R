@@ -3377,10 +3377,10 @@ test_that("plot_divergence_spectrum: large divergence matrix", {
 })
 
 # Test coverage for medium-priority functions
-# Covers: .plot_lm_gam(updated), .plot_jis_delta(45)
+# Covers: .plot_lm(updated), .plot_jis_delta(45)
 
 
-test_that("plot_lm_gam: function call returns ggplot", {
+test_that("plot_lm: function call returns ggplot", {
   skip_if_not_installed("SummarizedExperiment")
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("mgcv")
@@ -3414,7 +3414,7 @@ test_that("plot_lm_gam: function call returns ggplot", {
   lm_res_list <- list(results = lm_res, model_data = model_data)
   
   # Function may warn with small datasets - accept any warning or no warning
-  result <- suppressWarnings(TSENAT:::.plot_lm_gam(
+  result <- suppressWarnings(TSENAT:::.plot_lm(
     se, lm_res_list,
     condition_col = "condition",
     n_top = 3,
@@ -3424,7 +3424,7 @@ test_that("plot_lm_gam: function call returns ggplot", {
   expect_true(is.null(result) || inherits(result, "ggplot"))
 })
 
-test_that("plot_lm_gam: respects n_top parameter", {
+test_that("plot_lm: respects n_top parameter", {
   skip_if_not_installed("SummarizedExperiment")
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("mgcv")
@@ -3449,7 +3449,7 @@ test_that("plot_lm_gam: respects n_top parameter", {
   model_data <- list(q_values = c(0.5, 1.0, 1.5))
   lm_res_list <- list(results = lm_res, model_data = model_data)
   
-  result <- suppressWarnings(TSENAT:::.plot_lm_gam(
+  result <- suppressWarnings(TSENAT:::.plot_lm(
     se, lm_res_list,
     condition_col = "condition",
     n_top = 4,
@@ -3459,7 +3459,7 @@ test_that("plot_lm_gam: respects n_top parameter", {
   expect_true(is.null(result) || inherits(result, "ggplot"))
 })
 
-test_that("plot_lm_gam: can plot specific gene subset", {
+test_that("plot_lm: can plot specific gene subset", {
   skip_if_not_installed("SummarizedExperiment")
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("mgcv")
@@ -3484,7 +3484,7 @@ test_that("plot_lm_gam: can plot specific gene subset", {
   model_data <- list(q_values = c(0.5, 1.0, 1.5))
   lm_res_list <- list(results = lm_res, model_data = model_data)
   
-  result <- suppressWarnings(TSENAT:::.plot_lm_gam(
+  result <- suppressWarnings(TSENAT:::.plot_lm(
     se, lm_res_list,
     condition_col = "condition",
     genes = c("gene_1", "gene_3", "gene_5")
@@ -4734,27 +4734,27 @@ analysis_lm_jis_q08 <- suppressWarnings(calculate_jis(
 ))
 
 # =============================================================================
-# Test: plot_lm_gam - Enhanced Assertions (CONSOLIDATED: 5 → 2 focused tests)
+# Test: plot_lm - Enhanced Assertions (CONSOLIDATED: 5 → 2 focused tests)
 # =============================================================================
-# OPTIMIZATION: Removed 3 nearly identical tests that all call plot_lm_gam
+# OPTIMIZATION: Removed 3 nearly identical tests that all call plot_lm
 # with different n_top values and same assertions
 
-test_that("plot_lm_gam returns valid grid plot with various n_top values", {
+test_that("plot_lm returns valid grid plot with various n_top values", {
     # Test multiple n_top values in single test to avoid redundant computations
     for (n in c(2, 3, 4, 6)) {
-        p <- plot_lm_gam(analysis, n_top = n)
+        p <- plot_lm(analysis, n_top = n)
         # Should return valid plot type or NULL (no significant genes)
         expect_true(is.null(p) || inherits(p, "ggplot") || inherits(p, "gtable"))
     }
 })
 
-test_that("plot_lm_gam handles edge cases with valid output structures", {
+test_that("plot_lm handles edge cases with valid output structures", {
     # Test high n_top value (more than available genes)
-    p_high <- plot_lm_gam(analysis, n_top = 20)
+    p_high <- plot_lm(analysis, n_top = 20)
     expect_true(is.null(p_high) || inherits(p_high, "ggplot") || inherits(p_high, "gtable"))
     
     # Test minimal n_top value
-    p_min <- plot_lm_gam(analysis, n_top = 1)
+    p_min <- plot_lm(analysis, n_top = 1)
     expect_true(is.null(p_min) || inherits(p_min, "ggplot") || inherits(p_min, "gtable"))
 })
 
@@ -4823,8 +4823,8 @@ test_that("Jackknife results integrate with lazy switching_tables computation", 
 # Test: Output Formatting and Display
 # =============================================================================
 
-test_that("plot_lm_gam produces publishable format", {
-    p <- plot_lm_gam(analysis, n_top = 2)
+test_that("plot_lm produces publishable format", {
+    p <- plot_lm(analysis, n_top = 2)
     
     # Plot should be created and be a valid ggplot or gtable
     expect_true(inherits(p, "ggplot") || inherits(p, "gtable") || is.null(p))
@@ -4850,9 +4850,9 @@ test_that("Lazy switching_tables produces export-ready data", {
 # Test: Error Handling and Robustness
 # =============================================================================
 
-test_that("plot_lm_gam handles missing LM results gracefully", {
+test_that("plot_lm handles missing LM results gracefully", {
     # Don't calculate LM - should handle gracefully
-    p <- plot_lm_gam(analysis, n_top = 3)
+    p <- plot_lm(analysis, n_top = 3)
     
     expect_true(is.null(p) || inherits(p, "ggplot"))
 })
@@ -4876,13 +4876,13 @@ test_that("Lazy switching_tables handles edge cases (minimal/high q values)", {
 # Test: Specific Assertion Strength Improvements
 # =============================================================================
 
-test_that("plot_lm_gam returns specific plot type", {
-    p <- plot_lm_gam(analysis, n_top = 1)
+test_that("plot_lm returns specific plot type", {
+    p <- plot_lm(analysis, n_top = 1)
     expect_true(is.null(p) || inherits(p, "ggplot") || inherits(p, "gtable"))
 })
 
-test_that("plot_lm_gam axes have correct scale for entropy", {
-    p <- plot_lm_gam(analysis, n_top = 1)
+test_that("plot_lm axes have correct scale for entropy", {
+    p <- plot_lm(analysis, n_top = 1)
     expect_true(is.null(p) || inherits(p, "ggplot") || inherits(p, "gtable"))
 })
 

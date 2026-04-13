@@ -5,9 +5,23 @@
 \alias{calculate_assumptions,TSENATAnalysis-method}
 \title{Test statistical assumptions on diversity data in TSENATAnalysis}
 \usage{
-calculate_assumptions(analysis, q = NULL, checks = "rank", alpha = 0.05, ...)
+calculate_assumptions(
+  analysis,
+  q = NULL,
+  checks = "rank",
+  alpha = 0.05,
+  format = "text",
+  ...
+)
 
-\S4method{calculate_assumptions}{TSENATAnalysis}(analysis, q = NULL, checks = "rank", alpha = 0.05, ...)
+\S4method{calculate_assumptions}{TSENATAnalysis}(
+  analysis,
+  q = NULL,
+  checks = "rank",
+  alpha = 0.05,
+  format = "text",
+  ...
+)
 }
 \arguments{
 \item{analysis}{\code{TSENATAnalysis} object with diversity results stored
@@ -24,7 +38,11 @@ Explicit: character vector like \code{c('exchangeability', 'monotonicity')}.}
 
 \item{alpha}{\code{numeric}. Significance level for tests (default: 0.05).}
 
-\item{...}{Additional arguments (for future extensibility).}
+\item{format}{\code{character}. Output format when used with \code{results()}.
+"text" (default): formatted text output for display
+"list": returns structured list for programmatic access.}
+
+\item{...}{Additional arguments (output_file, verbose for file output).}
 }
 \value{
 Modified TSENATAnalysis object with assumption test results stored

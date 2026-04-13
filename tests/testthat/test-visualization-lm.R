@@ -1,7 +1,7 @@
 # Test coverage for medium-priority functions
-# Covers: .plot_lm_gam(updated), .plot_jis_delta(45)
+# Covers: .plot_lm(updated), .plot_jis_delta(45)
 
-context("plot_lm_gam: S4 wrapper for GAM-based interaction visualization")
+context("plot_lm: S4 wrapper for LM interaction visualization")
 library(SummarizedExperiment)
 library(testthat)
 library(ggplot2)
@@ -9,7 +9,7 @@ library(ggplot2)
 
 
 
-test_that("plot_lm_gam: requires LM interaction results", {
+test_that("plot_lm: requires LM interaction results", {
   skip_if_not_installed("SummarizedExperiment")
   
   set.seed(123)
@@ -27,12 +27,12 @@ test_that("plot_lm_gam: requires LM interaction results", {
   
   # Should error when no LM results
   expect_error(
-    TSENAT::plot_lm_gam(analysis),
+    TSENAT::plot_lm(analysis),
     regex = "No LM interaction results"
   )
 })
 
-test_that("plot_lm_gam: requires diversity results", {
+test_that("plot_lm: requires diversity results", {
   skip_if_not_installed("SummarizedExperiment")
   
   set.seed(124)
@@ -51,20 +51,20 @@ test_that("plot_lm_gam: requires diversity results", {
   # Should error if diversity_results is empty
   if (length(analysis@diversity_results) == 0) {
     expect_error(
-      TSENAT::plot_lm_gam(analysis),
+      TSENAT::plot_lm(analysis),
       regex = "No diversity results"
     )
   } else {
     # If test setup includes diversity, function should work or return error gracefully
     result <- tryCatch(
-      TSENAT::plot_lm_gam(analysis),
+      TSENAT::plot_lm(analysis),
       error = function(e) NULL
     )
     expect_true(is.null(result) || inherits(result, "ggplot") || is.list(result))
   }
 })
 
-test_that("plot_lm_gam: auto-detects condition column", {
+test_that("plot_lm: auto-detects condition column", {
   skip_if_not_installed("SummarizedExperiment")
   
   set.seed(125)
@@ -81,14 +81,14 @@ test_that("plot_lm_gam: auto-detects condition column", {
   
   # Should work with auto-detection if colData has standard columns
   result <- tryCatch(
-    TSENAT::plot_lm_gam(analysis),
+    TSENAT::plot_lm(analysis),
     error = function(e) NULL
   )
   
   expect_true(is.null(result) || inherits(result, "ggplot") || is.list(result))
 })
 
-test_that("plot_lm_gam: handles n_top parameter", {
+test_that("plot_lm: handles n_top parameter", {
   skip_if_not_installed("SummarizedExperiment")
   
   set.seed(126)
@@ -106,7 +106,7 @@ test_that("plot_lm_gam: handles n_top parameter", {
   # Test with different n_top values
   for (n in c(1, 3, 5)) {
     result <- tryCatch(
-      TSENAT::plot_lm_gam(analysis, n_top = n),
+      TSENAT::plot_lm(analysis, n_top = n),
       error = function(e) NULL
     )
     expect_true(is.null(result) || inherits(result, "ggplot") || is.list(result))

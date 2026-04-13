@@ -32,7 +32,7 @@ Default: TRUE. If FALSE, no TSV/CSV output files are written to disk.}
 }
 \description{
 Coordinates the full TSENAT workflow: diversity -> jackknife -> LM
-interactions -> divergence -> gene interactions -> visualizations.
+interactions -> divergence -> gene interactions -> rank-based tests -> concordance -> visualizations.
 }
 \details{
 Pipeline execution order (enforced, follows TSENAT.Rmd vignette):
@@ -42,7 +42,7 @@ Pipeline execution order (enforced, follows TSENAT.Rmd vignette):
   \item \code{plot_diversity_spectrum()} - Visualize q-spectrum
   \item \code{calculate_m_estimator()} - Sample influence QC analysis
   \item \code{calculate_lm()} - LM interaction testing
-  \item \code{plot_lm_gam()} - GAM visualization of LM results
+  \item \code{plot_lm()} - LM results visualization
   \item \code{calculate_jis()} - Transcript switching detection
   \item \code{plot_jis_delta()} - Multi-q influence heatmap (gene switching tables computed lazily via results())
   \item \code{plot_expression()} - Top transcript visualization
@@ -50,6 +50,9 @@ Pipeline execution order (enforced, follows TSENAT.Rmd vignette):
   \item \code{calculate_effect_sizes()} - Effect size computation
   \item \code{plot_divergence_distribution()} - Divergence distribution plot
   \item \code{plot_divergence_spectrum()} - Divergence spectrum plot
+  \item \code{calculate_assumptions()} - Validate rank-based test assumptions
+  \item \code{calculate_srh()} - Scheirer-Ray-Hare rank-based interaction test
+  \item \code{calculate_concordance()} - Compare LM and rank test results
 }
 }
 \examples{

@@ -212,34 +212,48 @@ analysis <- calculate_assumptions(
     checks = "all"  # Include core checks + GAM diagnostics
 )
 
-# Extract the assumption check results
-check_results <- results(analysis, type = "assumptions")
+# Get assumptions
+assumptions_text <- results(analysis, type = "assumptions")
+print(assumptions_text)
 ```
 
 ```{r display-assumption-results, message=FALSE, echo=FALSE}
-# Extract assumption check results - results() handles all complex formatting internally
-check_results <- results(analysis, type = "assumptions")
+# Extract assumption check results as structured list
+check_results <- results(analysis, type = "assumptions", format = "list")
 
-# Display as formatted table
-knitr::kable(check_results, 
-             caption = "Assumption Checks for Scheirer-Ray-Hare Test",
-             format = "html")
+# Display assumptions table as formatted kable
+if (!is.null(check_results) && !is.null(check_results$assumptions_table)) {
+  assumptions_df <- check_results$assumptions_table
+  
+  knitr::kable(
+    assumptions_df,
+    caption = "Assumption Checks for Scheirer-Ray-Hare Test",
+    format = "html"
+  ) %>%
+    kableExtra::kable_styling(
+      bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+      latex_options = c("scale_down")
+    )
+}
 ```
 
 <!-- Diagnostic note for GAM metrics -->
 ```{r gam-diagnostic, results='asis', echo=FALSE}
-if (!is.null(check_results$gam_metrics)) {
-  if (isTRUE(check_results$gam_metrics$error)) {
-    cat("**Note:** GAM diagnostics were requested but not computed:\n")
-    cat(sprintf("- Reason: %s\n", check_results$gam_metrics$message))
-    cat(sprintf("- Details: %s\n", check_results$gam_metrics$reason))
+if (!is.null(check_results) && !is.null(check_results$raw_result)) {
+  raw_result <- check_results$raw_result
+  if (!is.null(raw_result$gam_metrics)) {
+    if (isTRUE(raw_result$gam_metrics$error)) {
+      cat("**Note:** GAM diagnostics were requested but not computed:\n")
+      cat(sprintf("- Reason: %s\n", raw_result$gam_metrics$message))
+      cat(sprintf("- Details: %s\n", raw_result$gam_metrics$reason))
+    }
+  } else {
+    cat("")  # No output if not requested
   }
-} else {
-  cat("")  # No output if not requested
 }
 ```
 
-**Interpretation of Results:** The exchangeability test detects strong serial correlation (p ≈ 0), indicating that consecutive samples are more correlated than expected by chance. This violation of exchangeability is **not problematic** for SRH because rank-based inference satisfies *maximal invariance*—a principle ensuring that rank statistics depend only on value ordering, not on correlations in the original data [@S270; @S271; @K003]. Therefore, the serial structure we detect validates the choice of SRH over parametric methods, which would be inappropriate under these dependence patterns [@S166].
+**Interpretation of Results:** The exchangeability test, the unique assumption of the SRH test, detects strong serial correlation (p ≈ 0), indicating that consecutive samples are more correlated than expected by chance. This violation of exchangeability is **not problematic** for SRH because rank-based inference satisfies *maximal invariance*—a principle ensuring that rank statistics depend only on value ordering, not on correlations in the original data [@S270; @S271; @K003].
 
 ### SRH for Multi-q Tsallis Entropy with AR(1) Autocorrelation
 
@@ -314,9 +328,9 @@ if (nrow(rank_sig) > 0) {
   rank_sig <- rank_sig[order(rank_sig$adj_p_value), ]
   rank_sig <- rank_sig[1:min(10, nrow(rank_sig)), ]
   
-  # Select columns: gene, p-values, f-statistic, effect size, test method, interaction class
+  # Select columns: gene, p-values, f-statistic, effect size, interaction class
   cols_to_show <- intersect(c("gene", "p_value", "adj_p_value", "f_statistic", "effect_size_eta2", 
-                              "test_method", "interaction_class"), 
+                              "interaction_class"), 
                             colnames(rank_sig))
   if (length(cols_to_show) > 0) {
     rank_display <- rank_sig[, cols_to_show, drop = FALSE]
@@ -334,12 +348,12 @@ if (nrow(rank_sig) > 0) {
       })
     }
     
-    # Replace test method name for clarity
-    if ("test_method" %in% colnames(rank_display)) {
-      rank_display$test_method <- sapply(rank_display$test_method, function(x) {
-        if (is.na(x)) "NA" else if (x == "srh_paired") "Scheirer-Ray-Hare (paired)" else x
-      })
-    }
+    # Replace test method name for clarity (removed - column no longer included)
+    # if ("test_method" %in% colnames(rank_display)) {
+    #   rank_display$test_method <- sapply(rank_display$test_method, function(x) {
+    #     if (is.na(x)) "NA" else if (x == "srh_paired") "Scheirer-Ray-Hare (paired)" else x
+    #   })
+    # }
     
     # Format other numeric columns
     if ("f_statistic" %in% colnames(rank_display)) {
@@ -357,7 +371,7 @@ if (nrow(rank_sig) > 0) {
     knitr::kable(rank_display, 
                  caption = "Supplementary Table 4 | Top genes identified by Scheirer-Ray-Hare rank-based test.",
                  col.names = c("Gene", "P-value", "Adj. P-value", "F-Statistic", 
-                               "Effect Size (η²)", "Test Method", "Interaction Class")[1:ncol(rank_display)],
+                               "Effect Size (η²)", "Interaction Class")[1:ncol(rank_display)],
                  format = if (knitr::is_latex_output()) "latex" else "html",
                  longtable = knitr::is_latex_output(),
                  linesep = "") %>%
@@ -386,7 +400,7 @@ print(top_genes_plot)
 
 This section loads precomputed GAM results generated in the main vignette ([TSENAT.Rmd](TSENAT.Rmd)).
 
-```{r generalized-additive-model-analysis, message=FALSE}
+```{r generalized-additive-model-analysis, message=FALSE, results='hide'}
 # Load precomputed LM analysis object from RDS file
 analysis_lm <- readRDS(
     system.file("extdata", "analysis_lm.rds", package = "TSENAT")
@@ -394,6 +408,7 @@ analysis_lm <- readRDS(
 
 # Extract GAM/LM results for inspection using accessor function
 gam_results <- results(analysis_lm, type = "lm", rankBy = "pvalue")
+print(gam_results)
 
 ```
 

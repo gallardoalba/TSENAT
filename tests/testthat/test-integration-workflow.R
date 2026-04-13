@@ -243,7 +243,7 @@ test_that("TSENAT() paired: produces LM results, significant genes, plots genera
     
     # Test plot generation
     plot_result <- tryCatch({
-        plot_lm_gam(
+        plot_lm(
             result,
             n_top = 3,
             sig_alpha = 0.05,

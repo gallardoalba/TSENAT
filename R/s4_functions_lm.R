@@ -266,7 +266,7 @@ calculate_lm <- function(analysis, fdr_threshold = NULL, formula = NULL,
     }
 
     # Resolve remaining parameters using centralized handler
-    method <- resolve_slot_param(method, analysis@config, "method", "lmm")
+    method <- resolve_slot_param(method, analysis@config, "method", "gam")
     subject_col <- resolve_slot_param(subject_col, analysis@config, "subject_col",
         NULL)
     multicorr <- resolve_slot_param(multicorr, analysis@config, "multicorr", NULL)

@@ -31,7 +31,7 @@
 #'   \item \code{plot_diversity_spectrum()} - Visualize q-spectrum
 #'   \item \code{calculate_m_estimator()} - Sample influence QC analysis
 #'   \item \code{calculate_lm()} - LM interaction testing
-#'   \item \code{plot_lm_gam()} - GAM visualization of LM results
+#'   \item \code{plot_lm()} - LM results visualization
 #'   \item \code{calculate_jis()} - Transcript switching detection
 #'   \item \code{plot_jis_delta()} - Multi-q influence heatmap (gene switching tables computed lazily via results())
 #'   \item \code{plot_expression()} - Top transcript visualization
@@ -736,7 +736,7 @@ TSENAT_config <- function(q = 1.0, condition_col = "condition", subject_col = NU
         message(sprintf("[>] [%2d/14] Plotting LM interaction GAM smoother", 6))
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "lm_interaction_gam_plot.png") else NULL
-        p_lm <- plot_lm_gam(analysis, output_file = output_file)
+        p_lm <- plot_lm(analysis, output_file = output_file)
         if (!is.null(p_lm)) {
             analysis <- addPlot(analysis, type = "lm_interaction", plot = p_lm, replace = TRUE)
             if (verbose)

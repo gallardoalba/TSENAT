@@ -329,7 +329,7 @@ analysis <- calculate_diversity(
     norm = TRUE
 )
 
-# Extract and display diversity results (automatically formatted)
+# Extract and display diversity results
 diversity <- results(analysis, type = "diversity", n_genes = 4, sample = "SRR14800481")
 print(diversity)
 ```
@@ -530,7 +530,7 @@ by the linear-model interaction test.
 
 ```{r fig-2-scale-dependent-genes, fig.width=14, fig.height=12, out.width="98%", fig.pos="H", fig.cap = "**Figure 2:** Scale-dependent interaction analysis. GAM-identified genes showing significant q$\\times$condition effects (Benjamini-Hochberg q < 0.05)."}
 # Plot q-curve profiles for the top 4 genes using the S4 wrapper
-combined_plot <- plot_lm_gam(
+combined_plot <- plot_lm(
     analysis,
     n_top = 4
 )

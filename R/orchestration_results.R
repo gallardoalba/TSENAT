@@ -134,7 +134,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
         jackknife = ,
         rank_test = .process_statistical_results(result, type, filterFDR, rankBy, n, format),
         effect_sizes_divergence = .process_effect_sizes_divergence_results(result, top_n, sort_by, analysis),
-        assumptions = .process_assumptions_results(result),
+        assumptions = .process_assumptions_results(result, format = format),
         switching_tables = .process_switching_tables_results(result),
         concordance = .process_concordance_results(result, format = format),
         metadata = result,
@@ -766,7 +766,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
 #'
 #' @keywords internal
 #' @noRd
-.process_assumptions_results <- function(result) {
+.process_assumptions_results <- function(result, format = "text") {
     if (is.null(result)) {
         return(NULL)
     }
@@ -793,131 +793,137 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
         return(as.character(x))
     }
     
+    # Helper to capitalize first letter and remove underscores
+    capitalize_first <- function(x) {
+        x_clean <- gsub("_", " ", x)
+        paste0(toupper(substring(x_clean, 1, 1)), substring(x_clean, 2))
+    }
+    
     # ========== Rank-based tests (always present) ==========
     
-    # Exchangeability
+    # Exchangeability (core assumption for rank-based tests)
     if (!is.null(result$exchangeability)) {
         check <- result$exchangeability
+        status_val <- if (!is.null(check$status)) check$status else "unknown"
         rows[[length(rows) + 1]] <- list(
-            Characteristic = "Paired Structure",
-            Test = if (!is.null(check$method)) check$method else "Permutation test",
+            Characteristic = "Exchangeability",
+            Test = "Permutation test",
             Result = paste0("p=", format_value(check$p_value)),
-            Interpretation = if (!is.null(check$status)) check$status else "unknown"
+            Interpretation = paste0(toupper(substring(status_val, 1, 1)), substring(status_val, 2))
         )
     }
     
-    # Monotonicity
+    # Monotonicity (rank ordering consistency)
     if (!is.null(result$monotonicity)) {
         check <- result$monotonicity
         r_val <- format_value(check$mean_correlation)
+        interp <- if (!is.null(check$mean_correlation)) {
+            if (abs(check$mean_correlation) < 0.3) "Heterogeneous" else "Homogeneous"
+        } else "Unknown"
         rows[[length(rows) + 1]] <- list(
-            Characteristic = "Gene Heterogeneity",
-            Test = if (!is.null(check$method)) check$method else "Spearman r",
+            Characteristic = "Monotonicity",
+            Test = "Spearman ρ",
             Result = paste0("r=", r_val),
-            Interpretation = if (!is.null(check$mean_correlation)) {
-                if (abs(check$mean_correlation) < 0.3) "heterogeneous" else "homogeneous"
-            } else "unknown"
+            Interpretation = interp
         )
     }
     
-    # Consistency
+    # Consistency (replicate agreement across samples)
     if (!is.null(result$consistency)) {
         check <- result$consistency
-        w_val <- format_value(check$w_statistic)
-        icc_val <- format_value(check$icc)
+        # Consistency stores: kendall_w and icc_simplified (not w_statistic and icc)
+        w_val <- format_value(check$kendall_w)
+        icc_val <- format_value(check$icc_simplified)
+        interp <- if (!is.na(check$icc_simplified)) {
+            if (check$icc_simplified < 0.5) "Low" else "Moderate"
+        } else "Unknown"
         rows[[length(rows) + 1]] <- list(
-            Characteristic = "Subject Consistency",
-            Test = if (!is.null(check$method)) check$method else "Kendall's W",
+            Characteristic = "Consistency",
+            Test = "Kendall's W / ICC",
             Result = paste0("W=", w_val, ", ICC=", icc_val),
-            Interpretation = if (!is.null(check$icc)) {
-                if (check$icc < 0.5) "low" else "moderate"
-            } else "unknown"
+            Interpretation = interp
         )
     }
     
-    # ========== GAM-specific tests ==========
+    # ========== GAM-specific tests (corrected key names) ==========
     
     if (!is.null(result$gam_metrics)) {
         gam_metrics <- result$gam_metrics
         
-        # Concurvity - extract from nested metric object
-        if (!is.null(gam_metrics$concurvity_index)) {
-            metric <- gam_metrics$concurvity_index
+        # Concurvity: actual key is gam_metrics$concurvity, not concurvity_index
+        if (!is.null(gam_metrics$concurvity)) {
+            metric <- gam_metrics$concurvity
             has_error <- isTRUE(metric$error)
-            val_valid <- !is.null(metric$concurvity_index) && !is.na(metric$concurvity_index)
+            # Key is overall_concurvity, not concurvity_index
+            val_valid <- !is.null(metric$overall_concurvity) && !is.na(metric$overall_concurvity)
             if (has_error || !val_valid) {
                 result_str <- "NA"
-                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
             } else {
-                result_str <- sprintf("Index=%.3f", metric$concurvity_index)
-                interp_str <- if (metric$concurvity_index < 0.5) "low" else "high"
+                result_str <- sprintf("%.3f", metric$overall_concurvity)
             }
+            interp <- if (!val_valid || has_error) "Unknown" else if (metric$overall_concurvity < 0.5) "Low" else "High"
             rows[[length(rows) + 1]] <- list(
                 Characteristic = "Concurvity",
-                Test = "Smooth term collinearity",
+                Test = "Smooth collinearity",
                 Result = result_str,
-                Interpretation = interp_str
+                Interpretation = interp
             )
         }
         
-        # Effective DoF
-        if (!is.null(gam_metrics$effective_df_ratio)) {
-            metric <- gam_metrics$effective_df_ratio
+        # Effective DoF: actual key is edf with edf_ratio field
+        if (!is.null(gam_metrics$edf)) {
+            metric <- gam_metrics$edf
             has_error <- isTRUE(metric$error)
-            val_valid <- !is.null(metric$effective_df_ratio) && !is.na(metric$effective_df_ratio)
+            val_valid <- !is.null(metric$edf_ratio) && !is.na(metric$edf_ratio)
             if (has_error || !val_valid) {
                 result_str <- "NA"
-                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
             } else {
-                result_str <- sprintf("Ratio=%.3f", metric$effective_df_ratio)
-                interp_str <- if (metric$effective_df_ratio < 0.1) "over-smoothed" else if (metric$effective_df_ratio > 0.9) "under-smoothed" else "adequate"
+                result_str <- sprintf("%.3f", metric$edf_ratio)
             }
+            interp <- if (!val_valid || has_error) "Unknown" else if (metric$edf_ratio < 0.1) "Over-smoothed" else if (metric$edf_ratio > 0.9) "Under-smoothed" else "Adequate"
             rows[[length(rows) + 1]] <- list(
-                Characteristic = "Effective DoF",
-                Test = "Smoothing adequacy",
+                Characteristic = "EDF Ratio",
+                Test = "Smoothing",
                 Result = result_str,
-                Interpretation = interp_str
+                Interpretation = interp
             )
         }
         
-        # Non-linearity
-        if (!is.null(gam_metrics$r2_improvement)) {
-            metric <- gam_metrics$r2_improvement
+        # Non-linearity: actual key is nonlinearity with r2_improvement_percent field
+        if (!is.null(gam_metrics$nonlinearity)) {
+            metric <- gam_metrics$nonlinearity
             has_error <- isTRUE(metric$error)
-            val_valid <- !is.null(metric$r2_improvement) && !is.na(metric$r2_improvement)
+            val_valid <- !is.null(metric$r2_improvement_percent) && !is.na(metric$r2_improvement_percent)
             if (has_error || !val_valid) {
                 result_str <- "NA"
-                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
             } else {
-                r2_pct <- metric$r2_improvement * 100
-                result_str <- sprintf("Δ R²=%.1f%%", r2_pct)
-                interp_str <- if (r2_pct < 1) "use linear" else "use GAM"
+                result_str <- sprintf("%.1f%%", metric$r2_improvement_percent)
             }
+            interp <- if (!val_valid || has_error) "Unknown" else if (metric$r2_improvement_percent < 1) "Use linear" else "Use GAM"
             rows[[length(rows) + 1]] <- list(
                 Characteristic = "Non-linearity",
-                Test = "LM vs GAM improvement",
+                Test = "ΔR² vs LM",
                 Result = result_str,
-                Interpretation = interp_str
+                Interpretation = interp
             )
         }
         
-        # Basis Dimension
-        if (!is.null(gam_metrics$basis_dimension)) {
-            metric <- gam_metrics$basis_dimension
+        # Basis Adequacy: actual key is basis_adequacy with optimal_basis_dimension field
+        if (!is.null(gam_metrics$basis_adequacy)) {
+            metric <- gam_metrics$basis_adequacy
             has_error <- isTRUE(metric$error)
-            val_valid <- !is.null(metric$basis_dimension) && !is.na(metric$basis_dimension)
+            val_valid <- !is.null(metric$optimal_basis_dimension) && !is.na(metric$optimal_basis_dimension)
             if (has_error || !val_valid) {
                 result_str <- "NA"
-                interp_str <- if (has_error) "computation error" else "adequate"
             } else {
-                result_str <- sprintf("k=%d", metric$basis_dimension)
-                interp_str <- "adequate"
+                result_str <- sprintf("k=%d", metric$optimal_basis_dimension)
             }
+            interp <- if (!val_valid || has_error) "Unknown" else "Adequate"
             rows[[length(rows) + 1]] <- list(
                 Characteristic = "Basis Dimension",
-                Test = "Basis function adequacy",
+                Test = "Spline basis",
                 Result = result_str,
-                Interpretation = interp_str
+                Interpretation = interp
             )
         }
     }
@@ -927,84 +933,29 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
     if (!is.null(result$gee_metrics)) {
         gee_metrics <- result$gee_metrics
         
-        # Correlation Structure
-        if (!is.null(gee_metrics$correlation_structure)) {
-            metric <- gee_metrics$correlation_structure
-            has_error <- isTRUE(metric$error)
-            val_valid <- !is.null(metric$correlation_structure) && !is.na(metric$correlation_structure)
-            if (has_error || !val_valid) {
-                result_str <- "NA"
-                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
-            } else {
-                result_str <- sprintf("Structure=%s", metric$correlation_structure)
-                interp_str <- "good fit"
-            }
-            rows[[length(rows) + 1]] <- list(
-                Characteristic = "Correlation Structure",
-                Test = "Working correlation fit",
-                Result = result_str,
-                Interpretation = interp_str
+        # Extract details from each GEE metric (correlation_fit, cluster_variation, etc.)
+        for (metric_name in names(gee_metrics)) {
+            if (metric_name == "consolidated") next  # Skip consolidated summary
+            
+            metric <- gee_metrics[[metric_name]]
+            if (!is.list(metric)) next
+            
+            # Format result: just extract the essential value from details
+            result_val <- if (!is.null(metric$details)) {
+                # Extract just the numeric value if possible
+                gsub("<.*?>|\\s+\\(.*\\)", "", metric$details)  # Remove HTML/parenthetical info
+            } else "N/A"
+            
+            test_val <- if (!is.null(metric$method)) sub("^[^:]*:\\s*", "", metric$method) else capitalize_first(metric_name)
+            interp_val <- if (!is.null(metric$status)) gsub("✓|⚠|✗", "", metric$status) else "unknown"
+            
+            row_item <- list(
+                Characteristic = capitalize_first(metric_name),
+                Test = capitalize_first(test_val),
+                Result = substr(result_val, 1, 50),  # Truncate to 50 chars max
+                Interpretation = paste0(toupper(substring(interp_val, 1, 1)), substring(interp_val, 2))
             )
-        }
-        
-        # Cluster Variation
-        if (!is.null(gee_metrics$cluster_size_cv)) {
-            metric <- gee_metrics$cluster_size_cv
-            has_error <- isTRUE(metric$error)
-            val_valid <- !is.null(metric$cluster_size_cv) && !is.na(metric$cluster_size_cv)
-            if (has_error || !val_valid) {
-                result_str <- "NA"
-                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
-            } else {
-                result_str <- sprintf("CV=%.3f", metric$cluster_size_cv)
-                interp_str <- if (metric$cluster_size_cv < 0.5) "homogeneous" else "heterogeneous"
-            }
-            rows[[length(rows) + 1]] <- list(
-                Characteristic = "Cluster Variation",
-                Test = "Cluster size homogeneity",
-                Result = result_str,
-                Interpretation = interp_str
-            )
-        }
-        
-        # Independence
-        if (!is.null(gee_metrics$within_cluster_correlation)) {
-            metric <- gee_metrics$within_cluster_correlation
-            has_error <- isTRUE(metric$error)
-            val_valid <- !is.null(metric$within_cluster_correlation) && !is.na(metric$within_cluster_correlation)
-            if (has_error || !val_valid) {
-                result_str <- "NA"
-                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
-            } else {
-                result_str <- sprintf("Corr=%.3f", metric$within_cluster_correlation)
-                interp_str <- if (abs(metric$within_cluster_correlation) < 0.05) "independent" else "dependent"
-            }
-            rows[[length(rows) + 1]] <- list(
-                Characteristic = "Independence",
-                Test = "Within-cluster residual correlation",
-                Result = result_str,
-                Interpretation = interp_str
-            )
-        }
-        
-        # Scale Parameter
-        if (!is.null(gee_metrics$scale_parameter)) {
-            metric <- gee_metrics$scale_parameter
-            has_error <- isTRUE(metric$error)
-            val_valid <- !is.null(metric$scale_parameter) && !is.na(metric$scale_parameter)
-            if (has_error || !val_valid) {
-                result_str <- "NA"
-                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
-            } else {
-                result_str <- sprintf("φ=%.3f", metric$scale_parameter)
-                interp_str <- if (metric$scale_parameter < 1) "under-dispersed" else if (metric$scale_parameter > 1) "over-dispersed" else "adequate"
-            }
-            rows[[length(rows) + 1]] <- list(
-                Characteristic = "Scale Parameter",
-                Test = "Dispersion parameter",
-                Result = result_str,
-                Interpretation = interp_str
-            )
+            rows[[length(rows) + 1]] <- row_item
         }
     }
     
@@ -1013,44 +964,28 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
     if (!is.null(result$lmm_metrics)) {
         lmm_metrics <- result$lmm_metrics
         
-        # Variance Components
-        if (!is.null(lmm_metrics$icc)) {
-            metric <- lmm_metrics$icc
-            has_error <- isTRUE(metric$error)
-            val_valid <- !is.null(metric$icc) && !is.na(metric$icc)
-            if (has_error || !val_valid) {
-                result_str <- "NA"
-                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
-            } else {
-                result_str <- sprintf("ICC=%.3f", metric$icc)
-                interp_str <- if (metric$icc > 0.1) "lmm justified" else "lmm not justified"
-            }
-            rows[[length(rows) + 1]] <- list(
-                Characteristic = "Variance Components",
-                Test = "Intraclass correlation",
-                Result = result_str,
-                Interpretation = interp_str
+        # Extract details from each LMM metric (variance_components, normality, etc.)
+        for (metric_name in names(lmm_metrics)) {
+            if (metric_name == "consolidated") next  # Skip consolidated summary
+            
+            metric <- lmm_metrics[[metric_name]]
+            if (!is.list(metric)) next
+            
+            # Format result: just extract the essential value from details
+            result_val <- if (!is.null(metric$details)) {
+                gsub("<.*?>|\\s+\\(.*\\)", "", metric$details)  # Remove HTML/parenthetical info
+            } else "N/A"
+            
+            test_val <- if (!is.null(metric$method)) sub("^[^:]*:\\s*", "", metric$method) else capitalize_first(metric_name)
+            interp_val <- if (!is.null(metric$status)) gsub("✓|⚠|✗", "", metric$status) else "unknown"
+            
+            row_item <- list(
+                Characteristic = capitalize_first(metric_name),
+                Test = capitalize_first(test_val),
+                Result = substr(result_val, 1, 50),  # Truncate to 50 chars max
+                Interpretation = paste0(toupper(substring(interp_val, 1, 1)), substring(interp_val, 2))
             )
-        }
-        
-        # Random Effects Normality
-        if (!is.null(lmm_metrics$normality_p_value)) {
-            metric <- lmm_metrics$normality_p_value
-            has_error <- isTRUE(metric$error)
-            val_valid <- !is.null(metric$normality_p_value) && !is.na(metric$normality_p_value)
-            if (has_error || !val_valid) {
-                result_str <- "NA"
-                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
-            } else {
-                result_str <- sprintf("W p=%.3f", metric$normality_p_value)
-                interp_str <- if (metric$normality_p_value > 0.05) "normal" else "non-normal"
-            }
-            rows[[length(rows) + 1]] <- list(
-                Characteristic = "Random Effects Normality",
-                Test = "Shapiro-Wilk test",
-                Result = result_str,
-                Interpretation = interp_str
-            )
+            rows[[length(rows) + 1]] <- row_item
         }
     }
     
@@ -1059,84 +994,28 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
     if (!is.null(result$fpca_metrics)) {
         fpca_metrics <- result$fpca_metrics
         
-        # Variance Homogeneity (applies to FPCA)
-        if (!is.null(fpca_metrics$levene_p_value)) {
-            metric <- fpca_metrics$levene_p_value
-            has_error <- isTRUE(metric$error)
-            val_valid <- !is.null(metric$levene_p_value) && !is.na(metric$levene_p_value)
-            if (has_error || !val_valid) {
-                result_str <- "NA"
-                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
-            } else {
-                result_str <- sprintf("Levene p=%.3f", metric$levene_p_value)
-                interp_str <- if (metric$levene_p_value > 0.05) "homogeneous" else "heterogeneous"
-            }
-            rows[[length(rows) + 1]] <- list(
-                Characteristic = "Variance Homogeneity",
-                Test = "Levene's test",
-                Result = result_str,
-                Interpretation = interp_str
+        # Extract details from each FPCA metric (variance_adequacy, bootstrap_stability, etc.)
+        for (metric_name in names(fpca_metrics)) {
+            if (metric_name == "consolidated") next  # Skip consolidated summary
+            
+            metric <- fpca_metrics[[metric_name]]
+            if (!is.list(metric)) next
+            
+            # Format result: just extract the essential value from details
+            result_val <- if (!is.null(metric$details)) {
+                gsub("<.*?>|\\s+\\(.*\\)", "", metric$details)  # Remove HTML/parenthetical info
+            } else "N/A"
+            
+            test_val <- if (!is.null(metric$method)) sub("^[^:]*:\\s*", "", metric$method) else capitalize_first(metric_name)
+            interp_val <- if (!is.null(metric$status)) gsub("✓|⚠|✗", "", metric$status) else "unknown"
+            
+            row_item <- list(
+                Characteristic = capitalize_first(metric_name),
+                Test = capitalize_first(test_val),
+                Result = substr(result_val, 1, 50),  # Truncate to 50 chars max
+                Interpretation = paste0(toupper(substring(interp_val, 1, 1)), substring(interp_val, 2))
             )
-        }
-        
-        # Outlier Influence
-        if (!is.null(fpca_metrics$outlier_percentage)) {
-            metric <- fpca_metrics$outlier_percentage
-            has_error <- isTRUE(metric$error)
-            val_valid <- !is.null(metric$outlier_percentage) && !is.na(metric$outlier_percentage)
-            if (has_error || !val_valid) {
-                result_str <- "NA"
-                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
-            } else {
-                result_str <- sprintf("Influential=%.1f%%", metric$outlier_percentage * 100)
-                interp_str <- if (metric$outlier_percentage < 0.1) "no outliers" else "many outliers"
-            }
-            rows[[length(rows) + 1]] <- list(
-                Characteristic = "Outlier Influence",
-                Test = "Cook's distance assessment",
-                Result = result_str,
-                Interpretation = interp_str
-            )
-        }
-        
-        # Variance Adequacy
-        if (!is.null(fpca_metrics$components_for_threshold)) {
-            metric <- fpca_metrics$components_for_threshold
-            has_error <- isTRUE(metric$error)
-            val_valid <- !is.null(metric$components_for_threshold) && !is.na(metric$components_for_threshold)
-            if (has_error || !val_valid) {
-                result_str <- "NA"
-                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
-            } else {
-                result_str <- sprintf("Components for 95%%=%.0f", metric$components_for_threshold)
-                interp_str <- if (metric$components_for_threshold <= 5) "good reduction" else "poor reduction"
-            }
-            rows[[length(rows) + 1]] <- list(
-                Characteristic = "Variance Adequacy",
-                Test = "Cumulative variance explained",
-                Result = result_str,
-                Interpretation = interp_str
-            )
-        }
-        
-        # Bootstrap Stability
-        if (!is.null(fpca_metrics$bootstrap_cv)) {
-            metric <- fpca_metrics$bootstrap_cv
-            has_error <- isTRUE(metric$error)
-            val_valid <- !is.null(metric$bootstrap_cv) && !is.na(metric$bootstrap_cv)
-            if (has_error || !val_valid) {
-                result_str <- "NA"
-                interp_str <- if (has_error) "computation error" else gsub("✓|⚠|✗", "", metric$status %||% "unknown")
-            } else {
-                result_str <- sprintf("CV=%.3f", metric$bootstrap_cv)
-                interp_str <- if (metric$bootstrap_cv < 0.3) "stable" else "moderate stability"
-            }
-            rows[[length(rows) + 1]] <- list(
-                Characteristic = "Bootstrap Stability",
-                Test = "PC loading stability via bootstrap",
-                Result = result_str,
-                Interpretation = interp_str
-            )
+            rows[[length(rows) + 1]] <- row_item
         }
     }
     
@@ -1148,8 +1027,44 @@ results <- function(analysis, type, q = NULL, rankBy = "none",
     df <- do.call(rbind, lapply(rows, as.data.frame, stringsAsFactors = FALSE))
     rownames(df) <- NULL
     
-    # Return formatted data frame
-    df
+    # Return format based on format parameter
+    if (format == "list") {
+        # Return structured list
+        return(list(
+            assumptions_table = df,
+            raw_result = result
+        ))
+    }
+    
+    # Default (format = "text"): Return formatted text
+    output_lines <- c("\nRank-Based Test Assumptions\n")
+    output_lines <- c(output_lines, .format_data_frame_as_text(df))
+    
+    # Combine all lines into single text string
+    formatted_text <- paste(output_lines, collapse = "")
+    
+    # Add custom class for printing
+    class(formatted_text) <- c("assumptions_text", "character")
+    formatted_text
+}
+
+# ============================================================================
+# Custom Print Method for assumptions_text
+# ============================================================================
+
+#' Print method for assumptions_text class
+#'
+#' Properly displays formatted assumptions text by interpreting newline characters
+#'
+#' @param x An object of class \code{assumptions_text}
+#' @param ... Additional arguments (unused)
+#'
+#' @return Invisibly returns the input object
+#'
+#' @exportS3Method base::print
+print.assumptions_text <- function(x, ...) {
+    cat(x)
+    invisible(x)
 }
 
 # ============================================================================
