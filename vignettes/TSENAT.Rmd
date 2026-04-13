@@ -764,8 +764,6 @@ kableExtra::kable_styling(
 )
 ```
 
-The effect sizes reveal which genes show the most information-theoretic separation across the q-spectrum between paired treatment groups. Genes with Tsallis divergence D > 0.1 show substantial divergence, indicating fundamental differences in entropy distributions between conditions.
-
 ### Interpretation of Pattern Types:
 
 | Pattern Type | Signature | Biological Meaning |
@@ -812,19 +810,13 @@ print(p_multi)
 
 Interpreting the Q-Spectrum Curve:
 
-- Shape matters more than single value: The **q-spectrum** curve is the complete biological story [@I021]. 
+- **Shape matters more than single value**: The **q-spectrum** curve is the complete biological story [@I021]. 
   A flat curve (balanced) vs. declining curve (rare driven) vs. rising curve (abundant driven) 
-  encode fundamentally different mechanisms [@I059].
+  encode fundamentally different mechanisms [@I059]. As described in the pattern table above, genes falling into 
+  each category reveal different regulatory strategies.
 
-- q=1 (KL divergence): The middle point corresponds to ordinary Kullback-Leibler divergence [@K001; @I060], 
-  where in the limit q->1 the Tsallis divergence reduces to standard KL divergence [@I060]. 
-  This weights all isoforms equally. This is the "average" effect.
-- q < 1 (rare isoforms): Emphasizes how much low-abundance transcripts differ between 
-  groups [@I007; @I008; @I010]. If D(q=0.5) >> D(q=1), the divergence is driven by changes in rare variants.
-- q > 1 (abundant isoforms): Emphasizes dominant transcripts [@I007; @I008]. If D(q=2) >> D(q=1), major 
-  isoforms rebalance while rare ones stay similar.
-
-
+- **q=1 (KL divergence)**: The middle point corresponds to ordinary Kullback-Leibler divergence [@K001; @I060], 
+  where the Tsallis divergence reduces to standard KL divergence in the limit q→1. This weights all isoforms equally.
 
 
 We can also plot the global divergence spectrum across all genes. 

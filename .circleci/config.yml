@@ -83,6 +83,7 @@ jobs:
           name: Build package
           command: |
             R CMD build --compact-vignettes=both .
+          no_output_timeout: 20m
       - run:
           name: Fetch tools and CI config from maintenance branch
           command: |
