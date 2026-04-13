@@ -97,13 +97,14 @@ Create a configuration object specifying your experimental design parameters (sa
 ```r
 ## Create configuration file
 config <- TSENAT_config(
+  q = seq(0, 2, by = 0.05),
   sample_col = "sample",
   condition_col = "condition",
-  subject_col = "paired_samples",
-  q = seq(0, 2, by = 0.05),
-  nthreads = 2,
   paired = TRUE,
-  control = "normal")
+  subject_col = "paired_samples",
+  control = "normal",
+  nthreads = 2
+)
 
 ## Build TSENATAnalysis object
 analysis <- build_analysis(

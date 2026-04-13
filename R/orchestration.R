@@ -9,7 +9,7 @@
 #' Run complete TSENAT analysis pipeline
 #'
 #' Coordinates the full TSENAT workflow: diversity -> jackknife -> LM
-#' interactions -> divergence -> gene interactions -> visualizations.
+#' interactions -> divergence -> gene interactions -> rank-based tests -> concordance -> visualizations.
 #'
 #' @param analysis \code{TSENATAnalysis} object created by \code{\link{build_analysis}}.
 #' @param output_dir \code{character}. Directory to save results and plots.
@@ -39,6 +39,9 @@
 #'   \item \code{calculate_effect_sizes()} - Effect size computation
 #'   \item \code{plot_divergence_distribution()} - Divergence distribution plot
 #'   \item \code{plot_divergence_spectrum()} - Divergence spectrum plot
+#'   \item \code{calculate_assumptions()} - Validate rank-based test assumptions
+#'   \item \code{calculate_srh()} - Scheirer-Ray-Hare rank-based interaction test
+#'   \item \code{calculate_concordance()} - Compare LM and rank test results
 #' }
 #'
 #' @examples
@@ -184,6 +187,18 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
     step_start <- Sys.time()
     analysis <- .execute_divergence_spectrum_plot(analysis, verbose, output_dir)
     step_times[["div_spectrum_plot"]] <- Sys.time() - step_start
+
+    step_start <- Sys.time()
+    analysis <- .execute_assumptions_check(analysis, verbose, output_dir, output_format)
+    step_times[["assumptions"]] <- Sys.time() - step_start
+
+    step_start <- Sys.time()
+    analysis <- .execute_srh_test(analysis, verbose, output_dir, output_format)
+    step_times[["srh_test"]] <- Sys.time() - step_start
+
+    step_start <- Sys.time()
+    analysis <- .execute_concordance_analysis(analysis, verbose, output_dir, output_format)
+    step_times[["concordance"]] <- Sys.time() - step_start
     
     if (verbose)
         message("=============================================================")
@@ -406,9 +421,19 @@ TSENAT_config <- function(q = 1.0, condition_col = "condition", subject_col = NU
     bootstrap_ci = 0.95, bootstrap_include_diagnostics = TRUE, min_valid_frac = 0.75,
     norm_method = NULL, pseudocount = 0, shrinkage = "none", lm_method = "gam",
     lm_pcorr = "BH", jis_use_lm_fdr = TRUE, divergence_ci = 0.95, ...) {
+    # Validate always-required parameters
+    if (is.null(sample_col) || !is.character(sample_col)) {
+        stop("'sample_col' is required and must be character (column name for samples)",
+            call. = FALSE)
+    }
+    if (is.null(condition_col) || !is.character(condition_col)) {
+        stop("'condition_col' is required and must be character (column name for experimental condition)",
+            call. = FALSE)
+    }
+    
     # Validate q parameter (single or multiple q-values)
     if (is.null(q)) {
-        stop("'q' must be specified (q-value or q-values for diversity/statistics calculations).", 
+        stop("'q' is required (q-value or q-values for diversity/statistics calculations).", 
             call. = FALSE)
     }
     if (!is.numeric(q) || any(q < 0) || any(q > 2)) {
@@ -487,24 +512,24 @@ TSENAT_config <- function(q = 1.0, condition_col = "condition", subject_col = NU
     if (paired == TRUE) {
         missing_paired_params <- c()
         
-        if (is.null(subject_col)) {
+        if (is.null(subject_col) || !is.character(subject_col)) {
             missing_paired_params <- c(missing_paired_params, "subject_col")
         }
-        if (is.null(control)) {
+        if (is.null(control) || !is.character(control)) {
             missing_paired_params <- c(missing_paired_params, "control")
         }
         
         if (length(missing_paired_params) > 0) {
-            warning("[TSENAT_config] Paired design (paired=TRUE) requires complete configuration.\n",
-                "  Missing or incomplete parameters: ", paste(missing_paired_params, collapse = ", "), "\n",
-                "  This will cause downstream analysis failure or empty results (LM interaction, plotting).\n",
+            stop("[TSENAT_config] Paired design (paired=TRUE) requires: ", 
+                paste(missing_paired_params, collapse = ", "), "\n",
                 "  Provide all parameters: \n",
                 "    config <- TSENAT_config(\n",
                 "      q = 1.0,                              # Q-value for Tsallis entropy\n",
-                "      condition_col = 'condition',\n",
-                "      subject_col = 'paired_samples',      # Required for paired analysis\n",
+                "      sample_col = 'sample',               # Required always\n",
+                "      condition_col = 'condition',         # Required always\n",
+                "      subject_col = 'paired_samples',      # Required for paired=TRUE\n",
                 "      paired = TRUE,\n",
-                "      control = 'normal'                    # Reference group for comparisons\n",
+                "      control = 'normal'                    # Required for paired=TRUE\n",
                 "    )",
                 call. = FALSE)
         }
@@ -803,7 +828,7 @@ TSENAT_config <- function(q = 1.0, condition_col = "condition", subject_col = NU
 #' @noRd
 .execute_effect_sizes_s4 <- function(analysis, verbose, output_dir, output_format) {
     if (verbose)
-        message(sprintf("[>] [%2d/14] Computing effect sizes for divergence", 12))
+        message(sprintf("[>] [%2d/17] Computing effect sizes for divergence", 12))
     tryCatch({
         output_file <- .build_output_file("effect_sizes", output_dir, output_format)
         analysis <- calculate_effect_sizes(analysis, verbose = FALSE, output_file = output_file)
@@ -820,7 +845,7 @@ TSENAT_config <- function(q = 1.0, condition_col = "condition", subject_col = NU
 #' @noRd
 .execute_divergence_dist_plot <- function(analysis, verbose, output_dir) {
     if (verbose)
-        message(sprintf("[>] [%2d/14] Plotting divergence distribution", 13))
+        message(sprintf("[>] [%2d/17] Plotting divergence distribution", 13))
     tryCatch({
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "divergence_distribution_plot.png") else NULL
         p_div_dist <- plot_divergence_distribution(analysis, output_file = output_file)
@@ -841,7 +866,7 @@ TSENAT_config <- function(q = 1.0, condition_col = "condition", subject_col = NU
 #' @noRd
 .execute_divergence_spectrum_plot <- function(analysis, verbose, output_dir) {
     if (verbose)
-        message(sprintf("[>] [%2d/14] Plotting divergence spectrum", 14))
+        message(sprintf("[>] [%2d/17] Plotting divergence spectrum", 14))
     tryCatch({
         # Plot 1: Global spectrum plot (all genes)
         output_file <- if (!is.null(output_dir)) file.path(output_dir, "divergence_spectrum_plot.png") else NULL
@@ -867,6 +892,60 @@ TSENAT_config <- function(q = 1.0, condition_col = "condition", subject_col = NU
         if (verbose)
             warning("Divergence spectrum plot failed: ", e$message, call. = FALSE)
     })
+    analysis
+}
+
+#' Step 15: Assumptions check for rank-based tests
+#' @noRd
+.execute_assumptions_check <- function(analysis, verbose, output_dir, output_format) {
+    if (verbose)
+        message(sprintf("[>] [%2d/17] Validating rank-based test assumptions", 15))
+    
+    output_file <- .build_output_file("assumptions_check", output_dir, output_format)
+    analysis <- calculate_assumptions(analysis, checks = "all", verbose = FALSE, 
+                                     output_file = output_file)
+    
+    if (verbose)
+        message("          [OK] Assumptions validated")
+    analysis
+}
+
+#' Step 16: Scheirer-Ray-Hare rank-based test
+#' @noRd
+.execute_srh_test <- function(analysis, verbose, output_dir, output_format) {
+    if (verbose)
+        message(sprintf("[>] [%2d/17] Running Scheirer-Ray-Hare rank-based test", 16))
+    
+    # Compute diversity for SRH analysis with bootstrap CIs
+    analysis <- calculate_diversity(analysis, norm = TRUE, pseudocount = "auto", 
+                                   verbose = FALSE)
+    
+    # Run SRH test for q * condition interaction
+    output_file <- .build_output_file("srh_results", output_dir, output_format)
+    analysis <- calculate_srh(analysis, multicorr = "hochberg", verbose = FALSE, 
+                             output_file = output_file)
+    
+    if (verbose)
+        message("          [OK] Scheirer-Ray-Hare test completed")
+    analysis
+}
+
+#' Step 17: Concordance analysis comparing LM and rank test results
+#' @noRd
+.execute_concordance_analysis <- function(analysis, verbose, output_dir, output_format) {
+    if (verbose)
+        message(sprintf("[>] [%2d/17] Computing concordance between LM and rank test results", 17))
+    
+    output_file <- .build_output_file("concordance_results", output_dir, output_format)
+    
+    # Note: concordance requires both analysis_lm and analysis_rank parameters
+    # For a two-analysis pipeline, use:
+    # analysis <- calculate_concordance(analysis_lm = analysis_lm, analysis_rank = analysis,
+    #                                   verbose = FALSE, output_file = output_file)
+    analysis <- calculate_concordance(analysis, verbose = FALSE, output_file = output_file)
+    
+    if (verbose)
+        message("          [OK] Concordance analysis completed")
     analysis
 }
 
