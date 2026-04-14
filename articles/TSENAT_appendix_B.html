@@ -369,21 +369,22 @@ across multiple dimensions.</p>
 <span><span class="co"># Get assumptions</span></span>
 <span><span class="va">assumptions_text</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"assumptions"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">assumptions_text</span><span class="op">)</span></span></code></pre></div>
+<div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
 <table class="table table table-striped table-hover table-condensed table-responsive" style="margin-left: auto; margin-right: auto;">
 <caption>
 Assumption Checks for Scheirer-Ray-Hare Test
 </caption>
 <thead><tr>
-<th style="text-align:left;">
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 Characteristic
 </th>
-<th style="text-align:left;">
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 Test
 </th>
-<th style="text-align:left;">
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 Result
 </th>
-<th style="text-align:left;">
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 Interpretation
 </th>
 </tr></thead>
@@ -628,7 +629,9 @@ Moderate stability
 </tr>
 </tbody>
 </table>
-<!-- Diagnostic note for GAM metrics --><p><strong>Interpretation of Results:</strong> The exchangeability test,
+</div>
+<!-- Diagnostic note for GAM metrics -->
+<p><strong>Interpretation of Results:</strong> The exchangeability test,
 the unique assumption of the SRH test, detects strong serial correlation
 (p ≈ 0), indicating that consecutive samples are more correlated than
 expected by chance. This violation of exchangeability is <strong>not
@@ -664,16 +667,17 @@ samples.</p>
 <span><span class="co"># Extract top significant genes for display</span></span>
 <span><span class="va">srh_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"rank_test"</span>, rankBy <span class="op">=</span> <span class="st">"pvalue"</span>, n <span class="op">=</span> <span class="fl">20</span>, filterFDR <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">srh_results</span>, n <span class="op">=</span> <span class="fl">10</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
 <table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption>
 Supplementary Table 3 | Scheirer-Ray-Hare Test Results Summary.
 Rank-based nonparametric test of <em>q</em> × condition interactions.
 </caption>
 <thead><tr>
-<th style="text-align:left;">
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 Metric
 </th>
-<th style="text-align:right;">
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 Value
 </th>
 </tr></thead>
@@ -753,30 +757,32 @@ paired designs.
 </tr>
 </tfoot>
 </table>
+</div>
+<div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
 <table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption>
 Supplementary Table 4 | Top genes identified by Scheirer-Ray-Hare
 rank-based test.
 </caption>
 <thead><tr>
-<th style="text-align:left;">
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 </th>
-<th style="text-align:left;">
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 Gene
 </th>
-<th style="text-align:left;">
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 P-value
 </th>
-<th style="text-align:left;">
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 Adj. P-value
 </th>
-<th style="text-align:left;">
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 F-Statistic
 </th>
-<th style="text-align:left;">
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 Effect Size (η²)
 </th>
-<th style="text-align:left;">
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 Interaction Class
 </th>
 </tr></thead>
@@ -1027,6 +1033,7 @@ shown in scientific notation for precision.
 </tr>
 </tfoot>
 </table>
+</div>
 <p>Visualize q-curves for top genes:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot top genes from SRH test (using all genes, not just significant ones)</span></span>
@@ -1056,15 +1063,16 @@ vignette (<a href="TSENAT.Rmd">TSENAT.Rmd</a>).</p>
 <span><span class="co"># Extract GAM/LM results for inspection using accessor function</span></span>
 <span><span class="va">gam_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis_lm</span>, type <span class="op">=</span> <span class="st">"lm"</span>, rankBy <span class="op">=</span> <span class="st">"pvalue"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">gam_results</span><span class="op">)</span></span></code></pre></div>
+<div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
 <table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption>
 GAM Results Summary
 </caption>
 <thead><tr>
-<th style="text-align:left;">
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 Metric
 </th>
-<th style="text-align:right;">
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 Value
 </th>
 </tr></thead>
@@ -1148,27 +1156,29 @@ effect size &gt; 30% indicates strong biological signal.
 </tr>
 </tfoot>
 </table>
+</div>
+<div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
 <table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption>
 Top 10 Genes by GAM p-value (with Effect Size and Test Statistics)
 </caption>
 <thead><tr>
-<th style="text-align:left;">
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 Gene
 </th>
-<th style="text-align:right;">
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 p (interaction)
 </th>
-<th style="text-align:right;">
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 Adjusted p
 </th>
-<th style="text-align:right;">
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 Effect size
 </th>
-<th style="text-align:right;">
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 Test statistic
 </th>
-<th style="text-align:right;">
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 df
 </th>
 </tr></thead>
@@ -1388,6 +1398,7 @@ shown in scientific notation; effect size range 0-100%.
 </tr>
 </tfoot>
 </table>
+</div>
 <hr>
 </div>
 <div class="section level2">
@@ -1413,15 +1424,16 @@ frameworks.</p>
 <span></span>
 <span><span class="co"># Extract concordance results with list format for component display</span></span>
 <span><span class="va">concordance_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"concordance"</span>, format <span class="op">=</span> <span class="st">"list"</span><span class="op">)</span></span></code></pre></div>
+<div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
 <table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
 <caption>
 Global Concordance Metrics: GAM vs Scheirer-Ray-Hare Methods
 </caption>
 <thead><tr>
-<th style="text-align:left;">
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 Metric
 </th>
-<th style="text-align:right;">
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 Value
 </th>
 </tr></thead>
@@ -1492,18 +1504,20 @@ Discordance rate
 </tr>
 </tbody>
 </table>
+</div>
+<div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
 <table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
 <caption>
 Agreement Distribution: Concordance by Gene Category
 </caption>
 <thead><tr>
-<th style="text-align:left;">
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 Agreement Category
 </th>
-<th style="text-align:right;">
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 Number of Genes
 </th>
-<th style="text-align:right;">
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 Percentage
 </th>
 </tr></thead>
@@ -1554,25 +1568,27 @@ Neither significant
 </tr>
 </tbody>
 </table>
+</div>
+<div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
 <table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption>
 Robust Entropic Order Index Interactions: High-Confidence Genes Detected
 by Both Methods (n=2, ranked by statistical significance)
 </caption>
 <thead><tr>
-<th style="text-align:left;">
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 Gene
 </th>
-<th style="text-align:right;">
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 LM adj p
 </th>
-<th style="text-align:right;">
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 Rank test adj p
 </th>
-<th style="text-align:right;">
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 LM Effect
 </th>
-<th style="text-align:right;">
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 Rank test rho^2
 </th>
 </tr></thead>
@@ -1627,6 +1643,7 @@ size.
 </tr>
 </tfoot>
 </table>
+</div>
 <div class="section level3">
 <h3 id="statistical-power-vs--robustness-understanding-method-discordance">Statistical Power vs. Robustness: Understanding Method
 Discordance<a class="anchor" aria-label="anchor" href="#statistical-power-vs--robustness-understanding-method-discordance"></a>

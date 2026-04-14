@@ -623,7 +623,8 @@ adjusted p-values (*q* \< 0.05). Benjamini-Hochberg correction applied;
 columns show gene identifier, effect size, test statistic, convergence
 status, and heteroscedasticity detection. Methods: GAMs with *q* and
 condition as smooth predictors (Benjamini and Hochberg 1995). {.table
-.table style="margin-left: auto; margin-right: auto;"}
+.table .table-striped .table-hover
+style="margin-left: auto; margin-right: auto;"}
 
 **Interpretation:** TRUE in the Heteroscedasticity column indicates that
 the model satisfies homogeneity-of-variance assumptions across the
@@ -723,9 +724,7 @@ whether different entropic indices emphasize different transcripts.
 
 ``` r
 
-# Retrieve gene switching tables (default format="text" returns structured list)
-# format="text" returns: $gene_headers, $comparison_tables, $q_metadata for vignette display
-# format="raw" returns original named list of data frames per gene for direct access
+# Retrieve gene switching tables
 tables_result <- results(analysis, type = "switching_tables")
 ```
 
