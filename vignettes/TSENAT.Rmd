@@ -41,11 +41,11 @@ suppressPackageStartupMessages(library(kableExtra))
 
 # Overview
 
-TSENAT (Tsallis Entropy Analysis Toolbox) quantifies **isoform complexity** in RNA-seq data using Tsallis entropy-a scale-dependent diversity measure distinct from abundance-focused tools (DESeq2, edgeR) and differential transcript usage packages (DRIMseq, SplicingFactory).
+TSENAT (Tsallis Entropy Analysis Toolbox) allows the modelation and quantification of isoform-usage compexity in RNA-seq data using Tsallis entropy, a scale-dependent diversity measure distinct from abundance-focused tools (DESeq2, edgreR) and differential transcript usage packages (DRIMSeq). By tuning the entropy index parameter (q), TSENAT enables to examine transcriptome heterogenerity at different scales: rare variants (low q) or dominant isoforms (high q). This package enables computing Tsallis entropy and Tsallis divergence from transcript-level abundance estimates, comparing measures between groups, and visualizing scale-dependent differences via q-curves.
 
 ## Motivation and Bioconductor Contribution
 
-Common RNA-seq tools focus on either total gene abundance changes or individual transcript usage shifts, yet genes often remodel their isoform landscapes without changing overall expression-a phenomenon missed by these approaches. TSENAT quantifies this isoform complexity directly via Tsallis entropy, a scale-dependent diversity framework tuned by parameter `q`. By sliding `q` across scales, it makes possble to zoom between rare variants (low `q`) and dominant isoforms (high `q`), capturing biological signal invisible to abundance- or proportion-based summaries.
+Common RNA-seq tools focus on either total gene abundance changes or individual transcript usage shifts, yet genes often remodel their isoform landscapes without changing overall expression-a phenomenon missed by these approaches. TSENAT make possible to quantify this isoform complexity directly via Tsallis entropy, allowing to capture biological signal invisible to abundance- or proportion-based summaries.
 
 In this guide, we demonstrate the complete workflow: preprocessing transcript counts, computing entropy across entropic indices, testing for between-group differences, and visualizing scale-dependent complexity.
 
@@ -654,19 +654,18 @@ This heatmap reveals a critical blind spot in standard transcript quantification
 
 ## Effect Size Analysis
 
-To understand which diversity scales show the most pronounced biological differences 
-between groups, we compute effect size metrics (Tsallis divergence $D_q$) across the q-spectrum while respecting the paired sample design. This reveals whether group differences are driven by rare 
-isoforms (low q), dominant isoforms (high q), or uniformly across scales.
+To understand which diversity scales show the most pronounced biological differences between groups, we will compute Tsallis divergence $D_q$ across the q-spectrum [@K001; @I002; @I003; @I004; @I059; @I061]]. This metrics allows to reveal whether group differences are driven by rare isoforms (low q), dominant isoforms (high q), or uniformly across scales. Values $D > 0.1$ indicate meaningful information-theoretic separation between conditions, revealing that isoform complexity patterns fundamentally differ between treatment groups across all q-dependent scales [@I060]. 
 
-The approach uses linear mixed-effects regression (LMM) with q as continuous predictor to assess slope differences in entropy change across the q-spectrum between treatment groups, with effect size computed as Tsallis divergence $D_q$(control||treatment) [@K001; @I002; @I003; @I004; @I059]. For paired designs, divergence is computed separately for each pair and then averaged, accounting for within-pair correlation and reducing noise from between-pair variation [@I057]. 
+For two probability distributions $P$ and $Q$ representing isoform proportions in control and treatment conditions, Tsallis divergence is:
 
-The mean divergence across q values serves as the effect size, automatically capturing how entropy distributions differ between control and treatment groups at all scales (rare to abundant isoforms). Values $D > 0.1$ indicate meaningful information-theoretic separation between conditions, revealing that isoform complexity patterns fundamentally differ between treatment groups across all q-dependent scales [@I060]. This information-theoretic measure automatically respects Tsallis entropy properties and adapts to each q value, enabling scale-dependent effect size estimation [@I061].
+$$D_q(P||Q) = \frac{1 - \sum_i p_i^q \cdot q_i^{1-q}}{q-1}$$
+
+where $p_i$ and $q_i$ are the probability values at position $i$.
 
 ```{r effect-size-multiq}
 # Computes pairwise information-theoretic distance (Tsallis divergence)
 analysis <- calculate_divergence(analysis)
 ```
-
 
 ```{r divergence-assay-display, echo = FALSE, results="asis"}
 # Display the raw divergence computation results
