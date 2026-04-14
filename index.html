@@ -171,7 +171,6 @@
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Returns: Fully configured TSENATAnalysis object</span></span>
 <span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/TSENAT.html">TSENAT</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></code></pre></div>
-<p>For a complete walkthrough of the analysis pipeline with real biological examples, see the <a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT.html">main package vignette</a>. This includes theory background, step-by-step explanations of each analysis function, and interpretation guidance for understanding your results.</p>
 </div>
 <div class="section level3">
 <h3 id="accessing-results">Accessing Results<a class="anchor" aria-label="anchor" href="#accessing-results"></a>
@@ -181,12 +180,19 @@
 <code class="sourceCode R"><span><span class="co"># Unified interface: request results by type</span></span>
 <span><span class="va">diversity_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/results.html">results</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"diversity"</span><span class="op">)</span></span>
 <span><span class="va">lm_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/results.html">results</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"lm"</span><span class="op">)</span></span>
-<span><span class="va">rank_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/results.html">results</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"rank_test"</span><span class="op">)</span></span>
 <span><span class="va">jackknife_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/results.html">results</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"jackknife"</span>, q <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Filter and rank results flexibly</span></span>
 <span><span class="va">ranked_lm</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/results.html">results</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"lm"</span>, rankBy <span class="op">=</span> <span class="st">"padj"</span>, n <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
-<span><span class="va">filtered_diversity</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/results.html">results</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"diversity"</span>, q <span class="op">=</span> <span class="fl">1.0</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">filtered_diversity</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/results.html">results</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"diversity"</span>, q <span class="op">=</span> <span class="fl">1.0</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Retrieve plots</span></span>
+<span><span class="va">diversity_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/results.html">results</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"diversity"</span>, plot<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">diveristy_plot</span><span class="op">)</span></span></code></pre></div>
+<div class="float">
+<img src="https://raw.githubusercontent.com/gallardoalba/TSENAT/gh-pages/articles/TSENAT_files/figure-html/fig-1-isoform-diversity-profiles-1.png" alt="Isoform diversity profiles across q-values: TSENAT detects scale-dependent diversity patterns"><div class="figcaption">Isoform diversity profiles across q-values: TSENAT detects scale-dependent diversity patterns</div>
+</div>
+<p>For a complete walkthrough of the analysis pipeline with real biological examples, see the <a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT.html">main package vignette</a>. This includes theory background, step-by-step explanations of each analysis function, and interpretation guidance for understanding your results.</p>
 </div>
 </div>
 <div class="section level2">
@@ -262,7 +268,6 @@
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Build analysis directly from Salmon output directory</span></span>
-<span><span class="co"># IMPORTANT: Use named parameters (salmon_dir=, tx2gene=)</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/build_analysis.html">build_analysis</a></span><span class="op">(</span></span>
 <span>  salmon_dir <span class="op">=</span> <span class="st">"path/to/salmon_output"</span>,  <span class="co"># Auto-discovers all quant.sf files</span></span>
 <span>  tx2gene <span class="op">=</span> <span class="st">"path/to/annotation.gff3.gz"</span>,  <span class="co"># Transcript-to-gene mapping</span></span>
