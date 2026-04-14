@@ -190,7 +190,6 @@ config <- TSENAT_config(
 )
 
 # Build analysis directly from Salmon output directory
-# IMPORTANT: Use named parameters (salmon_dir=, tx2gene=)
 analysis <- build_analysis(
   salmon_dir = "path/to/salmon_output",  # Auto-discovers all quant.sf files
   tx2gene = "path/to/annotation.gff3.gz",  # Transcript-to-gene mapping
