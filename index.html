@@ -203,8 +203,8 @@
 <ul>
 <li>Linear Mixed Models (LMM): Parametric testing with AR(1) correlation structure for repeated measures. GAM, LMM, GEE and FPCA are all parameterized to handle non-normality and heteroscedasticity characteristic of entropy data.</li>
 <li>Scheirer-Ray-Hare rank tests: The test operates solely on ranks, making it robust to outliers and extreme values. However, it shows lower power for interactions and can inflate Type I errors under heterogeneous variance. These limitations are mitigated through Hochberg multiple testing correction.</li>
-<li>M-estimation: Outlier-resistant effect size calculations.</li>
-<li>Jackknife leave-one-out for identifying outlier-influential samples.</li>
+<li>M-estimation: Robust location estimation for group comparison using iteratively re-weighted least squares, resistant to outliers.</li>
+<li>Jackknife isoform switching: Leave-one-out resampling to identify transcripts with condition-specific switching patterns and quantify their influence on entropy differences.</li>
 </ul>
 </div>
 <div class="section level2">

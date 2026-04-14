@@ -234,8 +234,11 @@ The statistical methods available in TSENAT include:
   lower power for interactions and can inflate Type I errors under
   heterogeneous variance. These limitations are mitigated through
   Hochberg multiple testing correction.
-- M-estimation: Outlier-resistant effect size calculations.
-- Jackknife leave-one-out for identifying outlier-influential samples.
+- M-estimation: Robust location estimation for group comparison using
+  iteratively re-weighted least squares, resistant to outliers.
+- Jackknife isoform switching: Leave-one-out resampling to identify
+  transcripts with condition-specific switching patterns and quantify
+  their influence on entropy differences.
 
 ## Related Packages
 

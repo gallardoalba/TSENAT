@@ -64,7 +64,7 @@
 Gallardo <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2026-04-14</h4>
+            <h4 data-toc-skip class="date">2026-04-15</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gallardoalba/TSENAT/blob/HEAD/vignettes/TSENAT.Rmd" class="external-link"><code>vignettes/TSENAT.Rmd</code></a></small>
       <div class="d-none name"><code>TSENAT.Rmd</code></div>
@@ -72,56 +72,28 @@ Gallardo <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a
 
     
     
-<style type="text/css">
-/* Fix table rendering in scroll containers */
-div[style*="overflow-x: scroll"] {
-  display: block !important;
-  width: 100% !important;
-}
-
-div[style*="overflow-x: scroll"] > table,
-div[style*="overflow-x: scroll"] .table {
-  width: 100% !important;
-  min-width: 100% !important;
-  display: table !important;
-}
-
-div[style*="overflow-x: scroll"] thead th {
-  position: sticky;
-  top: 0;
-  background-color: #FFFFFF;
-  z-index: 10;
-}
-
-.table {
-  width: 100%;
-}
-</style>
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>TSENAT (Tsallis Entropy Analysis Toolbox) quantifies <strong>isoform
-heterogeneity</strong> in RNA-seq data using Tsallis entropy-a
-scale-dependent diversity measure distinct from abundance-focused tools
-(DESeq2, Salmon) and differential transcript usage packages
-(<em>SplicingFactory</em>). By tuning a sensitivity parameter
-<code>q</code>, users examine diversity at different scales: rare
-variants (low <code>q</code>) or dominant isoforms (high
-<code>q</code>). This package enables computing Tsallis entropy from
+<p>TSENAT (Tsallis Entropy Analysis Toolbox) allows the modelization and
+quantification of isoform-usage complexity in RNA-seq data using Tsallis
+entropy, a scale-dependent diversity measure distinct from
+abundance-focused tools (DESeq2, edgeR) and differential transcript
+usage packages (DRIMSeq). By tuning the entropy index parameter (q),
+TSENAT enables to examine transcriptome heterogeneity at different
+scales: rare variants (low q) or dominant isoforms (high q). This
+package enables computing Tsallis entropy and Tsallis divergence from
 transcript-level abundance estimates, comparing measures between groups,
 and visualizing scale-dependent differences via q-curves.</p>
 <div class="section level3">
 <h3 id="motivation-and-bioconductor-contribution">Motivation and Bioconductor Contribution<a class="anchor" aria-label="anchor" href="#motivation-and-bioconductor-contribution"></a>
 </h3>
 <p>Common RNA-seq tools focus on either total gene abundance changes or
-individual transcript usage shifts. Yet genes often remodel their
+individual transcript usage shifts, yet genes often remodel their
 isoform landscapes without changing overall expression-a phenomenon
-missed by these approaches. TSENAT quantifies this <em>isoform
-complexity</em> directly via Tsallis entropy, a scale-dependent
-diversity framework tuned by parameter <code>q</code>. By sliding
-<code>q</code> across scales, researchers zoom between rare variants
-(low <code>q</code>) and dominant isoforms (high <code>q</code>),
-capturing biological signal invisible to abundance- or proportion-based
+missed by these approaches. TSENAT makes possible to quantify this
+isoform-usage diversty directly via Tsallis entropy, allowing to capture
+biological signals invisible to abundance- or proportion-based
 summaries.</p>
 <p>In this guide, we demonstrate the complete workflow: preprocessing
 transcript counts, computing entropy across entropic indices, testing
@@ -561,116 +533,9 @@ isoform heterogeneity at multiple scales <span class="citation">(Ramírez-Reyes 
 <span>    sample <span class="op">=</span> <span class="st">"SRR14800481"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">diversity</span><span class="op">)</span></span></code></pre></div>
-<div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
-<table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
-<caption>
-<strong>Table 1:</strong> Tsallis entropy for first 4 genes across three
-diversity scales (sample: SRR14800481)
-</caption>
-<thead><tr>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-Gene
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-q=0.0
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-q=0.5
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-q=1.0
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-q=1.5
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-q=2.0
-</th>
-</tr></thead>
-<tbody>
-<tr>
-<td style="text-align:left;">
-FOXJ2
-</td>
-<td style="text-align:right;">
-0.66667
-</td>
-<td style="text-align:right;">
-0.53796
-</td>
-<td style="text-align:right;">
-0.48150
-</td>
-<td style="text-align:right;">
-0.46975
-</td>
-<td style="text-align:right;">
-0.48518
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-TMEM38A
-</td>
-<td style="text-align:right;">
-1.00000
-</td>
-<td style="text-align:right;">
-0.82704
-</td>
-<td style="text-align:right;">
-0.72526
-</td>
-<td style="text-align:right;">
-0.66965
-</td>
-<td style="text-align:right;">
-0.64401
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-CCNE1
-</td>
-<td style="text-align:right;">
-0.33333
-</td>
-<td style="text-align:right;">
-0.32256
-</td>
-<td style="text-align:right;">
-0.32749
-</td>
-<td style="text-align:right;">
-0.34571
-</td>
-<td style="text-align:right;">
-0.37418
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-MCOLN1
-</td>
-<td style="text-align:right;">
-1.00000
-</td>
-<td style="text-align:right;">
-0.39297
-</td>
-<td style="text-align:right;">
-0.21567
-</td>
-<td style="text-align:right;">
-0.16305
-</td>
-<td style="text-align:right;">
-0.15195
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+<p>Note: Diversity results not available for the requested q-values.
+Ensure calculate_diversity() was run with appropriate q-value
+configuration.</p>
 <p>With the q-spectrum we can produce a q-curve per sample and gene.
 These curves show how diversity emphasis shifts from rare to dominant
 isoforms as <code>q</code> increases and form the basis for interaction
@@ -1622,6 +1487,7 @@ noisy or uncertain signal.</li>
 <em>which</em> transcripts switch, but <em>how reliably</em> they
 switch, allowing distinction between robust biological signals and
 artifacts of sampling variation.</p>
+<p>Finally we can visualize the isoform expression profiles.</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Generate transcript abundance heatmap</span></span>
 <span><span class="fu"><a href="../reference/plot_expression.html">plot_expression</a></span><span class="op">(</span><span class="va">analysis</span>, top_n <span class="op">=</span> <span class="fl">4</span>, metric <span class="op">=</span> <span class="st">"median"</span><span class="op">)</span></span></code></pre></div>
@@ -1632,44 +1498,43 @@ hierarchical clustering. Rows are transcripts, columns are conditions.
 Blue low, red high expression.
 </p>
 </div>
-<p><strong>Interpretation:</strong> Transcripts (rows) are
-hierarchically clustered by expression similarity. Red indicates high
-expression, blue indicates low expression. Distinct horizontal bands
-reveal condition-specific isoforms; uniform coloring suggests
-constitutive expression. Clustering reveals which transcripts co-vary in
-expression patterns across conditions.</p>
+<p>This heatmap reveals a critical blind spot in standard transcript
+quantification approaches: raw abundance measures reduce each transcript
+to a single number, completely obscuring the relational structure that
+defines isoform switching. TSENAT’s entropy-based approach captures
+precisely what this heatmap reveals: not just which transcripts change
+in abundance, but how the diversity and balance of the isoform
+repertoire itself changes.</p>
 </div>
-<div class="section level4">
-<h4 id="effect-size-analysis">Effect size analysis<a class="anchor" aria-label="anchor" href="#effect-size-analysis"></a>
-</h4>
+</div>
+<div class="section level3">
+<h3 id="effect-size-analysis">Effect Size Analysis<a class="anchor" aria-label="anchor" href="#effect-size-analysis"></a>
+</h3>
 <p>To understand which diversity scales show the most pronounced
-biological differences between groups, we compute effect size metrics
-(Tsallis divergence
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>D</mi><mi>q</mi></msub><annotation encoding="application/x-tex">D_q</annotation></semantics></math>)
-across the q-spectrum while respecting the paired sample design. This
-reveals whether group differences are driven by rare isoforms (low q),
-dominant isoforms (high q), or uniformly across scales.</p>
-<p>The approach uses linear mixed-effects regression (LMM) with q as
-continuous predictor to assess slope differences in entropy change
-across the q-spectrum between treatment groups, with effect size
-computed as Tsallis divergence
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>D</mi><mi>q</mi></msub><annotation encoding="application/x-tex">D_q</annotation></semantics></math>(control||treatment)
-<span class="citation">(Kullback and Leibler 1951; Furuichi 2006; Jost
-2006; Erven and Harremoes 2014; Sason 2022)</span>. For paired designs,
-divergence is computed separately for each pair and then averaged,
-accounting for within-pair correlation and reducing noise from
-between-pair variation <span class="citation">(Yulmetyev et al.
-2004)</span>.</p>
-<p>The mean divergence across q values serves as the effect size,
-automatically capturing how entropy distributions differ between control
-and treatment groups at all scales (rare to abundant isoforms). Values
+biological differences between groups, we will compute Tsallis
+divergence
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>D</mi><mi>q</mi></msub><annotation encoding="application/x-tex">D_q</annotation></semantics></math>
+across the q-spectrum <span class="citation">(Kullback and Leibler 1951;
+Furuichi 2006; Jost 2006; Erven and Harremoes 2014; Sason 2022; <span class="nocase">Shiner et al.</span> 2002)</span>]. This metrics allows
+to reveal whether group differences are driven by rare isoforms (low q),
+dominant isoforms (high q), or uniformly across scales. Values
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>&gt;</mo><mn>0.1</mn></mrow><annotation encoding="application/x-tex">D &gt; 0.1</annotation></semantics></math>
 indicate meaningful information-theoretic separation between conditions,
 revealing that isoform complexity patterns fundamentally differ between
-treatment groups across all q-dependent scales <span class="citation">(Ré and Azad 2014)</span>. This information-theoretic
-measure automatically respects Tsallis entropy properties and adapts to
-each q value, enabling scale-dependent effect size estimation <span class="citation">(<span class="nocase">Shiner et al.</span>
-2002)</span>.</p>
+treatment groups across all q-dependent scales <span class="citation">(Ré and Azad 2014)</span>.</p>
+<p>For two probability distributions
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>P</mi><annotation encoding="application/x-tex">P</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>Q</mi><annotation encoding="application/x-tex">Q</annotation></semantics></math>
+representing isoform proportions in control and treatment conditions,
+Tsallis divergence is:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>D</mi><mi>q</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>P</mi><mo stretchy="false" form="prefix">|</mo><mo stretchy="false" form="prefix">|</mo><mi>Q</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mfrac><mrow><mn>1</mn><mo>−</mo><munder><mo>∑</mo><mi>i</mi></munder><msubsup><mi>p</mi><mi>i</mi><mi>q</mi></msubsup><mo>⋅</mo><msubsup><mi>q</mi><mi>i</mi><mrow><mn>1</mn><mo>−</mo><mi>q</mi></mrow></msubsup></mrow><mrow><mi>q</mi><mo>−</mo><mn>1</mn></mrow></mfrac></mrow><annotation encoding="application/x-tex">D_q(P||Q) = \frac{1 - \sum_i p_i^q \cdot q_i^{1-q}}{q-1}</annotation></semantics></math></p>
+<p>where
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>p</mi><mi>i</mi></msub><annotation encoding="application/x-tex">p_i</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>q</mi><mi>i</mi></msub><annotation encoding="application/x-tex">q_i</annotation></semantics></math>
+are the probability values at position
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>.</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Computes pairwise information-theoretic distance (Tsallis divergence)</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_divergence.html">calculate_divergence</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></code></pre></div>
@@ -1940,7 +1805,6 @@ Rare driven
 </tr>
 </tbody>
 </table>
-</div>
 </div>
 <div class="section level4">
 <h4 id="interpretation-of-pattern-types">Interpretation of Pattern Types:<a class="anchor" aria-label="anchor" href="#interpretation-of-pattern-types"></a>
