@@ -124,6 +124,7 @@ The `TSENAT()` function provides a complete, automated analysis pipeline in a si
 # Returns: Fully configured TSENATAnalysis object
 result <- TSENAT(analysis)
 ```
+![Isoform diversity profiles across q-values: TSENAT detects scale-dependent diversity patterns](https://raw.githubusercontent.com/gallardoalba/TSENAT/gh-pages/articles/TSENAT_files/figure-html/fig-1-isoform-diversity-profiles-1.png)
 
 For a complete walkthrough of the analysis pipeline with real biological examples, see the [main package vignette](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html). This includes theory background, step-by-step explanations of each analysis function, and interpretation guidance for understanding your results.
 
