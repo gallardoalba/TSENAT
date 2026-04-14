@@ -1,14 +1,5 @@
 # TSENAT: Tsallis Entropy Analysis Toolbox
 
-[![CircleCI](https://circleci.com/gh/gallardoalba/TSENAT.svg?style=svg)](https://app.circleci.com/pipelines/github/gallardoalba/TSENAT)
-[![pkgdown](https://img.shields.io/badge/docs-pkgdown-blue.svg)](https://gallardoalba.github.io/TSENAT/)
-[![License:
-GPL-3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://gallardoalba.github.io/TSENAT/LICENSE)
-![GitHub last
-commit](https://img.shields.io/github/last-commit/gallardoalba/TSENAT)![GitHub
-R package
-version](https://img.shields.io/github/r-package/v/gallardoalba/TSENAT)[![coverage](https://codecov.io/gh/gallardoalba/TSENAT/branch/stable/graph/badge.svg)](https://codecov.io/gh/gallardoalba/TSENAT/branch/stable)
-
 TSENAT is a R package for quantifying and modeling **isoform-usage
 complexity** across RNA-seq samples using **Tsallis entropy** - a
 scale-dependent information-theoretic measure of transcript

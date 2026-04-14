@@ -1,6 +1,6 @@
 # Articles
 
-### Vignettes
+### All vignettes
 
 - [Appendix A: Equivalence Validation - TSENAT vs
   SplicingFactory](https://gallardoalba.github.io/TSENAT/articles/TSENAT_appendix_A.md):
