@@ -41,14 +41,13 @@ suppressPackageStartupMessages(library(kableExtra))
 
 # Overview
 
-TSENAT (Tsallis Entropy Analysis Toolbox) quantifies **isoform heterogeneity** in RNA-seq data using Tsallis entropy-a scale-dependent diversity measure distinct from abundance-focused tools (DESeq2, Salmon) and differential transcript usage packages (*SplicingFactory*). By tuning a sensitivity parameter `q`, users examine diversity at different scales: rare variants (low `q`) or dominant isoforms (high `q`). This package enables computing Tsallis entropy from transcript-level abundance estimates, comparing measures between groups, and visualizing scale-dependent differences via q-curves.
+TSENAT (Tsallis Entropy Analysis Toolbox) quantifies **isoform complexity** in RNA-seq data using Tsallis entropy-a scale-dependent diversity measure distinct from abundance-focused tools (DESeq2, edgeR) and differential transcript usage packages (DRIMseq, SplicingFactory).
 
 ## Motivation and Bioconductor Contribution
 
-Common RNA-seq tools focus on either total gene abundance changes or individual transcript usage shifts. Yet genes often remodel their isoform landscapes without changing overall expression-a phenomenon missed by these approaches. TSENAT quantifies this *isoform complexity* directly via Tsallis entropy, a scale-dependent diversity framework tuned by parameter `q`. By sliding `q` across scales, researchers zoom between rare variants (low `q`) and dominant isoforms (high `q`), capturing biological signal invisible to abundance- or proportion-based summaries.
+Common RNA-seq tools focus on either total gene abundance changes or individual transcript usage shifts, yet genes often remodel their isoform landscapes without changing overall expression-a phenomenon missed by these approaches. TSENAT quantifies this isoform complexity directly via Tsallis entropy, a scale-dependent diversity framework tuned by parameter `q`. By sliding `q` across scales, it makes possble to zoom between rare variants (low `q`) and dominant isoforms (high `q`), capturing biological signal invisible to abundance- or proportion-based summaries.
 
 In this guide, we demonstrate the complete workflow: preprocessing transcript counts, computing entropy across entropic indices, testing for between-group differences, and visualizing scale-dependent complexity.
-
 
 ## High-level workflow
 
