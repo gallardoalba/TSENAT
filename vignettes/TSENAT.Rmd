@@ -45,7 +45,7 @@ TSENAT (Tsallis Entropy Analysis Toolbox) allows the modelation and quantificati
 
 ## Motivation and Bioconductor Contribution
 
-Common RNA-seq tools focus on either total gene abundance changes or individual transcript usage shifts, yet genes often remodel their isoform landscapes without changing overall expression-a phenomenon missed by these approaches. TSENAT make possible to quantify this isoform complexity directly via Tsallis entropy, allowing to capture biological signal invisible to abundance- or proportion-based summaries.
+Common RNA-seq tools focus on either total gene abundance changes or individual transcript usage shifts, yet genes often remodel their isoform landscapes without changing overall expression-a phenomenon missed by these approaches. TSENAT makes possible to quantify this isoform-usage diversty directly via Tsallis entropy, allowing to capture biological signals invisible to abundance- or proportion-based summaries.
 
 In this guide, we demonstrate the complete workflow: preprocessing transcript counts, computing entropy across entropic indices, testing for between-group differences, and visualizing scale-dependent complexity.
 
