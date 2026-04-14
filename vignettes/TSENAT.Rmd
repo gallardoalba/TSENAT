@@ -649,9 +649,7 @@ This robustness-weighted visualization reveals not just *which* transcripts swit
 plot_expression(analysis, top_n = 4, metric = "median")
 ```
 
-**Interpretation:** Transcripts (rows) are hierarchically clustered by expression similarity. Red indicates high expression, blue indicates low expression. Distinct horizontal bands reveal condition-specific isoforms; uniform coloring suggests constitutive expression. Clustering reveals which transcripts co-vary in expression patterns across conditions.
-
-### Effect size analysis
+## Effect Size Analysis
 
 To understand which diversity scales show the most pronounced biological differences 
 between groups, we compute effect size metrics (Tsallis divergence $D_q$) across the q-spectrum while respecting the paired sample design. This reveals whether group differences are driven by rare 
