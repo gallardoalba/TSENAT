@@ -41,7 +41,7 @@ suppressPackageStartupMessages(library(kableExtra))
 
 # Overview
 
-TSENAT (Tsallis Entropy Analysis Toolbox) allows the modelation and quantification of isoform-usage compexity in RNA-seq data using Tsallis entropy, a scale-dependent diversity measure distinct from abundance-focused tools (DESeq2, edgreR) and differential transcript usage packages (DRIMSeq). By tuning the entropy index parameter (q), TSENAT enables to examine transcriptome heterogenerity at different scales: rare variants (low q) or dominant isoforms (high q). This package enables computing Tsallis entropy and Tsallis divergence from transcript-level abundance estimates, comparing measures between groups, and visualizing scale-dependent differences via q-curves.
+TSENAT (Tsallis Entropy Analysis Toolbox) allows the modelation and quantification of isoform-usage complexity in RNA-seq data using Tsallis entropy, a scale-dependent diversity measure distinct from abundance-focused tools (DESeq2, edgreR) and differential transcript usage packages (DRIMSeq). By tuning the entropy index parameter (q), TSENAT enables to examine transcriptome heterogenerity at different scales: rare variants (low q) or dominant isoforms (high q). This package enables computing Tsallis entropy and Tsallis divergence from transcript-level abundance estimates, comparing measures between groups, and visualizing scale-dependent differences via q-curves.
 
 ## Motivation and Bioconductor Contribution
 
