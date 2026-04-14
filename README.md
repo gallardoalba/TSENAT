@@ -135,7 +135,6 @@ After running the analysis, retrieve results using the unified `results()` inter
 # Unified interface: request results by type
 diversity_results <- results(result, type = "diversity")
 lm_results <- results(result, type = "lm")
-rank_results <- results(result, type = "rank_test")
 jackknife_results <- results(result, type = "jackknife", q = 1)
 
 # Filter and rank results flexibly
