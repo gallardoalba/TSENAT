@@ -465,8 +465,16 @@ diversity <- results(analysis,
 print(diversity)
 ```
 
-Note: Diversity results not available for the requested q-values. Ensure
-calculate_diversity() was run with appropriate q-value configuration.
+| Gene    |   q=0.0 |   q=0.5 |   q=1.0 |   q=1.5 |   q=2.0 |
+|:--------|--------:|--------:|--------:|--------:|--------:|
+| FOXJ2   | 0.66667 | 0.53796 | 0.48150 | 0.46975 | 0.48518 |
+| TMEM38A | 1.00000 | 0.82704 | 0.72526 | 0.66965 | 0.64401 |
+| CCNE1   | 0.33333 | 0.32256 | 0.32749 | 0.34571 | 0.37418 |
+| MCOLN1  | 1.00000 | 0.39297 | 0.21567 | 0.16305 | 0.15195 |
+
+**Table 1:** Tsallis entropy for first 4 genes across three diversity
+scales (sample: SRR14800481) {.table .table .table-striped .table-hover
+style="margin-left: auto; margin-right: auto;"}
 
 With the q-spectrum we can produce a q-curve per sample and gene. These
 curves show how diversity emphasis shifts from rare to dominant isoforms
