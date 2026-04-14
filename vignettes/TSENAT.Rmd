@@ -644,10 +644,14 @@ plot_jis_delta(analysis, n_genes = 4)
 
 This robustness-weighted visualization reveals not just *which* transcripts switch, but *how reliably* they switch, allowing distinction between robust biological signals and artifacts of sampling variation.
 
+Finally we can visualize the isoform expression profiles.
+
 ```{r fig-4-transcript-abundance-heatmap, echo=TRUE, results='hide', fig.width=12, fig.height=8, eval=TRUE, out.width="98%", fig.pos="H", fig.cap = "**Figure 4:** Transcript abundance heatmap with hierarchical clustering. Rows are transcripts, columns are conditions. Blue low, red high expression."}
 # Generate transcript abundance heatmap
 plot_expression(analysis, top_n = 4, metric = "median")
 ```
+
+This heatmap reveals a critical blind spot in standard transcript quantification approaches: raw abundance measures reduce each transcript to a single number, completely obscuring the relational structure that defines isoform switching. TSENAT's entropy-based approach captures precisely what this heatmap reveals: not just which transcripts change in abundance, but how the diversity and balance of the isoform repertoire itself changes.
 
 ## Effect Size Analysis
 
