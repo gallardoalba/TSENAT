@@ -474,7 +474,7 @@ print(diversity)
 **Table 1:** Tsallis entropy for first 4 genes across three diversity
 scales (sample: SRR14800481) {.table .table .table-striped .table-hover
 .table-condensed .table-responsive
-style="margin-left: auto; margin-right: auto;"}
+style="width: auto !important; margin-left: auto; margin-right: auto;"}
 
 With the q-spectrum we can produce a q-curve per sample and gene. These
 curves show how diversity emphasis shifts from rare to dominant isoforms
@@ -564,7 +564,7 @@ magnitude of resampling-based influence values. Columns: Sample
 identifier; condition; proportion affected; distance from centroid;
 outlier status. M-estimation identifies influential samples for
 sensitivity analysis. {.table .table .table-striped .table-hover
-style="margin-left: auto; margin-right: auto;"}
+style="width: auto !important; margin-left: auto; margin-right: auto;"}
 
 **Interpretation:** Samples with distance from centroid \>1.5 or
 proportion of affected genes \>0.85 are flagged for quality control
@@ -632,7 +632,7 @@ columns show gene identifier, effect size, test statistic, convergence
 status, and heteroscedasticity detection. Methods: GAMs with *q* and
 condition as smooth predictors (Benjamini and Hochberg 1995). {.table
 .table .table-striped .table-hover
-style="margin-left: auto; margin-right: auto;"}
+style="width: auto !important; margin-left: auto; margin-right: auto;"}
 
 **Interpretation:** TRUE in the Heteroscedasticity column indicates that
 the model satisfies homogeneity-of-variance assumptions across the
@@ -864,7 +864,8 @@ analysis <- calculate_divergence(analysis)
 (distance) between conditions from Tsallis entropy framework. Columns:
 gene identifier; pairwise comparison; divergence value; confidence
 interval (95%). Ranked by magnitude. {.table .table .table-striped
-.table-hover style="margin-left: auto; margin-right: auto;"}
+.table-hover .table-condensed .table-responsive
+style="width: auto !important; margin-left: auto; margin-right: auto;"}
 
 ``` r
 
@@ -896,8 +897,8 @@ print(top_genes_result)
 | HDAC2     |       0 |     0.1244 |   0.0651 |   0.0699 |   0.0201 | Rare driven |
 
 Top 6 Genes by Effect Size (Tsallis Divergence) {.table .table
-.table-striped .table-hover
-style="margin-left: auto; margin-right: auto;"}
+.table-striped .table-hover .table-condensed .table-responsive
+style="width: auto !important; margin-left: auto; margin-right: auto;"}
 
 #### Interpretation of Pattern Types:
 

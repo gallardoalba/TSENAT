@@ -291,7 +291,7 @@ print(assumptions_text)
 
 Assumption Checks for Scheirer-Ray-Hare Test {.table .table
 .table-striped .table-hover .table-condensed .table-responsive
-style="margin-left: auto; margin-right: auto;"}
+style="width: auto !important; margin-left: auto; margin-right: auto;"}
 
 **Interpretation of Results:** The exchangeability test, the unique
 assumption of the SRH test, detects strong serial correlation (p ≈ 0),
@@ -345,7 +345,7 @@ print(head(srh_results, n = 10))
 Supplementary Table 3 \| Scheirer-Ray-Hare Test Results Summary.
 Rank-based nonparametric test of *q* × condition interactions. {.table
 .table .table-striped .table-hover
-style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
+style="width: auto !important; margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 |  | Gene | P-value | Adj. P-value | F-Statistic | Effect Size (η²) | Interaction Class |
 |:---|:---|:---|:---|:---|:---|:---|
@@ -364,7 +364,7 @@ style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 Supplementary Table 4 \| Top genes identified by Scheirer-Ray-Hare
 rank-based test. {.table .table .table-striped .table-hover
-style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
+style="width: auto !important; margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 Visualize q-curves for top genes:
 
@@ -417,7 +417,7 @@ print(gam_results)
 |  Aggregate statistics across all genes tested by GAM method; effect size \> 30% indicates strong biological signal. |  |
 
 GAM Results Summary {.table .table .table-striped .table-hover
-style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
+style="width: auto !important; margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 | Gene | p (interaction) | Adjusted p | Effect size | Test statistic | df |
 |:---|---:|---:|---:|---:|---:|
@@ -436,7 +436,7 @@ style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 Top 10 Genes by GAM p-value (with Effect Size and Test Statistics)
 {.table .table .table-striped .table-hover
-style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
+style="width: auto !important; margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 ------------------------------------------------------------------------
 
@@ -475,7 +475,7 @@ concordance_results <- results(analysis, type = "concordance", format = "list")
 Robust Entropic Order Index Interactions: High-Confidence Genes Detected
 by Both Methods (n=2, ranked by statistical significance) {.table .table
 .table-striped .table-hover .table-condensed .table-responsive
-style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
+style="width: auto !important; margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 ### Statistical Power vs. Robustness: Understanding Method Discordance
 
