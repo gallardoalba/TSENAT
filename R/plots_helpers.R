@@ -2505,8 +2505,12 @@
 .get_palette_colors <- function(palette_name = "palette_blue_red") {
     if (is.character(palette_name) && length(palette_name) == 1) {
         # palette is a function name string, call the function
-        palette_fn <- get(paste0(".", palette_name))  # e.g., .palette_blue_red
-        return(palette_fn())
+        tryCatch({
+            palette_fn <- get(paste0(".", palette_name))  # e.g., .palette_blue_red
+            return(palette_fn())
+        }, error = function(e) {
+            stop(paste("Palette", palette_name, "not found"), call. = FALSE)
+        })
     } else if (is.character(palette_name)) {
         # palette is a vector of color names/codes
         return(palette_name)
@@ -2520,6 +2524,11 @@
 # BREAKING CYCLE: Core logic separated from palette lookup to enable independent testing
 .apply_aesthetics_colors <- function(plot, colors, legend_name = "Group", 
                                     legend_position = "bottom", direction = 1) {
+    # Validate colors input
+    if (length(colors) == 0) {
+        stop("colors must be a non-empty vector", call. = FALSE)
+    }
+    
     # Reverse if needed
     if (direction == -1) {
         colors <- rev(colors)
@@ -2527,8 +2536,8 @@
     
     # Apply color and fill scales
     result <- plot + 
-        ggplot2::scale_color_manual(values = colors, name = legend_name) +
-        ggplot2::scale_fill_manual(values = colors, name = legend_name) + 
+        ggplot2::scale_color_manual(values = colors, name = legend_name, na.value = "gray50") +
+        ggplot2::scale_fill_manual(values = colors, name = legend_name, na.value = "gray50") + 
         ggplot2::theme(legend.position = legend_position)
     
     result

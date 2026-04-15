@@ -1358,7 +1358,11 @@ print.assumptions_text <- function(x, ...) {
 # BREAKING CYCLE: Extracted column width calculation for independent testing
 .calculate_column_widths <- function(df_char) {
     vapply(seq_len(ncol(df_char)), function(j) {
-        max(nchar(colnames(df_char)[j]), max(nchar(df_char[[j]])))
+        col_data <- df_char[[j]]
+        # Handle NA values: nchar(NA) returns NA, so replace with nchar("NA")
+        widths <- nchar(col_data)
+        widths[is.na(widths)] <- nchar("NA")  # Replace NA nchar with nchar("NA")
+        max(nchar(colnames(df_char)[j]), max(widths))
     }, numeric(1))
 }
 

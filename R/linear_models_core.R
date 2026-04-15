@@ -282,9 +282,7 @@
     if (method == "gee" && !requireNamespace("geepack", quietly = TRUE)) {
         stop("Package 'geepack' is required for method='gee'", call. = FALSE)
     }
-    if (method == "fpca" && !requireNamespace("refund", quietly = TRUE)) {
-        stop("Package 'refund' is required for method='fpca'", call. = FALSE)
-    }
+    # Note: fpca refund dependency is checked when actually used (not upfront validation)
     invisible(TRUE)
 }
 
