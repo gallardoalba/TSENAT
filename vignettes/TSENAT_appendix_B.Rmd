@@ -217,16 +217,14 @@ if (!is.null(check_results) && !is.null(check_results$assumptions_table)) {
   knitr::kable(
     assumptions_df,
     caption = "Assumption Checks for Scheirer-Ray-Hare Test",
-    format = if (knitr::is_latex_output()) "latex" else "html",
-    longtable = knitr::is_latex_output(),
-    linesep = ""
+    format = if (knitr::is_latex_output()) "latex" else "html"
   ) %>%
     kableExtra::kable_styling(
       bootstrap_options = c("striped", "hover", "condensed", "responsive"),
-      full_width = TRUE,
+      full_width = FALSE,
       latex_options = c("scale_down")
     ) %>%
-    kableExtra::scroll_box(width = "100%", height = "auto")
+    kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "overflow-x: auto; overflow-y: hidden; border: 1px solid #ddd; padding: 10px;")
 }
 ```
 
@@ -297,14 +295,14 @@ rank_summary_stats <- data.frame(
   )
 )
 
-knitr::kable(rank_summary_stats, caption = "Supplementary Table 3 | Scheirer-Ray-Hare Test Results Summary. Rank-based nonparametric test of *q* × condition interactions.", label = "tab:srh-test-summary", align = c("l", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
+knitr::kable(rank_summary_stats, caption = "Supplementary Table 3 | Scheirer-Ray-Hare Test Results Summary. Rank-based nonparametric test of *q* × condition interactions.", label = "tab:srh-test-summary", align = c("l", "r"), format = if (knitr::is_latex_output()) "latex" else "html") %>%
   kableExtra::kable_styling(
     bootstrap_options = c("striped", "hover"),
-    full_width = TRUE,
+    full_width = FALSE,
     latex_options = c("scale_down")
   ) %>%
   kableExtra::footnote(general = "Scheirer-Ray-Hare test: nonparametric rank-based ANOVA for paired designs.") %>%
-  kableExtra::scroll_box(width = "100%", height = "auto")
+  kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "overflow-x: auto; overflow-y: hidden; border: 1px solid #ddd; padding: 10px;")
 
 # Show top genes results
 rank_sig <- srh_results_all[!is.na(srh_results_all$p_value), ]
@@ -356,16 +354,14 @@ if (nrow(rank_sig) > 0) {
                  caption = "Supplementary Table 4 | Top genes identified by Scheirer-Ray-Hare rank-based test.",
                  col.names = c("Gene", "P-value", "Adj. P-value", "F-Statistic", 
                                "Effect Size (η²)", "Interaction Class")[1:ncol(rank_display)],
-                 format = if (knitr::is_latex_output()) "latex" else "html",
-                 longtable = knitr::is_latex_output(),
-                 linesep = "") %>%
+                 format = if (knitr::is_latex_output()) "latex" else "html") %>%
     kableExtra::kable_styling(
       bootstrap_options = c("striped", "hover"),
-      full_width = TRUE,
+      full_width = FALSE,
       latex_options = c("scale_down")
     ) %>%
     kableExtra::footnote(general = "Effect size η² quantifies strength of *q* × condition interaction; top 10 genes ranked by significance. P-values < 0.0001 shown in scientific notation for precision.") %>%
-    kableExtra::scroll_box(width = "100%", height = "auto")
+    kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "overflow-x: auto; overflow-y: hidden; border: 1px solid #ddd; padding: 10px;")
   }
 }
 ```
@@ -426,14 +422,14 @@ summary_stats <- data.frame(
   )
 )
 
-knitr::kable(summary_stats, caption = "GAM Results Summary", align = c("l", "r"), format = if (knitr::is_latex_output()) "latex" else "html", longtable = knitr::is_latex_output(), linesep = "") %>%
+knitr::kable(summary_stats, caption = "GAM Results Summary", align = c("l", "r"), format = if (knitr::is_latex_output()) "latex" else "html") %>%
   kableExtra::kable_styling(
     bootstrap_options = c("striped", "hover"),
-    full_width = TRUE,
+    full_width = FALSE,
     latex_options = c("scale_down")
   ) %>%
   kableExtra::footnote(general = "Aggregate statistics across all genes tested by GAM method; effect size > 30% indicates strong biological signal.") %>%
-  kableExtra::scroll_box(width = "100%", height = "auto")
+  kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "overflow-x: auto; overflow-y: hidden; border: 1px solid #ddd; padding: 10px;")
 
 # Show top genes with additional information
 if ("p_interaction" %in% colnames(gam_results)) {
@@ -499,16 +495,14 @@ if ("p_interaction" %in% colnames(gam_results)) {
       knitr::kable(gam_display, 
                    caption = "Top 10 Genes by GAM p-value (with Effect Size and Test Statistics)",
                    align = c("l", "r", "r", "r", "r", "r"),
-                   format = if (knitr::is_latex_output()) "latex" else "html",
-                   longtable = knitr::is_latex_output(),
-                   linesep = "") %>%
+                   format = if (knitr::is_latex_output()) "latex" else "html") %>%
       kableExtra::kable_styling(
         bootstrap_options = c("striped", "hover"),
-        full_width = TRUE,
+        full_width = FALSE,
         latex_options = c("scale_down")
       ) %>%
       kableExtra::footnote(general = "Top 10 genes ranked by significance; p-values < 0.001 shown in scientific notation; effect size range 0-100%.") %>%
-      kableExtra::scroll_box(width = "100%", height = "auto")
+      kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "overflow-x: auto; overflow-y: hidden; border: 1px solid #ddd; padding: 10px;")
     }
   }
 } else {
@@ -540,54 +534,69 @@ concordance_results <- results(analysis, type = "concordance", format = "list")
 if (!is.null(concordance_results) && is.list(concordance_results)) {
   # Display summary table
   if (!is.null(concordance_results$summary_table) && nrow(concordance_results$summary_table) > 0) {
-    print(knitr::kable(concordance_results$summary_table, 
-                       caption = "Global Concordance Metrics: GAM vs Scheirer-Ray-Hare Methods",
-                       align = c("l", "r"),
-                       format = if (knitr::is_latex_output()) "latex" else "html",
-                       longtable = knitr::is_latex_output(),
-                       linesep = "") %>%
+    knitr::kable(concordance_results$summary_table, 
+                 caption = "Global Concordance Metrics: GAM vs Scheirer-Ray-Hare Methods",
+                 align = c("l", "r"),
+                 format = if (knitr::is_latex_output()) "latex" else "html") %>%
             kableExtra::kable_styling(
-              bootstrap_options = c("striped", "hover"),
-              full_width = TRUE,
-              latex_options = c("scale_down")
+              bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+              latex_options = c("scale_down", "repeat_header"),
+              full_width = FALSE,
+              position = "center"
             ) %>%
-            kableExtra::scroll_box(width = "100%", height = "auto"))
+            {
+              if (knitr::is_latex_output()) {
+                kableExtra::column_spec(., 1, width = "2.5cm")
+              } else {
+                kableExtra::scroll_box(., width = "100%", height = "auto", extra_css = "overflow-x: auto; overflow-y: hidden; border: 1px solid #ddd; padding: 10px;")
+              }
+            }
   }
   
   # Display agreement distribution
   if (!is.null(concordance_results$agreement_dist) && nrow(concordance_results$agreement_dist) > 0) {
     cat("\n")
-    print(knitr::kable(concordance_results$agreement_dist, 
-                       caption = "Agreement Distribution: Concordance by Gene Category",
-                       align = c("l", "r", "r"),
-                       format = if (knitr::is_latex_output()) "latex" else "html",
-                       longtable = knitr::is_latex_output(),
-                       linesep = "") %>%
+    knitr::kable(concordance_results$agreement_dist, 
+                 caption = "Agreement Distribution: Concordance by Gene Category",
+                 align = c("l", "r", "r"),
+                 format = if (knitr::is_latex_output()) "latex" else "html") %>%
             kableExtra::kable_styling(
-              bootstrap_options = c("striped", "hover"),
-              full_width = TRUE,
-              latex_options = c("scale_down")
+              bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+              latex_options = c("scale_down", "repeat_header"),
+              full_width = FALSE,
+              position = "center"
             ) %>%
-            kableExtra::scroll_box(width = "100%", height = "auto"))
+            {
+              if (knitr::is_latex_output()) {
+                kableExtra::column_spec(., 1, width = "2.5cm")
+              } else {
+                kableExtra::scroll_box(., width = "100%", height = "auto", extra_css = "overflow-x: auto; overflow-y: hidden; border: 1px solid #ddd; padding: 10px;")
+              }
+            }
   }
   
   # Display high-confidence genes (concordant in both methods)
   if (!is.null(concordance_results$high_conf_table) && nrow(concordance_results$high_conf_table) > 0) {
     cat("\n")
     n_hc <- nrow(concordance_results$high_conf_table)
-    print(knitr::kable(concordance_results$high_conf_table, 
-                       caption = paste0("Robust Entropic Order Index Interactions: High-Confidence Genes Detected by Both Methods (n=", n_hc, ", ranked by statistical significance)"),
-                       align = c("l", "r", "r", "r", "r"),
-                       format = if (knitr::is_latex_output()) "latex" else "html",
-                       longtable = knitr::is_latex_output(),
-                       linesep = "") %>%
+    knitr::kable(concordance_results$high_conf_table, 
+                 caption = paste0("Robust Entropic Order Index Interactions: High-Confidence Genes Detected by Both Methods (n=", n_hc, ", ranked by statistical significance)"),
+                 align = c("l", "r", "r", "r", "r"),
+                 format = if (knitr::is_latex_output()) "latex" else "html") %>%
             kableExtra::kable_styling(
-              bootstrap_options = c("striped", "hover"),
-              full_width = TRUE,
-              latex_options = c("scale_down")
+              bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+              latex_options = c("scale_down", "repeat_header"),
+              full_width = FALSE,
+              position = "center"
             ) %>%
             kableExtra::footnote(general = "High-confidence genes: significant by both GAM and Scheirer-Ray-Hare rank test (adj p < 0.05); η² = rank test effect size.") %>%
-            kableExtra::scroll_box(width = "100%", height = "auto"))
+            {
+              if (knitr::is_latex_output()) {
+                kableExtra::column_spec(., 1, width = "2.5cm")
+              } else {
+                kableExtra::scroll_box(., width = "100%", height = "auto", extra_css = "overflow-x: auto; overflow-y: hidden; border: 1px solid #ddd; padding: 10px;")
+              }
+            }
   }
 } else {
   cat("Concordance results not available\n")
