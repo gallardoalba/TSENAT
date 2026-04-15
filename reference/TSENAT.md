@@ -157,39 +157,55 @@ result <- TSENAT(analysis)
 #>   Jackknife use_lm_fdr . TRUE
 #> 
 #> =============================================================
-#> [>] [ 1/14] Filtering low-abundance transcripts
+#> [>] [%2d/16] Filtering low-abundance transcripts
 #>           [OK] Complete
+#> [>] [%2d/16] Computing Tsallis entropy2
 #> [>] [ 2/14] Computing Tsallis diversity
 #>           [OK] 10 q-values processed
+#> [>] [%2d/16] Plotting diversity q-spectrum3
 #> [>] [ 3/14] Plotting q-spectrum curve
 #>           [OK] Plot generated
+#> [>] [%2d/16] Computing M-estimator influence4
 #> [>] [ 4/14] Running sample influence QC analysis (m-estimator)
 #>           [OK] M-estimate QC complete
+#> [>] [%2d/16] Fitting linear models5
 #> [>] [ 5/14] Testing LM interactions with GAM
 #> Warning: nlminb problem, convergence error code = 1
 #>   message = singular convergence (7)
 #>           [OK] LM interaction analysis complete
+#> [>] [%2d/16] Plotting LM results6
 #> [>] [ 6/14] Plotting LM interaction GAM smoother
 #>           [OK] LM interaction plot generated
+#> [>] [%2d/16] Computing jackknife isoform switching7
 #> [>] [ 7/14] Computing jackknife isoform switching analysis
 #>           [OK] Jackknife isoform switching complete
+#> [>] [%2d/16] Plotting influence heatmap8
 #> [>] [ 9/14] Plotting multi-q influence heatmap
 #>           [OK] Influence heatmap generated
+#> [>] [%2d/16] Plotting top transcripts9
 #> [>] [10/14] Plotting top transcript counts
 #>           [OK] Top transcripts plot generated
+#> [>] [%2d/16] Computing divergence metrics10
 #> [>] [11/14] Computing divergence metrics
 #>           [OK] Divergence computed
+#> [>] [%2d/16] Computing effect sizes11
 #> [>] [12/17] Computing effect sizes for divergence
 #>           [OK] Effect sizes computed
+#> [>] [%2d/16] Plotting divergence distributions12
 #> [>] [13/17] Plotting divergence distribution
 #>           [OK] Divergence distribution plot generated
+#> [>] [%2d/16] Plotting divergence spectrum13
 #> [>] [14/17] Plotting divergence spectrum
 #>           [OK] Global divergence spectrum plot generated
 #>           [OK] Multi-gene divergence spectrum plot generated
+#> [>] [%2d/16] Checking statistical assumptions14
 #> [>] [15/17] Validating rank-based test assumptions
 #>           [OK] Assumptions validated
+#> [>] [%2d/16] Performing Scheirer-Ray-Hare test15
 #> [>] [16/17] Running Scheirer-Ray-Hare rank-based test
+#> Using condition_col='condition' from @config
 #>           [OK] Scheirer-Ray-Hare test completed
+#> [>] [%2d/16] Computing LM-rank test concordance16
 #> [>] [17/17] Computing concordance between LM and rank test results
 #>           [OK] Concordance analysis completed
 #> =============================================================
@@ -201,11 +217,11 @@ result <- TSENAT(analysis)
 #> [RESULTS] Results Summary
 #> 
 #> [PERF] Performance
-#>   Total time ........... 24.5s
+#>   Total time ........... 25.9s
 #>   Slowest steps:
-#>     1. lm_interaction       13.4s (54.4%)
-#>     2. lm_plot              2.5s (10.3%)
-#>     3. jackknife            2.3s (9.2%)
+#>     1. lm_interaction       12.4s (48.0%)
+#>     2. jackknife            5.0s (19.2%)
+#>     3. lm_plot              2.6s (10.1%)
 #> 
 #> [OUTPUT] Output
 #>   Directory ........... tsenat_outputs

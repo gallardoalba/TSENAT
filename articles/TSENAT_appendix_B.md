@@ -465,32 +465,6 @@ analysis <- calculate_concordance(
 concordance_results <- results(analysis, type = "concordance", format = "list")
 ```
 
-| Metric                               |        Value |
-|:-------------------------------------|-------------:|
-| Total genes compared                 |           76 |
-| Spearman correlation (p-values)      | rho = 0.2665 |
-| Both methods significant (p \< 0.05) |     2 (2.6%) |
-| LM only significant                  |   57 (75.0%) |
-| Rank test only significant           |     0 (0.0%) |
-| Neither significant                  |   17 (22.4%) |
-| Concordance rate                     |         2.6% |
-| Discordance rate                     |        75.0% |
-
-Global Concordance Metrics: GAM vs Scheirer-Ray-Hare Methods {.table
-.table .table-striped .table-hover
-style="margin-left: auto; margin-right: auto;"}
-
-| Agreement Category  | Number of Genes | Percentage |
-|:--------------------|----------------:|-----------:|
-| Both significant    |               2 |       2.6% |
-| LM only             |              57 |      75.0% |
-| Rank test only      |               0 |       0.0% |
-| Neither significant |              17 |      22.4% |
-
-Agreement Distribution: Concordance by Gene Category {.table .table
-.table-striped .table-hover
-style="margin-left: auto; margin-right: auto;"}
-
 | Gene | LM adj p | Rank test adj p | LM Effect | Rank test rho^2 |
 |:---|---:|---:|---:|---:|
 | CXCL12 | 2.99e-162 | 7.24e-61 | 81.3% | 0.300 |
@@ -500,7 +474,7 @@ style="margin-left: auto; margin-right: auto;"}
 
 Robust Entropic Order Index Interactions: High-Confidence Genes Detected
 by Both Methods (n=2, ranked by statistical significance) {.table .table
-.table-striped .table-hover
+.table-striped .table-hover .table-condensed .table-responsive
 style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 ### Statistical Power vs. Robustness: Understanding Method Discordance

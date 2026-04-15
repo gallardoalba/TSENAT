@@ -166,39 +166,55 @@ Default: TRUE. If FALSE, no TSV/CSV output files are written to disk.</p></dd>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Jackknife use_lm_fdr . TRUE</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> =============================================================</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 1/14] Filtering low-abundance transcripts</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [%2d/16] Filtering low-abundance transcripts</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Complete</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [%2d/16] Computing Tsallis entropy2</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 2/14] Computing Tsallis diversity</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] 10 q-values processed</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [%2d/16] Plotting diversity q-spectrum3</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 3/14] Plotting q-spectrum curve</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Plot generated</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [%2d/16] Computing M-estimator influence4</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 4/14] Running sample influence QC analysis (m-estimator)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] M-estimate QC complete</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [%2d/16] Fitting linear models5</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 5/14] Testing LM interactions with GAM</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>nlminb problem, convergence error code = 1</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span>   message = singular convergence (7)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] LM interaction analysis complete</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [%2d/16] Plotting LM results6</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 6/14] Plotting LM interaction GAM smoother</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] LM interaction plot generated</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [%2d/16] Computing jackknife isoform switching7</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 7/14] Computing jackknife isoform switching analysis</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Jackknife isoform switching complete</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [%2d/16] Plotting influence heatmap8</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 9/14] Plotting multi-q influence heatmap</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Influence heatmap generated</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [%2d/16] Plotting top transcripts9</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [10/14] Plotting top transcript counts</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Top transcripts plot generated</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [%2d/16] Computing divergence metrics10</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [11/14] Computing divergence metrics</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Divergence computed</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [%2d/16] Computing effect sizes11</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [12/17] Computing effect sizes for divergence</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Effect sizes computed</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [%2d/16] Plotting divergence distributions12</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [13/17] Plotting divergence distribution</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Divergence distribution plot generated</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [%2d/16] Plotting divergence spectrum13</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [14/17] Plotting divergence spectrum</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Global divergence spectrum plot generated</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Multi-gene divergence spectrum plot generated</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [%2d/16] Checking statistical assumptions14</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [15/17] Validating rank-based test assumptions</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Assumptions validated</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [%2d/16] Performing Scheirer-Ray-Hare test15</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [16/17] Running Scheirer-Ray-Hare rank-based test</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Using condition_col='condition' from @config</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Scheirer-Ray-Hare test completed</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [%2d/16] Computing LM-rank test concordance16</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [17/17] Computing concordance between LM and rank test results</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Concordance analysis completed</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> =============================================================</span>
@@ -210,11 +226,11 @@ Default: TRUE. If FALSE, no TSV/CSV output files are written to disk.</p></dd>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [RESULTS] Results Summary</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [PERF] Performance</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   Total time ........... 24.5s</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Total time ........... 25.9s</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Slowest steps:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     1. lm_interaction       13.4s (54.4%)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     2. lm_plot              2.5s (10.3%)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     3. jackknife            2.3s (9.2%)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     1. lm_interaction       12.4s (48.0%)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     2. jackknife            5.0s (19.2%)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     3. lm_plot              2.6s (10.1%)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [OUTPUT] Output</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Directory ........... tsenat_outputs</span>
