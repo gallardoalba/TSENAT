@@ -294,11 +294,15 @@ shannon_summary <- data.frame(
 
 knitr::kable(shannon_summary, row.names = FALSE, 
              col.names = c("Method", "Genes Tested", "Significant (padj<0.05)", "Mean log2FC", "SD log2FC"),
-             caption = "**Supplementary Table 5 | Shannon Entropy Analysis Summary Statistics.** Differential analysis comparing Normal (N=8) vs Tumor (N=8) samples using SplicingFactory's `calculate_difference()` method.", 
+             caption = if (knitr::is_latex_output()) {
+               "Supplementary Table 5 | Shannon Entropy Analysis Summary Statistics. Differential analysis comparing Normal (N=8) vs Tumor (N=8) samples using SplicingFactory's calculate_difference() method."
+             } else {
+               "**Supplementary Table 5 | Shannon Entropy Analysis Summary Statistics.** Differential analysis comparing Normal (N=8) vs Tumor (N=8) samples using SplicingFactory's `calculate_difference()` method."
+             }, 
              align = c("l", "r", "r", "r", "r"),
              format = if (knitr::is_latex_output()) "latex" else "html") %>%
   kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = TRUE, latex_options = c("scale_down")) %>%
-  kableExtra::scroll_box(width = "100%", height = "auto")
+  kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
 ```
 
 **Interpretation**: Both methods similarly identify significantly different transcript diversity between Normal and Tumor samples. The comparable number of significant genes (padj<0.05) and mean log2FC values demonstrate equivalent statistical power and effect size detection.
@@ -316,7 +320,7 @@ shannon_sf_top <- TSENAT:::.format_top_genes(
 )
 knitr::kable(shannon_sf_top, row.names = FALSE, caption = "**Supplementary Table 6a | SplicingFactory method - Top 10 genes identified by Shannon entropy (naive mode).** Ranked by adjusted *P*-value.", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html") %>%
 kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = TRUE, latex_options = c("scale_down")) %>%
-kableExtra::scroll_box(width = "100%", height = "auto")
+kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
 ```
 
 #### Top 10 Significant Genes - TSENAT (Tsallis q=1)
@@ -331,9 +335,13 @@ shannon_tsenat_top <- TSENAT:::.format_top_genes(
   select_cols = c("genes", "Normal_mean", "Tumor_mean", "mean_difference", "log2_fold_change", "raw_p_values", "adjusted_p_values"),
   col_names = c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
 )
-knitr::kable(shannon_tsenat_top, row.names = FALSE, caption = "**Supplementary Table 6b | TSENAT method - Top 10 genes identified by Tsallis entropy at q=1 (Shannon equivalence).** Results obtained using SplicingFactory's `calculate_difference()` method applied to TSENAT Tsallis q=1 diversity values. Ranked by adjusted *P*-value.", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html") %>%
+knitr::kable(shannon_tsenat_top, row.names = FALSE, caption = if (knitr::is_latex_output()) {
+  "Supplementary Table 6b | TSENAT method - Top 10 genes identified by Tsallis entropy at q=1 (Shannon equivalence). Results obtained using SplicingFactory's calculate_difference() method applied to TSENAT Tsallis q=1 diversity values. Ranked by adjusted p-value."
+} else {
+  "**Supplementary Table 6b | TSENAT method - Top 10 genes identified by Tsallis entropy at q=1 (Shannon equivalence).** Results obtained using SplicingFactory's `calculate_difference()` method applied to TSENAT Tsallis q=1 diversity values. Ranked by adjusted *P*-value."
+}, align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html") %>%
 kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = TRUE, latex_options = c("scale_down")) %>%
-kableExtra::scroll_box(width = "100%", height = "auto")
+kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
 ```
 
 
@@ -367,7 +375,11 @@ simpson_summary <- data.frame(
 
 knitr::kable(simpson_summary, row.names = FALSE,
              col.names = c("Method", "Genes Tested", "Significant (padj<0.05)", "Mean log2FC", "SD log2FC"),
-             caption = "**Supplementary Table 8 | Simpson Index Analysis Summary Statistics.** Differential analysis using Simpson diversity metric (Gini-Simpson index) comparing Normal (N=8) vs Tumor (N=8) samples using SplicingFactory's `calculate_difference()` method.",
+             caption = if (knitr::is_latex_output()) {
+               "Supplementary Table 8 | Simpson Index Analysis Summary Statistics. Differential analysis using Simpson diversity metric (Gini-Simpson index) comparing Normal (N=8) vs Tumor (N=8) samples using SplicingFactory's calculate_difference() method."
+             } else {
+               "**Supplementary Table 8 | Simpson Index Analysis Summary Statistics.** Differential analysis using Simpson diversity metric (Gini-Simpson index) comparing Normal (N=8) vs Tumor (N=8) samples using SplicingFactory's `calculate_difference()` method."
+             },
              align = c("l", "r", "r", "r", "r"),
              format = if (knitr::is_latex_output()) "latex" else "html") %>%
   kableExtra::kable_styling(
@@ -375,7 +387,7 @@ knitr::kable(simpson_summary, row.names = FALSE,
     full_width = TRUE,
     latex_options = c("scale_down")
   ) %>%
-  kableExtra::scroll_box(width = "100%", height = "auto")
+  kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
 ```
 
 **Interpretation**: Simpson index results parallel Shannon entropy findings, with both methods identifying similar numbers of significantly different isoform dominance patterns. The agreement across both diversity measures provides strong evidence for TSENAT's mathematical and statistical equivalence to SplicingFactory.
@@ -397,7 +409,7 @@ kableExtra::kable_styling(
   full_width = TRUE,
   latex_options = c("scale_down")
 ) %>%
-kableExtra::scroll_box(width = "100%", height = "auto")
+kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
 ```
 
 #### Top 10 Significant Genes - TSENAT (Tsallis q=2)
@@ -412,13 +424,17 @@ simpson_tsenat_top <- TSENAT:::.format_top_genes(
   select_cols = c("genes", "Normal_mean", "Tumor_mean", "mean_difference", "log2_fold_change", "raw_p_values", "adjusted_p_values"),
   col_names = c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
 )
-knitr::kable(simpson_tsenat_top, row.names = FALSE, caption = "**Supplementary Table 9b | TSENAT method - Top 10 genes by Tsallis entropy at q=2 (Simpson equivalence).** Results obtained using SplicingFactory's `calculate_difference()` method applied to TSENAT Tsallis q=2 diversity values. Ranked by adjusted *P*-value.", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html") %>%
+knitr::kable(simpson_tsenat_top, row.names = FALSE, caption = if (knitr::is_latex_output()) {
+  "Supplementary Table 9b | TSENAT method - Top 10 genes by Tsallis entropy at q=2 (Simpson equivalence). Results obtained using SplicingFactory's calculate_difference() method applied to TSENAT Tsallis q=2 diversity values. Ranked by adjusted p-value."
+} else {
+  "**Supplementary Table 9b | TSENAT method - Top 10 genes by Tsallis entropy at q=2 (Simpson equivalence).** Results obtained using SplicingFactory's `calculate_difference()` method applied to TSENAT Tsallis q=2 diversity values. Ranked by adjusted *P*-value."
+}, align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html") %>%
 kableExtra::kable_styling(
   bootstrap_options = c("striped", "hover"),
   full_width = TRUE,
   latex_options = c("scale_down")
 ) %>%
-kableExtra::scroll_box(width = "100%", height = "auto")
+kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
 ```
 
 

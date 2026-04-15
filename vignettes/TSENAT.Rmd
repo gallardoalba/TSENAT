@@ -387,7 +387,7 @@ if (!is.null(sample_data) && nrow(sample_data) > 0) {
       full_width = TRUE,
       latex_options = c("scale_down")
     ) %>%
-    kableExtra::scroll_box(width = "100%", height = "auto"))
+    kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;"))
 } else {
   cat("Note: Diversity results not available for the requested q-values. ",
       "Ensure calculate_diversity() was run with appropriate q-value configuration.")
@@ -453,7 +453,7 @@ if (!is.null(sample_qc) && nrow(sample_qc) > 0) {
     full_width = TRUE,
     latex_options = c("scale_down")
   ) %>%
-  kableExtra::scroll_box(width = "100%", height = "auto")
+  kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
 }
 ```
 
@@ -519,7 +519,7 @@ if (!is.null(lm_res) && is.data.frame(lm_res) && nrow(lm_res) > 0) {
       full_width = TRUE,
       latex_options = c("scale_down")
     ) %>%
-    kableExtra::scroll_box(width = "100%", height = "auto")
+    kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
 }
 ```
 
@@ -613,7 +613,7 @@ if (exists("tables_result") && is.list(tables_result) &&
               if (knitr::is_latex_output()) {
                 kableExtra::column_spec(., 1, width = "2.5cm")
               } else {
-                kableExtra::scroll_box(., width = "100%", height = "auto")
+                kableExtra::scroll_box(., width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
               }
             })
     }
@@ -687,7 +687,7 @@ if (exists("analysis")) {
           full_width = TRUE,
           latex_options = c("scale_down")
         ) %>%
-        kableExtra::scroll_box(width = "100%", height = "auto")
+        kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
     } else if (is.list(div_results) && length(div_results) > 0) {
         # If stored as list per q-value, extract first q-value results
         first_q_result <- div_results[[1]]
@@ -708,7 +708,8 @@ if (exists("analysis")) {
             ) %>%
             kableExtra::scroll_box(
               width = "100%",
-              height = "auto"
+              height = "auto",
+              extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;"
             )
         }
     }
@@ -767,7 +768,7 @@ kableExtra::kable_styling(
   full_width = TRUE,
   latex_options = c("scale_down")
 ) %>%
-kableExtra::scroll_box(width = "100%", height = "auto")
+kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
 ```
 
 ### Interpretation of Pattern Types:

@@ -224,7 +224,7 @@ if (!is.null(check_results) && !is.null(check_results$assumptions_table)) {
       full_width = TRUE,
       latex_options = c("scale_down")
     ) %>%
-    kableExtra::scroll_box(width = "100%", height = "auto")
+    kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
 }
 ```
 
@@ -302,7 +302,7 @@ knitr::kable(rank_summary_stats, caption = "Supplementary Table 3 | Scheirer-Ray
     latex_options = c("scale_down")
   ) %>%
   kableExtra::footnote(general = "Scheirer-Ray-Hare test: nonparametric rank-based ANOVA for paired designs.") %>%
-  kableExtra::scroll_box(width = "100%", height = "auto")
+  kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
 
 # Show top genes results
 rank_sig <- srh_results_all[!is.na(srh_results_all$p_value), ]
@@ -361,7 +361,7 @@ if (nrow(rank_sig) > 0) {
       latex_options = c("scale_down")
     ) %>%
     kableExtra::footnote(general = "Effect size η² quantifies strength of *q* × condition interaction; top 10 genes ranked by significance. P-values < 0.0001 shown in scientific notation for precision.") %>%
-    kableExtra::scroll_box(width = "100%", height = "auto")
+    kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
   }
 }
 ```
@@ -429,7 +429,7 @@ knitr::kable(summary_stats, caption = "GAM Results Summary", align = c("l", "r")
     latex_options = c("scale_down")
   ) %>%
   kableExtra::footnote(general = "Aggregate statistics across all genes tested by GAM method; effect size > 30% indicates strong biological signal.") %>%
-  kableExtra::scroll_box(width = "100%", height = "auto")
+  kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
 
 # Show top genes with additional information
 if ("p_interaction" %in% colnames(gam_results)) {
@@ -502,7 +502,7 @@ if ("p_interaction" %in% colnames(gam_results)) {
         latex_options = c("scale_down")
       ) %>%
       kableExtra::footnote(general = "Top 10 genes ranked by significance; p-values < 0.001 shown in scientific notation; effect size range 0-100%.") %>%
-      kableExtra::scroll_box(width = "100%", height = "auto")
+      kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
     }
   }
 } else {
@@ -548,7 +548,7 @@ if (!is.null(concordance_results) && is.list(concordance_results)) {
               if (knitr::is_latex_output()) {
                 kableExtra::column_spec(., 1, width = "2.5cm")
               } else {
-                kableExtra::scroll_box(., width = "100%", height = "auto")
+                kableExtra::scroll_box(., width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
               }
             }
   }
@@ -570,7 +570,7 @@ if (!is.null(concordance_results) && is.list(concordance_results)) {
               if (knitr::is_latex_output()) {
                 kableExtra::column_spec(., 1, width = "2.5cm")
               } else {
-                kableExtra::scroll_box(., width = "100%", height = "auto")
+                kableExtra::scroll_box(., width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
               }
             }
   }
@@ -594,7 +594,7 @@ if (!is.null(concordance_results) && is.list(concordance_results)) {
               if (knitr::is_latex_output()) {
                 kableExtra::column_spec(., 1, width = "2.5cm")
               } else {
-                kableExtra::scroll_box(., width = "100%", height = "auto")
+                kableExtra::scroll_box(., width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
               }
             }
   }
