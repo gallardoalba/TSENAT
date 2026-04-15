@@ -72,9 +72,79 @@
 #' }
 #'
 #' @export
-TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, output_format = "tsv",
-    verbose = TRUE) {
-    # Validate input
+# ============================================================================
+# MAIN ORCHESTRATION FUNCTION
+# ============================================================================
+
+#' Run complete TSENAT analysis pipeline
+#'
+#' Coordinates the full TSENAT workflow: diversity -> jackknife -> LM
+#' interactions -> divergence -> gene interactions -> rank-based tests -> concordance -> visualizations.
+#'
+#' @param analysis \code{TSENATAnalysis} object created by \code{\link{build_analysis}}.
+#' @param output_dir \code{character}. Directory to save results and plots.
+#'   Default: 'tsenat_outputs'. Set to NULL to disable automatic output saving.
+#' @param save_output \code{logical}. Whether to save output files (results tables).
+#'   Default: TRUE. If FALSE, no TSV/CSV output files are written to disk.
+#' @param output_format \code{character}. Format for output files: 'tsv' (tab-separated),
+#'   'csv' (comma-separated), 'txt' (text), or 'rds' (R serialized). Default: 'tsv'.
+#' @param verbose \code{logical}. Print progress messages. Default: TRUE.
+#'
+#' @return \code{TSENATAnalysis} object containing complete analysis results,
+#'   plots, and metadata.
+#'
+#' @details
+#' Pipeline execution order (enforced, follows TSENAT.Rmd vignette):
+#' \enumerate{
+#'   \item \code{filter_analysis()} - Filter low-abundance transcripts
+#'   \item \code{calculate_diversity()} - Tsallis entropy per q-value
+#'   \item \code{plot_diversity_spectrum()} - Visualize q-spectrum
+#'   \item \code{calculate_m_estimator()} - Sample influence QC analysis
+#'   \item \code{calculate_lm()} - LM interaction testing
+#'   \item \code{plot_lm()} - LM results visualization
+#'   \item \code{calculate_jis()} - Transcript switching detection
+#'   \item \code{plot_jis_delta()} - Multi-q influence heatmap (gene switching tables computed lazily via results())
+#'   \item \code{plot_expression()} - Top transcript visualization
+#'   \item \code{calculate_divergence()} - Pairwise divergence metrics
+#'   \item \code{calculate_effect_sizes()} - Effect size computation
+#'   \item \code{plot_divergence_distribution()} - Divergence distribution plot
+#'   \item \code{plot_divergence_spectrum()} - Divergence spectrum plot
+#'   \item \code{calculate_assumptions()} - Validate rank-based test assumptions
+#'   \item \code{calculate_srh()} - Scheirer-Ray-Hare rank-based interaction test
+#'   \item \code{calculate_concordance()} - Compare LM and rank test results
+#' }
+#'
+#' @examples
+#' \donttest{
+#' data(readcounts, package = 'TSENAT')
+#' metadata_df <- read.table(
+#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t'
+#' )
+#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+#' 
+#' config <- TSENAT_config(
+#'   sample_col = 'sample',
+#'   condition_col = 'condition',
+#'   q = seq(0, 2, length.out = 10),
+#'   generate_plots = FALSE
+#' )
+#' analysis <- build_analysis(
+#'   readcounts = as.matrix(readcounts),
+#'   tx2gene = gff3_file,
+#'   metadata = metadata_df,
+#'   config = config,
+#'   tpm = tpm,
+#'   effective_length = effective_length
+#' )
+#' 
+#' result <- TSENAT(analysis)
+#' }
+#'
+#' @export
+
+.TSENAT_setup <- function(analysis, output_dir, save_output, output_format, verbose) {
+    # Validate input object
     if (!is(analysis, "TSENATAnalysis")) {
         stop("'analysis' must be a TSENATAnalysis object created by build_analysis()",
             call. = FALSE)
@@ -82,140 +152,172 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
     if (nrow(se(analysis)) == 0) {
         stop("TSENATAnalysis contains an empty SummarizedExperiment", call. = FALSE)
     }
-
-    # Validate output_format
+    
+    # Validate and set up output
     valid_formats <- c("tsv", "csv", "txt", "rds")
     if (!(output_format %in% valid_formats)) {
         stop("'output_format' must be one of: ", paste(valid_formats, collapse = ", "),
             call. = FALSE)
     }
-
-    # Disable output if save_output is FALSE
+    
     if (!save_output) {
         output_dir <- NULL
-        if (verbose)
-            message("[INFO] save_output = FALSE prevents file output")
-    }
-
-    # Create output directory if specified
-    if (!is.null(output_dir) && !dir.exists(output_dir)) {
+        if (verbose) message("[INFO] save_output = FALSE prevents file output")
+    } else if (!is.null(output_dir) && !dir.exists(output_dir)) {
         dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
-        if (verbose)
-            message("Created output directory: ", output_dir)
+        if (verbose) message("Created output directory: ", output_dir)
     }
-
-    # Validate input object
+    
+    # Validate analysis object
     .validate_analysis_object(analysis)
+    
+    list(analysis = analysis, output_dir = output_dir, output_format = output_format)
+}
 
-    # Extract parameters from config (already embedded in analysis object from
-    # build_analysis)
+.TSENAT_execute_pipeline <- function(analysis, output_dir, output_format, verbose) {
     cfg <- getConfig(analysis)
-
-    # Get q values from config (can be vector or single value)
     q_vals <- cfg$q %||% 1
-    if (!is.vector(q_vals))
-        q_vals <- c(q_vals)
-
+    if (!is.vector(q_vals)) q_vals <- c(q_vals)
     condition_col <- cfg$condition_col %||% "condition"
-
-    # Initialize timing
-    workflow_start <- Sys.time()
+    
     step_times <- list()
-
-    # Log pipeline start with configuration
-    if (verbose)
-        .log_pipeline_start(se(analysis), q_vals, cfg)
-
-    # Execute vignette workflow (in order) with timing
-    if (verbose)
-        message("=============================================================")
-
-    if (verbose)
-        message(sprintf("[>] [%2d/14] Filtering low-abundance transcripts", 1))
+    
+    # Step 1: Filtering
+    if (verbose) message("[>] [%2d/16] Filtering low-abundance transcripts")
     step_start <- Sys.time()
     tryCatch({
-        cfg <- getConfig(analysis)
         stringency_level <- cfg$stringency %||% "medium"
         analysis <- filter_analysis(analysis, stringency = stringency_level)
-        if (verbose)
-            message("          [OK] Complete")
-    }, error = function(e) warning("Filtering failed:\n", e$message, call. = FALSE))
+        if (verbose) message("          [OK] Complete")
+    }, error = function(e) {
+        warning("Filtering failed: ", conditionMessage(e), call. = FALSE)
+    })
     step_times[["filtering"]] <- Sys.time() - step_start
-
+    
+    # Step 2: Diversity
+    if (verbose) message("[>] [%2d/16] Computing Tsallis entropy", 2)
     step_start <- Sys.time()
     analysis <- .execute_diversity_s4(analysis, q_vals, verbose, output_dir, output_format)
     step_times[["diversity"]] <- Sys.time() - step_start
-
+    
+    # Step 3: Q-curve plot
+    if (verbose) message("[>] [%2d/16] Plotting diversity q-spectrum", 3)
     step_start <- Sys.time()
     analysis <- .execute_q_curve_plot(analysis, verbose, output_dir)
     step_times[["q_curve"]] <- Sys.time() - step_start
-
+    
+    # Step 4: M-estimate QC
+    if (verbose) message("[>] [%2d/16] Computing M-estimator influence", 4)
     step_start <- Sys.time()
     analysis <- .execute_m_estimate_qc(analysis, condition_col, verbose, output_dir,
         output_format)
     step_times[["m_estimate"]] <- Sys.time() - step_start
-
+    
+    # Step 5: LM interaction
+    if (verbose) message("[>] [%2d/16] Fitting linear models", 5)
     step_start <- Sys.time()
     analysis <- .execute_lm_interaction_s4(analysis, verbose, output_dir, output_format)
     step_times[["lm_interaction"]] <- Sys.time() - step_start
-
+    
+    # Step 6: LM plot
+    if (verbose) message("[>] [%2d/16] Plotting LM results", 6)
     step_start <- Sys.time()
     analysis <- .execute_lm_interaction_plot(analysis, verbose, output_dir)
     step_times[["lm_plot"]] <- Sys.time() - step_start
-
+    
+    # Step 7: Jackknife
+    if (verbose) message("[>] [%2d/16] Computing jackknife isoform switching", 7)
     step_start <- Sys.time()
     analysis <- .execute_jackknife_isoform_switching(analysis, q_vals, condition_col,
         verbose, output_dir, output_format)
     step_times[["jackknife"]] <- Sys.time() - step_start
-
-    # Step 8 removed: Gene switching tables now computed lazily via
-    # results(type='switching_tables') No need for explicit computation -
-    # results() automatically computes and caches when needed
+    
+    # Step 8: Influence heatmap
+    if (verbose) message("[>] [%2d/16] Plotting influence heatmap", 8)
     step_start <- Sys.time()
     analysis <- .execute_influence_heatmap_plot(analysis, verbose, output_dir)
     step_times[["influence_heatmap"]] <- Sys.time() - step_start
-
+    
+    # Step 9: Top transcripts
+    if (verbose) message("[>] [%2d/16] Plotting top transcripts", 9)
     step_start <- Sys.time()
     analysis <- .execute_top_transcripts_plot(analysis, verbose, output_dir)
     step_times[["top_transcripts"]] <- Sys.time() - step_start
-
+    
+    # Step 10: Divergence
+    if (verbose) message("[>] [%2d/16] Computing divergence metrics", 10)
     step_start <- Sys.time()
     analysis <- .execute_divergence_s4(analysis, q_vals, verbose, output_dir, output_format)
     step_times[["divergence"]] <- Sys.time() - step_start
-
+    
+    # Step 11: Effect sizes
+    if (verbose) message("[>] [%2d/16] Computing effect sizes", 11)
     step_start <- Sys.time()
     analysis <- .execute_effect_sizes_s4(analysis, verbose, output_dir, output_format)
     step_times[["effect_sizes"]] <- Sys.time() - step_start
-
+    
+    # Step 12: Divergence distribution plot
+    if (verbose) message("[>] [%2d/16] Plotting divergence distributions", 12)
     step_start <- Sys.time()
     analysis <- .execute_divergence_dist_plot(analysis, verbose, output_dir)
     step_times[["div_dist_plot"]] <- Sys.time() - step_start
-
+    
+    # Step 13: Divergence spectrum plot
+    if (verbose) message("[>] [%2d/16] Plotting divergence spectrum", 13)
     step_start <- Sys.time()
     analysis <- .execute_divergence_spectrum_plot(analysis, verbose, output_dir)
     step_times[["div_spectrum_plot"]] <- Sys.time() - step_start
-
+    
+    # Step 14: Assumptions check
+    if (verbose) message("[>] [%2d/16] Checking statistical assumptions", 14)
     step_start <- Sys.time()
     analysis <- .execute_assumptions_check(analysis, verbose, output_dir, output_format)
     step_times[["assumptions"]] <- Sys.time() - step_start
-
+    
+    # Step 15: SRH test
+    if (verbose) message("[>] [%2d/16] Performing Scheirer-Ray-Hare test", 15)
     step_start <- Sys.time()
     analysis <- .execute_srh_test(analysis, verbose, output_dir, output_format)
     step_times[["srh_test"]] <- Sys.time() - step_start
-
+    
+    # Step 16: Concordance
+    if (verbose) message("[>] [%2d/16] Computing LM-rank test concordance", 16)
     step_start <- Sys.time()
     analysis <- .execute_concordance_analysis(analysis, verbose, output_dir, output_format)
     step_times[["concordance"]] <- Sys.time() - step_start
+    
+    list(analysis = analysis, step_times = step_times)
+}
 
-    if (verbose)
+TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, output_format = "tsv",
+    verbose = TRUE) {
+    # Setup: validation and output configuration
+    setup_result <- .TSENAT_setup(analysis, output_dir, save_output, output_format, verbose)
+    analysis <- setup_result$analysis
+    output_dir <- setup_result$output_dir
+    output_format <- setup_result$output_format
+    
+    # Execute pipeline
+    workflow_start <- Sys.time()
+    if (verbose) {
+        .log_pipeline_start(se(analysis), getConfig(analysis)$q %||% 1, getConfig(analysis))
         message("=============================================================")
-
-    # Track completion metadata and timing
+    }
+    
+    pipeline_result <- .TSENAT_execute_pipeline(analysis, output_dir, output_format, verbose)
+    analysis <- pipeline_result$analysis
+    step_times <- pipeline_result$step_times
+    
+    if (verbose) {
+        message("=============================================================")
+    }
+    
+    # Finalization
     total_time <- Sys.time() - workflow_start
     analysis <- .track_analysis_metadata(analysis, analysis@config)
     analysis <- .finalize_tsenat_analysis(analysis, verbose, step_times, total_time,
         output_dir)
-
+    
     analysis
 }
 

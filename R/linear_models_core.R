@@ -270,35 +270,9 @@
 #' # Run linear model interaction analysis
 #' results <- .calculate_lm(se, condition_col = 'condition')
 #' @noRd
-.calculate_lm <- function(se, condition_col = "condition", min_obs = 5, method = c("lmm",
-    "gam", "fpca", "gee"), pvalue = c("satterthwaite", "lrt", "both"), subject_col = NULL,
-    paired = FALSE, nthreads = 1, assay_name = "diversity", pcorr = "BH", verbose = FALSE,
-    bias_correction = TRUE, regularization = c("pca", "lasso", "elasticnet", "gamsel",
-        "spline"), corstr = c("ar1", "exchangeable", "independence"), multicorr = c("hochberg",
-        "westfall-young", "benjamini-yekutieli"), storey = FALSE, wy_randomizations = 1000,
-    adaptive_knots = TRUE, return_model_data = FALSE) {
-    # Normalize and validate arguments
-    method <- match.arg(method)
-    corstr <- match.arg(corstr)
-    pvalue <- match.arg(pvalue)
-    regularization <- match.arg(regularization)
-    pcorr <- match.arg(pcorr, c("BH", "bonferroni", "hochberg", "holm"))
-    multicorr <- match.arg(multicorr)
-
-    if (!requireNamespace("SummarizedExperiment", quietly = TRUE)) {
-        stop("SummarizedExperiment required")
-    }
-
-    # Validate SummarizedExperiment object
-    if (!inherits(se, "SummarizedExperiment")) {
-        stop("se must be a SummarizedExperiment object", call. = FALSE)
-    }
-
-    if (verbose) {
-        message("[calculate_lm_interaction] method=", method)
-    }
-
-    # Check method-specific library dependencies
+# Validate method-specific dependencies (cyclomatic complexity reducer)
+# REFACTORING: Extract validation into separate function
+.validate_lm_method_dependencies <- function(method) {
     if (method == "lmm" && !requireNamespace("nlme", quietly = TRUE)) {
         stop("Package 'nlme' is required for method='lmm'", call. = FALSE)
     }
@@ -308,94 +282,36 @@
     if (method == "gee" && !requireNamespace("geepack", quietly = TRUE)) {
         stop("Package 'geepack' is required for method='gee'", call. = FALSE)
     }
+    if (method == "fpca" && !requireNamespace("refund", quietly = TRUE)) {
+        stop("Package 'refund' is required for method='fpca'", call. = FALSE)
+    }
+    invisible(TRUE)
+}
 
-    # Validate input parameters
-    validated <- .validate_lm_interaction_input(method = method, pvalue = pvalue,
-        corstr = corstr, regularization = regularization, multicorr = multicorr,
-        pcorr = pcorr, storey = storey, wy_randomizations = wy_randomizations, paired = paired,
-        subject_col = subject_col, se = se, verbose = verbose)
-
-    # Update subject_col from validated params (may be auto-detected)
-    subject_col <- validated$subject_col
-
-    # Validate condition_col exists in colData
+# Validate required columns and assays (cyclomatic complexity reducer)
+# REFACTORING: Extract validation into separate function
+.validate_lm_data_structure <- function(se, condition_col, assay_name) {
     cd_colnames <- colnames(SummarizedExperiment::colData(se))
     if (!(condition_col %in% cd_colnames)) {
         stop(sprintf("condition_col '%s' not found in colData. Available columns: %s",
             condition_col, paste(cd_colnames, collapse = ", ")), call. = FALSE)
     }
-
-    # Validate assay name exists
+    
     if (!(assay_name %in% SummarizedExperiment::assayNames(se))) {
-        stop(sprintf("Assay '%s' not found. Available assays: %s", assay_name, paste(SummarizedExperiment::assayNames(se),
-            collapse = ", ")), call. = FALSE)
+        stop(sprintf("Assay '%s' not found. Available assays: %s", assay_name, 
+            paste(SummarizedExperiment::assayNames(se), collapse = ", ")), call. = FALSE)
     }
+    invisible(TRUE)
+}
 
-    # Parse sample metadata and q-values
-    metadata <- .parse_sample_metadata(se = se, condition_col = condition_col, assay_name = assay_name,
-        verbose = verbose)
-
-    mat <- SummarizedExperiment::assay(se, assay_name)
-
-    # Fit models to all genes
-    if (verbose)
-        message("[.calculate_lm] Starting .fit_all_genes() for ", nrow(mat), " genes")
-
-    # Phase 15: Wrap .fit_all_genes in try-error to catch any errors during
-    # fitting
-    res <- try(.fit_all_genes(mat = mat, se = se, metadata = metadata, method = method,
-        pvalue = pvalue, subject_col = subject_col, paired = paired, min_obs = min_obs,
-        nthreads = nthreads, verbose = verbose, bias_correction = bias_correction,
-        regularization = regularization, corstr = corstr, adaptive_knots = adaptive_knots),
-        silent = FALSE)
-
-    if (inherits(res, "try-error")) {
-        # Extract error message safely from try-error object
-        error_msg <- if (!is.null(attr(res, "condition"))) {
-            conditionMessage(attr(res, "condition"))
-        } else {
-            as.character(res)
-        }
-        warning("[.calculate_lm] .fit_all_genes() failed with: ", error_msg, "\n[Returning empty results]",
-            call. = FALSE)
-        res <- data.frame()
-    }
-
-    if (verbose && nrow(res) > 0)
-        message("[.calculate_lm] .fit_all_genes() completed successfully with ",
-            nrow(res), " results")
-
-
-    # Validate res is a data.frame
-    if (!is.data.frame(res)) {
-        stop(".fit_all_genes() should return a data.frame", call. = FALSE)
-    }
-
-    if (nrow(res) == 0) {
-        return(res)
-    }
-
-    # Validate p_interaction column exists before computing adjusted p-values
-    if (!("p_interaction" %in% colnames(res))) {
-        stop("Results data.frame missing required 'p_interaction' column", call. = FALSE)
-    }
-
-    # Adjust p-values for multiple q-values
-    res$adj_p_interaction <- .adjust_pvalues_multicorr(p_values = res$p_interaction,
-        multicorr = multicorr, wy_randomizations = wy_randomizations, metadata = metadata,
-        verbose = verbose, storey = storey)
-
-    # Sort by adjusted p-values, then raw p-values
-    res <- res[order(res$adj_p_interaction, res$p_interaction), , drop = FALSE]
-    rownames(res) <- NULL
-
-    .report_fit_summary(res, verbose = verbose)
-
-    # Map gene identifiers to annotations
-    res <- .map_gene_annotations(res = res, se = se, verbose = verbose)
-
-    # Ensure 'gene' column exists - required by jackknife and validation
-    # functions
+# Post-process LM results (cyclomatic complexity reducer)
+# REFACTORING: Extract post-processing into separate function
+.postprocess_lm_results <- function(res, return_model_data = FALSE, se = NULL, 
+                                   mat = NULL, metadata = NULL, method = NULL, 
+                                   pvalue = NULL, multicorr = NULL, assay_name = NULL,
+                                   bias_correction = NULL, regularization = NULL, 
+                                   corstr = NULL, adaptive_knots = NULL) {
+    # Ensure 'gene' column exists - required by downstream functions
     if (!("gene" %in% colnames(res))) {
         if ("gene_id" %in% colnames(res)) {
             res$gene <- res$gene_id
@@ -403,18 +319,136 @@
             res$gene <- res$gene_name
         }
     }
-
+    
     # Optionally return model data alongside results
     if (return_model_data) {
-        model_data <- .assemble_model_metadata(se = se, res = res, mat = mat, metadata = metadata,
-            method = method, pvalue = pvalue, multicorr = multicorr, assay_name = assay_name,
-            bias_correction = bias_correction, regularization = regularization, corstr = corstr,
-            adaptive_knots = adaptive_knots)
-
+        model_data <- .assemble_model_metadata(se = se, res = res, mat = mat, 
+            metadata = metadata, method = method, pvalue = pvalue, 
+            multicorr = multicorr, assay_name = assay_name,
+            bias_correction = bias_correction, regularization = regularization, 
+            corstr = corstr, adaptive_knots = adaptive_knots)
         return(list(results = res, model_data = model_data))
     }
-
+    
     return(res)
+}
+
+.calculate_lm <- function(se, condition_col = "condition", min_obs = 5, method = c("lmm",
+    "gam", "fpca", "gee"), pvalue = c("satterthwaite", "lrt", "both"), subject_col = NULL,
+    paired = FALSE, nthreads = 1, assay_name = "diversity", pcorr = "BH", verbose = FALSE,
+    bias_correction = TRUE, regularization = c("pca", "lasso", "elasticnet", "gamsel",
+        "spline"), corstr = c("ar1", "exchangeable", "independence"), multicorr = c("hochberg",
+        "westfall-young", "benjamini-yekutieli"), storey = FALSE, wy_randomizations = 1000,
+    adaptive_knots = TRUE, return_model_data = FALSE) {
+    
+    # ========================================================================
+    # STAGE 1: ARGUMENT NORMALIZATION & BASIC VALIDATION
+    # ========================================================================
+    
+    method <- match.arg(method)
+    corstr <- match.arg(corstr)
+    pvalue <- match.arg(pvalue)
+    regularization <- match.arg(regularization)
+    pcorr <- match.arg(pcorr, c("BH", "bonferroni", "hochberg", "holm"))
+    multicorr <- match.arg(multicorr)
+    
+    if (!requireNamespace("SummarizedExperiment", quietly = TRUE)) {
+        stop("SummarizedExperiment required")
+    }
+    
+    if (!inherits(se, "SummarizedExperiment")) {
+        stop("se must be a SummarizedExperiment object", call. = FALSE)
+    }
+    
+    if (verbose) {
+        message("[calculate_lm_interaction] method=", method)
+    }
+    
+    # ========================================================================
+    # STAGE 2: DEPENDENCY & STRUCTURE VALIDATION
+    # ========================================================================
+    
+    .validate_lm_method_dependencies(method)
+    
+    validated <- .validate_lm_interaction_input(method = method, pvalue = pvalue,
+        corstr = corstr, regularization = regularization, multicorr = multicorr,
+        pcorr = pcorr, storey = storey, wy_randomizations = wy_randomizations, 
+        paired = paired, subject_col = subject_col, se = se, verbose = verbose)
+    
+    subject_col <- validated$subject_col
+    
+    .validate_lm_data_structure(se, condition_col, assay_name)
+    
+    # ========================================================================
+    # STAGE 3: DATA PREPARATION & FITTING
+    # ========================================================================
+    
+    metadata <- .parse_sample_metadata(se = se, condition_col = condition_col, 
+        assay_name = assay_name, verbose = verbose)
+    
+    mat <- SummarizedExperiment::assay(se, assay_name)
+    
+    if (verbose)
+        message("[.calculate_lm] Starting .fit_all_genes() for ", nrow(mat), " genes")
+    
+    # Wrap fitting in try-error to catch any errors during fitting
+    res <- try(.fit_all_genes(mat = mat, se = se, metadata = metadata, method = method,
+        pvalue = pvalue, subject_col = subject_col, paired = paired, min_obs = min_obs,
+        nthreads = nthreads, verbose = verbose, bias_correction = bias_correction,
+        regularization = regularization, corstr = corstr, adaptive_knots = adaptive_knots),
+        silent = FALSE)
+    
+    if (inherits(res, "try-error")) {
+        error_msg <- if (!is.null(attr(res, "condition"))) {
+            conditionMessage(attr(res, "condition"))
+        } else {
+            as.character(res)
+        }
+        warning("[.calculate_lm] .fit_all_genes() failed with: ", error_msg, 
+            "\n[Returning empty results]", call. = FALSE)
+        res <- data.frame()
+    }
+    
+    if (verbose && nrow(res) > 0)
+        message("[.calculate_lm] .fit_all_genes() completed successfully with ",
+            nrow(res), " results")
+    
+    # ========================================================================
+    # STAGE 4: RESULTS PROCESSING & RETURN
+    # ========================================================================
+    
+    if (!is.data.frame(res)) {
+        stop(".fit_all_genes() should return a data.frame", call. = FALSE)
+    }
+    
+    if (nrow(res) == 0) {
+        return(res)
+    }
+    
+    if (!("p_interaction" %in% colnames(res))) {
+        stop("Results data.frame missing required 'p_interaction' column", call. = FALSE)
+    }
+    
+    # Adjust p-values for multiple q-values
+    res$adj_p_interaction <- .adjust_pvalues_multicorr(p_values = res$p_interaction,
+        multicorr = multicorr, wy_randomizations = wy_randomizations, metadata = metadata,
+        verbose = verbose, storey = storey)
+    
+    # Sort by adjusted p-values, then raw p-values
+    res <- res[order(res$adj_p_interaction, res$p_interaction), , drop = FALSE]
+    rownames(res) <- NULL
+    
+    .report_fit_summary(res, verbose = verbose)
+    
+    # Map gene identifiers to annotations
+    res <- .map_gene_annotations(res = res, se = se, verbose = verbose)
+    
+    # Post-process: add gene column, optionally add model data
+    .postprocess_lm_results(res = res, return_model_data = return_model_data, 
+        se = se, mat = mat, metadata = metadata, method = method,
+        pvalue = pvalue, multicorr = multicorr, assay_name = assay_name,
+        bias_correction = bias_correction, regularization = regularization, 
+        corstr = corstr, adaptive_knots = adaptive_knots)
 }
 
 #' Extract Results from calculate_lm_interaction Output

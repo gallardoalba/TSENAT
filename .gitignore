@@ -41,3 +41,6 @@ src/*.dylib
 tools/
 # Generated site
 docs/
+_pkgdown.yml
+r_dependencies_s4_interactive.html
+visualize_dependencies.py

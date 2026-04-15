@@ -1354,6 +1354,30 @@ print.assumptions_text <- function(x, ...) {
 # ============================================================================
 
 #' @noRd
+# Calculate column widths for text formatting (pure function - cycle-free)
+# BREAKING CYCLE: Extracted column width calculation for independent testing
+.calculate_column_widths <- function(df_char) {
+    vapply(seq_len(ncol(df_char)), function(j) {
+        max(nchar(colnames(df_char)[j]), max(nchar(df_char[[j]])))
+    }, numeric(1))
+}
+
+# Format a single row with column widths (pure function - cycle-free)
+# BREAKING CYCLE: Extracted row formatting for independent testing
+.format_table_row <- function(values, col_widths) {
+    paste(mapply(function(val, width) {
+        sprintf("%-*s", width, val)
+    }, values, col_widths), collapse = " ")
+}
+
+# Format table header (pure function - cycle-free)
+# BREAKING CYCLE: Extracted header formatting for independent testing
+.format_table_header <- function(colnames, col_widths) {
+    paste(mapply(function(name, width) {
+        sprintf("%-*s", width, name)
+    }, colnames, col_widths), collapse = " ")
+}
+
 .format_data_frame_as_text <- function(df) {
     if (nrow(df) == 0) {
         return("")
@@ -1363,20 +1387,14 @@ print.assumptions_text <- function(x, ...) {
     df_char <- as.data.frame(lapply(df, as.character), stringsAsFactors = FALSE)
 
     # Calculate column widths
-    col_widths <- vapply(seq_len(ncol(df_char)), function(j) {
-        max(nchar(colnames(df_char)[j]), max(nchar(df_char[[j]])))
-    }, numeric(1))
+    col_widths <- .calculate_column_widths(df_char)
 
     # Format header
-    header <- paste(mapply(function(name, width) {
-        sprintf("%-*s", width, name)
-    }, colnames(df_char), col_widths), collapse = " ")
+    header <- .format_table_header(colnames(df_char), col_widths)
 
     # Format rows
     rows <- apply(df_char, 1, function(row) {
-        paste(mapply(function(val, width) {
-            sprintf("%-*s", width, val)
-        }, row, col_widths), collapse = " ")
+        .format_table_row(row, col_widths)
     })
 
     # Combine and add newlines

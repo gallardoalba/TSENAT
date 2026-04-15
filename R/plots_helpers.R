@@ -429,87 +429,6 @@
 }
 
 # ============================================================================
-# SCALE CREATORS
-# ============================================================================
-
-#' Create Discrete Color Scale for Heatmap
-#'
-#' Creates a discrete color scale using TSENAT's standard palette.
-#'
-#' @param palette Character: 'blue_red' (default), 'continuous_diverging',
-#' or custom.
-#' @param direction Integer: 1 (default) or -1 to reverse colors.
-#' @param name Character: legend title.
-#'
-#' @return ggplot2 scale object (ggplot2::scale_color_manual or similar).
-#'
-
-#' @noRd
-
-.create_color_scale <- function(palette = "blue_red", direction = 1, name = NULL) {
-
-    # Handle palette parameter: if length 1 string, check if it's a named
-    # palette, otherwise treat as vector of colors
-    if (is.character(palette) && length(palette) == 1) {
-        if (palette == "blue_red") {
-            colors <- .palette_blue_red()
-        } else if (palette == "continuous_diverging") {
-            colors <- .palette_continuous_diverging()
-        } else {
-            colors <- .palette_blue_red()
-        }
-    } else if (is.character(palette)) {
-        # palette is a vector of color codes
-        colors <- palette
-    } else {
-        colors <- .palette_blue_red()
-    }
-
-    if (direction == -1) {
-        colors <- rev(colors)
-    }
-
-    if (length(colors) > 1) {
-        ggplot2::scale_color_manual(values = colors, name = name)
-    } else {
-        NULL
-    }
-}
-
-#' Create Fill Scale for Heatmap
-#'
-#' Creates a fill scale for heatmap-style plots.
-#'
-#' @param palette Character: 'blue_red' (default) or 'continuous_diverging'.
-#' @param direction Integer: 1 (default) or -1 to reverse.
-#' @param name Character: legend title.
-#' @param breaks Integer: number of color breaks (default: 50).
-#'
-#' @return ggplot2 scale object.
-#'
-
-#' @noRd
-
-.create_fill_scale <- function(palette = "blue_red", direction = 1, name = NULL,
-    breaks = 50) {
-
-    # Handle palette: check if it's a single string first (safe for equality
-    # comparison)
-    if (is.character(palette) && length(palette) == 1 && palette == "continuous_diverging") {
-        colors <- .palette_continuous_diverging(n = breaks)
-    } else {
-        colors <- .palette_blue_red()
-    }
-
-    if (direction == -1) {
-        colors <- rev(colors)
-    }
-
-    ggplot2::scale_fill_gradient(low = colors[1], high = colors[length(colors)],
-        name = name)
-}
-
-# ============================================================================
 # THEME UTILITIES
 # ============================================================================
 
@@ -2581,29 +2500,48 @@
 #' @return Modified ggplot2 object with applied color scales
 #'
 #' @noRd
-.apply_group_aesthetics <- function(plot, palette = "palette_blue_red", legend_name = "Group",
-    legend_position = "bottom", direction = 1) {
-
-    # Get palette colors - handle both string (function name) and vector cases
-    if (is.character(palette) && length(palette) == 1) {
+# Get palette colors by name (pure function - cycle-free)
+# BREAKING CYCLE: Extracted as independent function to allow testing without .apply_group_aesthetics
+.get_palette_colors <- function(palette_name = "palette_blue_red") {
+    if (is.character(palette_name) && length(palette_name) == 1) {
         # palette is a function name string, call the function
-        palette_fn <- get(paste0(".", palette))  # e.g., .palette_blue_red
-        colors <- palette_fn()
+        palette_fn <- get(paste0(".", palette_name))  # e.g., .palette_blue_red
+        return(palette_fn())
+    } else if (is.character(palette_name)) {
+        # palette is a vector of color names/codes
+        return(palette_name)
     } else {
         # palette is already a vector of colors
-        colors <- palette
+        return(palette_name)
     }
+}
 
+# Apply aesthetic colors to plot (pure function - cycle-free)
+# BREAKING CYCLE: Core logic separated from palette lookup to enable independent testing
+.apply_aesthetics_colors <- function(plot, colors, legend_name = "Group", 
+                                    legend_position = "bottom", direction = 1) {
     # Reverse if needed
     if (direction == -1) {
         colors <- rev(colors)
     }
-
-    # Apply color and fill scales (exact pattern from original code)
-    result <- plot + ggplot2::scale_color_manual(values = colors, name = legend_name) +
-        ggplot2::scale_fill_manual(values = colors, name = legend_name) + ggplot2::theme(legend.position = legend_position)
-
+    
+    # Apply color and fill scales
+    result <- plot + 
+        ggplot2::scale_color_manual(values = colors, name = legend_name) +
+        ggplot2::scale_fill_manual(values = colors, name = legend_name) + 
+        ggplot2::theme(legend.position = legend_position)
+    
     result
+}
+
+.apply_group_aesthetics <- function(plot, palette = "palette_blue_red", legend_name = "Group",
+    legend_position = "bottom", direction = 1) {
+    
+    # Get colors (can be palette name or vector)
+    colors <- .get_palette_colors(palette)
+    
+    # Apply aesthetics
+    .apply_aesthetics_colors(plot, colors, legend_name, legend_position, direction)
 }
 
 #' Create Confidence Interval Line Plot Base
