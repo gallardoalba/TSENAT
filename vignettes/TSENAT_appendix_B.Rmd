@@ -221,10 +221,10 @@ if (!is.null(check_results) && !is.null(check_results$assumptions_table)) {
   ) %>%
     kableExtra::kable_styling(
       bootstrap_options = c("striped", "hover", "condensed", "responsive"),
-      full_width = FALSE,
+      full_width = TRUE,
       latex_options = c("scale_down")
     ) %>%
-    kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "overflow-x: auto; overflow-y: hidden; border: 1px solid #ddd; padding: 10px;")
+    kableExtra::scroll_box(width = "100%", height = "auto")
 }
 ```
 
@@ -298,11 +298,11 @@ rank_summary_stats <- data.frame(
 knitr::kable(rank_summary_stats, caption = "Supplementary Table 3 | Scheirer-Ray-Hare Test Results Summary. Rank-based nonparametric test of *q* × condition interactions.", label = "tab:srh-test-summary", align = c("l", "r"), format = if (knitr::is_latex_output()) "latex" else "html") %>%
   kableExtra::kable_styling(
     bootstrap_options = c("striped", "hover"),
-    full_width = FALSE,
+    full_width = TRUE,
     latex_options = c("scale_down")
   ) %>%
   kableExtra::footnote(general = "Scheirer-Ray-Hare test: nonparametric rank-based ANOVA for paired designs.") %>%
-  kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "overflow-x: auto; overflow-y: hidden; border: 1px solid #ddd; padding: 10px;")
+  kableExtra::scroll_box(width = "100%", height = "auto")
 
 # Show top genes results
 rank_sig <- srh_results_all[!is.na(srh_results_all$p_value), ]
@@ -357,11 +357,11 @@ if (nrow(rank_sig) > 0) {
                  format = if (knitr::is_latex_output()) "latex" else "html") %>%
     kableExtra::kable_styling(
       bootstrap_options = c("striped", "hover"),
-      full_width = FALSE,
+      full_width = TRUE,
       latex_options = c("scale_down")
     ) %>%
     kableExtra::footnote(general = "Effect size η² quantifies strength of *q* × condition interaction; top 10 genes ranked by significance. P-values < 0.0001 shown in scientific notation for precision.") %>%
-    kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "overflow-x: auto; overflow-y: hidden; border: 1px solid #ddd; padding: 10px;")
+    kableExtra::scroll_box(width = "100%", height = "auto")
   }
 }
 ```
@@ -425,11 +425,11 @@ summary_stats <- data.frame(
 knitr::kable(summary_stats, caption = "GAM Results Summary", align = c("l", "r"), format = if (knitr::is_latex_output()) "latex" else "html") %>%
   kableExtra::kable_styling(
     bootstrap_options = c("striped", "hover"),
-    full_width = FALSE,
+    full_width = TRUE,
     latex_options = c("scale_down")
   ) %>%
   kableExtra::footnote(general = "Aggregate statistics across all genes tested by GAM method; effect size > 30% indicates strong biological signal.") %>%
-  kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "overflow-x: auto; overflow-y: hidden; border: 1px solid #ddd; padding: 10px;")
+  kableExtra::scroll_box(width = "100%", height = "auto")
 
 # Show top genes with additional information
 if ("p_interaction" %in% colnames(gam_results)) {
@@ -498,11 +498,11 @@ if ("p_interaction" %in% colnames(gam_results)) {
                    format = if (knitr::is_latex_output()) "latex" else "html") %>%
       kableExtra::kable_styling(
         bootstrap_options = c("striped", "hover"),
-        full_width = FALSE,
+        full_width = TRUE,
         latex_options = c("scale_down")
       ) %>%
       kableExtra::footnote(general = "Top 10 genes ranked by significance; p-values < 0.001 shown in scientific notation; effect size range 0-100%.") %>%
-      kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "overflow-x: auto; overflow-y: hidden; border: 1px solid #ddd; padding: 10px;")
+      kableExtra::scroll_box(width = "100%", height = "auto")
     }
   }
 } else {
@@ -541,14 +541,14 @@ if (!is.null(concordance_results) && is.list(concordance_results)) {
             kableExtra::kable_styling(
               bootstrap_options = c("striped", "hover", "condensed", "responsive"),
               latex_options = c("scale_down", "repeat_header"),
-              full_width = FALSE,
+              full_width = TRUE,
               position = "center"
             ) %>%
             {
               if (knitr::is_latex_output()) {
                 kableExtra::column_spec(., 1, width = "2.5cm")
               } else {
-                kableExtra::scroll_box(., width = "100%", height = "auto", extra_css = "overflow-x: auto; overflow-y: hidden; border: 1px solid #ddd; padding: 10px;")
+                kableExtra::scroll_box(., width = "100%", height = "auto")
               }
             }
   }
@@ -563,14 +563,14 @@ if (!is.null(concordance_results) && is.list(concordance_results)) {
             kableExtra::kable_styling(
               bootstrap_options = c("striped", "hover", "condensed", "responsive"),
               latex_options = c("scale_down", "repeat_header"),
-              full_width = FALSE,
+              full_width = TRUE,
               position = "center"
             ) %>%
             {
               if (knitr::is_latex_output()) {
                 kableExtra::column_spec(., 1, width = "2.5cm")
               } else {
-                kableExtra::scroll_box(., width = "100%", height = "auto", extra_css = "overflow-x: auto; overflow-y: hidden; border: 1px solid #ddd; padding: 10px;")
+                kableExtra::scroll_box(., width = "100%", height = "auto")
               }
             }
   }
@@ -586,7 +586,7 @@ if (!is.null(concordance_results) && is.list(concordance_results)) {
             kableExtra::kable_styling(
               bootstrap_options = c("striped", "hover", "condensed", "responsive"),
               latex_options = c("scale_down", "repeat_header"),
-              full_width = FALSE,
+              full_width = TRUE,
               position = "center"
             ) %>%
             kableExtra::footnote(general = "High-confidence genes: significant by both GAM and Scheirer-Ray-Hare rank test (adj p < 0.05); η² = rank test effect size.") %>%
@@ -594,7 +594,7 @@ if (!is.null(concordance_results) && is.list(concordance_results)) {
               if (knitr::is_latex_output()) {
                 kableExtra::column_spec(., 1, width = "2.5cm")
               } else {
-                kableExtra::scroll_box(., width = "100%", height = "auto", extra_css = "overflow-x: auto; overflow-y: hidden; border: 1px solid #ddd; padding: 10px;")
+                kableExtra::scroll_box(., width = "100%", height = "auto")
               }
             }
   }
