@@ -161,7 +161,7 @@ analysis <- build_analysis(
 ### Orchestration Function
 
 The
-[`TSENAT()`](https://gallardoalba.github.io/TSENAT/reference/TSENAT.md)
+[`TSENAT()`](https://gallardoalba.github.io/TSENAT/reference/TSENAT-package.md)
 function provides a complete, automated analysis pipeline in a single
 call. It takes your configured `TSENATAnalysis` object and executes all
 downstream analysis steps: entropy computation, statistical testing for
@@ -368,8 +368,6 @@ specialized focus on Tsallis entropy analysis.
 
 - [`AllGenerics`](https://gallardoalba.github.io/TSENAT/reference/AllGenerics.md)
   : Generic Functions for TSENATAnalysis S4 Class
-- [`TSENAT()`](https://gallardoalba.github.io/TSENAT/reference/TSENAT.md)
-  : Run complete TSENAT analysis pipeline
 - [`` `[`( ``*`<TSENATAnalysis>`*`,`*`<ANY>`*`,`*`<ANY>`*`,`*`<ANY>`*`)`](https://gallardoalba.github.io/TSENAT/reference/TSENATAnalysis-class.md)
   : TSENATAnalysis S4 Class Definition
 - [`se()`](https://gallardoalba.github.io/TSENAT/reference/TSENATAnalysis-se.md)

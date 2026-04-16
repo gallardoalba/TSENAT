@@ -1,7 +1,7 @@
 # Create and return TSENAT configuration
 
 Builds a configuration list for use with
-[`TSENAT`](https://gallardoalba.github.io/TSENAT/reference/TSENAT.md)().
+[`TSENAT`](https://gallardoalba.github.io/TSENAT/reference/TSENAT-package.md)().
 Allows specifying analysis parameters once and reusing across multiple
 analyses.
 

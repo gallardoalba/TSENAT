@@ -4,8 +4,6 @@
 
 - [`AllGenerics`](https://gallardoalba.github.io/TSENAT/reference/AllGenerics.md)
   : Generic Functions for TSENATAnalysis S4 Class
-- [`TSENAT()`](https://gallardoalba.github.io/TSENAT/reference/TSENAT.md)
-  : Run complete TSENAT analysis pipeline
 - [`` `[`( ``*`<TSENATAnalysis>`*`,`*`<ANY>`*`,`*`<ANY>`*`,`*`<ANY>`*`)`](https://gallardoalba.github.io/TSENAT/reference/TSENATAnalysis-class.md)
   : TSENATAnalysis S4 Class Definition
 - [`se()`](https://gallardoalba.github.io/TSENAT/reference/TSENATAnalysis-se.md)

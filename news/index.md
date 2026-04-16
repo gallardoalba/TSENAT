@@ -44,7 +44,7 @@
   styling.
 
 - High-level workflow orchestration via
-  [`TSENAT()`](https://gallardoalba.github.io/TSENAT/reference/TSENAT.md)
+  [`TSENAT()`](https://gallardoalba.github.io/TSENAT/reference/TSENAT-package.md)
   and flexible configuration management with
   [`TSENAT_config()`](https://gallardoalba.github.io/TSENAT/reference/TSENAT_config.md).
 

@@ -124,7 +124,7 @@ Use `metadata(obj)` to access reproducibility metadata.
 
   `list`. Cached visualization objects (ggplot). Names identify plot
   type (e.g., 'q_curve', 'lm_interaction', 'influence'). Populated by
-  [`TSENAT()`](https://gallardoalba.github.io/TSENAT/reference/TSENAT.md)
+  [`TSENAT()`](https://gallardoalba.github.io/TSENAT/reference/TSENAT-package.md)
   if `generate_plots=TRUE`.
 
 - `metadata`:

@@ -161,7 +161,7 @@ analysis <- build_analysis(
 ### Orchestration Function
 
 The
-[`TSENAT()`](https://gallardoalba.github.io/TSENAT/reference/TSENAT.md)
+[`TSENAT()`](https://gallardoalba.github.io/TSENAT/reference/TSENAT-package.md)
 function provides a complete, automated analysis pipeline in a single
 call. It takes your configured `TSENATAnalysis` object and executes all
 downstream analysis steps: entropy computation, statistical testing for
