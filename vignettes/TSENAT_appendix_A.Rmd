@@ -301,7 +301,7 @@ knitr::kable(shannon_summary, row.names = FALSE,
              }, 
              align = c("l", "r", "r", "r", "r"),
              format = if (knitr::is_latex_output()) "latex" else "html") %>%
-  kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = TRUE, latex_options = c("scale_down")) %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "responsive"), full_width = TRUE, latex_options = c("scale_down")) %>%
   kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
 ```
 
@@ -319,7 +319,7 @@ shannon_sf_top <- TSENAT:::.format_top_genes(
   col_names = c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
 )
 knitr::kable(shannon_sf_top, row.names = FALSE, caption = "**Supplementary Table 6a | SplicingFactory method - Top 10 genes identified by Shannon entropy (naive mode).** Ranked by adjusted *P*-value.", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html") %>%
-kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = TRUE, latex_options = c("scale_down")) %>%
+kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "responsive"), full_width = TRUE, latex_options = c("scale_down")) %>%
 kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
 ```
 
@@ -340,7 +340,7 @@ knitr::kable(shannon_tsenat_top, row.names = FALSE, caption = if (knitr::is_late
 } else {
   "**Supplementary Table 6b | TSENAT method - Top 10 genes identified by Tsallis entropy at q=1 (Shannon equivalence).** Results obtained using SplicingFactory's `calculate_difference()` method applied to TSENAT Tsallis q=1 diversity values. Ranked by adjusted *P*-value."
 }, align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html") %>%
-kableExtra::kable_styling(bootstrap_options = c("striped", "hover"), full_width = TRUE, latex_options = c("scale_down")) %>%
+kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "responsive"), full_width = TRUE, latex_options = c("scale_down")) %>%
 kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
 ```
 
@@ -383,7 +383,7 @@ knitr::kable(simpson_summary, row.names = FALSE,
              align = c("l", "r", "r", "r", "r"),
              format = if (knitr::is_latex_output()) "latex" else "html") %>%
   kableExtra::kable_styling(
-    bootstrap_options = c("striped", "hover"),
+    bootstrap_options = c("striped", "hover", "responsive"),
     full_width = TRUE,
     latex_options = c("scale_down")
   ) %>%
@@ -405,7 +405,7 @@ simpson_sf_top <- TSENAT:::.format_top_genes(
 )
 knitr::kable(simpson_sf_top, row.names = FALSE, caption = "**Supplementary Table 9a | SplicingFactory method - Top 10 genes by Simpson index (Gini-Simpson, emphasizes dominant isoforms).** Ranked by adjusted *P*-value.", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html") %>%
 kableExtra::kable_styling(
-  bootstrap_options = c("striped", "hover"),
+  bootstrap_options = c("striped", "hover", "responsive"),
   full_width = TRUE,
   latex_options = c("scale_down")
 ) %>%
@@ -430,7 +430,7 @@ knitr::kable(simpson_tsenat_top, row.names = FALSE, caption = if (knitr::is_late
   "**Supplementary Table 9b | TSENAT method - Top 10 genes by Tsallis entropy at q=2 (Simpson equivalence).** Results obtained using SplicingFactory's `calculate_difference()` method applied to TSENAT Tsallis q=2 diversity values. Ranked by adjusted *P*-value."
 }, align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html") %>%
 kableExtra::kable_styling(
-  bootstrap_options = c("striped", "hover"),
+  bootstrap_options = c("striped", "hover", "responsive"),
   full_width = TRUE,
   latex_options = c("scale_down")
 ) %>%

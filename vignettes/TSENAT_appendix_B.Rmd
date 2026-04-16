@@ -297,7 +297,7 @@ rank_summary_stats <- data.frame(
 
 knitr::kable(rank_summary_stats, caption = "Supplementary Table 3 | Scheirer-Ray-Hare Test Results Summary. Rank-based nonparametric test of *q* × condition interactions.", label = "tab:srh-test-summary", align = c("l", "r"), format = if (knitr::is_latex_output()) "latex" else "html") %>%
   kableExtra::kable_styling(
-    bootstrap_options = c("striped", "hover"),
+    bootstrap_options = c("striped", "hover", "responsive"),
     full_width = TRUE,
     latex_options = c("scale_down")
   ) %>%
@@ -356,7 +356,7 @@ if (nrow(rank_sig) > 0) {
                                "Effect Size (η²)", "Interaction Class")[1:ncol(rank_display)],
                  format = if (knitr::is_latex_output()) "latex" else "html") %>%
     kableExtra::kable_styling(
-      bootstrap_options = c("striped", "hover"),
+      bootstrap_options = c("striped", "hover", "responsive"),
       full_width = TRUE,
       latex_options = c("scale_down")
     ) %>%
@@ -424,7 +424,7 @@ summary_stats <- data.frame(
 
 knitr::kable(summary_stats, caption = "GAM Results Summary", align = c("l", "r"), format = if (knitr::is_latex_output()) "latex" else "html") %>%
   kableExtra::kable_styling(
-    bootstrap_options = c("striped", "hover"),
+    bootstrap_options = c("striped", "hover", "responsive"),
     full_width = TRUE,
     latex_options = c("scale_down")
   ) %>%
@@ -497,7 +497,7 @@ if ("p_interaction" %in% colnames(gam_results)) {
                    align = c("l", "r", "r", "r", "r", "r"),
                    format = if (knitr::is_latex_output()) "latex" else "html") %>%
       kableExtra::kable_styling(
-        bootstrap_options = c("striped", "hover"),
+        bootstrap_options = c("striped", "hover", "responsive"),
         full_width = TRUE,
         latex_options = c("scale_down")
       ) %>%
