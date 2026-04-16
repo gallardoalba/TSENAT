@@ -71,11 +71,6 @@
 #' result <- TSENAT(analysis)
 #' }
 #'
-#' @export
-# ============================================================================
-# MAIN ORCHESTRATION FUNCTION
-# ============================================================================
-
 #' Run complete TSENAT analysis pipeline
 #'
 #' Coordinates the full TSENAT workflow: diversity -> jackknife -> LM

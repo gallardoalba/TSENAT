@@ -206,11 +206,16 @@ calculate_srh <- function(analysis, condition_col, output_file = NULL, paired = 
         stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }
 
+    # condition_col is REQUIRED for Q×Condition interaction testing (Q main effect support removed March 2026)
     if (missing(condition_col) || is.null(condition_col)) {
         if (!is.null(analysis@config) && "condition_col" %in% names(analysis@config)) {
             condition_col <- analysis@config$condition_col
+            message("Using condition_col='", condition_col, "' from @config")
         } else {
-            condition_col <- "condition"
+            stop("'condition_col' is REQUIRED for Q×Condition interaction testing. ",
+                 "Specify condition_col argument or set analysis@config$condition_col. ",
+                 "This function tests genes with CONDITION-SPECIFIC q-dependent patterns only.",
+                 call. = FALSE)
         }
     }
 

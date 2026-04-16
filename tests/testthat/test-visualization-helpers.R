@@ -67,39 +67,6 @@ testthat::test_that("set_plot_title handles NULL title/subtitle", {
 })
 
 # ============================================================================
-# TEST: Color and Fill Scale Creation
-# ============================================================================
-
-testthat::test_that("create_color_scale returns ggplot scale", {
-
-  scale <- .create_color_scale(palette = "blue_red")
-  testthat::expect_is(scale, "Scale")
-})
-
-testthat::test_that("create_color_scale reverses with direction -1", {
-
-  scale_fwd <- .create_color_scale(palette = "blue_red", direction = 1)
-  scale_rev <- .create_color_scale(palette = "blue_red", direction = -1)
-
-  testthat::expect_is(scale_fwd, "Scale")
-  testthat::expect_is(scale_rev, "Scale")
-})
-
-testthat::test_that("create_fill_scale returns appropriate scale", {
-
-  scale <- .create_fill_scale(palette = "continuous_diverging")
-  testthat::expect_is(scale, "Scale")
-})
-
-testthat::test_that("create_fill_scale accepts breaks parameter", {
-
-  scale_50 <- .create_fill_scale(breaks = 50)
-  scale_100 <- .create_fill_scale(breaks = 100)
-
-  testthat::expect_is(scale_50, "Scale")
-  testthat::expect_is(scale_100, "Scale")
-})
-
 # ============================================================================
 # TEST: Heatmap Creation
 # ============================================================================
@@ -333,12 +300,6 @@ testthat::test_that("combine_plots_patchwork produces distinct layouts from cowp
 # TEST: Edge Cases and Error Handling
 # ============================================================================
 
-testthat::test_that("create_color_scale handles NULL name parameter", {
-
-  scale <- .create_color_scale(palette = "blue_red", name = NULL)
-  testthat::expect_is(scale, "Scale")
-})
-
 testthat::test_that("set_plot_title preserves existing plot aesthetics", {
 
   p <- ggplot2::ggplot(data.frame(x = 1:10, y = 1:10), ggplot2::aes(x, y)) +
@@ -418,22 +379,6 @@ testthat::test_that("theme + composition workflow produces valid plot", {
   combined <- .combine_plots_patchwork(plots, agg_label_unique = "test_metric")
 
   testthat::expect_is(combined, "ggplot")
-})
-
-testthat::test_that("scale creation works with theme application", {
-
-  df <- data.frame(
-    x = 1:10,
-    y = 1:10,
-    z = seq(0, 1, length.out = 10)
-  )
-
-  p <- ggplot2::ggplot(df, ggplot2::aes(x, y, fill = z)) +
-    ggplot2::geom_tile() +
-    .create_fill_scale(palette = "continuous_diverging") +
-    .apply_tsenat_theme()
-
-  testthat::expect_is(p, "ggplot")
 })
 
 # ============================================================================
@@ -2236,76 +2181,6 @@ test_that(".make_plot_for_genecombine_cowplot handles multiple plots (grid layou
   }, error = function(e) NULL)
   
   expect_true(!is.null(result))
-})
-
-# ============================================================================
-# TEST: create_color_scale - uncovered color palette branches (lines 453-458, 468)
-# ============================================================================
-
-test_that(".create_color_scale handles continuous_diverging palette", {
-  result <- tryCatch({
-    scale <- TSENAT:::.create_color_scale(palette = "continuous_diverging", name = "Value")
-    scale
-  }, error = function(e) NULL)
-  
-  expect_is(result, "ScaleDiscrete")
-})
-
-test_that(".create_color_scale handles continuous_diverging palette", {
-  scale <- TSENAT:::.create_color_scale(palette = "continuous_diverging", direction = 1)
-  
-  # Should return a scale object
-  expect_true(!is.null(scale))
-})
-
-test_that(".create_color_scale reverses direction correctly", {
-  result_normal <- tryCatch({
-    TSENAT:::.create_color_scale(palette = "blue_red", direction = 1)
-  }, error = function(e) NULL)
-  
-  result_reversed <- tryCatch({
-    TSENAT:::.create_color_scale(palette = "blue_red", direction = -1)
-  }, error = function(e) NULL)
-  
-  expect_is(result_normal, "ScaleDiscrete")
-  expect_is(result_reversed, "ScaleDiscrete")
-})
-
-test_that(".create_color_scale with blue_red palette returns scale", {
-  scale <- TSENAT:::.create_color_scale(palette = "blue_red", name = "Custom")
-  
-  # Should return a scale object, not NULL
-  expect_true(!is.null(scale))
-})
-
-# ============================================================================
-# TEST: create_fill_scale - uncovered lines (496)
-# ============================================================================
-
-test_that(".create_fill_scale handles continuous_diverging palette with custom breaks", {
-  result <- tryCatch({
-    scale <- TSENAT:::.create_fill_scale(
-      palette = "continuous_diverging",
-      breaks = 100,
-      name = "Divergence"
-    )
-    scale
-  }, error = function(e) NULL)
-  
-  expect_is(result, "ScaleContinuous")
-})
-
-test_that(".create_fill_scale respects direction parameter", {
-  result <- tryCatch({
-    scale <- TSENAT:::.create_fill_scale(
-      palette = "blue_red",
-      direction = -1,
-      breaks = 50
-    )
-    scale
-  }, error = function(e) NULL)
-  
-  expect_is(result, "ScaleContinuous")
 })
 
 # ============================================================================

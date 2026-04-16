@@ -110,7 +110,7 @@ test_that(".format_table_header respects column widths", {
     result <- .format_table_header(colnames, col_widths)
     
     # Total length should be ~ sum of widths + spaces between
-    expect_gte(nchar(result), 19)  # 5+1+5+1+5 = 17 minimum
+    expect_gte(nchar(result), 17)  # 5+1+5+1+5 = 17 minimum
 })
 
 # =============================================================================
@@ -241,8 +241,8 @@ test_that("print.concordance_text works with formatted output", {
     # Format the dataframe
     formatted <- .format_data_frame_as_text(df)
     
-    # Should be printable
-    expect_silent(cat(formatted))
+    # Should produce formatted output
+    expect_output(cat(formatted))
 })
 
 # =============================================================================

@@ -64,7 +64,6 @@ test_that(".apply_aesthetics_colors applies color and fill scales", {
     # Check that scales were added
     expect_true(length(result$scales$scales) > 0)
 })
-})
 
 test_that(".apply_aesthetics_colors respects direction parameter", {
     # Test direction reversal
@@ -157,7 +156,6 @@ test_that(".validate_lm_method_dependencies validates GEE", {
 
 test_that(".validate_lm_method_dependencies validates FPCA", {
     # FPCA requires 'refund' package
-    skip_if_not_installed("refund")
     expect_silent(.validate_lm_method_dependencies("fpca"))
 })
 

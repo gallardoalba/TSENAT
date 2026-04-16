@@ -560,7 +560,11 @@
                 delta_matrix[, q_idx] <- results_list[[q_idx]]$results_per_gene[[gene_name]]$delta_influence
             }
         }
-        consistency_results <- apply(delta_matrix, 1, function(x) {
+        # Exclude q=0.0 from consistency check (non-informative)
+        q_non_zero_indices <- which(q != 0.0)
+        delta_matrix_filtered <- delta_matrix[, q_non_zero_indices, drop = FALSE]
+        
+        consistency_results <- apply(delta_matrix_filtered, 1, function(x) {
             x_valid <- x[!is.na(x) & !is.infinite(x)]
             if (length(x_valid) >= 2) {
                 # Ignore zeros when checking for consistency (0 is a

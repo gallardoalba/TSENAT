@@ -1578,7 +1578,7 @@ test_that("rank_test results with different test methods produce valid statistic
 
 test_that("rank_test paired designs produce mathematically valid results", {
   
-  # Paired rank tests (Friedman) should produce valid results
+  # Paired Q×Condition interaction test (using Scheirer-Ray-Hare with within-subject ranking)
   analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_rank_paired.tsv")

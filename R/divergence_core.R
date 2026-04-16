@@ -1,14 +1,14 @@
 # =========================================================================
-# MAIN FUNCTION: Calculate Bootstrap Divergence
+# MAIN FUNCTION: Calculate Tsallis Divergence
 # =========================================================================
 
-#' Calculate Bootstrap Divergence Confidence Intervals Across Genes
+#' Calculate Tsallis Divergence Across Genes with Optional Bootstrap Confidence Intervals
 #'
 #' **NEW ARCHITECTURE: Transcript-level counts -> Gene-level aggregation ->
 #' Tsallis divergence**
 #' 
-#' Computes bootstrap confidence intervals for Tsallis divergence comparing
-#' two groups across multiple genes. Automatically aggregates
+#' Computes Tsallis divergence comparing two groups across multiple genes,
+#' with optional bootstrap confidence intervals. Automatically aggregates
 #' transcript-level counts
 #' to gene-level (per Paper I033: gene-level analysis for
 #' information-theoretic diversity).
@@ -78,8 +78,8 @@
 #'               to preserve within-pair correlations (Papers Ramsay (2005), Springer Series in Statistics, S102-S109).
 #'               (default: FALSE)
 #' @param bootstrap Logical; if TRUE, computes bootstrap confidence
-#' intervals (~2-3 sec/gene).
-#'                  If FALSE,  computes point estimates only (~0. 02-0.
+#' intervals (~2-3 sec/gene overall).
+#'                  If FALSE,  computes point estimates only (~0.02-0.
 #' 05 sec/gene).
 #'                  (default: FALSE)
 #' @param nboot Number of bootstrap replicates (default: 1000)
@@ -162,12 +162,14 @@
 #' warranted)
 #'
 #' **Performance Characteristics:**
-#' - With bootstrap=TRUE (default):
+#' - Point estimate computation (always fast):
+#'   - Sequential: ~0.02-0.05 seconds per gene (vectorized multi-q optimization)
+#' - With bootstrap=FALSE (default):
+#'   - Returns divergence point estimates only (50-100x faster than CIs)
+#' - With bootstrap=TRUE (optional confidence intervals):
 #'   - Sequential: ~2-3 seconds per gene (nboot=1000, percentile method)
 #'   - Parallel overhead: ~1-2 seconds initial cluster setup
 #'   - Break-even point: ~10-20 genes
-#' - With bootstrap=FALSE (point estimates only):
-#'   - Sequential: ~0.02-0.05 seconds per gene (50-100* faster)
 #'
 #' **Gene Filtering:**
 #' - Always process all genes in se
@@ -175,13 +177,11 @@
 #' **Database Verification (tsenat_papers.db):**
 #' - Tsallis divergence mathematical foundation: Papers I001-I004 validate
 #'   divergence formula and q-parameter effects
-#' - Bootstrap methodology: Papers Ramsay (2005), Springer Series in Statistics, S018, S030 validate percentile and BCa
-#'   bootstrap for entropy/divergence estimates with confidence level >= 0.95
 #' - Transcript aggregation: Paper C105 validates gene-level aggregation
 #' - Divergence normalization: Papers C112, S196, S201 validate normalization
-#' approaches for effect size comparability (S197 - DESeq2 independent
-#' filtering)
-
+#'   approaches for effect size comparability (S197 - DESeq2 independent filtering)
+#' - Bootstrap methodology (optional CIs): Papers Ramsay (2005), Springer Series in Statistics, S018, S030 validate
+#'   percentile and BCa bootstrap for entropy/divergence estimates with confidence level >= 0.95
 #' @noRd
 #' @details
 #' **Reproducibility and RNG (Bioconductor-compliant):**
@@ -193,7 +193,6 @@
 #' Example:
 #'   set.seed(42)
 #'   result <- .calculate_divergence(se, q=1, nboot=100, nthreads=2)
-
 .calculate_divergence <- function(se, group_col = NULL, control_group = NULL, q = 1,
     paired = FALSE, bootstrap = FALSE, nboot = "auto", ci = 0.95, method = "percentile",
     norm = TRUE, log_base = exp(1), pseudocount = 0.5, nthreads = 1, progress = FALSE,
