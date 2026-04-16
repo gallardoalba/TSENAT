@@ -1,0 +1,107 @@
+/* Allow tables to expand to full width */
+.kable-table,
+.table,
+table {
+  width: 100% !important;
+  border-collapse: collapse;
+}
+
+/* Force kableExtra tables to use full width - DO NOT CONSTRAIN */
+table[class*="table"] {
+  width: 100% !important;
+}
+
+/* Override inline margin-centering to allow full width */
+table[style*="margin-left"] {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Allow kableExtra tables to expand - REMOVE WIDTH CONSTRAINTS */
+div.kableExtra-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: block !important;
+}
+
+/* Override inline styles on kableExtra wrapper */
+div.kableExtra-wrapper[style] {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: block !important;
+}
+
+div.kableExtra-wrapper[style] table {
+  width: 100% !important;
+}
+
+/* Bootstrap responsive table handling with horizontal scrolling */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* For kableExtra scroll_box containers */
+div.scroll_box {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Allow content to expand */
+.main {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Table cells should size based on content */
+table td,
+table th {
+  white-space: normal;
+  padding: 8px 12px;
+}
+
+/* DataTables full width */
+table.dataTable {
+  width: 100% !important;
+}
+
+/* STANDARD PKGDOWN PATTERN (used by ggplot2, dplyr, tidyverse, R4DS) */
+/* Make tables expand to full width */
+main table {
+  width: 100% !important;
+  max-width: 100% !important;
+  table-layout: auto;
+}
+
+/* Also handle tables wrapped in kableExtra-wrapper */
+main .kableExtra-wrapper table {
+  width: 100% !important;
+  max-width: 100% !important;
+  table-layout: auto;
+}
+
+/* Improve table aesthetics */
+table.table th {
+  background-color: #f8f9fa;
+  font-weight: 500;
+  border-bottom: 2px solid #dee2e6;
+}
+
+/* Better mobile experience */
+@media (max-width: 576px) {
+  table.table th,
+  table.table td {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
+}
+
+/* Content container */
+.contents {
+  width: 100%;
+  max-width: 100%;
+}
