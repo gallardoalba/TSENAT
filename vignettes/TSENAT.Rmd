@@ -16,6 +16,8 @@ output:
     latex_engine: xelatex
 header-includes:
   - \usepackage{float}
+  - \usepackage{longtable}
+  - \usepackage{colortbl}
 bibliography: TSENAT.bib
 suppress-bibliography: true
 vignette: |
@@ -374,19 +376,22 @@ for (q_val in q_values_to_show) {
 }
 
 if (!is.null(sample_data) && nrow(sample_data) > 0) {
-    print(knitr::kable(
+    knitr::kable(
         sample_data,
         caption = paste0("**Table 1:** Tsallis entropy for first 4 genes across three diversity scales (sample: ", 
                          first_sample_name, ")"),
         digits = 5,
         row.names = FALSE,
-        format = if (knitr::is_latex_output()) "latex" else "html"
+        format = if (knitr::is_latex_output()) "latex" else "html",
+        longtable = knitr::is_latex_output(),
+        linesep = ""
     ) %>%
     kableExtra::kable_styling(
-      bootstrap_options = c("striped", "hover", "responsive"),
+      bootstrap_options = c("striped", "hover"),
       full_width = TRUE,
-      latex_options = c("scale_down", "hold_position")
-    ))
+      latex_options = c("scale_down")
+    ) %>%
+    kableExtra::scroll_box(width = "100%", height = "auto")
 } else {
   cat("Note: Diversity results not available for the requested q-values. ",
       "Ensure calculate_diversity() was run with appropriate q-value configuration.")
@@ -445,13 +450,16 @@ if (!is.null(sample_qc) && nrow(sample_qc) > 0) {
       caption = "**Table 2 | Sample Influence Assessment via M-estimation.** Ranked by magnitude of resampling-based influence values. Columns: Sample identifier; condition; proportion affected; distance from centroid; outlier status. M-estimation identifies influential samples for sensitivity analysis.",
       digits = 4,
       row.names = FALSE,
-      format = if (knitr::is_latex_output()) "latex" else "html"
+      format = if (knitr::is_latex_output()) "latex" else "html",
+      longtable = knitr::is_latex_output(),
+      linesep = ""
   ) %>%
   kableExtra::kable_styling(
-    bootstrap_options = c("striped", "hover", "responsive"),
+    bootstrap_options = c("striped", "hover"),
     full_width = TRUE,
-    latex_options = c("scale_down", "hold_position")
-  )
+    latex_options = c("scale_down")
+  ) %>%
+  kableExtra::scroll_box(width = "100%", height = "auto")
 }
 ```
 
@@ -490,7 +498,7 @@ if (!is.null(lm_res) && is.data.frame(lm_res) && nrow(lm_res) > 0) {
     display <- head(lm_res, 6)
     
     # Select only most informative columns
-    key_cols <- c("gene", "gene_name", "p_interaction", "adj_p_interaction", 
+    key_cols <- c("gene", "p_interaction", "adj_p_interaction", 
                   "effect_size", "test_statistic", "model_converged", "heteroscedasticity_detected")
     key_cols <- key_cols[key_cols %in% colnames(display)]
     display <- display[, key_cols]
@@ -509,14 +517,17 @@ if (!is.null(lm_res) && is.data.frame(lm_res) && nrow(lm_res) > 0) {
     
     knitr::kable(display, 
                 caption = "**Table 3 | Leading genes with scale-dependent condition effects from generalized additive models.** We display the 6 genes with lowest adjusted p-values (*q* < 0.05). Benjamini-Hochberg correction applied; columns show gene identifier, effect size, test statistic, convergence status, and heteroscedasticity detection. Methods: GAMs with *q* and condition as smooth predictors [@S190].",
-                col.names = c("Gene", "Gene Name", "P-value", "Adj. P-value", "Effect Size", "Test Statistic", "Model Converged", "Heteroscedasticity"),
+                col.names = c("Gene", "P-value", "Adj. P-value", "Effect Size", "Test Statistic", "Model Converged", "Heteroscedasticity"),
                 digits = 4, row.names = FALSE,
-                format = if (knitr::is_latex_output()) "latex" else "html") %>%
+                format = if (knitr::is_latex_output()) "latex" else "html",
+                longtable = knitr::is_latex_output(),
+                linesep = "") %>%
     kableExtra::kable_styling(
-      bootstrap_options = c("striped", "hover", "responsive"),
+      bootstrap_options = c("striped", "hover"),
       full_width = TRUE,
-      latex_options = c("scale_down", "hold_position")
-    )
+      latex_options = c("scale_down")
+    ) %>%
+    kableExtra::scroll_box(width = "100%", height = "auto")
 }
 ```
 
@@ -579,7 +590,12 @@ if (exists("tables_result") && is.list(tables_result) &&
     !is.null(tables_result$gene_headers) && length(tables_result$gene_headers) > 0) {
   # Iterate over the prepared comparison tables and display top 2 genes
   for (gene_idx in 1:min(2, length(tables_result$gene_headers))) {
-    cat("#### Gene: ", tables_result$gene_headers[gene_idx], "\n\n", sep="")
+    # Print gene header with proper spacing and formatting
+    if (knitr::is_latex_output()) {
+      cat("\n\n\\subsection*{Gene: ", tables_result$gene_headers[gene_idx], "}\n\n", sep="")
+    } else {
+      cat("\n\n### Gene: ", tables_result$gene_headers[gene_idx], "\n\n", sep="")
+    }
     
     comparison_data <- tables_result$comparison_tables[[gene_idx]]
     q_metadata <- tables_result$q_metadata[[gene_idx]]
@@ -587,31 +603,40 @@ if (exists("tables_result") && is.list(tables_result) &&
     if (!is.null(comparison_data) && !is.null(q_metadata)) {
       # Create display labels for column names (for knitr::kable)
       q_values_available <- q_metadata$q_values_available
+      # Filter to show only q=0.50, q=1.00, q=1.50
+      q_indices <- which(sapply(q_values_available, function(qk) {
+        q_num <- q_metadata$q_key_to_value[[qk]]
+        q_num %in% c(0.50, 1.00, 1.50)
+      }))
+      q_values_to_show <- q_values_available[q_indices]
+      
       col_display <- c(
         "Transcript",
-        sapply(q_values_available, function(qk) {
+        sapply(q_values_to_show, function(qk) {
           q_num <- q_metadata$q_key_to_value[[qk]]
           paste0("q=", sprintf("%.2f", q_num))
         }),
         "Direction Consistency"
       )
       
-      print(knitr::kable(comparison_data, 
+      # Select only these columns from comparison_data
+      cols_to_keep <- c(1, q_indices + 1, ncol(comparison_data))
+      comparison_data_filtered <- comparison_data[, cols_to_keep, drop = FALSE]
+      
+      # Render table with kableExtra
+      table_output <- knitr::kable(comparison_data_filtered, 
                          digits = 3, 
                          col.names = col_display, 
-                         format = if (knitr::is_latex_output()) "latex" else "html") %>%
+                         format = if (knitr::is_latex_output()) "latex" else "html",
+                         longtable = knitr::is_latex_output(),
+                         linesep = "") %>%
             kableExtra::kable_styling(
-              bootstrap_options = c("striped", "hover", "condensed", "responsive"),
-              latex_options = c("scale_down", "repeat_header", "hold_position"),
-              full_width = TRUE
+              bootstrap_options = c("striped", "hover"),
+              full_width = TRUE,
+              latex_options = c("scale_down")
             ) %>%
-            {
-              if (knitr::is_latex_output()) {
-                kableExtra::column_spec(., 1, width = "2.5cm")
-              } else {
-                .
-              }
-            })
+            kableExtra::scroll_box(width = "100%", height = "auto")
+      print(table_output)
     }
     
     cat("\n")
@@ -676,13 +701,16 @@ if (exists("analysis")) {
             caption = "**Table 3 | Pairwise Tsallis divergence estimates.** Divergence (distance) between conditions from Tsallis entropy framework. Columns: gene identifier; pairwise comparison; divergence value; confidence interval (95%). Ranked by magnitude.",
             digits = 5,
             row.names = TRUE,
-            format = if (knitr::is_latex_output()) "latex" else "html"
+            format = if (knitr::is_latex_output()) "latex" else "html",
+            longtable = knitr::is_latex_output(),
+            linesep = ""
         ) %>%
         kableExtra::kable_styling(
-          bootstrap_options = c("striped", "hover", "responsive"),
+          bootstrap_options = c("striped", "hover"),
           full_width = TRUE,
-          latex_options = c("scale_down", "hold_position")
-        )
+          latex_options = c("scale_down")
+        ) %>%
+        kableExtra::scroll_box(width = "100%", height = "auto", fixed_thead = list(enabled = TRUE, background = "#FFFFFF"))
     } else if (is.list(div_results) && length(div_results) > 0) {
         # If stored as list per q-value, extract first q-value results
         first_q_result <- div_results[[1]]
@@ -694,13 +722,16 @@ if (exists("analysis")) {
                 caption = "**Table 4 | Pairwise Tsallis divergence from list-based results.** Alternative representation of divergence metrics for leading genes. Columns: gene identifier; pairwise comparison; divergence value; uncertainty. Asymmetry ($D(A \\to B) \\ne D(B \\to A)$) reflects information-theoretic properties. Ordered by divergence magnitude.",
                 digits = 5,
                 row.names = TRUE,
-                format = if (knitr::is_latex_output()) "latex" else "html"
+                format = if (knitr::is_latex_output()) "latex" else "html",
+                longtable = knitr::is_latex_output(),
+                linesep = ""
             ) %>%
             kableExtra::kable_styling(
-              bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+              bootstrap_options = c("striped", "hover"),
               full_width = TRUE,
-              latex_options = c("scale_down", "hold_position")
-            )
+              latex_options = c("scale_down")
+            ) %>%
+            kableExtra::scroll_box(width = "100%", height = "auto")
         }
     }
 }
@@ -751,13 +782,16 @@ knitr::kable(
     caption = "Top 6 Genes by Effect Size (Tsallis Divergence)",
     digits = 4,
     row.names = FALSE,
-    format = if (knitr::is_latex_output()) "latex" else "html"
+    format = if (knitr::is_latex_output()) "latex" else "html",
+    longtable = knitr::is_latex_output(),
+    linesep = ""
 ) %>%
 kableExtra::kable_styling(
-  bootstrap_options = c("striped", "hover", "responsive"),
+  bootstrap_options = c("striped", "hover"),
   full_width = TRUE,
-  latex_options = c("scale_down", "hold_position")
-)
+  latex_options = c("scale_down")
+) %>%
+kableExtra::scroll_box(width = "100%", height = "auto")
 ```
 
 ### Interpretation of Pattern Types:

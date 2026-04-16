@@ -14,6 +14,8 @@ output:
         latex_engine: xelatex
 header-includes:
     - \usepackage{float}
+    - \usepackage{longtable}
+    - \usepackage{colortbl}
 bibliography: TSENAT.bib
 vignette: |
     %\VignetteIndexEntry{TSENAT Appendix A: Validation}
@@ -31,6 +33,31 @@ knitr::opts_chunk$set(
 suppressPackageStartupMessages(library(kableExtra))
 ```
 
+```{css, echo=FALSE}
+/* Fix table rendering in scroll containers */
+div[style*="overflow-x: scroll"] {
+  display: block !important;
+  width: 100% !important;
+}
+
+div[style*="overflow-x: scroll"] > table,
+div[style*="overflow-x: scroll"] .table {
+  width: 100% !important;
+  min-width: 100% !important;
+  display: table !important;
+}
+
+div[style*="overflow-x: scroll"] thead th {
+  position: sticky;
+  top: 0;
+  background-color: #FFFFFF;
+  z-index: 10;
+}
+
+.table {
+  width: 100%;
+}
+```
 
 # Introduction
 
@@ -295,14 +322,13 @@ shannon_summary <- data.frame(
 knitr::kable(shannon_summary, row.names = FALSE, 
              col.names = c("Method", "Genes Tested", "Significant (padj<0.05)", "Mean log2FC", "SD log2FC"),
              caption = if (knitr::is_latex_output()) {
-               "Supplementary Table 5 | Shannon Entropy Analysis Summary Statistics. Differential analysis comparing Normal (N=8) vs Tumor (N=8) samples using SplicingFactory's calculate_difference() method."
+               "Supplementary Table 5 | Shannon Entropy Analysis Summary Statistics. Differential analysis comparing Normal (N=8) vs Tumor (N=8) samples using SplicingFactory's \\texttt{calculate\\_difference()} method."
              } else {
                "**Supplementary Table 5 | Shannon Entropy Analysis Summary Statistics.** Differential analysis comparing Normal (N=8) vs Tumor (N=8) samples using SplicingFactory's `calculate_difference()` method."
              }, 
              align = c("l", "r", "r", "r", "r"),
              format = if (knitr::is_latex_output()) "latex" else "html") %>%
-  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "responsive"), full_width = TRUE, latex_options = c("scale_down")) %>%
-  kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "responsive"), full_width = TRUE)
 ```
 
 **Interpretation**: Both methods similarly identify significantly different transcript diversity between Normal and Tumor samples. The comparable number of significant genes (padj<0.05) and mean log2FC values demonstrate equivalent statistical power and effect size detection.
@@ -319,8 +345,7 @@ shannon_sf_top <- TSENAT:::.format_top_genes(
   col_names = c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
 )
 knitr::kable(shannon_sf_top, row.names = FALSE, caption = "**Supplementary Table 6a | SplicingFactory method - Top 10 genes identified by Shannon entropy (naive mode).** Ranked by adjusted *P*-value.", align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html") %>%
-kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "responsive"), full_width = TRUE, latex_options = c("scale_down")) %>%
-kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
+kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "responsive"), full_width = TRUE)
 ```
 
 #### Top 10 Significant Genes - TSENAT (Tsallis q=1)
@@ -336,12 +361,11 @@ shannon_tsenat_top <- TSENAT:::.format_top_genes(
   col_names = c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
 )
 knitr::kable(shannon_tsenat_top, row.names = FALSE, caption = if (knitr::is_latex_output()) {
-  "Supplementary Table 6b | TSENAT method - Top 10 genes identified by Tsallis entropy at q=1 (Shannon equivalence). Results obtained using SplicingFactory's calculate_difference() method applied to TSENAT Tsallis q=1 diversity values. Ranked by adjusted p-value."
+  "Supplementary Table 6b | TSENAT method - Top 10 genes identified by Tsallis entropy at q=1 (Shannon equivalence). Results obtained using SplicingFactory's \\texttt{calculate\\_difference()} method applied to TSENAT Tsallis q=1 diversity values. Ranked by adjusted p-value."
 } else {
   "**Supplementary Table 6b | TSENAT method - Top 10 genes identified by Tsallis entropy at q=1 (Shannon equivalence).** Results obtained using SplicingFactory's `calculate_difference()` method applied to TSENAT Tsallis q=1 diversity values. Ranked by adjusted *P*-value."
 }, align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html") %>%
-kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "responsive"), full_width = TRUE, latex_options = c("scale_down")) %>%
-kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
+kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "responsive"), full_width = TRUE)
 ```
 
 
@@ -376,7 +400,7 @@ simpson_summary <- data.frame(
 knitr::kable(simpson_summary, row.names = FALSE,
              col.names = c("Method", "Genes Tested", "Significant (padj<0.05)", "Mean log2FC", "SD log2FC"),
              caption = if (knitr::is_latex_output()) {
-               "Supplementary Table 8 | Simpson Index Analysis Summary Statistics. Differential analysis using Simpson diversity metric (Gini-Simpson index) comparing Normal (N=8) vs Tumor (N=8) samples using SplicingFactory's calculate_difference() method."
+               "Supplementary Table 8 | Simpson Index Analysis Summary Statistics. Differential analysis using Simpson diversity metric (Gini-Simpson index) comparing Normal (N=8) vs Tumor (N=8) samples using SplicingFactory's \\texttt{calculate\\_difference()} method."
              } else {
                "**Supplementary Table 8 | Simpson Index Analysis Summary Statistics.** Differential analysis using Simpson diversity metric (Gini-Simpson index) comparing Normal (N=8) vs Tumor (N=8) samples using SplicingFactory's `calculate_difference()` method."
              },
@@ -385,9 +409,8 @@ knitr::kable(simpson_summary, row.names = FALSE,
   kableExtra::kable_styling(
     bootstrap_options = c("striped", "hover", "responsive"),
     full_width = TRUE,
-    latex_options = c("scale_down")
-  ) %>%
-  kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
+    latex_options = c()
+  )
 ```
 
 **Interpretation**: Simpson index results parallel Shannon entropy findings, with both methods identifying similar numbers of significantly different isoform dominance patterns. The agreement across both diversity measures provides strong evidence for TSENAT's mathematical and statistical equivalence to SplicingFactory.
@@ -407,9 +430,8 @@ knitr::kable(simpson_sf_top, row.names = FALSE, caption = "**Supplementary Table
 kableExtra::kable_styling(
   bootstrap_options = c("striped", "hover", "responsive"),
   full_width = TRUE,
-  latex_options = c("scale_down")
-) %>%
-kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
+  latex_options = c()
+)
 ```
 
 #### Top 10 Significant Genes - TSENAT (Tsallis q=2)
@@ -425,16 +447,15 @@ simpson_tsenat_top <- TSENAT:::.format_top_genes(
   col_names = c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
 )
 knitr::kable(simpson_tsenat_top, row.names = FALSE, caption = if (knitr::is_latex_output()) {
-  "Supplementary Table 9b | TSENAT method - Top 10 genes by Tsallis entropy at q=2 (Simpson equivalence). Results obtained using SplicingFactory's calculate_difference() method applied to TSENAT Tsallis q=2 diversity values. Ranked by adjusted p-value."
+  "Supplementary Table 9b | TSENAT method - Top 10 genes by Tsallis entropy at q=2 (Simpson equivalence). Results obtained using SplicingFactory's \\texttt{calculate\\_difference()} method applied to TSENAT Tsallis q=2 diversity values. Ranked by adjusted p-value."
 } else {
   "**Supplementary Table 9b | TSENAT method - Top 10 genes by Tsallis entropy at q=2 (Simpson equivalence).** Results obtained using SplicingFactory's `calculate_difference()` method applied to TSENAT Tsallis q=2 diversity values. Ranked by adjusted *P*-value."
-}, align = c("l", "r", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html") %>%
+}, align = c("l", "r", "r", "r", "r", "r"), format = if (knitr::is_latex_output()) "latex" else "html") %>%
 kableExtra::kable_styling(
   bootstrap_options = c("striped", "hover", "responsive"),
   full_width = TRUE,
-  latex_options = c("scale_down")
-) %>%
-kableExtra::scroll_box(width = "100%", height = "auto", extra_css = "width: 100%; overflow-x: auto; overflow-y: auto;")
+  latex_options = c()
+)
 ```
 
 
