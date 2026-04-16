@@ -598,7 +598,8 @@ if (exists("tables_result") && is.list(tables_result) &&
       # Render table with kableExtra
       table_output <- knitr::kable(comparison_data_filtered, 
                          digits = 3, 
-                         col.names = col_display)
+                         col.names = col_display,
+                         align = c("l", rep("c", ncol(comparison_data_filtered) - 2), "r"))
       print(table_output)
     }
     
