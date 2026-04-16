@@ -16,8 +16,7 @@ output:
     latex_engine: xelatex
 header-includes:
   - \usepackage{float}
-  - \usepackage{longtable}
-  - \usepackage{colortbl}
+  - \usepackage{tabu}
 bibliography: TSENAT.bib
 suppress-bibliography: true
 vignette: |
@@ -381,17 +380,8 @@ if (!is.null(sample_data) && nrow(sample_data) > 0) {
         caption = paste0("**Table 1:** Tsallis entropy for first 4 genes across three diversity scales (sample: ", 
                          first_sample_name, ")"),
         digits = 5,
-        row.names = FALSE,
-        format = if (knitr::is_latex_output()) "latex" else "html",
-        longtable = knitr::is_latex_output(),
-        linesep = ""
-    ) %>%
-    kableExtra::kable_styling(
-      bootstrap_options = c("striped", "hover"),
-      full_width = TRUE,
-      latex_options = c("scale_down")
-    ) %>%
-    kableExtra::scroll_box(width = "100%", height = "auto")
+        row.names = FALSE
+    )
 } else {
   cat("Note: Diversity results not available for the requested q-values. ",
       "Ensure calculate_diversity() was run with appropriate q-value configuration.")
@@ -449,17 +439,8 @@ if (!is.null(sample_qc) && nrow(sample_qc) > 0) {
       sample_qc[, cols_to_show],
       caption = "**Table 2 | Sample Influence Assessment via M-estimation.** Ranked by magnitude of resampling-based influence values. Columns: Sample identifier; condition; proportion affected; distance from centroid; outlier status. M-estimation identifies influential samples for sensitivity analysis.",
       digits = 4,
-      row.names = FALSE,
-      format = if (knitr::is_latex_output()) "latex" else "html",
-      longtable = knitr::is_latex_output(),
-      linesep = ""
-  ) %>%
-  kableExtra::kable_styling(
-    bootstrap_options = c("striped", "hover"),
-    full_width = TRUE,
-    latex_options = c("scale_down")
-  ) %>%
-  kableExtra::scroll_box(width = "100%", height = "auto")
+      row.names = FALSE
+  )
 }
 ```
 
@@ -518,16 +499,7 @@ if (!is.null(lm_res) && is.data.frame(lm_res) && nrow(lm_res) > 0) {
     knitr::kable(display, 
                 caption = "**Table 3 | Leading genes with scale-dependent condition effects from generalized additive models.** We display the 6 genes with lowest adjusted p-values (*q* < 0.05). Benjamini-Hochberg correction applied; columns show gene identifier, effect size, test statistic, convergence status, and heteroscedasticity detection. Methods: GAMs with *q* and condition as smooth predictors [@S190].",
                 col.names = c("Gene", "P-value", "Adj. P-value", "Effect Size", "Test Statistic", "Model Converged", "Heteroscedasticity"),
-                digits = 4, row.names = FALSE,
-                format = if (knitr::is_latex_output()) "latex" else "html",
-                longtable = knitr::is_latex_output(),
-                linesep = "") %>%
-    kableExtra::kable_styling(
-      bootstrap_options = c("striped", "hover"),
-      full_width = TRUE,
-      latex_options = c("scale_down")
-    ) %>%
-    kableExtra::scroll_box(width = "100%", height = "auto")
+                digits = 4, row.names = FALSE)
 }
 ```
 
@@ -626,16 +598,7 @@ if (exists("tables_result") && is.list(tables_result) &&
       # Render table with kableExtra
       table_output <- knitr::kable(comparison_data_filtered, 
                          digits = 3, 
-                         col.names = col_display, 
-                         format = if (knitr::is_latex_output()) "latex" else "html",
-                         longtable = knitr::is_latex_output(),
-                         linesep = "") %>%
-            kableExtra::kable_styling(
-              bootstrap_options = c("striped", "hover"),
-              full_width = TRUE,
-              latex_options = c("scale_down")
-            ) %>%
-            kableExtra::scroll_box(width = "100%", height = "auto")
+                         col.names = col_display)
       print(table_output)
     }
     
@@ -700,17 +663,8 @@ if (exists("analysis")) {
             div_table,
             caption = "**Table 3 | Pairwise Tsallis divergence estimates.** Divergence (distance) between conditions from Tsallis entropy framework. Columns: gene identifier; pairwise comparison; divergence value; confidence interval (95%). Ranked by magnitude.",
             digits = 5,
-            row.names = TRUE,
-            format = if (knitr::is_latex_output()) "latex" else "html",
-            longtable = knitr::is_latex_output(),
-            linesep = ""
-        ) %>%
-        kableExtra::kable_styling(
-          bootstrap_options = c("striped", "hover"),
-          full_width = TRUE,
-          latex_options = c("scale_down")
-        ) %>%
-        kableExtra::scroll_box(width = "100%", height = "auto", fixed_thead = list(enabled = TRUE, background = "#FFFFFF"))
+            row.names = TRUE
+        )
     } else if (is.list(div_results) && length(div_results) > 0) {
         # If stored as list per q-value, extract first q-value results
         first_q_result <- div_results[[1]]
@@ -721,17 +675,8 @@ if (exists("analysis")) {
                 div_table,
                 caption = "**Table 4 | Pairwise Tsallis divergence from list-based results.** Alternative representation of divergence metrics for leading genes. Columns: gene identifier; pairwise comparison; divergence value; uncertainty. Asymmetry ($D(A \\to B) \\ne D(B \\to A)$) reflects information-theoretic properties. Ordered by divergence magnitude.",
                 digits = 5,
-                row.names = TRUE,
-                format = if (knitr::is_latex_output()) "latex" else "html",
-                longtable = knitr::is_latex_output(),
-                linesep = ""
-            ) %>%
-            kableExtra::kable_styling(
-              bootstrap_options = c("striped", "hover"),
-              full_width = TRUE,
-              latex_options = c("scale_down")
-            ) %>%
-            kableExtra::scroll_box(width = "100%", height = "auto")
+                row.names = TRUE
+            )
         }
     }
 }
@@ -781,17 +726,8 @@ knitr::kable(
     top_genes_display, 
     caption = "Top 6 Genes by Effect Size (Tsallis Divergence)",
     digits = 4,
-    row.names = FALSE,
-    format = if (knitr::is_latex_output()) "latex" else "html",
-    longtable = knitr::is_latex_output(),
-    linesep = ""
-) %>%
-kableExtra::kable_styling(
-  bootstrap_options = c("striped", "hover"),
-  full_width = TRUE,
-  latex_options = c("scale_down")
-) %>%
-kableExtra::scroll_box(width = "100%", height = "auto")
+    row.names = FALSE
+)
 ```
 
 ### Interpretation of Pattern Types:
