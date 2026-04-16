@@ -71,72 +71,39 @@
 #' result <- TSENAT(analysis)
 #' }
 #'
-#' Run complete TSENAT analysis pipeline
-#'
-#' Coordinates the full TSENAT workflow: diversity -> jackknife -> LM
-#' interactions -> divergence -> gene interactions -> rank-based tests -> concordance -> visualizations.
-#'
-#' @param analysis \code{TSENATAnalysis} object created by \code{\link{build_analysis}}.
-#' @param output_dir \code{character}. Directory to save results and plots.
-#'   Default: 'tsenat_outputs'. Set to NULL to disable automatic output saving.
-#' @param save_output \code{logical}. Whether to save output files (results tables).
-#'   Default: TRUE. If FALSE, no TSV/CSV output files are written to disk.
-#' @param output_format \code{character}. Format for output files: 'tsv' (tab-separated),
-#'   'csv' (comma-separated), 'txt' (text), or 'rds' (R serialized). Default: 'tsv'.
-#' @param verbose \code{logical}. Print progress messages. Default: TRUE.
-#'
-#' @return \code{TSENATAnalysis} object containing complete analysis results,
-#'   plots, and metadata.
-#'
-#' @details
-#' Pipeline execution order (enforced, follows TSENAT.Rmd vignette):
-#' \enumerate{
-#'   \item \code{filter_analysis()} - Filter low-abundance transcripts
-#'   \item \code{calculate_diversity()} - Tsallis entropy per q-value
-#'   \item \code{plot_diversity_spectrum()} - Visualize q-spectrum
-#'   \item \code{calculate_m_estimator()} - Sample influence QC analysis
-#'   \item \code{calculate_lm()} - LM interaction testing
-#'   \item \code{plot_lm()} - LM results visualization
-#'   \item \code{calculate_jis()} - Transcript switching detection
-#'   \item \code{plot_jis_delta()} - Multi-q influence heatmap (gene switching tables computed lazily via results())
-#'   \item \code{plot_expression()} - Top transcript visualization
-#'   \item \code{calculate_divergence()} - Pairwise divergence metrics
-#'   \item \code{calculate_effect_sizes()} - Effect size computation
-#'   \item \code{plot_divergence_distribution()} - Divergence distribution plot
-#'   \item \code{plot_divergence_spectrum()} - Divergence spectrum plot
-#'   \item \code{calculate_assumptions()} - Validate rank-based test assumptions
-#'   \item \code{calculate_srh()} - Scheirer-Ray-Hare rank-based interaction test
-#'   \item \code{calculate_concordance()} - Compare LM and rank test results
-#' }
-#'
-#' @examples
-#' \donttest{
-#' data(readcounts, package = 'TSENAT')
-#' metadata_df <- read.table(
-#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
-#'   header = TRUE, sep = '\t'
-#' )
-#' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' 
-#' config <- TSENAT_config(
-#'   sample_col = 'sample',
-#'   condition_col = 'condition',
-#'   q = seq(0, 2, length.out = 10),
-#'   generate_plots = FALSE
-#' )
-#' analysis <- build_analysis(
-#'   readcounts = as.matrix(readcounts),
-#'   tx2gene = gff3_file,
-#'   metadata = metadata_df,
-#'   config = config,
-#'   tpm = tpm,
-#'   effective_length = effective_length
-#' )
-#' 
-#' result <- TSENAT(analysis)
-#' }
-#'
 #' @export
+TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, output_format = "tsv",
+    verbose = TRUE) {
+    # Setup: validation and output configuration
+    setup_result <- .TSENAT_setup(analysis, output_dir, save_output, output_format, verbose)
+    analysis <- setup_result$analysis
+    output_dir <- setup_result$output_dir
+    output_format <- setup_result$output_format
+    
+    # Execute pipeline
+    workflow_start <- Sys.time()
+    if (verbose) {
+        .log_pipeline_start(se(analysis), getConfig(analysis)$q %||% 1, getConfig(analysis))
+        message("=============================================================")
+    }
+    
+    pipeline_result <- .TSENAT_execute_pipeline(analysis, output_dir, output_format, verbose)
+    analysis <- pipeline_result$analysis
+    step_times <- pipeline_result$step_times
+    
+    if (verbose) {
+        message("=============================================================")
+    }
+    
+    # Finalization
+    total_time <- Sys.time() - workflow_start
+    analysis <- .track_analysis_metadata(analysis, analysis@config)
+    analysis <- .finalize_tsenat_analysis(analysis, verbose, step_times, total_time,
+        output_dir)
+    
+    analysis
+}
+
 
 .TSENAT_setup <- function(analysis, output_dir, save_output, output_format, verbose) {
     # Validate input object
@@ -284,37 +251,8 @@
     list(analysis = analysis, step_times = step_times)
 }
 
-TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, output_format = "tsv",
-    verbose = TRUE) {
-    # Setup: validation and output configuration
-    setup_result <- .TSENAT_setup(analysis, output_dir, save_output, output_format, verbose)
-    analysis <- setup_result$analysis
-    output_dir <- setup_result$output_dir
-    output_format <- setup_result$output_format
-    
-    # Execute pipeline
-    workflow_start <- Sys.time()
-    if (verbose) {
-        .log_pipeline_start(se(analysis), getConfig(analysis)$q %||% 1, getConfig(analysis))
-        message("=============================================================")
-    }
-    
-    pipeline_result <- .TSENAT_execute_pipeline(analysis, output_dir, output_format, verbose)
-    analysis <- pipeline_result$analysis
-    step_times <- pipeline_result$step_times
-    
-    if (verbose) {
-        message("=============================================================")
-    }
-    
-    # Finalization
-    total_time <- Sys.time() - workflow_start
-    analysis <- .track_analysis_metadata(analysis, analysis@config)
-    analysis <- .finalize_tsenat_analysis(analysis, verbose, step_times, total_time,
-        output_dir)
-    
-    analysis
-}
+
+
 
 # ============================================================================
 # UTILITY FUNCTION

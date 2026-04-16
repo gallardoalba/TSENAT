@@ -2509,7 +2509,7 @@
             palette_fn <- get(paste0(".", palette_name))  # e.g., .palette_blue_red
             return(palette_fn())
         }, error = function(e) {
-            stop(paste("Palette", palette_name, "not found"), call. = FALSE)
+            stop(sprintf("Palette '%s' not found", palette_name), call. = FALSE)
         })
     } else if (is.character(palette_name)) {
         # palette is a vector of color names/codes

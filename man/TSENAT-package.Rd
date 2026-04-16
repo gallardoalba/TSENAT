@@ -2,7 +2,6 @@
 % Please edit documentation in R/package.R
 \docType{package}
 \name{TSENAT-package}
-\alias{TSENAT}
 \alias{TSENAT-package}
 \title{TSENAT: Tsallis Entropy for Systems Evolutionary Analysis and Network Analysis Tool}
 \description{

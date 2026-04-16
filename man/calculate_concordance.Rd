@@ -2,18 +2,9 @@
 % Please edit documentation in R/s4_functions.R
 \name{calculate_concordance}
 \alias{calculate_concordance}
-\alias{calculate_concordance,TSENATAnalysis-method}
 \title{Compare method concordance for differential analysis results}
 \usage{
 calculate_concordance(analysis_lm, analysis_rank = NULL, ...)
-
-\S4method{calculate_concordance}{TSENATAnalysis}(
-  analysis_lm,
-  analysis_rank = NULL,
-  verbose = FALSE,
-  output_file = NULL,
-  ...
-)
 
 \S4method{calculate_concordance}{TSENATAnalysis}(
   analysis_lm,

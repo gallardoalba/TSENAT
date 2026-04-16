@@ -33,7 +33,7 @@ Must have diversity results from \code{calculate_diversity()}.}
 
 \item{condition_col}{\code{character}.  Column name for 
 sample grouping/condition (REQUIRED).
-Specifies the condition/treatment variable for testing q×condition
+Specifies the condition/treatment variable for testing q\eqn{\times} condition
 interactions.
   Example: 'sample_type', 'treatment', 'disease_status'.}
 
@@ -110,7 +110,7 @@ This detects disease-relevant or condition-specific isoform switching patterns.
 \details{
 ## Key Features
 
-- **Q×Condition Interaction**: Tests if entropy patterns across q-values differ
+- **Q\eqn{\times} Condition Interaction**: Tests if entropy patterns across q-values differ
   by condition (main discovery goal)
 - **Multi-q Analysis**: Combines diversity results for multiple q-values into
   a single SummarizedExperiment for joint hypothesis testing
@@ -120,7 +120,7 @@ This detects disease-relevant or condition-specific isoform switching patterns.
   (Westfall-Young) procedures
 - **AR(1) Correlation Handling**: Westfall-Young preserves q-value spatial
   correlations (important for ordered q measurements)
-- **Effect Sizes**: Eta-squared (\eqn{\eta^2}) for q×condition interactions
+- **Effect Sizes**: Eta-squared (\eqn{\eta^2}) for q\eqn{\times} condition interactions
 
 ## Statistical Hypotheses
 
@@ -135,7 +135,7 @@ that condition.
 ## Biological Example
 
 Gene shows strong isoform switching (q-dependent entropy) in tumor cells but
-NOT in healthy cells → Identified as disease-relevant q-dependent gene.
+NOT in healthy cells -> Identified as disease-relevant q-dependent gene.
 
 For condition-specific q-dependent genes:
 - **Condition A**: Strong entropy variation across q (q-dependent isoform usage)
@@ -194,7 +194,7 @@ analysis <- filter_analysis(
 )
 analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
 
-# Test Q×Condition interaction (condition_col is REQUIRED)
+# Test Q\eqn{\times} Condition interaction (condition_col is REQUIRED)
 analysis <- calculate_srh(
   analysis,
   condition_col = 'condition',

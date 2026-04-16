@@ -351,203 +351,224 @@ setGeneric("calculate_concordance", function(analysis_lm, analysis_rank = NULL, 
 })
 
 #' @rdname calculate_concordance
-setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_lm, analysis_rank = NULL,
-    verbose = FALSE, output_file = NULL, ...) {
 
+#' Helper: Validate calculate_concordance inputs
+#' @param analysis_lm TSENATAnalysis object
+#' @param analysis_rank TSENATAnalysis object or NULL
+#' @param ... Additional arguments
+#' @return NULL (stops on error)
+#' @noRd
+.validate_concordance_inputs <- function(analysis_lm, analysis_rank, ...) {
     # Check for unexpected arguments
     extra_args <- list(...)
     if (length(extra_args) > 0) {
         arg_names <- paste(names(extra_args), collapse = ", ")
-        stop("The following argument(s) are not recognized and cannot be used: ", arg_names, 
-             call. = FALSE)
+        stop("The following argument(s) are not recognized and cannot be used: ", 
+             arg_names, call. = FALSE)
     }
-
-    # ===================================================================
-    # VALIDATION
-    # ===================================================================
-
+    
+    # Validate analysis_lm
     if (!is(analysis_lm, "TSENATAnalysis")) {
         stop("'analysis_lm' must be a TSENATAnalysis object", call. = FALSE)
     }
-
-    # Check if analysis_rank is provided (new two-object API)
-    if (!is.null(analysis_rank)) {
-        # ===================================================================
-        # NEW API: Accept two TSENATAnalysis objects
-        # ===================================================================
-
-        if (!is(analysis_rank, "TSENATAnalysis")) {
-            stop("'analysis_rank' must be a TSENATAnalysis object", call. = FALSE)
-        }
-
-        if (verbose) {
-            message("[calculate_concordance] Using two TSENATAnalysis objects")
-        }
-
-        # Call the refactored function with two objects (auto-detect methods)
-        concordance_result <- tryCatch({
-            .calculate_concordance(analysis_lm = analysis_lm, analysis_rank = analysis_rank)
-        }, error = function(e) {
-            stop("[calculate_concordance] ", conditionMessage(e), call. = FALSE)
-        })
-
-        final_lm_method <- concordance_result$lm_method
-        final_rank_method <- concordance_result$rank_method
-
-        # Store results in the LM analysis object's metadata
-        analysis_lm@metadata$method_concordance <- list(comparison_df = concordance_result$comparison_df,
-            spearman_rho = concordance_result$spearman_rho, high_confidence = concordance_result$high_conf,
-            agreement_table = concordance_result$agreement_table, lm_method = final_lm_method,
-            rank_method = final_rank_method, timestamp = Sys.time())
-
-        # Track function call
-        analysis_lm@metadata$function_calls <- c(analysis_lm@metadata$function_calls,
-            paste0("calculate_concordance[", final_lm_method, " vs ", final_rank_method,
-                "]"))
-
-        if (verbose) {
-            message("[calculate_concordance] Concordance computed successfully")
-            if (!is.na(concordance_result$spearman_rho)) {
-                message("[calculate_concordance] Spearman correlation = ", round(concordance_result$spearman_rho,
-                  3))
-            }
-        }
-
-        # Generate formatted concordance results
-        concordance_text <- results(analysis_lm, type = "concordance")
-
-        # Only write to file if output_file is explicitly provided
-        if (!is.null(output_file)) {
-            # Ensure file has .txt extension
-            if (!grepl("\\.txt$", output_file, ignore.case = TRUE)) {
-                output_file <- paste0(output_file, ".txt")
-            }
-
-            # Write formatted results to file
-            writeLines(concordance_text, con = output_file)
-
-            if (verbose) {
-                message("[calculate_concordance] Results written to: ", output_file)
-            }
-
-            # Store the output file path in metadata
-            analysis_lm@metadata$concordance_results_file <- output_file
-        }
-
-        return(analysis_lm)
+    
+    # Validate analysis_rank if provided
+    if (!is.null(analysis_rank) && !is(analysis_rank, "TSENATAnalysis")) {
+        stop("'analysis_rank' must be a TSENATAnalysis object", call. = FALSE)
     }
+}
 
-    # ===================================================================
-    # LEGACY API: Single analysis object with both LM and rank test results
-    # ===================================================================
+#' Helper: Handle two-object concordance API
+#' @param analysis_lm TSENATAnalysis object
+#' @param analysis_rank TSENATAnalysis object
+#' @param verbose Logical; print progress
+#' @return List with concordance_result, lm_method, rank_method
+#' @noRd
+.concordance_two_objects <- function(analysis_lm, analysis_rank, verbose) {
+    if (verbose) {
+        message("[calculate_concordance] Using two TSENATAnalysis objects")
+    }
+    
+    concordance_result <- tryCatch({
+        .calculate_concordance(analysis_lm = analysis_lm, analysis_rank = analysis_rank)
+    }, error = function(e) {
+        stop("[calculate_concordance] ", conditionMessage(e), call. = FALSE)
+    })
+    
+    list(
+        concordance_result = concordance_result,
+        lm_method = concordance_result$lm_method,
+        rank_method = concordance_result$rank_method
+    )
+}
 
+#' Helper: Handle legacy single-object concordance API
+#' @param analysis_lm TSENATAnalysis object
+#' @param verbose Logical; print progress
+#' @return List with concordance_result, lm_method, rank_method
+#' @noRd
+.concordance_legacy_api <- function(analysis_lm, verbose) {
     if (verbose) {
         message("[calculate_concordance] Using legacy single-object API")
     }
-
+    
+    # Validate LM results
     if (is.null(analysis_lm@lm_results) || length(analysis_lm@lm_results) == 0) {
         stop("No LM results found in analysis_lm@lm_results. Run calculate_lm() first.",
             call. = FALSE)
     }
-
-    # Auto-detect LM method (use first available)
+    
+    # Auto-detect LM method
     default_lm_method <- names(analysis_lm@lm_results)[1]
-
     if (!(default_lm_method %in% names(analysis_lm@lm_results))) {
         available_methods <- paste(names(analysis_lm@lm_results), collapse = ", ")
-        stop("LM method '", default_lm_method, "' not found in LM results. Available: ",
+        stop("LM method '", default_lm_method, "' not found. Available: ",
             available_methods, call. = FALSE)
     }
-
-    # Auto-detect rank method (use 'rank_test' if available, otherwise first
-    # available)
+    
+    # Auto-detect rank method
     rank_method <- "rank_test"
-    if (is.null(analysis_lm@rank_test_results) || !("rank_test" %in% names(analysis_lm@rank_test_results))) {
-        if (is.null(analysis_lm@rank_test_results) || length(analysis_lm@rank_test_results) ==
-            0) {
-            stop("No rank test results found in rank_test_results. Run calculate_srh() first.",
+    if (is.null(analysis_lm@rank_test_results) || 
+        !("rank_test" %in% names(analysis_lm@rank_test_results))) {
+        if (is.null(analysis_lm@rank_test_results) || 
+            length(analysis_lm@rank_test_results) == 0) {
+            stop("No rank test results found. Run calculate_srh() first.",
                 call. = FALSE)
         }
         rank_method <- names(analysis_lm@rank_test_results)[1]
     }
-
-    # Extract results
+    
+    # Extract and validate results
     lm_results_final <- analysis_lm@lm_results[[default_lm_method]]
     rank_test_results <- analysis_lm@rank_test_results[[rank_method]]
-
-    # Validate they're data frames
+    
     if (!is.data.frame(lm_results_final)) {
-        stop("LM results ('", default_lm_method, "') must be a data.frame", call. = FALSE)
+        stop("LM results ('", default_lm_method, "') must be a data.frame", 
+             call. = FALSE)
     }
-
+    
     if (!is.data.frame(rank_test_results)) {
-        stop("Rank test results ('", rank_method, "') must be a data.frame", call. = FALSE)
+        stop("Rank test results ('", rank_method, "') must be a data.frame", 
+             call. = FALSE)
     }
-
-    # ===================================================================
-    # COMPUTE CONCORDANCE
-    # ===================================================================
-
+    
     if (verbose) {
-        message("[calculate_concordance] Computing concordance between ", default_lm_method,
-            " and ", rank_method)
+        message("[calculate_concordance] Computing concordance between ", 
+                default_lm_method, " and ", rank_method)
     }
-
+    
     # Create temporary analysis objects for the refactored function
     temp_lm <- analysis_lm
     temp_lm@lm_results <- list(temp = lm_results_final)
     temp_rank <- analysis_lm
     temp_rank@rank_test_results <- list(temp = rank_test_results)
-
+    
     concordance_result <- tryCatch({
         .calculate_concordance(analysis_lm = temp_lm, analysis_rank = temp_rank)
     }, error = function(e) {
         stop("[calculate_concordance] ", conditionMessage(e), call. = FALSE)
     })
+    
+    list(
+        concordance_result = concordance_result,
+        lm_method = default_lm_method,
+        rank_method = rank_method
+    )
+}
 
-    # =================================================================== STORE
-    # RESULTS
-    # ===================================================================
-
-    analysis_lm@metadata$method_concordance <- list(comparison_df = concordance_result$comparison_df,
-        spearman_rho = concordance_result$spearman_rho, high_confidence = concordance_result$high_conf,
-        agreement_table = concordance_result$agreement_table, lm_method = default_lm_method,
-        rank_method = rank_method, timestamp = Sys.time())
-
+#' Helper: Store concordance results in metadata
+#' @param analysis TSENATAnalysis object
+#' @param concordance_result List from .calculate_concordance()
+#' @param lm_method Character; LM method name
+#' @param rank_method Character; rank method name
+#' @param verbose Logical; print progress
+#' @return TSENATAnalysis object with updated metadata
+#' @noRd
+.store_concordance_metadata <- function(analysis, concordance_result, 
+                                        lm_method, rank_method, verbose) {
+    # Store results in metadata
+    analysis@metadata$method_concordance <- list(
+        comparison_df = concordance_result$comparison_df,
+        spearman_rho = concordance_result$spearman_rho,
+        high_confidence = concordance_result$high_conf,
+        agreement_table = concordance_result$agreement_table,
+        lm_method = lm_method,
+        rank_method = rank_method,
+        timestamp = Sys.time()
+    )
+    
     # Track function call
-    analysis_lm@metadata$function_calls <- c(analysis_lm@metadata$function_calls,
-        paste0("calculate_concordance[", default_lm_method, " vs ", rank_method,
-            "]"))
-
+    analysis@metadata$function_calls <- c(
+        analysis@metadata$function_calls,
+        sprintf("calculate_concordance[%s vs %s]", lm_method, rank_method)
+    )
+    
     if (verbose) {
         message("[calculate_concordance] Concordance computed successfully")
         if (!is.na(concordance_result$spearman_rho)) {
-            message("[calculate_concordance] Spearman correlation = ", round(concordance_result$spearman_rho,
-                3))
+            message("[calculate_concordance] Spearman correlation = ", 
+                    round(concordance_result$spearman_rho, 3))
         }
     }
+    
+    analysis
+}
 
-    # Generate formatted concordance results
-    concordance_text <- results(analysis_lm, type = "concordance")
-
-    # Only write to file if output_file is explicitly provided
-    if (!is.null(output_file)) {
-        # Ensure file has .txt extension
-        if (!grepl("\\.txt$", output_file, ignore.case = TRUE)) {
-            output_file <- paste0(output_file, ".txt")
-        }
-
-        # Write formatted results to file
-        writeLines(concordance_text, con = output_file)
-
-        if (verbose) {
-            message("[calculate_concordance] Results written to: ", output_file)
-        }
-
-        # Store the output file path in metadata
-        analysis_lm@metadata$concordance_results_file <- output_file
+#' Helper: Write concordance results to file
+#' @param analysis TSENATAnalysis object
+#' @param output_file Character; file path
+#' @param verbose Logical; print progress
+#' @return TSENATAnalysis object with updated metadata
+#' @noRd
+.write_concordance_file <- function(analysis, output_file, verbose) {
+    if (is.null(output_file)) {
+        return(analysis)
     }
+    
+    # Ensure .txt extension
+    if (!grepl("\\.txt$", output_file, ignore.case = TRUE)) {
+        output_file <- paste0(output_file, ".txt")
+    }
+    
+    # Generate and write results
+    concordance_text <- results(analysis, type = "concordance")
+    writeLines(concordance_text, con = output_file)
+    
+    if (verbose) {
+        message("[calculate_concordance] Results written to: ", output_file)
+    }
+    
+    # Store path in metadata
+    analysis@metadata$concordance_results_file <- output_file
+    
+    analysis
+}
 
+setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_lm, 
+    analysis_rank = NULL, verbose = FALSE, output_file = NULL, ...) {
+    
+    # Validate inputs
+    .validate_concordance_inputs(analysis_lm, analysis_rank, ...)
+    
+    # Route to appropriate API
+    if (!is.null(analysis_rank)) {
+        result_list <- .concordance_two_objects(analysis_lm, analysis_rank, verbose)
+    } else {
+        result_list <- .concordance_legacy_api(analysis_lm, verbose)
+    }
+    
+    # Store metadata
+    analysis_lm <- .store_concordance_metadata(
+        analysis_lm, 
+        result_list$concordance_result,
+        result_list$lm_method, 
+        result_list$rank_method,
+        verbose
+    )
+    
+    # Write output file if specified
+    analysis_lm <- .write_concordance_file(analysis_lm, output_file, verbose)
+    
     analysis_lm
 })
 

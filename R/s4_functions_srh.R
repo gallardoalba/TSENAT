@@ -7,7 +7,7 @@
 #'
 #' ## Key Features
 #'
-#' - **Q×Condition Interaction**: Tests if entropy patterns across q-values differ
+#' - **Q\eqn{\times} Condition Interaction**: Tests if entropy patterns across q-values differ
 #'   by condition (main discovery goal)
 #' - **Multi-q Analysis**: Combines diversity results for multiple q-values into
 #'   a single SummarizedExperiment for joint hypothesis testing
@@ -17,7 +17,7 @@
 #'   (Westfall-Young) procedures
 #' - **AR(1) Correlation Handling**: Westfall-Young preserves q-value spatial
 #'   correlations (important for ordered q measurements)
-#' - **Effect Sizes**: Eta-squared (\eqn{\eta^2}) for q×condition interactions
+#' - **Effect Sizes**: Eta-squared (\eqn{\eta^2}) for q\eqn{\times} condition interactions
 #'
 #' ## Statistical Hypotheses
 #'
@@ -32,7 +32,7 @@
 #' ## Biological Example
 #'
 #' Gene shows strong isoform switching (q-dependent entropy) in tumor cells but
-#' NOT in healthy cells → Identified as disease-relevant q-dependent gene.
+#' NOT in healthy cells -> Identified as disease-relevant q-dependent gene.
 #'
 #' For condition-specific q-dependent genes:
 #' - **Condition A**: Strong entropy variation across q (q-dependent isoform usage)
@@ -54,7 +54,7 @@
 #'  reads from \code{@config$subject_col}.
 #' @param condition_col \code{character}.  Column name for 
 #' sample grouping/condition (REQUIRED).
-#' Specifies the condition/treatment variable for testing q×condition
+#' Specifies the condition/treatment variable for testing q\eqn{\times} condition
 #' interactions.
 #'   Example: 'sample_type', 'treatment', 'disease_status'.
 #' @param multicorr \code{character}.  Multiple testing correction:
@@ -144,7 +144,7 @@
 #' )
 #' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
 #' 
-#' # Test Q×Condition interaction (condition_col is REQUIRED)
+#' # Test Q\eqn{\times} Condition interaction (condition_col is REQUIRED)
 #' analysis <- calculate_srh(
 #'   analysis,
 #'   condition_col = 'condition',
@@ -206,13 +206,13 @@ calculate_srh <- function(analysis, condition_col, output_file = NULL, paired = 
         stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }
 
-    # condition_col is REQUIRED for Q×Condition interaction testing (Q main effect support removed March 2026)
+    # condition_col is REQUIRED for Q x Condition interaction testing (Q main effect support removed March 2026)
     if (missing(condition_col) || is.null(condition_col)) {
         if (!is.null(analysis@config) && "condition_col" %in% names(analysis@config)) {
             condition_col <- analysis@config$condition_col
             message("Using condition_col='", condition_col, "' from @config")
         } else {
-            stop("'condition_col' is REQUIRED for Q×Condition interaction testing. ",
+            stop("'condition_col' is REQUIRED for Q x Condition interaction testing. ",
                  "Specify condition_col argument or set analysis@config$condition_col. ",
                  "This function tests genes with CONDITION-SPECIFIC q-dependent patterns only.",
                  call. = FALSE)
