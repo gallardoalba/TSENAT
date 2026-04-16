@@ -37,32 +37,6 @@ knitr::opts_chunk$set(
 suppressPackageStartupMessages(library(kableExtra))
 ```
 
-```{css, echo=FALSE}
-/* Fix table rendering in scroll containers */
-div[style*="overflow-x: scroll"] {
-  display: block !important;
-  width: 100% !important;
-}
-
-div[style*="overflow-x: scroll"] > table,
-div[style*="overflow-x: scroll"] .table {
-  width: 100% !important;
-  min-width: 100% !important;
-  display: table !important;
-}
-
-div[style*="overflow-x: scroll"] thead th {
-  position: sticky;
-  top: 0;
-  background-color: #FFFFFF;
-  z-index: 10;
-}
-
-.table {
-  width: 100%;
-}
-```
-
 # Purpose and Rationale
 
 The primary goal of this vignette is to validate that discoveries of scale-dependent entropic index × group interactions from linear models generalize to non-parametric statistical frameworks with minimal assumptions.

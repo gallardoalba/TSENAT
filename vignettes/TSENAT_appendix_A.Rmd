@@ -32,32 +32,6 @@ knitr::opts_chunk$set(
 suppressPackageStartupMessages(library(kableExtra))
 ```
 
-```{css, echo=FALSE}
-/* Fix table rendering in scroll containers */
-div[style*="overflow-x: scroll"] {
-  display: block !important;
-  width: 100% !important;
-}
-
-div[style*="overflow-x: scroll"] > table,
-div[style*="overflow-x: scroll"] .table {
-  width: 100% !important;
-  min-width: 100% !important;
-  display: table !important;
-}
-
-div[style*="overflow-x: scroll"] thead th {
-  position: sticky;
-  top: 0;
-  background-color: #FFFFFF;
-  z-index: 10;
-}
-
-.table {
-  width: 100%;
-}
-```
-
 # Introduction
 
 This appendix validates that **TSENAT's transcript diversity measures (Shannon entropy, Simpson index) are mathematically equivalent to SplicingFactory's implementations**. We benchmark both packages on TCGA BRCA RNA-seq data to demonstrate:

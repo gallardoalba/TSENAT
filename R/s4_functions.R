@@ -264,6 +264,8 @@ setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"), funct
 #' continuous data and Scheirer-Ray-Hare rank tests) to assess agreement and identify
 #' genes detected by one method but not the other.
 #'
+#' @aliases calculate_concordance,TSENATAnalysis-method
+#'
 #' @param analysis_lm \code{TSENATAnalysis} object containing LM/GAM analysis results
 #'   (from \code{calculate_lm()}).
 #' @param analysis_rank \code{TSENATAnalysis} object or NULL. If NULL, uses legacy 

@@ -164,7 +164,7 @@ calculate_srh <- function(analysis, condition_col, output_file = NULL, paired = 
     min_nperm = 100, max_nperm = 10000, verbose = FALSE, ...) {
 
     # PHASE 1: Validate input and prerequisites
-    condition_col <- .validate_srh_input(analysis, condition_col)
+    condition_col <- .validate_srh_input(analysis, condition_col, verbose)
 
     # PHASE 2: Resolve parameters from config + explicit args Note: q-values
     # are ALWAYS auto-detected from diversity_results
@@ -201,7 +201,7 @@ calculate_srh <- function(analysis, condition_col, output_file = NULL, paired = 
 #' Internal: Validate SRH input and prerequisites
 #'
 #' @noRd
-.validate_srh_input <- function(analysis, condition_col) {
+.validate_srh_input <- function(analysis, condition_col, verbose = FALSE) {
     if (!is(analysis, "TSENATAnalysis")) {
         stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }
@@ -210,7 +210,8 @@ calculate_srh <- function(analysis, condition_col, output_file = NULL, paired = 
     if (missing(condition_col) || is.null(condition_col)) {
         if (!is.null(analysis@config) && "condition_col" %in% names(analysis@config)) {
             condition_col <- analysis@config$condition_col
-            message("Using condition_col='", condition_col, "' from @config")
+            if (verbose)
+                message("Using condition_col='", condition_col, "' from @config")
         } else {
             stop("'condition_col' is REQUIRED for Q x Condition interaction testing. ",
                  "Specify condition_col argument or set analysis@config$condition_col. ",
