@@ -533,29 +533,28 @@ isoform heterogeneity at multiple scales <span class="citation">(Ramírez-Reyes 
 <span>    sample <span class="op">=</span> <span class="st">"SRR14800481"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">diversity</span><span class="op">)</span></span></code></pre></div>
-<div style="border: 1px solid #ddd; padding: 0px; width: 100%; overflow-x: auto; overflow-y: auto;overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
-<table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<table class="table table table-striped table-hover table-responsive" style="margin-left: auto; margin-right: auto;">
 <caption>
 <strong>Table 1:</strong> Tsallis entropy for first 4 genes across three
 diversity scales (sample: SRR14800481)
 </caption>
 <thead><tr>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:left;">
 Gene
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 q=0.0
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 q=0.5
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 q=1.0
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 q=1.5
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 q=2.0
 </th>
 </tr></thead>
@@ -642,7 +641,6 @@ MCOLN1
 </tr>
 </tbody>
 </table>
-</div>
 <p>With the q-spectrum we can produce a q-curve per sample and gene.
 These curves show how diversity emphasis shifts from rare to dominant
 isoforms as <code>q</code> increases and form the basis for interaction
@@ -698,8 +696,7 @@ samples are reviewed).</p>
 <span><span class="co"># Extract results from metadata using accessor function</span></span>
 <span><span class="va">sample_qc</span> <span class="op">&lt;-</span> <span class="fu">metadata</span><span class="op">(</span><span class="va">analysis</span>, <span class="st">"m_estimate_results"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">sample_qc</span><span class="op">)</span></span></code></pre></div>
-<div style="border: 1px solid #ddd; padding: 0px; width: 100%; overflow-x: auto; overflow-y: auto;overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
-<table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<table class="table table table-striped table-hover table-responsive" style="margin-left: auto; margin-right: auto;">
 <caption>
 <strong>Table 2 | Sample Influence Assessment via M-estimation.</strong>
 Ranked by magnitude of resampling-based influence values. Columns:
@@ -708,19 +705,19 @@ centroid; outlier status. M-estimation identifies influential samples
 for sensitivity analysis.
 </caption>
 <thead><tr>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:left;">
 Sample
 </th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:left;">
 Condition
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 Proportion_Affected
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 Distance_from_Centroid
 </th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:left;">
 Status
 </th>
 </tr></thead>
@@ -999,7 +996,6 @@ Flag for QC
 </tr>
 </tbody>
 </table>
-</div>
 <p><strong>Interpretation:</strong> Samples with distance from centroid
 &gt;1.5 or proportion of affected genes &gt;0.85 are flagged for quality
 control review. Flagged samples may reflect genuine biological
@@ -1048,8 +1044,7 @@ inherent in Tsallis entropy measurements.</p>
 <span><span class="va">lm_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"lm"</span>, rankBy <span class="op">=</span> <span class="st">"pvalue"</span>, n <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">lm_results</span><span class="op">)</span></span></code></pre></div>
-<div style="border: 1px solid #ddd; padding: 0px; width: 100%; overflow-x: auto; overflow-y: auto;overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
-<table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<table class="table table table-striped table-hover table-responsive" style="margin-left: auto; margin-right: auto;">
 <caption>
 <strong>Table 3 | Leading genes with scale-dependent condition effects
 from generalized additive models.</strong> We display the 6 genes with
@@ -1059,28 +1054,28 @@ statistic, convergence status, and heteroscedasticity detection.
 Methods: GAMs with <em>q</em> and condition as smooth predictors <span class="citation">(Benjamini and Hochberg 1995)</span>.
 </caption>
 <thead><tr>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:left;">
 Gene
 </th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:left;">
 Gene Name
 </th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:left;">
 P-value
 </th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:left;">
 Adj. P-value
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 Effect Size
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 Test Statistic
 </th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:left;">
 Model Converged
 </th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:left;">
 Heteroscedasticity
 </th>
 </tr></thead>
@@ -1243,7 +1238,6 @@ TRUE
 </tr>
 </tbody>
 </table>
-</div>
 <p><strong>Interpretation:</strong> TRUE in the Heteroscedasticity
 column indicates that the model satisfies homogeneity-of-variance
 assumptions across the q-spectrum; FALSE values suggest variance
@@ -1347,28 +1341,27 @@ emphasize different transcripts.</p>
 <div class="section level5">
 <h5 id="gene-cxcl12-ensg00000107562-18">Gene: CXCL12 (ENSG00000107562.18)<a class="anchor" aria-label="anchor" href="#gene-cxcl12-ensg00000107562-18"></a>
 </h5>
-<div style="border: 1px solid #ddd; padding: 0px; width: 100%; overflow-x: auto; overflow-y: auto;overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
 <table class="table table table-striped table-hover table-condensed table-responsive" style="margin-left: auto; margin-right: auto;">
 <thead><tr>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:left;">
 Transcript
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 q=0.00
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 q=0.50
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 q=1.00
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 q=1.50
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 q=2.00
 </th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:left;">
 Direction Consistency
 </th>
 </tr></thead>
@@ -1445,32 +1438,30 @@ Mixed directions
 </tbody>
 </table>
 </div>
-</div>
 <div class="section level5">
 <h5 id="gene-thy1-ensg00000154096-15">Gene: THY1 (ENSG00000154096.15)<a class="anchor" aria-label="anchor" href="#gene-thy1-ensg00000154096-15"></a>
 </h5>
-<div style="border: 1px solid #ddd; padding: 0px; width: 100%; overflow-x: auto; overflow-y: auto;overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
 <table class="table table table-striped table-hover table-condensed table-responsive" style="margin-left: auto; margin-right: auto;">
 <thead><tr>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:left;">
 Transcript
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 q=0.00
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 q=0.50
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 q=1.00
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 q=1.50
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 q=2.00
 </th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:left;">
 Direction Consistency
 </th>
 </tr></thead>
@@ -1546,7 +1537,6 @@ Mixed directions
 </tr>
 </tbody>
 </table>
-</div>
 </div>
 </div>
 <div class="section level4">
@@ -1645,8 +1635,7 @@ are the probability values at position
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Computes pairwise information-theoretic distance (Tsallis divergence)</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_divergence.html">calculate_divergence</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></code></pre></div>
-<div style="border: 1px solid #ddd; padding: 0px; width: 100%; overflow-x: auto; overflow-y: auto;overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
-<table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<table class="table table table-striped table-hover table-responsive" style="margin-left: auto; margin-right: auto;">
 <caption>
 <strong>Table 3 | Pairwise Tsallis divergence estimates.</strong>
 Divergence (distance) between conditions from Tsallis entropy framework.
@@ -1654,15 +1643,15 @@ Columns: gene identifier; pairwise comparison; divergence value;
 confidence interval (95%). Ranked by magnitude.
 </caption>
 <thead><tr>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:left;">
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 q_0.01
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 q_0.05
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 q_0.1
 </th>
 </tr></thead>
@@ -1725,7 +1714,6 @@ SNX4
 </tr>
 </tbody>
 </table>
-</div>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Compute effect sizes</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_effect_sizes.html">calculate_effect_sizes</a></span><span class="op">(</span></span>
@@ -1743,31 +1731,30 @@ SNX4
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">top_genes_result</span><span class="op">)</span></span></code></pre></div>
-<div style="border: 1px solid #ddd; padding: 0px; width: 100%; overflow-x: auto; overflow-y: auto;overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
-<table class="table table table-striped table-hover" style="margin-left: auto; margin-right: auto;">
+<table class="table table table-striped table-hover table-responsive" style="margin-left: auto; margin-right: auto;">
 <caption>
 Top 6 Genes by Effect Size (Tsallis Divergence)
 </caption>
 <thead><tr>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:left;">
 Gene
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 P-value
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 Slope Diff
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 D(q=0.5)
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 D(q=1.0)
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:right;">
 D(q=2.0)
 </th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+<th style="text-align:left;">
 Pattern
 </th>
 </tr></thead>
@@ -1912,7 +1899,6 @@ Rare driven
 </tr>
 </tbody>
 </table>
-</div>
 <div class="section level4">
 <h4 id="interpretation-of-pattern-types">Interpretation of Pattern Types:<a class="anchor" aria-label="anchor" href="#interpretation-of-pattern-types"></a>
 </h4>

@@ -344,7 +344,7 @@ print(head(srh_results, n = 10))
 
 Supplementary Table 3 \| Scheirer-Ray-Hare Test Results Summary.
 Rank-based nonparametric test of *q* × condition interactions. {.table
-.table .table-striped .table-hover
+.table .table-striped .table-hover .table-responsive
 style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 |  | Gene | P-value | Adj. P-value | F-Statistic | Effect Size (η²) | Interaction Class |
@@ -364,6 +364,7 @@ style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 Supplementary Table 4 \| Top genes identified by Scheirer-Ray-Hare
 rank-based test. {.table .table .table-striped .table-hover
+.table-responsive
 style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 Visualize q-curves for top genes:
@@ -417,6 +418,7 @@ print(gam_results)
 |  Aggregate statistics across all genes tested by GAM method; effect size \> 30% indicates strong biological signal. |  |
 
 GAM Results Summary {.table .table .table-striped .table-hover
+.table-responsive
 style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 | Gene | p (interaction) | Adjusted p | Effect size | Test statistic | df |
@@ -435,7 +437,7 @@ style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 |  Top 10 genes ranked by significance; p-values \< 0.001 shown in scientific notation; effect size range 0-100%. |  |  |  |  |  |
 
 Top 10 Genes by GAM p-value (with Effect Size and Test Statistics)
-{.table .table .table-striped .table-hover
+{.table .table .table-striped .table-hover .table-responsive
 style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 
 ------------------------------------------------------------------------

@@ -257,7 +257,7 @@ above.
 Statistics.** Differential analysis comparing Normal (N=8) vs Tumor
 (N=8) samples using SplicingFactory’s
 [`calculate_difference()`](https://rdrr.io/pkg/SplicingFactory/man/calculate_difference.html)
-method. {.table .table .table-striped .table-hover
+method. {.table .table .table-striped .table-hover .table-responsive
 style="margin-left: auto; margin-right: auto;"}
 
 **Interpretation**: Both methods similarly identify significantly
@@ -283,7 +283,7 @@ detection.
 
 **Supplementary Table 6a \| SplicingFactory method - Top 10 genes
 identified by Shannon entropy (naive mode).** Ranked by adjusted
-*P*-value. {.table .table .table-striped .table-hover
+*P*-value. {.table .table .table-striped .table-hover .table-responsive
 style="margin-left: auto; margin-right: auto;"}
 
 ##### Top 10 Significant Genes - TSENAT (Tsallis q=1)
@@ -307,7 +307,7 @@ SplicingFactory’s
 [`calculate_difference()`](https://rdrr.io/pkg/SplicingFactory/man/calculate_difference.html)
 method applied to TSENAT Tsallis q=1 diversity values. Ranked by
 adjusted *P*-value. {.table .table .table-striped .table-hover
-style="margin-left: auto; margin-right: auto;"}
+.table-responsive style="margin-left: auto; margin-right: auto;"}
 
 ------------------------------------------------------------------------
 
@@ -323,7 +323,7 @@ Differential analysis using Simpson diversity metric (Gini-Simpson
 index) comparing Normal (N=8) vs Tumor (N=8) samples using
 SplicingFactory’s
 [`calculate_difference()`](https://rdrr.io/pkg/SplicingFactory/man/calculate_difference.html)
-method. {.table .table .table-striped .table-hover
+method. {.table .table .table-striped .table-hover .table-responsive
 style="margin-left: auto; margin-right: auto;"}
 
 **Interpretation**: Simpson index results parallel Shannon entropy
@@ -350,7 +350,7 @@ and statistical equivalence to SplicingFactory.
 **Supplementary Table 9a \| SplicingFactory method - Top 10 genes by
 Simpson index (Gini-Simpson, emphasizes dominant isoforms).** Ranked by
 adjusted *P*-value. {.table .table .table-striped .table-hover
-style="margin-left: auto; margin-right: auto;"}
+.table-responsive style="margin-left: auto; margin-right: auto;"}
 
 ##### Top 10 Significant Genes - TSENAT (Tsallis q=2)
 
@@ -373,7 +373,7 @@ SplicingFactory’s
 [`calculate_difference()`](https://rdrr.io/pkg/SplicingFactory/man/calculate_difference.html)
 method applied to TSENAT Tsallis q=2 diversity values. Ranked by
 adjusted *P*-value. {.table .table .table-striped .table-hover
-style="margin-left: auto; margin-right: auto;"}
+.table-responsive style="margin-left: auto; margin-right: auto;"}
 
 ------------------------------------------------------------------------
 
