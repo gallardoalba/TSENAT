@@ -385,7 +385,7 @@ if (!is.null(sample_data) && nrow(sample_data) > 0) {
     kableExtra::kable_styling(
       bootstrap_options = c("striped", "hover", "responsive"),
       full_width = TRUE,
-      latex_options = c("scale_down", "HOLD_position")
+      latex_options = c("scale_down", "hold_position")
     ))
 } else {
   cat("Note: Diversity results not available for the requested q-values. ",
@@ -450,7 +450,7 @@ if (!is.null(sample_qc) && nrow(sample_qc) > 0) {
   kableExtra::kable_styling(
     bootstrap_options = c("striped", "hover", "responsive"),
     full_width = TRUE,
-    latex_options = c("scale_down", "HOLD_position")
+    latex_options = c("scale_down", "hold_position")
   )
 }
 ```
@@ -515,7 +515,7 @@ if (!is.null(lm_res) && is.data.frame(lm_res) && nrow(lm_res) > 0) {
     kableExtra::kable_styling(
       bootstrap_options = c("striped", "hover", "responsive"),
       full_width = TRUE,
-      latex_options = c("scale_down", "HOLD_position")
+      latex_options = c("scale_down", "hold_position")
     )
 }
 ```
@@ -602,7 +602,7 @@ if (exists("tables_result") && is.list(tables_result) &&
                          format = if (knitr::is_latex_output()) "latex" else "html") %>%
             kableExtra::kable_styling(
               bootstrap_options = c("striped", "hover", "condensed", "responsive"),
-              latex_options = c("scale_down", "repeat_header", "HOLD_position"),
+              latex_options = c("scale_down", "repeat_header", "hold_position"),
               full_width = TRUE
             ) %>%
             {
@@ -681,7 +681,7 @@ if (exists("analysis")) {
         kableExtra::kable_styling(
           bootstrap_options = c("striped", "hover", "responsive"),
           full_width = TRUE,
-          latex_options = c("scale_down", "HOLD_position")
+          latex_options = c("scale_down", "hold_position")
         )
     } else if (is.list(div_results) && length(div_results) > 0) {
         # If stored as list per q-value, extract first q-value results
@@ -699,7 +699,7 @@ if (exists("analysis")) {
             kableExtra::kable_styling(
               bootstrap_options = c("striped", "hover", "condensed", "responsive"),
               full_width = TRUE,
-              latex_options = c("scale_down", "HOLD_position")
+              latex_options = c("scale_down", "hold_position")
             )
         }
     }
@@ -756,7 +756,7 @@ knitr::kable(
 kableExtra::kable_styling(
   bootstrap_options = c("striped", "hover", "responsive"),
   full_width = TRUE,
-  latex_options = c("scale_down", "HOLD_position")
+  latex_options = c("scale_down", "hold_position")
 )
 ```
 
