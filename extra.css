@@ -1,39 +1,42 @@
 /* ============================================
-   TSENAT Table Width Fix - Clean Bootstrap Approach
+   TSENAT Table Width Fix - Bootstrap Container Override
    ============================================ */
 
-/* Remove centering margins from kableExtra tables */
-.kableExtra-wrapper,
-.table {
-  margin-left: 0 !important;
-  margin-right: 0 !important;
+/* ARTICLE CONTAINER - Remove max-width constraint for full flexibility */
+.template-article .container {
+  max-width: 100% !important;
+  width: 100%;
+  padding-right: 0;
+  padding-left: 0;
 }
 
-/* Make tables full width within their container */
+/* ROW - Allow full width expansion */
+.template-article .row {
+  margin-right: 0;
+  margin-left: 0;
+}
+
+/* MAIN CONTENT - Allow to grow and tables to be full width */
+main.col-md-9 {
+  max-width: 100%;
+  flex-basis: 100%;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* TABLES - Full width and remove centering */
 table.table {
   width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
   border-collapse: collapse;
 }
 
-/* Override inline styles that center tables */
+/* Override kableExtra inline centering styles */
 table[style*="margin-left"],
 table[style*="margin-right"] {
   margin-left: 0 !important;
   margin-right: 0 !important;
-}
-
-/* Expand main article column from col-md-9 (75%) to full width */
-main.col-md-9 {
-  --bs-gutter-x: 0;
-  max-width: 100%;
-  flex: 0 0 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Container styling */
-.article {
-  width: 100%;
 }
 
 /* Table styling */
@@ -49,7 +52,7 @@ table.table th {
   white-space: normal;
 }
 
-/* Responsive handling */
+/* Responsive table scrolling on small screens */
 .table-responsive {
   width: 100%;
   overflow-x: auto;
@@ -58,6 +61,13 @@ table.table th {
 
 /* Mobile optimization */
 @media (max-width: 768px) {
+  main.col-md-9 {
+    flex-basis: 100%;
+    max-width: 100%;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+  
   table.table {
     font-size: 0.875rem;
   }

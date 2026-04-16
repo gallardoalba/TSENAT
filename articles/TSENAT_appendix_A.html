@@ -56,7 +56,7 @@
 
 
 
-<script src="TSENAT_appendix_A_files/kePrint-0.0.1/kePrint.js"></script><link href="TSENAT_appendix_A_files/lightable-0.0.1/lightable.css" rel="stylesheet">
+
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
@@ -73,6 +73,31 @@ Gallardo <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a
 
     
     
+<style type="text/css">
+/* Fix table rendering in scroll containers */
+div[style*="overflow-x: scroll"] {
+  display: block !important;
+  width: 100% !important;
+}
+
+div[style*="overflow-x: scroll"] > table,
+div[style*="overflow-x: scroll"] .table {
+  width: 100% !important;
+  min-width: 100% !important;
+  display: table !important;
+}
+
+div[style*="overflow-x: scroll"] thead th {
+  position: sticky;
+  top: 0;
+  background-color: #FFFFFF;
+  z-index: 10;
+}
+
+.table {
+  width: 100%;
+}
+</style>
 <div class="section level2">
 <h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
@@ -325,69 +350,43 @@ above.</p>
 <div class="section level4">
 <h4 id="shannon-entropy-splicingfactory-laplace-vs-tsenat-tsallis-q1">Shannon Entropy (SplicingFactory Laplace vs TSENAT Tsallis q=1)<a class="anchor" aria-label="anchor" href="#shannon-entropy-splicingfactory-laplace-vs-tsenat-tsallis-q1"></a>
 </h4>
-<div style="border: 1px solid #ddd; padding: 0px; width: 100%; overflow-x: auto; overflow-y: auto;overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
-<table class="table table table-striped table-hover table-responsive" style="margin-left: auto; margin-right: auto;">
+<table class="table">
 <caption>
-<strong>Supplementary Table 5 | Shannon Entropy Analysis Summary
-Statistics.</strong> Differential analysis comparing Normal (N=8) vs
-Tumor (N=8) samples using SplicingFactory’s
-<code><a href="https://rdrr.io/pkg/SplicingFactory/man/calculate_difference.html" class="external-link">calculate_difference()</a></code> method.
-</caption>
-<thead><tr>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-Method
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Genes Tested
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Significant (padj&lt;0.05)
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Mean log2FC
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-SD log2FC
-</th>
+<strong>Supplementary Table 5 | Shannon Entropy Analysis
+Summary Statistics.</strong> Differential analysis comparing Normal
+(N=8) vs Tumor (N=8) samples using SplicingFactory’s
+<code><a href="https://rdrr.io/pkg/SplicingFactory/man/calculate_difference.html" class="external-link">calculate_difference()</a></code> method.</caption>
+<colgroup>
+<col width="35%">
+<col width="14%">
+<col width="26%">
+<col width="13%">
+<col width="10%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Method</th>
+<th align="right">Genes Tested</th>
+<th align="right">Significant (padj&lt;0.05)</th>
+<th align="right">Mean log2FC</th>
+<th align="right">SD log2FC</th>
 </tr></thead>
 <tbody>
-<tr>
-<td style="text-align:left;">
-SplicingFactory (Shannon/naive)
-</td>
-<td style="text-align:right;">
-214
-</td>
-<td style="text-align:right;">
-26
-</td>
-<td style="text-align:right;">
--0.0009354
-</td>
-<td style="text-align:right;">
-1.582967
-</td>
+<tr class="odd">
+<td align="left">SplicingFactory (Shannon/naive)</td>
+<td align="right">214</td>
+<td align="right">26</td>
+<td align="right">-0.0009354</td>
+<td align="right">1.582967</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-TSENAT (Tsallis q=1)
-</td>
-<td style="text-align:right;">
-213
-</td>
-<td style="text-align:right;">
-26
-</td>
-<td style="text-align:right;">
-0.0003618
-</td>
-<td style="text-align:right;">
-1.586675
-</td>
+<tr class="even">
+<td align="left">TSENAT (Tsallis q=1)</td>
+<td align="right">213</td>
+<td align="right">26</td>
+<td align="right">0.0003618</td>
+<td align="right">1.586675</td>
 </tr>
 </tbody>
 </table>
-</div>
 <p><strong>Interpretation</strong>: Both methods similarly identify
 significantly different transcript diversity between Normal and Tumor
 samples. The comparable number of significant genes (padj&lt;0.05) and
@@ -396,610 +395,288 @@ size detection.</p>
 <div class="section level5">
 <h5 id="top-10-significant-genes---splicingfactory-laplace">Top 10 Significant Genes - SplicingFactory (Laplace)<a class="anchor" aria-label="anchor" href="#top-10-significant-genes---splicingfactory-laplace"></a>
 </h5>
-<div style="border: 1px solid #ddd; padding: 0px; width: 100%; overflow-x: auto; overflow-y: auto;overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
-<table class="table table table-striped table-hover table-responsive" style="margin-left: auto; margin-right: auto;">
+<table class="table">
 <caption>
-<strong>Supplementary Table 6a | SplicingFactory method - Top 10 genes
-identified by Shannon entropy (naive mode).</strong> Ranked by adjusted
-<em>P</em>-value.
-</caption>
-<thead><tr>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-Gene
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Normal Mean
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Tumor Mean
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Mean Diff
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-log2FC
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-p-value
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-adj p-value
-</th>
+<strong>Supplementary Table 6a | SplicingFactory method - Top
+10 genes identified by Shannon entropy (naive mode).</strong> Ranked by
+adjusted <em>P</em>-value.</caption>
+<colgroup>
+<col width="12%">
+<col width="16%">
+<col width="15%">
+<col width="14%">
+<col width="11%">
+<col width="12%">
+<col width="16%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Gene</th>
+<th align="right">Normal Mean</th>
+<th align="right">Tumor Mean</th>
+<th align="right">Mean Diff</th>
+<th align="right">log2FC</th>
+<th align="right">p-value</th>
+<th align="right">adj p-value</th>
 </tr></thead>
 <tbody>
-<tr>
-<td style="text-align:left;">
-C1orf213
-</td>
-<td style="text-align:right;">
-0.8122
-</td>
-<td style="text-align:right;">
-0.1400
-</td>
-<td style="text-align:right;">
--0.6722
-</td>
-<td style="text-align:right;">
--2.5365
-</td>
-<td style="text-align:right;">
-3.97e-07
-</td>
-<td style="text-align:right;">
-8.50e-05
-</td>
+<tr class="odd">
+<td align="left">C1orf213</td>
+<td align="right">0.8122</td>
+<td align="right">0.1400</td>
+<td align="right">-0.6722</td>
+<td align="right">-2.5365</td>
+<td align="right">3.97e-07</td>
+<td align="right">8.50e-05</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-HAPLN3
-</td>
-<td style="text-align:right;">
-0.7030
-</td>
-<td style="text-align:right;">
-0.4299
-</td>
-<td style="text-align:right;">
--0.2731
-</td>
-<td style="text-align:right;">
--0.7096
-</td>
-<td style="text-align:right;">
-4.17e-05
-</td>
-<td style="text-align:right;">
-4.46e-03
-</td>
+<tr class="even">
+<td align="left">HAPLN3</td>
+<td align="right">0.7030</td>
+<td align="right">0.4299</td>
+<td align="right">-0.2731</td>
+<td align="right">-0.7096</td>
+<td align="right">4.17e-05</td>
+<td align="right">4.46e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-COL1A2
-</td>
-<td style="text-align:right;">
-0.0000
-</td>
-<td style="text-align:right;">
-0.1643
-</td>
-<td style="text-align:right;">
-0.1643
-</td>
-<td style="text-align:right;">
-Inf
-</td>
-<td style="text-align:right;">
-6.68e-05
-</td>
-<td style="text-align:right;">
-4.77e-03
-</td>
+<tr class="odd">
+<td align="left">COL1A2</td>
+<td align="right">0.0000</td>
+<td align="right">0.1643</td>
+<td align="right">0.1643</td>
+<td align="right">Inf</td>
+<td align="right">6.68e-05</td>
+<td align="right">4.77e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-F10
-</td>
-<td style="text-align:right;">
-0.1311
-</td>
-<td style="text-align:right;">
-0.3720
-</td>
-<td style="text-align:right;">
-0.2409
-</td>
-<td style="text-align:right;">
-1.5050
-</td>
-<td style="text-align:right;">
-1.37e-04
-</td>
-<td style="text-align:right;">
-7.31e-03
-</td>
+<tr class="even">
+<td align="left">F10</td>
+<td align="right">0.1311</td>
+<td align="right">0.3720</td>
+<td align="right">0.2409</td>
+<td align="right">1.5050</td>
+<td align="right">1.37e-04</td>
+<td align="right">7.31e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-DUSP14
-</td>
-<td style="text-align:right;">
-0.2989
-</td>
-<td style="text-align:right;">
-0.1302
-</td>
-<td style="text-align:right;">
--0.1688
-</td>
-<td style="text-align:right;">
--1.1995
-</td>
-<td style="text-align:right;">
-1.89e-04
-</td>
-<td style="text-align:right;">
-8.10e-03
-</td>
+<tr class="odd">
+<td align="left">DUSP14</td>
+<td align="right">0.2989</td>
+<td align="right">0.1302</td>
+<td align="right">-0.1688</td>
+<td align="right">-1.1995</td>
+<td align="right">1.89e-04</td>
+<td align="right">8.10e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-MBD2
-</td>
-<td style="text-align:right;">
-0.0027
-</td>
-<td style="text-align:right;">
-0.0371
-</td>
-<td style="text-align:right;">
-0.0344
-</td>
-<td style="text-align:right;">
-3.7876
-</td>
-<td style="text-align:right;">
-2.39e-04
-</td>
-<td style="text-align:right;">
-8.54e-03
-</td>
+<tr class="even">
+<td align="left">MBD2</td>
+<td align="right">0.0027</td>
+<td align="right">0.0371</td>
+<td align="right">0.0344</td>
+<td align="right">3.7876</td>
+<td align="right">2.39e-04</td>
+<td align="right">8.54e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-C1orf86
-</td>
-<td style="text-align:right;">
-0.1479
-</td>
-<td style="text-align:right;">
-0.0029
-</td>
-<td style="text-align:right;">
--0.1450
-</td>
-<td style="text-align:right;">
--5.6777
-</td>
-<td style="text-align:right;">
-4.59e-04
-</td>
-<td style="text-align:right;">
-9.85e-03
-</td>
+<tr class="odd">
+<td align="left">C1orf86</td>
+<td align="right">0.1479</td>
+<td align="right">0.0029</td>
+<td align="right">-0.1450</td>
+<td align="right">-5.6777</td>
+<td align="right">4.59e-04</td>
+<td align="right">9.85e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-GFPT1
-</td>
-<td style="text-align:right;">
-0.0231
-</td>
-<td style="text-align:right;">
-0.0025
-</td>
-<td style="text-align:right;">
--0.0207
-</td>
-<td style="text-align:right;">
--3.2253
-</td>
-<td style="text-align:right;">
-3.80e-04
-</td>
-<td style="text-align:right;">
-9.85e-03
-</td>
+<tr class="even">
+<td align="left">GFPT1</td>
+<td align="right">0.0231</td>
+<td align="right">0.0025</td>
+<td align="right">-0.0207</td>
+<td align="right">-3.2253</td>
+<td align="right">3.80e-04</td>
+<td align="right">9.85e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-HNRNPR
-</td>
-<td style="text-align:right;">
-0.5162
-</td>
-<td style="text-align:right;">
-0.5907
-</td>
-<td style="text-align:right;">
-0.0746
-</td>
-<td style="text-align:right;">
-0.1947
-</td>
-<td style="text-align:right;">
-4.60e-04
-</td>
-<td style="text-align:right;">
-9.85e-03
-</td>
+<tr class="odd">
+<td align="left">HNRNPR</td>
+<td align="right">0.5162</td>
+<td align="right">0.5907</td>
+<td align="right">0.0746</td>
+<td align="right">0.1947</td>
+<td align="right">4.60e-04</td>
+<td align="right">9.85e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-OSR1
-</td>
-<td style="text-align:right;">
-0.0497
-</td>
-<td style="text-align:right;">
-0.2891
-</td>
-<td style="text-align:right;">
-0.2394
-</td>
-<td style="text-align:right;">
-2.5411
-</td>
-<td style="text-align:right;">
-4.10e-04
-</td>
-<td style="text-align:right;">
-9.85e-03
-</td>
+<tr class="even">
+<td align="left">OSR1</td>
+<td align="right">0.0497</td>
+<td align="right">0.2891</td>
+<td align="right">0.2394</td>
+<td align="right">2.5411</td>
+<td align="right">4.10e-04</td>
+<td align="right">9.85e-03</td>
 </tr>
 </tbody>
 </table>
-</div>
 </div>
 <div class="section level5">
 <h5 id="top-10-significant-genes---tsenat-tsallis-q1">Top 10 Significant Genes - TSENAT (Tsallis q=1)<a class="anchor" aria-label="anchor" href="#top-10-significant-genes---tsenat-tsallis-q1"></a>
 </h5>
-<div style="border: 1px solid #ddd; padding: 0px; width: 100%; overflow-x: auto; overflow-y: auto;overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
-<table class="table table table-striped table-hover table-responsive" style="margin-left: auto; margin-right: auto;">
+<table class="table">
 <caption>
-<strong>Supplementary Table 6b | TSENAT method - Top 10 genes identified
-by Tsallis entropy at q=1 (Shannon equivalence).</strong> Results
-obtained using SplicingFactory’s <code><a href="https://rdrr.io/pkg/SplicingFactory/man/calculate_difference.html" class="external-link">calculate_difference()</a></code>
-method applied to TSENAT Tsallis q=1 diversity values. Ranked by
-adjusted <em>P</em>-value.
-</caption>
-<thead><tr>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-Gene
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Normal Mean
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Tumor Mean
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Mean Diff
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-log2FC
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-p-value
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-adj p-value
-</th>
+<strong>Supplementary Table 6b | TSENAT method - Top 10 genes
+identified by Tsallis entropy at q=1 (Shannon equivalence).</strong>
+Results obtained using SplicingFactory’s
+<code><a href="https://rdrr.io/pkg/SplicingFactory/man/calculate_difference.html" class="external-link">calculate_difference()</a></code> method applied to TSENAT Tsallis q=1
+diversity values. Ranked by adjusted <em>P</em>-value.</caption>
+<colgroup>
+<col width="12%">
+<col width="16%">
+<col width="15%">
+<col width="14%">
+<col width="11%">
+<col width="12%">
+<col width="16%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Gene</th>
+<th align="right">Normal Mean</th>
+<th align="right">Tumor Mean</th>
+<th align="right">Mean Diff</th>
+<th align="right">log2FC</th>
+<th align="right">p-value</th>
+<th align="right">adj p-value</th>
 </tr></thead>
 <tbody>
-<tr>
-<td style="text-align:left;">
-C1orf213
-</td>
-<td style="text-align:right;">
-0.8122
-</td>
-<td style="text-align:right;">
-0.1400
-</td>
-<td style="text-align:right;">
--0.6722
-</td>
-<td style="text-align:right;">
--2.5365
-</td>
-<td style="text-align:right;">
-3.97e-07
-</td>
-<td style="text-align:right;">
-8.46e-05
-</td>
+<tr class="odd">
+<td align="left">C1orf213</td>
+<td align="right">0.8122</td>
+<td align="right">0.1400</td>
+<td align="right">-0.6722</td>
+<td align="right">-2.5365</td>
+<td align="right">3.97e-07</td>
+<td align="right">8.46e-05</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-HAPLN3
-</td>
-<td style="text-align:right;">
-0.7030
-</td>
-<td style="text-align:right;">
-0.4299
-</td>
-<td style="text-align:right;">
--0.2731
-</td>
-<td style="text-align:right;">
--0.7096
-</td>
-<td style="text-align:right;">
-4.17e-05
-</td>
-<td style="text-align:right;">
-4.44e-03
-</td>
+<tr class="even">
+<td align="left">HAPLN3</td>
+<td align="right">0.7030</td>
+<td align="right">0.4299</td>
+<td align="right">-0.2731</td>
+<td align="right">-0.7096</td>
+<td align="right">4.17e-05</td>
+<td align="right">4.44e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-COL1A2
-</td>
-<td style="text-align:right;">
-0.0000
-</td>
-<td style="text-align:right;">
-0.1643
-</td>
-<td style="text-align:right;">
-0.1643
-</td>
-<td style="text-align:right;">
-Inf
-</td>
-<td style="text-align:right;">
-6.68e-05
-</td>
-<td style="text-align:right;">
-4.74e-03
-</td>
+<tr class="odd">
+<td align="left">COL1A2</td>
+<td align="right">0.0000</td>
+<td align="right">0.1643</td>
+<td align="right">0.1643</td>
+<td align="right">Inf</td>
+<td align="right">6.68e-05</td>
+<td align="right">4.74e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-F10
-</td>
-<td style="text-align:right;">
-0.1311
-</td>
-<td style="text-align:right;">
-0.3720
-</td>
-<td style="text-align:right;">
-0.2409
-</td>
-<td style="text-align:right;">
-1.5050
-</td>
-<td style="text-align:right;">
-1.37e-04
-</td>
-<td style="text-align:right;">
-7.27e-03
-</td>
+<tr class="even">
+<td align="left">F10</td>
+<td align="right">0.1311</td>
+<td align="right">0.3720</td>
+<td align="right">0.2409</td>
+<td align="right">1.5050</td>
+<td align="right">1.37e-04</td>
+<td align="right">7.27e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-DUSP14
-</td>
-<td style="text-align:right;">
-0.2989
-</td>
-<td style="text-align:right;">
-0.1302
-</td>
-<td style="text-align:right;">
--0.1688
-</td>
-<td style="text-align:right;">
--1.1995
-</td>
-<td style="text-align:right;">
-1.89e-04
-</td>
-<td style="text-align:right;">
-8.06e-03
-</td>
+<tr class="odd">
+<td align="left">DUSP14</td>
+<td align="right">0.2989</td>
+<td align="right">0.1302</td>
+<td align="right">-0.1688</td>
+<td align="right">-1.1995</td>
+<td align="right">1.89e-04</td>
+<td align="right">8.06e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-MBD2
-</td>
-<td style="text-align:right;">
-0.0027
-</td>
-<td style="text-align:right;">
-0.0371
-</td>
-<td style="text-align:right;">
-0.0344
-</td>
-<td style="text-align:right;">
-3.7876
-</td>
-<td style="text-align:right;">
-2.39e-04
-</td>
-<td style="text-align:right;">
-8.50e-03
-</td>
+<tr class="even">
+<td align="left">MBD2</td>
+<td align="right">0.0027</td>
+<td align="right">0.0371</td>
+<td align="right">0.0344</td>
+<td align="right">3.7876</td>
+<td align="right">2.39e-04</td>
+<td align="right">8.50e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-C1orf86
-</td>
-<td style="text-align:right;">
-0.1479
-</td>
-<td style="text-align:right;">
-0.0029
-</td>
-<td style="text-align:right;">
--0.1450
-</td>
-<td style="text-align:right;">
--5.6777
-</td>
-<td style="text-align:right;">
-4.59e-04
-</td>
-<td style="text-align:right;">
-9.80e-03
-</td>
+<tr class="odd">
+<td align="left">C1orf86</td>
+<td align="right">0.1479</td>
+<td align="right">0.0029</td>
+<td align="right">-0.1450</td>
+<td align="right">-5.6777</td>
+<td align="right">4.59e-04</td>
+<td align="right">9.80e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-HNRNPR
-</td>
-<td style="text-align:right;">
-0.5162
-</td>
-<td style="text-align:right;">
-0.5907
-</td>
-<td style="text-align:right;">
-0.0746
-</td>
-<td style="text-align:right;">
-0.1947
-</td>
-<td style="text-align:right;">
-4.60e-04
-</td>
-<td style="text-align:right;">
-9.80e-03
-</td>
+<tr class="even">
+<td align="left">HNRNPR</td>
+<td align="right">0.5162</td>
+<td align="right">0.5907</td>
+<td align="right">0.0746</td>
+<td align="right">0.1947</td>
+<td align="right">4.60e-04</td>
+<td align="right">9.80e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-OSR1
-</td>
-<td style="text-align:right;">
-0.0497
-</td>
-<td style="text-align:right;">
-0.2891
-</td>
-<td style="text-align:right;">
-0.2394
-</td>
-<td style="text-align:right;">
-2.5411
-</td>
-<td style="text-align:right;">
-4.10e-04
-</td>
-<td style="text-align:right;">
-9.80e-03
-</td>
+<tr class="odd">
+<td align="left">OSR1</td>
+<td align="right">0.0497</td>
+<td align="right">0.2891</td>
+<td align="right">0.2394</td>
+<td align="right">2.5411</td>
+<td align="right">4.10e-04</td>
+<td align="right">9.80e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-GFPT1
-</td>
-<td style="text-align:right;">
-0.0231
-</td>
-<td style="text-align:right;">
-0.0025
-</td>
-<td style="text-align:right;">
--0.0207
-</td>
-<td style="text-align:right;">
--3.2253
-</td>
-<td style="text-align:right;">
-3.80e-04
-</td>
-<td style="text-align:right;">
-9.80e-03
-</td>
+<tr class="even">
+<td align="left">GFPT1</td>
+<td align="right">0.0231</td>
+<td align="right">0.0025</td>
+<td align="right">-0.0207</td>
+<td align="right">-3.2253</td>
+<td align="right">3.80e-04</td>
+<td align="right">9.80e-03</td>
 </tr>
 </tbody>
 </table>
-</div>
 <hr>
 </div>
 </div>
 <div class="section level4">
 <h4 id="simpson-index-splicingfactory-vs-tsenat-tsallis-q2">Simpson Index (SplicingFactory vs TSENAT Tsallis q=2)<a class="anchor" aria-label="anchor" href="#simpson-index-splicingfactory-vs-tsenat-tsallis-q2"></a>
 </h4>
-<div style="border: 1px solid #ddd; padding: 0px; width: 100%; overflow-x: auto; overflow-y: auto;overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
-<table class="table table table-striped table-hover table-responsive" style="margin-left: auto; margin-right: auto;">
+<table class="table">
 <caption>
 <strong>Supplementary Table 8 | Simpson Index Analysis Summary
 Statistics.</strong> Differential analysis using Simpson diversity
 metric (Gini-Simpson index) comparing Normal (N=8) vs Tumor (N=8)
 samples using SplicingFactory’s <code><a href="https://rdrr.io/pkg/SplicingFactory/man/calculate_difference.html" class="external-link">calculate_difference()</a></code>
-method.
-</caption>
-<thead><tr>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-Method
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Genes Tested
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Significant (padj&lt;0.05)
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Mean log2FC
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-SD log2FC
-</th>
+method.</caption>
+<colgroup>
+<col width="30%">
+<col width="15%">
+<col width="28%">
+<col width="14%">
+<col width="11%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Method</th>
+<th align="right">Genes Tested</th>
+<th align="right">Significant (padj&lt;0.05)</th>
+<th align="right">Mean log2FC</th>
+<th align="right">SD log2FC</th>
 </tr></thead>
 <tbody>
-<tr>
-<td style="text-align:left;">
-SplicingFactory (Simpson)
-</td>
-<td style="text-align:right;">
-214
-</td>
-<td style="text-align:right;">
-26
-</td>
-<td style="text-align:right;">
--0.0012687
-</td>
-<td style="text-align:right;">
-1.812772
-</td>
+<tr class="odd">
+<td align="left">SplicingFactory (Simpson)</td>
+<td align="right">214</td>
+<td align="right">26</td>
+<td align="right">-0.0012687</td>
+<td align="right">1.812772</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-TSENAT (Tsallis q=2)
-</td>
-<td style="text-align:right;">
-213
-</td>
-<td style="text-align:right;">
-26
-</td>
-<td style="text-align:right;">
--0.0000521
-</td>
-<td style="text-align:right;">
-1.817060
-</td>
+<tr class="even">
+<td align="left">TSENAT (Tsallis q=2)</td>
+<td align="right">213</td>
+<td align="right">26</td>
+<td align="right">-0.0000521</td>
+<td align="right">1.817060</td>
 </tr>
 </tbody>
 </table>
-</div>
 <p><strong>Interpretation</strong>: Simpson index results parallel
 Shannon entropy findings, with both methods identifying similar numbers
 of significantly different isoform dominance patterns. The agreement
@@ -1008,540 +685,244 @@ mathematical and statistical equivalence to SplicingFactory.</p>
 <div class="section level5">
 <h5 id="top-10-significant-genes---splicingfactory-simpson">Top 10 Significant Genes - SplicingFactory (Simpson)<a class="anchor" aria-label="anchor" href="#top-10-significant-genes---splicingfactory-simpson"></a>
 </h5>
-<div style="border: 1px solid #ddd; padding: 0px; width: 100%; overflow-x: auto; overflow-y: auto;overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
-<table class="table table table-striped table-hover table-responsive" style="margin-left: auto; margin-right: auto;">
+<table class="table">
 <caption>
-<strong>Supplementary Table 9a | SplicingFactory method - Top 10 genes
-by Simpson index (Gini-Simpson, emphasizes dominant isoforms).</strong>
-Ranked by adjusted <em>P</em>-value.
-</caption>
-<thead><tr>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-Gene
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Normal Mean
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Tumor Mean
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Mean Diff
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-log2FC
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-p-value
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-adj p-value
-</th>
+<strong>Supplementary Table 9a | SplicingFactory method - Top
+10 genes by Simpson index (Gini-Simpson, emphasizes dominant
+isoforms).</strong> Ranked by adjusted <em>P</em>-value.</caption>
+<colgroup>
+<col width="12%">
+<col width="16%">
+<col width="15%">
+<col width="14%">
+<col width="11%">
+<col width="12%">
+<col width="16%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Gene</th>
+<th align="right">Normal Mean</th>
+<th align="right">Tumor Mean</th>
+<th align="right">Mean Diff</th>
+<th align="right">log2FC</th>
+<th align="right">p-value</th>
+<th align="right">adj p-value</th>
 </tr></thead>
 <tbody>
-<tr>
-<td style="text-align:left;">
-C1orf213
-</td>
-<td style="text-align:right;">
-0.3852
-</td>
-<td style="text-align:right;">
-0.0515
-</td>
-<td style="text-align:right;">
--0.3337
-</td>
-<td style="text-align:right;">
--2.9037
-</td>
-<td style="text-align:right;">
-3.97e-07
-</td>
-<td style="text-align:right;">
-8.50e-05
-</td>
+<tr class="odd">
+<td align="left">C1orf213</td>
+<td align="right">0.3852</td>
+<td align="right">0.0515</td>
+<td align="right">-0.3337</td>
+<td align="right">-2.9037</td>
+<td align="right">3.97e-07</td>
+<td align="right">8.50e-05</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-HAPLN3
-</td>
-<td style="text-align:right;">
-0.4823
-</td>
-<td style="text-align:right;">
-0.2558
-</td>
-<td style="text-align:right;">
--0.2266
-</td>
-<td style="text-align:right;">
--0.9152
-</td>
-<td style="text-align:right;">
-5.17e-06
-</td>
-<td style="text-align:right;">
-5.53e-04
-</td>
+<tr class="even">
+<td align="left">HAPLN3</td>
+<td align="right">0.4823</td>
+<td align="right">0.2558</td>
+<td align="right">-0.2266</td>
+<td align="right">-0.9152</td>
+<td align="right">5.17e-06</td>
+<td align="right">5.53e-04</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-COL1A2
-</td>
-<td style="text-align:right;">
-0.0000
-</td>
-<td style="text-align:right;">
-0.0626
-</td>
-<td style="text-align:right;">
-0.0626
-</td>
-<td style="text-align:right;">
-Inf
-</td>
-<td style="text-align:right;">
-6.68e-05
-</td>
-<td style="text-align:right;">
-4.77e-03
-</td>
+<tr class="odd">
+<td align="left">COL1A2</td>
+<td align="right">0.0000</td>
+<td align="right">0.0626</td>
+<td align="right">0.0626</td>
+<td align="right">Inf</td>
+<td align="right">6.68e-05</td>
+<td align="right">4.77e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-F10
-</td>
-<td style="text-align:right;">
-0.0697
-</td>
-<td style="text-align:right;">
-0.2494
-</td>
-<td style="text-align:right;">
-0.1797
-</td>
-<td style="text-align:right;">
-1.8400
-</td>
-<td style="text-align:right;">
-1.10e-04
-</td>
-<td style="text-align:right;">
-5.86e-03
-</td>
+<tr class="even">
+<td align="left">F10</td>
+<td align="right">0.0697</td>
+<td align="right">0.2494</td>
+<td align="right">0.1797</td>
+<td align="right">1.8400</td>
+<td align="right">1.10e-04</td>
+<td align="right">5.86e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-DUSP14
-</td>
-<td style="text-align:right;">
-0.1686
-</td>
-<td style="text-align:right;">
-0.0617
-</td>
-<td style="text-align:right;">
--0.1069
-</td>
-<td style="text-align:right;">
--1.4499
-</td>
-<td style="text-align:right;">
-2.11e-04
-</td>
-<td style="text-align:right;">
-7.32e-03
-</td>
+<tr class="odd">
+<td align="left">DUSP14</td>
+<td align="right">0.1686</td>
+<td align="right">0.0617</td>
+<td align="right">-0.1069</td>
+<td align="right">-1.4499</td>
+<td align="right">2.11e-04</td>
+<td align="right">7.32e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-HNRNPR
-</td>
-<td style="text-align:right;">
-0.5376
-</td>
-<td style="text-align:right;">
-0.6134
-</td>
-<td style="text-align:right;">
-0.0758
-</td>
-<td style="text-align:right;">
-0.1903
-</td>
-<td style="text-align:right;">
-1.79e-04
-</td>
-<td style="text-align:right;">
-7.32e-03
-</td>
+<tr class="even">
+<td align="left">HNRNPR</td>
+<td align="right">0.5376</td>
+<td align="right">0.6134</td>
+<td align="right">0.0758</td>
+<td align="right">0.1903</td>
+<td align="right">1.79e-04</td>
+<td align="right">7.32e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-MBD2
-</td>
-<td style="text-align:right;">
-0.0005
-</td>
-<td style="text-align:right;">
-0.0107
-</td>
-<td style="text-align:right;">
-0.0102
-</td>
-<td style="text-align:right;">
-4.5028
-</td>
-<td style="text-align:right;">
-2.39e-04
-</td>
-<td style="text-align:right;">
-7.32e-03
-</td>
+<tr class="odd">
+<td align="left">MBD2</td>
+<td align="right">0.0005</td>
+<td align="right">0.0107</td>
+<td align="right">0.0102</td>
+<td align="right">4.5028</td>
+<td align="right">2.39e-04</td>
+<td align="right">7.32e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-CXorf40A
-</td>
-<td style="text-align:right;">
-0.7455
-</td>
-<td style="text-align:right;">
-0.7939
-</td>
-<td style="text-align:right;">
-0.0484
-</td>
-<td style="text-align:right;">
-0.0907
-</td>
-<td style="text-align:right;">
-2.75e-04
-</td>
-<td style="text-align:right;">
-7.34e-03
-</td>
+<tr class="even">
+<td align="left">CXorf40A</td>
+<td align="right">0.7455</td>
+<td align="right">0.7939</td>
+<td align="right">0.0484</td>
+<td align="right">0.0907</td>
+<td align="right">2.75e-04</td>
+<td align="right">7.34e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-GFPT1
-</td>
-<td style="text-align:right;">
-0.0051
-</td>
-<td style="text-align:right;">
-0.0004
-</td>
-<td style="text-align:right;">
--0.0047
-</td>
-<td style="text-align:right;">
--3.5271
-</td>
-<td style="text-align:right;">
-3.80e-04
-</td>
-<td style="text-align:right;">
-8.78e-03
-</td>
+<tr class="odd">
+<td align="left">GFPT1</td>
+<td align="right">0.0051</td>
+<td align="right">0.0004</td>
+<td align="right">-0.0047</td>
+<td align="right">-3.5271</td>
+<td align="right">3.80e-04</td>
+<td align="right">8.78e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-OSR1
-</td>
-<td style="text-align:right;">
-0.0124
-</td>
-<td style="text-align:right;">
-0.1156
-</td>
-<td style="text-align:right;">
-0.1032
-</td>
-<td style="text-align:right;">
-3.2168
-</td>
-<td style="text-align:right;">
-4.10e-04
-</td>
-<td style="text-align:right;">
-8.78e-03
-</td>
+<tr class="even">
+<td align="left">OSR1</td>
+<td align="right">0.0124</td>
+<td align="right">0.1156</td>
+<td align="right">0.1032</td>
+<td align="right">3.2168</td>
+<td align="right">4.10e-04</td>
+<td align="right">8.78e-03</td>
 </tr>
 </tbody>
 </table>
-</div>
 </div>
 <div class="section level5">
 <h5 id="top-10-significant-genes---tsenat-tsallis-q2">Top 10 Significant Genes - TSENAT (Tsallis q=2)<a class="anchor" aria-label="anchor" href="#top-10-significant-genes---tsenat-tsallis-q2"></a>
 </h5>
-<div style="border: 1px solid #ddd; padding: 0px; width: 100%; overflow-x: auto; overflow-y: auto;overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
-<table class="table table table-striped table-hover table-responsive" style="margin-left: auto; margin-right: auto;">
+<table class="table">
 <caption>
-<strong>Supplementary Table 9b | TSENAT method - Top 10 genes by Tsallis
-entropy at q=2 (Simpson equivalence).</strong> Results obtained using
-SplicingFactory’s <code><a href="https://rdrr.io/pkg/SplicingFactory/man/calculate_difference.html" class="external-link">calculate_difference()</a></code> method applied to
-TSENAT Tsallis q=2 diversity values. Ranked by adjusted
-<em>P</em>-value.
-</caption>
-<thead><tr>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-Gene
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Normal Mean
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Tumor Mean
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Mean Diff
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-log2FC
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-p-value
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-adj p-value
-</th>
+<strong>Supplementary Table 9b | TSENAT method - Top 10 genes
+by Tsallis entropy at q=2 (Simpson equivalence).</strong> Results
+obtained using SplicingFactory’s <code><a href="https://rdrr.io/pkg/SplicingFactory/man/calculate_difference.html" class="external-link">calculate_difference()</a></code>
+method applied to TSENAT Tsallis q=2 diversity values. Ranked by
+adjusted <em>P</em>-value.</caption>
+<colgroup>
+<col width="12%">
+<col width="16%">
+<col width="15%">
+<col width="14%">
+<col width="11%">
+<col width="12%">
+<col width="16%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Gene</th>
+<th align="right">Normal Mean</th>
+<th align="right">Tumor Mean</th>
+<th align="right">Mean Diff</th>
+<th align="right">log2FC</th>
+<th align="right">p-value</th>
+<th align="left">adj p-value</th>
 </tr></thead>
 <tbody>
-<tr>
-<td style="text-align:left;">
-C1orf213
-</td>
-<td style="text-align:right;">
-0.7703
-</td>
-<td style="text-align:right;">
-0.1029
-</td>
-<td style="text-align:right;">
--0.6674
-</td>
-<td style="text-align:right;">
--2.9037
-</td>
-<td style="text-align:right;">
-3.97e-07
-</td>
-<td style="text-align:right;">
-8.46e-05
-</td>
+<tr class="odd">
+<td align="left">C1orf213</td>
+<td align="right">0.7703</td>
+<td align="right">0.1029</td>
+<td align="right">-0.6674</td>
+<td align="right">-2.9037</td>
+<td align="right">3.97e-07</td>
+<td align="left">8.46e-05</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-HAPLN3
-</td>
-<td style="text-align:right;">
-0.7235
-</td>
-<td style="text-align:right;">
-0.3836
-</td>
-<td style="text-align:right;">
--0.3398
-</td>
-<td style="text-align:right;">
--0.9152
-</td>
-<td style="text-align:right;">
-5.17e-06
-</td>
-<td style="text-align:right;">
-5.50e-04
-</td>
+<tr class="even">
+<td align="left">HAPLN3</td>
+<td align="right">0.7235</td>
+<td align="right">0.3836</td>
+<td align="right">-0.3398</td>
+<td align="right">-0.9152</td>
+<td align="right">5.17e-06</td>
+<td align="left">5.50e-04</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-COL1A2
-</td>
-<td style="text-align:right;">
-0.0000
-</td>
-<td style="text-align:right;">
-0.1251
-</td>
-<td style="text-align:right;">
-0.1251
-</td>
-<td style="text-align:right;">
-Inf
-</td>
-<td style="text-align:right;">
-6.68e-05
-</td>
-<td style="text-align:right;">
-4.74e-03
-</td>
+<tr class="odd">
+<td align="left">COL1A2</td>
+<td align="right">0.0000</td>
+<td align="right">0.1251</td>
+<td align="right">0.1251</td>
+<td align="right">Inf</td>
+<td align="right">6.68e-05</td>
+<td align="left">4.74e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-F10
-</td>
-<td style="text-align:right;">
-0.1045
-</td>
-<td style="text-align:right;">
-0.3741
-</td>
-<td style="text-align:right;">
-0.2696
-</td>
-<td style="text-align:right;">
-1.8400
-</td>
-<td style="text-align:right;">
-1.10e-04
-</td>
-<td style="text-align:right;">
-5.83e-03
-</td>
+<tr class="even">
+<td align="left">F10</td>
+<td align="right">0.1045</td>
+<td align="right">0.3741</td>
+<td align="right">0.2696</td>
+<td align="right">1.8400</td>
+<td align="right">1.10e-04</td>
+<td align="left">5.83e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-HNRNPR
-</td>
-<td style="text-align:right;">
-0.6144
-</td>
-<td style="text-align:right;">
-0.7010
-</td>
-<td style="text-align:right;">
-0.0866
-</td>
-<td style="text-align:right;">
-0.1903
-</td>
-<td style="text-align:right;">
-1.79e-04
-</td>
-<td style="text-align:right;">
-7.28e-03
-</td>
+<tr class="odd">
+<td align="left">HNRNPR</td>
+<td align="right">0.6144</td>
+<td align="right">0.7010</td>
+<td align="right">0.0866</td>
+<td align="right">0.1903</td>
+<td align="right">1.79e-04</td>
+<td align="left">7.28e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-DUSP14
-</td>
-<td style="text-align:right;">
-0.2529
-</td>
-<td style="text-align:right;">
-0.0926
-</td>
-<td style="text-align:right;">
--0.1603
-</td>
-<td style="text-align:right;">
--1.4499
-</td>
-<td style="text-align:right;">
-2.11e-04
-</td>
-<td style="text-align:right;">
-7.28e-03
-</td>
+<tr class="even">
+<td align="left">DUSP14</td>
+<td align="right">0.2529</td>
+<td align="right">0.0926</td>
+<td align="right">-0.1603</td>
+<td align="right">-1.4499</td>
+<td align="right">2.11e-04</td>
+<td align="left">7.28e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-MBD2
-</td>
-<td style="text-align:right;">
-0.0009
-</td>
-<td style="text-align:right;">
-0.0213
-</td>
-<td style="text-align:right;">
-0.0204
-</td>
-<td style="text-align:right;">
-4.5028
-</td>
-<td style="text-align:right;">
-2.39e-04
-</td>
-<td style="text-align:right;">
-7.28e-03
-</td>
+<tr class="odd">
+<td align="left">MBD2</td>
+<td align="right">0.0009</td>
+<td align="right">0.0213</td>
+<td align="right">0.0204</td>
+<td align="right">4.5028</td>
+<td align="right">2.39e-04</td>
+<td align="left">7.28e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-CXorf40A
-</td>
-<td style="text-align:right;">
-0.8387
-</td>
-<td style="text-align:right;">
-0.8931
-</td>
-<td style="text-align:right;">
-0.0544
-</td>
-<td style="text-align:right;">
-0.0907
-</td>
-<td style="text-align:right;">
-2.75e-04
-</td>
-<td style="text-align:right;">
-7.31e-03
-</td>
+<tr class="even">
+<td align="left">CXorf40A</td>
+<td align="right">0.8387</td>
+<td align="right">0.8931</td>
+<td align="right">0.0544</td>
+<td align="right">0.0907</td>
+<td align="right">2.75e-04</td>
+<td align="left">7.31e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-OSR1
-</td>
-<td style="text-align:right;">
-0.0249
-</td>
-<td style="text-align:right;">
-0.2312
-</td>
-<td style="text-align:right;">
-0.2063
-</td>
-<td style="text-align:right;">
-3.2168
-</td>
-<td style="text-align:right;">
-4.10e-04
-</td>
-<td style="text-align:right;">
-8.74e-03
-</td>
+<tr class="odd">
+<td align="left">OSR1</td>
+<td align="right">0.0249</td>
+<td align="right">0.2312</td>
+<td align="right">0.2063</td>
+<td align="right">3.2168</td>
+<td align="right">4.10e-04</td>
+<td align="left">8.74e-03</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-GFPT1
-</td>
-<td style="text-align:right;">
-0.0103
-</td>
-<td style="text-align:right;">
-0.0009
-</td>
-<td style="text-align:right;">
--0.0094
-</td>
-<td style="text-align:right;">
--3.5271
-</td>
-<td style="text-align:right;">
-3.80e-04
-</td>
-<td style="text-align:right;">
-8.74e-03
-</td>
+<tr class="even">
+<td align="left">GFPT1</td>
+<td align="right">0.0103</td>
+<td align="right">0.0009</td>
+<td align="right">-0.0094</td>
+<td align="right">-3.5271</td>
+<td align="right">3.80e-04</td>
+<td align="left">8.74e-03</td>
 </tr>
 </tbody>
 </table>
-</div>
 <hr>
 </div>
 </div>

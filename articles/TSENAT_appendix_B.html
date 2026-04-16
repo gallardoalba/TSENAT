@@ -56,7 +56,7 @@
 
 
 
-<script src="TSENAT_appendix_B_files/kePrint-0.0.1/kePrint.js"></script><link href="TSENAT_appendix_B_files/lightable-0.0.1/lightable.css" rel="stylesheet">
+
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
@@ -73,6 +73,31 @@ Gallardo <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a
 
     
     
+<style type="text/css">
+/* Fix table rendering in scroll containers */
+div[style*="overflow-x: scroll"] {
+  display: block !important;
+  width: 100% !important;
+}
+
+div[style*="overflow-x: scroll"] > table,
+div[style*="overflow-x: scroll"] .table {
+  width: 100% !important;
+  min-width: 100% !important;
+  display: table !important;
+}
+
+div[style*="overflow-x: scroll"] thead th {
+  position: sticky;
+  top: 0;
+  background-color: #FFFFFF;
+  z-index: 10;
+}
+
+.table {
+  width: 100%;
+}
+</style>
 <div class="section level2">
 <h2 id="purpose-and-rationale">Purpose and Rationale<a class="anchor" aria-label="anchor" href="#purpose-and-rationale"></a>
 </h2>
@@ -370,269 +395,126 @@ across multiple dimensions.</p>
 <span><span class="co"># Get assumptions</span></span>
 <span><span class="va">assumptions_text</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"assumptions"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">assumptions_text</span><span class="op">)</span></span></code></pre></div>
-<div style="border: 1px solid #ddd; padding: 0px; width: 100%; overflow-x: auto; overflow-y: auto;overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
-<table class="table table table-striped table-hover table-condensed table-responsive" style="margin-left: auto; margin-right: auto;">
-<caption>
-Assumption Checks for Scheirer-Ray-Hare Test
-</caption>
-<thead><tr>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-Characteristic
-</th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-Test
-</th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-Result
-</th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-Interpretation
-</th>
+<table class="table">
+<caption>Assumption Checks for Scheirer-Ray-Hare Test</caption>
+<colgroup>
+<col width="17%">
+<col width="17%">
+<col width="44%">
+<col width="20%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Characteristic</th>
+<th align="left">Test</th>
+<th align="left">Result</th>
+<th align="left">Interpretation</th>
 </tr></thead>
 <tbody>
-<tr>
-<td style="text-align:left;">
-Exchangeability
-</td>
-<td style="text-align:left;">
-Permutation test
-</td>
-<td style="text-align:left;">
-p=0e+00
-</td>
-<td style="text-align:left;">
-Ordering detected
-</td>
+<tr class="odd">
+<td align="left">Exchangeability</td>
+<td align="left">Permutation test</td>
+<td align="left">p=0e+00</td>
+<td align="left">Ordering detected</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Monotonicity
-</td>
-<td style="text-align:left;">
-Spearman rho
-</td>
-<td style="text-align:left;">
-r=0.259
-</td>
-<td style="text-align:left;">
-Heterogeneous
-</td>
+<tr class="even">
+<td align="left">Monotonicity</td>
+<td align="left">Spearman rho</td>
+<td align="left">r=0.259</td>
+<td align="left">Heterogeneous</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Consistency
-</td>
-<td style="text-align:left;">
-Kendall’s W / ICC
-</td>
-<td style="text-align:left;">
-W=0e+00, ICC=0.108
-</td>
-<td style="text-align:left;">
-Low
-</td>
+<tr class="odd">
+<td align="left">Consistency</td>
+<td align="left">Kendall’s W / ICC</td>
+<td align="left">W=0e+00, ICC=0.108</td>
+<td align="left">Low</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Concurvity
-</td>
-<td style="text-align:left;">
-Smooth collinearity
-</td>
-<td style="text-align:left;">
-0.000
-</td>
-<td style="text-align:left;">
-Low
-</td>
+<tr class="even">
+<td align="left">Concurvity</td>
+<td align="left">Smooth collinearity</td>
+<td align="left">0.000</td>
+<td align="left">Low</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-EDF Ratio
-</td>
-<td style="text-align:left;">
-Smoothing
-</td>
-<td style="text-align:left;">
-0.024
-</td>
-<td style="text-align:left;">
-Over-smoothed
-</td>
+<tr class="odd">
+<td align="left">EDF Ratio</td>
+<td align="left">Smoothing</td>
+<td align="left">0.024</td>
+<td align="left">Over-smoothed</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Non-linearity
-</td>
-<td style="text-align:left;">
-Delta R^2 vs LM
-</td>
-<td style="text-align:left;">
-0.0%
-</td>
-<td style="text-align:left;">
-Use linear
-</td>
+<tr class="even">
+<td align="left">Non-linearity</td>
+<td align="left">Delta R^2 vs LM</td>
+<td align="left">0.0%</td>
+<td align="left">Use linear</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Basis Dimension
-</td>
-<td style="text-align:left;">
-Spline basis
-</td>
-<td style="text-align:left;">
-k=10
-</td>
-<td style="text-align:left;">
-Adequate
-</td>
+<tr class="odd">
+<td align="left">Basis Dimension</td>
+<td align="left">Spline basis</td>
+<td align="left">k=10</td>
+<td align="left">Adequate</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Correlation fit
-</td>
-<td style="text-align:left;">
-Correlation fit
-</td>
-<td style="text-align:left;">
-Observed autocorr=-0.007; independence suitable
-</td>
-<td style="text-align:left;">
-Good fit
-</td>
+<tr class="even">
+<td align="left">Correlation fit</td>
+<td align="left">Correlation fit</td>
+<td align="left">Observed autocorr=-0.007; independence suitable</td>
+<td align="left">Good fit</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Cluster variation
-</td>
-<td style="text-align:left;">
-Cluster variation
-</td>
-<td style="text-align:left;">
-Mean size=77.0 - homogeneous
-</td>
-<td style="text-align:left;">
-Homogeneous
-</td>
+<tr class="odd">
+<td align="left">Cluster variation</td>
+<td align="left">Cluster variation</td>
+<td align="left">Mean size=77.0 - homogeneous</td>
+<td align="left">Homogeneous</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Independence
-</td>
-<td style="text-align:left;">
-Independence
-</td>
-<td style="text-align:left;">
-Mean within-cluster residual correlation=-0.018
-</td>
-<td style="text-align:left;">
-Independent
-</td>
+<tr class="even">
+<td align="left">Independence</td>
+<td align="left">Independence</td>
+<td align="left">Mean within-cluster residual correlation=-0.018</td>
+<td align="left">Independent</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Scale parameter
-</td>
-<td style="text-align:left;">
-Scale parameter
-</td>
-<td style="text-align:left;">
-phi=0.100
-</td>
-<td style="text-align:left;">
-Under-dispersed (rare)
-</td>
+<tr class="odd">
+<td align="left">Scale parameter</td>
+<td align="left">Scale parameter</td>
+<td align="left">phi=0.100</td>
+<td align="left">Under-dispersed (rare)</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Variance components
-</td>
-<td style="text-align:left;">
-Variance components
-</td>
-<td style="text-align:left;">
-ICC=0.119; B=0.006, W=0.048
-</td>
-<td style="text-align:left;">
-Lmm justified
-</td>
+<tr class="even">
+<td align="left">Variance components</td>
+<td align="left">Variance components</td>
+<td align="left">ICC=0.119; B=0.006, W=0.048</td>
+<td align="left">Lmm justified</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Normality
-</td>
-<td style="text-align:left;">
-Normality
-</td>
-<td style="text-align:left;">
-p=3.57e-27
-</td>
-<td style="text-align:left;">
-Non-normal
-</td>
+<tr class="odd">
+<td align="left">Normality</td>
+<td align="left">Normality</td>
+<td align="left">p=3.57e-27</td>
+<td align="left">Non-normal</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Homogeneity
-</td>
-<td style="text-align:left;">
-Homogeneity
-</td>
-<td style="text-align:left;">
-p=3.14e-128; CV=0.439
-</td>
-<td style="text-align:left;">
-Heterogeneous
-</td>
+<tr class="even">
+<td align="left">Homogeneity</td>
+<td align="left">Homogeneity</td>
+<td align="left">p=3.14e-128; CV=0.439</td>
+<td align="left">Heterogeneous</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Influence
-</td>
-<td style="text-align:left;">
-Influence
-</td>
-<td style="text-align:left;">
-Outliers=778, Extreme=0, Influential=26.6%
-</td>
-<td style="text-align:left;">
-Many outliers
-</td>
+<tr class="odd">
+<td align="left">Influence</td>
+<td align="left">Influence</td>
+<td align="left">Outliers=778, Extreme=0, Influential=26.6%</td>
+<td align="left">Many outliers</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Variance adequacy
-</td>
-<td style="text-align:left;">
-Variance adequacy
-</td>
-<td style="text-align:left;">
-Components for 90%=10, 95%=13, 99%=17. Poor dimens
-</td>
-<td style="text-align:left;">
-Poor reduction
-</td>
+<tr class="even">
+<td align="left">Variance adequacy</td>
+<td align="left">Variance adequacy</td>
+<td align="left">Components for 90%=10, 95%=13, 99%=17. Poor dimens</td>
+<td align="left">Poor reduction</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Bootstrap stability
-</td>
-<td style="text-align:left;">
-Bootstrap stability
-</td>
-<td style="text-align:left;">
-Bootstrap SE=0.200; Stable CIs=100%. Moderate boot
-</td>
-<td style="text-align:left;">
-Moderate stability
-</td>
+<tr class="odd">
+<td align="left">Bootstrap stability</td>
+<td align="left">Bootstrap stability</td>
+<td align="left">Bootstrap SE=0.200; Stable CIs=100%. Moderate boot</td>
+<td align="left">Moderate stability</td>
 </tr>
 </tbody>
 </table>
-</div>
-<!-- Diagnostic note for GAM metrics -->
-<p><strong>Interpretation of Results:</strong> The exchangeability test,
+<!-- Diagnostic note for GAM metrics --><p><strong>Interpretation of Results:</strong> The exchangeability test,
 the unique assumption of the SRH test, detects strong serial correlation
 (p ≈ 0), indicating that consecutive samples are more correlated than
 expected by chance. This violation of exchangeability is <strong>not
@@ -668,373 +550,163 @@ samples.</p>
 <span><span class="co"># Extract top significant genes for display</span></span>
 <span><span class="va">srh_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"rank_test"</span>, rankBy <span class="op">=</span> <span class="st">"pvalue"</span>, n <span class="op">=</span> <span class="fl">20</span>, filterFDR <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">srh_results</span>, n <span class="op">=</span> <span class="fl">10</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<div style="border: 1px solid #ddd; padding: 0px; width: 100%; overflow-x: auto; overflow-y: auto;overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
-<table class="table table table-striped table-hover table-responsive" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
-<caption>
-Supplementary Table 3 | Scheirer-Ray-Hare Test Results Summary.
-Rank-based nonparametric test of <em>q</em> × condition interactions.
-</caption>
-<thead><tr>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-Metric
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Value
-</th>
+<table class="table">
+<caption>Supplementary Table 3 | Scheirer-Ray-Hare Test Results Summary.
+Rank-based nonparametric test of <em>q</em> × condition
+interactions.</caption>
+<thead><tr class="header">
+<th align="left">Metric</th>
+<th align="right">Value</th>
 </tr></thead>
 <tbody>
-<tr>
-<td style="text-align:left;">
-Genes tested
-</td>
-<td style="text-align:right;">
-77
-</td>
+<tr class="odd">
+<td align="left">Genes tested</td>
+<td align="right">77</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Significant (p &lt; 0.05)
-</td>
-<td style="text-align:right;">
-3
-</td>
+<tr class="even">
+<td align="left">Significant (p &lt; 0.05)</td>
+<td align="right">3</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Significant (adj_p &lt; 0.05, FWER-controlled)
-</td>
-<td style="text-align:right;">
-2
-</td>
+<tr class="odd">
+<td align="left">Significant (adj_p &lt; 0.05, FWER-controlled)</td>
+<td align="right">2</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-NAs
-</td>
-<td style="text-align:right;">
-0
-</td>
+<tr class="even">
+<td align="left">NAs</td>
+<td align="right">0</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Mean effect size
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>η</mi><mn>2</mn></msup><annotation encoding="application/x-tex">\eta^2</annotation></semantics></math>)
-</td>
-<td style="text-align:right;">
-28.6%
-</td>
+<tr class="odd">
+<td align="left">Mean effect size
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>η</mi><mn>2</mn></msup><annotation encoding="application/x-tex">\eta^2</annotation></semantics></math>)</td>
+<td align="right">28.6%</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Median effect size
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>η</mi><mn>2</mn></msup><annotation encoding="application/x-tex">\eta^2</annotation></semantics></math>)
-</td>
-<td style="text-align:right;">
-26.2%
-</td>
+<tr class="even">
+<td align="left">Median effect size
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>η</mi><mn>2</mn></msup><annotation encoding="application/x-tex">\eta^2</annotation></semantics></math>)</td>
+<td align="right">26.2%</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Strong effect genes
+<tr class="odd">
+<td align="left">Strong effect genes
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>η</mi><mn>2</mn></msup><annotation encoding="application/x-tex">\eta^2</annotation></semantics></math>
-&gt; 10%)
-</td>
-<td style="text-align:right;">
-1
-</td>
+&gt; 10%)</td>
+<td align="right">1</td>
 </tr>
 </tbody>
-<tfoot>
-<tr>
-<td style="padding: 0; " colspan="100%">
-<span style="font-style: italic;">Note: </span>
-</td>
-</tr>
-<tr>
-<td style="padding: 0; " colspan="100%">
-<sup></sup> Scheirer-Ray-Hare test: nonparametric rank-based ANOVA for
-paired designs.
-</td>
-</tr>
-</tfoot>
 </table>
-</div>
-<div style="border: 1px solid #ddd; padding: 0px; width: 100%; overflow-x: auto; overflow-y: auto;overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
-<table class="table table table-striped table-hover table-responsive" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
-<caption>
-Supplementary Table 4 | Top genes identified by Scheirer-Ray-Hare
-rank-based test.
-</caption>
-<thead><tr>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-</th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-Gene
-</th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-P-value
-</th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-Adj. P-value
-</th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-F-Statistic
-</th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-Effect Size (η²)
-</th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-Interaction Class
-</th>
+<table style="width:100%;" class="table">
+<caption>Supplementary Table 4 | Top genes identified by
+Scheirer-Ray-Hare rank-based test.</caption>
+<colgroup>
+<col width="3%">
+<col width="11%">
+<col width="10%">
+<col width="14%">
+<col width="13%">
+<col width="19%">
+<col width="26%">
+</colgroup>
+<thead><tr class="header">
+<th align="left"></th>
+<th align="left">Gene</th>
+<th align="left">P-value</th>
+<th align="left">Adj. P-value</th>
+<th align="left">F-Statistic</th>
+<th align="left">Effect Size (η²)</th>
+<th align="left">Interaction Class</th>
 </tr></thead>
 <tbody>
-<tr>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:left;">
-CXCL12
-</td>
-<td style="text-align:left;">
-9.4e-63
-</td>
-<td style="text-align:left;">
-7.2e-61
-</td>
-<td style="text-align:left;">
-14.3098
-</td>
-<td style="text-align:left;">
-0.2996
-</td>
-<td style="text-align:left;">
-Strongly q-dependent
-</td>
+<tr class="odd">
+<td align="left">1</td>
+<td align="left">CXCL12</td>
+<td align="left">9.4e-63</td>
+<td align="left">7.2e-61</td>
+<td align="left">14.3098</td>
+<td align="left">0.2996</td>
+<td align="left">Strongly q-dependent</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-2
-</td>
-<td style="text-align:left;">
-LINC03040
-</td>
-<td style="text-align:left;">
-9.6e-30
-</td>
-<td style="text-align:left;">
-7.3e-28
-</td>
-<td style="text-align:left;">
-7.0503
-</td>
-<td style="text-align:left;">
-0.0728
-</td>
-<td style="text-align:left;">
-Moderately q-dependent
-</td>
+<tr class="even">
+<td align="left">2</td>
+<td align="left">LINC03040</td>
+<td align="left">9.6e-30</td>
+<td align="left">7.3e-28</td>
+<td align="left">7.0503</td>
+<td align="left">0.0728</td>
+<td align="left">Moderately q-dependent</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-72
-</td>
-<td style="text-align:left;">
-ING3
-</td>
-<td style="text-align:left;">
-0.017000
-</td>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:left;">
-1.5613
-</td>
-<td style="text-align:left;">
-0.0876
-</td>
-<td style="text-align:left;">
-Moderately q-dependent
-</td>
+<tr class="odd">
+<td align="left">72</td>
+<td align="left">ING3</td>
+<td align="left">0.017000</td>
+<td align="left">1</td>
+<td align="left">1.5613</td>
+<td align="left">0.0876</td>
+<td align="left">Moderately q-dependent</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-23
-</td>
-<td style="text-align:left;">
-SPICE1
-</td>
-<td style="text-align:left;">
-0.062881
-</td>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:left;">
-1.3820
-</td>
-<td style="text-align:left;">
-0.3557
-</td>
-<td style="text-align:left;">
-Robust across q
-</td>
+<tr class="even">
+<td align="left">23</td>
+<td align="left">SPICE1</td>
+<td align="left">0.062881</td>
+<td align="left">1</td>
+<td align="left">1.3820</td>
+<td align="left">0.3557</td>
+<td align="left">Robust across q</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-48
-</td>
-<td style="text-align:left;">
-FAM114A2
-</td>
-<td style="text-align:left;">
-0.079169
-</td>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:left;">
-1.3472
-</td>
-<td style="text-align:left;">
-0.2218
-</td>
-<td style="text-align:left;">
-Robust across q
-</td>
+<tr class="odd">
+<td align="left">48</td>
+<td align="left">FAM114A2</td>
+<td align="left">0.079169</td>
+<td align="left">1</td>
+<td align="left">1.3472</td>
+<td align="left">0.2218</td>
+<td align="left">Robust across q</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-24
-</td>
-<td style="text-align:left;">
-THY1
-</td>
-<td style="text-align:left;">
-0.300758
-</td>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:left;">
-1.1095
-</td>
-<td style="text-align:left;">
-0.3530
-</td>
-<td style="text-align:left;">
-Robust across q
-</td>
+<tr class="even">
+<td align="left">24</td>
+<td align="left">THY1</td>
+<td align="left">0.300758</td>
+<td align="left">1</td>
+<td align="left">1.1095</td>
+<td align="left">0.3530</td>
+<td align="left">Robust across q</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-34
-</td>
-<td style="text-align:left;">
-METTL26
-</td>
-<td style="text-align:left;">
-0.353148
-</td>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:left;">
-1.0736
-</td>
-<td style="text-align:left;">
-0.3005
-</td>
-<td style="text-align:left;">
-Robust across q
-</td>
+<tr class="odd">
+<td align="left">34</td>
+<td align="left">METTL26</td>
+<td align="left">0.353148</td>
+<td align="left">1</td>
+<td align="left">1.0736</td>
+<td align="left">0.3005</td>
+<td align="left">Robust across q</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-45
-</td>
-<td style="text-align:left;">
-RAP1GDS1
-</td>
-<td style="text-align:left;">
-0.385474
-</td>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:left;">
-1.0529
-</td>
-<td style="text-align:left;">
-0.2275
-</td>
-<td style="text-align:left;">
-Robust across q
-</td>
+<tr class="even">
+<td align="left">45</td>
+<td align="left">RAP1GDS1</td>
+<td align="left">0.385474</td>
+<td align="left">1</td>
+<td align="left">1.0529</td>
+<td align="left">0.2275</td>
+<td align="left">Robust across q</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-55
-</td>
-<td style="text-align:left;">
-GSKIP
-</td>
-<td style="text-align:left;">
-0.535638
-</td>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:left;">
-0.9642
-</td>
-<td style="text-align:left;">
-0.1818
-</td>
-<td style="text-align:left;">
-Robust across q
-</td>
+<tr class="odd">
+<td align="left">55</td>
+<td align="left">GSKIP</td>
+<td align="left">0.535638</td>
+<td align="left">1</td>
+<td align="left">0.9642</td>
+<td align="left">0.1818</td>
+<td align="left">Robust across q</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-35
-</td>
-<td style="text-align:left;">
-MEF2A
-</td>
-<td style="text-align:left;">
-0.591729
-</td>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:left;">
-0.9324
-</td>
-<td style="text-align:left;">
-0.3000
-</td>
-<td style="text-align:left;">
-Robust across q
-</td>
+<tr class="even">
+<td align="left">35</td>
+<td align="left">MEF2A</td>
+<td align="left">0.591729</td>
+<td align="left">1</td>
+<td align="left">0.9324</td>
+<td align="left">0.3000</td>
+<td align="left">Robust across q</td>
 </tr>
 </tbody>
-<tfoot>
-<tr>
-<td style="padding: 0; " colspan="100%">
-<span style="font-style: italic;">Note: </span>
-</td>
-</tr>
-<tr>
-<td style="padding: 0; " colspan="100%">
-<sup></sup> Effect size η² quantifies strength of <em>q</em> × condition
-interaction; top 10 genes ranked by significance. P-values &lt; 0.0001
-shown in scientific notation for precision.
-</td>
-</tr>
-</tfoot>
 </table>
-</div>
 <p>Visualize q-curves for top genes:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot top genes from SRH test (using all genes, not just significant ones)</span></span>
@@ -1064,342 +736,149 @@ vignette (<a href="TSENAT.Rmd">TSENAT.Rmd</a>).</p>
 <span><span class="co"># Extract GAM/LM results for inspection using accessor function</span></span>
 <span><span class="va">gam_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis_lm</span>, type <span class="op">=</span> <span class="st">"lm"</span>, rankBy <span class="op">=</span> <span class="st">"pvalue"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">gam_results</span><span class="op">)</span></span></code></pre></div>
-<div style="border: 1px solid #ddd; padding: 0px; width: 100%; overflow-x: auto; overflow-y: auto;overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
-<table class="table table table-striped table-hover table-responsive" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
-<caption>
-GAM Results Summary
-</caption>
-<thead><tr>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-Metric
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Value
-</th>
+<table class="table">
+<caption>GAM Results Summary</caption>
+<thead><tr class="header">
+<th align="left">Metric</th>
+<th align="right">Value</th>
 </tr></thead>
 <tbody>
-<tr>
-<td style="text-align:left;">
-Genes tested
-</td>
-<td style="text-align:right;">
-76
-</td>
+<tr class="odd">
+<td align="left">Genes tested</td>
+<td align="right">76</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Significant (p &lt; 0.05)
-</td>
-<td style="text-align:right;">
-65
-</td>
+<tr class="even">
+<td align="left">Significant (p &lt; 0.05)</td>
+<td align="right">65</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Concordant (p &lt; 0.05 AND adj_p &lt; 0.05)
-</td>
-<td style="text-align:right;">
-59
-</td>
+<tr class="odd">
+<td align="left">Concordant (p &lt; 0.05 AND adj_p &lt; 0.05)</td>
+<td align="right">59</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-NAs
-</td>
-<td style="text-align:right;">
-0
-</td>
+<tr class="even">
+<td align="left">NAs</td>
+<td align="right">0</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Mean effect size
-</td>
-<td style="text-align:right;">
-20.1%
-</td>
+<tr class="odd">
+<td align="left">Mean effect size</td>
+<td align="right">20.1%</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Median effect size
-</td>
-<td style="text-align:right;">
-15.4%
-</td>
+<tr class="even">
+<td align="left">Median effect size</td>
+<td align="right">15.4%</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Strong effect genes (effect_size &gt; 30%)
-</td>
-<td style="text-align:right;">
-17
-</td>
+<tr class="odd">
+<td align="left">Strong effect genes (effect_size &gt; 30%)</td>
+<td align="right">17</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-Model convergence rate
-</td>
-<td style="text-align:right;">
-100.0%
-</td>
+<tr class="even">
+<td align="left">Model convergence rate</td>
+<td align="right">100.0%</td>
 </tr>
 </tbody>
-<tfoot>
-<tr>
-<td style="padding: 0; " colspan="100%">
-<span style="font-style: italic;">Note: </span>
-</td>
-</tr>
-<tr>
-<td style="padding: 0; " colspan="100%">
-<sup></sup> Aggregate statistics across all genes tested by GAM method;
-effect size &gt; 30% indicates strong biological signal.
-</td>
-</tr>
-</tfoot>
 </table>
-</div>
-<div style="border: 1px solid #ddd; padding: 0px; width: 100%; overflow-x: auto; overflow-y: auto;overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
-<table class="table table table-striped table-hover table-responsive" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
-<caption>
-Top 10 Genes by GAM p-value (with Effect Size and Test Statistics)
-</caption>
-<thead><tr>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-Gene
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-p (interaction)
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Adjusted p
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Effect size
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Test statistic
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-df
-</th>
+<table class="table">
+<caption>Top 10 Genes by GAM p-value (with Effect Size and Test
+Statistics)</caption>
+<colgroup>
+<col width="21%">
+<col width="21%">
+<col width="14%">
+<col width="16%">
+<col width="20%">
+<col width="5%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Gene</th>
+<th align="right">p (interaction)</th>
+<th align="right">Adjusted p</th>
+<th align="right">Effect size</th>
+<th align="right">Test statistic</th>
+<th align="right">df</th>
 </tr></thead>
 <tbody>
-<tr>
-<td style="text-align:left;">
-CXCL12
-</td>
-<td style="text-align:right;">
-3.93e-164
-</td>
-<td style="text-align:right;">
-2.99e-162
-</td>
-<td style="text-align:right;">
-81.3%
-</td>
-<td style="text-align:right;">
-752.51
-</td>
-<td style="text-align:right;">
-640
-</td>
+<tr class="odd">
+<td align="left">CXCL12</td>
+<td align="right">3.93e-164</td>
+<td align="right">2.99e-162</td>
+<td align="right">81.3%</td>
+<td align="right">752.51</td>
+<td align="right">640</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-THY1
-</td>
-<td style="text-align:right;">
-9.80e-97
-</td>
-<td style="text-align:right;">
-7.35e-95
-</td>
-<td style="text-align:right;">
-60.1%
-</td>
-<td style="text-align:right;">
-442.14
-</td>
-<td style="text-align:right;">
-640
-</td>
+<tr class="even">
+<td align="left">THY1</td>
+<td align="right">9.80e-97</td>
+<td align="right">7.35e-95</td>
+<td align="right">60.1%</td>
+<td align="right">442.14</td>
+<td align="right">640</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-ING3
-</td>
-<td style="text-align:right;">
-2.72e-77
-</td>
-<td style="text-align:right;">
-2.02e-75
-</td>
-<td style="text-align:right;">
-35.3%
-</td>
-<td style="text-align:right;">
-352.59
-</td>
-<td style="text-align:right;">
-640
-</td>
+<tr class="odd">
+<td align="left">ING3</td>
+<td align="right">2.72e-77</td>
+<td align="right">2.02e-75</td>
+<td align="right">35.3%</td>
+<td align="right">352.59</td>
+<td align="right">640</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-SNHG10
-</td>
-<td style="text-align:right;">
-9.81e-75
-</td>
-<td style="text-align:right;">
-7.16e-73
-</td>
-<td style="text-align:right;">
-5.1%
-</td>
-<td style="text-align:right;">
-340.82
-</td>
-<td style="text-align:right;">
-640
-</td>
+<tr class="even">
+<td align="left">SNHG10</td>
+<td align="right">9.81e-75</td>
+<td align="right">7.16e-73</td>
+<td align="right">5.1%</td>
+<td align="right">340.82</td>
+<td align="right">640</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-LINC03040
-</td>
-<td style="text-align:right;">
-1.87e-57
-</td>
-<td style="text-align:right;">
-1.35e-55
-</td>
-<td style="text-align:right;">
-73.8%
-</td>
-<td style="text-align:right;">
-261.24
-</td>
-<td style="text-align:right;">
-643
-</td>
+<tr class="odd">
+<td align="left">LINC03040</td>
+<td align="right">1.87e-57</td>
+<td align="right">1.35e-55</td>
+<td align="right">73.8%</td>
+<td align="right">261.24</td>
+<td align="right">643</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-HDAC2
-</td>
-<td style="text-align:right;">
-2.61e-51
-</td>
-<td style="text-align:right;">
-1.85e-49
-</td>
-<td style="text-align:right;">
-28.4%
-</td>
-<td style="text-align:right;">
-232.94
-</td>
-<td style="text-align:right;">
-640
-</td>
+<tr class="even">
+<td align="left">HDAC2</td>
+<td align="right">2.61e-51</td>
+<td align="right">1.85e-49</td>
+<td align="right">28.4%</td>
+<td align="right">232.94</td>
+<td align="right">640</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-ENSG00000274322
-</td>
-<td style="text-align:right;">
-4.75e-48
-</td>
-<td style="text-align:right;">
-3.33e-46
-</td>
-<td style="text-align:right;">
-4.7%
-</td>
-<td style="text-align:right;">
-217.93
-</td>
-<td style="text-align:right;">
-640
-</td>
+<tr class="odd">
+<td align="left">ENSG00000274322</td>
+<td align="right">4.75e-48</td>
+<td align="right">3.33e-46</td>
+<td align="right">4.7%</td>
+<td align="right">217.93</td>
+<td align="right">640</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-MEF2A
-</td>
-<td style="text-align:right;">
-1.37e-43
-</td>
-<td style="text-align:right;">
-9.46e-42
-</td>
-<td style="text-align:right;">
-19.3%
-</td>
-<td style="text-align:right;">
-197.39
-</td>
-<td style="text-align:right;">
-640
-</td>
+<tr class="even">
+<td align="left">MEF2A</td>
+<td align="right">1.37e-43</td>
+<td align="right">9.46e-42</td>
+<td align="right">19.3%</td>
+<td align="right">197.39</td>
+<td align="right">640</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-RAP1GDS1
-</td>
-<td style="text-align:right;">
-7.65e-38
-</td>
-<td style="text-align:right;">
-5.20e-36
-</td>
-<td style="text-align:right;">
-54.8%
-</td>
-<td style="text-align:right;">
-170.93
-</td>
-<td style="text-align:right;">
-640
-</td>
+<tr class="odd">
+<td align="left">RAP1GDS1</td>
+<td align="right">7.65e-38</td>
+<td align="right">5.20e-36</td>
+<td align="right">54.8%</td>
+<td align="right">170.93</td>
+<td align="right">640</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-PDE7A
-</td>
-<td style="text-align:right;">
-1.64e-37
-</td>
-<td style="text-align:right;">
-1.10e-35
-</td>
-<td style="text-align:right;">
-0.4%
-</td>
-<td style="text-align:right;">
-169.40
-</td>
-<td style="text-align:right;">
-640
-</td>
+<tr class="even">
+<td align="left">PDE7A</td>
+<td align="right">1.64e-37</td>
+<td align="right">1.10e-35</td>
+<td align="right">0.4%</td>
+<td align="right">169.40</td>
+<td align="right">640</td>
 </tr>
 </tbody>
-<tfoot>
-<tr>
-<td style="padding: 0; " colspan="100%">
-<span style="font-style: italic;">Note: </span>
-</td>
-</tr>
-<tr>
-<td style="padding: 0; " colspan="100%">
-<sup></sup> Top 10 genes ranked by significance; p-values &lt; 0.001
-shown in scientific notation; effect size range 0-100%.
-</td>
-</tr>
-</tfoot>
 </table>
-</div>
 <hr>
 </div>
 <div class="section level2">
@@ -1425,81 +904,34 @@ frameworks.</p>
 <span></span>
 <span><span class="co"># Extract concordance results with list format for component display</span></span>
 <span><span class="va">concordance_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"concordance"</span>, format <span class="op">=</span> <span class="st">"list"</span><span class="op">)</span></span></code></pre></div>
-<div style="border: 1px solid #ddd; padding: 0px; width: 100%; overflow-x: auto; overflow-y: auto;overflow-y: scroll; height:auto; overflow-x: scroll; width:100%; ">
-<table class="table table table-striped table-hover table-condensed table-responsive" style="margin-left: auto; margin-right: auto;border-bottom: 0;">
-<caption>
-Robust Entropic Order Index Interactions: High-Confidence Genes Detected
-by Both Methods (n=2, ranked by statistical significance)
-</caption>
-<thead><tr>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-Gene
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-LM adj p
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Rank test adj p
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-LM Effect
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Rank test rho^2
-</th>
+<table class="table">
+<caption>Robust Entropic Order Index Interactions: High-Confidence Genes
+Detected by Both Methods (n=2, ranked by statistical
+significance)</caption>
+<thead><tr class="header">
+<th align="left">Gene</th>
+<th align="right">LM adj p</th>
+<th align="right">Rank test adj p</th>
+<th align="right">LM Effect</th>
+<th align="right">Rank test rho^2</th>
 </tr></thead>
 <tbody>
-<tr>
-<td style="text-align:left;">
-CXCL12
-</td>
-<td style="text-align:right;">
-2.99e-162
-</td>
-<td style="text-align:right;">
-7.24e-61
-</td>
-<td style="text-align:right;">
-81.3%
-</td>
-<td style="text-align:right;">
-0.300
-</td>
+<tr class="odd">
+<td align="left">CXCL12</td>
+<td align="right">2.99e-162</td>
+<td align="right">7.24e-61</td>
+<td align="right">81.3%</td>
+<td align="right">0.300</td>
 </tr>
-<tr>
-<td style="text-align:left;">
-LINC03040
-</td>
-<td style="text-align:right;">
-1.35e-55
-</td>
-<td style="text-align:right;">
-7.287e-28
-</td>
-<td style="text-align:right;">
-73.8%
-</td>
-<td style="text-align:right;">
-0.073
-</td>
+<tr class="even">
+<td align="left">LINC03040</td>
+<td align="right">1.35e-55</td>
+<td align="right">7.287e-28</td>
+<td align="right">73.8%</td>
+<td align="right">0.073</td>
 </tr>
 </tbody>
-<tfoot>
-<tr>
-<td style="padding: 0; " colspan="100%">
-<span style="font-style: italic;">Note: </span>
-</td>
-</tr>
-<tr>
-<td style="padding: 0; " colspan="100%">
-<sup></sup> High-confidence genes: significant by both GAM and
-Scheirer-Ray-Hare rank test (adj p &lt; 0.05); η² = rank test effect
-size.
-</td>
-</tr>
-</tfoot>
 </table>
-</div>
 <div class="section level3">
 <h3 id="statistical-power-vs--robustness-understanding-method-discordance">Statistical Power vs. Robustness: Understanding Method
 Discordance<a class="anchor" aria-label="anchor" href="#statistical-power-vs--robustness-understanding-method-discordance"></a>

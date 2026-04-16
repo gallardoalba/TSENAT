@@ -257,8 +257,7 @@ above.
 Statistics.** Differential analysis comparing Normal (N=8) vs Tumor
 (N=8) samples using SplicingFactory’s
 [`calculate_difference()`](https://rdrr.io/pkg/SplicingFactory/man/calculate_difference.html)
-method. {.table .table .table-striped .table-hover .table-responsive
-style="margin-left: auto; margin-right: auto;"}
+method. {.table}
 
 **Interpretation**: Both methods similarly identify significantly
 different transcript diversity between Normal and Tumor samples. The
@@ -283,8 +282,7 @@ detection.
 
 **Supplementary Table 6a \| SplicingFactory method - Top 10 genes
 identified by Shannon entropy (naive mode).** Ranked by adjusted
-*P*-value. {.table .table .table-striped .table-hover .table-responsive
-style="margin-left: auto; margin-right: auto;"}
+*P*-value. {.table}
 
 ##### Top 10 Significant Genes - TSENAT (Tsallis q=1)
 
@@ -306,8 +304,7 @@ Tsallis entropy at q=1 (Shannon equivalence).** Results obtained using
 SplicingFactory’s
 [`calculate_difference()`](https://rdrr.io/pkg/SplicingFactory/man/calculate_difference.html)
 method applied to TSENAT Tsallis q=1 diversity values. Ranked by
-adjusted *P*-value. {.table .table .table-striped .table-hover
-.table-responsive style="margin-left: auto; margin-right: auto;"}
+adjusted *P*-value. {.table}
 
 ------------------------------------------------------------------------
 
@@ -323,8 +320,7 @@ Differential analysis using Simpson diversity metric (Gini-Simpson
 index) comparing Normal (N=8) vs Tumor (N=8) samples using
 SplicingFactory’s
 [`calculate_difference()`](https://rdrr.io/pkg/SplicingFactory/man/calculate_difference.html)
-method. {.table .table .table-striped .table-hover .table-responsive
-style="margin-left: auto; margin-right: auto;"}
+method. {.table}
 
 **Interpretation**: Simpson index results parallel Shannon entropy
 findings, with both methods identifying similar numbers of significantly
@@ -349,31 +345,29 @@ and statistical equivalence to SplicingFactory.
 
 **Supplementary Table 9a \| SplicingFactory method - Top 10 genes by
 Simpson index (Gini-Simpson, emphasizes dominant isoforms).** Ranked by
-adjusted *P*-value. {.table .table .table-striped .table-hover
-.table-responsive style="margin-left: auto; margin-right: auto;"}
+adjusted *P*-value. {.table}
 
 ##### Top 10 Significant Genes - TSENAT (Tsallis q=2)
 
 | Gene     | Normal Mean | Tumor Mean | Mean Diff |  log2FC |  p-value | adj p-value |
-|:---------|------------:|-----------:|----------:|--------:|---------:|------------:|
-| C1orf213 |      0.7703 |     0.1029 |   -0.6674 | -2.9037 | 3.97e-07 |    8.46e-05 |
-| HAPLN3   |      0.7235 |     0.3836 |   -0.3398 | -0.9152 | 5.17e-06 |    5.50e-04 |
-| COL1A2   |      0.0000 |     0.1251 |    0.1251 |     Inf | 6.68e-05 |    4.74e-03 |
-| F10      |      0.1045 |     0.3741 |    0.2696 |  1.8400 | 1.10e-04 |    5.83e-03 |
-| HNRNPR   |      0.6144 |     0.7010 |    0.0866 |  0.1903 | 1.79e-04 |    7.28e-03 |
-| DUSP14   |      0.2529 |     0.0926 |   -0.1603 | -1.4499 | 2.11e-04 |    7.28e-03 |
-| MBD2     |      0.0009 |     0.0213 |    0.0204 |  4.5028 | 2.39e-04 |    7.28e-03 |
-| CXorf40A |      0.8387 |     0.8931 |    0.0544 |  0.0907 | 2.75e-04 |    7.31e-03 |
-| OSR1     |      0.0249 |     0.2312 |    0.2063 |  3.2168 | 4.10e-04 |    8.74e-03 |
-| GFPT1    |      0.0103 |     0.0009 |   -0.0094 | -3.5271 | 3.80e-04 |    8.74e-03 |
+|:---------|------------:|-----------:|----------:|--------:|---------:|:------------|
+| C1orf213 |      0.7703 |     0.1029 |   -0.6674 | -2.9037 | 3.97e-07 | 8.46e-05    |
+| HAPLN3   |      0.7235 |     0.3836 |   -0.3398 | -0.9152 | 5.17e-06 | 5.50e-04    |
+| COL1A2   |      0.0000 |     0.1251 |    0.1251 |     Inf | 6.68e-05 | 4.74e-03    |
+| F10      |      0.1045 |     0.3741 |    0.2696 |  1.8400 | 1.10e-04 | 5.83e-03    |
+| HNRNPR   |      0.6144 |     0.7010 |    0.0866 |  0.1903 | 1.79e-04 | 7.28e-03    |
+| DUSP14   |      0.2529 |     0.0926 |   -0.1603 | -1.4499 | 2.11e-04 | 7.28e-03    |
+| MBD2     |      0.0009 |     0.0213 |    0.0204 |  4.5028 | 2.39e-04 | 7.28e-03    |
+| CXorf40A |      0.8387 |     0.8931 |    0.0544 |  0.0907 | 2.75e-04 | 7.31e-03    |
+| OSR1     |      0.0249 |     0.2312 |    0.2063 |  3.2168 | 4.10e-04 | 8.74e-03    |
+| GFPT1    |      0.0103 |     0.0009 |   -0.0094 | -3.5271 | 3.80e-04 | 8.74e-03    |
 
 **Supplementary Table 9b \| TSENAT method - Top 10 genes by Tsallis
 entropy at q=2 (Simpson equivalence).** Results obtained using
 SplicingFactory’s
 [`calculate_difference()`](https://rdrr.io/pkg/SplicingFactory/man/calculate_difference.html)
 method applied to TSENAT Tsallis q=2 diversity values. Ranked by
-adjusted *P*-value. {.table .table .table-striped .table-hover
-.table-responsive style="margin-left: auto; margin-right: auto;"}
+adjusted *P*-value. {.table}
 
 ------------------------------------------------------------------------
 

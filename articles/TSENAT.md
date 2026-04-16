@@ -472,8 +472,7 @@ print(diversity)
 | MCOLN1  | 1.00000 | 0.39297 | 0.21567 | 0.16305 | 0.15195 |
 
 **Table 1:** Tsallis entropy for first 4 genes across three diversity
-scales (sample: SRR14800481) {.table .table .table-striped .table-hover
-.table-responsive style="margin-left: auto; margin-right: auto;"}
+scales (sample: SRR14800481) {.table}
 
 With the q-spectrum we can produce a q-curve per sample and gene. These
 curves show how diversity emphasis shifts from rare to dominant isoforms
@@ -562,8 +561,7 @@ print(sample_qc)
 magnitude of resampling-based influence values. Columns: Sample
 identifier; condition; proportion affected; distance from centroid;
 outlier status. M-estimation identifies influential samples for
-sensitivity analysis. {.table .table .table-striped .table-hover
-.table-responsive style="margin-left: auto; margin-right: auto;"}
+sensitivity analysis. {.table}
 
 **Interpretation:** Samples with distance from centroid \>1.5 or
 proportion of affected genes \>0.85 are flagged for quality control
@@ -615,23 +613,21 @@ lm_results <- results(analysis, type = "lm", rankBy = "pvalue", n = 10)
 print(lm_results)
 ```
 
-| Gene | Gene Name | P-value | Adj. P-value | Effect Size | Test Statistic | Model Converged | Heteroscedasticity |
-|:---|:---|:---|:---|---:|---:|:---|:---|
-| CXCL12 | CXCL12 | 3.93e-164 | 2.99e-162 | 0.8127 | 752.5086 | TRUE | TRUE |
-| THY1 | THY1 | 9.80e-97 | 7.35e-95 | 0.6008 | 442.1369 | TRUE | TRUE |
-| ING3 | ING3 | 2.72e-77 | 2.02e-75 | 0.3533 | 352.5945 | TRUE | TRUE |
-| SNHG10 | SNHG10 | 9.81e-75 | 7.16e-73 | 0.0515 | 340.8200 | TRUE | TRUE |
-| LINC03040 | LINC03040 | 1.87e-57 | 1.35e-55 | 0.7380 | 261.2380 | TRUE | TRUE |
-| HDAC2 | HDAC2 | 2.61e-51 | 1.85e-49 | 0.2844 | 232.9431 | TRUE | TRUE |
+| Gene | P-value | Adj. P-value | Effect Size | Test Statistic | Model Converged | Heteroscedasticity |
+|:---|:---|:---|---:|---:|:---|:---|
+| CXCL12 | 3.93e-164 | 2.99e-162 | 0.8127 | 752.5086 | TRUE | TRUE |
+| THY1 | 9.80e-97 | 7.35e-95 | 0.6008 | 442.1369 | TRUE | TRUE |
+| ING3 | 2.72e-77 | 2.02e-75 | 0.3533 | 352.5945 | TRUE | TRUE |
+| SNHG10 | 9.81e-75 | 7.16e-73 | 0.0515 | 340.8200 | TRUE | TRUE |
+| LINC03040 | 1.87e-57 | 1.35e-55 | 0.7380 | 261.2380 | TRUE | TRUE |
+| HDAC2 | 2.61e-51 | 1.85e-49 | 0.2844 | 232.9431 | TRUE | TRUE |
 
 **Table 3 \| Leading genes with scale-dependent condition effects from
 generalized additive models.** We display the 6 genes with lowest
 adjusted p-values (*q* \< 0.05). Benjamini-Hochberg correction applied;
 columns show gene identifier, effect size, test statistic, convergence
 status, and heteroscedasticity detection. Methods: GAMs with *q* and
-condition as smooth predictors (Benjamini and Hochberg 1995). {.table
-.table .table-striped .table-hover .table-responsive
-style="margin-left: auto; margin-right: auto;"}
+condition as smooth predictors (Benjamini and Hochberg 1995). {.table}
 
 **Interpretation:** TRUE in the Heteroscedasticity column indicates that
 the model satisfies homogeneity-of-variance assumptions across the
@@ -735,21 +731,21 @@ whether different entropic indices emphasize different transcripts.
 tables_result <- results(analysis, type = "switching_tables")
 ```
 
-##### Gene: CXCL12 (ENSG00000107562.18)
+#### Gene: CXCL12 (ENSG00000107562.18)
 
-| Transcript         | q=0.00 | q=0.50 | q=1.00 | q=1.50 | q=2.00 | Direction Consistency |
-|:-------------------|-------:|-------:|-------:|-------:|-------:|:----------------------|
-| ENST00000343575.11 | -0.033 |  0.000 |  0.041 |  0.062 |  0.073 | Mixed directions      |
-| ENST00000374426.6  |  0.046 | -0.063 | -0.051 | -0.040 | -0.035 | Mixed directions      |
-| ENST00000374429.6  | -0.033 |  0.164 |  0.156 |  0.123 |  0.112 | Mixed directions      |
+| Transcript         | q=0.50 | q=1.00 | q=1.50 | Direction Consistency |
+|:-------------------|-------:|-------:|-------:|:----------------------|
+| ENST00000343575.11 |  0.000 |  0.041 |  0.062 | Mixed directions      |
+| ENST00000374426.6  | -0.063 | -0.051 | -0.040 | Mixed directions      |
+| ENST00000374429.6  |  0.164 |  0.156 |  0.123 | Mixed directions      |
 
-##### Gene: THY1 (ENSG00000154096.15)
+#### Gene: THY1 (ENSG00000154096.15)
 
-| Transcript        | q=0.00 | q=0.50 | q=1.00 | q=1.50 | q=2.00 | Direction Consistency |
-|:------------------|-------:|-------:|-------:|-------:|-------:|:----------------------|
-| ENST00000524970.5 | -0.198 | -0.046 |  0.002 |  0.014 |  0.020 | Mixed directions      |
-| ENST00000900758.1 |  0.196 |  0.045 |  0.031 |  0.019 |  0.016 | Consistent positive   |
-| ENST00000956364.1 |  0.118 | -0.075 | -0.092 | -0.102 | -0.108 | Mixed directions      |
+| Transcript        | q=0.50 | q=1.00 | q=1.50 | Direction Consistency |
+|:------------------|-------:|-------:|-------:|:----------------------|
+| ENST00000524970.5 | -0.046 |  0.002 |  0.014 | Mixed directions      |
+| ENST00000900758.1 |  0.045 |  0.031 |  0.019 | Consistent positive   |
+| ENST00000956364.1 | -0.075 | -0.092 | -0.102 | Mixed directions      |
 
 #### Delta Influence Across Diversity Scales
 
@@ -862,9 +858,7 @@ analysis <- calculate_divergence(analysis)
 **Table 3 \| Pairwise Tsallis divergence estimates.** Divergence
 (distance) between conditions from Tsallis entropy framework. Columns:
 gene identifier; pairwise comparison; divergence value; confidence
-interval (95%). Ranked by magnitude. {.table .table .table-striped
-.table-hover .table-responsive
-style="margin-left: auto; margin-right: auto;"}
+interval (95%). Ranked by magnitude. {.table}
 
 ``` r
 
@@ -895,9 +889,7 @@ print(top_genes_result)
 | LINC03040 |       0 |     0.1063 |   0.2850 |   0.3119 |   0.1098 | Rare driven |
 | HDAC2     |       0 |     0.1244 |   0.0651 |   0.0699 |   0.0201 | Rare driven |
 
-Top 6 Genes by Effect Size (Tsallis Divergence) {.table .table
-.table-striped .table-hover .table-responsive
-style="margin-left: auto; margin-right: auto;"}
+Top 6 Genes by Effect Size (Tsallis Divergence) {.table}
 
 #### Interpretation of Pattern Types:
 

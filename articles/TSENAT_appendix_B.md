@@ -289,9 +289,7 @@ print(assumptions_text)
 | Variance adequacy | Variance adequacy | Components for 90%=10, 95%=13, 99%=17. Poor dimens | Poor reduction |
 | Bootstrap stability | Bootstrap stability | Bootstrap SE=0.200; Stable CIs=100%. Moderate boot | Moderate stability |
 
-Assumption Checks for Scheirer-Ray-Hare Test {.table .table
-.table-striped .table-hover .table-condensed .table-responsive
-style="margin-left: auto; margin-right: auto;"}
+Assumption Checks for Scheirer-Ray-Hare Test {.table}
 
 **Interpretation of Results:** The exchangeability test, the unique
 assumption of the SRH test, detects strong serial correlation (p ≈ 0),
@@ -330,22 +328,18 @@ srh_results <- results(analysis, type = "rank_test", rankBy = "pvalue", n = 20, 
 print(head(srh_results, n = 10))
 ```
 
-| Metric | Value |
-|:---|---:|
-| Genes tested | 77 |
-| Significant (p \< 0.05) | 3 |
-| Significant (adj_p \< 0.05, FWER-controlled) | 2 |
-| NAs | 0 |
-| Mean effect size ($`\eta^2`$) | 28.6% |
-| Median effect size ($`\eta^2`$) | 26.2% |
-| Strong effect genes ($`\eta^2`$ \> 10%) | 1 |
-| Note: |  |
-|  Scheirer-Ray-Hare test: nonparametric rank-based ANOVA for paired designs. |  |
+| Metric                                       | Value |
+|:---------------------------------------------|------:|
+| Genes tested                                 |    77 |
+| Significant (p \< 0.05)                      |     3 |
+| Significant (adj_p \< 0.05, FWER-controlled) |     2 |
+| NAs                                          |     0 |
+| Mean effect size ($`\eta^2`$)                | 28.6% |
+| Median effect size ($`\eta^2`$)              | 26.2% |
+| Strong effect genes ($`\eta^2`$ \> 10%)      |     1 |
 
 Supplementary Table 3 \| Scheirer-Ray-Hare Test Results Summary.
-Rank-based nonparametric test of *q* × condition interactions. {.table
-.table .table-striped .table-hover .table-responsive
-style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
+Rank-based nonparametric test of *q* × condition interactions. {.table}
 
 |  | Gene | P-value | Adj. P-value | F-Statistic | Effect Size (η²) | Interaction Class |
 |:---|:---|:---|:---|:---|:---|:---|
@@ -359,13 +353,9 @@ style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
 | 45 | RAP1GDS1 | 0.385474 | 1 | 1.0529 | 0.2275 | Robust across q |
 | 55 | GSKIP | 0.535638 | 1 | 0.9642 | 0.1818 | Robust across q |
 | 35 | MEF2A | 0.591729 | 1 | 0.9324 | 0.3000 | Robust across q |
-| Note: |  |  |  |  |  |  |
-|  Effect size η² quantifies strength of *q* × condition interaction; top 10 genes ranked by significance. P-values \< 0.0001 shown in scientific notation for precision. |  |  |  |  |  |  |
 
 Supplementary Table 4 \| Top genes identified by Scheirer-Ray-Hare
-rank-based test. {.table .table .table-striped .table-hover
-.table-responsive
-style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
+rank-based test. {.table style="width:100%;"}
 
 Visualize q-curves for top genes:
 
@@ -404,41 +394,34 @@ gam_results <- results(analysis_lm, type = "lm", rankBy = "pvalue")
 print(gam_results)
 ```
 
-| Metric | Value |
-|:---|---:|
-| Genes tested | 76 |
-| Significant (p \< 0.05) | 65 |
-| Concordant (p \< 0.05 AND adj_p \< 0.05) | 59 |
-| NAs | 0 |
-| Mean effect size | 20.1% |
-| Median effect size | 15.4% |
-| Strong effect genes (effect_size \> 30%) | 17 |
-| Model convergence rate | 100.0% |
-| Note: |  |
-|  Aggregate statistics across all genes tested by GAM method; effect size \> 30% indicates strong biological signal. |  |
+| Metric                                   |  Value |
+|:-----------------------------------------|-------:|
+| Genes tested                             |     76 |
+| Significant (p \< 0.05)                  |     65 |
+| Concordant (p \< 0.05 AND adj_p \< 0.05) |     59 |
+| NAs                                      |      0 |
+| Mean effect size                         |  20.1% |
+| Median effect size                       |  15.4% |
+| Strong effect genes (effect_size \> 30%) |     17 |
+| Model convergence rate                   | 100.0% |
 
-GAM Results Summary {.table .table .table-striped .table-hover
-.table-responsive
-style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
+GAM Results Summary {.table}
 
-| Gene | p (interaction) | Adjusted p | Effect size | Test statistic | df |
-|:---|---:|---:|---:|---:|---:|
-| CXCL12 | 3.93e-164 | 2.99e-162 | 81.3% | 752.51 | 640 |
-| THY1 | 9.80e-97 | 7.35e-95 | 60.1% | 442.14 | 640 |
-| ING3 | 2.72e-77 | 2.02e-75 | 35.3% | 352.59 | 640 |
-| SNHG10 | 9.81e-75 | 7.16e-73 | 5.1% | 340.82 | 640 |
-| LINC03040 | 1.87e-57 | 1.35e-55 | 73.8% | 261.24 | 643 |
-| HDAC2 | 2.61e-51 | 1.85e-49 | 28.4% | 232.94 | 640 |
-| ENSG00000274322 | 4.75e-48 | 3.33e-46 | 4.7% | 217.93 | 640 |
-| MEF2A | 1.37e-43 | 9.46e-42 | 19.3% | 197.39 | 640 |
-| RAP1GDS1 | 7.65e-38 | 5.20e-36 | 54.8% | 170.93 | 640 |
-| PDE7A | 1.64e-37 | 1.10e-35 | 0.4% | 169.40 | 640 |
-| Note: |  |  |  |  |  |
-|  Top 10 genes ranked by significance; p-values \< 0.001 shown in scientific notation; effect size range 0-100%. |  |  |  |  |  |
+| Gene            | p (interaction) | Adjusted p | Effect size | Test statistic |  df |
+|:----------------|----------------:|-----------:|------------:|---------------:|----:|
+| CXCL12          |       3.93e-164 |  2.99e-162 |       81.3% |         752.51 | 640 |
+| THY1            |        9.80e-97 |   7.35e-95 |       60.1% |         442.14 | 640 |
+| ING3            |        2.72e-77 |   2.02e-75 |       35.3% |         352.59 | 640 |
+| SNHG10          |        9.81e-75 |   7.16e-73 |        5.1% |         340.82 | 640 |
+| LINC03040       |        1.87e-57 |   1.35e-55 |       73.8% |         261.24 | 643 |
+| HDAC2           |        2.61e-51 |   1.85e-49 |       28.4% |         232.94 | 640 |
+| ENSG00000274322 |        4.75e-48 |   3.33e-46 |        4.7% |         217.93 | 640 |
+| MEF2A           |        1.37e-43 |   9.46e-42 |       19.3% |         197.39 | 640 |
+| RAP1GDS1        |        7.65e-38 |   5.20e-36 |       54.8% |         170.93 | 640 |
+| PDE7A           |        1.64e-37 |   1.10e-35 |        0.4% |         169.40 | 640 |
 
 Top 10 Genes by GAM p-value (with Effect Size and Test Statistics)
-{.table .table .table-striped .table-hover .table-responsive
-style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
+{.table}
 
 ------------------------------------------------------------------------
 
@@ -467,17 +450,13 @@ analysis <- calculate_concordance(
 concordance_results <- results(analysis, type = "concordance", format = "list")
 ```
 
-| Gene | LM adj p | Rank test adj p | LM Effect | Rank test rho^2 |
-|:---|---:|---:|---:|---:|
-| CXCL12 | 2.99e-162 | 7.24e-61 | 81.3% | 0.300 |
-| LINC03040 | 1.35e-55 | 7.287e-28 | 73.8% | 0.073 |
-| Note: |  |  |  |  |
-|  High-confidence genes: significant by both GAM and Scheirer-Ray-Hare rank test (adj p \< 0.05); η² = rank test effect size. |  |  |  |  |
+| Gene      |  LM adj p | Rank test adj p | LM Effect | Rank test rho^2 |
+|:----------|----------:|----------------:|----------:|----------------:|
+| CXCL12    | 2.99e-162 |        7.24e-61 |     81.3% |           0.300 |
+| LINC03040 |  1.35e-55 |       7.287e-28 |     73.8% |           0.073 |
 
 Robust Entropic Order Index Interactions: High-Confidence Genes Detected
-by Both Methods (n=2, ranked by statistical significance) {.table .table
-.table-striped .table-hover .table-condensed .table-responsive
-style="margin-left: auto; margin-right: auto;border-bottom: 0;"}
+by Both Methods (n=2, ranked by statistical significance) {.table}
 
 ### Statistical Power vs. Robustness: Understanding Method Discordance
 
