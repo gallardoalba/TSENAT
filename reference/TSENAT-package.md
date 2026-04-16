@@ -55,7 +55,7 @@ TSENAT implements a complete analytical pipeline:
 
 ## Core Functions
 
-- `TSENAT`:
+- [`TSENAT`](https://gallardoalba.github.io/TSENAT/reference/TSENAT.md):
 
   Main orchestration function. Executes complete pipeline with
   configurable method backends and parallelization.
@@ -215,7 +215,8 @@ slots: `@diversity_results`, `@lm_results`, `@jackknife_results`,
 
 ## See also
 
-`TSENAT` for running the complete analysis pipeline.
+[`TSENAT`](https://gallardoalba.github.io/TSENAT/reference/TSENAT.md)
+for running the complete analysis pipeline.
 [`se`](https://gallardoalba.github.io/TSENAT/reference/TSENATAnalysis-se.md),
 `metadata<-`, and
 [`results`](https://gallardoalba.github.io/TSENAT/reference/results.md)

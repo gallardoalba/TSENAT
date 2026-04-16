@@ -92,7 +92,7 @@ Must have diversity results from <code><a href="calculate_diversity.html">calcul
 <dt id="arg-condition-col">condition_col<a class="anchor" aria-label="anchor" href="#arg-condition-col"></a></dt>
 <dd><p><code>character</code>.  Column name for
 sample grouping/condition (REQUIRED).
-Specifies the condition/treatment variable for testing q×condition
+Specifies the condition/treatment variable for testing q\(\times\) condition
 interactions.
   Example: 'sample_type', 'treatment', 'disease_status'.</p></dd>
 
@@ -201,7 +201,7 @@ Default:  FALSE.</p></dd>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>## Key Features</p>
-<p>- **Q×Condition Interaction**: Tests if entropy patterns across q-values differ
+<p>- **Q\(\times\) Condition Interaction**: Tests if entropy patterns across q-values differ
   by condition (main discovery goal)
 - **Multi-q Analysis**: Combines diversity results for multiple q-values into
   a single SummarizedExperiment for joint hypothesis testing
@@ -211,7 +211,7 @@ Default:  FALSE.</p></dd>
   (Westfall-Young) procedures
 - **AR(1) Correlation Handling**: Westfall-Young preserves q-value spatial
   correlations (important for ordered q measurements)
-- **Effect Sizes**: Eta-squared (\(\eta^2\)) for q×condition interactions</p>
+- **Effect Sizes**: Eta-squared (\(\eta^2\)) for q\(\times\) condition interactions</p>
 <p>## Statistical Hypotheses</p>
 <p>Tests the null hypothesis:
 - <strong>H<em>0</em></strong> = Gene entropy q-effect does NOT differ between conditions (q-independent)
@@ -221,7 +221,7 @@ varies across the q-value spectrum, revealing biological processes specific to
 that condition.</p>
 <p>## Biological Example</p>
 <p>Gene shows strong isoform switching (q-dependent entropy) in tumor cells but
-NOT in healthy cells → Identified as disease-relevant q-dependent gene.</p>
+NOT in healthy cells -&gt; Identified as disease-relevant q-dependent gene.</p>
 <p>For condition-specific q-dependent genes:
 - **Condition A**: Strong entropy variation across q (q-dependent isoform usage)
 - **Condition B**: Flat entropy profile across q (uniform isoform usage)
@@ -276,7 +276,7 @@ rank-based
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">analysis</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1.0</span>, <span class="fl">1.5</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Test Q×Condition interaction (condition_col is REQUIRED)</span></span></span>
+<span class="r-in"><span><span class="co"># Test Q\eqn{\times} Condition interaction (condition_col is REQUIRED)</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu">calculate_srh</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="va">analysis</span>,</span></span>
 <span class="r-in"><span>  condition_col <span class="op">=</span> <span class="st">'condition'</span>,</span></span>

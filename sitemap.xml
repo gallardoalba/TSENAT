@@ -1,8 +1,14 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://gallardoalba.github.io/TSENAT/404.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/CODE_OF_CONDUCT.html</loc></url>
+<url><loc>https://gallardoalba.github.io/TSENAT/DATABASE_UPDATE_BAJIC.html</loc></url>
+<url><loc>https://gallardoalba.github.io/TSENAT/FTS_CONTENT_VALIDATION_FINAL.html</loc></url>
+<url><loc>https://gallardoalba.github.io/TSENAT/I066_COMPLETENESS_REPORT.html</loc></url>
+<url><loc>https://gallardoalba.github.io/TSENAT/I066_FINAL_STATUS.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/LICENSE-text.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/PULL_REQUEST_TEMPLATE.html</loc></url>
+<url><loc>https://gallardoalba.github.io/TSENAT/VALIDATION_COMPLETENESS_ASSESSMENT.html</loc></url>
+<url><loc>https://gallardoalba.github.io/TSENAT/VALIDATION_REPORT_theory_content.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/articles/TSENAT.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/articles/TSENAT_appendix_A.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/articles/TSENAT_appendix_B.html</loc></url>
@@ -12,6 +18,7 @@
 <url><loc>https://gallardoalba.github.io/TSENAT/news/index.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/AllGenerics.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/TSENAT-package.html</loc></url>
+<url><loc>https://gallardoalba.github.io/TSENAT/reference/TSENAT.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/TSENATAnalysis-class.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/TSENATAnalysis-metadata.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/TSENATAnalysis-se.html</loc></url>
@@ -40,5 +47,7 @@
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/plot_lm.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/readcounts.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/results.html</loc></url>
+<url><loc>https://gallardoalba.github.io/TSENAT/theory_content.html</loc></url>
+<url><loc>https://gallardoalba.github.io/TSENAT/theory_simplification.html</loc></url>
 </urlset>
 

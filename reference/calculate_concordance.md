@@ -17,15 +17,6 @@ calculate_concordance(
   output_file = NULL,
   ...
 )
-
-# S4 method for class 'TSENATAnalysis'
-calculate_concordance(
-  analysis_lm,
-  analysis_rank = NULL,
-  verbose = FALSE,
-  output_file = NULL,
-  ...
-)
 ```
 
 ## Arguments

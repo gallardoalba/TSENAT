@@ -72,31 +72,6 @@ Gallardo <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a
 
     
     
-<style type="text/css">
-/* Fix table rendering in scroll containers */
-div[style*="overflow-x: scroll"] {
-  display: block !important;
-  width: 100% !important;
-}
-
-div[style*="overflow-x: scroll"] > table,
-div[style*="overflow-x: scroll"] .table {
-  width: 100% !important;
-  min-width: 100% !important;
-  display: table !important;
-}
-
-div[style*="overflow-x: scroll"] thead th {
-  position: sticky;
-  top: 0;
-  background-color: #FFFFFF;
-  z-index: 10;
-}
-
-.table {
-  width: 100%;
-}
-</style>
 <div class="section level2">
 <h2 id="purpose-and-rationale">Purpose and Rationale<a class="anchor" aria-label="anchor" href="#purpose-and-rationale"></a>
 </h2>
@@ -397,118 +372,99 @@ across multiple dimensions.</p>
 <table class="table">
 <caption>Assumption Checks for Scheirer-Ray-Hare Test</caption>
 <colgroup>
-<col width="17%">
-<col width="17%">
-<col width="44%">
-<col width="20%">
+<col width="33%">
+<col width="45%">
+<col width="21%">
 </colgroup>
 <thead><tr class="header">
-<th align="left">Characteristic</th>
 <th align="left">Test</th>
 <th align="left">Result</th>
 <th align="left">Interpretation</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left">Exchangeability</td>
-<td align="left">Permutation test</td>
+<td align="left">Exchangeability (Permutation test)</td>
 <td align="left">p=0e+00</td>
 <td align="left">Ordering detected</td>
 </tr>
 <tr class="even">
-<td align="left">Monotonicity</td>
-<td align="left">Spearman rho</td>
+<td align="left">Monotonicity (Spearman rho)</td>
 <td align="left">r=0.259</td>
 <td align="left">Heterogeneous</td>
 </tr>
 <tr class="odd">
-<td align="left">Consistency</td>
-<td align="left">Kendall’s W / ICC</td>
+<td align="left">Consistency (Kendall’s W / ICC)</td>
 <td align="left">W=0e+00, ICC=0.108</td>
 <td align="left">Low</td>
 </tr>
 <tr class="even">
-<td align="left">Concurvity</td>
-<td align="left">Smooth collinearity</td>
+<td align="left">Concurvity (Smooth collinearity)</td>
 <td align="left">0.000</td>
 <td align="left">Low</td>
 </tr>
 <tr class="odd">
-<td align="left">EDF Ratio</td>
-<td align="left">Smoothing</td>
+<td align="left">EDF Ratio (Smoothing)</td>
 <td align="left">0.024</td>
 <td align="left">Over-smoothed</td>
 </tr>
 <tr class="even">
-<td align="left">Non-linearity</td>
-<td align="left">Delta R^2 vs LM</td>
+<td align="left">Non-linearity (Delta R^2 vs LM)</td>
 <td align="left">0.0%</td>
 <td align="left">Use linear</td>
 </tr>
 <tr class="odd">
-<td align="left">Basis Dimension</td>
-<td align="left">Spline basis</td>
+<td align="left">Basis Dimension (Spline basis)</td>
 <td align="left">k=10</td>
 <td align="left">Adequate</td>
 </tr>
 <tr class="even">
-<td align="left">Correlation fit</td>
 <td align="left">Correlation fit</td>
 <td align="left">Observed autocorr=-0.007; independence suitable</td>
 <td align="left">Good fit</td>
 </tr>
 <tr class="odd">
 <td align="left">Cluster variation</td>
-<td align="left">Cluster variation</td>
-<td align="left">Mean size=77.0 - homogeneous</td>
+<td align="left">Mean size=77.0</td>
 <td align="left">Homogeneous</td>
 </tr>
 <tr class="even">
-<td align="left">Independence</td>
 <td align="left">Independence</td>
 <td align="left">Mean within-cluster residual correlation=-0.018</td>
 <td align="left">Independent</td>
 </tr>
 <tr class="odd">
 <td align="left">Scale parameter</td>
-<td align="left">Scale parameter</td>
 <td align="left">phi=0.100</td>
 <td align="left">Under-dispersed (rare)</td>
 </tr>
 <tr class="even">
-<td align="left">Variance components</td>
 <td align="left">Variance components</td>
 <td align="left">ICC=0.119; B=0.006, W=0.048</td>
 <td align="left">Lmm justified</td>
 </tr>
 <tr class="odd">
 <td align="left">Normality</td>
-<td align="left">Normality</td>
 <td align="left">p=3.57e-27</td>
 <td align="left">Non-normal</td>
 </tr>
 <tr class="even">
-<td align="left">Homogeneity</td>
 <td align="left">Homogeneity</td>
 <td align="left">p=3.14e-128; CV=0.439</td>
 <td align="left">Heterogeneous</td>
 </tr>
 <tr class="odd">
 <td align="left">Influence</td>
-<td align="left">Influence</td>
 <td align="left">Outliers=778, Extreme=0, Influential=26.6%</td>
 <td align="left">Many outliers</td>
 </tr>
 <tr class="even">
 <td align="left">Variance adequacy</td>
-<td align="left">Variance adequacy</td>
-<td align="left">Components for 90%=10, 95%=13, 99%=17. Poor dimens</td>
+<td align="left">Components for 90%=10, 95%=13, 99%=17</td>
 <td align="left">Poor reduction</td>
 </tr>
 <tr class="odd">
 <td align="left">Bootstrap stability</td>
-<td align="left">Bootstrap stability</td>
-<td align="left">Bootstrap SE=0.200; Stable CIs=100%. Moderate boot</td>
+<td align="left">Bootstrap SE=0.200; Stable CIs=100%</td>
 <td align="left">Moderate stability</td>
 </tr>
 </tbody>

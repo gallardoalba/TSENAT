@@ -116,75 +116,62 @@ print(p_qcurve)
 
 ## What is Entropy and Tsallis Entropy?
 
-The concept of **entropy** originated in Claude Shannon’s landmark 1948
+### Historical Foundation and Intellectual Progression
+
+The concept of entropy originated in Claude Shannon’s landmark 1948
 paper on information theory (Shannon 1948), which established that
-information content could be quantified mathematically through the
-fundamental concepts of uncertainty and surprise. Shannon entropy became
-the foundation for understanding complexity across mathematics, physics,
-and biology—if you draw a transcript from a distribution, how
+information content could be quantified mathematically. Shannon entropy
+became the foundation for understanding complexity across mathematics,
+physics, and biology—if you draw a transcript from a distribution, how
 predictable is the outcome?
 
 However, Shannon entropy treats all elements equally, regardless of
 their frequency: it weights rare and common elements identically. This
-led mathematicians and physicists to explore **generalized entropy
-families** that could emphasize different aspects of distributions. Two
-major generalizations emerged: Rényi’s parametric family of entropies
-and Tsallis entropy, both of which introduced tunable parameters that
-allow sensitivity to rare versus abundant elements.
+limitation led mathematicians and physicists to explore generalized
+entropy families, most notably Rényi’s parametric family and Tsallis
+entropy. Both introduced tunable parameters that allow sensitivity to
+shift between rare and abundant elements. Remarkably, despite appearing
+different mathematically, Tsallis and Rényi entropies can be unified
+within a coherent framework through generalized logarithmic and
+exponential functions (Tsallis 2017)—both answer the fundamental
+question: What organizational scales matter?
 
-The key insight is that Tsallis and Rényi entropies, despite appearing
-different mathematically, can be unified within a coherent framework
-through generalized logarithmic and exponential functions (Tsallis
-2017). Both frameworks answer a fundamental question: **What
-organizational scales matter?** By changing the q parameter, you shift
-emphasis from rare (low q) to abundant (high q) elements—qualitatively
-different perspectives on the same distribution.
-
-More recently, **Hill numbers** (Chao et al. 2010) provided a modern
+More recently, Hill numbers (Chao et al. 2010) provided a modern
 ecological framework that reinterprets all generalized entropy measures
-as “true diversity” of different orders. This formulation clarified that
-diversity questions have scale-dependent answers: rare species and
+as “true diversity” of different orders. This formulation clarified a
+crucial insight: diversity questions have scale-dependent answers. The
+Hill numbers framework unified richness (q=0), Shannon entropy (q=1),
+Simpson/Gini (q=2), and higher-order generalizations under a single
+mathematical umbrella—formalizing the idea that rare species and
 dominant species reveal different ecological (or in our case,
-transcriptomic) truths. The Hill numbers framework unified richness
-(q=0), Shannon entropy (q=1), Simpson/Gini (q=2), and higher-order
-generalizations under a single mathematical umbrella.
-
-TSENAT applies this intellectual progression to RNA-seq data: instead of
-asking only “which genes change abundance,” it asks “how does the
-organization of isoforms change across multiple scales of complexity?”
-By leveraging Tsallis entropy’s multi-scale nature and the Hill numbers
-interpretation, TSENAT captures the full diversity spectrum of isoform
-organization, revealing biological signals invisible to traditional
-abundance-focused methods.
+transcriptomic) truths.
 
 ### Why This Matters for RNA-seq: The Isoform Complexity Problem
 
-Standard RNA-seq analysis measures *whether* transcript abundance
-changes between conditions. But a critical complementary question
-remains underexplored: *how* does the diversity of isoforms change? A
-gene may show little change in total abundance while dramatically
-reshuffling its isoform repertoire—a phenomenon that current methods
-largely miss.
+Standard RNA-seq analysis measures whether transcript abundance changes
+between conditions. But a critical complementary question remains
+underexplored: how does the diversity of isoforms change? A gene may
+show little change in total abundance while dramatically reshuffling its
+isoform repertoire—a phenomenon that current methods largely miss.
 
-**Entropy** quantifies precisely this: the complexity, richness, and
-balance of isoform heterogeneity. By measuring entropy across different
-biological scales (the parameter `q` introduced above), researchers can
-detect whether changes are driven by shifts in rare isoforms (low q) or
-reorganization of dominant variants (high q). The beauty of the Tsallis
-framework is that you obtain a complete picture of isoform heterogeneity
-by computing across a range of entropic indices—a “q-curve”—revealing
-which aspects of isoform organization change between conditions.
+Entropy quantifies precisely this: the complexity, richness, and balance
+of isoform heterogeneity. By measuring entropy across different
+biological scales (using the parameter q discussed below), researchers
+can detect whether changes are driven by shifts in rare isoforms or
+reorganization of dominant variants. The beauty of the Tsallis framework
+is that you obtain a complete picture of isoform heterogeneity by
+computing across a range of entropic indices—a “q-curve”—revealing which
+aspects of isoform organization change between conditions.
 
 ### Mathematical Foundation and Interpretation
 
 #### Tsallis Entropy: Definition and Intuition
 
-For a discrete probability vector $`p = (p_1, \ldots, p_n)`$
-representing isoform proportions within a gene, Tsallis entropy is
-defined as:
+For a discrete probability vector p=(p₁,…,pₙ) representing isoform
+proportions within a gene, Tsallis entropy is defined as:
 
 ``` math
-S_q(p) = \frac{1-\sum_{i=1}^n p_i^q}{q-1}.
+S_q(p)=\frac{1-\sum_{i=1}^{n}p_i^q}{q-1}
 ```
 
 This parametric family unites diverse entropy concepts under a single
@@ -197,18 +184,16 @@ framework:
 - **Practical flexibility**: Enables data-driven exploration across the
   full diversity spectrum
 
-#### Information-Theoretic Meaning
+#### The q Parameter: A Sensitivity Dial for Distribution Scales
 
 From an information theory perspective (Shannon 1948; Furuichi 2006),
-entropy measures the uncertainty or surprise when drawing a single
-transcript from an isoform distribution. Higher entropy means the draw
-is less predictable (many similarly abundant isoforms), while lower
-entropy means one or a few isoforms dominate. This distinction is
-crucial: two genes with identical total abundance may have dramatically
-different isoform complexity.
+entropy measures the uncertainty when drawing a single transcript from
+an isoform distribution. Higher entropy means the draw is less
+predictable (many similarly abundant isoforms), while lower entropy
+means one or a few isoforms dominate.
 
-The **q parameter acts as a sensitivity dial** that controls which
-aspects of the distribution become visible:
+The q parameter acts as a sensitivity dial that controls which aspects
+of the distribution become visible:
 
 - **q \< 1** (e.g., 0.5): Emphasizes rare, low-abundance isoforms;
   useful for discovering cryptic or condition-specific variants.
@@ -217,48 +202,30 @@ aspects of the distribution become visible:
 - **q \> 1**: Emphasizes dominant, abundant isoforms; captures core
   expression architecture.
 
-### Biological Potentiality: Why TSENAT Matters
+This principle formalizes what cannot be implemented in classical
+Shannon analysis: the ability “not to set rare and common events on the
+same footing, as in standard statistics, but to enhance or depress them
+according to the parameter chosen” (Anastasiadis 2012; Ramírez-Reyes et
+al. 2016; Alomani and Kayid 2023).
 
-Tsallis entropy is grounded in Shannon’s foundational information theory
-(Shannon 1948), generalized by Renyi’s family of entropies (Jost 2006),
-and extended by Tsallis (Furuichi 2006). The key innovation is a tunable
-parameter `q` that controls sensitivity to different aspects of the
-diversity distribution-which aspects of isoform heterogeneity become
-visible depends on the entropic index chosen (Anastasiadis 2012;
-Ramírez-Reyes et al. 2016; Alomani and Kayid 2023).
+#### Biological Interpretation: Richness and Evenness
 
-As stated explicitly in the mathematical literature: “This introduces
-the formal possibility not to set rare and common events on the same
-footing, as in BG or Shannon statistics, but it enhances or depresses
-them according to the parameter chosen.” This principle is formalized in
-the Hill numbers framework (Chao et al. 2010), which unifies diverse
-entropy-based measures (richness, Shannon, Simpson) as different
-manifestations of the same parametric family with varying sensitivity to
-abundance scales.
+The concept of “true diversity” (Chao et al. 2010) emphasizes that
+diversity decomposes into two independent components: species richness
+(how many distinct isoforms exist) and evenness (how evenly distributed
+they are across the population). Two genes can have identical Shannon
+entropy yet differ dramatically in isoform structure: one might be
+dominated by a single abundant isoform with many rare variants
+(revealing complexity at low q sensitivity), while another distributes
+transcripts equally across many isoforms (maintaining heterogeneity
+across all q values). This distinction is crucial: no single entropic
+index captures the complete complexity landscape.
 
-The flexibility is crucial for isoform analysis. The concept of “true
-diversity” (Chao et al. 2010) emphasizes that diversity can be
-decomposed into two independent components: species richness (how many
-distinct isoforms exist) and evenness (how evenly distributed they are
-across the population). Two genes can have identical Shannon entropy yet
-differ dramatically in isoform structure: one might be dominated by a
-single abundant isoform (maximizing apparent heterogeneity at low `q`
-where rare variants matter), while another distributes transcripts
-across many isoforms equally (maximizing heterogeneity across all `q`
-values).
-
-### Applications and Evidence: Why Multi-Scale Entropy Matters
+### Why Multi-Scale Entropy Matters: Biological Contexts
 
 The multi-scale nature of Tsallis entropy makes it suited for exploring
-isoform complexity across diverse biological contexts. By measuring
-information content at different entropic indices, researchers can
-detect patterns invisible to traditional transcript abundance measures
-alone. The recent emphasis on information-theoretic approaches in
-computational biology Bajić (2024) reflects broader recognition that
-complex biological systems encode information across multiple
-organizational scales.
-
-#### Biological Contexts Where Scale-Dependent Analysis Reveals Hidden Complexity
+isoform complexity across diverse biological contexts. Different
+biological processes prioritize different organizational scales:
 
 **Isoform complexity as a biological signal**: Isoform
 switching—reorganization of the isoform landscape without necessarily
@@ -267,12 +234,13 @@ function driven by splicing regulation. Evidence from single-cell
 transcriptomics demonstrates that transcript-level complexity varies
 systematically across cell types and developmental states (Cao et al.
 2017), validating that isoform heterogeneity is a genuine biological
-phenomenon rather than noise. Different biological processes prioritize
-different organizational scales (Tarabichi et al. 2013):
+phenomenon rather than noise. By measuring information content at
+different entropic indices, researchers can detect patterns invisible to
+traditional transcript abundance measures alone:
 
-- Changes in rare isoform usage (revealed through low `q` sensitivity)
+- Changes in rare isoform usage (revealed through low q sensitivity)
   might reflect exploratory or error-correction mechanisms
-- Shifts in dominant isoform selection (revealed through high `q`
+- Shifts in dominant isoform selection (revealed through high q
   sensitivity) might reflect functional specialization or robustness
   demands
 - The full q-curve reveals whether cellular transitions involve
@@ -281,15 +249,23 @@ different organizational scales (Tarabichi et al. 2013):
 TSENAT enables detection of these changes through entropy-based
 approaches, which capture whether complexity is increasing (diversity
 spreading across isoforms) or decreasing (consolidation onto dominant
-isoforms).
+isoforms). The recent emphasis on information-theoretic approaches in
+computational biology (Chanda et al. 2020; Bajić 2024) reflects broader
+recognition that complex biological systems encode information across
+multiple organizational scales.
 
-**Beyond classical abundance measures**: Traditional RNA-seq analysis
-focuses on fold-changes and differential abundance. Since isoform
-reorganization can occur independently of total abundance changes,
-entropy-based approaches complement classical methods by detecting
-complexity shifts that transcript-level statistics alone cannot reveal.
+### Beyond Classical Abundance Measures
 
-#### Mechanistic Evidence from Disease and Evolution
+Traditional RNA-seq analysis focuses on fold-changes and differential
+abundance. Since isoform reorganization can occur independently of total
+abundance changes, entropy-based approaches complement classical methods
+by detecting complexity shifts that transcript-level statistics alone
+cannot reveal. Standard statistical tests (t-tests, DESeq2, etc.) miss
+the phenomenon entirely: a gene can show zero fold-change while
+experiencing dramatic isoform reshuffling. This represents a fundamental
+analytical gap that entropy-based methods address.
+
+### Mechanistic Evidence: Disease and Evolution
 
 Peer-reviewed literature provides strong empirical support for
 entropy-based analysis in biological contexts:

@@ -269,25 +269,25 @@ assumptions_text <- results(analysis, type = "assumptions")
 print(assumptions_text)
 ```
 
-| Characteristic | Test | Result | Interpretation |
-|:---|:---|:---|:---|
-| Exchangeability | Permutation test | p=0e+00 | Ordering detected |
-| Monotonicity | Spearman rho | r=0.259 | Heterogeneous |
-| Consistency | Kendall’s W / ICC | W=0e+00, ICC=0.108 | Low |
-| Concurvity | Smooth collinearity | 0.000 | Low |
-| EDF Ratio | Smoothing | 0.024 | Over-smoothed |
-| Non-linearity | Delta R^2 vs LM | 0.0% | Use linear |
-| Basis Dimension | Spline basis | k=10 | Adequate |
-| Correlation fit | Correlation fit | Observed autocorr=-0.007; independence suitable | Good fit |
-| Cluster variation | Cluster variation | Mean size=77.0 - homogeneous | Homogeneous |
-| Independence | Independence | Mean within-cluster residual correlation=-0.018 | Independent |
-| Scale parameter | Scale parameter | phi=0.100 | Under-dispersed (rare) |
-| Variance components | Variance components | ICC=0.119; B=0.006, W=0.048 | Lmm justified |
-| Normality | Normality | p=3.57e-27 | Non-normal |
-| Homogeneity | Homogeneity | p=3.14e-128; CV=0.439 | Heterogeneous |
-| Influence | Influence | Outliers=778, Extreme=0, Influential=26.6% | Many outliers |
-| Variance adequacy | Variance adequacy | Components for 90%=10, 95%=13, 99%=17. Poor dimens | Poor reduction |
-| Bootstrap stability | Bootstrap stability | Bootstrap SE=0.200; Stable CIs=100%. Moderate boot | Moderate stability |
+| Test | Result | Interpretation |
+|:---|:---|:---|
+| Exchangeability (Permutation test) | p=0e+00 | Ordering detected |
+| Monotonicity (Spearman rho) | r=0.259 | Heterogeneous |
+| Consistency (Kendall’s W / ICC) | W=0e+00, ICC=0.108 | Low |
+| Concurvity (Smooth collinearity) | 0.000 | Low |
+| EDF Ratio (Smoothing) | 0.024 | Over-smoothed |
+| Non-linearity (Delta R^2 vs LM) | 0.0% | Use linear |
+| Basis Dimension (Spline basis) | k=10 | Adequate |
+| Correlation fit | Observed autocorr=-0.007; independence suitable | Good fit |
+| Cluster variation | Mean size=77.0 | Homogeneous |
+| Independence | Mean within-cluster residual correlation=-0.018 | Independent |
+| Scale parameter | phi=0.100 | Under-dispersed (rare) |
+| Variance components | ICC=0.119; B=0.006, W=0.048 | Lmm justified |
+| Normality | p=3.57e-27 | Non-normal |
+| Homogeneity | p=3.14e-128; CV=0.439 | Heterogeneous |
+| Influence | Outliers=778, Extreme=0, Influential=26.6% | Many outliers |
+| Variance adequacy | Components for 90%=10, 95%=13, 99%=17 | Poor reduction |
+| Bootstrap stability | Bootstrap SE=0.200; Stable CIs=100% | Moderate stability |
 
 Assumption Checks for Scheirer-Ray-Hare Test {.table}
 

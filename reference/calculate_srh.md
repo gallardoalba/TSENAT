@@ -43,8 +43,9 @@ calculate_srh(
 - condition_col:
 
   `character`. Column name for sample grouping/condition (REQUIRED).
-  Specifies the condition/treatment variable for testing q×condition
-  interactions. Example: 'sample_type', 'treatment', 'disease_status'.
+  Specifies the condition/treatment variable for testing q\\\times\\
+  condition interactions. Example: 'sample_type', 'treatment',
+  'disease_status'.
 
 - output_file:
 
@@ -141,8 +142,8 @@ Modified TSENATAnalysis with interaction results in @lm_results.
 
 \## Key Features
 
-\- \*\*Q×Condition Interaction\*\*: Tests if entropy patterns across
-q-values differ by condition (main discovery goal) - \*\*Multi-q
+\- \*\*Q\\\times\\ Condition Interaction\*\*: Tests if entropy patterns
+across q-values differ by condition (main discovery goal) - \*\*Multi-q
 Analysis\*\*: Combines diversity results for multiple q-values into a
 single SummarizedExperiment for joint hypothesis testing -
 \*\*Rank-Based Statistics\*\*: Scheirer-Ray-Hare test (two-way ANOVA on
@@ -151,7 +152,8 @@ ANOVA on ranks - \*\*Multiple Testing Correction\*\*: Hochberg,
 Benjamini-Yekutieli, or permutation (Westfall-Young) procedures -
 \*\*AR(1) Correlation Handling\*\*: Westfall-Young preserves q-value
 spatial correlations (important for ordered q measurements) - \*\*Effect
-Sizes\*\*: Eta-squared (\\\eta^2\\) for q×condition interactions
+Sizes\*\*: Eta-squared (\\\eta^2\\) for q\\\times\\ condition
+interactions
 
 \## Statistical Hypotheses
 
@@ -166,7 +168,7 @@ processes specific to that condition.
 \## Biological Example
 
 Gene shows strong isoform switching (q-dependent entropy) in tumor cells
-but NOT in healthy cells → Identified as disease-relevant q-dependent
+but NOT in healthy cells -\> Identified as disease-relevant q-dependent
 gene.
 
 For condition-specific q-dependent genes: - \*\*Condition A\*\*: Strong
@@ -231,7 +233,7 @@ analysis <- filter_analysis(
 )
 analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
 
-# Test Q×Condition interaction (condition_col is REQUIRED)
+# Test Q\eqn{\times} Condition interaction (condition_col is REQUIRED)
 analysis <- calculate_srh(
   analysis,
   condition_col = 'condition',

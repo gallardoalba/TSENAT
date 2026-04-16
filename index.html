@@ -167,10 +167,10 @@
 <div class="section level3">
 <h3 id="orchestration-function">Orchestration Function<a class="anchor" aria-label="anchor" href="#orchestration-function"></a>
 </h3>
-<p>The <code><a href="reference/TSENAT-package.html">TSENAT()</a></code> function provides a complete, automated analysis pipeline in a single call. It takes your configured <code>TSENATAnalysis</code> object and executes all downstream analysis steps: entropy computation, statistical testing for entropic index (q-value) by condition interactions, and rich visualization. This is the recommended entry point for most users—it orchestrates the full workflow while respecting your configuration parameters (entropic indices, design, bootstrap settings, etc.) and handles output management seamlessly. For advanced customization, use individual functions directly as shown in the step-by-step workflow below.</p>
+<p>The <code><a href="reference/TSENAT.html">TSENAT()</a></code> function provides a complete, automated analysis pipeline in a single call. It takes your configured <code>TSENATAnalysis</code> object and executes all downstream analysis steps: entropy computation, statistical testing for entropic index (q-value) by condition interactions, and rich visualization. This is the recommended entry point for most users—it orchestrates the full workflow while respecting your configuration parameters (entropic indices, design, bootstrap settings, etc.) and handles output management seamlessly. For advanced customization, use individual functions directly as shown in the step-by-step workflow below.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Returns: Fully configured TSENATAnalysis object</span></span>
-<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/TSENAT-package.html">TSENAT</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/TSENAT.html">TSENAT</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="accessing-results">Accessing Results<a class="anchor" aria-label="anchor" href="#accessing-results"></a>
@@ -276,7 +276,7 @@
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Run analysis pipeline</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/TSENAT-package.html">TSENAT</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/TSENAT.html">TSENAT</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></code></pre></div>
 <div class="section level3">
 <h3 id="salmon-directory-structure">Salmon Directory Structure<a class="anchor" aria-label="anchor" href="#salmon-directory-structure"></a>
 </h3>
