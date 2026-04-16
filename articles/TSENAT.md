@@ -734,18 +734,18 @@ tables_result <- results(analysis, type = "switching_tables")
 #### Gene: CXCL12 (ENSG00000107562.18)
 
 | Transcript         | q=0.50 | q=1.00 | q=1.50 | Direction Consistency |
-|:-------------------|-------:|-------:|-------:|:----------------------|
-| ENST00000343575.11 |  0.000 |  0.041 |  0.062 | Mixed directions      |
-| ENST00000374426.6  | -0.063 | -0.051 | -0.040 | Mixed directions      |
-| ENST00000374429.6  |  0.164 |  0.156 |  0.123 | Mixed directions      |
+|:-------------------|:------:|:------:|:------:|----------------------:|
+| ENST00000343575.11 | 0.000  | 0.041  | 0.062  |      Mixed directions |
+| ENST00000374426.6  | -0.063 | -0.051 | -0.040 |   Consistent negative |
+| ENST00000374429.6  | 0.164  | 0.156  | 0.123  |   Consistent positive |
 
 #### Gene: THY1 (ENSG00000154096.15)
 
 | Transcript        | q=0.50 | q=1.00 | q=1.50 | Direction Consistency |
-|:------------------|-------:|-------:|-------:|:----------------------|
-| ENST00000524970.5 | -0.046 |  0.002 |  0.014 | Mixed directions      |
-| ENST00000900758.1 |  0.045 |  0.031 |  0.019 | Consistent positive   |
-| ENST00000956364.1 | -0.075 | -0.092 | -0.102 | Mixed directions      |
+|:------------------|:------:|:------:|:------:|----------------------:|
+| ENST00000524970.5 | -0.046 | 0.002  | 0.014  |      Mixed directions |
+| ENST00000900758.1 | 0.045  | 0.031  | 0.019  |   Consistent positive |
+| ENST00000956364.1 | -0.075 | -0.092 | -0.102 |   Consistent negative |
 
 #### Delta Influence Across Diversity Scales
 
