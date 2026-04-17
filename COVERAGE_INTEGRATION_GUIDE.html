@@ -15,6 +15,7 @@
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
+<ul class="navbar-nav me-auto">
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-file-contract fa-lg"></span> Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
@@ -26,7 +27,7 @@
 <li class="nav-item"><a class="nav-link" href="reference/index.html"><span class="fa far fa-file-code fa-lg"></span> Functions</a></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://app.codecov.io/gh/gallardoalba/TSENAT"><span class="fa fas fa-chart-bar fa-lg"></span> Coverage</a></li>
 <li class="nav-item"><a class="nav-link" href="r_dependencies_s4_interactive.html"><span class="fa fas fa-sitemap fa-lg"></span> Architecture</a></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-question-circle fa-lg"></span> Issues</a></li>
+
 
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-documents" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-book fa-lg"></span> Documents</button>
@@ -37,7 +38,11 @@
 <li class="nav-item"><a class="nav-link" href="news/index.html">News</a></li>
 <li class="nav-item"><a class="nav-link" href="citations.html"><span class="fa fas fa-book-open fa-lg"></span> References</a></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT"><span class="fa fab fa-github fa-lg"></span></a></li>
-      </ul></div>
+      </ul>
+<ul class="navbar-nav">
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-question-circle fa-lg"></span> Issues</a></li>
+      </ul>
+</ul></div>
 
 
   </div>
@@ -63,6 +68,10 @@
 <li>No coverage data</li>
 <li>Source: <a href="r_dependencies_s4_interactive.html">r_dependencies_s4_interactive.html</a>
 </li>
+      </ul>
+<ul class="navbar-nav">
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-question-circle fa-lg"></span> Issues</a></li>
+      </ul>
 </ul></div>
 <div class="section level3">
 <h3 id="id_2-r_dependencies_s4_interactive_with_coveragehtml-basic-integration">2. <strong>r_dependencies_s4_interactive_with_coverage.html</strong> (Basic Integration)<a class="anchor" aria-label="anchor" href="#id_2-r_dependencies_s4_interactive_with_coveragehtml-basic-integration"></a></h3>
@@ -174,6 +183,10 @@ Low (&lt;50%):           1 file (1.9%)</code></pre>
 <strong>Format</strong>: Cobertura XML (line-level coverage metrics)</li>
 <li>
 <strong>Last updated</strong>: April 18, 2024</li>
+      </ul>
+<ul class="navbar-nav">
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-question-circle fa-lg"></span> Issues</a></li>
+      </ul>
 </ul></div>
 <div class="section level3">
 <h3 id="integration-process">Integration Process<a class="anchor" aria-label="anchor" href="#integration-process"></a></h3>
@@ -295,6 +308,10 @@ Interactive HTML + Analytics Dashboard</code></pre>
 <li>Extracts per-file and per-method coverage</li>
 <li>Creates basic coverage panel</li>
 <li>Embeds coverage JSON in HTML</li>
+      </ul>
+<ul class="navbar-nav">
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-question-circle fa-lg"></span> Issues</a></li>
+      </ul>
 </ul></div>
 <div class="section level3">
 <h3 id="id_2-enhance_coverage_analysispy">2. <code>enhance_coverage_analysis.py</code>
@@ -317,18 +334,30 @@ Interactive HTML + Analytics Dashboard</code></pre>
 <li>Verify <code>cobertura.xml</code> exists and is readable</li>
 <li>Clear browser cache and reload</li>
 <li>Try different browser</li>
+      </ul>
+<ul class="navbar-nav">
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-question-circle fa-lg"></span> Issues</a></li>
+      </ul>
 </ul></div>
 <div class="section level3">
 <h3 id="html-file-too-large">HTML file too large?<a class="anchor" aria-label="anchor" href="#html-file-too-large"></a></h3>
 <ul><li>Files are ~8.4 MB (compressed HTML + embedded data)</li>
 <li>First load may take 2-3 seconds</li>
 <li>Subsequent navigation is fast (cached)</li>
+      </ul>
+<ul class="navbar-nav">
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-question-circle fa-lg"></span> Issues</a></li>
+      </ul>
 </ul></div>
 <div class="section level3">
 <h3 id="wrong-coverage-percentages">Wrong coverage percentages?<a class="anchor" aria-label="anchor" href="#wrong-coverage-percentages"></a></h3>
 <ul><li>Verify <code>cobertura.xml</code> is current</li>
 <li>Regenerate with <code>covr</code> package</li>
 <li>Re-run integration scripts</li>
+      </ul>
+<ul class="navbar-nav">
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-question-circle fa-lg"></span> Issues</a></li>
+      </ul>
 </ul></div>
 <div class="section level3">
 <h3 id="cant-toggle-coverage-panel">Can’t toggle coverage panel?<a class="anchor" aria-label="anchor" href="#cant-toggle-coverage-panel"></a></h3>
@@ -336,6 +365,10 @@ Interactive HTML + Analytics Dashboard</code></pre>
 <strong>Alt+C</strong> keyboard shortcut (advanced version only)</li>
 <li>Works in advanced_coverage version only</li>
 <li>Click on panel to interact with it</li>
+      </ul>
+<ul class="navbar-nav">
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-question-circle fa-lg"></span> Issues</a></li>
+      </ul>
 </ul></div>
 </div>
 <div class="section level2">
@@ -376,6 +409,10 @@ Interactive HTML + Analytics Dashboard</code></pre>
 <strong>Memory usage</strong>: 100-300 MB (including Plotly)</li>
 <li>
 <strong>Not recommended</strong> for IE11 or older browsers</li>
+      </ul>
+<ul class="navbar-nav">
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-question-circle fa-lg"></span> Issues</a></li>
+      </ul>
 </ul></div>
 <div class="section level2">
 <h2 id="related-files">Related Files<a class="anchor" aria-label="anchor" href="#related-files"></a></h2>
@@ -387,6 +424,10 @@ Interactive HTML + Analytics Dashboard</code></pre>
 <a href="integrate_coverage.py">integrate_coverage.py</a> - Basic integration script</li>
 <li>
 <a href="enhance_coverage_analysis.py">enhance_coverage_analysis.py</a> - Advanced integration script</li>
+      </ul>
+<ul class="navbar-nav">
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-question-circle fa-lg"></span> Issues</a></li>
+      </ul>
 </ul></div>
 <div class="section level2">
 <h2 id="next-steps">Next Steps<a class="anchor" aria-label="anchor" href="#next-steps"></a></h2>
