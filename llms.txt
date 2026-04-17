@@ -99,6 +99,14 @@ Or the development version from GitHub:
 remotes::install_github("gallardoalba/TSENAT")
 ```
 
+## Package Architecture
+
+Get a visual overview of TSENAT’s structure with our [interactive
+dependency
+graph](https://gallardoalba.github.io/TSENAT/r_dependencies_s4_interactive.html),
+which maps S4 classes, R package imports, and their interconnections.
+This helps you understand how different components work together.
+
 ## Quick Start
 
 ### Load Example Data
