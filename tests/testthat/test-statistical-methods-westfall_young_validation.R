@@ -542,3 +542,46 @@ test_that("Serial (nthreads=1) and parallel (nthreads=2) WY produce consistent r
   expect_true(all(result_serial$adj_p_value >= 0 & result_serial$adj_p_value <= 1, na.rm = TRUE))
   expect_true(all(result_parallel$adj_p_value >= 0 & result_parallel$adj_p_value <= 1, na.rm = TRUE))
 })
+
+# ==============================================================================
+# .estimate_storey_pi0(): Tests for Storey's pi0 estimation (20.8% coverage)
+# ==============================================================================
+
+test_that(".estimate_storey_pi0 estimates null hypothesis proportion", {
+  true_null_p <- runif(50, 0, 1)
+  true_alt_p <- rbeta(20, 0.5, 2)
+  all_p <- c(true_null_p, true_alt_p)
+  
+  result <- .estimate_storey_pi0(all_p, lambda = 0.5, pi0_method = "lambda")
+  
+  expect_is(result, "list")
+  expect_true(result$pi0 >= 0 && result$pi0 <= 1)
+})
+
+test_that(".estimate_storey_pi0 handles all null p-values", {
+  all_null_p <- runif(100, 0, 1)
+  
+  result <- .estimate_storey_pi0(all_null_p, lambda = 0.5, pi0_method = "lambda")
+  
+  expect_is(result, "list")
+  expect_true(result$pi0 > 0.8)
+})
+
+test_that(".estimate_storey_pi0 handles all alternative p-values", {
+  all_alt_p <- rbeta(100, 0.5, 2)
+  
+  result <- .estimate_storey_pi0(all_alt_p, lambda = 0.5, pi0_method = "lambda")
+  
+  expect_is(result, "list")
+  expect_true(result$pi0 >= 0 && result$pi0 <= 0.5)
+})
+
+test_that(".estimate_storey_pi0 returns single value", {
+  p_values <- c(runif(80, 0, 1), rbeta(20, 0.5, 2))
+  
+  result <- .estimate_storey_pi0(p_values, lambda = 0.5, pi0_method = "lambda")
+  
+  expect_is(result, "list")
+  expect_equal(length(result$pi0), 1)
+  expect_true(!is.na(result$pi0))
+})

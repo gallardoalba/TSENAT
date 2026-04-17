@@ -6368,3 +6368,43 @@ test_that("summary.tsenat_bootstrap_ci method exists and works", {
     "character"
   )
 })
+
+# ==============================================================================
+# .bootstrap_resample_with_quality_control(): Tests for bootstrap QC (21.1%)
+# ==============================================================================
+
+test_that(".bootstrap_resample_with_quality_control resamples with replacement", {
+  x <- c(10, 20, 15, 25, 30, 18, 22, 19, 21, 23)
+  
+  result <- .bootstrap_resample_with_quality_control(
+    x = x, q = 1, norm = FALSE, nboot = 100,
+    log_base = exp(1), pseudocount = 0, what = "S"
+  )
+  
+  expect_is(result, "numeric")
+  expect_equal(length(result), 100)
+})
+
+test_that(".bootstrap_resample_with_quality_control normalizes with norm=TRUE", {
+  x <- c(10, 20, 30, 40, 50)
+  
+  result <- .bootstrap_resample_with_quality_control(
+    x = x, q = 0.5, norm = TRUE, nboot = 50,
+    log_base = exp(1), pseudocount = 0, what = "S"
+  )
+  
+  expect_is(result, "numeric")
+  expect_equal(length(result), 50)
+})
+
+test_that(".bootstrap_resample_with_quality_control handles quality control flags", {
+  x <- c(15, 18, 20, 22, 19, 21, 17, 23, 24, 16)
+  
+  result <- .bootstrap_resample_with_quality_control(
+    x = x, q = 1, norm = FALSE, nboot = 100,
+    log_base = exp(1), pseudocount = 0, what = "S"
+  )
+  
+  expect_is(result, "numeric")
+  expect_equal(length(result), 100)
+})

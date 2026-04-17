@@ -751,3 +751,55 @@ test_that("map_metadata with metadata.tsv structure works", {
     actual_pairs <- as.character(cd$paired_samples)
     expect_equal(actual_pairs, expected_pairs)
 })
+
+# ==============================================================================
+# .map_metadata_detect_columns(): Tests for metadata mapping (41.7%)
+# ==============================================================================
+
+test_that(".map_metadata_detect_columns validates columns required", {
+  metadata <- data.frame(
+    sample = c("s1", "s2", "s3"),
+    condition = c("A", "B", "A"),
+    time = c(1, 2, 1)
+  )
+  
+  result <- .map_metadata_detect_columns(
+    coldata = metadata,
+    sample_col = "sample",
+    condition_col = "condition"
+  )
+  
+  expect_is(result, "list")
+})
+
+test_that(".map_metadata_detect_columns rejects invalid columns", {
+  metadata <- data.frame(
+    id = 1:5,
+    treatment = c("ctrl", "ctrl", "drug", "drug", "ctrl"),
+    time = 1:5
+  )
+  
+  expect_error(
+    .map_metadata_detect_columns(
+      coldata = metadata,
+      sample_col = "nonexistent_col",
+      condition_col = "treatment"
+    )
+  )
+})
+
+test_that(".map_metadata_detect_columns enforces explicit column specification", {
+  metadata <- data.frame(
+    x = 1:10,
+    y = letters[1:10],
+    z = LETTERS[1:10]
+  )
+  
+  expect_error(
+    .map_metadata_detect_columns(
+      coldata = metadata,
+      sample_col = "x",
+      condition_col = "nonexistent"
+    )
+  )
+})

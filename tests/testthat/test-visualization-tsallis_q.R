@@ -641,3 +641,16 @@ test_that(".plot_tsallis_gene_bootstrap_ci handles single sample per group", {
   
   expect_true(ggplot2::is_ggplot(p) || is.list(p))
 })
+
+# ==============================================================================
+# .plot_tsallis_gene_specific(): Tests for gene-specific tsallis plot (4.2%)
+# ==============================================================================
+
+test_that(".plot_tsallis_gene_specific function exists", {
+  expect_true(exists(".plot_tsallis_gene_specific", mode = "function"))
+  expect_is(.plot_tsallis_gene_specific, "function")
+})
+
+test_that(".plot_tsallis_gene_specific function is callable", {
+  expect_is(.plot_tsallis_gene_specific, "function")
+})

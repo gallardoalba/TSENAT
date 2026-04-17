@@ -1494,3 +1494,57 @@ test_that("results() sample parameter works with extract_diversity_table", {
   expect_equal(attr(table_df, "sample"), "S2")
   expect_equal(attr(table_df, "n_genes_total"), 3)
 })
+
+# ==============================================================================
+# HELPER FUNCTION TESTS: Result format conversion (.convert_result_format)
+# ==============================================================================
+
+test_that(".convert_result_format handles auto format (no conversion)", {
+  result_df <- data.frame(gene = c("g1", "g2"), p_value = c(0.01, 0.05))
+  
+  result <- .convert_result_format(result_df, format = "auto", type = "result")
+  
+  expect_true(is.data.frame(result))
+  expect_identical(result, result_df)
+})
+
+test_that(".convert_result_format converts matrix to dataframe", {
+  result_mat <- matrix(c(1, 2, 3, 4), nrow = 2, ncol = 2)
+  
+  result <- .convert_result_format(result_mat, format = "dataframe", type = "result")
+  
+  expect_true(is.data.frame(result))
+  expect_equal(nrow(result), 2)
+  expect_equal(ncol(result), 2)
+})
+
+test_that(".convert_result_format converts dataframe to matrix", {
+  result_df <- data.frame(col1 = c(1, 2), col2 = c(3, 4))
+  
+  result <- .convert_result_format(result_df, format = "matrix", type = "result")
+  
+  expect_true(is.matrix(result))
+  expect_equal(nrow(result), 2)
+  expect_equal(ncol(result), 2)
+})
+
+test_that(".convert_result_format converts dataframe to list", {
+  result_df <- data.frame(col1 = c(1, 2, 3), col2 = c(4, 5, 6))
+  
+  result <- .convert_result_format(result_df, format = "list", type = "result")
+  
+  expect_true(is.list(result))
+  expect_true(length(result) > 0)
+})
+
+test_that(".convert_result_format converts matrix to list (by rows)", {
+  result_mat <- matrix(c(1, 2, 3, 4, 5, 6), nrow = 2, ncol = 3)
+  
+  result <- .convert_result_format(result_mat, format = "list", type = "result")
+  
+  expect_true(is.list(result))
+  expect_equal(length(result), 2)  # 2 rows -> 2 list elements
+})
+
+
+

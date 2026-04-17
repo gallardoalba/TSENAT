@@ -686,7 +686,9 @@ test_that("PRIORITY2: Zero counts handled with bootstrap=TRUE", {
   analysis <- make_test_analysis_diversity(n_genes = 2, n_samples_per_group = 2)
   
   # Manually set row to all zeros
-  assay(analysis@se, "counts")[1, ] <- 0
+  counts_mat <- SummarizedExperiment::assay(analysis@se, "counts")
+  counts_mat[1, ] <- 0
+  SummarizedExperiment::assay(analysis@se, "counts") <- counts_mat
   
   # Use larger nboot to avoid that warning, focus on zero count warning
   result <- suppressWarnings(
@@ -756,9 +758,9 @@ test_that("PRIORITY2: Small total counts produce reliability warning", {
   analysis <- make_test_analysis_diversity(n_genes = 2, n_samples_per_group = 2)
   
   # Manually set all counts to very small values
-  counts_mat <- assay(analysis@se, "counts")
+  counts_mat <- SummarizedExperiment::assay(analysis@se, "counts")
   counts_mat[] <- 1  # All 1s give small totals
-  assay(analysis@se, "counts") <- counts_mat
+  SummarizedExperiment::assay(analysis@se, "counts") <- counts_mat
   
   # Should warn about small total count when bootstrap=TRUE
   # (validation happens in bootstrap pipeline)
@@ -1567,3 +1569,91 @@ test_that("Helper functions preserve audit trail information", {
   expect_equal(computed_with$nthreads, 2)
   expect_true("timestamp" %in% names(computed_with))
 })
+
+# ==============================================================================
+# HELPER FUNCTION TESTS: S4 diversity output building
+# ==============================================================================
+
+test_that(".build_output_from_combined_result extracts combined results as dataframe", {
+  analysis <- make_test_analysis_helpers()
+  
+  # Create a combined result as SummarizedExperiment
+  combined_data <- matrix(c(1.0, 0.5, 0.8, 0.6), nrow = 2, ncol = 2)
+  rownames(combined_data) <- c("gene1", "gene2")
+  colnames(combined_data) <- c("q=0.5", "q=1.0")
+  
+  combined_se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(diversity = combined_data)
+  )
+  
+  # Set combined result in metadata
+  if (is.null(analysis@metadata$diversity_combined)) {
+    analysis@metadata$diversity_combined <- list()
+  }
+  analysis@metadata$diversity_combined$combined_result <- combined_se
+  
+  # Test the function
+  result <- .build_output_from_combined_result(analysis)
+  
+  expect_true(is.data.frame(result))
+  expect_equal(nrow(result), 2)
+  expect_equal(ncol(result), 2)
+  expect_equal(rownames(result), c("gene1", "gene2"))
+})
+
+test_that(".build_output_from_combined_result handles NULL and empty results", {
+  analysis <- make_test_analysis_helpers()
+  
+  # Test with NULL combined result
+  if (is.null(analysis@metadata$diversity_combined)) {
+    analysis@metadata$diversity_combined <- list()
+  }
+  analysis@metadata$diversity_combined$combined_result <- NULL
+  
+  result <- .build_output_from_combined_result(analysis)
+  expect_true(is.null(result))
+})
+
+test_that(".build_output_from_combined_result handles dataframe input", {
+  analysis <- make_test_analysis_helpers()
+  
+  # Create combined result as dataframe
+  combined_df <- data.frame(
+    gene = c("g1", "g2"),
+    p_value = c(0.01, 0.05),
+    stringsAsFactors = FALSE
+  )
+  
+  if (is.null(analysis@metadata$diversity_combined)) {
+    analysis@metadata$diversity_combined <- list()
+  }
+  analysis@metadata$diversity_combined$combined_result <- combined_df
+  
+  result <- .build_output_from_combined_result(analysis)
+  
+  expect_true(is.data.frame(result))
+  expect_true(identical(result, combined_df))
+})
+
+test_that(".build_output_from_combined_result converts matrix to dataframe", {
+  analysis <- make_test_analysis_helpers()
+  
+  # Create combined result as matrix
+  combined_mat <- matrix(c(1, 2, 3, 4), nrow = 2, ncol = 2)
+  rownames(combined_mat) <- c("g1", "g2")
+  colnames(combined_mat) <- c("col1", "col2")
+  
+  if (is.null(analysis@metadata$diversity_combined)) {
+    analysis@metadata$diversity_combined <- list()
+  }
+  analysis@metadata$diversity_combined$combined_result <- combined_mat
+  
+  result <- .build_output_from_combined_result(analysis)
+  
+  expect_true(is.data.frame(result))
+  expect_equal(nrow(result), 2)
+  expect_equal(ncol(result), 2)
+})
+
+
+

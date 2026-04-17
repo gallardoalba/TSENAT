@@ -993,7 +993,8 @@ print.rank_assumptions <- function(x, ...) {
 
     for (gene_idx in gene_indices) {
         entropy_curve <- data[gene_idx, ]
-        gam_data <- data.frame(q = q_values, entropy = entropy_curve)
+        # Convert vector to ensure proper dataframe construction (prevents rowname warning)
+        gam_data <- data.frame(q = q_values, entropy = as.numeric(entropy_curve))
         gam_data <- gam_data[!is.na(gam_data$entropy), , drop = FALSE]
 
         if (nrow(gam_data) < 5)

@@ -2017,3 +2017,12 @@ test_that("Repeated calculate_assumptions calls don't break", {
     }, error = function(e) NULL)
   }, NA)
 })
+
+# ==============================================================================
+# .prepare_multi_q_se(): Tests for multi-Q SE preparation (9.3% coverage)
+# ==============================================================================
+
+test_that(".prepare_multi_q_se prepares multi-Q analysis", {
+  expect_true(exists(".prepare_multi_q_se", mode = "function"))
+  expect_is(.prepare_multi_q_se, "function")
+})

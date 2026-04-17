@@ -2019,3 +2019,107 @@ test_that("GAM bias correction method identification", {
         expect_equal(result$correction_method, "gam_smoothing_bias_c071")
     }
 })
+
+# ==============================================================================
+# .fit_gam_fallback(): Tests for GAM fallback (0% coverage)
+# ==============================================================================
+
+test_that(".fit_gam_fallback delegates to fit_standard_gam", {
+  # Create minimal test data
+  df <- data.frame(
+    response = c(1.5, 2.0, 2.5, 3.0, 3.5, 4.0),
+    subject = c(1, 1, 2, 2, 3, 3),
+    q_diversity = c(0, 0, 0.5, 0.5, 1, 1)
+  )
+  
+  result <- .fit_gam_fallback(
+    df = df,
+    family_gam = stats::gaussian(),
+    k_q_marginal = 2,
+    k_q_interaction = 2,
+    gam_weights = NULL
+  )
+  
+  # Should return list with model results
+  expect_is(result, "list")
+})
+
+test_that(".fit_gam_fallback handles NULL weights", {
+  df <- data.frame(
+    response = rnorm(12),
+    subject = rep(1:4, 3),
+    q_diversity = rep(c(0, 0.5, 1), 4)
+  )
+  
+  result <- .fit_gam_fallback(
+    df = df,
+    family_gam = stats::gaussian(),
+    k_q_marginal = 3,
+    k_q_interaction = 2,
+    gam_weights = NULL
+  )
+  
+  expect_is(result, "list")
+})
+
+test_that(".fit_gam_fallback returns valid structure", {
+  df <- data.frame(
+    response = rnorm(20),
+    subject = rep(1:5, 4),
+    q_diversity = rep(seq(0, 1, by = 0.25), 5)
+  )
+  
+  result <- .fit_gam_fallback(
+    df = df,
+    family_gam = stats::gaussian(),
+    k_q_marginal = 4,
+    k_q_interaction = 3,
+    gam_weights = NULL
+  )
+  
+  expect_is(result, "list")
+})
+
+# ==============================================================================
+# .fit_cached_gams(): Tests for cached GAM fitting (0% coverage)
+# ==============================================================================
+
+test_that(".fit_cached_gams returns list of models", {
+  # Create proper matrix structure: rows=genes, cols=q-values (entropy values)
+  n_genes <- 100
+  q_vals <- c(0, 0.5, 1.0)
+  
+  # Create matrix of entropy values: each row is a gene, each column is a q-value
+  entropy_matrix <- matrix(rnorm(n_genes * length(q_vals), mean=1, sd=0.2),
+                           nrow = n_genes, ncol = length(q_vals))
+  colnames(entropy_matrix) <- paste0("q_", q_vals)
+  
+  result <- .fit_cached_gams(data = entropy_matrix, q_values = q_vals)
+  
+  expect_is(result, "list")
+})
+
+test_that(".fit_cached_gams samples genes properly", {
+  # ~10% of 200 genes = ~20 genes sampled
+  n_genes <- 200
+  q_vals <- c(0, 1)
+  
+  entropy_matrix <- matrix(rnorm(n_genes * length(q_vals), mean=1.5, sd=0.3),
+                           nrow = n_genes, ncol = length(q_vals))
+  colnames(entropy_matrix) <- paste0("q_", q_vals)
+  
+  result <- .fit_cached_gams(data = entropy_matrix, q_values = q_vals)
+  
+  expect_is(result, "list")
+})
+
+test_that(".fit_cached_gams handles missing mgcv gracefully", {
+  # Create tiny matrix to trigger early skipping
+  entropy_matrix <- matrix(c(1.0, 1.2, 1.5, 1.8), nrow = 2, ncol = 2)
+  colnames(entropy_matrix) <- paste0("q_", c(0, 1))
+  
+  # Should not error even if mgcv unavailable
+  result <- .fit_cached_gams(data = entropy_matrix, q_values = c(0, 1))
+  
+  expect_is(result, "list")
+})

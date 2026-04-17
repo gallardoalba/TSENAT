@@ -778,3 +778,39 @@ test_that(".bootstrap_divergence contains bootstrap distribution", {
   expect_true(length(result$bootstrap_dist) > 0)
   expect_true(length(result$bootstrap_dist) <= 500)
 })
+
+# ==============================================================================
+# .bootstrap_divergence_handle_multiple_q(): Tests for multi-Q divergence (47.4%)
+# ==============================================================================
+
+test_that(".bootstrap_divergence_handle_multiple_q processes multiple q-values", {
+  x <- c(10, 15, 20, 25, 30, 18, 22, 19, 21, 23)
+  y <- c(12, 18, 22, 28, 32, 20, 24, 21, 23, 25)
+  q_vals <- c(0.5, 1.0, 2.0)
+  
+  result <- .bootstrap_divergence_handle_multiple_q(
+    x = x, y = y, q = q_vals, norm = FALSE, nboot = 50,
+    ci = 0.95, method = "percentile", log_base = exp(1),
+    pseudocount = 0, gene_name = "test_gene", verbose = FALSE,
+    paired = FALSE, pair_id_col = NULL, se = NULL
+  )
+  
+  expect_is(result, "tsenat_divergence_bootstrap_list")
+  expect_equal(length(result), length(q_vals))
+})
+
+test_that(".bootstrap_divergence_handle_multiple_q returns list with results", {
+  x <- c(10, 20, 30, 40, 50)
+  y <- c(15, 25, 35, 45, 55)
+  q_vals <- c(0.5, 1)
+  
+  result <- .bootstrap_divergence_handle_multiple_q(
+    x = x, y = y, q = q_vals, norm = FALSE, nboot = 25,
+    ci = 0.95, method = "percentile", log_base = exp(1),
+    pseudocount = 1e-6, gene_name = "test_gene2", verbose = FALSE,
+    paired = FALSE, pair_id_col = NULL, se = NULL
+  )
+  
+  expect_is(result, "tsenat_divergence_bootstrap_list")
+  expect_equal(length(result), 2)
+})

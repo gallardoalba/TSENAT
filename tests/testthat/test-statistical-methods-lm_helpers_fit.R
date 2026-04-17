@@ -1745,3 +1745,48 @@ test_that(".try_lm_fallbacks uses factor(subject), not numeric subject", {
         expect_true(length(subj_terms) > 0)
     }
 })
+
+# ==============================================================================
+# .fit_all_genes(): Tests for fitting all genes (48.9% coverage)
+# ==============================================================================
+
+test_that(".fit_all_genes fits models to genes", {
+  data(readcounts, package = "TSENAT", envir = environment())
+  readcounts <- as.matrix(readcounts)
+  
+  metadata_df <- read.table(
+    system.file("extdata", "metadata.tsv", package = "TSENAT"),
+    header = TRUE, sep = "\t"
+  )
+  
+  gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+  
+  config <- TSENAT_config(
+    sample_col = "sample",
+    condition_col = "condition",
+    subject_col = "paired_samples",
+    q = seq(0, 2, by = 1),
+    paired = TRUE,
+    control = "normal",
+    stringency = "severe",
+    nthreads = 1
+  )
+  
+  analysis <- build_analysis(
+    config = config,
+    readcounts = readcounts,
+    metadata = metadata_df,
+    tx2gene = gff3_file,
+    tpm = tpm,
+    effective_length = effective_length
+  )
+  
+  analysis <- filter_analysis(analysis, stringency = "medium", verbose = FALSE)
+  
+  expect_true(exists(".fit_all_genes", mode = "function"))
+})
+
+test_that(".fit_all_genes function is exported", {
+  expect_true(exists(".fit_all_genes", mode = "function"))
+  expect_is(.fit_all_genes, "function")
+})

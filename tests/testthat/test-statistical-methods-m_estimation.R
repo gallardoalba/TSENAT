@@ -1739,5 +1739,118 @@ test_that("prepare_gene_switching_tables_s4: returns data structure", {
   expect_true(is.null(result) || is.data.frame(result) || is.list(result))
 })
 
+# ==============================================================================
+# HELPER FUNCTION TESTS: IRLS M-Estimation for location
+# ==============================================================================
+
+test_that(".mest_irls_location returns location estimate with default parameters", {
+    set.seed(42)
+    y <- c(rnorm(50, mean = 5, sd = 1), 15, 20)  # Include outliers
+    
+    result <- .mest_irls_location(y, loss_type = "huber")
+    
+    expect_true(is.numeric(result))
+    expect_true(!is.na(result))
+    expect_true(length(result) == 1)
+    
+    # Location estimate should be between min and max of data
+    expect_true(result >= min(y, na.rm = TRUE) && result <= max(y, na.rm = TRUE))
+    # With outliers, robust location should be closer to true mean (5) than mean
+    sample_mean <- mean(y)
+    expect_true(abs(result - 5) < abs(sample_mean - 5))
+})
+
+test_that(".mest_irls_location returns location and weights when requested", {
+    set.seed(43)
+    y <- rnorm(30, mean = 10, sd = 2)
+    
+    result <- .mest_irls_location(y, loss_type = "huber", return_weights = TRUE)
+    
+    expect_true(is.list(result))
+    expect_true("location_diff" %in% names(result))
+    expect_true("weights" %in% names(result))
+    expect_true("scale_used" %in% names(result))
+    
+    expect_true(is.numeric(result$location_diff))
+    expect_true(is.numeric(result$weights))
+    expect_true(length(result$weights) == length(y))
+    expect_true(all(result$weights > 0))
+})
+
+test_that(".mest_irls_location uses different loss functions correctly", {
+    set.seed(44)
+    y <- c(rnorm(40, mean = 0, sd = 1), 10, 12)  # Some outliers
+    
+    # Test Huber loss
+    result_huber <- .mest_irls_location(y, loss_type = "huber")
+    expect_true(!is.na(result_huber))
+    
+    # Test Tukey loss
+    result_tukey <- .mest_irls_location(y, loss_type = "tukey")
+    expect_true(!is.na(result_tukey))
+    
+    # Test Bisquare loss
+    result_bisq <- .mest_irls_location(y, loss_type = "bisquare")
+    expect_true(!is.na(result_bisq))
+    
+    # All should produce reasonable estimates (not far from median)
+    med_y <- median(y)
+    expect_true(abs(result_huber - med_y) < 5)
+    expect_true(abs(result_tukey - med_y) < 5)
+    expect_true(abs(result_bisq - med_y) < 5)
+})
+
+test_that(".mest_irls_location handles edge cases (all NA, empty, single value)", {
+    # All NA
+    result_allna <- .mest_irls_location(c(NA, NA, NA))
+    expect_true(is.na(result_allna))
+    
+    # Empty vector
+    result_empty <- .mest_irls_location(numeric(0))
+    expect_true(is.na(result_empty))
+    
+    # Single value
+    result_single <- .mest_irls_location(5.0)
+    expect_equal(result_single, 5.0, tolerance = 1e-6)
+    
+    # Mostly NA with few values
+    result_someNA <- .mest_irls_location(c(NA, 1, NA, 2, NA))
+    expect_true(!is.na(result_someNA))
+    expect_true(result_someNA >= 1 && result_someNA <= 2)
+})
+
+test_that(".mest_irls_location respects max_iter and convergence tolerance", {
+    set.seed(45)
+    y <- rnorm(50, mean = 3, sd = 1.5)
+    
+    # Test with different tolerances
+    result_tight <- .mest_irls_location(y, loss_type = "huber", 
+                                       tol = 1e-8, max_iter = 100)
+    result_loose <- .mest_irls_location(y, loss_type = "huber", 
+                                       tol = 1e-3, max_iter = 100)
+    
+    expect_true(is.numeric(result_tight))
+    expect_true(is.numeric(result_loose))
+    
+    # Both should converge to similar estimates
+    expect_true(abs(result_tight - result_loose) < 0.1)
+})
+
+test_that(".mest_irls_location uses specified scale parameter", {
+    set.seed(46)
+    y <- rnorm(40, mean = 0, sd = 1)
+    
+    # With specified scale
+    result_scale05 <- .mest_irls_location(y, loss_type = "huber", scale = 0.5)
+    result_scale10 <- .mest_irls_location(y, loss_type = "huber", scale = 1.0)
+    
+    expect_true(!is.na(result_scale05))
+    expect_true(!is.na(result_scale10))
+    
+    # Different scales may give slightly different location estimates
+    # (due to different weight assignments)
+    expect_true(is.numeric(result_scale05) && is.numeric(result_scale10))
+})
+
 
 

@@ -2551,3 +2551,133 @@ test_that("K-C correction maintains theoretical Type I error rate for small samp
     # For null data with balanced groups, we expect reasonable p-values
     # (not all significant, similar to uncorrected but more conservative)
 })
+
+# ==============================================================================
+# HELPER FUNCTION TESTS: GEE robust variance estimation helpers
+# ==============================================================================
+
+test_that(".compute_hc_multipliers returns correct HC1 and HC3 multipliers", {
+    # Test HC1 multiplier: n / (n - p)
+    n <- 100
+    p <- 5
+    X_matrix <- matrix(rnorm(n * p), nrow = n, ncol = p)
+    residuals_vec <- rnorm(n)
+    
+    result <- .compute_hc_multipliers(X_matrix = X_matrix, residuals_vec = residuals_vec)
+    
+    expect_true(is.list(result))
+    expect_true("hc1_multiplier" %in% names(result))
+    expect_true("hc3_divisor" %in% names(result))
+    expect_true("leverage" %in% names(result))
+    
+    # HC1 multiplier should be n / (n - p)
+    expected_hc1 <- n / (n - p)
+    expect_equal(result$hc1_multiplier, expected_hc1, tolerance = 1e-10)
+    
+    # HC3 divisor should be (1 - leverage)^2, all values in (0, 1)
+    expect_true(all(result$hc3_divisor > 0 & result$hc3_divisor < 1))
+    expect_equal(length(result$hc3_divisor), n)
+})
+
+test_that(".compute_hc_multipliers uses provided leverage when supplied", {
+    n <- 50
+    p <- 3
+    X_matrix <- matrix(rnorm(n * p), nrow = n, ncol = p)
+    residuals_vec <- rnorm(n)
+    # Custom leverage values (bounded between 0 and 1)
+    leverage_vec <- runif(n, 0.01, 0.99)
+    
+    result <- .compute_hc_multipliers(
+        X_matrix = X_matrix,
+        residuals_vec = residuals_vec,
+        leverage_vec = leverage_vec
+    )
+    
+    # HC3 divisor should match (1 - provided_leverage)^2
+    expected_divisor <- (1 - leverage_vec)^2
+    expect_equal(result$hc3_divisor, expected_divisor, tolerance = 1e-10)
+})
+
+test_that(".apply_hc1_correction scales sandwich variance by HC1 multiplier", {
+    # Generate a sample sandwich covariance matrix
+    vcov_sandwich <- matrix(c(0.01, 0.002, 0.002, 0.015), nrow = 2, ncol = 2)
+    n_clusters <- 100
+    n_parameters <- 3
+    
+    result <- .apply_hc1_correction(
+        vcov_sandwich_raw = vcov_sandwich,
+        n_clusters = n_clusters,
+        n_parameters = n_parameters
+    )
+    
+    expect_true(is.list(result))
+    expect_true("vcov" %in% names(result))
+    expect_true("multiplier" %in% names(result))
+    
+    # Multiplier should be n / (n - p)
+    expected_multiplier <- n_clusters / (n_clusters - n_parameters)
+    expect_equal(result$multiplier, expected_multiplier, tolerance = 1e-10)
+    
+    # Corrected vcov should equal raw vcov times multiplier
+    expected_vcov <- vcov_sandwich * expected_multiplier
+    expect_equal(result$vcov, expected_vcov, tolerance = 1e-10)
+})
+
+test_that(".adjust_for_design_effect computes effective sample size correction", {
+    n_clusters <- 200
+    n_parameters <- 4
+    design_effect <- 1.5  # Within-subject correlation induces design effect
+    
+    result <- .adjust_for_design_effect(
+        n_clusters = n_clusters,
+        n_parameters = n_parameters,
+        design_effect = design_effect,
+        verbose = FALSE
+    )
+    
+    expect_true(is.list(result))
+    expect_true("multiplier" %in% names(result))
+    expect_true("n_effective" %in% names(result))
+    
+    # Effective sample size: n / design_effect
+    expected_n_eff <- n_clusters / design_effect
+    expect_equal(result$n_effective, expected_n_eff, tolerance = 1e-10)
+    
+    # HC1 with effective sample size: n_eff / (n_eff - p)
+    expected_multiplier <- expected_n_eff / (expected_n_eff - n_parameters)
+    expect_equal(result$multiplier, expected_multiplier, tolerance = 1e-10)
+})
+
+test_that(".adjust_for_design_effect handles NULL and zero design_effect", {
+    n_clusters <- 100
+    n_parameters <- 3
+    
+    # NULL design_effect should default to 1 (no design effect)
+    result_null <- .adjust_for_design_effect(
+        n_clusters = n_clusters,
+        n_parameters = n_parameters,
+        design_effect = NULL,
+        verbose = FALSE
+    )
+    
+    # design_effect = 1 should give same result
+    result_one <- .adjust_for_design_effect(
+        n_clusters = n_clusters,
+        n_parameters = n_parameters,
+        design_effect = 1,
+        verbose = FALSE
+    )
+    
+    expect_equal(result_null$multiplier, result_one$multiplier, tolerance = 1e-10)
+    expect_equal(result_null$n_effective, result_one$n_effective, tolerance = 1e-10)
+    
+    # design_effect <= 0 should also default to 1
+    result_negative <- .adjust_for_design_effect(
+        n_clusters = n_clusters,
+        n_parameters = n_parameters,
+        design_effect = -0.5,
+        verbose = FALSE
+    )
+    
+    expect_equal(result_negative$multiplier, result_one$multiplier, tolerance = 1e-10)
+})

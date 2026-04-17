@@ -177,3 +177,18 @@ test_that("Package includes example data for testing", {
     # Check if readcounts data is available
     expect_true("readcounts" %in% data(package = "TSENAT")$results[, 3])
 })
+
+# ==============================================================================
+# .onLoad(): Tests for package initialization (0% coverage)
+# ==============================================================================
+
+test_that("Package loading initializes correctly", {
+  # Verify key exported functions exist
+  expect_true(exists("TSENAT_config", mode = "function"))
+  expect_true(exists("build_analysis", mode = "function"))
+  expect_true(exists("calculate_diversity", mode = "function"))
+})
+
+test_that("TSENAT package is properly attached", {
+  expect_true("package:TSENAT" %in% search())
+})

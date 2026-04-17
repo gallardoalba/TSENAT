@@ -2850,3 +2850,36 @@ test_that("entropy is scale invariant", {
     # Entropy depends only on proportions, not absolute counts
     expect_equal(result1, result2, tolerance = 1e-10)
 })
+
+# ==============================================================================
+# .apply_diversity_post_hoc_norm(): Tests for post-hoc normalization (34.6%)
+# ==============================================================================
+
+test_that(".apply_diversity_post_hoc_norm handles norm='range'", {
+  diversity_matrix <- matrix(rnorm(30, mean=2, sd=0.5), nrow=10, ncol=3)
+  
+  result <- .apply_diversity_post_hoc_norm(diversity_matrix, norm = "range")
+  
+  expect_is(result, "matrix")
+  expect_equal(dim(result), dim(diversity_matrix))
+  expect_equal(nrow(result), nrow(diversity_matrix))
+  expect_equal(ncol(result), ncol(diversity_matrix))
+})
+
+test_that(".apply_diversity_post_hoc_norm handles norm='zscore'", {
+  diversity_matrix <- matrix(rnorm(30, mean=2, sd=1), nrow=10, ncol=3)
+  
+  result <- .apply_diversity_post_hoc_norm(diversity_matrix, norm = "zscore")
+  
+  expect_is(result, "matrix")
+  expect_equal(dim(result), dim(diversity_matrix))
+})
+
+test_that(".apply_diversity_post_hoc_norm handles norm='none'", {
+  diversity_matrix <- matrix(rnorm(30, mean=2, sd=0.5), nrow=10, ncol=3)
+  
+  result <- .apply_diversity_post_hoc_norm(diversity_matrix, norm = "none")
+  
+  expect_is(result, "matrix")
+  expect_identical(result, diversity_matrix)
+})

@@ -3598,3 +3598,66 @@ test_that(".sync_filter_metadata filters tx2gene mapping", {
   expect_equal(nrow(result$tx2gene), 2)
   expect_equal(result$tx2gene$tx, c("TX1", "TX3"))
 })
+
+# ==============================================================================
+# HELPER FUNCTION TESTS: Assay index resolution (.resolve_assay_index)
+# ==============================================================================
+
+test_that(".resolve_assay_index resolves character assay name", {
+  assay_names <- c("counts", "tpm", "quantile_normalized")
+  
+  # Valid name should return matching index
+  result <- .resolve_assay_index("tpm", assay_names)
+  expect_equal(result, 2)
+  
+  # Valid first assay
+  result <- .resolve_assay_index("counts", assay_names)
+  expect_equal(result, 1)
+})
+
+test_that(".resolve_assay_index falls back to 1 for invalid character name", {
+  assay_names <- c("counts", "tpm", "quantile_normalized")
+  
+  # Invalid name should fall back to 1
+  result <- .resolve_assay_index("nonexistent", assay_names)
+  expect_equal(result, 1)
+})
+
+test_that(".resolve_assay_index resolves numeric assay index", {
+  assay_names <- c("counts", "tpm", "quantile_normalized")
+  
+  # Valid numeric index
+  result <- .resolve_assay_index(2, assay_names)
+  expect_equal(result, 2)
+  
+  # Valid first assay by index
+  result <- .resolve_assay_index(1, assay_names)
+  expect_equal(result, 1)
+})
+
+test_that(".resolve_assay_index falls back to 1 for invalid numeric index", {
+  assay_names <- c("counts", "tpm", "quantile_normalized")
+  
+  # Out of bounds index (too large)
+  result <- .resolve_assay_index(10, assay_names)
+  expect_equal(result, 1)
+  
+  # Out of bounds index (zero or negative)
+  result <- .resolve_assay_index(0, assay_names)
+  expect_equal(result, 1)
+  
+  result <- .resolve_assay_index(-1, assay_names)
+  expect_equal(result, 1)
+})
+
+test_that(".resolve_assay_index defaults to 1 for invalid input type", {
+  assay_names <- c("counts", "tpm", "quantile_normalized")
+  
+  # NULL input
+  result <- .resolve_assay_index(NULL, assay_names)
+  expect_equal(result, 1)
+  
+  # List input
+  result <- .resolve_assay_index(list(a = 1), assay_names)
+  expect_equal(result, 1)
+})

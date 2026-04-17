@@ -286,3 +286,99 @@ test_that(".format_data_frame_as_text handles special characters", {
     expect_true(grepl("Gene@1", result))
     expect_true(grepl("10%", result))
 })
+
+# ==============================================================================
+# .format_top_genes(): Tests for formatting top genes (0% coverage)
+# ==============================================================================
+
+test_that(".format_top_genes formats dataframe as tibble output", {
+  results <- data.frame(
+    gene_id = c("GENE1", "GENE2", "GENE3"),
+    gene_name = c("Name1", "Name2", "Name3"),
+    Normal_mean = c(100, 80, 120),
+    Tumor_mean = c(150, 100, 180),
+    mean_difference = c(50, 20, 60),
+    log2_fold_change = c(2.5, 1.8, 3.0),
+    pvalue = c(0.001, 0.01, 0.05),
+    padj = c(0.01, 0.05, 0.15)
+  )
+  
+  result <- .format_top_genes(
+    results_df = results,
+    gene_col = "gene_id",
+    padj_col = "padj",
+    n_top = 2
+  )
+  
+  # Should return formatted output (typically character/tibble)
+  expect_is(result, c("tbl_df", "tbl", "data.frame", "character"))
+})
+
+test_that(".format_top_genes respects n_top parameter", {
+  results <- data.frame(
+    gene_id = paste0("GENE", 1:5),
+    gene_name = paste0("Name", 1:5),
+    Normal_mean = rnorm(5, 100, 20),
+    Tumor_mean = rnorm(5, 120, 20),
+    mean_difference = rep(20, 5),
+    log2_fold_change = c(3.0, 2.5, 2.0, 1.5, 1.0),
+    pvalue = seq(0.001, 0.1, length.out = 5),
+    padj = seq(0.01, 0.15, length.out = 5)
+  )
+  
+  result_1 <- .format_top_genes(results, "gene_id", "padj", n_top = 1)
+  result_3 <- .format_top_genes(results, "gene_id", "padj", n_top = 3)
+  
+  expect_is(result_1, c("tbl_df", "tbl", "data.frame", "character"))
+  expect_is(result_3, c("tbl_df", "tbl", "data.frame", "character"))
+})
+
+test_that(".format_top_genes handles custom column selection", {
+  results <- data.frame(
+    gene_id = c("GENE1", "GENE2"),
+    Normal_mean = c(100, 80),
+    Tumor_mean = c(150, 100),
+    mean_difference = c(50, 20),
+    log2_fold_change = c(2.5, 1.8),
+    pvalue = c(0.001, 0.01),
+    padj = c(0.01, 0.05)
+  )
+  
+  custom_cols <- c("gene_id", "log2_fold_change", "padj")
+  
+  result <- .format_top_genes(
+    results_df = results,
+    gene_col = "gene_id",
+    padj_col = "padj",
+    n_top = 2,
+    select_cols = custom_cols
+  )
+  
+  expect_is(result, c("tbl_df", "tbl", "data.frame", "character"))
+})
+
+# ==============================================================================
+# .format_duration(): Tests for duration formatting (37.5%)
+# ==============================================================================
+
+test_that(".format_duration formats seconds correctly", {
+  result_sec <- .format_duration(30)
+  result_min <- .format_duration(125)
+  result_hour <- .format_duration(3661)
+  
+  expect_is(result_sec, "character")
+  expect_is(result_min, "character")
+  expect_is(result_hour, "character")
+  
+  expect_true(grepl("s|sec", result_sec))
+  expect_true(grepl("m|min", result_min))
+  expect_true(grepl("h|hour", result_hour))
+})
+
+test_that(".format_duration handles edge cases", {
+  result_zero <- .format_duration(0)
+  result_large <- .format_duration(86400)  # 24 hours
+  
+  expect_is(result_zero, "character")
+  expect_is(result_large, "character")
+})

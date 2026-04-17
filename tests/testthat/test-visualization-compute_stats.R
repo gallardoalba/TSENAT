@@ -1136,3 +1136,80 @@ testthat::test_that(".map_metadata_set_coldata_final adds condition and pairing 
   testthat::expect_equal(length(col_data$sample_type), 5)
   testthat::expect_equal(length(col_data$sample_base), 5)
 })
+
+# ==============================================================================
+# .create_summary_stats(): Tests for summary statistics (0% coverage)
+# ==============================================================================
+
+test_that(".create_summary_stats compares two methods", {
+  method1 <- data.frame(
+    gene = paste0("g", 1:10),
+    adjusted_p_values = seq(0.001, 0.05, length.out = 10),
+    log2_fold_change = rnorm(10, 1.5, 0.5)
+  )
+  
+  method2 <- data.frame(
+    gene = paste0("g", 1:10),
+    padj = seq(0.0005, 0.04, length.out = 10),
+    log2_fold_change = rnorm(10, 1.3, 0.6)
+  )
+  
+  result <- .create_summary_stats(
+    method1_results = method1,
+    method2_results = method2,
+    method1_name = "Method1",
+    method2_name = "Method2"
+  )
+  
+  expect_is(result, "data.frame")
+  expect_equal(nrow(result), 2)  # One row per method
+  expect_true("Method" %in% colnames(result))
+})
+
+test_that(".create_summary_stats includes significance counts", {
+  method1 <- data.frame(
+    adjusted_p_values = c(0.001, 0.01, 0.05, 0.1),
+    log2_fold_change = c(2.0, 1.5, 1.0, 0.5)
+  )
+  
+  method2 <- data.frame(
+    padj = c(0.005, 0.02, 0.06, 0.12),
+    log2_fold_change = c(1.8, 1.3, 0.9, 0.4)
+  )
+  
+  result <- .create_summary_stats(
+    method1_results = method1,
+    method2_results = method2,
+    method1_name = "A",
+    method2_name = "B"
+  )
+  
+  expect_is(result, "data.frame")
+  expect_true(nrow(result) == 2)
+  # Should have significance columns
+  expect_true(any(grepl("Significant", colnames(result))))
+})
+
+test_that(".create_summary_stats uses custom p-value columns", {
+  method1 <- data.frame(
+    custom_padj = c(0.001, 0.01, 0.05, 0.1),
+    log2_fold_change = c(2.0, 1.5, 1.0, 0.5)
+  )
+  
+  method2 <- data.frame(
+    other_padj = c(0.005, 0.02, 0.06, 0.12),
+    log2_fold_change = c(1.8, 1.3, 0.9, 0.4)
+  )
+  
+  result <- .create_summary_stats(
+    method1_results = method1,
+    method2_results = method2,
+    method1_name = "M1",
+    method2_name = "M2",
+    padj_col1 = "custom_padj",
+    padj_col2 = "other_padj"
+  )
+  
+  expect_is(result, "data.frame")
+  expect_equal(nrow(result), 2)
+})
