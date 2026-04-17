@@ -11,8 +11,8 @@
 <script src="deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="TSENAT">
-<meta name="description" content="Tsallis entropy generalizes Shannon entropy with a parameter q that controls sensitivity to transcript abundance. This package allows the calculation of Tsallis entropy for transcript-level expression data and differential analyses between two sample conditions. For power analysis and sample size planning, see the companion package TSENATPower.">
-<meta property="og:description" content="Tsallis entropy generalizes Shannon entropy with a parameter q that controls sensitivity to transcript abundance. This package allows the calculation of Tsallis entropy for transcript-level expression data and differential analyses between two sample conditions. For power analysis and sample size planning, see the companion package TSENATPower.">
+<meta name="description" content="Quantifies and models isoform-usage complexity in RNA-seq data using Tsallis entropy, a scale-dependent diversity measure. By tuning the entropic index parameter (q), TSENAT examines transcriptome heterogeneity at different scales: rare variants (low q) or dominant isoforms (high q). It enables computing Tsallis entropy and Tsallis divergence from transcript-level estimates, comparing measures between conditions, testing for differences, and visualizing scale-dependent complexity via q-curves.">
+<meta property="og:description" content="Quantifies and models isoform-usage complexity in RNA-seq data using Tsallis entropy, a scale-dependent diversity measure. By tuning the entropic index parameter (q), TSENAT examines transcriptome heterogeneity at different scales: rare variants (low q) or dominant isoforms (high q). It enables computing Tsallis entropy and Tsallis divergence from transcript-level estimates, comparing measures between conditions, testing for differences, and visualizing scale-dependent complexity via q-curves.">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -31,22 +31,23 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
-<li class="nav-item"><a class="nav-link" href="articles/TSENAT.html" aria-label="Home"><span class="fa fas fa-home fa-lg"></span></a></li>
+<li class="nav-item"><a class="nav-link" href="articles/index.html" aria-label="Home"><span class="fa fas fa-home fa-lg"></span></a></li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html"><span class="fa far fa-file-code fa-lg"></span> Functions</a></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://app.codecov.io/gh/gallardoalba/TSENAT"><span class="fa fas fa-chart-bar fa-lg"></span> Coverage</a></li>
 <li class="nav-item"><a class="nav-link" href="r_dependencies_s4_interactive.html"><span class="fa fas fa-sitemap fa-lg"></span> Architecture</a></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-question-circle fa-lg"></span> Issues</a></li>
 <li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-vignettes" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-file-contract fa-lg"></span> Vignettes</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-vignettes">
-<li><a class="dropdown-item" href="articles/TSENAT_appendix_A.html">Appendix A - Equivalence Validation (TSENAT vs SplicingFactory)</a></li>
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-file-contract fa-lg"></span> Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
+<li><a class="dropdown-item" href="articles/TSENAT.html">TSENAT - Theory and Practical Guide</a></li>
+    <li><a class="dropdown-item" href="articles/TSENAT_appendix_A.html">Appendix A - Equivalence Validation (TSENAT vs SplicingFactory)</a></li>
     <li><a class="dropdown-item" href="articles/TSENAT_appendix_B.html">Appendix B - Non-Parametric Validation (Linear Model, GAM, Rank-Based)</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-book fa-lg"></span> Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="articles/TSENAT.pdf">Main Article</a></li>
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-documents" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-book fa-lg"></span> Documents</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-documents">
+<li><a class="dropdown-item" href="articles/TSENAT.pdf">TSENAT - Theory and Practical Guide</a></li>
     <li><a class="dropdown-item" href="articles/TSENAT_appendix_A.pdf">Appendix A: Equivalence Validation</a></li>
     <li><a class="dropdown-item" href="articles/TSENAT_appendix_B.pdf">Appendix B: Non-Parametric Validation</a></li>
   </ul>
@@ -55,7 +56,9 @@
 <li class="nav-item"><a class="nav-link" href="citations.html"><span class="fa fas fa-book-open fa-lg"></span> References</a></li>
       </ul>
 <ul class="navbar-nav">
-
+<li class="nav-item"><form class="form-inline" role="search">
+ <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="search.json">
+</form></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
@@ -122,11 +125,6 @@
 <p>Or the development version from GitHub:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"gallardoalba/TSENAT"</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="package-architecture">Package Architecture<a class="anchor" aria-label="anchor" href="#package-architecture"></a>
-</h2>
-<p>Get a visual overview of TSENAT’s structure with our <a href="https://gallardoalba.github.io/TSENAT/r_dependencies_s4_interactive.html">interactive dependency graph</a>, which maps S4 classes, R package imports, and their interconnections. This helps you understand how different components work together.</p>
 </div>
 <div class="section level2">
 <h2 id="quick-start">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
@@ -330,6 +328,12 @@ SRR14800478   tumor        B</code></pre>
 <h2 id="tests-coverage">Tests coverage<a class="anchor" aria-label="anchor" href="#tests-coverage"></a>
 </h2>
 <p>Testing is vital in research as it ensures the validity and reliability of results, which is essential for accurately interpreting findings. The report about the current testing coverage can be found <a href="https://app.codecov.io/gh/gallardoalba/TSENAT" class="external-link">here</a>.</p>
+</div>
+<div class="section level2">
+<h2 id="package-architecture">Package Architecture<a class="anchor" aria-label="anchor" href="#package-architecture"></a>
+</h2>
+<p>Get a visual overview of TSENAT’s structure in <a href="https://gallardoalba.github.io/TSENAT/r_dependencies_s4_interactive.html">package architecture</a>. This helps you understand how the 600+ functions that integrate TSENAT work together.</p>
+<p><img width="1200" height="738" alt="dependency_graph_2026-04-17" src="https://github.com/user-attachments/assets/3f9ca1e0-1848-4389-905a-2b2617a2e40a"></p>
 </div>
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
