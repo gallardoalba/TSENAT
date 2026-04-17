@@ -2066,7 +2066,7 @@ test_that(".fit_gam_fallback returns valid structure", {
   df <- data.frame(
     response = rnorm(20),
     subject = rep(1:5, 4),
-    q_diversity = rep(seq(0, 1, by = 0.25), 5)
+    q_diversity = rep(seq(0, 1, by = 0.25), 4)
   )
   
   result <- .fit_gam_fallback(
