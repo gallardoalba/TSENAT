@@ -43,28 +43,50 @@
     }
 }
 
-# Helper: Estimate autocorrelation rho from differenced entropy data Used to
-# compute design effect for bias correction Helper: Compute AR(1) design effect
-# (NOT Kish formula for exchangeable ICC) CRITICAL CORRECTION March 2026:
-# Previous code mistakenly used Kish formula designed for exchangeable
-# correlation (ICC), but TSENAT uses AR(1) correlation after ARIMA(1,1,0)
-# differencing. These are fundamentally different.  For AR(1) correlation with
-# autocorrelation coefficient phi: D_eff = (1 + phi) / (1 - phi) [for large m:
-# m >> 1] For moderate m (typical in multi-q designs where m = q-values per
-# subject): D_eff = (1 + phi) / (1 - phi) * [1 - phi^m] / [m - (m-1)phi^m] This
-# formula assumes: - rho applied to DIFFERENCED entropy (ARIMA(1,1,0) applied
-# first) - m = cluster_size = observations per subject (typically q-values) -
-# phi = autocorrelation on differenced data (0 < phi < 1) Reference: Diggle et
-# al. (2002) 'Analysis of Longitudinal Data' Section 4.3 Crowder (1995)
-# 'Generalised Estimating Equations for repeated measurements' Liang & Zeger
-# (1986) 'Longitudinal data analysis using GEE' COMPARISON: Why AR(1) formula
-# differs from Kish: Kish formula 1 + (m-1)rho: Assumes exchangeable
-# correlation (ICC) - All pairs equally correlated with ICC rho - Appropriate
-# for clusters with homogeneous correlation AR(1) formula (1+phi)/(1-phi):
-# Assumes geometric correlation decay - Correlation decreases as lag k
-# increases: Corr(t, t+k) = phi^k - Appropriate for ordered measurements (like
-# q-values) - Applied to differenced data (ARIMA(1,1,0) stationarity)
-
+# ==============================================================================
+# Helper: Compute AR(1) design effect for autocorrelated entropy differences
+# ==============================================================================
+# PURPOSE:
+#   Estimates autocorrelation (rho) from differenced entropy data and computes
+#   design effect for bias correction in analysis. This is NOT the Kish formula
+#   (which assumes exchangeable ICC); TSENAT uses AR(1) correlation structure
+#   after ARIMA(1,1,0) differencing.
+#
+# CRITICAL CORRECTION (March 2026):
+#   Previous code mistakenly used Kish formula designed for exchangeable
+#   correlation (ICC). TSENAT uses AR(1) correlation after differencing—
+#   fundamentally different structures.
+#
+# AR(1) DESIGN EFFECT FORMULA:
+#   For large m (m >> 1):
+#     D_eff = (1 + phi) / (1 - phi)
+#
+#   For moderate m (typical multi-q designs, m = q-values per subject):
+#     D_eff = (1 + phi) / (1 - phi) * [1 - phi^m] / [m - (m-1)*phi^m]
+#
+# PARAMETERS ASSUMED:
+#   - rho applied to DIFFERENCED entropy (ARIMA(1,1,0) applied first)
+#   - m = cluster_size = observations per subject (typically q-values)
+#   - phi = autocorrelation on differenced data (0 < phi < 1)
+#
+# REFERENCES:
+#   - Diggle et al. (2002) 'Analysis of Longitudinal Data' Section 4.3
+#   - Crowder (1995) 'Generalised Estimating Equations for repeated measurements'
+#   - Liang & Zeger (1986) 'Longitudinal data analysis using GEE'
+#
+# COMPARISON: AR(1) vs Kish Formula
+#   ┌─────────────────────────────────────────────────────────────────┐
+#   │ KISH FORMULA: 1 + (m-1)*rho                                     │
+#   │   - Assumes exchangeable correlation (ICC)                      │
+#   │   - All pairs equally correlated with ICC rho                   │
+#   │   - Appropriate for clusters with homogeneous correlation       │
+#   │                                                                 │
+#   │ AR(1) FORMULA: (1+phi)/(1-phi)                                  │
+#   │   - Assumes geometric correlation decay                         │
+#   │   - Correlation decreases as lag k increases: Corr(t,t+k)=phi^k│
+#   │   - Appropriate for ordered measurements (like q-values)        │
+#   │   - Applied to differenced data (ARIMA(1,1,0) stationarity)     │
+#   └─────────────────────────────────────────────────────────────────┘
 .ar1_design_effect <- function(rho, cluster_size) {
     # Compute design effect for AR(1) correlation Args: rho: autocorrelation
     # coefficient phi on differenced data (0 <= phi <= 1) cluster_size: m =
@@ -162,80 +184,109 @@
     return(rho_est)
 }
 
-# Helper: Knot selection for Tsallis entropy curve fitting Tsallis entropy is
-# MATHEMATICALLY GUARANTEED to be monotone decreasing in q Therefore,
-# k-selection uses a simple fixed formula based on number of unique q-values
-# This ensures adequate smoothing without noise-driven over-complexity
-# Historical note: Earlier versions attempted CV-based adaptation to detect
-# curve complexity, but this was backwards for monotone data (high CV indicates
-# noise) Current approach: k = max(min_k, min(max_k, n_q_unique - 1))
-# Principle: Use at most (# unique q values - 1) basis functions This provides
-# data-driven parsimony while ensuring sufficient flexibility Reference: Wood
-# (2006) Generalized Additive Models; enforced via fixed formula for
-# mathematical monotonicity property of Tsallis entropy STATIONARITY VALIDATION
-# FRAMEWORK FOR TSALLIS ENTROPY MODELING
-# ================================================================ MATHEMATICAL
-# JUSTIFICATION: Tsallis entropy H_q is monotone DECREASING in q parameter
-# (proven in Tsallis 1988) This monotonicity makes the series NON-STATIONARY
-# (systematic/deterministic trend) AR(1) models assume stationarity (constant
-# mean/variance around trend) Solution: ARIMA(1,1,0) = Apply AR(1) to FIRST
-# DIFFERENCES DeltaH_q = H_q - H_{q-1} This removes the trend (differencing)
-# allowing AR(1) to model residual correlation VALIDATION FRAMEWORK: Four
-# complementary tests to validate assumptions
-# ======================================================================== TEST
-# 1: Monotonicity Check (Visual) Purpose: Detect q-value ordering issues or
-# data quality problems Method: Count decreasing vs increasing pairs in ordered
-# q-values Expected for Tsallis: >95% pairs should be decreasing (monotone)
-# TEST 2: Augmented Dickey-Fuller (ADF) Test for Unit Root Null Hypothesis
-# (H0): Series has unit root (non-stationary) Alternative (H1): Series is
-# stationary Expected for raw Tsallis entropy: FAIL to reject H0
-# (non-stationary with unit root) Expected for differenced data: REJECT H0
-# (stationary, no unit root) Reference: Dickey & Fuller (1979, 1981); MacKinnon
-# (1996) for critical values TEST 3: KPSS Test (Reverse of ADF) Null Hypothesis
-# (H0): Series IS stationary Alternative (H1): Series is NON-stationary
-# Expected for raw Tsallis entropy: REJECT H0 (non-stationary) Expected for
-# differenced data: FAIL to reject H0 (stationary) Reference: Kwiatkowski,
-# Phillips, Schmidt & Shin (1992) TEST 4: Integration Order Validation Apply
-# ADF/KPSS to differenced data Confirms that ARIMA(1,1,0) with integration
-# order d=1 is appropriate Expected: Differenced data should be I(0) -
-# integrated of order 0 (stationary) DECISION LOGIC FOR ARIMA(1,1,0): Use
-# ARIMA(1,1,0) if ALL conditions met: [OK] Raw data is NON-monotone (>5%
-# violations) OR fails stationarity tests [OK] ADF test FAILs to reject H0 on
-# raw data (has unit root) [OK] KPSS test REJECTs H0 on raw data
-# (non-stationary) [OK] ADF test REJECTs H0 on differenced data (stationary)
-# [OK] KPSS test FAILs to reject H0 on differenced data (stationary)
-# REFERENCES: Dickey, D. A., & Fuller, W. A. (1979). Distribution of the
-# estimators for autoregressive time series with a unit root. Journal of the
-# American Statistical Association, 74(366), 427-431.  Kwiatkowski, D.,
-# Phillips, P. C., Schmidt, P., & Shin, Y. (1992). Testing the null hypothesis
-# of stationarity against the alternative of a unit root.  Journal of
-# Econometrics, 54(1-3), 159-178.  MacKinnon, J. G. (1996). Numerical
-# distribution functions for unit root and cointegration tests. Journal of
-# Applied Econometrics, 11(6), 601-618.  Tsallis, C. (1988). Possible
-# generalization of Boltzmann-Gibbs statistics.  Journal of Statistical
-# Physics, 52(1), 479-487.
+# ==============================================================================
+# Helper: Knot Selection for Tsallis Entropy Curve Fitting
+# ==============================================================================
+# MATHEMATICAL FOUNDATION:
+#   Tsallis entropy H_q is MATHEMATICALLY GUARANTEED to be monotone decreasing
+#   in q. Therefore, k-selection uses a simple fixed formula based on the
+#   number of unique q-values. This ensures adequate smoothing without
+#   noise-driven over-complexity.
+#
+# KNOT SELECTION FORMULA:
+#   k = max(min_k, min(max_k, n_q_unique - 1))
+#
+#   Principle: Use at most (# unique q values - 1) basis functions. This
+#   provides data-driven parsimony while ensuring sufficient flexibility.
+#
+# HISTORICAL NOTE:
+#   Earlier versions attempted CV-based adaptation to detect curve complexity,
+#   but this was backwards for monotone data (high CV indicates noise, not
+#   complexity). Current fixed approach is superior for this problem.
+#
+# REFERENCE:
+#   Wood (2006) Generalized Additive Models; approach enforced via fixed
+#   formula to respect mathematical monotonicity property of Tsallis entropy
 
-# STATIONARITY VALIDATION FRAMEWORK ===================================
-# Validates core mathematical assumptions before applying AR(1) models
-# Reference: Null hypothesis tests for time series stationarity (Dickey-Fuller,
-# KPSS) For Tsallis entropy in ordered q-values: - Raw data: H_q is monotone
-# decreasing -> SHOULD BE NON-STATIONARY - Differenced: DeltaH_q = H_q -
-# H_{q-1} -> SHOULD BE STATIONARY These tests VALIDATE the ARIMA(1,1,0)
-# modeling approach
+# ==============================================================================
+# STATIONARITY VALIDATION FRAMEWORK FOR TSALLIS ENTROPY MODELING
+# ==============================================================================
+# MATHEMATICAL JUSTIFICATION:
+#   - Tsallis entropy H_q is monotone DECREASING in q (proven in Tsallis 1988)
+#   - This monotonicity makes the series NON-STATIONARY (systematic/deterministic trend)
+#   - AR(1) models assume stationarity (constant mean/variance around trend)
+#   - SOLUTION: ARIMA(1,1,0) applies AR(1) to FIRST DIFFERENCES
+#   - DeltaH_q = H_q - H_{q-1} removes the trend (differencing)
+#   - Then AR(1) can model residual correlation in the differenced series
+#
+# VALIDATION FRAMEWORK:
+#   Four complementary tests validate core assumptions before ARIMA(1,1,0)
+#
+# TEST 1: Monotonicity Check (Visual Validation)
+#   Purpose: Detect q-value ordering issues or data quality problems
+#   Method: Count decreasing vs increasing pairs in ordered q-values
+#   Expected for Tsallis: >95% pairs should be decreasing (monotone)
+#
+# TEST 2: Augmented Dickey-Fuller (ADF) Test for Unit Root
+#   H0 (Null): Series has unit root (non-stationary)
+#   H1 (Alt):  Series is stationary
+#   Expected for raw Tsallis entropy: FAIL to reject H0 (non-stationary with unit root)
+#   Expected for differenced data:    REJECT H0 (stationary, no unit root)
+#   Reference: Dickey & Fuller (1979, 1981); MacKinnon (1996)
+#
+# TEST 3: KPSS Test (Reverse of ADF)
+#   H0 (Null): Series IS stationary
+#   H1 (Alt):  Series is NON-stationary
+#   Expected for raw Tsallis entropy: REJECT H0 (non-stationary)
+#   Expected for differenced data:    FAIL to reject H0 (stationary)
+#   Reference: Kwiatkowski, Phillips, Schmidt & Shin (1992)
+#
+# TEST 4: Integration Order Validation
+#   Apply ADF/KPSS to differenced data to confirm ARIMA(1,1,0) appropriateness
+#   Expected: Differenced data should be I(0)—integrated of order 0 (stationary)
+#
+# DECISION LOGIC FOR ARIMA(1,1,0):
+#   Use ARIMA(1,1,0) if ALL conditions met:
+#   ✓ Raw data is NON-monotone (>5% violations) OR fails stationarity tests
+#   ✓ ADF test FAILs to reject H0 on raw data (has unit root)
+#   ✓ KPSS test REJECTs H0 on raw data (non-stationary)
+#   ✓ ADF test REJECTs H0 on differenced data (stationary)
+#   ✓ KPSS test FAILs to reject H0 on differenced data (stationary)
+#
+# REFERENCES:
+#   Dickey, D. A., & Fuller, W. A. (1979). Distribution of the estimators for
+#     autoregressive time series with a unit root. J American Statistical
+#     Association, 74(366), 427-431.
+#   Kwiatkowski, D., Phillips, P. C., Schmidt, P., & Shin, Y. (1992). Testing
+#     the null hypothesis of stationarity against the alternative of a unit root.
+#     Journal of Econometrics, 54(1-3), 159-178.
+#   MacKinnon, J. G. (1996). Numerical distribution functions for unit root and
+#     cointegration tests. Journal of Applied Econometrics, 11(6), 601-618.
+#   Tsallis, C. (1988). Possible generalization of Boltzmann-Gibbs statistics.
+#     Journal of Statistical Physics, 52(1), 479-487.
 
-# ===============================================================================
+# ==============================================================================
 # RESIDUAL DIAGNOSTICS: Shapiro-Wilk Normality Testing
-# ===============================================================================
-# DATABASE EVIDENCE (March 2026): * Alberghina & Westerhoff (2001), Systems
-# Biology (2001) - Foundations of Systems Biology * B004 (2008) - LINEAR MODELS
-# IN [Systems Biology] * Springer Handbook (2006) (2006) - Springer Handbook of
-# Statistical Methods Purpose: Verify that residuals from GAM/LMM/GEE models
-# satisfy normality assumption Method: Shapiro-Wilk test on model residuals
-# (tests H0: residuals are normal) Standard Practice: Applied universally in
-# statistical modeling literature Interpretation: * p > 0.05: Fail to reject H0
-# -> Residuals appear normal [OK] * p <= 0.05: Reject H0 -> Residuals show
-# significant departure from normality ?  Implementation: Extract residuals
-# from fitted model, apply shapiro.test()
+# ==============================================================================
+# PURPOSE:
+#   Verify that residuals from GAM/LMM/GEE models satisfy normality assumption.
+#   This is a standard diagnostic for validating statistical model assumptions.
+#
+# DATABASE EVIDENCE (March 2026):
+#   - Alberghina & Westerhoff (2001): Foundations of Systems Biology
+#   - B004 (2008): Linear Models in Systems Biology
+#   - Springer Handbook (2006): Springer Handbook of Statistical Methods
+#
+# METHOD:
+#   Shapiro-Wilk test on model residuals (tests H0: residuals are normal)
+#   Standard Practice: Applied universally in statistical modeling literature
+#
+# INTERPRETATION:
+#   - p > 0.05: Fail to reject H0 → Residuals appear normal [OK]
+#   - p ≤ 0.05: Reject H0 → Residuals show significant departure from normality [?]
+#
+# IMPLEMENTATION:
+#   Extract residuals from fitted model, apply shapiro.test()
 
 .test_residual_normality <- function(model, model_type = c("gam", "gamm", "lme",
     "gee"), verbose = FALSE) {
@@ -629,18 +680,25 @@
             kpss_diff$report, if (arima_justified) "[OK] ARIMA(1,1,0) assumptions validated" else "? Issues detected")))
 }
 
+
+# ==================================================================
+# ARIMA(1,1,0) Implementation: Compute First Differences of Entropy
+# ==================================================================
+# BACKGROUND:
+#   - Tsallis entropy H_q is monotone decreasing in q (non-stationary)
+#   - AR(1) assumes stationarity (constant mean, variance)
+#   - Solution: Apply AR(1) to first differences DeltaH_q = H_q - H_{q-1}
+#   - Result: ARIMA(1,1,0) = Integrated AR(1) = AR(1) on differenced data
+#
+# IMPLEMENTATION STEPS:
+#   1. Order data by q-values to ensure proper differencing
+#   2. Compute differences within each subject (NOT across subjects)
+#   3. Return data frame with differenced entropy, q values, group, subject
+#   4. Note: Loses 1 observation per subject (trade-off for stationarity)
+#
+# RETURNS:
+#   list(df_diff, n_lost_obs) or NULL if insufficient data
 .compute_arima_differences <- function(df, q_vals, group_vec, subject_vec = NULL) {
-    # ARIMA(1,1,0) implementation: compute first differences of entropy
-    # Background: - Tsallis entropy H_q is monotone decreasing in q
-    # (non-stationary) - AR(1) assumes stationarity (constant mean, variance) -
-    # Solution: Apply AR(1) to first differences DeltaH_q = H_q - H_{q-1} -
-    # Result: ARIMA(1,1,0) = Integrated AR(1) = AR(1) on differenced data
-    # Implementation notes: 1. Order data by q-values to ensure proper
-    # differencing 2. Compute differences within each subject (not across
-    # subjects) 3. Return data frame with differenced entropy, q values, group,
-    # subject 4. Note: Loses 1 observation per subject (trade-off for
-    # stationarity) Returns: list(df_diff, n_lost_obs) or NULL if insufficient
-    # data
 
     if (is.null(df) || nrow(df) == 0) {
         return(NULL)

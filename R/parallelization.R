@@ -23,8 +23,14 @@
     return(max(1, nthreads))
 }
 
-# Select and initialize parallel backend @param nthreads Number of threads to
-# use (default: 1) @return BiocParallel BPPARAM object
+# ==============================================================================
+# Select and Initialize Parallel Backend
+# ==============================================================================
+# PARAMETERS:
+#   nthreads: Number of threads to use (default: 1)
+#
+# RETURNS:
+#   BiocParallel BPPARAM object
 .get_bpparam <- function(nthreads = 1) {
     # Apply environment variable constraints
     nthreads <- .get_effective_nthreads(nthreads)
@@ -41,10 +47,15 @@
     }
 }
 
-# Apply function in parallel using the best available backend @param X Vector
-# or list to iterate over @param FUN Function to apply @param nthreads Number
-# of threads (default: 1) @param SIMPLIFY Whether to simplify results (default:
-# TRUE) @param FUN.VALUE Template for vapply (optional)
+# ==============================================================================
+# Apply Function in Parallel Using Best Available Backend
+# ==============================================================================
+# PARAMETERS:
+#   X:         Vector or list to iterate over
+#   FUN:       Function to apply
+#   nthreads:  Number of threads (default: 1)
+#   SIMPLIFY:  Whether to simplify results (default: TRUE)
+#   FUN.VALUE: Template for vapply (optional)
 .bplapply <- function(X, FUN, nthreads = 1, SIMPLIFY = TRUE, FUN.VALUE = NULL) {
     if (nthreads <= 1) {
         # Serial execution
@@ -67,9 +78,14 @@
     }
 }
 
-# Apply function over two vectors in parallel @param X First vector or list
-# @param Y Second vector or list @param FUN Function to apply (takes two
-# arguments) @param nthreads Number of threads (default: 1)
+# ==============================================================================
+# Apply Function Over Two Vectors in Parallel
+# ==============================================================================
+# PARAMETERS:
+#   X:        First vector or list
+#   Y:        Second vector or list
+#   FUN:      Function to apply (takes two arguments)
+#   nthreads: Number of threads (default: 1)
 .bpmapply <- function(X, Y, FUN, nthreads = 1) {
     if (nthreads <= 1) {
         return(unname(mapply(FUN, X, Y, SIMPLIFY = FALSE)))
@@ -79,11 +95,18 @@
     return(unname(BiocParallel::bpmapply(FUN, X, Y, BPPARAM = bpparam, SIMPLIFY = FALSE)))
 }
 
-# Auto-detect and validate number of threads for parallel execution If nthreads
-# is NULL or < 1, auto-detects available cores (minus 1) Otherwise uses
-# provided value. Always applies environment constraints.  @param nthreads
-# Integer or NULL; number of threads (default: NULL for auto-detect) @return
-# Validated number of threads respecting environment limits
+# ==============================================================================
+# Auto-Detect and Validate Number of Threads
+# ==============================================================================
+# DESCRIPTION:
+#   Auto-detects available cores (minus 1) if nthreads is NULL or < 1.
+#   Otherwise uses provided value. Always applies environment constraints.
+#
+# PARAMETERS:
+#   nthreads: Integer or NULL; number of threads (default: NULL for auto-detect)
+#
+# RETURNS:
+#   Validated number of threads respecting environment limits
 .get_nthreads_auto_detect <- function(nthreads = NULL) {
     if (is.null(nthreads) || nthreads < 1) {
         # Auto-detect available cores, leaving one free for system

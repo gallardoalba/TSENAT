@@ -165,42 +165,61 @@
     list(mat_sub = mat_sub, used_samples = rownames(mat_sub))
 }
 
-# FPCA Helper Functions Extracted from .fpca_interaction() to reduce function
-# complexity Bioconductor compliance: All functions < 50 lines Functional
+# FPCA Helper Functions
+# Extracted from .fpca_interaction() to reduce function
+# complexity 
+# Bioconductor compliance: All functions < 50 lines 
 # Principal Component Analysis (FPCA) for entropy curves RESPECTS Q-VALUE
-# ORDERING: - Unlike independent q analysis, this method treats q-values as
-# ORDERED measurements - Creates 'curve matrix' with q-values as columns
-# (ordered) and samples as rows - PCA on ordered curves naturally yields smooth
-# functional components - This implicitly captures the AR(1) correlation
-# structure (Zimmerman & Harville, 1991) Papers S168-S171 validate AR(1) for
-# ordered measurements: - S171 (PRIMARY): Generalized AR(1) covariance in
-# functional/smooth data contexts - S168-S170: Theoretical foundation and
-# empirical validation of AR(1) ordering - S170: ACF structure confirms
-# correlation decays geometrically across q-order How FPCA respects ordering
-# and stationarity: 1. ARIMA(1,1,0) differencing (applied BEFORE curve matrix)
-# ensures stationarity - Removes monotone trend by differencing: DeltaH_q = H_q
-# - H_{q-1} - AR(1) correlation model fits to DeltaH_q (differenced data), not
-# raw H_q 2. Curve matrix has q-values as columns (preserves sequential order)
-# 3. PCA on differenced curves decomposes VARIANCE around mean (centered data)
-# - PC1 captures primary mode of shape variation (e.g., steepness of decrease)
-# - PC2, PC3 capture secondary shape variations - Each PC is orthogonal
-# functional basis (smooth patterns) 4. t-test on each PC tests whether curve
-# SHAPES differ by group (not AR(1) structure) - If groups have same curve
-# shape but different intercepts: PC1 differs, PC2+ match - If groups have
-# different curve shapes: multiple PCs differ - This tests functional/shape
-# differences, not correlation structure per se IMPORTANT CLARIFICATION: -
-# AR(1) correlation structure is modeled in differenced data (before PCA) - PCA
-# does NOT model AR(1) structure; it decomposes centered variance - FPCA
-# testing detects curve SHAPE differences between groups - TEST L.1.6
-# Validation confirms differenced data follow AR(1) pattern: rho(k) = phi^|k| -
-# Stationarity is achieved via differencing; functional basis (smooth PCs) is
-# appropriate for resulting stationary data
+# ORDERING: 
+#   - Unlike independent q analysis, this method treats q-values as
+# ORDERED measurements 
+#   - Creates 'curve matrix' with q-values as columns (ordered) and samples as rows
+#   - PCA on ordered curves naturally yields smooth
+# functional components 
+#   - This implicitly captures the AR(1) correlation structure (Zimmerman & Harville, 1991)
+#
+# PAPER VALIDATION (AR(1) for ordered measurements):
+#   S171 (PRIMARY): Generalized AR(1) covariance in functional/smooth data
+#   S168-S170: Theoretical foundation and empirical validation of AR(1) ordering
+#   S170: ACF structure confirms correlation decays geometrically across q-order
+#
+# HOW FPCA RESPECTS ORDERING AND STATIONARITY:
+#
+#   1. ARIMA(1,1,0) differencing (applied BEFORE curve matrix):
+#      - Removes monotone trend by differencing: DeltaH_q = H_q - H_{q-1}
+#      - AR(1) correlation model fits to DeltaH_q (differenced data), not raw H_q
+#
+#   2. Curve matrix: q-values as columns (preserves sequential order)
+#
+#   3. PCA on differenced curves: decomposes VARIANCE around mean (centered data)
+#      - PC1: primary mode of shape variation (e.g., steepness of decrease)
+#      - PC2, PC3: secondary shape variations
+#      - Each PC: orthogonal functional basis (smooth patterns)
+#
+#   4. t-test on each PC: tests whether curve SHAPES differ by group (NOT AR(1) structure)
+#      - Same shape, different intercepts   → PC1 differs only, PC2+ match
+#      - Different curve shapes              → multiple PCs differ
+#      - Tests functional/shape differences, NOT correlation structure per se
+#
+# IMPORTANT CLARIFICATION:
+#   - AR(1) structure:        modeled in differenced data (before PCA)
+#   - PCA role:               decomposes centered variance, does NOT model AR(1)
+#   - FPCA testing detects:   curve SHAPE differences between groups (TEST L.1.6)
+#   - Stationarity:           achieved via differencing; smooth PCs appropriate
+#   - Validation pattern:     differenced data follow AR(1): rho(k) = phi^|k|
 
-# Apply ARIMA(1,1,0) differencing for stationarity Computes first differences
-# within subjects (paired design) FPCA-specific version (different signature
-# from GEE version) @param df Data frame with entropy, q, group, subject,
-# sample_name columns @return Data frame with differenced values (or original
-# if unpaired)
+# ==============================================================================
+# Apply ARIMA(1,1,0) Differencing for Stationarity
+# ==============================================================================
+# DESCRIPTION:
+#   Computes first differences within subjects (paired design).
+#   FPCA-specific version (different signature from GEE version).
+#
+# PARAMETERS:
+#   df: Data frame with entropy, q, group, subject, sample_name columns
+#
+# RETURNS:
+#   Data frame with differenced values (or original if unpaired)
 .apply_arima_differencing_fpca <- function(df) {
     if (nrow(df) == 0) {
         return(df)
@@ -290,9 +309,18 @@
     curve_mat[good_rows, , drop = FALSE]
 }
 
-# Impute missing values in curve matrix using column means Uses vectorized
-# operation for efficiency (10-20x faster than row-by-row) @param curve_mat
-# Curve matrix with potential NA values @return Imputed curve matrix
+# ==============================================================================
+# Impute Missing Values in Curve Matrix
+# ==============================================================================
+# DESCRIPTION:
+#   Fills missing values using column means.
+#   Uses vectorized operation for efficiency (10-20x faster than row-by-row).
+#
+# PARAMETERS:
+#   curve_mat: Curve matrix with potential NA values
+#
+# RETURNS:
+#   Imputed curve matrix
 .impute_curve_matrix <- function(curve_mat) {
     col_means <- apply(curve_mat, 2, function(col) mean(col, na.rm = TRUE))
     na_mask <- is.na(curve_mat)
@@ -317,13 +345,20 @@
 # based on subject information CRITICAL CLARIFICATION: What FPCA testing
 # actually validates: - Tests whether curve SHAPES differ between groups
 # (functional difference) - If groups have SAME shape but different intercepts:
-# only PC1 differs (level shift) - If groups have DIFFERENT shapes: multiple
-# PCs differ (shape variation) - AR(1) structure is modeled in differenced data
-# (before PCA) - PCA tests shape differences, NOT AR(1) correlation structure
-# @param pc_vals PC scores for all samples @param grp_vals Group assignments
-# @param subj_vals Subject identifiers (NULL for unpaired) @param g1 First
-# group value @param g2 Second group value @return P-value from test (or NA if
-# test fails)
+# only PC1 differs (level shift)
+#   - If groups have DIFFERENT shapes: multiple PCs differ (shape variation)
+#   - AR(1) structure: modeled in differenced data (before PCA)
+#   - PCA tests: shape differences, NOT AR(1) correlation structure
+#
+# PARAMETERS:
+#   pc_vals:   PC scores for all samples
+#   grp_vals:  Group assignments
+#   subj_vals: Subject identifiers (NULL for unpaired)
+#   g1:        First group value
+#   g2:        Second group value
+#
+# RETURNS:
+#   P-value from test (or NA if test fails)
 .test_pc_groupdiff <- function(pc_vals, grp_vals, subj_vals, g1, g2) {
     pc_g1 <- pc_vals[grp_vals == g1]
     pc_g2 <- pc_vals[grp_vals == g2]
@@ -356,14 +391,27 @@
     }
 }
 
-# Determine optimal number of PCs to test Balances variance explanation (80%)
-# with parsimony (2-5 PCs) PC selection strategy: Include enough PCs to explain
-# 80% of variance - Minimum 2 PCs (ensure sufficient multi-dimensional testing)
-# - Maximum 5 PCs (avoid testing too many highly-correlated features)
-# Rationale: 80% threshold balances parsimony (fewer PCs) against capturing
-# true functional variation in q-curves. 2-5 PCs provides stable dimension
-# reduction while remaining interpretable for shape-difference detection.
-# @param pca PCA result object (from prcomp) @return Number of PCs to test
+# ==============================================================================
+# Determine Optimal Number of PCs to Test
+# ==============================================================================
+# STRATEGY:
+#   Balances variance explanation (80%) with parsimony (2-5 PCs).
+#
+# PC SELECTION RULES:
+#   - Include enough PCs to explain 80% of variance
+#   - Minimum: 2 PCs (ensure sufficient multi-dimensional testing)
+#   - Maximum: 5 PCs (avoid testing too many highly-correlated features)
+#
+# RATIONALE:
+#   80% threshold balances parsimony (fewer PCs) against capturing true
+#   functional variation in q-curves. 2-5 PCs provides stable dimension
+#   reduction while remaining interpretable for shape-difference detection.
+#
+# PARAMETERS:
+#   pca: PCA result object (from prcomp)
+#
+# RETURNS:
+#   Number of PCs to test
 .select_npc <- function(pca) {
     cumsum_var <- cumsum(pca$sdev^2)/sum(pca$sdev^2)
     var_threshold <- 0.8  # Explains 80% of variance
