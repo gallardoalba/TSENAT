@@ -465,6 +465,10 @@ document.addEventListener('DOMContentLoaded', window.ensureGlobalFunctions, fals
         <button onclick="window.safeCall('switchColorMode', 'centrality')" class="color-mode-btn" style="padding: 4px; font-size: 8px; background: #e8e8e8; border: 1px solid #999; border-radius: 3px; cursor: pointer;">Centrality</button>
     </div>
     
+    <!-- Display Options -->
+    <div style="font-weight: bold; margin-top: 12px; margin-bottom: 8px; font-size: 12px; border-bottom: 2px solid #333; padding-bottom: 6px;">Display</div>
+    <button onclick="window.safeCall('toggleNodeNames')" id="btn-toggle-names" title="Show/hide function names on nodes" style="display: block; width: 100%; padding: 5px; margin: 3px 0; background: #2196F3; border: 1px solid #0b7dda; border-radius: 3px; cursor: pointer; font-size: 8px; color: white; font-weight: bold;">👁️ Show Names</button>
+    
     <!-- Filter Nodes -->
     <div style="font-weight: bold; margin-top: 12px; margin-bottom: 8px; font-size: 12px; border-bottom: 2px solid #333; padding-bottom: 6px;">Filter:</div>
     <div style="display: flex; gap: 3px; margin-bottom: 6px;">
@@ -1785,6 +1789,12 @@ document.addEventListener('DOMContentLoaded', window.ensureGlobalFunctions, fals
         try {
             console.log('Calling Plotly.react with', layoutData.data.length, 'traces');
             Plotly.react(plotDiv, layoutData.data, layoutData.layout, {responsive: true});
+            
+            // Reset stored text when layout changes
+            setTimeout(() => {
+                window.originalNodeText = [];
+            }, 60);
+            
             setTimeout(resizePlotly, 50);
             
             // Reapply current color mode AFTER layout is rendered
@@ -1795,6 +1805,47 @@ document.addEventListener('DOMContentLoaded', window.ensureGlobalFunctions, fals
         } catch(e) {
             console.error('Error switching layout:', e);
         }
+    };
+    
+    // ============ TOGGLE NODE NAMES ============
+    window.nodeNamesVisible = true;  // Track whether node names are shown
+    window.originalNodeText = [];    // Store original text for restoration
+    
+    window.toggleNodeNames = function() {
+        const plotDiv = document.querySelector('.plotly-graph-div');
+        if (!plotDiv || !plotDiv.data) return;
+        
+        // Store original text on first call
+        if (window.originalNodeText.length === 0) {
+            window.originalNodeText = plotDiv.data.map(trace => trace.text || []);
+        }
+        
+        window.nodeNamesVisible = !window.nodeNamesVisible;
+        
+        // Update all traces to show/hide text
+        const newText = window.originalNodeText.map(text => {
+            if (!text) return [];
+            if (window.nodeNamesVisible) {
+                return text;
+            } else {
+                return Array(text.length).fill('');
+            }
+        });
+        
+        // Update button appearance
+        const btn = document.getElementById('btn-toggle-names');
+        if (btn) {
+            if (window.nodeNamesVisible) {
+                btn.textContent = '👁️ Show Names';
+                btn.style.background = '#2196F3';
+            } else {
+                btn.textContent = '👁️ Hide Names';
+                btn.style.background = '#6c757d';
+            }
+        }
+        
+        Plotly.restyle(plotDiv, { text: newText });
+        showToast(window.nodeNamesVisible ? '👁️ Names Shown' : '👁️ Names Hidden');
     };
     
     // ============ S4 FILTERING ============
@@ -1814,6 +1865,7 @@ document.addEventListener('DOMContentLoaded', window.ensureGlobalFunctions, fals
             const layoutData = window.layoutsData[window.currentLayout];
             try {
                 Plotly.react(plotDiv, layoutData.data, layoutData.layout, {responsive: true});
+                window.originalNodeText = [];  // Reset stored text when S4 filter changes
                 setTimeout(resizePlotly, 50);
             } catch(e) {
                 console.error('Error switching to full view:', e);
@@ -1828,6 +1880,7 @@ document.addEventListener('DOMContentLoaded', window.ensureGlobalFunctions, fals
                 
                 const s4LayoutData = window.layoutsData['s4_' + s4Type];
                 Plotly.react(plotDiv, s4LayoutData.data, s4LayoutData.layout, {responsive: true});
+                window.originalNodeText = [];  // Reset stored text when S4 filter changes
                 setTimeout(resizePlotly, 50);
             } catch(e) {
                 console.error('Error displaying S4 layout:', e);
