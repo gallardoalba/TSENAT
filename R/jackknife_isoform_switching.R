@@ -26,12 +26,9 @@
 #' @param lm_results Data frame: results from .calculate_lm()
 #' with 'gene' column.
 #' Can contain either gene names or gene IDs; function automatically maps
-#' names to IDs
-#' using rowData(se). Include 'p_interaction' and/or 'adj_p_interaction'
-#' columns for
-#' filtering genes by significance. When provided, only genes passing
-#' lm_p_threshold are
-#'   analyzed; all matching genes are included (top_n parameter removed).
+#' names to IDs using rowData(se). Include 'p_interaction' and/or 'adj_p_interaction'
+#' columns for filtering genes by significance. When provided, only genes passing
+#' lm_p_threshold are analyzed; all matching genes are included (top_n parameter removed).
 #' @param lm_p_threshold Numeric: p-value threshold for LM gene filtering
 #' (default 0.05).
 #' @param use_lm_fdr Logical: use adjusted p-values from LM results if

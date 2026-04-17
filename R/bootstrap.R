@@ -313,16 +313,25 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
 #' @noRd
 .bootstrap_resample_optimized <- function(x, q, norm, nboot, log_base, pseudocount,
     what, paired = FALSE, effective_length = NULL) {
-    # CRITICAL FIX (March 2026): Apply effective_length normalization CORRECTLY
-    # for bootstrap The point estimate (stored in SE) was calculated from:
-    # counts / effective_length Bootstrap must preserve the PROPORTIONS from
-    # normalization, but scale back for resampling Correct approach: 1.
-    # x_normalized = x / effective_length (adjust proportions) 2. x_rescaled =
-    # x_normalized * (sum(x) / sum(x_normalized)) (preserve proportions,
-    # restore scale) 3. Bootstrap resamples from x_rescaled → distribution has
-    # same proportions as x_normalized 4. Entropy calculated matches point
-    # estimate This ensures: - Bootstrap CIs contain the point estimate - Both
-    # use same data transformation
+    # ==================================================================
+    # CRITICAL FIX (March 2026): Effective Length Normalization
+    # ==================================================================
+    # PROBLEM:
+    #   Point estimate (stored in SE) was calculated from: counts / effective_length
+    #   Bootstrap must preserve the PROPORTIONS from normalization, but scale
+    #   back for resampling to match the point estimate.
+    #
+    # CORRECT APPROACH:
+    #   1. x_normalized = x / effective_length (adjust proportions)
+    #   2. x_rescaled = x_normalized * (sum(x) / sum(x_normalized))
+    #      (preserve proportions, restore scale)
+    #   3. Bootstrap resamples from x_rescaled → distribution has same
+    #      proportions as x_normalized
+    #   4. Entropy calculated matches point estimate
+    #
+    # ENSURES:
+    #   ✓ Bootstrap CIs contain the point estimate
+    #   ✓ Both use same data transformation
 
     x_for_bootstrap <- x
     if (!is.null(effective_length) && length(effective_length) == length(x)) {

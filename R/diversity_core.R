@@ -303,7 +303,6 @@
 }
 
 #' Extract gene names from SummarizedExperiment rowData
-
 #' @noRd
 .extract_gene_names <- function(original_x, genes, result) {
     gene_names <- NULL
@@ -384,7 +383,6 @@
 #' effective_length
 #' in metadata, and computes initial diversity values via .calculate_method().
 #'
-
 #' @noRd
 .prepare_diversity_data <- function(x, genes, original_x, effective_length, norm,
     q, what, nthreads, shrinkage, pseudocount, verbose, tpm, assayno, show_messages = FALSE,
@@ -444,7 +442,6 @@
 #' Aggregate transcript-level counts to gene-level
 #'
 #' @noRd
-#' @noRd
 .aggregate_counts_to_genes <- function(se_assay_mat, filtered_gene_ids, genes) {
     n_samples <- ncol(se_assay_mat)
     n_genes <- length(filtered_gene_ids)
@@ -466,7 +463,6 @@
 
 #' Replicate counts matrix for multi-q case
 #'
-#' @noRd
 #' @noRd
 .replicate_counts_for_multi_q <- function(counts_assay, output_structure) {
     n_q <- length(output_structure$col_ids)/ncol(counts_assay)
@@ -490,7 +486,6 @@
 
 #' Build cache of sample column indices for bootstrap CI mapping
 #'
-#' @noRd
 #' @noRd
 .build_bootstrap_column_cache <- function(result_col_names) {
     sample_col_cache <- list()
@@ -516,7 +511,6 @@
 #' Build gene ID to result row index mapping
 #'
 #' @noRd
-#' @noRd
 .build_gene_id_map <- function(result_row_names, output_structure) {
     data.frame(gene_id = if (is.null(output_structure$rowData$gene_id)) {
         result_row_names
@@ -527,7 +521,6 @@
 
 #' Extract gene and sample info from bootstrap result name
 #'
-#' @noRd
 #' @noRd
 .parse_bootstrap_result_name <- function(boot_name) {
     m <- regexec("^(.+)_sample_([0-9]+)$", boot_name)
@@ -542,7 +535,6 @@
 
 #' Look up gene row index from bootstrap gene name
 #'
-#' @noRd
 #' @noRd
 .lookup_gene_row_idx <- function(gene_name, result_row_names, gene_id_map) {
     if (gene_name %in% gene_id_map$gene_id) {
@@ -559,7 +551,6 @@
 
 #' Populate CI matrix for single bootstrap result
 #'
-#' @noRd
 #' @noRd
 .populate_ci_from_bootstrap <- function(ci_lower, ci_upper, boot_item, gene_row_idx,
     col_indices, col_q_values) {
@@ -590,7 +581,6 @@
 
 #' Process all bootstrap results and populate CI matrices
 #'
-#' @noRd
 #' @noRd
 .populate_diversity_ci_matrices <- function(bootstrap_out, result_assay, se_assay_mat,
     output_structure) {
@@ -659,7 +649,6 @@
 #' Build metadata list for diversity results
 #'
 #' @noRd
-#' @noRd
 .build_diversity_metadata <- function(q, what, se_assay_mat, bootstrap, bootstrap_ci_results,
     original_x) {
     result_meta_list <- list(q = q, what = what[1], readcounts = se_assay_mat, bootstrap = bootstrap,
@@ -676,7 +665,6 @@
 
 #' Build SummarizedExperiment output object for diversity analysis
 #'
-#' @noRd
 #' @noRd
 .build_diversity_se_output <- function(result, output_structure, original_x, se_assay_mat,
     bootstrap_ci_results, bootstrap, metadata, verbose, what, q, genes, sample_col = "sample",

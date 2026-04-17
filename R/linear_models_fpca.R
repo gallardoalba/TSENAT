@@ -267,15 +267,29 @@
     }
 }
 
-# Build curve matrix: rows = samples, columns = ordered q-values Preserves
-# q-value ordering for functional data analysis This preserves the fundamental
-# property of Tsallis entropy: q-values are ORDERED measurements.  The ordering
-# is critical: PCA on adjacent q-values captures smooth functional dependence
-# that respects the AR(1) pattern validated in TEST L.1.6 (rho(k) = phi^|k|)
-# @param entropy_vals Entropy values @param q_vals Q-values (q parameter)
-# @param sample_names Sample identifiers @param min_obs Minimum observations
-# per sample @return Curve matrix (samples × ordered q-values, with column
-# indices respecting q-order) or NULL if insufficient data
+# ==============================================================================
+# Build Curve Matrix for FPCA
+# ==============================================================================
+# DESCRIPTION:
+#   Constructs matrix with rows = samples, columns = ordered q-values.
+#   Preserves q-value ordering for functional data analysis.
+#
+# MATHEMATICAL FOUNDATION:
+#   This preserves the fundamental property of Tsallis entropy: q-values
+#   are ORDERED measurements. The ordering is critical because PCA on
+#   adjacent q-values captures smooth functional dependence that respects
+#   the AR(1) pattern validated in TEST L.1.6:
+#     rho(k) = phi^|k|  (correlation decays geometrically with lag k)
+#
+# PARAMETERS:
+#   entropy_vals:  Entropy values
+#   q_vals:        Q-values (q parameter)
+#   sample_names:  Sample identifiers
+#   min_obs:       Minimum observations per sample
+#
+# RETURNS:
+#   Curve matrix (samples × ordered q-values, with column indices
+#   respecting q-order) or NULL if insufficient data
 .build_curve_matrix <- function(entropy_vals, q_vals, sample_names, min_obs = 5) {
     uq <- sort(unique(q_vals))
     samples_u <- unique(sample_names)
