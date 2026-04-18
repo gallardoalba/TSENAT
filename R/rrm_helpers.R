@@ -163,6 +163,12 @@
         rho_est <- cov_lag1/var_x
     }
 
+    # BUG FIX: Check for NA after acf/fallback computation
+    # If rho_est is NA, return NULL to allow fallback handling
+    if (is.na(rho_est)) {
+        return(NULL)
+    }
+
     # Ensure rho is in [0, 1] (sometimes numerical errors give slight negative
     # values)
     rho_est <- max(0, min(1, rho_est))
