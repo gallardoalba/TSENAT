@@ -11,6 +11,7 @@
 #'
 #' @name AllGenerics
 #' @rdname AllGenerics
+#' @importFrom S4Vectors metadata metadata<-
 NULL
 
 # ============================================================================
@@ -204,8 +205,8 @@ if (!isGeneric("metadata")) {
 
 #' Set metadata for TSENATAnalysis object
 #'
-# metadata<- generic for TSENATAnalysis Defines the replacement method for
-# modifying @metadata slot
+# metadata<- replacement method for TSENATAnalysis 
+# Uses the S4Vectors generic (no need to define our own)
 #' @param x TSENATAnalysis object
 #' @param value Replacement value for metadata (typically a list)
 #' @return TSENATAnalysis object with updated metadata
@@ -222,4 +223,5 @@ if (!isGeneric("metadata")) {
 #' }
 #' @rdname TSENATAnalysis-metadata
 #' @keywords internal
-setGeneric("metadata<-", function(x, value) standardGeneric("metadata<-"))
+# NOTE: We don't define a generic for metadata<- because S4Vectors already provides one
+# The setReplaceMethod in TSENATAnalysis_methods.R will use the S4Vectors generic

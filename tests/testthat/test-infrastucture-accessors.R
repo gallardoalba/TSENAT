@@ -449,8 +449,10 @@ test_that("setConfigValue() and addPlot() allow chaining", {
 test_that("metadata<- sets metadata for TSENATAnalysis objects", {
     analysis <- test_analysis_with_meta
     
-    # Use the metadata setter
-    metadata(analysis)$custom_key <- "custom_value"
+    # Use the metadata setter with explicit assignment
+    meta <- metadata(analysis)
+    meta$custom_key <- "custom_value"
+    metadata(analysis) <- meta
     
     # Verify it was set
     expect_equal(metadata(analysis)$custom_key, "custom_value")
@@ -463,8 +465,10 @@ test_that("metadata<- preserves existing metadata", {
     original_meta <- metadata(analysis)
     original_length <- length(original_meta)
     
-    # Add new metadata
-    metadata(analysis)$new_field <- "new_value"
+    # Add new metadata with explicit assignment
+    meta <- metadata(analysis)
+    meta$new_field <- "new_value"
+    metadata(analysis) <- meta
     
     # Verify original metadata is preserved and new field is added
     new_meta <- metadata(analysis)
@@ -475,10 +479,12 @@ test_that("metadata<- preserves existing metadata", {
 test_that("metadata<- allows multiple assignments", {
     analysis <- test_analysis_with_meta
     
-    # Multiple metadata assignments
-    metadata(analysis)$field1 <- "value1"
-    metadata(analysis)$field2 <- 42
-    metadata(analysis)$field3 <- list(nested = TRUE)
+    # Multiple metadata assignments with explicit assignment
+    meta <- metadata(analysis)
+    meta$field1 <- "value1"
+    meta$field2 <- 42
+    meta$field3 <- list(nested = TRUE)
+    metadata(analysis) <- meta
     
     meta <- metadata(analysis)
     expect_equal(meta$field1, "value1")
@@ -489,12 +495,14 @@ test_that("metadata<- allows multiple assignments", {
 test_that("metadata<- works with complex data types", {
     analysis <- test_analysis_with_meta
     
-    # Assign various data types
-    metadata(analysis)$string_val <- "test"
-    metadata(analysis)$numeric_val <- 3.14159
-    metadata(analysis)$logical_val <- TRUE
-    metadata(analysis)$vector_val <- c(1, 2, 3)
-    metadata(analysis)$list_val <- list(a = 1, b = "two")
+    # Assign various data types with explicit assignment
+    meta <- metadata(analysis)
+    meta$string_val <- "test"
+    meta$numeric_val <- 3.14159
+    meta$logical_val <- TRUE
+    meta$vector_val <- c(1, 2, 3)
+    meta$list_val <- list(a = 1, b = "two")
+    metadata(analysis) <- meta
     
     meta <- metadata(analysis)
     expect_equal(meta$string_val, "test")
@@ -509,7 +517,9 @@ test_that("metadata<- returns the object invisibly", {
     analysis <- test_analysis_with_meta
     
     # Test that assignment works and returns value (invisibly)
-    result <- (metadata(analysis)$test_key <- "test_value")
+    meta <- metadata(analysis)
+    result <- (meta$test_key <- "test_value")
+    metadata(analysis) <- meta
     
     # The assigned value should be available
     expect_equal(result, "test_value")
@@ -780,10 +790,12 @@ test_that("addPlot() returns original object when already exists and replace=FAL
 test_that("getMeta() filters to essential metadata only", {
     analysis <- test_analysis_with_meta
     
-    # Add various metadata
-    metadata(analysis)$large_data <- rep(1:1000, 100)  # Large data
-    metadata(analysis)$logs <- "Function execution logs"
-    metadata(analysis)$package_version <- "1.0.0"  # Essential
+    # Add various metadata with explicit assignment
+    meta <- metadata(analysis)
+    meta$large_data <- rep(1:1000, 100)  # Large data
+    meta$logs <- "Function execution logs"
+    meta$package_version <- "1.0.0"  # Essential
+    metadata(analysis) <- meta
     
     essential <- TSENAT:::getMeta(analysis)
     
@@ -798,8 +810,10 @@ test_that("getMeta() filters to essential metadata only", {
 test_that("getMeta() handles missing created_at", {
     analysis <- test_analysis_with_meta
     
-    # Remove created_at if it exists
-    metadata(analysis)$created_at <- NULL
+    # Remove created_at if it exists with explicit assignment
+    meta <- metadata(analysis)
+    meta$created_at <- NULL
+    metadata(analysis) <- meta
     
     essential <- TSENAT:::getMeta(analysis)
     
@@ -860,8 +874,10 @@ test_that("setConfigValue() chains with other operations", {
 test_that("getMeta() extracts created_at when present", {
     analysis <- test_analysis_with_meta
     
-    # Ensure created_at is in metadata
-    metadata(analysis)$created_at <- "2026-04-18 10:30:00"
+    # Ensure created_at is in metadata with explicit assignment
+    meta <- metadata(analysis)
+    meta$created_at <- "2026-04-18 10:30:00"
+    metadata(analysis) <- meta
     
     essential <- TSENAT:::getMeta(analysis)
     
@@ -874,8 +890,10 @@ test_that("getMeta() extracts created_at when present", {
 test_that("getMeta() extracts ended_at when present", {
     analysis <- test_analysis_with_meta
     
-    # Add ended_at
-    metadata(analysis)$ended_at <- "2026-04-18 12:00:00"
+    # Add ended_at with explicit assignment
+    meta <- metadata(analysis)
+    meta$ended_at <- "2026-04-18 12:00:00"
+    metadata(analysis) <- meta
     
     essential <- TSENAT:::getMeta(analysis)
     
@@ -886,8 +904,10 @@ test_that("getMeta() extracts ended_at when present", {
 test_that("getMeta() extracts package_version when present", {
     analysis <- test_analysis_with_meta
     
-    # Set package version
-    metadata(analysis)$package_version <- "1.2.3"
+    # Set package version with explicit assignment
+    meta <- metadata(analysis)
+    meta$package_version <- "1.2.3"
+    metadata(analysis) <- meta
     
     essential <- TSENAT:::getMeta(analysis)
     
@@ -901,8 +921,10 @@ test_that("getMeta() extracts package_version when present", {
 test_that("getMeta() extracts tsenat_version when present", {
     analysis <- test_analysis_with_meta
     
-    # Set TSENAT-specific version
-    metadata(analysis)$tsenat_version <- "2.0.1"
+    # Set TSENAT-specific version with explicit assignment
+    meta <- metadata(analysis)
+    meta$tsenat_version <- "2.0.1"
+    metadata(analysis) <- meta
     
     essential <- TSENAT:::getMeta(analysis)
     
@@ -915,8 +937,10 @@ test_that("getMeta() extracts tsenat_version when present", {
 test_that("getMeta() extracts workflow_type when present", {
     analysis <- test_analysis_with_meta
     
-    # Set workflow type
-    metadata(analysis)$workflow_type <- "diversity_analysis"
+    # Set workflow type with explicit assignment
+    meta <- metadata(analysis)
+    meta$workflow_type <- "diversity_analysis"
+    metadata(analysis) <- meta
     
     essential <- TSENAT:::getMeta(analysis)
     
@@ -929,12 +953,14 @@ test_that("getMeta() extracts workflow_type when present", {
 test_that("getMeta() extracts workflow list structure", {
     analysis <- test_analysis_with_meta
     
-    # Set workflow as list
-    metadata(analysis)$workflow <- list(
+    # Set workflow as list with explicit assignment
+    meta <- metadata(analysis)
+    meta$workflow <- list(
         workflow_type = "complete",
         completion_time = "2026-04-18 12:00:00",
         other_field = "should_be_excluded"
     )
+    metadata(analysis) <- meta
     
     essential <- TSENAT:::getMeta(analysis)
     
@@ -947,8 +973,10 @@ test_that("getMeta() extracts workflow list structure", {
 test_that("getMeta() handles workflow as non-list", {
     analysis <- test_analysis_with_meta
     
-    # Set workflow as character (not list)
-    metadata(analysis)$workflow <- "some_string_value"
+    # Set workflow as character (not list) with explicit assignment
+    meta <- metadata(analysis)
+    meta$workflow <- "some_string_value"
+    metadata(analysis) <- meta
     
     essential <- TSENAT:::getMeta(analysis)
     
@@ -959,10 +987,12 @@ test_that("getMeta() handles workflow as non-list", {
 test_that("getMeta() key parameter extracts specific metadata field", {
     analysis <- test_analysis_with_meta
     
-    # Set multiple metadata fields
-    metadata(analysis)$created_at <- "2026-04-18"
-    metadata(analysis)$package_version <- "1.0.0"
-    metadata(analysis)$workflow_type <- "test"
+    # Set multiple metadata fields with explicit assignment
+    meta <- metadata(analysis)
+    meta$created_at <- "2026-04-18"
+    meta$package_version <- "1.0.0"
+    meta$workflow_type <- "test"
+    metadata(analysis) <- meta
     
     # Extract specific key
     pkg_version <- TSENAT:::getMeta(analysis, key = "package_version")
