@@ -136,7 +136,7 @@ calculate_srh(
 
 ## Value
 
-Modified TSENATAnalysis with interaction results in @lm_results.
+Modified TSENATAnalysis with interaction results in @rrm_results.
 
 ## Details
 

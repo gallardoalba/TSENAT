@@ -43,7 +43,6 @@
 <li class="nav-item"><a class="external-link nav-link" href="https://app.codecov.io/gh/gallardoalba/TSENAT"><span class="fa fas fa-chart-bar fa-lg"></span> Coverage</a></li>
 <li class="nav-item"><a class="nav-link" href="r_dependencies_s4_interactive.html"><span class="fa fas fa-sitemap fa-lg"></span> Architecture</a></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-question-circle fa-lg"></span> Issues</a></li>
-
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-documents" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-book fa-lg"></span> Documents</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-documents">
@@ -56,6 +55,9 @@
 <li class="nav-item"><a class="nav-link" href="citations.html"><span class="fa fas fa-book-open fa-lg"></span> References</a></li>
       </ul>
 <ul class="navbar-nav">
+<li class="nav-item"><form class="form-inline" role="search">
+ <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="search.json">
+</form></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
@@ -77,7 +79,7 @@
 <div class="section level2">
 <h2 id="the-solution">The Solution<a class="anchor" aria-label="anchor" href="#the-solution"></a>
 </h2>
-<p>TSENAT captures isoform diversity independently of which specific isoforms are abundant. The method uses Tsallis entropy with a sensitivity parameter q (the entropic index) that acts like a lens:</p>
+<p>TSENAT captures isoform diversity independently of which specific isoforms are abundant. The method uses Tsallis entropy, whose entropic index parameter (q) enables to evaluate different data dimensions:</p>
 <ul>
 <li><p><strong>Low q</strong> (e.g., 0.5): Focuses on rare isoforms - detects if diversity is maintained or collapsed</p></li>
 <li><p><strong>Mid q</strong> (e.g., 1.0): Balanced view (Shannon entropy) - overall isoform complexity</p></li>
@@ -188,16 +190,16 @@
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Unified interface: request results by type</span></span>
 <span><span class="va">diversity_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/results.html">results</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"diversity"</span><span class="op">)</span></span>
-<span><span class="va">lm_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/results.html">results</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"lm"</span><span class="op">)</span></span>
+<span><span class="va">rrm_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/results.html">results</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"rrm"</span><span class="op">)</span></span>
 <span><span class="va">jackknife_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/results.html">results</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"jackknife"</span>, q <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Filter and rank results flexibly</span></span>
-<span><span class="va">ranked_lm</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/results.html">results</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"lm"</span>, rankBy <span class="op">=</span> <span class="st">"padj"</span>, n <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
+<span><span class="va">ranked_rrm</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/results.html">results</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"rrm"</span>, rankBy <span class="op">=</span> <span class="st">"padj"</span>, n <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
 <span><span class="va">filtered_diversity</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/results.html">results</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"diversity"</span>, q <span class="op">=</span> <span class="fl">1.0</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Retrieve plots</span></span>
 <span><span class="va">diversity_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/results.html">results</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"diversity"</span>, plot<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">diveristy_plot</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">diversity_plot</span><span class="op">)</span></span></code></pre></div>
 <div class="float">
 <img src="https://raw.githubusercontent.com/gallardoalba/TSENAT/gh-pages/articles/TSENAT_files/figure-html/fig-1-isoform-diversity-profiles-1.png" alt="Isoform diversity profiles across q-values: TSENAT detects scale-dependent diversity patterns"><div class="figcaption">Isoform diversity profiles across q-values: TSENAT detects scale-dependent diversity patterns</div>
 </div>
@@ -210,10 +212,14 @@
 <p>TSENAT provides a flexible statistical framework optimized for entropy-based diversity analysis. The recommended main workflow relies on <strong>Generalized Additive Models (GAM)</strong> via <a href="https://CRAN.R-project.org/package=mgcv" class="external-link"><code>mgcv::gam()</code></a> combined with ARIMA differencing.</p>
 <p>The statistical methods available in TSENAT include:</p>
 <ul>
-<li>Linear Mixed Models (LMM): Parametric testing with AR(1) correlation structure for repeated measures. GAM, LMM, GEE and FPCA are all parameterized to handle non-normality and heteroscedasticity characteristic of entropy data.</li>
-<li>Scheirer-Ray-Hare rank tests: The test operates solely on ranks, making it robust to outliers and extreme values. However, it shows lower power for interactions and can inflate Type I errors under heterogeneous variance. These limitations are mitigated through Hochberg multiple testing correction.</li>
-<li>M-estimation: Robust location estimation for group comparison using iteratively re-weighted least squares, resistant to outliers.</li>
-<li>Jackknife isoform switching: Leave-one-out resampling to identify transcripts with condition-specific switching patterns and quantify their influence on entropy differences.</li>
+<li>
+<strong>Regularized/Penalized Regression Methods</strong>: Parametric regression modeling with AR(1) correlation structure for repeated measures. GAM, LMM, GEE and FPCA are all parameterized to handle non-normality and heteroscedasticity characteristic of entropy data.</li>
+<li>
+<strong>Scheirer-Ray-Hare rank tests</strong>: The test operates solely on ranks, making it robust to outliers and extreme values. However, it shows lower power for interactions and can inflate Type I errors under heterogeneous variance. These limitations are mitigated through Hochberg multiple testing correction.</li>
+<li>
+<strong>M-estimation</strong>: Robust location estimation for group comparison using iteratively re-weighted least squares, resistant to outliers.</li>
+<li>
+<strong>Jackknife isoform switching</strong>: Leave-one-out resampling to identify transcripts with condition-specific switching patterns and quantify their influence on entropy differences.</li>
 </ul>
 </div>
 <div class="section level2">
@@ -357,18 +363,12 @@ SRR14800478   tumor        B</code></pre>
 </div>
 </div>
 
-  </main><aside class="col-md-3"><div class="links">
-<h2 data-toc-skip>Links</h2>
-<ul class="list-unstyled">
-<li><a href="https://github.com/gallardoalba/TSENAT/" class="external-link">Browse source code</a></li>
-<li><a href="https://github.com/gallardoalba/TSENAT/issues" class="external-link">Report a bug</a></li>
-</ul>
-</div>
-
-<div class="license">
+  </main><aside class="col-md-3"><div class="license">
 <h2 data-toc-skip>License</h2>
 <ul class="list-unstyled">
-<li>GPL (&gt;= 3) + file <a href="LICENSE-text.html">LICENSE</a>
+<li>
+<p>TSENAT is released under the GNU General Public License v3.0. You are free to use, modify, and distribute this software, provided you include the source code and make it available under the same license.</p>
+<p><a href="LICENSE-text.html">Read the full license</a></p>
 </li>
 </ul>
 </div>
@@ -376,7 +376,7 @@ SRR14800478   tumor        B</code></pre>
 <div class="community">
 <h2 data-toc-skip>Community</h2>
 <ul class="list-unstyled">
-<li><a href="CODE_OF_CONDUCT.html">Code of conduct</a></li>
+<li><p>We follow the Contributor Covenant Code of Conduct. <a href="CODE_OF_CONDUCT.html">Learn more</a></p></li>
 </ul>
 </div>
 

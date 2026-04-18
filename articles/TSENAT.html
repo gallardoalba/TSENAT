@@ -12,26 +12,41 @@
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="TSENAT: Tsallis Entropy Analysis Toolbox">
 <style>
-  /* Force tables to expand horizontally */
-  table.table {
+/* Force tables to expand horizontally */
+table {
     width: 100% !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-  }
-  .template-article table {
-    width: 100% !important;
-    table-layout: auto;
+    max-width: 100% !important;
+    min-width: 100% !important;
     display: table !important;
-  }
-  /* Ensure table wrapper takes full width */
-  .template-article > div > table,
-  .template-article div table.table {
+    table-layout: auto !important;
+}
+
+.table {
     width: 100% !important;
-  }
-  /* Remove any horizontal scrolling/overflow hiding */
-  .template-article {
-    overflow-x: visible !important;
-  }
+    max-width: 100% !important;
+    display: table !important;
+}
+
+article table,
+.contents table,
+main table {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 100% !important;
+}
+
+table td,
+table th {
+    padding: 0.75rem 1rem !important;
+}
+
+table tr:nth-child(even) {
+    background-color: #fafafa;
+}
+
+.col-md-9 {
+    overflow-x: auto;
+}
 </style>
 </head>
 <body>
@@ -63,7 +78,6 @@
 <li class="nav-item"><a class="external-link nav-link" href="https://app.codecov.io/gh/gallardoalba/TSENAT"><span class="fa fas fa-chart-bar fa-lg"></span> Coverage</a></li>
 <li class="nav-item"><a class="nav-link" href="../r_dependencies_s4_interactive.html"><span class="fa fas fa-sitemap fa-lg"></span> Architecture</a></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-question-circle fa-lg"></span> Issues</a></li>
-
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-documents" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-book fa-lg"></span> Documents</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-documents">
@@ -76,6 +90,9 @@
 <li class="nav-item"><a class="nav-link" href="../citations.html"><span class="fa fas fa-book-open fa-lg"></span> References</a></li>
       </ul>
 <ul class="navbar-nav">
+<li class="nav-item"><form class="form-inline" role="search">
+ <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
+</form></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
@@ -95,7 +112,7 @@
 Gallardo <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2026-04-18</h4>
+            <h4 data-toc-skip class="date">2026-04-19</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gallardoalba/TSENAT/blob/HEAD/vignettes/TSENAT.Rmd" class="external-link"><code>vignettes/TSENAT.Rmd</code></a></small>
       <div class="d-none name"><code>TSENAT.Rmd</code></div>
@@ -640,7 +657,7 @@ samples are reviewed).</p>
 <span><span class="co"># Extract results from metadata using accessor function</span></span>
 <span><span class="va">sample_qc</span> <span class="op">&lt;-</span> <span class="fu">metadata</span><span class="op">(</span><span class="va">analysis</span>, <span class="st">"m_estimate_results"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">sample_qc</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
+<table class="table" style="width: 100%; table-layout: auto;">
 <caption>
 <strong>Table 2 | Sample Influence Assessment via
 M-estimation.</strong> Ranked by magnitude of resampling-based influence
@@ -648,130 +665,130 @@ values. Columns: Sample identifier; condition; proportion affected;
 distance from centroid; outlier status. M-estimation identifies
 influential samples for sensitivity analysis.</caption>
 <colgroup>
-<col width="15%">
-<col width="12%">
-<col width="25%">
-<col width="29%">
-<col width="15%">
+<col style="width: 18%;">
+<col style="width: 14%;">
+<col style="width: 20%;">
+<col style="width: 28%;">
+<col style="width: 20%;">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Sample</th>
 <th align="left">Condition</th>
-<th align="right">Proportion_Affected</th>
-<th align="right">Distance_from_Centroid</th>
+<th align="center">Proportion Affected</th>
+<th align="center">Distance from Centroid</th>
 <th align="left">Status</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
 <td align="left">SRR14800481</td>
 <td align="left">normal</td>
-<td align="right">0.847</td>
-<td align="right">1.7930</td>
+<td align="center">0.847</td>
+<td align="center">1.7930</td>
 <td align="left">OK</td>
 </tr>
 <tr class="even">
 <td align="left">SRR14800480</td>
 <td align="left">normal</td>
-<td align="right">0.806</td>
-<td align="right">1.2384</td>
+<td align="center">0.806</td>
+<td align="center">1.2384</td>
 <td align="left">OK</td>
 </tr>
 <tr class="odd">
 <td align="left">SRR14800477</td>
 <td align="left">normal</td>
-<td align="right">0.833</td>
-<td align="right">1.5809</td>
+<td align="center">0.833</td>
+<td align="center">1.5809</td>
 <td align="left">OK</td>
 </tr>
 <tr class="even">
 <td align="left">SRR14800476</td>
 <td align="left">normal</td>
-<td align="right">0.889</td>
-<td align="right">0.9118</td>
+<td align="center">0.889</td>
+<td align="center">0.9118</td>
 <td align="left">OK</td>
 </tr>
 <tr class="odd">
 <td align="left">SRR14800475</td>
 <td align="left">normal</td>
-<td align="right">0.861</td>
-<td align="right">1.6796</td>
+<td align="center">0.861</td>
+<td align="center">1.6796</td>
 <td align="left">OK</td>
 </tr>
 <tr class="even">
 <td align="left">SRR14800490</td>
 <td align="left">normal</td>
-<td align="right">0.849</td>
-<td align="right">1.3522</td>
+<td align="center">0.849</td>
+<td align="center">1.3522</td>
 <td align="left">OK</td>
 </tr>
 <tr class="odd">
 <td align="left">SRR14800489</td>
 <td align="left">normal</td>
-<td align="right">0.875</td>
-<td align="right">1.0969</td>
+<td align="center">0.875</td>
+<td align="center">1.0969</td>
 <td align="left">OK</td>
 </tr>
 <tr class="even">
 <td align="left">SRR14800488</td>
 <td align="left">normal</td>
-<td align="right">0.861</td>
-<td align="right">1.6536</td>
+<td align="center">0.861</td>
+<td align="center">1.6536</td>
 <td align="left">OK</td>
 </tr>
 <tr class="odd">
 <td align="left">SRR14800479</td>
 <td align="left">tumor</td>
-<td align="right">0.861</td>
-<td align="right">2.2114</td>
+<td align="center">0.861</td>
+<td align="center">2.2114</td>
 <td align="left">OK</td>
 </tr>
 <tr class="even">
 <td align="left">SRR14800478</td>
 <td align="left">tumor</td>
-<td align="right">0.903</td>
-<td align="right">1.5721</td>
+<td align="center">0.903</td>
+<td align="center">1.5721</td>
 <td align="left">Flag for QC</td>
 </tr>
 <tr class="odd">
 <td align="left">SRR14800487</td>
 <td align="left">tumor</td>
-<td align="right">0.861</td>
-<td align="right">1.2201</td>
+<td align="center">0.861</td>
+<td align="center">1.2201</td>
 <td align="left">OK</td>
 </tr>
 <tr class="even">
 <td align="left">SRR14800486</td>
 <td align="left">tumor</td>
-<td align="right">0.903</td>
-<td align="right">1.4798</td>
+<td align="center">0.903</td>
+<td align="center">1.4798</td>
 <td align="left">Flag for QC</td>
 </tr>
 <tr class="odd">
 <td align="left">SRR14800485</td>
 <td align="left">tumor</td>
-<td align="right">0.861</td>
-<td align="right">1.4140</td>
+<td align="center">0.861</td>
+<td align="center">1.4140</td>
 <td align="left">OK</td>
 </tr>
 <tr class="even">
 <td align="left">SRR14800484</td>
 <td align="left">tumor</td>
-<td align="right">0.889</td>
-<td align="right">1.1499</td>
+<td align="center">0.889</td>
+<td align="center">1.1499</td>
 <td align="left">OK</td>
 </tr>
 <tr class="odd">
 <td align="left">SRR14800483</td>
 <td align="left">tumor</td>
-<td align="right">0.861</td>
-<td align="right">1.6020</td>
+<td align="center">0.861</td>
+<td align="center">1.6020</td>
 <td align="left">OK</td>
 </tr>
 <tr class="even">
 <td align="left">SRR14800482</td>
 <td align="left">tumor</td>
-<td align="right">0.917</td>
-<td align="right">1.6711</td>
+<td align="center">0.917</td>
+<td align="center">1.6711</td>
 <td align="left">Flag for QC</td>
 </tr>
 </tbody>
@@ -813,17 +830,17 @@ ordered functional data, implicitly capturing q-ordering structure.</li>
 <p>All methods automatically account for the AR(1) correlation structure
 inherent in Tsallis entropy measurements.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Linear-model interaction test across q values using S4 wrapper</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_lm.html">calculate_lm</a></span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="co"># Regularized regression interaction test across q values using S4 wrapper</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_rrm.html">calculate_rrm</a></span><span class="op">(</span></span>
 <span>    <span class="va">analysis</span>,</span>
 <span>    method <span class="op">=</span> <span class="st">"gam"</span>,</span>
 <span>    multicorr <span class="op">=</span> <span class="st">"hochberg"</span></span>
 <span><span class="op">)</span></span>
 <span>       </span>
-<span><span class="co"># Extract LM interaction results</span></span>
-<span><span class="va">lm_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"lm"</span>, rankBy <span class="op">=</span> <span class="st">"pvalue"</span>, n <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
+<span><span class="co"># Extract RRM interaction results</span></span>
+<span><span class="va">rrm_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"rrm"</span>, rankBy <span class="op">=</span> <span class="st">"pvalue"</span>, n <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">lm_results</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">rrm_results</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <caption>
 <strong>Table 3 | Leading genes with scale-dependent condition
@@ -914,27 +931,26 @@ column indicates that the model satisfies homogeneity-of-variance
 assumptions across the q-spectrum; FALSE values suggest variance
 heterogeneity and warrant caution in result interpretation.</p>
 <p>Now we will plot the q-curve profile for the top genes identified by
-the linear-model interaction test.</p>
+the regularized regression interaction test.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot q-curve profiles for the top 4 genes using the S4 wrapper</span></span>
-<span><span class="va">combined_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_lm.html">plot_lm</a></span><span class="op">(</span></span>
+<span><span class="va">combined_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_rrm.html">plot_rrm</a></span><span class="op">(</span></span>
 <span>    <span class="va">analysis</span>,</span>
 <span>    n_top <span class="op">=</span> <span class="fl">4</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">combined_plot</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<img src="TSENAT_files/figure-html/fig-2-scale-dependent-genes-1.png" class="r-plt" alt="**Figure 2:** Scale-dependent interaction analysis. GAM-identified genes showing significant q$\times$condition effects (Benjamini-Hochberg q &lt; 0.05)." width="98%"><p class="caption">
+<img src="TSENAT_files/figure-html/fig-2-scale-dependent-genes-1.png" class="r-plt" alt="**Figure 2:** Scale-dependent interaction analysis. GAM-identified genes showing significant q$  imes$condition effects (Benjamini-Hochberg q &lt; 0.05)." width="98%"><p class="caption">
 <strong>Figure 2:</strong> Scale-dependent interaction analysis.
-GAM-identified genes showing significant
-q<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>×</mi><annotation encoding="application/x-tex">\times</annotation></semantics></math>condition
-effects (Benjamini-Hochberg q &lt; 0.05).
+GAM-identified genes showing significant q$ imes$condition effects
+(Benjamini-Hochberg q &lt; 0.05).
 </p>
 </div>
 </div>
 <div class="section level3">
 <h3 id="transcript-switching-across-diversity-scales">Transcript Switching Across Diversity Scales<a class="anchor" aria-label="anchor" href="#transcript-switching-across-diversity-scales"></a>
 </h3>
-<p>The LM interaction tests whether condition effects depend on which
+<p>The RRM interaction tests whether condition effects depend on which
 diversity scale (q-value) you examine. This section identifies
 <strong>which individual transcripts</strong> drive these
 scale-dependent patterns, revealing whether the same transcripts switch
@@ -946,9 +962,9 @@ rare versus abundant isoform scales.</p>
 <p>This workflow combines two complementary statistical methods:</p>
 <ol style="list-style-type: decimal">
 <li>
-<strong>Multi-<em>q</em> LM interaction test</strong>: Tests whether
-the condition effect on diversity depends on <em>q</em> (overall pattern
-across diversity scales)</li>
+<strong>Multi-<em>q</em> RRM interaction test</strong>: Tests
+whether the condition effect on diversity depends on <em>q</em> (overall
+pattern across diversity scales)</li>
 <li>
 <strong>Single-<em>q</em> jackknife resampling</strong>: Tests which
 individual transcripts drive those patterns at each <em>q</em>-value,
@@ -1085,7 +1101,7 @@ emphasize different transcripts.</p>
 <div class="section level4">
 <h4 id="delta-influence-across-diversity-scales">Delta Influence Across Diversity Scales<a class="anchor" aria-label="anchor" href="#delta-influence-across-diversity-scales"></a>
 </h4>
-<p>Visualize switching patterns for the top genes identified by the LM
+<p>Visualize switching patterns for the top genes identified by the RRM
 interaction test. This shows which transcripts are switching in genes
 with significant q × condition interaction effects. The heatmaps below
 display <strong>jackknife delta influence</strong> <span class="citation">(Efron and Tibshirani 1993)</span>-a resampling-based
@@ -1239,12 +1255,12 @@ magnitude.</caption>
 <caption>Top 6 Genes by Effect Size (Tsallis Divergence)</caption>
 <colgroup>
 <col width="14%">
-<col width="11%">
+<col width="18%">
 <col width="16%">
 <col width="13%">
 <col width="13%">
 <col width="13%">
-<col width="17%">
+<col width="13%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Gene</th>
@@ -1258,7 +1274,7 @@ magnitude.</caption>
 <tbody>
 <tr class="odd">
 <td align="left">CXCL12</td>
-<td align="right">0</td>
+<td align="right">3.93e-164</td>
 <td align="right">-0.3725</td>
 <td align="right">0.3115</td>
 <td align="right">0.3697</td>
@@ -1267,7 +1283,7 @@ magnitude.</caption>
 </tr>
 <tr class="even">
 <td align="left">THY1</td>
-<td align="right">0</td>
+<td align="right">9.80e-97</td>
 <td align="right">0.2928</td>
 <td align="right">0.1481</td>
 <td align="right">0.1720</td>
@@ -1276,7 +1292,7 @@ magnitude.</caption>
 </tr>
 <tr class="odd">
 <td align="left">ING3</td>
-<td align="right">0</td>
+<td align="right">2.72e-77</td>
 <td align="right">0.1136</td>
 <td align="right">0.0122</td>
 <td align="right">0.0137</td>
@@ -1285,7 +1301,7 @@ magnitude.</caption>
 </tr>
 <tr class="even">
 <td align="left">SNHG10</td>
-<td align="right">0</td>
+<td align="right">9.81e-75</td>
 <td align="right">0.1203</td>
 <td align="right">0.0874</td>
 <td align="right">0.0956</td>
@@ -1294,7 +1310,7 @@ magnitude.</caption>
 </tr>
 <tr class="odd">
 <td align="left">LINC03040</td>
-<td align="right">0</td>
+<td align="right">1.87e-57</td>
 <td align="right">0.1063</td>
 <td align="right">0.2850</td>
 <td align="right">0.3119</td>
@@ -1303,7 +1319,7 @@ magnitude.</caption>
 </tr>
 <tr class="even">
 <td align="left">HDAC2</td>
-<td align="right">0</td>
+<td align="right">2.61e-51</td>
 <td align="right">0.1244</td>
 <td align="right">0.0651</td>
 <td align="right">0.0699</td>

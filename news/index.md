@@ -12,8 +12,9 @@
   [`calculate_divergence()`](https://gallardoalba.github.io/TSENAT/reference/calculate_divergence.md),
   [`calculate_srh()`](https://gallardoalba.github.io/TSENAT/reference/calculate_srh.md)
   for Q×Condition interaction testing,
-  [`calculate_lm()`](https://gallardoalba.github.io/TSENAT/reference/calculate_lm.md)
-  for linear models/GAM interaction analysis, and
+  [`calculate_rrm()`](https://gallardoalba.github.io/TSENAT/reference/calculate_rrm.md)
+  for regularized regression methods (GAM, LMM, GEE, FPCA) interaction
+  analysis, and
   [`calculate_concordance()`](https://gallardoalba.github.io/TSENAT/reference/calculate_concordance.md)
   for method comparison. Supports Scheirer-Ray-Hare rank-based tests,
   permutation tests, and jackknife bootstrap.

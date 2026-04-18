@@ -30,9 +30,9 @@ TSENAT_config(
   norm_method = NULL,
   pseudocount = 0,
   shrinkage = "none",
-  lm_method = "gam",
-  lm_pcorr = "BH",
-  jis_use_lm_fdr = TRUE,
+  rrm_method = "gam",
+  rrm_pcorr = "BH",
+  jis_use_rrm_fdr = TRUE,
   divergence_ci = 0.95,
   assumptions_checks = "all",
   ...
@@ -136,16 +136,16 @@ TSENAT_config(
   `character`. Variance reduction: 'none' or 'empirical_bayes'. Default:
   'none'.
 
-- lm_method:
+- rrm_method:
 
-  `character`. LM method: 'gam', 'lmm', 'fpca', 'gee'. Default: 'gam'.
+  `character`. RRM method: 'gam', 'lmm', 'fpca', 'gee'. Default: 'gam'.
 
-- lm_pcorr:
+- rrm_pcorr:
 
   `character`. P-value correction: 'BH', 'bonferroni', 'hochberg',
   'holm'. Default: 'BH'.
 
-- jis_use_lm_fdr:
+- jis_use_rrm_fdr:
 
   `logical`. Filter jackknife genes using LM p-values. Default: TRUE.
 

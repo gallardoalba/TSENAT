@@ -1,17 +1,17 @@
 # Compare method concordance for differential analysis results
 
 Compares statistical results from two different methods (typically
-LM/GAM for continuous data and Scheirer-Ray-Hare rank tests) to assess
+RRM/GAM for continuous data and Scheirer-Ray-Hare rank tests) to assess
 agreement and identify genes detected by one method but not the other.
 
 ## Usage
 
 ``` r
-calculate_concordance(analysis_lm, analysis_rank = NULL, ...)
+calculate_concordance(analysis_rrm, analysis_rank = NULL, ...)
 
 # S4 method for class 'TSENATAnalysis'
 calculate_concordance(
-  analysis_lm,
+  analysis_rrm,
   analysis_rank = NULL,
   verbose = FALSE,
   output_file = NULL,
@@ -21,16 +21,17 @@ calculate_concordance(
 
 ## Arguments
 
-- analysis_lm:
+- analysis_rrm:
 
-  `TSENATAnalysis` object containing LM/GAM analysis results (from
-  [`calculate_lm()`](https://gallardoalba.github.io/TSENAT/reference/calculate_lm.md)).
+  `TSENATAnalysis` object containing RRM/GAM analysis results (from
+  [`calculate_rrm()`](https://gallardoalba.github.io/TSENAT/reference/calculate_rrm.md)).
 
 - analysis_rank:
 
   `TSENATAnalysis` object or NULL. If NULL, uses legacy single-object
-  API with analysis_lm containing both results. If provided, compares LM
-  results from analysis_lm with rank-test results from analysis_rank.
+  API with analysis_rrm containing both results. If provided, compares
+  RRM results from analysis_rrm with rank-test results from
+  analysis_rank.
 
 - ...:
 
@@ -66,9 +67,9 @@ Modified TSENATAnalysis object with concordance results stored in:
 
   Contingency table of significant/non-significant calls
 
-- lm_method:
+- rrm_method:
 
-  Method name used for LM/GAM analysis
+  Method name used for RRM/GAM analysis
 
 - rank_method:
 
@@ -124,7 +125,7 @@ analysis <- build_analysis(
 analysis <- filter_analysis(analysis, stringency = 'severe')
 analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
 analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
-analysis <- suppressWarnings(calculate_lm(analysis, method = 'gam'))
+analysis <- suppressWarnings(calculate_rrm(analysis, method = 'gam'))
 # Note: calculate_concordance requires results from both
 # calculate_srh and calculate_assumptions
 ```

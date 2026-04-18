@@ -12,26 +12,41 @@
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Appendix B: Non-Parametric Validation of Linear Model Results via GAM and Rank-Based Methods">
 <style>
-  /* Force tables to expand horizontally */
-  table.table {
+/* Force tables to expand horizontally */
+table {
     width: 100% !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-  }
-  .template-article table {
-    width: 100% !important;
-    table-layout: auto;
+    max-width: 100% !important;
+    min-width: 100% !important;
     display: table !important;
-  }
-  /* Ensure table wrapper takes full width */
-  .template-article > div > table,
-  .template-article div table.table {
+    table-layout: auto !important;
+}
+
+.table {
     width: 100% !important;
-  }
-  /* Remove any horizontal scrolling/overflow hiding */
-  .template-article {
-    overflow-x: visible !important;
-  }
+    max-width: 100% !important;
+    display: table !important;
+}
+
+article table,
+.contents table,
+main table {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 100% !important;
+}
+
+table td,
+table th {
+    padding: 0.75rem 1rem !important;
+}
+
+table tr:nth-child(even) {
+    background-color: #fafafa;
+}
+
+.col-md-9 {
+    overflow-x: auto;
+}
 </style>
 </head>
 <body>
@@ -63,7 +78,6 @@
 <li class="nav-item"><a class="external-link nav-link" href="https://app.codecov.io/gh/gallardoalba/TSENAT"><span class="fa fas fa-chart-bar fa-lg"></span> Coverage</a></li>
 <li class="nav-item"><a class="nav-link" href="../r_dependencies_s4_interactive.html"><span class="fa fas fa-sitemap fa-lg"></span> Architecture</a></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-question-circle fa-lg"></span> Issues</a></li>
-
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-documents" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-book fa-lg"></span> Documents</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-documents">
@@ -76,6 +90,9 @@
 <li class="nav-item"><a class="nav-link" href="../citations.html"><span class="fa fas fa-book-open fa-lg"></span> References</a></li>
       </ul>
 <ul class="navbar-nav">
+<li class="nav-item"><form class="form-inline" role="search">
+ <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
+</form></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
@@ -95,7 +112,7 @@
 Gallardo <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2026-04-18</h4>
+            <h4 data-toc-skip class="date">2026-04-19</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gallardoalba/TSENAT/blob/HEAD/vignettes/TSENAT_appendix_B.Rmd" class="external-link"><code>vignettes/TSENAT_appendix_B.Rmd</code></a></small>
       <div class="d-none name"><code>TSENAT_appendix_B.Rmd</code></div>
@@ -697,7 +714,7 @@ Scheirer-Ray-Hare rank-based test.</caption>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot top genes from SRH test (using all genes, not just significant ones)</span></span>
 <span><span class="co"># This ensures the plot displays n_top genes regardless of significance threshold</span></span>
-<span><span class="va">top_genes_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_diversity_spectrum.html">plot_diversity_spectrum</a></span><span class="op">(</span><span class="va">analysis</span>, lm_res <span class="op">=</span> <span class="va">srh_results_all</span>, n_top <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
+<span><span class="va">top_genes_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_diversity_spectrum.html">plot_diversity_spectrum</a></span><span class="op">(</span><span class="va">analysis</span>, rrm_res <span class="op">=</span> <span class="va">srh_results_all</span>, n_top <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">top_genes_plot</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
 <img src="TSENAT_appendix_B_files/figure-html/extended-fig-1-srh-q-curves-1.png" class="r-plt" alt="Extended Data Figure 1 | SRH rank test results for scale-dependent isoform switching." width="98%"><p class="caption">
@@ -715,13 +732,13 @@ isoform switching.
 vignette (<a href="TSENAT.Rmd">TSENAT.Rmd</a>).</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Load precomputed LM analysis object from RDS file</span></span>
-<span><span class="va">analysis_lm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"analysis_lm.rds"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span>
+<span><span class="va">analysis_rrm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"analysis_rrm.rds"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Extract GAM/LM results for inspection using accessor function</span></span>
-<span><span class="va">gam_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis_lm</span>, type <span class="op">=</span> <span class="st">"lm"</span>, rankBy <span class="op">=</span> <span class="st">"pvalue"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">gam_results</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># Extract GAM/RRM results for inspection using accessor function</span></span>
+<span><span class="va">rrm_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis_rrm</span>, type <span class="op">=</span> <span class="st">"rrm"</span>, rankBy <span class="op">=</span> <span class="st">"pvalue"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">rrm_results</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <caption>GAM Results Summary</caption>
 <thead><tr class="header">
@@ -883,7 +900,7 @@ frameworks.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Compute concordance analysis using new two-object API</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_concordance.html">calculate_concordance</a></span><span class="op">(</span></span>
-<span>    analysis_lm <span class="op">=</span> <span class="va">analysis_lm</span>,</span>
+<span>    analysis_rrm <span class="op">=</span> <span class="va">analysis_rrm</span>,</span>
 <span>    analysis_rank <span class="op">=</span> <span class="va">analysis</span>,</span>
 <span>    verbose <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
@@ -896,9 +913,9 @@ Detected by Both Methods (n=2, ranked by statistical
 significance)</caption>
 <thead><tr class="header">
 <th align="left">Gene</th>
-<th align="right">LM adj p</th>
+<th align="right">RRM adj p</th>
 <th align="right">Rank test adj p</th>
-<th align="right">LM Effect</th>
+<th align="right">RRM Effect</th>
 <th align="right">Rank test rho^2</th>
 </tr></thead>
 <tbody>

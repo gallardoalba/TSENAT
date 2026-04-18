@@ -45,10 +45,11 @@ for result retrieval.
 
 Access results via the unified `results(obj, type = ...)` accessor
 method: - `type='diversity'` for Tsallis entropy across q-values -
-`type='lm'` for linear model interaction results - `type='rank_test'`
-for Scheirer-Ray-Hare rank-based test results - `type='divergence'` for
-divergence metrics - `type='jackknife'` for jackknife resampling results
-Use `metadata(obj)` to access reproducibility metadata.
+`type='rrm'` for regularized/penalized regression (GAM, LMM, GEE, FPCA)
+interaction results - `type='rank_test'` for Scheirer-Ray-Hare
+rank-based test results - `type='divergence'` for divergence metrics -
+`type='jackknife'` for jackknife resampling results Use `metadata(obj)`
+to access reproducibility metadata.
 
 ## Slots
 
@@ -72,15 +73,16 @@ Use `metadata(obj)` to access reproducibility metadata.
   SummarizedExperiment objects or data.frames containing entropy values
   for each gene at that q-value.
 
-- `lm_results`:
+- `rrm_results`:
 
-  `list`. Complex results from linear model and statistical testing.
-  Top-level names identify analysis type:
+  `list`. Complex results from regularized/penalized regression methods
+  (GAM, LMM, GEE, FPCA) and statistical testing. Top-level names
+  identify analysis type:
 
-  `lm_interaction`
+  `rrm_interaction`
 
-  :   LM/GAM/GEE model results (list with `$results` data.frame,
-      `$models` list, etc.)
+  :   Regularized regression (GAM/LMM/GEE/FPCA) model results (list with
+      `$results` data.frame, `$models` list, etc.)
 
   `rank_test`
 
@@ -123,7 +125,7 @@ Use `metadata(obj)` to access reproducibility metadata.
 - `plots`:
 
   `list`. Cached visualization objects (ggplot). Names identify plot
-  type (e.g., 'q_curve', 'lm_interaction', 'influence'). Populated by
+  type (e.g., 'q_curve', 'rrm_interaction', 'influence'). Populated by
   [`TSENAT()`](https://gallardoalba.github.io/TSENAT/reference/TSENAT.md)
   if `generate_plots=TRUE`.
 

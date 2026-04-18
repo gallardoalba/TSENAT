@@ -15,8 +15,7 @@
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-<ul class="navbar-nav me-auto">
-<li class="nav-item dropdown">
+      <ul class="navbar-nav me-auto"><li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-file-contract fa-lg"></span> Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/TSENAT.html">TSENAT - Theory and Practical Guide</a></li>
     <li><a class="dropdown-item" href="../articles/TSENAT_appendix_A.html">Appendix A - Equivalence Validation (TSENAT vs SplicingFactory)</a></li>
@@ -26,7 +25,6 @@
 <li class="nav-item"><a class="external-link nav-link" href="https://app.codecov.io/gh/gallardoalba/TSENAT"><span class="fa fas fa-chart-bar fa-lg"></span> Coverage</a></li>
 <li class="nav-item"><a class="nav-link" href="../r_dependencies_s4_interactive.html"><span class="fa fas fa-sitemap fa-lg"></span> Architecture</a></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-question-circle fa-lg"></span> Issues</a></li>
-
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-documents" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-book fa-lg"></span> Documents</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-documents"><li><a class="dropdown-item" href="../articles/TSENAT.pdf">TSENAT - Theory and Practical Guide</a></li>
@@ -35,8 +33,8 @@
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
 <li class="nav-item"><a class="nav-link" href="../citations.html"><span class="fa fas fa-book-open fa-lg"></span> References</a></li>
-</ul>
-<ul class="navbar-nav">
+      </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
+ <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul></div>
 
@@ -96,7 +94,7 @@ retrieval.</p>
 
 <p>Access results via the unified <code>results(obj, type = ...)</code> accessor method:
 - <code>type='diversity'</code> for Tsallis entropy across q-values
-- <code>type='lm'</code> for linear model interaction results
+- <code>type='rrm'</code> for regularized/penalized regression (GAM, LMM, GEE, FPCA) interaction results
 - <code>type='rank_test'</code> for Scheirer-Ray-Hare rank-based test results
 - <code>type='divergence'</code> for divergence metrics
 - <code>type='jackknife'</code> for jackknife resampling results
@@ -125,10 +123,10 @@ Values are SummarizedExperiment objects or data.frames containing entropy
 values for each gene at that q-value.</p></dd>
 
 
-<dt><code>lm_results</code></dt>
-<dd><p><code>list</code>. Complex results from linear model and
-statistical testing. Top-level names identify analysis type:</p><dl><dt><code>lm_interaction</code></dt>
-<dd><p>LM/GAM/GEE model results (list with
+<dt><code>rrm_results</code></dt>
+<dd><p><code>list</code>. Complex results from regularized/penalized regression methods
+(GAM, LMM, GEE, FPCA) and statistical testing. Top-level names identify analysis type:</p><dl><dt><code>rrm_interaction</code></dt>
+<dd><p>Regularized regression (GAM/LMM/GEE/FPCA) model results (list with
         <code>$results</code> data.frame, <code>$models</code> list, etc.)</p></dd>
 
   <dt><code>rank_test</code></dt>
@@ -174,7 +172,7 @@ divergence values</p></dd>
 
 <dt><code>plots</code></dt>
 <dd><p><code>list</code>. Cached visualization objects (ggplot). Names
-identify plot type (e.g., 'q_curve', 'lm_interaction', 'influence').
+identify plot type (e.g., 'q_curve', 'rrm_interaction', 'influence').
 Populated by <code><a href="TSENAT.html">TSENAT()</a></code> if <code>generate_plots=TRUE</code>.</p></dd>
 
 

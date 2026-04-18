@@ -122,7 +122,7 @@ analysis <- calculate_divergence(
   q = c(0.5, 1.0, 1.5, 2.0, 2.5),
   verbose = FALSE
 )
-analysis <- suppressWarnings(calculate_lm(analysis, method = 'gam'))
+analysis <- suppressWarnings(calculate_rrm(analysis, method = 'gam'))
 analysis <- calculate_effect_sizes(analysis)
 p_dist <- plot_divergence_distribution(analysis)
 # print(p_dist)

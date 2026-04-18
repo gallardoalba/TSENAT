@@ -19,9 +19,9 @@ calculate_jis(
   threshold = 90,
   nboot = 1000,
   pseudocount = NULL,
-  lm_results = NULL,
-  lm_p_threshold = 0.05,
-  use_lm_fdr = TRUE,
+  rrm_results = NULL,
+  rrm_p_threshold = 0.05,
+  use_rrm_fdr = TRUE,
   output_file = NULL,
   verbose = FALSE,
   ...
@@ -89,19 +89,19 @@ calculate_jis(
   `numeric`. Pseudocount value for count regularization. Default: NULL
   (uses @config\$pseudocount or 0).
 
-- lm_results:
+- rrm_results:
 
-  `data. frame`. Optional LM interaction results to filter genes. If
-  provided, only genes in lm_results are analyzed.
+  `data. frame`. Optional RRM interaction results to filter genes. If
+  provided, only genes in rrm_results are analyzed.
 
-- lm_p_threshold:
+- rrm_p_threshold:
 
-  `numeric`. P-value threshold for filtering genes from lm_results
+  `numeric`. P-value threshold for filtering genes from rrm_results
   (default: 0.05).
 
-- use_lm_fdr:
+- use_rrm_fdr:
 
-  `logical`. If TRUE, uses adjusted p-values from lm_results (default:
+  `logical`. If TRUE, uses adjusted p-values from rrm_results (default:
   TRUE).
 
 - output_file:
@@ -179,7 +179,7 @@ Affected parameters:
 
 - `threshold`: Uses `@config$threshold` if available, else 90
 
-- `lm_p_threshold`: Uses `@config$lm_p_threshold` if available, else
+- `rrm_p_threshold`: Uses `@config$rrm_p_threshold` if available, else
   0.05
 
 This allows setting defaults once in the config and reusing across

@@ -576,17 +576,17 @@ inherent in Tsallis entropy measurements.
 
 ``` r
 
-# Linear-model interaction test across q values using S4 wrapper
-analysis <- calculate_lm(
+# Regularized regression interaction test across q values using S4 wrapper
+analysis <- calculate_rrm(
     analysis,
     method = "gam",
     multicorr = "hochberg"
 )
        
-# Extract LM interaction results
-lm_results <- results(analysis, type = "lm", rankBy = "pvalue", n = 10)
+# Extract RRM interaction results
+rrm_results <- results(analysis, type = "rrm", rankBy = "pvalue", n = 10)
 
-print(lm_results)
+print(rrm_results)
 ```
 
 | Gene | P-value | Adj. P-value | Effect Size | Test Statistic | Model Converged | Heteroscedasticity |
@@ -611,12 +611,12 @@ q-spectrum; FALSE values suggest variance heterogeneity and warrant
 caution in result interpretation.
 
 Now we will plot the q-curve profile for the top genes identified by the
-linear-model interaction test.
+regularized regression interaction test.
 
 ``` r
 
 # Plot q-curve profiles for the top 4 genes using the S4 wrapper
-combined_plot <- plot_lm(
+combined_plot <- plot_rrm(
     analysis,
     n_top = 4
 )
@@ -624,17 +624,17 @@ print(combined_plot)
 ```
 
 ![\*\*Figure 2:\*\* Scale-dependent interaction analysis. GAM-identified
-genes showing significant q\$\times\$condition effects
+genes showing significant q\$ imes\$condition effects
 (Benjamini-Hochberg q \<
 0.05).](TSENAT_files/figure-html/fig-2-scale-dependent-genes-1.png)
 
 **Figure 2:** Scale-dependent interaction analysis. GAM-identified genes
-showing significant q$`\times`$condition effects (Benjamini-Hochberg q
-\< 0.05).
+showing significant q\$ imes\$condition effects (Benjamini-Hochberg q \<
+0.05).
 
 ### Transcript Switching Across Diversity Scales
 
-The LM interaction tests whether condition effects depend on which
+The RRM interaction tests whether condition effects depend on which
 diversity scale (q-value) you examine. This section identifies **which
 individual transcripts** drive these scale-dependent patterns, revealing
 whether the same transcripts switch across all scales or whether
@@ -645,7 +645,7 @@ scales.
 
 This workflow combines two complementary statistical methods:
 
-1.  **Multi-*q* LM interaction test**: Tests whether the condition
+1.  **Multi-*q* RRM interaction test**: Tests whether the condition
     effect on diversity depends on *q* (overall pattern across diversity
     scales)
 2.  **Single-*q* jackknife resampling**: Tests which individual
@@ -725,7 +725,7 @@ tables_result <- results(analysis, type = "switching_tables")
 
 #### Delta Influence Across Diversity Scales
 
-Visualize switching patterns for the top genes identified by the LM
+Visualize switching patterns for the top genes identified by the RRM
 interaction test. This shows which transcripts are switching in genes
 with significant q × condition interaction effects. The heatmaps below
 display **jackknife delta influence** (Efron and Tibshirani 1993)-a

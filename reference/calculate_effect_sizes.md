@@ -22,8 +22,8 @@ calculate_effect_sizes(
 
   `TSENATAnalysis`. An S4 object containing divergence results (from
   [`calculate_divergence()`](https://gallardoalba.github.io/TSENAT/reference/calculate_divergence.md))
-  and LM interaction results (from
-  [`calculate_lm()`](https://gallardoalba.github.io/TSENAT/reference/calculate_lm.md)).
+  and RRM interaction results (from
+  [`calculate_rrm()`](https://gallardoalba.github.io/TSENAT/reference/calculate_rrm.md)).
 
 - significance_threshold:
 
@@ -64,7 +64,7 @@ object visibly to support piping and method chaining.
 
 - Extracting:
 
-  Divergence SE and LM results from analysis slots
+  Divergence SE and RRM results from analysis slots
 
 - Enriching:
 
@@ -95,13 +95,13 @@ Results are accessed via: `metadata(analysis)$effect_sizes_divergence`
 
 [`calculate_divergence`](https://gallardoalba.github.io/TSENAT/reference/calculate_divergence.md)
 for divergence wrapper,
-[`calculate_lm`](https://gallardoalba.github.io/TSENAT/reference/calculate_lm.md)
-for LM interaction wrapper
+[`calculate_rrm`](https://gallardoalba.github.io/TSENAT/reference/calculate_rrm.md)
+for RRM interaction wrapper
 
 ## Examples
 
 ``` r
-# Setup: Create test analysis with divergence and LM interaction results
+# Setup: Create test analysis with divergence and RRM interaction results
 data(readcounts)
 readcounts <- as.matrix(readcounts)
 mode(readcounts) <- 'numeric'
@@ -119,7 +119,7 @@ config <- TSENAT_config(
   subject_col = 'paired_samples',
   paired = TRUE,
   control = 'normal',
-  q = seq(0, 2, by = 0.5)  # Multiple q-values for LM interaction analysis (5 unique: 0, 0.5, 1, 1.5, 2)
+  q = seq(0, 2, by = 0.5)  # Multiple q-values for RRM interaction analysis (5 unique: 0, 0.5, 1, 1.5, 2)
 )
 analysis <- build_analysis(readcounts = readcounts, tx2gene =
 gff3_dataset, metadata = metadata_df, config = config,
@@ -128,7 +128,7 @@ gff3_dataset, metadata = metadata_df, config = config,
 analysis <- filter_analysis(analysis, stringency = 'severe')
 analysis <- calculate_diversity(analysis)
 analysis <- calculate_divergence(analysis)
-analysis <- suppressWarnings(calculate_lm(analysis, method = 'gam'))
+analysis <- suppressWarnings(calculate_rrm(analysis, method = 'gam'))
 
 # Compute effect sizes from divergence results
 analysis <- calculate_effect_sizes(analysis,

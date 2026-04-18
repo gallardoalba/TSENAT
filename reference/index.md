@@ -8,6 +8,9 @@
   : Run complete TSENAT analysis pipeline
 - [`` `[`( ``*`<TSENATAnalysis>`*`,`*`<ANY>`*`,`*`<ANY>`*`,`*`<ANY>`*`)`](https://gallardoalba.github.io/TSENAT/reference/TSENATAnalysis-class.md)
   : TSENATAnalysis S4 Class Definition
+- [`metadata(`*`<TSENATAnalysis>`*`)`](https://gallardoalba.github.io/TSENAT/reference/TSENATAnalysis-metadata.md)
+  [`` `metadata<-`( ``*`<TSENATAnalysis>`*`)`](https://gallardoalba.github.io/TSENAT/reference/TSENATAnalysis-metadata.md)
+  : Metadata Accessor Methods
 - [`se()`](https://gallardoalba.github.io/TSENAT/reference/TSENATAnalysis-se.md)
   : Extract SummarizedExperiment from TSENATAnalysis
 - [`TSENATAnalysis()`](https://gallardoalba.github.io/TSENAT/reference/TSENATAnalysis.md)
@@ -30,10 +33,10 @@
   : Jackknife resampling with confidence intervals
 - [`calculate_jis()`](https://gallardoalba.github.io/TSENAT/reference/calculate_jis.md)
   : Jackknife isoform switching analysis on TSENATAnalysis object
-- [`calculate_lm()`](https://gallardoalba.github.io/TSENAT/reference/calculate_lm.md)
-  : Calculate LM interactions and store in TSENATAnalysis
 - [`calculate_m_estimator()`](https://gallardoalba.github.io/TSENAT/reference/calculate_m_estimator.md)
   : M-Estimation for Sample Quality (S4 Wrapper)
+- [`calculate_rrm()`](https://gallardoalba.github.io/TSENAT/reference/calculate_rrm.md)
+  : Calculate RRM interactions and store in TSENATAnalysis
 - [`calculate_srh()`](https://gallardoalba.github.io/TSENAT/reference/calculate_srh.md)
   : Detect q-dependent gene interactions
 - [`filter_analysis()`](https://gallardoalba.github.io/TSENAT/reference/filter_analysis.md)
@@ -52,7 +55,7 @@
   : Plot Top Transcripts from TSENATAnalysis Object
 - [`plot_jis_delta()`](https://gallardoalba.github.io/TSENAT/reference/plot_jis_delta.md)
   : Plot Multi-Q Delta Influence Heatmaps from TSENATAnalysis Object
-- [`plot_lm()`](https://gallardoalba.github.io/TSENAT/reference/plot_lm.md)
+- [`plot_rrm()`](https://gallardoalba.github.io/TSENAT/reference/plot_rrm.md)
   : Plot GAM q-curves from TSENATAnalysis object
 - [`readcounts`](https://gallardoalba.github.io/TSENAT/reference/readcounts.md)
   : Example transcript-level read counts dataset

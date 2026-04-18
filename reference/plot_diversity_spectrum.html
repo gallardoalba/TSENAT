@@ -23,8 +23,7 @@ or bootstrap confidence interval bands."></head><body>
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-<ul class="navbar-nav me-auto">
-<li class="nav-item dropdown">
+      <ul class="navbar-nav me-auto"><li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-file-contract fa-lg"></span> Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/TSENAT.html">TSENAT - Theory and Practical Guide</a></li>
     <li><a class="dropdown-item" href="../articles/TSENAT_appendix_A.html">Appendix A - Equivalence Validation (TSENAT vs SplicingFactory)</a></li>
@@ -34,7 +33,6 @@ or bootstrap confidence interval bands."></head><body>
 <li class="nav-item"><a class="external-link nav-link" href="https://app.codecov.io/gh/gallardoalba/TSENAT"><span class="fa fas fa-chart-bar fa-lg"></span> Coverage</a></li>
 <li class="nav-item"><a class="nav-link" href="../r_dependencies_s4_interactive.html"><span class="fa fas fa-sitemap fa-lg"></span> Architecture</a></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-question-circle fa-lg"></span> Issues</a></li>
-
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-documents" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-book fa-lg"></span> Documents</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-documents"><li><a class="dropdown-item" href="../articles/TSENAT.pdf">TSENAT - Theory and Practical Guide</a></li>
@@ -43,8 +41,8 @@ or bootstrap confidence interval bands."></head><body>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
 <li class="nav-item"><a class="nav-link" href="../citations.html"><span class="fa fas fa-book-open fa-lg"></span> References</a></li>
-</ul>
-<ul class="navbar-nav">
+      </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
+ <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul></div>
 
@@ -74,7 +72,7 @@ or bootstrap confidence interval bands.</p>
 <span>  assay_name <span class="op">=</span> <span class="st">"diversity"</span>,</span>
 <span>  condition_col <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  gene <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  lm_res <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  rrm_res <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  n_top <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  metric <span class="op">=</span> <span class="st">"iqr"</span>,</span>
 <span>  output_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -116,11 +114,11 @@ Overrides default aggregate behavior. When provided, uses median +/- SD
 for each gene.</p></dd>
 
 
-<dt id="arg-lm-res">lm_res<a class="anchor" aria-label="anchor" href="#arg-lm-res"></a></dt>
+<dt id="arg-rrm-res">rrm_res<a class="anchor" aria-label="anchor" href="#arg-rrm-res"></a></dt>
 <dd><p>Data frame (optional); gene interaction test results with
 `gene` column and
   p-value column. Accepts either:
-- Results from `.calculate_lm()` (has `adj_p_interaction` or
+- Results from `.calculate_rrm()` (has `adj_p_interaction` or
 `p_interaction` columns)
 - Results from `.calculate_srh()` (has `adj_p_value` or `p_value`
 columns from Scheirer-Ray-Hare rank tests)
@@ -130,7 +128,7 @@ p-value.
 
 
 <dt id="arg-n-top">n_top<a class="anchor" aria-label="anchor" href="#arg-n-top"></a></dt>
-<dd><p>Integer or NULL; number of top genes to select from `lm_res`
+<dd><p>Integer or NULL; number of top genes to select from `rrm_res`
 when `gene` is NULL
 (default: NULL). When NULL, defaults to showing the single most
 significant gene (n_top=1),
@@ -170,12 +168,12 @@ Default: NULL (uses current device).</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>**Aggregate mode (gene=NULL, lm_res=NULL)**:
+    <p>**Aggregate mode (gene=NULL, rrm_res=NULL)**:
 - If bootstrap CI assays available: A ggplot object showing median
 entropy with bootstrap confidence interval bands.
 - If no CI assays: A ggplot object showing median entropy with IQR
 ribbons (automatic fallback).</p>
-<p>**Gene-specific mode (gene or lm_res provided)**:
+<p>**Gene-specific mode (gene or rrm_res provided)**:
 - Single gene: A ggplot object showing median entropy +/- SD for that gene.
 - Multiple genes: A grid plot object arranged in 2 rows x 2 columns with
 a shared legend at the bottom.
@@ -184,16 +182,16 @@ subplots.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>**Aggregate mode (default, gene=NULL, lm_res=NULL)**:
+    <p>**Aggregate mode (default, gene=NULL, rrm_res=NULL)**:
 - Plots median Tsallis entropy +/- IQR across all genes for each group
 - Works with any SummarizedExperiment from .calculate_diversity()
 - Supports single or multiple q values and any number of groups
 - No CI data required for basic plots; bootstrap CIs optional</p>
-<p>**Gene-specific mode (gene or lm_res provided)**:
+<p>**Gene-specific mode (gene or rrm_res provided)**:
 - Plots q-curve separately for each selected gene
 - Shows median entropy +/- SD (variance) for each gene across q-values
 and groups
-- When `lm_res` provided: automatically ranks genes and selects top
+- When `rrm_res` provided: automatically ranks genes and selects top
 `n_top` by p-value
 - Single gene: returns a ggplot object; multiple genes: returns a grid
 plot (2 rows x 2 columns) with shared legend

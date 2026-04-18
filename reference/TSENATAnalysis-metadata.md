@@ -1,4 +1,4 @@
-# Set metadata for TSENATAnalysis object
+# Metadata Accessor Methods
 
 Access or set the metadata list stored in a TSENATAnalysis object. The
 getter function retrieves all metadata or a specific key-value. The
@@ -7,8 +7,6 @@ setter function replaces the entire metadata list.
 ## Usage
 
 ``` r
-metadata(x) <- value
-
 # S4 method for class 'TSENATAnalysis'
 metadata(x, key = NULL)
 
@@ -24,17 +22,15 @@ metadata(x) <- value
   [`TSENATAnalysis`](https://gallardoalba.github.io/TSENAT/reference/TSENATAnalysis-class.md)
   object
 
-- value:
-
-  A list of metadata to assign
-
 - key:
 
   Optional character string specifying a metadata key to retrieve
 
-## Value
+- value:
 
-TSENATAnalysis object with updated metadata
+  A list of metadata to assign
+
+## Value
 
 - `metadata`:
 
@@ -52,9 +48,7 @@ Get or Set Metadata
 ## Examples
 
 ``` r
-# \donttest{
-# For complete examples including the metadata<- setter method, 
-# see the TSENATAnalysis-metadata help page
+# Create a TSENATAnalysis object
 library(SummarizedExperiment)
 #> Loading required package: MatrixGenerics
 #> Loading required package: matrixStats
@@ -103,9 +97,6 @@ library(SummarizedExperiment)
 #> Loading required package: S4Vectors
 #> 
 #> Attaching package: ‘S4Vectors’
-#> The following object is masked from ‘package:TSENAT’:
-#> 
-#>     metadata<-
 #> The following object is masked from ‘package:utils’:
 #> 
 #>     findMatches
@@ -131,20 +122,6 @@ library(SummarizedExperiment)
 se <- SummarizedExperiment(assays = list(counts = matrix(1:100, nrow = 10)))
 analysis <- new('TSENATAnalysis', se = se, config = list())
 
-# Get metadata (this works immediately)
-metadata(analysis)
-#> $function_calls
-#> character(0)
-#> 
-#> $function_timestamps
-#> character(0)
-#> 
-# }
-# Create a TSENATAnalysis object
-library(SummarizedExperiment)
-se <- SummarizedExperiment(assays = list(counts = matrix(1:100, nrow = 10)))
-analysis <- new('TSENATAnalysis', se = se, config = list())
-
 # Get metadata (empty by default)
 metadata(analysis)
 #> $function_calls
@@ -157,19 +134,18 @@ metadata(analysis)
 # \donttest{
 # Set metadata
 metadata(analysis) <- list(processing_date = Sys.Date(), method = 'test')
-#> Error: unable to find an inherited method for function ‘metadata<-’ for signature ‘x = "TSENATAnalysis"’
 
 # Retrieve all metadata
 metadata(analysis)
-#> $function_calls
-#> character(0)
+#> $processing_date
+#> [1] "2026-04-19"
 #> 
-#> $function_timestamps
-#> character(0)
+#> $method
+#> [1] "test"
 #> 
 
 # Retrieve specific metadata key
 metadata(analysis, key = 'method')
-#> NULL
+#> [1] "test"
 # }
 ```

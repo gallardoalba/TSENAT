@@ -18,8 +18,8 @@ abundance-focused methods.
 ## The Solution
 
 TSENAT captures isoform diversity independently of which specific
-isoforms are abundant. The method uses Tsallis entropy with a
-sensitivity parameter q (the entropic index) that acts like a lens:
+isoforms are abundant. The method uses Tsallis entropy, whose entropic
+index parameter (q) enables to evaluate different data dimensions:
 
 - **Low q** (e.g., 0.5): Focuses on rare isoforms - detects if diversity
   is maintained or collapsed
@@ -189,16 +189,16 @@ interface:
 
 # Unified interface: request results by type
 diversity_results <- results(result, type = "diversity")
-lm_results <- results(result, type = "lm")
+rrm_results <- results(result, type = "rrm")
 jackknife_results <- results(result, type = "jackknife", q = 1)
 
 # Filter and rank results flexibly
-ranked_lm <- results(result, type = "lm", rankBy = "padj", n = 50)
+ranked_rrm <- results(result, type = "rrm", rankBy = "padj", n = 50)
 filtered_diversity <- results(result, type = "diversity", q = 1.0)
 
 # Retrieve plots
 diversity_plot <- results(result, type = "diversity", plot=TRUE)
-print(diveristy_plot)
+print(diversity_plot)
 ```
 
 ![Isoform diversity profiles across q-values: TSENAT detects
@@ -225,18 +225,18 @@ ARIMA differencing.
 
 The statistical methods available in TSENAT include:
 
-- Linear Mixed Models (LMM): Parametric testing with AR(1) correlation
-  structure for repeated measures. GAM, LMM, GEE and FPCA are all
-  parameterized to handle non-normality and heteroscedasticity
-  characteristic of entropy data.
-- Scheirer-Ray-Hare rank tests: The test operates solely on ranks,
+- **Regularized/Penalized Regression Methods**: Parametric regression
+  modeling with AR(1) correlation structure for repeated measures. GAM,
+  LMM, GEE and FPCA are all parameterized to handle non-normality and
+  heteroscedasticity characteristic of entropy data.
+- **Scheirer-Ray-Hare rank tests**: The test operates solely on ranks,
   making it robust to outliers and extreme values. However, it shows
   lower power for interactions and can inflate Type I errors under
   heterogeneous variance. These limitations are mitigated through
   Hochberg multiple testing correction.
-- M-estimation: Robust location estimation for group comparison using
-  iteratively re-weighted least squares, resistant to outliers.
-- Jackknife isoform switching: Leave-one-out resampling to identify
+- **M-estimation**: Robust location estimation for group comparison
+  using iteratively re-weighted least squares, resistant to outliers.
+- **Jackknife isoform switching**: Leave-one-out resampling to identify
   transcripts with condition-specific switching patterns and quantify
   their influence on entropy differences.
 

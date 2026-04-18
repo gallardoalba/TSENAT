@@ -156,7 +156,7 @@ abundance of 5 noise reduction with preservation of isoform diversity
 for reliable entropy calculations.
 
 \*\*Important:\*\* Filtering should be performed BEFORE computing
-diversity, divergence, or LM interaction results. If called after
+diversity, divergence, or RRM interaction results. If called after
 analysis results have been computed, those results will be based on
 unfiltered data and may not align with the filtered SE dimensions.
 

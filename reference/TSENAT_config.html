@@ -19,8 +19,7 @@ analyses."></head><body>
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-<ul class="navbar-nav me-auto">
-<li class="nav-item dropdown">
+      <ul class="navbar-nav me-auto"><li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-file-contract fa-lg"></span> Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/TSENAT.html">TSENAT - Theory and Practical Guide</a></li>
     <li><a class="dropdown-item" href="../articles/TSENAT_appendix_A.html">Appendix A - Equivalence Validation (TSENAT vs SplicingFactory)</a></li>
@@ -30,7 +29,6 @@ analyses."></head><body>
 <li class="nav-item"><a class="external-link nav-link" href="https://app.codecov.io/gh/gallardoalba/TSENAT"><span class="fa fas fa-chart-bar fa-lg"></span> Coverage</a></li>
 <li class="nav-item"><a class="nav-link" href="../r_dependencies_s4_interactive.html"><span class="fa fas fa-sitemap fa-lg"></span> Architecture</a></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-question-circle fa-lg"></span> Issues</a></li>
-
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-documents" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-book fa-lg"></span> Documents</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-documents"><li><a class="dropdown-item" href="../articles/TSENAT.pdf">TSENAT - Theory and Practical Guide</a></li>
@@ -39,8 +37,8 @@ analyses."></head><body>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
 <li class="nav-item"><a class="nav-link" href="../citations.html"><span class="fa fas fa-book-open fa-lg"></span> References</a></li>
-</ul>
-<ul class="navbar-nav">
+      </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
+ <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul></div>
 
@@ -85,9 +83,9 @@ analyses.</p>
 <span>  norm_method <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  pseudocount <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  shrinkage <span class="op">=</span> <span class="st">"none"</span>,</span>
-<span>  lm_method <span class="op">=</span> <span class="st">"gam"</span>,</span>
-<span>  lm_pcorr <span class="op">=</span> <span class="st">"BH"</span>,</span>
-<span>  jis_use_lm_fdr <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  rrm_method <span class="op">=</span> <span class="st">"gam"</span>,</span>
+<span>  rrm_pcorr <span class="op">=</span> <span class="st">"BH"</span>,</span>
+<span>  jis_use_rrm_fdr <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  divergence_ci <span class="op">=</span> <span class="fl">0.95</span>,</span>
 <span>  assumptions_checks <span class="op">=</span> <span class="st">"all"</span>,</span>
 <span>  <span class="va">...</span></span>
@@ -185,15 +183,15 @@ Usage: <code>calculate_diversity/divergence</code> use this for spectrum computa
 <dd><p><code>character</code>. Variance reduction: 'none' or 'empirical_bayes'. Default: 'none'.</p></dd>
 
 
-<dt id="arg-lm-method">lm_method<a class="anchor" aria-label="anchor" href="#arg-lm-method"></a></dt>
-<dd><p><code>character</code>. LM method: 'gam', 'lmm', 'fpca', 'gee'. Default: 'gam'.</p></dd>
+<dt id="arg-rrm-method">rrm_method<a class="anchor" aria-label="anchor" href="#arg-rrm-method"></a></dt>
+<dd><p><code>character</code>. RRM method: 'gam', 'lmm', 'fpca', 'gee'. Default: 'gam'.</p></dd>
 
 
-<dt id="arg-lm-pcorr">lm_pcorr<a class="anchor" aria-label="anchor" href="#arg-lm-pcorr"></a></dt>
+<dt id="arg-rrm-pcorr">rrm_pcorr<a class="anchor" aria-label="anchor" href="#arg-rrm-pcorr"></a></dt>
 <dd><p><code>character</code>. P-value correction: 'BH', 'bonferroni', 'hochberg', 'holm'. Default: 'BH'.</p></dd>
 
 
-<dt id="arg-jis-use-lm-fdr">jis_use_lm_fdr<a class="anchor" aria-label="anchor" href="#arg-jis-use-lm-fdr"></a></dt>
+<dt id="arg-jis-use-rrm-fdr">jis_use_rrm_fdr<a class="anchor" aria-label="anchor" href="#arg-jis-use-rrm-fdr"></a></dt>
 <dd><p><code>logical</code>. Filter jackknife genes using LM p-values. Default: TRUE.</p></dd>
 
 

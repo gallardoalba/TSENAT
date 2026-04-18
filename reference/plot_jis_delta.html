@@ -23,8 +23,7 @@ results from the analysis object slots."></head><body>
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-<ul class="navbar-nav me-auto">
-<li class="nav-item dropdown">
+      <ul class="navbar-nav me-auto"><li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-file-contract fa-lg"></span> Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/TSENAT.html">TSENAT - Theory and Practical Guide</a></li>
     <li><a class="dropdown-item" href="../articles/TSENAT_appendix_A.html">Appendix A - Equivalence Validation (TSENAT vs SplicingFactory)</a></li>
@@ -34,7 +33,6 @@ results from the analysis object slots."></head><body>
 <li class="nav-item"><a class="external-link nav-link" href="https://app.codecov.io/gh/gallardoalba/TSENAT"><span class="fa fas fa-chart-bar fa-lg"></span> Coverage</a></li>
 <li class="nav-item"><a class="nav-link" href="../r_dependencies_s4_interactive.html"><span class="fa fas fa-sitemap fa-lg"></span> Architecture</a></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-question-circle fa-lg"></span> Issues</a></li>
-
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-documents" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-book fa-lg"></span> Documents</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-documents"><li><a class="dropdown-item" href="../articles/TSENAT.pdf">TSENAT - Theory and Practical Guide</a></li>
@@ -43,8 +41,8 @@ results from the analysis object slots."></head><body>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
 <li class="nav-item"><a class="nav-link" href="../citations.html"><span class="fa fas fa-book-open fa-lg"></span> References</a></li>
-</ul>
-<ul class="navbar-nav">
+      </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
+ <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul></div>
 
@@ -72,7 +70,7 @@ results from the analysis object slots.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">plot_jis_delta</span><span class="op">(</span></span>
 <span>  <span class="va">analysis</span>,</span>
 <span>  n_genes <span class="op">=</span> <span class="fl">4</span>,</span>
-<span>  lm_results <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  rrm_results <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  output_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
@@ -94,11 +92,11 @@ jackknife isoform switching analysis across multiple q-values.</p></dd>
 by order of appearance in results.</p></dd>
 
 
-<dt id="arg-lm-results">lm_results<a class="anchor" aria-label="anchor" href="#arg-lm-results"></a></dt>
-<dd><p><code>data.frame</code> or <code>NULL</code>. Optional LM interaction
+<dt id="arg-rrm-results">rrm_results<a class="anchor" aria-label="anchor" href="#arg-rrm-results"></a></dt>
+<dd><p><code>data.frame</code> or <code>NULL</code>. Optional RRM interaction
 results for ranking genes (default: NULL). If NULL, attempts to extract
 from
-  <code>analysis@lm_results$lm_interaction</code>.</p></dd>
+  <code>analysis@rrm_results$rrm_interaction</code>.</p></dd>
 
 
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
@@ -127,8 +125,8 @@ Optional file path to save the plot.
 should
         contain multi-q switching results keyed by q-value (e.g., 'q_1.00')</p></dd>
 
-  <dt>LM results</dt>
-<dd><p>From <code>analysis@lm_results$lm_interaction</code> if not
+  <dt>RRM results</dt>
+<dd><p>From <code>analysis@rrm_results$rrm_interaction</code> if not
         explicitly provided, for ranking genes by significance</p></dd>
 
 
@@ -184,7 +182,7 @@ interface compared to the base function.</p>
 <span class="r-in"><span>  <span class="va">analysis</span>,</span></span>
 <span class="r-in"><span>  q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1.0</span>, <span class="fl">1.5</span>, <span class="fl">2.0</span>, <span class="fl">2.5</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="calculate_lm.html">calculate_lm</a></span><span class="op">(</span><span class="va">analysis</span>, method <span class="op">=</span> <span class="st">'gam'</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="calculate_rrm.html">calculate_rrm</a></span><span class="op">(</span><span class="va">analysis</span>, method <span class="op">=</span> <span class="st">'gam'</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="calculate_jis.html">calculate_jis</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="va">analysis</span>,</span></span>
 <span class="r-in"><span>  q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1</span>, <span class="fl">1.5</span><span class="op">)</span>,</span></span>
