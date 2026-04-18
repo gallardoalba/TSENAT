@@ -141,7 +141,7 @@ filtered_diversity <- results(result, type = "diversity", q = 1.0)
 
 # Retrieve plots
 diversity_plot <- results(result, type = "diversity", plot=TRUE)
-print(diveristy_plot)
+print(diversity_plot)
 ```
 
 ![Isoform diversity profiles across q-values: TSENAT detects scale-dependent diversity patterns](https://raw.githubusercontent.com/gallardoalba/TSENAT/gh-pages/articles/TSENAT_files/figure-html/fig-1-isoform-diversity-profiles-1.png)

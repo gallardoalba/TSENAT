@@ -513,13 +513,13 @@ print(combined_plot)
 
 ## Transcript Switching Across Diversity Scales
 
-The LM interaction tests whether condition effects depend on which diversity scale (q-value) you examine. This section identifies **which individual transcripts** drive these scale-dependent patterns, revealing whether the same transcripts switch across all scales or whether different regulatory mechanisms dominate at rare versus abundant isoform scales.
+The RRM interaction tests whether condition effects depend on which diversity scale (q-value) you examine. This section identifies **which individual transcripts** drive these scale-dependent patterns, revealing whether the same transcripts switch across all scales or whether different regulatory mechanisms dominate at rare versus abundant isoform scales.
 
 ### Two-Stage Analysis Approach
 
 This workflow combines two complementary statistical methods:
 
-1. **Multi-*q* LM interaction test**: Tests whether the condition effect on diversity depends on *q* (overall pattern across diversity scales)
+1. **Multi-*q* RRM interaction test**: Tests whether the condition effect on diversity depends on *q* (overall pattern across diversity scales)
 2. **Single-*q* jackknife resampling**: Tests which individual transcripts drive those patterns at each *q*-value, with robustness assessment
 
 **Delta influence** (from jackknife resampling [@S115]) quantifies *how each transcript's relative importance changes between normal and tumor conditions*, weighted by stability across bootstrap iterations (positive = more influential in normal condition; negative = more influential in tumor condition).
@@ -606,7 +606,7 @@ if (exists("tables_result") && is.list(tables_result) &&
 
 ### Delta Influence Across Diversity Scales
 
-Visualize switching patterns for the top genes identified by the LM interaction test. This shows which transcripts are switching in genes with significant q × condition interaction effects. The heatmaps below display **jackknife delta influence** [@S232]-a resampling-based measure of how robustly each transcript's relative contribution changes between conditions-across different entropic indices and transcripts for each gene. Delta influence values are computed from bootstrap resampling iterations, providing robust, non-parametric estimates of transcript switching significance weighted by consistency across replicates.
+Visualize switching patterns for the top genes identified by the RRM interaction test. This shows which transcripts are switching in genes with significant q × condition interaction effects. The heatmaps below display **jackknife delta influence** [@S232]-a resampling-based measure of how robustly each transcript's relative contribution changes between conditions-across different entropic indices and transcripts for each gene. Delta influence values are computed from bootstrap resampling iterations, providing robust, non-parametric estimates of transcript switching significance weighted by consistency across replicates.
 
 ```{r fig-3-transcript-jackknife-influence, echo=TRUE, results='hide', fig.width=12, fig.height=10, eval=TRUE, out.width="98%", fig.pos="H", fig.cap = "**Figure 3:** Transcript-level switching patterns via jackknife resampling. Rows q-values (0-2.0), columns transcripts. Red/blue indicates condition influence."}
 # Generate multi-Q heatmaps for top 4 genes using S4 wrapper

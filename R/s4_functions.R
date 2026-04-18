@@ -244,7 +244,7 @@ setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"), funct
     assumptions_df <- processed$assumptions_table
 
     # Ensure it has the expected columns
-    if (!all(c("Characteristic", "Test", "Result", "Interpretation") %in% colnames(assumptions_df))) {
+    if (!all(c("Test", "Result", "Interpretation") %in% colnames(assumptions_df))) {
         return(data.frame(check = "assumptions", status = "error", details = "Invalid table structure"))
     }
 

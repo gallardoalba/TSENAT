@@ -595,7 +595,7 @@ test_that(".validate_results_params accepts valid parameters", {
   )
   
   expect_silent(
-    TSENAT:::.validate_results_params(analysis, type = "rrm", rankBy = "qvalue", format = "matrix", filterFDR = NULL)
+    TSENAT:::.validate_results_params(analysis, type = "rrm", rankBy = "padj", format = "matrix", filterFDR = NULL)
   )
   
   expect_silent(
@@ -892,7 +892,7 @@ test_that(".warn_unsupported_params does not warn for valid rankBy on lm", {
 
 test_that(".warn_unsupported_params does not warn for valid rankBy on jackknife", {
   expect_silent(
-    TSENAT:::.warn_unsupported_params(type = "jackknife", filterFDR = NULL, rankBy = "qvalue")
+    TSENAT:::.warn_unsupported_params(type = "jackknife", filterFDR = NULL, rankBy = "padj")
   )
 })
 

@@ -30,3 +30,6 @@
 # Exclude compiler coverage files from src/
 ^src/.*\.gcda$
 ^src/.*\.gcno$
+
+# Exclude pkgdown custom CSS assets from built package
+^inst/pkgdown/

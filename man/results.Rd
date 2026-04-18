@@ -33,7 +33,7 @@ for that q-value instead of the full list. Default: NULL (return all q-values
 as list). Example: q = 1.0 returns only the q=1.0 results.}
 
 \item{rankBy}{\code{character}. For LM/Jackknife results, ranking method:
-'none' (default), 'pvalue', 'effectSize', or 'qvalue'.
+'none' (default), 'pvalue', 'effectSize', or 'padj' (adjusted p-values).
 Applies to statistical test results. Default: 'none'.}
 
 \item{n}{\code{integer}. Return top N features/genes ranked by rankBy.

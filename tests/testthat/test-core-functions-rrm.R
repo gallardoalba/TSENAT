@@ -1,6 +1,6 @@
 library(testthat)
 
-context("LM Core Functions: Input Validation")
+context("RRM Core Functions: Input Validation")
 
 test_that(".validate_rrm_interaction_input rejects invalid storey", {
     skip_if_not_installed("SummarizedExperiment")
@@ -162,7 +162,7 @@ test_that(".validate_rrm_interaction_input auto-detects subject_col when paired"
     expect_equal(result$subject_col, "paired_samples")
 })
 
-context("LM Core Functions: Sample Metadata Parsing")
+context("RRM Core Functions: Sample Metadata Parsing")
 
 test_that(".parse_sample_metadata extracts q-values correctly", {
     skip_if_not_installed("SummarizedExperiment")
@@ -273,7 +273,7 @@ test_that(".parse_sample_metadata rejects missing condition_col", {
     )
 })
 
-context("LM Core Functions: Gene Annotation Mapping")
+context("RRM Core Functions: Gene Annotation Mapping")
 
 test_that(".map_gene_annotations adds gene names from rowData", {
     skip_if_not_installed("SummarizedExperiment")
@@ -360,7 +360,7 @@ test_that(".map_gene_annotations handles missing gene_name gracefully", {
     expect_equal(mapped$gene_name, c("g1", "g2"))
 })
 
-context("LM Core Functions: Model Metadata Assembly")
+context("RRM Core Functions: Model Metadata Assembly")
 
 test_that(".assemble_model_metadata returns required fields", {
     skip_if_not_installed("SummarizedExperiment")
@@ -500,7 +500,7 @@ test_that(".assemble_model_metadata computes per-group statistics", {
     }
 })
 
-context("LM Refactored Main Function Integration")
+context("RRM Refactored Main Function Integration")
 
 test_that("calculate_rrm works with refactored code", {
     skip_if_not_installed("SummarizedExperiment")

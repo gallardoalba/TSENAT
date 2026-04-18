@@ -267,10 +267,10 @@ test_that("validate_se_dimensions passes with properly aligned rowData", {
 })
 
 # =============================================================================
-# CONTEXT: Data Validation - LM Results
+# CONTEXT: Data Validation - RRM Results
 # =============================================================================
 
-context("Data Validation: LM Results Structure")
+context("Data Validation: RRM Results Structure")
 
 test_that("validate_rrm_results passes for valid results", {
   results <- make_test_results(n_genes = 10, gene_col = "gene")

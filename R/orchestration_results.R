@@ -16,7 +16,7 @@
 #'   for that q-value instead of the full list. Default: NULL (return all q-values 
 #'   as list). Example: q = 1.0 returns only the q=1.0 results.
 #' @param rankBy \code{character}. For LM/Jackknife results, ranking method:
-#'   'none' (default), 'pvalue', 'effectSize', or 'qvalue'.
+#'   'none' (default), 'pvalue', 'effectSize', or 'padj' (adjusted p-values).
 #'   Applies to statistical test results. Default: 'none'.
 #' @param n \code{integer}. Return top N features/genes ranked by rankBy.
 #'   Use NA (default) to return all results. Requires rankBy != 'none'.
@@ -158,7 +158,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none", n = NA, filterFDR
     # Handle plot extraction first (takes precedence over other parameters)
     if (isTRUE(plot)) {
         # Map analysis type to plot cache name
-        plot_name_map <- list(diversity = "q_curve", lm = "rrm_interaction", influence = "influence_heatmap",
+        plot_name_map <- list(diversity = "q_curve", lm = "rrm_interaction", rrm = "rrm_interaction", influence = "influence_heatmap",
             jackknife = "top_transcripts", divergence = "divergence_distribution",
             rank_test = "rank_test", concordance = "concordance")
 
@@ -205,15 +205,17 @@ results <- function(analysis, type, q = NULL, rankBy = "none", n = NA, filterFDR
 # HELPER FUNCTIONS FOR RESULTS ACCESSOR
 # ============================================================================
 
-#' Internal: Validate results accessor parameters
-#'
+# ============================================================================
+# VALIDATION: Check parameter validity
+# ============================================================================
+
 #' @noRd
 .validate_results_params <- function(analysis, type, rankBy, format, filterFDR) {
     if (!is(analysis, "TSENATAnalysis")) {
         stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }
 
-    valid_rank_methods <- c("none", "pvalue", "qvalue", "effectSize")
+    valid_rank_methods <- c("none", "pvalue", "padj", "effectSize")
     if (!rankBy %in% valid_rank_methods) {
         stop("'rankBy' must be one of: ", paste(valid_rank_methods, collapse = ", "),
             call. = FALSE)
@@ -497,7 +499,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none", n = NA, filterFDR
 
             if (!is.null(q_char)) {
                 jk_q_result <- jk_res[[q_char]]
-                if (rankBy %in% c("pvalue", "qvalue")) {
+                if (rankBy %in% c("pvalue", "padj")) {
                   jk_res <- jk_q_result
                 } else if (is.list(jk_q_result) && "summary_table" %in% names(jk_q_result)) {
                   jk_res <- jk_q_result$summary_table
@@ -514,7 +516,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none", n = NA, filterFDR
             }
         } else if ("multi_q" %in% names(jk_res)) {
             jk_multi <- jk_res[["multi_q"]]
-            if (rankBy %in% c("pvalue", "qvalue")) {
+            if (rankBy %in% c("pvalue", "padj")) {
                 jk_res <- jk_multi
             } else if (is.list(jk_multi) && "summary_table" %in% names(jk_multi)) {
                 jk_res <- jk_multi$summary_table
@@ -561,7 +563,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none", n = NA, filterFDR
 
     if (is.list(result) && !is.data.frame(result)) {
         if (type == "jackknife") {
-            if (rankBy %in% c("pvalue", "qvalue") && "all_transcript_stats" %in%
+            if (rankBy %in% c("pvalue", "padj") && "all_transcript_stats" %in%
                 names(result)) {
                 result <- result$all_transcript_stats
             } else if ("summary_table" %in% names(result) && is.data.frame(result$summary_table)) {
@@ -609,18 +611,19 @@ results <- function(analysis, type, q = NULL, rankBy = "none", n = NA, filterFDR
 # ============================================================================
 .get_ranking_column <- function(type, rankBy, result) {
     switch(type, rrm = switch(rankBy, pvalue = if ("p_interaction" %in% colnames(result)) "p_interaction" else NULL,
-        qvalue = if ("adj_p_interaction" %in% colnames(result)) "adj_p_interaction" else NULL,
+        padj = if ("adj_p_interaction" %in% colnames(result)) "adj_p_interaction" else NULL,
         effectSize = if ("statistic" %in% colnames(result)) "statistic" else if ("estimate" %in%
             colnames(result)) "estimate" else if ("effect_size" %in% colnames(result)) "effect_size" else NULL,
         NULL), rank_test = switch(rankBy, pvalue = if ("p_value" %in% colnames(result)) "p_value" else NULL,
-        qvalue = if ("adj_p_value" %in% colnames(result)) "adj_p_value" else NULL,
+        padj = if ("adj_p_value" %in% colnames(result)) "adj_p_value" else NULL,
         effectSize = if ("statistic" %in% colnames(result)) "statistic" else if ("estimate" %in%
             colnames(result)) "estimate" else NULL, NULL), jackknife = switch(rankBy,
-        pvalue = if ("pvalue" %in% colnames(result)) "pvalue" else NULL, qvalue = if ("fdr" %in%
+        pvalue = if ("pvalue" %in% colnames(result)) "pvalue" else NULL, padj = if ("fdr" %in%
             colnames(result)) "fdr" else NULL, effectSize = if ("delta_influence" %in%
             colnames(result)) "delta_influence" else if ("max_delta_influence" %in%
             colnames(result)) "max_delta_influence" else NULL, NULL), NULL)
 }
+
 
 # ============================================================================
 # HELPER: Process statistical results (LM/Jackknife/RankTest)

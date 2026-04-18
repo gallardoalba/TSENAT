@@ -215,7 +215,7 @@ test_that("TSENAT() error handling: rejects invalid input, handles edge cases", 
 })
 
 # ============================================================================
-# TEST SUITE 8: LM Interaction Results and Plot Generation
+# TEST SUITE 8: RRM Interaction Results and Plot Generation
 # ============================================================================
 
 test_that("TSENAT() paired: produces RRM results, significant genes, plots generate", {

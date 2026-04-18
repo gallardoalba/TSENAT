@@ -736,7 +736,7 @@ testthat::test_that("GEE method integrates Shapiro-Wilk results into output", {
 # .ar1_design_effect, .estimate_ar1_rho, .gam_bias_correct,
 # and associated statistical test functions
 
-context("LM Helper: Report Fit Summary")
+context("RRM Helper: Report Fit Summary")
 
 test_that(".report_fit_summary reports F-statistic range when available", {
   config <- list()
@@ -836,7 +836,7 @@ test_that(".report_fit_summary silent when verbose=FALSE", {
 
 # ===== GAM Regularization Tests =====
 
-context("LM Helper: GAM Regularization")
+context("RRM Helper: GAM Regularization")
 
 test_that(".gam_regularization PCA mode returns NULL", {
   config <- list()
@@ -897,7 +897,7 @@ test_that(".gam_regularization invalid mode error", {
 
 # ===== AR(1) Design Effect Tests =====
 
-context("LM Helper: AR(1) Design Effect")
+context("RRM Helper: AR(1) Design Effect")
 
 test_that(".ar1_design_effect handles rho near 0", {
   config <- list()
@@ -939,7 +939,7 @@ test_that(".ar1_design_effect handles rho=1 boundary", {
 
 # ===== Estimate AR(1) Rho Tests =====
 
-context("LM Helper: Estimate AR(1) Rho")
+context("RRM Helper: Estimate AR(1) Rho")
 
 test_that(".estimate_ar1_rho returns NULL for small sample", {
   config <- list()
@@ -982,7 +982,7 @@ test_that(".estimate_ar1_rho handles NULL subject_vec", {
 
 # ===== GAM Bias Correction Tests =====
 
-context("LM Helper: GAM Bias Correction")
+context("RRM Helper: GAM Bias Correction")
 
 test_that(".gam_bias_correct increases p-value for small samples", {
   config <- list()
@@ -1045,7 +1045,7 @@ test_that(".gam_bias_correct handles n_observations parameter", {
 
 # ===== ADF Stationarity Test =====
 
-context("LM Helper: ADF Stationarity Test")
+context("RRM Helper: ADF Stationarity Test")
 
 test_that(".adf_test detects stationary series", {
   config <- list()
@@ -1089,7 +1089,7 @@ test_that(".adf_test returns list with required fields", {
 
 # ===== KPSS Stationarity Test =====
 
-context("LM Helper: KPSS Stationarity Test")
+context("RRM Helper: KPSS Stationarity Test")
 
 test_that(".kpss_test returns list with required fields", {
   config <- list()
@@ -1134,7 +1134,7 @@ test_that(".kpss_test returns NA for short series", {
 
 # ===== Validate Stationarity =====
 
-context("LM Helper: Validate Stationarity")
+context("RRM Helper: Validate Stationarity")
 
 test_that(".validate_stationarity checks entropy and q values", {
   config <- list()
@@ -1175,7 +1175,7 @@ test_that(".validate_stationarity includes gene name in report", {
 
 # ===== Check Monotonicity =====
 
-context("LM Helper: Check Monotonicity")
+context("RRM Helper: Check Monotonicity")
 
 test_that(".check_monotonicity returns TRUE for monotonic increasing", {
   config <- list()
@@ -1216,7 +1216,7 @@ test_that(".check_monotonicity detects violations", {
 
 # ===== Adaptive Spline Knots =====
 
-context("LM Helper: Adaptive Spline Knots")
+context("RRM Helper: Adaptive Spline Knots")
 
 test_that(".adaptive_spline_knots suggests reasonable knot count", {
   config <- list()
@@ -1261,7 +1261,7 @@ result <- TSENAT:::.adaptive_spline_knots(entropy_vals, q_vals, n_q_unique, min_
 
 # ===== Bounded Support Detection =====
 
-context("LM Helper: Bounded Support Detection")
+context("RRM Helper: Bounded Support Detection")
 
 test_that(".is_bounded_0_1 detects bounded entropy values", {
   config <- list()
@@ -1298,7 +1298,7 @@ test_that(".is_bounded_0_1 handles edge cases", {
 
 # ===== Compute Skewness =====
 
-context("LM Helper: Compute Skewness")
+context("RRM Helper: Compute Skewness")
 
 test_that(".compute_skewness calculates for normal distribution", {
   config <- list()

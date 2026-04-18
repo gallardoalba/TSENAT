@@ -119,25 +119,25 @@ test_that(".get_ranking_column returns NULL for LM pvalue when column absent", {
   expect_null(col)
 })
 
-test_that(".get_ranking_column returns adj_p_interaction for LM with qvalue", {
+test_that(".get_ranking_column returns adj_p_interaction for rrm with padj", {
   result <- data.frame(
     gene = c("g1", "g2"),
     adj_p_interaction = c(0.05, 0.10),
     estimate = c(0.5, 0.3)
   )
   
-  col <- .get_ranking_column(type = "rrm", rankBy = "qvalue", result = result)
+  col <- .get_ranking_column(type = "rrm", rankBy = "padj", result = result)
   
   expect_equal(col, "adj_p_interaction")
 })
 
-test_that(".get_ranking_column returns NULL for LM qvalue when column absent", {
+test_that(".get_ranking_column returns NULL for rrm padj when column absent", {
   result <- data.frame(
     gene = c("g1", "g2"),
     p_value = c(0.01, 0.05)
   )
   
-  col <- .get_ranking_column(type = "rrm", rankBy = "qvalue", result = result)
+  col <- .get_ranking_column(type = "rrm", rankBy = "padj", result = result)
   
   expect_null(col)
 })
@@ -201,14 +201,14 @@ test_that(".get_ranking_column handles rank_test type with pvalue", {
   expect_equal(col, "p_value")
 })
 
-test_that(".get_ranking_column handles rank_test type with qvalue", {
+test_that(".get_ranking_column handles rank_test type with padj", {
   result <- data.frame(
     gene = c("g1", "g2"),
     adj_p_value = c(0.05, 0.10),
     p_value = c(0.01, 0.02)
   )
   
-  col <- .get_ranking_column(type = "rank_test", rankBy = "qvalue", result = result)
+  col <- .get_ranking_column(type = "rank_test", rankBy = "padj", result = result)
   
   expect_equal(col, "adj_p_value")
 })
@@ -237,14 +237,14 @@ test_that(".get_ranking_column handles jackknife type with pvalue", {
   expect_equal(col, "pvalue")
 })
 
-test_that(".get_ranking_column handles jackknife type with qvalue", {
+test_that(".get_ranking_column handles jackknife type with padj", {
   result <- data.frame(
     gene = c("g1", "g2"),
     fdr = c(0.05, 0.10),
     pvalue = c(0.01, 0.02)
   )
   
-  col <- .get_ranking_column(type = "jackknife", rankBy = "qvalue", result = result)
+  col <- .get_ranking_column(type = "jackknife", rankBy = "padj", result = result)
   
   expect_equal(col, "fdr")
 })

@@ -1,4 +1,4 @@
-context("Jackknife Isoform Switching: Updates - Multi-Q, Gene Mapping, and LM Filtering")
+context("Jackknife Isoform Switching: Updates - Multi-Q, Gene Mapping, and RRM Filtering")
 
 # Helper function to create test SummarizedExperiment with gene names
 test_se_with_gene_names <- function() {

@@ -118,9 +118,9 @@ setMethod("summary", "TSENATAnalysis", function(object) {
         message("  [--] Diversity: not computed")
     }
     if (length(object@rrm_results) > 0) {
-        message("  [OK] LM Interaction: computed")
+        message("  [OK] RRM Interaction: computed")
     } else {
-        message("  [--] LM Interaction: not computed")
+        message("  [--] RRM Interaction: not computed")
     }
     if (length(object@jackknife_results) > 0) {
         message("  [OK] Jackknife: computed")
