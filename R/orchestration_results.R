@@ -133,7 +133,7 @@
 #' # Get the diversity spectrum plot
 #' diversity_plot <- results(analysis, type = 'diversity', plot = TRUE)
 #'
-#' # Get the LM/linear model interaction plot (GAM, LMM, GEE, or FPCA)
+#' # Get the LM/regularized regression (GAM, LMM, GEE, FPCA) interaction plot
 #' lm_plot <- results(analysis, type = 'lm', plot = TRUE)
 #'
 #' # Get the divergence distribution plot
@@ -144,7 +144,7 @@
 #'
 #' # Available plot types correspond to analysis types:
 #' # - type = 'diversity': Returns Tsallis entropy q-spectrum visualization
-#' # - type = 'lm': Returns linear model interaction plot (supports GAM, LMM, GEE, FPCA methods)
+#' # - type = 'lm': Returns regularized/penalized regression (GAM, LMM, GEE, FPCA) interaction plot
 #' # - type = 'divergence': Returns distribution of divergence metrics across genes
 #' # - type = 'influence': Returns m-estimator sample influence analysis
 #' # - type = 'rank_test': Returns Scheirer-Ray-Hare interaction visualization

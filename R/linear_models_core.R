@@ -1,10 +1,10 @@
-#' Linear-model interaction test for Tsallis entropy
+#' Regularized/penalized regression interaction testing for Tsallis entropy
 #'
-#' For each gene, fit a linear model of the form `entropy ~ q * group` and
-#' extract the p-value for the interaction term (whether the effect of `q`
-#' differs between groups). The function expects a `SummarizedExperiment`
-#' produced by `.calculate_diversity()` when multiple `q` values have been
-#' computed (column names contain `_q=`).
+#' For each gene, fit a regularized/penalized regression model (GAM, LMM, GEE, or FPCA) 
+#' of the form `entropy ~ q * group` with AR(1) correlation structure and extract the 
+#' p-value for the interaction term (whether the effect of `q` differs between groups). 
+#' The function expects a `SummarizedExperiment` produced by `.calculate_diversity()` 
+#' when multiple `q` values have been computed (column names contain `_q=`).
 #'
 #' @param se A `SummarizedExperiment` containing a `diversity` assay produced
 #'   by `.calculate_diversity(..., q = <vector>)`.
@@ -30,7 +30,7 @@
 #'       repeated q-measures.
 #'   }
 #'   Q-values are mathematically dependent (Papers S168-S175: AR(1) covariance
-#'   structures). Linear models without correlation structure should not be used.
+#'   structures). Regularized regression models without correlation structure should not be used.
 #' @param pvalue Type of p-value to compute: one of
 #'   \code{c('satterthwaite', 'lrt', 'both')} (default: 'satterthwaite').
 #'   Note: For method='lmm', only LRT p-values are available (Satterthwaite
@@ -239,7 +239,7 @@
 #'     row.names = colnames(se)
 #'   )
 #'
-#'   # Run linear model interaction analysis
+#'   # Run regularized regression interaction analysis
 #'   results <- TSENAT:::.calculate_lm(se, condition_col = 'condition')
 #' @noRd
 .calculate_lm <- function(se, condition_col = "condition", min_obs = 5, method = c("lmm",

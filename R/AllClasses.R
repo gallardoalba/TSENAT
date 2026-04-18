@@ -21,10 +21,10 @@
 #'   Values are SummarizedExperiment objects or data.frames containing entropy
 #'   values for each gene at that q-value.
 #'
-#' @slot lm_results \code{list}. Complex results from linear model and
-#'   statistical testing. Top-level names identify analysis type:
+#' @slot lm_results \code{list}. Complex results from regularized/penalized regression methods
+#'   (GAM, LMM, GEE, FPCA) and statistical testing. Top-level names identify analysis type:
 #'   \describe{
-#'     \item{\code{lm_interaction}}{LM/GAM/GEE model results (list with
+#'     \item{\code{lm_interaction}}{Regularized regression (GAM/LMM/GEE/FPCA) model results (list with
 #'           \code{$results} data.frame, \code{$models} list, etc.)}
 #'     \item{\code{rank_test}}{Scheirer-Ray-Hare rank-based test results}
 #'     \item{\code{divergence_difference}}{Differential divergence comparison}
@@ -66,7 +66,7 @@
 #' @details
 #' Access results via the unified \code{results(obj, type = ...)} accessor method:
 #' - \code{type='diversity'} for Tsallis entropy across q-values
-#' - \code{type='lm'} for linear model interaction results
+#' - \code{type='lm'} for regularized/penalized regression (GAM, LMM, GEE, FPCA) interaction results
 #' - \code{type='rank_test'} for Scheirer-Ray-Hare rank-based test results
 #' - \code{type='divergence'} for divergence metrics
 #' - \code{type='jackknife'} for jackknife resampling results

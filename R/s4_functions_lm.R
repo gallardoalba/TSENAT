@@ -1,6 +1,11 @@
 
 #' Calculate LM interactions and store in TSENATAnalysis
 #'
+#' @description
+#' Statistical interaction testing for entropy diversity using regularized/penalized regression methods 
+#' (GAM, LMM, GEE, FPCA) with AR(1) correlation structure for repeated measures. Tests for significant 
+#' q-by-condition interactions across entropic indices.
+#'
 #' @param analysis \code{TSENATAnalysis} object.
 #' @param fdr_threshold \code{numeric}. FDR cutoff for significance.
 #'   Default: 0.05.

@@ -74,7 +74,7 @@
 #'   row.names = colnames(se)
 #' )
 #' 
-#' # Run linear model analysis with model_data  
+#' # Run regularized regression (GAM) interaction analysis with model_data  
 #' lm_result <- .calculate_lm(se, condition_col = 'condition',
 #' method = 'gam',
 #'                                       return_model_data = TRUE)

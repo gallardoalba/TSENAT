@@ -1150,12 +1150,12 @@ if (getOption("TSENAT.memoization", TRUE)) {
         group_vec = group_vec, has_q = has_q))
 }
 
-#' @title Fit Linear Models for All Genes
+#' @title Fit Regularized Regression Models for All Genes
 #'
 #' @description
 #' Internal helper that orchestrates parallel or sequential fitting
-#' of models to all genes in the diversity matrix. Consolidates the
-#' fitting loop and result collection logic.
+#' of regularized/penalized regression models (GAM, LMM, GEE, FPCA) to all genes 
+#' in the diversity matrix. Consolidates the fitting loop and result collection logic.
 #'
 #' @param mat Matrix; diversity assay data
 #' @param se SummarizedExperiment object

@@ -176,7 +176,7 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
     step_times[["m_estimate"]] <- Sys.time() - step_start
     
     # Step 5: LM interaction
-    if (verbose) message(sprintf("[>] [%2d/16] Fitting linear models", 5))
+    if (verbose) message(sprintf("[>] [%2d/16] Fitting regularized regression models", 5))
     step_start <- Sys.time()
     analysis <- .execute_lm_interaction_s4(analysis, verbose, output_dir, output_format)
     step_times[["lm_interaction"]] <- Sys.time() - step_start
@@ -1017,7 +1017,7 @@ TSENAT_config <- function(q = 1, condition_col = "condition", subject_col = NULL
             "  # View object structure\n", "  show(result)\n\n", "  # View detailed statistics summary\n",
             "  summary(result)\n\n", "  # Tsallis Entropy Diversity\n", "  # Get results for specific sample at q=1.0\n",
             "  div <- results(result, type = 'diversity',\n", "                 n_genes = 4, sample = 'SRR14800481')\n\n",
-            "  # Linear Model Interaction Results\n", "  # Top 10 genes by p-value\n",
+            "  # Regularized/Penalized Regression Interaction Results\n", "  # Top 10 genes by p-value\n",
             "  lm <- results(result, type = 'lm',\n", "                rankBy = 'pvalue', n = 10)\n\n",
             "  # Visualizations\n", "  plot_diversity <- results(result, type = 'diversity', plot = TRUE)\n",
             "  plot_lm <- results(result, type = 'lm', plot = TRUE)\n", "\n")

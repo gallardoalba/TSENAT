@@ -83,7 +83,9 @@ storey, wy_randomizations, adaptive_knots, etc.}
 Modified TSENATAnalysis with results in @lm_results$lm_interaction.
 }
 \description{
-Calculate LM interactions and store in TSENATAnalysis
+Statistical interaction testing for entropy diversity using regularized/penalized regression methods 
+(GAM, LMM, GEE, FPCA) with AR(1) correlation structure for repeated measures. Tests for significant 
+q-by-condition interactions across entropic indices.
 }
 \details{
 Extracts diversity results from @diversity_results (prerequisite),
