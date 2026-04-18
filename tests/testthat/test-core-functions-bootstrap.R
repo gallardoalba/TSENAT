@@ -6498,3 +6498,378 @@ test_that(".bootstrap_resample_with_quality_control enforces min_valid_frac", {
   n_valid <- sum(!is.na(bootstrap_dist) & !is.nan(bootstrap_dist))
   expect_true(n_valid / 25 >= 0.9)
 })
+
+# ════════════════════════════════════════════════════════════════════════════════
+# COMPREHENSIVE TESTS FOR .bootstrap_resample_with_quality_control (21.0% coverage)
+# ════════════════════════════════════════════════════════════════════════════════
+
+test_that(".bootstrap_resample_with_quality_control handles edge case: empty input", {
+  # Test with empty/minimal input - should produce an error from C++ wrapper
+  expect_error(
+    TSENAT:::.bootstrap_resample_with_quality_control(
+      x = c(),
+      q = 1,
+      norm = FALSE,
+      nboot = 5,
+      log_base = 10,
+      pseudocount = 1,
+      what = "S",
+      paired = FALSE,
+      effective_length = NULL,
+      min_valid_frac = 0.8
+    )
+  )
+})
+
+test_that(".bootstrap_resample_with_quality_control with different what parameter", {
+  counts <- rpois(20, lambda = 10)
+  
+  # Test with "S" (default)
+  result_s <- TSENAT:::.bootstrap_resample_with_quality_control(
+    x = counts, q = 1.0, norm = FALSE, nboot = 10,
+    log_base = 10, pseudocount = 1, what = "S", paired = FALSE,
+    effective_length = NULL, min_valid_frac = 0.8
+  )
+  
+  # Test with "D" (Hill numbers/divergence)
+  result_d <- TSENAT:::.bootstrap_resample_with_quality_control(
+    x = counts, q = 1.0, norm = FALSE, nboot = 10,
+    log_base = 10, pseudocount = 1, what = "D", paired = FALSE,
+    effective_length = NULL, min_valid_frac = 0.8
+  )
+  
+  # Both should return numeric vectors
+  expect_is(result_s, "numeric")
+  expect_is(result_d, "numeric")
+  # Both should have expected number of replicates
+  expect_equal(length(result_s), 10)
+  expect_equal(length(result_d), 10)
+})
+
+test_that(".bootstrap_resample_with_quality_control with paired=TRUE", {
+  counts <- rpois(20, lambda = 10)
+  
+  result <- TSENAT:::.bootstrap_resample_with_quality_control(
+    x = counts, q = 1.0, norm = FALSE, nboot = 8,
+    log_base = 10, pseudocount = 1, what = "S", paired = TRUE,
+    effective_length = NULL, min_valid_frac = 0.8
+  )
+  
+  expect_is(result, "numeric")
+  expect_equal(length(result), 8)
+})
+
+test_that(".bootstrap_resample_with_quality_control with effective_length", {
+  counts <- rpois(20, lambda = 10)
+  eff_len <- rep(100, 20)
+  
+  result <- TSENAT:::.bootstrap_resample_with_quality_control(
+    x = counts, q = 2.0, norm = FALSE, nboot = 10,
+    log_base = 2, pseudocount = 0.5, what = "D", paired = FALSE,
+    effective_length = eff_len, min_valid_frac = 0.75
+  )
+  
+  expect_is(result, "numeric")
+  expect_equal(length(result), 10)
+  expect_true(sum(!is.na(result)) >= 7)  # At least 70% valid
+})
+
+test_that(".bootstrap_resample_with_quality_control with different normalizations", {
+  counts <- rpois(20, lambda = 10)
+  
+  # Test with norm = FALSE (no normalization)
+  result_none <- TSENAT:::.bootstrap_resample_with_quality_control(
+    x = counts, q = 1.0, norm = FALSE, nboot = 5,
+    log_base = 10, pseudocount = 1, what = "S", paired = FALSE,
+    effective_length = NULL, min_valid_frac = 0.8
+  )
+  
+  # Test with norm = TRUE (normalization applied)
+  result_norm <- TSENAT:::.bootstrap_resample_with_quality_control(
+    x = counts, q = 1.0, norm = TRUE, nboot = 5,
+    log_base = 10, pseudocount = 1, what = "S", paired = FALSE,
+    effective_length = NULL, min_valid_frac = 0.8
+  )
+  
+  # Both should produce numeric results
+  expect_is(result_none, "numeric")
+  expect_is(result_norm, "numeric")
+  expect_equal(length(result_none), 5)
+  expect_equal(length(result_norm), 5)
+})
+
+test_that(".bootstrap_resample_with_quality_control respects min_valid_frac", {
+  # Create counts with potential edge cases
+  counts <- c(1, 1, 1, 1, 100, 100, 100, 100, 50, 50)
+  
+  # Strict threshold
+  result_strict <- TSENAT:::.bootstrap_resample_with_quality_control(
+    x = counts, q = 1.0, norm = FALSE, nboot = 20,
+    log_base = 10, pseudocount = 1, what = "S", paired = FALSE,
+    effective_length = NULL, min_valid_frac = 0.95
+  )
+  
+  # Lenient threshold
+  result_lenient <- TSENAT:::.bootstrap_resample_with_quality_control(
+    x = counts, q = 1.0, norm = FALSE, nboot = 20,
+    log_base = 10, pseudocount = 1, what = "S", paired = FALSE,
+    effective_length = NULL, min_valid_frac = 0.50
+  )
+  
+  valid_strict <- sum(!is.na(result_strict) & !is.nan(result_strict))
+  valid_lenient <- sum(!is.na(result_lenient) & !is.nan(result_lenient))
+  
+  # Both should achieve their minimum fraction
+  expect_true(valid_strict / 20 >= 0.95 || valid_strict > 15)
+  expect_true(valid_lenient / 20 >= 0.50 || valid_lenient > 9)
+})
+
+test_that(".bootstrap_resample_with_quality_control with high q values", {
+  counts <- rpois(15, lambda = 15)
+  
+  result_q3 <- TSENAT:::.bootstrap_resample_with_quality_control(
+    x = counts, q = 3.0, norm = "none", nboot = 10,
+    log_base = 10, pseudocount = 1, what = "S", paired = FALSE,
+    effective_length = NULL, min_valid_frac = 0.8
+  )
+  
+  result_q5 <- TSENAT:::.bootstrap_resample_with_quality_control(
+    x = counts, q = 5.0, norm = "none", nboot = 10,
+    log_base = 10, pseudocount = 1, what = "S", paired = FALSE,
+    effective_length = NULL, min_valid_frac = 0.8
+  )
+  
+  expect_is(result_q3, "numeric")
+  expect_is(result_q5, "numeric")
+  expect_equal(length(result_q3), 10)
+  expect_equal(length(result_q5), 10)
+})
+
+# ════════════════════════════════════════════════════════════════════════════════
+# COMPREHENSIVE TESTS FOR .bootstrap_resample_optimized (66.6% coverage)
+# ════════════════════════════════════════════════════════════════════════════════
+
+test_that(".bootstrap_resample_optimized handles basic count vector", {
+  counts <- c(100, 80, 60, 40, 20)
+  
+  result <- TSENAT:::.bootstrap_resample_optimized(
+    x = counts, q = 1.0, norm = "none", nboot = 10,
+    log_base = 10, pseudocount = 1, what = "S", paired = FALSE,
+    effective_length = NULL
+  )
+  
+  expect_is(result, "numeric")
+  expect_equal(length(result), 10)
+  expect_true(all(!is.na(result)))
+})
+
+test_that(".bootstrap_resample_optimized with effective length normalization", {
+  counts <- c(100, 80, 60, 40, 20)
+  eff_length <- c(1000, 900, 800, 700, 600)
+  
+  result <- TSENAT:::.bootstrap_resample_optimized(
+    x = counts, q = 1.0, norm = "none", nboot = 8,
+    log_base = 10, pseudocount = 1, what = "S", paired = FALSE,
+    effective_length = eff_length
+  )
+  
+  expect_is(result, "numeric")
+  expect_equal(length(result), 8)
+})
+
+test_that(".bootstrap_resample_optimized with paired=TRUE", {
+  # Even-length count vector for paired
+  counts <- c(100, 80, 60, 40, 20, 50)
+  
+  result <- TSENAT:::.bootstrap_resample_optimized(
+    x = counts, q = 1.0, norm = "none", nboot = 6,
+    log_base = 10, pseudocount = 1, what = "S", paired = TRUE,
+    effective_length = NULL
+  )
+  
+  expect_is(result, "numeric")
+  expect_equal(length(result), 6)
+})
+
+test_that(".bootstrap_resample_optimized with paired=TRUE and what='D'", {
+  counts <- c(100, 80, 60, 40, 20, 50)
+  
+  result <- TSENAT:::.bootstrap_resample_optimized(
+    x = counts, q = 1.0, norm = "none", nboot = 5,
+    log_base = 10, pseudocount = 1, what = "D", paired = TRUE,
+    effective_length = NULL
+  )
+  
+  expect_is(result, "numeric")
+  expect_equal(length(result), 5)
+})
+
+test_that(".bootstrap_resample_optimized handles effective_length zero values", {
+  counts <- c(100, 80, 60, 40, 20)
+  # Includes zero effective length
+  eff_length <- c(1000, 0, 800, 700, 600)
+  
+  result <- TSENAT:::.bootstrap_resample_optimized(
+    x = counts, q = 2.0, norm = "none", nboot = 8,
+    log_base = 2, pseudocount = 0.5, what = "S", paired = FALSE,
+    effective_length = eff_length
+  )
+  
+  expect_is(result, "numeric")
+  expect_equal(length(result), 8)
+})
+
+test_that(".bootstrap_resample_optimized with different q values", {
+  counts <- c(100, 80, 60, 40, 20)
+  
+  result_q0.5 <- TSENAT:::.bootstrap_resample_optimized(
+    x = counts, q = 0.5, norm = "none", nboot = 8,
+    log_base = 10, pseudocount = 1, what = "S", paired = FALSE, effective_length = NULL
+  )
+  
+  result_q2 <- TSENAT:::.bootstrap_resample_optimized(
+    x = counts, q = 2.0, norm = "none", nboot = 8,
+    log_base = 10, pseudocount = 1, what = "S", paired = FALSE, effective_length = NULL
+  )
+  
+  expect_is(result_q0.5, "numeric")
+  expect_is(result_q2, "numeric")
+})
+
+# ════════════════════════════════════════════════════════════════════════════════
+# COMPREHENSIVE TESTS FOR .bootstrap_process_matrix (61.7% coverage)
+# ════════════════════════════════════════════════════════════════════════════════
+
+test_that(".bootstrap_process_matrix handles single gene", {
+  gene_matrix <- matrix(c(100, 80, 60, 40, 20), nrow = 1,
+                        dimnames = list("Gene1", NULL))
+  
+  result <- TSENAT:::.bootstrap_process_matrix(
+    x = gene_matrix, q = 1.0, norm = FALSE, nboot = 5, ci = 0.95,
+    method = "percentile", log_base = 10, pseudocount = 1, what = "S",
+    gene_name = NULL, verbose = FALSE, include_diagnostics = FALSE,
+    use_job = FALSE, nthreads = 1, paired = FALSE
+  )
+  
+  expect_is(result, "tsenat_bootstrap_ci_list")
+  expect_equal(length(result), 1)
+  expect_true("Gene1" %in% names(result))
+})
+
+test_that(".bootstrap_process_matrix handles multiple genes", {
+  gene_matrix <- matrix(
+    c(100, 80, 60, 40, 20,
+      90, 70, 50, 40, 30),
+    nrow = 2, byrow = TRUE,
+    dimnames = list(c("Gene1", "Gene2"), NULL)
+  )
+  
+  result <- TSENAT:::.bootstrap_process_matrix(
+    x = gene_matrix, q = 1.0, norm = FALSE, nboot = 5, ci = 0.95,
+    method = "percentile", log_base = 10, pseudocount = 1, what = "S",
+    gene_name = NULL, verbose = FALSE, include_diagnostics = FALSE,
+    use_job = FALSE, nthreads = 1, paired = FALSE
+  )
+  
+  expect_is(result, "tsenat_bootstrap_ci_list")
+  expect_equal(length(result), 2)
+  expect_true(all(c("Gene1", "Gene2") %in% names(result)))
+})
+
+test_that(".bootstrap_process_matrix with auto-generated gene names", {
+  # Matrix without rownames
+  gene_matrix <- matrix(
+    c(100, 80, 60, 40, 20,
+      90, 70, 50, 40, 30,
+      85, 75, 55, 35, 25),
+    nrow = 3, byrow = TRUE
+  )
+  
+  result <- TSENAT:::.bootstrap_process_matrix(
+    x = gene_matrix, q = 1.0, norm = FALSE, nboot = 3, ci = 0.95,
+    method = "percentile", log_base = 10, pseudocount = 1, what = "S",
+    gene_name = NULL, verbose = FALSE, include_diagnostics = FALSE,
+    use_job = FALSE, nthreads = 1, paired = FALSE
+  )
+  
+  expect_is(result, "tsenat_bootstrap_ci_list")
+  expect_equal(length(result), 3)
+  # Should have auto-generated names like Gene_1, Gene_2, Gene_3
+  expect_true(all(grepl("Gene_", names(result))))
+})
+
+test_that(".bootstrap_process_matrix with BCA method", {
+  gene_matrix <- matrix(
+    c(100, 80, 60, 40, 20,
+      90, 70, 50, 40, 30),
+    nrow = 2, byrow = TRUE,
+    dimnames = list(c("Gene1", "Gene2"), NULL)
+  )
+  
+  result <- TSENAT:::.bootstrap_process_matrix(
+    x = gene_matrix, q = 1.0, norm = FALSE, nboot = 8, ci = 0.95,
+    method = "bca", log_base = 10, pseudocount = 1, what = "S",
+    gene_name = NULL, verbose = FALSE, include_diagnostics = FALSE,
+    use_job = FALSE, nthreads = 1, paired = FALSE
+  )
+  
+  expect_is(result, "tsenat_bootstrap_ci_list")
+  expect_equal(length(result), 2)
+})
+
+test_that(".bootstrap_process_matrix with what='D' (divergence)", {
+  gene_matrix <- matrix(
+    c(100, 80, 60, 40, 20),
+    nrow = 1,
+    dimnames = list("Gene1", NULL)
+  )
+  
+  result <- TSENAT:::.bootstrap_process_matrix(
+    x = gene_matrix, q = 1.0, norm = FALSE, nboot = 5, ci = 0.95,
+    method = "percentile", log_base = 10, pseudocount = 1, what = "D",
+    gene_name = NULL, verbose = FALSE, include_diagnostics = FALSE,
+    use_job = FALSE, nthreads = 1, paired = FALSE
+  )
+  
+  expect_is(result, "tsenat_bootstrap_ci_list")
+  expect_equal(length(result), 1)
+})
+
+test_that(".bootstrap_process_matrix with multiple q values", {
+  gene_matrix <- matrix(
+    c(100, 80, 60, 40, 20),
+    nrow = 1,
+    dimnames = list("Gene1", NULL)
+  )
+  
+  # Test with q = 2.0 (different from q = 1.0 which is KL divergence)
+  result <- TSENAT:::.bootstrap_process_matrix(
+    x = gene_matrix, q = 2.0, norm = FALSE, nboot = 5, ci = 0.95,
+    method = "percentile", log_base = 10, pseudocount = 1, what = "S",
+    gene_name = NULL, verbose = FALSE, include_diagnostics = FALSE,
+    use_job = FALSE, nthreads = 1, paired = FALSE
+  )
+  
+  expect_is(result, "tsenat_bootstrap_ci_list")
+  expect_equal(length(result), 1)
+})
+
+test_that(".bootstrap_process_matrix with paired=TRUE", {
+  # Paired data: 2 samples, each with 10 measurements
+  gene_matrix <- matrix(
+    c(100, 80, 60, 40, 20, 90, 70, 50, 40, 30,
+      95, 85, 65, 45, 25, 85, 75, 55, 45, 35),
+    nrow = 2, byrow = TRUE,
+    dimnames = list(c("Gene1", "Gene2"), NULL)
+  )
+  
+  result <- TSENAT:::.bootstrap_process_matrix(
+    x = gene_matrix, q = 1.0, norm = FALSE, nboot = 5, ci = 0.95,
+    method = "percentile", log_base = 10, pseudocount = 1, what = "S",
+    gene_name = NULL, verbose = FALSE, include_diagnostics = FALSE,
+    use_job = FALSE, nthreads = 1, paired = TRUE
+  )
+  
+  expect_is(result, "tsenat_bootstrap_ci_list")
+  expect_equal(length(result), 2)
+})

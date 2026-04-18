@@ -45,5 +45,8 @@ _pkgdown.yml
 r_dependencies_s4_interactive.html
 visualize_dependencies.py
 
-# Exclude pkgdown custom assets from git (will be managed via R build)
-inst/pkgdown/assets/custom.css
+# Exclude pkgdown templates and assets from git (will be managed via R build)
+inst/pkgdown/
+
+# Generated citations file (restored from gh-pages when needed)
+citations.md

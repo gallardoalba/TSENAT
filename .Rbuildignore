@@ -33,3 +33,8 @@
 
 # Exclude pkgdown custom CSS assets from built package
 ^inst/pkgdown/
+
+# Exclude generated citations file from built package
+^citations\.md$
+# Exclude generated dependency visualization from built package
+^r_dependencies_s4_interactive\\.html$

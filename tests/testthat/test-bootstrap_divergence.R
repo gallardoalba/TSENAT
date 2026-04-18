@@ -814,3 +814,152 @@ test_that(".bootstrap_divergence_handle_multiple_q returns list with results", {
   expect_is(result, "tsenat_divergence_bootstrap_list")
   expect_equal(length(result), 2)
 })
+
+# ════════════════════════════════════════════════════════════════════════════════
+# TEST SUITE FOR .bootstrap_divergence_handle_multiple_q (47.3% coverage)
+# ════════════════════════════════════════════════════════════════════════════════
+
+test_that(".bootstrap_divergence_handle_multiple_q processes single q value", {
+  x <- c(100, 80, 60, 40, 20)
+  y <- c(90, 70, 50, 40, 30)
+  
+  result <- TSENAT:::.bootstrap_divergence_handle_multiple_q(
+    x = x, y = y, q = 1.0, norm = FALSE, nboot = 5, ci = 0.95,
+    method = "percentile", log_base = 10, pseudocount = 1, 
+    gene_name = NULL, verbose = FALSE, paired = FALSE, pair_id_col = NULL, se = NULL
+  )
+  
+  expect_is(result, "tsenat_divergence_bootstrap_list")
+  expect_equal(length(result), 1)
+  expect_true("q_1" %in% names(result))
+})
+
+test_that(".bootstrap_divergence_handle_multiple_q processes multiple q values", {
+  x <- c(100, 80, 60, 40, 20)
+  y <- c(90, 70, 50, 40, 30)
+  
+  result <- TSENAT:::.bootstrap_divergence_handle_multiple_q(
+    x = x, y = y, q = c(0.5, 1.0, 2.0), norm = FALSE, nboot = 5, ci = 0.95,
+    method = "percentile", log_base = 10, pseudocount = 1, 
+    gene_name = NULL, verbose = FALSE, paired = FALSE, pair_id_col = NULL, se = NULL
+  )
+  
+  expect_is(result, "tsenat_divergence_bootstrap_list")
+  expect_equal(length(result), 3)
+  expect_true(all(c("q_0.5", "q_1", "q_2") %in% names(result)))
+})
+
+test_that(".bootstrap_divergence_handle_multiple_q returns with gene_name and verbose", {
+  x <- c(100, 80, 60, 40, 20)
+  y <- c(90, 70, 50, 40, 30)
+  
+  # When verbose=TRUE with gene_name, function should produce diagnostic output (messages)
+  # We suppress warnings/messages to keep test output clean while verifying execution
+  result <- suppressMessages({
+    TSENAT:::.bootstrap_divergence_handle_multiple_q(
+      x = x, y = y, q = c(1.0, 2.0), norm = FALSE, nboot = 5, ci = 0.95,
+      method = "percentile", log_base = 10, pseudocount = 1, 
+      gene_name = "TEST_GENE", verbose = TRUE, paired = FALSE, pair_id_col = NULL, se = NULL
+    )
+  })
+  
+  # Verify result structure is correct
+  expect_is(result, "tsenat_divergence_bootstrap_list")
+  expect_equal(length(result), 2)
+  expect_true(all(c("q_1", "q_2") %in% names(result)))
+})
+
+test_that(".bootstrap_divergence_handle_multiple_q with BCA method", {
+  x <- c(100, 80, 60, 40, 20)
+  y <- c(90, 70, 50, 40, 30)
+  
+  result <- TSENAT:::.bootstrap_divergence_handle_multiple_q(
+    x = x, y = y, q = 1.0, norm = FALSE, nboot = 10, ci = 0.95,
+    method = "bca", log_base = 10, pseudocount = 1, 
+    gene_name = NULL, verbose = FALSE, paired = FALSE, pair_id_col = NULL, se = NULL
+  )
+  
+  expect_is(result, "tsenat_divergence_bootstrap_list")
+  expect_equal(length(result), 1)
+})
+
+# ════════════════════════════════════════════════════════════════════════════════
+# TEST SUITE FOR .bootstrap_divergence_compute_samples (50% coverage)
+# ════════════════════════════════════════════════════════════════════════════════
+
+test_that(".bootstrap_divergence_compute_samples processes unpaired data", {
+  x <- c(100, 80, 60, 40, 20)
+  y <- c(90, 70, 50, 40, 30)
+  
+  result <- TSENAT:::.bootstrap_divergence_compute_samples(
+    x = x, y = y, nboot = 10, q = 1.0, pseudocount = 1,
+    log_base = 10, paired = FALSE, se = NULL, pair_id_col = NULL,
+    group_col = NULL, control_group = NULL
+  )
+  
+  # Should return numeric vector of bootstrap samples
+  expect_is(result, "numeric")
+  expect_equal(length(result), 10)
+  expect_true(all(!is.na(result)))
+})
+
+test_that(".bootstrap_divergence_compute_samples handles different q values", {
+  x <- c(100, 80, 60, 40, 20)
+  y <- c(90, 70, 50, 40, 30)
+  
+  # Test with q = 2.0 (different from q = 1.0 which is KL divergence)
+  result <- TSENAT:::.bootstrap_divergence_compute_samples(
+    x = x, y = y, nboot = 5, q = 2.0, pseudocount = 1,
+    log_base = 10, paired = FALSE, se = NULL, pair_id_col = NULL,
+    group_col = NULL, control_group = NULL
+  )
+  
+  # Should return numeric vector
+  expect_is(result, "numeric")
+  # 5 bootstrap replicates
+  expect_equal(length(result), 5)
+  expect_true(all(is.finite(result)))
+})
+
+test_that(".bootstrap_divergence_compute_samples with different log bases", {
+  x <- c(100, 80, 60, 40, 20)
+  y <- c(90, 70, 50, 40, 30)
+  
+  result_log10 <- TSENAT:::.bootstrap_divergence_compute_samples(
+    x = x, y = y, nboot = 5, q = 1.0, pseudocount = 1,
+    log_base = 10, paired = FALSE, se = NULL, pair_id_col = NULL,
+    group_col = NULL, control_group = NULL
+  )
+  
+  result_log2 <- TSENAT:::.bootstrap_divergence_compute_samples(
+    x = x, y = y, nboot = 5, q = 1.0, pseudocount = 1,
+    log_base = 2, paired = FALSE, se = NULL, pair_id_col = NULL,
+    group_col = NULL, control_group = NULL
+  )
+  
+  expect_is(result_log10, "numeric")
+  expect_is(result_log2, "numeric")
+  # Results should differ due to different log bases
+  expect_false(isTRUE(all.equal(result_log10, result_log2)))
+})
+
+test_that(".bootstrap_divergence_compute_samples with pseudocount effect", {
+  x <- c(100, 80, 60, 40, 20)
+  y <- c(90, 70, 50, 40, 30)
+  
+  result_low_pc <- TSENAT:::.bootstrap_divergence_compute_samples(
+    x = x, y = y, nboot = 5, q = 1.0, pseudocount = 0.1,
+    log_base = 10, paired = FALSE, se = NULL, pair_id_col = NULL,
+    group_col = NULL, control_group = NULL
+  )
+  
+  result_high_pc <- TSENAT:::.bootstrap_divergence_compute_samples(
+    x = x, y = y, nboot = 5, q = 1.0, pseudocount = 10,
+    log_base = 10, paired = FALSE, se = NULL, pair_id_col = NULL,
+    group_col = NULL, control_group = NULL
+  )
+  
+  expect_is(result_low_pc, "numeric")
+  expect_is(result_high_pc, "numeric")
+  expect_equal(length(result_low_pc), length(result_high_pc))
+})
