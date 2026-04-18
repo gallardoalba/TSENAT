@@ -85,7 +85,7 @@ metadata}
   \item{@config}{Analysis configuration (empty list or user-provided)}
   \item{@diversity_results}{Empty list (populated by calculate_diversity())}
   \item{@divergence_results}{Empty list (populated by calculate_divergence())}
-  \item{@lm_results}{Empty list (populated by calculate_lm())}
+  \item{@rrm_results}{Empty list (populated by calculate_rrm())}
   \item{@jackknife_results}{Empty list (populated by jackknife functions)}
   \item{@plots}{Empty list (populated by plotting functions)}
   \item{@metadata}{Metadata with package version and creation timestamp}

@@ -1,7 +1,7 @@
 #' Plot GAM q-curves for top genes identified by FPCA/GAM interaction tests
 #'
 #' Visualizes smooth q-curve profiles (GAM fits) for selected genes from
-#' `.calculate_lm()` results. Useful for understanding which
+#' `.calculate_rrm()` results. Useful for understanding which
 #' q-ranges (rare
 #' vs. dominant isoforms) drive significant PC differences between groups.
 #'
@@ -9,7 +9,7 @@
 #' (multiple q values per sample). Typically output from
 #' `.calculate_diversity()`
 #'   with multiple q (e.g., q = seq(0.1, 2, by = 0.1)).
-#' @param lm_res A `data.frame` from `.calculate_lm()` with columns
+#' @param rrm_res A `data.frame` from `.calculate_rrm()` with columns
 #'   `gene`, `p_interaction`, and `adj_p_interaction`. Can be from method='fpca'
 #'   or method='gam'.
 #' @param condition_col Column name in `colData(se)` specifying group
@@ -23,11 +23,11 @@
 #'   Only used if genes = NULL.
 #' @param sig_alpha Significance threshold for adjusted p-values (default:
 #' 0.05).
-#' Only used if genes = NULL; filters lm_res to significant genes before
+#' Only used if genes = NULL; filters rrm_res to significant genes before
 #' selecting top n.
 #' @param assay_name Name of the assay in `se` to extract (default:
 #' 'diversity').
-#' @param model_data Required list from `.calculate_lm(...,
+#' @param model_data Required list from `.calculate_rrm(...,
 #' return_model_data = TRUE)$model_data`
 #' containing metadata (q_values, sample configuration, etc.). This is the
 #' preferred way to use
@@ -45,7 +45,7 @@
 #' 3. Generates smooth predictions for visualization
 #' 4. Overlays predicted curves for each group with a distinct color
 #'
-#' By providing `model_data` from `.calculate_lm()`, the
+#' By providing `model_data` from `.calculate_rrm()`, the
 #' function can directly
 #' access the q-values used in the original analysis for more accurate
 #' visualization.
@@ -75,16 +75,16 @@
 #' )
 #' 
 #' # Run regularized regression (GAM) interaction analysis with model_data  
-#' lm_result <- .calculate_lm(se, condition_col = 'condition',
+#' rrm_result <- .calculate_rrm(se, condition_col = 'condition',
 #' method = 'gam',
 #'                                       return_model_data = TRUE)
 #' 
 #' # Plot GAM curves for top genes
-#' if (nrow(lm_result$results) > 0) {
-#' grid_plot <- .plot_lm(se, lm_result$results,
+#' if (nrow(rrm_result$results) > 0) {
+#' grid_plot <- .plot_rrm(se, rrm_result$results,
 #' condition_col = 'condition',
 #'                                         n_top = 2,
-#'  model_data = lm_result$model_data)
+#'  model_data = rrm_result$model_data)
 #' }
 #'
 
@@ -93,28 +93,28 @@
 #' theme_minimal scale_color_brewer
 #' @importFrom cowplot plot_grid
 
-.plot_lm <- function(se, lm_res, condition_col = "condition", genes = NULL, n_top = 6,
+.plot_rrm <- function(se, rrm_res, condition_col = "condition", genes = NULL, n_top = 6,
     sig_alpha = 0.05, assay_name = "diversity", model_data = NULL, output_file = NULL,
     width = NULL, height = NULL) {
 
     # Validate and extract inputs
-    validated <- .plot_gam_handle_inputs(se, lm_res)
+    validated <- .plot_gam_handle_inputs(se, rrm_res)
     se <- validated$se
-    lm_res <- validated$lm_res
+    rrm_res <- validated$rrm_res
     if (!is.null(validated$model_data)) {
         model_data <- validated$model_data
     }
 
     # Validate data compatibility
-    .validate_plot_data(se = se, lm_results = lm_res, stop_on_error = FALSE, verbose = FALSE)
+    .validate_plot_data(se = se, rrm_results = rrm_res, stop_on_error = FALSE, verbose = FALSE)
 
     # Extract and validate q-values
     q_values <- .plot_gam_extract_q_values(model_data)
 
     # Match and filter genes
-    gene_match <- .plot_gam_match_genes(se, lm_res)
+    gene_match <- .plot_gam_match_genes(se, rrm_res)
     se <- gene_match$se
-    lm_res <- gene_match$lm_res
+    rrm_res <- gene_match$rrm_res
 
     # Extract assay matrix and verify condition column exists
     mat <- SummarizedExperiment::assay(se, assay_name)
@@ -127,14 +127,14 @@
     sample_to_group <- .prepare_sample_group_mapping(cdata, condition_col)
 
     # Select genes to plot
-    top_genes <- .plot_select_genes(lm_res, genes = genes, n_top = n_top, sig_alpha = sig_alpha)
+    top_genes <- .plot_select_genes(rrm_res, genes = genes, n_top = n_top, sig_alpha = sig_alpha)
     if (is.null(top_genes)) {
-        warning("No genes found in lm_res to plot", call. = FALSE)
+        warning("No genes found in rrm_res to plot", call. = FALSE)
         return(NULL)
     }
 
     # Create gene display name mapping
-    gene_name_map <- .plot_gam_create_gene_map(lm_res)
+    gene_name_map <- .plot_gam_create_gene_map(rrm_res)
 
     # Generate plots for all top genes
     plots <- list()

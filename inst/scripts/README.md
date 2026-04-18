@@ -67,22 +67,22 @@ The `preprocess.R` script performs the following steps to generate all inst/extd
 
 The following files were generated from the main analysis vignette (`vignettes/TSENAT.Rmd`) and are used for testing and documentation purposes:
 
-**analysis_lm.rds**:
+**analysis_rrm.rds**:
 - **Source:** Generated from `vignettes/TSENAT.Rmd` main vignette
 - **Format:** R serialized object (RDS)
 - **Content:** `TSENATAnalysis` object containing:
-  - Linear model (LM) results from `calculate_lm()` with interaction testing
-  - Stored in slot `@lm_results$lm_interaction` (76 genes)
+  - RRM (Regularized Regression Methods) results from `calculate_rrm()` with interaction testing
+  - Stored in slot `@rrm_results$lm_interaction` (76 genes)
   - Includes p-values, adjusted p-values, effect sizes, and test statistics
 - **Purpose:** 
-  - Reference implementation for LM-based q-value × group interaction analysis
+  - Reference implementation for RRM-based q-value × group interaction analysis
   - Used in concordance tests (`vignettes/TSENAT_appendix_B.Rmd`) to demonstrate method validation
   - Enables integration tests without requiring full vignette re-execution
 - **Generation:** Run the main `TSENAT.Rmd` vignette to regenerate
 
 ### Regenerating Vignette Analysis Objects
 
-To regenerate `analysis_lm.rds` after updating the analysis pipeline:
+To regenerate `analysis_rrm.rds` after updating the analysis pipeline:
 
 1. Ensure the main vignette runs successfully:
    ```bash
@@ -92,7 +92,7 @@ To regenerate `analysis_lm.rds` after updating the analysis pipeline:
 2. Extract and save the analysis object from the vignette output:
    ```r
    # Within or after TSENAT.Rmd:
-   saveRDS(analysis, file = "inst/extdata/analysis_lm.rds")
+   saveRDS(analysis, file = "inst/extdata/analysis_rrm.rds")
    ```
 
 3. Then update `TSENAT_appendix_B.Rmd` to load from the saved RDS file for concordance testing

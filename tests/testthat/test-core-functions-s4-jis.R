@@ -192,61 +192,61 @@ test_that(".detect_jis_columns validates that provided columns exist", {
 })
 
 # ============================================================================
-# TEST SUITE 3: .extract_lm_results()
+# TEST SUITE 3: .extract_rrm_results()
 # ============================================================================
 
-test_that(".extract_lm_results uses provided LM results", {
+test_that(".extract_rrm_results uses provided RRM results", {
   analysis <- make_test_analysis_jis()
-  lm_provided <- data.frame(gene_id = "Gene1", p_value = 0.01)
+  rrm_provided <- data.frame(gene_id = "Gene1", p_value = 0.01)
   
-  result <- TSENAT:::.extract_lm_results(
+  result <- TSENAT:::.extract_rrm_results(
     analysis, 
-    lm_results = lm_provided,
+    rrm_results = rrm_provided,
     verbose = FALSE
   )
   
-  expect_identical(result, lm_provided)
+  expect_identical(result, rrm_provided)
 })
 
-test_that(".extract_lm_results extracts from analysis@lm_results when NULL provided", {
+test_that(".extract_rrm_results extracts from analysis@rrm_results when NULL provided", {
   analysis <- make_test_analysis_jis()
-  lm_data <- data.frame(gene_id = "Gene1", p_value = 0.01)
-  analysis@lm_results <- list(lm_interaction = lm_data)
+  rrm_data <- data.frame(gene_id = "Gene1", p_value = 0.01)
+  analysis@rrm_results <- list(rrm_interaction = rrm_data)
   
-  result <- TSENAT:::.extract_lm_results(
+  result <- TSENAT:::.extract_rrm_results(
     analysis,
-    lm_results = NULL,
+    rrm_results = NULL,
     verbose = FALSE
   )
   
-  expect_identical(result, lm_data)
+  expect_identical(result, rrm_data)
 })
 
-test_that(".extract_lm_results returns NULL when no LM results available", {
+test_that(".extract_rrm_results returns NULL when no RRM results available", {
   analysis <- make_test_analysis_jis()
   
-  result <- TSENAT:::.extract_lm_results(
+  result <- TSENAT:::.extract_rrm_results(
     analysis,
-    lm_results = NULL,
+    rrm_results = NULL,
     verbose = FALSE
   )
   
   expect_null(result)
 })
 
-test_that(".extract_lm_results prefers provided results over analysis slot", {
+test_that(".extract_rrm_results prefers provided results over analysis slot", {
   analysis <- make_test_analysis_jis()
-  lm_in_analysis <- data.frame(gene_id = "Gene1", p_value = 0.01)
-  lm_provided <- data.frame(gene_id = "Gene2", p_value = 0.02)
-  analysis@lm_results <- list(lm_interaction = lm_in_analysis)
+  rrm_in_analysis <- data.frame(gene_id = "Gene1", p_value = 0.01)
+  rrm_provided <- data.frame(gene_id = "Gene2", p_value = 0.02)
+  analysis@rrm_results <- list(rrm_interaction = rrm_in_analysis)
   
-  result <- TSENAT:::.extract_lm_results(
+  result <- TSENAT:::.extract_rrm_results(
     analysis,
-    lm_results = lm_provided,
+    rrm_results = rrm_provided,
     verbose = FALSE
   )
   
-  expect_identical(result, lm_provided)
+  expect_identical(result, rrm_provided)
 })
 
 # ============================================================================
@@ -750,19 +750,19 @@ test_that("calculate_jis supports method chaining", {
   expect_true(length(q_keys) >= 1)
 })
 
-test_that("calculate_jis accepts LM results parameter", {
+test_that("calculate_jis accepts RRM results parameter", {
   analysis <- make_test_analysis_jis()
   analysis@diversity_results <- list(q_1_00 = list(q = 1.0))
   
-  # Create LM results with genes that exist in our test data
+  # Create RRM results with genes that exist in our test data
   # The base function expects 'gene' column for filtering
-  lm_results <- data.frame(
+  rrm_results <- data.frame(
     gene = c("Gene1", "Gene2", "Gene3"),
     p_value = c(0.01, 0.05, 0.10),
     adj_p_value = c(0.02, 0.10, 0.20)
   )
   
-  # This test verifies LM results are accepted as a parameter
+  # This test verifies RRM results are accepted as a parameter
   # The base function may have specific data requirements beyond our test scope
   result <- tryCatch(
     suppressWarnings(
@@ -773,16 +773,16 @@ test_that("calculate_jis accepts LM results parameter", {
         isoform_col = "transcript_id",
         q = 1.0,
         nboot = 10,
-        lm_results = lm_results,
-        lm_p_threshold = 0.05,
-        use_lm_fdr = TRUE,
+        rrm_results = rrm_results,
+        rrm_p_threshold = 0.05,
+        use_rrm_fdr = TRUE,
         verbose = FALSE
       )
     ),
     error = function(e) {
       # If the base function fails, still verify parameter was passed
       # without error in our wrapper
-      expect_true(grepl("lm_results|Jackknife", conditionMessage(e)))
+      expect_true(grepl("rrm_results|Jackknife", conditionMessage(e)))
       return(NULL)
     }
   )
@@ -821,7 +821,7 @@ test_that("Full workflow: validation -> detection -> params -> results -> storag
     pseudocount = NULL, 
     nboot = 100,
     threshold = NULL,
-    lm_p_threshold = NULL,
+    rrm_p_threshold = NULL,
     analysis = analysis, 
     verbose = FALSE
   )

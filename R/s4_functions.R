@@ -260,17 +260,17 @@ setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"), funct
 
 #' Compare method concordance for differential analysis results
 #'
-#' Compares statistical results from two different methods (typically LM/GAM for
+#' Compares statistical results from two different methods (typically RRM/GAM for
 #' continuous data and Scheirer-Ray-Hare rank tests) to assess agreement and identify
 #' genes detected by one method but not the other.
 #'
 #' @aliases calculate_concordance,TSENATAnalysis-method
 #'
-#' @param analysis_lm \code{TSENATAnalysis} object containing LM/GAM analysis results
-#'   (from \code{calculate_lm()}).
+#' @param analysis_rrm \code{TSENATAnalysis} object containing RRM/GAM analysis results
+#'   (from \code{calculate_rrm()}).
 #' @param analysis_rank \code{TSENATAnalysis} object or NULL. If NULL, uses legacy 
-#'   single-object API with analysis_lm containing both results. If provided, 
-#'   compares LM results from analysis_lm with rank-test results from analysis_rank.
+#'   single-object API with analysis_rrm containing both results. If provided, 
+#'   compares RRM results from analysis_rrm with rank-test results from analysis_rank.
 #' @param verbose \code{logical}. Print progress messages (default: FALSE).
 #' @param output_file \code{character} or NULL. Optional file path to save results.
 #'   Supported formats: .rds (for S4 objects). Default: NULL (no file output).
@@ -283,7 +283,7 @@ setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"), funct
 #'     \item{spearman_rho}{Spearman correlation between adjusted p-values}
 #'     \item{high_confidence}{Genes with strong agreement}
 #'     \item{agreement_table}{Contingency table of significant/non-significant calls}
-#'     \item{lm_method}{Method name used for LM/GAM analysis}
+#'     \item{rrm_method}{Method name used for RRM/GAM analysis}
 #'     \item{rank_method}{Method name used for rank-based analysis}
 #'     \item{timestamp}{When concordance was computed}
 #'   }
@@ -297,10 +297,10 @@ setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"), funct
 #' - Spearman correlation of p-values (overall agreement trends)
 #'
 #' @usage
-#' calculate_concordance(analysis_lm, analysis_rank = NULL, ...)
+#' calculate_concordance(analysis_rrm, analysis_rank = NULL, ...)
 #'
 #' \S4method{calculate_concordance}{TSENATAnalysis}(
-#'   analysis_lm,
+#'   analysis_rrm,
 #'   analysis_rank = NULL,
 #'   verbose = FALSE,
 #'   output_file = NULL,
@@ -342,25 +342,25 @@ setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"), funct
 #' analysis <- filter_analysis(analysis, stringency = 'severe')
 #' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
 #' analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
-#' analysis <- suppressWarnings(calculate_lm(analysis, method = 'gam'))
+#' analysis <- suppressWarnings(calculate_rrm(analysis, method = 'gam'))
 #' # Note: calculate_concordance requires results from both
 #' # calculate_srh and calculate_assumptions
 #'
 #' @aliases calculate_concordance
 #' @export
-setGeneric("calculate_concordance", function(analysis_lm, analysis_rank = NULL, ...) {
+setGeneric("calculate_concordance", function(analysis_rrm, analysis_rank = NULL, ...) {
     standardGeneric("calculate_concordance")
 })
 
 #' @rdname calculate_concordance
 
 #' Helper: Validate calculate_concordance inputs
-#' @param analysis_lm TSENATAnalysis object
+#' @param analysis_rrm TSENATAnalysis object
 #' @param analysis_rank TSENATAnalysis object or NULL
 #' @param ... Additional arguments
 #' @return NULL (stops on error)
 #' @noRd
-.validate_concordance_inputs <- function(analysis_lm, analysis_rank, ...) {
+.validate_concordance_inputs <- function(analysis_rrm, analysis_rank, ...) {
     # Check for unexpected arguments
     extra_args <- list(...)
     if (length(extra_args) > 0) {
@@ -369,9 +369,9 @@ setGeneric("calculate_concordance", function(analysis_lm, analysis_rank = NULL, 
              arg_names, call. = FALSE)
     }
     
-    # Validate analysis_lm
-    if (!is(analysis_lm, "TSENATAnalysis")) {
-        stop("'analysis_lm' must be a TSENATAnalysis object", call. = FALSE)
+    # Validate analysis_rrm
+    if (!is(analysis_rrm, "TSENATAnalysis")) {
+        stop("'analysis_rrm' must be a TSENATAnalysis object", call. = FALSE)
     }
     
     # Validate analysis_rank if provided
@@ -381,71 +381,71 @@ setGeneric("calculate_concordance", function(analysis_lm, analysis_rank = NULL, 
 }
 
 #' Helper: Handle two-object concordance API
-#' @param analysis_lm TSENATAnalysis object
+#' @param analysis_rrm TSENATAnalysis object
 #' @param analysis_rank TSENATAnalysis object
 #' @param verbose Logical; print progress
-#' @return List with concordance_result, lm_method, rank_method
+#' @return List with concordance_result, rrm_method, rank_method
 #' @noRd
-.concordance_two_objects <- function(analysis_lm, analysis_rank, verbose) {
+.concordance_two_objects <- function(analysis_rrm, analysis_rank, verbose) {
     if (verbose) {
         message("[calculate_concordance] Using two TSENATAnalysis objects")
     }
     
     concordance_result <- tryCatch({
-        .calculate_concordance(analysis_lm = analysis_lm, analysis_rank = analysis_rank)
+        .calculate_concordance(analysis_rrm = analysis_rrm, analysis_rank = analysis_rank)
     }, error = function(e) {
         stop("[calculate_concordance] ", conditionMessage(e), call. = FALSE)
     })
     
     list(
         concordance_result = concordance_result,
-        lm_method = concordance_result$lm_method,
+        rrm_method = concordance_result$rrm_method,
         rank_method = concordance_result$rank_method
     )
 }
 
 #' Helper: Handle legacy single-object concordance API
-#' @param analysis_lm TSENATAnalysis object
+#' @param analysis_rrm TSENATAnalysis object
 #' @param verbose Logical; print progress
-#' @return List with concordance_result, lm_method, rank_method
+#' @return List with concordance_result, rrm_method, rank_method
 #' @noRd
-.concordance_legacy_api <- function(analysis_lm, verbose) {
+.concordance_legacy_api <- function(analysis_rrm, verbose) {
     if (verbose) {
         message("[calculate_concordance] Using legacy single-object API")
     }
     
-    # Validate LM results
-    if (is.null(analysis_lm@lm_results) || length(analysis_lm@lm_results) == 0) {
-        stop("No LM results found in analysis_lm@lm_results. Run calculate_lm() first.",
+    # Validate RRM results
+    if (is.null(analysis_rrm@rrm_results) || length(analysis_rrm@rrm_results) == 0) {
+        stop("No RRM results found in analysis_rrm@rrm_results. Run calculate_rrm() first.",
             call. = FALSE)
     }
     
-    # Auto-detect LM method
-    default_lm_method <- names(analysis_lm@lm_results)[1]
-    if (!(default_lm_method %in% names(analysis_lm@lm_results))) {
-        available_methods <- paste(names(analysis_lm@lm_results), collapse = ", ")
-        stop("LM method '", default_lm_method, "' not found. Available: ",
+    # Auto-detect RRM method
+    default_rrm_method <- names(analysis_rrm@rrm_results)[1]
+    if (!(default_rrm_method %in% names(analysis_rrm@rrm_results))) {
+        available_methods <- paste(names(analysis_rrm@rrm_results), collapse = ", ")
+        stop("RRM method '", default_rrm_method, "' not found. Available: ",
             available_methods, call. = FALSE)
     }
     
     # Auto-detect rank method
     rank_method <- "rank_test"
-    if (is.null(analysis_lm@rank_test_results) || 
-        !("rank_test" %in% names(analysis_lm@rank_test_results))) {
-        if (is.null(analysis_lm@rank_test_results) || 
-            length(analysis_lm@rank_test_results) == 0) {
+    if (is.null(analysis_rrm@rank_test_results) || 
+        !("rank_test" %in% names(analysis_rrm@rank_test_results))) {
+        if (is.null(analysis_rrm@rank_test_results) || 
+            length(analysis_rrm@rank_test_results) == 0) {
             stop("No rank test results found. Run calculate_srh() first.",
                 call. = FALSE)
         }
-        rank_method <- names(analysis_lm@rank_test_results)[1]
+        rank_method <- names(analysis_rrm@rank_test_results)[1]
     }
     
     # Extract and validate results
-    lm_results_final <- analysis_lm@lm_results[[default_lm_method]]
-    rank_test_results <- analysis_lm@rank_test_results[[rank_method]]
+    rrm_results_final <- analysis_rrm@rrm_results[[default_rrm_method]]
+    rank_test_results <- analysis_rrm@rank_test_results[[rank_method]]
     
-    if (!is.data.frame(lm_results_final)) {
-        stop("LM results ('", default_lm_method, "') must be a data.frame", 
+    if (!is.data.frame(rrm_results_final)) {
+        stop("RRM results ('", default_rrm_method, "') must be a data.frame", 
              call. = FALSE)
     }
     
@@ -456,24 +456,24 @@ setGeneric("calculate_concordance", function(analysis_lm, analysis_rank = NULL, 
     
     if (verbose) {
         message("[calculate_concordance] Computing concordance between ", 
-                default_lm_method, " and ", rank_method)
+                default_rrm_method, " and ", rank_method)
     }
     
     # Create temporary analysis objects for the refactored function
-    temp_lm <- analysis_lm
-    temp_lm@lm_results <- list(temp = lm_results_final)
-    temp_rank <- analysis_lm
+    temp_rrm <- analysis_rrm
+    temp_rrm@rrm_results <- list(temp = rrm_results_final)
+    temp_rank <- analysis_rrm
     temp_rank@rank_test_results <- list(temp = rank_test_results)
     
     concordance_result <- tryCatch({
-        .calculate_concordance(analysis_lm = temp_lm, analysis_rank = temp_rank)
+        .calculate_concordance(analysis_rrm = temp_rrm, analysis_rank = temp_rank)
     }, error = function(e) {
         stop("[calculate_concordance] ", conditionMessage(e), call. = FALSE)
     })
     
     list(
         concordance_result = concordance_result,
-        lm_method = default_lm_method,
+        rrm_method = default_rrm_method,
         rank_method = rank_method
     )
 }
@@ -481,20 +481,20 @@ setGeneric("calculate_concordance", function(analysis_lm, analysis_rank = NULL, 
 #' Helper: Store concordance results in metadata
 #' @param analysis TSENATAnalysis object
 #' @param concordance_result List from .calculate_concordance()
-#' @param lm_method Character; LM method name
+#' @param rrm_method Character; RRM method name
 #' @param rank_method Character; rank method name
 #' @param verbose Logical; print progress
 #' @return TSENATAnalysis object with updated metadata
 #' @noRd
 .store_concordance_metadata <- function(analysis, concordance_result, 
-                                        lm_method, rank_method, verbose) {
+                                        rrm_method, rank_method, verbose) {
     # Store results in metadata
     analysis@metadata$method_concordance <- list(
         comparison_df = concordance_result$comparison_df,
         spearman_rho = concordance_result$spearman_rho,
         high_confidence = concordance_result$high_conf,
         agreement_table = concordance_result$agreement_table,
-        lm_method = lm_method,
+        rrm_method = rrm_method,
         rank_method = rank_method,
         timestamp = Sys.time()
     )
@@ -502,7 +502,7 @@ setGeneric("calculate_concordance", function(analysis_lm, analysis_rank = NULL, 
     # Track function call
     analysis@metadata$function_calls <- c(
         analysis@metadata$function_calls,
-        sprintf("calculate_concordance[%s vs %s]", lm_method, rank_method)
+        sprintf("calculate_concordance[%s vs %s]", rrm_method, rank_method)
     )
     
     if (verbose) {
@@ -546,32 +546,32 @@ setGeneric("calculate_concordance", function(analysis_lm, analysis_rank = NULL, 
     analysis
 }
 
-setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_lm, 
+setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_rrm, 
     analysis_rank = NULL, verbose = FALSE, output_file = NULL, ...) {
     
     # Validate inputs
-    .validate_concordance_inputs(analysis_lm, analysis_rank, ...)
+    .validate_concordance_inputs(analysis_rrm, analysis_rank, ...)
     
     # Route to appropriate API
     if (!is.null(analysis_rank)) {
-        result_list <- .concordance_two_objects(analysis_lm, analysis_rank, verbose)
+        result_list <- .concordance_two_objects(analysis_rrm, analysis_rank, verbose)
     } else {
-        result_list <- .concordance_legacy_api(analysis_lm, verbose)
+        result_list <- .concordance_legacy_api(analysis_rrm, verbose)
     }
     
     # Store metadata
-    analysis_lm <- .store_concordance_metadata(
-        analysis_lm, 
+    analysis_rrm <- .store_concordance_metadata(
+        analysis_rrm, 
         result_list$concordance_result,
-        result_list$lm_method, 
+        result_list$rrm_method, 
         result_list$rank_method,
         verbose
     )
     
     # Write output file if specified
-    analysis_lm <- .write_concordance_file(analysis_lm, output_file, verbose)
+    analysis_rrm <- .write_concordance_file(analysis_rrm, output_file, verbose)
     
-    analysis_lm
+    analysis_rrm
 })
 
 #' Plot Global Divergence q-Curve Across All Genes (S4 Wrapper)
@@ -593,7 +593,7 @@ setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_lm,
 #' @param variability_metric \code{character}. Error bar type for global curve:
 #'   'iqr' (default) or 'sd'. Only used when gene = NULL.
 #' @param use_pvalue_ranking \code{logical}.  If TRUE,
-#'  uses LM results to rank and
+#'  uses RRM results to rank and
 #' display top n_genes by p-value significance. If FALSE (default), plots
 #' global
 #'   divergence curve when gene = NULL. Default is FALSE.
@@ -611,8 +611,8 @@ setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_lm,
 #'
 #' @details
 #' This wrapper extracts the divergence SummarizedExperiment from
-#' \code{analysis@divergence_results} and optionally the LM results from
-#' \code{analysis@lm_results$lm_interaction} to pass to the base function.
+#' \code{analysis@divergence_results} and optionally the RRM results from
+#' \code{analysis@rrm_results$rrm_interaction} to pass to the base function.
 #'
 #' **Data Requirements:**
 #' \itemize{
@@ -626,7 +626,7 @@ setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_lm,
 #'         across all genes with variability bands
 #'   \item \strong{Gene-specific mode} (gene specified): Shows divergence
 #'         spectrum for a single named gene
-#'   \item \strong{Top genes mode} (gene = NULL, lm_res provided): Shows
+#'   \item \strong{Top genes mode} (gene = NULL, rrm_res provided): Shows
 #'         top n_genes by significance
 #' }
 #'
@@ -709,24 +709,24 @@ plot_divergence_spectrum <- function(analysis, gene = NULL, n_genes = 4, ncol = 
         stop("Divergence SummarizedExperiment is empty", call. = FALSE)
     }
 
-    # Extract LM results for lm_res parameter (optional) Only use for ranking
+    # Extract RRM results for rrm_res parameter (optional) Only use for ranking
     # if use_pvalue_ranking = TRUE
-    lm_res <- NULL
-    if (use_pvalue_ranking && !is.null(analysis@lm_results) && is.list(analysis@lm_results)) {
-        if ("lm_interaction" %in% names(analysis@lm_results)) {
-            lm_res <- analysis@lm_results$lm_interaction
-        } else if (length(analysis@lm_results) > 0) {
-            lm_res <- analysis@lm_results[[1]]
+    rrm_res <- NULL
+    if (use_pvalue_ranking && !is.null(analysis@rrm_results) && is.list(analysis@rrm_results)) {
+        if ("rrm_interaction" %in% names(analysis@rrm_results)) {
+            rrm_res <- analysis@rrm_results$rrm_interaction
+        } else if (length(analysis@rrm_results) > 0) {
+            rrm_res <- analysis@rrm_results[[1]]
         }
     }
 
-    # Validate LM results if using multi-gene mode
-    if (is.null(gene) && use_pvalue_ranking && !is.null(lm_res)) {
-        if (!is.data.frame(lm_res) || nrow(lm_res) == 0) {
+    # Validate RRM results if using multi-gene mode
+    if (is.null(gene) && use_pvalue_ranking && !is.null(rrm_res)) {
+        if (!is.data.frame(rrm_res) || nrow(rrm_res) == 0) {
             if (verbose) {
-                message("Note: Invalid LM results. Plotting global curve without gene ranking.")
+                message("Note: Invalid RRM results. Plotting global curve without gene ranking.")
             }
-            lm_res <- NULL
+            rrm_res <- NULL
         }
     }
 
@@ -739,7 +739,7 @@ plot_divergence_spectrum <- function(analysis, gene = NULL, n_genes = 4, ncol = 
     # Create the plot using base function
     p <- tryCatch({
         .plot_divergence_spectrum(divergence_results_se = divergence_results_se,
-            gene = gene, lm_res = lm_res, n_genes = n_genes, ncol = ncol, metric = metric,
+            gene = gene, rrm_res = rrm_res, n_genes = n_genes, ncol = ncol, metric = metric,
             variability_metric = variability_metric, ...)
     }, error = function(e) {
         if (verbose) {
@@ -902,18 +902,18 @@ setMethod("plot_concordance", "TSENATAnalysis", function(analysis, verbose = FAL
 #' S4 wrapper for  \code{. plot_expression()} that 
 #' extracts data directly from
 #' a TSENATAnalysis object. Automatically retrieves the SummarizedExperiment and
-#' LM results for visualizing transcript abundance across conditions.
+#' RRM results for visualizing transcript abundance across conditions.
 #'
 #' @param analysis \code{TSENATAnalysis}. An S4 object containing a processed
-#'   SummarizedExperiment and optional LM interaction results.
+#'   SummarizedExperiment and optional RRM interaction results.
 #'
 #' @param gene \code{character} or  \code{NULL}.  Gene identifier(s) to plot.
 #'  If a vector 
 #' of multiple genes is provided, plots all of them. If NULL, automatically
 #' selects
-#'   the top genes from LM results based on \code{top_n} parameter (genes with 
+#'   the top genes from RRM results based on \code{top_n} parameter (genes with 
 #' lowest p-values).
-#'   Default: NULL (auto-extract from lm_results).
+#'   Default: NULL (auto-extract from rrm_results).
 #'
 #' @param condition_col \code{character}. Column name in colData(se) specifying
 #'   group assignments (default: 'sample_type').
@@ -978,12 +978,12 @@ setMethod("plot_concordance", "TSENATAnalysis", function(analysis, verbose = FAL
 #' This wrapper extracts the following from \code{analysis}:
 #' \describe{
 #'   \item{SummarizedExperiment}{From \code{analysis@se} containing transcript counts}
-#'   \item{LM results}{From \code{analysis@lm_results$lm_interaction} for 
+#'   \item{RRM results}{From \code{analysis@rrm_results$rrm_interaction} for 
 #' gene selection}
 #' }
 #'
 #' If no gene is specified, the function automatically selects the top gene from
-#' the LM results (lowest p-value). This simplifies visualization of genes with
+#' the RRM results (lowest p-value). This simplifies visualization of genes with
 #' significant q x condition interaction effects.
 #'
 #' @examples
@@ -1023,7 +1023,7 @@ setMethod("plot_concordance", "TSENATAnalysis", function(analysis, verbose = FAL
 #'   q = c(0.5, 1.0, 1.5, 2.0, 2.5),
 #'   verbose = FALSE
 #' )
-#' analysis <- suppressWarnings(calculate_lm(
+#' analysis <- suppressWarnings(calculate_rrm(
 #'   analysis,
 #'   method = 'gam',
 #'   verbose = FALSE
@@ -1074,38 +1074,38 @@ plot_expression <- function(analysis, gene = NULL, condition_col = NULL, top_n =
     # =========================================================================
     # EXTRACT LM RESULTS (for gene ranking if not specified)
     # =========================================================================
-    lm_results_df <- NULL
-    if (is.null(gene) && !is.null(analysis@lm_results)) {
-        if ("lm_interaction" %in% names(analysis@lm_results)) {
+    rrm_results_df <- NULL
+    if (is.null(gene) && !is.null(analysis@rrm_results)) {
+        if ("rrm_interaction" %in% names(analysis@rrm_results)) {
             # Extract results data.frame from list structure
-            if (is.data.frame(analysis@lm_results$lm_interaction)) {
-                lm_results_df <- analysis@lm_results$lm_interaction
-            } else if (is.list(analysis@lm_results$lm_interaction) && "results" %in%
-                names(analysis@lm_results$lm_interaction)) {
-                lm_results_df <- analysis@lm_results$lm_interaction$results
+            if (is.data.frame(analysis@rrm_results$rrm_interaction)) {
+                rrm_results_df <- analysis@rrm_results$rrm_interaction
+            } else if (is.list(analysis@rrm_results$rrm_interaction) && "results" %in%
+                names(analysis@rrm_results$rrm_interaction)) {
+                rrm_results_df <- analysis@rrm_results$rrm_interaction$results
             }
 
-            # Auto-select top gene from LM results
-            if (!is.null(lm_results_df) && nrow(lm_results_df) > 0) {
+            # Auto-select top gene from RRM results
+            if (!is.null(rrm_results_df) && nrow(rrm_results_df) > 0) {
                 # Find p-value and gene columns
-                p_col <- auto_detect_column(colnames(lm_results_df), analysis@config,
+                p_col <- auto_detect_column(colnames(rrm_results_df), analysis@config,
                   "p_col", c("p_interaction", "padj", "pvalue", "p.value", "p_value"),
                   verbose = FALSE, param_name = "p_col")
 
-                gene_col <- auto_detect_column(colnames(lm_results_df), analysis@config,
+                gene_col <- auto_detect_column(colnames(rrm_results_df), analysis@config,
                   "gene_col", c("gene", "gene_name", "gene_id"), verbose = FALSE,
                   param_name = "gene_col")
 
-                if (!is.null(p_col) && !is.null(gene_col) && p_col %in% colnames(lm_results_df) &&
-                  gene_col %in% colnames(lm_results_df)) {
+                if (!is.null(p_col) && !is.null(gene_col) && p_col %in% colnames(rrm_results_df) &&
+                  gene_col %in% colnames(rrm_results_df)) {
                   # Get top genes (sorted by p-value, select top_n)
-                  top_indices <- order(lm_results_df[[p_col]])[seq_len(min(top_n,
-                    nrow(lm_results_df)))]
-                  gene <- as.character(lm_results_df[top_indices, gene_col])
+                  top_indices <- order(rrm_results_df[[p_col]])[seq_len(min(top_n,
+                    nrow(rrm_results_df)))]
+                  gene <- as.character(rrm_results_df[top_indices, gene_col])
 
                   if (verbose) {
                     message("[plot_expression] Auto-selected top ", length(gene),
-                      " genes from LM results")
+                      " genes from RRM results")
                     message("  ", paste(gene, collapse = ", "))
                   }
                 }
@@ -1114,7 +1114,7 @@ plot_expression <- function(analysis, gene = NULL, condition_col = NULL, top_n =
     }
 
     if (is.null(gene)) {
-        stop("[plot_expression] No gene specified and cannot auto-detect from LM results. ",
+        stop("[plot_expression] No gene specified and cannot auto-detect from RRM results. ",
             "Provide gene explicitly.", call. = FALSE)
     }
 
@@ -1131,7 +1131,7 @@ plot_expression <- function(analysis, gene = NULL, condition_col = NULL, top_n =
     }
 
     plot_file <- tryCatch({
-        .plot_expression(se = se, gene = gene, condition_col = condition_col, res = lm_results_df,
+        .plot_expression(se = se, gene = gene, condition_col = condition_col, res = rrm_results_df,
             top_n = top_n, output_file = output_file, metric = metric[1], use_tpm = use_tpm,
             width = width, height = height, fontsize = fontsize, cellwidth = cellwidth,
             cellheight = cellheight, layout_ncol = layout_ncol, ...)
@@ -1228,7 +1228,7 @@ plot_expression <- function(analysis, gene = NULL, condition_col = NULL, top_n =
 #'   q = c(0.5, 1.0, 1.5, 2.0, 2.5),
 #'   verbose = FALSE
 #' )
-#' analysis <- suppressWarnings(calculate_lm(analysis, method = 'gam'))
+#' analysis <- suppressWarnings(calculate_rrm(analysis, method = 'gam'))
 #' analysis <- calculate_effect_sizes(analysis)
 #' p_dist <- plot_divergence_distribution(analysis)
 #' # print(p_dist)
@@ -1313,10 +1313,10 @@ plot_divergence_distribution <- function(analysis, threshold = 0.1, output_file 
 #'   (default: 4). Genes are ranked by LM p-values if available, otherwise
 #'   by order of appearance in results.
 #'
-#' @param lm_results \code{data.frame} or \code{NULL}. Optional LM interaction
+#' @param rrm_results \code{data.frame} or \code{NULL}. Optional RRM interaction
 #' results for ranking genes (default: NULL). If NULL, attempts to extract
 #' from
-#'   \code{analysis@lm_results$lm_interaction}.
+#'   \code{analysis@rrm_results$rrm_interaction}.
 #'
 #' @param verbose \code{logical}. If \code{TRUE}, print diagnostic messages
 #'   during plot generation (default: FALSE).
@@ -1335,7 +1335,7 @@ plot_divergence_distribution <- function(analysis, threshold = 0.1, output_file 
 #'   \item{Jackknife results}{From \code{analysis@jackknife_results},  which 
 #' should
 #'         contain multi-q switching results keyed by q-value (e.g., 'q_1.00')}
-#'   \item{LM results}{From \code{analysis@lm_results$lm_interaction} if not
+#'   \item{RRM results}{From \code{analysis@rrm_results$rrm_interaction} if not
 #'         explicitly provided, for ranking genes by significance}
 #' }
 #'
@@ -1385,7 +1385,7 @@ plot_divergence_distribution <- function(analysis, threshold = 0.1, output_file 
 #'   analysis,
 #'   q = c(0.5, 1.0, 1.5, 2.0, 2.5)
 #' )
-#' analysis <- suppressWarnings(calculate_lm(analysis, method = 'gam'))
+#' analysis <- suppressWarnings(calculate_rrm(analysis, method = 'gam'))
 #' analysis <- calculate_jis(
 #'   analysis,
 #'   q = c(0.5, 1, 1.5),
@@ -1399,7 +1399,7 @@ plot_divergence_distribution <- function(analysis, threshold = 0.1, output_file 
 #'
 #' @export
 #' @importFrom methods is
-plot_jis_delta <- function(analysis, n_genes = 4, lm_results = NULL, verbose = FALSE,
+plot_jis_delta <- function(analysis, n_genes = 4, rrm_results = NULL, verbose = FALSE,
     output_file = NULL, ...) {
 
     # Load visualization dependencies (ggplot2, cowplot, pheatmap, etc.)
@@ -1443,27 +1443,27 @@ plot_jis_delta <- function(analysis, n_genes = 4, lm_results = NULL, verbose = F
         message("  Q-values: ", paste(names(switching_results), collapse = ", "))
     }
 
-    # Extract LM results if not provided
-    if (is.null(lm_results)) {
+    # Extract RRM results if not provided
+    if (is.null(rrm_results)) {
         if (verbose)
-            message("Extracting LM results from analysis@lm_results...")
+            message("Extracting RRM results from analysis@rrm_results...")
 
-        lm_results_list <- analysis@lm_results
-        if (!is.null(lm_results_list)) {
-            if (!is.null(lm_results_list$lm_interaction)) {
-                if (is.data.frame(lm_results_list$lm_interaction$results)) {
-                  lm_results <- lm_results_list$lm_interaction$results
-                } else if (is.data.frame(lm_results_list$lm_interaction)) {
-                  lm_results <- lm_results_list$lm_interaction
+        rrm_results_list <- analysis@rrm_results
+        if (!is.null(rrm_results_list)) {
+            if (!is.null(rrm_results_list$rrm_interaction)) {
+                if (is.data.frame(rrm_results_list$rrm_interaction$results)) {
+                  rrm_results <- rrm_results_list$rrm_interaction$results
+                } else if (is.data.frame(rrm_results_list$rrm_interaction)) {
+                  rrm_results <- rrm_results_list$rrm_interaction
                 }
             }
 
-            if (!is.null(lm_results)) {
+            if (!is.null(rrm_results)) {
                 if (verbose)
-                  message("  [OK] Extracted LM results with ", nrow(lm_results),
+                  message("  [OK] Extracted RRM results with ", nrow(rrm_results),
                     " genes")
             } else if (verbose) {
-                message("  LM results not found; genes will be ranked by appearance")
+                message("  RRM results not found; genes will be ranked by appearance")
             }
         }
     }
@@ -1474,7 +1474,7 @@ plot_jis_delta <- function(analysis, n_genes = 4, lm_results = NULL, verbose = F
     # Call base function with extracted parameters Note: output_file parameter
     # can be used to save heatmap as PNG file
     result <- .plot_jis_delta(switching_results = switching_results, n_genes = n_genes,
-        lm_results = lm_results, verbose = verbose, output_file = output_file, ...)
+        rrm_results = rrm_results, verbose = verbose, output_file = output_file, ...)
 
     if (verbose) {
         message("[OK] Heatmap plot generated successfully")
@@ -1488,7 +1488,7 @@ plot_jis_delta <- function(analysis, n_genes = 4, lm_results = NULL, verbose = F
 #' S4 wrapper that accepts a TSENATAnalysis object and generates GAM q-curve
 #' plots
 #' @param analysis \code{TSENATAnalysis} object with  diversity and 
-#' LM interaction results.
+#' RRM interaction results.
 #' @param n_top \code{integer}.
 #'  Number of top genes (by adjusted p-value) to plot 
 #'   (default: 6). Only used if genes = NULL.
@@ -1504,7 +1504,7 @@ plot_jis_delta <- function(analysis, n_genes = 4, lm_results = NULL, verbose = F
 #'
 #' @param sig_alpha \code{numeric}.  Significance threshold for 
 #' adjusted p-values 
-#'   (default: 0.05). Only used if genes = NULL; filters lm_res to significant 
+#'   (default: 0.05). Only used if genes = NULL; filters rrm_res to significant 
 #'   genes before selecting top n.
 #'
 #' @param assay_name \code{character}. Name of the assay in se to extract 
@@ -1532,9 +1532,9 @@ plot_jis_delta <- function(analysis, n_genes = 4, lm_results = NULL, verbose = F
 #' @details
 #' This wrapper automatically:
 #' 1. Extracts SummarizedExperiment from \code{@se} slot
-#' 2. Extracts LM results from \code{@lm_results$lm_interaction} slot
+#' 2. Extracts RRM results from \code{@rrm_results$rrm_interaction} slot
 #' 3. Detects condition_col from \code{@config} or uses default
-#' 4. Calls \code{.plot_lm()} with extracted parameters
+#' 4. Calls \code{.plot_rrm()} with extracted parameters
 #'
 #' **Parameter Resolution (condition_col):**
 #' \enumerate{
@@ -1545,7 +1545,7 @@ plot_jis_delta <- function(analysis, n_genes = 4, lm_results = NULL, verbose = F
 #' }
 #'
 #' @seealso
-#' \code{\link{calculate_lm}} for 
+#' \code{\link{calculate_rrm}} for 
 #' running LM analysis on TSENATAnalysis.
 #'
 #' @examples
@@ -1582,13 +1582,13 @@ plot_jis_delta <- function(analysis, n_genes = 4, lm_results = NULL, verbose = F
 #'
 #' analysis <- filter_analysis(analysis, stringency = 'severe')
 #' analysis <- calculate_diversity(analysis, q = seq(0.2, 2, by = 0.4))
-#' analysis <- suppressWarnings(calculate_lm(analysis, method = 'gam'))
+#' analysis <- suppressWarnings(calculate_rrm(analysis, method = 'gam'))
 #' 
-#' p_gam <- plot_lm(analysis, n_top = 2, sig_alpha = 0.15)
+#' p_gam <- plot_rrm(analysis, n_top = 2, sig_alpha = 0.15)
 #' # print(p_gam)
 #'
 #' @export
-plot_lm <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL, sig_alpha = 0.05,
+plot_rrm <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL, sig_alpha = 0.05,
     assay_name = "diversity", output_file = NULL, width = 12, height = NULL, verbose = FALSE,
     ...) {
     # Load visualization dependencies (ggplot2, cowplot, mgcv, etc.)
@@ -1601,21 +1601,21 @@ plot_lm <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL, sig
         stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }
 
-    # Check that LM results exist
-    if (is.null(analysis@lm_results) || is.null(analysis@lm_results$lm_interaction)) {
-        stop("[plot_lm] No LM interaction results found in @lm_results$lm_interaction. ",
-            "Run calculate_lm() first.", call. = FALSE)
+    # Check that RRM results exist
+    if (is.null(analysis@rrm_results) || is.null(analysis@rrm_results$rrm_interaction)) {
+        stop("[plot_rrm] No RRM interaction results found in @rrm_results$rrm_interaction. ",
+            "Run calculate_rrm() first.", call. = FALSE)
     }
 
-    lm_res <- analysis@lm_results$lm_interaction
+    rrm_res <- analysis@rrm_results$rrm_interaction
 
-    if (!is.data.frame(lm_res)) {
-        stop("[plot_lm] @lm_results$lm_interaction must be a data.frame", call. = FALSE)
+    if (!is.data.frame(rrm_res)) {
+        stop("[plot_rrm] @rrm_results$rrm_interaction must be a data.frame", call. = FALSE)
     }
 
     # Check that diversity results exist (needed for SE reconstruction)
     if (length(analysis@diversity_results) == 0) {
-        stop("[plot_lm] No diversity results found in @diversity_results. ", "Run calculate_diversity() first.",
+        stop("[plot_rrm] No diversity results found in @diversity_results. ", "Run calculate_diversity() first.",
             call. = FALSE)
     }
 
@@ -1631,13 +1631,13 @@ plot_lm <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL, sig
 
     # Validate that condition_col exists in colData
     if (!(condition_col %in% colnames(colData(analysis@se)))) {
-        stop("[plot_lm] Specified condition_col='", condition_col, "' not found in colData. Available columns: ",
+        stop("[plot_rrm] Specified condition_col='", condition_col, "' not found in colData. Available columns: ",
             paste(colnames(colData(analysis@se)), collapse = ", "), call. = FALSE)
     }
 
     # =========================================================================
     # RECONSTRUCT COMBINED DIVERSITY SE FOR PLOTTING (Same approach as in
-    # calculate_lm)
+    # calculate_rrm)
     # =========================================================================
     # Extract q-values from diversity_results keys
     q_keys <- names(analysis@diversity_results)
@@ -1648,7 +1648,7 @@ plot_lm <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL, sig
         .calculate_diversity(x = analysis@se, q = sort(q_computed), norm = TRUE,
             verbose = verbose, bootstrap = FALSE)
     }, error = function(e) {
-        stop("[plot_lm] Failed to reconstruct diversity SE:\n", conditionMessage(e),
+        stop("[plot_rrm] Failed to reconstruct diversity SE:\n", conditionMessage(e),
             call. = FALSE)
     })
 
@@ -1656,8 +1656,8 @@ plot_lm <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL, sig
     # EXTRACT model_data FROM STORED RESULTS
     # =========================================================================
     model_data <- NULL
-    if ("lm_interaction_model_data" %in% names(analysis@lm_results)) {
-        model_data <- analysis@lm_results$lm_interaction_model_data
+    if ("rrm_interaction_model_data" %in% names(analysis@rrm_results)) {
+        model_data <- analysis@rrm_results$rrm_interaction_model_data
     }
 
     # =========================================================================
@@ -1669,12 +1669,12 @@ plot_lm <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL, sig
             n_genes_plot <- length(genes)
         } else {
             # Count significant genes
-            if ("adj_p_interaction" %in% colnames(lm_res)) {
-                sig_genes <- lm_res$adj_p_interaction <= sig_alpha
-            } else if ("p_interaction" %in% colnames(lm_res)) {
-                sig_genes <- lm_res$p_interaction <= sig_alpha
+            if ("adj_p_interaction" %in% colnames(rrm_res)) {
+                sig_genes <- rrm_res$adj_p_interaction <= sig_alpha
+            } else if ("p_interaction" %in% colnames(rrm_res)) {
+                sig_genes <- rrm_res$p_interaction <= sig_alpha
             } else {
-                sig_genes <- rep(TRUE, nrow(lm_res))
+                sig_genes <- rep(TRUE, nrow(rrm_res))
             }
             n_genes_plot <- min(sum(sig_genes), n_top)
         }
@@ -1684,15 +1684,15 @@ plot_lm <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL, sig
     }
 
     # =========================================================================
-    # CALL plot_lm_interaction_gam WITH RECONSTRUCTED DIVERSITY SE
+    # CALL plot_rrm_interaction_gam WITH RECONSTRUCTED DIVERSITY SE
     # =========================================================================
     result <- tryCatch({
-        .plot_lm(se = diversity_combined, lm_res = lm_res, condition_col = condition_col,
+        .plot_rrm(se = diversity_combined, rrm_res = rrm_res, condition_col = condition_col,
             n_top = n_top, genes = genes, sig_alpha = sig_alpha, assay_name = assay_name,
             model_data = model_data, output_file = output_file, width = width, height = height,
             ...)
     }, error = function(e) {
-        stop("[plot_lm]", conditionMessage(e), call. = FALSE)
+        stop("[plot_rrm]", conditionMessage(e), call. = FALSE)
     })
 
     # =========================================================================
@@ -1700,14 +1700,14 @@ plot_lm <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL, sig
     # =========================================================================
     # Track that plotting occurred
     if (is.list(analysis@metadata)) {
-        analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("plot_lm[n_top=",
+        analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("plot_rrm[n_top=",
             n_top, ", condition_col=", condition_col, "]"))
     }
 
     # Save plot to file if requested (only if result is a valid ggplot)
     if (!is.null(output_file) && inherits(result, "ggplot")) {
         save_analysis_output(result, output_file, object = analysis, verbose = verbose,
-            func_name = "plot_lm", width = width, height = height)
+            func_name = "plot_rrm", width = width, height = height)
     }
 
     # Return the plot object directly (not the analysis object)
@@ -2088,7 +2088,7 @@ calculate_m_estimator <- function(analysis, condition_col = NULL, loss_type = "h
 #' calculations.
 #'
 #' **Important:** Filtering should be performed BEFORE computing diversity,
-#' divergence, or LM interaction results. If called after analysis results
+#' divergence, or RRM interaction results. If called after analysis results
 #' have been computed, those results will be based on unfiltered data and
 #' may not align with the filtered SE dimensions.
 #'
@@ -2265,7 +2265,7 @@ filter_analysis <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min_sa
 #'   \item{@config}{Analysis configuration (empty list or user-provided)}
 #'   \item{@diversity_results}{Empty list (populated by calculate_diversity())}
 #'   \item{@divergence_results}{Empty list (populated by calculate_divergence())}
-#'   \item{@lm_results}{Empty list (populated by calculate_lm())}
+#'   \item{@rrm_results}{Empty list (populated by calculate_rrm())}
 #'   \item{@jackknife_results}{Empty list (populated by jackknife functions)}
 #'   \item{@plots}{Empty list (populated by plotting functions)}
 #'   \item{@metadata}{Metadata with package version and creation timestamp}
@@ -2511,7 +2511,7 @@ build_analysis <- function(readcounts = NULL, salmon_dir = NULL, tx2gene, assay_
         SummarizedExperiment::colData(se)$sample_id <- colnames(se)
     }
 
-    # Store metadata in config for later use (e.g., in calculate_lm)
+    # Store metadata in config for later use (e.g., in calculate_rrm)
     if (!is.null(metadata)) {
         config$metadata <- metadata
     }

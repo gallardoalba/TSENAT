@@ -91,7 +91,7 @@
 #'  when wy_randomizations='auto' (default: 10000).
 #' @param ... Additional arguments passed to the base \code{.calculate_srh()} function.
 #'
-#' @return Modified TSENATAnalysis with interaction results in @lm_results.
+#' @return Modified TSENATAnalysis with interaction results in @rrm_results.
 #'
 #' @details
 #' Analyzes how gene interactions change across q-value spectrum using
@@ -370,7 +370,7 @@ calculate_srh <- function(analysis, condition_col, output_file = NULL, paired = 
 #'
 #' @noRd
 .store_srh_results <- function(analysis, result, output_file, verbose) {
-    # Store in dedicated rank_test_results slot (not in lm_results)
+    # Store in dedicated rank_test_results slot (not in rrm_results)
     if (is.list(analysis@rank_test_results)) {
         analysis@rank_test_results$rank_test <- result
     } else {

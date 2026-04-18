@@ -358,7 +358,7 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
         # Warn user that bounded family selection is being overridden for
         # reproducibility
         if (use_bounded_family) {
-            warning("[calculate_lm_interaction] GAMM with paired design detected. ",
+            warning("[calculate_rrm_interaction] GAMM with paired design detected. ",
                 "mgcv::gamm() does not support extended families. ", "Forcing gaussian family. Results may be less accurate for bounded data.",
                 call. = FALSE)
         }

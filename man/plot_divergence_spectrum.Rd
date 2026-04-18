@@ -39,7 +39,7 @@ plots. Default is 2. Number of rows is automatically calculated.}
 'iqr' (default) or 'sd'. Only used when gene = NULL.}
 
 \item{use_pvalue_ranking}{\code{logical}.  If TRUE,
- uses LM results to rank and
+ uses RRM results to rank and
 display top n_genes by p-value significance. If FALSE (default), plots
 global
   divergence curve when gene = NULL. Default is FALSE.}
@@ -67,8 +67,8 @@ genes) as a function of q-value.
 }
 \details{
 This wrapper extracts the divergence SummarizedExperiment from
-\code{analysis@divergence_results} and optionally the LM results from
-\code{analysis@lm_results$lm_interaction} to pass to the base function.
+\code{analysis@divergence_results} and optionally the RRM results from
+\code{analysis@rrm_results$rrm_interaction} to pass to the base function.
 
 **Data Requirements:**
 \itemize{
@@ -82,7 +82,7 @@ This wrapper extracts the divergence SummarizedExperiment from
         across all genes with variability bands
   \item \strong{Gene-specific mode} (gene specified): Shows divergence
         spectrum for a single named gene
-  \item \strong{Top genes mode} (gene = NULL, lm_res provided): Shows
+  \item \strong{Top genes mode} (gene = NULL, rrm_res provided): Shows
         top n_genes by significance
 }
 }

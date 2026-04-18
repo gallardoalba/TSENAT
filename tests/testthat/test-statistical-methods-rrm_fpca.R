@@ -1,6 +1,6 @@
 library(testthat)
 
-context("Linear Model Interaction: FPCA Methods")
+context("RRM Interaction: FPCA Methods")
 
 test_that("fpca method attaches p_interaction to rowData", {
     # Use 4 samples and 5 q values to ensure adequate FPCA matrix coverage
@@ -22,7 +22,7 @@ test_that("fpca method attaches p_interaction to rowData", {
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
 
     # lower min_obs so test is robust; 4 samples with full q coverage should pass
-    res <- TSENAT:::.calculate_lm(se, condition_col = "sample_type", method = "fpca", min_obs = 2)
+    res <- TSENAT:::.calculate_rrm(se, condition_col = "sample_type", method = "fpca", min_obs = 2)
     if (is.data.frame(res)) {
         rd_out <- as.data.frame(res)
     } else {
@@ -35,7 +35,7 @@ test_that("fpca method attaches p_interaction to rowData", {
 # Tests for FPCA interaction helper prcomp and try-error handling
 # ============================================================================
 
-context("Linear Model Interaction: FPCA with prcomp and Error Handling")
+context("RRM Interaction: FPCA with prcomp and Error Handling")
 
 test_that(".fpca_interaction handles prcomp successfully", {
     # This test covers: pca <- try(stats::prcomp(mat_sub, center = TRUE, scale. = FALSE), silent = TRUE)
@@ -113,7 +113,7 @@ test_that(".fpca_interaction with NAs in data", {
 })
 
 # ============================================================================
-# Additional FPCA tests (moved from test-statistical-methods-lm_helpers.R)
+# Additional FPCA tests (moved from test-statistical-methods-rrm_helpers.R)
 # ============================================================================
 
 test_that(".fpca_interaction computes a p-value with reasonable input", {
@@ -288,7 +288,7 @@ test_that(".fpca_interaction works with all regularization methods", {
     )
     
     # Test PCA regularization
-    res_pca <- TSENAT:::.calculate_lm(se,
+    res_pca <- TSENAT:::.calculate_rrm(se,
         condition_col = "sample_type",
         method = "fpca",
         regularization = "pca",
@@ -297,7 +297,7 @@ test_that(".fpca_interaction works with all regularization methods", {
     
     # Test LASSO regularization
     res_lasso <- suppressWarnings({
-        TSENAT:::.calculate_lm(se,
+        TSENAT:::.calculate_rrm(se,
             condition_col = "sample_type",
             method = "fpca",
             regularization = "lasso",
@@ -307,7 +307,7 @@ test_that(".fpca_interaction works with all regularization methods", {
     
     # Test Elastic Net regularization
     res_elasticnet <- suppressWarnings({
-        TSENAT:::.calculate_lm(se,
+        TSENAT:::.calculate_rrm(se,
             condition_col = "sample_type",
             method = "fpca",
             regularization = "elasticnet",
@@ -332,7 +332,7 @@ test_that(".fpca_interaction works with all regularization methods", {
 })
 
 # ============================================================================
-# FPCA regularization methods (moved from test-integration-linear_models.R)
+# FPCA regularization methods (moved from test-integration-rrm.R)
 # ============================================================================
 
 test_that("FPCA with regularization='pca' (default) works correctly", {
@@ -376,14 +376,14 @@ test_that("FPCA with regularization='pca' (default) works correctly", {
     )
     
     # Default method should be "pca"
-    res_default <- TSENAT:::.calculate_lm(se,
+    res_default <- TSENAT:::.calculate_rrm(se,
         condition_col = "sample_type",
         method = "fpca",
         min_obs = 2
     )
     
     # Explicit "pca" method should give same result
-    res_pca <- TSENAT:::.calculate_lm(se,
+    res_pca <- TSENAT:::.calculate_rrm(se,
         condition_col = "sample_type",
         method = "fpca",
         regularization = "pca",
@@ -443,7 +443,7 @@ test_that("FPCA with regularization='lasso' produces valid results", {
         colData = cd
     )
     
-    res_lasso <- TSENAT:::.calculate_lm(se,
+    res_lasso <- TSENAT:::.calculate_rrm(se,
         condition_col = "sample_type",
         method = "fpca",
         regularization = "lasso",
@@ -497,7 +497,7 @@ test_that("FPCA with regularization='elasticnet' produces valid results", {
         colData = cd
     )
     
-    res_elasticnet <- TSENAT:::.calculate_lm(se,
+    res_elasticnet <- TSENAT:::.calculate_rrm(se,
         condition_col = "sample_type",
         method = "fpca",
         regularization = "elasticnet",
@@ -552,21 +552,21 @@ test_that("FPCA regularization methods produce reasonable p-value differences", 
     )
     
     # Compare all three methods
-    res_pca <- TSENAT:::.calculate_lm(se,
+    res_pca <- TSENAT:::.calculate_rrm(se,
         condition_col = "sample_type",
         method = "fpca",
         regularization = "pca",
         min_obs = 2
     )
     
-    res_lasso <- TSENAT:::.calculate_lm(se,
+    res_lasso <- TSENAT:::.calculate_rrm(se,
         condition_col = "sample_type",
         method = "fpca",
         regularization = "lasso",
         min_obs = 2
     )
     
-    res_elasticnet <- TSENAT:::.calculate_lm(se,
+    res_elasticnet <- TSENAT:::.calculate_rrm(se,
         condition_col = "sample_type",
         method = "fpca",
         regularization = "elasticnet",
@@ -652,7 +652,7 @@ test_that("FPCA regularization with paired design works correctly", {
     )
     
     # Test regularization with paired design (with sufficient observations for glmnet)
-    res <- TSENAT:::.calculate_lm(se,
+    res <- TSENAT:::.calculate_rrm(se,
         condition_col = "sample_type",
         method = "fpca",
         subject_col = "sample_base",

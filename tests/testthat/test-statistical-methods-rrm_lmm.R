@@ -34,8 +34,8 @@ test_that("LMM with use_ar1=FALSE (default) returns valid results", {
         colData = cd
     )
     
-    # Run LMM (AR(1) is automatically attempted by .try_lm_fallbacks())
-    res <- .calculate_lm(
+    # Run LMM (AR(1) is automatically attempted by .try_rrm_fallbacks())
+    res <- .calculate_rrm(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -87,8 +87,8 @@ test_that("LMM with use_ar1=TRUE attempts AR(1) correlation structure", {
         colData = cd
     )
     
-    # Run LMM (AR(1) is automatically attempted by .try_lm_fallbacks())
-    res <- .calculate_lm(
+    # Run LMM (AR(1) is automatically attempted by .try_rrm_fallbacks())
+    res <- .calculate_rrm(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -142,8 +142,8 @@ test_that("LMM AR(1) falls back when correlation structure fails", {
         colData = cd
     )
     
-    # Run LMM (AR(1) is automatically attempted by .try_lm_fallbacks())
-    res <- .calculate_lm(
+    # Run LMM (AR(1) is automatically attempted by .try_rrm_fallbacks())
+    res <- .calculate_rrm(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -195,7 +195,7 @@ test_that("small_sample_flag is FALSE when n_subjects >= 5", {
         colData = cd
     )
     
-    res <- .calculate_lm(
+    res <- .calculate_rrm(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -245,7 +245,7 @@ test_that("small_sample_flag is TRUE when n_subjects < 5", {
         colData = cd
     )
     
-    res <- .calculate_lm(
+    res <- .calculate_rrm(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -295,7 +295,7 @@ test_that("small_sample_flag correctly identifies boundary case (n_subjects = 5)
         colData = cd
     )
     
-    res <- .calculate_lm(
+    res <- .calculate_rrm(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -346,7 +346,7 @@ test_that("fit_method column is present in LMM results", {
         colData = cd
     )
     
-    res <- .calculate_lm(
+    res <- .calculate_rrm(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -403,7 +403,7 @@ test_that("Enhanced fallback reporting includes convergence information", {
         colData = cd
     )
     
-    res <- .calculate_lm(
+    res <- .calculate_rrm(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -456,7 +456,7 @@ test_that("LMM results maintain backward compatibility with AR(1)=FALSE default"
     
     # Run default LMM twice to check consistency
     set.seed(58)
-    res_first <- .calculate_lm(
+    res_first <- .calculate_rrm(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -465,7 +465,7 @@ test_that("LMM results maintain backward compatibility with AR(1)=FALSE default"
     )
     
     set.seed(58)
-    res_second <- .calculate_lm(
+    res_second <- .calculate_rrm(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -517,7 +517,7 @@ test_that("Multiple genes with varying sample sizes are handled correctly", {
         colData = cd
     )
     
-    res <- .calculate_lm(
+    res <- .calculate_rrm(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -573,7 +573,7 @@ test_that("LMM with AR(1) produces different p-values than baseline in some case
     
     # Run LMM with AR(1) automatically attempted
     set.seed(61)
-    res <- .calculate_lm(
+    res <- .calculate_rrm(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -619,7 +619,7 @@ test_that("LMM output includes all Phase 14 columns", {
         colData = cd
     )
     
-    res <- .calculate_lm(
+    res <- .calculate_rrm(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -697,7 +697,7 @@ test_that("LASSO regularization on LMM is properly called", {
     se <- create_test_se(n_samples = 20, n_genes = 5)
     
     # Test with LASSO regularization
-    result <- .calculate_lm(
+    result <- .calculate_rrm(
         se,
         condition_col = "group",
         method = "lmm",
@@ -728,7 +728,7 @@ test_that("Ridge regularization on LMM works correctly", {
     se <- create_test_se(n_samples = 20, n_genes = 5)
     
     # Test with Elastic Net (Ridge-like with alpha=0.5)
-    result <- .calculate_lm(
+    result <- .calculate_rrm(
         se,
         condition_col = "group",
         method = "lmm",
@@ -755,7 +755,7 @@ test_that("PCA mode disables LMM regularization", {
     se <- create_test_se(n_samples = 20, n_genes = 5)
     
     # Compare PCA mode (no regularization) vs LASSO (with regularization)
-    result_pca <- .calculate_lm(
+    result_pca <- .calculate_rrm(
         se,
         condition_col = "group",
         method = "lmm",
@@ -806,7 +806,7 @@ test_that("LMM regularization handles small sample sizes gracefully", {
     se <- create_test_se(n_samples = 12, n_genes = 3)
     
     # Apply minimum observation filter to create small sample scenario
-    result <- .calculate_lm(
+    result <- .calculate_rrm(
         se,
         condition_col = "group",
         method = "lmm",
@@ -829,7 +829,7 @@ test_that("Regularization parameter validation works", {
     
     # Test that invalid regularization values are caught
     expect_error(
-        .calculate_lm(
+        .calculate_rrm(
             se,
             condition_col = "group",
             method = "lmm",
@@ -847,7 +847,7 @@ test_that("LMM regularization consistency across multiple runs", {
     se <- create_test_se(n_samples = 20, n_genes = 5, seed = 123)
     
     set.seed(123)
-    result1 <- .calculate_lm(
+    result1 <- .calculate_rrm(
         se,
         condition_col = "group",
         method = "lmm",
@@ -858,7 +858,7 @@ test_that("LMM regularization consistency across multiple runs", {
     )
     
     set.seed(123)
-    result2 <- .calculate_lm(
+    result2 <- .calculate_rrm(
         se,
         condition_col = "group",
         method = "lmm",
@@ -883,7 +883,7 @@ test_that("LMM regularization vs non-regularized gives comparable results", {
     se <- create_test_se(n_samples = 20, n_genes = 5)
     
     # Run both with and without regularization
-    result_no_reg <- .calculate_lm(
+    result_no_reg <- .calculate_rrm(
         se,
         condition_col = "group",
         method = "lmm",
@@ -893,7 +893,7 @@ test_that("LMM regularization vs non-regularized gives comparable results", {
         verbose = FALSE
     )
     
-    result_lasso <- .calculate_lm(
+    result_lasso <- .calculate_rrm(
         se,
         condition_col = "group",
         method = "lmm",

@@ -16,9 +16,9 @@ calculate_jis(
   threshold = 90,
   nboot = 1000,
   pseudocount = NULL,
-  lm_results = NULL,
-  lm_p_threshold = 0.05,
-  use_lm_fdr = TRUE,
+  rrm_results = NULL,
+  rrm_p_threshold = 0.05,
+  use_rrm_fdr = TRUE,
   output_file = NULL,
   verbose = FALSE,
   ...
@@ -71,16 +71,16 @@ confidence
 \item{pseudocount}{\code{numeric}.  Pseudocount value for 
 count regularization.  Default:  NULL (uses @config$pseudocount or  0).}
 
-\item{lm_results}{\code{data. frame}.
-Optional LM interaction results to filter genes.
- If provided, only genes in lm_results are analyzed.}
+\item{rrm_results}{\code{data. frame}.
+Optional RRM interaction results to filter genes.
+ If provided, only genes in rrm_results are analyzed.}
 
-\item{lm_p_threshold}{\code{numeric}.  P-value threshold for 
+\item{rrm_p_threshold}{\code{numeric}.  P-value threshold for 
 filtering genes from 
-  lm_results (default: 0.05).}
+  rrm_results (default: 0.05).}
 
-\item{use_lm_fdr}{\code{logical}.  If TRUE,
-uses adjusted p-values from lm_results 
+\item{use_rrm_fdr}{\code{logical}.  If TRUE,
+uses adjusted p-values from rrm_results 
  (default: TRUE).}
 
 \item{output_file}{\code{character} or  \code{NULL}.
@@ -144,7 +144,7 @@ Affected parameters:
   \item \code{q}: Multi-q vector c(0, 0.5, 1, 1.5, 2) if not provided, or \code{@config$q} if available
   \item \code{nboot}: Uses \code{@config$nboot} if available, else 1000
   \item \code{threshold}: Uses \code{@config$threshold} if available, else 90
-  \item \code{lm_p_threshold}: Uses \code{@config$lm_p_threshold} if available, else 0.05
+  \item \code{rrm_p_threshold}: Uses \code{@config$rrm_p_threshold} if available, else 0.05
 }
 
 This allows setting defaults once in the config and reusing across multiple analyses.

@@ -1,11 +1,11 @@
-context("Linear Model Helpers: Basic Calculations")
+context("RRM Helpers: Basic Calculations")
 library(testthat)
 
 
 
 # Report summary messages
 test_that(".report_fit_summary prints fallback and singular messages", {
-    df <- data.frame(fit_method = c("lm_nosubject", "lmer", NA), singular = c(TRUE, FALSE, NA), stringsAsFactors = FALSE)
+    df <- data.frame(fit_method = c("rrm_nosubject", "lmer", NA), singular = c(TRUE, FALSE, NA), stringsAsFactors = FALSE)
     expect_message(TSENAT:::.report_fit_summary(df, verbose = TRUE), "Alternative method")
     expect_message(TSENAT:::.report_fit_summary(df, verbose = TRUE), "Singular fits")
 })
@@ -28,10 +28,10 @@ test_that(".gam_interaction returns a data.frame with p_interaction when mgcv pr
 })
 
 # FPCA interaction: synthetic matrix
-test_that(".try_lm_fallbacks returns lm fits and LRT extractor returns numeric p-values", {
+test_that(".try_rrm_fallbacks returns lm fits and LRT extractor returns numeric p-values", {
     # build small long-format df
     df <- data.frame(entropy = rnorm(30), q = rep(seq(0.1, 1.0, length.out = 10), 3), group = rep(c("A", "B", "A"), each = 10), subject = rep(paste0("sub", 1:10), 3), stringsAsFactors = FALSE)
-    fb <- TSENAT:::.try_lm_fallbacks(df, verbose = TRUE)
+    fb <- TSENAT:::.try_rrm_fallbacks(df, verbose = TRUE)
     expect_true(is.null(fb) || (is.list(fb) && all(c("fit0", "fit1", "method") %in% names(fb))))
     if (!is.null(fb)) {
         lrt_p <- TSENAT:::.extract_lrt_p(fb$fit0, fb$fit1, df = df)
@@ -106,18 +106,18 @@ testthat::test_that("LM fallback helpers choose appropriate method", {
     group <- rep(c("A", "B"), length.out = n)
     entropy <- 0.5 * q + ifelse(group == "B", 0.3, 0) + rnorm(n, 0, 0.1)
     df <- data.frame(entropy = entropy, q = q, group = factor(group), subject = factor(subject))
-    res <- TSENAT:::.try_lm_fallbacks(df)
+    res <- TSENAT:::.try_rrm_fallbacks(df)
     testthat::expect_type(res, "list")
-    # Phase 14: AR(1) tries nlme_ar1 first, then nlme, then glmmTMB, then lm_subject_fixed, then lm_nosubject
-    testthat::expect_true(res$method %in% c("nlme_ar1", "nlme", "glmmTMB", "lm_subject_fixed", "lm_nosubject"))
+    # Phase 14: AR(1) tries nlme_ar1 first, then nlme, then glmmTMB, then rrm_subject_fixed, then rrm_nosubject
+    testthat::expect_true(res$method %in% c("nlme_ar1", "nlme", "glmmTMB", "rrm_subject_fixed", "rrm_nosubject"))
     # fit1 can be lme, glmmTMB, or lm depending on which strategy succeeded
     testthat::expect_true(inherits(res$fit1, "lme") || inherits(res$fit1, "glmmTMB") || inherits(res$fit1, "lm") || inherits(res$fit1, "NA"))
 
     # drop subject -> should pick nosubject fallback
     df2 <- df[, c("entropy", "q", "group")]
-    res2 <- TSENAT:::.try_lm_fallbacks(df2)
+    res2 <- TSENAT:::.try_rrm_fallbacks(df2)
     testthat::expect_type(res2, "list")
-    testthat::expect_equal(res2$method, "lm_nosubject")
+    testthat::expect_equal(res2$method, "rrm_nosubject")
 })
 
 testthat::test_that("LRT p extraction returns numeric p-value for nested lm models", {
@@ -155,7 +155,7 @@ testthat::test_that("GAM interaction returns a data.frame with p-value when mgcv
     }
 })
 
-context("Linear Model Helpers: Edge Cases and Validation")
+context("RRM Helpers: Edge Cases and Validation")
 
 
 # .report_fit_summary should be silent when no fallback/singular
@@ -480,7 +480,7 @@ testthat::test_that(".test_residual_normality detects normal residuals in GAM", 
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Slope Difference Extraction Tests (NEW - March 2026)
-# Tests for slope_diff extraction from LM interaction coefficient
+# Tests for slope_diff extraction from RRM interaction coefficient
 # ═══════════════════════════════════════════════════════════════════════════
 
 
@@ -1336,10 +1336,10 @@ test_that(".compute_skewness returns NA for constant values", {
 })
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Coverage tests for linear_models_helpers.R uncovered lines
+# Coverage tests for rrm_helpers.R uncovered lines
 # ═══════════════════════════════════════════════════════════════════════════
 
-context("Linear Model Helpers: Coverage for Error Paths")
+context("RRM Helpers: Coverage for Error Paths")
 
 # Test .ar1_design_effect edge cases (lines 77, 82)
 test_that(".ar1_design_effect handles NULL/NA/zero rho (lines 77, 82)", {
@@ -1422,8 +1422,8 @@ test_that(".fit_all_genes() is an internal helper function", {
   # .fit_all_genes() is a complex internal function that:
   # - Requires a pre-built SummarizedExperiment object
   # - Requires pre-processed metadata with group_vec, q_vals, sample_names
-  # - Is called internally by .calculate_lm() with full setup
-  # See test-statistical-methods-lm_helpers_fit.R for integration tests
+  # - Is called internally by .calculate_rrm() with full setup
+  # See test-statistical-methods-rrm_helpers_fit.R for integration tests
   # that exercise .fit_all_genes() through the full pipeline
   
   # Verify function exists

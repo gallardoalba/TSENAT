@@ -272,79 +272,79 @@ test_that("validate_se_dimensions passes with properly aligned rowData", {
 
 context("Data Validation: LM Results Structure")
 
-test_that("validate_lm_results passes for valid results", {
+test_that("validate_rrm_results passes for valid results", {
   results <- make_test_results(n_genes = 10, gene_col = "gene")
   
-  validation <- .validate_lm_results(results, verbose = FALSE)
+  validation <- .validate_rrm_results(results, verbose = FALSE)
   
   expect_true(validation$is_valid)
   expect_equal(validation$n_results, 10)
   expect_length(validation$issues, 0)
 })
 
-test_that("validate_lm_results rejects non-data.frame", {
+test_that("validate_rrm_results rejects non-data.frame", {
   results <- list(a = 1, b = 2)
   
-  validation <- .validate_lm_results(results, verbose = FALSE)
+  validation <- .validate_rrm_results(results, verbose = FALSE)
   
   expect_false(validation$is_valid)
   expect_length(validation$issues, 1)
 })
 
-test_that("validate_lm_results accepts list with 'results' element", {
+test_that("validate_rrm_results accepts list with 'results' element", {
   results_df <- make_test_results(n_genes = 10, gene_col = "gene")
   results_list <- list(results = results_df)
   
-  validation <- .validate_lm_results(results_list, verbose = FALSE)
+  validation <- .validate_rrm_results(results_list, verbose = FALSE)
   
   expect_true(validation$is_valid)
 })
 
-test_that("validate_lm_results detects missing p-value column", {
+test_that("validate_rrm_results detects missing p-value column", {
   results <- data.frame(
     gene = paste0("GENE_", 1:10),
     effect_size = rnorm(10)
   )
   
-  validation <- .validate_lm_results(results, verbose = FALSE)
+  validation <- .validate_rrm_results(results, verbose = FALSE)
   
   expect_false(validation$is_valid)
   expect_match(validation$issues[1], "Missing p-value column")
 })
 
-test_that("validate_lm_results accepts various p-value column names", {
+test_that("validate_rrm_results accepts various p-value column names", {
   for (pval_col in c("p_value", "p_interaction", "p_raw", "adj_p_interaction")) {
     results <- data.frame(
       gene = paste0("GENE_", 1:10)
     )
     results[[pval_col]] <- runif(10)
     
-    validation <- .validate_lm_results(results, verbose = FALSE)
+    validation <- .validate_rrm_results(results, verbose = FALSE)
     
     expect_true(validation$is_valid, info = paste("Failed for column:", pval_col))
   }
 })
 
-test_that("validate_lm_results detects invalid p-values", {
+test_that("validate_rrm_results detects invalid p-values", {
   results <- data.frame(
     gene = paste0("GENE_", 1:10),
     p_value = c(runif(5), -0.1, 1.5, 2.0, NA, 0.05)
   )
   
-  validation <- .validate_lm_results(results, verbose = FALSE)
+  validation <- .validate_rrm_results(results, verbose = FALSE)
   
   expect_false(validation$is_valid)
   expect_match(validation$issues[1], "Invalid p-values")
 })
 
-test_that("validate_lm_results checks gene alignment when expected_genes provided", {
+test_that("validate_rrm_results checks gene alignment when expected_genes provided", {
   results <- data.frame(
     gene = paste0("GENE_", 1:5),
     p_value = runif(5)
   )
   expected_genes <- paste0("GENE_", 1:10)
   
-  validation <- .validate_lm_results(
+  validation <- .validate_rrm_results(
     results,
     expected_genes = expected_genes,
     verbose = FALSE
@@ -372,7 +372,7 @@ test_that("validate_plot_data passes for valid SE and results", {
 test_that("validate_plot_data works without results", {
   se <- make_test_se(n_genes = 10, n_samples = 5)
   
-  validation <- .validate_plot_data(se, lm_results = NULL, verbose = FALSE, stop_on_error = FALSE)
+  validation <- .validate_plot_data(se, rrm_results = NULL, verbose = FALSE, stop_on_error = FALSE)
   
   expect_length(validation, 0)
 })

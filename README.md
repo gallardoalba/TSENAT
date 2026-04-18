@@ -132,11 +132,11 @@ After running the analysis, retrieve results using the unified `results()` inter
 ```r
 # Unified interface: request results by type
 diversity_results <- results(result, type = "diversity")
-lm_results <- results(result, type = "lm")
+rrm_results <- results(result, type = "rrm")
 jackknife_results <- results(result, type = "jackknife", q = 1)
 
 # Filter and rank results flexibly
-ranked_lm <- results(result, type = "lm", rankBy = "padj", n = 50)
+ranked_rrm <- results(result, type = "rrm", rankBy = "padj", n = 50)
 filtered_diversity <- results(result, type = "diversity", q = 1.0)
 
 # Retrieve plots

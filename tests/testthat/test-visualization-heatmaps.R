@@ -170,7 +170,7 @@ describe(".validate_multiq_input()", {
 # ============================================================================
 
 describe(".heatmap_select_genes_multiq()", {
-  test_that("selects first N genes when no lm_results provided", {
+  test_that("selects first N genes when no rrm_results provided", {
     multiq_results <- create_test_multiq_results()
     class(multiq_results) <- "tsenat_isoform_switching_multiq"
     
@@ -187,11 +187,11 @@ describe(".heatmap_select_genes_multiq()", {
     expect_equal(length(selected), 5)
   })
 
-  test_that("ranks genes by p-value when lm_results provided", {
+  test_that("ranks genes by p-value when rrm_results provided", {
     multiq_results <- create_test_multiq_results()
     class(multiq_results) <- "tsenat_isoform_switching_multiq"
     
-    lm_results <- data.frame(
+    rrm_results <- data.frame(
       gene_id = c("G1", "G2", "G3", "G4", "G5"),
       adj_p_interaction = c(0.001, 0.01, 0.05, 0.1, 0.5)
     )
@@ -199,21 +199,21 @@ describe(".heatmap_select_genes_multiq()", {
     selected <- TSENAT:::.heatmap_select_genes_multiq(
       multiq_results,
       n_genes = 2,
-      lm_results = lm_results
+      rrm_results = rrm_results
     )
     expect_equal(selected[1], "G1")  # Lowest p-value
   })
 
-  test_that("handles missing gene column in lm_results gracefully", {
+  test_that("handles missing gene column in rrm_results gracefully", {
     multiq_results <- create_test_multiq_results()
     class(multiq_results) <- "tsenat_isoform_switching_multiq"
     
-    lm_results <- data.frame(
+    rrm_results <- data.frame(
       bad_col = c("G1", "G2", "G3"),
       p_value = c(0.001, 0.01, 0.05)
     )
     
-    selected <- TSENAT:::.heatmap_select_genes_multiq(multiq_results, n_genes = 2, lm_results = lm_results)
+    selected <- TSENAT:::.heatmap_select_genes_multiq(multiq_results, n_genes = 2, rrm_results = rrm_results)
     expect_equal(length(selected), 2)
   })
 
@@ -844,7 +844,7 @@ test_that("plot_jis_delta: requires jackknife results", {
     n_samples_per_group = 3,
     q_values = c(1.0),
     include_divergence = FALSE,
-    include_lm_results = FALSE,
+    include_rrm_results = FALSE,
     seed = 308,
     verbose = FALSE
   )
@@ -926,7 +926,7 @@ test_that("plot_jis_delta: creates heatmap with mock jackknife data", {
   })
 })
 
-test_that("plot_jis_delta: ranks genes by LM results when provided", {
+test_that("plot_jis_delta: ranks genes by RRM results when provided", {
   skip_if_not_installed("pheatmap")
   
   # Build analysis from vignette data

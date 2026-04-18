@@ -11,7 +11,7 @@ make_test_analysis_divergence <- function(n_genes = 8, n_samples_per_group = 4, 
     n_samples_per_group = n_samples_per_group,
     q_values = q_values,
     include_divergence = FALSE,
-    include_lm_results = FALSE,
+    include_rrm_results = FALSE,
     verbose = FALSE
   )
 }

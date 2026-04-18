@@ -1,5 +1,5 @@
 
-#' Calculate LM interactions and store in TSENATAnalysis
+#' Calculate RRM interactions and store in TSENATAnalysis
 #'
 #' @description
 #' Statistical interaction testing for entropy diversity using regularized/penalized regression methods 
@@ -48,12 +48,12 @@
 #' including: pvalue, min_obs, assay_name, bias_correction, regularization,
 #' storey, wy_randomizations, adaptive_knots, etc.
 #'
-#' @return Modified TSENATAnalysis with results in @lm_results$lm_interaction.
+#' @return Modified TSENATAnalysis with results in @rrm_results$rrm_interaction.
 #'
 #' @details
 #' Extracts diversity results from @diversity_results (prerequisite),
 #' combines across q-values into single SummarizedExperiment,
-#' then runs \code{.calculate_lm()}.
+#' then runs \code{.calculate_rrm()}.
 #' 
 #' **Parameter Priority Resolution:**
 #' \itemize{
@@ -125,26 +125,26 @@
 #' # Initialize TSENATAnalysis
 #' analysis <- TSENATAnalysis(se = se, config = list())
 #' 
-#' # Compute diversity (prerequisite for LM interaction analysis)
+#' # Compute diversity (prerequisite for RRM interaction analysis)
 #' analysis <- calculate_diversity(
 #'   analysis, 
 #'   q = c(0.5, 1.0, 1.5, 2.0, 2.5)
 #' )
 #' 
 #' # Calculate q x condition interactions using GAM
-#' analysis <- suppressWarnings(calculate_lm(
+#' analysis <- suppressWarnings(calculate_rrm(
 #'   analysis,
 #'   condition_col = 'condition',
 #'   method = 'gam'
 #' ))
 #' 
 #' # View top interaction results using unified accessor (first 3 genes)
-#' res <- results(analysis, type = 'lm')
+#' res <- results(analysis, type = 'rrm')
 #' if (!is.null(res)) head(res, 3)
 #'
 #' @export
 #' @importFrom utils write.table
-calculate_lm <- function(analysis, fdr_threshold = NULL, formula = NULL, condition_col = NULL,
+calculate_rrm <- function(analysis, fdr_threshold = NULL, formula = NULL, condition_col = NULL,
     method = "gam", paired = NULL, subject_col = NULL, nthreads = NULL, multicorr = NULL,
     corstr = NULL, pcorr = NULL, verbose = NULL, return_model_data = NULL, output_file = NULL,
     ...) {
@@ -154,7 +154,7 @@ calculate_lm <- function(analysis, fdr_threshold = NULL, formula = NULL, conditi
     }
 
     # Clear cache for fresh calculations
-    .clear_lm_helper_cache()
+    .clear_rrm_helper_cache()
 
     # Check prerequisites
     if (length(analysis@diversity_results) == 0) {
@@ -175,14 +175,14 @@ calculate_lm <- function(analysis, fdr_threshold = NULL, formula = NULL, conditi
     return_model_data <- resolve_slot_param(return_model_data, analysis@config, "return_model_data",
         TRUE)
 
-    # Extract and resolve remaining parameters Note: .extract_lm_params()
+    # Extract and resolve remaining parameters Note: .extract_rrm_params()
     # receives resolved paired value
-    params <- .extract_lm_params(analysis, condition_col = condition_col, method = method,
+    params <- .extract_rrm_params(analysis, condition_col = condition_col, method = method,
         subject_col = subject_col, nthreads = nthreads, multicorr = multicorr, corstr = corstr,
         pcorr = pcorr, paired = paired, verbose = verbose)
 
     # Combine diversity results across q-values
-    diversity_combined <- .combine_diversity_results_for_lm(analysis@diversity_results)
+    diversity_combined <- .combine_diversity_results_for_rrm(analysis@diversity_results)
 
     # REQUIREMENT: Check that we have at least 5 unique q-values ARIMA(1,1,0)
     # differencing removes 1 observation per subject, leaving (n_q - 1) unique
@@ -191,39 +191,39 @@ calculate_lm <- function(analysis, fdr_threshold = NULL, formula = NULL, conditi
     # with 4 unique values)
     q_values <- sort(as.numeric(unique(sub(".*q=", "", colnames(diversity_combined)))))
     if (length(q_values) < 5) {
-        stop(sprintf("[calculate_lm] At least 5 unique q-values are required for interaction analysis. Current data has only %d unique q-value(s). Ensure diversity_results contains >=5 distinct q values. After ARIMA(1,1,0) differencing, this leaves sufficient degrees of freedom for GAM fitting.",
+        stop(sprintf("[calculate_rrm] At least 5 unique q-values are required for interaction analysis. Current data has only %d unique q-value(s). Ensure diversity_results contains >=5 distinct q values. After ARIMA(1,1,0) differencing, this leaves sufficient degrees of freedom for GAM fitting.",
             length(q_values)), call. = FALSE)
     }
 
-    # Build arguments for LM calculation
-    args <- .build_lm_args(diversity_combined, params, return_model_data = return_model_data,
+    # Build arguments for RRM calculation
+    args <- .build_rrm_args(diversity_combined, params, return_model_data = return_model_data,
         verbose = verbose, ...)
 
-    # Run LM analysis Phase 15: Catch errors gracefully - return empty results
+    # Run RRM analysis Phase 15: Catch errors gracefully - return empty results
     # instead of crashing
     result <- tryCatch({
-        do.call(.calculate_lm, args)
+        do.call(.calculate_rrm, args)
     }, error = function(e) {
         # Return empty data.frame on error instead of stopping workflow
-        warning("lm_interaction calculation failed:\n", conditionMessage(e), call. = FALSE)
+        warning("rrm_interaction calculation failed:\n", conditionMessage(e), call. = FALSE)
         data.frame()
     })
 
     # Validate and extract results
-    extracted <- .validate_and_extract_lm_result(result)
+    extracted <- .validate_and_extract_rrm_result(result)
     if (nrow(extracted$results) == 0) {
         # Return early with empty results
-        analysis@lm_results <- list(lm_interaction = data.frame())
+        analysis@rrm_results <- list(rrm_interaction = data.frame())
         return(analysis)
     }
 
     # Store results in analysis object
-    analysis <- .store_lm_results_in_analysis(analysis, extracted$results, extracted$model_data)
+    analysis <- .store_rrm_results_in_analysis(analysis, extracted$results, extracted$model_data)
 
     # Save output if requested
     if (!is.null(output_file) && is.data.frame(extracted$results)) {
         save_analysis_output(extracted$results, output_file, object = analysis, verbose = verbose,
-            func_name = "calculate_lm")
+            func_name = "calculate_rrm")
     }
 
     analysis
@@ -256,9 +256,9 @@ calculate_lm <- function(analysis, fdr_threshold = NULL, formula = NULL, conditi
 }
 
 
-# Helper: Extract and resolve LM interaction parameters from config @param
+# Helper: Extract and resolve RRM interaction parameters from config @param
 # analysis TSENATAnalysis object
-.extract_lm_params <- function(analysis, condition_col = NULL, method = NULL, subject_col = NULL,
+.extract_rrm_params <- function(analysis, condition_col = NULL, method = NULL, subject_col = NULL,
     nthreads = NULL, multicorr = NULL, corstr = NULL, pcorr = NULL, paired = FALSE,
     verbose = FALSE) {
     # Auto-detect condition_col if not provided Note: Always pass verbose=TRUE
@@ -280,7 +280,7 @@ calculate_lm <- function(analysis, fdr_threshold = NULL, formula = NULL, conditi
     pcorr <- resolve_slot_param(pcorr, analysis@config, "pcorr", "BH")
     nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", NULL)
 
-    # Note: 'paired' is already resolved by calling function (calculate_lm) to
+    # Note: 'paired' is already resolved by calling function (calculate_rrm) to
     # avoid duplicate resolution. Use as-is.
 
     # Log condition_col info
@@ -290,7 +290,7 @@ calculate_lm <- function(analysis, fdr_threshold = NULL, formula = NULL, conditi
             message("condition_col not specified. Available columns: ", paste(cd_cols,
                 collapse = ", "))
         } else {
-            message("condition_col not specified and colData is empty. ", "Will be determined by .calculate_lm().")
+            message("condition_col not specified and colData is empty. ", "Will be determined by .calculate_rrm().")
         }
     }
 
@@ -301,7 +301,7 @@ calculate_lm <- function(analysis, fdr_threshold = NULL, formula = NULL, conditi
 
 
 # Helper: Combine per-q diversity results into single SE
-.combine_diversity_results_for_lm <- function(diversity_results) {
+.combine_diversity_results_for_rrm <- function(diversity_results) {
     tryCatch({
         assay_list <- list()
         coldata_list <- list()
@@ -311,7 +311,7 @@ calculate_lm <- function(analysis, fdr_threshold = NULL, formula = NULL, conditi
         for (key in q_keys) {
             se <- diversity_results[[key]]
             if (!is(se, "SummarizedExperiment")) {
-                stop("[combine_diversity_results_for_lm] Result ", key, " is not a SummarizedExperiment",
+                stop("[combine_diversity_results_for_rrm] Result ", key, " is not a SummarizedExperiment",
                   call. = FALSE)
             }
 
@@ -320,7 +320,7 @@ calculate_lm <- function(analysis, fdr_threshold = NULL, formula = NULL, conditi
 
             # Validate assays exist
             if (length(SummarizedExperiment::assays(se)) == 0) {
-                stop("[combine_diversity_results_for_lm] SE ", key, " has no assays",
+                stop("[combine_diversity_results_for_rrm] SE ", key, " has no assays",
                   call. = FALSE)
             }
 
@@ -350,14 +350,14 @@ calculate_lm <- function(analysis, fdr_threshold = NULL, formula = NULL, conditi
         SummarizedExperiment::SummarizedExperiment(assays = list(diversity = combined_assay),
             colData = combined_coldata, rowData = rowdata_first)
     }, error = function(e) {
-        stop("[combine_diversity_results_for_lm] Failed: ", conditionMessage(e),
+        stop("[combine_diversity_results_for_rrm] Failed: ", conditionMessage(e),
             call. = FALSE)
     })
 }
 
 
-# Helper: Build argument list for calculate_lm_interaction
-.build_lm_args <- function(diversity_se, params, return_model_data = TRUE, verbose = FALSE,
+# Helper: Build argument list for calculate_rrm_interaction
+.build_rrm_args <- function(diversity_se, params, return_model_data = TRUE, verbose = FALSE,
     ...) {
     args <- list(se = diversity_se)
 
@@ -397,60 +397,60 @@ calculate_lm <- function(analysis, fdr_threshold = NULL, formula = NULL, conditi
 }
 
 
-# Helper: Validate and extract LM results from raw output
-.validate_and_extract_lm_result <- function(result) {
-    lm_results_df <- result
+# Helper: Validate and extract RRM results from raw output
+.validate_and_extract_rrm_result <- function(result) {
+    rrm_results_df <- result
     model_data <- NULL
 
     # Extract components if result is list with $results and $model_data
     if (is.list(result) && "results" %in% names(result)) {
-        lm_results_df <- result$results
+        rrm_results_df <- result$results
         model_data <- result$model_data
     }
 
     # Validate structure
-    if (!is.data.frame(lm_results_df)) {
-        stop("[validate_and_extract_lm_result] Result must be data.frame, got: ",
-            class(lm_results_df), call. = FALSE)
+    if (!is.data.frame(rrm_results_df)) {
+        stop("[validate_and_extract_rrm_result] Result must be data.frame, got: ",
+            class(rrm_results_df), call. = FALSE)
     }
 
     # Check for empty results
-    if (nrow(lm_results_df) == 0 || ncol(lm_results_df) == 0) {
-        warning("[validate_and_extract_lm_result] Result is empty (", nrow(lm_results_df),
-            " rows, ", ncol(lm_results_df), " columns). ", "This can occur with: low sample counts per condition, ",
+    if (nrow(rrm_results_df) == 0 || ncol(rrm_results_df) == 0) {
+        warning("[validate_and_extract_rrm_result] Result is empty (", nrow(rrm_results_df),
+            " rows, ", ncol(rrm_results_df), " columns). ", "This can occur with: low sample counts per condition, ",
             "insufficient signal, or model convergence issues.", call. = FALSE)
         return(list(results = data.frame(), model_data = NULL))
     }
 
     # Validate required columns
     required_cols <- c("gene", "adj_p_interaction")
-    missing_cols <- setdiff(required_cols, colnames(lm_results_df))
+    missing_cols <- setdiff(required_cols, colnames(rrm_results_df))
     if (length(missing_cols) > 0) {
-        stop("[validate_and_extract_lm_result] Missing columns: ", paste(missing_cols,
-            collapse = ", "), ". Available: ", paste(colnames(lm_results_df), collapse = ", "),
+        stop("[validate_and_extract_rrm_result] Missing columns: ", paste(missing_cols,
+            collapse = ", "), ". Available: ", paste(colnames(rrm_results_df), collapse = ", "),
             call. = FALSE)
     }
 
-    list(results = lm_results_df, model_data = model_data)
+    list(results = rrm_results_df, model_data = model_data)
 }
 
 
-# Helper: Store LM results in analysis object
-.store_lm_results_in_analysis <- function(analysis, lm_results_df, model_data = NULL) {
-    if (is.list(analysis@lm_results) && "lm_interaction" %in% names(analysis@lm_results)) {
-        analysis@lm_results$lm_interaction <- lm_results_df
+# Helper: Store RRM results in analysis object
+.store_rrm_results_in_analysis <- function(analysis, rrm_results_df, model_data = NULL) {
+    if (is.list(analysis@rrm_results) && "rrm_interaction" %in% names(analysis@rrm_results)) {
+        analysis@rrm_results$rrm_interaction <- rrm_results_df
         if (!is.null(model_data)) {
-            analysis@lm_results$lm_interaction_model_data <- model_data
+            analysis@rrm_results$rrm_interaction_model_data <- model_data
         }
     } else {
-        analysis@lm_results <- list(lm_interaction = lm_results_df)
+        analysis@rrm_results <- list(rrm_interaction = rrm_results_df)
         if (!is.null(model_data)) {
-            analysis@lm_results$lm_interaction_model_data <- model_data
+            analysis@rrm_results$rrm_interaction_model_data <- model_data
         }
     }
 
     # Track function call
-    analysis@metadata$function_calls <- c(analysis@metadata$function_calls, "calculate_lm")
+    analysis@metadata$function_calls <- c(analysis@metadata$function_calls, "calculate_rrm")
 
     analysis
 }

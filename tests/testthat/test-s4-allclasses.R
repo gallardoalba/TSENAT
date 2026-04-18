@@ -42,8 +42,8 @@ context("TSENATAnalysis S4 Class: Subsetting and Validation")
     ci_matrix = array(rnorm(n_genes * n_samples * 2), dim = c(n_genes, n_samples, 2))
   )
   
-  # Add LM results with residuals
-  analysis@lm_results$lm_interaction <- list(
+  # Add RRM results with residuals
+  analysis@rrm_results$rrm_interaction <- list(
     results = data.frame(gene_id = rownames(counts), p_value = runif(n_genes)),
     residuals = matrix(rnorm(n_genes * n_samples), nrow = n_genes, ncol = n_samples),
     fitted = matrix(rnorm(n_genes * n_samples), nrow = n_genes, ncol = n_samples)
@@ -273,18 +273,18 @@ test_that("Jackknife results are subsetted correctly (sample-level diagnostics)"
 })
 
 # ===========================================================================
-# Test 16: Subsetting preserves LM results correctly
+# Test 16: Subsetting preserves RRM results correctly
 # ===========================================================================
-test_that("LM results are subsetted correctly (residuals and fitted values)", {
+test_that("RRM results are subsetted correctly (residuals and fitted values)", {
   analysis <- .create_test_analysis(n_genes = 20, n_samples = 10)
   
   subset_obj <- analysis[1:5, 1:3]
   
   # Check residuals (sample-level diagnostics)
-  expect_equal(ncol(subset_obj@lm_results$lm_interaction$residuals), 3)
+  expect_equal(ncol(subset_obj@rrm_results$rrm_interaction$residuals), 3)
   
   # Check fitted values
-  expect_equal(ncol(subset_obj@lm_results$lm_interaction$fitted), 3)
+  expect_equal(ncol(subset_obj@rrm_results$rrm_interaction$fitted), 3)
 })
 
 # ===========================================================================

@@ -12,11 +12,11 @@
 #'   \code{\link{jackknife_isoform_switching}(q = c(...))}. Must include
 #'   gene_ids, gene_name_map, and per-gene results for each q-value.
 #' @param n_genes Numeric: number of top genes to visualize (default 4).
-#'   When \code{lm_results} is provided,  selects the n genes with 
+#'   When \code{rrm_results} is provided,  selects the n genes with 
 #' lowest p-values.
 #'   Otherwise, selects the first n genes from results.
-#' @param lm_results Optional data.
-#' frame from \code{\link{calculate_lm_interaction}()}
+#' @param rrm_results Optional data.
+#' frame from \code{\link{calculate_rrm_interaction}()}
 #' containing gene interaction statistics. Should have columns for gene
 #' identifiers
 #' ('gene_name' or 'gene_id') and p-values ('p_interaction' or
@@ -109,7 +109,7 @@
 
 #' @noRd
 
-.plot_jis_delta <- function(switching_results, n_genes = 4, lm_results = NULL, verbose = FALSE,
+.plot_jis_delta <- function(switching_results, n_genes = 4, rrm_results = NULL, verbose = FALSE,
     cellwidth = 0, cellheight = 0, fontsize = 18, layout_ncol = 2, output_file = NULL,
     width = NULL, height = NULL) {
     # Phase 1: Validate input
@@ -119,7 +119,7 @@
     gene_name_map <- result_data$gene_name_map
 
     # Phase 2: Select genes
-    top_genes <- .heatmap_select_genes_multiq(switching_results, n_genes, lm_results)
+    top_genes <- .heatmap_select_genes_multiq(switching_results, n_genes, rrm_results)
 
     # Phase 3: Collect gene info for layout planning
     gene_info_list <- lapply(seq_along(top_genes), function(i) {
@@ -274,9 +274,9 @@
 #' @param res Optional result data.frame from differential/interaction
 #' analysis with gene identifiers and p-values.
 #'   Supported sources:
-#' - `.calculate_lm(..., return_model_data = TRUE)` returns a
+#' - `.calculate_rrm(..., return_model_data = TRUE)` returns a
 #' list with $results and $model_data
-#' - `.calculate_lm(..., return_model_data = FALSE)` returns a
+#' - `.calculate_rrm(..., return_model_data = FALSE)` returns a
 #' data.frame with adj_p_interaction column
 #' - `.calculate_srh()` returns a data.frame with adj_p_value column
 #' (for Scheirer-Ray-Hare rank tests)
@@ -643,32 +643,32 @@
 
 #' Select Top Genes from Multi-Q Results
 #'
-#' Ranks genes using LM results (if provided) and selects top N genes
+#' Ranks genes using RRM results (if provided) and selects top N genes
 #' for visualization from multi-q switching analysis results.
 #'
 #' @param switching_results Multi-q result list (from
 #' jackknife_isoform_switching)
 #' @param n_genes Integer: number of top genes to select
-#' @param lm_results Optional data.frame with LM interaction results
+#' @param rrm_results Optional data.frame with RRM interaction results
 #'
 #' @return Character vector of selected gene IDs
 #'
 
 #' @noRd
-.heatmap_select_genes_multiq <- function(switching_results, n_genes = 4, lm_results = NULL) {
+.heatmap_select_genes_multiq <- function(switching_results, n_genes = 4, rrm_results = NULL) {
     q_key <- names(switching_results)[grepl("^q_", names(switching_results))][1]
     first_result <- switching_results[[q_key]]
     gene_ids <- first_result$gene_ids
 
-    if (is.null(lm_results)) {
+    if (is.null(rrm_results)) {
         # No ranking: use first N genes
         return(gene_ids[seq_len(min(n_genes, length(gene_ids)))])
     }
 
     # Find p-value column
-    p_col <- if ("adj_p_interaction" %in% colnames(lm_results)) {
+    p_col <- if ("adj_p_interaction" %in% colnames(rrm_results)) {
         "adj_p_interaction"
-    } else if ("p_interaction" %in% colnames(lm_results)) {
+    } else if ("p_interaction" %in% colnames(rrm_results)) {
         "p_interaction"
     } else {
         NULL
@@ -678,26 +678,26 @@
         return(gene_ids[seq_len(min(n_genes, length(gene_ids)))])
     }
 
-    # Find gene identifier column in lm_results
-    lm_gene_col <- if ("gene_id" %in% colnames(lm_results)) {
+    # Find gene identifier column in rrm_results
+    rrm_gene_col <- if ("gene_id" %in% colnames(rrm_results)) {
         "gene_id"
-    } else if ("gene" %in% colnames(lm_results)) {
+    } else if ("gene" %in% colnames(rrm_results)) {
         "gene"
-    } else if ("gene_name" %in% colnames(lm_results)) {
+    } else if ("gene_name" %in% colnames(rrm_results)) {
         "gene_name"
     } else {
         NULL
     }
 
-    if (is.null(lm_gene_col)) {
+    if (is.null(rrm_gene_col)) {
         return(gene_ids[seq_len(min(n_genes, length(gene_ids)))])
     }
 
     # Rank genes by p-value (lowest = most significant)
-    matches <- match(gene_ids, lm_results[[lm_gene_col]])
+    matches <- match(gene_ids, rrm_results[[rrm_gene_col]])
     p_values <- rep(Inf, length(gene_ids))
     matched_idx <- !is.na(matches)
-    p_values[matched_idx] <- lm_results[[p_col]][matches[matched_idx]]
+    p_values[matched_idx] <- rrm_results[[p_col]][matches[matched_idx]]
 
     gene_order <- order(p_values)
     genes_sorted <- gene_ids[gene_order]
@@ -707,7 +707,7 @@
 #' Select Top Genes from Results DataFrame
 #'
 #' Extracts and ranks genes from a results data.frame (typically from
-#' calculate_lm_interaction or similar statistical results), and returns
+#' calculate_rrm_interaction or similar statistical results), and returns
 #' top N genes found in the SummarizedExperiment.
 #'
 #' @param se SummarizedExperiment object

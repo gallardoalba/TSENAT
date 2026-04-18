@@ -5,12 +5,12 @@ library(TSENAT)
 # MODULE-LEVEL SETUP: Shared test data loaded ONCE
 # ============================================================================
 # Cache analysis with both LM and rank test results (prerequisite)
-# Use precomputed LM results from RDS file (matches Appendix B vignette pattern)
+# Use precomputed RRM results from RDS file (matches Appendix B vignette pattern)
 test_analysis_concordance <- local({
-    # Load precomputed analysis with LM results already computed
-    # (avoids expensive lm_interaction computation)
-    analysis_lm <- readRDS(
-        system.file("extdata", "analysis_lm.rds", package = "TSENAT")
+    # Load precomputed analysis with RRM results already computed
+    # (avoids expensive rrm_interaction computation)
+    analysis_rrm <- readRDS(
+        system.file("extdata", "analysis_rrm.rds", package = "TSENAT")
     )
     
     # Prepare fresh diversity-only analysis for rank test computation
@@ -51,9 +51,9 @@ test_analysis_concordance <- local({
         analysis <- TSENAT::calculate_diversity(analysis, q = seq(0, 2, by = 0.2))
     })
 
-    # Copy LM results from precomputed analysis to current analysis
-    # This avoids expensive lm_interaction computation and provides validated results
-    analysis@lm_results <- analysis_lm@lm_results
+    # Copy RRM results from precomputed analysis to current analysis
+    # This avoids expensive rrm_interaction computation and provides validated results
+    analysis@rrm_results <- analysis_rrm@rrm_results
 
     # Compute rank test results (prerequisite for concordance)
     suppressWarnings({
@@ -69,33 +69,33 @@ test_analysis_concordance <- local({
 
 test_that("calculate_concordance() requires TSENATAnalysis object", {
     expect_error(
-        TSENAT::calculate_concordance(analysis_lm = list(data = "invalid")),
+        TSENAT::calculate_concordance(analysis_rrm = list(data = "invalid")),
         "inherited method"
     )
     expect_error(
-        TSENAT::calculate_concordance(analysis_lm = data.frame(x = 1:10)),
+        TSENAT::calculate_concordance(analysis_rrm = data.frame(x = 1:10)),
         "inherited method"
     )
 })
 
-test_that("calculate_concordance() requires LM results", {
-    analysis_lm <- test_analysis_concordance
+test_that("calculate_concordance() requires RRM results", {
+    analysis_rrm <- test_analysis_concordance
     analysis_rank <- test_analysis_concordance
-    analysis_lm@lm_results <- list()
+    analysis_rrm@rrm_results <- list()
 
     expect_error(
-        TSENAT::calculate_concordance(analysis_lm = analysis_lm, analysis_rank = analysis_rank),
-        "No LM results found"
+        TSENAT::calculate_concordance(analysis_rrm = analysis_rrm, analysis_rank = analysis_rank),
+        "No RRM results found"
     )
 })
 
 test_that("calculate_concordance() requires rank test results in legacy API", {
-    analysis_lm <- test_analysis_concordance
+    analysis_rrm <- test_analysis_concordance
     analysis_rank <- test_analysis_concordance
     analysis_rank@rank_test_results <- list()
 
     expect_error(
-        TSENAT::calculate_concordance(analysis_lm = analysis_lm, analysis_rank = analysis_rank),
+        TSENAT::calculate_concordance(analysis_rrm = analysis_rrm, analysis_rank = analysis_rank),
         "No rank test results found"
     )
 })
@@ -106,7 +106,7 @@ test_that("calculate_concordance() requires rank test results in legacy API", {
 
 test_that("calculate_concordance() executes with legacy API (single object)", {
     result <- TSENAT::calculate_concordance(
-        analysis_lm = test_analysis_concordance,
+        analysis_rrm = test_analysis_concordance,
         analysis_rank = test_analysis_concordance,
         verbose = FALSE
     )
@@ -117,7 +117,7 @@ test_that("calculate_concordance() executes with legacy API (single object)", {
 
 test_that("calculate_concordance() stores concordance results in metadata", {
     result <- TSENAT::calculate_concordance(
-        analysis_lm = test_analysis_concordance,
+        analysis_rrm = test_analysis_concordance,
         analysis_rank = test_analysis_concordance,
         verbose = FALSE
     )
@@ -132,7 +132,7 @@ test_that("calculate_concordance() stores concordance results in metadata", {
 
 test_that("calculate_concordance() tracks function calls", {
     result <- TSENAT::calculate_concordance(
-        analysis_lm = test_analysis_concordance,
+        analysis_rrm = test_analysis_concordance,
         analysis_rank = test_analysis_concordance,
         verbose = FALSE
     )
@@ -140,28 +140,28 @@ test_that("calculate_concordance() tracks function calls", {
     expect_true(any(grepl("calculate_concordance", result@metadata$function_calls)))
 })
 
-test_that("calculate_concordance() auto-detects LM method when NULL", {
-    analysis_lm <- test_analysis_concordance
+test_that("calculate_concordance() auto-detects RRM method when NULL", {
+    analysis_rrm <- test_analysis_concordance
     analysis_rank <- test_analysis_concordance
 
     result <- TSENAT::calculate_concordance(
-        analysis_lm = analysis_lm,
+        analysis_rrm = analysis_rrm,
         analysis_rank = analysis_rank,
         verbose = FALSE
     )
 
     expect_s4_class(result, "TSENATAnalysis")
-    expect_true(!is.null(result@metadata$method_concordance$lm_method))
+    expect_true(!is.null(result@metadata$method_concordance$rrm_method))
 })
 
 test_that("calculate_concordance() errors with unrecognized parameters", {
-    # The new two-object API does not accept lm_method parameter
+    # The new two-object API does not accept rrm_method parameter
     # Parameters are auto-detected from the analysis objects
     expect_error(
         TSENAT::calculate_concordance(
-            analysis_lm = test_analysis_concordance,
+            analysis_rrm = test_analysis_concordance,
             analysis_rank = test_analysis_concordance,
-            lm_method = "nonexistent_method",
+            rrm_method = "nonexistent_method",
             verbose = FALSE
         ),
         "not recognized"
@@ -173,11 +173,11 @@ test_that("calculate_concordance() errors with unrecognized parameters", {
 # ============================================================================
 
 test_that("calculate_concordance() accepts two TSENATAnalysis objects", {
-    analysis_lm <- test_analysis_concordance
+    analysis_rrm <- test_analysis_concordance
     analysis_rank <- test_analysis_concordance
 
     result <- TSENAT::calculate_concordance(
-        analysis_lm = analysis_lm,
+        analysis_rrm = analysis_rrm,
         analysis_rank = analysis_rank,
         verbose = FALSE
     )
@@ -203,7 +203,7 @@ test_that("calculate_concordance() validates rank_test_results in two-object API
 
     expect_error(
         TSENAT::calculate_concordance(
-            analysis_lm = test_analysis_concordance,
+            analysis_rrm = test_analysis_concordance,
             analysis_rank = analysis_rank,
             verbose = FALSE
         ),
@@ -217,7 +217,7 @@ test_that("calculate_concordance() validates rank_test_results in two-object API
 
 test_that("calculate_concordance() computes Spearman correlation", {
     result <- TSENAT::calculate_concordance(
-        analysis_lm = test_analysis_concordance,
+        analysis_rrm = test_analysis_concordance,
         analysis_rank = test_analysis_concordance,
         verbose = FALSE
     )
@@ -229,7 +229,7 @@ test_that("calculate_concordance() computes Spearman correlation", {
 
 test_that("calculate_concordance() includes comparison data frame", {
     result <- TSENAT::calculate_concordance(
-        analysis_lm = test_analysis_concordance,
+        analysis_rrm = test_analysis_concordance,
         analysis_rank = test_analysis_concordance,
         verbose = FALSE
     )
@@ -241,7 +241,7 @@ test_that("calculate_concordance() includes comparison data frame", {
 
 test_that("calculate_concordance() includes agreement table", {
     result <- TSENAT::calculate_concordance(
-        analysis_lm = test_analysis_concordance,
+        analysis_rrm = test_analysis_concordance,
         analysis_rank = test_analysis_concordance,
         verbose = FALSE
     )
@@ -252,7 +252,7 @@ test_that("calculate_concordance() includes agreement table", {
 
 test_that("calculate_concordance() identifies high confidence genes", {
     result <- TSENAT::calculate_concordance(
-        analysis_lm = test_analysis_concordance,
+        analysis_rrm = test_analysis_concordance,
         analysis_rank = test_analysis_concordance,
         verbose = FALSE
     )
@@ -263,20 +263,20 @@ test_that("calculate_concordance() identifies high confidence genes", {
 
 test_that("calculate_concordance() stores method names in metadata", {
     result <- TSENAT::calculate_concordance(
-        analysis_lm = test_analysis_concordance,
+        analysis_rrm = test_analysis_concordance,
         analysis_rank = test_analysis_concordance,
         verbose = FALSE
     )
 
     metadata <- result@metadata$method_concordance
-    expect_true(!is.null(metadata$lm_method))
+    expect_true(!is.null(metadata$rrm_method))
     expect_true(!is.null(metadata$rank_method))
     expect_equal(metadata$rank_method, "rank_test")
 })
 
 test_that("calculate_concordance() stores timestamp", {
     result <- TSENAT::calculate_concordance(
-        analysis_lm = test_analysis_concordance,
+        analysis_rrm = test_analysis_concordance,
         analysis_rank = test_analysis_concordance,
         verbose = FALSE
     )
@@ -287,16 +287,16 @@ test_that("calculate_concordance() stores timestamp", {
 })
 
 test_that("calculate_concordance() preserves original results slots", {
-    original_lm_count <- length(test_analysis_concordance@lm_results)
+    original_rrm_count <- length(test_analysis_concordance@rrm_results)
     original_rank_count <- length(test_analysis_concordance@rank_test_results)
 
     result <- TSENAT::calculate_concordance(
-        analysis_lm = test_analysis_concordance,
+        analysis_rrm = test_analysis_concordance,
         analysis_rank = test_analysis_concordance,
         verbose = FALSE
     )
 
-    expect_equal(length(result@lm_results), original_lm_count)
+    expect_equal(length(result@rrm_results), original_rrm_count)
     expect_equal(length(result@rank_test_results), original_rank_count)
 })
 
@@ -307,7 +307,7 @@ test_that("calculate_concordance() preserves original results slots", {
 test_that("calculate_concordance() with verbose=TRUE produces messages", {
     output <- capture.output({
         result <- TSENAT::calculate_concordance(
-            analysis_lm = test_analysis_concordance,
+            analysis_rrm = test_analysis_concordance,
             analysis_rank = test_analysis_concordance,
             verbose = TRUE
         )
@@ -320,7 +320,7 @@ test_that("calculate_concordance() with verbose=TRUE produces messages", {
 test_that("calculate_concordance() with verbose=FALSE suppresses messages", {
     output <- capture.output({
         result <- TSENAT::calculate_concordance(
-            analysis_lm = test_analysis_concordance,
+            analysis_rrm = test_analysis_concordance,
             analysis_rank = test_analysis_concordance,
             verbose = FALSE
         )
@@ -338,7 +338,7 @@ test_that("calculate_concordance() saves RDS output when requested", {
     output_file <- file.path(tempdir(), "test_concordance_output.txt")
 
     result <- TSENAT::calculate_concordance(
-        analysis_lm = test_analysis_concordance,
+        analysis_rrm = test_analysis_concordance,
         analysis_rank = test_analysis_concordance,
         output_file = output_file,
         verbose = FALSE
@@ -360,7 +360,7 @@ test_that("calculate_concordance() creates output directory if needed", {
     dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
     result <- TSENAT::calculate_concordance(
-        analysis_lm = test_analysis_concordance,
+        analysis_rrm = test_analysis_concordance,
         analysis_rank = test_analysis_concordance,
         output_file = output_file,
         verbose = FALSE
@@ -377,17 +377,17 @@ test_that("calculate_concordance() creates output directory if needed", {
 # ============================================================================
 
 test_that("calculate_concordance() is non-destructive (doesn't modify inputs)", {
-    original_lm <- test_analysis_concordance@lm_results$lm_interaction
+    original_lm <- test_analysis_concordance@rrm_results$rrm_interaction
     original_rank <- test_analysis_concordance@rank_test_results$rank_test
 
     result <- TSENAT::calculate_concordance(
-        analysis_lm = test_analysis_concordance,
+        analysis_rrm = test_analysis_concordance,
         analysis_rank = test_analysis_concordance,
         verbose = FALSE
     )
 
     expect_identical(
-        test_analysis_concordance@lm_results$lm_interaction,
+        test_analysis_concordance@rrm_results$rrm_interaction,
         original_lm
     )
     expect_identical(
@@ -400,13 +400,13 @@ test_that("calculate_concordance() can be called multiple times", {
     analysis <- test_analysis_concordance
 
     result1 <- TSENAT::calculate_concordance(
-        analysis_lm = analysis,
+        analysis_rrm = analysis,
         analysis_rank = analysis,
         verbose = FALSE
     )
 
     result2 <- TSENAT::calculate_concordance(
-        analysis_lm = analysis,
+        analysis_rrm = analysis,
         analysis_rank = analysis,
         verbose = FALSE
     )
@@ -422,7 +422,7 @@ test_that("calculate_concordance() can be called multiple times", {
 
 test_that("calculate_concordance() respects rank_method parameter", {
     result <- TSENAT::calculate_concordance(
-        analysis_lm = test_analysis_concordance,
+        analysis_rrm = test_analysis_concordance,
         analysis_rank = test_analysis_concordance,
         verbose = FALSE
     )

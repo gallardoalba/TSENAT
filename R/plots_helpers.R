@@ -772,7 +772,7 @@
 #'
 #' Checks that results DataFrame has required columns.
 #'
-#' @param results Data frame (LM results, effect sizes, etc.).
+#' @param results Data frame (RRM results, effect sizes, etc.).
 #' @param require_pvalue Logical: check for p-value column? (default: TRUE)
 #'
 #' @return Logical TRUE if valid, else error.
@@ -1730,14 +1730,14 @@
 
 #' Select genes to plot based on significance
 #'
-#' @param lm_res Data frame with gene and p-value columns
+#' @param rrm_res Data frame with gene and p-value columns
 #' @param genes Optional character vector of specific genes
 #' @param n_top Number of top genes to select
 #' @param sig_alpha Significance threshold
 #' @return Character vector of gene IDs to plot (or NULL if none selected)
 
 #' @noRd
-.plot_select_genes <- function(lm_res, genes = NULL, n_top = 6, sig_alpha = 0.05) {
+.plot_select_genes <- function(rrm_res, genes = NULL, n_top = 6, sig_alpha = 0.05) {
     if (!is.null(genes)) {
         if (!is.character(genes)) {
             stop("genes must be a character vector of gene names", call. = FALSE)
@@ -1746,17 +1746,17 @@
     }
 
     # Identify p-value column
-    if ("adj_p_interaction" %in% colnames(lm_res)) {
+    if ("adj_p_interaction" %in% colnames(rrm_res)) {
         p_col <- "adj_p_interaction"
-    } else if ("p_interaction" %in% colnames(lm_res)) {
+    } else if ("p_interaction" %in% colnames(rrm_res)) {
         p_col <- "p_interaction"
     } else {
-        stop("lm_res must contain 'adj_p_interaction' or 'p_interaction' column",
+        stop("rrm_res must contain 'adj_p_interaction' or 'p_interaction' column",
             call. = FALSE)
     }
 
     # Filter to significant genes (p-value < sig_alpha)
-    sig_genes <- lm_res[lm_res[[p_col]] < sig_alpha, , drop = FALSE]
+    sig_genes <- rrm_res[rrm_res[[p_col]] < sig_alpha, , drop = FALSE]
 
     # If no significant genes, return NULL
     if (nrow(sig_genes) == 0) {
@@ -1849,64 +1849,64 @@
 
 #' Handle and Validate Inputs for GAM Interaction Plot
 #'
-#' Validates SE object and handles flexible lm_res input formats.
+#' Validates SE object and handles flexible rrm_res input formats.
 #' Extracts results dataframe from list or validates dataframe directly.
 #'
 #' @param se A \code{SummarizedExperiment} object
-#' @param lm_res Either a data.frame with 'gene' column or list with
+#' @param rrm_res Either a data.frame with 'gene' column or list with
 #'   $results and $model_data
 #'
 #' @return List with validated components:
 #'   - se: validated SummarizedExperiment
-#'   - lm_res: extracted results dataframe
+#'   - rrm_res: extracted results dataframe
 #'   - model_data: extracted model_data (or NULL)
 #'
 #' @noRd
-.plot_gam_handle_inputs <- function(se, lm_res) {
+.plot_gam_handle_inputs <- function(se, rrm_res) {
     if (!inherits(se, "SummarizedExperiment")) {
         stop("se must be a SummarizedExperiment", call. = FALSE)
     }
 
     model_data <- NULL
 
-    # Handle flexible input: lm_res can be either: 1. A data.frame with results
+    # Handle flexible input: rrm_res can be either: 1. A data.frame with results
     # (traditional usage) 2. A list with $results and $model_data
     # (return_model_data = TRUE format)
-    if (is.list(lm_res) && !is.data.frame(lm_res)) {
-        # lm_res is a list with components
-        if ("results" %in% names(lm_res) && is.data.frame(lm_res$results)) {
+    if (is.list(rrm_res) && !is.data.frame(rrm_res)) {
+        # rrm_res is a list with components
+        if ("results" %in% names(rrm_res) && is.data.frame(rrm_res$results)) {
             # Extract results and model_data from the list
-            extracted_results <- lm_res$results
+            extracted_results <- rrm_res$results
 
-            # If model_data provided, extract from lm_res
-            if ("model_data" %in% names(lm_res)) {
-                model_data <- lm_res$model_data
+            # If model_data provided, extract from rrm_res
+            if ("model_data" %in% names(rrm_res)) {
+                model_data <- rrm_res$model_data
             }
 
-            lm_res <- extracted_results
+            rrm_res <- extracted_results
         } else {
-            stop("lm_res is a list but does not contain 'results' data.frame component",
+            stop("rrm_res is a list but does not contain 'results' data.frame component",
                 call. = FALSE)
         }
     }
 
-    if (!is.data.frame(lm_res) || !("gene" %in% colnames(lm_res))) {
-        stop("lm_res must be either:\n  1. A data.frame with 'gene' column from .calculate_lm()\n  2. A list with $results and $model_data from return_model_data = TRUE",
+    if (!is.data.frame(rrm_res) || !("gene" %in% colnames(rrm_res))) {
+        stop("rrm_res must be either:\n  1. A data.frame with 'gene' column from .calculate_rrm()\n  2. A list with $results and $model_data from return_model_data = TRUE",
             call. = FALSE)
     }
 
-    if (nrow(lm_res) == 0) {
-        stop("lm_res has no rows; .calculate_lm() returned no genes", call. = FALSE)
+    if (nrow(rrm_res) == 0) {
+        stop("rrm_res has no rows; .calculate_rrm() returned no genes", call. = FALSE)
     }
 
-    list(se = se, lm_res = lm_res, model_data = model_data)
+    list(se = se, rrm_res = rrm_res, model_data = model_data)
 }
 
 #' Validate and Extract Q-Values from Model Data
 #'
 #' Validates model_data and extracts/normalizes q-values for GAM analysis.
 #'
-#' @param model_data List from .calculate_lm(...,
+#' @param model_data List from .calculate_rrm(...,
 #' return_model_data = TRUE)$model_data
 #'
 #' @return Numeric vector of q-values
@@ -1914,12 +1914,12 @@
 #' @noRd
 .plot_gam_extract_q_values <- function(model_data) {
     if (is.null(model_data)) {
-        stop("model_data is required. Provide it as a parameter or pass full lm_res list with $model_data component",
+        stop("model_data is required. Provide it as a parameter or pass full rrm_res list with $model_data component",
             call. = FALSE)
     }
 
     if (!is.list(model_data)) {
-        stop("model_data must be a list from .calculate_lm(..., return_model_data = TRUE)",
+        stop("model_data must be a list from .calculate_rrm(..., return_model_data = TRUE)",
             call. = FALSE)
     }
 
@@ -1943,28 +1943,28 @@
 
 #' Match and Filter Genes Between SE and Results
 #'
-#' Finds genes present in both SE rownames and lm_res results.
+#' Finds genes present in both SE rownames and rrm_res results.
 #' Subsets both objects to matching genes only.
 #'
 #' @param se A \code{SummarizedExperiment}
-#' @param lm_res Results dataframe with 'gene' column
+#' @param rrm_res Results dataframe with 'gene' column
 #'
 #' @return List with:
 #'   - se: subset SE
-#'   - lm_res: subset results
+#'   - rrm_res: subset results
 #'
 #' @noRd
-.plot_gam_match_genes <- function(se, lm_res) {
-    # Match and filter genes between SE and lm_res After calculate_diversity,
-    # rownames(SE) are gene names lm_res$gene column also contains gene names
-    gene_names_in_results <- lm_res$gene
+.plot_gam_match_genes <- function(se, rrm_res) {
+    # Match and filter genes between SE and rrm_res After calculate_diversity,
+    # rownames(SE) are gene names rrm_res$gene column also contains gene names
+    gene_names_in_results <- rrm_res$gene
     gene_names_in_se <- rownames(se)
 
     # Find genes that exist in both
     available_genes <- gene_names_in_se[gene_names_in_se %in% gene_names_in_results]
 
     if (length(available_genes) == 0) {
-        stop(sprintf("No genes from lm_res found in rownames(se). \n  Examples from lm_res: %s\n  Examples from SE: %s",
+        stop(sprintf("No genes from rrm_res found in rownames(se). \n  Examples from rrm_res: %s\n  Examples from SE: %s",
             paste(head(gene_names_in_results, 3), collapse = ", "), paste(head(gene_names_in_se,
                 3), collapse = ", ")), call. = FALSE)
     }
@@ -1973,29 +1973,29 @@
     se <- se[available_genes, ]
 
     # Subset results to only genes that are in SE
-    lm_res <- lm_res[lm_res$gene %in% rownames(se), ]
+    rrm_res <- rrm_res[rrm_res$gene %in% rownames(se), ]
 
-    list(se = se, lm_res = lm_res)
+    list(se = se, rrm_res = rrm_res)
 }
 
 #' Create Gene ID to Display Name Mapping
 #'
-#' Builds mapping for display names from lm_res. Uses gene_name column if
+#' Builds mapping for display names from rrm_res. Uses gene_name column if
 #' available, otherwise uses gene IDs.
 #'
-#' @param lm_res Results dataframe with 'gene' column and optional
+#' @param rrm_res Results dataframe with 'gene' column and optional
 #' 'gene_name' column
 #'
 #' @return Named character vector mapping gene IDs to display names
 #'
 #' @noRd
-.plot_gam_create_gene_map <- function(lm_res) {
-    # Create gene ID to display name mapping from lm_res
-    gene_name_map <- setNames(lm_res$gene, lm_res$gene)  # default: use gene ID
+.plot_gam_create_gene_map <- function(rrm_res) {
+    # Create gene ID to display name mapping from rrm_res
+    gene_name_map <- setNames(rrm_res$gene, rrm_res$gene)  # default: use gene ID
 
-    # If lm_res has a gene_name column (e.g., from return_model_data), use it
-    if ("gene_name" %in% colnames(lm_res)) {
-        gene_name_map <- setNames(lm_res$gene_name, lm_res$gene)
+    # If rrm_res has a gene_name column (e.g., from return_model_data), use it
+    if ("gene_name" %in% colnames(rrm_res)) {
+        gene_name_map <- setNames(rrm_res$gene_name, rrm_res$gene)
     }
 
     gene_name_map

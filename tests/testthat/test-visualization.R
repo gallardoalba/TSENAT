@@ -2025,8 +2025,8 @@ setup_gene_mode_analysis <- function() {
   return(analysis)
 }
 
-# Helper: Create lm_res dataframe with adj_p_interaction format
-create_lm_res_adj_p_interaction <- function() {
+# Helper: Create rrm_res dataframe with adj_p_interaction format
+create_rrm_res_adj_p_interaction <- function() {
   data.frame(
     gene = c("GENE_1", "GENE_2", "GENE_3", "GENE_4", "GENE_5"),
     coef = c(-0.5, 0.3, -0.2, 0.6, 0.1),
@@ -2035,8 +2035,8 @@ create_lm_res_adj_p_interaction <- function() {
   )
 }
 
-# Helper: Create lm_res dataframe with p_interaction format
-create_lm_res_p_interaction <- function() {
+# Helper: Create rrm_res dataframe with p_interaction format
+create_rrm_res_p_interaction <- function() {
   data.frame(
     gene = c("GENE_1", "GENE_2", "GENE_3", "GENE_4", "GENE_5"),
     coef = c(-0.5, 0.3, -0.2, 0.6, 0.1),
@@ -2045,8 +2045,8 @@ create_lm_res_p_interaction <- function() {
   )
 }
 
-# Helper: Create lm_res dataframe with adj_p_value format (Scheirer-Ray-Hare rank test)
-create_lm_res_adj_p_value <- function() {
+# Helper: Create rrm_res dataframe with adj_p_value format (Scheirer-Ray-Hare rank test)
+create_rrm_res_adj_p_value <- function() {
   data.frame(
     gene = c("GENE_1", "GENE_2", "GENE_3", "GENE_4", "GENE_5"),
     statistic = c(10.5, 12.3, 8.7, 15.2, 6.1),
@@ -2055,8 +2055,8 @@ create_lm_res_adj_p_value <- function() {
   )
 }
 
-# Helper: Create lm_res dataframe with p_value format
-create_lm_res_p_value <- function() {
+# Helper: Create rrm_res dataframe with p_value format
+create_rrm_res_p_value <- function() {
   data.frame(
     gene = c("GENE_1", "GENE_2", "GENE_3", "GENE_4", "GENE_5"),
     statistic = c(10.5, 12.3, 8.7, 15.2, 6.1),
@@ -2157,19 +2157,19 @@ test_that("plot_diversity_spectrum gene-mode: Gene column requirement (line 567)
 })
 
 # ==============================================================================
-# TEST: gene vs lm_res resolution (Lines 570-571)
+# TEST: gene vs rrm_res resolution (Lines 570-571)
 # ==============================================================================
 
 test_that("plot_diversity_spectrum gene-mode: gene parameter takes precedence (line 570)", {
   analysis <- setup_gene_mode_analysis()
-  lm_res <- create_lm_res_adj_p_interaction()
+  rrm_res <- create_rrm_res_adj_p_interaction()
   
-  # When gene is provided, lm_res should be ignored
+  # When gene is provided, rrm_res should be ignored
   result <- suppressWarnings(tryCatch({
     plot_diversity_spectrum(
       analysis,
       gene = "GENE_2",  # gene is provided
-      lm_res = lm_res,  # lm_res also provided
+      rrm_res = rrm_res,  # rrm_res also provided
       assay_name = "diversity"
     )
   }, error = function(e) list(error = conditionMessage(e))))
@@ -2178,15 +2178,15 @@ test_that("plot_diversity_spectrum gene-mode: gene parameter takes precedence (l
   expect_true(is.null(result) || is.list(result) || !is.null(result))
 })
 
-test_that("plot_diversity_spectrum gene-mode: NULL gene and lm_res falls back to aggregate mode (line 571)", {
+test_that("plot_diversity_spectrum gene-mode: NULL gene and rrm_res falls back to aggregate mode (line 571)", {
   analysis <- setup_gene_mode_analysis()
   
-  # When gene is NULL and lm_res is NULL with incomplete metadata, should error gracefully
+  # When gene is NULL and rrm_res is NULL with incomplete metadata, should error gracefully
   suppressWarnings(expect_error(
     plot_diversity_spectrum(
       analysis,
       gene = NULL,
-      lm_res = NULL,
+      rrm_res = NULL,
       assay_name = "diversity"
     ),
     "Missing sample_type mapping"
@@ -2194,29 +2194,29 @@ test_that("plot_diversity_spectrum gene-mode: NULL gene and lm_res falls back to
 })
 
 # ==============================================================================
-# TEST: lm_res validation (Line 572)
+# TEST: rrm_res validation (Line 572)
 # ==============================================================================
 
-test_that("plot_diversity_spectrum gene-mode: lm_res must be data.frame (line 572)", {
+test_that("plot_diversity_spectrum gene-mode: rrm_res must be data.frame (line 572)", {
   analysis <- setup_gene_mode_analysis()
   
-  # lm_res as non-dataframe with incomplete metadata, should error on metadata first
+  # rrm_res as non-dataframe with incomplete metadata, should error on metadata first
   suppressWarnings(expect_error(
     plot_diversity_spectrum(
       analysis,
       gene = NULL,
-      lm_res = list(not_a_dataframe = TRUE),  # Not a data.frame
+      rrm_res = list(not_a_dataframe = TRUE),  # Not a data.frame
       assay_name = "diversity"
     ),
     "Missing sample_type mapping"
   ))
 })
 
-test_that("plot_diversity_spectrum gene-mode: lm_res must have gene column (line 572)", {
+test_that("plot_diversity_spectrum gene-mode: rrm_res must have gene column (line 572)", {
   analysis <- setup_gene_mode_analysis()
   
-  # lm_res without gene column with incomplete metadata, should error on metadata first
-  bad_lm_res <- data.frame(
+  # rrm_res without gene column with incomplete metadata, should error on metadata first
+  bad_rrm_res <- data.frame(
     coef = c(0.1, 0.2),
     p_value = c(0.01, 0.05)
   )
@@ -2225,7 +2225,7 @@ test_that("plot_diversity_spectrum gene-mode: lm_res must have gene column (line
     plot_diversity_spectrum(
       analysis,
       gene = NULL,
-      lm_res = bad_lm_res,
+      rrm_res = bad_rrm_res,
       assay_name = "diversity"
     ),
     "Missing sample_type mapping"
@@ -2238,14 +2238,14 @@ test_that("plot_diversity_spectrum gene-mode: lm_res must have gene column (line
 
 test_that("plot_diversity_spectrum gene-mode: detect adj_p_interaction format (line 576-578)", {
   analysis <- setup_gene_mode_analysis()
-  lm_res <- create_lm_res_adj_p_interaction()
+  rrm_res <- create_rrm_res_adj_p_interaction()
   
   # Should accept adj_p_interaction format
   result <- suppressWarnings(tryCatch({
     plot_diversity_spectrum(
       analysis,
       gene = NULL,
-      lm_res = lm_res,
+      rrm_res = rrm_res,
       assay_name = "diversity",
       n_top = 1
     )
@@ -2262,14 +2262,14 @@ test_that("plot_diversity_spectrum gene-mode: detect adj_p_interaction format (l
 
 test_that("plot_diversity_spectrum gene-mode: detect p_interaction format (line 579-580)", {
   analysis <- setup_gene_mode_analysis()
-  lm_res <- create_lm_res_p_interaction()
+  rrm_res <- create_rrm_res_p_interaction()
   
   # Should accept p_interaction format
   result <- suppressWarnings(tryCatch({
     plot_diversity_spectrum(
       analysis,
       gene = NULL,
-      lm_res = lm_res,
+      rrm_res = rrm_res,
       assay_name = "diversity",
       n_top = 1
     )
@@ -2284,14 +2284,14 @@ test_that("plot_diversity_spectrum gene-mode: detect p_interaction format (line 
 
 test_that("plot_diversity_spectrum gene-mode: detect adj_p_value format (line 581-583)", {
   analysis <- setup_gene_mode_analysis()
-  lm_res <- create_lm_res_adj_p_value()
+  rrm_res <- create_rrm_res_adj_p_value()
   
   # Should accept adj_p_value format (Scheirer-Ray-Hare rank test)
   result <- suppressWarnings(tryCatch({
     plot_diversity_spectrum(
       analysis,
       gene = NULL,
-      lm_res = lm_res,
+      rrm_res = rrm_res,
       assay_name = "diversity",
       n_top = 1
     )
@@ -2306,14 +2306,14 @@ test_that("plot_diversity_spectrum gene-mode: detect adj_p_value format (line 58
 
 test_that("plot_diversity_spectrum gene-mode: detect p_value format (line 584-585)", {
   analysis <- setup_gene_mode_analysis()
-  lm_res <- create_lm_res_p_value()
+  rrm_res <- create_rrm_res_p_value()
   
   # Should accept p_value format
   result <- suppressWarnings(tryCatch({
     plot_diversity_spectrum(
       analysis,
       gene = NULL,
-      lm_res = lm_res,
+      rrm_res = rrm_res,
       assay_name = "diversity",
       n_top = 1
     )
@@ -2333,8 +2333,8 @@ test_that("plot_diversity_spectrum gene-mode: detect p_value format (line 584-58
 test_that("plot_diversity_spectrum gene-mode: missing p-value column error (line 588)", {
   analysis <- setup_gene_mode_analysis()
   
-  # lm_res without any p-value column with incomplete metadata, should error on metadata first
-  bad_lm_res <- data.frame(
+  # rrm_res without any p-value column with incomplete metadata, should error on metadata first
+  bad_rrm_res <- data.frame(
     gene = c("GENE_1", "GENE_2"),
     coef = c(0.1, 0.2),
     other_col = c(0.01, 0.05)
@@ -2344,7 +2344,7 @@ test_that("plot_diversity_spectrum gene-mode: missing p-value column error (line
     plot_diversity_spectrum(
       analysis,
       gene = NULL,
-      lm_res = bad_lm_res,
+      rrm_res = bad_rrm_res,
       assay_name = "diversity"
     ),
     "Missing sample_type mapping"
@@ -2357,14 +2357,14 @@ test_that("plot_diversity_spectrum gene-mode: missing p-value column error (line
 
 test_that("plot_diversity_spectrum gene-mode: genes ordered by p-value (line 590)", {
   analysis <- setup_gene_mode_analysis()
-  lm_res <- create_lm_res_adj_p_interaction()
+  rrm_res <- create_rrm_res_adj_p_interaction()
   
   # Genes should be ordered by p-value (smallest to largest)
   result <- suppressWarnings(tryCatch({
     plot_diversity_spectrum(
       analysis,
       gene = NULL,
-      lm_res = lm_res,
+      rrm_res = rrm_res,
       assay_name = "diversity",
       n_top = 2  # Request top 2
     )
@@ -2376,14 +2376,14 @@ test_that("plot_diversity_spectrum gene-mode: genes ordered by p-value (line 590
 
 test_that("plot_diversity_spectrum gene-mode: n_top defaults to 1 when NULL (line 592)", {
   analysis <- setup_gene_mode_analysis()
-  lm_res <- create_lm_res_adj_p_interaction()
+  rrm_res <- create_rrm_res_adj_p_interaction()
   
   # When n_top is NULL, should default to top 1 gene
   result <- suppressWarnings(tryCatch({
     plot_diversity_spectrum(
       analysis,
       gene = NULL,
-      lm_res = lm_res,
+      rrm_res = rrm_res,
       n_top = NULL,  # Should default to 1
       assay_name = "diversity"
     )
@@ -2395,14 +2395,14 @@ test_that("plot_diversity_spectrum gene-mode: n_top defaults to 1 when NULL (lin
 
 test_that("plot_diversity_spectrum gene-mode: n_top limits gene selection (line 593)", {
   analysis <- setup_gene_mode_analysis()
-  lm_res <- create_lm_res_adj_p_interaction()
+  rrm_res <- create_rrm_res_adj_p_interaction()
   
-  # n_top should limit selection (5 genes in lm_res, pick top 2)
+  # n_top should limit selection (5 genes in rrm_res, pick top 2)
   result <- suppressWarnings(tryCatch({
     plot_diversity_spectrum(
       analysis,
       gene = NULL,
-      lm_res = lm_res,
+      rrm_res = rrm_res,
       n_top = 2,
       assay_name = "diversity"
     )
@@ -3019,34 +3019,34 @@ test_that("plot_divergence_spectrum: single gene - plot creation", {
   expect_is(p, "ggplot")
 })
 
-test_that("plot_divergence_spectrum: top N genes selection from lm_res", {
+test_that("plot_divergence_spectrum: top N genes selection from rrm_res", {
   config <- list()
   
   # Create ranking by p-value
-  lm_res <- data.frame(
+  rrm_res <- data.frame(
     gene = c("g1", "g2", "g3", "g4", "g5"),
     adj_p_interaction = c(0.001, 0.005, 0.01, 0.05, 0.1)
   )
   
   n_genes <- 3
-  lm_sorted <- lm_res[order(lm_res$adj_p_interaction, na.last = TRUE), ]
-  top_genes <- head(lm_sorted$gene, n_genes)
+  rrm_sorted <- rrm_res[order(rrm_res$adj_p_interaction, na.last = TRUE), ]
+  top_genes <- head(rrm_sorted$gene, n_genes)
   
   expect_equal(top_genes, c("g1", "g2", "g3"))
 })
 
-test_that("plot_divergence_spectrum: gene column detection in lm_res", {
+test_that("plot_divergence_spectrum: gene column detection in rrm_res", {
   config <- list()
   
   # Test with 'gene' column
-  lm_res_gene <- data.frame(
+  rrm_res_gene <- data.frame(
     gene = c("g1", "g2", "g3"),
     adj_p_interaction = c(0.001, 0.01, 0.1)
   )
   
-  gene_col <- if ("gene" %in% colnames(lm_res_gene)) {
+  gene_col <- if ("gene" %in% colnames(rrm_res_gene)) {
     "gene"
-  } else if ("gene_name" %in% colnames(lm_res_gene)) {
+  } else if ("gene_name" %in% colnames(rrm_res_gene)) {
     "gene_name"
   } else {
     "gene_id"
@@ -3055,18 +3055,18 @@ test_that("plot_divergence_spectrum: gene column detection in lm_res", {
   expect_equal(gene_col, "gene")
 })
 
-test_that("plot_divergence_spectrum: p-value column detection in lm_res", {
+test_that("plot_divergence_spectrum: p-value column detection in rrm_res", {
   config <- list()
   
   # Test with different p-value column names
-  lm_res <- data.frame(
+  rrm_res <- data.frame(
     gene = c("g1", "g2"),
     adj_p_interaction = c(0.001, 0.01)
   )
   
-  p_col <- if ("adj_p_interaction" %in% colnames(lm_res)) {
+  p_col <- if ("adj_p_interaction" %in% colnames(rrm_res)) {
     "adj_p_interaction"
-  } else if ("p_interaction" %in% colnames(lm_res)) {
+  } else if ("p_interaction" %in% colnames(rrm_res)) {
     "p_interaction"
   } else {
     "p_value"
@@ -3307,16 +3307,16 @@ test_that("plot_divergence_spectrum: large n_genes parameter", {
   expect_equal(genes_to_use, available_genes)
 })
 
-test_that("plot_divergence_spectrum: single gene from lm_res", {
+test_that("plot_divergence_spectrum: single gene from rrm_res", {
   config <- list()
   
-  lm_res <- data.frame(
+  rrm_res <- data.frame(
     gene = "g1",
     adj_p_interaction = 0.001
   )
   
   n_genes <- 3
-  top_genes <- head(lm_res$gene, n_genes)
+  top_genes <- head(rrm_res$gene, n_genes)
   
   expect_equal(length(top_genes), 1)
 })
@@ -3377,10 +3377,10 @@ test_that("plot_divergence_spectrum: large divergence matrix", {
 })
 
 # Test coverage for medium-priority functions
-# Covers: .plot_lm(updated), .plot_jis_delta(45)
+# Covers: .plot_rrm(updated), .plot_jis_delta(45)
 
 
-test_that("plot_lm: function call returns ggplot", {
+test_that("plot_rrm: function call returns ggplot", {
   skip_if_not_installed("SummarizedExperiment")
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("mgcv")
@@ -3401,7 +3401,7 @@ test_that("plot_lm: function call returns ggplot", {
     colData = DataFrame(condition = rep(c("A", "B"), 3), row.names = colnames(mat))
   )
   
-  lm_res <- data.frame(
+  rrm_res <- data.frame(
     gene = paste0("gene_", 1:n_genes),
     adj_p_interaction = c(0.001, 0.005, 0.01, 0.02),
     stringsAsFactors = FALSE
@@ -3410,12 +3410,12 @@ test_that("plot_lm: function call returns ggplot", {
   # Create model_data with required q_values
   model_data <- list(q_values = q_vals)
   
-  # Pass lm_res as list with results and model_data
-  lm_res_list <- list(results = lm_res, model_data = model_data)
+  # Pass rrm_res as list with results and model_data
+  rrm_res_list <- list(results = rrm_res, model_data = model_data)
   
   # Function may warn with small datasets - accept any warning or no warning
-  result <- suppressWarnings(TSENAT:::.plot_lm(
-    se, lm_res_list,
+  result <- suppressWarnings(TSENAT:::.plot_rrm(
+    se, rrm_res_list,
     condition_col = "condition",
     n_top = 3,
     sig_alpha = 0.05
@@ -3424,7 +3424,7 @@ test_that("plot_lm: function call returns ggplot", {
   expect_true(is.null(result) || inherits(result, "ggplot"))
 })
 
-test_that("plot_lm: respects n_top parameter", {
+test_that("plot_rrm: respects n_top parameter", {
   skip_if_not_installed("SummarizedExperiment")
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("mgcv")
@@ -3440,17 +3440,17 @@ test_that("plot_lm: respects n_top parameter", {
     colData = DataFrame(condition = rep(c("A", "B"), 3), row.names = colnames(mat))
   )
   
-  lm_res <- data.frame(
+  rrm_res <- data.frame(
     gene = paste0("gene_", 1:12),
     adj_p_interaction = sample(seq(0.001, 0.05, length.out = 12)),
     stringsAsFactors = FALSE
   )
   
   model_data <- list(q_values = c(0.5, 1.0, 1.5))
-  lm_res_list <- list(results = lm_res, model_data = model_data)
+  rrm_res_list <- list(results = rrm_res, model_data = model_data)
   
-  result <- suppressWarnings(TSENAT:::.plot_lm(
-    se, lm_res_list,
+  result <- suppressWarnings(TSENAT:::.plot_rrm(
+    se, rrm_res_list,
     condition_col = "condition",
     n_top = 4,
     sig_alpha = 0.05
@@ -3459,7 +3459,7 @@ test_that("plot_lm: respects n_top parameter", {
   expect_true(is.null(result) || inherits(result, "ggplot"))
 })
 
-test_that("plot_lm: can plot specific gene subset", {
+test_that("plot_rrm: can plot specific gene subset", {
   skip_if_not_installed("SummarizedExperiment")
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("mgcv")
@@ -3475,17 +3475,17 @@ test_that("plot_lm: can plot specific gene subset", {
     colData = DataFrame(condition = rep(c("A", "B"), 3), row.names = colnames(mat))
   )
   
-  lm_res <- data.frame(
+  rrm_res <- data.frame(
     gene = paste0("gene_", 1:8),
     adj_p_interaction = runif(8, 0, 0.1),
     stringsAsFactors = FALSE
   )
   
   model_data <- list(q_values = c(0.5, 1.0, 1.5))
-  lm_res_list <- list(results = lm_res, model_data = model_data)
+  rrm_res_list <- list(results = rrm_res, model_data = model_data)
   
-  result <- suppressWarnings(TSENAT:::.plot_lm(
-    se, lm_res_list,
+  result <- suppressWarnings(TSENAT:::.plot_rrm(
+    se, rrm_res_list,
     condition_col = "condition",
     genes = c("gene_1", "gene_3", "gene_5")
   ))
@@ -3545,15 +3545,15 @@ test_that("plot_jis_delta: top N genes selection", {
   expect_equal(length(top_genes), 4)
 })
 
-test_that("plot_jis_delta: lm_results integration", {
+test_that("plot_jis_delta: rrm_results integration", {
   config <- list()
   
-  lm_results <- data.frame(
+  rrm_results <- data.frame(
     gene_id = c("g1", "g2", "g3"),
     adj_p_interaction = c(0.001, 0.01, 0.1)
   )
   
-  expect_true("gene_id" %in% colnames(lm_results))
+  expect_true("gene_id" %in% colnames(rrm_results))
 })
 
 test_that("plot_jis_delta: p-value ranking", {
@@ -4556,7 +4556,7 @@ test_that("plot_divergence_distribution: requires effect_sizes_divergence in met
     n_samples_per_group = 2,
     q_values = c(0.5, 1.0),
     include_divergence = FALSE,
-    include_lm_results = FALSE,
+    include_rrm_results = FALSE,
     seed = 5555,
     verbose = FALSE
   )
@@ -4580,7 +4580,7 @@ test_that("plot_divergence_distribution: returns plot or NULL gracefully", {
     n_samples_per_group = 2,
     q_values = c(0.5, 1.0),
     include_divergence = FALSE,
-    include_lm_results = FALSE,
+    include_rrm_results = FALSE,
     seed = 5556,
     verbose = FALSE
   )
@@ -4614,7 +4614,7 @@ test_that("plot_concordance: requires method_concordance in metadata", {
     n_samples_per_group = 2,
     q_values = c(0.5, 1.0),
     include_divergence = FALSE,
-    include_lm_results = FALSE,
+    include_rrm_results = FALSE,
     seed = 5557,
     verbose = FALSE
   )
@@ -4638,7 +4638,7 @@ test_that("plot_concordance: returns plot with valid concordance data", {
     n_samples_per_group = 2,
     q_values = c(0.5, 1.0),
     include_divergence = FALSE,
-    include_lm_results = FALSE,
+    include_rrm_results = FALSE,
     seed = 5558,
     verbose = FALSE
   )
@@ -4647,13 +4647,13 @@ test_that("plot_concordance: returns plot with valid concordance data", {
   analysis@metadata$method_concordance <- list(
     comparison_df = data.frame(
       gene_id = paste0("g", 1:5),
-      p_lm = c(0.001, 0.005, 0.01, 0.1, 0.5),
+      p_rrm = c(0.001, 0.005, 0.01, 0.1, 0.5),
       p_rank = c(0.002, 0.008, 0.02, 0.08, 0.4),
       agreement = c("Both significant", "Both significant", "Both significant", 
-                   "LM only", "Neither significant"),
+                   "RRM only", "Neither significant"),
       stringsAsFactors = FALSE
     ),
-    lm_method = "lm_interaction",
+    rrm_method = "rrm_interaction",
     rank_method = "rank_test"
   )
   
@@ -4709,8 +4709,8 @@ analysis <- filter_analysis(
 # Calculate diversity
 analysis <- calculate_diversity(analysis, norm = TRUE, verbose = FALSE)
 
-# Calculate LM interaction results for plotting tests
-analysis <- suppressWarnings(calculate_lm(
+# Calculate RRM interaction results for plotting tests
+analysis <- suppressWarnings(calculate_rrm(
     analysis,
     method = "gam",
     multicorr = "hochberg",
@@ -4719,14 +4719,14 @@ analysis <- suppressWarnings(calculate_lm(
 
 # OPTIMIZATION: Pre-cache expensive computations for reuse across tests
 # This avoids recalculating LM + JIS in every test (saves ~30 seconds)
-analysis_lm_jis_q12 <- suppressWarnings(calculate_jis(
+analysis_rrm_jis_q12 <- suppressWarnings(calculate_jis(
     analysis,
     q = c(0.5, 1.0),
     nboot = 5,  # Reduced for test speed (was 10)
     verbose = FALSE
 ))
 
-analysis_lm_jis_q08 <- suppressWarnings(calculate_jis(
+analysis_rrm_jis_q08 <- suppressWarnings(calculate_jis(
     analysis,
     q = c(0.8),
     nboot = 3,  # Reduced for test speed (was 5)
@@ -4734,27 +4734,27 @@ analysis_lm_jis_q08 <- suppressWarnings(calculate_jis(
 ))
 
 # =============================================================================
-# Test: plot_lm - Enhanced Assertions (CONSOLIDATED: 5 → 2 focused tests)
+# Test: plot_rrm - Enhanced Assertions (CONSOLIDATED: 5 → 2 focused tests)
 # =============================================================================
-# OPTIMIZATION: Removed 3 nearly identical tests that all call plot_lm
+# OPTIMIZATION: Removed 3 nearly identical tests that all call plot_rrm
 # with different n_top values and same assertions
 
-test_that("plot_lm returns valid grid plot with various n_top values", {
+test_that("plot_rrm returns valid grid plot with various n_top values", {
     # Test multiple n_top values in single test to avoid redundant computations
     for (n in c(2, 3, 4, 6)) {
-        p <- plot_lm(analysis, n_top = n)
+        p <- plot_rrm(analysis, n_top = n)
         # Should return valid plot type or NULL (no significant genes)
         expect_true(is.null(p) || inherits(p, "ggplot") || inherits(p, "gtable"))
     }
 })
 
-test_that("plot_lm handles edge cases with valid output structures", {
+test_that("plot_rrm handles edge cases with valid output structures", {
     # Test high n_top value (more than available genes)
-    p_high <- plot_lm(analysis, n_top = 20)
+    p_high <- plot_rrm(analysis, n_top = 20)
     expect_true(is.null(p_high) || inherits(p_high, "ggplot") || inherits(p_high, "gtable"))
     
     # Test minimal n_top value
-    p_min <- plot_lm(analysis, n_top = 1)
+    p_min <- plot_rrm(analysis, n_top = 1)
     expect_true(is.null(p_min) || inherits(p_min, "ggplot") || inherits(p_min, "gtable"))
 })
 
@@ -4766,7 +4766,7 @@ test_that("Lazy switching_tables via results() produces valid output with differ
     # OPTIMIZATION: Reuse pre-cached results to avoid redundant computations
     
     # Test with q = c(0.5, 1.0) computations
-    tables_q12 <- results(analysis_lm_jis_q12, type = "switching_tables")
+    tables_q12 <- results(analysis_rrm_jis_q12, type = "switching_tables")
     expect_true(is.data.frame(tables_q12) || is.list(tables_q12))
     # Valid structure: if DataFrame/list, if has rows then has columns
     if (is.data.frame(tables_q12) && nrow(tables_q12) > 0) {
@@ -4774,24 +4774,24 @@ test_that("Lazy switching_tables via results() produces valid output with differ
     }
     
     # Test with q = c(0.8) computations (minimal)
-    tables_q08 <- results(analysis_lm_jis_q08, type = "switching_tables")
+    tables_q08 <- results(analysis_rrm_jis_q08, type = "switching_tables")
     expect_true(is.data.frame(tables_q08) || is.list(tables_q08))
     # Should not error even with minimal q values
     expect_silent({
-        invisible(results(analysis_lm_jis_q08, type = "switching_tables"))
+        invisible(results(analysis_rrm_jis_q08, type = "switching_tables"))
     })
 })
 
 test_that("Lazy switching_tables returns sorted/ordered output", {
-    # OPTIMIZATION: Reuse pre-cached analysis_lm_jis_q12 instead of recalculating
-    # This avoids redundant calculate_lm + calculate_jis (saves ~8 seconds per test)
+    # OPTIMIZATION: Reuse pre-cached analysis_rrm_jis_q12 instead of recalculating
+    # This avoids redundant calculate_rrm + calculate_jis (saves ~8 seconds per test)
     
     # Lazy computation on first call
-    tables <- results(analysis_lm_jis_q12, type = "switching_tables")
+    tables <- results(analysis_rrm_jis_q12, type = "switching_tables")
     expect_true(is.data.frame(tables) || is.list(tables))
     
     # Verify caching: second call returns same object
-    tables2 <- results(analysis_lm_jis_q12, type = "switching_tables")
+    tables2 <- results(analysis_rrm_jis_q12, type = "switching_tables")
     expect_true(identical(tables, tables2))
 })
 
@@ -4799,23 +4799,23 @@ test_that("Lazy switching_tables returns sorted/ordered output", {
 # Test: Integration - LM Results Flow to Visualization
 # =============================================================================
 
-test_that("LM results integrate properly with visualization pipeline", {
-    # OPTIMIZATION: Reuse pre-cached analysis (already has LM from setup)
-    # This avoids redundant calculate_lm (saves ~3 seconds per test)
+test_that("RRM results integrate properly with visualization pipeline", {
+    # OPTIMIZATION: Reuse pre-cached analysis (already has RRM from setup)
+    # This avoids redundant calculate_rrm (saves ~3 seconds per test)
     
     # Get results - use unified results() accessor
-    lm_res <- results(analysis, type = "lm")
-    expect_true(!is.null(lm_res))
-    expect_true(is.data.frame(lm_res))
-    expect_true(("gene" %in% colnames(lm_res)) || ("Gene" %in% colnames(lm_res)))
+    rrm_res <- results(analysis, type = "rrm")
+    expect_true(!is.null(rrm_res))
+    expect_true(is.data.frame(rrm_res))
+    expect_true(("gene" %in% colnames(rrm_res)) || ("Gene" %in% colnames(rrm_res)))
 })
 
 test_that("Jackknife results integrate with lazy switching_tables computation", {
-    # OPTIMIZATION: Reuse pre-cached analysis_lm_jis_q12 instead of recalculating
-    # This avoids redundant calculate_lm + calculate_jis (saves ~8 seconds per test)
+    # OPTIMIZATION: Reuse pre-cached analysis_rrm_jis_q12 instead of recalculating
+    # This avoids redundant calculate_rrm + calculate_jis (saves ~8 seconds per test)
     
     # No explicit call needed - tables computed lazily
-    tables <- results(analysis_lm_jis_q12, type = "switching_tables")
+    tables <- results(analysis_rrm_jis_q12, type = "switching_tables")
     expect_true(is.data.frame(tables) || is.list(tables))
 })
 
@@ -4823,19 +4823,19 @@ test_that("Jackknife results integrate with lazy switching_tables computation", 
 # Test: Output Formatting and Display
 # =============================================================================
 
-test_that("plot_lm produces publishable format", {
-    p <- plot_lm(analysis, n_top = 2)
+test_that("plot_rrm produces publishable format", {
+    p <- plot_rrm(analysis, n_top = 2)
     
     # Plot should be created and be a valid ggplot or gtable
     expect_true(inherits(p, "ggplot") || inherits(p, "gtable") || is.null(p))
 })
 
 test_that("Lazy switching_tables produces export-ready data", {
-    # OPTIMIZATION: Reuse pre-cached analysis_lm_jis_q12 instead of recalculating
-    # This avoids redundant calculate_lm + calculate_jis (saves ~8 seconds per test)
+    # OPTIMIZATION: Reuse pre-cached analysis_rrm_jis_q12 instead of recalculating
+    # This avoids redundant calculate_rrm + calculate_jis (saves ~8 seconds per test)
     
     # Lazy computation on first access
-    tables <- results(analysis_lm_jis_q12, type = "switching_tables")
+    tables <- results(analysis_rrm_jis_q12, type = "switching_tables")
     expect_true(is.data.frame(tables) || is.list(tables))
     
     if (is.data.frame(tables) && nrow(tables) > 0) {
@@ -4850,20 +4850,20 @@ test_that("Lazy switching_tables produces export-ready data", {
 # Test: Error Handling and Robustness
 # =============================================================================
 
-test_that("plot_lm handles missing LM results gracefully", {
+test_that("plot_rrm handles missing RRM results gracefully", {
     # Don't calculate LM - should handle gracefully
-    p <- plot_lm(analysis, n_top = 3)
+    p <- plot_rrm(analysis, n_top = 3)
     
     expect_true(is.null(p) || inherits(p, "ggplot"))
 })
 
 test_that("Lazy switching_tables handles edge cases (minimal/high q values)", {
     # OPTIMIZATION: Consolidate edge case tests using reuse patterns
-    # Reuse pre-cached analysis_lm_jis_q08 for minimal/alternative q values
+    # Reuse pre-cached analysis_rrm_jis_q08 for minimal/alternative q values
     
     expect_silent({
         # Lazy computation with minimal q values
-        tables <- results(analysis_lm_jis_q08, type = "switching_tables")
+        tables <- results(analysis_rrm_jis_q08, type = "switching_tables")
     })
     
     # Also verify analysis without jis still works gracefully
@@ -4876,21 +4876,21 @@ test_that("Lazy switching_tables handles edge cases (minimal/high q values)", {
 # Test: Specific Assertion Strength Improvements
 # =============================================================================
 
-test_that("plot_lm returns specific plot type", {
-    p <- plot_lm(analysis, n_top = 1)
+test_that("plot_rrm returns specific plot type", {
+    p <- plot_rrm(analysis, n_top = 1)
     expect_true(is.null(p) || inherits(p, "ggplot") || inherits(p, "gtable"))
 })
 
-test_that("plot_lm axes have correct scale for entropy", {
-    p <- plot_lm(analysis, n_top = 1)
+test_that("plot_rrm axes have correct scale for entropy", {
+    p <- plot_rrm(analysis, n_top = 1)
     expect_true(is.null(p) || inherits(p, "ggplot") || inherits(p, "gtable"))
 })
 
 test_that("Lazy switching_tables data types are consistent", {
-    # OPTIMIZATION: Reuse pre-cached analysis_lm_jis_q12 instead of recalculating
-    # This avoids redundant calculate_lm + calculate_jis (saves ~8 seconds per test)
+    # OPTIMIZATION: Reuse pre-cached analysis_rrm_jis_q12 instead of recalculating
+    # This avoids redundant calculate_rrm + calculate_jis (saves ~8 seconds per test)
     
     # Lazy computation
-    tables <- results(analysis_lm_jis_q12, type = "switching_tables")
+    tables <- results(analysis_rrm_jis_q12, type = "switching_tables")
     expect_true(is.data.frame(tables) || is.list(tables))
 })

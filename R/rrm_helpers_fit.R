@@ -316,7 +316,7 @@
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # HETEROSCEDASTICITY DETECTION: Use varPower() if variance depends on q
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # NOTE: Fixed in linear_models_lmm.R - is.na() coercion error is now
+    # NOTE: Fixed in rrm_lmm.R - is.na() coercion error is now
     # handled Variance structure detection is now enabled by default
     use_var_structure <- TRUE
 
@@ -372,7 +372,7 @@
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # FALLBACK FITTING: When nlme fails, try simpler fixed-effects models
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    fallback_lm <- NULL
+    fallback_rrm <- NULL
     used_fit_method <- "nlme::lme"
     used_singular <- FALSE
 
@@ -380,9 +380,9 @@
         if (progress || verbose) {
             message("[.lmm_interaction] nlme::lme failed; trying fallback models")
         }
-        fb <- .try_lm_fallbacks(df_model, verbose = verbose)
+        fb <- .try_rrm_fallbacks(df_model, verbose = verbose)
         if (!is.null(fb)) {
-            fallback_lm <- fb
+            fallback_rrm <- fb
             used_fit_method <- fb$method
         }
     } else {
@@ -396,10 +396,10 @@
     lrt_result <- list(p_value = NA_real_, n_subjects = NA_integer_, small_sample_flag = FALSE)
     msg <- NULL
 
-    if (!is.null(fallback_lm)) {
-        lrt_result <- .extract_lrt_p(fallback_lm$fit0, fallback_lm$fit1, df = df_model)
-        if (!is.null(fallback_lm$message))
-            msg <- fallback_lm$message
+    if (!is.null(fallback_rrm)) {
+        lrt_result <- .extract_lrt_p(fallback_rrm$fit0, fallback_rrm$fit1, df = df_model)
+        if (!is.null(fallback_rrm$message))
+            msg <- fallback_rrm$message
     } else {
         lrt_result <- .extract_lrt_p(fit0, fit1, df = df_model)
     }
@@ -408,8 +408,8 @@
     # EFFECT SIZE: Extract slope_diff (q:group interaction coefficient)
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     slope_diff <- NA_real_
-    if (!is.null(fallback_lm) && !is.null(fallback_lm$fit1)) {
-        coefs <- tryCatch(coef(fallback_lm$fit1), error = function(e) NULL)
+    if (!is.null(fallback_rrm) && !is.null(fallback_rrm$fit1)) {
+        coefs <- tryCatch(coef(fallback_rrm$fit1), error = function(e) NULL)
         if (!is.null(coefs)) {
             interaction_idx <- grep("q:group|group:q", names(coefs), ignore.case = FALSE)
             if (length(interaction_idx) > 0)

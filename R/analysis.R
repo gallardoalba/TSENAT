@@ -7,10 +7,10 @@
 #' @param comparison_df A data.frame with columns:
 #'   \itemize{
 #'     \item \code{gene}: Gene names
-#'     \item \code{p_lm}: LM p-values
+#'     \item \code{p_rrm}: LM p-values
 #'     \item \code{p_rank}: Rank test p-values
 #'     \item \code{agreement}: Categorical variable indicating agreement type
-#' (e.g., 'Both significant', 'LM only', 'Rank test only', 'Neither
+#' (e.g., 'Both significant', 'RRM only', 'Rank test only', 'Neither
 #' significant')
 #'   }
 #'
@@ -29,9 +29,9 @@
 #' set.seed(123)
 #' comparison_df <- data.frame(
 #'   gene = paste0('gene_', 1:50),
-#'   p_lm = runif(50, 0, 0.5),
+#'   p_rrm = runif(50, 0, 0.5),
 #'   p_rank = runif(50, 0, 0.5),
-#' agreement = sample(c('Both significant', 'LM only', 'Rank test only',
+#' agreement = sample(c('Both significant', 'RRM only', 'Rank test only',
 #' 'Neither significant'),
 #'                      size = 50, replace = TRUE)
 #' )
@@ -48,26 +48,26 @@
     }
 
     # Check required columns
-    required_cols <- c("p_lm", "p_rank", "agreement")
+    required_cols <- c("p_rrm", "p_rank", "agreement")
     if (!all(required_cols %in% colnames(comparison_df))) {
         missing <- setdiff(required_cols, colnames(comparison_df))
         stop("comparison_df missing required columns: ", paste(missing, collapse = ", "))
     }
 
     # Create comparison plot
-    p1 <- ggplot2::ggplot(comparison_df, ggplot2::aes(x = -log10(.data$p_lm), y = -log10(.data$p_rank),
+    p1 <- ggplot2::ggplot(comparison_df, ggplot2::aes(x = -log10(.data$p_rrm), y = -log10(.data$p_rank),
         color = .data$agreement)) + ggplot2::geom_point(size = 2.5, alpha = 0.6) +
         ggplot2::geom_vline(xintercept = -log10(0.05), linetype = "dashed", color = "gray50") +
         ggplot2::geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "gray50") +
-        ggplot2::scale_color_manual(values = c(`Both significant` = "#2ecc71", `LM only` = "#3498db",
+        ggplot2::scale_color_manual(values = c(`Both significant` = "#2ecc71", `RRM only` = "#3498db",
             `Rank test only` = "#e74c3c", `Neither significant` = "#95a5a6"), breaks = c("Both significant",
-            "LM only", "Rank test only", "Neither significant")) + ggplot2::labs(title = "Method Concordance",
+            "RRM only", "Rank test only", "Neither significant")) + ggplot2::labs(title = "Method Concordance",
         x = "-log10(p-value, LM)", y = "-log10(p-value, Rank test)", color = "Significance") +
         .theme_base(base_size = 11) + ggplot2::theme(plot.title = ggplot2::element_text(size = 12,
         face = "plain", hjust = 0.5), legend.position = "bottomright", panel.grid.major = ggplot2::element_line(color = "gray90"))
 
     # P-value distribution comparison
-    p_long <- data.frame(p_value = c(comparison_df$p_lm, comparison_df$p_rank), method = c(rep("LM",
+    p_long <- data.frame(p_value = c(comparison_df$p_rrm, comparison_df$p_rank), method = c(rep("LM",
         nrow(comparison_df)), rep("Rank test", nrow(comparison_df))), stringsAsFactors = FALSE)
 
     p2 <- ggplot2::ggplot(p_long, ggplot2::aes(x = p_value, fill = method)) + ggplot2::geom_histogram(bins = 30,
@@ -172,7 +172,7 @@ print.gtable <- function(x, ...) {
 
 #' @noRd
 
-.calculate_concordance <- function(analysis_lm, analysis_rank, lm_method = NULL,
+.calculate_concordance <- function(analysis_rrm, analysis_rank, rrm_method = NULL,
     rank_method = NULL) {
 
     # Initialize outputs
@@ -186,32 +186,32 @@ print.gtable <- function(x, ...) {
     # ===================================================================
 
     # Validate inputs
-    if (!is(analysis_lm, "TSENATAnalysis")) {
-        stop("analysis_lm must be a TSENATAnalysis object", call. = FALSE)
+    if (!is(analysis_rrm, "TSENATAnalysis")) {
+        stop("analysis_rrm must be a TSENATAnalysis object", call. = FALSE)
     }
 
     if (!is(analysis_rank, "TSENATAnalysis")) {
         stop("analysis_rank must be a TSENATAnalysis object", call. = FALSE)
     }
 
-    # Extract LM results
-    if (is.null(analysis_lm@lm_results) || length(analysis_lm@lm_results) == 0) {
-        stop("No LM results found in analysis_lm@lm_results. Run calculate_lm() first.",
+    # Extract RRM results
+    if (is.null(analysis_rrm@rrm_results) || length(analysis_rrm@rrm_results) == 0) {
+        stop("No RRM results found in analysis_rrm@rrm_results. Run calculate_rrm() first.",
             call. = FALSE)
     }
 
-    # If lm_method not specified, use the first available method
-    if (is.null(lm_method)) {
-        lm_method <- names(analysis_lm@lm_results)[1]
+    # If rrm_method not specified, use the first available method
+    if (is.null(rrm_method)) {
+        rrm_method <- names(analysis_rrm@rrm_results)[1]
     }
 
-    if (!(lm_method %in% names(analysis_lm@lm_results))) {
-        available_methods <- paste(names(analysis_lm@lm_results), collapse = ", ")
-        stop("LM method '", lm_method, "' not found. Available: ", available_methods,
+    if (!(rrm_method %in% names(analysis_rrm@rrm_results))) {
+        available_methods <- paste(names(analysis_rrm@rrm_results), collapse = ", ")
+        stop("RRM method '", rrm_method, "' not found. Available: ", available_methods,
             call. = FALSE)
     }
 
-    gam_results <- analysis_lm@lm_results[[lm_method]]
+    gam_results <- analysis_rrm@rrm_results[[rrm_method]]
 
     # Extract rank test results
     if (is.null(analysis_rank@rank_test_results) || length(analysis_rank@rank_test_results) ==
@@ -238,7 +238,7 @@ print.gtable <- function(x, ...) {
     # ===================================================================
 
     if (!is.data.frame(gam_results)) {
-        stop("LM results ('", lm_method, "') must be a data.frame", call. = FALSE)
+        stop("RRM results ('", rrm_method, "') must be a data.frame", call. = FALSE)
     }
 
     if (!is.data.frame(kw_results)) {
@@ -246,16 +246,16 @@ print.gtable <- function(x, ...) {
     }
 
     # Determine the appropriate p-value column names based on available columns
-    lm_p_col <- if ("p_interaction" %in% colnames(gam_results)) {
+    rrm_p_col <- if ("p_interaction" %in% colnames(gam_results)) {
         "p_interaction"
     } else if ("p_value" %in% colnames(gam_results)) {
         "p_value"
     } else {
-        stop("LM results missing required p-value column (p_interaction or p_value)",
+        stop("RRM results missing required p-value column (p_interaction or p_value)",
             call. = FALSE)
     }
 
-    lm_padj_col <- if ("adj_p_interaction" %in% colnames(gam_results)) {
+    rrm_padj_col <- if ("adj_p_interaction" %in% colnames(gam_results)) {
         "adj_p_interaction"
     } else if ("adj_p_value" %in% colnames(gam_results)) {
         "adj_p_value"
@@ -284,7 +284,7 @@ print.gtable <- function(x, ...) {
     # CREATE MATCHING GENE SETS
     # ===================================================================
 
-    gam_genes <- gam_results$gene[!is.na(gam_results[[lm_p_col]])]
+    gam_genes <- gam_results$gene[!is.na(gam_results[[rrm_p_col]])]
     kw_genes <- kw_results$gene[!is.na(kw_results[[rank_p_col]])]
     common_genes <- intersect(gam_genes, kw_genes)
 
@@ -294,12 +294,12 @@ print.gtable <- function(x, ...) {
         kw_idx <- match(common_genes, kw_results$gene)
 
         # Build comparison data frame with all available columns
-        comparison_df <- data.frame(gene = common_genes, p_lm = gam_results[[lm_p_col]][gam_idx],
-            padj_lm = if (!is.na(lm_padj_col)) {
-                gam_results[[lm_padj_col]][gam_idx]
+        comparison_df <- data.frame(gene = common_genes, p_rrm = gam_results[[rrm_p_col]][gam_idx],
+            padj_rrm = if (!is.na(rrm_padj_col)) {
+                gam_results[[rrm_padj_col]][gam_idx]
             } else {
                 rep(NA_real_, length(gam_idx))
-            }, effect_lm = if ("effect_size" %in% colnames(gam_results)) {
+            }, effect_rrm = if ("effect_size" %in% colnames(gam_results)) {
                 gam_results$effect_size[gam_idx]
             } else {
                 rep(NA_real_, length(gam_idx))
@@ -315,36 +315,36 @@ print.gtable <- function(x, ...) {
 
         # Calculate Spearman correlation on ADJUSTED p-values (for consistency
         # with significance threshold)
-        spearman_rho <- stats::cor(comparison_df$padj_lm, comparison_df$padj_rank,
+        spearman_rho <- stats::cor(comparison_df$padj_rrm, comparison_df$padj_rank,
             method = "spearman", use = "complete.obs")
 
         # Categorize agreement based on adjusted p-value significance (adj_p <
         # 0.05)
-        comparison_df$lm_sig <- comparison_df$padj_lm < 0.05
+        comparison_df$rrm_sig <- comparison_df$padj_rrm < 0.05
         comparison_df$rank_sig <- comparison_df$padj_rank < 0.05
 
-        comparison_df$agreement <- ifelse(comparison_df$lm_sig & comparison_df$rank_sig,
-            "Both significant", ifelse(comparison_df$lm_sig & !comparison_df$rank_sig,
-                "LM only", ifelse(!comparison_df$lm_sig & comparison_df$rank_sig,
+        comparison_df$agreement <- ifelse(comparison_df$rrm_sig & comparison_df$rank_sig,
+            "Both significant", ifelse(comparison_df$rrm_sig & !comparison_df$rank_sig,
+                "RRM only", ifelse(!comparison_df$rrm_sig & comparison_df$rank_sig,
                   "Rank test only", "Neither significant")))
 
         # Create agreement frequency table
         agreement_table <- table(comparison_df$agreement)
 
         # Extract high-confidence genes (significant in both methods)
-        high_conf <- comparison_df[comparison_df$lm_sig & comparison_df$rank_sig,
+        high_conf <- comparison_df[comparison_df$rrm_sig & comparison_df$rank_sig,
             ]
 
         # Sort by minimum p-value across methods
         if (nrow(high_conf) > 0) {
-            high_conf <- high_conf[order(pmax(high_conf$p_lm, high_conf$p_rank)),
+            high_conf <- high_conf[order(pmax(high_conf$p_rrm, high_conf$p_rank)),
                 ]
         }
     }
 
     # Return results as list
     list(comparison_df = comparison_df, spearman_rho = spearman_rho, high_conf = high_conf,
-        agreement_table = agreement_table, lm_method = lm_method, rank_method = rank_method)
+        agreement_table = agreement_table, rrm_method = rrm_method, rank_method = rank_method)
 }
 
 # ============================================================================

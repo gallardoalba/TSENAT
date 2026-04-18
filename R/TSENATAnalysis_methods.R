@@ -70,14 +70,14 @@ setMethod("show", "TSENATAnalysis", function(object) {
     n_genes <- nrow(object@se)
     n_samples <- ncol(object@se)
     has_diversity <- length(object@diversity_results) > 0
-    has_lm <- length(object@lm_results) > 0
+    has_rrm <- length(object@rrm_results) > 0
     has_jackknife <- length(object@jackknife_results) > 0
     has_divergence <- length(object@divergence_results) > 0
     status_parts <- c()
     if (has_diversity)
         status_parts <- c(status_parts, "DIVERSITY")
-    if (has_lm)
-        status_parts <- c(status_parts, "LM")
+    if (has_rrm)
+        status_parts <- c(status_parts, "RRM")
     if (has_jackknife)
         status_parts <- c(status_parts, "JACKKNIFE")
     if (has_divergence)
@@ -117,7 +117,7 @@ setMethod("summary", "TSENATAnalysis", function(object) {
     } else {
         message("  [--] Diversity: not computed")
     }
-    if (length(object@lm_results) > 0) {
+    if (length(object@rrm_results) > 0) {
         message("  [OK] LM Interaction: computed")
     } else {
         message("  [--] LM Interaction: not computed")
@@ -287,7 +287,7 @@ setMethod("[", signature(x = "TSENATAnalysis"), function(x, i, j, drop = TRUE) {
 
     # Create new TSENATAnalysis with subsetted SE
     new_obj <- new("TSENATAnalysis", se = se_subset, config = x@config, diversity_results = list(),
-        lm_results = list(), jackknife_results = list(), divergence_results = list(),
+        rrm_results = list(), jackknife_results = list(), divergence_results = list(),
         plots = list(), metadata = x@metadata)
 
     # Subset diversity results (subset columns to match sample selection)
@@ -357,27 +357,27 @@ setMethod("[", signature(x = "TSENATAnalysis"), function(x, i, j, drop = TRUE) {
         names(new_obj@divergence_results) <- names(x@divergence_results)
     }
 
-    # Subset LM results (sample-indexed components only)
-    if (length(x@lm_results) > 0) {
-        # LM results include gene-level statistics that don't need subsetting
+    # Subset RRM results (sample-indexed components only)
+    if (length(x@rrm_results) > 0) {
+        # RRM results include gene-level statistics that don't need subsetting
         # Only subset sample-level diagnostic matrices
-        new_obj@lm_results <- lapply(x@lm_results, function(lm_res) {
-            if (is.list(lm_res)) {
+        new_obj@rrm_results <- lapply(x@rrm_results, function(rrm_res) {
+            if (is.list(rrm_res)) {
                 # Subset sample diagnostics if present
-                if (!is.null(lm_res$residuals) && is.matrix(lm_res$residuals)) {
-                  if (ncol(lm_res$residuals) == n_samples) {
-                    lm_res$residuals <- lm_res$residuals[, j, drop = FALSE]
+                if (!is.null(rrm_res$residuals) && is.matrix(rrm_res$residuals)) {
+                  if (ncol(rrm_res$residuals) == n_samples) {
+                    rrm_res$residuals <- rrm_res$residuals[, j, drop = FALSE]
                   }
                 }
-                if (!is.null(lm_res$fitted) && is.matrix(lm_res$fitted)) {
-                  if (ncol(lm_res$fitted) == n_samples) {
-                    lm_res$fitted <- lm_res$fitted[, j, drop = FALSE]
+                if (!is.null(rrm_res$fitted) && is.matrix(rrm_res$fitted)) {
+                  if (ncol(rrm_res$fitted) == n_samples) {
+                    rrm_res$fitted <- rrm_res$fitted[, j, drop = FALSE]
                   }
                 }
             }
-            return(lm_res)
+            return(rrm_res)
         })
-        names(new_obj@lm_results) <- names(x@lm_results)
+        names(new_obj@rrm_results) <- names(x@rrm_results)
     }
 
     # Preserve plots (they are visualization-level and generally retained)

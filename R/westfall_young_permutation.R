@@ -20,7 +20,7 @@
 #' Example workflow:
 #' ```
 #' 1. [For multi-q correlation-adjusted analysis, see
-#' .calculate_lm() with multicorr='westfall-young']
+#' .calculate_rrm() with multicorr='westfall-young']
 #' 2. Or: Use .calculate_srh() for rank-based multi-q testing with
 #' WY control
 #'   3. Then: pi0_obj <- .estimate_storey_pi0(adjusted_pvalues)
@@ -257,7 +257,7 @@
 #' 
 #' @details
 #' This is an internal helper function primarily called by \code{.
-#' calculate_lm_interaction()}
+#' calculate_rrm_interaction()}
 #' when  the \code{storey=TRUE} parameter is enabled.
 #'  It is kept internal as it requires
 #' proper p-value input validation and correlation-aware preprocessing.
@@ -333,7 +333,7 @@
 # WESTFALL-YOUNG PERMUTATION HELPER (March 2026)
 # ════════════════════════════════════════════════════════════════════════════════
 # Consolidates redundant WY permutation logic shared between: 1.
-# .calculate_lm() - parametric tests (GAM, LMM, GEE) 2.  .calculate_srh() -
+# .calculate_rrm() - parametric tests (GAM, LMM, GEE) 2.  .calculate_srh() -
 # rank-based tests (Scheirer-Ray-Hare only, March 2026) rank) DESIGN PATTERN: -
 # Core permutation loop is identical in both functions (~70% code duplication)
 # - Model refitting logic differs (parametric vs rank-based) - Solution:

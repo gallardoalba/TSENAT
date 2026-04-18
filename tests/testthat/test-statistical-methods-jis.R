@@ -130,11 +130,11 @@ test_that("Multi-q analysis analyzes same genes across all q values", {
 # TEST SUITE 2: Gene Name to ID Mapping
 # ═══════════════════════════════════════════════════════════════════════════════
 
-test_that("calculate_jis maps gene names to IDs in lm_results", {
+test_that("calculate_jis maps gene names to IDs in rrm_results", {
   se <- test_se_with_gene_names()
   
-  # Create lm_results with GENE NAMES (not IDs)
-  lm_results <- data.frame(
+  # Create rrm_results with GENE NAMES (not IDs)
+  rrm_results <- data.frame(
     gene=c("GeneA", "GeneB", "GeneC"),
     p_interaction=c(0.01, 0.05, 0.50),
     adj_p_interaction=c(0.02, 0.10, 0.60)
@@ -145,9 +145,9 @@ test_that("calculate_jis maps gene names to IDs in lm_results", {
     condition_col = "condition",
     gene_col = "gene_id",
     isoform_col = "isoform_id",
-    lm_results = lm_results,
-    lm_p_threshold = 0.05,
-    use_lm_fdr = FALSE,
+    rrm_results = rrm_results,
+    rrm_p_threshold = 0.05,
+    use_rrm_fdr = FALSE,
     nboot = 5,
     verbose = FALSE
   ))
@@ -158,11 +158,11 @@ test_that("calculate_jis maps gene names to IDs in lm_results", {
   expect_lte(length(result$gene_names), 3)
 })
 
-test_that("calculate_jis handles lm_results with gene IDs", {
+test_that("calculate_jis handles rrm_results with gene IDs", {
   se <- test_se_with_gene_names()
   
-  # Create lm_results with GENE IDs (already mapped)
-  lm_results <- data.frame(
+  # Create rrm_results with GENE IDs (already mapped)
+  rrm_results <- data.frame(
     gene=c("ENSG00001", "ENSG00002", "ENSG00003"),
     p_interaction=c(0.01, 0.05, 0.50),
     adj_p_interaction=c(0.02, 0.10, 0.60)
@@ -173,9 +173,9 @@ test_that("calculate_jis handles lm_results with gene IDs", {
     condition_col = "condition",
     gene_col = "gene_id",
     isoform_col = "isoform_id",
-    lm_results = lm_results,
-    lm_p_threshold = 0.05,
-    use_lm_fdr = FALSE,
+    rrm_results = rrm_results,
+    rrm_p_threshold = 0.05,
+    use_rrm_fdr = FALSE,
     nboot = 5,
     verbose = FALSE
   ))
@@ -188,7 +188,7 @@ test_that("calculate_jis handles lm_results with gene IDs", {
 test_that("Gene mapping respects LM p-value threshold", {
   se <- test_se_with_gene_names()
   
-  lm_results <- data.frame(
+  rrm_results <- data.frame(
     gene=c("GeneA", "GeneB", "GeneC"),
     p_interaction=c(0.001, 0.01, 0.50),
     adj_p_interaction=c(0.002, 0.02, 0.60)
@@ -200,9 +200,9 @@ test_that("Gene mapping respects LM p-value threshold", {
     condition_col = "condition",
     gene_col = "gene_id",
     isoform_col = "isoform_id",
-    lm_results = lm_results,
-    lm_p_threshold = 0.005,
-    use_lm_fdr = FALSE,
+    rrm_results = rrm_results,
+    rrm_p_threshold = 0.005,
+    use_rrm_fdr = FALSE,
     nboot = 5,
     verbose = FALSE
   ))
@@ -213,9 +213,9 @@ test_that("Gene mapping respects LM p-value threshold", {
     condition_col = "condition",
     gene_col = "gene_id",
     isoform_col = "isoform_id",
-    lm_results = lm_results,
-    lm_p_threshold = 0.05,
-    use_lm_fdr = FALSE,
+    rrm_results = rrm_results,
+    rrm_p_threshold = 0.05,
+    use_rrm_fdr = FALSE,
     nboot = 5,
     verbose = FALSE
   ))
@@ -245,7 +245,7 @@ test_that("Gene name to ID mapping removes duplicates", {
     )
   )
   
-  lm_results <- data.frame(
+  rrm_results <- data.frame(
     gene=c("GeneA", "GeneB"),
     p_interaction=c(0.01, 0.50),
     adj_p_interaction=c(0.02, 0.60)
@@ -257,8 +257,8 @@ test_that("Gene name to ID mapping removes duplicates", {
     condition_col = "condition",
     gene_col = "gene_id",
     isoform_col = "isoform_id",
-    lm_results = lm_results,
-    lm_p_threshold = 0.05,
+    rrm_results = rrm_results,
+    rrm_p_threshold = 0.05,
     nboot = 5,
     verbose = FALSE
   ))
@@ -270,11 +270,11 @@ test_that("Gene name to ID mapping removes duplicates", {
 # TEST SUITE 3: All LM-Significant Genes Analyzed (No top_n Limit)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-test_that("Function accepts multiple genes in lm_results", {
+test_that("Function accepts multiple genes in rrm_results", {
   se <- test_se_with_gene_names()
   
-  # Create lm_results with multiple genes
-  lm_results <- data.frame(
+  # Create rrm_results with multiple genes
+  rrm_results <- data.frame(
     gene=c("GeneA", "GeneB", "GeneC"),
     p_interaction=c(0.001, 0.01, 0.50),
     adj_p_interaction=c(0.002, 0.02, 0.60)
@@ -285,9 +285,9 @@ test_that("Function accepts multiple genes in lm_results", {
     condition_col = "condition",
     gene_col = "gene_id",
     isoform_col = "isoform_id",
-    lm_results = lm_results,
-    lm_p_threshold = 0.05,
-    use_lm_fdr = FALSE,
+    rrm_results = rrm_results,
+    rrm_p_threshold = 0.05,
+    use_rrm_fdr = FALSE,
     nboot = 5,
     verbose = FALSE
   ))
@@ -300,7 +300,7 @@ test_that("Function accepts multiple genes in lm_results", {
 test_that("LM threshold influences number of analyzed genes", {
   se <- test_se_with_gene_names()
   
-  lm_results <- data.frame(
+  rrm_results <- data.frame(
     gene=c("GeneA", "GeneB", "GeneC"),
     p_interaction=c(0.001, 0.01, 0.50),
     adj_p_interaction=c(0.002, 0.02, 0.60)
@@ -312,9 +312,9 @@ test_that("LM threshold influences number of analyzed genes", {
     condition_col = "condition",
     gene_col = "gene_id",
     isoform_col = "isoform_id",
-    lm_results = lm_results,
-    lm_p_threshold = 0.005,
-    use_lm_fdr = FALSE,
+    rrm_results = rrm_results,
+    rrm_p_threshold = 0.005,
+    use_rrm_fdr = FALSE,
     nboot = 5,
     verbose = FALSE
   ))
@@ -325,9 +325,9 @@ test_that("LM threshold influences number of analyzed genes", {
     condition_col = "condition",
     gene_col = "gene_id",
     isoform_col = "isoform_id",
-    lm_results = lm_results,
-    lm_p_threshold = 0.50,
-    use_lm_fdr = FALSE,
+    rrm_results = rrm_results,
+    rrm_p_threshold = 0.50,
+    use_rrm_fdr = FALSE,
     nboot = 5,
     verbose = FALSE
   ))
@@ -368,8 +368,8 @@ test_that("Function works without top_n parameter", {
 test_that("Multi-q analysis works with gene name to ID mapping", {
   se <- test_se_with_gene_names()
   
-  # Use gene names in lm_results with multi-q
-  lm_results <- data.frame(
+  # Use gene names in rrm_results with multi-q
+  rrm_results <- data.frame(
     gene=c("GeneA", "GeneB", "GeneC"),
     p_interaction=c(0.01, 0.05, 0.50),
     adj_p_interaction=c(0.02, 0.10, 0.60)
@@ -382,9 +382,9 @@ test_that("Multi-q analysis works with gene name to ID mapping", {
     gene_col = "gene_id",
     isoform_col = "isoform_id",
     q = q_values,
-    lm_results = lm_results,
-    lm_p_threshold = 0.05,
-    use_lm_fdr = FALSE,
+    rrm_results = rrm_results,
+    rrm_p_threshold = 0.05,
+    use_rrm_fdr = FALSE,
     nboot = 5,
     verbose = FALSE
   ))
@@ -401,7 +401,7 @@ test_that("Multi-q analysis works with gene name to ID mapping", {
 test_that("Multi-q with gene filtering returns consistent structure", {
   se <- test_se_with_gene_names()
   
-  lm_results <- data.frame(
+  rrm_results <- data.frame(
     gene=c("GeneA", "GeneB", "GeneC"),
     p_interaction=c(0.01, 0.05, 0.50),
     adj_p_interaction=c(0.02, 0.10, 0.60)
@@ -414,9 +414,9 @@ test_that("Multi-q with gene filtering returns consistent structure", {
     gene_col = "gene_id",
     isoform_col = "isoform_id",
     q = q_values,
-    lm_results = lm_results,
-    lm_p_threshold = 0.05,
-    use_lm_fdr = FALSE,
+    rrm_results = rrm_results,
+    rrm_p_threshold = 0.05,
+    use_rrm_fdr = FALSE,
     nboot = 5,
     verbose = FALSE
   ))
@@ -432,13 +432,13 @@ test_that("Multi-q with gene filtering returns consistent structure", {
 })
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TEST SUITE 6: Use_lm_fdr Parameter
+# TEST SUITE 6: Use_rrm_fdr Parameter
 # ═══════════════════════════════════════════════════════════════════════════════
 
-test_that("use_lm_fdr parameter switches between raw and adjusted p-values", {
+test_that("use_rrm_fdr parameter switches between raw and adjusted p-values", {
   se <- test_se_with_gene_names()
   
-  lm_results <- data.frame(
+  rrm_results <- data.frame(
     gene=c("GeneA", "GeneB", "GeneC"),
     p_interaction=c(0.001, 0.005, 0.50),
     adj_p_interaction=c(0.002, 0.01, 0.60)
@@ -449,9 +449,9 @@ test_that("use_lm_fdr parameter switches between raw and adjusted p-values", {
     condition_col = "condition",
     gene_col = "gene_id",
     isoform_col = "isoform_id",
-    lm_results = lm_results,
-    lm_p_threshold = 0.05,
-    use_lm_fdr = TRUE,
+    rrm_results = rrm_results,
+    rrm_p_threshold = 0.05,
+    use_rrm_fdr = TRUE,
     nboot = 5,
     verbose = FALSE
   ))
@@ -461,9 +461,9 @@ test_that("use_lm_fdr parameter switches between raw and adjusted p-values", {
     condition_col = "condition",
     gene_col = "gene_id",
     isoform_col = "isoform_id",
-    lm_results = lm_results,
-    lm_p_threshold = 0.05,
-    use_lm_fdr = FALSE,
+    rrm_results = rrm_results,
+    rrm_p_threshold = 0.05,
+    use_rrm_fdr = FALSE,
     nboot = 5,
     verbose = FALSE
   ))
@@ -480,7 +480,7 @@ test_that("use_lm_fdr parameter switches between raw and adjusted p-values", {
 test_that("Metadata tracks LM gene filtering correctly", {
   se <- test_se_with_gene_names()
   
-  lm_results <- data.frame(
+  rrm_results <- data.frame(
     gene=c("GeneA", "GeneB", "GeneC"),
     p_interaction=c(0.001, 0.01, 0.50),
     adj_p_interaction=c(0.002, 0.02, 0.60)
@@ -491,22 +491,22 @@ test_that("Metadata tracks LM gene filtering correctly", {
     condition_col = "condition",
     gene_col = "gene_id",
     isoform_col = "isoform_id",
-    lm_results = lm_results,
-    lm_p_threshold = 0.05,
+    rrm_results = rrm_results,
+    rrm_p_threshold = 0.05,
     nboot = 5,
     verbose = FALSE
   ))
   
   meta <- result$metadata
-  expect_equal(meta$lm_results_provided, TRUE)
-  expect_equal(meta$lm_p_threshold, 0.05)
-  expect_equal(meta$lm_genes_filtered, 2)  # GeneA and GeneB
+  expect_equal(meta$rrm_results_provided, TRUE)
+  expect_equal(meta$rrm_p_threshold, 0.05)
+  expect_equal(meta$rrm_genes_filtered, 2)  # GeneA and GeneB
 })
 
 test_that("Metadata correctly reports LM filtering statistics", {
   se <- test_se_with_gene_names()
   
-  lm_results <- data.frame(
+  rrm_results <- data.frame(
     gene=c("GeneA", "GeneB", "GeneC"),
     p_interaction=c(0.001, 0.01, 0.50),
     adj_p_interaction=c(0.002, 0.02, 0.60)
@@ -517,16 +517,16 @@ test_that("Metadata correctly reports LM filtering statistics", {
     condition_col = "condition",
     gene_col = "gene_id",
     isoform_col = "isoform_id",
-    lm_results = lm_results,
-    lm_p_threshold = 0.05,
-    use_lm_fdr = FALSE,
+    rrm_results = rrm_results,
+    rrm_p_threshold = 0.05,
+    use_rrm_fdr = FALSE,
     nboot = 5,
     verbose = FALSE
   ))
   
   meta <- result$metadata
-  expect_true(meta$lm_results_provided)
-  expect_equal(meta$lm_p_threshold, 0.05)
+  expect_true(meta$rrm_results_provided)
+  expect_equal(meta$rrm_p_threshold, 0.05)
   # Number of filtered genes should be > 0
-  expect_gte(meta$lm_genes_filtered, 1)
+  expect_gte(meta$rrm_genes_filtered, 1)
 })

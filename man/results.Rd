@@ -139,7 +139,7 @@ div_q1_se <- results(analysis, type = 'diversity', q = 1.0, format = 'se')
 
 # Get results ranked by p-value, top 20 genes
 # Using accessor function instead of @ slot access
-top_lm <- results(analysis, type = 'lm', rankBy = 'pvalue', n = 20)
+top_rrm <- results(analysis, type = 'rrm', rankBy = 'pvalue', n = 20)
 
 # Get effect size results, top 6 genes by p-value (most significant first)
 top_effect_sizes <- results(analysis, type = 'effect_sizes_divergence', 
@@ -165,7 +165,7 @@ switching_raw <- results(analysis, type = 'switching_tables', format = 'raw')
 diversity_plot <- results(analysis, type = 'diversity', plot = TRUE)
 
 # Get the LM/regularized regression (GAM, LMM, GEE, FPCA) interaction plot
-lm_plot <- results(analysis, type = 'lm', plot = TRUE)
+rrm_plot <- results(analysis, type = 'rrm', plot = TRUE)
 
 # Get the divergence distribution plot
 div_dist_plot <- results(analysis, type = 'divergence', plot = TRUE)
@@ -175,7 +175,7 @@ influence_plot <- results(analysis, type = 'influence', plot = TRUE)
 
 # Available plot types correspond to analysis types:
 # - type = 'diversity': Returns Tsallis entropy q-spectrum visualization
-# - type = 'lm': Returns regularized/penalized regression (GAM, LMM, GEE, FPCA) interaction plot
+# - type = 'rrm': Returns regularized/penalized regression (GAM, LMM, GEE, FPCA) interaction plot
 # - type = 'divergence': Returns distribution of divergence metrics across genes
 # - type = 'influence': Returns m-estimator sample influence analysis
 # - type = 'rank_test': Returns Scheirer-Ray-Hare interaction visualization

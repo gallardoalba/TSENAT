@@ -30,8 +30,8 @@
 #'   \item \code{calculate_diversity()} - Tsallis entropy per q-value
 #'   \item \code{plot_diversity_spectrum()} - Visualize q-spectrum
 #'   \item \code{calculate_m_estimator()} - Sample influence QC analysis
-#'   \item \code{calculate_lm()} - LM interaction testing
-#'   \item \code{plot_lm()} - LM results visualization
+#'   \item \code{calculate_rrm()} - LM/RRM interaction testing
+#'   \item \code{plot_rrm()} - RRM results visualization
 #'   \item \code{calculate_jis()} - Transcript switching detection
 #'   \item \code{plot_jis_delta()} - Multi-q influence heatmap (gene switching tables computed lazily via results())
 #'   \item \code{plot_expression()} - Top transcript visualization
@@ -175,17 +175,17 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
         output_format)
     step_times[["m_estimate"]] <- Sys.time() - step_start
     
-    # Step 5: LM interaction
+    # Step 5: RRM interaction
     if (verbose) message(sprintf("[>] [%2d/16] Fitting regularized regression models", 5))
     step_start <- Sys.time()
-    analysis <- .execute_lm_interaction_s4(analysis, verbose, output_dir, output_format)
-    step_times[["lm_interaction"]] <- Sys.time() - step_start
+    analysis <- .execute_rrm_interaction_s4(analysis, verbose, output_dir, output_format)
+    step_times[["rrm_interaction"]] <- Sys.time() - step_start
     
-    # Step 6: LM plot
-    if (verbose) message(sprintf("[>] [%2d/16] Plotting LM results", 6))
+    # Step 6: RRM plot
+    if (verbose) message(sprintf("[>] [%2d/16] Plotting RRM results", 6))
     step_start <- Sys.time()
-    analysis <- .execute_lm_interaction_plot(analysis, verbose, output_dir)
-    step_times[["lm_plot"]] <- Sys.time() - step_start
+    analysis <- .execute_rrm_interaction_plot(analysis, verbose, output_dir)
+    step_times[["rrm_plot"]] <- Sys.time() - step_start
     
     # Step 7: Jackknife
     if (verbose) message(sprintf("[>] [%2d/16] Computing jackknife isoform switching", 7))
@@ -291,7 +291,7 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
 #' Extract result statistics from analysis
 #' @noRd
 .extract_analysis_statistics <- function(analysis) {
-    stats <- list(n_transcripts = 0, n_q_values = 0, n_lm_significant = 0, n_jackknife = 0,
+    stats <- list(n_transcripts = 0, n_q_values = 0, n_rrm_significant = 0, n_jackknife = 0,
         n_divergence = 0)
 
     # Diversity stats
@@ -305,15 +305,15 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
         }
     }
 
-    # LM results stats
-    if (length(analysis@lm_results) > 0 && is.list(analysis@lm_results)) {
-        if (!is.null(analysis@lm_results$pvalue_results)) {
-            lm_pvals <- analysis@lm_results$pvalue_results
-            if (is.data.frame(lm_pvals) && nrow(lm_pvals) > 0) {
-                if ("p_value" %in% colnames(lm_pvals)) {
-                  stats$n_lm_significant <- sum(lm_pvals$p_value < 0.05, na.rm = TRUE)
-                } else if ("padj" %in% colnames(lm_pvals)) {
-                  stats$n_lm_significant <- sum(lm_pvals$padj < 0.05, na.rm = TRUE)
+    # RRM results stats
+    if (length(analysis@rrm_results) > 0 && is.list(analysis@rrm_results)) {
+        if (!is.null(analysis@rrm_results$pvalue_results)) {
+            rrm_pvals <- analysis@rrm_results$pvalue_results
+            if (is.data.frame(rrm_pvals) && nrow(rrm_pvals) > 0) {
+                if ("p_value" %in% colnames(rrm_pvals)) {
+                  stats$n_rrm_significant <- sum(rrm_pvals$p_value < 0.05, na.rm = TRUE)
+                } else if ("padj" %in% colnames(rrm_pvals)) {
+                  stats$n_rrm_significant <- sum(rrm_pvals$padj < 0.05, na.rm = TRUE)
                 }
             }
         }
@@ -393,9 +393,9 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
 #' @param norm_method \code{character}. Normalization: NULL, 'zscore', 'log_odds_ratio', 'relative_reference'. Default: NULL.
 #' @param shrinkage \code{character}. Variance reduction: 'none' or 'empirical_bayes'. Default: 'none'.
 #' @param stringency \code{character}. Filtering stringency: 'lenient', 'medium', 'severe'. Default: 'medium'.
-#' @param lm_method \code{character}. LM method: 'gam', 'lmm', 'fpca', 'gee'. Default: 'gam'.
-#' @param lm_pcorr \code{character}. P-value correction: 'BH', 'bonferroni', 'hochberg', 'holm'. Default: 'BH'.
-#' @param jis_use_lm_fdr \code{logical}. Filter jackknife genes using LM p-values. Default: TRUE.
+#' @param rrm_method \code{character}. RRM method: 'gam', 'lmm', 'fpca', 'gee'. Default: 'gam'.
+#' @param rrm_pcorr \code{character}. P-value correction: 'BH', 'bonferroni', 'hochberg', 'holm'. Default: 'BH'.
+#' @param jis_use_rrm_fdr \code{logical}. Filter jackknife genes using LM p-values. Default: TRUE.
 #' @param divergence_ci \code{numeric}. Confidence level for divergence CIs. Default: 0.95.
 #' @param assumptions_checks \code{character}. Which assumptions to test (default: 'all').
 #'   Presets:
@@ -463,7 +463,7 @@ TSENAT_config <- function(q = 1, condition_col = "condition", subject_col = NULL
     significance_threshold = 0.05, bootstrap = FALSE, nboot = 1000, bootstrap_method = "percentile",
     stringency = "medium", nthreads = 1, norm = TRUE, bootstrap_ci = 0.95, bootstrap_include_diagnostics = TRUE,
     min_valid_frac = 0.75, norm_method = NULL, pseudocount = 0, shrinkage = "none",
-    lm_method = "gam", lm_pcorr = "BH", jis_use_lm_fdr = TRUE, divergence_ci = 0.95,
+    rrm_method = "gam", rrm_pcorr = "BH", jis_use_rrm_fdr = TRUE, divergence_ci = 0.95,
     assumptions_checks = "all", ...) {
     # Validate always-required parameters
     if (is.null(sample_col) || !is.character(sample_col)) {
@@ -490,17 +490,17 @@ TSENAT_config <- function(q = 1, condition_col = "condition", subject_col = NULL
         stop("'bootstrap_method' must be 'percentile' or 'bca'", call. = FALSE)
     }
 
-    # Validate lm_method
-    valid_lm_methods <- c("gam", "lmm", "fpca", "gee")
-    if (!lm_method %in% valid_lm_methods) {
-        stop("'lm_method' must be one of: ", paste(valid_lm_methods, collapse = ", "),
+    # Validate rrm_method
+    valid_rrm_methods <- c("gam", "lmm", "fpca", "gee")
+    if (!rrm_method %in% valid_rrm_methods) {
+        stop("'rrm_method' must be one of: ", paste(valid_rrm_methods, collapse = ", "),
             call. = FALSE)
     }
 
-    # Validate lm_pcorr
-    valid_lm_pcorr <- c("BH", "bonferroni", "hochberg", "holm")
-    if (!lm_pcorr %in% valid_lm_pcorr) {
-        stop("'lm_pcorr' must be one of: ", paste(valid_lm_pcorr, collapse = ", "),
+    # Validate rrm_pcorr
+    valid_rrm_pcorr <- c("BH", "bonferroni", "hochberg", "holm")
+    if (!rrm_pcorr %in% valid_rrm_pcorr) {
+        stop("'rrm_pcorr' must be one of: ", paste(valid_rrm_pcorr, collapse = ", "),
             call. = FALSE)
     }
 
@@ -524,7 +524,7 @@ TSENAT_config <- function(q = 1, condition_col = "condition", subject_col = NULL
         bootstrap_ci = bootstrap_ci, bootstrap_include_diagnostics = bootstrap_include_diagnostics,
         min_valid_frac = min_valid_frac, stringency = stringency, nthreads = nthreads,
         norm = norm, norm_method = norm_method, pseudocount = pseudocount, shrinkage = shrinkage,
-        lm_method = lm_method, lm_pcorr = lm_pcorr, jis_use_lm_fdr = jis_use_lm_fdr,
+        rrm_method = rrm_method, rrm_pcorr = rrm_pcorr, jis_use_rrm_fdr = jis_use_rrm_fdr,
         divergence_ci = divergence_ci, assumptions_checks = assumptions_checks)
 
     # Add any additional parameters (except metadata - should be explicit to
@@ -610,9 +610,9 @@ TSENAT_config <- function(q = 1, condition_col = "condition", subject_col = NULL
             "none") == "none")
             "disabled" else toupper(cfg$shrinkage), "\n", "  Significance ......... p < ", format(cfg$p_threshold %||%
             0.05, nsmall = 3), " | FDR < ", format(cfg$fdr_threshold %||% 0.05, nsmall = 3),
-        "\n", "  LM method ............ ", toupper(cfg$lm_method %||% "GAM"), "\n",
-        "  LM p-corr method ..... ", toupper(cfg$lm_pcorr %||% "BH"), "\n", "  Jackknife use_lm_fdr . ",
-        if (isTRUE(cfg$jis_use_lm_fdr))
+        "\n", "  RRM method ............ ", toupper(cfg$rrm_method %||% "GAM"), "\n",
+        "  LM p-corr method ..... ", toupper(cfg$rrm_pcorr %||% "BH"), "\n", "  Jackknife use_rrm_fdr . ",
+        if (isTRUE(cfg$jis_use_rrm_fdr))
             "TRUE" else "FALSE", "\n")
     if (isTRUE(cfg$bootstrap)) {
         output <- paste0(output, "  Divergence CI ........ ", format(cfg$divergence_ci %||%
@@ -713,40 +713,40 @@ TSENAT_config <- function(q = 1, condition_col = "condition", subject_col = NULL
     analysis
 }
 
-#' Step 5: LM interaction testing
+#' Step 5: RRM interaction testing
 #' @noRd
-.execute_lm_interaction_s4 <- function(analysis, verbose, output_dir, output_format) {
+.execute_rrm_interaction_s4 <- function(analysis, verbose, output_dir, output_format) {
     tryCatch({
         cfg <- getConfig(analysis)
         fdr <- cfg$fdr_threshold %||% 0.05
-        lm_method <- cfg$lm_method %||% "gam"
-        lm_pcorr <- cfg$lm_pcorr %||% "BH"
+        rrm_method <- cfg$rrm_method %||% "gam"
+        rrm_pcorr <- cfg$rrm_pcorr %||% "BH"
         
-        output_file <- .build_output_file("lm_interaction_results", output_dir, output_format)
-        analysis <- calculate_lm(analysis, fdr_threshold = fdr, method = lm_method,
-            pcorr = lm_pcorr, output_file = output_file)
+        output_file <- .build_output_file("rrm_interaction_results", output_dir, output_format)
+        analysis <- calculate_rrm(analysis, fdr_threshold = fdr, method = rrm_method,
+            pcorr = rrm_pcorr, output_file = output_file)
         if (verbose)
-            message("          [OK] LM interaction analysis complete")
-    }, error = function(e) warning("LM interaction analysis failed:\n", e$message,
+            message("          [OK] RRM interaction analysis complete")
+    }, error = function(e) warning("RRM interaction analysis failed:\n", e$message,
         call. = FALSE))
     analysis
 }
 
-#' Step 6: LM interaction GAM plot
+#' Step 6: RRM interaction GAM plot
 #' @noRd
-.execute_lm_interaction_plot <- function(analysis, verbose, output_dir) {
+.execute_rrm_interaction_plot <- function(analysis, verbose, output_dir) {
     tryCatch({
         output_file <- if (!is.null(output_dir))
-            file.path(output_dir, "lm_interaction_gam_plot.png") else NULL
-        p_lm <- plot_lm(analysis, output_file = output_file)
-        if (!is.null(p_lm)) {
-            analysis <- addPlot(analysis, type = "lm_interaction", plot = p_lm, replace = TRUE)
+            file.path(output_dir, "rrm_interaction_gam_plot.png") else NULL
+        p_rrm <- plot_rrm(analysis, output_file = output_file)
+        if (!is.null(p_rrm)) {
+            analysis <- addPlot(analysis, type = "rrm_interaction", plot = p_rrm, replace = TRUE)
             if (verbose)
-                message("          [OK] LM interaction plot generated")
+                message("          [OK] RRM interaction plot generated")
         }
     }, error = function(e) {
         if (verbose)
-            warning("LM interaction plot failed: ", e$message, call. = FALSE)
+            warning("RRM interaction plot failed: ", e$message, call. = FALSE)
     })
     analysis
 }
@@ -757,10 +757,10 @@ TSENAT_config <- function(q = 1, condition_col = "condition", subject_col = NULL
     verbose, output_dir, output_format) {
     tryCatch({
         cfg <- getConfig(analysis)
-        jis_use_lm_fdr <- cfg$jis_use_lm_fdr %||% TRUE
+        jis_use_rrm_fdr <- cfg$jis_use_rrm_fdr %||% TRUE
         output_file <- .build_output_file("jackknife_isoform_switching", output_dir,
             output_format)
-        analysis <- calculate_jis(analysis, condition_col = condition_col, use_lm_fdr = jis_use_lm_fdr,
+        analysis <- calculate_jis(analysis, condition_col = condition_col, use_rrm_fdr = jis_use_rrm_fdr,
             output_file = output_file, verbose = FALSE)
         if (verbose)
             message("          [OK] Jackknife isoform switching complete")
@@ -937,9 +937,9 @@ TSENAT_config <- function(q = 1, condition_col = "condition", subject_col = NULL
 
     output_file <- .build_output_file("concordance_results", output_dir, output_format)
 
-    # Note: concordance requires both analysis_lm and analysis_rank parameters
+    # Note: concordance requires both analysis_rrm and analysis_rank parameters
     # For a two-analysis pipeline, use: analysis <-
-    # calculate_concordance(analysis_lm = analysis_lm, analysis_rank =
+    # calculate_concordance(analysis_rrm = analysis_rrm, analysis_rank =
     # analysis, verbose = FALSE, output_file = output_file)
     analysis <- calculate_concordance(analysis, verbose = FALSE, output_file = output_file)
 
@@ -974,9 +974,9 @@ TSENAT_config <- function(q = 1, condition_col = "condition", subject_col = NULL
         if (stats$n_transcripts > 0)
             output <- paste0(output, sprintf("  [OK] Diversity ........... %d transcripts x %d q-values\n",
                 stats$n_transcripts, stats$n_q_values))
-        if (stats$n_lm_significant > 0)
-            output <- paste0(output, sprintf("  [OK] LM interactions ..... %d genes (p < 0.05)\n",
-                stats$n_lm_significant))
+        if (stats$n_rrm_significant > 0)
+            output <- paste0(output, sprintf("  [OK] RRM interactions ..... %d genes (p < 0.05)\n",
+                stats$n_rrm_significant))
         if (stats$n_jackknife > 0)
             output <- paste0(output, sprintf("  [OK] Isoform switching ... %d genes with robust switching\n",
                 stats$n_jackknife))
@@ -1018,9 +1018,9 @@ TSENAT_config <- function(q = 1, condition_col = "condition", subject_col = NULL
             "  summary(result)\n\n", "  # Tsallis Entropy Diversity\n", "  # Get results for specific sample at q=1.0\n",
             "  div <- results(result, type = 'diversity',\n", "                 n_genes = 4, sample = 'SRR14800481')\n\n",
             "  # Regularized/Penalized Regression Interaction Results\n", "  # Top 10 genes by p-value\n",
-            "  lm <- results(result, type = 'lm',\n", "                rankBy = 'pvalue', n = 10)\n\n",
+            "  rrm <- results(result, type = 'rrm',\n", "                rankBy = 'pvalue', n = 10)\n\n",
             "  # Visualizations\n", "  plot_diversity <- results(result, type = 'diversity', plot = TRUE)\n",
-            "  plot_lm <- results(result, type = 'lm', plot = TRUE)\n", "\n")
+            "  plot_rrm <- results(result, type = 'rrm', plot = TRUE)\n", "\n")
 
         message(output)
     }

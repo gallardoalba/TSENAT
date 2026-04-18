@@ -1156,7 +1156,7 @@ test_that("TSENATAnalysis: contains all required slots", {
   
   slot_names <- slotNames(analysis)
   required_slots <- c("se", "config", "diversity_results", "jackknife_results",
-                      "divergence_results", "lm_results", "plots", "metadata")
+                      "divergence_results", "rrm_results", "plots", "metadata")
   
   for (slot in required_slots) {
     expect_true(slot %in% slot_names, info = paste("Missing slot:", slot))
@@ -1288,9 +1288,9 @@ test_that("Slot @divergence_results: is list", {
   expect_is(analysis@divergence_results, "list")
 })
 
-test_that("Slot @lm_results: is list", {
+test_that("Slot @rrm_results: is list", {
   analysis <- .create_test_analysis()
-  expect_is(analysis@lm_results, "list")
+  expect_is(analysis@rrm_results, "list")
 })
 
 test_that("Slot @plots: is list", {
@@ -1358,7 +1358,7 @@ test_that("show: displays analysis with all result types populated", {
   analysis@divergence_results <- list(
     bray_curtis = data.frame(gene = "ENSG000001", divergence = 0.2)
   )
-  analysis@lm_results <- list(
+  analysis@rrm_results <- list(
     interaction = data.frame(term = "treatment", coef = 1.5)
   )
   analysis@plots <- list(
@@ -1524,8 +1524,8 @@ test_that("results() unified accessor provides access to all result types", {
   
   analysis <- .create_test_analysis(precompute_diversity = TRUE)
   
-  # Populate @lm_results with test data
-  lm_test_df <- data.frame(
+  # Populate @rrm_results with test data
+  rrm_test_df <- data.frame(
     gene = c("ENSG1", "ENSG2", "ENSG3"),
     p_interaction = c(0.001, 0.05, 0.5),
     adj_p_interaction = c(0.005, 0.1, 0.8),
@@ -1538,18 +1538,18 @@ test_that("results() unified accessor provides access to all result types", {
     stringsAsFactors = FALSE
   )
   
-  analysis@lm_results <- list(
-    lm_interaction = lm_test_df
+  analysis@rrm_results <- list(
+    rrm_interaction = rrm_test_df
   )
   
   analysis@rank_test_results <- list(
     rank_test = rank_test_df
   )
   
-  # Test results() with type = "lm"
-  lm_result <- results(analysis, type = "lm")
-  expect_identical(lm_result, lm_test_df, 
-                  info = "results(type='lm') should return lm data.frame")
+  # Test results() with type = "rrm"
+  rrm_result <- results(analysis, type = "rrm")
+  expect_identical(rrm_result, rrm_test_df, 
+                  info = "results(type='rrm') should return rrm data.frame")
   
   # Test results() with type = "rank_test"
   rank_result <- results(analysis, type = "rank_test")

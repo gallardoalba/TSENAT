@@ -481,14 +481,14 @@ testthat::test_that("select_genesselect_genes handles user-provided gene vector"
 })
 
 testthat::test_that("select_genesselect_genes handles NULL gene input", {
-  # Create sample lm_res data.frame
-  lm_res <- data.frame(
+  # Create sample rrm_res data.frame
+  rrm_res <- data.frame(
     gene = c("G1", "G2", "G3", "G4", "G5"),
     adj_p_interaction = c(0.001, 0.01, 0.05, 0.1, 0.2)
   )
   
   # Simulate selecting top 3 genes by p-value
-  genes_ordered <- unique(as.character(lm_res$gene[order(lm_res$adj_p_interaction)]))
+  genes_ordered <- unique(as.character(rrm_res$gene[order(rrm_res$adj_p_interaction)]))
   top_genes <- head(genes_ordered, 3)
   
   testthat::expect_length(top_genes, 3)
@@ -612,19 +612,19 @@ testthat::test_that("select_genesbuild_list_plots handles empty gene list", {
 })
 
 testthat::test_that("select_genesselect_genes prioritizes adj_p_lmm over adj_p_interaction", {
-  lm_res <- data.frame(
+  rrm_res <- data.frame(
     gene = c("G1", "G2", "G3"),
     adj_p_lmm = c(0.02, 0.01, 0.05),
     adj_p_interaction = c(0.001, 0.002, 0.003)
   )
   
   # Should use adj_p_lmm (first priority)
-  p_col <- if ("adj_p_lmm" %in% colnames(lm_res)) "adj_p_lmm" else "adj_p_interaction"
+  p_col <- if ("adj_p_lmm" %in% colnames(rrm_res)) "adj_p_lmm" else "adj_p_interaction"
   
   testthat::expect_equal(p_col, "adj_p_lmm")
   
   # Top gene should be G2 (p=0.01)
-  genes_ordered <- unique(as.character(lm_res$gene[order(lm_res[[p_col]])]))
+  genes_ordered <- unique(as.character(rrm_res$gene[order(rrm_res[[p_col]])]))
   testthat::expect_equal(genes_ordered[1], "G2")
 })
 
@@ -2670,7 +2670,7 @@ test_that(".plot_gam_fit_group handles invalid plot_df structure", {
 # ============================================================================
 
 test_that(".plot_select_genes handles NULL genes parameter", {
-  lm_res <- list(
+  rrm_res <- list(
     results = data.frame(
       gene = c("Gene1", "Gene2", "Gene3"),
       adj_p_lmm = c(0.001, 0.05, 0.1),
@@ -2680,7 +2680,7 @@ test_that(".plot_select_genes handles NULL genes parameter", {
   
   result <- tryCatch({
     plots <- TSENAT:::.plot_select_genes(
-      lm_res,
+      rrm_res,
       genes = NULL,
       n_top = 3
     )
@@ -2696,10 +2696,10 @@ test_that(".plot_select_genes handles NULL genes parameter", {
 
 test_that(".plot_gam_handle_inputs validates SE structure", {
   invalid_se <- list(data = matrix(1:10))  # Not an SE
-  lm_res <- list(results = data.frame())
+  rrm_res <- list(results = data.frame())
   
   result <- tryCatch({
-    TSENAT:::.plot_gam_handle_inputs(invalid_se, lm_res)
+    TSENAT:::.plot_gam_handle_inputs(invalid_se, rrm_res)
     TRUE
   }, error = function(e) FALSE)
   

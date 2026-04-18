@@ -455,9 +455,9 @@
         }
         # Pre-compile formula to avoid repeated as.formula() calls (100K+
         # times)
-        lm_formula <- as.formula("ranks ~ q * condition")
+        rrm_formula <- as.formula("ranks ~ q * condition")
     } else {
-        lm_formula <- NULL
+        rrm_formula <- NULL
     }
 
     # PHASE 5: PER-GENE ANALYSIS LOOP (PARALLELIZED) Process each gene in

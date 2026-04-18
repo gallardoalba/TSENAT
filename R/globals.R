@@ -44,13 +44,13 @@ if (getRversion() >= "2.15.1") {
 #'   \item{\code{jackknife}}{Requires diversity}
 #'   \item{\code{divergence}}{Requires diversity}
 #'   \item{\code{rank_test}}{Requires diversity}
-#'   \item{\code{lm_interaction}}{Requires diversity}
+#'   \item{\code{rrm_interaction}}{Requires diversity}
 #' }
 #'
 
 #' @noRd
 DEPENDENCIES <- list(diversity = character(0), jackknife = "diversity", divergence = "diversity",
-    rank_test = "diversity", lm_interaction = "diversity")
+    rank_test = "diversity", rrm_interaction = "diversity")
 
 #' Method Execution Order
 #'
@@ -61,7 +61,7 @@ DEPENDENCIES <- list(diversity = character(0), jackknife = "diversity", divergen
 #'
 
 #' @noRd
-METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "rank_test")
+METHOD_ORDER <- c("diversity", "jackknife", "rrm_interaction", "divergence", "rank_test")
 
 # ============================================================================
 # COLOR UTILITIES - Publication-quality visualization standards
@@ -309,7 +309,7 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "ran
 #' - Optional major gridlines for q-value axis
 #' - Wider plot margins for axis labels
 #'
-#' Used by: plot_diversity_spectrum(), .plot_lm(),
+#' Used by: plot_diversity_spectrum(), .plot_rrm(),
 #' and similar spectrum/profile plots.
 #'
 

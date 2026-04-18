@@ -1521,13 +1521,13 @@ context("High-Level Analysis Workflow: Method Concordance")
 # =============================================================================
 
 test_that("calculate_concordance computes correlation correctly", {
-  # Load LM analysis and create rank test results
-  analysis_lm <- readRDS(system.file("extdata", "analysis_lm.rds", package = "TSENAT"))
-  analysis_rank <- analysis_lm  # Use same base analysis
+  # Load RRM analysis and create rank test results
+  analysis_rrm <- readRDS(system.file("extdata", "analysis_rrm.rds", package = "TSENAT"))
+  analysis_rank <- analysis_rrm  # Use same base analysis
   
-  # Get gene names from LM results to ensure matching
-  lm_results <- analysis_lm@lm_results[["lm_interaction"]]
-  genes <- lm_results$gene
+  # Get gene names from RRM results to ensure matching
+  rrm_results <- analysis_rrm@rrm_results[["rrm_interaction"]]
+  genes <- rrm_results$gene
   n_genes <- length(genes)
   
   # Add rank test results with matching gene names
@@ -1542,9 +1542,9 @@ test_that("calculate_concordance computes correlation correctly", {
   
   # Call refactored function with two TSENATAnalysis objects
   result <- .calculate_concordance(
-    analysis_lm = analysis_lm,
+    analysis_rrm = analysis_rrm,
     analysis_rank = analysis_rank,
-    lm_method = "lm_interaction",
+    rrm_method = "rrm_interaction",
     rank_method = "rank_test"
   )
   
@@ -1553,7 +1553,7 @@ test_that("calculate_concordance computes correlation correctly", {
   expect_true("spearman_rho" %in% names(result))
   expect_true("high_conf" %in% names(result))
   expect_true("agreement_table" %in% names(result))
-  expect_true("lm_method" %in% names(result))
+  expect_true("rrm_method" %in% names(result))
   expect_true("rank_method" %in% names(result))
   
   # Check correlation is valid
@@ -1562,13 +1562,13 @@ test_that("calculate_concordance computes correlation correctly", {
 })
 
 test_that("calculate_concordance identifies agreement categories", {
-  # Load LM analysis and create rank test results
-  analysis_lm <- readRDS(system.file("extdata", "analysis_lm.rds", package = "TSENAT"))
-  analysis_rank <- analysis_lm
+  # Load RRM analysis and create rank test results
+  analysis_rrm <- readRDS(system.file("extdata", "analysis_rrm.rds", package = "TSENAT"))
+  analysis_rank <- analysis_rrm
   
-  # Get gene names from LM results to ensure matching
-  lm_results <- analysis_lm@lm_results[["lm_interaction"]]
-  genes <- lm_results$gene
+  # Get gene names from RRM results to ensure matching
+  rrm_results <- analysis_rrm@rrm_results[["rrm_interaction"]]
+  genes <- rrm_results$gene
   n_genes <- length(genes)
   
   # Add rank test results with matching gene names
@@ -1582,9 +1582,9 @@ test_that("calculate_concordance identifies agreement categories", {
   analysis_rank@rank_test_results <- list(rank_test = rank_results)
   
   result <- .calculate_concordance(
-    analysis_lm = analysis_lm,
+    analysis_rrm = analysis_rrm,
     analysis_rank = analysis_rank,
-    lm_method = "lm_interaction",
+    rrm_method = "rrm_interaction",
     rank_method = "rank_test"
   )
   
@@ -1593,23 +1593,23 @@ test_that("calculate_concordance identifies agreement categories", {
   
   # Check agreement categories exist - updated for new naming
   categories <- unique(result$comparison_df$agreement)
-  expect_true(any(c("Both significant", "LM only", "Rank test only", "Neither significant") %in% categories))
+  expect_true(any(c("Both significant", "RRM only", "Rank test only", "Neither significant") %in% categories))
   
   # Verify new column names are present
-  expect_true("p_lm" %in% colnames(result$comparison_df))
-  expect_true("padj_lm" %in% colnames(result$comparison_df))
+  expect_true("p_rrm" %in% colnames(result$comparison_df))
+  expect_true("padj_rrm" %in% colnames(result$comparison_df))
   expect_true("p_rank" %in% colnames(result$comparison_df))
   expect_true("padj_rank" %in% colnames(result$comparison_df))
 })
 
 test_that("calculate_concordance extracts high-confidence genes", {
-  # Load LM analysis and create rank test results
-  analysis_lm <- readRDS(system.file("extdata", "analysis_lm.rds", package = "TSENAT"))
-  analysis_rank <- analysis_lm
+  # Load RRM analysis and create rank test results
+  analysis_rrm <- readRDS(system.file("extdata", "analysis_rrm.rds", package = "TSENAT"))
+  analysis_rank <- analysis_rrm
   
-  # Get gene names from LM results to ensure matching
-  lm_results <- analysis_lm@lm_results[["lm_interaction"]]
-  genes <- lm_results$gene
+  # Get gene names from RRM results to ensure matching
+  rrm_results <- analysis_rrm@rrm_results[["rrm_interaction"]]
+  genes <- rrm_results$gene
   n_genes <- length(genes)
   
   # Add rank test results with matching gene names
@@ -1623,9 +1623,9 @@ test_that("calculate_concordance extracts high-confidence genes", {
   analysis_rank@rank_test_results <- list(rank_test = rank_results)
   
   result <- .calculate_concordance(
-    analysis_lm = analysis_lm,
+    analysis_rrm = analysis_rrm,
     analysis_rank = analysis_rank,
-    lm_method = "lm_interaction",
+    rrm_method = "rrm_interaction",
     rank_method = "rank_test"
   )
   
@@ -1634,16 +1634,16 @@ test_that("calculate_concordance extracts high-confidence genes", {
   
   # If any high-confidence genes, verify they have both significance flags
   if (nrow(result$high_conf) > 0) {
-    expect_true(all(result$high_conf$lm_sig == TRUE))
+    expect_true(all(result$high_conf$rrm_sig == TRUE))
     expect_true(all(result$high_conf$rank_sig == TRUE))
   }
 })
 
 test_that("calculate_concordance handles invalid TSENATAnalysis object", {
-  # Create a minimal invalid TSENATAnalysis object with no LM results
+  # Create a minimal invalid TSENATAnalysis object with no RRM results
   se <- SummarizedExperiment(assays = list(counts = matrix(1, nrow = 10, ncol = 2)))
   rownames(se) <- paste0("GENE_", 1:10)
-  invalid_lm <- TSENATAnalysis(se = se, config = list())
+  invalid_rrm <- TSENATAnalysis(se = se, config = list())
   
   # Create rank test results
   analysis_rank <- TSENATAnalysis(se = se, config = list())
@@ -1655,15 +1655,15 @@ test_that("calculate_concordance handles invalid TSENATAnalysis object", {
   )
   analysis_rank@rank_test_results <- list(rank_test = rank_results)
   
-  # Should error when LM results are missing
+  # Should error when RRM results are missing
   expect_error(
     .calculate_concordance(
-      analysis_lm = invalid_lm,
+      analysis_rrm = invalid_rrm,
       analysis_rank = analysis_rank,
-      lm_method = NULL,
+      rrm_method = NULL,
       rank_method = "rank_test"
     ),
-    "lm_results"
+    "rrm_results"
   )
 })
 
@@ -1683,7 +1683,7 @@ test_that("calculate_concordance handles non-TSENATAnalysis input", {
   # Should error when first argument is not TSENATAnalysis
   expect_error(
     .calculate_concordance(
-      analysis_lm = list(a = 1, b = 2),
+      analysis_rrm = list(a = 1, b = 2),
       analysis_rank = analysis_rank
     ),
     "TSENATAnalysis"
@@ -1691,13 +1691,13 @@ test_that("calculate_concordance handles non-TSENATAnalysis input", {
 })
 
 test_that("calculate_concordance handles method selection", {
-  # Load LM analysis and create rank test results
-  analysis_lm <- readRDS(system.file("extdata", "analysis_lm.rds", package = "TSENAT"))
-  analysis_rank <- analysis_lm
+  # Load RRM analysis and create rank test results
+  analysis_rrm <- readRDS(system.file("extdata", "analysis_rrm.rds", package = "TSENAT"))
+  analysis_rank <- analysis_rrm
   
-  # Get gene names from LM results to ensure matching
-  lm_results <- analysis_lm@lm_results[["lm_interaction"]]
-  genes <- lm_results$gene
+  # Get gene names from RRM results to ensure matching
+  rrm_results <- analysis_rrm@rrm_results[["rrm_interaction"]]
+  genes <- rrm_results$gene
   n_genes <- length(genes)
   
   # Add rank test results with matching gene names
@@ -1710,27 +1710,27 @@ test_that("calculate_concordance handles method selection", {
   )
   analysis_rank@rank_test_results <- list(rank_test = rank_results)
   
-  # Should auto-select first method when lm_method = NULL
+  # Should auto-select first method when rrm_method = NULL
   result_auto <- .calculate_concordance(
-    analysis_lm = analysis_lm,
+    analysis_rrm = analysis_rrm,
     analysis_rank = analysis_rank,
-    lm_method = NULL,
+    rrm_method = NULL,
     rank_method = "rank_test"
   )
   
-  expect_true("lm_method" %in% names(result_auto))
-  expect_true(!is.null(result_auto$lm_method))
+  expect_true("rrm_method" %in% names(result_auto))
+  expect_true(!is.null(result_auto$rrm_method))
   expect_equal(result_auto$rank_method, "rank_test")
   
   # Explicit method selection
   result_explicit <- .calculate_concordance(
-    analysis_lm = analysis_lm,
+    analysis_rrm = analysis_rrm,
     analysis_rank = analysis_rank,
-    lm_method = "lm_interaction",
+    rrm_method = "rrm_interaction",
     rank_method = "rank_test"
   )
   
-  expect_equal(result_explicit$lm_method, "lm_interaction")
+  expect_equal(result_explicit$rrm_method, "rrm_interaction")
   expect_equal(result_explicit$rank_method, "rank_test")
 })
 
@@ -1747,9 +1747,9 @@ test_that("plot_method_concordance creates valid plot", {
   
   comparison_df <- data.frame(
     gene = paste0("GENE_", 1:20),
-    p_lm = runif(20),
+    p_rrm = runif(20),
     p_rank = runif(20),
-    agreement = sample(c("Both significant", "LM only", "Rank test only", "Neither significant"),
+    agreement = sample(c("Both significant", "RRM only", "Rank test only", "Neither significant"),
                       size = 20, replace = TRUE)
   )
   

@@ -2,7 +2,7 @@
 
 * Initial Bioconductor release. TSENAT provides scale-dependent analysis of transcript isoform diversity using Tsallis entropy, enabling detection of splicing-driven regulatory changes orthogonal to count-based differential expression methods.
 
-* Core analysis via `calculate_diversity()`, `calculate_divergence()`, `calculate_srh()` for Q×Condition interaction testing, `calculate_lm()` for linear models/GAM interaction analysis, and `calculate_concordance()` for method comparison. Supports Scheirer-Ray-Hare rank-based tests, permutation tests, and jackknife bootstrap.
+* Core analysis via `calculate_diversity()`, `calculate_divergence()`, `calculate_srh()` for Q×Condition interaction testing, `calculate_rrm()` for regularized regression methods (GAM, LMM, GEE, FPCA) interaction analysis, and `calculate_concordance()` for method comparison. Supports Scheirer-Ray-Hare rank-based tests, permutation tests, and jackknife bootstrap.
 
 
 * Parameter `q` tunes Tsallis entropy sensitivity: q < 1 emphasizes rare isoforms, q ≈ 1 recovers Shannon entropy, q > 1 emphasizes dominant isoforms.

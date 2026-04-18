@@ -218,23 +218,23 @@ test_that("TSENAT() error handling: rejects invalid input, handles edge cases", 
 # TEST SUITE 8: LM Interaction Results and Plot Generation
 # ============================================================================
 
-test_that("TSENAT() paired: produces LM results, significant genes, plots generate", {
+test_that("TSENAT() paired: produces RRM results, significant genes, plots generate", {
     # OPTIMIZATION: Reuse cached TSENAT() result instead of recomputing
     result <- setup_tsenat_cached()
     
-    # Test LM results structure
+    # Test RRM results structure
     expect_s4_class(result, "TSENATAnalysis")
-    lm_res <- results(result, type = "lm")
-    expect_true(!is.null(lm_res))
-    expect_true(is.data.frame(lm_res))
-    expect_true(nrow(lm_res) > 0)
-    expect_true("adj_p_interaction" %in% colnames(lm_res) || "p_interaction" %in% colnames(lm_res))
+    rrm_res <- results(result, type = "rrm")
+    expect_true(!is.null(rrm_res))
+    expect_true(is.data.frame(rrm_res))
+    expect_true(nrow(rrm_res) > 0)
+    expect_true("adj_p_interaction" %in% colnames(rrm_res) || "p_interaction" %in% colnames(rrm_res))
     
     # Check for significant genes
-    if ("adj_p_interaction" %in% colnames(lm_res)) {
-        sig_genes <- sum(lm_res$adj_p_interaction <= 0.05, na.rm = TRUE)
-    } else if ("p_interaction" %in% colnames(lm_res)) {
-        sig_genes <- sum(lm_res$p_interaction <= 0.05, na.rm = TRUE)
+    if ("adj_p_interaction" %in% colnames(rrm_res)) {
+        sig_genes <- sum(rrm_res$adj_p_interaction <= 0.05, na.rm = TRUE)
+    } else if ("p_interaction" %in% colnames(rrm_res)) {
+        sig_genes <- sum(rrm_res$p_interaction <= 0.05, na.rm = TRUE)
     } else {
         sig_genes <- 0
     }
@@ -243,7 +243,7 @@ test_that("TSENAT() paired: produces LM results, significant genes, plots genera
     
     # Test plot generation
     plot_result <- tryCatch({
-        plot_lm(
+        plot_rrm(
             result,
             n_top = 3,
             sig_alpha = 0.05,

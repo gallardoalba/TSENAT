@@ -60,16 +60,16 @@
 #' confidence 
 #'   intervals (default: 1000).
 #'
-#' @param lm_results \code{data. frame}.
-#'  Optional LM interaction results to filter genes.
-#'   If provided, only genes in lm_results are analyzed.
+#' @param rrm_results \code{data. frame}.
+#'  Optional RRM interaction results to filter genes.
+#'   If provided, only genes in rrm_results are analyzed.
 #'
-#' @param lm_p_threshold \code{numeric}.  P-value threshold for 
+#' @param rrm_p_threshold \code{numeric}.  P-value threshold for 
 #' filtering genes from 
-#'   lm_results (default: 0.05).
+#'   rrm_results (default: 0.05).
 #'
-#' @param use_lm_fdr \code{logical}.  If TRUE,
-#'  uses adjusted p-values from lm_results 
+#' @param use_rrm_fdr \code{logical}.  If TRUE,
+#'  uses adjusted p-values from rrm_results 
 #'   (default: TRUE).
 #'
 #' @param verbose \code{logical}. Print progress messages (default: FALSE).
@@ -102,7 +102,7 @@
 #'   \item \code{q}: Multi-q vector c(0, 0.5, 1, 1.5, 2) if not provided, or \code{@config$q} if available
 #'   \item \code{nboot}: Uses \code{@config$nboot} if available, else 1000
 #'   \item \code{threshold}: Uses \code{@config$threshold} if available, else 90
-#'   \item \code{lm_p_threshold}: Uses \code{@config$lm_p_threshold} if available, else 0.05
+#'   \item \code{rrm_p_threshold}: Uses \code{@config$rrm_p_threshold} if available, else 0.05
 #' }
 #'
 #' This allows setting defaults once in the config and reusing across multiple analyses.
@@ -172,7 +172,7 @@
 #' @export
 calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL, gene_col = NULL,
     isoform_col = NULL, q = c(0, 0.5, 1, 1.5, 2), norm = NULL, log_base = NULL, threshold = 90,
-    nboot = 1000, pseudocount = NULL, lm_results = NULL, lm_p_threshold = 0.05, use_lm_fdr = TRUE,
+    nboot = 1000, pseudocount = NULL, rrm_results = NULL, rrm_p_threshold = 0.05, use_rrm_fdr = TRUE,
     output_file = NULL, verbose = FALSE, ...) {
     # Validate input and extract SummarizedExperiment
     se <- .validate_jis_input(analysis)
@@ -185,21 +185,21 @@ calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL, ge
     gene_col <- col_info$gene_col
     isoform_col <- col_info$isoform_col
 
-    # Extract or validate LM results
-    lm_results <- .extract_lm_results(analysis, lm_results, verbose)
+    # Extract or validate RRM results
+    rrm_results <- .extract_rrm_results(analysis, rrm_results, verbose)
 
     # Resolve and validate all parameters (including threshold and
-    # lm_p_threshold)
+    # rrm_p_threshold)
     params <- .resolve_and_validate_jis_params(q, norm, log_base, pseudocount, nboot,
-        threshold, lm_p_threshold, analysis, verbose)
+        threshold, rrm_p_threshold, analysis, verbose)
 
     # Call base jackknife function
     result <- tryCatch({
         .calculate_jis(se = se, condition_col = condition_col, subject_col = subject_col,
             gene_col = gene_col, isoform_col = isoform_col, q = params$q, norm = params$norm,
             log_base = params$log_base, threshold = params$threshold, nboot = params$nboot,
-            pseudocount = params$pseudocount, verbose = verbose, lm_results = lm_results,
-            lm_p_threshold = params$lm_p_threshold, use_lm_fdr = use_lm_fdr)
+            pseudocount = params$pseudocount, verbose = verbose, rrm_results = rrm_results,
+            rrm_p_threshold = params$rrm_p_threshold, use_rrm_fdr = use_rrm_fdr)
     }, error = function(e) {
         stop("[calculate_jis] Jackknife analysis failed:\n", conditionMessage(e),
             call. = FALSE)
@@ -318,25 +318,25 @@ calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL, ge
     list(condition_col = condition_col, gene_col = gene_col, isoform_col = isoform_col)
 }
 
-#' Extract LM results from analysis object or use provided results
+#' Extract RRM results from analysis object or use provided results
 #'
 #' @param analysis TSENATAnalysis object
-#' @param lm_results Optional user-provided LM results
+#' @param rrm_results Optional user-provided RRM results
 #' @param verbose Logical, print messages
 #'
-#' @return LM results data frame or NULL
+#' @return RRM results data frame or NULL
 #'
 #' @noRd
-.extract_lm_results <- function(analysis, lm_results, verbose) {
-    if (is.null(lm_results) && !is.null(analysis@lm_results)) {
-        if ("lm_interaction" %in% names(analysis@lm_results)) {
-            lm_results <- analysis@lm_results$lm_interaction
+.extract_rrm_results <- function(analysis, rrm_results, verbose) {
+    if (is.null(rrm_results) && !is.null(analysis@rrm_results)) {
+        if ("rrm_interaction" %in% names(analysis@rrm_results)) {
+            rrm_results <- analysis@rrm_results$rrm_interaction
             if (verbose) {
-                message("[calculate_jis] Using LM interaction results")
+                message("[calculate_jis] Using RRM interaction results")
             }
         }
     }
-    lm_results
+    rrm_results
 }
 
 #' Validate q-values are available in diversity results
@@ -389,7 +389,7 @@ calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL, ge
 #'
 #' @noRd
 .resolve_and_validate_jis_params <- function(q, norm = NULL, log_base = NULL, pseudocount = NULL,
-    nboot = 1000, threshold = NULL, lm_p_threshold = NULL, analysis, verbose = FALSE) {
+    nboot = 1000, threshold = NULL, rrm_p_threshold = NULL, analysis, verbose = FALSE) {
     # Resolve q: use config if available, otherwise use the provided value
     # (which has function default)
     if (is.null(q) && "q" %in% names(analysis@config)) {
@@ -408,7 +408,7 @@ calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL, ge
         0)
     nboot <- resolve_slot_param(nboot, analysis@config, "nboot", 1000)
     threshold <- resolve_slot_param(threshold, analysis@config, "threshold", 90)
-    lm_p_threshold <- resolve_slot_param(lm_p_threshold, analysis@config, "lm_p_threshold",
+    rrm_p_threshold <- resolve_slot_param(rrm_p_threshold, analysis@config, "rrm_p_threshold",
         0.05)
 
     # Validate nboot
@@ -425,13 +425,13 @@ calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL, ge
         stop("'threshold' must be a single numeric value", call. = FALSE)
     }
 
-    # Validate lm_p_threshold
-    if (!is.numeric(lm_p_threshold) || length(lm_p_threshold) != 1) {
-        stop("'lm_p_threshold' must be a single numeric value", call. = FALSE)
+    # Validate rrm_p_threshold
+    if (!is.numeric(rrm_p_threshold) || length(rrm_p_threshold) != 1) {
+        stop("'rrm_p_threshold' must be a single numeric value", call. = FALSE)
     }
 
     list(q = q, q_vals = q_vals, norm = norm, log_base = log_base, pseudocount = pseudocount,
-        nboot = nboot, threshold = threshold, lm_p_threshold = lm_p_threshold)
+        nboot = nboot, threshold = threshold, rrm_p_threshold = rrm_p_threshold)
 }
 
 #' Store jackknife results in analysis object

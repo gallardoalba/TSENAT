@@ -21,10 +21,10 @@
 #'   Values are SummarizedExperiment objects or data.frames containing entropy
 #'   values for each gene at that q-value.
 #'
-#' @slot lm_results \code{list}. Complex results from regularized/penalized regression methods
+#' @slot rrm_results \code{list}. Complex results from regularized/penalized regression methods
 #'   (GAM, LMM, GEE, FPCA) and statistical testing. Top-level names identify analysis type:
 #'   \describe{
-#'     \item{\code{lm_interaction}}{Regularized regression (GAM/LMM/GEE/FPCA) model results (list with
+#'     \item{\code{rrm_interaction}}{Regularized regression (GAM/LMM/GEE/FPCA) model results (list with
 #'           \code{$results} data.frame, \code{$models} list, etc.)}
 #'     \item{\code{rank_test}}{Scheirer-Ray-Hare rank-based test results}
 #'     \item{\code{divergence_difference}}{Differential divergence comparison}
@@ -51,7 +51,7 @@
 #'   }
 #'
 #' @slot plots \code{list}. Cached visualization objects (ggplot). Names
-#'   identify plot type (e.g., 'q_curve', 'lm_interaction', 'influence').
+#'   identify plot type (e.g., 'q_curve', 'rrm_interaction', 'influence').
 #'   Populated by \code{TSENAT()} if \code{generate_plots=TRUE}.
 #'
 #' @slot metadata \code{list}. Reproducibility and tracking metadata.
@@ -66,7 +66,7 @@
 #' @details
 #' Access results via the unified \code{results(obj, type = ...)} accessor method:
 #' - \code{type='diversity'} for Tsallis entropy across q-values
-#' - \code{type='lm'} for regularized/penalized regression (GAM, LMM, GEE, FPCA) interaction results
+#' - \code{type='rrm'} for regularized/penalized regression (GAM, LMM, GEE, FPCA) interaction results
 #' - \code{type='rank_test'} for Scheirer-Ray-Hare rank-based test results
 #' - \code{type='divergence'} for divergence metrics
 #' - \code{type='jackknife'} for jackknife resampling results
@@ -78,9 +78,9 @@
 #' @importFrom S4Vectors metadata
 #'
 setClass("TSENATAnalysis", slots = list(se = "SummarizedExperiment", config = "list",
-    diversity_results = "list", lm_results = "list", pairwise_results = "list", rank_test_results = "list",
+    diversity_results = "list", rrm_results = "list", pairwise_results = "list", rank_test_results = "list",
     jackknife_results = "list", divergence_results = "list", plots = "list", metadata = "list"),
-    prototype = list(config = list(), diversity_results = list(), lm_results = list(),
+    prototype = list(config = list(), diversity_results = list(), rrm_results = list(),
         pairwise_results = list(), rank_test_results = list(), jackknife_results = list(),
         divergence_results = list(), plots = list(), metadata = list(function_calls = character(0),
             function_timestamps = character(0))), validity = function(object) {
@@ -104,8 +104,8 @@ setClass("TSENATAnalysis", slots = list(se = "SummarizedExperiment", config = "l
         if (!is.list(object@diversity_results)) {
             return("@diversity_results must be a list")
         }
-        if (!is.list(object@lm_results)) {
-            return("@lm_results must be a list")
+        if (!is.list(object@rrm_results)) {
+            return("@rrm_results must be a list")
         }
         if (!is.list(object@rank_test_results)) {
             return("@rank_test_results must be a list")
@@ -187,7 +187,7 @@ setClass("TSENATAnalysis", slots = list(se = "SummarizedExperiment", config = "l
 #' - The underlying SummarizedExperiment is subset to the specified
 #' genes/samples
 #' - Diversity and jackknife results are subset to match sample selection
-#' - LM results are recalculated or removed if sample structure changes
+#' - RRM results are recalculated or removed if sample structure changes
 #' - Divergence results are subset accordingly
 #' - Analysis configuration is preserved
 #'

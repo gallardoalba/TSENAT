@@ -12,7 +12,7 @@ make_test_analysis_diversity <- function(n_genes = 8, n_samples_per_group = 4,
     n_samples_per_group = n_samples_per_group,
     q_values = q_values,
     include_divergence = FALSE,
-    include_lm_results = FALSE,
+    include_rrm_results = FALSE,
     seed = seed,
     verbose = FALSE
   )
@@ -1096,7 +1096,7 @@ make_test_analysis_helpers <- function(n_genes = 8, n_samples_per_group = 2, see
     n_samples_per_group = n_samples_per_group,
     q_values = c(0.5, 1.0, 1.5),
     include_divergence = FALSE,
-    include_lm_results = FALSE,
+    include_rrm_results = FALSE,
     seed = seed,
     verbose = FALSE
   )
@@ -1466,7 +1466,7 @@ test_that("Helper functions handle edge case: single sample", {
     n_samples_per_group = 1,
     q_values = c(1.0),
     include_divergence = FALSE,
-    include_lm_results = FALSE,
+    include_rrm_results = FALSE,
     seed = 222,
     verbose = FALSE
   )
@@ -1490,7 +1490,7 @@ test_that("Helper functions handle edge case: single q-value", {
     n_samples_per_group = 2,
     q_values = c(0.5),  # Single q-value
     include_divergence = FALSE,
-    include_lm_results = FALSE,
+    include_rrm_results = FALSE,
     seed = 333,
     verbose = FALSE
   )
@@ -1515,7 +1515,7 @@ test_that("Helper functions handle edge case: many q-values", {
     n_samples_per_group = 2,
     q_values = c(0.5),  # Default config
     include_divergence = FALSE,
-    include_lm_results = FALSE,
+    include_rrm_results = FALSE,
     seed = 444,
     verbose = FALSE
   )

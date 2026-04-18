@@ -212,7 +212,7 @@ test_that(".spectrum_validate_inputs rejects invalid gene parameter", {
   )
 })
 
-test_that(".spectrum_validate_inputs rejects invalid lm_res", {
+test_that(".spectrum_validate_inputs rejects invalid rrm_res", {
   skip_if_not_installed("SummarizedExperiment")
   
   mat <- matrix(rnorm(12), nrow = 3, ncol = 4)
@@ -369,7 +369,7 @@ test_that(".plot_divergence_spectrum with global mode returns ggplot", {
   expect_is(p, "ggplot")
 })
 
-test_that(".plot_divergence_spectrum with lm_res returns ggplot", {
+test_that(".plot_divergence_spectrum with rrm_res returns ggplot", {
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("SummarizedExperiment")
   
@@ -379,12 +379,12 @@ test_that(".plot_divergence_spectrum with lm_res returns ggplot", {
   
   se <- SummarizedExperiment::SummarizedExperiment(assays = list(div = mat))
   
-  lm_res <- data.frame(
+  rrm_res <- data.frame(
     gene = c("gene1", "gene2", "gene3"),
     adj_p_interaction = c(0.001, 0.01, 0.05)
   )
   
-  p <- TSENAT:::.plot_divergence_spectrum(se, lm_res = lm_res, n_genes = 2)
+  p <- TSENAT:::.plot_divergence_spectrum(se, rrm_res = rrm_res, n_genes = 2)
   
   expect_is(p, "ggplot")
 })
@@ -478,7 +478,7 @@ test_that("plot_divergence_spectrum: requires divergence results", {
     n_samples_per_group = 3,
     q_values = c(1.0),
     include_divergence = FALSE,
-    include_lm_results = FALSE,
+    include_rrm_results = FALSE,
     seed = 304,
     verbose = FALSE
   )

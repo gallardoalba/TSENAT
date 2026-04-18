@@ -9,7 +9,7 @@ plot_diversity_spectrum(
   assay_name = "diversity",
   condition_col = NULL,
   gene = NULL,
-  lm_res = NULL,
+  rrm_res = NULL,
   n_top = NULL,
   metric = "iqr",
   output_file = NULL,
@@ -39,10 +39,10 @@ specified gene(s).
 Overrides default aggregate behavior. When provided, uses median +/- SD
 for each gene.}
 
-\item{lm_res}{Data frame (optional); gene interaction test results with
+\item{rrm_res}{Data frame (optional); gene interaction test results with
 `gene` column and
   p-value column. Accepts either:
-- Results from `.calculate_lm()` (has `adj_p_interaction` or
+- Results from `.calculate_rrm()` (has `adj_p_interaction` or
 `p_interaction` columns)
 - Results from `.calculate_srh()` (has `adj_p_value` or `p_value`
 columns from Scheirer-Ray-Hare rank tests)
@@ -50,7 +50,7 @@ If provided (and `gene` is NULL), plots top `n_top` genes ranked by
 p-value.
   Useful for plotting significant genes from any interaction analysis.}
 
-\item{n_top}{Integer or NULL; number of top genes to select from `lm_res`
+\item{n_top}{Integer or NULL; number of top genes to select from `rrm_res`
 when `gene` is NULL
 (default: NULL). When NULL, defaults to showing the single most
 significant gene (n_top=1),
@@ -80,13 +80,13 @@ If specified (along with dev_width), creates a new device with this height.
 Default: NULL (uses current device).}
 }
 \value{
-**Aggregate mode (gene=NULL, lm_res=NULL)**:
+**Aggregate mode (gene=NULL, rrm_res=NULL)**:
 - If bootstrap CI assays available: A ggplot object showing median
 entropy with bootstrap confidence interval bands.
 - If no CI assays: A ggplot object showing median entropy with IQR
 ribbons (automatic fallback).
 
-**Gene-specific mode (gene or lm_res provided)**:
+**Gene-specific mode (gene or rrm_res provided)**:
 - Single gene: A ggplot object showing median entropy +/- SD for that gene.
 - Multiple genes: A grid plot object arranged in 2 rows x 2 columns with
 a shared legend at the bottom.
@@ -101,17 +101,17 @@ q-curves (when `gene` provided),
 or bootstrap confidence interval bands.
 }
 \details{
-**Aggregate mode (default, gene=NULL, lm_res=NULL)**:
+**Aggregate mode (default, gene=NULL, rrm_res=NULL)**:
 - Plots median Tsallis entropy +/- IQR across all genes for each group
 - Works with any SummarizedExperiment from .calculate_diversity()
 - Supports single or multiple q values and any number of groups
 - No CI data required for basic plots; bootstrap CIs optional
 
-**Gene-specific mode (gene or lm_res provided)**:
+**Gene-specific mode (gene or rrm_res provided)**:
 - Plots q-curve separately for each selected gene
 - Shows median entropy +/- SD (variance) for each gene across q-values
 and groups
-- When `lm_res` provided: automatically ranks genes and selects top
+- When `rrm_res` provided: automatically ranks genes and selects top
 `n_top` by p-value
 - Single gene: returns a ggplot object; multiple genes: returns a grid
 plot (2 rows x 2 columns) with shared legend

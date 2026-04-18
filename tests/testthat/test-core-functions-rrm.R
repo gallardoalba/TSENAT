@@ -2,7 +2,7 @@ library(testthat)
 
 context("LM Core Functions: Input Validation")
 
-test_that(".validate_lm_interaction_input rejects invalid storey", {
+test_that(".validate_rrm_interaction_input rejects invalid storey", {
     skip_if_not_installed("SummarizedExperiment")
 
     # Create minimal SE object for validation
@@ -24,7 +24,7 @@ test_that(".validate_lm_interaction_input rejects invalid storey", {
 
     # Should reject non-logical storey
     expect_error(
-        TSENAT:::.validate_lm_interaction_input(
+        TSENAT:::.validate_rrm_interaction_input(
             method = "lmm",
             pvalue = "lrt",
             corstr = "ar1",
@@ -43,7 +43,7 @@ test_that(".validate_lm_interaction_input rejects invalid storey", {
     )
 })
 
-test_that(".validate_lm_interaction_input rejects invalid wy_randomizations", {
+test_that(".validate_rrm_interaction_input rejects invalid wy_randomizations", {
     skip_if_not_installed("SummarizedExperiment")
 
     mat <- matrix(runif(10), nrow = 2)
@@ -64,7 +64,7 @@ test_that(".validate_lm_interaction_input rejects invalid wy_randomizations", {
 
     # Should reject negative wy_randomizations
     expect_error(
-        TSENAT:::.validate_lm_interaction_input(
+        TSENAT:::.validate_rrm_interaction_input(
             method = "lmm",
             pvalue = "lrt",
             corstr = "ar1",
@@ -83,7 +83,7 @@ test_that(".validate_lm_interaction_input rejects invalid wy_randomizations", {
     )
 })
 
-test_that(".validate_lm_interaction_input warns on low wy_randomizations", {
+test_that(".validate_rrm_interaction_input warns on low wy_randomizations", {
     skip_if_not_installed("SummarizedExperiment")
 
     mat <- matrix(runif(10), nrow = 2)
@@ -104,7 +104,7 @@ test_that(".validate_lm_interaction_input warns on low wy_randomizations", {
 
     # Should warn on wy_randomizations < 100
     expect_warning(
-        TSENAT:::.validate_lm_interaction_input(
+        TSENAT:::.validate_rrm_interaction_input(
             method = "lmm",
             pvalue = "lrt",
             corstr = "ar1",
@@ -123,7 +123,7 @@ test_that(".validate_lm_interaction_input warns on low wy_randomizations", {
     )
 })
 
-test_that(".validate_lm_interaction_input auto-detects subject_col when paired", {
+test_that(".validate_rrm_interaction_input auto-detects subject_col when paired", {
     skip_if_not_installed("SummarizedExperiment")
 
     mat <- matrix(runif(10), nrow = 2)
@@ -144,7 +144,7 @@ test_that(".validate_lm_interaction_input auto-detects subject_col when paired",
     )
 
     # Should auto-detect paired_samples column
-    result <- TSENAT:::.validate_lm_interaction_input(
+    result <- TSENAT:::.validate_rrm_interaction_input(
         method = "lmm",
         pvalue = "lrt",
         corstr = "ar1",
@@ -502,7 +502,7 @@ test_that(".assemble_model_metadata computes per-group statistics", {
 
 context("LM Refactored Main Function Integration")
 
-test_that("calculate_lm works with refactored code", {
+test_that("calculate_rrm works with refactored code", {
     skip_if_not_installed("SummarizedExperiment")
 
     # Use a larger, more realistic dataset to avoid numerical issues
@@ -555,7 +555,7 @@ test_that("calculate_lm works with refactored code", {
     )
 
     # Call refactored function with realistic data
-    results <- .calculate_lm(
+    results <- .calculate_rrm(
         se,
         condition_col = "condition",
         method = "lmm",
@@ -579,7 +579,7 @@ test_that("calculate_lm works with refactored code", {
     )
 })
 
-test_that("calculate_lm returns model_data when requested", {
+test_that("calculate_rrm returns model_data when requested", {
     skip_if_not_installed("SummarizedExperiment")
 
     # Use realistic entropy-like data (bounded between 0 and 1, realistic slopes)
@@ -626,7 +626,7 @@ test_that("calculate_lm returns model_data when requested", {
     )
 
     # Call with return_model_data = TRUE
-    output <- .calculate_lm(
+    output <- .calculate_rrm(
         se,
         condition_col = "condition",
         method = "lmm",

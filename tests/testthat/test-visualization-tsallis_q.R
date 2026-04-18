@@ -679,7 +679,7 @@ test_that(".plot_tsallis_gene_specific creates plot with single gene", {
     assay_name = "tsallis",
     condition_col = "group",
     gene = "GENE_A",
-    lm_res = NULL,
+    rrm_res = NULL,
     n_top = NULL,
     metric = "iqr",
     output_file = NULL
@@ -712,7 +712,7 @@ test_that(".plot_tsallis_gene_specific handles multiple genes in SE", {
     assay_name = "tsallis",
     condition_col = "group",
     gene = "GENE_B",
-    lm_res = NULL,
+    rrm_res = NULL,
     n_top = NULL,
     metric = "iqr",
     output_file = NULL
@@ -746,7 +746,7 @@ test_that(".plot_tsallis_gene_specific handles varying q-values", {
         assay_name = "tsallis",
         condition_col = "group",
         gene = "GENE_TEST",
-        lm_res = NULL,
+        rrm_res = NULL,
         n_top = NULL,
         metric = "iqr",
         output_file = NULL
@@ -786,7 +786,7 @@ test_that(".plot_tsallis_gene_specific outputs file if specified", {
         assay_name = "tsallis",
         condition_col = "group",
         gene = "GENE_A",
-        lm_res = NULL,
+        rrm_res = NULL,
         n_top = NULL,
         metric = "iqr",
         output_file = temp_file
@@ -826,7 +826,7 @@ test_that(".plot_tsallis_gene_specific with output_file=NULL returns plot object
     assay_name = "tsallis",
     condition_col = "group",
     gene = "GENE_A",
-    lm_res = NULL,
+    rrm_res = NULL,
     n_top = NULL,
     metric = "iqr",
     output_file = NULL
@@ -858,7 +858,7 @@ test_that(".plot_tsallis_gene_specific handles non-existent gene gracefully", {
       assay_name = "tsallis",
       condition_col = "group",
       gene = "NON_EXISTENT",
-      lm_res = NULL,
+      rrm_res = NULL,
       n_top = NULL,
       metric = "iqr",
       output_file = NULL
@@ -894,7 +894,7 @@ test_that(".plot_tsallis_gene_specific with custom q-values", {
       assay_name = "tsallis",
       condition_col = "group",
       gene = "GENE_A",
-      lm_res = NULL,
+      rrm_res = NULL,
       n_top = NULL,
       metric = "iqr",
       output_file = NULL
@@ -929,7 +929,7 @@ test_that(".plot_tsallis_gene_specific returns invisibly or displays", {
       assay_name = "tsallis",
       condition_col = "group",
       gene = "GENE_A",
-      lm_res = NULL,
+      rrm_res = NULL,
       n_top = NULL,
       metric = "iqr",
       output_file = NULL

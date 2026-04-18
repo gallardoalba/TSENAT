@@ -14,9 +14,9 @@
 #' @param gene Optional character. If provided, plot divergence spectrum for
 #' this specific gene.
 #'   If NULL, plot global divergence curve (aggregated across all genes).
-#' @param lm_res Optional data.frame with columns for gene identifiers and
+#' @param rrm_res Optional data.frame with columns for gene identifiers and
 #' p-values. Used to select
-#'   top genes when gene = NULL and lm_res is provided. Default: NULL.
+#'   top genes when gene = NULL and rrm_res is provided. Default: NULL.
 #' @param n_genes Integer; number of top genes to plot when showing
 #' multi-gene spectra (default: 4).
 #' Must be positive. Genes are sorted by p-value significance (lowest
@@ -105,7 +105,7 @@
     valid_cols <- c("gene", "gene_name", "gene_id")
     found <- valid_cols[valid_cols %in% colnames(df)]
     if (length(found) == 0) {
-        stop("'lm_res' must have a column named 'gene', 'gene_name', or 'gene_id'",
+        stop("'rrm_res' must have a column named 'gene', 'gene_name', or 'gene_id'",
             call. = FALSE)
     }
     return(found[1])
@@ -116,14 +116,14 @@
     valid_cols <- c("adj_p_interaction", "p_interaction", "adj_p_value", "p_value")
     found <- valid_cols[valid_cols %in% colnames(df)]
     if (length(found) == 0) {
-        stop("'lm_res' must have a p-value column like adj_p_interaction or p_value",
+        stop("'rrm_res' must have a p-value column like adj_p_interaction or p_value",
             call. = FALSE)
     }
     return(found[1])
 }
 
 #' @noRd
-.spectrum_validate_inputs <- function(divergence_results_se, gene, lm_res, n_genes,
+.spectrum_validate_inputs <- function(divergence_results_se, gene, rrm_res, n_genes,
     ncol) {
     if (!inherits(divergence_results_se, "SummarizedExperiment")) {
         stop("'divergence_results_se' must be a SummarizedExperiment", call. = FALSE)
@@ -139,8 +139,8 @@
     if (!is.null(gene) && (!is.character(gene) || length(gene) != 1)) {
         stop("'gene' must be a single character string or NULL", call. = FALSE)
     }
-    if (!is.null(lm_res) && (!is.data.frame(lm_res) || nrow(lm_res) == 0)) {
-        stop("'lm_res' must be a non-empty data.frame or NULL", call. = FALSE)
+    if (!is.null(rrm_res) && (!is.data.frame(rrm_res) || nrow(rrm_res) == 0)) {
+        stop("'rrm_res' must be a non-empty data.frame or NULL", call. = FALSE)
     }
     if (!is.numeric(n_genes) || n_genes < 1)
         stop("'n_genes' must be positive", call. = FALSE)
@@ -175,15 +175,15 @@
 }
 
 #' @noRd
-.spectrum_plot_top_genes <- function(lm_res, n_genes_use, ncol, div_mat_sorted, q_vals_sorted,
+.spectrum_plot_top_genes <- function(rrm_res, n_genes_use, ncol, div_mat_sorted, q_vals_sorted,
     gene_names, metric, divergence_results_se) {
-    gene_col <- .spectrum_find_gene_column(lm_res)
-    p_col <- .spectrum_find_pvalue_column(lm_res)
-    lm_sorted <- lm_res[order(lm_res[[p_col]], na.last = TRUE), , drop = FALSE]
-    top_genes_vec <- head(lm_sorted[[gene_col]], n_genes_use)
+    gene_col <- .spectrum_find_gene_column(rrm_res)
+    p_col <- .spectrum_find_pvalue_column(rrm_res)
+    rrm_sorted <- rrm_res[order(rrm_res[[p_col]], na.last = TRUE), , drop = FALSE]
+    top_genes_vec <- head(rrm_sorted[[gene_col]], n_genes_use)
 
     if (length(top_genes_vec) == 0) {
-        stop("No genes found in 'lm_res'", call. = FALSE)
+        stop("No genes found in 'rrm_res'", call. = FALSE)
     }
 
     gene_indices <- match(top_genes_vec, gene_names)
@@ -217,7 +217,7 @@
     # Build data frame with bootstrap CIs if available
     plot_list <- lapply(seq_along(gene_indices), function(i) {
         df <- data.frame(q = q_vals_sorted, divergence = as.numeric(div_mat_sorted[gene_indices[i],
-            ]), gene = gene_names[gene_indices[i]], p_value = lm_sorted[[p_col]][i],
+            ]), gene = gene_names[gene_indices[i]], p_value = rrm_sorted[[p_col]][i],
             stringsAsFactors = FALSE)
 
         # Add bootstrap CI columns if available
@@ -357,7 +357,7 @@
 
 # PLOT DISPATCH WRAPPER - Route to single gene, top genes, or global plot
 #' @noRd
-.plot_divergence_spectrum <- function(divergence_results_se, gene = NULL, lm_res = NULL,
+.plot_divergence_spectrum <- function(divergence_results_se, gene = NULL, rrm_res = NULL,
     n_genes = 4, ncol = 2, metric = c("median", "mean"), variability_metric = c("iqr",
         "sd")) {
     # Validate inputs and extract matrix
@@ -366,7 +366,7 @@
     n_genes <- as.integer(n_genes)
     ncol <- as.integer(ncol)
 
-    div_mat <- .spectrum_validate_inputs(divergence_results_se, gene, lm_res, n_genes,
+    div_mat <- .spectrum_validate_inputs(divergence_results_se, gene, rrm_res, n_genes,
         ncol)
 
     # Prepare data
@@ -386,8 +386,8 @@
         return(.spectrum_plot_single_gene(gene, div_mat_sorted, q_vals_sorted, gene_names))
     }
 
-    if (!is.null(lm_res)) {
-        return(.spectrum_plot_top_genes(lm_res, n_genes, ncol, div_mat_sorted, q_vals_sorted,
+    if (!is.null(rrm_res)) {
+        return(.spectrum_plot_top_genes(rrm_res, n_genes, ncol, div_mat_sorted, q_vals_sorted,
             gene_names, metric, divergence_results_se))
     }
 

@@ -136,34 +136,34 @@ test_that(".apply_group_aesthetics works with all calling contexts", {
 })
 
 # =============================================================================
-# Tests for .validate_lm_method_dependencies
+# Tests for .validate_rrm_method_dependencies
 # =============================================================================
 
-test_that(".validate_lm_method_dependencies validates LMM", {
+test_that(".validate_rrm_method_dependencies validates LMM", {
     # LMM requires 'nlme' package
-    expect_silent(.validate_lm_method_dependencies("lmm"))
+    expect_silent(.validate_rrm_method_dependencies("lmm"))
 })
 
-test_that(".validate_lm_method_dependencies validates GAM", {
+test_that(".validate_rrm_method_dependencies validates GAM", {
     # GAM requires 'mgcv' package  
-    expect_silent(.validate_lm_method_dependencies("gam"))
+    expect_silent(.validate_rrm_method_dependencies("gam"))
 })
 
-test_that(".validate_lm_method_dependencies validates GEE", {
+test_that(".validate_rrm_method_dependencies validates GEE", {
     # GEE requires 'geepack' package
-    expect_silent(.validate_lm_method_dependencies("gee"))
+    expect_silent(.validate_rrm_method_dependencies("gee"))
 })
 
-test_that(".validate_lm_method_dependencies validates FPCA", {
+test_that(".validate_rrm_method_dependencies validates FPCA", {
     # FPCA requires 'refund' package
-    expect_silent(.validate_lm_method_dependencies("fpca"))
+    expect_silent(.validate_rrm_method_dependencies("fpca"))
 })
 
 # =============================================================================
-# Tests for .validate_lm_data_structure
+# Tests for .validate_rrm_data_structure
 # =============================================================================
 
-test_that(".validate_lm_data_structure checks condition_col in colData", {
+test_that(".validate_rrm_data_structure checks condition_col in colData", {
     skip_if_not_installed("SummarizedExperiment")
     
     # Create minimal SummarizedExperiment
@@ -172,12 +172,12 @@ test_that(".validate_lm_data_structure checks condition_col in colData", {
     
     # Should fail - no condition column
     expect_error(
-        .validate_lm_data_structure(se, condition_col = "treatment", assay_name = "counts"),
+        .validate_rrm_data_structure(se, condition_col = "treatment", assay_name = "counts"),
         "not found in colData"
     )
 })
 
-test_that(".validate_lm_data_structure checks assay exists", {
+test_that(".validate_rrm_data_structure checks assay exists", {
     skip_if_not_installed("SummarizedExperiment")
     
     mat <- matrix(1:20, nrow = 5, ncol = 4)
@@ -189,12 +189,12 @@ test_that(".validate_lm_data_structure checks assay exists", {
     
     # Should fail - no diversity assay
     expect_error(
-        .validate_lm_data_structure(se, condition_col = "condition", assay_name = "diversity"),
+        .validate_rrm_data_structure(se, condition_col = "condition", assay_name = "diversity"),
         "not found"
     )
 })
 
-test_that(".validate_lm_data_structure passes with valid structure", {
+test_that(".validate_rrm_data_structure passes with valid structure", {
     skip_if_not_installed("SummarizedExperiment")
     
     mat <- matrix(1:20, nrow = 5, ncol = 4)
@@ -206,41 +206,41 @@ test_that(".validate_lm_data_structure passes with valid structure", {
     
     # Should pass - valid structure
     expect_silent(
-        .validate_lm_data_structure(se, condition_col = "condition", assay_name = "diversity")
+        .validate_rrm_data_structure(se, condition_col = "condition", assay_name = "diversity")
     )
 })
 
 # =============================================================================
-# Tests for .postprocess_lm_results
+# Tests for .postprocess_rrm_results
 # =============================================================================
 
-test_that(".postprocess_lm_results adds gene column from gene_id", {
+test_that(".postprocess_rrm_results adds gene column from gene_id", {
     # Create minimal results dataframe
     res <- data.frame(
         gene_id = c("ENSG001", "ENSG002"),
         p_interaction = c(0.01, 0.05)
     )
     
-    result <- .postprocess_lm_results(res, return_model_data = FALSE)
+    result <- .postprocess_rrm_results(res, return_model_data = FALSE)
     
     expect_true("gene" %in% colnames(result))
     expect_equal(result$gene, c("ENSG001", "ENSG002"))
 })
 
-test_that(".postprocess_lm_results adds gene column from gene_name", {
+test_that(".postprocess_rrm_results adds gene column from gene_name", {
     # When gene_id not available, should use gene_name
     res <- data.frame(
         gene_name = c("BRCA1", "BRCA2"),
         p_interaction = c(0.01, 0.05)
     )
     
-    result <- .postprocess_lm_results(res, return_model_data = FALSE)
+    result <- .postprocess_rrm_results(res, return_model_data = FALSE)
     
     expect_true("gene" %in% colnames(result))
     expect_equal(result$gene, c("BRCA1", "BRCA2"))
 })
 
-test_that(".postprocess_lm_results preserves existing gene column", {
+test_that(".postprocess_rrm_results preserves existing gene column", {
     # If gene already exists, should keep it
     res <- data.frame(
         gene = c("GeneA", "GeneB"),
@@ -248,24 +248,24 @@ test_that(".postprocess_lm_results preserves existing gene column", {
         p_interaction = c(0.01, 0.05)
     )
     
-    result <- .postprocess_lm_results(res, return_model_data = FALSE)
+    result <- .postprocess_rrm_results(res, return_model_data = FALSE)
     
     # Should keep the original gene column
     expect_equal(result$gene, c("GeneA", "GeneB"))
 })
 
-test_that(".postprocess_lm_results returns data.frame by default", {
+test_that(".postprocess_rrm_results returns data.frame by default", {
     res <- data.frame(
         gene_id = c("ENSG001", "ENSG002"),
         p_interaction = c(0.01, 0.05)
     )
     
-    result <- .postprocess_lm_results(res, return_model_data = FALSE)
+    result <- .postprocess_rrm_results(res, return_model_data = FALSE)
     
     expect_is(result, "data.frame")
 })
 
-test_that(".postprocess_lm_results returns list with model_data when requested", {
+test_that(".postprocess_rrm_results returns list with model_data when requested", {
     skip_if_not_installed("SummarizedExperiment")
     
     res <- data.frame(
@@ -276,7 +276,7 @@ test_that(".postprocess_lm_results returns list with model_data when requested",
     mat <- matrix(1:20, nrow = 5, ncol = 4)
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat))
     
-    result <- .postprocess_lm_results(res, return_model_data = TRUE, 
+    result <- .postprocess_rrm_results(res, return_model_data = TRUE, 
                                      se = se, mat = mat, metadata = list())
     
     expect_is(result, "list")
@@ -289,7 +289,7 @@ test_that(".postprocess_lm_results returns list with model_data when requested",
 # Regression Tests: Verify Extracted Functions Don't Break Existing Code
 # =============================================================================
 
-test_that("Extracted functions maintain backward compatibility with .calculate_lm", {
+test_that("Extracted functions maintain backward compatibility with .calculate_rrm", {
     # Verify that the new helper functions work in the actual calling context
     skip_if_not_installed("SummarizedExperiment")
     
@@ -302,8 +302,8 @@ test_that("Extracted functions maintain backward compatibility with .calculate_l
     )
     
     # Should pass through all validation steps
-    expect_silent(.validate_lm_method_dependencies("gam"))
-    expect_silent(.validate_lm_data_structure(se, "condition", "diversity"))
+    expect_silent(.validate_rrm_method_dependencies("gam"))
+    expect_silent(.validate_rrm_data_structure(se, "condition", "diversity"))
 })
 
 # =============================================================================

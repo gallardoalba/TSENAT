@@ -24,15 +24,15 @@ plot_expression(
 }
 \arguments{
 \item{analysis}{\code{TSENATAnalysis}. An S4 object containing a processed
-SummarizedExperiment and optional LM interaction results.}
+SummarizedExperiment and optional RRM interaction results.}
 
 \item{gene}{\code{character} or  \code{NULL}.  Gene identifier(s) to plot.
  If a vector 
 of multiple genes is provided, plots all of them. If NULL, automatically
 selects
-  the top genes from LM results based on \code{top_n} parameter (genes with 
+  the top genes from RRM results based on \code{top_n} parameter (genes with 
 lowest p-values).
-  Default: NULL (auto-extract from lm_results).}
+  Default: NULL (auto-extract from rrm_results).}
 
 \item{condition_col}{\code{character}. Column name in colData(se) specifying
 group assignments (default: 'sample_type').}
@@ -96,18 +96,18 @@ active grid device
 S4 wrapper for  \code{. plot_expression()} that 
 extracts data directly from
 a TSENATAnalysis object. Automatically retrieves the SummarizedExperiment and
-LM results for visualizing transcript abundance across conditions.
+RRM results for visualizing transcript abundance across conditions.
 }
 \details{
 This wrapper extracts the following from \code{analysis}:
 \describe{
   \item{SummarizedExperiment}{From \code{analysis@se} containing transcript counts}
-  \item{LM results}{From \code{analysis@lm_results$lm_interaction} for 
+  \item{RRM results}{From \code{analysis@rrm_results$rrm_interaction} for 
 gene selection}
 }
 
 If no gene is specified, the function automatically selects the top gene from
-the LM results (lowest p-value). This simplifies visualization of genes with
+the RRM results (lowest p-value). This simplifies visualization of genes with
 significant q x condition interaction effects.
 }
 \examples{
@@ -147,7 +147,7 @@ analysis <- calculate_diversity(
   q = c(0.5, 1.0, 1.5, 2.0, 2.5),
   verbose = FALSE
 )
-analysis <- suppressWarnings(calculate_lm(
+analysis <- suppressWarnings(calculate_rrm(
   analysis,
   method = 'gam',
   verbose = FALSE

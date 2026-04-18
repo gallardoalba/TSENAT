@@ -584,28 +584,28 @@ test_that("classify_q_pattern classifies ABUNDANT_DRIVEN correctly", {
 # =====================================================================
 
 test_that("calculate_effect_sizes requires data frame input", {
-  # lm_res must be a data frame
+  # rrm_res must be a data frame
   expect_error(
     .calculate_effect_sizes(
-      lm_res = list(a = 1, b = 2),
+      rrm_res = list(a = 1, b = 2),
       divergence_results_se = NULL,
       verbose = FALSE
     ),
-    "lm_res must be a data frame"
+    "rrm_res must be a data frame"
   )
 })
 
 test_that("calculate_effect_sizes requires required columns", {
-  # Create lm_res without required columns
-  lm_res <- data.frame(some_col = c(1, 2, 3))
+  # Create rrm_res without required columns
+  rrm_res <- data.frame(some_col = c(1, 2, 3))
   
   expect_error(
     .calculate_effect_sizes(
-      lm_res = lm_res,
+      rrm_res = rrm_res,
       divergence_results_se = NULL,
       verbose = FALSE
     ),
-    "lm_res must have columns"
+    "rrm_res must have columns"
   )
 })
 
@@ -1124,7 +1124,7 @@ test_that("calculate_divergence: handles repeated measurements", {
 
 test_that("calculate_effect_sizes: computes effect sizes", {
   # Tests basic effect size calculations
-  # Note: calculate_effect_sizes requires LM results to be pre-computed
+  # Note: calculate_effect_sizes requires RRM results to be pre-computed
   
   se <- create_count_se(
     n_genes = 10,

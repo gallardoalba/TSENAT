@@ -1604,7 +1604,7 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
     max(100, base_nboot)
 }
 
-# NOTE: .compute_skewness defined in calc_lm_helpers.R Bootstrap distributions
+# NOTE: .compute_skewness defined in calc_rrm_helpers.R Bootstrap distributions
 # are clean (generated from rmultinom + entropy calculations), so the version
 # with na.rm parameter is safe to use with default na.rm=TRUE
 

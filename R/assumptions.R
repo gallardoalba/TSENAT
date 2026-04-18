@@ -830,12 +830,12 @@ print.rank_assumptions <- function(x, ...) {
                   return(NA_real_)
 
                 tryCatch({
-                  # Linear model
-                  lm_fit <- stats::lm(entropy ~ q, data = gam_data)
+                  # Regularized regression model
+                  rrm_fit <- stats::lm(entropy ~ q, data = gam_data)
                   # Directly extract r.squared - summary warnings are
                   # non-critical
-                  r2_lm <- {
-                    s <- summary(lm_fit)
+                  r2_rrm <- {
+                    s <- summary(rrm_fit)
                     if (!is.null(s$r.squared))
                       s$r.squared else NA_real_
                   }
@@ -844,7 +844,7 @@ print.rank_assumptions <- function(x, ...) {
                   gam_deviance <- (gam_fit$null.deviance - sum(gam_fit$residuals^2))/gam_fit$null.deviance
 
                   # Improvement percentage
-                  ((gam_deviance - r2_lm)/max(r2_lm, 0.001)) * 100
+                  ((gam_deviance - r2_rrm)/max(r2_rrm, 0.001)) * 100
                 }, error = function(e) NA_real_)
             })
 
@@ -1592,7 +1592,7 @@ print.rank_correlation_ci <- function(x, ...) {
         if (is.na(icc)) {
             status <- "? ERROR"
         } else if (icc < 0.05) {
-            status <- "use linear model"
+            status <- "use rrm model"
         } else if (icc < 0.2) {
             status <- "lmm justified"
         } else {

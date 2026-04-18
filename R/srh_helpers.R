@@ -418,8 +418,8 @@
         # Use pre-computed ranks (within-subject for paired, global for
         # unpaired) Then apply two-way ANOVA on the ranked data
         formula_str <- paste("ranks ~", q_col, "*", condition_col)
-        lm_model <- lm(as.formula(formula_str), data = data)
-        anova_result <- anova(lm_model)
+        rrm_model <- lm(as.formula(formula_str), data = data)
+        anova_result <- anova(rrm_model)
 
         # Extract interaction F-statistic and p-value Interaction is the
         # second-to-last row (before Residuals)
@@ -710,12 +710,12 @@
                   next
 
                 tryCatch({
-                  # Linear model
-                  lm_fit <- stats::lm(entropy ~ q, data = gam_data)
+                  # Regularized regression model
+                  rrm_fit <- stats::lm(entropy ~ q, data = gam_data)
                   # Directly extract r.squared - summary warnings are
                   # non-critical
-                  r2_lm <- {
-                    s <- summary(lm_fit)
+                  r2_rrm <- {
+                    s <- summary(rrm_fit)
                     if (!is.null(s$r.squared))
                       s$r.squared else NA_real_
                   }
@@ -731,7 +731,7 @@
                   gam_deviance <- (gam_fit$null.deviance - sum(gam_fit$residuals^2))/gam_fit$null.deviance
 
                   # Improvement percentage
-                  improvement <- ((gam_deviance - r2_lm)/max(r2_lm, 0.001)) * 100
+                  improvement <- ((gam_deviance - r2_rrm)/max(r2_rrm, 0.001)) * 100
                   improvements <- c(improvements, improvement)
                 }, error = function(e) NULL)
             }

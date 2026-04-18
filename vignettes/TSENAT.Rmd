@@ -454,23 +454,23 @@ We can test for these interactions using one of four methods, each with specific
 All methods automatically account for the AR(1) correlation structure inherent in Tsallis entropy measurements.
 
 ```{r test-q-condition-interaction}
-# Linear-model interaction test across q values using S4 wrapper
-analysis <- calculate_lm(
+# Regularized regression interaction test across q values using S4 wrapper
+analysis <- calculate_rrm(
     analysis,
     method = "gam",
     multicorr = "hochberg"
 )
        
-# Extract LM interaction results
-lm_results <- results(analysis, type = "lm", rankBy = "pvalue", n = 10)
+# Extract RRM interaction results
+rrm_results <- results(analysis, type = "rrm", rankBy = "pvalue", n = 10)
 
-print(lm_results)
+print(rrm_results)
 ```
 
 ```{r display-interaction-results, echo = FALSE, results="asis"}
-lm_res <- results(analysis, type = "lm")
-if (!is.null(lm_res) && is.data.frame(lm_res) && nrow(lm_res) > 0) {
-    display <- head(lm_res, 6)
+rrm_res <- results(analysis, type = "rrm")
+if (!is.null(rrm_res) && is.data.frame(rrm_res) && nrow(rrm_res) > 0) {
+    display <- head(rrm_res, 6)
     
     # Select only most informative columns
     key_cols <- c("gene", "p_interaction", "adj_p_interaction", 
@@ -500,11 +500,11 @@ if (!is.null(lm_res) && is.data.frame(lm_res) && nrow(lm_res) > 0) {
 **Interpretation:** TRUE in the Heteroscedasticity column indicates that the model satisfies homogeneity-of-variance assumptions across the q-spectrum; FALSE values suggest variance heterogeneity and warrant caution in result interpretation.
 
 Now we will plot the q-curve profile for the top genes identified 
-by the linear-model interaction test.
+by the regularized regression interaction test.
 
-```{r fig-2-scale-dependent-genes, fig.width=14, fig.height=12, out.width="98%", fig.pos="H", fig.cap = "**Figure 2:** Scale-dependent interaction analysis. GAM-identified genes showing significant q$\\times$condition effects (Benjamini-Hochberg q < 0.05)."}
+```{r fig-2-scale-dependent-genes, fig.width=14, fig.height=12, out.width="98%", fig.pos="H", fig.cap = "**Figure 2:** Scale-dependent interaction analysis. GAM-identified genes showing significant q$\times$condition effects (Benjamini-Hochberg q < 0.05)."}
 # Plot q-curve profiles for the top 4 genes using the S4 wrapper
-combined_plot <- plot_lm(
+combined_plot <- plot_rrm(
     analysis,
     n_top = 4
 )

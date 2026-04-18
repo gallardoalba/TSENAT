@@ -808,27 +808,27 @@ testthat::test_that(".plot_gam_fit_group returns NULL for insufficient data", {
 })
 
 testthat::test_that(".plot_select_genes returns user-specified genes", {
-  lm_res <- data.frame(
+  rrm_res <- data.frame(
     gene = c("gene1", "gene2", "gene3", "gene4"),
     adj_p_interaction = c(0.001, 0.01, 0.05, 0.1),
     stringsAsFactors = FALSE
   )
   
   genes_specified <- c("gene2", "gene4")
-  selected <- TSENAT:::.plot_select_genes(lm_res, genes = genes_specified, n_top = 2)
+  selected <- TSENAT:::.plot_select_genes(rrm_res, genes = genes_specified, n_top = 2)
   
   testthat::expect_equal(selected, genes_specified)
 })
 
 testthat::test_that(".plot_select_genes filters by significance", {
-  lm_res <- data.frame(
+  rrm_res <- data.frame(
     gene = c("gene1", "gene2", "gene3", "gene4"),
     adj_p_interaction = c(0.001, 0.01, 0.05, 0.1),
     stringsAsFactors = FALSE
   )
   
   # Select top 2 with sig_alpha = 0.05 should get gene1, gene2, gene3
-  selected <- TSENAT:::.plot_select_genes(lm_res, genes = NULL, n_top = 2, sig_alpha = 0.05)
+  selected <- TSENAT:::.plot_select_genes(rrm_res, genes = NULL, n_top = 2, sig_alpha = 0.05)
   
   # Should return exactly 2 genes (top 2 by p-value)
   testthat::expect_equal(length(selected), 2)
@@ -839,13 +839,13 @@ testthat::test_that(".plot_select_genes filters by significance", {
 })
 
 testthat::test_that(".plot_select_genes returns NULL when no significant genes", {
-  lm_res <- data.frame(
+  rrm_res <- data.frame(
     gene = c("gene1", "gene2", "gene3"),
     adj_p_interaction = c(0.1, 0.2, 0.3),
     stringsAsFactors = FALSE
   )
   
-  selected <- TSENAT:::.plot_select_genes(lm_res, genes = NULL, n_top = 2, sig_alpha = 0.05)
+  selected <- TSENAT:::.plot_select_genes(rrm_res, genes = NULL, n_top = 2, sig_alpha = 0.05)
   
   testthat::expect_null(selected)
 })
@@ -859,44 +859,44 @@ testthat::test_that(".plot_gam_handle_inputs validates SE and extracts dataframe
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(diversity = matrix(rnorm(20), nrow = 4, ncol = 5))
   )
-  lm_res <- data.frame(
+  rrm_res <- data.frame(
     gene = paste0("gene_", 1:4),
     p_interaction = c(0.01, 0.05, 0.1, 0.9),
     adj_p_interaction = c(0.02, 0.1, 0.2, 1)
   )
   
-  result <- TSENAT:::.plot_gam_handle_inputs(se, lm_res)
+  result <- TSENAT:::.plot_gam_handle_inputs(se, rrm_res)
   
   testthat::expect_is(result, "list")
   testthat::expect_true("se" %in% names(result))
-  testthat::expect_true("lm_res" %in% names(result))
-  testthat::expect_is(result$lm_res, "data.frame")
+  testthat::expect_true("rrm_res" %in% names(result))
+  testthat::expect_is(result$rrm_res, "data.frame")
 })
 
 testthat::test_that(".plot_gam_handle_inputs extracts from list with model_data", {
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(diversity = matrix(rnorm(20), nrow = 4, ncol = 5))
   )
-  lm_res_df <- data.frame(
+  rrm_res_df <- data.frame(
     gene = paste0("gene_", 1:4),
     p_interaction = c(0.01, 0.05, 0.1, 0.9)
   )
   model_data_list <- list(q_values = c(0.1, 0.5, 1.0, 1.5, 2.0))
   
-  lm_res_list <- list(results = lm_res_df, model_data = model_data_list)
+  rrm_res_list <- list(results = rrm_res_df, model_data = model_data_list)
   
-  result <- TSENAT:::.plot_gam_handle_inputs(se, lm_res_list)
+  result <- TSENAT:::.plot_gam_handle_inputs(se, rrm_res_list)
   
-  testthat::expect_is(result$lm_res, "data.frame")
+  testthat::expect_is(result$rrm_res, "data.frame")
   testthat::expect_is(result$model_data, "list")
   testthat::expect_equal(result$model_data$q_values, c(0.1, 0.5, 1.0, 1.5, 2.0))
 })
 
 testthat::test_that(".plot_gam_handle_inputs rejects invalid SE", {
-  lm_res <- data.frame(gene = c("g1", "g2"))
+  rrm_res <- data.frame(gene = c("g1", "g2"))
   
   testthat::expect_error(
-    TSENAT:::.plot_gam_handle_inputs("not_an_se", lm_res),
+    TSENAT:::.plot_gam_handle_inputs("not_an_se", rrm_res),
     "se must be a SummarizedExperiment"
   )
 })
@@ -933,15 +933,15 @@ testthat::test_that(".plot_gam_match_genes matches genes between SE and results"
   )
   rownames(se) <- paste0("gene_", 1:4)
   
-  lm_res <- data.frame(
+  rrm_res <- data.frame(
     gene = paste0("gene_", c(1, 2, 4)),
     p_value = c(0.01, 0.05, 0.1)
   )
   
-  result <- TSENAT:::.plot_gam_match_genes(se, lm_res)
+  result <- TSENAT:::.plot_gam_match_genes(se, rrm_res)
   
   testthat::expect_equal(nrow(result$se), 3)
-  testthat::expect_equal(nrow(result$lm_res), 3)
+  testthat::expect_equal(nrow(result$rrm_res), 3)
   testthat::expect_equal(rownames(result$se), c("gene_1", "gene_2", "gene_4"))
 })
 
@@ -951,24 +951,24 @@ testthat::test_that(".plot_gam_match_genes stops when no genes match", {
   )
   rownames(se) <- paste0("gene_", 1:4)
   
-  lm_res <- data.frame(
+  rrm_res <- data.frame(
     gene = paste0("other_", 1:3),
     p_value = c(0.01, 0.05, 0.1)
   )
   
   testthat::expect_error(
-    TSENAT:::.plot_gam_match_genes(se, lm_res),
-    "No genes from lm_res found in rownames"
+    TSENAT:::.plot_gam_match_genes(se, rrm_res),
+    "No genes from rrm_res found in rownames"
   )
 })
 
 testthat::test_that(".plot_gam_create_gene_map creates mapping from gene IDs", {
-  lm_res <- data.frame(
+  rrm_res <- data.frame(
     gene = c("g1", "g2", "g3"),
     p_value = c(0.01, 0.05, 0.1)
   )
   
-  gene_map <- TSENAT:::.plot_gam_create_gene_map(lm_res)
+  gene_map <- TSENAT:::.plot_gam_create_gene_map(rrm_res)
   
   testthat::expect_is(gene_map, "character")
   testthat::expect_equal(names(gene_map), c("g1", "g2", "g3"))
@@ -976,13 +976,13 @@ testthat::test_that(".plot_gam_create_gene_map creates mapping from gene IDs", {
 })
 
 testthat::test_that(".plot_gam_create_gene_map uses gene_name column when present", {
-  lm_res <- data.frame(
+  rrm_res <- data.frame(
     gene = c("g1", "g2", "g3"),
     gene_name = c("Gene1", "Gene2", "Gene3"),
     p_value = c(0.01, 0.05, 0.1)
   )
   
-  gene_map <- TSENAT:::.plot_gam_create_gene_map(lm_res)
+  gene_map <- TSENAT:::.plot_gam_create_gene_map(rrm_res)
   
   testthat::expect_equal(gene_map["g1"], c(g1 = "Gene1"))
   testthat::expect_equal(gene_map["g2"], c(g2 = "Gene2"))

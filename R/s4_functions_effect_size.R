@@ -6,8 +6,8 @@
 #'
 #' @param analysis \code{TSENATAnalysis}.
 #'  An S4 object containing divergence results
-#'   (from \code{calculate_divergence()}) and LM interaction results
-#'   (from \code{calculate_lm()}).
+#'   (from \code{calculate_divergence()}) and RRM interaction results
+#'   (from \code{calculate_rrm()}).
 #'
 #' @param significance_threshold \code{numeric}. Adjusted p-value threshold for
 #'   filtering significant genes (default: 0.05).
@@ -34,7 +34,7 @@
 #' **Workflow steps:**
 #' \describe{
 #'   \item{Validating}{Input analysis object and required results}
-#'   \item{Extracting}{Divergence SE and LM results from analysis slots}
+#'   \item{Extracting}{Divergence SE and RRM results from analysis slots}
 #'   \item{Enriching}{Divergence SE with gene names via tx2gene or direct mapping}
 #'   \item{Computing}{Effect sizes using base \code{.calculate_effect_sizes()}}
 #'   \item{Storing}{Results in metadata with function call tracking}
@@ -55,7 +55,7 @@
 #' Results are accessed via: \code{metadata(analysis)$effect_sizes_divergence}
 #'
 #' @examples
-#' # Setup: Create test analysis with divergence and LM interaction results
+#' # Setup: Create test analysis with divergence and RRM interaction results
 #' data(readcounts)
 #' readcounts <- as.matrix(readcounts)
 #' mode(readcounts) <- 'numeric'
@@ -73,7 +73,7 @@
 #'   subject_col = 'paired_samples',
 #'   paired = TRUE,
 #'   control = 'normal',
-#'   q = seq(0, 2, by = 0.5)  # Multiple q-values for LM interaction analysis (5 unique: 0, 0.5, 1, 1.5, 2)
+#'   q = seq(0, 2, by = 0.5)  # Multiple q-values for RRM interaction analysis (5 unique: 0, 0.5, 1, 1.5, 2)
 #' )
 #' analysis <- build_analysis(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df, config = config,
@@ -82,7 +82,7 @@
 #' analysis <- filter_analysis(analysis, stringency = 'severe')
 #' analysis <- calculate_diversity(analysis)
 #' analysis <- calculate_divergence(analysis)
-#' analysis <- suppressWarnings(calculate_lm(analysis, method = 'gam'))
+#' analysis <- suppressWarnings(calculate_rrm(analysis, method = 'gam'))
 #'
 #' # Compute effect sizes from divergence results
 #' analysis <- calculate_effect_sizes(analysis,
@@ -96,7 +96,7 @@
 #'
 #' @seealso
 #' \code{\link{calculate_divergence}} for divergence wrapper,
-#' \code{\link{calculate_lm}} for LM interaction wrapper
+#' \code{\link{calculate_rrm}} for RRM interaction wrapper
 #'
 #' @export
 #' @importFrom methods is
@@ -116,9 +116,9 @@ calculate_effect_sizes <- function(analysis, significance_threshold = NULL, enri
 
     data_list <- .extract_effect_sizes_data_s4(analysis, verbose)
     divergence_se <- data_list$divergence_se
-    lm_res <- data_list$lm_res
+    rrm_res <- data_list$rrm_res
 
-    divergence_se <- .add_gene_names_to_divergence_se(divergence_se, analysis, lm_res,
+    divergence_se <- .add_gene_names_to_divergence_se(divergence_se, analysis, rrm_res,
         verbose)
 
     if (verbose) {
@@ -126,7 +126,7 @@ calculate_effect_sizes <- function(analysis, significance_threshold = NULL, enri
     }
 
     result <- tryCatch({
-        .calculate_effect_sizes(lm_res = lm_res, divergence_results_se = divergence_se,
+        .calculate_effect_sizes(rrm_res = rrm_res, divergence_results_se = divergence_se,
             significance_threshold = significance_threshold, enrich_per_q_pattern = enrich_per_q_pattern,
             verbose = verbose, ...)
     }, error = function(e) {
@@ -152,14 +152,14 @@ calculate_effect_sizes <- function(analysis, significance_threshold = NULL, enri
     if (length(analysis@divergence_results) == 0) {
         stop("Divergence results required. Run calculate_divergence() first.", call. = FALSE)
     }
-    # Check for LM interaction results (exclude rank_test which belongs to
+    # Check for RRM interaction results (exclude rank_test which belongs to
     # rankResults)
-    lm_only <- analysis@lm_results
-    if (is.list(lm_only) && "rank_test" %in% names(lm_only)) {
-        lm_only$rank_test <- NULL
+    rrm_only <- analysis@rrm_results
+    if (is.list(rrm_only) && "rank_test" %in% names(rrm_only)) {
+        rrm_only$rank_test <- NULL
     }
-    if (length(lm_only) == 0) {
-        stop("LM results required. Run calculate_lm() first.", call. = FALSE)
+    if (length(rrm_only) == 0) {
+        stop("RRM results required. Run calculate_rrm() first.", call. = FALSE)
     }
 }
 
@@ -179,32 +179,32 @@ calculate_effect_sizes <- function(analysis, significance_threshold = NULL, enri
             call. = FALSE)
     }
 
-    # Filter out rank_test (rank test results) and access LM results
-    analysis_lmres <- analysis@lm_results
-    if (is.list(analysis_lmres) && "rank_test" %in% names(analysis_lmres)) {
-        analysis_lmres$rank_test <- NULL
+    # Filter out rank_test (rank test results) and access RRM results
+    analysis_rrm_res <- analysis@rrm_results
+    if (is.list(analysis_rrm_res) && "rank_test" %in% names(analysis_rrm_res)) {
+        analysis_rrm_res$rank_test <- NULL
     }
 
-    lm_res <- .extract_object_with_fallbacks(analysis_lmres, "data.frame", key_name = "lm_interaction",
+    rrm_res <- .extract_object_with_fallbacks(analysis_rrm_res, "data.frame", key_name = "rrm_interaction",
         verbose = verbose)
 
-    if (is.null(lm_res) || !is.data.frame(lm_res)) {
-        stop("Could not extract LM results data.frame from LM results", call. = FALSE)
+    if (is.null(rrm_res) || !is.data.frame(rrm_res)) {
+        stop("Could not extract RRM results data.frame from RRM results", call. = FALSE)
     }
 
     if (verbose) {
         message("[calculate_effect_sizes] Extracted: Divergence SE ", paste(dim(divergence_se),
-            collapse = " x "), ", LM results: ", nrow(lm_res), " genes")
+            collapse = " x "), ", RRM results: ", nrow(rrm_res), " genes")
     }
 
-    list(divergence_se = divergence_se, lm_res = lm_res)
+    list(divergence_se = divergence_se, rrm_res = rrm_res)
 }
 
 #' Add Gene Names to Divergence SE
 #'
 #' @keywords internal
 #' @noRd
-.add_gene_names_to_divergence_se <- function(divergence_se, analysis, lm_res, verbose = FALSE) {
+.add_gene_names_to_divergence_se <- function(divergence_se, analysis, rrm_res, verbose = FALSE) {
     rd <- rowData(divergence_se)
     if (!is.null(rd) && "gene_name" %in% colnames(rd)) {
         return(divergence_se)
@@ -230,9 +230,9 @@ calculate_effect_sizes <- function(analysis, significance_threshold = NULL, enri
         }
     }
 
-    # Fallback: direct assignment from lm_res
-    if ("gene" %in% colnames(lm_res) && nrow(lm_res) == nrow(divergence_se)) {
-        rd$gene_name <- as.character(lm_res$gene)
+    # Fallback: direct assignment from rrm_res
+    if ("gene" %in% colnames(rrm_res) && nrow(rrm_res) == nrow(divergence_se)) {
+        rd$gene_name <- as.character(rrm_res$gene)
         rowData(divergence_se) <- rd
         if (verbose) {
             message("[calculate_effect_sizes] Added gene_name via direct assignment")
