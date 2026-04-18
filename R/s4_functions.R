@@ -250,8 +250,8 @@ setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"), funct
 
     # Format for TSV output - keep original column names but convert to row
     # format for readability
-    output_df <- data.frame(check = "assumption", characteristic = assumptions_df$Characteristic,
-        test = assumptions_df$Test, result = assumptions_df$Result, interpretation = assumptions_df$Interpretation,
+    output_df <- data.frame(check = "assumption", test = assumptions_df$Test, 
+        result = assumptions_df$Result, interpretation = assumptions_df$Interpretation,
         stringsAsFactors = FALSE)
 
     output_df
