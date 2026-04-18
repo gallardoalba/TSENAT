@@ -2543,4 +2543,3 @@ test_that(".printMergeSuccess formats divergence to 3 digits in multi-q path", {
     NA
   )
 })
-

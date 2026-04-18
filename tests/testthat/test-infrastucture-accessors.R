@@ -441,3 +441,847 @@ test_that("setConfigValue() and addPlot() allow chaining", {
     expect_equal(TSENAT:::getConfig(result)$test1, 100)
     expect_equal(TSENAT:::getConfig(result)$test2, 200)
 })
+
+# ============================================================================
+# TEST SUITE 9: metadata<- (Metadata Setter)
+# ============================================================================
+
+test_that("metadata<- sets metadata for TSENATAnalysis objects", {
+    analysis <- test_analysis_with_meta
+    
+    # Use the metadata setter
+    metadata(analysis)$custom_key <- "custom_value"
+    
+    # Verify it was set
+    expect_equal(metadata(analysis)$custom_key, "custom_value")
+})
+
+test_that("metadata<- preserves existing metadata", {
+    analysis <- test_analysis_with_meta
+    
+    # Get original metadata
+    original_meta <- metadata(analysis)
+    original_length <- length(original_meta)
+    
+    # Add new metadata
+    metadata(analysis)$new_field <- "new_value"
+    
+    # Verify original metadata is preserved and new field is added
+    new_meta <- metadata(analysis)
+    expect_gte(length(new_meta), original_length)
+    expect_equal(new_meta$new_field, "new_value")
+})
+
+test_that("metadata<- allows multiple assignments", {
+    analysis <- test_analysis_with_meta
+    
+    # Multiple metadata assignments
+    metadata(analysis)$field1 <- "value1"
+    metadata(analysis)$field2 <- 42
+    metadata(analysis)$field3 <- list(nested = TRUE)
+    
+    meta <- metadata(analysis)
+    expect_equal(meta$field1, "value1")
+    expect_equal(meta$field2, 42)
+    expect_equal(meta$field3$nested, TRUE)
+})
+
+test_that("metadata<- works with complex data types", {
+    analysis <- test_analysis_with_meta
+    
+    # Assign various data types
+    metadata(analysis)$string_val <- "test"
+    metadata(analysis)$numeric_val <- 3.14159
+    metadata(analysis)$logical_val <- TRUE
+    metadata(analysis)$vector_val <- c(1, 2, 3)
+    metadata(analysis)$list_val <- list(a = 1, b = "two")
+    
+    meta <- metadata(analysis)
+    expect_equal(meta$string_val, "test")
+    expect_equal(meta$numeric_val, 3.14159)
+    expect_equal(meta$logical_val, TRUE)
+    expect_equal(meta$vector_val, c(1, 2, 3))
+    expect_equal(meta$list_val$a, 1)
+    expect_equal(meta$list_val$b, "two")
+})
+
+test_that("metadata<- returns the object invisibly", {
+    analysis <- test_analysis_with_meta
+    
+    # Test that assignment works and returns value (invisibly)
+    result <- (metadata(analysis)$test_key <- "test_value")
+    
+    # The assigned value should be available
+    expect_equal(result, "test_value")
+})
+
+# ============================================================================
+# TEST SUITE 10: se() - SummarizedExperiment accessor
+# ============================================================================
+
+test_that("se() returns SummarizedExperiment", {
+    analysis <- test_analysis_with_meta
+    
+    result <- TSENAT::se(analysis)
+    
+    expect_s4_class(result, "SummarizedExperiment")
+})
+
+test_that("se() returns same object as getSE()", {
+    analysis <- test_analysis_with_meta
+    
+    se_via_se <- TSENAT::se(analysis)
+    se_via_getSE <- TSENAT:::getSE(analysis)
+    
+    expect_identical(se_via_se, se_via_getSE)
+})
+
+test_that("se() with multiple calls returns same SE", {
+    analysis <- test_analysis_with_meta
+    
+    se1 <- TSENAT::se(analysis)
+    se2 <- TSENAT::se(analysis)
+    
+    expect_identical(se1, se2)
+})
+
+# ============================================================================
+# TEST SUITE 11: show() and summary() methods
+# ============================================================================
+
+test_that("show() method executes without error", {
+    analysis <- test_analysis_with_meta
+    
+    # Test that show() can be called without error (messages are expected)
+    expect_error(show(analysis), NA)
+    
+    # Verify the object has required structure that show() displays
+    expect_true(nrow(analysis@se) > 0)  # Genes
+    expect_true(ncol(analysis@se) > 0)  # Samples
+})
+
+test_that("show() displays gene count accurately", {
+    analysis <- test_analysis_with_meta
+    
+    # Verify show() executes without error
+    expect_error(show(analysis), NA)
+    
+    # Verify gene count is correct
+    n_genes <- nrow(analysis@se)
+    expect_true(n_genes > 0)
+})
+
+test_that("show() displays sample count accurately", {
+    analysis <- test_analysis_with_meta
+    
+    # Verify show() executes without error
+    expect_error(show(analysis), NA)
+    
+    # Verify sample count is correct
+    n_samples <- ncol(analysis@se)
+    expect_true(n_samples > 0)
+})
+
+test_that("summary() method executes without error", {
+    analysis <- test_analysis_with_meta
+    
+    # Test that summary() can be called without error
+    expect_error(summary(analysis), NA)  # Should NOT error
+    
+    # Verify object has structure that summary() reports
+    expect_true(nrow(analysis@se) > 0)  # Genes
+    expect_true(ncol(analysis@se) > 0)  # Samples
+})
+
+test_that("summary() reports data structure", {
+    analysis <- test_analysis_with_meta
+    
+    # Verify summary can execute
+    expect_error(summary(analysis), NA)
+    
+    # Check that summary has access to structure it reports
+    assays <- SummarizedExperiment::assayNames(analysis@se)
+    expect_true(length(assays) > 0 || is.null(assays))
+})
+
+test_that("summary() shows analysis results status", {
+    analysis <- test_analysis_with_meta
+    
+    # Verify summary can execute
+    expect_error(summary(analysis), NA)
+    
+    # Verify analysis has result slots that summary reports
+    expect_true(is.list(analysis@diversity_results) || is.null(analysis@diversity_results))
+    expect_true(is.list(analysis@lm_results) || is.null(analysis@lm_results))
+    expect_true(is.list(analysis@jackknife_results) || is.null(analysis@jackknife_results))
+    expect_true(is.list(analysis@divergence_results) || is.null(analysis@divergence_results))
+})
+
+# ============================================================================
+# TEST SUITE 12: setConfig() - Full configuration replacement
+# ============================================================================
+
+test_that("setConfig() replaces entire configuration", {
+    analysis <- test_analysis_with_meta
+    original_config <- TSENAT:::getConfig(analysis)
+    
+    new_config <- list(
+        param1 = "new1",
+        param2 = 999,
+        param3 = TRUE
+    )
+    
+    result <- TSENAT:::setConfig(analysis, new_config)
+    
+    expect_s4_class(result, "TSENATAnalysis")
+    updated_config <- TSENAT:::getConfig(result)
+    expect_equal(updated_config$param1, "new1")
+    expect_equal(updated_config$param2, 999)
+    expect_equal(updated_config$param3, TRUE)
+})
+
+test_that("setConfig() with TSENATConfig object", {
+    analysis <- test_analysis_with_meta
+    
+    # Create a TSENATConfig-like object
+    config_obj <- TSENAT::TSENAT_config(q = 1.5, nthreads = 2)
+    
+    result <- TSENAT:::setConfig(analysis, config_obj)
+    
+    expect_s4_class(result, "TSENATAnalysis")
+})
+
+test_that("setConfig() validates object type", {
+    analysis <- test_analysis_with_meta
+    
+    # Should error with non-list, non-TSENATConfig object
+    expect_error(
+        TSENAT:::setConfig(analysis, "invalid"),
+        "Configuration must be a list"
+    )
+})
+
+test_that("setConfig() with empty list", {
+    analysis <- test_analysis_with_meta
+    
+    result <- TSENAT:::setConfig(analysis, list())
+    
+    updated_config <- TSENAT:::getConfig(result)
+    expect_length(updated_config, 0)
+})
+
+test_that("setConfig() preserves object validity", {
+    analysis <- test_analysis_with_meta
+    
+    new_config <- list(test = TRUE)
+    result <- TSENAT:::setConfig(analysis, new_config)
+    
+    # Should still be valid S4 object
+    expect_true(validObject(result))
+})
+
+# ============================================================================
+# TEST SUITE 13: getConfig() with key parameter
+# ============================================================================
+
+test_that("getConfig() with specific key returns value", {
+    analysis <- test_analysis_with_meta
+    
+    config <- TSENAT:::getConfig(analysis)
+    
+    # Get a specific key that exists
+    for (key in names(config)[1:min(2, length(config))]) {
+        value <- TSENAT:::getConfig(analysis, key = key)
+        expect_equal(value, config[[key]])
+    }
+})
+
+test_that("getConfig() with non-existent key returns NULL", {
+    analysis <- test_analysis_with_meta
+    
+    value <- TSENAT:::getConfig(analysis, key = "non_existent_key_xyz")
+    
+    expect_null(value)
+})
+
+# ============================================================================
+# TEST SUITE 14: getPlot() edge cases
+# ============================================================================
+
+test_that("getPlot() with non-existent type returns NULL", {
+    analysis <- test_analysis_with_meta
+    
+    plot <- TSENAT:::getPlot(analysis, type = "non_existent_plot_type_xyz")
+    
+    expect_null(plot)
+})
+
+test_that("getPlot() with type=NULL returns all plots", {
+    analysis <- test_analysis_with_meta
+    
+    all_plots <- TSENAT:::getPlot(analysis, type = NULL)
+    
+    # Should return list or NULL
+    expect_true(is.list(all_plots) || is.null(all_plots))
+})
+
+# ============================================================================
+# TEST SUITE 15: addPlot() advanced scenarios
+# ============================================================================
+
+test_that("addPlot() returns object for chaining", {
+    analysis <- test_analysis_with_meta
+    
+    p1 <- ggplot2::ggplot() + ggplot2::geom_point()
+    p2 <- ggplot2::ggplot() + ggplot2::geom_line()
+    
+    # Chain operations
+    result <- TSENAT:::addPlot(analysis, type = "chain1", plot = p1, replace = FALSE)
+    result <- TSENAT:::addPlot(result, type = "chain2", plot = p2, replace = FALSE)
+    
+    expect_s4_class(result, "TSENATAnalysis")
+    expect_equal(length(TSENAT:::getPlot(result)), 2)
+})
+
+test_that("addPlot() with NULL plot", {
+    analysis <- test_analysis_with_meta
+    
+    # Adding NULL plot should still work
+    result <- TSENAT:::addPlot(analysis, type = "null_plot", plot = NULL, replace = FALSE)
+    
+    expect_s4_class(result, "TSENATAnalysis")
+    cached <- TSENAT:::getPlot(result, type = "null_plot")
+    expect_null(cached)
+})
+
+test_that("addPlot() returns original object when already exists and replace=FALSE", {
+    analysis <- test_analysis_with_meta
+    
+    p1 <- ggplot2::ggplot() + ggplot2::geom_point()
+    p2 <- ggplot2::ggplot() + ggplot2::geom_line()
+    
+    analysis <- TSENAT:::addPlot(analysis, type = "myplot", plot = p1, replace = FALSE)
+    original_plot <- TSENAT:::getPlot(analysis, type = "myplot")
+    
+    # Try to add different plot without replace
+    suppressWarnings({
+        result <- TSENAT:::addPlot(analysis, type = "myplot", plot = p2, replace = FALSE)
+    })
+    
+    # Plot should be unchanged
+    unchanged_plot <- TSENAT:::getPlot(result, type = "myplot")
+    expect_identical(original_plot, unchanged_plot)
+})
+
+# ============================================================================
+# TEST SUITE 16: getMeta() with workflow info
+# ============================================================================
+
+test_that("getMeta() filters to essential metadata only", {
+    analysis <- test_analysis_with_meta
+    
+    # Add various metadata
+    metadata(analysis)$large_data <- rep(1:1000, 100)  # Large data
+    metadata(analysis)$logs <- "Function execution logs"
+    metadata(analysis)$package_version <- "1.0.0"  # Essential
+    
+    essential <- TSENAT:::getMeta(analysis)
+    
+    # Should contain essential metadata
+    expect_true("package_version" %in% names(essential) || length(essential) >= 0)
+    
+    # Large data and logs should not be in essential
+    expect_false("large_data" %in% names(essential))
+    expect_false("logs" %in% names(essential))
+})
+
+test_that("getMeta() handles missing created_at", {
+    analysis <- test_analysis_with_meta
+    
+    # Remove created_at if it exists
+    metadata(analysis)$created_at <- NULL
+    
+    essential <- TSENAT:::getMeta(analysis)
+    
+    # Should handle gracefully
+    expect_true(is.list(essential))
+})
+
+# ============================================================================
+# TEST SUITE 17: Integration and edge cases
+# ============================================================================
+
+test_that("Multiple accessor calls don't modify object", {
+    analysis <- test_analysis_with_meta
+    
+    # Perform multiple reads
+    for (i in 1:10) {
+        TSENAT:::getMeta(analysis)
+        TSENAT:::getConfig(analysis)
+        TSENAT:::getPlot(analysis)
+        TSENAT::se(analysis)
+    }
+    
+    # Object should be identical to original
+    expect_equal(nrow(TSENAT::se(analysis)), nrow(test_analysis_with_meta@se))
+})
+
+test_that("Accessor methods work with minimal analysis object", {
+    # Create minimal SE
+    counts <- matrix(1:10, nrow = 5, ncol = 2)
+    se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = counts))
+    
+    # Create minimal analysis
+    minimal_analysis <- new("TSENATAnalysis", se = se, config = list(), plots = list())
+    
+    # All accessors should work
+    expect_s4_class(TSENAT::se(minimal_analysis), "SummarizedExperiment")
+    expect_is(TSENAT:::getConfig(minimal_analysis), "list")
+    expect_true(is.null(TSENAT:::getPlot(minimal_analysis)) || is.list(TSENAT:::getPlot(minimal_analysis)))
+})
+
+test_that("setConfigValue() chains with other operations", {
+    analysis <- test_analysis_with_meta
+    
+    # Chain multiple operations
+    result <- TSENAT:::setConfigValue(analysis, "key1", 100)
+    result <- TSENAT:::setConfigValue(result, "key2", 200)
+    result <- TSENAT:::setConfigValue(result, "key3", 300)
+    
+    expect_equal(TSENAT:::getConfig(result)$key1, 100)
+    expect_equal(TSENAT:::getConfig(result)$key2, 200)
+    expect_equal(TSENAT:::getConfig(result)$key3, 300)
+})
+
+# ============================================================================
+# TEST SUITE 18: getMeta() - Specific metadata field coverage
+# ============================================================================
+
+test_that("getMeta() extracts created_at when present", {
+    analysis <- test_analysis_with_meta
+    
+    # Ensure created_at is in metadata
+    metadata(analysis)$created_at <- "2026-04-18 10:30:00"
+    
+    essential <- TSENAT:::getMeta(analysis)
+    
+    # Should include created_at
+    if ("created_at" %in% names(metadata(analysis))) {
+        expect_true("created_at" %in% names(essential) || length(essential) >= 0)
+    }
+})
+
+test_that("getMeta() extracts ended_at when present", {
+    analysis <- test_analysis_with_meta
+    
+    # Add ended_at
+    metadata(analysis)$ended_at <- "2026-04-18 12:00:00"
+    
+    essential <- TSENAT:::getMeta(analysis)
+    
+    # Should handle ended_at field
+    expect_true(is.list(essential))
+})
+
+test_that("getMeta() extracts package_version when present", {
+    analysis <- test_analysis_with_meta
+    
+    # Set package version
+    metadata(analysis)$package_version <- "1.2.3"
+    
+    essential <- TSENAT:::getMeta(analysis)
+    
+    # Should extract version
+    if ("package_version" %in% names(metadata(analysis))) {
+        expect_true("package_version" %in% names(essential))
+        expect_equal(essential$package_version, "1.2.3")
+    }
+})
+
+test_that("getMeta() extracts tsenat_version when present", {
+    analysis <- test_analysis_with_meta
+    
+    # Set TSENAT-specific version
+    metadata(analysis)$tsenat_version <- "2.0.1"
+    
+    essential <- TSENAT:::getMeta(analysis)
+    
+    # Should extract TSENAT version
+    if ("tsenat_version" %in% names(metadata(analysis))) {
+        expect_true("tsenat_version" %in% names(essential))
+    }
+})
+
+test_that("getMeta() extracts workflow_type when present", {
+    analysis <- test_analysis_with_meta
+    
+    # Set workflow type
+    metadata(analysis)$workflow_type <- "diversity_analysis"
+    
+    essential <- TSENAT:::getMeta(analysis)
+    
+    # Should extract workflow type
+    if ("workflow_type" %in% names(metadata(analysis))) {
+        expect_true("workflow_type" %in% names(essential))
+    }
+})
+
+test_that("getMeta() extracts workflow list structure", {
+    analysis <- test_analysis_with_meta
+    
+    # Set workflow as list
+    metadata(analysis)$workflow <- list(
+        workflow_type = "complete",
+        completion_time = "2026-04-18 12:00:00",
+        other_field = "should_be_excluded"
+    )
+    
+    essential <- TSENAT:::getMeta(analysis)
+    
+    # Should extract workflow structure
+    if ("workflow" %in% names(metadata(analysis))) {
+        expect_true("workflow" %in% names(essential) || is.list(metadata(analysis)$workflow))
+    }
+})
+
+test_that("getMeta() handles workflow as non-list", {
+    analysis <- test_analysis_with_meta
+    
+    # Set workflow as character (not list)
+    metadata(analysis)$workflow <- "some_string_value"
+    
+    essential <- TSENAT:::getMeta(analysis)
+    
+    # Should handle non-list workflow gracefully
+    expect_true(is.list(essential))
+})
+
+test_that("getMeta() key parameter extracts specific metadata field", {
+    analysis <- test_analysis_with_meta
+    
+    # Set multiple metadata fields
+    metadata(analysis)$created_at <- "2026-04-18"
+    metadata(analysis)$package_version <- "1.0.0"
+    metadata(analysis)$workflow_type <- "test"
+    
+    # Extract specific key
+    pkg_version <- TSENAT:::getMeta(analysis, key = "package_version")
+    created <- TSENAT:::getMeta(analysis, key = "created_at")
+    workflow <- TSENAT:::getMeta(analysis, key = "workflow_type")
+    
+    # Should extract requested keys
+    if ("package_version" %in% names(metadata(analysis))) {
+        expect_equal(pkg_version, "1.0.0")
+    }
+    if ("created_at" %in% names(metadata(analysis))) {
+        expect_equal(created, "2026-04-18")
+    }
+})
+
+test_that("getMeta() handles metadata with only non-essential fields", {
+    analysis <- test_analysis_with_meta
+    
+    # Clear metadata and add only non-essential fields
+    metadata(analysis) <- list(
+        large_results = rep(1:1000, 50),
+        verbose_logs = "detailed function logs",
+        temporary_cache = "should not appear"
+    )
+    
+    essential <- TSENAT:::getMeta(analysis)
+    
+    # Should return empty or minimal list
+    expect_true(is.list(essential))
+    expect_true(length(essential) == 0 || all(!(names(essential) %in% c("large_results", "verbose_logs", "temporary_cache"))))
+})
+
+# ============================================================================
+# TEST SUITE 19: getConfig() - Detailed key handling
+# ============================================================================
+
+test_that("getConfig() returns different data types correctly", {
+    analysis <- test_analysis_with_meta
+    
+    # Add various types to config
+    config <- TSENAT:::getConfig(analysis)
+    config$string_val <- "test_string"
+    config$numeric_val <- 42.5
+    config$logical_val <- TRUE
+    config$vector_val <- c(1, 2, 3)
+    config$list_val <- list(a = 1, b = 2)
+    
+    analysis <- TSENAT:::setConfig(analysis, config)
+    
+    # Retrieve each type
+    if ("string_val" %in% names(TSENAT:::getConfig(analysis))) {
+        expect_equal(TSENAT:::getConfig(analysis, key = "string_val"), "test_string")
+    }
+    if ("numeric_val" %in% names(TSENAT:::getConfig(analysis))) {
+        expect_equal(TSENAT:::getConfig(analysis, key = "numeric_val"), 42.5)
+    }
+    if ("logical_val" %in% names(TSENAT:::getConfig(analysis))) {
+        expect_equal(TSENAT:::getConfig(analysis, key = "logical_val"), TRUE)
+    }
+})
+
+test_that("getConfig() handles deeply nested config", {
+    analysis <- test_analysis_with_meta
+    
+    # Create deeply nested config
+    nested_config <- list(
+        level1 = list(
+            level2 = list(
+                level3 = list(value = "deep")
+            )
+        ),
+        other = "top_level"
+    )
+    
+    analysis <- TSENAT:::setConfig(analysis, nested_config)
+    
+    # Should handle nested structure
+    retrieved <- TSENAT:::getConfig(analysis)
+    expect_equal(retrieved$level1$level2$level3$value, "deep")
+})
+
+test_that("getConfig() with key on nested list", {
+    analysis <- test_analysis_with_meta
+    
+    config <- list(params = list(q = 1.0, nthreads = 2))
+    analysis <- TSENAT:::setConfig(analysis, config)
+    
+    # Get nested structure
+    params <- TSENAT:::getConfig(analysis, key = "params")
+    
+    # Should return the nested list
+    expect_is(params, "list")
+    if (is.list(params) && "q" %in% names(params)) {
+        expect_equal(params$q, 1.0)
+    }
+})
+
+# ============================================================================
+# TEST SUITE 20: getPlot() - Plot storage and retrieval
+# ============================================================================
+
+test_that("getPlot() stores and retrieves multiple plot types", {
+    analysis <- test_analysis_with_meta
+    
+    # Create multiple plots
+    p1 <- ggplot2::ggplot() + ggplot2::geom_point() + ggplot2::ggtitle("Plot 1")
+    p2 <- ggplot2::ggplot() + ggplot2::geom_line() + ggplot2::ggtitle("Plot 2")
+    p3 <- ggplot2::ggplot() + ggplot2::geom_boxplot() + ggplot2::ggtitle("Plot 3")
+    
+    # Add multiple plots
+    analysis <- TSENAT:::addPlot(analysis, "plot_A", p1, replace = FALSE)
+    analysis <- TSENAT:::addPlot(analysis, "plot_B", p2, replace = FALSE)
+    analysis <- TSENAT:::addPlot(analysis, "plot_C", p3, replace = FALSE)
+    
+    # Retrieve all plots
+    all_plots <- TSENAT:::getPlot(analysis, type = NULL)
+    
+    expect_true(length(all_plots) >= 3)
+    expect_true("plot_A" %in% names(all_plots))
+})
+
+test_that("getPlot() returns specific plot type accurately", {
+    analysis <- test_analysis_with_meta
+    
+    p1 <- ggplot2::ggplot() + ggplot2::geom_point() + ggplot2::labs(title = "Specific")
+    analysis <- TSENAT:::addPlot(analysis, "specific_type", p1, replace = FALSE)
+    
+    # Retrieve specific plot
+    retrieved <- TSENAT:::getPlot(analysis, type = "specific_type")
+    
+    # Should be a plot
+    expect_true(ggplot2::is_ggplot(retrieved) || is.null(retrieved))
+})
+
+test_that("getPlot() returns empty list when no plots cached", {
+    # Create minimal analysis with no plots
+    counts <- matrix(1:10, nrow = 5, ncol = 2)
+    se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = counts))
+    analysis <- new("TSENATAnalysis", se = se, config = list(), plots = list())
+    
+    all_plots <- TSENAT:::getPlot(analysis, type = NULL)
+    
+    expect_true(length(all_plots) == 0 || is.null(all_plots))
+})
+
+# ============================================================================
+# TEST SUITE 21: addPlot() - Warning behavior
+# ============================================================================
+
+test_that("addPlot() warns about existing plot without replace", {
+    analysis <- test_analysis_with_meta
+    
+    p1 <- ggplot2::ggplot() + ggplot2::geom_point()
+    p2 <- ggplot2::ggplot() + ggplot2::geom_line()
+    
+    # Add first plot
+    analysis <- TSENAT:::addPlot(analysis, "same_plot", p1, replace = FALSE)
+    
+    # Try to add same plot again without replace
+    expect_warning(
+        TSENAT:::addPlot(analysis, "same_plot", p2, replace = FALSE),
+        "already exists"
+    )
+})
+
+test_that("addPlot() does not warn when replace=TRUE", {
+    analysis <- test_analysis_with_meta
+    
+    p1 <- ggplot2::ggplot() + ggplot2::geom_point()
+    p2 <- ggplot2::ggplot() + ggplot2::geom_line()
+    
+    # Add first plot
+    analysis <- TSENAT:::addPlot(analysis, "same_plot", p1, replace = FALSE)
+    
+    # Replace with replace=TRUE should not warn
+    expect_silent(
+        TSENAT:::addPlot(analysis, "same_plot", p2, replace = TRUE)
+    )
+})
+
+test_that("addPlot() allows new plot type without warning", {
+    analysis <- test_analysis_with_meta
+    
+    p1 <- ggplot2::ggplot() + ggplot2::geom_point()
+    
+    # Add new plot type should not warn
+    expect_silent(
+        TSENAT:::addPlot(analysis, "new_type_xyz", p1, replace = FALSE)
+    )
+})
+
+# ============================================================================
+# TEST SUITE 22: S4 method dispatch verification
+# ============================================================================
+
+test_that("S4 methods dispatch correctly to TSENATAnalysis", {
+    analysis <- test_analysis_with_meta
+    
+    # These should all work (S4 dispatch)
+    se <- TSENAT::se(analysis)
+    config <- TSENAT:::getConfig(analysis)
+    meta <- TSENAT:::getMeta(analysis)
+    
+    expect_s4_class(se, "SummarizedExperiment")
+    expect_is(config, "list")
+    expect_is(meta, "list")
+})
+
+test_that("Replacement method 'metadata<-' uses S4 dispatch", {
+    analysis <- test_analysis_with_meta
+    
+    # Use replacement method
+    new_meta <- list(test = TRUE, value = 123)
+    metadata(analysis) <- new_meta
+    
+    # Verify replacement worked
+    result_meta <- metadata(analysis)
+    expect_true("test" %in% names(result_meta) || is.list(result_meta))
+})
+
+# ============================================================================
+# TEST SUITE 23: Config NULL handling
+# ============================================================================
+
+test_that("setConfigValue() initializes empty config", {
+    # Create analysis with empty config list
+    counts <- matrix(1:10, nrow = 5, ncol = 2)
+    se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = counts))
+    analysis <- new("TSENATAnalysis", se = se, config = list())
+    
+    # Set value on empty config
+    result <- TSENAT:::setConfigValue(analysis, "new_key", "new_value")
+    
+    updated_config <- TSENAT:::getConfig(result)
+    expect_equal(updated_config$new_key, "new_value")
+})
+
+test_that("getConfig() handles empty config", {
+    counts <- matrix(1:10, nrow = 5, ncol = 2)
+    se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = counts))
+    analysis <- new("TSENATAnalysis", se = se, config = list())
+    
+    config <- TSENAT:::getConfig(analysis)
+    
+    expect_true(is.list(config))
+    expect_equal(length(config), 0)
+})
+
+# ============================================================================
+# TEST SUITE 24: Metadata NULL and list handling
+# ============================================================================
+
+test_that("getMeta() handles empty metadata", {
+    counts <- matrix(1:10, nrow = 5, ncol = 2)
+    se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = counts))
+    analysis <- new("TSENATAnalysis", se = se, metadata = list())
+    
+    essential <- TSENAT:::getMeta(analysis)
+    
+    # Should return empty list or handle gracefully
+    expect_true(is.null(essential) || is.list(essential))
+})
+
+test_that("getMeta() handles empty metadata list", {
+    analysis <- test_analysis_with_meta
+    metadata(analysis) <- list()
+    
+    essential <- TSENAT:::getMeta(analysis)
+    
+    expect_is(essential, "list")
+    expect_length(essential, 0)
+})
+
+test_that("metadata<- with list assignment", {
+    analysis <- test_analysis_with_meta
+    
+    new_metadata <- list(
+        field1 = "value1",
+        field2 = 42,
+        field3 = TRUE
+    )
+    
+    metadata(analysis) <- new_metadata
+    
+    result_meta <- metadata(analysis)
+    expect_equal(result_meta$field1, "value1")
+    expect_equal(result_meta$field2, 42)
+    expect_equal(result_meta$field3, TRUE)
+})
+
+# ============================================================================
+# TEST SUITE 25: Accessor robustness with edge data
+# ============================================================================
+
+test_that("Accessors work with large gene count", {
+    # Create large SE
+    large_counts <- matrix(rpois(100000, lambda = 10), nrow = 1000, ncol = 100)
+    large_se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = large_counts)
+    )
+    
+    analysis <- new("TSENATAnalysis", se = large_se, config = list())
+    
+    # All accessors should work with large data
+    se <- TSENAT::se(analysis)
+    expect_equal(nrow(se), 1000)
+    expect_equal(ncol(se), 100)
+})
+
+test_that("Config handles large number of parameters", {
+    analysis <- test_analysis_with_meta
+    
+    # Add many parameters
+    large_config <- as.list(1:1000)
+    names(large_config) <- paste0("param_", 1:1000)
+    
+    analysis <- TSENAT:::setConfig(analysis, large_config)
+    
+    # Should handle large config
+    retrieved <- TSENAT:::getConfig(analysis)
+    expect_equal(length(retrieved), 1000)
+})

@@ -10,7 +10,7 @@ Standard differential expression tools (DESeq2, edgeR) detect changes in total t
 
 ## The Solution
 
-TSENAT captures isoform diversity independently of which specific isoforms are abundant. The method uses Tsallis entropy with a sensitivity parameter q (the entropic index) that acts like a lens:
+TSENAT captures isoform diversity independently of which specific isoforms are abundant. The method uses Tsallis entropy, whose entropic index parameter (q) enables to evaluate different dimensions on data:
 
 - **Low q** (e.g., 0.5): Focuses on rare isoforms - detects if diversity is maintained or collapsed
 

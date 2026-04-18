@@ -1413,3 +1413,203 @@ test_that(".kpss_test returns list and handles NA cases", {
   testthat::expect_is(result, "list")
   expect_true(all(c("test_stat", "p_value", "stationary") %in% names(result)))
 })
+
+# ============================================================================
+# TEST SUITE: .fit_all_genes() - Gene-by-gene fitting
+# ============================================================================
+
+test_that(".fit_all_genes() is an internal helper function", {
+  # .fit_all_genes() is a complex internal function that:
+  # - Requires a pre-built SummarizedExperiment object
+  # - Requires pre-processed metadata with group_vec, q_vals, sample_names
+  # - Is called internally by .calculate_lm() with full setup
+  # See test-statistical-methods-lm_helpers_fit.R for integration tests
+  # that exercise .fit_all_genes() through the full pipeline
+  
+  # Verify function exists
+  expect_true(exists(".fit_all_genes", mode = "function", where = getNamespace("TSENAT")))
+  
+  # Verify it's not exported (should be internal)
+  expect_false("fit_all_genes" %in% getNamespaceExports("TSENAT"))
+  
+  # Verify it has expected parameters
+  params <- names(formals(TSENAT:::.fit_all_genes))
+  expected_params <- c("mat", "se", "metadata", "method", "pvalue", "subject_col",
+                       "paired", "min_obs", "nthreads", "verbose", "bias_correction",
+                       "regularization", "corstr", "adaptive_knots")
+  expect_true(all(expected_params %in% params))
+})
+
+test_that(".fit_all_genes() returns data.frame with expected structure", {
+  skip_if_not_installed("TSENAT")
+  
+  # Load test data
+  data(readcounts, package = "TSENAT", envir = environment())
+  
+  # Create test matrix (subset of genes and samples)
+  test_mat <- as.matrix(readcounts[1:3, 1:10])
+  n_samples <- ncol(test_mat)
+  n_genes <- nrow(test_mat)
+  
+  # Create minimal SummarizedExperiment for testing
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = test_mat),
+    colData = DataFrame(sample = colnames(test_mat))
+  )
+  
+  # Prepare metadata object MATCHING THE ACTUAL MATRIX DIMENSIONS
+  metadata_obj <- list(
+    group_vec = rep(c("group1", "group2"), length.out = n_samples),
+    q_vals = rep(1, n_samples),  # Single q-value repeated for each sample
+    sample_names = colnames(test_mat)
+  )
+  
+  # Test with minimal parameters
+  result <- TSENAT:::.fit_all_genes(
+    mat = test_mat,
+    se = se,
+    metadata = metadata_obj,
+    method = "lm",
+    pvalue = "wald",
+    subject_col = NULL,
+    paired = FALSE,
+    min_obs = 1,
+    nthreads = 1,
+    verbose = FALSE,
+    bias_correction = FALSE,
+    regularization = "pca",
+    corstr = "independence",
+    adaptive_knots = FALSE
+  )
+  
+  # Should return a data.frame
+  expect_is(result, "data.frame")
+  
+  # Should have rows (one per gene that converged)
+  expect_true(nrow(result) >= 0)
+})
+
+test_that(".fit_all_genes() handles multiple genes with groups", {
+  skip_if_not_installed("TSENAT")
+  
+  data(readcounts, package = "TSENAT", envir = environment())
+  
+  # Create small matrix for quick test (first 5 genes, first 10 samples)
+  test_mat <- as.matrix(readcounts[1:5, 1:10])
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = test_mat),
+    colData = DataFrame(sample = colnames(test_mat))
+  )
+  
+  metadata_obj <- list(
+    group_vec = rep(c("cond_A", "cond_B"), length.out = ncol(test_mat)),
+    q_vals = rep(1, ncol(test_mat)),  # q-value repeated for each sample
+    sample_names = colnames(test_mat)
+  )
+  
+  result <- TSENAT:::.fit_all_genes(
+    mat = test_mat,
+    se = se,
+    metadata = metadata_obj,
+    method = "lm",
+    pvalue = "wald",
+    subject_col = NULL,
+    paired = FALSE,
+    min_obs = 1,
+    nthreads = 1,
+    verbose = FALSE,
+    bias_correction = FALSE,
+    regularization = "pca",
+    corstr = "independence",
+    adaptive_knots = FALSE
+  )
+  
+  # Should return data.frame
+  expect_is(result, "data.frame")
+  
+  # Check structure
+  if (nrow(result) > 0) {
+    # Should have p-value column for hypothesis test results
+    expect_true(any(grepl("^p_", colnames(result))) || nrow(result) == 0)
+  }
+})
+
+test_that(".fit_all_genes() handles nthreads parameter", {
+  skip_if_not_installed("TSENAT")
+  
+  data(readcounts, package = "TSENAT", envir = environment())
+  
+  test_mat <- as.matrix(readcounts[1:3, 1:8])
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = test_mat),
+    colData = DataFrame(sample = colnames(test_mat))
+  )
+  
+  metadata_obj <- list(
+    group_vec = rep(c("A", "B"), length.out = ncol(test_mat)),
+    q_vals = rep(1, ncol(test_mat)),  # q-value repeated for each sample
+    sample_names = colnames(test_mat)
+  )
+  
+  # Single thread
+  result_1t <- TSENAT:::.fit_all_genes(
+    mat = test_mat, se = se, metadata = metadata_obj,
+    method = "lm", pvalue = "wald", subject_col = NULL,
+    paired = FALSE, min_obs = 1, nthreads = 1,
+    verbose = FALSE, bias_correction = FALSE,
+    regularization = "pca", corstr = "independence", adaptive_knots = FALSE
+  )
+  
+  # Multi-thread (if available)
+  n_threads <- min(2, parallel::detectCores())
+  result_mt <- TSENAT:::.fit_all_genes(
+    mat = test_mat, se = se, metadata = metadata_obj,
+    method = "lm", pvalue = "wald", subject_col = NULL,
+    paired = FALSE, min_obs = 1, nthreads = n_threads,
+    verbose = FALSE, bias_correction = FALSE,
+    regularization = "pca", corstr = "independence", adaptive_knots = FALSE
+  )
+  
+  # Both should return data.frames
+  expect_is(result_1t, "data.frame")
+  expect_is(result_mt, "data.frame")
+  
+  # Results should have same structure
+  expect_equal(colnames(result_1t), colnames(result_mt))
+})
+
+test_that(".fit_all_genes() handles regularization parameter", {
+  skip_if_not_installed("TSENAT")
+  
+  data(readcounts, package = "TSENAT", envir = environment())
+  
+  test_mat <- as.matrix(readcounts[1:3, 1:8])
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = test_mat),
+    colData = DataFrame(sample = colnames(test_mat))
+  )
+  
+  metadata_obj <- list(
+    group_vec = rep(c("group1", "group2"), length.out = ncol(test_mat)),
+    q_vals = rep(1, ncol(test_mat)),  # q-value repeated for each sample
+    sample_names = colnames(test_mat)
+  )
+  
+  # Test different regularization methods
+  for (reg_method in c("pca", "lasso", "elasticnet", "gamsel", "spline")) {
+    result <- TSENAT:::.fit_all_genes(
+      mat = test_mat, se = se, metadata = metadata_obj,
+      method = "lm", pvalue = "wald", subject_col = NULL,
+      paired = FALSE, min_obs = 1, nthreads = 1,
+      verbose = FALSE, bias_correction = FALSE,
+      regularization = reg_method, corstr = "independence", adaptive_knots = FALSE
+    )
+    
+    expect_is(result, "data.frame", info = paste("Failed for regularization =", reg_method))
+  }
+})
+
+

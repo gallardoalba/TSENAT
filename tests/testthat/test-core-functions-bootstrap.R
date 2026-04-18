@@ -6408,3 +6408,93 @@ test_that(".bootstrap_resample_with_quality_control handles quality control flag
   expect_is(result, "numeric")
   expect_equal(length(result), 100)
 })
+
+# ============================================================================
+# TEST SUITE: .bootstrap_resample_with_quality_control()
+# ============================================================================
+
+test_that(".bootstrap_resample_with_quality_control generates valid bootstrap distribution", {
+  set.seed(789)
+  
+  # Create count vector from realistic gene expression (Poisson-distributed)
+  counts <- rpois(50, lambda = 15)
+  
+  # Generate bootstrap distribution for Tsallis entropy (q=1 = Shannon)
+  bootstrap_dist <- TSENAT:::.bootstrap_resample_with_quality_control(
+    x = counts,
+    q = 1,
+    norm = "zscore",
+    nboot = 30,
+    log_base = exp(1),
+    pseudocount = 1,
+    what = "S",
+    paired = FALSE,
+    effective_length = NULL,
+    min_valid_frac = 0.8
+  )
+  
+  # Should return numeric vector of bootstrap replicates
+  expect_is(bootstrap_dist, "numeric")
+  expect_equal(length(bootstrap_dist), 30)
+  
+  # Bootstrap values should mostly be valid (not all NA/NaN after QC)
+  n_valid <- sum(!is.na(bootstrap_dist) & !is.nan(bootstrap_dist))
+  expect_true(n_valid >= 24)  # At least 80% valid
+})
+
+test_that(".bootstrap_resample_with_quality_control handles sparse data", {
+  set.seed(111)
+  
+  # Create sparse count vector with many zeros (realistic for low-abundance transcripts)
+  counts <- rpois(50, lambda = 2)
+  
+  # Should still produce bootstrap replicates
+  bootstrap_dist <- TSENAT:::.bootstrap_resample_with_quality_control(
+    x = counts,
+    q = 1.5,
+    norm = "rank",
+    nboot = 20,
+    log_base = 2,
+    pseudocount = 0.5,
+    what = "D",
+    paired = FALSE,
+    effective_length = NULL,
+    min_valid_frac = 0.75
+  )
+  
+  # Should return numeric vector
+  expect_is(bootstrap_dist, "numeric")
+  expect_equal(length(bootstrap_dist), 20)
+  
+  # Should have reasonable number of valid replicates even with sparse data
+  n_valid <- sum(!is.na(bootstrap_dist) & !is.nan(bootstrap_dist))
+  expect_true(n_valid >= 15)
+})
+
+test_that(".bootstrap_resample_with_quality_control enforces min_valid_frac", {
+  set.seed(456)
+  
+  # Create count vector
+  counts <- rpois(50, lambda = 10)
+  
+  # With strict min_valid_frac, should attempt regeneration
+  bootstrap_dist <- TSENAT:::.bootstrap_resample_with_quality_control(
+    x = counts,
+    q = 2,
+    norm = "zscore",
+    nboot = 25,
+    log_base = 10,
+    pseudocount = 1,
+    what = "S",
+    paired = FALSE,
+    effective_length = NULL,
+    min_valid_frac = 0.9  # Strict threshold
+  )
+  
+  # Should return vector of length nboot
+  expect_equal(length(bootstrap_dist), 25)
+  
+  # Quality control should ensure minimum valid fraction
+  n_valid <- sum(!is.na(bootstrap_dist) & !is.nan(bootstrap_dist))
+  expect_true(n_valid / 25 >= 0.9)
+})

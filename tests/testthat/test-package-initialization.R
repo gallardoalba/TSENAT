@@ -147,6 +147,64 @@ test_that("Required dependencies are available", {
 })
 
 # ============================================================================
+# TEST 9a: .onLoad() comprehensively tests all S3 method registrations
+# ============================================================================
+
+test_that(".onLoad() registers all expected S3 print methods", {
+    # The .onLoad() function should register these print methods:
+    # print.tsenat_bootstrap_ci, print.tsenat_bootstrap_ci_list,
+    # print.tsenat_divergence_bootstrap_ci, print.tsenat_jackknife,
+    # print.tsenat_jackknife_list, print.rank_assumptions,
+    # print.rank_correlation_ci, print.gtable
+    
+    # Verify that these are registered
+    expect_is(getS3method("print", "tsenat_bootstrap_ci"), "function")
+    expect_is(getS3method("print", "tsenat_bootstrap_ci_list"), "function")
+    expect_is(getS3method("print", "tsenat_divergence_bootstrap_ci"), "function")
+    expect_is(getS3method("print", "tsenat_jackknife"), "function")
+    expect_is(getS3method("print", "rank_assumptions"), "function")
+    expect_is(getS3method("print", "gtable"), "function")
+})
+
+test_that(".onLoad() registers summary methods for bootstrap CI objects", {
+    # The .onLoad() function should register these summary methods:
+    # summary.tsenat_bootstrap_ci, summary.tsenat_divergence_bootstrap_ci
+    
+    expect_is(getS3method("summary", "tsenat_bootstrap_ci"), "function")
+    expect_is(getS3method("summary", "tsenat_divergence_bootstrap_ci"), "function")
+})
+
+test_that(".onLoad() wraps ggplot2 print method to suppress warnings", {
+    # Skip if ggplot2 is not available
+    if (!requireNamespace("ggplot2", quietly = TRUE)) {
+        skip("ggplot2 not available")
+    }
+    
+    # Load the original ggplot2 print method by creating a plot
+    p <- ggplot2::ggplot(data.frame(x=1, y=1), ggplot2::aes(x=x, y=y)) + 
+         ggplot2::geom_point()
+    
+    # Now try to get the registered print method after ggplot2 is loaded
+    ggplot_print <- try(getS3method("print", "ggplot"), silent = TRUE)
+    
+    # Should successfully get the method (now that ggplot2 is loaded)
+    if (!inherits(ggplot_print, "try-error")) {
+        # Successfully got the print method
+        expect_is(ggplot_print, "function",
+                  info = "Print method should be a function when ggplot2 is loaded")
+        
+        # The wrapper should accept x and ... arguments
+        formals_obj <- formals(ggplot_print)
+        expect_true("x" %in% names(formals_obj),
+                    info = "Wrapper should have 'x' parameter")
+    }
+    
+    # Most important: test that printing works without error
+    expect_error(print(p), NA,
+                 info = "ggplot2 object should print without error with wrapper")
+})
+
+# ============================================================================
 # TEST 9: DESCRIPTION file metadata is complete
 # ============================================================================
 

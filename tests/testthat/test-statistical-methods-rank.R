@@ -1793,3 +1793,158 @@ test_that("plot_method_concordance requires required columns", {
     "required columns"
   )
 })
+
+# ============================================================================
+# TEST SUITE: .estimate_storey_pi0() - FDR estimation
+# ============================================================================
+
+test_that(".estimate_storey_pi0 returns value between 0 and 1", {
+  set.seed(456)
+  
+  # Simulate p-values: mixture of true nulls and real effects
+  n_true <- 800
+  n_effect <- 200
+  
+  p_null <- runif(n_true, 0, 1)
+  p_effect <- rbeta(n_effect, 0.5, 2)  # Biased toward 0
+  
+  pvalues <- c(p_null, p_effect)
+  
+  result <- TSENAT:::.estimate_storey_pi0(pvalues)
+  pi0 <- result$pi0  # Extract pi0 from returned list
+  
+  # pi0 should be between 0 and 1
+  expect_gte(pi0, 0)
+  expect_lte(pi0, 1)
+  
+  # Should estimate close to true proportion (0.8)
+  expect_true(pi0 >= 0.7 && pi0 <= 1.0)
+})
+
+test_that(".estimate_storey_pi0 with all uniform p-values", {
+  # All uniform p-values means all nulls (pi0 = 1)
+  pvalues <- runif(1000, 0, 1)
+  
+  result <- TSENAT:::.estimate_storey_pi0(pvalues)
+  pi0 <- result$pi0  # Extract pi0 from returned list
+  
+  expect_gt(pi0, 0.9)  # Should be close to 1
+})
+
+test_that(".estimate_storey_pi0 with all small p-values", {
+  # Very small p-values suggest strong effects (pi0 should be small)
+  pvalues <- c(
+    rbeta(100, 0.1, 1),  # Strong effects
+    runif(900, 0, 1)     # Nulls
+  )
+  
+  result <- TSENAT:::.estimate_storey_pi0(pvalues)
+  pi0 <- result$pi0  # Extract pi0 from returned list
+  
+  expect_lte(pi0, 1.0)
+  expect_gte(pi0, 0.5)  # Reasonable range
+})
+
+test_that(".estimate_storey_pi0 handles different lambda values", {
+  pvalues <- runif(500, 0, 1)
+  
+  # Default lambda = 0.5
+  result_default <- TSENAT:::.estimate_storey_pi0(pvalues)
+  pi0_default <- result_default$pi0
+  
+  # Custom lambda = 0.3
+  result_custom <- TSENAT:::.estimate_storey_pi0(pvalues, lambda = 0.3)
+  pi0_custom <- result_custom$pi0
+  
+  # Both should be valid
+  expect_gte(pi0_default, 0)
+  expect_lte(pi0_default, 1)
+  expect_gte(pi0_custom, 0)
+  expect_lte(pi0_custom, 1)
+})
+
+# ============================================================================
+# TEST SUITE: .prepare_multi_q_se() - Multi-Q preparation
+# ============================================================================
+
+test_that(".prepare_multi_q_se combines multiple q-value results", {
+  
+  # Create mock TSENATAnalysis with multiple q-value diversity results
+  # This tests the function's ability to combine results across q values
+  
+  # Create sample diversity matrices for different q values
+  diversity_q0 <- matrix(runif(50, 0, 2), nrow = 10, ncol = 5, dimnames = list(
+    paste0("gene_", 1:10),
+    paste0("sample_", 1:5)
+  ))
+  
+  diversity_q1 <- matrix(runif(50, 0, 3), nrow = 10, ncol = 5, dimnames = list(
+    paste0("gene_", 1:10),
+    paste0("sample_", 1:5)
+  ))
+  
+  diversity_q2 <- matrix(runif(50, 0, 2.5), nrow = 10, ncol = 5, dimnames = list(
+    paste0("gene_", 1:10),
+    paste0("sample_", 1:5)
+  ))
+  
+  # Create mock analysis object with diversity results
+  mock_analysis <- new("TSENATAnalysis")
+  mock_analysis@diversity_results <- list(
+    q_0 = SummarizedExperiment::SummarizedExperiment(
+      assays = list(diversity = diversity_q0),
+      colData = DataFrame(sample = colnames(diversity_q0))
+    ),
+    q_1 = SummarizedExperiment::SummarizedExperiment(
+      assays = list(diversity = diversity_q1),
+      colData = DataFrame(sample = colnames(diversity_q1))
+    ),
+    q_2 = SummarizedExperiment::SummarizedExperiment(
+      assays = list(diversity = diversity_q2),
+      colData = DataFrame(sample = colnames(diversity_q2))
+    )
+  )
+  mock_analysis@metadata <- list()
+  
+  # Call the function
+  result <- TSENAT:::.prepare_multi_q_se(mock_analysis)
+  
+  # Should return SummarizedExperiment
+  expect_s4_class(result, "SummarizedExperiment")
+  
+  # Should have combined columns (3 q-values × 5 samples = 15 columns)
+  expect_equal(ncol(result), 15)
+  
+  # Should have same genes as input
+  expect_equal(nrow(result), 10)
+})
+
+test_that(".prepare_multi_q_se handles single q-value", {
+  skip_if_not_installed("TSENAT")
+  
+  # When only one q provided, should still create proper SE
+  diversity_q1 <- matrix(runif(40, 0, 2), nrow = 8, ncol = 5, dimnames = list(
+    paste0("gene_", 1:8),
+    paste0("sample_", 1:5)
+  ))
+  
+  mock_analysis <- new("TSENATAnalysis")
+  mock_analysis@diversity_results <- list(
+    q_1 = SummarizedExperiment::SummarizedExperiment(
+      assays = list(diversity = diversity_q1),
+      colData = DataFrame(sample = colnames(diversity_q1))
+    )
+  )
+  mock_analysis@metadata <- list()
+  
+  result <- TSENAT:::.prepare_multi_q_se(mock_analysis)
+  
+  # Should still return valid SummarizedExperiment
+  expect_s4_class(result, "SummarizedExperiment")
+  
+  # Should have 5 columns (1 q-value × 5 samples)
+  expect_equal(ncol(result), 5)
+  
+  # Should have 8 genes
+  expect_equal(nrow(result), 8)
+})
