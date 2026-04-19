@@ -176,7 +176,7 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
     step_times[["m_estimate"]] <- Sys.time() - step_start
     
     # Step 5: SAIT interaction
-    if (verbose) message(sprintf("[>] [%2d/16] Fitting regularized regression models", 5))
+    if (verbose) message(sprintf("[>] [%2d/16] Fitting Scale-Adaptive Interaction Testing models", 5))
     step_start <- Sys.time()
     analysis <- .execute_sait_interaction_s4(analysis, verbose, output_dir, output_format)
     step_times[["sait_interaction"]] <- Sys.time() - step_start
