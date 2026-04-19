@@ -118,7 +118,7 @@ analysis <- build_analysis(
 
 ### Orchestration Function
 
-The `TSENAT()` function provides a complete, automated analysis pipeline in a single call. It takes your configured `TSENATAnalysis` object and executes all downstream analysis steps: entropy computation, statistical testing for entropic index (q-value) by condition interactions, and rich visualization. This is the recommended entry point for most users—it orchestrates the full workflow while respecting your configuration parameters (entropic indices, design, bootstrap settings, etc.) and handles output management seamlessly. For advanced customization, use individual functions directly as shown in the step-by-step workflow below.
+The `TSENAT()` function provides a complete, automated analysis pipeline in a single call. It takes your configured `TSENATAnalysis` object and executes all downstream analysis steps: entropy computation, statistical testing for entropic index (q-value) by condition interactions, and rich visualization. This is the recommended entry point for most users—it orchestrates the full workflow while respecting your configuration parameters (entropic indices, design, bootstrap settings, etc.) and handles output management seamlessly.
 
 ```r
 # Returns: Fully configured TSENATAnalysis object
