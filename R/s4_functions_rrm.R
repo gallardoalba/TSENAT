@@ -2,7 +2,7 @@
 #' Calculate RRM interactions and store in TSENATAnalysis
 #'
 #' @description
-#' Statistical interaction testing for entropy diversity using regularized/penalized regression methods 
+#' Statistical interaction testing for entropy diversity using flexible scale-adaptive models 
 #' (GAM, LMM, GEE, FPCA) with AR(1) correlation structure for repeated measures. Tests for significant 
 #' q-by-condition interactions across entropic indices.
 #'

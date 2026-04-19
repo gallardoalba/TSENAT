@@ -21,7 +21,7 @@
 #'   Values are SummarizedExperiment objects or data.frames containing entropy
 #'   values for each gene at that q-value.
 #'
-#' @slot rrm_results \code{list}. Complex results from regularized/penalized regression methods
+#' @slot rrm_results \code{list}. Complex results from scale-adaptive interaction models (GAM with smoothing, LMM with random effects, GEE with working correlations, FPCA for functional data)
 #'   (GAM, LMM, GEE, FPCA) and statistical testing. Top-level names identify analysis type:
 #'   \describe{
 #'     \item{\code{rrm_interaction}}{Regularized regression (GAM/LMM/GEE/FPCA) model results (list with
