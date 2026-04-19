@@ -2163,7 +2163,7 @@
             breaks = group_levels) + ggplot2::scale_linetype_manual(values = c(`Model fit` = 1),
         name = "") + ggplot2::labs(x = "q parameter", y = "Tsallis entropy", title = ifelse(gene_display_name !=
         gene, sprintf("%s (%s)", gene_display_name, gene), gene_display_name)) +
-        .theme_spectrum(base_size = 11)
+        .theme_spectrum(base_size = 12)
 
     p <- .configure_legend(p, position = "none")
 
@@ -4360,8 +4360,8 @@ NULL
         x = bquote("Effect size (Tsallis Divergence" ~ D[q] ~ "; D >" ~ .(threshold) ~
             "= meaningful information separation)"), y = "Number of genes", caption = paste("Red dashed line: D =",
             threshold, "filtering threshold (information-theoretic significance for q-dependent entropy)")) +
-        .theme_base(base_size = 11) + ggplot2::theme(panel.grid.major = ggplot2::element_line(color = "gray90"),
-        plot.title = ggplot2::element_text(size = 14, hjust = 0.5), plot.subtitle = ggplot2::element_text(size = 11,
+        .theme_base(base_size = 12) + ggplot2::theme(panel.grid.major = ggplot2::element_line(color = "gray90"),
+        plot.title = ggplot2::element_text(size = 15, hjust = 0.5), plot.subtitle = ggplot2::element_text(size = 12,
             hjust = 0.5))
 
     # Add reference line using Phase 5 helper

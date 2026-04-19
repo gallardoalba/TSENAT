@@ -63,7 +63,7 @@
             `Rank test only` = "#e74c3c", `Neither significant` = "#95a5a6"), breaks = c("Both significant",
             "SAIT only", "Rank test only", "Neither significant")) + ggplot2::labs(title = "Method Concordance",
         x = "-log10(p-value, SAIT)", y = "-log10(p-value, Rank test)", color = "Significance") +
-        .theme_base(base_size = 11) + ggplot2::theme(plot.title = ggplot2::element_text(size = 12,
+        .theme_base(base_size = 12) + ggplot2::theme(plot.title = ggplot2::element_text(size = 13,
         face = "plain", hjust = 0.5), legend.position = "bottomright", panel.grid.major = ggplot2::element_line(color = "gray90"))
 
     # P-value distribution comparison
@@ -73,8 +73,8 @@
     p2 <- ggplot2::ggplot(p_long, ggplot2::aes(x = p_value, fill = method)) + ggplot2::geom_histogram(bins = 30,
         alpha = 0.6, position = "identity") + ggplot2::scale_fill_manual(values = c(SAIT = "#3498db",
         `Rank test` = "#e74c3c")) + ggplot2::labs(title = "P-value Distributions",
-        x = "P-value", y = "Frequency", fill = "Method") + .theme_base(base_size = 11) +
-        ggplot2::theme(plot.title = ggplot2::element_text(size = 12, face = "plain",
+        x = "P-value", y = "Frequency", fill = "Method") + .theme_base(base_size = 12) +
+        ggplot2::theme(plot.title = ggplot2::element_text(size = 13, face = "plain",
             hjust = 0.5))
 
     # Combine plots with global title using cowplot approach
