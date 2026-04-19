@@ -23,7 +23,7 @@ analyses."></head><body>
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-file-contract fa-lg"></span> Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/TSENAT.html">TSENAT - Theory and Practical Guide</a></li>
     <li><a class="dropdown-item" href="../articles/TSENAT_appendix_A.html">Appendix A - Equivalence Validation (TSENAT vs SplicingFactory)</a></li>
-    <li><a class="dropdown-item" href="../articles/TSENAT_appendix_B.html">Appendix B - Non-Parametric Validation (Linear Model, GAM, Rank-Based)</a></li>
+    <li><a class="dropdown-item" href="../articles/TSENAT_appendix_B.html">Appendix B - Multi-Method Validation (GAM, Rank-Based, FPCA)</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html"><span class="fa far fa-file-code fa-lg"></span> Functions</a></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://app.codecov.io/gh/gallardoalba/TSENAT"><span class="fa fas fa-chart-bar fa-lg"></span> Coverage</a></li>
@@ -83,9 +83,9 @@ analyses.</p>
 <span>  norm_method <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  pseudocount <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  shrinkage <span class="op">=</span> <span class="st">"none"</span>,</span>
-<span>  rrm_method <span class="op">=</span> <span class="st">"gam"</span>,</span>
-<span>  rrm_pcorr <span class="op">=</span> <span class="st">"BH"</span>,</span>
-<span>  jis_use_rrm_fdr <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  sait_method <span class="op">=</span> <span class="st">"gam"</span>,</span>
+<span>  sait_pcorr <span class="op">=</span> <span class="st">"BH"</span>,</span>
+<span>  jis_use_sait_fdr <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  divergence_ci <span class="op">=</span> <span class="fl">0.95</span>,</span>
 <span>  assumptions_checks <span class="op">=</span> <span class="st">"all"</span>,</span>
 <span>  <span class="va">...</span></span>
@@ -183,16 +183,16 @@ Usage: <code>calculate_diversity/divergence</code> use this for spectrum computa
 <dd><p><code>character</code>. Variance reduction: 'none' or 'empirical_bayes'. Default: 'none'.</p></dd>
 
 
-<dt id="arg-rrm-method">rrm_method<a class="anchor" aria-label="anchor" href="#arg-rrm-method"></a></dt>
-<dd><p><code>character</code>. RRM method: 'gam', 'lmm', 'fpca', 'gee'. Default: 'gam'.</p></dd>
+<dt id="arg-sait-method">sait_method<a class="anchor" aria-label="anchor" href="#arg-sait-method"></a></dt>
+<dd><p><code>character</code>. SAIT method: 'gam', 'lmm', 'fpca', 'gee'. Default: 'gam'.</p></dd>
 
 
-<dt id="arg-rrm-pcorr">rrm_pcorr<a class="anchor" aria-label="anchor" href="#arg-rrm-pcorr"></a></dt>
+<dt id="arg-sait-pcorr">sait_pcorr<a class="anchor" aria-label="anchor" href="#arg-sait-pcorr"></a></dt>
 <dd><p><code>character</code>. P-value correction: 'BH', 'bonferroni', 'hochberg', 'holm'. Default: 'BH'.</p></dd>
 
 
-<dt id="arg-jis-use-rrm-fdr">jis_use_rrm_fdr<a class="anchor" aria-label="anchor" href="#arg-jis-use-rrm-fdr"></a></dt>
-<dd><p><code>logical</code>. Filter jackknife genes using LM p-values. Default: TRUE.</p></dd>
+<dt id="arg-jis-use-sait-fdr">jis_use_sait_fdr<a class="anchor" aria-label="anchor" href="#arg-jis-use-sait-fdr"></a></dt>
+<dd><p><code>logical</code>. Filter jackknife genes using SAIT p-values. Default: TRUE.</p></dd>
 
 
 <dt id="arg-divergence-ci">divergence_ci<a class="anchor" aria-label="anchor" href="#arg-divergence-ci"></a></dt>

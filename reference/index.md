@@ -35,8 +35,8 @@
   : Jackknife isoform switching analysis on TSENATAnalysis object
 - [`calculate_m_estimator()`](https://gallardoalba.github.io/TSENAT/reference/calculate_m_estimator.md)
   : M-Estimation for Sample Quality (S4 Wrapper)
-- [`calculate_rrm()`](https://gallardoalba.github.io/TSENAT/reference/calculate_rrm.md)
-  : Calculate RRM interactions and store in TSENATAnalysis
+- [`calculate_sait()`](https://gallardoalba.github.io/TSENAT/reference/calculate_sait.md)
+  : Calculate SAIT interactions and store in TSENATAnalysis
 - [`calculate_srh()`](https://gallardoalba.github.io/TSENAT/reference/calculate_srh.md)
   : Detect q-dependent gene interactions
 - [`filter_analysis()`](https://gallardoalba.github.io/TSENAT/reference/filter_analysis.md)
@@ -55,7 +55,7 @@
   : Plot Top Transcripts from TSENATAnalysis Object
 - [`plot_jis_delta()`](https://gallardoalba.github.io/TSENAT/reference/plot_jis_delta.md)
   : Plot Multi-Q Delta Influence Heatmaps from TSENATAnalysis Object
-- [`plot_rrm()`](https://gallardoalba.github.io/TSENAT/reference/plot_rrm.md)
+- [`plot_sait()`](https://gallardoalba.github.io/TSENAT/reference/plot_sait.md)
   : Plot GAM q-curves from TSENATAnalysis object
 - [`readcounts`](https://gallardoalba.github.io/TSENAT/reference/readcounts.md)
   : Example transcript-level read counts dataset

@@ -6,7 +6,7 @@ q-curve plots
 ## Usage
 
 ``` r
-plot_rrm(
+plot_sait(
   analysis,
   n_top = 6,
   genes = NULL,
@@ -25,7 +25,7 @@ plot_rrm(
 
 - analysis:
 
-  `TSENATAnalysis` object with diversity and RRM interaction results.
+  `TSENATAnalysis` object with diversity and SAIT interaction results.
 
 - n_top:
 
@@ -48,8 +48,8 @@ plot_rrm(
 - sig_alpha:
 
   `numeric`. Significance threshold for adjusted p-values (default:
-  0.05). Only used if genes = NULL; filters rrm_res to significant genes
-  before selecting top n.
+  0.05). Only used if genes = NULL; filters sait_res to significant
+  genes before selecting top n.
 
 - assay_name:
 
@@ -90,9 +90,9 @@ layout. Can be saved with
 ## Details
 
 This wrapper automatically: 1. Extracts SummarizedExperiment from `@se`
-slot 2. Extracts RRM results from `@rrm_results$rrm_interaction` slot 3.
-Detects condition_col from `@config` or uses default 4. Calls
-`.plot_rrm()` with extracted parameters
+slot 2. Extracts SAIT results from `@sait_results$sait_interaction` slot
+3. Detects condition_col from `@config` or uses default 4. Calls
+`.plot_sait()` with extracted parameters
 
 \*\*Parameter Resolution (condition_col):\*\*
 
@@ -106,7 +106,7 @@ Detects condition_col from `@config` or uses default 4. Calls
 
 ## See also
 
-[`calculate_rrm`](https://gallardoalba.github.io/TSENAT/reference/calculate_rrm.md)
+[`calculate_sait`](https://gallardoalba.github.io/TSENAT/reference/calculate_sait.md)
 for running LM analysis on TSENATAnalysis.
 
 ## Examples
@@ -145,9 +145,9 @@ analysis <- build_analysis(
 
 analysis <- filter_analysis(analysis, stringency = 'severe')
 analysis <- calculate_diversity(analysis, q = seq(0.2, 2, by = 0.4))
-analysis <- suppressWarnings(calculate_rrm(analysis, method = 'gam'))
+analysis <- suppressWarnings(calculate_sait(analysis, method = 'gam'))
 
-p_gam <- plot_rrm(analysis, n_top = 2, sig_alpha = 0.15)
+p_gam <- plot_sait(analysis, n_top = 2, sig_alpha = 0.15)
 #> Warning: No valid plots generated
 # print(p_gam)
 ```

@@ -21,7 +21,7 @@ with options for ranking, filtering, and format conversion."></head><body>
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-file-contract fa-lg"></span> Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/TSENAT.html">TSENAT - Theory and Practical Guide</a></li>
     <li><a class="dropdown-item" href="../articles/TSENAT_appendix_A.html">Appendix A - Equivalence Validation (TSENAT vs SplicingFactory)</a></li>
-    <li><a class="dropdown-item" href="../articles/TSENAT_appendix_B.html">Appendix B - Non-Parametric Validation (Linear Model, GAM, Rank-Based)</a></li>
+    <li><a class="dropdown-item" href="../articles/TSENAT_appendix_B.html">Appendix B - Multi-Method Validation (GAM, Rank-Based, FPCA)</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html"><span class="fa far fa-file-code fa-lg"></span> Functions</a></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://app.codecov.io/gh/gallardoalba/TSENAT"><span class="fa fas fa-chart-bar fa-lg"></span> Coverage</a></li>
@@ -220,7 +220,7 @@ and they will be computed on-demand.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Get results ranked by p-value, top 20 genes</span></span></span>
 <span class="r-in"><span><span class="co"># Using accessor function instead of @ slot access</span></span></span>
-<span class="r-in"><span><span class="va">top_rrm</span> <span class="op">&lt;-</span> <span class="fu">results</span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">'rrm'</span>, rankBy <span class="op">=</span> <span class="st">'pvalue'</span>, n <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">top_sait</span> <span class="op">&lt;-</span> <span class="fu">results</span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"sait"</span>, rankBy <span class="op">=</span> <span class="st">'pvalue'</span>, n <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Get effect size results, top 6 genes by p-value (most significant first)</span></span></span>
 <span class="r-in"><span><span class="va">top_effect_sizes</span> <span class="op">&lt;-</span> <span class="fu">results</span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">'effect_sizes_divergence'</span>, </span></span>
@@ -244,23 +244,23 @@ and they will be computed on-demand.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Get the diversity spectrum plot</span></span></span>
 <span class="r-in"><span><span class="va">diversity_plot</span> <span class="op">&lt;-</span> <span class="fu">results</span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">'diversity'</span>, plot <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Plot for type 'diversity' not found. Available plot types: diversity, rrm, influence, jackknife, divergence. Available plots: none</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Plot for type 'diversity' not found. Available plot types: diversity, sait, influence, jackknife, divergence. Available plots: none</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Get the LM/regularized regression (GAM, LMM, GEE, FPCA) interaction plot</span></span></span>
-<span class="r-in"><span><span class="va">rrm_plot</span> <span class="op">&lt;-</span> <span class="fu">results</span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">'rrm'</span>, plot <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Plot for type 'rrm' not found. Available plot types: diversity, rrm, influence, jackknife, divergence. Available plots: none</span>
+<span class="r-in"><span><span class="va">sait_plot</span> <span class="op">&lt;-</span> <span class="fu">results</span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"sait"</span>, plot <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Plot for type 'sait' not found. Available plot types: diversity, sait, influence, jackknife, divergence. Available plots: none</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Get the divergence distribution plot</span></span></span>
 <span class="r-in"><span><span class="va">div_dist_plot</span> <span class="op">&lt;-</span> <span class="fu">results</span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">'divergence'</span>, plot <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Plot for type 'divergence' not found. Available plot types: diversity, rrm, influence, jackknife, divergence. Available plots: none</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Plot for type 'divergence' not found. Available plot types: diversity, sait, influence, jackknife, divergence. Available plots: none</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Get the influence/m-estimator plot</span></span></span>
 <span class="r-in"><span><span class="va">influence_plot</span> <span class="op">&lt;-</span> <span class="fu">results</span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">'influence'</span>, plot <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Plot for type 'influence' not found. Available plot types: diversity, rrm, influence, jackknife, divergence. Available plots: none</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Plot for type 'influence' not found. Available plot types: diversity, sait, influence, jackknife, divergence. Available plots: none</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Available plot types correspond to analysis types:</span></span></span>
 <span class="r-in"><span><span class="co"># - type = 'diversity': Returns Tsallis entropy q-spectrum visualization</span></span></span>
-<span class="r-in"><span><span class="co"># - type = 'rrm': Returns regularized/penalized regression (GAM, LMM, GEE, FPCA) interaction plot</span></span></span>
+<span class="r-in"><span><span class="co"># - type = "sait": Returns regularized/penalized regression (GAM, LMM, GEE, FPCA) interaction plot</span></span></span>
 <span class="r-in"><span><span class="co"># - type = 'divergence': Returns distribution of divergence metrics across genes</span></span></span>
 <span class="r-in"><span><span class="co"># - type = 'influence': Returns m-estimator sample influence analysis</span></span></span>
 <span class="r-in"><span><span class="co"># - type = 'rank_test': Returns Scheirer-Ray-Hare interaction visualization</span></span></span>

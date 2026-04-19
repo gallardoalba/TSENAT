@@ -1,11 +1,11 @@
-# Appendix B: Non-Parametric Validation of Linear Model Results via GAM and Rank-Based Methods
+# Appendix B: Non-Parametric Validation of Scale-Adaptive Interaction Model Results via GAM and Rank-Based Methods
 
 ## Purpose and Rationale
 
 The primary goal of this vignette is to validate that discoveries of
-scale-dependent entropic index × group interactions from linear models
-generalize to non-parametric statistical frameworks with minimal
-assumptions.
+scale-dependent entropic index × group interactions from Scale-Adaptive
+Interaction Models (SAIT) generalize to non-parametric statistical
+frameworks with minimal assumptions.
 
 ### Two Complementary Validation Approaches
 
@@ -363,7 +363,7 @@ Visualize q-curves for top genes:
 
 # Plot top genes from SRH test (using all genes, not just significant ones)
 # This ensures the plot displays n_top genes regardless of significance threshold
-top_genes_plot <- plot_diversity_spectrum(analysis, rrm_res = srh_results_all, n_top = 4)
+top_genes_plot <- plot_diversity_spectrum(analysis, sait_res = srh_results_all, n_top = 4)
 print(top_genes_plot)
 ```
 
@@ -385,13 +385,13 @@ vignette
 ``` r
 
 # Load precomputed LM analysis object from RDS file
-analysis_rrm <- readRDS(
-    system.file("extdata", "analysis_rrm.rds", package = "TSENAT")
+analysis_sait <- readRDS(
+    system.file("extdata", "analysis_sait.rds", package = "TSENAT")
 )
 
-# Extract GAM/RRM results for inspection using accessor function
-rrm_results <- results(analysis_rrm, type = "rrm", rankBy = "pvalue")
-print(rrm_results)
+# Extract GAM results for inspection using accessor function
+sait_results <- results(analysis_sait, type = "sait", rankBy = "pvalue")
+print(sait_results)
 ```
 
 | Metric                                   |  Value |
@@ -441,7 +441,7 @@ high-confidence genes significant across both statistical frameworks.
 
 # Compute concordance analysis using new two-object API
 analysis <- calculate_concordance(
-    analysis_rrm = analysis_rrm,
+    analysis_sait = analysis_sait,
     analysis_rank = analysis,
     verbose = TRUE
 )
@@ -450,10 +450,10 @@ analysis <- calculate_concordance(
 concordance_results <- results(analysis, type = "concordance", format = "list")
 ```
 
-| Gene      | RRM adj p | Rank test adj p | RRM Effect | Rank test rho^2 |
-|:----------|----------:|----------------:|-----------:|----------------:|
-| CXCL12    | 2.99e-162 |        7.24e-61 |      81.3% |           0.300 |
-| LINC03040 |  1.35e-55 |       7.287e-28 |      73.8% |           0.073 |
+| Gene      | SAIT adj p | Rank test adj p | SAIT Effect | Rank test rho^2 |
+|:----------|-----------:|----------------:|------------:|----------------:|
+| CXCL12    |  2.99e-162 |        7.24e-61 |       81.3% |           0.300 |
+| LINC03040 |   1.35e-55 |       7.287e-28 |       73.8% |           0.073 |
 
 Robust Entropic Order Index Interactions: High-Confidence Genes Detected
 by Both Methods (n=2, ranked by statistical significance) {.table}

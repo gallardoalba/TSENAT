@@ -64,11 +64,11 @@ Pipeline execution order (enforced, follows TSENAT.Rmd vignette):
 4.  [`calculate_m_estimator()`](https://gallardoalba.github.io/TSENAT/reference/calculate_m_estimator.md) -
     Sample influence QC analysis
 
-5.  [`calculate_rrm()`](https://gallardoalba.github.io/TSENAT/reference/calculate_rrm.md) -
-    LM/RRM interaction testing
+5.  [`calculate_sait()`](https://gallardoalba.github.io/TSENAT/reference/calculate_sait.md) -
+    LM/SAIT interaction testing
 
-6.  [`plot_rrm()`](https://gallardoalba.github.io/TSENAT/reference/plot_rrm.md) -
-    RRM results visualization
+6.  [`plot_sait()`](https://gallardoalba.github.io/TSENAT/reference/plot_sait.md) -
+    SAIT results visualization
 
 7.  [`calculate_jis()`](https://gallardoalba.github.io/TSENAT/reference/calculate_jis.md) -
     Transcript switching detection
@@ -152,9 +152,9 @@ result <- TSENAT(analysis)
 #>   Pseudocount .......... disabled
 #>   Shrinkage ............ disabled
 #>   Significance ......... p < 0.050 | FDR < 0.050
-#>   RRM method ............ GAM
-#>   LM p-corr method ..... BH
-#>   Jackknife use_rrm_fdr . TRUE
+#>   SAIT method ............ GAM
+#>   SAIT p-corr method ..... BH
+#>   Jackknife use_sait_fdr . TRUE
 #> 
 #> =============================================================
 #> [>] [ 1/16] Filtering low-abundance transcripts
@@ -165,12 +165,12 @@ result <- TSENAT(analysis)
 #>           [OK] Plot generated
 #> [>] [ 4/16] Computing M-estimator influence
 #>           [OK] M-estimate QC complete
-#> [>] [ 5/16] Fitting regularized regression models
+#> [>] [ 5/16] Fitting Scale-Adaptive Interaction Testing models
 #> Warning: nlminb problem, convergence error code = 1
 #>   message = singular convergence (7)
-#>           [OK] RRM interaction analysis complete
-#> [>] [ 6/16] Plotting RRM results
-#>           [OK] RRM interaction plot generated
+#>           [OK] SAIT interaction analysis complete
+#> [>] [ 6/16] Plotting SAIT results
+#>           [OK] SAIT interaction plot generated
 #> [>] [ 7/16] Computing jackknife isoform switching
 #>           [OK] Jackknife isoform switching complete
 #> [>] [ 8/16] Plotting influence heatmap
@@ -201,11 +201,11 @@ result <- TSENAT(analysis)
 #> [RESULTS] Results Summary
 #> 
 #> [PERF] Performance
-#>   Total time ........... 27.1s
+#>   Total time ........... 22.3s
 #>   Slowest steps:
-#>     1. rrm_interaction      14.5s (53.5%)
-#>     2. rrm_plot             2.9s (10.8%)
-#>     3. jackknife            2.7s (10.1%)
+#>     1. sait_interaction     12.1s (54.3%)
+#>     2. sait_plot            2.3s (10.3%)
+#>     3. jackknife            2.1s (9.6%)
 #> 
 #> [OUTPUT] Output
 #>   Directory ........... tsenat_outputs
@@ -223,14 +223,14 @@ result <- TSENAT(analysis)
 #>   div <- results(result, type = 'diversity',
 #>                  n_genes = 4, sample = 'SRR14800481')
 #> 
-#>   # Regularized/Penalized Regression Interaction Results
+#>   # Scale-Adaptive Interaction Model Results
 #>   # Top 10 genes by p-value
-#>   rrm <- results(result, type = 'rrm',
+#>   sait_result <- results(result, type = "sait",
 #>                 rankBy = 'pvalue', n = 10)
 #> 
 #>   # Visualizations
 #>   plot_diversity <- results(result, type = 'diversity', plot = TRUE)
-#>   plot_rrm <- results(result, type = 'rrm', plot = TRUE)
+#>   plot_sait <- results(result, type = "sait", plot = TRUE)
 #> 
 # }
 ```

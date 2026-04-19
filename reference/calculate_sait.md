@@ -1,14 +1,14 @@
-# Calculate RRM interactions and store in TSENATAnalysis
+# Calculate SAIT interactions and store in TSENATAnalysis
 
-Statistical interaction testing for entropy diversity using
-regularized/penalized regression methods (GAM, LMM, GEE, FPCA) with
-AR(1) correlation structure for repeated measures. Tests for significant
-q-by-condition interactions across entropic indices.
+Statistical interaction testing for entropy diversity using flexible
+scale-adaptive models (GAM, LMM, GEE, FPCA) with AR(1) correlation
+structure for repeated measures. Tests for significant q-by-condition
+interactions across entropic indices.
 
 ## Usage
 
 ``` r
-calculate_rrm(
+calculate_sait(
   analysis,
   fdr_threshold = NULL,
   formula = NULL,
@@ -108,13 +108,13 @@ calculate_rrm(
 
 ## Value
 
-Modified TSENATAnalysis with results in @rrm_results\$rrm_interaction.
+Modified TSENATAnalysis with results in @sait_results\$sait_interaction.
 
 ## Details
 
 Extracts diversity results from @diversity_results (prerequisite),
 combines across q-values into single SummarizedExperiment, then runs
-`.calculate_rrm()`.
+`.calculate_sait()`.
 
 \*\*Parameter Priority Resolution:\*\*
 
@@ -186,21 +186,21 @@ S4Vectors::metadata(se)$tx2gene <-
 # Initialize TSENATAnalysis
 analysis <- TSENATAnalysis(se = se, config = list())
 
-# Compute diversity (prerequisite for RRM interaction analysis)
+# Compute diversity (prerequisite for SAIT interaction analysis)
 analysis <- calculate_diversity(
   analysis, 
   q = c(0.5, 1.0, 1.5, 2.0, 2.5)
 )
 
 # Calculate q x condition interactions using GAM
-analysis <- suppressWarnings(calculate_rrm(
+analysis <- suppressWarnings(calculate_sait(
   analysis,
   condition_col = 'condition',
   method = 'gam'
 ))
 
 # View top interaction results using unified accessor (first 3 genes)
-res <- results(analysis, type = 'rrm')
+res <- results(analysis, type = "sait")
 if (!is.null(res)) head(res, 3)
 #>      gene p_interaction        p_raw n_observations n_subjects n_effective
 #> 1  GENE_2  3.243028e-11 3.243028e-11             64         16    14.91552

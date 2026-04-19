@@ -23,7 +23,7 @@ using jackknife resampling across samples to detect influential isoforms."></hea
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-file-contract fa-lg"></span> Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/TSENAT.html">TSENAT - Theory and Practical Guide</a></li>
     <li><a class="dropdown-item" href="../articles/TSENAT_appendix_A.html">Appendix A - Equivalence Validation (TSENAT vs SplicingFactory)</a></li>
-    <li><a class="dropdown-item" href="../articles/TSENAT_appendix_B.html">Appendix B - Non-Parametric Validation (Linear Model, GAM, Rank-Based)</a></li>
+    <li><a class="dropdown-item" href="../articles/TSENAT_appendix_B.html">Appendix B - Multi-Method Validation (GAM, Rank-Based, FPCA)</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html"><span class="fa far fa-file-code fa-lg"></span> Functions</a></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://app.codecov.io/gh/gallardoalba/TSENAT"><span class="fa fas fa-chart-bar fa-lg"></span> Coverage</a></li>
@@ -73,9 +73,9 @@ using jackknife resampling across samples to detect influential isoforms.</p>
 <span>  threshold <span class="op">=</span> <span class="fl">90</span>,</span>
 <span>  nboot <span class="op">=</span> <span class="fl">1000</span>,</span>
 <span>  pseudocount <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  rrm_results <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  rrm_p_threshold <span class="op">=</span> <span class="fl">0.05</span>,</span>
-<span>  use_rrm_fdr <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  sait_results <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  sait_p_threshold <span class="op">=</span> <span class="fl">0.05</span>,</span>
+<span>  use_sait_fdr <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  output_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  <span class="va">...</span></span>
@@ -152,21 +152,21 @@ confidence
 count regularization.  Default:  NULL (uses @config$pseudocount or  0).</p></dd>
 
 
-<dt id="arg-rrm-results">rrm_results<a class="anchor" aria-label="anchor" href="#arg-rrm-results"></a></dt>
+<dt id="arg-sait-results">sait_results<a class="anchor" aria-label="anchor" href="#arg-sait-results"></a></dt>
 <dd><p><code>data. frame</code>.
-Optional RRM interaction results to filter genes.
- If provided, only genes in rrm_results are analyzed.</p></dd>
+Optional SAIT interaction results to filter genes.
+ If provided, only genes in sait_results are analyzed.</p></dd>
 
 
-<dt id="arg-rrm-p-threshold">rrm_p_threshold<a class="anchor" aria-label="anchor" href="#arg-rrm-p-threshold"></a></dt>
+<dt id="arg-sait-p-threshold">sait_p_threshold<a class="anchor" aria-label="anchor" href="#arg-sait-p-threshold"></a></dt>
 <dd><p><code>numeric</code>.  P-value threshold for
 filtering genes from
-  rrm_results (default: 0.05).</p></dd>
+  sait_results (default: 0.05).</p></dd>
 
 
-<dt id="arg-use-rrm-fdr">use_rrm_fdr<a class="anchor" aria-label="anchor" href="#arg-use-rrm-fdr"></a></dt>
+<dt id="arg-use-sait-fdr">use_sait_fdr<a class="anchor" aria-label="anchor" href="#arg-use-sait-fdr"></a></dt>
 <dd><p><code>logical</code>.  If TRUE,
-uses adjusted p-values from rrm_results
+uses adjusted p-values from sait_results
  (default: TRUE).</p></dd>
 
 
@@ -218,7 +218,7 @@ analysis, multiple
 </ol><p>Affected parameters:</p><ul><li><p><code>q</code>: Multi-q vector c(0, 0.5, 1, 1.5, 2) if not provided, or <code>@config$q</code> if available</p></li>
 <li><p><code>nboot</code>: Uses <code>@config$nboot</code> if available, else 1000</p></li>
 <li><p><code>threshold</code>: Uses <code>@config$threshold</code> if available, else 90</p></li>
-<li><p><code>rrm_p_threshold</code>: Uses <code>@config$rrm_p_threshold</code> if available, else 0.05</p></li>
+<li><p><code>sait_p_threshold</code>: Uses <code>@config$sait_p_threshold</code> if available, else 0.05</p></li>
 </ul><p>This allows setting defaults once in the config and reusing across multiple analyses.</p>
 
 

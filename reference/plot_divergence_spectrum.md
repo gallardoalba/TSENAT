@@ -57,7 +57,7 @@ plot_divergence_spectrum(
 
 - use_pvalue_ranking:
 
-  `logical`. If TRUE, uses RRM results to rank and display top n_genes
+  `logical`. If TRUE, uses SAIT results to rank and display top n_genes
   by p-value significance. If FALSE (default), plots global divergence
   curve when gene = NULL. Default is FALSE.
 
@@ -91,8 +91,8 @@ returns NULL invisibly with an informative message.
 ## Details
 
 This wrapper extracts the divergence SummarizedExperiment from
-`analysis@divergence_results` and optionally the RRM results from
-`analysis@rrm_results$rrm_interaction` to pass to the base function.
+`analysis@divergence_results` and optionally the SAIT results from
+`analysis@sait_results$sait_interaction` to pass to the base function.
 
 \*\*Data Requirements:\*\*
 
@@ -109,7 +109,7 @@ This wrapper extracts the divergence SummarizedExperiment from
 - **Gene-specific mode** (gene specified): Shows divergence spectrum for
   a single named gene
 
-- **Top genes mode** (gene = NULL, rrm_res provided): Shows top n_genes
+- **Top genes mode** (gene = NULL, sait_res provided): Shows top n_genes
   by significance
 
 ## See also

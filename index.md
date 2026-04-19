@@ -189,11 +189,11 @@ interface:
 
 # Unified interface: request results by type
 diversity_results <- results(result, type = "diversity")
-rrm_results <- results(result, type = "rrm")
+sait_results <- results(result, type = "sait")
 jackknife_results <- results(result, type = "jackknife", q = 1)
 
 # Filter and rank results flexibly
-ranked_rrm <- results(result, type = "rrm", rankBy = "padj", n = 50)
+ranked_sait <- results(result, type = "sait", rankBy = "padj", n = 50)
 filtered_diversity <- results(result, type = "diversity", q = 1.0)
 
 # Retrieve plots
@@ -225,9 +225,9 @@ ARIMA differencing.
 
 The statistical methods available in TSENAT include:
 
-- **Regularized/Penalized Regression Methods**: Parametric regression
-  modeling with AR(1) correlation structure for repeated measures. GAM,
-  LMM, GEE and FPCA are all parameterized to handle non-normality and
+- **Scale-Adaptive Interaction Models**: Multiple modeling approaches
+  optimized for repeated measures with AR(1) correlation structure. GAM,
+  LMM, GEE and FPCA are all parametrized to handle the non-normality and
   heteroscedasticity characteristic of entropy data.
 - **Scheirer-Ray-Hare rank tests**: The test operates solely on ranks,
   making it robust to outliers and extreme values. However, it shows

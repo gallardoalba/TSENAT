@@ -21,7 +21,7 @@ interactions -&amp;gt; divergence -&amp;gt; gene interactions -&amp;gt; rank-bas
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-file-contract fa-lg"></span> Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/TSENAT.html">TSENAT - Theory and Practical Guide</a></li>
     <li><a class="dropdown-item" href="../articles/TSENAT_appendix_A.html">Appendix A - Equivalence Validation (TSENAT vs SplicingFactory)</a></li>
-    <li><a class="dropdown-item" href="../articles/TSENAT_appendix_B.html">Appendix B - Non-Parametric Validation (Linear Model, GAM, Rank-Based)</a></li>
+    <li><a class="dropdown-item" href="../articles/TSENAT_appendix_B.html">Appendix B - Multi-Method Validation (GAM, Rank-Based, FPCA)</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html"><span class="fa far fa-file-code fa-lg"></span> Functions</a></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://app.codecov.io/gh/gallardoalba/TSENAT"><span class="fa fas fa-chart-bar fa-lg"></span> Coverage</a></li>
@@ -105,8 +105,8 @@ Default: TRUE. If FALSE, no TSV/CSV output files are written to disk.</p></dd>
 <li><p><code><a href="calculate_diversity.html">calculate_diversity()</a></code> - Tsallis entropy per q-value</p></li>
 <li><p><code><a href="plot_diversity_spectrum.html">plot_diversity_spectrum()</a></code> - Visualize q-spectrum</p></li>
 <li><p><code><a href="calculate_m_estimator.html">calculate_m_estimator()</a></code> - Sample influence QC analysis</p></li>
-<li><p><code><a href="calculate_rrm.html">calculate_rrm()</a></code> - LM/RRM interaction testing</p></li>
-<li><p><code><a href="plot_rrm.html">plot_rrm()</a></code> - RRM results visualization</p></li>
+<li><p><code><a href="calculate_sait.html">calculate_sait()</a></code> - LM/SAIT interaction testing</p></li>
+<li><p><code><a href="plot_sait.html">plot_sait()</a></code> - SAIT results visualization</p></li>
 <li><p><code><a href="calculate_jis.html">calculate_jis()</a></code> - Transcript switching detection</p></li>
 <li><p><code><a href="plot_jis_delta.html">plot_jis_delta()</a></code> - Multi-q influence heatmap (gene switching tables computed lazily via results())</p></li>
 <li><p><code><a href="plot_expression.html">plot_expression()</a></code> - Top transcript visualization</p></li>
@@ -169,9 +169,9 @@ Default: TRUE. If FALSE, no TSV/CSV output files are written to disk.</p></dd>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Pseudocount .......... disabled</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Shrinkage ............ disabled</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Significance ......... p &lt; 0.050 | FDR &lt; 0.050</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   RRM method ............ GAM</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   LM p-corr method ..... BH</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   Jackknife use_rrm_fdr . TRUE</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   SAIT method ............ GAM</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   SAIT p-corr method ..... BH</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Jackknife use_sait_fdr . TRUE</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> =============================================================</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 1/16] Filtering low-abundance transcripts</span>
@@ -182,12 +182,12 @@ Default: TRUE. If FALSE, no TSV/CSV output files are written to disk.</p></dd>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Plot generated</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 4/16] Computing M-estimator influence</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] M-estimate QC complete</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 5/16] Fitting regularized regression models</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 5/16] Fitting Scale-Adaptive Interaction Testing models</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>nlminb problem, convergence error code = 1</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span>   message = singular convergence (7)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] RRM interaction analysis complete</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 6/16] Plotting RRM results</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] RRM interaction plot generated</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] SAIT interaction analysis complete</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 6/16] Plotting SAIT results</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] SAIT interaction plot generated</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 7/16] Computing jackknife isoform switching</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>           [OK] Jackknife isoform switching complete</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [&gt;] [ 8/16] Plotting influence heatmap</span>
@@ -218,11 +218,11 @@ Default: TRUE. If FALSE, no TSV/CSV output files are written to disk.</p></dd>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [RESULTS] Results Summary</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [PERF] Performance</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   Total time ........... 27.1s</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Total time ........... 22.3s</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Slowest steps:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     1. rrm_interaction      14.5s (53.5%)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     2. rrm_plot             2.9s (10.8%)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     3. jackknife            2.7s (10.1%)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     1. sait_interaction     12.1s (54.3%)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     2. sait_plot            2.3s (10.3%)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     3. jackknife            2.1s (9.6%)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [OUTPUT] Output</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Directory ........... tsenat_outputs</span>
@@ -240,14 +240,14 @@ Default: TRUE. If FALSE, no TSV/CSV output files are written to disk.</p></dd>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   div &lt;- results(result, type = 'diversity',</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>                  n_genes = 4, sample = 'SRR14800481')</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   # Regularized/Penalized Regression Interaction Results</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   # Scale-Adaptive Interaction Model Results</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   # Top 10 genes by p-value</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   rrm &lt;- results(result, type = 'rrm',</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   sait_result &lt;- results(result, type = "sait",</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>                 rankBy = 'pvalue', n = 10)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   # Visualizations</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   plot_diversity &lt;- results(result, type = 'diversity', plot = TRUE)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   plot_rrm &lt;- results(result, type = 'rrm', plot = TRUE)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   plot_sait &lt;- results(result, type = "sait", plot = TRUE)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>

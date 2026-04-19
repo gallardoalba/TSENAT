@@ -36,7 +36,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="articles/TSENAT.html">TSENAT - Theory and Practical Guide</a></li>
     <li><a class="dropdown-item" href="articles/TSENAT_appendix_A.html">Appendix A - Equivalence Validation (TSENAT vs SplicingFactory)</a></li>
-    <li><a class="dropdown-item" href="articles/TSENAT_appendix_B.html">Appendix B - Non-Parametric Validation (Linear Model, GAM, Rank-Based)</a></li>
+    <li><a class="dropdown-item" href="articles/TSENAT_appendix_B.html">Appendix B - Multi-Method Validation (GAM, Rank-Based, FPCA)</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html"><span class="fa far fa-file-code fa-lg"></span> Functions</a></li>
@@ -190,11 +190,11 @@
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Unified interface: request results by type</span></span>
 <span><span class="va">diversity_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/results.html">results</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"diversity"</span><span class="op">)</span></span>
-<span><span class="va">rrm_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/results.html">results</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"rrm"</span><span class="op">)</span></span>
+<span><span class="va">sait_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/results.html">results</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"sait"</span><span class="op">)</span></span>
 <span><span class="va">jackknife_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/results.html">results</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"jackknife"</span>, q <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Filter and rank results flexibly</span></span>
-<span><span class="va">ranked_rrm</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/results.html">results</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"rrm"</span>, rankBy <span class="op">=</span> <span class="st">"padj"</span>, n <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
+<span><span class="va">ranked_sait</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/results.html">results</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"sait"</span>, rankBy <span class="op">=</span> <span class="st">"padj"</span>, n <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
 <span><span class="va">filtered_diversity</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/results.html">results</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"diversity"</span>, q <span class="op">=</span> <span class="fl">1.0</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Retrieve plots</span></span>
@@ -213,7 +213,7 @@
 <p>The statistical methods available in TSENAT include:</p>
 <ul>
 <li>
-<strong>Regularized/Penalized Regression Methods</strong>: Parametric regression modeling with AR(1) correlation structure for repeated measures. GAM, LMM, GEE and FPCA are all parameterized to handle non-normality and heteroscedasticity characteristic of entropy data.</li>
+<strong>Scale-Adaptive Interaction Models</strong>: Multiple modeling approaches optimized for repeated measures with AR(1) correlation structure. GAM, LMM, GEE and FPCA are all parametrized to handle the non-normality and heteroscedasticity characteristic of entropy data.</li>
 <li>
 <strong>Scheirer-Ray-Hare rank tests</strong>: The test operates solely on ranks, making it robust to outliers and extreme values. However, it shows lower power for interactions and can inflate Type I errors under heterogeneous variance. These limitations are mitigated through Hochberg multiple testing correction.</li>
 <li>

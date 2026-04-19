@@ -119,9 +119,9 @@ A `TSENATAnalysis` S4 object with:
 
   Empty list (populated by calculate_divergence())
 
-- @rrm_results:
+- @sait_results:
 
-  Empty list (populated by calculate_rrm())
+  Empty list (populated by calculate_sait())
 
 - @jackknife_results:
 
@@ -246,7 +246,7 @@ analysis
 #> Samples:     10
 #> Configuration: 27 parameters
 #> Analysis status: EMPTY
-#> Created: 2026-04-19 01:20:55.39694
+#> Created: 2026-04-19 15:15:15.807558
 #> 
 print(dim(analysis))
 #> NULL

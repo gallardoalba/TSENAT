@@ -301,7 +301,7 @@ In this workflow, you will:
 
 1.  Load transcript counts and sample metadata
 2.  Identify genes with significant scale-dependent isoform complexity
-    changes (using linear model interaction testing)
+    changes (using Scale-Adaptive Interaction Models)
 3.  Assess which individual transcripts drive those changes (using
     jackknife resampling (Efron and Tibshirani 1993))
 4.  Interpret results in the context of paired experimental designs
@@ -545,7 +545,7 @@ review. Flagged samples may reflect genuine biological heterogeneity or
 technical artifacts requiring careful examination before proceeding with
 downstream analysis.
 
-### Linear-Model interaction
+### Scale-Adaptive Interaction Models
 
 Each gene produces a **q-curve**: a trajectory showing how entropy
 changes across entropic scales from rare (low `q`) to abundant (high
@@ -554,9 +554,10 @@ groups—in other words, whether the effect of `q` on entropy **depends
 on** which group a sample belongs to. This is captured statistically as
 a **q x condition interaction**: if significant, it reveals genes with
 condition-specific diversity patterns that change shape across the
-diversity spectrum. Linear models (and their extensions) naturally
-formalize this multi-scale comparison, making them ideal for identifying
-such scale-dependent biological signals.
+diversity spectrum. Scale-Adaptive Interaction Models (SAIT) naturally
+formalize this multi-scale comparison through adaptive statistical
+frameworks, making them ideal for identifying such scale-dependent
+biological signals.
 
 We can test for these interactions using one of four methods, each with
 specific strengths:
@@ -576,17 +577,17 @@ inherent in Tsallis entropy measurements.
 
 ``` r
 
-# Regularized regression interaction test across q values using S4 wrapper
-analysis <- calculate_rrm(
+# Scale-adaptive interaction test across q values using S4 wrapper
+analysis <- calculate_sait(
     analysis,
     method = "gam",
     multicorr = "hochberg"
 )
        
-# Extract RRM interaction results
-rrm_results <- results(analysis, type = "rrm", rankBy = "pvalue", n = 10)
+# Extract SAIT interaction results
+sait_results <- results(analysis, type = "sait", rankBy = "pvalue", n = 10)
 
-print(rrm_results)
+print(sait_results)
 ```
 
 | Gene | P-value | Adj. P-value | Effect Size | Test Statistic | Model Converged | Heteroscedasticity |
@@ -611,15 +612,16 @@ q-spectrum; FALSE values suggest variance heterogeneity and warrant
 caution in result interpretation.
 
 Now we will plot the q-curve profile for the top genes identified by the
-regularized regression interaction test.
+scale-adaptive interaction test.
 
 ``` r
 
 # Plot q-curve profiles for the top 4 genes using the S4 wrapper
-combined_plot <- plot_rrm(
+combined_plot <- plot_sait(
     analysis,
     n_top = 4
 )
+
 print(combined_plot)
 ```
 
@@ -634,7 +636,7 @@ showing significant q\$ imes\$condition effects (Benjamini-Hochberg q \<
 
 ### Transcript Switching Across Diversity Scales
 
-The RRM interaction tests whether condition effects depend on which
+The SAIT interaction tests whether condition effects depend on which
 diversity scale (q-value) you examine. This section identifies **which
 individual transcripts** drive these scale-dependent patterns, revealing
 whether the same transcripts switch across all scales or whether
@@ -645,7 +647,7 @@ scales.
 
 This workflow combines two complementary statistical methods:
 
-1.  **Multi-*q* RRM interaction test**: Tests whether the condition
+1.  **Multi-*q* SAIT interaction test**: Tests whether the condition
     effect on diversity depends on *q* (overall pattern across diversity
     scales)
 2.  **Single-*q* jackknife resampling**: Tests which individual
@@ -725,7 +727,7 @@ tables_result <- results(analysis, type = "switching_tables")
 
 #### Delta Influence Across Diversity Scales
 
-Visualize switching patterns for the top genes identified by the RRM
+Visualize switching patterns for the top genes identified by the SAIT
 interaction test. This shows which transcripts are switching in genes
 with significant q × condition interaction effects. The heatmaps below
 display **jackknife delta influence** (Efron and Tibshirani 1993)-a

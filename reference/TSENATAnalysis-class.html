@@ -19,7 +19,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-file-contract fa-lg"></span> Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/TSENAT.html">TSENAT - Theory and Practical Guide</a></li>
     <li><a class="dropdown-item" href="../articles/TSENAT_appendix_A.html">Appendix A - Equivalence Validation (TSENAT vs SplicingFactory)</a></li>
-    <li><a class="dropdown-item" href="../articles/TSENAT_appendix_B.html">Appendix B - Non-Parametric Validation (Linear Model, GAM, Rank-Based)</a></li>
+    <li><a class="dropdown-item" href="../articles/TSENAT_appendix_B.html">Appendix B - Multi-Method Validation (GAM, Rank-Based, FPCA)</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html"><span class="fa far fa-file-code fa-lg"></span> Functions</a></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://app.codecov.io/gh/gallardoalba/TSENAT"><span class="fa fas fa-chart-bar fa-lg"></span> Coverage</a></li>
@@ -94,7 +94,7 @@ retrieval.</p>
 
 <p>Access results via the unified <code>results(obj, type = ...)</code> accessor method:
 - <code>type='diversity'</code> for Tsallis entropy across q-values
-- <code>type='rrm'</code> for regularized/penalized regression (GAM, LMM, GEE, FPCA) interaction results
+- <code>type = "sait"</code> for regularized/penalized regression (GAM, LMM, GEE, FPCA) interaction results
 - <code>type='rank_test'</code> for Scheirer-Ray-Hare rank-based test results
 - <code>type='divergence'</code> for divergence metrics
 - <code>type='jackknife'</code> for jackknife resampling results
@@ -123,9 +123,9 @@ Values are SummarizedExperiment objects or data.frames containing entropy
 values for each gene at that q-value.</p></dd>
 
 
-<dt><code>rrm_results</code></dt>
-<dd><p><code>list</code>. Complex results from regularized/penalized regression methods
-(GAM, LMM, GEE, FPCA) and statistical testing. Top-level names identify analysis type:</p><dl><dt><code>rrm_interaction</code></dt>
+<dt><code>sait_results</code></dt>
+<dd><p><code>list</code>. Complex results from scale-adaptive interaction models (GAM with smoothing, LMM with random effects, GEE with working correlations, FPCA for functional data)
+(GAM, LMM, GEE, FPCA) and statistical testing. Top-level names identify analysis type:</p><dl><dt><code>sait_interaction</code></dt>
 <dd><p>Regularized regression (GAM/LMM/GEE/FPCA) model results (list with
         <code>$results</code> data.frame, <code>$models</code> list, etc.)</p></dd>
 
@@ -172,7 +172,7 @@ divergence values</p></dd>
 
 <dt><code>plots</code></dt>
 <dd><p><code>list</code>. Cached visualization objects (ggplot). Names
-identify plot type (e.g., 'q_curve', 'rrm_interaction', 'influence').
+identify plot type (e.g., 'q_curve', 'sait_interaction', 'influence').
 Populated by <code><a href="TSENAT.html">TSENAT()</a></code> if <code>generate_plots=TRUE</code>.</p></dd>
 
 

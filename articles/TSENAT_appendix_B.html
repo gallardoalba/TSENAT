@@ -5,48 +5,122 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Appendix B: Non-Parametric Validation of Linear Model Results via GAM and Rank-Based Methods • TSENAT</title>
+<title>Appendix B: Non-Parametric Validation of Scale-Adaptive Interaction Model Results via GAM and Rank-Based Methods • TSENAT</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Appendix B: Non-Parametric Validation of Linear Model Results via GAM and Rank-Based Methods">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Appendix B: Non-Parametric Validation of Scale-Adaptive Interaction Model Results via GAM and Rank-Based Methods">
 <style>
-/* Force tables to expand horizontally */
-table {
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 100% !important;
+  table.table {
     display: table !important;
-    table-layout: auto !important;
-}
-
-.table {
     width: 100% !important;
-    max-width: 100% !important;
-    display: table !important;
-}
-
-article table,
-.contents table,
-main table {
+    table-layout: fixed !important;
+    margin-bottom: 1rem;
+    border-collapse: collapse;
+  }
+  
+  table.table colgroup col {
+    width: auto !important;
+  }
+  
+  table.table thead,
+  table.table tbody {
+    display: table-header-group !important;
     width: 100% !important;
-    max-width: 100% !important;
-    min-width: 100% !important;
-}
-
-table td,
-table th {
-    padding: 0.75rem 1rem !important;
-}
-
-table tr:nth-child(even) {
-    background-color: #fafafa;
-}
-
-.col-md-9 {
-    overflow-x: auto;
-}
+  }
+  
+  table.table tbody {
+    display: table-row-group !important;
+  }
+  
+  table.table tr {
+    display: table-row !important;
+    width: 100% !important;
+  }
+  
+  table.table td,
+  table.table th {
+    display: table-cell !important;
+    padding: 0.5rem !important;
+    vertical-align: top !important;
+    border-top: 1px solid #dee2e6 !important;
+    overflow-wrap: break-word !important;
+    word-wrap: break-word !important;
+    white-space: normal !important;
+  }
+  
+  /* For tables with 5 columns: wider first column (transcript IDs) */
+  table.table tr:has(> th:nth-child(5)):not(:has(> th:nth-child(6))) th:nth-child(1),
+  table.table tr:has(> td:nth-child(5)):not(:has(> td:nth-child(6))) td:nth-child(1) {
+    width: 30% !important;
+  }
+  
+  table.table tr:has(> th:nth-child(5)):not(:has(> th:nth-child(6))) th:nth-child(2),
+  table.table tr:has(> td:nth-child(5)):not(:has(> td:nth-child(6))) td:nth-child(2),
+  table.table tr:has(> th:nth-child(5)):not(:has(> th:nth-child(6))) th:nth-child(3),
+  table.table tr:has(> td:nth-child(5)):not(:has(> td:nth-child(6))) td:nth-child(3),
+  table.table tr:has(> th:nth-child(5)):not(:has(> th:nth-child(6))) th:nth-child(4),
+  table.table tr:has(> td:nth-child(5)):not(:has(> td:nth-child(6))) td:nth-child(4),
+  table.table tr:has(> th:nth-child(5)):not(:has(> th:nth-child(6))) th:nth-child(5),
+  table.table tr:has(> td:nth-child(5)):not(:has(> td:nth-child(6))) td:nth-child(5) {
+    width: 17.5% !important;
+  }
+  
+  /* For tables with 4 columns: evenly distributed */
+  table.table tr:has(> th:nth-child(4)):not(:has(> th:nth-child(5))) th:nth-child(n),
+  table.table tr:has(> td:nth-child(4)):not(:has(> td:nth-child(5))) td:nth-child(n) {
+    width: 25% !important;
+  }
+  
+  /* For tables with 7 columns: Gene column narrower, last column wider for text */
+  table.table tr:has(> th:nth-child(7)) th:nth-child(1),
+  table.table tr:has(> td:nth-child(7)) td:nth-child(1) {
+    width: 12% !important;
+  }
+  
+  table.table tr:has(> th:nth-child(7)) th:nth-child(2),
+  table.table tr:has(> td:nth-child(7)) td:nth-child(2),
+  table.table tr:has(> th:nth-child(7)) th:nth-child(3),
+  table.table tr:has(> td:nth-child(7)) td:nth-child(3),
+  table.table tr:has(> th:nth-child(7)) th:nth-child(4),
+  table.table tr:has(> td:nth-child(7)) td:nth-child(4),
+  table.table tr:has(> th:nth-child(7)) th:nth-child(5),
+  table.table tr:has(> td:nth-child(7)) td:nth-child(5),
+  table.table tr:has(> th:nth-child(7)) th:nth-child(6),
+  table.table tr:has(> td:nth-child(7)) td:nth-child(6) {
+    width: 14% !important;
+  }
+  
+  table.table tr:has(> th:nth-child(7)) th:nth-child(7),
+  table.table tr:has(> td:nth-child(7)) td:nth-child(7) {
+    width: 18% !important;
+  }
+  
+  /* For 2-column tables: equal distribution */
+  table.table tr:has(> th:nth-child(2)):not(:has(> th:nth-child(3))) th:nth-child(n),
+  table.table tr:has(> td:nth-child(2)):not(:has(> td:nth-child(3))) td:nth-child(n) {
+    width: 50% !important;
+  }
+  
+  /* For 6-column tables: distribute evenly with Gene narrower */
+  table.table tr:has(> th:nth-child(6)):not(:has(> th:nth-child(7))) th:nth-child(1),
+  table.table tr:has(> td:nth-child(6)):not(:has(> td:nth-child(7))) td:nth-child(1) {
+    width: 14% !important;
+  }
+  
+  table.table tr:has(> th:nth-child(6)):not(:has(> th:nth-child(7))) th:nth-child(2),
+  table.table tr:has(> td:nth-child(6)):not(:has(> td:nth-child(7))) td:nth-child(2),
+  table.table tr:has(> th:nth-child(6)):not(:has(> th:nth-child(7))) th:nth-child(3),
+  table.table tr:has(> td:nth-child(6)):not(:has(> td:nth-child(7))) td:nth-child(3),
+  table.table tr:has(> th:nth-child(6)):not(:has(> th:nth-child(7))) th:nth-child(4),
+  table.table tr:has(> td:nth-child(6)):not(:has(> td:nth-child(7))) td:nth-child(4),
+  table.table tr:has(> th:nth-child(6)):not(:has(> th:nth-child(7))) th:nth-child(5),
+  table.table tr:has(> td:nth-child(6)):not(:has(> td:nth-child(7))) td:nth-child(5),
+  table.table tr:has(> th:nth-child(6)):not(:has(> th:nth-child(7))) th:nth-child(6),
+  table.table tr:has(> td:nth-child(6)):not(:has(> td:nth-child(7))) td:nth-child(6) {
+    width: 17.2% !important;
+  }
 </style>
 </head>
 <body>
@@ -71,7 +145,7 @@ table tr:nth-child(even) {
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/TSENAT.html">TSENAT - Theory and Practical Guide</a></li>
     <li><a class="dropdown-item" href="../articles/TSENAT_appendix_A.html">Appendix A - Equivalence Validation (TSENAT vs SplicingFactory)</a></li>
-    <li><a class="dropdown-item" href="../articles/TSENAT_appendix_B.html">Appendix B - Non-Parametric Validation (Linear Model, GAM, Rank-Based)</a></li>
+    <li><a class="dropdown-item" href="../articles/TSENAT_appendix_B.html">Appendix B - Multi-Method Validation (GAM, Rank-Based, FPCA)</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html"><span class="fa far fa-file-code fa-lg"></span> Functions</a></li>
@@ -107,7 +181,7 @@ table tr:nth-child(even) {
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>Appendix B: Non-Parametric Validation of Linear Model Results via GAM and Rank-Based Methods</h1>
+      <h1>Appendix B: Non-Parametric Validation of Scale-Adaptive Interaction Model Results via GAM and Rank-Based Methods</h1>
                         <h4 data-toc-skip class="author">Cristobal
 Gallardo <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
 </h4>
@@ -124,9 +198,9 @@ Gallardo <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a
 <h2 id="purpose-and-rationale">Purpose and Rationale<a class="anchor" aria-label="anchor" href="#purpose-and-rationale"></a>
 </h2>
 <p>The primary goal of this vignette is to validate that discoveries of
-scale-dependent entropic index × group interactions from linear models
-generalize to non-parametric statistical frameworks with minimal
-assumptions.</p>
+scale-dependent entropic index × group interactions from Scale-Adaptive
+Interaction Models (SAIT) generalize to non-parametric statistical
+frameworks with minimal assumptions.</p>
 <div class="section level3">
 <h3 id="two-complementary-validation-approaches">Two Complementary Validation Approaches<a class="anchor" aria-label="anchor" href="#two-complementary-validation-approaches"></a>
 </h3>
@@ -609,7 +683,6 @@ Scheirer-Ray-Hare rank-based test.</caption>
 <col width="26%">
 </colgroup>
 <thead><tr class="header">
-<th align="left"></th>
 <th align="left">Gene</th>
 <th align="left">P-value</th>
 <th align="left">Adj. P-value</th>
@@ -619,7 +692,6 @@ Scheirer-Ray-Hare rank-based test.</caption>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left">1</td>
 <td align="left">CXCL12</td>
 <td align="left">9.4e-63</td>
 <td align="left">7.2e-61</td>
@@ -628,7 +700,6 @@ Scheirer-Ray-Hare rank-based test.</caption>
 <td align="left">Strongly q-dependent</td>
 </tr>
 <tr class="even">
-<td align="left">2</td>
 <td align="left">LINC03040</td>
 <td align="left">9.6e-30</td>
 <td align="left">7.3e-28</td>
@@ -637,7 +708,6 @@ Scheirer-Ray-Hare rank-based test.</caption>
 <td align="left">Moderately q-dependent</td>
 </tr>
 <tr class="odd">
-<td align="left">72</td>
 <td align="left">ING3</td>
 <td align="left">0.017000</td>
 <td align="left">1</td>
@@ -646,7 +716,6 @@ Scheirer-Ray-Hare rank-based test.</caption>
 <td align="left">Moderately q-dependent</td>
 </tr>
 <tr class="even">
-<td align="left">23</td>
 <td align="left">SPICE1</td>
 <td align="left">0.062881</td>
 <td align="left">1</td>
@@ -655,7 +724,6 @@ Scheirer-Ray-Hare rank-based test.</caption>
 <td align="left">Robust across q</td>
 </tr>
 <tr class="odd">
-<td align="left">48</td>
 <td align="left">FAM114A2</td>
 <td align="left">0.079169</td>
 <td align="left">1</td>
@@ -664,7 +732,6 @@ Scheirer-Ray-Hare rank-based test.</caption>
 <td align="left">Robust across q</td>
 </tr>
 <tr class="even">
-<td align="left">24</td>
 <td align="left">THY1</td>
 <td align="left">0.300758</td>
 <td align="left">1</td>
@@ -673,7 +740,6 @@ Scheirer-Ray-Hare rank-based test.</caption>
 <td align="left">Robust across q</td>
 </tr>
 <tr class="odd">
-<td align="left">34</td>
 <td align="left">METTL26</td>
 <td align="left">0.353148</td>
 <td align="left">1</td>
@@ -682,7 +748,6 @@ Scheirer-Ray-Hare rank-based test.</caption>
 <td align="left">Robust across q</td>
 </tr>
 <tr class="even">
-<td align="left">45</td>
 <td align="left">RAP1GDS1</td>
 <td align="left">0.385474</td>
 <td align="left">1</td>
@@ -691,7 +756,6 @@ Scheirer-Ray-Hare rank-based test.</caption>
 <td align="left">Robust across q</td>
 </tr>
 <tr class="odd">
-<td align="left">55</td>
 <td align="left">GSKIP</td>
 <td align="left">0.535638</td>
 <td align="left">1</td>
@@ -700,7 +764,6 @@ Scheirer-Ray-Hare rank-based test.</caption>
 <td align="left">Robust across q</td>
 </tr>
 <tr class="even">
-<td align="left">35</td>
 <td align="left">MEF2A</td>
 <td align="left">0.591729</td>
 <td align="left">1</td>
@@ -714,7 +777,7 @@ Scheirer-Ray-Hare rank-based test.</caption>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot top genes from SRH test (using all genes, not just significant ones)</span></span>
 <span><span class="co"># This ensures the plot displays n_top genes regardless of significance threshold</span></span>
-<span><span class="va">top_genes_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_diversity_spectrum.html">plot_diversity_spectrum</a></span><span class="op">(</span><span class="va">analysis</span>, rrm_res <span class="op">=</span> <span class="va">srh_results_all</span>, n_top <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
+<span><span class="va">top_genes_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_diversity_spectrum.html">plot_diversity_spectrum</a></span><span class="op">(</span><span class="va">analysis</span>, sait_res <span class="op">=</span> <span class="va">srh_results_all</span>, n_top <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">top_genes_plot</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
 <img src="TSENAT_appendix_B_files/figure-html/extended-fig-1-srh-q-curves-1.png" class="r-plt" alt="Extended Data Figure 1 | SRH rank test results for scale-dependent isoform switching." width="98%"><p class="caption">
@@ -732,13 +795,13 @@ isoform switching.
 vignette (<a href="TSENAT.Rmd">TSENAT.Rmd</a>).</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Load precomputed LM analysis object from RDS file</span></span>
-<span><span class="va">analysis_rrm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"analysis_rrm.rds"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span>
+<span><span class="va">analysis_sait</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"analysis_sait.rds"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Extract GAM/RRM results for inspection using accessor function</span></span>
-<span><span class="va">rrm_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis_rrm</span>, type <span class="op">=</span> <span class="st">"rrm"</span>, rankBy <span class="op">=</span> <span class="st">"pvalue"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">rrm_results</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># Extract GAM results for inspection using accessor function</span></span>
+<span><span class="va">sait_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis_sait</span>, type <span class="op">=</span> <span class="st">"sait"</span>, rankBy <span class="op">=</span> <span class="st">"pvalue"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">sait_results</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <caption>GAM Results Summary</caption>
 <thead><tr class="header">
@@ -793,7 +856,6 @@ Statistics)</caption>
 </colgroup>
 <thead><tr class="header">
 <th align="left">Gene</th>
-<th align="right">p (interaction)</th>
 <th align="right">Adjusted p</th>
 <th align="right">Effect size</th>
 <th align="right">Test statistic</th>
@@ -802,7 +864,6 @@ Statistics)</caption>
 <tbody>
 <tr class="odd">
 <td align="left">CXCL12</td>
-<td align="right">3.93e-164</td>
 <td align="right">2.99e-162</td>
 <td align="right">81.3%</td>
 <td align="right">752.51</td>
@@ -810,7 +871,6 @@ Statistics)</caption>
 </tr>
 <tr class="even">
 <td align="left">THY1</td>
-<td align="right">9.80e-97</td>
 <td align="right">7.35e-95</td>
 <td align="right">60.1%</td>
 <td align="right">442.14</td>
@@ -818,7 +878,6 @@ Statistics)</caption>
 </tr>
 <tr class="odd">
 <td align="left">ING3</td>
-<td align="right">2.72e-77</td>
 <td align="right">2.02e-75</td>
 <td align="right">35.3%</td>
 <td align="right">352.59</td>
@@ -826,7 +885,6 @@ Statistics)</caption>
 </tr>
 <tr class="even">
 <td align="left">SNHG10</td>
-<td align="right">9.81e-75</td>
 <td align="right">7.16e-73</td>
 <td align="right">5.1%</td>
 <td align="right">340.82</td>
@@ -834,7 +892,6 @@ Statistics)</caption>
 </tr>
 <tr class="odd">
 <td align="left">LINC03040</td>
-<td align="right">1.87e-57</td>
 <td align="right">1.35e-55</td>
 <td align="right">73.8%</td>
 <td align="right">261.24</td>
@@ -842,7 +899,6 @@ Statistics)</caption>
 </tr>
 <tr class="even">
 <td align="left">HDAC2</td>
-<td align="right">2.61e-51</td>
 <td align="right">1.85e-49</td>
 <td align="right">28.4%</td>
 <td align="right">232.94</td>
@@ -850,7 +906,6 @@ Statistics)</caption>
 </tr>
 <tr class="odd">
 <td align="left">ENSG00000274322</td>
-<td align="right">4.75e-48</td>
 <td align="right">3.33e-46</td>
 <td align="right">4.7%</td>
 <td align="right">217.93</td>
@@ -858,7 +913,6 @@ Statistics)</caption>
 </tr>
 <tr class="even">
 <td align="left">MEF2A</td>
-<td align="right">1.37e-43</td>
 <td align="right">9.46e-42</td>
 <td align="right">19.3%</td>
 <td align="right">197.39</td>
@@ -866,7 +920,6 @@ Statistics)</caption>
 </tr>
 <tr class="odd">
 <td align="left">RAP1GDS1</td>
-<td align="right">7.65e-38</td>
 <td align="right">5.20e-36</td>
 <td align="right">54.8%</td>
 <td align="right">170.93</td>
@@ -874,7 +927,6 @@ Statistics)</caption>
 </tr>
 <tr class="even">
 <td align="left">PDE7A</td>
-<td align="right">1.64e-37</td>
 <td align="right">1.10e-35</td>
 <td align="right">0.4%</td>
 <td align="right">169.40</td>
@@ -900,7 +952,7 @@ frameworks.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Compute concordance analysis using new two-object API</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_concordance.html">calculate_concordance</a></span><span class="op">(</span></span>
-<span>    analysis_rrm <span class="op">=</span> <span class="va">analysis_rrm</span>,</span>
+<span>    analysis_sait <span class="op">=</span> <span class="va">analysis_sait</span>,</span>
 <span>    analysis_rank <span class="op">=</span> <span class="va">analysis</span>,</span>
 <span>    verbose <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
@@ -913,9 +965,9 @@ Detected by Both Methods (n=2, ranked by statistical
 significance)</caption>
 <thead><tr class="header">
 <th align="left">Gene</th>
-<th align="right">RRM adj p</th>
+<th align="right">SAIT adj p</th>
 <th align="right">Rank test adj p</th>
-<th align="right">RRM Effect</th>
+<th align="right">SAIT Effect</th>
 <th align="right">Rank test rho^2</th>
 </tr></thead>
 <tbody>

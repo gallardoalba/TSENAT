@@ -27,7 +27,7 @@ divergence metrics into a unified analytical framework for comparative transcrip
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-file-contract fa-lg"></span> Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/TSENAT.html">TSENAT - Theory and Practical Guide</a></li>
     <li><a class="dropdown-item" href="../articles/TSENAT_appendix_A.html">Appendix A - Equivalence Validation (TSENAT vs SplicingFactory)</a></li>
-    <li><a class="dropdown-item" href="../articles/TSENAT_appendix_B.html">Appendix B - Non-Parametric Validation (Linear Model, GAM, Rank-Based)</a></li>
+    <li><a class="dropdown-item" href="../articles/TSENAT_appendix_B.html">Appendix B - Multi-Method Validation (GAM, Rank-Based, FPCA)</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html"><span class="fa far fa-file-code fa-lg"></span> Functions</a></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://app.codecov.io/gh/gallardoalba/TSENAT"><span class="fa fas fa-chart-bar fa-lg"></span> Coverage</a></li>
@@ -118,7 +118,7 @@ and detects genes with asymmetric isoform distributions that traditional metrics
 <dd><p>Resampling-based confidence intervals
     for diversity. Identifies outlier genes and validates q-value signal.</p></dd>
 
-  <dt><code><a href="calculate_rrm.html">calculate_rrm</a></code></dt>
+  <dt><code><a href="calculate_sait.html">calculate_sait</a></code></dt>
 <dd><p>Statistical testing for gene-by-condition
     interactions. LMM, GAM, and rank-based approaches.</p></dd>
 
@@ -226,7 +226,7 @@ and detects genes with asymmetric isoform distributions that traditional metrics
 
 
 <p><code><a href="TSENATAnalysis-class.html">TSENATAnalysis-class</a></code> — Central container unifying all analysis components.
-Access results via slots: <code>@diversity_results</code>, <code>@rrm_results</code>,
+Access results via slots: <code>@diversity_results</code>, <code>@sait_results</code>,
 <code>@jackknife_results</code>, <code>@divergence_results</code>,
 or accessor methods <code><a href="TSENATAnalysis-se.html">se</a></code>, <code>metadata&lt;-</code>, and <code><a href="results.html">results</a></code>.</p>
     </div>

@@ -189,11 +189,11 @@ interface:
 
 # Unified interface: request results by type
 diversity_results <- results(result, type = "diversity")
-rrm_results <- results(result, type = "rrm")
+sait_results <- results(result, type = "sait")
 jackknife_results <- results(result, type = "jackknife", q = 1)
 
 # Filter and rank results flexibly
-ranked_rrm <- results(result, type = "rrm", rankBy = "padj", n = 50)
+ranked_sait <- results(result, type = "sait", rankBy = "padj", n = 50)
 filtered_diversity <- results(result, type = "diversity", q = 1.0)
 
 # Retrieve plots
@@ -225,9 +225,9 @@ ARIMA differencing.
 
 The statistical methods available in TSENAT include:
 
-- **Regularized/Penalized Regression Methods**: Parametric regression
-  modeling with AR(1) correlation structure for repeated measures. GAM,
-  LMM, GEE and FPCA are all parameterized to handle non-normality and
+- **Scale-Adaptive Interaction Models**: Multiple modeling approaches
+  optimized for repeated measures with AR(1) correlation structure. GAM,
+  LMM, GEE and FPCA are all parametrized to handle the non-normality and
   heteroscedasticity characteristic of entropy data.
 - **Scheirer-Ray-Hare rank tests**: The test operates solely on ranks,
   making it robust to outliers and extreme values. However, it shows
@@ -408,8 +408,8 @@ specialized focus on Tsallis entropy analysis.
   : Jackknife isoform switching analysis on TSENATAnalysis object
 - [`calculate_m_estimator()`](https://gallardoalba.github.io/TSENAT/reference/calculate_m_estimator.md)
   : M-Estimation for Sample Quality (S4 Wrapper)
-- [`calculate_rrm()`](https://gallardoalba.github.io/TSENAT/reference/calculate_rrm.md)
-  : Calculate RRM interactions and store in TSENATAnalysis
+- [`calculate_sait()`](https://gallardoalba.github.io/TSENAT/reference/calculate_sait.md)
+  : Calculate SAIT interactions and store in TSENATAnalysis
 - [`calculate_srh()`](https://gallardoalba.github.io/TSENAT/reference/calculate_srh.md)
   : Detect q-dependent gene interactions
 - [`filter_analysis()`](https://gallardoalba.github.io/TSENAT/reference/filter_analysis.md)
@@ -428,7 +428,7 @@ specialized focus on Tsallis entropy analysis.
   : Plot Top Transcripts from TSENATAnalysis Object
 - [`plot_jis_delta()`](https://gallardoalba.github.io/TSENAT/reference/plot_jis_delta.md)
   : Plot Multi-Q Delta Influence Heatmaps from TSENATAnalysis Object
-- [`plot_rrm()`](https://gallardoalba.github.io/TSENAT/reference/plot_rrm.md)
+- [`plot_sait()`](https://gallardoalba.github.io/TSENAT/reference/plot_sait.md)
   : Plot GAM q-curves from TSENATAnalysis object
 - [`readcounts`](https://gallardoalba.github.io/TSENAT/reference/readcounts.md)
   : Example transcript-level read counts dataset
@@ -441,8 +441,8 @@ specialized focus on Tsallis entropy analysis.
 
 - [Appendix A: Equivalence Validation - TSENAT vs
   SplicingFactory](https://gallardoalba.github.io/TSENAT/articles/TSENAT_appendix_A.md):
-- [Appendix B: Non-Parametric Validation of Linear Model Results via GAM
-  and Rank-Based
+- [Appendix B: Non-Parametric Validation of Scale-Adaptive Interaction
+  Model Results via GAM and Rank-Based
   Methods](https://gallardoalba.github.io/TSENAT/articles/TSENAT_appendix_B.md):
 - [TSENAT: Tsallis Entropy Analysis
   Toolbox](https://gallardoalba.github.io/TSENAT/articles/TSENAT.md):

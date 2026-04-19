@@ -19,9 +19,9 @@ calculate_jis(
   threshold = 90,
   nboot = 1000,
   pseudocount = NULL,
-  rrm_results = NULL,
-  rrm_p_threshold = 0.05,
-  use_rrm_fdr = TRUE,
+  sait_results = NULL,
+  sait_p_threshold = 0.05,
+  use_sait_fdr = TRUE,
   output_file = NULL,
   verbose = FALSE,
   ...
@@ -89,19 +89,19 @@ calculate_jis(
   `numeric`. Pseudocount value for count regularization. Default: NULL
   (uses @config\$pseudocount or 0).
 
-- rrm_results:
+- sait_results:
 
-  `data. frame`. Optional RRM interaction results to filter genes. If
-  provided, only genes in rrm_results are analyzed.
+  `data. frame`. Optional SAIT interaction results to filter genes. If
+  provided, only genes in sait_results are analyzed.
 
-- rrm_p_threshold:
+- sait_p_threshold:
 
-  `numeric`. P-value threshold for filtering genes from rrm_results
+  `numeric`. P-value threshold for filtering genes from sait_results
   (default: 0.05).
 
-- use_rrm_fdr:
+- use_sait_fdr:
 
-  `logical`. If TRUE, uses adjusted p-values from rrm_results (default:
+  `logical`. If TRUE, uses adjusted p-values from sait_results (default:
   TRUE).
 
 - output_file:
@@ -179,7 +179,7 @@ Affected parameters:
 
 - `threshold`: Uses `@config$threshold` if available, else 90
 
-- `rrm_p_threshold`: Uses `@config$rrm_p_threshold` if available, else
+- `sait_p_threshold`: Uses `@config$sait_p_threshold` if available, else
   0.05
 
 This allows setting defaults once in the config and reusing across

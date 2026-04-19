@@ -188,7 +188,7 @@ div_q1_se <- results(analysis, type = 'diversity', q = 1.0, format = 'se')
 
 # Get results ranked by p-value, top 20 genes
 # Using accessor function instead of @ slot access
-top_rrm <- results(analysis, type = 'rrm', rankBy = 'pvalue', n = 20)
+top_sait <- results(analysis, type = "sait", rankBy = 'pvalue', n = 20)
 
 # Get effect size results, top 6 genes by p-value (most significant first)
 top_effect_sizes <- results(analysis, type = 'effect_sizes_divergence', 
@@ -212,23 +212,23 @@ switching_raw <- results(analysis, type = 'switching_tables', format = 'raw')
 
 # Get the diversity spectrum plot
 diversity_plot <- results(analysis, type = 'diversity', plot = TRUE)
-#> Warning: Plot for type 'diversity' not found. Available plot types: diversity, rrm, influence, jackknife, divergence. Available plots: none
+#> Warning: Plot for type 'diversity' not found. Available plot types: diversity, sait, influence, jackknife, divergence. Available plots: none
 
 # Get the LM/regularized regression (GAM, LMM, GEE, FPCA) interaction plot
-rrm_plot <- results(analysis, type = 'rrm', plot = TRUE)
-#> Warning: Plot for type 'rrm' not found. Available plot types: diversity, rrm, influence, jackknife, divergence. Available plots: none
+sait_plot <- results(analysis, type = "sait", plot = TRUE)
+#> Warning: Plot for type 'sait' not found. Available plot types: diversity, sait, influence, jackknife, divergence. Available plots: none
 
 # Get the divergence distribution plot
 div_dist_plot <- results(analysis, type = 'divergence', plot = TRUE)
-#> Warning: Plot for type 'divergence' not found. Available plot types: diversity, rrm, influence, jackknife, divergence. Available plots: none
+#> Warning: Plot for type 'divergence' not found. Available plot types: diversity, sait, influence, jackknife, divergence. Available plots: none
 
 # Get the influence/m-estimator plot
 influence_plot <- results(analysis, type = 'influence', plot = TRUE)
-#> Warning: Plot for type 'influence' not found. Available plot types: diversity, rrm, influence, jackknife, divergence. Available plots: none
+#> Warning: Plot for type 'influence' not found. Available plot types: diversity, sait, influence, jackknife, divergence. Available plots: none
 
 # Available plot types correspond to analysis types:
 # - type = 'diversity': Returns Tsallis entropy q-spectrum visualization
-# - type = 'rrm': Returns regularized/penalized regression (GAM, LMM, GEE, FPCA) interaction plot
+# - type = "sait": Returns regularized/penalized regression (GAM, LMM, GEE, FPCA) interaction plot
 # - type = 'divergence': Returns distribution of divergence metrics across genes
 # - type = 'influence': Returns m-estimator sample influence analysis
 # - type = 'rank_test': Returns Scheirer-Ray-Hare interaction visualization

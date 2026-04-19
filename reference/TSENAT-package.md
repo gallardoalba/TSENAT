@@ -75,7 +75,7 @@ TSENAT implements a complete analytical pipeline:
   Resampling-based confidence intervals for diversity. Identifies
   outlier genes and validates q-value signal.
 
-- [`calculate_rrm`](https://gallardoalba.github.io/TSENAT/reference/calculate_rrm.md):
+- [`calculate_sait`](https://gallardoalba.github.io/TSENAT/reference/calculate_sait.md):
 
   Statistical testing for gene-by-condition interactions. LMM, GAM, and
   rank-based approaches.
@@ -207,7 +207,7 @@ Isoform switching and transcriptomics:
 
 [`TSENATAnalysis-class`](https://gallardoalba.github.io/TSENAT/reference/TSENATAnalysis-class.md)
 — Central container unifying all analysis components. Access results via
-slots: `@diversity_results`, `@rrm_results`, `@jackknife_results`,
+slots: `@diversity_results`, `@sait_results`, `@jackknife_results`,
 `@divergence_results`, or accessor methods
 [`se`](https://gallardoalba.github.io/TSENAT/reference/TSENATAnalysis-se.md),
 `metadata<-`, and

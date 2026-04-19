@@ -10,7 +10,7 @@ results from the analysis object slots.
 plot_jis_delta(
   analysis,
   n_genes = 4,
-  rrm_results = NULL,
+  sait_results = NULL,
   verbose = FALSE,
   output_file = NULL,
   ...
@@ -30,11 +30,11 @@ plot_jis_delta(
   Genes are ranked by LM p-values if available, otherwise by order of
   appearance in results.
 
-- rrm_results:
+- sait_results:
 
-  `data.frame` or `NULL`. Optional RRM interaction results for ranking
+  `data.frame` or `NULL`. Optional SAIT interaction results for ranking
   genes (default: NULL). If NULL, attempts to extract from
-  `analysis@rrm_results$rrm_interaction`.
+  `analysis@sait_results$sait_interaction`.
 
 - verbose:
 
@@ -63,9 +63,9 @@ This function extracts the following from `analysis`:
   From `analysis@jackknife_results`, which should contain multi-q
   switching results keyed by q-value (e.g., 'q_1.00')
 
-- RRM results:
+- SAIT results:
 
-  From `analysis@rrm_results$rrm_interaction` if not explicitly
+  From `analysis@sait_results$sait_interaction` if not explicitly
   provided, for ranking genes by significance
 
 The wrapper automatically handles parameter extraction and provides a
@@ -120,7 +120,7 @@ analysis <- calculate_divergence(
   analysis,
   q = c(0.5, 1.0, 1.5, 2.0, 2.5)
 )
-analysis <- suppressWarnings(calculate_rrm(analysis, method = 'gam'))
+analysis <- suppressWarnings(calculate_sait(analysis, method = 'gam'))
 analysis <- calculate_jis(
   analysis,
   q = c(0.5, 1, 1.5),

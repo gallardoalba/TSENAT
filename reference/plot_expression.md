@@ -2,7 +2,7 @@
 
 S4 wrapper for `. plot_expression()` that extracts data directly from a
 TSENATAnalysis object. Automatically retrieves the SummarizedExperiment
-and RRM results for visualizing transcript abundance across conditions.
+and SAIT results for visualizing transcript abundance across conditions.
 
 ## Usage
 
@@ -31,15 +31,15 @@ plot_expression(
 - analysis:
 
   `TSENATAnalysis`. An S4 object containing a processed
-  SummarizedExperiment and optional RRM interaction results.
+  SummarizedExperiment and optional SAIT interaction results.
 
 - gene:
 
   `character` or `NULL`. Gene identifier(s) to plot. If a vector of
   multiple genes is provided, plots all of them. If NULL, automatically
-  selects the top genes from RRM results based on `top_n` parameter
+  selects the top genes from SAIT results based on `top_n` parameter
   (genes with lowest p-values). Default: NULL (auto-extract from
-  rrm_results).
+  sait_results).
 
 - condition_col:
 
@@ -128,12 +128,12 @@ This wrapper extracts the following from `analysis`:
 
   From `analysis@se` containing transcript counts
 
-- RRM results:
+- SAIT results:
 
-  From `analysis@rrm_results$rrm_interaction` for gene selection
+  From `analysis@sait_results$sait_interaction` for gene selection
 
 If no gene is specified, the function automatically selects the top gene
-from the RRM results (lowest p-value). This simplifies visualization of
+from the SAIT results (lowest p-value). This simplifies visualization of
 genes with significant q x condition interaction effects.
 
 ## See also
@@ -180,7 +180,7 @@ analysis <- calculate_diversity(
   q = c(0.5, 1.0, 1.5, 2.0, 2.5),
   verbose = FALSE
 )
-analysis <- suppressWarnings(calculate_rrm(
+analysis <- suppressWarnings(calculate_sait(
   analysis,
   method = 'gam',
   verbose = FALSE

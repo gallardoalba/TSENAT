@@ -13,7 +13,7 @@ plot_diversity_spectrum(
   assay_name = "diversity",
   condition_col = NULL,
   gene = NULL,
-  rrm_res = NULL,
+  sait_res = NULL,
   n_top = NULL,
   metric = "iqr",
   output_file = NULL,
@@ -48,11 +48,11 @@ plot_diversity_spectrum(
   gene(s). Overrides default aggregate behavior. When provided, uses
   median +/- SD for each gene.
 
-- rrm_res:
+- sait_res:
 
   Data frame (optional); gene interaction test results with \`gene\`
   column and p-value column. Accepts either: - Results from
-  \`.calculate_rrm()\` (has \`adj_p_interaction\` or \`p_interaction\`
+  \`.calculate_sait()\` (has \`adj_p_interaction\` or \`p_interaction\`
   columns) - Results from \`.calculate_srh()\` (has \`adj_p_value\` or
   \`p_value\` columns from Scheirer-Ray-Hare rank tests) If provided
   (and \`gene\` is NULL), plots top \`n_top\` genes ranked by p-value.
@@ -60,7 +60,7 @@ plot_diversity_spectrum(
 
 - n_top:
 
-  Integer or NULL; number of top genes to select from \`rrm_res\` when
+  Integer or NULL; number of top genes to select from \`sait_res\` when
   \`gene\` is NULL (default: NULL). When NULL, defaults to showing the
   single most significant gene (n_top=1), providing a conservative view
   of the strongest effect. Set to a numeric value to show that many top
@@ -94,12 +94,12 @@ plot_diversity_spectrum(
 
 ## Value
 
-\*\*Aggregate mode (gene=NULL, rrm_res=NULL)\*\*: - If bootstrap CI
+\*\*Aggregate mode (gene=NULL, sait_res=NULL)\*\*: - If bootstrap CI
 assays available: A ggplot object showing median entropy with bootstrap
 confidence interval bands. - If no CI assays: A ggplot object showing
 median entropy with IQR ribbons (automatic fallback).
 
-\*\*Gene-specific mode (gene or rrm_res provided)\*\*: - Single gene: A
+\*\*Gene-specific mode (gene or sait_res provided)\*\*: - Single gene: A
 ggplot object showing median entropy +/- SD for that gene. - Multiple
 genes: A grid plot object arranged in 2 rows x 2 columns with a shared
 legend at the bottom. The legend appears once beneath the grid, avoiding
@@ -107,15 +107,15 @@ repetition across subplots.
 
 ## Details
 
-\*\*Aggregate mode (default, gene=NULL, rrm_res=NULL)\*\*: - Plots
+\*\*Aggregate mode (default, gene=NULL, sait_res=NULL)\*\*: - Plots
 median Tsallis entropy +/- IQR across all genes for each group - Works
 with any SummarizedExperiment from .calculate_diversity() - Supports
 single or multiple q values and any number of groups - No CI data
 required for basic plots; bootstrap CIs optional
 
-\*\*Gene-specific mode (gene or rrm_res provided)\*\*: - Plots q-curve
+\*\*Gene-specific mode (gene or sait_res provided)\*\*: - Plots q-curve
 separately for each selected gene - Shows median entropy +/- SD
-(variance) for each gene across q-values and groups - When \`rrm_res\`
+(variance) for each gene across q-values and groups - When \`sait_res\`
 provided: automatically ranks genes and selects top \`n_top\` by
 p-value - Single gene: returns a ggplot object; multiple genes: returns
 a grid plot (2 rows x 2 columns) with shared legend - For multiple
