@@ -1429,10 +1429,10 @@ test_that("GAM R² is not worse than linear R²", {
     data_df$y <- y
     col_names <- colnames(data_df)[colnames(data_df) != "y"]
     
-    # RRM model
+    # SAIT model
     formula_linear <- as.formula(paste0("y ~ ", paste0("`", head(col_names, 3), "`", collapse = " + ")))
-    rrm_model <- stats::lm(formula_linear, data = data_df)
-    r2_lm <- suppressWarnings(summary(rrm_model))$r.squared
+    sait_model <- stats::lm(formula_linear, data = data_df)
+    r2_lm <- suppressWarnings(summary(sait_model))$r.squared
     
     # GAM model
     formula_gam <- as.formula(paste0("y ~ ", paste0("s(`", head(col_names, 3), "`)", collapse = " + ")))
@@ -2206,7 +2206,7 @@ test_that(".compute_variance_components() calculates ICC correctly", {
     
     # With identical columns, between-variance = 0, ICC should be very low
     expect_equal(result$icc, 0, tolerance = 1e-5)
-    expect_equal(result$status, "use rrm model")
+    expect_equal(result$status, "use sait model")
 })
 
 test_that(".compute_variance_components() handles high ICC data", {

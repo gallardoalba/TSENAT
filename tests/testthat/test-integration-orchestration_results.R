@@ -103,7 +103,7 @@ test_that(".get_ranking_column returns p_interaction for LM with pvalue", {
     estimate = c(0.5, 0.3)
   )
   
-  col <- .get_ranking_column(type = "rrm", rankBy = "pvalue", result = result)
+  col <- .get_ranking_column(type = "sait", rankBy = "pvalue", result = result)
   
   expect_equal(col, "p_interaction")
 })
@@ -114,30 +114,30 @@ test_that(".get_ranking_column returns NULL for LM pvalue when column absent", {
     estimate = c(0.5, 0.3)
   )
   
-  col <- .get_ranking_column(type = "rrm", rankBy = "pvalue", result = result)
+  col <- .get_ranking_column(type = "sait", rankBy = "pvalue", result = result)
   
   expect_null(col)
 })
 
-test_that(".get_ranking_column returns adj_p_interaction for rrm with padj", {
+test_that(".get_ranking_column returns adj_p_interaction for sait with padj", {
   result <- data.frame(
     gene = c("g1", "g2"),
     adj_p_interaction = c(0.05, 0.10),
     estimate = c(0.5, 0.3)
   )
   
-  col <- .get_ranking_column(type = "rrm", rankBy = "padj", result = result)
+  col <- .get_ranking_column(type = "sait", rankBy = "padj", result = result)
   
   expect_equal(col, "adj_p_interaction")
 })
 
-test_that(".get_ranking_column returns NULL for rrm padj when column absent", {
+test_that(".get_ranking_column returns NULL for sait padj when column absent", {
   result <- data.frame(
     gene = c("g1", "g2"),
     p_value = c(0.01, 0.05)
   )
   
-  col <- .get_ranking_column(type = "rrm", rankBy = "padj", result = result)
+  col <- .get_ranking_column(type = "sait", rankBy = "padj", result = result)
   
   expect_null(col)
 })
@@ -149,7 +149,7 @@ test_that(".get_ranking_column prioritizes statistic for LM effectSize", {
     estimate = c(0.5, 0.3)
   )
   
-  col <- .get_ranking_column(type = "rrm", rankBy = "effectSize", result = result)
+  col <- .get_ranking_column(type = "sait", rankBy = "effectSize", result = result)
   
   expect_equal(col, "statistic")
 })
@@ -161,7 +161,7 @@ test_that(".get_ranking_column fallback to estimate for LM effectSize", {
     p_value = c(0.01, 0.05)
   )
   
-  col <- .get_ranking_column(type = "rrm", rankBy = "effectSize", result = result)
+  col <- .get_ranking_column(type = "sait", rankBy = "effectSize", result = result)
   
   expect_equal(col, "estimate")
 })
@@ -173,7 +173,7 @@ test_that(".get_ranking_column fallback to effect_size for LM effectSize", {
     p_value = c(0.01, 0.05)
   )
   
-  col <- .get_ranking_column(type = "rrm", rankBy = "effectSize", result = result)
+  col <- .get_ranking_column(type = "sait", rankBy = "effectSize", result = result)
   
   expect_equal(col, "effect_size")
 })
@@ -184,7 +184,7 @@ test_that(".get_ranking_column returns NULL for LM effectSize when no effect col
     p_value = c(0.01, 0.05)
   )
   
-  col <- .get_ranking_column(type = "rrm", rankBy = "effectSize", result = result)
+  col <- .get_ranking_column(type = "sait", rankBy = "effectSize", result = result)
   
   expect_null(col)
 })
@@ -302,7 +302,7 @@ test_that(".get_ranking_column handles invalid rankBy", {
     statistic = c(2.5, 3.0)
   )
   
-  col <- .get_ranking_column(type = "rrm", rankBy = "invalid_rank", result = result)
+  col <- .get_ranking_column(type = "sait", rankBy = "invalid_rank", result = result)
   
   expect_null(col)
 })
@@ -310,7 +310,7 @@ test_that(".get_ranking_column handles invalid rankBy", {
 test_that(".get_ranking_column handles empty result dataframe", {
   result <- data.frame()
   
-  col <- .get_ranking_column(type = "rrm", rankBy = "pvalue", result = result)
+  col <- .get_ranking_column(type = "sait", rankBy = "pvalue", result = result)
   
   expect_null(col)
 })
@@ -331,7 +331,7 @@ test_that(".get_ranking_column with rank_test fallback for effectSize", {
 # .filter_statistical_by_fdr(): Tests for FDR-based filtering
 # ==============================================================================
 
-test_that(".filter_statistical_by_fdr filters RRM results by adj_p_interaction", {
+test_that(".filter_statistical_by_fdr filters SAIT results by adj_p_interaction", {
   result <- data.frame(
     gene = c("g1", "g2", "g3", "g4"),
     p_interaction = c(0.001, 0.01, 0.05, 0.1),
@@ -339,7 +339,7 @@ test_that(".filter_statistical_by_fdr filters RRM results by adj_p_interaction",
     estimate = c(0.5, 0.3, 0.2, 0.1)
   )
   
-  filtered <- .filter_statistical_by_fdr(result, type = "rrm", filterFDR = 0.05)
+  filtered <- .filter_statistical_by_fdr(result, type = "sait", filterFDR = 0.05)
   
   expect_is(filtered, "data.frame")
   expect_equal(nrow(filtered), 2)  # Only rows with adj_p_interaction <= 0.05
@@ -381,7 +381,7 @@ test_that(".filter_statistical_by_fdr returns all rows when filterFDR is NULL", 
     estimate = c(0.5, 0.3, 0.1)
   )
   
-  filtered <- .filter_statistical_by_fdr(result, type = "rrm", filterFDR = NULL)
+  filtered <- .filter_statistical_by_fdr(result, type = "sait", filterFDR = NULL)
   
   expect_equal(nrow(filtered), 3)
   expect_identical(filtered, result)
@@ -390,7 +390,7 @@ test_that(".filter_statistical_by_fdr returns all rows when filterFDR is NULL", 
 test_that(".filter_statistical_by_fdr returns input when not a dataframe", {
   result <- list(summary_table = data.frame(gene = c("g1", "g2")))
   
-  filtered <- .filter_statistical_by_fdr(result, type = "rrm", filterFDR = 0.05)
+  filtered <- .filter_statistical_by_fdr(result, type = "sait", filterFDR = 0.05)
   
   expect_identical(filtered, result)
 })
@@ -402,7 +402,7 @@ test_that(".filter_statistical_by_fdr handles missing adjusted p-value column", 
     estimate = c(0.5, 0.3)
   )
   
-  filtered <- .filter_statistical_by_fdr(result, type = "rrm", filterFDR = 0.05)
+  filtered <- .filter_statistical_by_fdr(result, type = "sait", filterFDR = 0.05)
   
   expect_equal(nrow(filtered), 2)
   expect_identical(filtered, result)
@@ -415,7 +415,7 @@ test_that(".filter_statistical_by_fdr handles NA values in adjusted p-values", {
     estimate = c(0.5, 0.3, 0.2)
   )
   
-  filtered <- .filter_statistical_by_fdr(result, type = "rrm", filterFDR = 0.06)
+  filtered <- .filter_statistical_by_fdr(result, type = "sait", filterFDR = 0.06)
   
   expect_equal(nrow(filtered), 2)  # NA rows excluded
   expect_false(any(is.na(filtered$adj_p_interaction)))
@@ -432,7 +432,7 @@ test_that(".rank_statistical_results ranks by pvalue ascending", {
     estimate = c(0.5, 0.7, 0.3)
   )
   
-  ranked <- .rank_statistical_results(result, type = "rrm", rankBy = "pvalue", n = NA)
+  ranked <- .rank_statistical_results(result, type = "sait", rankBy = "pvalue", n = NA)
   
   expect_equal(ranked$gene, c("g2", "g1", "g3"))  # Sorted by p_interaction
   expect_true(all(ranked$p_interaction == sort(result$p_interaction)))
@@ -509,7 +509,7 @@ test_that(".rank_statistical_results handles NA values when sorting", {
 test_that(".extract_statistical_dataframe returns dataframe as-is", {
   result <- data.frame(gene = c("g1", "g2"), p_value = c(0.01, 0.05))
   
-  extracted <- .extract_statistical_dataframe(result, type = "rrm")
+  extracted <- .extract_statistical_dataframe(result, type = "sait")
   
   expect_identical(extracted, result)
 })
@@ -519,7 +519,7 @@ test_that(".extract_statistical_dataframe extracts from summary_table list", {
     summary_table = data.frame(gene = c("g1", "g2"), p_value = c(0.01, 0.05))
   )
   
-  extracted <- .extract_statistical_dataframe(result, type = "rrm")
+  extracted <- .extract_statistical_dataframe(result, type = "sait")
   
   expect_is(extracted, "data.frame")
   expect_equal(nrow(extracted), 2)
@@ -550,7 +550,7 @@ test_that(".extract_statistical_dataframe extracts from all_transcript_stats", {
 test_that(".extract_statistical_dataframe returns NULL for non-list non-dataframe", {
   result <- c(1, 2, 3)
   
-  extracted <- .extract_statistical_dataframe(result, type = "rrm")
+  extracted <- .extract_statistical_dataframe(result, type = "sait")
   
   expect_null(extracted)
 })
@@ -558,7 +558,7 @@ test_that(".extract_statistical_dataframe returns NULL for non-list non-datafram
 test_that(".extract_statistical_dataframe returns NULL for empty list", {
   result <- list()
   
-  extracted <- .extract_statistical_dataframe(result, type = "rrm")
+  extracted <- .extract_statistical_dataframe(result, type = "sait")
   
   expect_null(extracted)
 })
@@ -566,7 +566,7 @@ test_that(".extract_statistical_dataframe returns NULL for empty list", {
 test_that(".extract_statistical_dataframe returns NULL for list without recognized fields", {
   result <- list(other_field = "value", another = 123)
   
-  extracted <- .extract_statistical_dataframe(result, type = "rrm")
+  extracted <- .extract_statistical_dataframe(result, type = "sait")
   
   expect_null(extracted)
 })
@@ -576,7 +576,7 @@ test_that(".extract_statistical_dataframe returns NULL for list without recogniz
 # ==============================================================================
 
 test_that(".process_statistical_results returns NULL for NULL input", {
-  result <- .process_statistical_results(NULL, type = "rrm", filterFDR = 0.05, 
+  result <- .process_statistical_results(NULL, type = "sait", filterFDR = 0.05, 
                                          rankBy = "pvalue", n = NA, format = "text")
   
   expect_null(result)
@@ -590,7 +590,7 @@ test_that(".process_statistical_results processes complete lm results", {
     estimate = c(0.5, 0.3, 0.1)
   )
   
-  result <- .process_statistical_results(input, type = "rrm", filterFDR = 0.15,
+  result <- .process_statistical_results(input, type = "sait", filterFDR = 0.15,
                                          rankBy = "pvalue", n = 2, format = "text")
   
   expect_is(result, "data.frame")
@@ -621,7 +621,7 @@ test_that(".process_statistical_results returns NULL when all rows filtered", {
     estimate = c(0.5, 0.3)
   )
   
-  result <- .process_statistical_results(input, type = "rrm", filterFDR = 0.05,
+  result <- .process_statistical_results(input, type = "sait", filterFDR = 0.05,
                                          rankBy = "pvalue", n = NA, format = "text")
   
   expect_null(result)
@@ -703,7 +703,7 @@ test_that(".warn_unsupported_params warns for unsupported rankBy with assumption
 
 test_that(".warn_unsupported_params does not warn for supported parameters", {
   expect_silent(
-    .warn_unsupported_params(type = "rrm", filterFDR = 0.05, rankBy = "pvalue")
+    .warn_unsupported_params(type = "sait", filterFDR = 0.05, rankBy = "pvalue")
   )
 })
 
@@ -863,23 +863,23 @@ test_that("results() with type='jis_delta' returns effect size/delta results", {
   expect_true(is.null(result) || is.data.frame(result))
 })
 
-test_that("results() with type='rrm' returns RRM results", {
+test_that("results() with type = 'sait' returns SAIT results", {
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(counts = matrix(rpois(100, lambda = 10), nrow = 10, ncol = 10))
   )
   analysis <- TSENATAnalysis(se = se)
   
-  # Add mock rrm results
-  rrm_df <- data.frame(
+  # Add mock sait results
+  sait_df <- data.frame(
     gene = paste0("gene_", 1:10),
     coefficient = rnorm(10, mean = 0.5),
     pvalue = runif(10, 0, 0.1),
     adj_p_value = runif(10, 0, 0.2)
   )
-  analysis@rrm_results <- list(interaction = rrm_df)
+  analysis@sait_results <- list(interaction = sait_df)
   
   result <- tryCatch(
-    TSENAT::results(analysis, type = "rrm", rankBy = "pvalue", filterFDR = 0.05),
+    TSENAT::results(analysis, type = "sait", rankBy = "pvalue", filterFDR = 0.05),
     error = function(e) NULL
   )
   
@@ -934,22 +934,22 @@ test_that("results() with rankBy parameter sorts results", {
   analysis <- TSENATAnalysis(se = se)
   
   # Add lm results with multiple columns
-  rrm_df <- data.frame(
+  sait_df <- data.frame(
     gene = paste0("gene_", 1:10),
     coefficient = rnorm(10, mean = 0.5),
     pvalue = c(0.001, 0.01, 0.02, 0.05, 0.08, 0.1, 0.2, 0.3, 0.4, 0.5),  # Pre-sorted
     effectSize = c(3, 2.5, 2, 1.5, 1, 0.8, 0.6, 0.4, 0.2, 0.1)
   )
-  analysis@rrm_results <- list(interaction = rrm_df)
+  analysis@sait_results <- list(interaction = sait_df)
   
   # Request sorted by different columns
   result_p <- tryCatch(
-    TSENAT::results(analysis, type = "rrm", rankBy = "pvalue"),
+    TSENAT::results(analysis, type = "sait", rankBy = "pvalue"),
     error = function(e) NULL
   )
   
   result_es <- tryCatch(
-    TSENAT::results(analysis, type = "rrm", rankBy = "effectSize"),
+    TSENAT::results(analysis, type = "sait", rankBy = "effectSize"),
     error = function(e) NULL
   )
   
@@ -965,23 +965,23 @@ test_that("results() with filterFDR parameter filters results", {
   analysis <- TSENATAnalysis(se = se)
   
   # Add lm results with adjusted p-values
-  rrm_df <- data.frame(
+  sait_df <- data.frame(
     gene = paste0("gene_", 1:20),
     pvalue = runif(20, 0, 0.1),
     adj_p_value = runif(20, 0, 0.2),  # Adjusted p-values
     coefficient = rnorm(20)
   )
-  analysis@rrm_results <- list(interaction = rrm_df)
+  analysis@sait_results <- list(interaction = sait_df)
   
   # Request without filter
   all_results <- tryCatch(
-    TSENAT::results(analysis, type = "rrm", filterFDR = NULL),
+    TSENAT::results(analysis, type = "sait", filterFDR = NULL),
     error = function(e) NULL
   )
   
   # Request with filter
   filtered <- tryCatch(
-    TSENAT::results(analysis, type = "rrm", filterFDR = 0.05),
+    TSENAT::results(analysis, type = "sait", filterFDR = 0.05),
     error = function(e) NULL
   )
   
@@ -1083,22 +1083,22 @@ test_that("results() works with different result object formats", {
 # ==============================================================================
 
 # ==============================================================================
-# Plot extraction tests for new rrm plot mapping
+# Plot extraction tests for new sait plot mapping
 # ==============================================================================
 
-test_that("results() extracts rrm_interaction plot for type='rrm' with plot=TRUE", {
+test_that("results() extracts sait_interaction plot for type = 'sait' with plot=TRUE", {
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(counts = matrix(rpois(100, lambda = 10), nrow = 10, ncol = 10))
   )
   analysis <- TSENATAnalysis(se = se)
   
-  # Create mock rrm_interaction plot and add to plots slot
+  # Create mock sait_interaction plot and add to plots slot
   mock_plot <- ggplot2::ggplot() + ggplot2::theme_minimal()
-  analysis@plots$rrm <- mock_plot
+  analysis@plots$sait <- mock_plot
   
   # Request plot extraction
   result <- tryCatch(
-    TSENAT::results(analysis, type = "rrm", plot = TRUE),
+    TSENAT::results(analysis, type = "sait", plot = TRUE),
     error = function(e) NULL
   )
   
@@ -1106,24 +1106,24 @@ test_that("results() extracts rrm_interaction plot for type='rrm' with plot=TRUE
   expect_true(is.null(result) || inherits(result, "ggplot"))
 })
 
-test_that("results() handles rankBy='padj' for rrm type correctly", {
+test_that("results() handles rankBy='padj' for sait type correctly", {
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(counts = matrix(rpois(100, lambda = 10), nrow = 10, ncol = 10))
   )
   analysis <- TSENATAnalysis(se = se)
   
-  # Add rrm results with adjusted p-values
-  rrm_result <- data.frame(
+  # Add sait results with adjusted p-values
+  sait_result <- data.frame(
     gene = paste0("g", 1:10),
     p_interaction = runif(10, 0, 0.1),
     adj_p_interaction = p.adjust(runif(10, 0, 0.1), method = "BH"),
     estimate = rnorm(10)
   )
-  analysis@rrm_results <- rrm_result
+  analysis@sait_results <- sait_result
   
   # Request results with padj ranking
   result <- tryCatch(
-    TSENAT::results(analysis, type = "rrm", rankBy = "padj"),
+    TSENAT::results(analysis, type = "sait", rankBy = "padj"),
     error = function(e) NULL
   )
   

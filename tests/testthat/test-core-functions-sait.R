@@ -1,8 +1,8 @@
 library(testthat)
 
-context("RRM Core Functions: Input Validation")
+context("SAIT Core Functions: Input Validation")
 
-test_that(".validate_rrm_interaction_input rejects invalid storey", {
+test_that(".validate_sait_interaction_input rejects invalid storey", {
     skip_if_not_installed("SummarizedExperiment")
 
     # Create minimal SE object for validation
@@ -24,7 +24,7 @@ test_that(".validate_rrm_interaction_input rejects invalid storey", {
 
     # Should reject non-logical storey
     expect_error(
-        TSENAT:::.validate_rrm_interaction_input(
+        TSENAT:::.validate_sait_interaction_input(
             method = "lmm",
             pvalue = "lrt",
             corstr = "ar1",
@@ -43,7 +43,7 @@ test_that(".validate_rrm_interaction_input rejects invalid storey", {
     )
 })
 
-test_that(".validate_rrm_interaction_input rejects invalid wy_randomizations", {
+test_that(".validate_sait_interaction_input rejects invalid wy_randomizations", {
     skip_if_not_installed("SummarizedExperiment")
 
     mat <- matrix(runif(10), nrow = 2)
@@ -64,7 +64,7 @@ test_that(".validate_rrm_interaction_input rejects invalid wy_randomizations", {
 
     # Should reject negative wy_randomizations
     expect_error(
-        TSENAT:::.validate_rrm_interaction_input(
+        TSENAT:::.validate_sait_interaction_input(
             method = "lmm",
             pvalue = "lrt",
             corstr = "ar1",
@@ -83,7 +83,7 @@ test_that(".validate_rrm_interaction_input rejects invalid wy_randomizations", {
     )
 })
 
-test_that(".validate_rrm_interaction_input warns on low wy_randomizations", {
+test_that(".validate_sait_interaction_input warns on low wy_randomizations", {
     skip_if_not_installed("SummarizedExperiment")
 
     mat <- matrix(runif(10), nrow = 2)
@@ -104,7 +104,7 @@ test_that(".validate_rrm_interaction_input warns on low wy_randomizations", {
 
     # Should warn on wy_randomizations < 100
     expect_warning(
-        TSENAT:::.validate_rrm_interaction_input(
+        TSENAT:::.validate_sait_interaction_input(
             method = "lmm",
             pvalue = "lrt",
             corstr = "ar1",
@@ -123,7 +123,7 @@ test_that(".validate_rrm_interaction_input warns on low wy_randomizations", {
     )
 })
 
-test_that(".validate_rrm_interaction_input auto-detects subject_col when paired", {
+test_that(".validate_sait_interaction_input auto-detects subject_col when paired", {
     skip_if_not_installed("SummarizedExperiment")
 
     mat <- matrix(runif(10), nrow = 2)
@@ -144,7 +144,7 @@ test_that(".validate_rrm_interaction_input auto-detects subject_col when paired"
     )
 
     # Should auto-detect paired_samples column
-    result <- TSENAT:::.validate_rrm_interaction_input(
+    result <- TSENAT:::.validate_sait_interaction_input(
         method = "lmm",
         pvalue = "lrt",
         corstr = "ar1",
@@ -162,7 +162,7 @@ test_that(".validate_rrm_interaction_input auto-detects subject_col when paired"
     expect_equal(result$subject_col, "paired_samples")
 })
 
-context("RRM Core Functions: Sample Metadata Parsing")
+context("SAIT Core Functions: Sample Metadata Parsing")
 
 test_that(".parse_sample_metadata extracts q-values correctly", {
     skip_if_not_installed("SummarizedExperiment")
@@ -273,7 +273,7 @@ test_that(".parse_sample_metadata rejects missing condition_col", {
     )
 })
 
-context("RRM Core Functions: Gene Annotation Mapping")
+context("SAIT Core Functions: Gene Annotation Mapping")
 
 test_that(".map_gene_annotations adds gene names from rowData", {
     skip_if_not_installed("SummarizedExperiment")
@@ -360,7 +360,7 @@ test_that(".map_gene_annotations handles missing gene_name gracefully", {
     expect_equal(mapped$gene_name, c("g1", "g2"))
 })
 
-context("RRM Core Functions: Model Metadata Assembly")
+context("SAIT Core Functions: Model Metadata Assembly")
 
 test_that(".assemble_model_metadata returns required fields", {
     skip_if_not_installed("SummarizedExperiment")
@@ -500,9 +500,9 @@ test_that(".assemble_model_metadata computes per-group statistics", {
     }
 })
 
-context("RRM Refactored Main Function Integration")
+context("SAIT Refactored Main Function Integration")
 
-test_that("calculate_rrm works with refactored code", {
+test_that("calculate_sait works with refactored code", {
     skip_if_not_installed("SummarizedExperiment")
 
     # Use a larger, more realistic dataset to avoid numerical issues
@@ -555,7 +555,7 @@ test_that("calculate_rrm works with refactored code", {
     )
 
     # Call refactored function with realistic data
-    results <- .calculate_rrm(
+    results <- .calculate_sait(
         se,
         condition_col = "condition",
         method = "lmm",
@@ -579,7 +579,7 @@ test_that("calculate_rrm works with refactored code", {
     )
 })
 
-test_that("calculate_rrm returns model_data when requested", {
+test_that("calculate_sait returns model_data when requested", {
     skip_if_not_installed("SummarizedExperiment")
 
     # Use realistic entropy-like data (bounded between 0 and 1, realistic slopes)
@@ -626,7 +626,7 @@ test_that("calculate_rrm returns model_data when requested", {
     )
 
     # Call with return_model_data = TRUE
-    output <- .calculate_rrm(
+    output <- .calculate_sait(
         se,
         condition_col = "condition",
         method = "lmm",

@@ -132,11 +132,11 @@ After running the analysis, retrieve results using the unified `results()` inter
 ```r
 # Unified interface: request results by type
 diversity_results <- results(result, type = "diversity")
-rrm_results <- results(result, type = "rrm")
+sait_results <- results(result, type = "sait")
 jackknife_results <- results(result, type = "jackknife", q = 1)
 
 # Filter and rank results flexibly
-ranked_rrm <- results(result, type = "rrm", rankBy = "padj", n = 50)
+ranked_sait <- results(result, type = "sait", rankBy = "padj", n = 50)
 filtered_diversity <- results(result, type = "diversity", q = 1.0)
 
 # Retrieve plots
@@ -155,7 +155,7 @@ TSENAT provides a flexible statistical framework optimized for entropy-based div
 
 The statistical methods available in TSENAT include:
 
-- **Scale-Adaptive Interaction Models**: Multiple modeling approaches optimized for repeated measures with AR(1) correlation structure for repeated measures. GAM, LMM, GEE and FPCA are all parametrized to handle the non-normality and heteroscedasticity characteristic of entropy data.
+- **Scale-Adaptive Interaction Models**: Multiple modeling approaches optimized for repeated measures with AR(1) correlation structure. GAM, LMM, GEE and FPCA are all parametrized to handle the non-normality and heteroscedasticity characteristic of entropy data.
 - **Scheirer-Ray-Hare rank tests**: The test operates solely on ranks, making it robust to outliers and extreme values. However, it shows lower power for interactions and can inflate Type I errors under heterogeneous variance. These limitations are mitigated through Hochberg multiple testing correction.
 - **M-estimation**: Robust location estimation for group comparison using iteratively re-weighted least squares, resistant to outliers.
 - **Jackknife isoform switching**: Leave-one-out resampling to identify transcripts with condition-specific switching patterns and quantify their influence on entropy differences.

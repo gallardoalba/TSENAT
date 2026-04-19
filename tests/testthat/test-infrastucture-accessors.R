@@ -622,7 +622,7 @@ test_that("summary() shows analysis results status", {
     
     # Verify analysis has result slots that summary reports
     expect_true(is.list(analysis@diversity_results) || is.null(analysis@diversity_results))
-    expect_true(is.list(analysis@rrm_results) || is.null(analysis@rrm_results))
+    expect_true(is.list(analysis@sait_results) || is.null(analysis@sait_results))
     expect_true(is.list(analysis@jackknife_results) || is.null(analysis@jackknife_results))
     expect_true(is.list(analysis@divergence_results) || is.null(analysis@divergence_results))
 })

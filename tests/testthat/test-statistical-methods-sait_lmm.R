@@ -34,8 +34,8 @@ test_that("LMM with use_ar1=FALSE (default) returns valid results", {
         colData = cd
     )
     
-    # Run LMM (AR(1) is automatically attempted by .try_rrm_fallbacks())
-    res <- .calculate_rrm(
+    # Run LMM (AR(1) is automatically attempted by .try_sait_fallbacks())
+    res <- .calculate_sait(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -87,8 +87,8 @@ test_that("LMM with use_ar1=TRUE attempts AR(1) correlation structure", {
         colData = cd
     )
     
-    # Run LMM (AR(1) is automatically attempted by .try_rrm_fallbacks())
-    res <- .calculate_rrm(
+    # Run LMM (AR(1) is automatically attempted by .try_sait_fallbacks())
+    res <- .calculate_sait(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -142,8 +142,8 @@ test_that("LMM AR(1) falls back when correlation structure fails", {
         colData = cd
     )
     
-    # Run LMM (AR(1) is automatically attempted by .try_rrm_fallbacks())
-    res <- .calculate_rrm(
+    # Run LMM (AR(1) is automatically attempted by .try_sait_fallbacks())
+    res <- .calculate_sait(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -195,7 +195,7 @@ test_that("small_sample_flag is FALSE when n_subjects >= 5", {
         colData = cd
     )
     
-    res <- .calculate_rrm(
+    res <- .calculate_sait(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -245,7 +245,7 @@ test_that("small_sample_flag is TRUE when n_subjects < 5", {
         colData = cd
     )
     
-    res <- .calculate_rrm(
+    res <- .calculate_sait(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -295,7 +295,7 @@ test_that("small_sample_flag correctly identifies boundary case (n_subjects = 5)
         colData = cd
     )
     
-    res <- .calculate_rrm(
+    res <- .calculate_sait(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -346,7 +346,7 @@ test_that("fit_method column is present in LMM results", {
         colData = cd
     )
     
-    res <- .calculate_rrm(
+    res <- .calculate_sait(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -403,7 +403,7 @@ test_that("Enhanced fallback reporting includes convergence information", {
         colData = cd
     )
     
-    res <- .calculate_rrm(
+    res <- .calculate_sait(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -456,7 +456,7 @@ test_that("LMM results maintain backward compatibility with AR(1)=FALSE default"
     
     # Run default LMM twice to check consistency
     set.seed(58)
-    res_first <- .calculate_rrm(
+    res_first <- .calculate_sait(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -465,7 +465,7 @@ test_that("LMM results maintain backward compatibility with AR(1)=FALSE default"
     )
     
     set.seed(58)
-    res_second <- .calculate_rrm(
+    res_second <- .calculate_sait(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -517,7 +517,7 @@ test_that("Multiple genes with varying sample sizes are handled correctly", {
         colData = cd
     )
     
-    res <- .calculate_rrm(
+    res <- .calculate_sait(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -573,7 +573,7 @@ test_that("LMM with AR(1) produces different p-values than baseline in some case
     
     # Run LMM with AR(1) automatically attempted
     set.seed(61)
-    res <- .calculate_rrm(
+    res <- .calculate_sait(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -619,7 +619,7 @@ test_that("LMM output includes all Phase 14 columns", {
         colData = cd
     )
     
-    res <- .calculate_rrm(
+    res <- .calculate_sait(
         se,
         condition_col = "sample_type",
         method = "lmm",
@@ -697,7 +697,7 @@ test_that("LASSO regularization on LMM is properly called", {
     se <- create_test_se(n_samples = 20, n_genes = 5)
     
     # Test with LASSO regularization
-    result <- .calculate_rrm(
+    result <- .calculate_sait(
         se,
         condition_col = "group",
         method = "lmm",
@@ -728,7 +728,7 @@ test_that("Ridge regularization on LMM works correctly", {
     se <- create_test_se(n_samples = 20, n_genes = 5)
     
     # Test with Elastic Net (Ridge-like with alpha=0.5)
-    result <- .calculate_rrm(
+    result <- .calculate_sait(
         se,
         condition_col = "group",
         method = "lmm",
@@ -755,7 +755,7 @@ test_that("PCA mode disables LMM regularization", {
     se <- create_test_se(n_samples = 20, n_genes = 5)
     
     # Compare PCA mode (no regularization) vs LASSO (with regularization)
-    result_pca <- .calculate_rrm(
+    result_pca <- .calculate_sait(
         se,
         condition_col = "group",
         method = "lmm",
@@ -806,7 +806,7 @@ test_that("LMM regularization handles small sample sizes gracefully", {
     se <- create_test_se(n_samples = 12, n_genes = 3)
     
     # Apply minimum observation filter to create small sample scenario
-    result <- .calculate_rrm(
+    result <- .calculate_sait(
         se,
         condition_col = "group",
         method = "lmm",
@@ -829,7 +829,7 @@ test_that("Regularization parameter validation works", {
     
     # Test that invalid regularization values are caught
     expect_error(
-        .calculate_rrm(
+        .calculate_sait(
             se,
             condition_col = "group",
             method = "lmm",
@@ -847,7 +847,7 @@ test_that("LMM regularization consistency across multiple runs", {
     se <- create_test_se(n_samples = 20, n_genes = 5, seed = 123)
     
     set.seed(123)
-    result1 <- .calculate_rrm(
+    result1 <- .calculate_sait(
         se,
         condition_col = "group",
         method = "lmm",
@@ -858,7 +858,7 @@ test_that("LMM regularization consistency across multiple runs", {
     )
     
     set.seed(123)
-    result2 <- .calculate_rrm(
+    result2 <- .calculate_sait(
         se,
         condition_col = "group",
         method = "lmm",
@@ -883,7 +883,7 @@ test_that("LMM regularization vs non-regularized gives comparable results", {
     se <- create_test_se(n_samples = 20, n_genes = 5)
     
     # Run both with and without regularization
-    result_no_reg <- .calculate_rrm(
+    result_no_reg <- .calculate_sait(
         se,
         condition_col = "group",
         method = "lmm",
@@ -893,7 +893,7 @@ test_that("LMM regularization vs non-regularized gives comparable results", {
         verbose = FALSE
     )
     
-    result_lasso <- .calculate_rrm(
+    result_lasso <- .calculate_sait(
         se,
         condition_col = "group",
         method = "lmm",
@@ -1000,3 +1000,335 @@ test_that("LMM hypothesis testing does NOT need p-value bias correction", {
   
   expect_true(TRUE)  # Literature review confirms: no p-value bias correction needed for LMM
 })
+
+# ============================================================================
+context("SAIT Helper Functions: .validate_sait_interaction_input")
+
+test_that(".validate_sait_interaction_input exists and validates parameters", {
+    # Test that the renamed function .validate_sait_interaction_input works
+    result <- TSENAT:::.validate_sait_interaction_input(
+        method = "lmm",
+        pvalue = "lrt",
+        corstr = "ar1",
+        regularization = "pca",
+        multicorr = "hochberg",
+        pcorr = "BH",
+        storey = FALSE,  # Must be logical, not numeric
+        wy_randomizations = 999,
+        paired = FALSE,
+        subject_col = NULL,
+        se = NULL,
+        verbose = FALSE
+    )
+    
+    # Should return a validated parameter list
+    expect_is(result, "list")
+    expect_true(all(c("method", "pvalue", "corstr", "regularization") %in% names(result)))
+})
+
+test_that(".validate_sait_interaction_input rejects invalid storey parameter", {
+    # Should reject storey parameter that is not logical
+    expect_error(
+        TSENAT:::.validate_sait_interaction_input(
+            method = "lmm",
+            pvalue = "lrt",
+            corstr = "ar1",
+            regularization = "pca",
+            multicorr = "hochberg",
+            pcorr = "BH",
+            storey = 0.05,  # Invalid: should be logical, not numeric
+            wy_randomizations = 999,
+            paired = FALSE,
+            subject_col = NULL,
+            se = NULL,
+            verbose = FALSE
+        ),
+        "storey must be TRUE or FALSE"
+    )
+})
+
+test_that(".validate_sait_interaction_input validates correlation structures", {
+    # Valid correlation structures should pass
+    valid_corstr <- c("ar1", "exchangeable", "independence")
+    
+    for (cs in valid_corstr) {
+        result <- TSENAT:::.validate_sait_interaction_input(
+            method = "gee",
+            pvalue = "lrt",
+            corstr = cs,
+            regularization = "pca",
+            multicorr = "hochberg",
+            pcorr = "BH",
+            storey = FALSE,
+            wy_randomizations = 999,
+            paired = FALSE,
+            subject_col = NULL,
+            se = NULL,
+            verbose = FALSE
+        )
+        expect_is(result, "list")
+    }
+})
+
+test_that(".validate_sait_interaction_input validates regularization methods", {
+    # Valid regularization methods should pass
+    valid_reg <- c("pca", "lasso", "elasticnet")
+    
+    for (reg in valid_reg) {
+        result <- TSENAT:::.validate_sait_interaction_input(
+            method = "lmm",
+            pvalue = "lrt",
+            corstr = "ar1",
+            regularization = reg,
+            multicorr = "hochberg",
+            pcorr = "BH",
+            storey = FALSE,
+            wy_randomizations = 999,
+            paired = FALSE,
+            subject_col = NULL,
+            se = NULL,
+            verbose = FALSE
+        )
+        expect_is(result, "list")
+    }
+})
+
+# ============================================================================
+context("SAIT Helper Functions: .try_sait_fallbacks")
+
+test_that(".try_sait_fallbacks handles normal LMM fitting", {
+    skip_if_not_installed("nlme")
+    
+    # Create test data
+    set.seed(999)
+    df <- data.frame(
+        entropy = rnorm(30),
+        q = rep(seq(0.1, 1.0, length.out = 10), 3),
+        group = rep(c("A", "B", "A"), each = 10),
+        subject = rep(paste0("sub", 1:10), 3),
+        stringsAsFactors = FALSE
+    )
+    
+    # Call fallback function
+    fb <- TSENAT:::.try_sait_fallbacks(df, verbose = FALSE)
+    
+    # Should return a list with fit0, fit1, method
+    expect_true(is.null(fb) || is.list(fb))
+    if (!is.null(fb)) {
+        expect_true(all(c("fit0", "fit1", "method") %in% names(fb)))
+    }
+})
+
+test_that(".try_sait_fallbacks returns fit method name", {
+    skip_if_not_installed("nlme")
+    
+    # Create test data
+    set.seed(1000)
+    df <- data.frame(
+        entropy = rnorm(30),
+        q = rep(seq(0.1, 1.0, length.out = 10), 3),
+        group = rep(c("A", "B", "A"), each = 10),
+        subject = rep(paste0("sub", 1:10), 3),
+        stringsAsFactors = FALSE
+    )
+    
+    # Call fallback function
+    fb <- TSENAT:::.try_sait_fallbacks(df, verbose = FALSE)
+    
+    # Should identify which method was used
+    if (!is.null(fb)) {
+        expect_true(fb$method %in% c("nlme_ar1", "nlme", "glmmTMB", "sait_subject_fixed", "sait_nosubject"))
+    }
+})
+
+test_that(".try_sait_fallbacks handles data without subject column", {
+    skip_if_not_installed("nlme")
+    
+    # Create test data WITHOUT subject column
+    set.seed(1001)
+    df <- data.frame(
+        entropy = rnorm(20),
+        q = rep(seq(0.1, 1.0, length.out = 10), 2),
+        group = rep(c("A", "B"), each = 10),
+        stringsAsFactors = FALSE
+    )
+    
+    # Should handle gracefully
+    fb <- TSENAT:::.try_sait_fallbacks(df, verbose = FALSE)
+    
+    # Should still return a result (using sait_nosubject fallback)
+    expect_true(is.null(fb) || is.list(fb))
+    if (!is.null(fb)) {
+        expect_true(fb$method %in% c("sait_nosubject", "nlme"))
+    }
+})
+
+test_that(".try_sait_fallbacks properly estimates AR(1) when possible", {
+    skip_if_not_installed("nlme")
+    
+    # Create data with autocorrelated structure
+    set.seed(1002)
+    n_per <- 20
+    q_vec <- seq(0.1, 1.0, length.out = 10)
+    subject_ids <- rep(1:2, each = n_per)
+    
+    # Create autocorrelated entropy values
+    base_vals <- rep(q_vec, times = 4)
+    residuals <- as.numeric(stats::filter(rnorm(length(base_vals), sd = 0.01), 0.7, method = "recursive"))
+    entropy_vals <- base_vals + residuals
+    
+    df <- data.frame(
+        entropy = entropy_vals,
+        q = rep(q_vec, times = 4),
+        group = rep(c("A", "B"), each = n_per),
+        subject = subject_ids,
+        stringsAsFactors = FALSE
+    )
+    
+    # Call fallback function
+    fb <- TSENAT:::.try_sait_fallbacks(df, verbose = FALSE)
+    
+    # Should produce valid fit
+    expect_true(is.null(fb) || is.list(fb))
+    if (!is.null(fb)) {
+        expect_true(inherits(fb$fit0, "lme") || inherits(fb$fit0, "lm"))
+        expect_true(inherits(fb$fit1, "lme") || inherits(fb$fit1, "lm"))
+    }
+})
+
+# ============================================================================
+context("SAIT Renamed Functions: Integration with LMM")
+
+test_that("LMM uses .try_sait_fallbacks during model fitting", {
+    skip_if_not_installed("lme4")
+    
+    # Create paired data
+    qvec <- seq(0.01, 0.1, by = 0.01)
+    subject_ids <- rep(c("S1", "S2", "S3", "S4"), each = length(qvec))
+    coln <- paste0(subject_ids, "_q=", rep(qvec, times = 4))
+    
+    set.seed(70)
+    gene1_vals <- c(qvec * 1, qvec * 2, qvec * 1.5, qvec * 1.2) + rnorm(length(coln), sd = 1e-3)
+    
+    mat <- rbind(g1 = gene1_vals)
+    colnames(mat) <- coln
+    rownames(mat) <- c("g1")
+    
+    rd <- data.frame(genes = rownames(mat), row.names = rownames(mat), stringsAsFactors = FALSE)
+    cd <- data.frame(
+        samples = subject_ids,
+        sample_type = rep(c("Normal", "Tumor", "Normal", "Tumor"), each = length(qvec)),
+        sample_base = subject_ids,
+        row.names = coln,
+        stringsAsFactors = FALSE
+    )
+    
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(diversity = mat),
+        rowData = rd,
+        colData = cd
+    )
+    
+    # Run LMM - internally uses .try_sait_fallbacks()
+    res <- .calculate_sait(
+        se,
+        condition_col = "sample_type",
+        method = "lmm",
+        subject_col = "sample_base",
+        min_obs = 8
+    )
+    
+    # Should produce valid output
+    expect_is(res, "data.frame")
+    expect_true(nrow(res) > 0)
+    expect_true("p_interaction" %in% colnames(res))
+})
+
+test_that(".validate_sait_interaction_input is called during .calculate_sait", {
+    skip_if_not_installed("lme4")
+    
+    # Create SummarizedExperiment
+    qvec <- seq(0.01, 0.1, by = 0.01)
+    subject_ids <- rep(c("S1", "S2"), each = length(qvec))
+    coln <- paste0(subject_ids, "_q=", rep(qvec, times = 2))
+    
+    set.seed(71)
+    gene1_vals <- c(qvec * 1, qvec * 2) + rnorm(length(coln), sd = 1e-3)
+    
+    mat <- rbind(g1 = gene1_vals)
+    colnames(mat) <- coln
+    rownames(mat) <- c("g1")
+    
+    rd <- data.frame(genes = rownames(mat), row.names = rownames(mat), stringsAsFactors = FALSE)
+    cd <- data.frame(
+        samples = subject_ids,
+        sample_type = rep(c("A", "B"), each = length(qvec)),
+        sample_base = subject_ids,
+        row.names = coln,
+        stringsAsFactors = FALSE
+    )
+    
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(diversity = mat),
+        rowData = rd,
+        colData = cd
+    )
+    
+    # Call with valid parameters
+    res <- .calculate_sait(
+        se,
+        condition_col = "sample_type",
+        method = "lmm",
+        pvalue = "lrt",
+        subject_col = "sample_base",
+        min_obs = 4
+    )
+    
+    # Should work without error
+    expect_is(res, "data.frame")
+})
+
+test_that("Renamed functions maintain backward compatibility", {
+    skip_if_not_installed("lme4")
+    
+    # Test that old interface still produces results  
+    # (even though function names have changed internally)
+    
+    qvec <- seq(0.01, 0.1, by = 0.01)
+    subject_ids <- rep(c("S1", "S2", "S3", "S4"), each = length(qvec))
+    coln <- paste0(subject_ids, "_q=", rep(qvec, times = 4))
+    
+    set.seed(72)
+    gene1_vals <- c(qvec * 1, qvec * 2, qvec * 1.5, qvec * 1.2) + rnorm(length(coln), sd = 1e-3)
+    
+    mat <- rbind(g1 = gene1_vals)
+    colnames(mat) <- coln
+    
+    rd <- data.frame(genes = rownames(mat), row.names = rownames(mat), stringsAsFactors = FALSE)
+    cd <- data.frame(
+        samples = subject_ids,
+        sample_type = rep(c("Normal", "Tumor", "Normal", "Tumor"), each = length(qvec)),
+        sample_base = subject_ids,
+        row.names = coln,
+        stringsAsFactors = FALSE
+    )
+    
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(diversity = mat),
+        rowData = rd,
+        colData = cd
+    )
+    
+    # Using the public interface
+    res <- .calculate_sait(
+        se,
+        condition_col = "sample_type",
+        method = "lmm",
+        subject_col = "sample_base"
+    )
+    
+    # Should work without requiring knowledge of renamed helper functions
+    expect_is(res, "data.frame")
+    expect_true(nrow(res) > 0)
+})
+

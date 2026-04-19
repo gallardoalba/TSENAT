@@ -1,7 +1,7 @@
 # Test coverage for medium-priority functions
-# Covers: .plot_rrm(updated), .plot_jis_delta(45)
+# Covers: .plot_sait(updated), .plot_jis_delta(45)
 
-context("plot_rrm: S4 wrapper for RRM interaction visualization")
+context("plot_sait: S4 wrapper for SAIT interaction visualization")
 library(SummarizedExperiment)
 library(testthat)
 library(ggplot2)
@@ -9,41 +9,41 @@ library(ggplot2)
 
 
 
-test_that("plot_rrm: requires RRM interaction results", {
+test_that("plot_sait: requires SAIT interaction results", {
   skip_if_not_installed("SummarizedExperiment")
   
   set.seed(123)
   
-  # Create analysis without RRM results
+  # Create analysis without SAIT results
   analysis <- .create_test_analysis(
     n_genes = 5,
     n_samples_per_group = 2,
     q_values = c(0.5, 1.0),
     include_divergence = FALSE,
-    include_rrm_results = FALSE,
+    include_sait_results = FALSE,
     seed = 123,
     verbose = FALSE
   )
   
-  # Should error when no RRM results
+  # Should error when no SAIT results
   expect_error(
-    TSENAT::plot_rrm(analysis),
-    regex = "No RRM interaction results"
+    TSENAT::plot_sait(analysis),
+    regex = "No SAIT interaction results"
   )
 })
 
-test_that("plot_rrm: requires diversity results", {
+test_that("plot_sait: requires diversity results", {
   skip_if_not_installed("SummarizedExperiment")
   
   set.seed(124)
   
-  # Create analysis with RRM results but no diversity
+  # Create analysis with SAIT results but no diversity
   analysis <- .create_test_analysis(
     n_genes = 5,
     n_samples_per_group = 2,
     q_values = c(0.5, 1.0),
     include_divergence = FALSE,
-    include_rrm_results = TRUE,
+    include_sait_results = TRUE,
     seed = 124,
     verbose = FALSE
   )
@@ -51,19 +51,19 @@ test_that("plot_rrm: requires diversity results", {
   # Should error if diversity_results is empty
   if (length(analysis@diversity_results) == 0) {
     expect_error(
-      TSENAT::plot_rrm(analysis),
+      TSENAT::plot_sait(analysis),
     )
   } else {
     # If test setup includes diversity, function should work or return error gracefully
     result <- tryCatch(
-      TSENAT::plot_rrm(analysis),
+      TSENAT::plot_sait(analysis),
       error = function(e) NULL
     )
     expect_true(is.null(result) || inherits(result, "ggplot") || is.list(result))
   }
 })
 
-test_that("plot_rrm: auto-detects condition column", {
+test_that("plot_sait: auto-detects condition column", {
   skip_if_not_installed("SummarizedExperiment")
   
   set.seed(125)
@@ -73,21 +73,21 @@ test_that("plot_rrm: auto-detects condition column", {
     n_samples_per_group = 2,
     q_values = c(0.5, 1.0),
     include_divergence = TRUE,
-    include_rrm_results = TRUE,
+    include_sait_results = TRUE,
     seed = 125,
     verbose = FALSE
   )
   
   # Should work with auto-detection if colData has standard columns
   result <- tryCatch(
-    TSENAT::plot_rrm(analysis),
+    TSENAT::plot_sait(analysis),
     error = function(e) NULL
   )
   
   expect_true(is.null(result) || inherits(result, "ggplot") || is.list(result))
 })
 
-test_that("plot_rrm: handles n_top parameter", {
+test_that("plot_sait: handles n_top parameter", {
   skip_if_not_installed("SummarizedExperiment")
   
   set.seed(126)
@@ -97,7 +97,7 @@ test_that("plot_rrm: handles n_top parameter", {
     n_samples_per_group = 2,
     q_values = c(0.5, 1.0),
     include_divergence = TRUE,
-    include_rrm_results = TRUE,
+    include_sait_results = TRUE,
     seed = 126,
     verbose = FALSE
   )
@@ -105,7 +105,7 @@ test_that("plot_rrm: handles n_top parameter", {
   # Test with different n_top values
   for (n in c(1, 3, 5)) {
     result <- tryCatch(
-      TSENAT::plot_rrm(analysis, n_top = n),
+      TSENAT::plot_sait(analysis, n_top = n),
       error = function(e) NULL
     )
     expect_true(is.null(result) || inherits(result, "ggplot") || is.list(result))
@@ -164,15 +164,15 @@ test_that("plot_jis_delta: top N genes selection", {
   expect_equal(length(top_genes), 4)
 })
 
-test_that("plot_jis_delta: rrm_results integration", {
+test_that("plot_jis_delta: sait_results integration", {
   config <- list()
   
-  rrm_results <- data.frame(
+  sait_results <- data.frame(
     gene_id = c("g1", "g2", "g3"),
     adj_p_interaction = c(0.001, 0.01, 0.1)
   )
   
-  expect_true("gene_id" %in% colnames(rrm_results))
+  expect_true("gene_id" %in% colnames(sait_results))
 })
 
 test_that("plot_jis_delta: p-value ranking", {

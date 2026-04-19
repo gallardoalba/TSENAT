@@ -1,11 +1,11 @@
-context("RRM Helpers: Basic Calculations")
+context("SAIT Helpers: Basic Calculations")
 library(testthat)
 
 
 
 # Report summary messages
 test_that(".report_fit_summary prints fallback and singular messages", {
-    df <- data.frame(fit_method = c("rrm_nosubject", "lmer", NA), singular = c(TRUE, FALSE, NA), stringsAsFactors = FALSE)
+    df <- data.frame(fit_method = c("sait_nosubject", "lmer", NA), singular = c(TRUE, FALSE, NA), stringsAsFactors = FALSE)
     expect_message(TSENAT:::.report_fit_summary(df, verbose = TRUE), "Alternative method")
     expect_message(TSENAT:::.report_fit_summary(df, verbose = TRUE), "Singular fits")
 })
@@ -28,10 +28,10 @@ test_that(".gam_interaction returns a data.frame with p_interaction when mgcv pr
 })
 
 # FPCA interaction: synthetic matrix
-test_that(".try_rrm_fallbacks returns lm fits and LRT extractor returns numeric p-values", {
+test_that(".try_sait_fallbacks returns lm fits and LRT extractor returns numeric p-values", {
     # build small long-format df
     df <- data.frame(entropy = rnorm(30), q = rep(seq(0.1, 1.0, length.out = 10), 3), group = rep(c("A", "B", "A"), each = 10), subject = rep(paste0("sub", 1:10), 3), stringsAsFactors = FALSE)
-    fb <- TSENAT:::.try_rrm_fallbacks(df, verbose = TRUE)
+    fb <- TSENAT:::.try_sait_fallbacks(df, verbose = TRUE)
     expect_true(is.null(fb) || (is.list(fb) && all(c("fit0", "fit1", "method") %in% names(fb))))
     if (!is.null(fb)) {
         lrt_p <- TSENAT:::.extract_lrt_p(fb$fit0, fb$fit1, df = df)
@@ -106,18 +106,18 @@ testthat::test_that("LM fallback helpers choose appropriate method", {
     group <- rep(c("A", "B"), length.out = n)
     entropy <- 0.5 * q + ifelse(group == "B", 0.3, 0) + rnorm(n, 0, 0.1)
     df <- data.frame(entropy = entropy, q = q, group = factor(group), subject = factor(subject))
-    res <- TSENAT:::.try_rrm_fallbacks(df)
+    res <- TSENAT:::.try_sait_fallbacks(df)
     testthat::expect_type(res, "list")
-    # Phase 14: AR(1) tries nlme_ar1 first, then nlme, then glmmTMB, then rrm_subject_fixed, then rrm_nosubject
-    testthat::expect_true(res$method %in% c("nlme_ar1", "nlme", "glmmTMB", "rrm_subject_fixed", "rrm_nosubject"))
+    # Phase 14: AR(1) tries nlme_ar1 first, then nlme, then glmmTMB, then sait_subject_fixed, then sait_nosubject
+    testthat::expect_true(res$method %in% c("nlme_ar1", "nlme", "glmmTMB", "sait_subject_fixed", "sait_nosubject"))
     # fit1 can be lme, glmmTMB, or lm depending on which strategy succeeded
     testthat::expect_true(inherits(res$fit1, "lme") || inherits(res$fit1, "glmmTMB") || inherits(res$fit1, "lm") || inherits(res$fit1, "NA"))
 
     # drop subject -> should pick nosubject fallback
     df2 <- df[, c("entropy", "q", "group")]
-    res2 <- TSENAT:::.try_rrm_fallbacks(df2)
+    res2 <- TSENAT:::.try_sait_fallbacks(df2)
     testthat::expect_type(res2, "list")
-    testthat::expect_equal(res2$method, "rrm_nosubject")
+    testthat::expect_equal(res2$method, "sait_nosubject")
 })
 
 testthat::test_that("LRT p extraction returns numeric p-value for nested lm models", {
@@ -155,7 +155,7 @@ testthat::test_that("GAM interaction returns a data.frame with p-value when mgcv
     }
 })
 
-context("RRM Helpers: Edge Cases and Validation")
+context("SAIT Helpers: Edge Cases and Validation")
 
 
 # .report_fit_summary should be silent when no fallback/singular
@@ -480,7 +480,7 @@ testthat::test_that(".test_residual_normality detects normal residuals in GAM", 
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Slope Difference Extraction Tests (NEW - March 2026)
-# Tests for slope_diff extraction from RRM interaction coefficient
+# Tests for slope_diff extraction from SAIT interaction coefficient
 # ═══════════════════════════════════════════════════════════════════════════
 
 
@@ -736,7 +736,7 @@ testthat::test_that("GEE method integrates Shapiro-Wilk results into output", {
 # .ar1_design_effect, .estimate_ar1_rho, .gam_bias_correct,
 # and associated statistical test functions
 
-context("RRM Helper: Report Fit Summary")
+context("SAIT Helper: Report Fit Summary")
 
 test_that(".report_fit_summary reports F-statistic range when available", {
   config <- list()
@@ -836,7 +836,7 @@ test_that(".report_fit_summary silent when verbose=FALSE", {
 
 # ===== GAM Regularization Tests =====
 
-context("RRM Helper: GAM Regularization")
+context("SAIT Helper: GAM Regularization")
 
 test_that(".gam_regularization PCA mode returns NULL", {
   config <- list()
@@ -897,7 +897,7 @@ test_that(".gam_regularization invalid mode error", {
 
 # ===== AR(1) Design Effect Tests =====
 
-context("RRM Helper: AR(1) Design Effect")
+context("SAIT Helper: AR(1) Design Effect")
 
 test_that(".ar1_design_effect handles rho near 0", {
   config <- list()
@@ -939,7 +939,7 @@ test_that(".ar1_design_effect handles rho=1 boundary", {
 
 # ===== Estimate AR(1) Rho Tests =====
 
-context("RRM Helper: Estimate AR(1) Rho")
+context("SAIT Helper: Estimate AR(1) Rho")
 
 test_that(".estimate_ar1_rho returns NULL for small sample", {
   config <- list()
@@ -982,7 +982,7 @@ test_that(".estimate_ar1_rho handles NULL subject_vec", {
 
 # ===== GAM Bias Correction Tests =====
 
-context("RRM Helper: GAM Bias Correction")
+context("SAIT Helper: GAM Bias Correction")
 
 test_that(".gam_bias_correct increases p-value for small samples", {
   config <- list()
@@ -1045,7 +1045,7 @@ test_that(".gam_bias_correct handles n_observations parameter", {
 
 # ===== ADF Stationarity Test =====
 
-context("RRM Helper: ADF Stationarity Test")
+context("SAIT Helper: ADF Stationarity Test")
 
 test_that(".adf_test detects stationary series", {
   config <- list()
@@ -1089,7 +1089,7 @@ test_that(".adf_test returns list with required fields", {
 
 # ===== KPSS Stationarity Test =====
 
-context("RRM Helper: KPSS Stationarity Test")
+context("SAIT Helper: KPSS Stationarity Test")
 
 test_that(".kpss_test returns list with required fields", {
   config <- list()
@@ -1134,7 +1134,7 @@ test_that(".kpss_test returns NA for short series", {
 
 # ===== Validate Stationarity =====
 
-context("RRM Helper: Validate Stationarity")
+context("SAIT Helper: Validate Stationarity")
 
 test_that(".validate_stationarity checks entropy and q values", {
   config <- list()
@@ -1175,7 +1175,7 @@ test_that(".validate_stationarity includes gene name in report", {
 
 # ===== Check Monotonicity =====
 
-context("RRM Helper: Check Monotonicity")
+context("SAIT Helper: Check Monotonicity")
 
 test_that(".check_monotonicity returns TRUE for monotonic increasing", {
   config <- list()
@@ -1216,7 +1216,7 @@ test_that(".check_monotonicity detects violations", {
 
 # ===== Adaptive Spline Knots =====
 
-context("RRM Helper: Adaptive Spline Knots")
+context("SAIT Helper: Adaptive Spline Knots")
 
 test_that(".adaptive_spline_knots suggests reasonable knot count", {
   config <- list()
@@ -1261,7 +1261,7 @@ result <- TSENAT:::.adaptive_spline_knots(entropy_vals, q_vals, n_q_unique, min_
 
 # ===== Bounded Support Detection =====
 
-context("RRM Helper: Bounded Support Detection")
+context("SAIT Helper: Bounded Support Detection")
 
 test_that(".is_bounded_0_1 detects bounded entropy values", {
   config <- list()
@@ -1298,7 +1298,7 @@ test_that(".is_bounded_0_1 handles edge cases", {
 
 # ===== Compute Skewness =====
 
-context("RRM Helper: Compute Skewness")
+context("SAIT Helper: Compute Skewness")
 
 test_that(".compute_skewness calculates for normal distribution", {
   config <- list()
@@ -1336,10 +1336,10 @@ test_that(".compute_skewness returns NA for constant values", {
 })
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Coverage tests for rrm_helpers.R uncovered lines
+# Coverage tests for sait_helpers.R uncovered lines
 # ═══════════════════════════════════════════════════════════════════════════
 
-context("RRM Helpers: Coverage for Error Paths")
+context("SAIT Helpers: Coverage for Error Paths")
 
 # Test .ar1_design_effect edge cases (lines 77, 82)
 test_that(".ar1_design_effect handles NULL/NA/zero rho (lines 77, 82)", {
@@ -1422,8 +1422,8 @@ test_that(".fit_all_genes() is an internal helper function", {
   # .fit_all_genes() is a complex internal function that:
   # - Requires a pre-built SummarizedExperiment object
   # - Requires pre-processed metadata with group_vec, q_vals, sample_names
-  # - Is called internally by .calculate_rrm() with full setup
-  # See test-statistical-methods-rrm_helpers_fit.R for integration tests
+  # - Is called internally by .calculate_sait() with full setup
+  # See test-statistical-methods-sait_helpers_fit.R for integration tests
   # that exercise .fit_all_genes() through the full pipeline
   
   # Verify function exists
@@ -1612,7 +1612,7 @@ test_that(".fit_all_genes() handles regularization parameter", {
   }
 })
 
-context("RRM Helpers: Coverage for low-coverage functions")
+context("SAIT Helpers: Coverage for low-coverage functions")
 
 # ============================================================================
 # TEST: .estimate_ar1_rho - Error paths and edge cases (53.8% coverage)
@@ -1845,15 +1845,15 @@ test_that(".kpss_test differentiates stationary from non-stationary", {
 })
 
 # ============================================================================
-# TEST: .validate_rrm_interaction_input (77.3% coverage)
+# TEST: .validate_sait_interaction_input (77.3% coverage)
 # ============================================================================
 
-test_that(".validate_rrm_interaction_input rejects invalid storey parameter", {
+test_that(".validate_sait_interaction_input rejects invalid storey parameter", {
     data(readcounts, package = "TSENAT", envir = environment())
     se <- readcounts
     
     expect_error(
-        TSENAT:::.validate_rrm_interaction_input(
+        TSENAT:::.validate_sait_interaction_input(
             method = "gam", pvalue = "absolute", corstr = "exchangeable",
             regularization = "none", multicorr = "none", pcorr = "none",
             storey = "invalid_value",  # Should be logical
@@ -1864,13 +1864,13 @@ test_that(".validate_rrm_interaction_input rejects invalid storey parameter", {
     )
 })
 
-test_that(".validate_rrm_interaction_input rejects invalid wy_randomizations", {
+test_that(".validate_sait_interaction_input rejects invalid wy_randomizations", {
     data(readcounts, package = "TSENAT", envir = environment())
     se <- readcounts
     
     # Less than 1
     expect_error(
-        TSENAT:::.validate_rrm_interaction_input(
+        TSENAT:::.validate_sait_interaction_input(
             method = "gam", pvalue = "absolute", corstr = "exchangeable",
             regularization = "none", multicorr = "none", pcorr = "none",
             storey = FALSE, wy_randomizations = 0,
@@ -1882,7 +1882,7 @@ test_that(".validate_rrm_interaction_input rejects invalid wy_randomizations", {
     
     # Non-numeric
     expect_error(
-        TSENAT:::.validate_rrm_interaction_input(
+        TSENAT:::.validate_sait_interaction_input(
             method = "gam", pvalue = "absolute", corstr = "exchangeable",
             regularization = "none", multicorr = "none", pcorr = "none",
             storey = FALSE, wy_randomizations = "abc",
@@ -1893,12 +1893,12 @@ test_that(".validate_rrm_interaction_input rejects invalid wy_randomizations", {
     )
 })
 
-test_that(".validate_rrm_interaction_input warns on low wy_randomizations", {
+test_that(".validate_sait_interaction_input warns on low wy_randomizations", {
     data(readcounts, package = "TSENAT", envir = environment())
     se <- readcounts
     
     expect_warning(
-        TSENAT:::.validate_rrm_interaction_input(
+        TSENAT:::.validate_sait_interaction_input(
             method = "gam", pvalue = "absolute", corstr = "exchangeable",
             regularization = "none", multicorr = "none", pcorr = "none",
             storey = FALSE, wy_randomizations = 50,  # < 100
@@ -1909,7 +1909,7 @@ test_that(".validate_rrm_interaction_input warns on low wy_randomizations", {
     )
 })
 
-test_that(".validate_rrm_interaction_input auto-detects paired_samples column", {
+test_that(".validate_sait_interaction_input auto-detects paired_samples column", {
     # Create SE with proper structure and paired_samples column
     set.seed(42)
     count_data <- matrix(rpois(100, lambda = 5), nrow = 10)
@@ -1924,7 +1924,7 @@ test_that(".validate_rrm_interaction_input auto-detects paired_samples column", 
         )
     )
     
-    result <- TSENAT:::.validate_rrm_interaction_input(
+    result <- TSENAT:::.validate_sait_interaction_input(
         method = "gam", pvalue = "absolute", corstr = "exchangeable",
         regularization = "none", multicorr = "none", pcorr = "none",
         storey = FALSE, wy_randomizations = 101,
@@ -1936,7 +1936,7 @@ test_that(".validate_rrm_interaction_input auto-detects paired_samples column", 
     expect_equal(result$subject_col, "paired_samples")
 })
 
-test_that(".validate_rrm_interaction_input errors on paired without subject column", {
+test_that(".validate_sait_interaction_input errors on paired without subject column", {
     # Create SE without paired_samples or sample_base columns
     set.seed(42)
     count_data <- matrix(rpois(100, lambda = 5), nrow = 10)
@@ -1950,7 +1950,7 @@ test_that(".validate_rrm_interaction_input errors on paired without subject colu
     
     # Don't call .calculate_diversity so no paired_samples column exists
     expect_error(
-        TSENAT:::.validate_rrm_interaction_input(
+        TSENAT:::.validate_sait_interaction_input(
             method = "gam", pvalue = "absolute", corstr = "exchangeable",
             regularization = "none", multicorr = "none", pcorr = "none",
             storey = FALSE, wy_randomizations = 101,

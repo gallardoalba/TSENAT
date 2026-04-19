@@ -389,8 +389,8 @@ test_that("calculate_jis accepts subject_col parameter", {
   expect_is(result, "tsenat_isoform_switching")
 })
 
-# Test 8: RRM results parameter is accepted
-test_that("calculate_jis accepts rrm_results parameter", {
+# Test 8: SAIT results parameter is accepted
+test_that("calculate_jis accepts sait_results parameter", {
   
   suppressPackageStartupMessages({
   })
@@ -410,7 +410,7 @@ test_that("calculate_jis accepts rrm_results parameter", {
     )
   )
   
-  rrm_results <- data.frame(
+  sait_results <- data.frame(
     gene=c("Gene1", "Gene2"),
     p_interaction=c(0.01, 0.50),
     adj_p_interaction=c(0.02, 0.60)
@@ -421,8 +421,8 @@ test_that("calculate_jis accepts rrm_results parameter", {
     condition_col = "condition",
     gene_col = "gene_id",
     isoform_col = "isoform_id",
-    rrm_results = rrm_results,
-    rrm_p_threshold = 0.05,
+    sait_results = sait_results,
+    sait_p_threshold = 0.05,
     nboot = 5,
     norm = FALSE,
     verbose = FALSE

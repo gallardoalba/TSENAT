@@ -141,7 +141,7 @@ noise reduction with preservation of isoform diversity for reliable entropy
 calculations.
 
 **Important:** Filtering should be performed BEFORE computing diversity,
-divergence, or RRM interaction results. If called after analysis results
+divergence, or SAIT interaction results. If called after analysis results
 have been computed, those results will be based on unfiltered data and
 may not align with the filtered SE dimensions.
 }

@@ -121,15 +121,15 @@
     })
 }
 
-## Consolidated helpers for calculate_rrm_interaction fallbacks, LRT and
+## Consolidated helpers for calculate_sait_interaction fallbacks, LRT and
 ## Satterthwaite Improved mixed model handling with multiple fallback
 ## strategies (Phase 14 enhanced)
-.try_rrm_fallbacks <- function(df, verbose = FALSE) {
+.try_sait_fallbacks <- function(df, verbose = FALSE) {
     # Strategy 0: Try AR(1) correlation for ordered q-values (NEW - Phase 14)
     ar1_result <- .try_lmm_ar1(df, verbose = verbose)
     if (!is.null(ar1_result)) {
         if (verbose)
-            message("[.try_rrm_fallbacks] Strategy 0 SUCCESS: AR(1) correlated random intercept")
+            message("[.try_sait_fallbacks] Strategy 0 SUCCESS: AR(1) correlated random intercept")
         return(ar1_result)
     }
 
@@ -148,7 +148,7 @@
         }
         if (!inherits(fit0_nlme, "try-error") && !inherits(fit1_nlme, "try-error")) {
             if (verbose)
-                message("[.try_rrm_fallbacks] Strategy 1 SUCCESS: nlme random intercept")
+                message("[.try_sait_fallbacks] Strategy 1 SUCCESS: nlme random intercept")
             return(list(fit0 = fit0_nlme, fit1 = fit1_nlme, method = "nlme"))
         }
     }
@@ -177,7 +177,7 @@
                 msg <- paste0("glmmTMB model did not converge: ", "fit0 converged=",
                   conv0, ", fit1 converged=", conv1)
                 if (verbose)
-                  message("[.try_rrm_fallbacks] ", msg)
+                  message("[.try_sait_fallbacks] ", msg)
                 return(list(fit0 = NA, fit1 = NA, method = "glmmTMB", message = msg))
             }
         }
@@ -186,31 +186,31 @@
     # Strategy 3: Regularized regression model with subject as fixed effect (treated as factor)
     # Use factor() to ensure proper dummy variable coding, not raw numeric
     # Apply inverse-variance weights if available (Phase 1 weighting)
-    fit0_rrm <- try(stats::lm(entropy ~ q + group + factor(subject), data = df, weights = if (!is.null(df$weight))
+    fit0_sait <- try(stats::lm(entropy ~ q + group + factor(subject), data = df, weights = if (!is.null(df$weight))
         df$weight else NULL), silent = TRUE)
-    fit1_rrm <- try(stats::lm(entropy ~ q * group + factor(subject), data = df, weights = if (!is.null(df$weight))
+    fit1_sait <- try(stats::lm(entropy ~ q * group + factor(subject), data = df, weights = if (!is.null(df$weight))
         df$weight else NULL), silent = TRUE)
-    if (!inherits(fit0_rrm, "try-error") && !inherits(fit1_rrm, "try-error")) {
+    if (!inherits(fit0_sait, "try-error") && !inherits(fit1_sait, "try-error")) {
         if (verbose) {
-            message("[.try_rrm_fallbacks] Using fixed-effect rrm with factor(subject)")
+            message("[.try_sait_fallbacks] Using fixed-effect sait with factor(subject)")
         }
-        return(list(fit0 = fit0_rrm, fit1 = fit1_rrm, method = "rrm_subject_fixed"))
+        return(list(fit0 = fit0_sait, fit1 = fit1_sait, method = "sait_subject_fixed"))
     }
 
     # Strategy 4: Last resort - drop subject entirely
-    fit0_rrm2 <- try(stats::lm(entropy ~ q + group, data = df, weights = if (!is.null(df$weight))
+    fit0_sait2 <- try(stats::lm(entropy ~ q + group, data = df, weights = if (!is.null(df$weight))
         df$weight else NULL), silent = TRUE)
-    fit1_rrm2 <- try(stats::lm(entropy ~ q * group, data = df, weights = if (!is.null(df$weight))
+    fit1_sait2 <- try(stats::lm(entropy ~ q * group, data = df, weights = if (!is.null(df$weight))
         df$weight else NULL), silent = TRUE)
-    if (!inherits(fit0_rrm2, "try-error") && !inherits(fit1_rrm2, "try-error")) {
+    if (!inherits(fit0_sait2, "try-error") && !inherits(fit1_sait2, "try-error")) {
         if (verbose) {
-            message("[.try_rrm_fallbacks] Strategy 4: Subject removed - reduced power expected")
+            message("[.try_sait_fallbacks] Strategy 4: Subject removed - reduced power expected")
         }
-        return(list(fit0 = fit0_rrm2, fit1 = fit1_rrm2, method = "rrm_nosubject"))
+        return(list(fit0 = fit0_sait2, fit1 = fit1_sait2, method = "sait_nosubject"))
     }
 
     if (verbose)
-        message("[.try_rrm_fallbacks] ALL STRATEGIES FAILED - no model fitted")
+        message("[.try_sait_fallbacks] ALL STRATEGIES FAILED - no model fitted")
     return(NULL)
 }
 

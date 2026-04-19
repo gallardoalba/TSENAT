@@ -23,15 +23,15 @@
 #' (default 90).
 #' @param nboot Numeric: number of bootstrap resamples (default 1000).
 #' @param verbose Logical: print results and verbose output? (default TRUE).
-#' @param rrm_results Data frame: results from .calculate_rrm()
+#' @param sait_results Data frame: results from .calculate_sait()
 #' with 'gene' column.
 #' Can contain either gene names or gene IDs; function automatically maps
 #' names to IDs using rowData(se). Include 'p_interaction' and/or 'adj_p_interaction'
 #' columns for filtering genes by significance. When provided, only genes passing
-#' rrm_p_threshold are analyzed; all matching genes are included (top_n parameter removed).
-#' @param rrm_p_threshold Numeric: p-value threshold for LM gene filtering
+#' sait_p_threshold are analyzed; all matching genes are included (top_n parameter removed).
+#' @param sait_p_threshold Numeric: p-value threshold for SAIT gene filtering
 #' (default 0.05).
-#' @param use_rrm_fdr Logical: use adjusted p-values from RRM results if
+#' @param use_sait_fdr Logical: use adjusted p-values from SAIT results if
 #' available (default TRUE).
 #'
 #' @return If q is a single value, returns a list of class
@@ -74,8 +74,8 @@
 #' @noRd
 .calculate_jis <- function(se = NULL, condition_col = "condition", subject_col = NULL,
     gene_col = NULL, isoform_col = NULL, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0,
-    threshold = 90, nboot = 1000, verbose = TRUE, rrm_results = NULL, rrm_p_threshold = 0.05,
-    use_rrm_fdr = TRUE) {
+    threshold = 90, nboot = 1000, verbose = TRUE, sait_results = NULL, sait_p_threshold = 0.05,
+    use_sait_fdr = TRUE) {
     # 1. Validate input
     conditions <- .jis_validate_input(se, condition_col, gene_col, isoform_col)
 
@@ -83,8 +83,8 @@
     if (is.numeric(q) && length(q) > 1) {
         q_params <- list(condition_col = condition_col, subject_col = subject_col,
             gene_col = gene_col, isoform_col = isoform_col, norm = norm, log_base = log_base,
-            pseudocount = pseudocount, threshold = threshold, nboot = nboot, rrm_results = rrm_results,
-            rrm_p_threshold = rrm_p_threshold, use_rrm_fdr = use_rrm_fdr)
+            pseudocount = pseudocount, threshold = threshold, nboot = nboot, sait_results = sait_results,
+            sait_p_threshold = sait_p_threshold, use_sait_fdr = use_sait_fdr)
         return(.jis_handle_multi_q(se, q, q_params, verbose))
     }
 
@@ -95,18 +95,18 @@
     gene_ids <- unique(rowData(se)[[gene_col]])
 
     # 4. Setup LM filtering
-    rrm_setup <- .jis_setup_rrm_filtering(se, rrm_results, rrm_p_threshold, use_rrm_fdr,
+    sait_setup <- .jis_setup_sait_filtering(se, sait_results, sait_p_threshold, use_sait_fdr,
         gene_ids, gene_col)
-    gene_ids <- rrm_setup$filtered_genes
-    rrm_gene_mapping <- rrm_setup$rrm_gene_mapping
+    gene_ids <- sait_setup$filtered_genes
+    sait_gene_mapping <- sait_setup$sait_gene_mapping
 
     # 5. Process genes
     gene_results <- .jis_process_all_genes(se, gene_ids, gene_col, isoform_col, condition_col,
-        conditions, paired_info, q, norm, log_base, pseudocount, nboot, rrm_gene_mapping)
+        conditions, paired_info, q, norm, log_base, pseudocount, nboot, sait_gene_mapping)
 
     # 6. Build results
     summary_results <- .jis_build_summary_results(se, gene_results$results_per_gene,
-        gene_results$all_pvalues, gene_col, rrm_gene_mapping)
+        gene_results$all_pvalues, gene_col)
 
     # 7. Compile final result
     n_fdr_sig_total <- if (nrow(summary_results$all_transcript_stats) > 0)
@@ -115,8 +115,8 @@
     metadata <- list(q = q, is_paired = paired_info$is_paired, subject_col = if (paired_info$is_paired) paired_info$subject_col else NULL,
         pair_info = paired_info$pair_info, norm = norm, log_base = log_base, pseudocount = pseudocount,
         threshold = threshold, n_transcripts_tested = nrow(summary_results$all_transcript_stats),
-        n_fdr_significant = n_fdr_sig_total, rrm_results_provided = !is.null(rrm_results),
-        rrm_p_threshold = rrm_p_threshold, rrm_genes_filtered = rrm_setup$rrm_genes_filtered,
+        n_fdr_significant = n_fdr_sig_total, sait_results_provided = !is.null(sait_results),
+        sait_p_threshold = sait_p_threshold, sait_genes_filtered = sait_setup$sait_genes_filtered,
         gene_processing_log = gene_results$gene_processing_log)
 
     result_gene_names <- unname(gene_id_to_name[names(summary_results$results_per_gene)])
@@ -132,7 +132,7 @@
 
     # 8. Verbose output
     if (verbose)
-        .jis_print_results(result, paired_info, rrm_results, rrm_p_threshold, rrm_setup$rrm_genes_filtered)
+        .jis_print_results(result, paired_info, sait_results, sait_p_threshold, sait_setup$sait_genes_filtered)
 
     return(invisible(result))
 }
@@ -291,17 +291,17 @@
 #' Setup LM filtering and gene mapping
 
 #' @noRd
-.jis_setup_rrm_filtering <- function(se, rrm_results, rrm_p_threshold, use_rrm_fdr, gene_ids,
+.jis_setup_sait_filtering <- function(se, sait_results, sait_p_threshold, use_sait_fdr, gene_ids,
     gene_col) {
-    if (is.null(rrm_results))
-        return(list(rrm_gene_mapping = NULL, filtered_genes = gene_ids, rrm_genes_filtered = 0))
+    if (is.null(sait_results))
+        return(list(sait_gene_mapping = NULL, filtered_genes = gene_ids, sait_genes_filtered = 0))
 
-    if (!("gene" %in% colnames(rrm_results)))
-        stop("rrm_results must have 'gene' column")
+    if (!("gene" %in% colnames(sait_results)))
+        stop("sait_results must have 'gene' column")
 
     # Detect if genes are IDs or names
-    sample_rrm_genes <- rrm_results$gene[seq_len(min(5, nrow(rrm_results)))]
-    genes_are_ids <- all(sample_rrm_genes %in% gene_ids)
+    sample_sait_genes <- sait_results$gene[seq_len(min(5, nrow(sait_results)))]
+    genes_are_ids <- all(sample_sait_genes %in% gene_ids)
 
     # Map gene names to IDs if needed
     if (!genes_are_ids) {
@@ -309,35 +309,35 @@
         gene_name_to_id <- setNames(as.character(rd[[gene_col]]), as.character(rd$gene_name))
         gene_name_to_id <- gene_name_to_id[!is.na(names(gene_name_to_id))]
         gene_name_to_id <- gene_name_to_id[!duplicated(names(gene_name_to_id))]
-        rrm_results$gene <- unname(gene_name_to_id[as.character(rrm_results$gene)])
-        rrm_results <- rrm_results[!is.na(rrm_results$gene), ]
+        sait_results$gene <- unname(gene_name_to_id[as.character(sait_results$gene)])
+        sait_results <- sait_results[!is.na(sait_results$gene), ]
     }
 
-    if (nrow(rrm_results) == 0)
-        return(list(rrm_gene_mapping = NULL, filtered_genes = gene_ids, rrm_genes_filtered = 0))
+    if (nrow(sait_results) == 0)
+        return(list(sait_gene_mapping = NULL, filtered_genes = gene_ids, sait_genes_filtered = 0))
 
     # Filter by p-value threshold
-    p_col <- if (use_rrm_fdr && "adj_p_interaction" %in% colnames(rrm_results))
-        "adj_p_interaction" else if ("p_interaction" %in% colnames(rrm_results))
+    p_col <- if (use_sait_fdr && "adj_p_interaction" %in% colnames(sait_results))
+        "adj_p_interaction" else if ("p_interaction" %in% colnames(sait_results))
         "p_interaction" else NULL
 
     if (!is.null(p_col)) {
-        sig_genes <- rrm_results[rrm_results[[p_col]] < rrm_p_threshold, "gene"]
+        sig_genes <- sait_results[sait_results[[p_col]] < sait_p_threshold, "gene"]
         filtered_genes <- intersect(gene_ids, sig_genes)
-        rrm_genes_filtered <- length(sig_genes)
+        sait_genes_filtered <- length(sig_genes)
     } else {
         filtered_genes <- gene_ids
-        rrm_genes_filtered <- nrow(rrm_results)
+        sait_genes_filtered <- nrow(sait_results)
     }
 
-    list(rrm_gene_mapping = rrm_results, filtered_genes = filtered_genes, rrm_genes_filtered = rrm_genes_filtered)
+    list(sait_gene_mapping = sait_results, filtered_genes = filtered_genes, sait_genes_filtered = sait_genes_filtered)
 }
 
 #' Process all genes for isoform switching analysis
 
 #' @noRd
 .jis_process_all_genes <- function(se, gene_ids, gene_col, isoform_col, condition_col,
-    conditions, paired_info, q, norm, log_base, pseudocount, nboot, rrm_gene_mapping) {
+    conditions, paired_info, q, norm, log_base, pseudocount, nboot, sait_gene_mapping) {
     results_per_gene <- list()
     all_pvalues <- list()
     gene_processing_log <- data.frame(gene = character(), n_transcripts = numeric(),
@@ -414,15 +414,15 @@
             switching_status = switching_status, effect_size = effect_size, ci_width = ci_width,
             relative_ci_width = relative_ci_width, power_assessment = delta_stats$power_assessment)
 
-        # Add RRM results if available
-        if (!is.null(rrm_gene_mapping)) {
-            rrm_row <- rrm_gene_mapping[rrm_gene_mapping$gene == gene, ]
-            if (nrow(rrm_row) > 0) {
-                gene_result$rrm_p_interaction <- if ("p_interaction" %in% colnames(rrm_row))
-                  rrm_row$p_interaction[1] else NA
-                gene_result$rrm_adj_p_interaction <- if ("adj_p_interaction" %in%
-                  colnames(rrm_row))
-                  rrm_row$adj_p_interaction[1] else NA
+        # Add SAIT results if available
+        if (!is.null(sait_gene_mapping)) {
+            sait_row <- sait_gene_mapping[sait_gene_mapping$gene == gene, ]
+            if (nrow(sait_row) > 0) {
+                gene_result$sait_p_interaction <- if ("p_interaction" %in% colnames(sait_row))
+                  sait_row$p_interaction[1] else NA
+                gene_result$sait_adj_p_interaction <- if ("adj_p_interaction" %in%
+                  colnames(sait_row))
+                  sait_row$adj_p_interaction[1] else NA
             }
         }
 
@@ -443,8 +443,7 @@
 #' Build summary results from per-gene analysis
 
 #' @noRd
-.jis_build_summary_results <- function(se, results_per_gene, all_pvalues, gene_col,
-    rrm_gene_mapping) {
+.jis_build_summary_results <- function(se, results_per_gene, all_pvalues, gene_col) {
     # Apply FDR correction first
     results_per_gene <- .jis_apply_fdr(results_per_gene, all_pvalues)
 
@@ -467,10 +466,10 @@
 
         df <- data.frame(gene = gene, gene_name = gene_name, transcript_id = res$transcript_ids,
             pvalue = pval_vals, fdr = fdr_vals, stringsAsFactors = FALSE)
-        if (!is.null(res$rrm_p_interaction))
-            df$rrm_p_interaction <- res$rrm_p_interaction
-        if (!is.null(res$rrm_adj_p_interaction))
-            df$rrm_adj_p_interaction <- res$rrm_adj_p_interaction
+        if (!is.null(res$sait_p_interaction))
+            df$sait_p_interaction <- res$sait_p_interaction
+        if (!is.null(res$sait_adj_p_interaction))
+            df$sait_adj_p_interaction <- res$sait_adj_p_interaction
         df
     }))
 
@@ -612,16 +611,16 @@
 #' Print isoform switching analysis results
 
 #' @noRd
-.jis_print_results <- function(result, paired_info, rrm_results, rrm_p_threshold, rrm_genes_filtered) {
+.jis_print_results <- function(result, paired_info, sait_results, sait_p_threshold, sait_genes_filtered) {
     message("Isoform Switching Analysis Results")
     message("===================================")
     message(sprintf("Conditions: '%s' vs. '%s'", result$conditions[1], result$conditions[2]))
     if (paired_info$is_paired && !is.null(paired_info$pair_info))
         message(sprintf("Design: PAIRED (%s) - %d matched pairs", paired_info$subject_col,
             paired_info$pair_info$n_pairs)) else message("Design: UNPAIRED")
-    if (!is.null(rrm_results))
-        message(sprintf("LM filtering: Genes with p < %.6f (N = %d)", rrm_p_threshold,
-            rrm_genes_filtered))
+    if (!is.null(sait_results))
+        message(sprintf("LM filtering: Genes with p < %.6f (N = %d)", sait_p_threshold,
+            sait_genes_filtered))
     message(sprintf("\nGenes analyzed: %d", length(result$gene_names)))
     message(sprintf("Total transcripts tested: %d", result$metadata$n_transcripts_tested))
     message(sprintf("FDR-significant transcripts (FDR<0.05): %d", result$metadata$n_fdr_significant))
@@ -631,8 +630,8 @@
     message("[OK] Use results$summary_table for overview across genes")
     message("[OK] Use results$all_transcript_stats for FDR-corrected p-values per transcript")
     message("[OK] Use results$metadata$is_paired to check if paired design was applied")
-    if (!is.null(rrm_results))
-        message("[OK] Access rrm_p_interaction in each gene$rrm_p_interaction for LM test results")
+    if (!is.null(sait_results))
+        message("[OK] Access sait_p_interaction in each gene$sait_p_interaction for LM test results")
     message("")
 }
 

@@ -58,7 +58,7 @@ TSENAT implements a complete analytical pipeline:
     Vectorized over genes and q-values with numerical stability safeguards.}
   \item{\code{\link{calculate_jeo}}}{Resampling-based confidence intervals 
     for diversity. Identifies outlier genes and validates q-value signal.}
-  \item{\code{\link{calculate_rrm}}}{Statistical testing for gene-by-condition 
+  \item{\code{\link{calculate_sait}}}{Statistical testing for gene-by-condition 
     interactions. LMM, GAM, and rank-based approaches.}
   \item{\code{\link{calculate_divergence}}}{Tsallis divergence between groups with 
     effect size (Cohen's d, rank-biserial) and hypothesis testing.}
@@ -167,7 +167,7 @@ Isoform switching and transcriptomics:
 \section{S4 Container}{
 
 \code{\link{TSENATAnalysis-class}} --- Central container unifying all analysis components.
-Access results via slots: \code{@diversity_results}, \code{@rrm_results}, 
+Access results via slots: \code{@diversity_results}, \code{@sait_results}, 
 \code{@jackknife_results}, \code{@divergence_results}, 
 or accessor methods \code{\link{se}}, \code{\link{metadata<-}}, and \code{\link{results}}.
 }

@@ -5,10 +5,10 @@
 \alias{calculate_concordance,TSENATAnalysis-method}
 \title{Compare method concordance for differential analysis results}
 \usage{
-calculate_concordance(analysis_rrm, analysis_rank = NULL, ...)
+calculate_concordance(analysis_sait, analysis_rank = NULL, ...)
 
 \S4method{calculate_concordance}{TSENATAnalysis}(
-  analysis_rrm,
+  analysis_sait,
   analysis_rank = NULL,
   verbose = FALSE,
   output_file = NULL,
@@ -16,12 +16,12 @@ calculate_concordance(analysis_rrm, analysis_rank = NULL, ...)
 )
 }
 \arguments{
-\item{analysis_rrm}{\code{TSENATAnalysis} object containing RRM/GAM analysis results
-(from \code{calculate_rrm()}).}
+\item{analysis_sait}{\code{TSENATAnalysis} object containing SAIT/GAM analysis results
+(from \code{calculate_sait()}).}
 
 \item{analysis_rank}{\code{TSENATAnalysis} object or NULL. If NULL, uses legacy 
-single-object API with analysis_rrm containing both results. If provided, 
-compares RRM results from analysis_rrm with rank-test results from analysis_rank.}
+single-object API with analysis_sait containing both results. If provided, 
+compares SAIT results from analysis_sait with rank-test results from analysis_rank.}
 
 \item{...}{Additional arguments for future extensibility.}
 
@@ -38,13 +38,13 @@ Modified TSENATAnalysis object with concordance results stored in:
     \item{spearman_rho}{Spearman correlation between adjusted p-values}
     \item{high_confidence}{Genes with strong agreement}
     \item{agreement_table}{Contingency table of significant/non-significant calls}
-    \item{rrm_method}{Method name used for RRM/GAM analysis}
+    \item{sait_method}{Method name used for SAIT/GAM analysis}
     \item{rank_method}{Method name used for rank-based analysis}
     \item{timestamp}{When concordance was computed}
   }
 }
 \description{
-Compares statistical results from two different methods (typically RRM/GAM for
+Compares statistical results from two different methods (typically SAIT/GAM for
 continuous data and Scheirer-Ray-Hare rank tests) to assess agreement and identify
 genes detected by one method but not the other.
 }
@@ -91,7 +91,7 @@ analysis <- build_analysis(
 analysis <- filter_analysis(analysis, stringency = 'severe')
 analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
 analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
-analysis <- suppressWarnings(calculate_rrm(analysis, method = 'gam'))
+analysis <- suppressWarnings(calculate_sait(analysis, method = 'gam'))
 # Note: calculate_concordance requires results from both
 # calculate_srh and calculate_assumptions
 

@@ -108,7 +108,7 @@
 #'
 #' # Get results ranked by p-value, top 20 genes
 #' # Using accessor function instead of @ slot access
-#' top_rrm <- results(analysis, type = 'rrm', rankBy = 'pvalue', n = 20)
+#' top_sait <- results(analysis, type = "sait", rankBy = 'pvalue', n = 20)
 #'
 #' # Get effect size results, top 6 genes by p-value (most significant first)
 #' top_effect_sizes <- results(analysis, type = 'effect_sizes_divergence', 
@@ -134,7 +134,7 @@
 #' diversity_plot <- results(analysis, type = 'diversity', plot = TRUE)
 #'
 #' # Get the LM/regularized regression (GAM, LMM, GEE, FPCA) interaction plot
-#' rrm_plot <- results(analysis, type = 'rrm', plot = TRUE)
+#' sait_plot <- results(analysis, type = "sait", plot = TRUE)
 #'
 #' # Get the divergence distribution plot
 #' div_dist_plot <- results(analysis, type = 'divergence', plot = TRUE)
@@ -144,7 +144,7 @@
 #'
 #' # Available plot types correspond to analysis types:
 #' # - type = 'diversity': Returns Tsallis entropy q-spectrum visualization
-#' # - type = 'rrm': Returns regularized/penalized regression (GAM, LMM, GEE, FPCA) interaction plot
+#' # - type = "sait": Returns regularized/penalized regression (GAM, LMM, GEE, FPCA) interaction plot
 #' # - type = 'divergence': Returns distribution of divergence metrics across genes
 #' # - type = 'influence': Returns m-estimator sample influence analysis
 #' # - type = 'rank_test': Returns Scheirer-Ray-Hare interaction visualization
@@ -158,7 +158,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none", n = NA, filterFDR
     # Handle plot extraction first (takes precedence over other parameters)
     if (isTRUE(plot)) {
         # Map analysis type to plot cache name
-        plot_name_map <- list(diversity = "q_curve", lm = "rrm_interaction", rrm = "rrm_interaction", influence = "influence_heatmap",
+        plot_name_map <- list(diversity = "q_curve", lm = "sait_interaction", sait = "sait_interaction", influence = "influence_heatmap",
             jackknife = "top_transcripts", divergence = "divergence_distribution",
             rank_test = "rank_test", concordance = "concordance")
 
@@ -171,7 +171,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none", n = NA, filterFDR
         } else {
             available <- if (length(analysis@plots) > 0)
                 paste(names(analysis@plots), collapse = ", ") else "none"
-            warning("Plot for type '", type, "' not found. Available plot types: diversity, rrm, influence, jackknife, divergence. Available plots: ",
+            warning("Plot for type '", type, "' not found. Available plot types: diversity, sait, influence, jackknife, divergence. Available plots: ",
                 available)
             return(NULL)
         }
@@ -193,7 +193,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none", n = NA, filterFDR
     # Route to type-specific processor
     switch(type, diversity = .process_diversity_results(result, q, analysis, n_genes,
         q_values_table, sample, format), divergence = .process_divergence_results(result,
-        filterFDR, format), rrm = , jackknife = , rank_test = .process_statistical_results(result,
+        filterFDR, format), sait = , jackknife = , rank_test = .process_statistical_results(result,
         type, filterFDR, rankBy, n, format), effect_sizes_divergence = .process_effect_sizes_divergence_results(result,
         top_n, sort_by, analysis), assumptions = .process_assumptions_results(result,
         format = format), switching_tables = .process_switching_tables_results(result,
@@ -334,12 +334,12 @@ results <- function(analysis, type, q = NULL, rankBy = "none", n = NA, filterFDR
 .extract_result_by_type <- function(analysis, type) {
     switch(type, diversity = if (length(analysis@diversity_results) > 0) analysis@diversity_results else NULL,
         divergence = if (length(analysis@divergence_results) > 0) analysis@divergence_results else NULL,
-        concordance = .get_metadata_field(analysis, "method_concordance"), rrm = if (length(analysis@rrm_results) >
+        concordance = .get_metadata_field(analysis, "method_concordance"), sait = if (length(analysis@sait_results) >
             0) {
-            if ("rrm_interaction" %in% names(analysis@rrm_results)) {
-                analysis@rrm_results$rrm_interaction
+            if ("sait_interaction" %in% names(analysis@sait_results)) {
+                analysis@sait_results$sait_interaction
             } else {
-                analysis@rrm_results
+                analysis@sait_results
             }
         } else NULL, jackknife = .extract_jackknife_result(analysis), rank_test = if (!is.null(analysis@rank_test_results) &&
             "rank_test" %in% names(analysis@rank_test_results)) {
@@ -353,7 +353,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none", n = NA, filterFDR
                 NULL
             }
         }, switching_tables = .extract_or_compute_switching_tables(analysis), metadata = analysis@metadata,
-        stop("Unknown result type: '", type, "'. Must be one of: ", "diversity, divergence, rrm, jackknife, rank_test, effect_sizes_divergence, assumptions, switching_tables, concordance, metadata",
+        stop("Unknown result type: '", type, "'. Must be one of: ", "diversity, divergence, sait, jackknife, rank_test, effect_sizes_divergence, assumptions, switching_tables, concordance, metadata",
             call. = FALSE))
 }
 
@@ -406,24 +406,24 @@ results <- function(analysis, type, q = NULL, rankBy = "none", n = NA, filterFDR
         return(existing_tables)
     }
 
-    if (length(analysis@rrm_results) == 0 || length(analysis@jackknife_results) ==
+    if (length(analysis@sait_results) == 0 || length(analysis@jackknife_results) ==
         0) {
         return(NULL)
     }
 
     tryCatch({
-        rrm_results_list <- analysis@rrm_results
-        rrm_res <- if (!is.null(rrm_results_list$rrm_interaction)) {
-            if (is.data.frame(rrm_results_list$rrm_interaction$results)) {
-                rrm_results_list$rrm_interaction$results
-            } else if (is.data.frame(rrm_results_list$rrm_interaction)) {
-                rrm_results_list$rrm_interaction
+        sait_results_list <- analysis@sait_results
+        sait_res <- if (!is.null(sait_results_list$sait_interaction)) {
+            if (is.data.frame(sait_results_list$sait_interaction$results)) {
+                sait_results_list$sait_interaction$results
+            } else if (is.data.frame(sait_results_list$sait_interaction)) {
+                sait_results_list$sait_interaction
             } else NULL
-        } else if (is.data.frame(rrm_results_list)) {
-            rrm_results_list
+        } else if (is.data.frame(sait_results_list)) {
+            sait_results_list
         } else NULL
 
-        if (is.null(rrm_res)) {
+        if (is.null(sait_res)) {
             return(NULL)
         }
 
@@ -435,7 +435,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none", n = NA, filterFDR
             return(NULL)
         }
 
-        computed_tables <- .prepare_gene_switching_tables(rrm_res = rrm_res, multi_q_results = q_keyed,
+        computed_tables <- .prepare_gene_switching_tables(sait_res = sait_res, multi_q_results = q_keyed,
             verbose = FALSE)
 
         analysis <- .set_metadata_field(analysis, "switching_tables", computed_tables)
@@ -476,9 +476,9 @@ results <- function(analysis, type, q = NULL, rankBy = "none", n = NA, filterFDR
         warning("rankBy and filterFDR are not supported for type='switching_tables'. ",
             "Ignoring these parameters. Switching tables are automatically pre-computed with optimal ",
             "ranking and filtering.", call. = FALSE)
-    } else if (rankBy != "none" && !type %in% c("rrm", "jackknife", "rank_test")) {
+    } else if (rankBy != "none" && !type %in% c("sait", "jackknife", "rank_test")) {
         warning("rankBy='", rankBy, "' is not supported for type='", type, "'. ",
-            "Ignoring rankBy parameter. rankBy is only supported for types: ", "'rrm', 'jackknife', 'rank_test'.",
+            "Ignoring rankBy parameter. rankBy is only supported for types: ", "'sait', 'jackknife', 'rank_test'.",
             call. = FALSE)
     }
 }
@@ -541,7 +541,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none", n = NA, filterFDR
         return(result)
     }
 
-    padj_col <- switch(type, rrm = if ("adj_p_interaction" %in% colnames(result)) "adj_p_interaction" else NULL,
+    padj_col <- switch(type, sait = if ("adj_p_interaction" %in% colnames(result)) "adj_p_interaction" else NULL,
         rank_test = if ("adj_p_value" %in% colnames(result)) "adj_p_value" else NULL,
         jackknife = if ("fdr" %in% colnames(result)) "fdr" else if ("delta_fdr" %in%
             colnames(result)) "delta_fdr" else NULL, NULL)
@@ -610,11 +610,7 @@ results <- function(analysis, type, q = NULL, rankBy = "none", n = NA, filterFDR
 # HELPER: Get ranking column name for statistical results
 # ============================================================================
 .get_ranking_column <- function(type, rankBy, result) {
-    switch(type, rrm = switch(rankBy, pvalue = if ("p_interaction" %in% colnames(result)) "p_interaction" else NULL,
-        padj = if ("adj_p_interaction" %in% colnames(result)) "adj_p_interaction" else NULL,
-        effectSize = if ("statistic" %in% colnames(result)) "statistic" else if ("estimate" %in%
-            colnames(result)) "estimate" else if ("effect_size" %in% colnames(result)) "effect_size" else NULL,
-        NULL), rank_test = switch(rankBy, pvalue = if ("p_value" %in% colnames(result)) "p_value" else NULL,
+    switch(type, sait = switch(rankBy, pvalue = if ("p_interaction" %in% colnames(result)) "p_interaction" else NULL, padj = if ("adj_p_interaction" %in% colnames(result)) "adj_p_interaction" else NULL, effectSize = if ("statistic" %in% colnames(result)) "statistic" else if ("estimate" %in% colnames(result)) "estimate" else if ("effect_size" %in% colnames(result)) "effect_size" else NULL, none = NULL), rank_test = switch(rankBy, pvalue = if ("p_value" %in% colnames(result)) "p_value" else NULL,
         padj = if ("adj_p_value" %in% colnames(result)) "adj_p_value" else NULL,
         effectSize = if ("statistic" %in% colnames(result)) "statistic" else if ("estimate" %in%
             colnames(result)) "estimate" else NULL, NULL), jackknife = switch(rankBy,
@@ -1273,7 +1269,7 @@ print.assumptions_text <- function(x, ...) {
 
     # Calculate agreement statistics
     both_sig <- sum(comparison_df$agreement == "Both significant", na.rm = TRUE)
-    rrm_only <- sum(comparison_df$agreement == "RRM only", na.rm = TRUE)
+    sait_only <- sum(comparison_df$agreement == "SAIT only", na.rm = TRUE)
     rank_only <- sum(comparison_df$agreement == "Rank test only", na.rm = TRUE)
     neither <- sum(comparison_df$agreement == "Neither significant", na.rm = TRUE)
 
@@ -1281,53 +1277,53 @@ print.assumptions_text <- function(x, ...) {
     concordance_rate <- if (n_total > 0)
         (both_sig/n_total) * 100 else 0
     discordance_rate <- if (n_total > 0)
-        ((rrm_only + rank_only)/n_total) * 100 else 0
+        ((sait_only + rank_only)/n_total) * 100 else 0
 
     # ====== 1. SUMMARY METRICS TABLE ======
     summary_table <- data.frame(Metric = c("Total genes compared", "Spearman correlation (p-values)",
-        "Both methods significant (p < 0.05)", "RRM only significant", "Rank test only significant",
+        "Both methods significant (p < 0.05)", "SAIT only significant", "Rank test only significant",
         "Neither significant", "Concordance rate", "Discordance rate"), Value = c(paste0(n_total),
         paste0("rho = ", sprintf("%.4f", spearman_rho)), paste0(both_sig, " (", sprintf("%.1f%%",
-            (both_sig/n_total) * 100), ")"), paste0(rrm_only, " (", sprintf("%.1f%%",
-            (rrm_only/n_total) * 100), ")"), paste0(rank_only, " (", sprintf("%.1f%%",
+            (both_sig/n_total) * 100), ")"), paste0(sait_only, " (", sprintf("%.1f%%",
+            (sait_only/n_total) * 100), ")"), paste0(rank_only, " (", sprintf("%.1f%%",
             (rank_only/n_total) * 100), ")"), paste0(neither, " (", sprintf("%.1f%%",
             (neither/n_total) * 100), ")"), paste0(sprintf("%.1f%%", concordance_rate)),
         paste0(sprintf("%.1f%%", discordance_rate))), stringsAsFactors = FALSE)
 
     # ====== 2. AGREEMENT DISTRIBUTION TABLE ======
-    agreement_dist <- data.frame(`Agreement Category` = c("Both significant", "RRM only",
+    agreement_dist <- data.frame(`Agreement Category` = c("Both significant", "SAIT only",
         "Rank test only", "Neither significant"), `Number of Genes` = c(both_sig,
-        rrm_only, rank_only, neither), Percentage = c(sprintf("%.1f%%", (both_sig/n_total) *
-        100), sprintf("%.1f%%", (rrm_only/n_total) * 100), sprintf("%.1f%%", (rank_only/n_total) *
+        sait_only, rank_only, neither), Percentage = c(sprintf("%.1f%%", (both_sig/n_total) *
+        100), sprintf("%.1f%%", (sait_only/n_total) * 100), sprintf("%.1f%%", (rank_only/n_total) *
         100), sprintf("%.1f%%", (neither/n_total) * 100)), stringsAsFactors = FALSE,
         check.names = FALSE)
 
     # ====== 3. HIGH-CONFIDENCE GENES TABLE ======
     high_conf_table <- NULL
     if (!is.null(high_conf) && nrow(high_conf) > 0) {
-        high_conf_table <- data.frame(Gene = high_conf$gene, `RRM adj p` = vapply(high_conf$padj_rrm,
+        high_conf_table <- data.frame(Gene = high_conf$gene, `SAIT adj p` = vapply(high_conf$padj_sait,
             function(x) {
                 if (x < 1e-50)
                   sprintf("%.2e", x) else sprintf("%.3e", x)
             }, character(1)), `Rank test adj p` = vapply(high_conf$padj_rank, function(x) {
             if (x < 1e-50)
                 sprintf("%.2e", x) else sprintf("%.3e", x)
-        }, character(1)), `RRM Effect` = sprintf("%.1f%%", high_conf$effect_rrm * 100),
+        }, character(1)), `SAIT Effect` = sprintf("%.1f%%", high_conf$effect_sait * 100),
             `Rank test rho^2` = sprintf("%.3f", high_conf$effect_rank), stringsAsFactors = FALSE,
             check.names = FALSE)
     }
 
     # ====== 4. ALL GENES TABLE ======
-    all_genes_table <- data.frame(Gene = comparison_df$gene, `RRM p` = comparison_df$p_rrm,
-        `RRM adj p` = comparison_df$padj_rrm, `Rank test p` = comparison_df$p_rank,
-        `Rank test adj p` = comparison_df$padj_rank, `RRM Effect` = comparison_df$effect_rrm,
+    all_genes_table <- data.frame(Gene = comparison_df$gene, `SAIT p` = comparison_df$p_sait,
+        `SAIT adj p` = comparison_df$padj_sait, `Rank test p` = comparison_df$p_rank,
+        `Rank test adj p` = comparison_df$padj_rank, `SAIT Effect` = comparison_df$effect_sait,
         `Rank test rho^2` = comparison_df$effect_rank, Agreement = comparison_df$agreement,
         stringsAsFactors = FALSE, check.names = FALSE)
 
     # ====== BUILD FORMATTED TEXT OUTPUT ======
     output_lines <- c()
 
-    output_lines <- c(output_lines, "\nGlobal Concordance Metrics: LM vs Scheirer-Ray-Hare Methods\n")
+    output_lines <- c(output_lines, "\nGlobal Concordance Metrics: SAIT vs Scheirer-Ray-Hare Methods\n")
     output_lines <- c(output_lines, .format_data_frame_as_text(summary_table))
 
     output_lines <- c(output_lines, "\nMethod Agreement Distribution\n")

@@ -1,7 +1,7 @@
 #' Validate Gene Name Alignment Between Objects
 #'
 #' Checks that gene identifiers are consistent between two data objects
-#' (e.g., SummarizedExperiment and rrm_results data.frame).
+#' (e.g., SummarizedExperiment and sait_results data.frame).
 #'
 #' @param se \code{SummarizedExperiment} or  \code{NULL}.  Source object with 
 #' rownames as gene IDs.
@@ -10,7 +10,7 @@
 #' @param se_name \code{character}.  Display name for  first object (e. g. ,
 #'  'SummarizedExperiment').
 #' @param results_name \code{character}.  Display name for  second object (e.
-#' g. ,  'RRM results').
+#' g. ,  'SAIT results').
 #' @param verbose \code{logical}.  If TRUE,  print alignment report (default:
 #'  TRUE).
 #'
@@ -37,9 +37,9 @@
 #' se <- SummarizedExperiment(assays = list(counts = tx_counts))
 #' S4Vectors::metadata(se)$tx2gene <- data.frame(
 #'   Transcript = paste0('TX', 1:40), Gen = rep(paste0('GENE', 1:10), each = 4))
-#' rrm_results <- data.frame(gene = paste0('GENE', 1:10), p_value = runif(10))
+#' sait_results <- data.frame(gene = paste0('GENE', 1:10), p_value = runif(10))
 #' validation <- .validate_gene_names(
-#'   se, rrm_results, se_name = 'Input SE', results_name = 'LM Results'
+#'   se, sait_results, se_name = 'Input SE', results_name = 'LM Results'
 #' )
 #'
 #' @noRd
@@ -219,9 +219,9 @@
 
 #' Validate LM Results Data Structure
 #'
-#' Checks that RRM results object has expected structure and content.
+#' Checks that SAIT results object has expected structure and content.
 #'
-#' @param rrm_results \code{data.frame} or \code{list}. RRM results to validate.
+#' @param sait_results \code{data.frame} or \code{list}. SAIT results to validate.
 #' @param expected_genes \code{character} vector or  \code{NULL}.
 #'  Gene names expected
 #'   in results (default: NULL, no check).
@@ -244,37 +244,37 @@
 #'
 #' @noRd
 
-.validate_rrm_results <- function(rrm_results, expected_genes = NULL, required_columns = c("gene"),
+.validate_sait_results <- function(sait_results, expected_genes = NULL, required_columns = c("gene"),
     verbose = TRUE) {
 
     issues <- c()
 
     # Check if it's a data.frame
-    if (!is.data.frame(rrm_results)) {
-        if (is.list(rrm_results)) {
+    if (!is.data.frame(sait_results)) {
+        if (is.list(sait_results)) {
             # Could be list with $results and $model_data
-            if ("results" %in% names(rrm_results)) {
-                rrm_results <- rrm_results$results
+            if ("results" %in% names(sait_results)) {
+                sait_results <- sait_results$results
             } else {
-                issues <- c(issues, "RRM results must be data.frame or list with 'results' element")
+                issues <- c(issues, "SAIT results must be data.frame or list with 'results' element")
                 return(list(is_valid = FALSE, n_results = 0, columns_present = c(),
                   issues = issues))
             }
         } else {
-            issues <- c(issues, "RRM results must be data.frame or list")
+            issues <- c(issues, "SAIT results must be data.frame or list")
             return(list(is_valid = FALSE, n_results = 0, columns_present = c(), issues = issues))
         }
     }
 
-    n_results <- nrow(rrm_results)
-    cols_present <- colnames(rrm_results)
+    n_results <- nrow(sait_results)
+    cols_present <- colnames(sait_results)
 
     # Check basic required columns (only 'gene' is truly required, but
     # flexible)
     for (col in required_columns) {
         if (!(col %in% cols_present) && col != "p_value") {
             # 'gene' column not strictly required if genes in rownames
-            if (col == "gene" && !is.null(rownames(rrm_results))) {
+            if (col == "gene" && !is.null(rownames(sait_results))) {
                 # OK - genes are in rownames
             } else if (col == "gene") {
                 issues <- c(issues, paste0("Missing gene identifier. Need 'gene' column or genes in rownames. Available: ",
@@ -306,9 +306,9 @@
         if ("gene" %in% cols_present || "gene_id" %in% cols_present || "gene_name" %in%
             cols_present) {
             gene_col <- intersect(c("gene", "gene_id", "gene_name"), cols_present)[1]
-            result_genes <- rrm_results[[gene_col]]
-        } else if (!is.null(rownames(rrm_results))) {
-            result_genes <- rownames(rrm_results)
+            result_genes <- sait_results[[gene_col]]
+        } else if (!is.null(rownames(sait_results))) {
+            result_genes <- rownames(sait_results)
         }
 
         if (!is.null(result_genes)) {
@@ -323,13 +323,13 @@
     # Check for p-value validity (only if column exists)
     pval_col <- intersect(pval_columns, cols_present)[1]
     if (!is.na(pval_col) && pval_col %in% cols_present) {
-        n_na <- sum(is.na(rrm_results[[pval_col]]))
+        n_na <- sum(is.na(sait_results[[pval_col]]))
         # Note: having NAs is OK for partial results, just informational
         if (n_na > 0 && verbose) {
             # Don't add to issues - just note it
         }
 
-        invalid_pvals <- sum(rrm_results[[pval_col]] < 0 | rrm_results[[pval_col]] >
+        invalid_pvals <- sum(sait_results[[pval_col]] < 0 | sait_results[[pval_col]] >
             1, na.rm = TRUE)
         if (invalid_pvals > 0) {
             issues <- c(issues, paste0("Invalid p-values in '", pval_col, "' (",
@@ -341,7 +341,7 @@
 
     if (verbose) {
         if (is_valid) {
-            message("[validate_rrm_results] RRM results structure valid")
+            message("[validate_sait_results] SAIT results structure valid")
             message("  Results: ", n_results, " genes")
             message("  Columns: ", paste(cols_present, collapse = ", "))
             if (has_pval)
@@ -349,7 +349,7 @@
             if (has_effect)
                 message("  Effect size: available")
         } else {
-            message("[validate_rrm_results] RRM results structure issues!")
+            message("[validate_sait_results] SAIT results structure issues!")
             for (issue in issues) message("  ", issue)
         }
     }
@@ -362,10 +362,10 @@
 #' Check All Data Compatibility for Plotting
 #'
 #' Comprehensive validation for plotting functions.
-#' Runs all alignment checks between SE, RRM results, and metadata.
+#' Runs all alignment checks between SE, SAIT results, and metadata.
 #'
 #' @param se \code{SummarizedExperiment}. Input data object.
-#' @param rrm_results \code{data.frame} or \code{NULL}. RRM interaction results.
+#' @param sait_results \code{data.frame} or \code{NULL}. SAIT interaction results.
 #' @param stop_on_error \code{logical}.  If TRUE,
 #'  stop execution on validation failure.
 #'   If FALSE, return issues and continue (default: TRUE).
@@ -378,14 +378,14 @@
 #' @details
 #' Runs in sequence:
 #' 1. SE dimension check
-#' 2. RRM results structure check
-#' 3. Gene name alignment between SE and RRM results
+#' 2. SAIT results structure check
+#' 3. Gene name alignment between SE and SAIT results
 #'
 #' If any check fails, provides consolidated error message.
 #'
 #' @noRd
 
-.validate_plot_data <- function(se, rrm_results = NULL, stop_on_error = TRUE, verbose = TRUE) {
+.validate_plot_data <- function(se, sait_results = NULL, stop_on_error = TRUE, verbose = TRUE) {
 
     all_issues <- list()
 
@@ -395,16 +395,16 @@
         all_issues$se_dimensions <- se_check$issues
     }
 
-    # 2. Check RRM results if provided
-    if (!is.null(rrm_results)) {
-        rrm_check <- .validate_rrm_results(rrm_results, verbose = verbose)
-        if (!rrm_check$is_valid) {
-            all_issues$rrm_results <- rrm_check$issues
+    # 2. Check SAIT results if provided
+    if (!is.null(sait_results)) {
+        sait_check <- .validate_sait_results(sait_results, verbose = verbose)
+        if (!sait_check$is_valid) {
+            all_issues$sait_results <- sait_check$issues
         }
 
         # 3. Check gene alignment
-        if (nrow(se) > 0 && nrow(rrm_results) > 0) {
-            gene_check <- .validate_gene_names(se = se, results = rrm_results, se_name = "SummarizedExperiment",
+        if (nrow(se) > 0 && nrow(sait_results) > 0) {
+            gene_check <- .validate_gene_names(se = se, results = sait_results, se_name = "SummarizedExperiment",
                 results_name = "LM Results", verbose = verbose)
             if (!gene_check$is_aligned) {
                 all_issues$gene_alignment <- gene_check$mismatch_details

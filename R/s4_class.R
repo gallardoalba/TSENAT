@@ -76,7 +76,7 @@ TSENATAnalysis <- function(se, config = list()) {
 
     # Create new object with all slots initialized
     new("TSENATAnalysis", se = se, config = if (length(config) > 0)
-        config else list(), diversity_results = list(), rrm_results = list(), jackknife_results = list(),
+        config else list(), diversity_results = list(), sait_results = list(), jackknife_results = list(),
         divergence_results = list(), plots = list(), metadata = list(created_at = Sys.time(),
             package_version = as.character(utils::packageVersion("TSENAT")), function_calls = character()))
 }

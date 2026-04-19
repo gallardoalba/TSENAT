@@ -350,7 +350,7 @@ Visualize q-curves for top genes:
 ```{r extended-fig-1-srh-q-curves, fig.width=12, fig.height=8, message=FALSE, out.width="98%", fig.pos="H", fig.cap="Extended Data Figure 1 | SRH rank test results for scale-dependent isoform switching."}
 # Plot top genes from SRH test (using all genes, not just significant ones)
 # This ensures the plot displays n_top genes regardless of significance threshold
-top_genes_plot <- plot_diversity_spectrum(analysis, rrm_res = srh_results_all, n_top = 4)
+top_genes_plot <- plot_diversity_spectrum(analysis, sait_res = srh_results_all, n_top = 4)
 print(top_genes_plot)
 ```
 
@@ -362,21 +362,21 @@ This section loads precomputed GAM results generated in the main vignette ([TSEN
 
 ```{r generalized-additive-model-analysis, message=FALSE, results='hide'}
 # Load precomputed LM analysis object from RDS file
-analysis_rrm <- readRDS(
-    system.file("extdata", "analysis_rrm.rds", package = "TSENAT")
+analysis_sait <- readRDS(
+    system.file("extdata", "analysis_sait.rds", package = "TSENAT")
 )
 
-# Extract GAM/RRM results for inspection using accessor function
-rrm_results <- results(analysis_rrm, type = "rrm", rankBy = "pvalue")
-print(rrm_results)
+# Extract GAM results for inspection using accessor function
+sait_results <- results(analysis_sait, type = "sait", rankBy = "pvalue")
+print(sait_results)
 
 ```
 
 ```{r gam-results-summary-table, message=FALSE, echo=FALSE}
 # Create summary statistics table with additional metrics
 # Handle NA and NaN values properly
-mean_effect <- mean(rrm_results$effect_size, na.rm = TRUE)
-median_effect <- median(rrm_results$effect_size, na.rm = TRUE)
+mean_effect <- mean(sait_results$effect_size, na.rm = TRUE)
+median_effect <- median(sait_results$effect_size, na.rm = TRUE)
 
 summary_stats <- data.frame(
   Metric = c(
@@ -390,22 +390,22 @@ summary_stats <- data.frame(
     "Model convergence rate"
   ),
   Value = c(
-    nrow(rrm_results),
-    sum(rrm_results$p_interaction < 0.05, na.rm = TRUE),
-    sum(rrm_results$p_interaction < 0.05 & rrm_results$adj_p_interaction < 0.05, na.rm = TRUE),
-    sum(is.na(rrm_results$p_interaction)),
+    nrow(sait_results),
+    sum(sait_results$p_interaction < 0.05, na.rm = TRUE),
+    sum(sait_results$p_interaction < 0.05 & sait_results$adj_p_interaction < 0.05, na.rm = TRUE),
+    sum(is.na(sait_results$p_interaction)),
     if (is.na(mean_effect) || !is.finite(mean_effect)) "Not available" else sprintf("%.1f%%", mean_effect * 100),
     if (is.na(median_effect) || !is.finite(median_effect)) "Not available" else sprintf("%.1f%%", median_effect * 100),
-    sum(rrm_results$p_interaction < 0.05 & rrm_results$effect_size > 0.30, na.rm = TRUE),
-    sprintf("%.1f%%", mean(rrm_results$model_converged, na.rm = TRUE) * 100)
+    sum(sait_results$p_interaction < 0.05 & sait_results$effect_size > 0.30, na.rm = TRUE),
+    sprintf("%.1f%%", mean(sait_results$model_converged, na.rm = TRUE) * 100)
   )
 )
 
 knitr::kable(summary_stats, caption = "GAM Results Summary", label = "tab:gam-summary-stats", align = c("l", "r"))
 
 # Show top genes with additional information
-if ("p_interaction" %in% colnames(rrm_results)) {
-  gam_sig <- rrm_results[!is.na(rrm_results$p_interaction), ]
+if ("p_interaction" %in% colnames(sait_results)) {
+  gam_sig <- sait_results[!is.na(sait_results$p_interaction), ]
   
   if (nrow(gam_sig) > 0) {
     gam_sig <- gam_sig[order(gam_sig$p_interaction), ]
@@ -472,7 +472,7 @@ if ("p_interaction" %in% colnames(rrm_results)) {
   }
 } else {
   cat("WARNING: p_interaction column not found in results\n")
-  cat("Available columns:", paste(colnames(rrm_results), collapse=", "), "\n")
+  cat("Available columns:", paste(colnames(sait_results), collapse=", "), "\n")
 }
 ```
 
@@ -485,7 +485,7 @@ A critical validation step is to compare whether the SRH rank-based test and GAM
 ```{r compare-srh-gam-methods, message=FALSE}
 # Compute concordance analysis using new two-object API
 analysis <- calculate_concordance(
-    analysis_rrm = analysis_rrm,
+    analysis_sait = analysis_sait,
     analysis_rank = analysis,
     verbose = TRUE
 )

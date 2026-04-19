@@ -260,17 +260,17 @@ setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"), funct
 
 #' Compare method concordance for differential analysis results
 #'
-#' Compares statistical results from two different methods (typically RRM/GAM for
+#' Compares statistical results from two different methods (typically SAIT/GAM for
 #' continuous data and Scheirer-Ray-Hare rank tests) to assess agreement and identify
 #' genes detected by one method but not the other.
 #'
 #' @aliases calculate_concordance,TSENATAnalysis-method
 #'
-#' @param analysis_rrm \code{TSENATAnalysis} object containing RRM/GAM analysis results
-#'   (from \code{calculate_rrm()}).
+#' @param analysis_sait \code{TSENATAnalysis} object containing SAIT/GAM analysis results
+#'   (from \code{calculate_sait()}).
 #' @param analysis_rank \code{TSENATAnalysis} object or NULL. If NULL, uses legacy 
-#'   single-object API with analysis_rrm containing both results. If provided, 
-#'   compares RRM results from analysis_rrm with rank-test results from analysis_rank.
+#'   single-object API with analysis_sait containing both results. If provided, 
+#'   compares SAIT results from analysis_sait with rank-test results from analysis_rank.
 #' @param verbose \code{logical}. Print progress messages (default: FALSE).
 #' @param output_file \code{character} or NULL. Optional file path to save results.
 #'   Supported formats: .rds (for S4 objects). Default: NULL (no file output).
@@ -283,7 +283,7 @@ setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"), funct
 #'     \item{spearman_rho}{Spearman correlation between adjusted p-values}
 #'     \item{high_confidence}{Genes with strong agreement}
 #'     \item{agreement_table}{Contingency table of significant/non-significant calls}
-#'     \item{rrm_method}{Method name used for RRM/GAM analysis}
+#'     \item{sait_method}{Method name used for SAIT/GAM analysis}
 #'     \item{rank_method}{Method name used for rank-based analysis}
 #'     \item{timestamp}{When concordance was computed}
 #'   }
@@ -297,10 +297,10 @@ setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"), funct
 #' - Spearman correlation of p-values (overall agreement trends)
 #'
 #' @usage
-#' calculate_concordance(analysis_rrm, analysis_rank = NULL, ...)
+#' calculate_concordance(analysis_sait, analysis_rank = NULL, ...)
 #'
 #' \S4method{calculate_concordance}{TSENATAnalysis}(
-#'   analysis_rrm,
+#'   analysis_sait,
 #'   analysis_rank = NULL,
 #'   verbose = FALSE,
 #'   output_file = NULL,
@@ -342,25 +342,25 @@ setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"), funct
 #' analysis <- filter_analysis(analysis, stringency = 'severe')
 #' analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
 #' analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
-#' analysis <- suppressWarnings(calculate_rrm(analysis, method = 'gam'))
+#' analysis <- suppressWarnings(calculate_sait(analysis, method = 'gam'))
 #' # Note: calculate_concordance requires results from both
 #' # calculate_srh and calculate_assumptions
 #'
 #' @aliases calculate_concordance
 #' @export
-setGeneric("calculate_concordance", function(analysis_rrm, analysis_rank = NULL, ...) {
+setGeneric("calculate_concordance", function(analysis_sait, analysis_rank = NULL, ...) {
     standardGeneric("calculate_concordance")
 })
 
 #' @rdname calculate_concordance
 
 #' Helper: Validate calculate_concordance inputs
-#' @param analysis_rrm TSENATAnalysis object
+#' @param analysis_sait TSENATAnalysis object
 #' @param analysis_rank TSENATAnalysis object or NULL
 #' @param ... Additional arguments
 #' @return NULL (stops on error)
 #' @noRd
-.validate_concordance_inputs <- function(analysis_rrm, analysis_rank, ...) {
+.validate_concordance_inputs <- function(analysis_sait, analysis_rank, ...) {
     # Check for unexpected arguments
     extra_args <- list(...)
     if (length(extra_args) > 0) {
@@ -369,9 +369,9 @@ setGeneric("calculate_concordance", function(analysis_rrm, analysis_rank = NULL,
              arg_names, call. = FALSE)
     }
     
-    # Validate analysis_rrm
-    if (!is(analysis_rrm, "TSENATAnalysis")) {
-        stop("'analysis_rrm' must be a TSENATAnalysis object", call. = FALSE)
+    # Validate analysis_sait
+    if (!is(analysis_sait, "TSENATAnalysis")) {
+        stop("'analysis_sait' must be a TSENATAnalysis object", call. = FALSE)
     }
     
     # Validate analysis_rank if provided
@@ -381,71 +381,71 @@ setGeneric("calculate_concordance", function(analysis_rrm, analysis_rank = NULL,
 }
 
 #' Helper: Handle two-object concordance API
-#' @param analysis_rrm TSENATAnalysis object
+#' @param analysis_sait TSENATAnalysis object
 #' @param analysis_rank TSENATAnalysis object
 #' @param verbose Logical; print progress
-#' @return List with concordance_result, rrm_method, rank_method
+#' @return List with concordance_result, sait_method, rank_method
 #' @noRd
-.concordance_two_objects <- function(analysis_rrm, analysis_rank, verbose) {
+.concordance_two_objects <- function(analysis_sait, analysis_rank, verbose) {
     if (verbose) {
         message("[calculate_concordance] Using two TSENATAnalysis objects")
     }
     
     concordance_result <- tryCatch({
-        .calculate_concordance(analysis_rrm = analysis_rrm, analysis_rank = analysis_rank)
+        .calculate_concordance(analysis_sait = analysis_sait, analysis_rank = analysis_rank)
     }, error = function(e) {
         stop("[calculate_concordance] ", conditionMessage(e), call. = FALSE)
     })
     
     list(
         concordance_result = concordance_result,
-        rrm_method = concordance_result$rrm_method,
+        sait_method = concordance_result$sait_method,
         rank_method = concordance_result$rank_method
     )
 }
 
 #' Helper: Handle legacy single-object concordance API
-#' @param analysis_rrm TSENATAnalysis object
+#' @param analysis_sait TSENATAnalysis object
 #' @param verbose Logical; print progress
-#' @return List with concordance_result, rrm_method, rank_method
+#' @return List with concordance_result, sait_method, rank_method
 #' @noRd
-.concordance_legacy_api <- function(analysis_rrm, verbose) {
+.concordance_legacy_api <- function(analysis_sait, verbose) {
     if (verbose) {
         message("[calculate_concordance] Using legacy single-object API")
     }
     
-    # Validate RRM results
-    if (is.null(analysis_rrm@rrm_results) || length(analysis_rrm@rrm_results) == 0) {
-        stop("No RRM results found in analysis_rrm@rrm_results. Run calculate_rrm() first.",
+    # Validate SAIT results
+    if (is.null(analysis_sait@sait_results) || length(analysis_sait@sait_results) == 0) {
+        stop("No SAIT results found in analysis_sait@sait_results. Run calculate_sait() first.",
             call. = FALSE)
     }
     
-    # Auto-detect RRM method
-    default_rrm_method <- names(analysis_rrm@rrm_results)[1]
-    if (!(default_rrm_method %in% names(analysis_rrm@rrm_results))) {
-        available_methods <- paste(names(analysis_rrm@rrm_results), collapse = ", ")
-        stop("RRM method '", default_rrm_method, "' not found. Available: ",
+    # Auto-detect SAIT method
+    default_sait_method <- names(analysis_sait@sait_results)[1]
+    if (!(default_sait_method %in% names(analysis_sait@sait_results))) {
+        available_methods <- paste(names(analysis_sait@sait_results), collapse = ", ")
+        stop("SAIT method '", default_sait_method, "' not found. Available: ",
             available_methods, call. = FALSE)
     }
     
     # Auto-detect rank method
     rank_method <- "rank_test"
-    if (is.null(analysis_rrm@rank_test_results) || 
-        !("rank_test" %in% names(analysis_rrm@rank_test_results))) {
-        if (is.null(analysis_rrm@rank_test_results) || 
-            length(analysis_rrm@rank_test_results) == 0) {
+    if (is.null(analysis_sait@rank_test_results) || 
+        !("rank_test" %in% names(analysis_sait@rank_test_results))) {
+        if (is.null(analysis_sait@rank_test_results) || 
+            length(analysis_sait@rank_test_results) == 0) {
             stop("No rank test results found. Run calculate_srh() first.",
                 call. = FALSE)
         }
-        rank_method <- names(analysis_rrm@rank_test_results)[1]
+        rank_method <- names(analysis_sait@rank_test_results)[1]
     }
     
     # Extract and validate results
-    rrm_results_final <- analysis_rrm@rrm_results[[default_rrm_method]]
-    rank_test_results <- analysis_rrm@rank_test_results[[rank_method]]
+    sait_results_final <- analysis_sait@sait_results[[default_sait_method]]
+    rank_test_results <- analysis_sait@rank_test_results[[rank_method]]
     
-    if (!is.data.frame(rrm_results_final)) {
-        stop("RRM results ('", default_rrm_method, "') must be a data.frame", 
+    if (!is.data.frame(sait_results_final)) {
+        stop("SAIT results ('", default_sait_method, "') must be a data.frame", 
              call. = FALSE)
     }
     
@@ -456,24 +456,24 @@ setGeneric("calculate_concordance", function(analysis_rrm, analysis_rank = NULL,
     
     if (verbose) {
         message("[calculate_concordance] Computing concordance between ", 
-                default_rrm_method, " and ", rank_method)
+                default_sait_method, " and ", rank_method)
     }
     
     # Create temporary analysis objects for the refactored function
-    temp_rrm <- analysis_rrm
-    temp_rrm@rrm_results <- list(temp = rrm_results_final)
-    temp_rank <- analysis_rrm
+    temp_sait <- analysis_sait
+    temp_sait@sait_results <- list(temp = sait_results_final)
+    temp_rank <- analysis_sait
     temp_rank@rank_test_results <- list(temp = rank_test_results)
     
     concordance_result <- tryCatch({
-        .calculate_concordance(analysis_rrm = temp_rrm, analysis_rank = temp_rank)
+        .calculate_concordance(analysis_sait = temp_sait, analysis_rank = temp_rank)
     }, error = function(e) {
         stop("[calculate_concordance] ", conditionMessage(e), call. = FALSE)
     })
     
     list(
         concordance_result = concordance_result,
-        rrm_method = default_rrm_method,
+        sait_method = default_sait_method,
         rank_method = rank_method
     )
 }
@@ -481,20 +481,20 @@ setGeneric("calculate_concordance", function(analysis_rrm, analysis_rank = NULL,
 #' Helper: Store concordance results in metadata
 #' @param analysis TSENATAnalysis object
 #' @param concordance_result List from .calculate_concordance()
-#' @param rrm_method Character; RRM method name
+#' @param sait_method Character; SAIT method name
 #' @param rank_method Character; rank method name
 #' @param verbose Logical; print progress
 #' @return TSENATAnalysis object with updated metadata
 #' @noRd
 .store_concordance_metadata <- function(analysis, concordance_result, 
-                                        rrm_method, rank_method, verbose) {
+                                        sait_method, rank_method, verbose) {
     # Store results in metadata
     analysis@metadata$method_concordance <- list(
         comparison_df = concordance_result$comparison_df,
         spearman_rho = concordance_result$spearman_rho,
         high_confidence = concordance_result$high_conf,
         agreement_table = concordance_result$agreement_table,
-        rrm_method = rrm_method,
+        sait_method = sait_method,
         rank_method = rank_method,
         timestamp = Sys.time()
     )
@@ -502,7 +502,7 @@ setGeneric("calculate_concordance", function(analysis_rrm, analysis_rank = NULL,
     # Track function call
     analysis@metadata$function_calls <- c(
         analysis@metadata$function_calls,
-        sprintf("calculate_concordance[%s vs %s]", rrm_method, rank_method)
+        sprintf("calculate_concordance[%s vs %s]", sait_method, rank_method)
     )
     
     if (verbose) {
@@ -546,32 +546,32 @@ setGeneric("calculate_concordance", function(analysis_rrm, analysis_rank = NULL,
     analysis
 }
 
-setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_rrm, 
+setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_sait, 
     analysis_rank = NULL, verbose = FALSE, output_file = NULL, ...) {
     
     # Validate inputs
-    .validate_concordance_inputs(analysis_rrm, analysis_rank, ...)
+    .validate_concordance_inputs(analysis_sait, analysis_rank, ...)
     
     # Route to appropriate API
     if (!is.null(analysis_rank)) {
-        result_list <- .concordance_two_objects(analysis_rrm, analysis_rank, verbose)
+        result_list <- .concordance_two_objects(analysis_sait, analysis_rank, verbose)
     } else {
-        result_list <- .concordance_legacy_api(analysis_rrm, verbose)
+        result_list <- .concordance_legacy_api(analysis_sait, verbose)
     }
     
     # Store metadata
-    analysis_rrm <- .store_concordance_metadata(
-        analysis_rrm, 
+    analysis_sait <- .store_concordance_metadata(
+        analysis_sait, 
         result_list$concordance_result,
-        result_list$rrm_method, 
+        result_list$sait_method, 
         result_list$rank_method,
         verbose
     )
     
     # Write output file if specified
-    analysis_rrm <- .write_concordance_file(analysis_rrm, output_file, verbose)
+    analysis_sait <- .write_concordance_file(analysis_sait, output_file, verbose)
     
-    analysis_rrm
+    analysis_sait
 })
 
 #' Plot Global Divergence q-Curve Across All Genes (S4 Wrapper)
@@ -593,7 +593,7 @@ setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_rrm,
 #' @param variability_metric \code{character}. Error bar type for global curve:
 #'   'iqr' (default) or 'sd'. Only used when gene = NULL.
 #' @param use_pvalue_ranking \code{logical}.  If TRUE,
-#'  uses RRM results to rank and
+#'  uses SAIT results to rank and
 #' display top n_genes by p-value significance. If FALSE (default), plots
 #' global
 #'   divergence curve when gene = NULL. Default is FALSE.
@@ -611,8 +611,8 @@ setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_rrm,
 #'
 #' @details
 #' This wrapper extracts the divergence SummarizedExperiment from
-#' \code{analysis@divergence_results} and optionally the RRM results from
-#' \code{analysis@rrm_results$rrm_interaction} to pass to the base function.
+#' \code{analysis@divergence_results} and optionally the SAIT results from
+#' \code{analysis@sait_results$sait_interaction} to pass to the base function.
 #'
 #' **Data Requirements:**
 #' \itemize{
@@ -626,7 +626,7 @@ setMethod("calculate_concordance", "TSENATAnalysis", function(analysis_rrm,
 #'         across all genes with variability bands
 #'   \item \strong{Gene-specific mode} (gene specified): Shows divergence
 #'         spectrum for a single named gene
-#'   \item \strong{Top genes mode} (gene = NULL, rrm_res provided): Shows
+#'   \item \strong{Top genes mode} (gene = NULL, sait_res provided): Shows
 #'         top n_genes by significance
 #' }
 #'
@@ -709,24 +709,24 @@ plot_divergence_spectrum <- function(analysis, gene = NULL, n_genes = 4, ncol = 
         stop("Divergence SummarizedExperiment is empty", call. = FALSE)
     }
 
-    # Extract RRM results for rrm_res parameter (optional) Only use for ranking
+    # Extract SAIT results for sait_res parameter (optional) Only use for ranking
     # if use_pvalue_ranking = TRUE
-    rrm_res <- NULL
-    if (use_pvalue_ranking && !is.null(analysis@rrm_results) && is.list(analysis@rrm_results)) {
-        if ("rrm_interaction" %in% names(analysis@rrm_results)) {
-            rrm_res <- analysis@rrm_results$rrm_interaction
-        } else if (length(analysis@rrm_results) > 0) {
-            rrm_res <- analysis@rrm_results[[1]]
+    sait_res <- NULL
+    if (use_pvalue_ranking && !is.null(analysis@sait_results) && is.list(analysis@sait_results)) {
+        if ("sait_interaction" %in% names(analysis@sait_results)) {
+            sait_res <- analysis@sait_results$sait_interaction
+        } else if (length(analysis@sait_results) > 0) {
+            sait_res <- analysis@sait_results[[1]]
         }
     }
 
-    # Validate RRM results if using multi-gene mode
-    if (is.null(gene) && use_pvalue_ranking && !is.null(rrm_res)) {
-        if (!is.data.frame(rrm_res) || nrow(rrm_res) == 0) {
+    # Validate SAIT results if using multi-gene mode
+    if (is.null(gene) && use_pvalue_ranking && !is.null(sait_res)) {
+        if (!is.data.frame(sait_res) || nrow(sait_res) == 0) {
             if (verbose) {
-                message("Note: Invalid RRM results. Plotting global curve without gene ranking.")
+                message("Note: Invalid SAIT results. Plotting global curve without gene ranking.")
             }
-            rrm_res <- NULL
+            sait_res <- NULL
         }
     }
 
@@ -739,7 +739,7 @@ plot_divergence_spectrum <- function(analysis, gene = NULL, n_genes = 4, ncol = 
     # Create the plot using base function
     p <- tryCatch({
         .plot_divergence_spectrum(divergence_results_se = divergence_results_se,
-            gene = gene, rrm_res = rrm_res, n_genes = n_genes, ncol = ncol, metric = metric,
+            gene = gene, sait_res = sait_res, n_genes = n_genes, ncol = ncol, metric = metric,
             variability_metric = variability_metric, ...)
     }, error = function(e) {
         if (verbose) {
@@ -902,18 +902,18 @@ setMethod("plot_concordance", "TSENATAnalysis", function(analysis, verbose = FAL
 #' S4 wrapper for  \code{. plot_expression()} that 
 #' extracts data directly from
 #' a TSENATAnalysis object. Automatically retrieves the SummarizedExperiment and
-#' RRM results for visualizing transcript abundance across conditions.
+#' SAIT results for visualizing transcript abundance across conditions.
 #'
 #' @param analysis \code{TSENATAnalysis}. An S4 object containing a processed
-#'   SummarizedExperiment and optional RRM interaction results.
+#'   SummarizedExperiment and optional SAIT interaction results.
 #'
 #' @param gene \code{character} or  \code{NULL}.  Gene identifier(s) to plot.
 #'  If a vector 
 #' of multiple genes is provided, plots all of them. If NULL, automatically
 #' selects
-#'   the top genes from RRM results based on \code{top_n} parameter (genes with 
+#'   the top genes from SAIT results based on \code{top_n} parameter (genes with 
 #' lowest p-values).
-#'   Default: NULL (auto-extract from rrm_results).
+#'   Default: NULL (auto-extract from sait_results).
 #'
 #' @param condition_col \code{character}. Column name in colData(se) specifying
 #'   group assignments (default: 'sample_type').
@@ -978,12 +978,12 @@ setMethod("plot_concordance", "TSENATAnalysis", function(analysis, verbose = FAL
 #' This wrapper extracts the following from \code{analysis}:
 #' \describe{
 #'   \item{SummarizedExperiment}{From \code{analysis@se} containing transcript counts}
-#'   \item{RRM results}{From \code{analysis@rrm_results$rrm_interaction} for 
+#'   \item{SAIT results}{From \code{analysis@sait_results$sait_interaction} for 
 #' gene selection}
 #' }
 #'
 #' If no gene is specified, the function automatically selects the top gene from
-#' the RRM results (lowest p-value). This simplifies visualization of genes with
+#' the SAIT results (lowest p-value). This simplifies visualization of genes with
 #' significant q x condition interaction effects.
 #'
 #' @examples
@@ -1023,7 +1023,7 @@ setMethod("plot_concordance", "TSENATAnalysis", function(analysis, verbose = FAL
 #'   q = c(0.5, 1.0, 1.5, 2.0, 2.5),
 #'   verbose = FALSE
 #' )
-#' analysis <- suppressWarnings(calculate_rrm(
+#' analysis <- suppressWarnings(calculate_sait(
 #'   analysis,
 #'   method = 'gam',
 #'   verbose = FALSE
@@ -1074,38 +1074,38 @@ plot_expression <- function(analysis, gene = NULL, condition_col = NULL, top_n =
     # =========================================================================
     # EXTRACT LM RESULTS (for gene ranking if not specified)
     # =========================================================================
-    rrm_results_df <- NULL
-    if (is.null(gene) && !is.null(analysis@rrm_results)) {
-        if ("rrm_interaction" %in% names(analysis@rrm_results)) {
+    sait_results_df <- NULL
+    if (is.null(gene) && !is.null(analysis@sait_results)) {
+        if ("sait_interaction" %in% names(analysis@sait_results)) {
             # Extract results data.frame from list structure
-            if (is.data.frame(analysis@rrm_results$rrm_interaction)) {
-                rrm_results_df <- analysis@rrm_results$rrm_interaction
-            } else if (is.list(analysis@rrm_results$rrm_interaction) && "results" %in%
-                names(analysis@rrm_results$rrm_interaction)) {
-                rrm_results_df <- analysis@rrm_results$rrm_interaction$results
+            if (is.data.frame(analysis@sait_results$sait_interaction)) {
+                sait_results_df <- analysis@sait_results$sait_interaction
+            } else if (is.list(analysis@sait_results$sait_interaction) && "results" %in%
+                names(analysis@sait_results$sait_interaction)) {
+                sait_results_df <- analysis@sait_results$sait_interaction$results
             }
 
-            # Auto-select top gene from RRM results
-            if (!is.null(rrm_results_df) && nrow(rrm_results_df) > 0) {
+            # Auto-select top gene from SAIT results
+            if (!is.null(sait_results_df) && nrow(sait_results_df) > 0) {
                 # Find p-value and gene columns
-                p_col <- auto_detect_column(colnames(rrm_results_df), analysis@config,
+                p_col <- auto_detect_column(colnames(sait_results_df), analysis@config,
                   "p_col", c("p_interaction", "padj", "pvalue", "p.value", "p_value"),
                   verbose = FALSE, param_name = "p_col")
 
-                gene_col <- auto_detect_column(colnames(rrm_results_df), analysis@config,
+                gene_col <- auto_detect_column(colnames(sait_results_df), analysis@config,
                   "gene_col", c("gene", "gene_name", "gene_id"), verbose = FALSE,
                   param_name = "gene_col")
 
-                if (!is.null(p_col) && !is.null(gene_col) && p_col %in% colnames(rrm_results_df) &&
-                  gene_col %in% colnames(rrm_results_df)) {
+                if (!is.null(p_col) && !is.null(gene_col) && p_col %in% colnames(sait_results_df) &&
+                  gene_col %in% colnames(sait_results_df)) {
                   # Get top genes (sorted by p-value, select top_n)
-                  top_indices <- order(rrm_results_df[[p_col]])[seq_len(min(top_n,
-                    nrow(rrm_results_df)))]
-                  gene <- as.character(rrm_results_df[top_indices, gene_col])
+                  top_indices <- order(sait_results_df[[p_col]])[seq_len(min(top_n,
+                    nrow(sait_results_df)))]
+                  gene <- as.character(sait_results_df[top_indices, gene_col])
 
                   if (verbose) {
                     message("[plot_expression] Auto-selected top ", length(gene),
-                      " genes from RRM results")
+                      " genes from SAIT results")
                     message("  ", paste(gene, collapse = ", "))
                   }
                 }
@@ -1114,7 +1114,7 @@ plot_expression <- function(analysis, gene = NULL, condition_col = NULL, top_n =
     }
 
     if (is.null(gene)) {
-        stop("[plot_expression] No gene specified and cannot auto-detect from RRM results. ",
+        stop("[plot_expression] No gene specified and cannot auto-detect from SAIT results. ",
             "Provide gene explicitly.", call. = FALSE)
     }
 
@@ -1131,7 +1131,7 @@ plot_expression <- function(analysis, gene = NULL, condition_col = NULL, top_n =
     }
 
     plot_file <- tryCatch({
-        .plot_expression(se = se, gene = gene, condition_col = condition_col, res = rrm_results_df,
+        .plot_expression(se = se, gene = gene, condition_col = condition_col, res = sait_results_df,
             top_n = top_n, output_file = output_file, metric = metric[1], use_tpm = use_tpm,
             width = width, height = height, fontsize = fontsize, cellwidth = cellwidth,
             cellheight = cellheight, layout_ncol = layout_ncol, ...)
@@ -1228,7 +1228,7 @@ plot_expression <- function(analysis, gene = NULL, condition_col = NULL, top_n =
 #'   q = c(0.5, 1.0, 1.5, 2.0, 2.5),
 #'   verbose = FALSE
 #' )
-#' analysis <- suppressWarnings(calculate_rrm(analysis, method = 'gam'))
+#' analysis <- suppressWarnings(calculate_sait(analysis, method = 'gam'))
 #' analysis <- calculate_effect_sizes(analysis)
 #' p_dist <- plot_divergence_distribution(analysis)
 #' # print(p_dist)
@@ -1313,10 +1313,10 @@ plot_divergence_distribution <- function(analysis, threshold = 0.1, output_file 
 #'   (default: 4). Genes are ranked by LM p-values if available, otherwise
 #'   by order of appearance in results.
 #'
-#' @param rrm_results \code{data.frame} or \code{NULL}. Optional RRM interaction
+#' @param sait_results \code{data.frame} or \code{NULL}. Optional SAIT interaction
 #' results for ranking genes (default: NULL). If NULL, attempts to extract
 #' from
-#'   \code{analysis@rrm_results$rrm_interaction}.
+#'   \code{analysis@sait_results$sait_interaction}.
 #'
 #' @param verbose \code{logical}. If \code{TRUE}, print diagnostic messages
 #'   during plot generation (default: FALSE).
@@ -1335,7 +1335,7 @@ plot_divergence_distribution <- function(analysis, threshold = 0.1, output_file 
 #'   \item{Jackknife results}{From \code{analysis@jackknife_results},  which 
 #' should
 #'         contain multi-q switching results keyed by q-value (e.g., 'q_1.00')}
-#'   \item{RRM results}{From \code{analysis@rrm_results$rrm_interaction} if not
+#'   \item{SAIT results}{From \code{analysis@sait_results$sait_interaction} if not
 #'         explicitly provided, for ranking genes by significance}
 #' }
 #'
@@ -1385,7 +1385,7 @@ plot_divergence_distribution <- function(analysis, threshold = 0.1, output_file 
 #'   analysis,
 #'   q = c(0.5, 1.0, 1.5, 2.0, 2.5)
 #' )
-#' analysis <- suppressWarnings(calculate_rrm(analysis, method = 'gam'))
+#' analysis <- suppressWarnings(calculate_sait(analysis, method = 'gam'))
 #' analysis <- calculate_jis(
 #'   analysis,
 #'   q = c(0.5, 1, 1.5),
@@ -1399,7 +1399,7 @@ plot_divergence_distribution <- function(analysis, threshold = 0.1, output_file 
 #'
 #' @export
 #' @importFrom methods is
-plot_jis_delta <- function(analysis, n_genes = 4, rrm_results = NULL, verbose = FALSE,
+plot_jis_delta <- function(analysis, n_genes = 4, sait_results = NULL, verbose = FALSE,
     output_file = NULL, ...) {
 
     # Load visualization dependencies (ggplot2, cowplot, pheatmap, etc.)
@@ -1443,27 +1443,27 @@ plot_jis_delta <- function(analysis, n_genes = 4, rrm_results = NULL, verbose = 
         message("  Q-values: ", paste(names(switching_results), collapse = ", "))
     }
 
-    # Extract RRM results if not provided
-    if (is.null(rrm_results)) {
+    # Extract SAIT results if not provided
+    if (is.null(sait_results)) {
         if (verbose)
-            message("Extracting RRM results from analysis@rrm_results...")
+            message("Extracting SAIT results from analysis@sait_results...")
 
-        rrm_results_list <- analysis@rrm_results
-        if (!is.null(rrm_results_list)) {
-            if (!is.null(rrm_results_list$rrm_interaction)) {
-                if (is.data.frame(rrm_results_list$rrm_interaction$results)) {
-                  rrm_results <- rrm_results_list$rrm_interaction$results
-                } else if (is.data.frame(rrm_results_list$rrm_interaction)) {
-                  rrm_results <- rrm_results_list$rrm_interaction
+        sait_results_list <- analysis@sait_results
+        if (!is.null(sait_results_list)) {
+            if (!is.null(sait_results_list$sait_interaction)) {
+                if (is.data.frame(sait_results_list$sait_interaction$results)) {
+                  sait_results <- sait_results_list$sait_interaction$results
+                } else if (is.data.frame(sait_results_list$sait_interaction)) {
+                  sait_results <- sait_results_list$sait_interaction
                 }
             }
 
-            if (!is.null(rrm_results)) {
+            if (!is.null(sait_results)) {
                 if (verbose)
-                  message("  [OK] Extracted RRM results with ", nrow(rrm_results),
+                  message("  [OK] Extracted SAIT results with ", nrow(sait_results),
                     " genes")
             } else if (verbose) {
-                message("  RRM results not found; genes will be ranked by appearance")
+                message("  SAIT results not found; genes will be ranked by appearance")
             }
         }
     }
@@ -1474,7 +1474,7 @@ plot_jis_delta <- function(analysis, n_genes = 4, rrm_results = NULL, verbose = 
     # Call base function with extracted parameters Note: output_file parameter
     # can be used to save heatmap as PNG file
     result <- .plot_jis_delta(switching_results = switching_results, n_genes = n_genes,
-        rrm_results = rrm_results, verbose = verbose, output_file = output_file, ...)
+        sait_results = sait_results, verbose = verbose, output_file = output_file, ...)
 
     if (verbose) {
         message("[OK] Heatmap plot generated successfully")
@@ -1488,7 +1488,7 @@ plot_jis_delta <- function(analysis, n_genes = 4, rrm_results = NULL, verbose = 
 #' S4 wrapper that accepts a TSENATAnalysis object and generates GAM q-curve
 #' plots
 #' @param analysis \code{TSENATAnalysis} object with  diversity and 
-#' RRM interaction results.
+#' SAIT interaction results.
 #' @param n_top \code{integer}.
 #'  Number of top genes (by adjusted p-value) to plot 
 #'   (default: 6). Only used if genes = NULL.
@@ -1504,7 +1504,7 @@ plot_jis_delta <- function(analysis, n_genes = 4, rrm_results = NULL, verbose = 
 #'
 #' @param sig_alpha \code{numeric}.  Significance threshold for 
 #' adjusted p-values 
-#'   (default: 0.05). Only used if genes = NULL; filters rrm_res to significant 
+#'   (default: 0.05). Only used if genes = NULL; filters sait_res to significant 
 #'   genes before selecting top n.
 #'
 #' @param assay_name \code{character}. Name of the assay in se to extract 
@@ -1532,9 +1532,9 @@ plot_jis_delta <- function(analysis, n_genes = 4, rrm_results = NULL, verbose = 
 #' @details
 #' This wrapper automatically:
 #' 1. Extracts SummarizedExperiment from \code{@se} slot
-#' 2. Extracts RRM results from \code{@rrm_results$rrm_interaction} slot
+#' 2. Extracts SAIT results from \code{@sait_results$sait_interaction} slot
 #' 3. Detects condition_col from \code{@config} or uses default
-#' 4. Calls \code{.plot_rrm()} with extracted parameters
+#' 4. Calls \code{.plot_sait()} with extracted parameters
 #'
 #' **Parameter Resolution (condition_col):**
 #' \enumerate{
@@ -1545,7 +1545,7 @@ plot_jis_delta <- function(analysis, n_genes = 4, rrm_results = NULL, verbose = 
 #' }
 #'
 #' @seealso
-#' \code{\link{calculate_rrm}} for 
+#' \code{\link{calculate_sait}} for 
 #' running LM analysis on TSENATAnalysis.
 #'
 #' @examples
@@ -1582,13 +1582,13 @@ plot_jis_delta <- function(analysis, n_genes = 4, rrm_results = NULL, verbose = 
 #'
 #' analysis <- filter_analysis(analysis, stringency = 'severe')
 #' analysis <- calculate_diversity(analysis, q = seq(0.2, 2, by = 0.4))
-#' analysis <- suppressWarnings(calculate_rrm(analysis, method = 'gam'))
+#' analysis <- suppressWarnings(calculate_sait(analysis, method = 'gam'))
 #' 
-#' p_gam <- plot_rrm(analysis, n_top = 2, sig_alpha = 0.15)
+#' p_gam <- plot_sait(analysis, n_top = 2, sig_alpha = 0.15)
 #' # print(p_gam)
 #'
 #' @export
-plot_rrm <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL, sig_alpha = 0.05,
+plot_sait <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL, sig_alpha = 0.05,
     assay_name = "diversity", output_file = NULL, width = 12, height = NULL, verbose = FALSE,
     ...) {
     # Load visualization dependencies (ggplot2, cowplot, mgcv, etc.)
@@ -1601,21 +1601,21 @@ plot_rrm <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL, si
         stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }
 
-    # Check that RRM results exist
-    if (is.null(analysis@rrm_results) || is.null(analysis@rrm_results$rrm_interaction)) {
-        stop("[plot_rrm] No RRM interaction results found in @rrm_results$rrm_interaction. ",
-            "Run calculate_rrm() first.", call. = FALSE)
+    # Check that SAIT results exist
+    if (is.null(analysis@sait_results) || is.null(analysis@sait_results$sait_interaction)) {
+        stop("[plot_sait] No SAIT interaction results found in @sait_results$sait_interaction. ",
+            "Run calculate_sait() first.", call. = FALSE)
     }
 
-    rrm_res <- analysis@rrm_results$rrm_interaction
+    sait_res <- analysis@sait_results$sait_interaction
 
-    if (!is.data.frame(rrm_res)) {
-        stop("[plot_rrm] @rrm_results$rrm_interaction must be a data.frame", call. = FALSE)
+    if (!is.data.frame(sait_res)) {
+        stop("[plot_sait] @sait_results$sait_interaction must be a data.frame", call. = FALSE)
     }
 
     # Check that diversity results exist (needed for SE reconstruction)
     if (length(analysis@diversity_results) == 0) {
-        stop("[plot_rrm] No diversity results found in @diversity_results. ", "Run calculate_diversity() first.",
+        stop("[plot_sait] No diversity results found in @diversity_results. ", "Run calculate_diversity() first.",
             call. = FALSE)
     }
 
@@ -1631,13 +1631,13 @@ plot_rrm <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL, si
 
     # Validate that condition_col exists in colData
     if (!(condition_col %in% colnames(colData(analysis@se)))) {
-        stop("[plot_rrm] Specified condition_col='", condition_col, "' not found in colData. Available columns: ",
+        stop("[plot_sait] Specified condition_col='", condition_col, "' not found in colData. Available columns: ",
             paste(colnames(colData(analysis@se)), collapse = ", "), call. = FALSE)
     }
 
     # =========================================================================
     # RECONSTRUCT COMBINED DIVERSITY SE FOR PLOTTING (Same approach as in
-    # calculate_rrm)
+    # calculate_sait)
     # =========================================================================
     # Extract q-values from diversity_results keys
     q_keys <- names(analysis@diversity_results)
@@ -1648,7 +1648,7 @@ plot_rrm <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL, si
         .calculate_diversity(x = analysis@se, q = sort(q_computed), norm = TRUE,
             verbose = verbose, bootstrap = FALSE)
     }, error = function(e) {
-        stop("[plot_rrm] Failed to reconstruct diversity SE:\n", conditionMessage(e),
+        stop("[plot_sait] Failed to reconstruct diversity SE:\n", conditionMessage(e),
             call. = FALSE)
     })
 
@@ -1656,8 +1656,8 @@ plot_rrm <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL, si
     # EXTRACT model_data FROM STORED RESULTS
     # =========================================================================
     model_data <- NULL
-    if ("rrm_interaction_model_data" %in% names(analysis@rrm_results)) {
-        model_data <- analysis@rrm_results$rrm_interaction_model_data
+    if ("sait_interaction_model_data" %in% names(analysis@sait_results)) {
+        model_data <- analysis@sait_results$sait_interaction_model_data
     }
 
     # =========================================================================
@@ -1669,12 +1669,12 @@ plot_rrm <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL, si
             n_genes_plot <- length(genes)
         } else {
             # Count significant genes
-            if ("adj_p_interaction" %in% colnames(rrm_res)) {
-                sig_genes <- rrm_res$adj_p_interaction <= sig_alpha
-            } else if ("p_interaction" %in% colnames(rrm_res)) {
-                sig_genes <- rrm_res$p_interaction <= sig_alpha
+            if ("adj_p_interaction" %in% colnames(sait_res)) {
+                sig_genes <- sait_res$adj_p_interaction <= sig_alpha
+            } else if ("p_interaction" %in% colnames(sait_res)) {
+                sig_genes <- sait_res$p_interaction <= sig_alpha
             } else {
-                sig_genes <- rep(TRUE, nrow(rrm_res))
+                sig_genes <- rep(TRUE, nrow(sait_res))
             }
             n_genes_plot <- min(sum(sig_genes), n_top)
         }
@@ -1684,15 +1684,15 @@ plot_rrm <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL, si
     }
 
     # =========================================================================
-    # CALL plot_rrm_interaction_gam WITH RECONSTRUCTED DIVERSITY SE
+    # CALL plot_sait_interaction_gam WITH RECONSTRUCTED DIVERSITY SE
     # =========================================================================
     result <- tryCatch({
-        .plot_rrm(se = diversity_combined, rrm_res = rrm_res, condition_col = condition_col,
+        .plot_sait(se = diversity_combined, sait_res = sait_res, condition_col = condition_col,
             n_top = n_top, genes = genes, sig_alpha = sig_alpha, assay_name = assay_name,
             model_data = model_data, output_file = output_file, width = width, height = height,
             ...)
     }, error = function(e) {
-        stop("[plot_rrm]", conditionMessage(e), call. = FALSE)
+        stop("[plot_sait]", conditionMessage(e), call. = FALSE)
     })
 
     # =========================================================================
@@ -1700,14 +1700,14 @@ plot_rrm <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL, si
     # =========================================================================
     # Track that plotting occurred
     if (is.list(analysis@metadata)) {
-        analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("plot_rrm[n_top=",
+        analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("plot_sait[n_top=",
             n_top, ", condition_col=", condition_col, "]"))
     }
 
     # Save plot to file if requested (only if result is a valid ggplot)
     if (!is.null(output_file) && inherits(result, "ggplot")) {
         save_analysis_output(result, output_file, object = analysis, verbose = verbose,
-            func_name = "plot_rrm", width = width, height = height)
+            func_name = "plot_sait", width = width, height = height)
     }
 
     # Return the plot object directly (not the analysis object)
@@ -2088,7 +2088,7 @@ calculate_m_estimator <- function(analysis, condition_col = NULL, loss_type = "h
 #' calculations.
 #'
 #' **Important:** Filtering should be performed BEFORE computing diversity,
-#' divergence, or RRM interaction results. If called after analysis results
+#' divergence, or SAIT interaction results. If called after analysis results
 #' have been computed, those results will be based on unfiltered data and
 #' may not align with the filtered SE dimensions.
 #'
@@ -2265,7 +2265,7 @@ filter_analysis <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min_sa
 #'   \item{@config}{Analysis configuration (empty list or user-provided)}
 #'   \item{@diversity_results}{Empty list (populated by calculate_diversity())}
 #'   \item{@divergence_results}{Empty list (populated by calculate_divergence())}
-#'   \item{@rrm_results}{Empty list (populated by calculate_rrm())}
+#'   \item{@sait_results}{Empty list (populated by calculate_sait())}
 #'   \item{@jackknife_results}{Empty list (populated by jackknife functions)}
 #'   \item{@plots}{Empty list (populated by plotting functions)}
 #'   \item{@metadata}{Metadata with package version and creation timestamp}
@@ -2511,7 +2511,7 @@ build_analysis <- function(readcounts = NULL, salmon_dir = NULL, tx2gene, assay_
         SummarizedExperiment::colData(se)$sample_id <- colnames(se)
     }
 
-    # Store metadata in config for later use (e.g., in calculate_rrm)
+    # Store metadata in config for later use (e.g., in calculate_sait)
     if (!is.null(metadata)) {
         config$metadata <- metadata
     }

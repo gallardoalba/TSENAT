@@ -99,7 +99,7 @@ Default:  FALSE.}
 \item{...}{Additional arguments passed to the base \code{.calculate_srh()} function.}
 }
 \value{
-Modified TSENATAnalysis with interaction results in @rrm_results.
+Modified TSENATAnalysis with interaction results in @sait_results.
 }
 \description{
 Wrapper around [.calculate_srh()] that manages TSENATAnalysis object.

@@ -724,7 +724,7 @@ print.tsenat_jackknife_list <- function(x, ...) {
 #' patterns
 #' across multiple q-values from multi-q jackknife analysis results.
 #'
-#' @param rrm_res Data frame of RRM interaction results (from \code{calculate_rrm_interaction})
+#' @param sait_res Data frame of SAIT interaction results (from \code{calculate_sait_interaction})
 #' @param multi_q_results List of multi-q jackknife switching results (from \code{jackknife_isoform_switching}).
 #' Names of list elements must be q-keys in format 'q_X_XX' (e.g., 'q_0_01',
 #' 'q_0_50');
@@ -747,7 +747,7 @@ print.tsenat_jackknife_list <- function(x, ...) {
 #' @details
 #' This function encapsulates the workflow for preparing delta influence
 #' comparison tables:
-#' 1. Creates a summary table from rrm_res and sorts by adjusted p-value
+#' 1. Creates a summary table from sait_res and sorts by adjusted p-value
 #' 2. Extracts gene ID-to-name mappings from multi_q_results
 #' 3. Matches top genes between summary_df and multi_q_results
 #' 4. Builds comparison tables showing delta_influence values across q-values
@@ -757,12 +757,12 @@ print.tsenat_jackknife_list <- function(x, ...) {
 
 #' @noRd
 
-.prepare_gene_switching_tables <- function(rrm_res, multi_q_results, n_top_genes = NULL,
+.prepare_gene_switching_tables <- function(sait_res, multi_q_results, n_top_genes = NULL,
     n_transcripts_per_gene = 10, verbose = FALSE) {
 
     # Input validation
-    if (!is.data.frame(rrm_res)) {
-        stop("rrm_res must be a data frame")
+    if (!is.data.frame(sait_res)) {
+        stop("sait_res must be a data frame")
     }
     if (!is.list(multi_q_results)) {
         stop("multi_q_results must be a list")
@@ -795,9 +795,9 @@ print.tsenat_jackknife_list <- function(x, ...) {
             q_vector), collapse = ", ")))
     }
 
-    # Create summary_df from rrm_res
-    summary_df <- data.frame(gene = rrm_res$gene, gene_name = rrm_res$gene_name, p_interaction = rrm_res$p_interaction,
-        adj_p_interaction = rrm_res$adj_p_interaction, stringsAsFactors = FALSE)
+    # Create summary_df from sait_res
+    summary_df <- data.frame(gene = sait_res$gene, gene_name = sait_res$gene_name, p_interaction = sait_res$p_interaction,
+        adj_p_interaction = sait_res$adj_p_interaction, stringsAsFactors = FALSE)
 
     # Sort by adjusted p-value (most significant first)
     summary_df <- summary_df[order(summary_df$adj_p_interaction, na.last = TRUE),

@@ -7,20 +7,20 @@
         n_fallback <- sum(fallback_mask)
 
         # Report model convergence and fit quality
-        message(sprintf("[calculate_rrm_interaction] Analyzed %d genes | Primary fits: %d | Alternative method: %d",
+        message(sprintf("[calculate_sait_interaction] Analyzed %d genes | Primary fits: %d | Alternative method: %d",
             total_genes, total_genes - n_fallback, n_fallback))
 
         if (n_fallback > 0) {
             tab <- table(res$fit_method[fallback_mask])
             tab_str <- paste(sprintf("%s=%d", names(tab), as.integer(tab)), collapse = ", ")
-            message(sprintf("[calculate_rrm_interaction]   Methods: %s", tab_str))
+            message(sprintf("[calculate_sait_interaction]   Methods: %s", tab_str))
         }
 
         # Report numerical/convergence issues
         if ("singular" %in% colnames(res)) {
             n_sing <- sum(as.logical(res$singular), na.rm = TRUE)
             if (n_sing > 0) {
-                message(sprintf("[calculate_rrm_interaction]   Singular fits (collinear effects): %d genes",
+                message(sprintf("[calculate_sait_interaction]   Singular fits (collinear effects): %d genes",
                   n_sing))
             }
         }
@@ -29,7 +29,7 @@
         if ("f_statistic" %in% colnames(res)) {
             f_vals <- res$f_statistic[!is.na(res$f_statistic)]
             if (length(f_vals) > 0) {
-                message(sprintf("[calculate_rrm_interaction] q x condition interaction strength: F-stat range [%.2f, %.2f]",
+                message(sprintf("[calculate_sait_interaction] q x condition interaction strength: F-stat range [%.2f, %.2f]",
                   min(f_vals), max(f_vals)))
             }
         }
@@ -37,7 +37,7 @@
         # Report significance summary
         if ("adj_p_interaction" %in% colnames(res)) {
             sig_p <- sum(res$adj_p_interaction < 0.05, na.rm = TRUE)
-            message(sprintf("[calculate_rrm_interaction] Significant results (adj.p < 0.05): %d/%d genes (%.1f%%)",
+            message(sprintf("[calculate_sait_interaction] Significant results (adj.p < 0.05): %d/%d genes (%.1f%%)",
                 sig_p, total_genes, 100 * sig_p/total_genes))
         }
     }
@@ -823,7 +823,7 @@ if (getOption("TSENAT.memoization", TRUE)) {
 #' Internal: Clear memoization cache
 #' @description Invalidates cached results for new dataset processing
 #' @noRd
-.clear_rrm_helper_cache <- function() {
+.clear_sait_helper_cache <- function() {
     if (getOption("TSENAT.memoization", TRUE)) {
         forget(.adaptive_spline_knots_memo)
         forget(.ar1_design_effect_memo)
@@ -1009,15 +1009,15 @@ if (getOption("TSENAT.memoization", TRUE)) {
 
 
 
-# Helper functions for .calculate_rrm() These internal functions decompose the
+# Helper functions for .calculate_sait() These internal functions decompose the
 # main function logic into focused, testable components that each handle a
 # single responsibility.
 
-#' @title Validate Input Parameters for RRM Interaction Testing
+#' @title Validate Input Parameters for SAIT Interaction Testing
 #'
 #' @description
 #' Internal helper that consolidates parameter validation for
-#' \code{.calculate_rrm()}. Checks argument types, values,
+#' \code{.calculate_sait()}. Checks argument types, values,
 #' and inter-dependencies to ensure valid model fitting.
 #'
 #' @param method Character; modeling method (matched from user input)
@@ -1046,7 +1046,7 @@ if (getOption("TSENAT.memoization", TRUE)) {
 #'
 
 #' @noRd
-.validate_rrm_interaction_input <- function(method, pvalue, corstr, regularization,
+.validate_sait_interaction_input <- function(method, pvalue, corstr, regularization,
     multicorr, pcorr, storey, wy_randomizations, paired, subject_col, se, verbose) {
     # Validate storey parameter
     if (!is.logical(storey)) {
@@ -1071,12 +1071,12 @@ if (getOption("TSENAT.memoization", TRUE)) {
         if ("paired_samples" %in% cd_colnames) {
             subject_col <- "paired_samples"
             if (verbose) {
-                message("[calculate_rrm] paired=TRUE detected; ", "auto-using subject_col='paired_samples'")
+                message("[calculate_sait] paired=TRUE detected; ", "auto-using subject_col='paired_samples'")
             }
         } else if ("sample_base" %in% cd_colnames) {
             subject_col <- "sample_base"
             if (verbose) {
-                message("[calculate_rrm] paired=TRUE detected; ", "auto-using subject_col='sample_base'")
+                message("[calculate_sait] paired=TRUE detected; ", "auto-using subject_col='sample_base'")
             }
         } else {
             # Error if paired=TRUE but no recognized pairing column found
@@ -1144,11 +1144,11 @@ if (getOption("TSENAT.memoization", TRUE)) {
         group_vec <- unname(st[sample_q])
     } else {
         stop("No sample grouping found: please supply `condition_col` ", "or map sample types into `colData(se)` before calling ",
-            ".calculate_rrm().", call. = FALSE)
+            ".calculate_sait().", call. = FALSE)
     }
 
     if (verbose) {
-        message("[calculate_rrm_interaction] parsed samples and groups: ", length(unique(sample_names)),
+        message("[calculate_sait_interaction] parsed samples and groups: ", length(unique(sample_names)),
             " samples, ", length(unique(q_vals)), " q-values")
     }
 
@@ -1250,7 +1250,7 @@ if (getOption("TSENAT.memoization", TRUE)) {
             # Column count mismatch
             msg <- sprintf("Column mismatch detected: %d results with varying columns [%s]",
                 length(all_results), paste(unique_col_counts, collapse = ", "))
-            warning("[calculate_rrm_interaction] rbind failed with: ", conditionMessage(res),
+            warning("[calculate_sait_interaction] rbind failed with: ", conditionMessage(res),
                 "\n[", msg, "]\n[Attempting recovery: ensuring all results have same columns]",
                 call. = FALSE)
 
@@ -1275,7 +1275,7 @@ if (getOption("TSENAT.memoization", TRUE)) {
 
         # If rbind fails due to factor level issues, try converting factor
         # columns to character
-        warning("[calculate_rrm_interaction] rbind failed with: ", conditionMessage(res),
+        warning("[calculate_sait_interaction] rbind failed with: ", conditionMessage(res),
             "\n[Attempting recovery: converting factors to character]", call. = FALSE)
 
         # Convert all factor columns to character to allow rbind
@@ -1287,20 +1287,20 @@ if (getOption("TSENAT.memoization", TRUE)) {
 
         res <- try(do.call(rbind, all_results_char), silent = FALSE)
         if (inherits(res, "try-error")) {
-            stop("[calculate_rrm_interaction] Could not combine results even after ",
+            stop("[calculate_sait_interaction] Could not combine results even after ",
                 "factor conversion. Error: ", conditionMessage(res), call. = FALSE)
         }
     }
 
     # VALIDATION: Ensure critical columns exist after rbind
     if (nrow(res) == 0) {
-        stop("[calculate_rrm_interaction] No genes analyzed (all filtered out)", call. = FALSE)
+        stop("[calculate_sait_interaction] No genes analyzed (all filtered out)", call. = FALSE)
     }
 
     critical_cols <- c("p_interaction", "gene")
     missing_cols <- setdiff(critical_cols, colnames(res))
     if (length(missing_cols) > 0) {
-        stop("[calculate_rrm_interaction] CRITICAL: Missing columns in ", "results for ",
+        stop("[calculate_sait_interaction] CRITICAL: Missing columns in ", "results for ",
             method, " method: ", paste(missing_cols, collapse = ", "), "\nAvailable columns: ",
             paste(colnames(res), collapse = ", "), call. = FALSE)
     }
@@ -1322,7 +1322,7 @@ if (getOption("TSENAT.memoization", TRUE)) {
     if (!"ci_weighted" %in% colnames(res)) {
         res$ci_weighted <- NA  # Fallback
         if (verbose) {
-            warning("[calculate_rrm_interaction] ci_weighted column was ", "missing; added as NAs. This suggests a method helper ",
+            warning("[calculate_sait_interaction] ci_weighted column was ", "missing; added as NAs. This suggests a method helper ",
                 "did not properly set ci_weighted.", call. = FALSE)
         }
     }
@@ -1372,11 +1372,11 @@ if (getOption("TSENAT.memoization", TRUE)) {
     if (multicorr == "hochberg") {
         adj_p <- .hochberg_stepup(p_values)
         if (verbose) {
-            message("[calculate_rrm_interaction] Applied Hochberg stepup ", "adjustment for multi-q correlation")
+            message("[calculate_sait_interaction] Applied Hochberg stepup ", "adjustment for multi-q correlation")
         }
     } else if (multicorr == "westfall-young") {
         if (verbose) {
-            message("[calculate_rrm_interaction] Computing true ", "Westfall-Young via ",
+            message("[calculate_sait_interaction] Computing true ", "Westfall-Young via ",
                 wy_randomizations, " permutations (may be slow)...")
         }
 
@@ -1418,12 +1418,12 @@ if (getOption("TSENAT.memoization", TRUE)) {
         }, FUN.VALUE = numeric(1))
 
         if (verbose) {
-            message("[calculate_rrm_interaction] Applied true ", "Westfall-Young (permutation) adjustment")
+            message("[calculate_sait_interaction] Applied true ", "Westfall-Young (permutation) adjustment")
         }
     } else if (multicorr == "benjamini-yekutieli") {
         adj_p <- .benjamini_yekutieli(p_values)
         if (verbose) {
-            message("[calculate_rrm_interaction] Applied ", "Benjamini-Yekutieli adjustment for dependent tests")
+            message("[calculate_sait_interaction] Applied ", "Benjamini-Yekutieli adjustment for dependent tests")
         }
     } else {
         stop("Unknown multicorr method: ", multicorr, call. = FALSE)
@@ -1435,17 +1435,17 @@ if (getOption("TSENAT.memoization", TRUE)) {
             tryCatch({
                 adj_p <- .compute_storey_qvalues(adj_p)
                 if (verbose) {
-                  message("[calculate_rrm_interaction] Applied Storey ", "adaptive FDR pi0 correction to ",
+                  message("[calculate_sait_interaction] Applied Storey ", "adaptive FDR pi0 correction to ",
                     multicorr, " p-values")
                 }
             }, error = function(e) {
                 if (verbose) {
-                  message("[calculate_rrm_interaction] Storey adjustment ", "failed: ",
+                  message("[calculate_sait_interaction] Storey adjustment ", "failed: ",
                     conditionMessage(e))
                 }
             })
         } else if (verbose) {
-            message("[calculate_rrm_interaction] fdrtool package not ", "available for Storey (install with: ",
+            message("[calculate_sait_interaction] fdrtool package not ", "available for Storey (install with: ",
                 "install.packages('fdrtool'))")
         }
     }
@@ -1479,7 +1479,7 @@ if (getOption("TSENAT.memoization", TRUE)) {
     }
 
     if (verbose) {
-        message("[calculate_rrm_interaction] Gene annotations: ", paste(colnames(rd),
+        message("[calculate_sait_interaction] Gene annotations: ", paste(colnames(rd),
             collapse = ", "))
     }
 
@@ -1518,11 +1518,11 @@ if (getOption("TSENAT.memoization", TRUE)) {
         }
 
         if (verbose && n_unmapped > 0) {
-            message("[calculate_rrm_interaction] Gene mapping: ", n_mapped, " mapped, ",
+            message("[calculate_sait_interaction] Gene mapping: ", n_mapped, " mapped, ",
                 n_unmapped, " used ID as fallback")
         }
     } else if (verbose) {
-        message("[calculate_rrm_interaction] gene_name column not found ", "in rowData - using gene ID as fallback")
+        message("[calculate_sait_interaction] gene_name column not found ", "in rowData - using gene ID as fallback")
     }
 
     # Ensure gene_name column is always present and populated

@@ -126,7 +126,7 @@
     }
 }
 
-# Helper for FPCA-style preprocessing used in calculate_rrm_interaction fpca
+# Helper for FPCA-style preprocessing used in calculate_sait_interaction fpca
 # method.  Builds curve_mat, filters good rows, imputes column means, and
 # returns list(mat_sub, used_samples)
 .prepare_fpca_matrix <- function(mat, sample_names, q_vals, min_obs = 5) {

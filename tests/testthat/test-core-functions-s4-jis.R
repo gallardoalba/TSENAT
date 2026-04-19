@@ -192,61 +192,61 @@ test_that(".detect_jis_columns validates that provided columns exist", {
 })
 
 # ============================================================================
-# TEST SUITE 3: .extract_rrm_results()
+# TEST SUITE 3: .extract_sait_results()
 # ============================================================================
 
-test_that(".extract_rrm_results uses provided RRM results", {
+test_that(".extract_sait_results uses provided SAIT results", {
   analysis <- make_test_analysis_jis()
-  rrm_provided <- data.frame(gene_id = "Gene1", p_value = 0.01)
+  sait_provided <- data.frame(gene_id = "Gene1", p_value = 0.01)
   
-  result <- TSENAT:::.extract_rrm_results(
+  result <- TSENAT:::.extract_sait_results(
     analysis, 
-    rrm_results = rrm_provided,
+    sait_results = sait_provided,
     verbose = FALSE
   )
   
-  expect_identical(result, rrm_provided)
+  expect_identical(result, sait_provided)
 })
 
-test_that(".extract_rrm_results extracts from analysis@rrm_results when NULL provided", {
+test_that(".extract_sait_results extracts from analysis@sait_results when NULL provided", {
   analysis <- make_test_analysis_jis()
-  rrm_data <- data.frame(gene_id = "Gene1", p_value = 0.01)
-  analysis@rrm_results <- list(rrm_interaction = rrm_data)
+  sait_data <- data.frame(gene_id = "Gene1", p_value = 0.01)
+  analysis@sait_results <- list(sait_interaction = sait_data)
   
-  result <- TSENAT:::.extract_rrm_results(
+  result <- TSENAT:::.extract_sait_results(
     analysis,
-    rrm_results = NULL,
+    sait_results = NULL,
     verbose = FALSE
   )
   
-  expect_identical(result, rrm_data)
+  expect_identical(result, sait_data)
 })
 
-test_that(".extract_rrm_results returns NULL when no RRM results available", {
+test_that(".extract_sait_results returns NULL when no SAIT results available", {
   analysis <- make_test_analysis_jis()
   
-  result <- TSENAT:::.extract_rrm_results(
+  result <- TSENAT:::.extract_sait_results(
     analysis,
-    rrm_results = NULL,
+    sait_results = NULL,
     verbose = FALSE
   )
   
   expect_null(result)
 })
 
-test_that(".extract_rrm_results prefers provided results over analysis slot", {
+test_that(".extract_sait_results prefers provided results over analysis slot", {
   analysis <- make_test_analysis_jis()
-  rrm_in_analysis <- data.frame(gene_id = "Gene1", p_value = 0.01)
-  rrm_provided <- data.frame(gene_id = "Gene2", p_value = 0.02)
-  analysis@rrm_results <- list(rrm_interaction = rrm_in_analysis)
+  sait_in_analysis <- data.frame(gene_id = "Gene1", p_value = 0.01)
+  sait_provided <- data.frame(gene_id = "Gene2", p_value = 0.02)
+  analysis@sait_results <- list(sait_interaction = sait_in_analysis)
   
-  result <- TSENAT:::.extract_rrm_results(
+  result <- TSENAT:::.extract_sait_results(
     analysis,
-    rrm_results = rrm_provided,
+    sait_results = sait_provided,
     verbose = FALSE
   )
   
-  expect_identical(result, rrm_provided)
+  expect_identical(result, sait_provided)
 })
 
 # ============================================================================
@@ -750,19 +750,19 @@ test_that("calculate_jis supports method chaining", {
   expect_true(length(q_keys) >= 1)
 })
 
-test_that("calculate_jis accepts RRM results parameter", {
+test_that("calculate_jis accepts SAIT results parameter", {
   analysis <- make_test_analysis_jis()
   analysis@diversity_results <- list(q_1_00 = list(q = 1.0))
   
-  # Create RRM results with genes that exist in our test data
+  # Create SAIT results with genes that exist in our test data
   # The base function expects 'gene' column for filtering
-  rrm_results <- data.frame(
+  sait_results <- data.frame(
     gene = c("Gene1", "Gene2", "Gene3"),
     p_value = c(0.01, 0.05, 0.10),
     adj_p_value = c(0.02, 0.10, 0.20)
   )
   
-  # This test verifies RRM results are accepted as a parameter
+  # This test verifies SAIT results are accepted as a parameter
   # The base function may have specific data requirements beyond our test scope
   result <- tryCatch(
     suppressWarnings(
@@ -773,16 +773,16 @@ test_that("calculate_jis accepts RRM results parameter", {
         isoform_col = "transcript_id",
         q = 1.0,
         nboot = 10,
-        rrm_results = rrm_results,
-        rrm_p_threshold = 0.05,
-        use_rrm_fdr = TRUE,
+        sait_results = sait_results,
+        sait_p_threshold = 0.05,
+        use_sait_fdr = TRUE,
         verbose = FALSE
       )
     ),
     error = function(e) {
       # If the base function fails, still verify parameter was passed
       # without error in our wrapper
-      expect_true(grepl("rrm_results|Jackknife", conditionMessage(e)))
+      expect_true(grepl("sait_results|Jackknife", conditionMessage(e)))
       return(NULL)
     }
   )
@@ -821,7 +821,7 @@ test_that("Full workflow: validation -> detection -> params -> results -> storag
     pseudocount = NULL, 
     nboot = 100,
     threshold = NULL,
-    rrm_p_threshold = NULL,
+    sait_p_threshold = NULL,
     analysis = analysis, 
     verbose = FALSE
   )

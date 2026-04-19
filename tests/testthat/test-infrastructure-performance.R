@@ -262,13 +262,13 @@ test_that("calculate_diversity scales linearly with gene count", {
 })
 
 # ============================================================================
-# TEST 6: CALCULATE_RRM_S4 PERFORMANCE
+# TEST 6: CALCULATE_SAIT_S4 PERFORMANCE
 # ============================================================================
 
-test_that("calculate_rrm completes efficiently", {
+test_that("calculate_sait completes efficiently", {
   skip_if_not_installed("microbenchmark")
   
-  # Create test data with proper column name format for RRM interaction
+  # Create test data with proper column name format for SAIT interaction
   # Column names must be: {sample_id}_q={q_value}
   qvec <- seq(0.5, 1.5, by = 0.5)  # Multiple q-values
   sample_ids <- rep(c("S1", "S2"), each = length(qvec))
@@ -302,17 +302,17 @@ test_that("calculate_rrm completes efficiently", {
     colData = cd
   )
   
-  # Benchmark calculate_rrm
+  # Benchmark calculate_sait
   bench <- microbenchmark::microbenchmark(
     times = 2,
-    .calculate_rrm(se, condition_col = "condition")
+    .calculate_sait(se, condition_col = "condition")
   )
   
   # LM fitting should be reasonably fast - tighter threshold for regression tracking
   # Observed: ~82.7 ms; threshold = 100 ms (83% typical usage, handles variance)
   expect_lt(median(bench$time) / 1e6, 100)
   
-  .report_benchmark(".calculate_rrm(50 genes, 6 samples with 3 q-values)",
+  .report_benchmark(".calculate_sait(50 genes, 6 samples with 3 q-values)",
                     bench$time, threshold_ms = 100)
 })
 
@@ -597,7 +597,7 @@ test_that("large analysis doesn't cause memory explosion", {
 # ✓ TEST 3: Internal normalization (zscore) - <3ms (~77% usage)
 # ✓ TEST 4: Scaling with q-values - sublinear behavior verified (5x q → <6x time)
 # ✓ TEST 5: Scaling with gene count - linear behavior verified (2x genes → 0.5-3.5x time)
-# ✓ TEST 6: RRM interaction fitting (50 genes) - <150ms (~75% usage)
+# ✓ TEST 6: SAIT interaction fitting (50 genes) - <150ms (~75% usage)
 # ✓ TEST 7: Jackknife isoform switching (150 TX) - <2000ms (~75% usage)
 # ✓ TEST 7B: Detect q-gene interactions (200 TX, 4 q-values) - <320ms (~81% usage)
 # ✓ TEST 8: Filter SE operations (2K×20) - <18ms (~74% usage)
@@ -669,8 +669,8 @@ test_that("calculate_srh scales linearly with gene count", {
   gene_vec <- as.numeric(names(times_vec))
   
   # Linear regression: time ~ genes
-  rrm_fit <- lm(times_vec ~ gene_vec)
-  r_squared <- summary(rrm_fit)$r.squared
+  sait_fit <- lm(times_vec ~ gene_vec)
+  r_squared <- summary(sait_fit)$r.squared
   
   # REQUIREMENT: R² > 0.01 indicates scaling isn't catastrophic
   # Note: With only 3 data points, high startup overhead (150-100ms per call),
@@ -753,7 +753,7 @@ test_that("vectorized CI quantile computation is efficient", {
 # Key Functions Tested:
 #   - .calculate_diversity() / calculate_diversity()
 #   - .calculate_divergence() / calculate_divergence()
-#   - .calculate_rrm()
+#   - .calculate_sait()
 #   - calculate_jis()
 #   - detect_q_gene_interactions_s4()
 #   - .filter_se()

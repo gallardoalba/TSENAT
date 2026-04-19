@@ -25,7 +25,7 @@ test_that("[FACTORY FILE] This file provides test utilities, not tests", {
 #' @param treatment_lambda Poisson lambda for treatment condition (default: 150)
 #' @param q_values Vector of q-values for diversity calculation (default: c(0.5, 0.75, 1.0, 1.5, 2.0))
 #' @param include_divergence If TRUE, compute divergence results (default: TRUE)
-#' @param include_rrm_results If TRUE, add placeholder RRM results (default: TRUE)
+#' @param include_sait_results If TRUE, add placeholder SAIT results (default: TRUE)
 #' @param seed Random seed for reproducibility (default: 42)
 #' @param verbose Logical for progress messages (default: FALSE)
 #'
@@ -33,7 +33,7 @@ test_that("[FACTORY FILE] This file provides test utilities, not tests", {
 #'   - SummarizedExperiment with count matrix, rowData, and colData
 #'   - Computed diversity results across q-values
 #'   - Computed divergence results (optional)
-#'   - Placeholder RRM results (optional)
+#'   - Placeholder SAIT results (optional)
 #'   - Proper tx2gene metadata mapping
 #'
 #' @details
@@ -42,7 +42,7 @@ test_that("[FACTORY FILE] This file provides test utilities, not tests", {
 #' - Sufficient samples: 40 total (20 per group) for stable LM fitting
 #' - Multiple q-values: c(0.5, 1.0, 1.5) avoids rank deficiency
 #' - Valid S4 object structure: passes all TSENATAnalysis validity checks
-#' - Optional divergence and RRM results to support testing without warnings
+#' - Optional divergence and SAIT results to support testing without warnings
 #'
 #' @examples
 #' \dontrun{
@@ -57,7 +57,7 @@ test_that("[FACTORY FILE] This file provides test utilities, not tests", {
 #'     treatment_lambda = 200,
 #'     q_values = c(0.1, 0.5, 1.0, 1.5, 2.0),
 #'     include_divergence = TRUE,
-#'     include_rrm_results = TRUE
+#'     include_sait_results = TRUE
 #'   )
 #' }
 #'
@@ -70,7 +70,7 @@ create_test_analysis <- function(
     treatment_lambda = 150,
     q_values = c(0.5, 0.75, 1.0, 1.5, 2.0),
     include_divergence = TRUE,
-    include_rrm_results = TRUE,
+    include_sait_results = TRUE,
     seed = 42,
     verbose = FALSE) {
   
@@ -173,12 +173,12 @@ create_test_analysis <- function(
     })
   }
   
-  # Add placeholder RRM results if requested
-  if (include_rrm_results) {
+  # Add placeholder SAIT results if requested
+  if (include_sait_results) {
     # Create a simple placeholder LM result (empty data frame structure)
-    # This prevents "No RRM results found" warnings in tests
-    rrm_placeholder <- list(
-      rrm_interaction = list(
+    # This prevents "No SAIT results found" warnings in tests
+    sait_placeholder <- list(
+      sait_interaction = list(
         results = data.frame(
           gene = character(0),
           term = character(0),
@@ -190,7 +190,7 @@ create_test_analysis <- function(
         model_data = NULL
       )
     )
-    analysis@rrm_results <- rrm_placeholder
+    analysis@sait_results <- sait_placeholder
   }
   
   if (verbose) {
@@ -201,8 +201,8 @@ create_test_analysis <- function(
     if (include_divergence) {
       message("[create_test_analysis] Divergence results included")
     }
-    if (include_rrm_results) {
-      message("[create_test_analysis] Placeholder RRM results included")
+    if (include_sait_results) {
+      message("[create_test_analysis] Placeholder SAIT results included")
     }
   }
   
@@ -1432,7 +1432,7 @@ suppress_loess_warnings <- function(expr) {
 #' @param q_values Vector of q-values for diversity calculation (default:
 #' c(0.5, 0.75, 1.0, 1.5, 2.0))
 #' @param include_divergence If TRUE, compute divergence results (default: TRUE)
-#' @param include_rrm_results If TRUE, add placeholder RRM results (default: TRUE)
+#' @param include_sait_results If TRUE, add placeholder SAIT results (default: TRUE)
 #' @param seed Random seed for reproducibility (default: 42)
 #' @param verbose Logical for progress messages (default: FALSE)
 #'
@@ -1440,7 +1440,7 @@ suppress_loess_warnings <- function(expr) {
 #'   - SummarizedExperiment with count matrix, rowData, and colData
 #'   - Computed diversity results across q-values
 #'   - Computed divergence results (optional)
-#'   - Placeholder RRM results (optional)
+#'   - Placeholder SAIT results (optional)
 #'   - Proper tx2gene metadata mapping
 #'   - TPM data in metadata
 #'
@@ -1450,7 +1450,7 @@ suppress_loess_warnings <- function(expr) {
 #' - Sufficient samples: 40 total (20 per group) for stable LM fitting
 #' - Multiple q-values: c(0.5, 1.0, 1.5) avoids rank deficiency
 #' - Valid S4 object structure: passes all TSENATAnalysis validity checks
-#' - Optional divergence and RRM results to support testing without warnings
+#' - Optional divergence and SAIT results to support testing without warnings
 #' - All required metadata (tx2gene, TPM, rowData) pre-configured
 #'
 #' @examples
@@ -1473,14 +1473,14 @@ suppress_loess_warnings <- function(expr) {
 #'   treatment_lambda = 200,
 #'   q_values = c(0.1, 0.5, 1.0, 1.5, 2.0),
 #'   include_divergence = TRUE,
-#'   include_rrm_results = TRUE
+#'   include_sait_results = TRUE
 #' )
 #'
 #' @noRd
 #' @noRd
 .create_test_analysis <- function(n_genes = 8, n_samples_per_group = 20, control_lambda = 40,
     treatment_lambda = 150, q_values = c(0.5, 1, 1.5), include_divergence = TRUE,
-    include_rrm_results = TRUE, seed = 42, verbose = FALSE) {
+    include_sait_results = TRUE, seed = 42, verbose = FALSE) {
 
     withr::local_seed(seed)
 
@@ -1568,16 +1568,16 @@ suppress_loess_warnings <- function(expr) {
         })
     }
 
-    # Add placeholder RRM results if requested
-    if (include_rrm_results) {
+    # Add placeholder SAIT results if requested
+    if (include_sait_results) {
         # Create a simple placeholder LM result (empty data frame structure)
-        # This prevents 'No RRM results found' warnings in tests
-        rrm_placeholder <- list(rrm_interaction = list(
+        # This prevents 'No SAIT results found' warnings in tests
+        sait_placeholder <- list(sait_interaction = list(
             results = data.frame(gene = character(0), term = character(0),
                 estimate = numeric(0), std.error = numeric(0), statistic = numeric(0),
                 p.value = numeric(0)),
             model_data = NULL))
-        analysis@rrm_results <- rrm_placeholder
+        analysis@sait_results <- sait_placeholder
     }
 
     if (verbose) {
@@ -1588,8 +1588,8 @@ suppress_loess_warnings <- function(expr) {
         if (include_divergence) {
             message("[create_test_analysis] Divergence results included")
         }
-        if (include_rrm_results) {
-            message("[create_test_analysis] Placeholder RRM results included")
+        if (include_sait_results) {
+            message("[create_test_analysis] Placeholder SAIT results included")
         }
     }
 

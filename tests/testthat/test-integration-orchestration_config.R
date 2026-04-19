@@ -359,7 +359,7 @@ test_that("results returns NULL/errors for edge cases", {
   # Uncomputed results
   expect_null(results(analysis, type = "diversity", format = "table"))
   expect_null(results(analysis, type = "divergence"))
-  expect_null(results(analysis, type = "rrm"))
+  expect_null(results(analysis, type = "sait"))
   
   # Unknown type
   expect_error(results(analysis, type = "unknown"), "Unknown result type")
@@ -435,7 +435,7 @@ test_that("results returns all supported result types", {
   analysis@divergence_results <- list(
     q_0.5 = data.frame(gene = paste0("g", 1:n_genes), divergence = rnorm(n_genes))
   )
-  analysis@rrm_results <- list(rrm_interaction = data.frame(
+  analysis@sait_results <- list(sait_interaction = data.frame(
     p_interaction = rnorm(n_genes),
     adj_p_interaction = p.adjust(rnorm(n_genes), method = "BH")
   ))
@@ -451,7 +451,7 @@ test_that("results returns all supported result types", {
   # Test all types at once
   expect_false(is.null(results(analysis, type = "diversity", format = "table")))
   expect_false(is.null(results(analysis, type = "divergence")))
-  expect_false(is.null(results(analysis, type = "rrm")))
+  expect_false(is.null(results(analysis, type = "sait")))
   expect_false(is.null(results(analysis, type = "jackknife")))
   expect_false(is.null(results(analysis, type = "rank_test")))
 })
@@ -595,7 +595,7 @@ test_that(".validate_results_params accepts valid parameters", {
   )
   
   expect_silent(
-    TSENAT:::.validate_results_params(analysis, type = "rrm", rankBy = "padj", format = "matrix", filterFDR = NULL)
+    TSENAT:::.validate_results_params(analysis, type = "sait", rankBy = "padj", format = "matrix", filterFDR = NULL)
   )
   
   expect_silent(
@@ -697,7 +697,7 @@ test_that(".extract_result_by_type returns NULL for empty results", {
   
   expect_null(TSENAT:::.extract_result_by_type(analysis, "diversity"))
   expect_null(TSENAT:::.extract_result_by_type(analysis, "divergence"))
-  expect_null(TSENAT:::.extract_result_by_type(analysis, "rrm"))
+  expect_null(TSENAT:::.extract_result_by_type(analysis, "sait"))
   expect_null(TSENAT:::.extract_result_by_type(analysis, "jackknife"))
 })
 
@@ -724,27 +724,27 @@ test_that(".extract_result_by_type extracts diversity results", {
 test_that(".extract_result_by_type extracts lm results with nested structure", {
   analysis <- .make_test_analysis_orchr()
   
-  rrm_df <- data.frame(
+  sait_df <- data.frame(
     gene = "g1",
     p_interaction = 0.01,
     adj_p_interaction = 0.05
   )
   
-  # Test with nested rrm_interaction
-  analysis@rrm_results <- list(rrm_interaction = rrm_df)
+  # Test with nested sait_interaction
+  analysis@sait_results <- list(sait_interaction = sait_df)
   
-  result <- TSENAT:::.extract_result_by_type(analysis, "rrm")
-  expect_identical(result, rrm_df)
+  result <- TSENAT:::.extract_result_by_type(analysis, "sait")
+  expect_identical(result, sait_df)
 })
 
 test_that(".extract_result_by_type extracts lm results from flat structure", {
   analysis <- .make_test_analysis_orchr()
   
-  rrm_df <- data.frame(gene = "g1", p_interaction = 0.01)
-  analysis@rrm_results <- rrm_df
+  sait_df <- data.frame(gene = "g1", p_interaction = 0.01)
+  analysis@sait_results <- sait_df
   
-  result <- TSENAT:::.extract_result_by_type(analysis, "rrm")
-  expect_identical(result, rrm_df)
+  result <- TSENAT:::.extract_result_by_type(analysis, "sait")
+  expect_identical(result, sait_df)
 })
 
 test_that(".extract_result_by_type extracts rank_test results", {
@@ -853,7 +853,7 @@ test_that(".extract_or_compute_switching_tables returns cached tables if present
 
 test_that(".extract_or_compute_switching_tables returns NULL with missing prerequisites", {
   analysis <- .make_test_analysis_orchr()
-  analysis@rrm_results <- list()
+  analysis@sait_results <- list()
   analysis@jackknife_results <- list()
   
   result <- TSENAT:::.extract_or_compute_switching_tables(analysis)
@@ -886,7 +886,7 @@ test_that(".warn_unsupported_params warns for invalid rankBy usage", {
 
 test_that(".warn_unsupported_params does not warn for valid rankBy on lm", {
   expect_silent(
-    TSENAT:::.warn_unsupported_params(type = "rrm", filterFDR = NULL, rankBy = "pvalue")
+    TSENAT:::.warn_unsupported_params(type = "sait", filterFDR = NULL, rankBy = "pvalue")
   )
 })
 
@@ -899,14 +899,14 @@ test_that(".warn_unsupported_params does not warn for valid rankBy on jackknife"
 # ============================================================================
 context("orchestration_results: Filter Statistical Results by FDR")
 
-test_that(".filter_statistical_by_fdr filters rrm results correctly", {
+test_that(".filter_statistical_by_fdr filters sait results correctly", {
   result <- data.frame(
     gene = c("g1", "g2", "g3", "g4"),
     adj_p_interaction = c(0.001, 0.05, 0.1, 0.2),
     stringsAsFactors = FALSE
   )
   
-  filtered <- TSENAT:::.filter_statistical_by_fdr(result, type = "rrm", filterFDR = 0.05)
+  filtered <- TSENAT:::.filter_statistical_by_fdr(result, type = "sait", filterFDR = 0.05)
   
   expect_equal(nrow(filtered), 2)
   expect_equal(filtered$gene, c("g1", "g2"))
@@ -931,7 +931,7 @@ test_that(".filter_statistical_by_fdr returns full results when filterFDR is NUL
     adj_p_interaction = c(0.001, 0.1)
   )
   
-  filtered <- TSENAT:::.filter_statistical_by_fdr(result, type = "rrm", filterFDR = NULL)
+  filtered <- TSENAT:::.filter_statistical_by_fdr(result, type = "sait", filterFDR = NULL)
   
   expect_identical(filtered, result)
 })
@@ -939,7 +939,7 @@ test_that(".filter_statistical_by_fdr returns full results when filterFDR is NUL
 test_that(".filter_statistical_by_fdr returns full results for non-dataframe", {
   result <- list(something = "else")
   
-  filtered <- TSENAT:::.filter_statistical_by_fdr(result, type = "rrm", filterFDR = 0.05)
+  filtered <- TSENAT:::.filter_statistical_by_fdr(result, type = "sait", filterFDR = 0.05)
   
   expect_identical(filtered, result)
 })
@@ -965,7 +965,7 @@ test_that(".rank_statistical_results ranks by pvalue", {
     stringsAsFactors = FALSE
   )
   
-  ranked <- TSENAT:::.rank_statistical_results(result, type = "rrm", rankBy = "pvalue", n = NA)
+  ranked <- TSENAT:::.rank_statistical_results(result, type = "sait", rankBy = "pvalue", n = NA)
   
   expect_equal(ranked$gene[1], "g1")
   expect_equal(ranked$gene[2], "g2")
@@ -1062,17 +1062,17 @@ context("orchestration_results: Main Results Accessor - Statistical Results")
 test_that("results() applies rankBy to lm results", {
   analysis <- .make_test_analysis_orchr()
   
-  rrm_df <- data.frame(
+  sait_df <- data.frame(
     gene = c("g3", "g1", "g2"),
     p_interaction = c(0.5, 0.001, 0.05),
     adj_p_interaction = c(0.6, 0.01, 0.1),
     stringsAsFactors = FALSE
   )
   
-  analysis@rrm_results <- list(rrm_interaction = rrm_df)
+  analysis@sait_results <- list(sait_interaction = sait_df)
   
   # Get ranked results
-  result <- TSENAT::results(analysis, type = "rrm", rankBy = "pvalue")
+  result <- TSENAT::results(analysis, type = "sait", rankBy = "pvalue")
   
   expect_equal(result$gene[1], "g1")
   expect_equal(nrow(result), 3)
@@ -1081,15 +1081,15 @@ test_that("results() applies rankBy to lm results", {
 test_that("results() applies n parameter to limit results", {
   analysis <- .make_test_analysis_orchr()
   
-  rrm_df <- data.frame(
+  sait_df <- data.frame(
     gene = c("g1", "g2", "g3", "g4", "g5"),
     p_interaction = c(0.005, 0.01, 0.02, 0.1, 0.5),
     stringsAsFactors = FALSE
   )
   
-  analysis@rrm_results <- list(rrm_interaction = rrm_df)
+  analysis@sait_results <- list(sait_interaction = sait_df)
   
-  result <- TSENAT::results(analysis, type = "rrm", rankBy = "pvalue", n = 2)
+  result <- TSENAT::results(analysis, type = "sait", rankBy = "pvalue", n = 2)
   
   expect_equal(nrow(result), 2)
   expect_equal(result$gene, c("g1", "g2"))

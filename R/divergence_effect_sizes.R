@@ -5,7 +5,7 @@
 #' is a
 #' **data merger**, not a model fitter--all statistical computation happens
 #' upstream in:
-#' - `.calculate_rrm()` -> RRM/LMM p-values
+#' - `.calculate_sait()` -> SAIT/LMM p-values
 #' - `.calculate_divergence()` -> Divergence estimates and CIs for multiple q
 #'
 #' This function merges the results into a single data frame for downstream
@@ -14,7 +14,7 @@
 #'
 #' **Architecture:**
 #' ```
-#' Input 1: LMM results (from calculate_rrm_interaction)
+#' Input 1: LMM results (from calculate_sait_interaction)
 #'   - gene names
 #'   - adj_p_interaction values
 #'
@@ -28,8 +28,8 @@
 #'   - effect magnitude for EACH q: D_q, lower_ci_q, upper_ci_q
 #' ```
 #'
-#' @param rrm_res A data frame of LMM interaction test results from
-#' `.calculate_rrm()`,
+#' @param sait_res A data frame of LMM interaction test results from
+#' `.calculate_sait()`,
 #' with columns: `gene` (character, gene name), `adj_p_interaction`
 #' (numeric, multiple-test adjusted p-value).
 #'   Genes with adj_p_interaction below `significance_threshold` are included.
@@ -69,7 +69,7 @@
 #'       - `gene`: Gene name (character)
 #'       - `p_value_interaction`: LMM adjusted p-value for q:group interaction
 #' - `slope_diff`: q:group interaction slope coefficient (if present in
-#' rrm_res)
+#' sait_res)
 #'       - For EACH q value found: 
 #'         - `effect_size_D_q*`: Absolute Tsallis divergence at q
 #'         - `D_q*_lower_ci`: Bootstrap lower confidence bound
@@ -111,12 +111,12 @@
 #' - Papers S197: Quality filtering and effect size thresholds
 #'
 #' @noRd
-.calculate_effect_sizes <- function(rrm_res, divergence_results_se, significance_threshold = 0.05,
+.calculate_effect_sizes <- function(sait_res, divergence_results_se, significance_threshold = 0.05,
     enrich_per_q_pattern = TRUE, verbose = FALSE) {
-    .validateEffectSizeInputs(rrm_res, divergence_results_se)
+    .validateEffectSizeInputs(sait_res, divergence_results_se)
     rd <- SummarizedExperiment::rowData(divergence_results_se)
-    align_list <- .alignGeneDatasets(rrm_res, rd, verbose)
-    filter_list <- .filterSignificantGenes(align_list$rrm_res, significance_threshold,
+    align_list <- .alignGeneDatasets(sait_res, rd, verbose)
+    filter_list <- .filterSignificantGenes(align_list$sait_res, significance_threshold,
         align_list$q_values, align_list$use_generic, verbose)
     if (length(filter_list$significant_genes) == 0) {
         if (verbose)
@@ -124,7 +124,7 @@
         return(list(interaction_results = filter_list$empty_results, validation_stats = list(total_genes = 0,
             passed_lmm = 0, failed_missing_divergence = 0, other_errors = 0, q_values = align_list$q_values)))
     }
-    merge_list <- .mergeEffectSizesForGenes(align_list$rrm_res, rd, filter_list$significant_genes,
+    merge_list <- .mergeEffectSizesForGenes(align_list$sait_res, rd, filter_list$significant_genes,
         align_list$q_values, align_list$use_generic, verbose)
     .printMergeSummary(merge_list$validation_stats, merge_list$interaction_results,
         align_list$q_values, align_list$use_generic, verbose)
@@ -141,12 +141,12 @@
 # ============================================================================
 
 #' @noRd
-.filterSignificantGenes <- function(rrm_res, significance_threshold, q_values, use_generic,
+.filterSignificantGenes <- function(sait_res, significance_threshold, q_values, use_generic,
     verbose) {
     # Filter to genes with valid p-values and adj_p_interaction < threshold
-    valid_p_idx <- !is.na(rrm_res$adj_p_interaction)
-    significant_idx <- valid_p_idx & (rrm_res$adj_p_interaction < significance_threshold)
-    significant_genes <- rrm_res$gene[significant_idx]
+    valid_p_idx <- !is.na(sait_res$adj_p_interaction)
+    significant_idx <- valid_p_idx & (sait_res$adj_p_interaction < significance_threshold)
+    significant_genes <- sait_res$gene[significant_idx]
 
     if (verbose) {
         message("\n**Filtering effect size analysis to significant genes:**")
@@ -163,7 +163,7 @@
 
 
 #' @noRd
-.mergeEffectSizesForGenes <- function(rrm_res, rd, significant_genes, q_values, use_generic,
+.mergeEffectSizesForGenes <- function(sait_res, rd, significant_genes, q_values, use_generic,
     verbose) {
     validation_stats <- list(total_genes = length(significant_genes), passed_lmm = 0,
         failed_missing_divergence = 0, other_errors = 0, q_values = q_values)
@@ -173,24 +173,24 @@
     }
 
     # Get matching strategy info
-    use_gene_name_col <- "gene_name" %in% colnames(rrm_res)
+    use_gene_name_col <- "gene_name" %in% colnames(sait_res)
 
     # OPTIMIZATION: Consolidate verbose logging into a single condition block
     if (verbose) {
         message("[calculate_effect_sizes] Gene name matching strategy:")
-        message("  - gene_name column in rrm_res:", use_gene_name_col)
+        message("  - gene_name column in sait_res:", use_gene_name_col)
         if (use_gene_name_col) {
-            message("  - rrm_res$gene (first 5):", paste(head(rrm_res$gene, 5), collapse = ", "))
-            message("  - rrm_res$gene_name (first 5):", paste(head(rrm_res$gene_name,
+            message("  - sait_res$gene (first 5):", paste(head(sait_res$gene, 5), collapse = ", "))
+            message("  - sait_res$gene_name (first 5):", paste(head(sait_res$gene_name,
                 5), collapse = ", "))
         } else {
-            message("  - rrm_res$gene (first 5):", paste(head(rrm_res$gene, 5), collapse = ", "))
+            message("  - sait_res$gene (first 5):", paste(head(sait_res$gene, 5), collapse = ", "))
         }
         message("  - divergence gene_name (first 5):", paste(head(rd$gene_name, 5),
             collapse = ", "))
         message("\n[calculate_effect_sizes] MERGE STARTING")
         message("  - significant_genes count:", length(significant_genes))
-        message("  - rrm_res rows:", nrow(rrm_res))
+        message("  - sait_res rows:", nrow(sait_res))
         message("  - divergence rowData rows:", nrow(rd))
         message("  - use_gene_name_col:", use_gene_name_col)
     }
@@ -236,7 +236,7 @@
         gene_id <- significant_genes[i]
 
         # Extract LMM data for this gene
-        lmm_data <- .extractLMMData(rrm_res, gene_id, use_gene_name_col)
+        lmm_data <- .extractLMMData(sait_res, gene_id, use_gene_name_col)
         if (is.null(lmm_data)) {
             validation_stats$other_errors <- validation_stats$other_errors + 1
             next
@@ -367,13 +367,13 @@
 }
 
 #' @noRd
-.validateEffectSizeInputs <- function(rrm_res, divergence_results_se) {
-    if (!is.data.frame(rrm_res)) {
-        stop("rrm_res must be a data frame")
+.validateEffectSizeInputs <- function(sait_res, divergence_results_se) {
+    if (!is.data.frame(sait_res)) {
+        stop("sait_res must be a data frame")
     }
 
-    if (!("gene" %in% colnames(rrm_res)) || !("adj_p_interaction" %in% colnames(rrm_res))) {
-        stop("rrm_res must have columns 'gene' and 'adj_p_interaction'")
+    if (!("gene" %in% colnames(sait_res)) || !("adj_p_interaction" %in% colnames(sait_res))) {
+        stop("sait_res must have columns 'gene' and 'adj_p_interaction'")
     }
 
     if (!methods::is(divergence_results_se, "SummarizedExperiment")) {
@@ -389,35 +389,35 @@
 
 
 #' @noRd
-.alignGeneDatasets <- function(rrm_res, rd, verbose) {
-    # Filter rrm_res to include only genes present in divergence_results_se
+.alignGeneDatasets <- function(sait_res, rd, verbose) {
+    # Filter sait_res to include only genes present in divergence_results_se
 
     # OPTIMIZATION: Consolidate string conversions in single pass
     divergence_genes <- as.character(if ("gene_name" %in% colnames(rd)) rd$gene_name else rownames(rd))
-    rrm_res_genes <- as.character(if ("gene" %in% colnames(rrm_res)) rrm_res$gene else rownames(rrm_res))
+    sait_res_genes <- as.character(if ("gene" %in% colnames(sait_res)) sait_res$gene else rownames(sait_res))
 
-    if (length(rrm_res_genes) == 0 || all(is.na(rrm_res_genes))) {
-        stop("rrm_res must have either a 'gene' column or valid gene names in rownames")
+    if (length(sait_res_genes) == 0 || all(is.na(sait_res_genes))) {
+        stop("sait_res must have either a 'gene' column or valid gene names in rownames")
     }
 
-    # Find matching genes and filter rrm_res
-    matching_idx <- rrm_res_genes %in% divergence_genes
-    n_before_filter <- nrow(rrm_res)
+    # Find matching genes and filter sait_res
+    matching_idx <- sait_res_genes %in% divergence_genes
+    n_before_filter <- nrow(sait_res)
     n_after_filter <- sum(matching_idx)
 
-    # Always filter rrm_res, even if no matches (results in empty dataframe)
-    rrm_res <- rrm_res[matching_idx, , drop = FALSE]
+    # Always filter sait_res, even if no matches (results in empty dataframe)
+    sait_res <- sait_res[matching_idx, , drop = FALSE]
 
     if (n_after_filter > 0) {
         if (verbose) {
             message("[calculate_effect_sizes] Gene alignment:")
-            message("  - rrm_res before filtering: ", n_before_filter, " genes")
-            message("  - rrm_res after filtering: ", n_after_filter, " genes")
+            message("  - sait_res before filtering: ", n_before_filter, " genes")
+            message("  - sait_res after filtering: ", n_after_filter, " genes")
             message("  - Genes filtered out: ", n_before_filter - n_after_filter)
         }
     } else {
         if (verbose) {
-            message("[calculate_effect_sizes] No matching genes found between rrm_res and divergence_results_se")
+            message("[calculate_effect_sizes] No matching genes found between sait_res and divergence_results_se")
         }
     }
 
@@ -447,7 +447,7 @@
         }
     }
 
-    return(list(rrm_res = rrm_res, divergence_genes = divergence_genes, q_values = q_values,
+    return(list(sait_res = sait_res, divergence_genes = divergence_genes, q_values = q_values,
         use_generic = use_generic))
 }
 
@@ -480,8 +480,8 @@
 
 
 #' @noRd
-.extractLMMData <- function(rrm_res, gene_id, use_gene_name_col) {
-    lmm_row <- rrm_res[rrm_res$gene == gene_id, ]
+.extractLMMData <- function(sait_res, gene_id, use_gene_name_col) {
+    lmm_row <- sait_res[sait_res$gene == gene_id, ]
     if (nrow(lmm_row) == 0) {
         return(NULL)
     }

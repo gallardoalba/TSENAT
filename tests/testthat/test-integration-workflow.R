@@ -215,26 +215,26 @@ test_that("TSENAT() error handling: rejects invalid input, handles edge cases", 
 })
 
 # ============================================================================
-# TEST SUITE 8: RRM Interaction Results and Plot Generation
+# TEST SUITE 8: SAIT Interaction Results and Plot Generation
 # ============================================================================
 
-test_that("TSENAT() paired: produces RRM results, significant genes, plots generate", {
+test_that("TSENAT() paired: produces SAIT results, significant genes, plots generate", {
     # OPTIMIZATION: Reuse cached TSENAT() result instead of recomputing
     result <- setup_tsenat_cached()
     
-    # Test RRM results structure
+    # Test SAIT results structure
     expect_s4_class(result, "TSENATAnalysis")
-    rrm_res <- results(result, type = "rrm")
-    expect_true(!is.null(rrm_res))
-    expect_true(is.data.frame(rrm_res))
-    expect_true(nrow(rrm_res) > 0)
-    expect_true("adj_p_interaction" %in% colnames(rrm_res) || "p_interaction" %in% colnames(rrm_res))
+    sait_res <- results(result, type = "sait")
+    expect_true(!is.null(sait_res))
+    expect_true(is.data.frame(sait_res))
+    expect_true(nrow(sait_res) > 0)
+    expect_true("adj_p_interaction" %in% colnames(sait_res) || "p_interaction" %in% colnames(sait_res))
     
     # Check for significant genes
-    if ("adj_p_interaction" %in% colnames(rrm_res)) {
-        sig_genes <- sum(rrm_res$adj_p_interaction <= 0.05, na.rm = TRUE)
-    } else if ("p_interaction" %in% colnames(rrm_res)) {
-        sig_genes <- sum(rrm_res$p_interaction <= 0.05, na.rm = TRUE)
+    if ("adj_p_interaction" %in% colnames(sait_res)) {
+        sig_genes <- sum(sait_res$adj_p_interaction <= 0.05, na.rm = TRUE)
+    } else if ("p_interaction" %in% colnames(sait_res)) {
+        sig_genes <- sum(sait_res$p_interaction <= 0.05, na.rm = TRUE)
     } else {
         sig_genes <- 0
     }
@@ -243,7 +243,7 @@ test_that("TSENAT() paired: produces RRM results, significant genes, plots gener
     
     # Test plot generation
     plot_result <- tryCatch({
-        plot_rrm(
+        plot_sait(
             result,
             n_top = 3,
             sig_alpha = 0.05,

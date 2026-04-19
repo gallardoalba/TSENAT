@@ -26,9 +26,9 @@ TSENAT_config(
   norm_method = NULL,
   pseudocount = 0,
   shrinkage = "none",
-  rrm_method = "gam",
-  rrm_pcorr = "BH",
-  jis_use_rrm_fdr = TRUE,
+  sait_method = "gam",
+  sait_pcorr = "BH",
+  jis_use_sait_fdr = TRUE,
   divergence_ci = 0.95,
   assumptions_checks = "all",
   ...
@@ -80,11 +80,11 @@ Usage: \code{calculate_diversity/divergence} use this for spectrum computation
 
 \item{shrinkage}{\code{character}. Variance reduction: 'none' or 'empirical_bayes'. Default: 'none'.}
 
-\item{rrm_method}{\code{character}. RRM method: 'gam', 'lmm', 'fpca', 'gee'. Default: 'gam'.}
+\item{sait_method}{\code{character}. SAIT method: 'gam', 'lmm', 'fpca', 'gee'. Default: 'gam'.}
 
-\item{rrm_pcorr}{\code{character}. P-value correction: 'BH', 'bonferroni', 'hochberg', 'holm'. Default: 'BH'.}
+\item{sait_pcorr}{\code{character}. P-value correction: 'BH', 'bonferroni', 'hochberg', 'holm'. Default: 'BH'.}
 
-\item{jis_use_rrm_fdr}{\code{logical}. Filter jackknife genes using LM p-values. Default: TRUE.}
+\item{jis_use_sait_fdr}{\code{logical}. Filter jackknife genes using SAIT p-values. Default: TRUE.}
 
 \item{divergence_ci}{\code{numeric}. Confidence level for divergence CIs. Default: 0.95.}
 

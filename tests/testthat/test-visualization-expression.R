@@ -50,9 +50,9 @@ test_analysis_plot <- local({
         analysis <- TSENAT::calculate_diversity(analysis, norm = TRUE)
     })
 
-    # Compute RRM results for auto-detection (matches vignette workflow)
+    # Compute SAIT results for auto-detection (matches vignette workflow)
     suppressWarnings({
-        analysis <- TSENAT::calculate_rrm(analysis)
+        analysis <- TSENAT::calculate_sait(analysis)
     })
 
     analysis
@@ -251,7 +251,7 @@ test_that("plot_expression() respects cellheight parameter", {
 # TEST SUITE 4: Auto-Detection of Top Genes from LM Results
 # ============================================================================
 
-test_that("plot_expression() auto-detects top genes from RRM results", {
+test_that("plot_expression() auto-detects top genes from SAIT results", {
     plot_obj <- TSENAT::plot_expression(
         test_analysis_plot,
         gene = NULL,  # Will auto-detect
@@ -263,14 +263,14 @@ test_that("plot_expression() auto-detects top genes from RRM results", {
     expect_true(!is.null(plot_obj) || TRUE)
 })
 
-test_that("plot_expression() errors when no gene specified and no RRM results", {
+test_that("plot_expression() errors when no gene specified and no SAIT results", {
     analysis <- test_analysis_plot
-    analysis@rrm_results <- list()  # Remove RRM results
+    analysis@sait_results <- list()  # Remove SAIT results
 
     expect_error(
         TSENAT::plot_expression(
             analysis,
-            gene = NULL,  # No explicit gene, no RRM results
+            gene = NULL,  # No explicit gene, no SAIT results
             verbose = FALSE
         ),
         "No gene specified"
@@ -278,7 +278,7 @@ test_that("plot_expression() errors when no gene specified and no RRM results", 
 })
 
 test_that("plot_expression() errors when gene is NULL and top_n > available genes", {
-    # This should work without error as long as RRM results exist
+    # This should work without error as long as SAIT results exist
     # The function should use min(top_n, available_genes)
     plot_obj <- TSENAT::plot_expression(
         test_analysis_plot,

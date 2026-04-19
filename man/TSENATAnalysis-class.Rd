@@ -34,7 +34,7 @@ retrieval.
 
 Access results via the unified \code{results(obj, type = ...)} accessor method:
 - \code{type='diversity'} for Tsallis entropy across q-values
-- \code{type='rrm'} for regularized/penalized regression (GAM, LMM, GEE, FPCA) interaction results
+- \code{type = "sait"} for regularized/penalized regression (GAM, LMM, GEE, FPCA) interaction results
 - \code{type='rank_test'} for Scheirer-Ray-Hare rank-based test results
 - \code{type='divergence'} for divergence metrics
 - \code{type='jackknife'} for jackknife resampling results
@@ -56,10 +56,10 @@ results. Each name corresponds to a q-value (e.g., 'q_0.5', 'q_1.0').
 Values are SummarizedExperiment objects or data.frames containing entropy
 values for each gene at that q-value.}
 
-\item{\code{rrm_results}}{\code{list}. Complex results from regularized/penalized regression methods
+\item{\code{sait_results}}{\code{list}. Complex results from scale-adaptive interaction models (GAM with smoothing, LMM with random effects, GEE with working correlations, FPCA for functional data)
 (GAM, LMM, GEE, FPCA) and statistical testing. Top-level names identify analysis type:
 \describe{
-  \item{\code{rrm_interaction}}{Regularized regression (GAM/LMM/GEE/FPCA) model results (list with
+  \item{\code{sait_interaction}}{Regularized regression (GAM/LMM/GEE/FPCA) model results (list with
         \code{$results} data.frame, \code{$models} list, etc.)}
   \item{\code{rank_test}}{Scheirer-Ray-Hare rank-based test results}
   \item{\code{divergence_difference}}{Differential divergence comparison}
@@ -86,7 +86,7 @@ divergence values}
   }}
 
 \item{\code{plots}}{\code{list}. Cached visualization objects (ggplot). Names
-identify plot type (e.g., 'q_curve', 'rrm_interaction', 'influence').
+identify plot type (e.g., 'q_curve', 'sait_interaction', 'influence').
 Populated by \code{TSENAT()} if \code{generate_plots=TRUE}.}
 
 \item{\code{metadata}}{\code{list}. Reproducibility and tracking metadata.

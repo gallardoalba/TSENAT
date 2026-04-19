@@ -3,7 +3,7 @@
 
 test_that("calculate_effect_sizes aligns gene datasets", {
   # Create mock data matching expected structure
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1", "gene2", "gene3"),
     adj_p_interaction = c(0.01, 0.05, 0.5),
     estimate_interaction = c(0.5, 0.3, 0.1),
@@ -24,7 +24,7 @@ test_that("calculate_effect_sizes aligns gene datasets", {
   # Should align and compute effect sizes
   expect_error(
     .calculate_effect_sizes(
-      rrm_res = rrm_res,
+      sait_res = sait_res,
       divergence_results_se = div_se,
       verbose = FALSE
     ),
@@ -33,8 +33,8 @@ test_that("calculate_effect_sizes aligns gene datasets", {
 })
 
 test_that("calculate_effect_sizes filters non-matching genes", {
-  # rrm_res with different genes
-  rrm_res <- data.frame(
+  # sait_res with different genes
+  sait_res <- data.frame(
     gene = c("gene_A", "gene_B"),
     adj_p_interaction = c(0.01, 0.05),
     estimate_interaction = c(0.5, 0.3),
@@ -54,7 +54,7 @@ test_that("calculate_effect_sizes filters non-matching genes", {
   
   # Should handle gene filtering gracefully
   result <- .calculate_effect_sizes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     divergence_results_se = div_se,
     verbose = FALSE
   )
@@ -65,7 +65,7 @@ test_that("calculate_effect_sizes filters non-matching genes", {
 
 test_that("calculate_effect_sizes handles significance threshold", {
   # Test with different significance thresholds
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1", "gene2", "gene3"),
     adj_p_interaction = c(0.01, 0.05, 0.5),
     estimate_interaction = c(0.5, 0.3, 0.1),
@@ -84,7 +84,7 @@ test_that("calculate_effect_sizes handles significance threshold", {
   
   # Test with strict threshold
   result_strict <- .calculate_effect_sizes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     divergence_results_se = div_se,
     significance_threshold = 0.01,
     verbose = FALSE
@@ -92,7 +92,7 @@ test_that("calculate_effect_sizes handles significance threshold", {
   
   # Test with lenient threshold
   result_lenient <- .calculate_effect_sizes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     divergence_results_se = div_se,
     significance_threshold = 0.1,
     verbose = FALSE
@@ -105,7 +105,7 @@ test_that("calculate_effect_sizes handles significance threshold", {
 
 test_that("calculate_effect_sizes enriches per-q patterns", {
   # Test with enrich_per_q_pattern = TRUE
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1", "gene2"),
     adj_p_interaction = c(0.01, 0.05),
     estimate_interaction = c(0.5, 0.3),
@@ -129,7 +129,7 @@ test_that("calculate_effect_sizes enriches per-q patterns", {
   )
   
   result <- .calculate_effect_sizes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     divergence_results_se = div_se,
     enrich_per_q_pattern = TRUE,
     verbose = FALSE
@@ -140,7 +140,7 @@ test_that("calculate_effect_sizes enriches per-q patterns", {
 
 test_that("calculate_effect_sizes formats output correctly", {
   # Test output formatting and structure
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1"),
     adj_p_interaction = c(0.01),
     estimate_interaction = c(0.5),
@@ -158,7 +158,7 @@ test_that("calculate_effect_sizes formats output correctly", {
   )
   
   result <- .calculate_effect_sizes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     divergence_results_se = div_se,
     verbose = FALSE
   )
@@ -169,7 +169,7 @@ test_that("calculate_effect_sizes formats output correctly", {
 
 test_that("calculate_effect_sizes handles zero divergence", {
   # Test handling of zero divergence estimates
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1", "gene2"),
     adj_p_interaction = c(0.01, 0.05),
     estimate_interaction = c(0.5, 0.0),  # Zero slope difference
@@ -187,7 +187,7 @@ test_that("calculate_effect_sizes handles zero divergence", {
   )
   
   result <- .calculate_effect_sizes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     divergence_results_se = div_se,
     verbose = FALSE
   )
@@ -197,7 +197,7 @@ test_that("calculate_effect_sizes handles zero divergence", {
 
 test_that("calculate_effect_sizes handles NA divergence estimates", {
   # Test handling of NA estimates
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1", "gene2"),
     adj_p_interaction = c(0.01, 0.05),
     estimate_interaction = c(0.5, 0.3),
@@ -215,7 +215,7 @@ test_that("calculate_effect_sizes handles NA divergence estimates", {
   )
   
   result <- .calculate_effect_sizes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     divergence_results_se = div_se,
     verbose = FALSE
   )
@@ -225,7 +225,7 @@ test_that("calculate_effect_sizes handles NA divergence estimates", {
 
 test_that("calculate_effect_sizes with verbose output", {
   # Test verbose output path
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1"),
     adj_p_interaction = c(0.01),
     estimate_interaction = c(0.5),
@@ -244,7 +244,7 @@ test_that("calculate_effect_sizes with verbose output", {
   
   # Capture output to verify verbose = TRUE produces messages
   result <- .calculate_effect_sizes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     divergence_results_se = div_se,
     verbose = TRUE
   )
@@ -256,22 +256,22 @@ test_that("calculate_effect_sizes with verbose output", {
 # TESTS FOR REFACTORED HELPER FUNCTIONS
 # ============================================================================
 
-test_that(".validateEffectSizeInputs rejects invalid rrm_res", {
-  # Test with non-data.frame rrm_res
+test_that(".validateEffectSizeInputs rejects invalid sait_res", {
+  # Test with non-data.frame sait_res
   expect_error(
     TSENAT:::.validateEffectSizeInputs(
-      rrm_res = list(gene = "gene1", p = 0.01),
+      sait_res = list(gene = "gene1", p = 0.01),
       divergence_results_se = SummarizedExperiment::SummarizedExperiment()
     ),
     "must be a data frame"
   )
 })
 
-test_that(".validateEffectSizeInputs rejects rrm_res without required columns", {
+test_that(".validateEffectSizeInputs rejects sait_res without required columns", {
   # Missing adj_p_interaction column
   expect_error(
     TSENAT:::.validateEffectSizeInputs(
-      rrm_res = data.frame(gene = c("gene1"), other_col = c(0.01)),
+      sait_res = data.frame(gene = c("gene1"), other_col = c(0.01)),
       divergence_results_se = SummarizedExperiment::SummarizedExperiment()
     ),
     "must have columns"
@@ -282,7 +282,7 @@ test_that(".validateEffectSizeInputs rejects non-SummarizedExperiment", {
   # Test with non-SE divergence_results
   expect_error(
     TSENAT:::.validateEffectSizeInputs(
-      rrm_res = data.frame(gene = "gene1", adj_p_interaction = 0.01),
+      sait_res = data.frame(gene = "gene1", adj_p_interaction = 0.01),
       divergence_results_se = data.frame(gene = "gene1")
     ),
     "must be a SummarizedExperiment"
@@ -296,7 +296,7 @@ test_that(".validateEffectSizeInputs rejects SE without gene_name in rowData", {
   )
   expect_error(
     TSENAT:::.validateEffectSizeInputs(
-      rrm_res = data.frame(gene = "gene1", adj_p_interaction = 0.01),
+      sait_res = data.frame(gene = "gene1", adj_p_interaction = 0.01),
       divergence_results_se = bad_se
     ),
     "must have 'gene_name' column"
@@ -305,7 +305,7 @@ test_that(".validateEffectSizeInputs rejects SE without gene_name in rowData", {
 
 test_that(".alignGeneDatasets detects generic divergence columns", {
   # Setup data with generic columns
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1", "gene2"),
     adj_p_interaction = c(0.01, 0.05)
   )
@@ -317,7 +317,7 @@ test_that(".alignGeneDatasets detects generic divergence columns", {
     upper_ci = c(0.9, 0.8)
   )
   
-  result <- TSENAT:::.alignGeneDatasets(rrm_res, rd, verbose = FALSE)
+  result <- TSENAT:::.alignGeneDatasets(sait_res, rd, verbose = FALSE)
   
   expect_true(result$use_generic)
   expect_true(is.na(result$q_values[1]))
@@ -325,7 +325,7 @@ test_that(".alignGeneDatasets detects generic divergence columns", {
 
 test_that(".alignGeneDatasets detects per-q divergence columns", {
   # Setup data with per-q columns
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1", "gene2"),
     adj_p_interaction = c(0.01, 0.05)
   )
@@ -343,7 +343,7 @@ test_that(".alignGeneDatasets detects per-q divergence columns", {
     upper_ci_q2.0 = c(0.8, 0.7)
   )
   
-  result <- TSENAT:::.alignGeneDatasets(rrm_res, rd, verbose = FALSE)
+  result <- TSENAT:::.alignGeneDatasets(sait_res, rd, verbose = FALSE)
   
   expect_false(result$use_generic)
   expect_equal(result$q_values, c(0.5, 1.0, 2.0))
@@ -351,7 +351,7 @@ test_that(".alignGeneDatasets detects per-q divergence columns", {
 
 test_that(".alignGeneDatasets filters non-matching genes", {
   # Setup with only partial overlap
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene_A", "gene_B", "gene_C"),
     adj_p_interaction = c(0.01, 0.05, 0.1)
   )
@@ -363,11 +363,11 @@ test_that(".alignGeneDatasets filters non-matching genes", {
     upper_ci = c(0.9, 0.8)
   )
   
-  result <- TSENAT:::.alignGeneDatasets(rrm_res, rd, verbose = FALSE)
+  result <- TSENAT:::.alignGeneDatasets(sait_res, rd, verbose = FALSE)
   
   # Should have filtered to only matching gene
-  expect_equal(nrow(result$rrm_res), 1)
-  expect_equal(result$rrm_res$gene[1], "gene_A")
+  expect_equal(nrow(result$sait_res), 1)
+  expect_equal(result$sait_res$gene[1], "gene_A")
 })
 
 test_that(".createResultsDataFrame generates correct columns for generic divergence", {
@@ -400,7 +400,7 @@ test_that(".createResultsDataFrame generates correct columns for multi-q diverge
 
 test_that(".extractLMMData returns correct LMM information", {
   # Setup LMM results data
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1", "gene2"),
     adj_p_interaction = c(0.01, 0.05),
     slope_diff = c(0.5, 0.3),
@@ -408,7 +408,7 @@ test_that(".extractLMMData returns correct LMM information", {
   )
   
   # Extract without gene_name column preference
-  result <- TSENAT:::.extractLMMData(rrm_res, "gene1", use_gene_name_col = FALSE)
+  result <- TSENAT:::.extractLMMData(sait_res, "gene1", use_gene_name_col = FALSE)
   
   expect_equal(result$match_name, "gene1")
   expect_equal(result$p_interaction, 0.01)
@@ -417,7 +417,7 @@ test_that(".extractLMMData returns correct LMM information", {
 
 test_that(".extractLMMData uses gene_name column when available", {
   # Setup LMM results with gene_name column
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("g_id_1", "g_id_2"),
     adj_p_interaction = c(0.01, 0.05),
     slope_diff = c(0.5, 0.3),
@@ -425,19 +425,19 @@ test_that(".extractLMMData uses gene_name column when available", {
   )
   
   # Extract with gene_name column preference
-  result <- TSENAT:::.extractLMMData(rrm_res, "g_id_1", use_gene_name_col = TRUE)
+  result <- TSENAT:::.extractLMMData(sait_res, "g_id_1", use_gene_name_col = TRUE)
   
   expect_equal(result$match_name, "ENSG00001")
   expect_equal(result$p_interaction, 0.01)
 })
 
 test_that(".extractLMMData returns NULL for non-existent gene", {
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1"),
     adj_p_interaction = c(0.01)
   )
   
-  result <- TSENAT:::.extractLMMData(rrm_res, "nonexistent_gene", use_gene_name_col = FALSE)
+  result <- TSENAT:::.extractLMMData(sait_res, "nonexistent_gene", use_gene_name_col = FALSE)
   
   expect_null(result)
 })
@@ -623,7 +623,7 @@ test_that(".classify_q_pattern returns NA for empty input", {
 # ============================================================================
 
 test_that("calculate_effect_sizes returns list with required components", {
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1", "gene2"),
     adj_p_interaction = c(0.01, 0.05)
   )
@@ -639,7 +639,7 @@ test_that("calculate_effect_sizes returns list with required components", {
   )
   
   result <- .calculate_effect_sizes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     divergence_results_se = div_se,
     verbose = FALSE
   )
@@ -650,7 +650,7 @@ test_that("calculate_effect_sizes returns list with required components", {
 })
 
 test_that("calculate_effect_sizes validation stats are accurate", {
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1", "gene2", "gene3"),
     adj_p_interaction = c(0.01, 0.05, 0.5)
   )
@@ -666,7 +666,7 @@ test_that("calculate_effect_sizes validation stats are accurate", {
   )
   
   result <- .calculate_effect_sizes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     divergence_results_se = div_se,
     significance_threshold = 0.05,
     verbose = FALSE
@@ -680,7 +680,7 @@ test_that("calculate_effect_sizes validation stats are accurate", {
 })
 
 test_that("calculate_effect_sizes with disable enrichment", {
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1"),
     adj_p_interaction = c(0.01)
   )
@@ -697,7 +697,7 @@ test_that("calculate_effect_sizes with disable enrichment", {
   
   # Run with enrichment disabled
   result <- .calculate_effect_sizes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     divergence_results_se = div_se,
     enrich_per_q_pattern = FALSE,
     verbose = FALSE
@@ -709,7 +709,7 @@ test_that("calculate_effect_sizes with disable enrichment", {
 
 test_that("calculate_effect_sizes handles empty matching results", {
   # Create data with no overlapping genes
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene_A", "gene_B"),
     adj_p_interaction = c(0.01, 0.05)
   )
@@ -725,7 +725,7 @@ test_that("calculate_effect_sizes handles empty matching results", {
   )
   
   result <- .calculate_effect_sizes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     divergence_results_se = div_se,
     verbose = FALSE
   )
@@ -736,7 +736,7 @@ test_that("calculate_effect_sizes handles empty matching results", {
 })
 
 test_that("calculate_effect_sizes with mixed NA and valid divergence", {
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1", "gene2", "gene3"),
     adj_p_interaction = c(0.01, 0.02, 0.03)
   )
@@ -752,7 +752,7 @@ test_that("calculate_effect_sizes with mixed NA and valid divergence", {
   )
   
   result <- .calculate_effect_sizes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     divergence_results_se = div_se,
     verbose = FALSE
   )
@@ -841,7 +841,7 @@ test_that("NA or invalid input returns NA", {
 # ============================================================================
 
 test_that(".filterSignificantGenes filters by p-value threshold correctly", {
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1", "gene2", "gene3", "gene4"),
     adj_p_interaction = c(0.001, 0.01, 0.05, 0.5)
   )
@@ -850,7 +850,7 @@ test_that(".filterSignificantGenes filters by p-value threshold correctly", {
   
   # Test with threshold 0.05 - should filter to p < 0.05 which are first 3
   result <- TSENAT:::.filterSignificantGenes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     significance_threshold = 0.05,
     q_values = q_values,
     use_generic = TRUE,
@@ -863,14 +863,14 @@ test_that(".filterSignificantGenes filters by p-value threshold correctly", {
 })
 
 test_that(".filterSignificantGenes handles strict threshold", {
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1", "gene2", "gene3"),
     adj_p_interaction = c(0.001, 0.01, 0.05)
   )
   
   # Test with strict threshold 0.01 - genes with p < 0.01
   result <- TSENAT:::.filterSignificantGenes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     significance_threshold = 0.01,
     q_values = NA_real_,
     use_generic = TRUE,
@@ -883,13 +883,13 @@ test_that(".filterSignificantGenes handles strict threshold", {
 })
 
 test_that(".filterSignificantGenes returns empty with no significant genes", {
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1", "gene2", "gene3"),
     adj_p_interaction = c(0.1, 0.2, 0.5)
   )
   
   result <- TSENAT:::.filterSignificantGenes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     significance_threshold = 0.05,
     q_values = NA_real_,
     use_generic = TRUE,
@@ -901,13 +901,13 @@ test_that(".filterSignificantGenes returns empty with no significant genes", {
 })
 
 test_that(".filterSignificantGenes handles NA p-values", {
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1", "gene2", "gene3"),
     adj_p_interaction = c(0.01, NA, 0.05)
   )
   
   result <- TSENAT:::.filterSignificantGenes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     significance_threshold = 0.05,
     q_values = NA_real_,
     use_generic = TRUE,
@@ -921,7 +921,7 @@ test_that(".filterSignificantGenes handles NA p-values", {
 })
 
 test_that(".filterSignificantGenes creates proper empty results dataframe", {
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1"),
     adj_p_interaction = c(0.01)
   )
@@ -929,7 +929,7 @@ test_that(".filterSignificantGenes creates proper empty results dataframe", {
   q_values <- c(0.5, 1.0, 2.0)
   
   result_generic <- TSENAT:::.filterSignificantGenes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     significance_threshold = 0.05,
     q_values = NA_real_,
     use_generic = TRUE,
@@ -937,7 +937,7 @@ test_that(".filterSignificantGenes creates proper empty results dataframe", {
   )
   
   result_multi_q <- TSENAT:::.filterSignificantGenes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     significance_threshold = 0.05,
     q_values = q_values,
     use_generic = FALSE,
@@ -952,7 +952,7 @@ test_that(".filterSignificantGenes creates proper empty results dataframe", {
 })
 
 test_that(".mergeEffectSizesForGenes processes genes correctly", {
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1", "gene2"),
     adj_p_interaction = c(0.01, 0.05)
   )
@@ -965,7 +965,7 @@ test_that(".mergeEffectSizesForGenes processes genes correctly", {
   )
   
   result <- TSENAT:::.mergeEffectSizesForGenes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     rd = rd,
     significant_genes = c("gene1", "gene2"),
     q_values = NA_real_,
@@ -979,7 +979,7 @@ test_that(".mergeEffectSizesForGenes processes genes correctly", {
 })
 
 test_that(".mergeEffectSizesForGenes tracks validation statistics", {
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1", "gene2", "gene3"),
     adj_p_interaction = c(0.01, 0.05, 0.02)
   )
@@ -992,7 +992,7 @@ test_that(".mergeEffectSizesForGenes tracks validation statistics", {
   )
   
   result <- TSENAT:::.mergeEffectSizesForGenes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     rd = rd,
     significant_genes = c("gene1", "gene2", "gene3"),
     q_values = NA_real_,
@@ -1006,7 +1006,7 @@ test_that(".mergeEffectSizesForGenes tracks validation statistics", {
 })
 
 test_that(".mergeEffectSizesForGenes handles empty significant genes", {
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1"),
     adj_p_interaction = c(0.01)
   )
@@ -1019,7 +1019,7 @@ test_that(".mergeEffectSizesForGenes handles empty significant genes", {
   )
   
   result <- TSENAT:::.mergeEffectSizesForGenes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     rd = rd,
     significant_genes = character(0),  # Empty significant genes
     q_values = NA_real_,
@@ -1032,7 +1032,7 @@ test_that(".mergeEffectSizesForGenes handles empty significant genes", {
 })
 
 test_that(".mergeEffectSizesForGenes processes multi-q correctly", {
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1"),
     adj_p_interaction = c(0.01)
   )
@@ -1051,7 +1051,7 @@ test_that(".mergeEffectSizesForGenes processes multi-q correctly", {
   )
   
   result <- TSENAT:::.mergeEffectSizesForGenes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     rd = rd,
     significant_genes = c("gene1"),
     q_values = c(0.5, 1.0, 2.0),
@@ -1063,9 +1063,9 @@ test_that(".mergeEffectSizesForGenes processes multi-q correctly", {
   expect_true("effect_size_D_q0_5" %in% colnames(result$interaction_results))
 })
 
-test_that(".mergeEffectSizesForGenes handles gene_name column in rrm_res", {
-  # Note: When gene_name column exists in rrm_res, matching uses it
-  rrm_res <- data.frame(
+test_that(".mergeEffectSizesForGenes handles gene_name column in sait_res", {
+  # Note: When gene_name column exists in sait_res, matching uses it
+  sait_res <- data.frame(
     gene = c("g_id_1", "g_id_2"),
     adj_p_interaction = c(0.01, 0.05)
     # Note: no gene_name column here - the function checks for it to decide strategy
@@ -1079,7 +1079,7 @@ test_that(".mergeEffectSizesForGenes handles gene_name column in rrm_res", {
   )
   
   result <- TSENAT:::.mergeEffectSizesForGenes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     rd = rd,
     significant_genes = c("g_id_1", "g_id_2"),
     q_values = NA_real_,
@@ -1210,7 +1210,7 @@ test_that(".enrichWithQPatterns adds per_q_pattern column", {
 
 test_that("complete workflow with multi-q divergence produces correct output", {
   
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("gene1", "gene2"),
     adj_p_interaction = c(0.001, 0.05)
   )
@@ -1218,7 +1218,7 @@ test_that("complete workflow with multi-q divergence produces correct output", {
   # OPTIMIZATION: Reuse pre-cached div_se_multiq_basic fixture
   # Avoids SE creation overhead (~500ms), shared across similar tests
   result <- .calculate_effect_sizes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     divergence_results_se = div_se_multiq_basic,
     significance_threshold = 0.05,
     enrich_per_q_pattern = TRUE,
@@ -1235,7 +1235,7 @@ test_that("complete workflow with multi-q divergence produces correct output", {
 
 test_that("calculate_effect_sizes maintains data integrity through pipeline", {
   
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("ENSG00001", "ENSG00002", "ENSG00003"),
     adj_p_interaction = c(0.001, 0.01, 0.5),
     slope_diff = c(0.5, 0.3, 0.1)
@@ -1244,7 +1244,7 @@ test_that("calculate_effect_sizes maintains data integrity through pipeline", {
   # OPTIMIZATION: Reuse pre-cached div_se_threegene fixture
   # Avoids SE creation overhead (~500ms), shared across similar tests
   result <- .calculate_effect_sizes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     divergence_results_se = div_se_threegene,
     significance_threshold = 0.1,
     verbose = FALSE
@@ -1366,7 +1366,7 @@ test_that("formatMultiQResult handles negative divergence with absolute value", 
 
 test_that("calculate_effect_sizes produces exact numerical output for known input", {
   # Test with precise known values to validate numerical correctness
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("g1", "g2"),
     adj_p_interaction = c(0.001234, 0.050000)
   )
@@ -1382,7 +1382,7 @@ test_that("calculate_effect_sizes produces exact numerical output for known inpu
   )
   
   result <- .calculate_effect_sizes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     divergence_results_se = div_se,
     significance_threshold = 0.1,
     verbose = FALSE
@@ -1397,7 +1397,7 @@ test_that("calculate_effect_sizes produces exact numerical output for known inpu
 
 test_that("calculate_effect_sizes handles zero values correctly", {
   # Test edge case with zero divergence
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("zero_gene"),
     adj_p_interaction = c(0.01)
   )
@@ -1413,7 +1413,7 @@ test_that("calculate_effect_sizes handles zero values correctly", {
   )
   
   result <- .calculate_effect_sizes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     divergence_results_se = div_se,
     verbose = FALSE
   )
@@ -1426,7 +1426,7 @@ test_that("calculate_effect_sizes handles zero values correctly", {
 
 test_that("calculate_effect_sizes handles very small numbers correctly", {
   # Test with very small numbers (but not zero)
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("tiny_gene"),
     adj_p_interaction = c(0.001)
   )
@@ -1442,7 +1442,7 @@ test_that("calculate_effect_sizes handles very small numbers correctly", {
   )
   
   result <- .calculate_effect_sizes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     divergence_results_se = div_se,
     verbose = FALSE
   )
@@ -1454,7 +1454,7 @@ test_that("calculate_effect_sizes handles very small numbers correctly", {
 
 test_that("calculate_effect_sizes handles large numbers correctly", {
   # Test with large divergence values
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("large_gene"),
     adj_p_interaction = c(0.01)
   )
@@ -1470,7 +1470,7 @@ test_that("calculate_effect_sizes handles large numbers correctly", {
   )
   
   result <- .calculate_effect_sizes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     divergence_results_se = div_se,
     verbose = FALSE
   )
@@ -1579,7 +1579,7 @@ test_that("classify_q_pattern correctly computes median for classification", {
 test_that("Effect size calculation preserves full precision through pipeline", {
   
   # Test full pipeline with high-precision values
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("precision_test"),
     adj_p_interaction = c(0.00112358)  # High precision p-value
   )
@@ -1595,7 +1595,7 @@ test_that("Effect size calculation preserves full precision through pipeline", {
   )
   
   result <- .calculate_effect_sizes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     divergence_results_se = div_se,
     verbose = FALSE
   )
@@ -1611,7 +1611,7 @@ test_that("Effect size calculation preserves full precision through pipeline", {
 
 test_that("Multi-q output maintains numerical ordering consistency", {
   # Verify that q-values are ordered consistently (low q to high q)
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("order_test"),
     adj_p_interaction = c(0.01)
   )
@@ -1636,7 +1636,7 @@ test_that("Multi-q output maintains numerical ordering consistency", {
   )
   
   result <- .calculate_effect_sizes(
-    rrm_res = rrm_res,
+    sait_res = sait_res,
     divergence_results_se = div_se,
     verbose = FALSE
   )
@@ -1672,15 +1672,15 @@ test_that(".validate_effect_sizes_inputs_s4 rejects missing divergence results",
   )
 })
 
-test_that(".validate_effect_sizes_inputs_s4 rejects missing RRM results", {
-  # Create analysis with divergence but no RRM results
+test_that(".validate_effect_sizes_inputs_s4 rejects missing SAIT results", {
+  # Create analysis with divergence but no SAIT results
   analysis <- new("TSENATAnalysis")
   analysis@divergence_results <- list(mock = "data")
-  analysis@rrm_results <- list()
+  analysis@sait_results <- list()
   
   expect_error(
     TSENAT:::.validate_effect_sizes_inputs_s4(analysis),
-    "RRM results required"
+    "SAIT results required"
   )
 })
 
@@ -1688,7 +1688,7 @@ test_that(".validate_effect_sizes_inputs_s4 passes valid analysis", {
   # Create valid analysis
   analysis <- new("TSENATAnalysis")
   analysis@divergence_results <- list(mock = "data")
-  analysis@rrm_results <- list(mock = "data")
+  analysis@sait_results <- list(mock = "data")
   
   # Should not throw error
   expect_error(
@@ -1711,8 +1711,8 @@ test_that(".extract_effect_sizes_data_s4 extracts data from valid analysis", {
       rowData = data.frame(gene_name = c("gene1", "gene2"))
     )
   )
-  analysis@rrm_results <- list(
-    rrm_interaction = data.frame(
+  analysis@sait_results <- list(
+    sait_interaction = data.frame(
       gene = c("gene1", "gene2"),
       adj_p_interaction = c(0.01, 0.05)
     )
@@ -1723,15 +1723,15 @@ test_that(".extract_effect_sizes_data_s4 extracts data from valid analysis", {
   
   expect_true(is.list(data_list))
   expect_true("divergence_se" %in% names(data_list))
-  expect_true("rrm_res" %in% names(data_list))
+  expect_true("sait_res" %in% names(data_list))
   expect_true(is(data_list$divergence_se, "SummarizedExperiment"))
-  expect_true(is.data.frame(data_list$rrm_res))
+  expect_true(is.data.frame(data_list$sait_res))
 })
 
 test_that(".extract_effect_sizes_data_s4 handles missing divergence results", {
   # Create analysis with LM but no divergence results
   analysis <- new("TSENATAnalysis")
-  analysis@rrm_results <- list(mock = "rrm_data")
+  analysis@sait_results <- list(mock = "sait_data")
   analysis@divergence_results <- list()
   
   expect_error(
@@ -1818,13 +1818,13 @@ test_that(".add_gene_names_to_divergence_se adds via tx2gene mapping", {
   analysis <- new("TSENATAnalysis")
   analysis@se <- base_se
   
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("GENE_A", "GENE_B"),
     adj_p_interaction = c(0.01, 0.05)
   )
   
   # Add gene names
-  result_se <- TSENAT:::.add_gene_names_to_divergence_se(div_se, analysis, rrm_res, verbose = FALSE)
+  result_se <- TSENAT:::.add_gene_names_to_divergence_se(div_se, analysis, sait_res, verbose = FALSE)
   
   expect_true(is(result_se, "SummarizedExperiment"))
   expect_true("gene_name" %in% colnames(SummarizedExperiment::rowData(result_se)))
@@ -1849,13 +1849,13 @@ test_that(".add_gene_names_to_divergence_se handles missing tx2gene gracefully",
   analysis <- new("TSENATAnalysis")
   analysis@se <- base_se
   
-  rrm_res <- data.frame(
+  sait_res <- data.frame(
     gene = c("GENE_A", "GENE_B"),
     adj_p_interaction = c(0.01, 0.05)
   )
   
   # Should fallback to direct assignment
-  result_se <- TSENAT:::.add_gene_names_to_divergence_se(div_se, analysis, rrm_res, verbose = FALSE)
+  result_se <- TSENAT:::.add_gene_names_to_divergence_se(div_se, analysis, sait_res, verbose = FALSE)
   
   expect_true("gene_name" %in% colnames(SummarizedExperiment::rowData(result_se)))
   expect_equal(SummarizedExperiment::rowData(result_se)$gene_name, c("GENE_A", "GENE_B"))
@@ -2027,7 +2027,7 @@ test_that("calculate_effect_sizes orchestrates helpers correctly", {
   analysis <- calculate_diversity(analysis, q = c(0.5, 0.75, 1.0, 1.5, 2.0), verbose = FALSE)
   analysis <- calculate_divergence(analysis, q = c(0.5, 0.75, 1.0, 1.5, 2.0), verbose = FALSE)
   analysis <- suppressWarnings(
-    calculate_rrm(analysis, method = 'gam', verbose = FALSE)
+    calculate_sait(analysis, method = 'gam', verbose = FALSE)
   )
   
   # Compute effect sizes from divergence results
@@ -2089,7 +2089,7 @@ test_that("calculate_effect_sizes respects output_file parameter", {
   analysis <- calculate_diversity(analysis, q = c(0.5, 0.75, 1.0, 1.5, 2.0), verbose = FALSE)
   analysis <- calculate_divergence(analysis, q = c(0.5, 0.75, 1.0, 1.5, 2.0), verbose = FALSE)
   analysis <- suppressWarnings(
-    calculate_rrm(analysis, method = 'gam', verbose = FALSE)
+    calculate_sait(analysis, method = 'gam', verbose = FALSE)
   )
   
   # Create temporary file for TSV output

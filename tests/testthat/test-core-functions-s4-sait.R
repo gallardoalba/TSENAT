@@ -1,4 +1,4 @@
-# Tests for calculate_rrm S4 wrapper function
+# Tests for calculate_sait S4 wrapper function
 
 # Setup: Local helper to create test analysis with optional diversity results
 .create_test_analysis <- function(
@@ -11,7 +11,7 @@
   analysis <- create_test_analysis(
     q_values = q_values,
     include_divergence = include_divergence,
-    include_rrm_results = FALSE
+    include_sait_results = FALSE
   )
   
   # If precompute_diversity = FALSE, clear the diversity results
@@ -22,7 +22,7 @@
   return(analysis)
 }
 
-test_that("S4 Wrappers: calculate_rrm accepts new arguments", {
+test_that("S4 Wrappers: calculate_sait accepts new arguments", {
   # Create analysis with diversity results (default behavior)
   analysis <- .create_test_analysis()
   
@@ -44,7 +44,7 @@ test_that("S4 Wrappers: calculate_rrm accepts new arguments", {
     arg_string <- paste(names(args), collapse = ", ")
     # Test that arguments are accepted
     result <- tryCatch({
-      do.call(calculate_rrm, 
+      do.call(calculate_sait, 
               c(list(analysis = analysis, verbose = FALSE), args))
     }, error = function(e) {
       list(error = paste("Error:", e$message))
@@ -89,12 +89,12 @@ test_that("Helper: .sync_coldata_from_diversity handles empty diversity results"
   expect_equal(length(result@diversity_results), 0)
 })
 
-# Tests for .extract_rrm_params helper
-test_that("Helper: .extract_rrm_params extracts and resolves parameters", {
+# Tests for .extract_sait_params helper
+test_that("Helper: .extract_sait_params extracts and resolves parameters", {
   analysis <- .create_test_analysis()
   
   # Extract parameters with defaults
-  params <- .extract_rrm_params(
+  params <- .extract_sait_params(
     analysis,
     condition_col = "condition",
     method = "gam",
@@ -109,13 +109,13 @@ test_that("Helper: .extract_rrm_params extracts and resolves parameters", {
   expect_equal(params$paired, FALSE)
 })
 
-test_that("Helper: .extract_rrm_params resolves from config", {
+test_that("Helper: .extract_sait_params resolves from config", {
   analysis <- .create_test_analysis()
   analysis@config$method <- "lmm"
   analysis@config$pcorr <- "Hochberg"
   
   # Extract with NULL parameters (should use config)
-  params <- .extract_rrm_params(
+  params <- .extract_sait_params(
     analysis,
     condition_col = NULL,
     method = NULL,
@@ -128,8 +128,8 @@ test_that("Helper: .extract_rrm_params resolves from config", {
   expect_equal(params$pcorr, "Hochberg")
 })
 
-# Tests for .combine_diversity_results_for_rrm helper
-test_that("Helper: .combine_diversity_results_for_rrm combines multi-q results", {
+# Tests for .combine_diversity_results_for_sait helper
+test_that("Helper: .combine_diversity_results_for_sait combines multi-q results", {
   analysis <- .create_test_analysis()
   
   if (length(analysis@diversity_results) < 2) {
@@ -137,7 +137,7 @@ test_that("Helper: .combine_diversity_results_for_rrm combines multi-q results",
   }
   
   # Combine diversity results
-  combined_se <- .combine_diversity_results_for_rrm(analysis@diversity_results)
+  combined_se <- .combine_diversity_results_for_sait(analysis@diversity_results)
   
   expect_s4_class(combined_se, "SummarizedExperiment")
   expect_gt(ncol(combined_se), 0)
@@ -149,14 +149,14 @@ test_that("Helper: .combine_diversity_results_for_rrm combines multi-q results",
   expect_true("diversity" %in% SummarizedExperiment::assayNames(combined_se))
 })
 
-test_that("Helper: .combine_diversity_results_for_rrm adds q-value suffixes", {
+test_that("Helper: .combine_diversity_results_for_sait adds q-value suffixes", {
   analysis <- .create_test_analysis()
   
   if (length(analysis@diversity_results) < 2) {
     skip("Need multiple q-values for this test")
   }
   
-  combined_se <- .combine_diversity_results_for_rrm(analysis@diversity_results)
+  combined_se <- .combine_diversity_results_for_sait(analysis@diversity_results)
   
   # Check that column names have q-value suffixes
   col_names <- colnames(combined_se)
@@ -164,15 +164,15 @@ test_that("Helper: .combine_diversity_results_for_rrm adds q-value suffixes", {
   expect_true(has_q_suffix, info = "Column names should have _q= suffix")
 })
 
-# Tests for .build_rrm_args helper
-test_that("Helper: .build_rrm_args builds argument list correctly", {
+# Tests for .build_sait_args helper
+test_that("Helper: .build_sait_args builds argument list correctly", {
   analysis <- .create_test_analysis()
   
   if (length(analysis@diversity_results) == 0) {
     skip("No diversity results available")
   }
   
-  combined_se <- .combine_diversity_results_for_rrm(analysis@diversity_results)
+  combined_se <- .combine_diversity_results_for_sait(analysis@diversity_results)
   
   params <- list(
     condition_col = "condition",
@@ -181,7 +181,7 @@ test_that("Helper: .build_rrm_args builds argument list correctly", {
     pcorr = "BH"
   )
   
-  args <- .build_rrm_args(combined_se, params, return_model_data = TRUE, verbose = FALSE)
+  args <- .build_sait_args(combined_se, params, return_model_data = TRUE, verbose = FALSE)
   
   expect_is(args, "list")
   expect_true("se" %in% names(args))
@@ -191,14 +191,14 @@ test_that("Helper: .build_rrm_args builds argument list correctly", {
   expect_equal(args$return_model_data, TRUE)
 })
 
-test_that("Helper: .build_rrm_args respects NULL parameters", {
+test_that("Helper: .build_sait_args respects NULL parameters", {
   analysis <- .create_test_analysis()
   
   if (length(analysis@diversity_results) == 0) {
     skip("No diversity results available")
   }
   
-  combined_se <- .combine_diversity_results_for_rrm(analysis@diversity_results)
+  combined_se <- .combine_diversity_results_for_sait(analysis@diversity_results)
   
   params <- list(
     condition_col = NULL,
@@ -207,15 +207,15 @@ test_that("Helper: .build_rrm_args respects NULL parameters", {
     pcorr = NULL
   )
   
-  args <- .build_rrm_args(combined_se, params, return_model_data = FALSE, verbose = FALSE)
+  args <- .build_sait_args(combined_se, params, return_model_data = FALSE, verbose = FALSE)
   
   # NULL parameters should not be in args (or should be handled gracefully)
   expect_is(args, "list")
   expect_true("se" %in% names(args))
 })
 
-# Tests for .validate_and_extract_rrm_result helper
-test_that("Helper: .validate_and_extract_rrm_result validates data frame", {
+# Tests for .validate_and_extract_sait_result helper
+test_that("Helper: .validate_and_extract_sait_result validates data frame", {
   # Create a valid result
   result_df <- data.frame(
     gene = c("gene1", "gene2"),
@@ -223,7 +223,7 @@ test_that("Helper: .validate_and_extract_rrm_result validates data frame", {
     row.names = NULL
   )
   
-  extracted <- .validate_and_extract_rrm_result(result_df)
+  extracted <- .validate_and_extract_sait_result(result_df)
   
   expect_is(extracted, "list")
   expect_true("results" %in% names(extracted))
@@ -231,7 +231,7 @@ test_that("Helper: .validate_and_extract_rrm_result validates data frame", {
   expect_equal(nrow(extracted$results), 2)
 })
 
-test_that("Helper: .validate_and_extract_rrm_result extracts from list result", {
+test_that("Helper: .validate_and_extract_sait_result extracts from list result", {
   result_list <- list(
     results = data.frame(
       gene = c("gene1", "gene2"),
@@ -240,14 +240,14 @@ test_that("Helper: .validate_and_extract_rrm_result extracts from list result", 
     model_data = list(some_model = "data")
   )
   
-  extracted <- .validate_and_extract_rrm_result(result_list)
+  extracted <- .validate_and_extract_sait_result(result_list)
   
   expect_is(extracted, "list")
   expect_equal(nrow(extracted$results), 2)
   expect_is(extracted$model_data, "list")
 })
 
-test_that("Helper: .validate_and_extract_rrm_result handles empty results", {
+test_that("Helper: .validate_and_extract_sait_result handles empty results", {
   empty_df <- data.frame(
     gene = character(0),
     adj_p_interaction = numeric(0)
@@ -255,7 +255,7 @@ test_that("Helper: .validate_and_extract_rrm_result handles empty results", {
   
   # Expect a warning about empty results (expected behavior)
   extracted <- expect_warning(
-    .validate_and_extract_rrm_result(empty_df),
+    .validate_and_extract_sait_result(empty_df),
     "Result is empty"
   )
   
@@ -263,61 +263,61 @@ test_that("Helper: .validate_and_extract_rrm_result handles empty results", {
   expect_equal(nrow(extracted$results), 0)
 })
 
-test_that("Helper: .validate_and_extract_rrm_result detects missing columns", {
+test_that("Helper: .validate_and_extract_sait_result detects missing columns", {
   incomplete_df <- data.frame(
     gene = c("gene1", "gene2"),
     p_value = c(0.01, 0.05)
   )
   
   expect_error(
-    .validate_and_extract_rrm_result(incomplete_df),
+    .validate_and_extract_sait_result(incomplete_df),
     "Missing columns"
   )
 })
 
-# Tests for .store_rrm_results_in_analysis helper
-test_that("Helper: .store_rrm_results_in_analysis stores results in analysis", {
+# Tests for .store_sait_results_in_analysis helper
+test_that("Helper: .store_sait_results_in_analysis stores results in analysis", {
   analysis <- .create_test_analysis()
   
-  rrm_results_df <- data.frame(
+  sait_results_df <- data.frame(
     gene = c("gene1", "gene2"),
     adj_p_interaction = c(0.01, 0.05)
   )
   
-  result <- .store_rrm_results_in_analysis(analysis, rrm_results_df)
+  result <- .store_sait_results_in_analysis(analysis, sait_results_df)
   
   expect_s4_class(result, "TSENATAnalysis")
-  expect_true("rrm_interaction" %in% names(result@rrm_results))
-  expect_equal(nrow(result@rrm_results$rrm_interaction), 2)
+  expect_true("sait_interaction" %in% names(result@sait_results))
+  expect_equal(nrow(result@sait_results$sait_interaction), 2)
 })
 
-test_that("Helper: .store_rrm_results_in_analysis stores model_data if provided", {
+test_that("Helper: .store_sait_results_in_analysis stores model_data if provided", {
   analysis <- .create_test_analysis()
   
-  rrm_results_df <- data.frame(
+  sait_results_df <- data.frame(
     gene = c("gene1", "gene2"),
     adj_p_interaction = c(0.01, 0.05)
   )
   
   model_data <- list(models = "some_models", metadata = "test")
   
-  result <- .store_rrm_results_in_analysis(analysis, rrm_results_df, model_data)
+  result <- .store_sait_results_in_analysis(analysis, sait_results_df, model_data)
   
   expect_s4_class(result, "TSENATAnalysis")
-  expect_true("rrm_interaction_model_data" %in% names(result@rrm_results))
-  expect_is(result@rrm_results$rrm_interaction_model_data, "list")
+  expect_true("sait_interaction_model_data" %in% names(result@sait_results))
+  expect_is(result@sait_results$sait_interaction_model_data, "list")
 })
 
-test_that("Helper: .store_rrm_results_in_analysis tracks function call", {
+test_that("Helper: .store_sait_results_in_analysis tracks function call", {
   analysis <- .create_test_analysis()
   
-  rrm_results_df <- data.frame(
+  sait_results_df <- data.frame(
     gene = c("gene1"),
     adj_p_interaction = c(0.01)
   )
   
-  result <- .store_rrm_results_in_analysis(analysis, rrm_results_df)
+  result <- .store_sait_results_in_analysis(analysis, sait_results_df)
   
   # Check that function call was tracked
-  expect_true("calculate_rrm" %in% result@metadata$function_calls)
+  expect_true("calculate_sait" %in% result@metadata$function_calls)
 })

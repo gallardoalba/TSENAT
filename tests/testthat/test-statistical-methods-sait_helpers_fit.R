@@ -1683,9 +1683,9 @@ test_that("Helper error messages are informative", {
 # REDISTRIBUTED TESTS FROM test-infrastructure-statistical_validation.R
 # ============================================================================
 
-context("RRMs: Mixed Model Fallback Improvement")
+context("SAITs: Mixed Model Fallback Improvement")
 
-test_that("rrm_subject_fixed fallback preserves power vs. rrm_nosubject", {
+test_that("sait_subject_fixed fallback preserves power vs. sait_nosubject", {
     skip_if_not_installed("lme4")
     set.seed(102)
     
@@ -1720,7 +1720,7 @@ test_that("rrm_subject_fixed fallback preserves power vs. rrm_nosubject", {
     expect_true(p_with_subj < p_no_subj)
 })
 
-test_that(".try_rrm_fallbacks uses factor(subject), not numeric subject", {
+test_that(".try_sait_fallbacks uses factor(subject), not numeric subject", {
     set.seed(103)
     
     # Create test data
@@ -1732,13 +1732,13 @@ test_that(".try_rrm_fallbacks uses factor(subject), not numeric subject", {
     )
     
     # Run fallback function
-    fb <- .try_rrm_fallbacks(df, verbose = FALSE)
+    fb <- .try_sait_fallbacks(df, verbose = FALSE)
     
     expect_true(!is.null(fb))
     expect_true(!is.null(fb$fit1))
     
     # Extract coefficients to verify it's treating subject as factor
-    if (fb$method == "rrm_subject_fixed") {
+    if (fb$method == "sait_subject_fixed") {
         coef_names <- names(coef(fb$fit1))
         # Should have factor(subject) terms, not a single "subject" slope
         subj_terms <- grep("factor\\(subject\\)", coef_names)

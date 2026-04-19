@@ -1629,7 +1629,7 @@ test_that("calculate_m_estimator: returns TSENATAnalysis with m_estimation resul
     n_samples_per_group = 3,
     q_values = c(0.5, 1.0),
     include_divergence = TRUE,
-    include_rrm_results = TRUE,
+    include_sait_results = TRUE,
     seed = 3017,
     verbose = FALSE
   )
@@ -1659,7 +1659,7 @@ test_that("calculate_m_estimator: handles different loss functions", {
     n_samples_per_group = 2,
     q_values = c(0.5, 1.0),
     include_divergence = TRUE,
-    include_rrm_results = TRUE,
+    include_sait_results = TRUE,
     seed = 3018,
     verbose = FALSE
   )
@@ -1697,7 +1697,7 @@ test_that("prepare_gene_switching_tables_s4: requires isoform switching results"
     n_samples_per_group = 2,
     q_values = c(0.5, 1.0),
     include_divergence = FALSE,
-    include_rrm_results = FALSE,
+    include_sait_results = FALSE,
     seed = 3019,
     verbose = FALSE
   )
@@ -1723,7 +1723,7 @@ test_that("prepare_gene_switching_tables_s4: returns data structure", {
     n_samples_per_group = 2,
     q_values = c(0.5, 1.0),
     include_divergence = FALSE,
-    include_rrm_results = FALSE,
+    include_sait_results = FALSE,
     seed = 3020,
     verbose = FALSE
   )

@@ -41,8 +41,8 @@ Pipeline execution order (enforced, follows TSENAT.Rmd vignette):
   \item \code{calculate_diversity()} - Tsallis entropy per q-value
   \item \code{plot_diversity_spectrum()} - Visualize q-spectrum
   \item \code{calculate_m_estimator()} - Sample influence QC analysis
-  \item \code{calculate_rrm()} - LM/RRM interaction testing
-  \item \code{plot_rrm()} - RRM results visualization
+  \item \code{calculate_sait()} - LM/SAIT interaction testing
+  \item \code{plot_sait()} - SAIT results visualization
   \item \code{calculate_jis()} - Transcript switching detection
   \item \code{plot_jis_delta()} - Multi-q influence heatmap (gene switching tables computed lazily via results())
   \item \code{plot_expression()} - Top transcript visualization

@@ -1,5 +1,5 @@
 
-context("RRM Interaction: GEE Method Implementation")
+context("SAIT Interaction: GEE Method Implementation")
 library(testthat)
 library(TSENAT)
 library(SummarizedExperiment)
@@ -38,7 +38,7 @@ test_that("gee method returns expected columns (basic functionality)", {
         colData = cd
     )
     
-    res <- .calculate_rrm(se,
+    res <- .calculate_sait(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 8
@@ -93,7 +93,7 @@ test_that("gee method with paired design and subject_col", {
         colData = cd
     )
     
-    res <- .calculate_rrm(se,
+    res <- .calculate_sait(se,
         condition_col = "sample_type",
         method = "gee",
         subject_col = "sample_base",
@@ -142,7 +142,7 @@ test_that("gee method with paired=TRUE uses sample_base", {
         colData = cd
     )
     
-    res <- .calculate_rrm(se,
+    res <- .calculate_sait(se,
         condition_col = "sample_type",
         method = "gee",
         paired = TRUE,
@@ -194,7 +194,7 @@ test_that("gee method filters genes with min_obs", {
     )
     
     res <- expect_warning(
-        .calculate_rrm(se,
+        .calculate_sait(se,
             condition_col = "samples",
             method = "gee",
             min_obs = 15  # strict cutoff
@@ -246,7 +246,7 @@ test_that("gee method handles missing subject_col gracefully", {
     
     # GEE should warn or use fallback when subject_col not provided for paired design
     # Should not crash
-    res <- .calculate_rrm(se,
+    res <- .calculate_sait(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 8
@@ -293,7 +293,7 @@ test_that("gee with exchangeable correlation structure", {
     
     # Test that exchangeable correlation structure can be used
     # Note: This requires an additional parameter 'corstr' in the function
-    res <- .calculate_rrm(se,
+    res <- .calculate_sait(se,
         condition_col = "sample_type",
         method = "gee",
         subject_col = "sample_base",
@@ -340,7 +340,7 @@ test_that("gee method produces p-values in valid range [0,1]", {
         colData = cd
     )
     
-    res <- .calculate_rrm(se,
+    res <- .calculate_sait(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 8
@@ -392,14 +392,14 @@ test_that("gee method returns consistent results (reproducibility)", {
     
     # Run the same analysis twice
     set.seed(999)
-    res1 <- .calculate_rrm(se,
+    res1 <- .calculate_sait(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 8
     )
     
     set.seed(999)
-    res2 <- .calculate_rrm(se,
+    res2 <- .calculate_sait(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 8
@@ -457,7 +457,7 @@ test_that("gee requires geepack package", {
     if (requireNamespace("geepack", quietly = TRUE)) {
         # geepack is available: the function should run without error
         expect_silent(
-            .calculate_rrm(se,
+            .calculate_sait(se,
                 condition_col = "samples",
                 method = "gee",
                 min_obs = 8
@@ -466,7 +466,7 @@ test_that("gee requires geepack package", {
     } else {
         # geepack missing: expect an informative error
         expect_error(
-            .calculate_rrm(se,
+            .calculate_sait(se,
                 condition_col = "samples",
                 method = "gee",
                 min_obs = 8
@@ -509,7 +509,7 @@ test_that("gee produces lower p-values for strong interactions", {
         colData = cd
     )
     
-    res <- .calculate_rrm(se,
+    res <- .calculate_sait(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 8
@@ -537,13 +537,13 @@ test_that("gee produces lower p-values for strong interactions", {
     }
 })
 
-context("RRM Methods: Comparison Including GEE")
+context("SAIT Methods: Comparison Including GEE")
 
 test_that("gee produces reasonable results compared to linear method", {
     skip_if_not_installed("geepack")
     
     # Use truly random unpaired data - both methods should handle noisy data similarly
-    # Column names must have _q= pattern for .calculate_rrm() to work
+    # Column names must have _q= pattern for .calculate_sait() to work
     qvec <- c(0.01, 0.05, 0.1, 0.2, 0.5, 0.8, 0.9, 0.95, 0.99)
     sample_names <- rep(c("S1", "S2"), each = length(qvec))
     coln <- paste0(sample_names, "_q=", rep(qvec, 2))
@@ -573,13 +573,13 @@ test_that("gee produces reasonable results compared to linear method", {
     )
     
     # Run both methods
-    res_lmm <- .calculate_rrm(se,
+    res_lmm <- .calculate_sait(se,
         condition_col = "samples",
         method = "lmm",
         min_obs = 8
     )
     
-    res_gee <- .calculate_rrm(se,
+    res_gee <- .calculate_sait(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 8
@@ -631,7 +631,7 @@ test_that("GEE method returns Shapiro-Wilk normality test results", {
         colData = cd
     )
     
-    res <- .calculate_rrm(se,
+    res <- .calculate_sait(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 8
@@ -682,7 +682,7 @@ test_that("GEE Shapiro-Wilk test correctly flags non-normal residuals", {
         colData = cd
     )
     
-    res <- .calculate_rrm(se,
+    res <- .calculate_sait(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 8
@@ -749,8 +749,8 @@ test_that("GEE bias_correction parameter affects p-values in small clusters", {
     )
     
     # Note: Check if function supports bias_correction parameter
-    # If not in .calculate_rrm, test .gee_interaction directly if available
-    res <- .calculate_rrm(se,
+    # If not in .calculate_sait, test .gee_interaction directly if available
+    res <- .calculate_sait(se,
         condition_col = "condition",
         method = "gee",
         subject_col = "cluster",
@@ -822,8 +822,8 @@ test_that("GEE t-distribution p-values differ from normal for small n_clusters",
         colData = cd2
     )
     
-    res1 <- .calculate_rrm(se1, condition_col = "condition", method = "gee", subject_col = "cluster", min_obs = 5)
-    res2 <- .calculate_rrm(se2, condition_col = "condition", method = "gee", subject_col = "cluster", min_obs = 5)
+    res1 <- .calculate_sait(se1, condition_col = "condition", method = "gee", subject_col = "cluster", min_obs = 5)
+    res2 <- .calculate_sait(se2, condition_col = "condition", method = "gee", subject_col = "cluster", min_obs = 5)
     
     if (is.data.frame(res1)) { p1 <- res1$p_interaction[1] } else { p1 <- SummarizedExperiment::rowData(res1)$p_interaction[1] }
     if (is.data.frame(res2)) { p2 <- res2$p_interaction[1] } else { p2 <- SummarizedExperiment::rowData(res2)$p_interaction[1] }
@@ -884,7 +884,7 @@ test_that("GEE with AR(1) correlation structure handles repeated measures", {
     )
     
     # GEE should handle AR(1) structure in subject=subject column
-    res <- .calculate_rrm(se,
+    res <- .calculate_sait(se,
         condition_col = "condition",
         method = "gee",
         subject_col = "subject",
@@ -938,7 +938,7 @@ test_that("GEE detects heteroscedasticity and adjusts weights", {
     )
     
     # GEE should detect heteroscedasticity and use weights
-    res <- .calculate_rrm(se,
+    res <- .calculate_sait(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 8
@@ -992,7 +992,7 @@ test_that("GEE handles ARIMA differencing for non-stationary data", {
     )
     
     # GEE should apply ARIMA differencing internally
-    res <- .calculate_rrm(se,
+    res <- .calculate_sait(se,
         condition_col = "condition",
         method = "gee",
         subject_col = "subject",
@@ -1043,7 +1043,7 @@ test_that("GEE correctly filters genes below min_obs threshold", {
     )
     
     res <- expect_warning(
-        .calculate_rrm(se,
+        .calculate_sait(se,
             condition_col = "samples",
             method = "gee",
             min_obs = 15  # Strict threshold
@@ -1098,7 +1098,7 @@ test_that("GEE with no interaction effect produces high p-values", {
         colData = cd
     )
     
-    res <- .calculate_rrm(se,
+    res <- .calculate_sait(se,
         condition_col = "condition",
         method = "gee",
         subject_col = "subject",
@@ -1151,7 +1151,7 @@ test_that("GEE with strong interaction effect produces low p-values", {
         colData = cd
     )
     
-    res <- .calculate_rrm(se,
+    res <- .calculate_sait(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 8
@@ -1230,7 +1230,7 @@ test_that("GEE handles imbalanced clusters correctly", {
     )
     
     # GEE should handle imbalanced designs
-    res <- .calculate_rrm(se,
+    res <- .calculate_sait(se,
         condition_col = "condition",
         method = "gee",
         subject_col = "cluster",
@@ -1276,7 +1276,7 @@ test_that("GEE produces different results for different correlation structures",
     )
     
     # Run GEE with default (auto-select) correlation structure
-    res_auto <- .calculate_rrm(se,
+    res_auto <- .calculate_sait(se,
         condition_col = "condition",
         method = "gee",
         subject_col = "subject",
@@ -1846,7 +1846,7 @@ test_that("GEE with small clusters produces K-C corrected results", {
         colData = cd
     )
     
-    res <- .calculate_rrm(se,
+    res <- .calculate_sait(se,
         condition_col = "condition",
         method = "gee",
         subject_col = "subject",
@@ -1900,7 +1900,7 @@ test_that("K-C correction increases p-values for small clusters", {
         colData = cd
     )
     
-    res <- .calculate_rrm(se,
+    res <- .calculate_sait(se,
         condition_col = "condition",
         method = "gee",
         subject_col = "subject",
@@ -1962,7 +1962,7 @@ test_that("K-C correction with design effect properly accounts for multi-q", {
         colData = cd
     )
     
-    res <- .calculate_rrm(se,
+    res <- .calculate_sait(se,
         condition_col = "condition",
         method = "gee",
         subject_col = "subject",
@@ -2016,7 +2016,7 @@ test_that("GEE backward compatible when n_eff > 30 (no K-C)", {
         colData = cd
     )
     
-    res <- .calculate_rrm(se,
+    res <- .calculate_sait(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 10,
@@ -2083,7 +2083,7 @@ test_that("GEE results unchanged by K-C when n_clusters large", {
         colData = cd
     )
     
-    res <- .calculate_rrm(se,
+    res <- .calculate_sait(se,
         condition_col = "samples",
         method = "gee",
         min_obs = 8
@@ -2293,12 +2293,12 @@ test_that(".gee_interaction with valid data returns result", {
   }
 })
 # Tests for regularized regression interactions: GEE and LMM comparisons
-# GAM tests have been moved to test-statistical-methods-rrm_gam.R
+# GAM tests have been moved to test-statistical-methods-sait_gam.R
 
 
-context("RRMs: GEE K-C Bias Correction Algorithm")
+context("SAITs: GEE K-C Bias Correction Algorithm")
 
-test_that("bias_correction parameter is accepted by calculate_rrm", {
+test_that("bias_correction parameter is accepted by calculate_sait", {
     skip_if_not_installed("geepack")
     
     # Create simple test data with small number of clusters (triggering K-C correction)
@@ -2349,7 +2349,7 @@ test_that("bias_correction parameter is accepted by calculate_rrm", {
     )
     
     # Test that bias_correction parameter doesn't cause errors
-    res_with_correction <- .calculate_rrm(se,
+    res_with_correction <- .calculate_sait(se,
         condition_col = "sample_type",
         method = "gee",
         subject_col = "sample_base",
@@ -2357,7 +2357,7 @@ test_that("bias_correction parameter is accepted by calculate_rrm", {
         min_obs = 5
     )
     
-    res_without_correction <- .calculate_rrm(se,
+    res_without_correction <- .calculate_sait(se,
         condition_col = "sample_type",
         method = "gee",
         subject_col = "sample_base",
@@ -2436,7 +2436,7 @@ test_that("K-C bias_correction is triggered only for small clusters (n<20)", {
     )
     
     # Run with small clusters
-    res_small <- .calculate_rrm(se_small,
+    res_small <- .calculate_sait(se_small,
         condition_col = "sample_type",
         method = "gee",
         subject_col = "sample_base",
@@ -2481,7 +2481,7 @@ test_that("K-C bias_correction is triggered only for small clusters (n<20)", {
     )
     
     # Run with large clusters
-    res_large <- .calculate_rrm(se_large,
+    res_large <- .calculate_sait(se_large,
         condition_col = "sample_type",
         method = "gee",
         subject_col = "sample_base",
@@ -2535,7 +2535,7 @@ test_that("K-C correction maintains theoretical Type I error rate for small samp
         colData = cd
     )
     
-    res <- .calculate_rrm(se,
+    res <- .calculate_sait(se,
         condition_col = "sample_type",
         method = "gee",
         subject_col = "sample_base",

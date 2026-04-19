@@ -750,7 +750,7 @@ test_that("knot selection produces reasonable values", {
 # GAM Integration Tests (moved from test-statistical-methods-lm.R)
 # ===============================================================================
 
-context("RRM Interaction: GAM and FPCA Methods")
+context("SAIT Interaction: GAM and FPCA Methods")
 
 test_that("gam method attaches p_interaction to rowData when mgcv available", {
     skip_if_not_installed("mgcv")
@@ -773,7 +773,7 @@ test_that("gam method attaches p_interaction to rowData when mgcv available", {
 
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
 
-    res <- suppressWarnings(.calculate_rrm(se, condition_col = "sample_type", method = "gam", min_obs = 8))
+    res <- suppressWarnings(.calculate_sait(se, condition_col = "sample_type", method = "gam", min_obs = 8))
     if (is.data.frame(res)) {
         rd_out <- as.data.frame(res)
     } else {
@@ -786,7 +786,7 @@ test_that("gam method attaches p_interaction to rowData when mgcv available", {
 # GAM Helper Function Tests (moved from test-statistical-methods-lm.R)
 # ===============================================================================
 
-context("RRM Interaction: GAM p-Value Column Extraction")
+context("SAIT Interaction: GAM p-Value Column Extraction")
 
 test_that(".gam_interaction handles null cases gracefully", {
     # Test that GAM handles various data conditions
@@ -870,7 +870,7 @@ test_that(".gam_interaction handles anova failures", {
 # GAM Regularization and Integration Tests
 # ============================================================================
 
-context("RRMs: GAM Regularization (GAMSEL with Spline Controls)")
+context("SAITs: GAM Regularization (GAMSEL with Spline Controls)")
 
 # Helper function to create test SummarizedExperiment
 create_test_se_gam_integration <- function(n_samples = 20, n_genes = 5, seed = 42) {
@@ -934,7 +934,7 @@ test_that("GAM with PCA mode (no regularization) works", {
     se <- create_test_se_gam_integration(n_samples = 20, n_genes = 5)
     
     # Test with PCA regularization (should be equivalent to no regularization)
-    result <- suppressWarnings(.calculate_rrm(
+    result <- suppressWarnings(.calculate_sait(
         se,
         condition_col = "group",
         method = "gam",
@@ -963,7 +963,7 @@ test_that("GAM with spline regularization works", {
     se <- create_test_se_gam_integration(n_samples = 20, n_genes = 5)
     
     # Test with spline regularization
-    result <- suppressWarnings(.calculate_rrm(
+    result <- suppressWarnings(.calculate_sait(
         se,
         condition_col = "group",
         method = "gam",
@@ -990,7 +990,7 @@ test_that("GAM with GAMSEL regularization works", {
     se <- create_test_se_gam_integration(n_samples = 20, n_genes = 5)
     
     # Test with GAMSEL regularization
-    result <- suppressWarnings(.calculate_rrm(
+    result <- suppressWarnings(.calculate_sait(
         se,
         condition_col = "group",
         method = "gam",
@@ -1053,7 +1053,7 @@ test_that("GAM regularization handles small sample sizes gracefully", {
     se <- create_test_se_gam_integration(n_samples = 12, n_genes = 3)
     
     # Apply spline regularization with small samples
-    result <- suppressWarnings(.calculate_rrm(
+    result <- suppressWarnings(.calculate_sait(
         se,
         condition_col = "group",
         method = "gam",
@@ -1076,7 +1076,7 @@ test_that("Regularization parameter validation works for GAM", {
     
     # Test that invalid regularization values are caught
     expect_error(
-        .calculate_rrm(
+        .calculate_sait(
             se,
             condition_col = "group",
             method = "gam",
@@ -1094,7 +1094,7 @@ test_that("GAM regularization consistency across multiple runs", {
     se <- create_test_se_gam_integration(n_samples = 20, n_genes = 5, seed = 123)
     
     set.seed(123)
-    result1 <- suppressWarnings(.calculate_rrm(
+    result1 <- suppressWarnings(.calculate_sait(
         se,
         condition_col = "group",
         method = "gam",
@@ -1105,7 +1105,7 @@ test_that("GAM regularization consistency across multiple runs", {
     ))
     
     set.seed(123)
-    result2 <- suppressWarnings(.calculate_rrm(
+    result2 <- suppressWarnings(.calculate_sait(
         se,
         condition_col = "group",
         method = "gam",
@@ -1131,7 +1131,7 @@ test_that("GAM regularization vs non-regularized gives comparable results", {
         se <- create_test_se_gam_integration(n_samples = 20, n_genes = 5)
         
         # Run both with and without regularization
-        result_no_reg <- .calculate_rrm(
+        result_no_reg <- .calculate_sait(
             se,
             condition_col = "group",
             method = "gam",
@@ -1141,7 +1141,7 @@ test_that("GAM regularization vs non-regularized gives comparable results", {
             verbose = FALSE
         )
         
-        result_spline <- .calculate_rrm(
+        result_spline <- .calculate_sait(
             se,
             condition_col = "group",
             method = "gam",
@@ -1182,7 +1182,7 @@ test_that("GAM regularization works with paired samples", {
     se <- create_test_se_gam_integration(n_samples = 20, n_genes = 5)
     
     # Test with paired data
-    result <- suppressWarnings(.calculate_rrm(
+    result <- suppressWarnings(.calculate_sait(
         se,
         condition_col = "group",
         method = "gam",
@@ -1236,7 +1236,7 @@ test_that("GAM works with continuous q-value patterns", {
     # Use larger sample size and wider q-range for better GAM convergence
     se <- create_test_se_gam_integration(n_samples = 50, n_genes = 8)
     
-    result <- .calculate_rrm(
+    result <- .calculate_sait(
         se,
         condition_col = "group",
         method = "gam",
@@ -1315,7 +1315,7 @@ test_that("GAM bias correction is disabled when bias_correction=FALSE", {
         se <- create_test_se_small_gam(n_samples = 12, n_genes = 3)
         
         # Test with bias_correction=FALSE
-        result <- .calculate_rrm(
+        result <- .calculate_sait(
             se,
             condition_col = "group",
             method = "gam",
@@ -1342,7 +1342,7 @@ test_that("GAM bias correction is applied for small samples", {
         se <- create_test_se_small_gam(n_samples = 12, n_genes = 3)
         
         # Test with bias_correction=TRUE (default)
-        result <- .calculate_rrm(
+        result <- .calculate_sait(
             se,
             condition_col = "group",
             method = "gam",
@@ -1915,7 +1915,7 @@ test_that("Bias correction with GAM spline regularization", {
         se <- create_test_se_small_gam(n_samples = 12, n_genes = 3)
         
         # Test combining spline regularization with bias correction
-        result <- .calculate_rrm(
+        result <- .calculate_sait(
             se,
             condition_col = "group",
             method = "gam",
@@ -1937,7 +1937,7 @@ test_that("Large samples ignore bias correction threshold (n >= 20)", {
         se <- create_test_se_small_gam(n_samples = 20, n_genes = 3)
         
         # Even with bias_correction=TRUE, large samples shouldn't trigger it
-        result_large <- .calculate_rrm(
+        result_large <- .calculate_sait(
             se,
             condition_col = "group",
             method = "gam",
@@ -1961,7 +1961,7 @@ test_that("Bias correction consistency with paired GAM", {
         se <- create_test_se_small_gam(n_samples = 12, n_genes = 3)
         
         # Test with paired design
-        result <- .calculate_rrm(
+        result <- .calculate_sait(
             se,
             condition_col = "group",
             method = "gam",

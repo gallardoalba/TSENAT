@@ -67,7 +67,7 @@ setGeneric("getConfig", function(object, ...) standardGeneric("getConfig"))
 #' Get cached plot
 #'
 #' @param object \code{TSENATAnalysis} object.
-#' @param type \code{character}. Plot type: 'q_curve', 'rrm_interaction',
+#' @param type \code{character}. Plot type: 'q_curve', 'sait_interaction',
 #'   'divergence', 'influence', 'volcano', etc.
 #'   If NULL, returns all cached plots.
 #'

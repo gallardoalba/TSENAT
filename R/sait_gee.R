@@ -823,7 +823,7 @@
     invisible(kc_result)
 }
 
-# GEE interaction helper for calculate_rrm_interaction Generalized Estimating
+# GEE interaction helper for calculate_sait_interaction Generalized Estimating
 # Equations (GEE) with AR(1) correlation structure for q-dependent entropy
 # measurements. GEE is robust for correlated data and doesn't assume normality
 # of random effects.  Paper S171 (Zimmerman & Harville, 1991): 'Linear Models

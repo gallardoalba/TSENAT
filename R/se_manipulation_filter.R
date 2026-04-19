@@ -793,7 +793,7 @@
 #' The function preserves all analysis structure:
 #' - Diversity results are subsetted to match gene and sample selection
 #' - Jackknife results maintain confidence intervals for selected samples
-#' - RRM results (gene-level statistics) remain intact
+#' - SAIT results (gene-level statistics) remain intact
 #' - Divergence calculations are updated if applicable
 #' - Configuration and metadata are unchanged
 #'

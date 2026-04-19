@@ -108,10 +108,10 @@ test_that("Multiple plot functions work after lazy-loading", {
     n_samples_per_group = 5
   )
   
-  # RRM interaction requires at least 5 q-values
+  # SAIT interaction requires at least 5 q-values
   analysis <- calculate_diversity(analysis, q = seq(0.5, 2, by = 0.375), verbose = FALSE)
   analysis <- calculate_divergence(analysis, q = seq(0.5, 2, by = 0.375), verbose = FALSE)
-  analysis <- calculate_rrm(
+  analysis <- calculate_sait(
     analysis, 
     condition_col = "condition",
     verbose = FALSE

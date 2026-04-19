@@ -16,9 +16,9 @@ calculate_jis(
   threshold = 90,
   nboot = 1000,
   pseudocount = NULL,
-  rrm_results = NULL,
-  rrm_p_threshold = 0.05,
-  use_rrm_fdr = TRUE,
+  sait_results = NULL,
+  sait_p_threshold = 0.05,
+  use_sait_fdr = TRUE,
   output_file = NULL,
   verbose = FALSE,
   ...
@@ -71,16 +71,16 @@ confidence
 \item{pseudocount}{\code{numeric}.  Pseudocount value for 
 count regularization.  Default:  NULL (uses @config$pseudocount or  0).}
 
-\item{rrm_results}{\code{data. frame}.
-Optional RRM interaction results to filter genes.
- If provided, only genes in rrm_results are analyzed.}
+\item{sait_results}{\code{data. frame}.
+Optional SAIT interaction results to filter genes.
+ If provided, only genes in sait_results are analyzed.}
 
-\item{rrm_p_threshold}{\code{numeric}.  P-value threshold for 
+\item{sait_p_threshold}{\code{numeric}.  P-value threshold for 
 filtering genes from 
-  rrm_results (default: 0.05).}
+  sait_results (default: 0.05).}
 
-\item{use_rrm_fdr}{\code{logical}.  If TRUE,
-uses adjusted p-values from rrm_results 
+\item{use_sait_fdr}{\code{logical}.  If TRUE,
+uses adjusted p-values from sait_results 
  (default: TRUE).}
 
 \item{output_file}{\code{character} or  \code{NULL}.
@@ -144,7 +144,7 @@ Affected parameters:
   \item \code{q}: Multi-q vector c(0, 0.5, 1, 1.5, 2) if not provided, or \code{@config$q} if available
   \item \code{nboot}: Uses \code{@config$nboot} if available, else 1000
   \item \code{threshold}: Uses \code{@config$threshold} if available, else 90
-  \item \code{rrm_p_threshold}: Uses \code{@config$rrm_p_threshold} if available, else 0.05
+  \item \code{sait_p_threshold}: Uses \code{@config$sait_p_threshold} if available, else 0.05
 }
 
 This allows setting defaults once in the config and reusing across multiple analyses.
