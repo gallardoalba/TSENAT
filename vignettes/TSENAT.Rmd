@@ -507,6 +507,14 @@ by the scale-adaptive interaction test.
 combined_plot <- plot_sait(
     analysis,
     n_top = 4
+) + 
+ggplot2::theme(
+  text = ggplot2::element_text(size = 12.1),
+  axis.title = ggplot2::element_text(size = 12.1),
+  axis.text = ggplot2::element_text(size = 11),
+  legend.text = ggplot2::element_text(size = 11),
+  legend.title = ggplot2::element_text(size = 12.1),
+  plot.title = ggplot2::element_text(size = 13.2)
 )
 print(combined_plot)
 ```

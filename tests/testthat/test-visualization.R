@@ -2324,7 +2324,6 @@ test_that("plot_diversity_spectrum gene-mode: detect p_value format (line 584-58
   } else {
     expect_true(TRUE)
   }
-  }
 })
 
 # ==============================================================================

@@ -71,7 +71,7 @@
         nrow(comparison_df)), rep("Rank test", nrow(comparison_df))), stringsAsFactors = FALSE)
 
     p2 <- ggplot2::ggplot(p_long, ggplot2::aes(x = p_value, fill = method)) + ggplot2::geom_histogram(bins = 30,
-        alpha = 0.6, position = "identity") + ggplot2::scale_fill_manual(values = c(LM = "#3498db",
+        alpha = 0.6, position = "identity") + ggplot2::scale_fill_manual(values = c(SAIT = "#3498db",
         `Rank test` = "#e74c3c")) + ggplot2::labs(title = "P-value Distributions",
         x = "P-value", y = "Frequency", fill = "Method") + .theme_base(base_size = 11) +
         ggplot2::theme(plot.title = ggplot2::element_text(size = 12, face = "plain",
@@ -82,7 +82,7 @@
 
     # Add global title with subtitle
     title_gg <- cowplot::ggdraw() + cowplot::draw_label("Comparing interaction detection across two statistical methods",
-        fontface = "bold", size = .font_sizes$title, x = 0.5, y = 0.75) + cowplot::draw_label("Concordance analysis between GAM and Scheirer-Ray-Hare tests",
+        fontface = "bold", size = .font_sizes$title, x = 0.5, y = 0.75) + cowplot::draw_label("Concordance analysis between SAIT and Scheirer-Ray-Hare tests",
         fontface = "italic", size = .font_sizes$subtitle, x = 0.5, y = 0.45, color = "gray40")
 
     # Combine all elements and convert to grob
