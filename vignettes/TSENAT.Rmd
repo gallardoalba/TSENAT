@@ -205,7 +205,7 @@ We now demonstrate a complete workflow for detecting **isoform switching**-when 
 In this workflow, you will:
 
 1. Load transcript counts and sample metadata
-2. Identify genes with significant scale-dependent isoform complexity changes (using linear model interaction testing)
+2. Identify genes with significant scale-dependent isoform complexity changes (using Scale-Adaptive Interaction Models)
 3. Assess which individual transcripts drive those changes (using jackknife resampling [@S232])
 4. Interpret results in the context of paired experimental designs
 
@@ -440,9 +440,9 @@ if (!is.null(sample_qc) && nrow(sample_qc) > 0) {
 
 **Interpretation:** Samples with distance from centroid >1.5 or proportion of affected genes >0.85 are flagged for quality control review. Flagged samples may reflect genuine biological heterogeneity or technical artifacts requiring careful examination before proceeding with downstream analysis.
 
-## Linear-Model interaction
+## Scale-Adaptive Interaction Models
 
-Each gene produces a **q-curve**: a trajectory showing how entropy changes across entropic scales from rare (low `q`) to abundant (high `q`) isoforms. Our goal is to detect whether this curve differs between groups—in other words, whether the effect of `q` on entropy **depends on** which group a sample belongs to. This is captured statistically as a **q x condition interaction**: if significant, it reveals genes with condition-specific diversity patterns that change shape across the diversity spectrum. Linear models (and their extensions) naturally formalize this multi-scale comparison, making them ideal for identifying such scale-dependent biological signals.
+Each gene produces a **q-curve**: a trajectory showing how entropy changes across entropic scales from rare (low `q`) to abundant (high `q`) isoforms. Our goal is to detect whether this curve differs between groups—in other words, whether the effect of `q` on entropy **depends on** which group a sample belongs to. This is captured statistically as a **q x condition interaction**: if significant, it reveals genes with condition-specific diversity patterns that change shape across the diversity spectrum. Scale-Adaptive Interaction Models (SAIT) naturally formalize this multi-scale comparison through adaptive statistical frameworks, making them ideal for identifying such scale-dependent biological signals.
 
 We can test for these interactions using one of four methods, each with specific strengths:
 

@@ -86,7 +86,7 @@
 #'   `method='fpca'`.
 #' @param multicorr Method for adjusting p-values across multiple q-values
 #'   to account for correlation structure in Tsallis entropy (default: 'hochberg').
-#'   The interaction p-values from linear models naturally exhibit AR(1)
+#'   The interaction p-values from Scale-Adaptive Interaction Models naturally exhibit AR(1)
 #'   correlation for different q-values of the same gene (Papers S168-S175).
 #'   \itemize{
 #'     \item `'hochberg'`: Hochberg stepup procedure (FWER <= alpha under positive
