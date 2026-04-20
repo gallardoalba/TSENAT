@@ -155,7 +155,6 @@ test_that(".validate_sait_method_dependencies validates GEE", {
 })
 
 test_that(".validate_sait_method_dependencies validates FPCA", {
-    # FPCA requires 'refund' package
     expect_silent(.validate_sait_method_dependencies("fpca"))
 })
 
