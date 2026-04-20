@@ -155,8 +155,8 @@ TSENAT provides a flexible statistical framework optimized for entropy-based div
 
 The statistical methods available in TSENAT include:
 
-- **Scale-Adaptive Interaction Models**: Multiple modeling approaches optimized for repeated measures with AR(1) correlation structure. GAM, LMM, GEE and FPCA are all parametrized to handle the non-normality and heteroscedasticity characteristic of entropy data.
-- **Scheirer-Ray-Hare rank tests**: The test operates solely on ranks, making it robust to outliers and extreme values. However, it shows lower power for interactions and can inflate Type I errors under heterogeneous variance. These limitations are mitigated through Hochberg multiple testing correction.
+- **Scale-adaptive interaction tests (SAIT)**: Multiple modeling approaches optimized for repeated measures with AR(1) correlation structure. GAM, LMM, GEE and FPCA are all parametrized to handle the non-normality and heteroscedasticity characteristic of entropy data.
+- **Scheirer-Ray-Hare (SRH) rank tests**: The test operates solely on ranks, making it robust to outliers and extreme values. However, it shows lower power for interactions and can inflate Type I errors under heterogeneous variance. These limitations are mitigated through Hochberg multiple testing correction.
 - **M-estimation**: Robust location estimation for group comparison using iteratively re-weighted least squares, resistant to outliers.
 - **Jackknife isoform switching**: Leave-one-out resampling to identify transcripts with condition-specific switching patterns and quantify their influence on entropy differences.
 
