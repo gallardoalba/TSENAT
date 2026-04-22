@@ -269,4 +269,4 @@ TSENAT builds upon the [SplicingFactory package](https://github.com/esebesty/Spl
 
 > **“If I ever come back from the past, it's to create a cyclone.”**
 >
-> - Juan José Lozano
+> -- Juan José Lozano
