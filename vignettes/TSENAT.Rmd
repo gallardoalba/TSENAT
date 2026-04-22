@@ -205,8 +205,8 @@ We now demonstrate a complete workflow for detecting **isoform switching**-when 
 In this workflow, you will:
 
 1. Load transcript counts and sample metadata
-2. Identify genes with significant scale-dependent isoform complexity changes (using Scale-Adaptive Interaction Models)
-3. Assess which individual transcripts drive those changes (using jackknife resampling [@S232])
+2. Identify genes with significant scale-dependent isoform complexity changes (using Scale-Adaptive Interaction Tests)
+3. Assess which individual transcripts drive those changes (using jackknife resampling)
 4. Interpret results in the context of paired experimental designs
 
 We'll work with a paired experimental design where treated and control samples are linked, enabling detection of robust biological signals while controlling for subject-level variability. By the end, you'll know not just *which genes* undergo isoform switching, but *which transcripts* are responsible and *at which diversity scales* the switching occurs.
