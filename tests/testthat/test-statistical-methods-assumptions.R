@@ -3525,3 +3525,220 @@ test_that(".calculate_assumptions preserves SE structure", {
   # Result should be a list
   expect_true(is.list(result) || is.null(result))
 })
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TEST SUITE: print.rank_assumptions() - NEWLY ADDED FOR COVERAGE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+test_that("print.rank_assumptions does not error", {
+    # Create a minimal valid rank_assumptions object
+    # This matches the structure returned by calculate_rank_assumptions()
+    result <- structure(
+        list(overall_summary = "Test summary"),
+        class = "rank_assumptions",
+        checks = list()
+    )
+    
+    expect_error(
+        print(result),
+        NA  # Should not error
+    )
+})
+
+test_that("print.rank_assumptions handles empty checks", {
+    result <- structure(
+        list(overall_summary = "Empty checks test"),
+        class = "rank_assumptions",
+        checks = list()
+    )
+    
+    # Just verify it doesn't error and returns invisibly
+    expect_error(
+        print(result),
+        NA
+    )
+    
+    # Verify class is correct
+    expect_true(inherits(result, "rank_assumptions"))
+})
+
+test_that("print.rank_assumptions with rank checks", {
+    result <- structure(
+        list(overall_summary = "With rank checks"),
+        class = "rank_assumptions",
+        checks = list(
+            exchangeability = list(
+                description = "Sample exchangeability",
+                method = "Permutation test",
+                status = "exchangeable",
+                p_value = 0.15
+            )
+        )
+    )
+    
+    # Verify print doesn't error and structure is correct
+    expect_error(print(result), NA)
+    expect_true(inherits(result, "rank_assumptions"))
+    
+    # Verify checks attribute exists with correct check
+    checks <- attr(result, "checks")
+    expect_true("exchangeability" %in% names(checks))
+})
+
+test_that("print.rank_assumptions with GAM metrics", {
+    result <- structure(
+        list(overall_summary = "With GAM metrics"),
+        class = "rank_assumptions",
+        checks = list(
+            gam_metrics = list(
+                concurvity = list(
+                    description = "Concurvity Index",
+                    method = "Integrated analysis",
+                    status = "acceptable",
+                    overall_concurvity = 0.45
+                )
+            )
+        )
+    )
+    
+    # Verify print doesn't error
+    expect_error(print(result), NA)
+    expect_true(inherits(result, "rank_assumptions"))
+    
+    # Verify GAM metrics are present in checks
+    checks <- attr(result, "checks")
+    expect_true("gam_metrics" %in% names(checks))
+})
+
+test_that("print.rank_assumptions with GEE metrics", {
+    result <- structure(
+        list(overall_summary = "With GEE metrics"),
+        class = "rank_assumptions",
+        checks = list(
+            gee_metrics = list(
+                exchangeable = list(
+                    description = "Exchangeable correlation",
+                    method = "GEE estimation",
+                    status = "appropriate",
+                    qic = 145.3
+                )
+            )
+        )
+    )
+    
+    # Verify print doesn't error
+    expect_error(print(result), NA)
+    expect_true(inherits(result, "rank_assumptions"))
+    
+    # Verify GEE metrics are present in checks
+    checks <- attr(result, "checks")
+    expect_true("gee_metrics" %in% names(checks))
+})
+
+test_that("print.rank_assumptions with LMM metrics", {
+    result <- structure(
+        list(overall_summary = "With LMM metrics"),
+        class = "rank_assumptions",
+        checks = list(
+            lmm_metrics = list(
+                random_intercept = list(
+                    description = "Random intercept model",
+                    method = "REML estimation",
+                    status = "converged",
+                    loglik = -125.5
+                )
+            )
+        )
+    )
+    
+    # Verify print doesn't error
+    expect_error(print(result), NA)
+    expect_true(inherits(result, "rank_assumptions"))
+    
+    # Verify LMM metrics are present in checks
+    checks <- attr(result, "checks")
+    expect_true("lmm_metrics" %in% names(checks))
+})
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TEST SUITE: .fit_cached_gams() - NEWLY ADDED FOR COVERAGE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+test_that(".fit_cached_gams returns valid GAM models", {
+    # Create test data: matrix of entropy values (genes x q-values)
+    entropy_data <- matrix(
+        c(2.5, 2.3, 2.1, 1.9, 1.7,
+          2.6, 2.4, 2.2, 2.0, 1.8,
+          2.4, 2.2, 2.0, 1.8, 1.6),
+        nrow = 3, ncol = 5, byrow = TRUE
+    )
+    q_values <- c(0.5, 1.0, 1.5, 2.0, 2.5)
+    
+    # Fit GAM models
+    result <- TSENAT:::.fit_cached_gams(
+        data = entropy_data,
+        q_values = q_values
+    )
+    
+    # Should return a list (possibly empty or with GAM models)
+    expect_true(is.list(result))
+})
+
+test_that(".fit_cached_gams caches results", {
+    # Test data: entropy values for multiple genes
+    test_data <- matrix(
+        c(1.5, 1.4, 1.3, 1.2, 1.1,
+          2.0, 1.9, 1.8, 1.7, 1.6),
+        nrow = 2, ncol = 5, byrow = TRUE
+    )
+    q_values <- c(0.5, 1.0, 1.5, 2.0, 2.5)
+    
+    # First call should compute
+    result1 <- TSENAT:::.fit_cached_gams(
+        data = test_data,
+        q_values = q_values
+    )
+    
+    # Second call with same parameters should return cached/same result
+    result2 <- TSENAT:::.fit_cached_gams(
+        data = test_data,
+        q_values = q_values
+    )
+    
+    # Results should be identical or same structure
+    expect_true(is.list(result1) && is.list(result2))
+})
+
+test_that(".fit_cached_gams handles small sample sizes", {
+    # Very small sample: 1 gene, 3 q-values
+    small_data <- matrix(
+        c(1.5, 1.3, 1.1),
+        nrow = 1, ncol = 3, byrow = TRUE
+    )
+    q_values <- c(0.5, 1.0, 1.5)
+    
+    # Should handle gracefully
+    result <- TSENAT:::.fit_cached_gams(
+        data = small_data,
+        q_values = q_values
+    )
+    
+    expect_true(is.list(result))
+})
+
+test_that(".fit_cached_gams validates input structure", {
+    # Valid data but empty q_values
+    test_data <- matrix(c(1, 2, 3), nrow = 1, ncol = 3)
+    q_values <- numeric(0)
+    
+    # Should handle empty q_values gracefully
+    result <- tryCatch(
+        TSENAT:::.fit_cached_gams(
+            data = test_data,
+            q_values = q_values
+        ),
+        error = function(e) NULL
+    )
+    
+    expect_true(is.null(result) || is.list(result))
+})

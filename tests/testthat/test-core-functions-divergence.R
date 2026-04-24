@@ -1195,3 +1195,188 @@ test_that("calculate_divergence: handles all NA divergence gracefully", {
   # Either processes successfully or errors gracefully
   expect_true(is.null(result) || is(result, "TSENATAnalysis"))
 })
+
+# ============================================================================
+# SECTION: Diversity Post-hoc Normalization
+# ============================================================================
+# Tests for .convert_result_to_se and .apply_diversity_post_hoc_norm
+
+test_that(".convert_result_to_se converts data.frame to SummarizedExperiment", {
+  # Create test data.frame with only numeric columns (samples)
+  result_df <- data.frame(
+    sample_1 = c(0.8, 0.7, 0.6),
+    sample_2 = c(0.75, 0.72, 0.65),
+    stringsAsFactors = FALSE
+  )
+  rownames(result_df) <- c("GENE1", "GENE2", "GENE3")
+  
+  result_se <- TSENAT:::.convert_result_to_se(
+    result_subset = result_df,
+    result_se_original = NULL,
+    q_cols = c(1, 2),
+    q_val = 1.0
+  )
+  
+  # Check structure
+  expect_is(result_se, "SummarizedExperiment")
+  expect_equal(nrow(result_se), 3)
+  expect_equal(ncol(result_se), 2)
+  expect_true("diversity" %in% SummarizedExperiment::assayNames(result_se))
+})
+
+test_that(".convert_result_to_se preserves SummarizedExperiment input", {
+  # If input is already SE, should return as-is
+  se_input <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(diversity = matrix(1:6, nrow = 3, ncol = 2))
+  )
+  
+  result <- TSENAT:::.convert_result_to_se(
+    result_subset = se_input,
+    result_se_original = NULL,
+    q_cols = c(1, 2),
+    q_val = 1.0
+  )
+  
+  expect_identical(result, se_input)
+})
+
+test_that(".convert_result_to_se returns non-numeric data unchanged", {
+  # If no numeric columns, return data as-is
+  result_df <- data.frame(
+    gene_id = c("GENE1", "GENE2"),
+    annotation = c("A", "B"),
+    stringsAsFactors = FALSE
+  )
+  
+  result <- TSENAT:::.convert_result_to_se(
+    result_subset = result_df,
+    result_se_original = NULL,
+    q_cols = c("gene_id"),
+    q_val = 1.0
+  )
+  
+  expect_is(result, "data.frame")
+})
+
+test_that(".convert_result_to_se extracts CI assays from original", {
+  # Create original SE with CI assays
+  ci_lower <- matrix(c(0.5, 0.4, 0.3, 0.5, 0.4, 0.3), nrow = 3, ncol = 2)
+  ci_upper <- matrix(c(0.9, 0.8, 0.7, 0.9, 0.8, 0.7), nrow = 3, ncol = 2)
+  
+  result_se_original <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(
+      diversity = matrix(0.7, nrow = 3, ncol = 2),
+      ci_lower = ci_lower,
+      ci_upper = ci_upper
+    )
+  )
+  rownames(result_se_original) <- c("G1", "G2", "G3")
+  colnames(result_se_original) <- c("S1", "S2")
+  
+  # Create result subset with only numeric columns
+  result_df <- data.frame(
+    S1 = c(0.7, 0.7, 0.7),
+    S2 = c(0.7, 0.7, 0.7),
+    stringsAsFactors = FALSE
+  )
+  rownames(result_df) <- c("G1", "G2", "G3")
+  
+  result <- TSENAT:::.convert_result_to_se(
+    result_subset = result_df,
+    result_se_original = result_se_original,
+    q_cols = c(1, 2),
+    q_val = 1.0
+  )
+  
+  # Check that CI assays are present
+  expect_true("ci_lower" %in% SummarizedExperiment::assayNames(result))
+  expect_true("ci_upper" %in% SummarizedExperiment::assayNames(result))
+})
+
+test_that(".apply_diversity_post_hoc_norm returns SE unchanged for default normalization", {
+  result_se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(diversity = matrix(c(0.8, 0.6, 0.7, 0.9), nrow = 2, ncol = 2))
+  )
+  
+  result <- TSENAT:::.apply_diversity_post_hoc_norm(
+    result_se = result_se,
+    norm_method = "default",
+    params = list(),
+    q_val = 1.0,
+    verbose = FALSE
+  )
+  
+  # Should return identical SE
+  expect_identical(
+    SummarizedExperiment::assay(result, "diversity"),
+    SummarizedExperiment::assay(result_se, "diversity")
+  )
+})
+
+test_that(".apply_diversity_post_hoc_norm applies z-score normalization", {
+  diversity_data <- matrix(c(10, 20, 15, 25, 12, 22), nrow = 2, ncol = 3)
+  result_se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(diversity = diversity_data)
+  )
+  
+  result <- TSENAT:::.apply_diversity_post_hoc_norm(
+    result_se = result_se,
+    norm_method = "zscore",
+    params = list(),
+    q_val = 1.0,
+    verbose = FALSE
+  )
+  
+  # After z-score, should have mean ≈ 0 per q value
+  normalized <- SummarizedExperiment::assay(result, "diversity")
+  expect_true(is.numeric(normalized))
+  expect_equal(nrow(normalized), 2)
+})
+
+test_that(".apply_diversity_post_hoc_norm applies zscore to CI assays", {
+  diversity_data <- matrix(c(10, 20, 15, 25), nrow = 2, ncol = 2)
+  ci_lower <- matrix(c(8, 18, 13, 23), nrow = 2, ncol = 2)
+  ci_upper <- matrix(c(12, 22, 17, 27), nrow = 2, ncol = 2)
+  
+  result_se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(
+      diversity = diversity_data,
+      ci_lower = ci_lower,
+      ci_upper = ci_upper
+    )
+  )
+  
+  result <- TSENAT:::.apply_diversity_post_hoc_norm(
+    result_se = result_se,
+    norm_method = "zscore",
+    params = list(),
+    q_val = 1.0,
+    verbose = FALSE
+  )
+  
+  # Check that all assays are normalized
+  expect_true("ci_lower" %in% SummarizedExperiment::assayNames(result))
+  expect_true("ci_upper" %in% SummarizedExperiment::assayNames(result))
+  
+  # CI assays should be different after normalization
+  orig_ci_lower <- SummarizedExperiment::assay(result_se, "ci_lower")
+  new_ci_lower <- SummarizedExperiment::assay(result, "ci_lower")
+  expect_false(identical(orig_ci_lower, new_ci_lower))
+})
+
+test_that(".apply_diversity_post_hoc_norm ignores normalization for non-SE input", {
+  # Non-SE input should be returned as-is
+  result_df <- data.frame(
+    diversity = c(0.8, 0.6, 0.7)
+  )
+  
+  result <- TSENAT:::.apply_diversity_post_hoc_norm(
+    result_se = result_df,
+    norm_method = "zscore",
+    params = list(),
+    q_val = 1.0,
+    verbose = FALSE
+  )
+  
+  expect_identical(result, result_df)
+})

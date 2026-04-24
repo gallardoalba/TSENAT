@@ -358,3 +358,377 @@ test_that(".apply_aesthetics_colors doesn't modify input plot", {
     expect_is(result, "ggplot")
     expect_is(p, "ggplot")
 })
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TEST SUITE: auto_detect_column() - NEWLY ADDED FOR COVERAGE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+test_that("auto_detect_column returns config value if available", {
+    available_cols <- c("sample_id", "condition", "group")
+    config_list <- list(condition_col = "condition")
+    
+    result <- auto_detect_column(
+        available_cols = available_cols,
+        config_list = config_list,
+        config_key = "condition_col"
+    )
+    
+    expect_equal(result, "condition")
+})
+
+test_that("auto_detect_column uses priority candidates if config unavailable", {
+    available_cols <- c("sample_id", "group", "batch")
+    priority_candidates <- c("condition", "group", "treatment")
+    
+    result <- auto_detect_column(
+        available_cols = available_cols,
+        priority_candidates = priority_candidates
+    )
+    
+    expect_equal(result, "group")  # First match in priority order
+})
+
+test_that("auto_detect_column returns fallback when no match found", {
+    available_cols <- c("sample_id", "value")
+    
+    result <- auto_detect_column(
+        available_cols = available_cols,
+        priority_candidates = c("condition", "group"),
+        default_fallback = "sample_id"
+    )
+    
+    expect_equal(result, "sample_id")
+})
+
+test_that("auto_detect_column returns NULL when no match and no fallback", {
+    available_cols <- c("sample_id", "value")
+    
+    result <- auto_detect_column(
+        available_cols = available_cols,
+        priority_candidates = c("condition", "group")
+    )
+    
+    expect_null(result)
+})
+
+test_that("auto_detect_column prioritizes config over priority candidates", {
+    available_cols <- c("sample_id", "condition", "group", "batch")
+    config_list <- list(condition_col = "batch")
+    priority_candidates <- c("condition", "group")  # Would normally match "condition"
+    
+    result <- auto_detect_column(
+        available_cols = available_cols,
+        config_list = config_list,
+        config_key = "condition_col",
+        priority_candidates = priority_candidates
+    )
+    
+    expect_equal(result, "batch")  # Config wins
+})
+
+test_that("auto_detect_column ignores missing config key", {
+    available_cols <- c("sample_id", "condition", "group")
+    config_list <- list(other_key = "condition")
+    priority_candidates <- c("group")
+    
+    result <- auto_detect_column(
+        available_cols = available_cols,
+        config_list = config_list,
+        config_key = "missing_key",
+        priority_candidates = priority_candidates
+    )
+    
+    expect_equal(result, "group")  # Falls back to priority candidates
+})
+
+test_that("auto_detect_column ignores config value not in available_cols", {
+    available_cols <- c("sample_id", "group")
+    config_list <- list(condition_col = "nonexistent")
+    priority_candidates <- c("group")
+    
+    result <- auto_detect_column(
+        available_cols = available_cols,
+        config_list = config_list,
+        config_key = "condition_col",
+        priority_candidates = priority_candidates
+    )
+    
+    expect_equal(result, "group")  # Config ignored, uses priority candidates
+})
+
+test_that("auto_detect_column sends verbose messages", {
+    available_cols <- c("condition", "group")
+    priority_candidates <- c("condition")
+    
+    expect_message(
+        auto_detect_column(
+            available_cols = available_cols,
+            priority_candidates = priority_candidates,
+            verbose = TRUE,
+            param_name = "test_param"
+        ),
+        "Auto-detected test_param"
+    )
+})
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TEST SUITE: save_analysis_output() - NEWLY ADDED FOR COVERAGE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+test_that("save_analysis_output saves data.frame to CSV", {
+    skip_on_cran()
+    
+    # Create temporary file
+    temp_file <- tempfile(fileext = ".csv")
+    on.exit(unlink(temp_file), add = TRUE)
+    
+    test_df <- data.frame(
+        gene = c("g1", "g2"),
+        value = c(1.5, 2.3),
+        stringsAsFactors = FALSE
+    )
+    
+    result <- save_analysis_output(
+        data = test_df,
+        output_file = temp_file,
+        verbose = FALSE
+    )
+    
+    expect_true(result)
+    expect_true(file.exists(temp_file))
+    
+    # Verify content
+    loaded <- read.csv(temp_file, row.names = 1)
+    expect_equal(nrow(loaded), 2)
+})
+
+test_that("save_analysis_output saves data.frame to TSV", {
+    skip_on_cran()
+    
+    temp_file <- tempfile(fileext = ".tsv")
+    on.exit(unlink(temp_file), add = TRUE)
+    
+    test_df <- data.frame(x = c(1, 2), y = c(3, 4))
+    
+    result <- save_analysis_output(
+        data = test_df,
+        output_file = temp_file,
+        verbose = FALSE
+    )
+    
+    expect_true(result)
+    expect_true(file.exists(temp_file))
+})
+
+test_that("save_analysis_output saves object to RDS", {
+    skip_on_cran()
+    
+    temp_file <- tempfile(fileext = ".rds")
+    on.exit(unlink(temp_file), add = TRUE)
+    
+    test_list <- list(a = 1, b = c(2, 3, 4))
+    
+    result <- save_analysis_output(
+        data = test_list,
+        output_file = temp_file,
+        verbose = FALSE
+    )
+    
+    expect_true(result)
+    expect_true(file.exists(temp_file))
+    
+    # Verify content
+    loaded <- readRDS(temp_file)
+    expect_identical(loaded, test_list)
+})
+
+test_that("save_analysis_output creates directory if create_dir=TRUE", {
+    skip_on_cran()
+    
+    temp_dir <- file.path(tempdir(), "test_output_dir_new", "subdir")
+    on.exit(unlink(file.path(tempdir(), "test_output_dir_new"), recursive = TRUE), add = TRUE)
+    
+    temp_file <- file.path(temp_dir, "test.csv")
+    
+    test_df <- data.frame(x = 1)
+    
+    result <- save_analysis_output(
+        data = test_df,
+        output_file = temp_file,
+        create_dir = TRUE,
+        verbose = FALSE
+    )
+    
+    expect_true(result)
+    expect_true(dir.exists(temp_dir))
+    expect_true(file.exists(temp_file))
+})
+
+test_that("save_analysis_output returns FALSE for NULL output_file", {
+    test_df <- data.frame(x = 1)
+    
+    result <- save_analysis_output(
+        data = test_df,
+        output_file = NULL,
+        verbose = FALSE
+    )
+    
+    expect_false(result)
+})
+
+test_that("save_analysis_output converts matrix to data.frame and saves", {
+    skip_on_cran()
+    
+    temp_file <- tempfile(fileext = ".tsv")
+    on.exit(unlink(temp_file), add = TRUE)
+    
+    test_matrix <- matrix(c(1, 2, 3, 4), nrow = 2)
+    
+    result <- save_analysis_output(
+        data = test_matrix,
+        output_file = temp_file,
+        verbose = FALSE
+    )
+    
+    expect_true(result)
+    expect_true(file.exists(temp_file))
+})
+
+test_that("save_analysis_output handles unknown format with RDS fallback", {
+    skip_on_cran()
+    
+    temp_file <- tempfile(fileext = ".unknown")
+    on.exit(unlink(temp_file), add = TRUE)
+    
+    test_data <- list(a = 1)
+    
+    result <- expect_warning(
+        save_analysis_output(
+            data = test_data,
+            output_file = temp_file,
+            verbose = FALSE
+        ),
+        "Unknown output format"
+    )
+    
+    expect_true(result)
+    expect_true(file.exists(temp_file))
+})
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TEST SUITE: extract_multiq_table() - NEWLY ADDED FOR COVERAGE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+test_that("extract_multiq_table returns data.frame for single q-value", {
+    result_single <- list(
+        summary_table = data.frame(
+            gene = c("g1", "g2"),
+            value = c(1.0, 2.0)
+        )
+    )
+    
+    output <- extract_multiq_table(
+        result = result_single,
+        is_multiq = FALSE
+    )
+    
+    expect_true(is.data.frame(output))
+    expect_equal(nrow(output), 2)
+})
+
+test_that("extract_multiq_table combines multi-q results", {
+    result_multiq <- list(
+        q_1_00 = list(
+            summary_table = data.frame(gene = c("g1", "g2"), value = c(1.0, 2.0))
+        ),
+        q_2_00 = list(
+            summary_table = data.frame(gene = c("g1", "g2"), value = c(1.5, 2.5))
+        )
+    )
+    
+    output <- extract_multiq_table(
+        result = result_multiq,
+        is_multiq = TRUE,
+        q_value_col = "q"
+    )
+    
+    expect_true(is.data.frame(output))
+    expect_equal(nrow(output), 4)  # 2 genes × 2 q values
+    expect_true("q" %in% colnames(output))
+})
+
+test_that("extract_multiq_table auto-detects multi-q from list structure", {
+    result_multiq <- list(
+        q_0_50 = list(
+            summary_table = data.frame(gene = c("g1"), value = c(1.0))
+        ),
+        q_1_00 = list(
+            summary_table = data.frame(gene = c("g1"), value = c(1.5))
+        )
+    )
+    
+    # is_multiq should be auto-detected
+    output <- extract_multiq_table(
+        result = result_multiq,
+        is_multiq = NULL
+    )
+    
+    expect_true(is.data.frame(output))
+    expect_equal(nrow(output), 2)
+})
+
+test_that("extract_multiq_table adds q_value column to combined results", {
+    result_multiq <- list(
+        q_1_50 = list(
+            summary_table = data.frame(gene = "g1", value = 1.5)
+        ),
+        q_2_00 = list(
+            summary_table = data.frame(gene = "g1", value = 2.0)
+        )
+    )
+    
+    output <- extract_multiq_table(
+        result = result_multiq,
+        is_multiq = TRUE,
+        q_value_col = "q_value"
+    )
+    
+    expect_true("q_value" %in% colnames(output))
+    expect_equal(as.numeric(output$q_value[1]), 1.5)
+    expect_equal(as.numeric(output$q_value[2]), 2.0)
+})
+
+test_that("extract_multiq_table returns NULL when summary_table missing", {
+    result_error <- list(
+        q_1_00 = list(other_data = "no summary_table")
+    )
+    
+    output <- extract_multiq_table(
+        result = result_error,
+        is_multiq = TRUE
+    )
+    
+    expect_null(output)
+})
+
+test_that("extract_multiq_table uses custom extraction function", {
+    result_custom <- list(
+        results = data.frame(gene = "g1", pvalue = 0.01)
+    )
+    
+    custom_fn <- function(result_element, q_key) {
+        if (!is.null(result_element$results)) {
+            return(result_element$results)
+        }
+        return(NULL)
+    }
+    
+    output <- extract_multiq_table(
+        result = result_custom,
+        is_multiq = FALSE,
+        extract_fn = custom_fn
+    )
+    
+    expect_true(is.data.frame(output))
+    expect_equal(nrow(output), 1)
+})

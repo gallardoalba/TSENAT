@@ -388,7 +388,11 @@ extract_multiq_table <- function(result, is_multiq = NULL, extract_fn = NULL, q_
         table <- extract_fn(q_result, q_key)
 
         if (!is.null(table) && is.data.frame(table)) {
-            table[[q_value_col]] <- sub("^q_", "", q_key)
+            # Convert q_key format (e.g., "q_1_50" -> 1.5, "q_2_00" -> 2.0)
+            # First remove "q_" prefix, then replace underscore with period
+            q_str <- sub("^q_", "", q_key)
+            q_numeric <- as.numeric(sub("_", ".", q_str))
+            table[[q_value_col]] <- q_numeric
             return(table)
         }
         return(NULL)

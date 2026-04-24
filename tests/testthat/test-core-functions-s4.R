@@ -2026,3 +2026,139 @@ test_that(".prepare_multi_q_se prepares multi-Q analysis", {
   expect_true(exists(".prepare_multi_q_se", mode = "function"))
   expect_is(.prepare_multi_q_se, "function")
 })
+
+# ==============================================================================
+# .get_ranking_column(): Tests for ranking column selection (NEWLY ADDED FOR COVERAGE)
+# ==============================================================================
+
+test_that(".get_ranking_column selects correct column for SAIT interaction p-value", {
+    result_df <- data.frame(
+        gene = c("g1", "g2"),
+        p_interaction = c(0.01, 0.05),
+        adj_p_interaction = c(0.05, 0.1),
+        statistic = c(2.5, 1.8),
+        stringsAsFactors = FALSE
+    )
+
+    col <- TSENAT:::.get_ranking_column("sait", "pvalue", result_df)
+    expect_equal(col, "p_interaction")
+})
+
+test_that(".get_ranking_column selects adjusted p-value for SAIT", {
+    result_df <- data.frame(
+        gene = c("g1", "g2"),
+        adj_p_interaction = c(0.05, 0.1),
+        stringsAsFactors = FALSE
+    )
+
+    col <- TSENAT:::.get_ranking_column("sait", "padj", result_df)
+    expect_equal(col, "adj_p_interaction")
+})
+
+test_that(".get_ranking_column selects effect size for SAIT", {
+    result_df <- data.frame(
+        gene = c("g1", "g2"),
+        statistic = c(2.5, 1.8),
+        stringsAsFactors = FALSE
+    )
+
+    col <- TSENAT:::.get_ranking_column("sait", "effectSize", result_df)
+    expect_equal(col, "statistic")
+})
+
+test_that(".get_ranking_column handles effect_size column name variation", {
+    result_df <- data.frame(
+        gene = c("g1", "g2"),
+        effect_size = c(0.8, 0.6),
+        stringsAsFactors = FALSE
+    )
+
+    col <- TSENAT:::.get_ranking_column("sait", "effectSize", result_df)
+    expect_equal(col, "effect_size")
+})
+
+test_that(".get_ranking_column returns NULL for 'none' rankBy", {
+    result_df <- data.frame(
+        gene = c("g1", "g2"),
+        p_interaction = c(0.01, 0.05),
+        stringsAsFactors = FALSE
+    )
+
+    col <- TSENAT:::.get_ranking_column("sait", "none", result_df)
+    expect_null(col)
+})
+
+test_that(".get_ranking_column handles rank_test type", {
+    result_df <- data.frame(
+        gene = c("g1", "g2"),
+        p_value = c(0.01, 0.05),
+        adj_p_value = c(0.05, 0.1),
+        stringsAsFactors = FALSE
+    )
+
+    col_p <- TSENAT:::.get_ranking_column("rank_test", "pvalue", result_df)
+    expect_equal(col_p, "p_value")
+
+    col_padj <- TSENAT:::.get_ranking_column("rank_test", "padj", result_df)
+    expect_equal(col_padj, "adj_p_value")
+})
+
+test_that(".get_ranking_column handles jackknife type", {
+    result_df <- data.frame(
+        gene = c("g1", "g2"),
+        pvalue = c(0.01, 0.05),
+        fdr = c(0.05, 0.1),
+        stringsAsFactors = FALSE
+    )
+
+    col_p <- TSENAT:::.get_ranking_column("jackknife", "pvalue", result_df)
+    expect_equal(col_p, "pvalue")
+
+    col_fdr <- TSENAT:::.get_ranking_column("jackknife", "padj", result_df)
+    expect_equal(col_fdr, "fdr")
+})
+
+test_that(".get_ranking_column returns NULL when column doesn't exist", {
+    result_df <- data.frame(
+        gene = c("g1", "g2"),
+        other_col = c(1, 2),
+        stringsAsFactors = FALSE
+    )
+
+    col <- TSENAT:::.get_ranking_column("sait", "pvalue", result_df)
+    expect_null(col)
+})
+
+test_that(".get_ranking_column returns NULL for unknown type", {
+    result_df <- data.frame(
+        gene = c("g1", "g2"),
+        p_value = c(0.01, 0.05),
+        stringsAsFactors = FALSE
+    )
+
+    col <- TSENAT:::.get_ranking_column("unknown_type", "pvalue", result_df)
+    expect_null(col)
+})
+
+test_that(".get_ranking_column prefers statistic over estimate for effect size", {
+    result_df <- data.frame(
+        gene = c("g1", "g2"),
+        statistic = c(2.5, 1.8),
+        estimate = c(0.5, 0.4),
+        stringsAsFactors = FALSE
+    )
+
+    col <- TSENAT:::.get_ranking_column("sait", "effectSize", result_df)
+    expect_equal(col, "statistic")
+})
+
+test_that(".get_ranking_column falls back to estimate when statistic missing", {
+    result_df <- data.frame(
+        gene = c("g1", "g2"),
+        estimate = c(0.5, 0.4),
+        stringsAsFactors = FALSE
+    )
+
+    col <- TSENAT:::.get_ranking_column("sait", "effectSize", result_df)
+    expect_equal(col, "estimate")
+})

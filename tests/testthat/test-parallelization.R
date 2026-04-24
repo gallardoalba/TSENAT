@@ -1131,3 +1131,81 @@ test_that("Computation mode is correctly reported in colData", {
   expect_equal(coldata_serial$computation_mode[1], "sequential")
   expect_equal(coldata_parallel$computation_mode[1], "parallel")
 })
+
+# ============================================================================
+# SECTION: Thread Management and Effective Core Detection
+# ============================================================================
+# Tests for .get_effective_nthreads
+
+test_that(".get_effective_nthreads returns 1 for nthreads <= 1", {
+  # Single thread
+  result <- TSENAT:::.get_effective_nthreads(nthreads = 1)
+  expect_equal(result, 1)
+  
+  # No threads specified (default)
+  result <- TSENAT:::.get_effective_nthreads()
+  expect_equal(result, 1)
+  
+  # Zero threads
+  result <- TSENAT:::.get_effective_nthreads(nthreads = 0)
+  expect_equal(result, 1)
+  
+  # Negative threads
+  result <- TSENAT:::.get_effective_nthreads(nthreads = -5)
+  expect_equal(result, 1)
+})
+
+test_that(".get_effective_nthreads respects R CMD check limits", {
+  # Set environment variable temporarily
+  withr::local_envvar(c("_R_CHECK_LIMIT_CORES_" = "2"))
+  
+  # Request more threads than limit
+  result <- TSENAT:::.get_effective_nthreads(nthreads = 8)
+  
+  # Should be clamped to limit
+  expect_equal(result, 2)
+})
+
+test_that(".get_effective_nthreads handles invalid core_limit gracefully", {
+  # Set invalid environment variable
+  withr::local_envvar(c("_R_CHECK_LIMIT_CORES_" = "not_a_number"))
+  
+  # Should silently ignore invalid limit and return requested value
+  result <- TSENAT:::.get_effective_nthreads(nthreads = 4)
+  expect_equal(result, 4)
+})
+
+test_that(".get_effective_nthreads handles zero core_limit", {
+  # Set zero (invalid) limit
+  withr::local_envvar(c("_R_CHECK_LIMIT_CORES_" = "0"))
+  
+  # Should ignore zero limit and return requested value (at least 1)
+  result <- TSENAT:::.get_effective_nthreads(nthreads = 4)
+  expect_equal(result, 4)
+})
+
+test_that(".get_effective_nthreads returns positive value always", {
+  # Even with constraints, should never return <= 0
+  withr::local_envvar(c("_R_CHECK_LIMIT_CORES_" = "1"))
+  
+  result <- TSENAT:::.get_effective_nthreads(nthreads = 1)
+  expect_true(result >= 1)
+})
+
+test_that(".get_effective_nthreads handles large thread requests", {
+  # Request very large number of threads
+  result <- TSENAT:::.get_effective_nthreads(nthreads = 1000)
+  
+  # Should return something reasonable (at most system cores or clamped value)
+  expect_true(is.numeric(result))
+  expect_true(result >= 1)
+})
+
+test_that(".get_effective_nthreads with missing environment variable", {
+  # Ensure environment variable doesn't exist
+  withr::local_envvar(c("_R_CHECK_LIMIT_CORES_" = NA))
+  
+  # Should work normally
+  result <- TSENAT:::.get_effective_nthreads(nthreads = 4)
+  expect_equal(result, 4)
+})

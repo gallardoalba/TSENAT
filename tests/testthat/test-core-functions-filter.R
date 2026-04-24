@@ -3661,3 +3661,198 @@ test_that(".resolve_assay_index defaults to 1 for invalid input type", {
   result <- .resolve_assay_index(list(a = 1), assay_names)
   expect_equal(result, 1)
 })
+
+# ============================================================================
+# SECTION: Sample Selection and Balancing Functions
+# ============================================================================
+# Tests for .select_pairs_balanced, .balance_sample_selection, .select_samples_from_analysis
+
+test_that(".select_pairs_balanced selects complete pairs correctly", {
+  # Create coldata with paired samples
+  coldata <- data.frame(
+    sample = paste0("S", 1:8),
+    pair_id = c(1, 1, 2, 2, 3, 3, 4, 4),
+    condition = c("Control", "Treatment", "Control", "Treatment", 
+                  "Control", "Treatment", "Control", "Treatment"),
+    stringsAsFactors = FALSE
+  )
+  rownames(coldata) <- coldata$sample
+  
+  # Select 4 samples (2 complete pairs)
+  result <- TSENAT:::.select_pairs_balanced(
+    coldata = coldata, n_samples = 4, pair_col = "pair_id", seed = 42, verbose = FALSE
+  )
+  
+  # Should return indices of 4 samples (2 pairs)
+  expect_is(result, "integer")
+  expect_length(result, 4)
+  
+  # All selected samples should be in coldata
+  expect_true(all(result %in% seq_len(nrow(coldata))))
+  
+  # Verify pairs are complete (both control and treatment for each pair)
+  selected_pairs <- coldata[result, "pair_id"]
+  expect_true(all(table(selected_pairs) == 2))
+})
+
+test_that(".select_pairs_balanced rounds up n_samples to even", {
+  coldata <- data.frame(
+    sample = paste0("S", 1:10),
+    pair_id = c(1, 1, 2, 2, 3, 3, 4, 4, 5, 5),
+    condition = c("Control", "Treatment", "Control", "Treatment", 
+                  "Control", "Treatment", "Control", "Treatment",
+                  "Control", "Treatment"),
+    stringsAsFactors = FALSE
+  )
+  rownames(coldata) <- coldata$sample
+  
+  # Request odd number (5) - should round to 6
+  result <- TSENAT:::.select_pairs_balanced(
+    coldata = coldata, n_samples = 5, pair_col = "pair_id", seed = 42, verbose = FALSE
+  )
+  
+  # Should return 6 samples (even)
+  expect_equal(length(result), 6)
+})
+
+test_that(".select_pairs_balanced returns NULL when insufficient pairs", {
+  # Create coldata with incomplete pairs
+  coldata <- data.frame(
+    sample = paste0("S", 1:4),
+    pair_id = c(1, 1, 2, 2),
+    condition = c("Control", "Treatment", "Control", "Treatment"),
+    stringsAsFactors = FALSE
+  )
+  rownames(coldata) <- coldata$sample
+  
+  # Request more pairs than available (need 5 pairs but only 2 available)
+  result <- TSENAT:::.select_pairs_balanced(
+    coldata = coldata, n_samples = 10, pair_col = "pair_id", seed = 42, verbose = FALSE
+  )
+  
+  # Should return NULL (not enough pairs)
+  expect_null(result)
+})
+
+test_that(".balance_sample_selection respects paired structure", {
+  # Create coldata with paired samples and condition
+  coldata <- data.frame(
+    sample = paste0("S", 1:8),
+    pair_id = c(1, 1, 2, 2, 3, 3, 4, 4),
+    condition = c("Control", "Treatment", "Control", "Treatment",
+                  "Control", "Treatment", "Control", "Treatment"),
+    stringsAsFactors = FALSE
+  )
+  rownames(coldata) <- coldata$sample
+  
+  result <- TSENAT:::.balance_sample_selection(
+    coldata = coldata, n_samples = 4, seed = 42, verbose = FALSE
+  )
+  
+  # Should preserve pair structure
+  expect_is(result, "integer")
+  expect_length(result, 4)
+  expect_true(all(result %in% seq_len(nrow(coldata))))
+})
+
+test_that(".balance_sample_selection handles unpaired designs", {
+  # Create coldata without pair information
+  coldata <- data.frame(
+    sample = paste0("S", 1:8),
+    condition = c("Control", "Control", "Control", "Control",
+                  "Treatment", "Treatment", "Treatment", "Treatment"),
+    stringsAsFactors = FALSE
+  )
+  rownames(coldata) <- coldata$sample
+  
+  result <- TSENAT:::.balance_sample_selection(
+    coldata = coldata, n_samples = 4, seed = 42, verbose = FALSE
+  )
+  
+  # Should select 4 samples, respecting condition balance
+  expect_is(result, "integer")
+  expect_equal(length(result), 4)
+})
+
+test_that(".balance_sample_selection warns when n_samples exceeds available", {
+  coldata <- data.frame(
+    sample = paste0("S", 1:4),
+    condition = c("Control", "Control", "Treatment", "Treatment"),
+    stringsAsFactors = FALSE
+  )
+  rownames(coldata) <- coldata$sample
+  
+  expect_warning(
+    result <- TSENAT:::.balance_sample_selection(
+      coldata = coldata, n_samples = 10, seed = 42, verbose = FALSE
+    ),
+    "exceeds available samples"
+  )
+  
+  # Should return all available samples
+  expect_equal(length(result), 4)
+})
+
+test_that(".select_samples_from_analysis works with explicit samples", {
+  # Create SE
+  se <- create_count_se(n_genes = 10, n_samples = 6, lambda = 100, seed = 42)
+  
+  explicit_samples <- colnames(se)[1:3]
+  
+  result <- TSENAT:::.select_samples_from_analysis(
+    se = se, n_samples = NULL, samples = explicit_samples, seed = 42, verbose = FALSE
+  )
+  
+  # Should return indices of requested samples
+  expect_equal(sort(result), c(1, 2, 3))
+})
+
+test_that(".select_samples_from_analysis errors on missing samples", {
+  se <- create_count_se(n_genes = 10, n_samples = 6, lambda = 100, seed = 42)
+  
+  expect_error(
+    TSENAT:::.select_samples_from_analysis(
+      se = se, n_samples = NULL, samples = c("S1", "NonexistentSample"), 
+      seed = 42, verbose = FALSE
+    ),
+    "Samples not found"
+  )
+})
+
+test_that(".select_samples_from_analysis with n_samples balances selection", {
+  se <- create_count_se(n_genes = 10, n_samples = 8, lambda = 100, seed = 42)
+  
+  # Add condition to colData
+  colData(se)$condition <- c(rep("Control", 4), rep("Treatment", 4))
+  
+  result <- TSENAT:::.select_samples_from_analysis(
+    se = se, n_samples = 4, samples = NULL, seed = 42, verbose = FALSE
+  )
+  
+  # Should return 4 sample indices
+  expect_is(result, "integer")
+  expect_equal(length(result), 4)
+  expect_true(all(result >= 1 & result <= 8))
+})
+
+test_that(".select_samples_from_analysis keeps all when n_samples is NULL and samples is NULL", {
+  se <- create_count_se(n_genes = 10, n_samples = 6, lambda = 100, seed = 42)
+  
+  result <- TSENAT:::.select_samples_from_analysis(
+    se = se, n_samples = NULL, samples = NULL, seed = 42, verbose = FALSE
+  )
+  
+  # Should return all sample indices
+  expect_equal(result, seq_len(ncol(se)))
+})
+
+test_that(".select_samples_from_analysis errors on invalid n_samples", {
+  se <- create_count_se(n_genes = 10, n_samples = 6, lambda = 100, seed = 42)
+  
+  expect_error(
+    TSENAT:::.select_samples_from_analysis(
+      se = se, n_samples = 0, samples = NULL, seed = 42, verbose = FALSE
+    ),
+    "n_samples must be >= 1"
+  )
+})

@@ -2543,3 +2543,183 @@ test_that(".printMergeSuccess formats divergence to 3 digits in multi-q path", {
     NA
   )
 })
+
+# ============================================================================
+# SECTION: Effect Size Result Processing
+# ============================================================================
+# Tests for .process_effect_sizes_divergence_results
+
+test_that(".process_effect_sizes_divergence_results handles NULL input", {
+  # NULL input should return NULL
+  result <- TSENAT:::.process_effect_sizes_divergence_results(NULL)
+  expect_null(result)
+})
+
+test_that(".process_effect_sizes_divergence_results processes data.frame directly", {
+  # Create effect sizes data.frame
+  results_df <- data.frame(
+    gene = c("GENE1", "GENE2", "GENE3"),
+    adj_p_interaction = c(0.001, 0.01, 0.05),
+    estimate = c(0.5, 0.3, 0.1),
+    lower_ci = c(0.4, 0.2, 0.0),
+    upper_ci = c(0.6, 0.4, 0.2),
+    stringsAsFactors = FALSE
+  )
+  
+  result <- TSENAT:::.process_effect_sizes_divergence_results(
+    result = results_df,
+    top_n = NULL,
+    sort_by = "adj_p_interaction"
+  )
+  
+  # Should return data.frame unchanged (no filtering)
+  expect_is(result, "data.frame")
+  expect_equal(nrow(result), 3)
+})
+
+test_that(".process_effect_sizes_divergence_results filters top_n by p-value", {
+  # Create effect sizes data.frame
+  results_df <- data.frame(
+    gene = c("GENE1", "GENE2", "GENE3", "GENE4", "GENE5"),
+    adj_p_interaction = c(0.001, 0.01, 0.05, 0.1, 0.2),
+    estimate = c(0.5, 0.3, 0.1, 0.08, 0.05),
+    stringsAsFactors = FALSE
+  )
+  
+  result <- TSENAT:::.process_effect_sizes_divergence_results(
+    result = results_df,
+    top_n = 3,
+    sort_by = "adj_p_interaction"
+  )
+  
+  # Should return top 3 by ascending p-value
+  expect_is(result, "data.frame")
+  expect_equal(nrow(result), 3)
+  expect_equal(result$gene[1], "GENE1")  # Smallest p-value first
+})
+
+test_that(".process_effect_sizes_divergence_results sorts by effect size descending", {
+  # Create effect sizes data.frame
+  results_df <- data.frame(
+    gene = c("GENE1", "GENE2", "GENE3", "GENE4"),
+    estimate = c(0.1, 0.5, 0.3, 0.2),
+    adj_p_interaction = c(0.05, 0.01, 0.02, 0.03),
+    stringsAsFactors = FALSE
+  )
+  
+  result <- TSENAT:::.process_effect_sizes_divergence_results(
+    result = results_df,
+    top_n = 2,
+    sort_by = "estimate"
+  )
+  
+  # Should return top 2 by descending effect size
+  expect_is(result, "data.frame")
+  expect_equal(nrow(result), 2)
+  expect_equal(result$estimate[1], 0.5)  # Largest effect size first
+})
+
+test_that(".process_effect_sizes_divergence_results removes all-NA CI columns", {
+  # Create data.frame with all-NA CI columns (matching actual naming: *_lower_ci/*_upper_ci)
+  results_df <- data.frame(
+    gene = c("GENE1", "GENE2"),
+    estimate = c(0.5, 0.3),
+    D_lower_ci = c(NA_real_, NA_real_),  # All NA (matches function's regex pattern)
+    D_upper_ci = c(NA_real_, NA_real_),  # All NA (matches function's regex pattern)
+    stringsAsFactors = FALSE
+  )
+  
+  result <- TSENAT:::.process_effect_sizes_divergence_results(
+    result = results_df,
+    top_n = NULL,
+    sort_by = "estimate"
+  )
+  
+  # CI columns should be removed when all NA
+  expect_false("D_lower_ci" %in% colnames(result))
+  expect_false("D_upper_ci" %in% colnames(result))
+  expect_true("estimate" %in% colnames(result))
+})
+
+test_that(".process_effect_sizes_divergence_results keeps non-NA CI columns", {
+  # Create data.frame with some non-NA CI columns
+  results_df <- data.frame(
+    gene = c("GENE1", "GENE2"),
+    estimate = c(0.5, 0.3),
+    D_lower_ci = c(0.4, NA_real_),  # One NA, one value
+    D_upper_ci = c(0.6, NA_real_),  # One NA, one value
+    stringsAsFactors = FALSE
+  )
+  
+  result <- TSENAT:::.process_effect_sizes_divergence_results(
+    result = results_df,
+    top_n = NULL,
+    sort_by = "estimate"
+  )
+  
+  # CI columns should be kept (not all NA)
+  expect_true("D_lower_ci" %in% colnames(result))
+  expect_true("D_upper_ci" %in% colnames(result))
+})
+
+test_that(".process_effect_sizes_divergence_results processes list with 'results' element", {
+  # Create list with results data.frame
+  results_list <- list(
+    results = data.frame(
+      gene = c("GENE1", "GENE2", "GENE3"),
+      estimate = c(0.5, 0.3, 0.1),
+      adj_p_interaction = c(0.001, 0.01, 0.05),
+      stringsAsFactors = FALSE
+    ),
+    metadata = list(test = "value")
+  )
+  
+  result <- TSENAT:::.process_effect_sizes_divergence_results(
+    result = results_list,
+    top_n = 2,
+    sort_by = "adj_p_interaction"
+  )
+  
+  # Should extract and process results data.frame
+  expect_is(result, "data.frame")
+  expect_equal(nrow(result), 2)
+})
+
+test_that(".process_effect_sizes_divergence_results processes list with 'interaction_results'", {
+  # Create list with interaction_results data.frame
+  results_list <- list(
+    interaction_results = data.frame(
+      gene = c("GENE1", "GENE2"),
+      estimate = c(0.4, 0.2),
+      adj_p_interaction = c(0.01, 0.05),
+      stringsAsFactors = FALSE
+    )
+  )
+  
+  result <- TSENAT:::.process_effect_sizes_divergence_results(
+    result = results_list,
+    top_n = NULL,
+    sort_by = "estimate"
+  )
+  
+  # Should extract and process interaction_results
+  expect_is(result, "data.frame")
+  expect_equal(nrow(result), 2)
+})
+
+test_that(".process_effect_sizes_divergence_results errors on missing sort_by column", {
+  results_df <- data.frame(
+    gene = c("GENE1", "GENE2"),
+    estimate = c(0.5, 0.3),
+    stringsAsFactors = FALSE
+  )
+  
+  expect_error(
+    TSENAT:::.process_effect_sizes_divergence_results(
+      result = results_df,
+      top_n = 2,
+      sort_by = "nonexistent_column"
+    ),
+    "nonexistent_column"
+  )
+})

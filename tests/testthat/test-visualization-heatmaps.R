@@ -1012,3 +1012,100 @@ test_that("S4 plotting functions work on complete analysis object", {
     TSENAT:::plot_jis_delta(analysis, n_genes = 3, verbose = FALSE)
   })
 })
+
+# ============================================================================
+# SECTION: Heatmap Grid Rendering
+# ============================================================================
+# Tests for .render_heatmaps_to_grid
+
+test_that(".render_heatmaps_to_grid handles NULL gene_layout", {
+  skip_if_not_installed("grid")
+  skip_if_not_installed("pheatmap")
+  
+  # Create simple heatmap objects
+  data_matrix <- matrix(rnorm(20), nrow = 4, ncol = 5)
+  heatmap1 <- pheatmap::pheatmap(data_matrix, silent = TRUE)
+  heatmap2 <- pheatmap::pheatmap(data_matrix * 2, silent = TRUE)
+  
+  heatmap_list <- list(heatmap1, heatmap2)
+  
+  # Call with NULL gene_layout (should use simple column-based layout)
+  expect_error(
+    TSENAT:::.render_heatmaps_to_grid(heatmap_list, gene_layout = NULL, layout_ncol = 2),
+    NA
+  )
+})
+
+test_that(".render_heatmaps_to_grid handles single column layout", {
+  skip_if_not_installed("grid")
+  skip_if_not_installed("pheatmap")
+  
+  data_matrix <- matrix(rnorm(20), nrow = 4, ncol = 5)
+  heatmap1 <- pheatmap::pheatmap(data_matrix, silent = TRUE)
+  heatmap2 <- pheatmap::pheatmap(data_matrix * 2, silent = TRUE)
+  
+  heatmap_list <- list(heatmap1, heatmap2)
+  
+  # Single column layout
+  expect_error(
+    TSENAT:::.render_heatmaps_to_grid(heatmap_list, gene_layout = NULL, layout_ncol = 1),
+    NA
+  )
+})
+
+test_that(".render_heatmaps_to_grid skips NULL heatmaps", {
+  skip_if_not_installed("grid")
+  skip_if_not_installed("pheatmap")
+  
+  data_matrix <- matrix(rnorm(20), nrow = 4, ncol = 5)
+  heatmap1 <- pheatmap::pheatmap(data_matrix, silent = TRUE)
+  
+  # List with NULL elements
+  heatmap_list <- list(heatmap1, NULL, heatmap1)
+  
+  expect_error(
+    TSENAT:::.render_heatmaps_to_grid(heatmap_list, gene_layout = NULL, layout_ncol = 2),
+    NA
+  )
+})
+
+test_that(".render_heatmaps_to_grid handles gene_layout specification", {
+  skip_if_not_installed("grid")
+  skip_if_not_installed("pheatmap")
+  
+  data_matrix <- matrix(rnorm(20), nrow = 4, ncol = 5)
+  heatmap1 <- pheatmap::pheatmap(data_matrix, silent = TRUE)
+  heatmap2 <- pheatmap::pheatmap(data_matrix * 2, silent = TRUE)
+  
+  heatmap_list <- list(heatmap1, heatmap2)
+  
+  # Create gene_layout list
+  gene_layout <- list(
+    list(row = 1, col = 1, width = 1),
+    list(row = 1, col = 2, width = 1)
+  )
+  
+  expect_error(
+    TSENAT:::.render_heatmaps_to_grid(heatmap_list, gene_layout = gene_layout, layout_ncol = 2),
+    NA
+  )
+})
+
+test_that(".render_heatmaps_to_grid handles layout with NULL elements", {
+  skip_if_not_installed("grid")
+  skip_if_not_installed("pheatmap")
+  
+  data_matrix <- matrix(rnorm(20), nrow = 4, ncol = 5)
+  heatmap1 <- pheatmap::pheatmap(data_matrix, silent = TRUE)
+  
+  heatmap_list <- list(heatmap1, NULL)
+  gene_layout <- list(
+    list(row = 1, col = 1, width = 1),
+    NULL
+  )
+  
+  expect_error(
+    TSENAT:::.render_heatmaps_to_grid(heatmap_list, gene_layout = gene_layout, layout_ncol = 2),
+    NA
+  )
+})

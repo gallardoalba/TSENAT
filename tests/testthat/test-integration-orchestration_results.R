@@ -1130,3 +1130,190 @@ test_that("results() handles rankBy='padj' for sait type correctly", {
   # Should return results or NULL (depending on processing logic)
   expect_true(is.null(result) || is.data.frame(result))
 })
+
+# ============================================================================
+# SECTION: Analysis Statistics Extraction
+# ============================================================================
+# Tests for .extract_analysis_statistics
+
+test_that(".extract_analysis_statistics initializes with zeros on empty analysis", {
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = matrix(1:20, nrow = 5, ncol = 4))
+  )
+  analysis <- TSENATAnalysis(se = se)
+  
+  # Empty analysis should have all zeros
+  stats <- TSENAT:::.extract_analysis_statistics(analysis)
+  
+  expect_is(stats, "list")
+  expect_equal(stats$n_transcripts, 0)
+  expect_equal(stats$n_q_values, 0)
+  expect_equal(stats$n_sait_significant, 0)
+  expect_equal(stats$n_jackknife, 0)
+  expect_equal(stats$n_divergence, 0)
+})
+
+test_that(".extract_analysis_statistics counts diversity results from list", {
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = matrix(1:20, nrow = 5, ncol = 4))
+  )
+  analysis <- TSENATAnalysis(se = se)
+  
+  # Add diversity results as list (multi-q)
+  div_results <- list(
+    q_1.0 = matrix(0.8, nrow = 5, ncol = 4),
+    q_2.0 = matrix(0.7, nrow = 5, ncol = 4),
+    q_3.0 = matrix(0.6, nrow = 5, ncol = 4)
+  )
+  analysis@diversity_results <- div_results
+  
+  stats <- TSENAT:::.extract_analysis_statistics(analysis)
+  
+  expect_equal(stats$n_q_values, 3)
+  expect_equal(stats$n_transcripts, 0)  # Not extracted from list format
+})
+
+test_that(".extract_analysis_statistics counts SAIT significant results", {
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = matrix(1:20, nrow = 5, ncol = 4))
+  )
+  analysis <- TSENATAnalysis(se = se)
+  
+  # Add SAIT results with p-values
+  sait_results <- list(
+    pvalue_results = data.frame(
+      gene = paste0("g", 1:5),
+      p_value = c(0.001, 0.01, 0.04, 0.1, 0.2),
+      estimate = rnorm(5)
+    )
+  )
+  analysis@sait_results <- sait_results
+  
+  stats <- TSENAT:::.extract_analysis_statistics(analysis)
+  
+  # Should count 3 significant (p < 0.05)
+  expect_equal(stats$n_sait_significant, 3)
+})
+
+test_that(".extract_analysis_statistics counts SAIT significant by adjusted p-value", {
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = matrix(1:20, nrow = 5, ncol = 4))
+  )
+  analysis <- TSENATAnalysis(se = se)
+  
+  # Add SAIT results with adjusted p-values (no raw p-value column)
+  sait_results <- list(
+    pvalue_results = data.frame(
+      gene = paste0("g", 1:5),
+      padj = c(0.001, 0.01, 0.04, 0.1, 0.2),
+      estimate = rnorm(5)
+    )
+  )
+  analysis@sait_results <- sait_results
+  
+  stats <- TSENAT:::.extract_analysis_statistics(analysis)
+  
+  # Should count 3 significant (padj < 0.05)
+  expect_equal(stats$n_sait_significant, 3)
+})
+
+test_that(".extract_analysis_statistics counts jackknife results", {
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = matrix(1:20, nrow = 5, ncol = 4))
+  )
+  analysis <- TSENATAnalysis(se = se)
+  
+  # Add jackknife results
+  jackknife_results <- list(
+    switching_summary = data.frame(
+      gene = paste0("g", 1:8),
+      n_switching = c(1, 2, 3, 1, 0, 2, 1, 0)
+    )
+  )
+  analysis@jackknife_results <- jackknife_results
+  
+  stats <- TSENAT:::.extract_analysis_statistics(analysis)
+  
+  expect_equal(stats$n_jackknife, 8)
+})
+
+test_that(".extract_analysis_statistics counts divergence results", {
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = matrix(1:20, nrow = 5, ncol = 4))
+  )
+  analysis <- TSENATAnalysis(se = se)
+  
+  # Add divergence results as data.frame
+  divergence_results <- data.frame(
+    gene = paste0("g", 1:10),
+    estimate = runif(10),
+    p_value = runif(10)
+  )
+  analysis@divergence_results <- divergence_results
+  
+  stats <- TSENAT:::.extract_analysis_statistics(analysis)
+  
+  expect_equal(stats$n_divergence, 10)
+})
+
+test_that(".extract_analysis_statistics handles NULL results gracefully", {
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = matrix(1:20, nrow = 5, ncol = 4))
+  )
+  analysis <- TSENATAnalysis(se = se)
+  
+  # Explicitly set empty results
+  analysis@diversity_results <- list()
+  analysis@sait_results <- list()
+  analysis@jackknife_results <- list()
+  analysis@divergence_results <- data.frame()
+  
+  stats <- TSENAT:::.extract_analysis_statistics(analysis)
+  
+  # Should handle gracefully and return zeros
+  expect_equal(stats$n_q_values, 0)
+  expect_equal(stats$n_sait_significant, 0)
+})
+
+test_that(".extract_analysis_statistics handles empty SAIT results", {
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = matrix(1:20, nrow = 5, ncol = 4))
+  )
+  analysis <- TSENATAnalysis(se = se)
+  
+  # Add SAIT results but with empty data.frame
+  sait_results <- list(
+    pvalue_results = data.frame(
+      gene = character(0),
+      p_value = numeric(0)
+    )
+  )
+  analysis@sait_results <- sait_results
+  
+  stats <- TSENAT:::.extract_analysis_statistics(analysis)
+  
+  # Should return 0 significant genes
+  expect_equal(stats$n_sait_significant, 0)
+})
+
+test_that(".extract_analysis_statistics handles NAs in p-values", {
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = matrix(1:20, nrow = 5, ncol = 4))
+  )
+  analysis <- TSENATAnalysis(se = se)
+  
+  # Add SAIT results with some NA p-values
+  sait_results <- list(
+    pvalue_results = data.frame(
+      gene = paste0("g", 1:5),
+      p_value = c(0.001, NA, 0.04, NA, 0.2),
+      estimate = rnorm(5)
+    )
+  )
+  analysis@sait_results <- sait_results
+  
+  stats <- TSENAT:::.extract_analysis_statistics(analysis)
+  
+  # Should count 2 significant (not counting NAs): 0.001 and 0.04 are < 0.05
+  expect_equal(stats$n_sait_significant, 2)
+})

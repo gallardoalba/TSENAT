@@ -415,3 +415,168 @@ test_that("validate_plot_data consolidates multiple issues", {
   # Should report both SE dimension issue and gene alignment issue
   expect_true(length(validation) > 0)
 })
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TEST SUITE: .validate_se_dimensions() - NEWLY ADDED FOR COVERAGE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+test_that(".validate_se_dimensions accepts valid SummarizedExperiment", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    se <- make_test_se(n_genes = 5, n_samples = 3)
+    
+    result <- TSENAT:::.validate_se_dimensions(
+        se = se,
+        verbose = FALSE
+    )
+    
+    expect_true(result$is_valid)
+})
+
+test_that(".validate_se_dimensions checks sample count", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    se <- make_test_se(n_genes = 5, n_samples = 3)
+    
+    expect_message(
+        result <- TSENAT:::.validate_se_dimensions(
+            se = se,
+            expected_n_samples = 3,
+            verbose = TRUE
+        ),
+        "dimension checks passed"
+    )
+    
+    expect_true(result$is_valid)
+})
+
+test_that(".validate_se_dimensions detects sample count mismatch", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    se <- make_test_se(n_genes = 5, n_samples = 3)
+    
+    expect_message(
+        result <- TSENAT:::.validate_se_dimensions(
+            se = se,
+            expected_n_samples = 5,
+            verbose = TRUE
+        ),
+        "mismatch"
+    )
+    
+    expect_false(result$is_valid)
+})
+
+test_that(".validate_se_dimensions checks for expected assays", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    se <- make_test_se(n_genes = 5, n_samples = 3)
+    assay_names <- names(SummarizedExperiment::assays(se))
+    
+    result <- TSENAT:::.validate_se_dimensions(
+        se = se,
+        expected_assays = assay_names,
+        verbose = FALSE
+    )
+    
+    expect_true(result$is_valid)
+})
+
+test_that(".validate_se_dimensions detects missing assays", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    se <- make_test_se(n_genes = 5, n_samples = 3)
+    
+    expect_message(
+        result <- TSENAT:::.validate_se_dimensions(
+            se = se,
+            expected_assays = c("missing_assay"),
+            verbose = TRUE
+        ),
+        "Missing assays"
+    )
+    
+    expect_false(result$is_valid)
+})
+
+test_that(".validate_se_dimensions checks colData consistency", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    se <- make_test_se(n_genes = 5, n_samples = 3)
+    
+    # colData should be consistent with ncol(se)
+    result <- TSENAT:::.validate_se_dimensions(
+        se = se,
+        verbose = FALSE
+    )
+    
+    expect_true(result$is_valid)
+})
+
+test_that(".validate_se_dimensions checks rowData consistency", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    se <- make_test_se(n_genes = 5, n_samples = 3)
+    
+    # rowData should be consistent with nrow(se)
+    result <- TSENAT:::.validate_se_dimensions(
+        se = se,
+        verbose = FALSE
+    )
+    
+    expect_true(result$is_valid)
+})
+
+test_that(".validate_se_dimensions rejects non-SummarizedExperiment", {
+    not_se <- data.frame(x = 1:3)
+    
+    expect_error(
+        TSENAT:::.validate_se_dimensions(se = not_se),
+        "must be a SummarizedExperiment"
+    )
+})
+
+test_that(".validate_se_dimensions provides verbose output on success", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    se <- make_test_se(n_genes = 5, n_samples = 3)
+    
+    expect_message(
+        TSENAT:::.validate_se_dimensions(
+            se = se,
+            verbose = TRUE
+        ),
+        "All dimension checks passed"
+    )
+})
+
+test_that(".validate_se_dimensions provides verbose output on failure", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    se <- make_test_se(n_genes = 5, n_samples = 3)
+    
+    expect_message(
+        TSENAT:::.validate_se_dimensions(
+            se = se,
+            expected_n_samples = 999,
+            verbose = TRUE
+        ),
+        "Dimension mismatches found"
+    )
+})
+
+test_that(".validate_se_dimensions handles expected_assays and expected_n_samples together", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    se <- make_test_se(n_genes = 5, n_samples = 3)
+    assay_names <- names(SummarizedExperiment::assays(se))
+    
+    result <- TSENAT:::.validate_se_dimensions(
+        se = se,
+        expected_n_samples = 3,
+        expected_assays = assay_names,
+        verbose = FALSE
+    )
+    
+    expect_true(result$is_valid)
+})
