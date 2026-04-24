@@ -416,9 +416,7 @@ test_that("validate_plot_data consolidates multiple issues", {
   expect_true(length(validation) > 0)
 })
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# TEST SUITE: .validate_se_dimensions() - NEWLY ADDED FOR COVERAGE
-# ═══════════════════════════════════════════════════════════════════════════════
+
 
 test_that(".validate_se_dimensions accepts valid SummarizedExperiment", {
     skip_if_not_installed("SummarizedExperiment")

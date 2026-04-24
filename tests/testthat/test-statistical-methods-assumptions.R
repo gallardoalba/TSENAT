@@ -3526,9 +3526,7 @@ test_that(".calculate_assumptions preserves SE structure", {
   expect_true(is.list(result) || is.null(result))
 })
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# TEST SUITE: print.rank_assumptions() - NEWLY ADDED FOR COVERAGE
-# ═══════════════════════════════════════════════════════════════════════════════
+
 
 test_that("print.rank_assumptions does not error", {
     # Create a minimal valid rank_assumptions object
@@ -3659,10 +3657,6 @@ test_that("print.rank_assumptions with LMM metrics", {
     checks <- attr(result, "checks")
     expect_true("lmm_metrics" %in% names(checks))
 })
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# TEST SUITE: .fit_cached_gams() - NEWLY ADDED FOR COVERAGE
-# ═══════════════════════════════════════════════════════════════════════════════
 
 test_that(".fit_cached_gams returns valid GAM models", {
     # Create test data: matrix of entropy values (genes x q-values)

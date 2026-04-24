@@ -649,10 +649,6 @@ test_that("calculate_sait returns model_data when requested", {
     expect_true("per_group_statistics" %in% names(output$model_data))
 })
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# TEST SUITE: .extract_sait_result_df() - NEWLY ADDED FOR COVERAGE
-# ═══════════════════════════════════════════════════════════════════════════════
-
 test_that(".extract_sait_result_df returns data.frame when given data.frame", {
     # Create a simple results data.frame
     results_df <- data.frame(
@@ -743,9 +739,7 @@ test_that(".extract_sait_result_df preserves data.frame structure and content", 
     expect_true(is.numeric(output$log2_effect))
 })
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# TEST SUITE: .estimate_ar1_rho() - NEWLY ADDED FOR COVERAGE
-# ═══════════════════════════════════════════════════════════════════════════════
+
 
 test_that(".estimate_ar1_rho estimates AR(1) autocorrelation from entropy differences", {
     # Create entropy data with moderate autocorrelation
@@ -820,9 +814,7 @@ test_that(".estimate_ar1_rho warns on high autocorrelation", {
     )
 })
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# TEST SUITE: .adjust_pvalues_multicorr() - NEWLY ADDED FOR COVERAGE
-# ═══════════════════════════════════════════════════════════════════════════════
+
 
 test_that(".adjust_pvalues_multicorr uses Hochberg adjustment", {
     p_values <- c(0.001, 0.01, 0.05, 0.1, 0.5)

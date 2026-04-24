@@ -359,9 +359,7 @@ test_that(".apply_aesthetics_colors doesn't modify input plot", {
     expect_is(p, "ggplot")
 })
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# TEST SUITE: auto_detect_column() - NEWLY ADDED FOR COVERAGE
-# ═══════════════════════════════════════════════════════════════════════════════
+
 
 test_that("auto_detect_column returns config value if available", {
     available_cols <- c("sample_id", "condition", "group")
@@ -471,9 +469,7 @@ test_that("auto_detect_column sends verbose messages", {
     )
 })
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# TEST SUITE: save_analysis_output() - NEWLY ADDED FOR COVERAGE
-# ═══════════════════════════════════════════════════════════════════════════════
+
 
 test_that("save_analysis_output saves data.frame to CSV", {
     skip_on_cran()
@@ -614,10 +610,6 @@ test_that("save_analysis_output handles unknown format with RDS fallback", {
     expect_true(result)
     expect_true(file.exists(temp_file))
 })
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# TEST SUITE: extract_multiq_table() - NEWLY ADDED FOR COVERAGE
-# ═══════════════════════════════════════════════════════════════════════════════
 
 test_that("extract_multiq_table returns data.frame for single q-value", {
     result_single <- list(

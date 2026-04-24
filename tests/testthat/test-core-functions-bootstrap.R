@@ -6874,9 +6874,7 @@ test_that(".bootstrap_process_matrix with paired=TRUE", {
   expect_equal(length(result), 2)
 })
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# TEST SUITE: .estimate_storey_pi0() - NEWLY ADDED FOR COVERAGE
-# ═══════════════════════════════════════════════════════════════════════════════
+
 
 test_that(".estimate_storey_pi0 with lambda method returns valid pi0 estimate", {
     # Create realistic p-values with mixture of significant and null
@@ -6996,9 +6994,7 @@ test_that(".estimate_storey_pi0 handles strong signal (most hypotheses are true)
     expect_true(result$n_null <= 200)  # Shouldn't exceed actual null count
 })
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# TEST SUITE: .westfall_young_permutation() - NEWLY ADDED FOR COVERAGE
-# ═══════════════════════════════════════════════════════════════════════════════
+
 
 test_that(".westfall_young_permutation returns valid result structure", {
     skip_if_not_installed("BiocParallel")
@@ -7044,9 +7040,7 @@ test_that(".westfall_young_permutation handles single p-value", {
     expect_true("perm_minima" %in% names(result))
 })
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# TEST SUITE: .westfall_young_permutation_rank() - NEWLY ADDED FOR COVERAGE
-# ═══════════════════════════════════════════════════════════════════════════════
+
 
 test_that(".westfall_young_permutation_rank returns permutation distribution", {
     set.seed(444)
@@ -7071,9 +7065,7 @@ test_that(".westfall_young_permutation_rank returns permutation distribution", {
     expect_equal(length(result$perm_minima), 25)
 })
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# TEST SUITE: .bootstrap_resample_with_quality_control() - NEWLY ADDED FOR COVERAGE
-# ═══════════════════════════════════════════════════════════════════════════════
+
 
 test_that(".bootstrap_resample_with_quality_control returns valid bootstrap distribution", {
     set.seed(666)
@@ -7200,9 +7192,7 @@ test_that(".bootstrap_resample_with_quality_control with effective_length", {
     expect_equal(length(result), 50)
 })
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# TEST SUITE: divergence_bootstrap_flexible_cpp_wrapper() - NEWLY ADDED FOR COVERAGE
-# ═══════════════════════════════════════════════════════════════════════════════
+
 
 test_that("divergence_bootstrap_flexible_cpp_wrapper validates input lengths", {
     skip_if_not_installed("SummarizedExperiment")
@@ -7297,9 +7287,7 @@ test_that("divergence_bootstrap_flexible_cpp_wrapper respects q parameter", {
     }
 })
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# TEST SUITE: .bootstrap_aggregate_ci() - NEWLY ADDED FOR COVERAGE
-# ═══════════════════════════════════════════════════════════════════════════════
+
 
 test_that(".bootstrap_aggregate_ci aggregates CI across samples", {
     skip_if_not_installed("SummarizedExperiment")
