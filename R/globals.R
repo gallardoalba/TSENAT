@@ -17,6 +17,7 @@
 #' @importFrom S4Vectors metadata DataFrame
 #' @importFrom SummarizedExperiment rowData<-
 #' @importFrom memoise memoise cache_memory forget
+#' @importFrom digest digest
 NULL
 
 # # Declare package global variables to satisfy R CMD check NOTES
