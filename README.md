@@ -51,15 +51,7 @@ Tsallis divergence enables the quantification of how fundamentally different the
 
 **Requirements:** R >= 4.5.0
 
-Install from [Bioconductor](https://bioconductor.org/packages/TSENAT) (recommended):
-
-```r
-if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-BiocManager::install("TSENAT")
-```
-
-Or the development version from GitHub:
+Install development version from GitHub:
 
 ```r
 remotes::install_github("gallardoalba/TSENAT")

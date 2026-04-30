@@ -44,7 +44,7 @@ suppressPackageStartupMessages(library(kableExtra))
 
 TSENAT (Tsallis Entropy Analysis Toolbox) allows the modelization and quantification of isoform-usage complexity in RNA-seq data using Tsallis entropy, a scale-dependent diversity measure distinct from abundance-focused tools (DESeq2, edgeR) and differential transcript usage packages (DRIMSeq). By tuning the entropy index parameter (q), TSENAT enables to examine transcriptome heterogeneity at different scales: rare variants (low q) or dominant isoforms (high q). This package enables computing Tsallis entropy and Tsallis divergence from transcript-level abundance estimates, comparing measures between groups, and visualizing scale-dependent differences via q-curves.
 
-## Motivation and Bioconductor Contribution
+## Motivation
 
 Common RNA-seq tools focus on either total gene abundance changes or individual transcript usage shifts, yet genes often remodel their isoform landscapes without changing overall expression-a phenomenon missed by these approaches. TSENAT makes possible to quantify this isoform-usage diversty directly via Tsallis entropy, allowing to capture biological signals invisible to abundance- or proportion-based summaries.
 
@@ -62,18 +62,10 @@ Design assumptions: This guide assumes paired or longitudinal designs with >=6-8
 
 ## Installation
 
-To install `TSENAT` from Bioconductor:
+Install development version from GitHub:
 
-```{r install-package, eval = FALSE}
-if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager", repos = "http://cran.us.r-project.org")
-BiocManager::install("TSENAT")
-```
-
-Then load the package:
-
-```{r load-tsenat-package, eval = FALSE}
-library(TSENAT)
+```r
+remotes::install_github("gallardoalba/TSENAT")
 ```
 
 ## Quick Start
