@@ -62,7 +62,13 @@ Design assumptions: This guide assumes paired or longitudinal designs with >=6-8
 
 ## Installation
 
-Install development version from GitHub:
+The easiest way to install TSENAT is through Bioconda:
+
+```bash
+conda install -c bioconda r-tsenat
+```
+
+To install the latest development version from GitHub:
 
 ```r
 remotes::install_github("gallardoalba/TSENAT")

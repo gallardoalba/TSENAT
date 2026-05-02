@@ -51,7 +51,13 @@ Tsallis divergence enables the quantification of how fundamentally different the
 
 **Requirements:** R >= 4.5.0
 
-Install development version from GitHub:
+The easiest way to install TSENAT is through Bioconda:
+
+```bash
+conda install -c bioconda r-tsenat
+```
+
+To install the latest development version from GitHub:
 
 ```r
 remotes::install_github("gallardoalba/TSENAT")
