@@ -80,22 +80,21 @@ conditions.
 
 ## Installation
 
-**Requirements:** R \>= 4.5.0
+**Requirements:** R >= 4.5.0
 
-Install from [Bioconductor](https://bioconductor.org/packages/TSENAT)
-(recommended):
+### From Bioconda (Recommended)
 
-``` r
+The easiest way to install TSENAT is through Bioconda:
 
-if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-BiocManager::install("TSENAT")
+``` bash
+conda install -c bioconda r-tsenat
 ```
 
-Or the development version from GitHub:
+### From GitHub (Development Version)
+
+To install the latest development version from GitHub:
 
 ``` r
-
 remotes::install_github("gallardoalba/TSENAT")
 ```
 
