@@ -1,5 +1,5 @@
 ---
-title: "Appendix B: Non-Parametric Validation of Scale-Adaptive Interaction Model Results via GAM and Rank-Based Methods"
+title: "Appendix B: Non-Parametric Validation of Scale-Adaptive Interaction Test Results via GAM and Rank-Based Methods"
 author: "Cristobal Gallardo <gallardoalba@pm.me>"
 date: "`r Sys.Date()`"
 output:
@@ -39,7 +39,7 @@ suppressPackageStartupMessages(library(kableExtra))
 
 # Purpose and Rationale
 
-The primary goal of this vignette is to validate that discoveries of scale-dependent entropic index × group interactions from Scale-Adaptive Interaction Models (SAIT) generalize to non-parametric statistical frameworks with minimal assumptions.
+The primary goal of this vignette is to validate that discoveries of scale-dependent entropic index × group interactions from Scale-Adaptive Interaction Tests (SAIT) generalize to non-parametric statistical frameworks with minimal assumptions.
 
 ## Two Complementary Validation Approaches
 
