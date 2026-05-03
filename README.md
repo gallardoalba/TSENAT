@@ -233,15 +233,14 @@ Key requirements:
 - `condition` column: experimental groups.
 - `paired_samples` column: required if using paired designs; identifier for matched samples.
 
-## Tests coverage
+## Tests Coverage
 
 Testing is vital in research as it ensures the validity and reliability of results, which is essential for accurately interpreting findings. The report about the current testing coverage can be found [here](https://app.codecov.io/gh/gallardoalba/TSENAT).
 
-## Package Architecture
+## Software Architecture
 
 Get a visual overview of TSENAT's structure in [package architecture](https://gallardoalba.github.io/TSENAT/r_dependencies_s4_interactive.html). This helps you understand how the 600+ functions that integrate TSENAT work together.
 
-<img width="1200" height="738" alt="dependency_graph_2026-04-17" src="https://github.com/user-attachments/assets/3f9ca1e0-1848-4389-905a-2b2617a2e40a" />
 
 ## Citation
 
