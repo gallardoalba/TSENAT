@@ -237,10 +237,6 @@ Key requirements:
 
 Testing is vital in research as it ensures the validity and reliability of results, which is essential for accurately interpreting findings. The report about the current testing coverage can be found [here](https://app.codecov.io/gh/gallardoalba/TSENAT).
 
-## Software Architecture
-
-Get a visual overview of TSENAT's structure in [package architecture](https://gallardoalba.github.io/TSENAT/r_dependencies_s4_interactive.html). This helps you understand how the 600+ functions that integrate TSENAT work together.
-
 
 ## Citation
 
