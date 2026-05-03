@@ -80,9 +80,7 @@ conditions.
 
 ## Installation
 
-**Requirements:** R >= 4.5.0
-
-### From Bioconda (Recommended)
+**Requirements:** R \>= 4.5.0
 
 The easiest way to install TSENAT is through Bioconda:
 
@@ -90,11 +88,10 @@ The easiest way to install TSENAT is through Bioconda:
 conda install -c bioconda r-tsenat
 ```
 
-### From GitHub (Development Version)
-
 To install the latest development version from GitHub:
 
 ``` r
+
 remotes::install_github("gallardoalba/TSENAT")
 ```
 
@@ -168,9 +165,7 @@ entropic index (q-value) by condition interactions, and rich
 visualization. This is the recommended entry point for most users—it
 orchestrates the full workflow while respecting your configuration
 parameters (entropic indices, design, bootstrap settings, etc.) and
-handles output management seamlessly. For advanced customization, use
-individual functions directly as shown in the step-by-step workflow
-below.
+handles output management seamlessly.
 
 ``` r
 
@@ -224,20 +219,20 @@ ARIMA differencing.
 
 The statistical methods available in TSENAT include:
 
-- **Scale-Adaptive Interaction Models**: Multiple modeling approaches
-  optimized for repeated measures with AR(1) correlation structure. GAM,
-  LMM, GEE and FPCA are all parametrized to handle the non-normality and
-  heteroscedasticity characteristic of entropy data.
-- **Scheirer-Ray-Hare rank tests**: The test operates solely on ranks,
-  making it robust to outliers and extreme values. However, it shows
-  lower power for interactions and can inflate Type I errors under
+- **Scale-adaptive interaction tests (SAIT)**: Multiple modeling
+  approaches optimized for repeated measures with AR(1) correlation
+  structure. GAM, LMM, GEE and FPCA are all parametrized to handle the
+  non-normality and heteroscedasticity characteristic of entropy data.
+- **Scheirer-Ray-Hare (SRH) rank tests**: The test operates solely on
+  ranks, making it robust to outliers and extreme values. However, it
+  shows lower power for interactions and can inflate Type I errors under
   heterogeneous variance. These limitations are mitigated through
   Hochberg multiple testing correction.
 - **M-estimation**: Robust location estimation for group comparison
   using iteratively re-weighted least squares, resistant to outliers.
-- **Jackknife isoform switching**: Leave-one-out resampling to identify
-  transcripts with condition-specific switching patterns and quantify
-  their influence on entropy differences.
+- **Jackknife isoform switching (JIS)**: Leave-one-out resampling to
+  identify transcripts with condition-specific switching patterns and
+  quantify their influence on entropy differences.
 
 ## Related Packages
 
@@ -368,4 +363,4 @@ specialized focus on Tsallis entropy analysis.
 
 > **“If I ever come back from the past, it’s to create a cyclone.”**
 >
-> - Juan José Lozano
+> – Juan José Lozano

@@ -13,7 +13,7 @@ package enables computing Tsallis entropy and Tsallis divergence from
 transcript-level abundance estimates, comparing measures between groups,
 and visualizing scale-dependent differences via q-curves.
 
-### Motivation and Bioconductor Contribution
+### Motivation
 
 Common RNA-seq tools focus on either total gene abundance changes or
 individual transcript usage shifts, yet genes often remodel their
@@ -45,20 +45,17 @@ be underpowered to detect subtle isoform complexity changes.
 
 ### Installation
 
-To install `TSENAT` from Bioconductor:
+The easiest way to install TSENAT is through Bioconda:
 
-``` r
-
-if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager", repos = "http://cran.us.r-project.org")
-BiocManager::install("TSENAT")
+``` bash
+conda install -c bioconda r-tsenat
 ```
 
-Then load the package:
+To install the latest development version from GitHub:
 
 ``` r
 
-library(TSENAT)
+remotes::install_github("gallardoalba/TSENAT")
 ```
 
 ### Quick Start
@@ -301,9 +298,9 @@ In this workflow, you will:
 
 1.  Load transcript counts and sample metadata
 2.  Identify genes with significant scale-dependent isoform complexity
-    changes (using Scale-Adaptive Interaction Models)
+    changes (using Scale-Adaptive Interaction Tests)
 3.  Assess which individual transcripts drive those changes (using
-    jackknife resampling (Efron and Tibshirani 1993))
+    jackknife resampling)
 4.  Interpret results in the context of paired experimental designs
 
 We’ll work with a paired experimental design where treated and control
@@ -545,7 +542,7 @@ review. Flagged samples may reflect genuine biological heterogeneity or
 technical artifacts requiring careful examination before proceeding with
 downstream analysis.
 
-### Scale-Adaptive Interaction Models
+### Scale-Adaptive Interaction Tests
 
 Each gene produces a **q-curve**: a trajectory showing how entropy
 changes across entropic scales from rare (low `q`) to abundant (high
@@ -554,7 +551,7 @@ groups—in other words, whether the effect of `q` on entropy **depends
 on** which group a sample belongs to. This is captured statistically as
 a **q x condition interaction**: if significant, it reveals genes with
 condition-specific diversity patterns that change shape across the
-diversity spectrum. Scale-Adaptive Interaction Models (SAIT) naturally
+diversity spectrum. Scale-Adaptive Interaction Tests (SAIT) naturally
 formalize this multi-scale comparison through adaptive statistical
 frameworks, making them ideal for identifying such scale-dependent
 biological signals.
@@ -1163,7 +1160,7 @@ B](https://gallardoalba.github.io/TSENAT/articles/TSENAT_appendix_B.md)**
 ``` r
 
 sessionInfo()
-#> R version 4.5.2 (2025-10-31)
+#> R version 4.5.3 (2026-03-11)
 #> Platform: x86_64-conda-linux-gnu
 #> Running under: Ubuntu 22.04.5 LTS
 #> 
@@ -1188,34 +1185,34 @@ sessionInfo()
 #> other attached packages:
 #>  [1] SummarizedExperiment_1.40.0 Biobase_2.70.0             
 #>  [3] GenomicRanges_1.62.1        Seqinfo_1.0.0              
-#>  [5] IRanges_2.44.0              S4Vectors_0.48.0           
+#>  [5] IRanges_2.44.0              S4Vectors_0.48.1           
 #>  [7] BiocGenerics_0.56.0         generics_0.1.4             
 #>  [9] MatrixGenerics_1.22.0       matrixStats_1.5.0          
-#> [11] ggplot2_4.0.2               TSENAT_0.99.0              
+#> [11] ggplot2_4.0.3               TSENAT_0.99.0              
 #> [13] kableExtra_1.4.0           
 #> 
 #> loaded via a namespace (and not attached):
-#>  [1] gtable_0.3.6        xfun_0.56           bslib_0.10.0       
-#>  [4] htmlwidgets_1.6.4   lattice_0.22-9      vctrs_0.7.2        
-#>  [7] tools_4.5.2         parallel_4.5.2      tibble_3.3.1       
-#> [10] pkgconfig_2.0.3     pheatmap_1.0.13     Matrix_1.7-4       
-#> [13] RColorBrewer_1.1-3  S7_0.2.1            desc_1.4.3         
-#> [16] lifecycle_1.0.5     compiler_4.5.2      farver_2.1.2       
+#>  [1] gtable_0.3.6        xfun_0.57           bslib_0.10.0       
+#>  [4] htmlwidgets_1.6.4   lattice_0.22-9      vctrs_0.7.3        
+#>  [7] tools_4.5.3         parallel_4.5.3      tibble_3.3.1       
+#> [10] pkgconfig_2.0.3     pheatmap_1.0.13     Matrix_1.7-5       
+#> [13] RColorBrewer_1.1-3  S7_0.2.2            desc_1.4.3         
+#> [16] lifecycle_1.0.5     compiler_4.5.3      farver_2.1.2       
 #> [19] stringr_1.6.0       textshaping_1.0.5   codetools_0.2-20   
 #> [22] htmltools_0.5.9     sass_0.4.10         yaml_2.3.12        
 #> [25] pkgdown_2.2.0       pillar_1.11.1       jquerylib_0.1.4    
 #> [28] tidyr_1.3.2         BiocParallel_1.44.0 cachem_1.1.0       
-#> [31] DelayedArray_0.36.0 abind_1.4-8         nlme_3.1-168       
+#> [31] DelayedArray_0.36.1 abind_1.4-8         nlme_3.1-169       
 #> [34] tidyselect_1.2.1    digest_0.6.39       stringi_1.8.7      
-#> [37] dplyr_1.2.0         purrr_1.2.1         splines_4.5.2      
+#> [37] dplyr_1.2.1         purrr_1.2.2         splines_4.5.3      
 #> [40] labeling_0.4.3      cowplot_1.2.0       fastmap_1.2.0      
-#> [43] grid_4.5.2          cli_3.6.5           SparseArray_1.10.9 
-#> [46] magrittr_2.0.4      S4Arrays_1.10.1     withr_3.0.2        
-#> [49] scales_1.4.0        rmarkdown_2.30      XVector_0.50.0     
+#> [43] grid_4.5.3          cli_3.6.6           SparseArray_1.10.10
+#> [46] magrittr_2.0.5      S4Arrays_1.10.1     withr_3.0.2        
+#> [49] scales_1.4.0        rmarkdown_2.31      XVector_0.50.0     
 #> [52] otel_0.2.0          ragg_1.5.0          memoise_2.0.1      
 #> [55] evaluate_1.0.5      knitr_1.51          viridisLite_0.4.3  
-#> [58] mgcv_1.9-4          rlang_1.1.7         Rcpp_1.1.1         
-#> [61] glue_1.8.0          xml2_1.5.2          svglite_2.2.2      
+#> [58] mgcv_1.9-4          rlang_1.2.0         Rcpp_1.1.1-1.1     
+#> [61] glue_1.8.1          xml2_1.5.2          svglite_2.2.2      
 #> [64] rstudioapi_0.18.0   jsonlite_2.0.0      R6_2.6.1           
-#> [67] systemfonts_1.3.2   fs_1.6.7
+#> [67] systemfonts_1.3.2   fs_2.1.0
 ```

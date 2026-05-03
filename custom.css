@@ -1,0 +1,335 @@
+/* ============================================================================
+   TABLE EXPANSION CSS FOR PKGDOWN VIGNETTES
+   ============================================================================
+   Force tables to expand horizontally to prevent awkward line wrapping
+   and ensure readability of data tables in vignettes
+*/
+
+/* Container scrolling for wide tables */
+.table-container {
+    overflow-x: auto;
+    overflow-y: hidden;
+    margin-bottom: 1rem;
+}
+
+/* Make all tables scrollable on small screens */
+table {
+    min-width: 100%;
+    table-layout: auto;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+/* Bootstrap-styled tables */
+.table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+/* Table cells: prevent content wrapping within cells */
+table th,
+table td {
+    white-space: nowrap;
+    padding: 0.5rem;
+}
+
+/* Allow longer column content to expand */
+table td {
+    text-overflow: ellipsis;
+}
+
+/* Vignette-specific table styling */
+.vignette table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    margin: 1rem 0;
+    border-collapse: collapse;
+}
+
+/* ============================================================================
+   SIDEBAR STYLING - Minimal, clean style matching the flatly theme
+   ============================================================================
+*/
+
+/* Main sidebar section headings - subtle style */
+aside h2 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #333;
+    margin-top: 1.25rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #ecf0f1;
+    letter-spacing: 0.5px;
+}
+
+/* First section - remove top margin */
+aside > div:first-child h2 {
+    margin-top: 0;
+}
+
+/* Links section - clean styling */
+.links ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.links li {
+    margin: 0.5rem 0;
+}
+
+.links a {
+    color: #2c3e50;
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: color 0.15s ease;
+    border-left: 2px solid transparent;
+    padding-left: 0.5rem;
+    display: block;
+}
+
+.links a:hover {
+    color: #34495e;
+    border-left-color: #95a5a6;
+    background-color: #f8f9fa;
+    padding-left: 0.75rem;
+}
+
+/* License section - subtle background */
+.license {
+    background-color: #f8f9fa;
+    padding: 0.75rem;
+    border-radius: 3px;
+    border-left: 3px solid #27ae60;
+    margin-top: 1.25rem;
+    font-size: 0.9rem;
+}
+
+.license a {
+    color: #2c3e50;
+    text-decoration: none;
+}
+
+.license a:hover {
+    color: #27ae60;
+    text-decoration: underline;
+}
+
+/* Community section */
+.community ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.community li {
+    margin: 0.5rem 0;
+}
+
+.community a {
+    color: #2c3e50;
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: color 0.15s ease;
+    display: block;
+    border-left: 2px solid transparent;
+    padding-left: 0.5rem;
+}
+
+.community a:hover {
+    color: #e74c3c;
+    border-left-color: #e74c3c;
+    background-color: #f8f9fa;
+    padding-left: 0.75rem;
+}
+
+/* Citation section */
+.citation a {
+    color: #2c3e50;
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: color 0.15s ease;
+    display: block;
+    border-left: 2px solid transparent;
+    padding-left: 0.5rem;
+}
+
+.citation a:hover {
+    color: #3498db;
+    border-left-color: #3498db;
+    background-color: #f8f9fa;
+    padding-left: 0.75rem;
+}
+
+/* Authors/Developers section */
+.developers ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.developers li {
+    margin: 0.4rem 0;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.developers a {
+    color: #2c3e50;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.developers a:hover {
+    color: #8e44ad;
+    text-decoration: underline;
+}
+
+/* Development badges section */
+.dev {
+    background-color: #fef9e7;
+    padding: 0.75rem;
+    border-radius: 3px;
+    border-left: 3px solid #f39c12;
+    margin-top: 1.25rem;
+    font-size: 0.85rem;
+}
+
+/* ============================================================================
+   TITLE SIZE REDUCTION
+   ============================================================================
+   Reduce h1 font sizes for main page titles to improve visual hierarchy
+*/
+
+h1,
+h1.title,
+.page-header h1,
+.vignette h1,
+main h1 {
+    font-size: 1.35rem !important;
+    margin-top: 0.25rem !important;
+    margin-bottom: 0.75rem !important;
+}
+
+/* ============================================================================
+   STICKY SIDEBAR FOR HOME PAGE
+   ============================================================================
+   Make the sidebar sticky (floating) on the home page only
+*/
+
+/* Home page sidebar - sticky positioning */
+aside.col-md-3 {
+    position: sticky !important;
+    top: 80px !important;
+    max-height: calc(100vh - 100px) !important;
+    overflow-y: auto !important;
+    align-self: flex-start;
+}
+
+/* Make sidebar section titles (License, Citation, Developers, Dev status) bold */
+aside.col-md-3 h2[data-toc-skip] {
+    font-weight: 700 !important;
+}
+
+.dev p {
+    margin: 0;
+    color: #333;
+}
+
+.vignette thead {
+    background-color: #f5f5f5;
+    font-weight: bold;
+}
+
+.vignette tbody tr:nth-child(odd) {
+    background-color: #ffffff;
+}
+
+.vignette tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+/* Data frame output from knitr */
+.kable,
+.kable_wrapper {
+    overflow-x: auto;
+}
+
+.kable {
+    display: block;
+    overflow-x: auto;
+}
+
+/* Responsive: allow normal text wrapping on very large screens */
+@media (min-width: 1920px) {
+    table td {
+        white-space: normal;
+    }
+}
+
+/* Print styles: don't force horizontal scroll in printed documents */
+@media print {
+    table {
+        display: table;
+        overflow-x: visible;
+        white-space: normal;
+    }
+}
+
+/* ============================================================================
+   SEARCH BAR REMOVAL - Hide all search elements
+   ============================================================================
+*/
+
+/* Hide navbar search container */
+.navbar-search,
+#navbar-search-input,
+.bs-navbar-search,
+.navbar .input-group.search,
+.navbar form[role="search"],
+.navbar [data-bs-toggle="search"],
+.navbar .search-container {
+    display: none !important;
+}
+
+/* Hide search input field */
+input[type="search"],
+input.search,
+.search input {
+    display: none !important;
+}
+
+/* Hide search button/icon */
+.navbar-search button,
+.navbar-search-button,
+.search-button,
+[aria-label*="search" i] {
+    display: none !important;
+}
+
+/* Hide any search-related form elements in navbar */
+.navbar form {
+    display: none !important;
+}
+
+/* Ensure navbar doesn't show search placeholder */
+.navbar [placeholder*="search" i],
+.navbar [placeholder*="Search" i] {
+    display: none !important;
+}
+
+/* ============================================================================
+   ARTICLE TITLE SPACING
+   ============================================================================
+   Reduce space before h1 titles in articles
+*/
+
+article h1:first-of-type,
+main > h1:first-of-type {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
