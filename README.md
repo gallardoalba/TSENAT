@@ -1,6 +1,6 @@
 [![CircleCI](https://circleci.com/gh/gallardoalba/TSENAT.svg?style=svg)](https://app.circleci.com/pipelines/github/gallardoalba/TSENAT) [![License: GPL-3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE) ![GitHub last commit](https://img.shields.io/github/last-commit/gallardoalba/TSENAT) ![GitHub R package version](https://img.shields.io/github/r-package/v/gallardoalba/TSENAT) [![coverage](https://codecov.io/gh/gallardoalba/TSENAT/branch/stable/graph/badge.svg)](https://codecov.io/gh/gallardoalba/TSENAT/branch/stable) [![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/r-tsenat/README.html) [![Downloads](https://anaconda.org/bioconda/r-tsenat/badges/downloads.svg)](https://anaconda.org/bioconda/r-tsenat)
 
-<img width="1792" height="592" alt="Gemini_Generated_Image_1nayz11nayz11nay" src="https://github.com/user-attachments/assets/b8213592-b4ff-4fe9-a404-f844f9c26030" />
+<img width="1792" height="592" alt="TSENAT logo" src="https://github.com/user-attachments/assets/b8213592-b4ff-4fe9-a404-f844f9c26030" />
 
 ## The Problem
 
