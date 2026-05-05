@@ -1,0 +1,18 @@
+	check	test	result	interpretation
+1	assumption	Exchangeability (Permutation test)	p=0e+00	Ordering detected
+2	assumption	Monotonicity (Spearman rho)	r=0.098	Heterogeneous
+3	assumption	Consistency (Kendall's W / ICC)	W=0.185, ICC=0.046	Low
+4	assumption	Concurvity (Smooth collinearity)	0.000	Low
+5	assumption	EDF Ratio (Smoothing)	0.024	Over-smoothed
+6	assumption	Non-linearity (Delta R^2 vs LM)	0.0%	Use linear
+7	assumption	Basis Dimension (Spline basis)	k=3	Adequate
+8	assumption	Correlation fit	Observed autocorr=-0.050; independence suitable	Good fit
+9	assumption	Cluster variation	Mean size=76.0	Homogeneous
+10	assumption	Independence	Mean within-cluster residual correlation=-0.057	Independent
+11	assumption	Scale parameter	phi=0.128	Under-dispersed (rare)
+12	assumption	Variance components	ICC=0.047; B=0.003, W=0.063	Use sait model
+13	assumption	Normality	p=7.26e-22	Non-normal
+14	assumption	Homogeneity	p=0.0354; CV=0.219	Slight heterogeneity
+15	assumption	Influence	Outliers=0, Extreme=0, Influential=24.7%	Many outliers
+16	assumption	Variance adequacy	Failed: Valores infinitos o faltantes en 'x'	? ERROR
+17	assumption	Bootstrap stability	Failed: Valores infinitos o faltantes en 'x'	? ERROR
