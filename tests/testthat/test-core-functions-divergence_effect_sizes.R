@@ -5,7 +5,6 @@
 skip_on_bioc()
 
 test_that("calculate_effect_sizes aligns gene datasets", {
-  skip_on_bioc()
   # Create mock data matching expected structure
   sait_res <- data.frame(
     gene = c("gene1", "gene2", "gene3"),
