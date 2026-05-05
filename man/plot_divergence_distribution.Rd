@@ -59,7 +59,6 @@ A red dashed line marks the information-theoretic significance threshold.
 }
 }
 \examples{
-\dontrun{
 # Plot 2: Distribution of effect sizes across genes
 data(readcounts)
 readcounts <- as.matrix(readcounts)
@@ -102,7 +101,6 @@ analysis <- suppressWarnings(calculate_sait(analysis, method = 'lmm'))
 analysis <- calculate_effect_sizes(analysis)
 p_dist <- plot_divergence_distribution(analysis)
 # print(p_dist)
-}
 
 }
 \seealso{
