@@ -872,6 +872,7 @@ test_that("WY parallel execution respects .get_effective_nthreads() with high co
   
   # Request 999 threads - tests that source code clamps very high thread requests
   # via .get_effective_nthreads() before passing to parallel backend
+
   result_high_threads <- .calculate_srh(
     data = data_high,
     entropy_col = "entropy",
@@ -1056,6 +1057,7 @@ test_that("WY parallel execution respects .get_effective_nthreads() with high co
   
   # Request 999 threads - tests that source code clamps very high thread requests
   # via .get_effective_nthreads() before passing to parallel backend
+  
   result_high_threads <- .calculate_srh(
     data = data_high,
     entropy_col = "entropy",
