@@ -595,7 +595,6 @@ test_that("WY permutation respects .get_effective_nthreads() for high thread cou
   # In constrained Bioconductor builds, even reduced thread counts can trigger
   # parallel::mclapply() validation errors
   skip_on_bioc()
-  
   # This test validates that the change from parallel::detectCores()
   # to .get_effective_nthreads() works correctly with high thread requests.
   # Test is compatible with _R_CHECK_LIMIT_CORES_ since .get_effective_nthreads()
