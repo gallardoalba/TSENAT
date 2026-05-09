@@ -1044,7 +1044,7 @@ test_that("Salmon data with decimals: column types correct after reading", {
   tmpdir <- tempdir()
   on.exit(unlink(file.path(tmpdir, "col_types_test*"), recursive = TRUE))
   
-  salmon_setup <- create_mock_salmon_dir(tmpdir, sample_names = c("S1"))
+  salmon_setup <- create_mock_salmon_dir(tmpdir, sample_names = "S1")
   
   # Read first sample
   data <- readr::read_tsv(salmon_setup$file_paths[1], 
