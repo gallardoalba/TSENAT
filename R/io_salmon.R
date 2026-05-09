@@ -124,7 +124,7 @@
 
     tryCatch({
         first_data <- readr::read_tsv(first_file, col_types = readr::cols(Name = readr::col_character(),
-            Length = readr::col_integer(), EffectiveLength = readr::col_double(),
+            Length = readr::col_double(), EffectiveLength = readr::col_double(),
             TPM = readr::col_double(), NumReads = readr::col_double()), show_col_types = FALSE)
 
         # Verify all expected columns present
@@ -157,7 +157,7 @@
 
             tryCatch({
                 current_data <- readr::read_tsv(current_file, col_types = readr::cols(Name = readr::col_character(),
-                  Length = readr::col_integer(), EffectiveLength = readr::col_double(),
+                  Length = readr::col_double(), EffectiveLength = readr::col_double(),
                   TPM = readr::col_double(), NumReads = readr::col_double()), show_col_types = FALSE)
 
                 transcript_ids_current <- current_data$Name
@@ -284,7 +284,7 @@
     .validate_salmon_files(file_paths, verbose = FALSE)
 
     # Define column specifications for fast, type-safe reading
-    col_spec <- readr::cols(Name = readr::col_character(), Length = readr::col_integer(),
+    col_spec <- readr::cols(Name = readr::col_character(), Length = readr::col_double(),
         EffectiveLength = readr::col_double(), TPM = readr::col_double(), NumReads = readr::col_double(),
         .default = readr::col_skip()  # Skip any extra columns
 )

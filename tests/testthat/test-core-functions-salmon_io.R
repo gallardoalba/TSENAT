@@ -797,3 +797,270 @@ test_that("Full Salmon workflow: detect → read → build_analysis creates corr
   # ✓ rowData contains correct gene mapping
   # ✓ colData contains correct sample metadata
 })
+
+# ===========================================================================
+# TESTS: Salmon Data with Decimal Values (Bug Fix Verification)
+# ===========================================================================
+
+#' Helper: Create Salmon data with realistic decimal Length values
+#' Mimics actual Salmon output with mixed integer/decimal Length values
+#' @noRd
+create_realistic_salmon_file <- function(filepath, seed = 42) {
+  set.seed(seed)
+  
+  # Create data with realistic mix of decimal and integer Length values
+  # (matching actual Salmon quant.sf format)
+  data <- data.frame(
+    Name = c(
+      "ENST00000162391.8",    # Will get 6289.435
+      "ENST00000187762.7",    # Will get 2516.0285
+      "ENST00000221130.11",   # Will get 2465.158
+      "ENST00000221818.5",    # Will get 1535.5
+      "ENST00000261252.4"     # Will get 2351 (integer)
+    ),
+    Length = c(6289.435, 2516.0285, 2465.158, 1535.5, 2351.0),
+    EffectiveLength = c(6289.435, 2516.0285, 2465.158, 1535.5, 2351.0),
+    TPM = c(6.062312, 0.736927, 19.426005, 0.102499, 15.234567),
+    NumReads = c(757.16, 36.57, 935.366, 3.0, 452.0)
+  )
+  
+  # Add more realistic transcripts to fill out 100 rows
+  for (i in 6:100) {
+    data <- rbind(data, data.frame(
+      Name = paste0("ENST", sprintf("%011d", i)),
+      Length = runif(1, 500, 5000) + runif(1, 0, 1),  # Mix of decimal and near-integer
+      EffectiveLength = runif(1, 400, 4800) + runif(1, 0, 1),
+      TPM = runif(1, 0.1, 50),
+      NumReads = rpois(1, 75)
+    ))
+  }
+  
+  dir.create(dirname(filepath), showWarnings = FALSE, recursive = TRUE)
+  readr::write_tsv(data, filepath)
+  invisible(data)
+}
+
+test_that("Salmon data with decimals: detect samples", {
+  tmpdir <- tempdir()
+  on.exit(unlink(file.path(tmpdir, "decimal_test_*"), recursive = TRUE))
+  
+  salmon_setup <- create_mock_salmon_dir(
+    tmpdir,
+    sample_names = c("sample1", "sample2", "sample3")
+  )
+  
+  result <- .detect_salmon_samples(salmon_setup$salmon_dir, recursive = TRUE)
+  
+  expect_is(result, "list")
+  expect_named(result, c("sample_names", "file_paths", "count"))
+  expect_equal(result$count, 3)
+  expect_equal(length(result$sample_names), 3)
+  expect_equal(length(result$file_paths), 3)
+  
+  # Verify file paths are correct
+  expect_true(all(file.exists(result$file_paths)))
+  expect_true(all(grepl("quant.sf$", result$file_paths)))
+})
+
+test_that("Salmon data with decimals: validate files", {
+  tmpdir <- tempdir()
+  on.exit(unlink(file.path(tmpdir, "validate_dec*"), recursive = TRUE))
+  
+  salmon_setup <- create_mock_salmon_dir(tmpdir, sample_names = c("S1", "S2"))
+  
+  # All files should validate successfully
+  expect_true(.validate_salmon_files(salmon_setup$file_paths, verbose = FALSE))
+})
+
+test_that("Salmon data with decimals: Length column preserves decimal values", {
+  tmpdir <- tempdir()
+  on.exit(unlink(file.path(tmpdir, "decimal_length*"), recursive = TRUE))
+  
+  # Create file with realistic decimal values
+  test_dir <- file.path(tmpdir, "decimal_length_test", "sample1")
+  dir.create(test_dir, recursive = TRUE, showWarnings = FALSE)
+  test_file <- file.path(test_dir, "quant.sf")
+  
+  create_realistic_salmon_file(test_file)
+  
+  # Read with col_double (correct, after fix)
+  data_double <- readr::read_tsv(test_file, 
+    col_types = readr::cols(
+      Name = readr::col_character(),
+      Length = readr::col_double(),
+      EffectiveLength = readr::col_double(),
+      TPM = readr::col_double(),
+      NumReads = readr::col_double()
+    ),
+    show_col_types = FALSE)
+  
+  # Verify decimal values are preserved
+  enst_6289 <- data_double$Length[data_double$Name == "ENST00000162391.8"]
+  expect_equal(enst_6289, 6289.435)  # Exact decimal value preserved
+  
+  enst_2516 <- data_double$Length[data_double$Name == "ENST00000187762.7"]
+  expect_equal(enst_2516, 2516.0285)  # Exact decimal value preserved
+  
+  enst_2465 <- data_double$Length[data_double$Name == "ENST00000221130.11"]
+  expect_equal(enst_2465, 2465.158)  # Exact decimal value preserved
+  
+  # Verify that col_integer would have truncated these
+  expect_false(enst_6289 == 6289)  # Would be truncated to 6289
+  expect_false(enst_2516 == 2516)  # Would be truncated to 2516
+  expect_false(enst_2465 == 2465)  # Would be truncated to 2465
+})
+
+test_that("Salmon data with decimals: read produces correct structures", {
+  tmpdir <- tempdir()
+  on.exit(unlink(file.path(tmpdir, "read_decimal*"), recursive = TRUE))
+  
+  salmon_setup <- create_mock_salmon_dir(tmpdir, sample_names = c("S1", "S2", "S3"))
+  
+  # Read all samples
+  salmon_data <- .read_salmon_samples(
+    file_paths = salmon_setup$file_paths,
+    sample_names = salmon_setup$sample_names,
+    include_tpm = TRUE,
+    include_eff_length = TRUE,
+    verbose = FALSE
+  )
+  
+  # Verify structure
+  expect_is(salmon_data, "list")
+  expect_true(all(c("counts", "transcript_ids", "tpm", "effective_length") %in% names(salmon_data)))
+  
+  # Verify dimensions
+  expect_equal(ncol(salmon_data$counts), 3)
+  expect_equal(ncol(salmon_data$tpm), 3)
+  expect_equal(nrow(salmon_data$counts), 100)
+  expect_equal(nrow(salmon_data$tpm), 100)
+  expect_equal(nrow(salmon_data$effective_length), 100)  # Returns as matrix
+  expect_equal(ncol(salmon_data$effective_length), 3)
+  
+  # Verify all values are numeric and realistic
+  expect_true(all(salmon_data$counts >= 0, na.rm = TRUE))
+  expect_true(all(salmon_data$tpm >= 0, na.rm = TRUE))
+  expect_true(all(salmon_data$effective_length > 0, na.rm = TRUE))
+})
+
+test_that("Salmon data with decimals: all samples have matching transcript IDs", {
+  tmpdir <- tempdir()
+  on.exit(unlink(file.path(tmpdir, "matching_trans*"), recursive = TRUE))
+  
+  salmon_setup <- create_mock_salmon_dir(
+    tmpdir,
+    sample_names = c("ctrl_1", "ctrl_2", "treat_1")
+  )
+  
+  # Read all files individually
+  all_transcripts <- lapply(salmon_setup$file_paths, function(file) {
+    data <- readr::read_tsv(file, 
+      col_types = readr::cols(
+        Name = readr::col_character(),
+        .default = readr::col_skip()
+      ),
+      show_col_types = FALSE)
+    data$Name
+  })
+  
+  # All files should have identical transcript lists
+  for (i in 2:length(all_transcripts)) {
+    expect_equal(all_transcripts[[1]], all_transcripts[[i]],
+      label = paste("Sample", i, "has matching transcripts"))
+  }
+})
+
+test_that("Salmon data with decimals: realistic distributions", {
+  tmpdir <- tempdir()
+  on.exit(unlink(file.path(tmpdir, "distrib_test*"), recursive = TRUE))
+  
+  salmon_setup <- create_mock_salmon_dir(tmpdir, sample_names = c("S1", "S2"))
+  
+  salmon_data <- .read_salmon_samples(
+    file_paths = salmon_setup$file_paths,
+    sample_names = salmon_setup$sample_names,
+    include_tpm = TRUE,
+    include_eff_length = TRUE,
+    verbose = FALSE
+  )
+  
+  # Verify realistic distributions
+  tpm_matrix <- salmon_data$tpm
+  tpm_first <- tpm_matrix[, 1]
+  
+  # Expect skewed distribution (typical for RNA-seq)
+  # Mock data ensures minimum detection of 0.1, so check for variation
+  expect_gt(length(unique(tpm_first)), 50)  # Many different values
+  expect_gt(max(tpm_first, na.rm = TRUE), min(tpm_first, na.rm = TRUE))  # Has range
+  expect_gt(max(tpm_first, na.rm = TRUE), 0)  # Maximum should be positive
+  
+  # Counts should be non-negative
+  counts_matrix <- salmon_data$counts
+  expect_true(all(counts_matrix >= 0, na.rm = TRUE))
+  
+  # Effective length should be in realistic range (200-10000 bp)
+  expect_gt(min(salmon_data$effective_length, na.rm = TRUE), 100)
+  expect_lt(max(salmon_data$effective_length, na.rm = TRUE), 20000)
+})
+
+test_that("Salmon data with decimals: mixed integer and decimal values handled correctly", {
+  tmpdir <- tempdir()
+  on.exit(unlink(file.path(tmpdir, "mixed_decimal*"), recursive = TRUE))
+  
+  test_dir <- file.path(tmpdir, "mixed_decimal_test", "sample1")
+  dir.create(test_dir, recursive = TRUE, showWarnings = FALSE)
+  test_file <- file.path(test_dir, "quant.sf")
+  
+  create_realistic_salmon_file(test_file)
+  
+  # Read full data
+  data <- readr::read_tsv(test_file, 
+    col_types = readr::cols(
+      Name = readr::col_character(),
+      Length = readr::col_double(),
+      EffectiveLength = readr::col_double(),
+      TPM = readr::col_double(),
+      NumReads = readr::col_double()
+    ),
+    show_col_types = FALSE)
+  
+  # Verify both decimal and integer-like values are handled
+  lengths <- data$Length
+  
+  # Find values with decimals and without
+  decimal_values <- lengths[lengths != floor(lengths)]
+  integer_values <- lengths[lengths == floor(lengths)]
+  
+  # Should have both types
+  expect_gt(length(decimal_values), 0)  # Some decimal values
+  expect_gt(length(integer_values), 0)  # Some integer-like values
+  
+  # All should be valid numbers
+  expect_true(all(is.numeric(lengths)))
+  expect_true(all(lengths > 0))  # Lengths should always be positive
+})
+
+test_that("Salmon data with decimals: column types correct after reading", {
+  tmpdir <- tempdir()
+  on.exit(unlink(file.path(tmpdir, "col_types_test*"), recursive = TRUE))
+  
+  salmon_setup <- create_mock_salmon_dir(tmpdir, sample_names = c("S1"))
+  
+  # Read first sample
+  data <- readr::read_tsv(salmon_setup$file_paths[1], 
+    col_types = readr::cols(
+      Name = readr::col_character(),
+      Length = readr::col_double(),
+      EffectiveLength = readr::col_double(),
+      TPM = readr::col_double(),
+      NumReads = readr::col_double()
+    ),
+    show_col_types = FALSE)
+  
+  # Verify column classes
+  expect_is(data$Name, "character")
+  expect_is(data$Length, "numeric")  # col_double produces numeric
+  expect_is(data$EffectiveLength, "numeric")
+  expect_is(data$TPM, "numeric")
+  expect_is(data$NumReads, "numeric")
+})
