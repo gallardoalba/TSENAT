@@ -186,5 +186,10 @@ Authors:
   \item Cristóbal Gallardo Alba \email{gallardoalba@pm.me} (\href{https://orcid.org/0000-0002-5752-2155}{ORCID})
 }
 
+Authors:
+\itemize{
+  \item Cristóbal Gallardo \email{gallardoalba@pm.me} (\href{https://orcid.org/0000-0002-5752-2155}{ORCID})
+}
+
 }
 \keyword{internal}
