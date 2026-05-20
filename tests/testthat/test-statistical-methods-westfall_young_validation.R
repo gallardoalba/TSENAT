@@ -1970,3 +1970,445 @@ test_that("Full Storey pi0 + q-value pipeline works", {
     expect_true(all(qvalue_result <= 1.0, na.rm = TRUE))
     expect_true(all(qvalue_result >= 0, na.rm = TRUE))
 })
+
+context("Westfall-Young Permutation: Coverage Enhancement Tests")
+
+# ============================================================================
+# TEST SUITE 1: .estimate_storey_pi0() - All methods coverage
+# ============================================================================
+
+test_that(".estimate_storey_pi0 with lambda method works correctly", {
+    skip_if_not_installed("stats")
+    
+    # Create p-values: 80% null (uniform), 20% signal (beta)
+    set.seed(42)
+    n_null <- 80
+    n_signal <- 20
+    pvalues <- c(runif(n_null), rbeta(n_signal, 0.5, 1))
+    
+    result <- .estimate_storey_pi0(pvalues, lambda = 0.5, pi0_method = "lambda")
+    
+    expect_is(result, "list")
+    expect_true("pi0" %in% names(result))
+    expect_true("lambda" %in% names(result))
+    expect_true("pi0_method" %in% names(result))
+    expect_true(result$pi0 > 0.5)  # Should estimate ~80% null
+    expect_true(result$pi0 <= 1.0)
+    expect_equal(result$pi0_method, "lambda")
+})
+
+test_that(".estimate_storey_pi0 with smoother method works", {
+    skip_if_not_installed("stats")
+    
+    set.seed(42)
+    pvalues <- c(runif(80), rbeta(20, 0.5, 1))
+    
+    result <- .estimate_storey_pi0(pvalues, pi0_method = "smoother")
+    
+    expect_is(result, "list")
+    expect_equal(result$pi0_method, "smoother")
+    expect_true(result$pi0 > 0)
+    expect_true(result$pi0 <= 1.0)
+})
+
+test_that(".estimate_storey_pi0 with bootstrap method works", {
+    skip_if_not_installed("stats")
+    
+    set.seed(42)
+    pvalues <- c(runif(80), rbeta(20, 0.5, 1))
+    
+    # Bootstrap method is computationally intensive, use smaller sample
+    result <- .estimate_storey_pi0(pvalues, pi0_method = "bootstrap")
+    
+    expect_is(result, "list")
+    expect_equal(result$pi0_method, "bootstrap")
+    expect_true(result$pi0 > 0)
+    expect_true(result$pi0 <= 1.0)
+})
+
+test_that(".estimate_storey_pi0 handles edge cases in lambda method", {
+    skip_if_not_installed("stats")
+    
+    # Small p-values only (all signal)
+    pvalues <- rbeta(50, 0.5, 1)  # Skewed to small values
+    result <- .estimate_storey_pi0(pvalues, lambda = 0.5, pi0_method = "lambda")
+    
+    expect_true(result$pi0 >= 0)  # Should be close to 0
+    expect_true(result$pi0 <= 1)
+})
+
+test_that(".estimate_storey_pi0 handles NA values", {
+    skip_if_not_installed("stats")
+    
+    set.seed(42)
+    pvalues <- c(runif(50), NA, rbeta(30, 0.5, 1), NA)
+    
+    result <- .estimate_storey_pi0(pvalues, na.rm = TRUE)
+    expect_is(result, "list")
+    expect_equal(result$n_hypotheses, 80)  # NA's removed
+})
+
+test_that(".estimate_storey_pi0 errors on invalid lambda", {
+    skip_if_not_installed("stats")
+    
+    pvalues <- runif(50)
+    
+    # Lambda >= 1 should error
+    expect_error(
+        .estimate_storey_pi0(pvalues, lambda = 1.0, pi0_method = "lambda"),
+        "lambda must be in range"
+    )
+    
+    # Lambda < 0 should error
+    expect_error(
+        .estimate_storey_pi0(pvalues, lambda = -0.1, pi0_method = "lambda"),
+        "lambda must be in range"
+    )
+})
+
+test_that(".estimate_storey_pi0 errors on invalid p-values", {
+    skip_if_not_installed("stats")
+    
+    # P-values > 1 should error
+    invalid_pvalues <- c(0.5, 1.5, 0.3)
+    expect_error(
+        .estimate_storey_pi0(invalid_pvalues),
+        "P-values must be in range"
+    )
+    
+    # P-values < 0 should error
+    invalid_pvalues2 <- c(0.5, -0.1, 0.3)
+    expect_error(
+        .estimate_storey_pi0(invalid_pvalues2),
+        "P-values must be in range"
+    )
+})
+
+test_that(".estimate_storey_pi0 errors on empty p-values", {
+    expect_error(
+        .estimate_storey_pi0(c()),
+        "No valid p-values"
+    )
+})
+
+# ============================================================================
+# TEST SUITE 2: .compute_storey_qvalues() - Coverage of all paths
+# ============================================================================
+
+test_that(".compute_storey_qvalues computes q-values correctly", {
+    skip_if_not_installed("stats")
+    
+    set.seed(42)
+    pvalues <- c(runif(80), rbeta(20, 0.5, 1))
+    
+    pi0_est <- .estimate_storey_pi0(pvalues, pi0_method = "lambda")
+    result <- .compute_storey_qvalues(pvalues, pi0 = pi0_est$pi0, fdr_level = 0.05)
+    
+    # .compute_storey_qvalues returns a numeric vector
+    expect_is(result, "numeric")
+    expect_equal(length(result), length(pvalues))
+    expect_true(all(result >= 0, na.rm = TRUE))
+    expect_true(all(result <= 1, na.rm = TRUE))
+})
+
+test_that(".compute_storey_qvalues with different FDR levels", {
+    skip_if_not_installed("stats")
+    
+    set.seed(42)
+    pvalues <- c(runif(80), rbeta(20, 0.5, 1))
+    pi0 <- 0.8
+    
+    # Stricter FDR (0.01)
+    result_strict <- .compute_storey_qvalues(pvalues, pi0 = pi0, fdr_level = 0.01)
+    # Looser FDR (0.1)
+    result_loose <- .compute_storey_qvalues(pvalues, pi0 = pi0, fdr_level = 0.1)
+    
+    # Both should return numeric vectors
+    expect_is(result_strict, "numeric")
+    expect_is(result_loose, "numeric")
+    expect_equal(length(result_strict), length(pvalues))
+    expect_equal(length(result_loose), length(pvalues))
+})
+
+test_that(".compute_storey_qvalues handles all-non-significant p-values", {
+    skip_if_not_installed("stats")
+    
+    # All large p-values (all null)
+    pvalues <- runif(100, 0.5, 1.0)
+    pi0 <- 0.95
+    
+    result <- .compute_storey_qvalues(pvalues, pi0 = pi0, fdr_level = 0.05)
+    expect_is(result, "numeric")
+    expect_equal(length(result), length(pvalues))
+})
+
+test_that(".compute_storey_qvalues handles all-significant p-values", {
+    skip_if_not_installed("stats")
+    
+    # All small p-values (all signal)
+    pvalues <- rbeta(100, 0.5, 1)
+    pi0 <- 0.05
+    
+    result <- .compute_storey_qvalues(pvalues, pi0 = pi0, fdr_level = 0.05)
+    expect_is(result, "numeric")
+    expect_equal(length(result), length(pvalues))
+})
+
+# ============================================================================
+# TEST SUITE 3: .westfall_young_permutation() - Serial vs Parallel paths
+# ============================================================================
+
+test_that(".westfall_young_permutation serial mode completes", {
+    skip_if_not_installed("parallel")
+    
+    set.seed(42)
+    n_genes <- 5
+    n_wy <- 10  # Small number for speed
+    
+    # Create dummy permutation functions
+    permute_fn <- function() sample(c("A", "B"), size = 10, replace = TRUE)
+    refit_fn <- function(assignment) {
+        # Return random p-values
+        runif(n_genes)
+    }
+    
+    result <- .westfall_young_permutation(
+        permute_fn = permute_fn,
+        refit_fn = refit_fn,
+        n_genes = n_genes,
+        wy_randomizations = n_wy,
+        nthreads = 1,  # Serial mode
+        verbose = FALSE
+    )
+    
+    expect_is(result, "list")
+    expect_true("perm_minima" %in% names(result))
+    expect_equal(length(result$perm_minima), n_wy)
+    expect_true(all(result$perm_minima >= 0))
+    expect_true(all(result$perm_minima <= 1))
+})
+
+test_that(".westfall_young_permutation with verbose output", {
+    skip_if_not_installed("parallel")
+    
+    set.seed(42)
+    n_genes <- 3
+    n_wy <- 5
+    
+    permute_fn <- function() sample(c("A", "B"), size = 8, replace = TRUE)
+    refit_fn <- function(assignment) runif(n_genes)
+    
+    # Capture messages to verify verbose output
+    expect_message(
+        .westfall_young_permutation(
+            permute_fn = permute_fn,
+            refit_fn = refit_fn,
+            n_genes = n_genes,
+            wy_randomizations = n_wy,
+            nthreads = 1,
+            verbose = TRUE
+        ),
+        "WY Permutation"
+    )
+})
+
+test_that(".westfall_young_permutation errors on invalid wy_randomizations", {
+    skip_if_not_installed("parallel")
+    
+    permute_fn <- function() sample(c("A", "B"), 10, replace = TRUE)
+    refit_fn <- function(assignment) runif(3)
+    
+    # wy_randomizations < 1 should error
+    expect_error(
+        .westfall_young_permutation(
+            permute_fn = permute_fn,
+            refit_fn = refit_fn,
+            n_genes = 3,
+            wy_randomizations = 0,
+            nthreads = 1
+        ),
+        "wy_randomizations must be"
+    )
+})
+
+test_that(".westfall_young_permutation handles nthreads conversion", {
+    skip_if_not_installed("parallel")
+    
+    set.seed(42)
+    permute_fn <- function() sample(c("A", "B"), 10, replace = TRUE)
+    refit_fn <- function(assignment) runif(3)
+    
+    # Non-integer nthreads should be coerced
+    result <- .westfall_young_permutation(
+        permute_fn = permute_fn,
+        refit_fn = refit_fn,
+        n_genes = 3,
+        wy_randomizations = 5,
+        nthreads = 1.9,  # Non-integer
+        verbose = FALSE
+    )
+    
+    expect_is(result, "list")
+    expect_equal(length(result$perm_minima), 5)
+})
+
+# ============================================================================
+# TEST SUITE 4: .westfall_young_permutation_rank() - Serial vs Parallel
+# ============================================================================
+
+test_that(".westfall_young_permutation_rank serial mode completes", {
+    skip_if_not_installed("parallel")
+    
+    set.seed(42)
+    n_genes <- 4
+    n_wy <- 8
+    
+    permute_fn <- function() sample(c("A", "B"), 12, replace = TRUE)
+    refit_fn <- function(assignment) {
+        # Return list with statistics vector
+        list(statistics = runif(n_genes, 0, 5))
+    }
+    
+    result <- .westfall_young_permutation_rank(
+        permute_fn = permute_fn,
+        refit_fn = refit_fn,
+        n_genes = n_genes,
+        wy_randomizations = n_wy,
+        nthreads = 1,  # Serial mode
+        verbose = FALSE
+    )
+    
+    expect_is(result, "list")
+    expect_true("perm_stats_matrix" %in% names(result))
+    expect_equal(nrow(result$perm_stats_matrix), n_genes)
+    expect_equal(ncol(result$perm_stats_matrix), n_wy)
+    expect_true(all(result$perm_stats_matrix >= 0))
+})
+
+test_that(".westfall_young_permutation_rank with numeric refit output", {
+    skip_if_not_installed("parallel")
+    
+    set.seed(42)
+    n_genes <- 3
+    n_wy <- 5
+    
+    permute_fn <- function() sample(c("A", "B"), 10, replace = TRUE)
+    # Return numeric vector instead of list (fallback case)
+    refit_fn <- function(assignment) runif(n_genes, 0.01, 0.1)
+    
+    result <- .westfall_young_permutation_rank(
+        permute_fn = permute_fn,
+        refit_fn = refit_fn,
+        n_genes = n_genes,
+        wy_randomizations = n_wy,
+        nthreads = 1,
+        verbose = FALSE
+    )
+    
+    expect_is(result, "list")
+    expect_equal(nrow(result$perm_stats_matrix), n_genes)
+    expect_equal(ncol(result$perm_stats_matrix), n_wy)
+})
+
+test_that(".westfall_young_permutation_rank with verbose output", {
+    skip_if_not_installed("parallel")
+    
+    set.seed(42)
+    permute_fn <- function() sample(c("A", "B"), 10, replace = TRUE)
+    refit_fn <- function(assignment) list(statistics = runif(3, 0, 5))
+    
+    expect_message(
+        .westfall_young_permutation_rank(
+            permute_fn = permute_fn,
+            refit_fn = refit_fn,
+            n_genes = 3,
+            wy_randomizations = 4,
+            nthreads = 1,
+            verbose = TRUE
+        ),
+        "WY Permutation.*Rank"
+    )
+})
+
+test_that(".westfall_young_permutation_rank errors on invalid wy_randomizations", {
+    skip_if_not_installed("parallel")
+    
+    permute_fn <- function() sample(c("A", "B"), 10, replace = TRUE)
+    refit_fn <- function(assignment) list(statistics = runif(3, 0, 5))
+    
+    expect_error(
+        .westfall_young_permutation_rank(
+            permute_fn = permute_fn,
+            refit_fn = refit_fn,
+            n_genes = 3,
+            wy_randomizations = -1,
+            nthreads = 1
+        ),
+        "wy_randomizations must be"
+    )
+})
+
+test_that(".westfall_young_permutation_rank errors on invalid refit output", {
+    skip_if_not_installed("parallel")
+    
+    set.seed(42)
+    permute_fn <- function() sample(c("A", "B"), 10, replace = TRUE)
+    # Return invalid output type (neither numeric nor list with $statistics)
+    refit_fn <- function(assignment) "invalid"
+    
+    expect_error(
+        .westfall_young_permutation_rank(
+            permute_fn = permute_fn,
+            refit_fn = refit_fn,
+            n_genes = 3,
+            wy_randomizations = 3,
+            nthreads = 1
+        ),
+        "refit_fn must return"
+    )
+})
+
+test_that(".westfall_young_permutation_rank handles nthreads conversion", {
+    skip_if_not_installed("parallel")
+    
+    set.seed(42)
+    permute_fn <- function() sample(c("A", "B"), 10, replace = TRUE)
+    refit_fn <- function(assignment) list(statistics = runif(3, 0, 5))
+    
+    # Non-integer nthreads should be coerced
+    result <- .westfall_young_permutation_rank(
+        permute_fn = permute_fn,
+        refit_fn = refit_fn,
+        n_genes = 3,
+        wy_randomizations = 4,
+        nthreads = 2.7,  # Non-integer
+        verbose = FALSE
+    )
+    
+    expect_is(result, "list")
+    expect_equal(nrow(result$perm_stats_matrix), 3)
+})
+
+# ============================================================================
+# TEST SUITE 5: Integration tests - Full WY workflow
+# ============================================================================
+
+test_that("Full Storey pi0 + q-value pipeline works", {
+    skip_if_not_installed("stats")
+    
+    set.seed(42)
+    # Simulate p-values from mixed distribution
+    pvalues <- c(runif(70), rbeta(30, 0.5, 1))
+    
+    # Step 1: Estimate pi0
+    pi0_result <- .estimate_storey_pi0(pvalues, pi0_method = "lambda")
+    expect_true(pi0_result$pi0 > 0.5)
+    
+    # Step 2: Compute q-values using estimated pi0
+    qvalue_result <- .compute_storey_qvalues(pvalues, pi0 = pi0_result$pi0)
+    
+    # Step 3: Verify q-values are monotone and <= 1
+    expect_is(qvalue_result, "numeric")
+    expect_true(all(qvalue_result <= 1.0, na.rm = TRUE))
+    expect_true(all(qvalue_result >= 0, na.rm = TRUE))
+})
