@@ -2086,7 +2086,7 @@ test_that(".estimate_storey_pi0 errors on invalid p-values", {
 
 test_that(".estimate_storey_pi0 errors on empty p-values", {
     expect_error(
-        .estimate_storey_pi0(c()),
+        .estimate_storey_pi0(NULL),
         "No valid p-values"
     )
 })
