@@ -4,7 +4,7 @@
 
 ## The Problem
 
-RNA-seq analysis typically addresses one of three complementary biological questions: (1) **which genes change in total abundance?**, (2) **which individual transcripts shift their abundance?**; (3) **which transcripts shift their *proportions* within genes, independent of total abundance?**
+RNA-seq analysis typically addresses one of three complementary biological questions: (1) which genes change in total abundance?, (2) which individual transcripts shift their abundance?, (3) which transcripts shift their *proportions* within genes, independent of total abundance?
 
 However, a fourth question remains largely invisible: **how does isoform-usage complexity change?**
 
