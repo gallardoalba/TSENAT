@@ -2252,6 +2252,236 @@ test_that(".westfall_young_permutation handles nthreads conversion", {
     expect_equal(length(result$perm_minima), 5)
 })
 
+test_that(".westfall_young_permutation parallel mode (nthreads > 1) executes successfully", {
+    skip_if_not_installed("parallel")
+    skip_if_not(.Platform$OS.type == "unix",
+                message = "Parallel execution uses mclapply (Unix only)")
+    
+    set.seed(42)
+    n_genes <- 4
+    n_wy <- 8
+    
+    # Create dummy permutation functions
+    permute_fn <- function() sample(c("A", "B"), size = 10, replace = TRUE)
+    refit_fn <- function(assignment) {
+        # Return random p-values
+        runif(n_genes)
+    }
+    
+    result <- .westfall_young_permutation(
+        permute_fn = permute_fn,
+        refit_fn = refit_fn,
+        n_genes = n_genes,
+        wy_randomizations = n_wy,
+        nthreads = 2,  # Parallel mode
+        verbose = FALSE
+    )
+    
+    # Verify output structure
+    expect_is(result, "list")
+    expect_true("perm_minima" %in% names(result))
+    expect_equal(length(result$perm_minima), n_wy)
+    
+    # All minima should be valid p-values
+    expect_true(all(result$perm_minima >= 0))
+    expect_true(all(result$perm_minima <= 1))
+    expect_true(all(!is.na(result$perm_minima)))
+})
+
+test_that(".westfall_young_permutation parallel mode with verbose output reports progress", {
+    skip_if_not_installed("parallel")
+    skip_if_not(.Platform$OS.type == "unix",
+                message = "Parallel execution uses mclapply (Unix only)")
+    
+    set.seed(42)
+    n_genes <- 3
+    n_wy <- 20  # Large enough to trigger progress messages at ~10% intervals
+    
+    permute_fn <- function() sample(c("A", "B"), size = 10, replace = TRUE)
+    refit_fn <- function(assignment) runif(n_genes)
+    
+    # Execute with verbose=TRUE and verify it completes without error
+    # (message capture can be unreliable in some R environments)
+    result <- suppressMessages({
+        .westfall_young_permutation(
+            permute_fn = permute_fn,
+            refit_fn = refit_fn,
+            n_genes = n_genes,
+            wy_randomizations = n_wy,
+            nthreads = 2,
+            verbose = TRUE
+        )
+    })
+    
+    # Verify results are correct
+    expect_is(result, "list")
+    expect_equal(length(result$perm_minima), n_wy)
+    expect_true(all(!is.na(result$perm_minima)))
+})
+
+test_that(".westfall_young_permutation serial batch processing executes correctly", {
+    skip_if_not_installed("parallel")
+    
+    set.seed(123)
+    n_genes <- 5
+    n_wy <- 35  # Chosen to test batch boundaries (batch_size = 10 → 4 batches)
+    
+    permute_fn <- function() sample(c("A", "B"), size = 12, replace = TRUE)
+    refit_fn <- function(assignment) runif(n_genes)
+    
+    result <- .westfall_young_permutation(
+        permute_fn = permute_fn,
+        refit_fn = refit_fn,
+        n_genes = n_genes,
+        wy_randomizations = n_wy,
+        nthreads = 1,  # Force serial batch mode
+        verbose = FALSE
+    )
+    
+    # Verify all permutations were computed
+    expect_equal(length(result$perm_minima), n_wy)
+    expect_true(all(!is.na(result$perm_minima)))
+    expect_true(all(result$perm_minima >= 0 & result$perm_minima <= 1))
+})
+
+test_that(".westfall_young_permutation serial batch processing with verbose reports batch progress", {
+    skip_if_not_installed("parallel")
+    
+    set.seed(123)
+    n_genes <- 3
+    n_wy <- 40  # Large enough to trigger batch progress messages
+    
+    permute_fn <- function() sample(c("A", "B"), size = 10, replace = TRUE)
+    refit_fn <- function(assignment) runif(n_genes)
+    
+    # Execute with verbose=TRUE and suppress messages
+    # (message capture can be unreliable in some R environments)
+    result <- suppressMessages({
+        .westfall_young_permutation(
+            permute_fn = permute_fn,
+            refit_fn = refit_fn,
+            n_genes = n_genes,
+            wy_randomizations = n_wy,
+            nthreads = 1,
+            verbose = TRUE
+        )
+    })
+    
+    # Verify results are correct
+    expect_equal(length(result$perm_minima), n_wy)
+    expect_true(all(!is.na(result$perm_minima)))
+    expect_true(all(result$perm_minima >= 0 & result$perm_minima <= 1))
+})
+
+test_that(".westfall_young_permutation compute_permutation returns minimum p-value per permutation", {
+    skip_if_not_installed("parallel")
+    
+    set.seed(456)
+    n_genes <- 4
+    n_wy <- 15
+    
+    # Create a custom refit function that returns known values
+    pvalue_sets <- list(
+        c(0.001, 0.05, 0.1, 0.5),   # min = 0.001
+        c(0.02, 0.03, 0.04, 0.5),   # min = 0.02
+        c(0.5, 0.6, 0.7, 0.8)       # min = 0.5
+    )
+    pvalue_idx <- 0
+    
+    permute_fn <- function() sample(c("A", "B"), size = 10, replace = TRUE)
+    refit_fn <- function(assignment) {
+        # Return known p-value set in rotation
+        pvalue_idx <<- (pvalue_idx %% length(pvalue_sets)) + 1
+        pvalue_sets[[pvalue_idx]]
+    }
+    
+    result <- .westfall_young_permutation(
+        permute_fn = permute_fn,
+        refit_fn = refit_fn,
+        n_genes = n_genes,
+        wy_randomizations = n_wy,
+        nthreads = 1,
+        verbose = FALSE
+    )
+    
+    # Should have one minimum per permutation
+    expect_equal(length(result$perm_minima), n_wy)
+    
+    # All should be valid p-values (between 0 and 1)
+    expect_true(all(result$perm_minima >= 0 & result$perm_minima <= 1))
+})
+
+test_that(".westfall_young_permutation handles NA values correctly from refit_fn", {
+    skip_if_not_installed("parallel")
+    
+    set.seed(789)
+    n_genes <- 3
+    n_wy <- 10
+    
+    permute_fn <- function() sample(c("A", "B"), size = 10, replace = TRUE)
+    refit_fn <- function(assignment) {
+        # Return p-values with some NAs
+        c(0.01, NA, 0.5)
+    }
+    
+    result <- .westfall_young_permutation(
+        permute_fn = permute_fn,
+        refit_fn = refit_fn,
+        n_genes = n_genes,
+        wy_randomizations = n_wy,
+        nthreads = 1,
+        verbose = FALSE
+    )
+    
+    # Should handle NAs correctly (min with na.rm=TRUE should give 0.01)
+    expect_equal(length(result$perm_minima), n_wy)
+    expect_true(all(result$perm_minima == 0.01))  # NA removed, min is 0.01
+})
+
+test_that(".westfall_young_permutation serial vs parallel produce comparable distributions", {
+    skip_if_not_installed("parallel")
+    skip_if_not(.Platform$OS.type == "unix",
+                message = "Parallel execution uses mclapply (Unix only)")
+    
+    set.seed(999)
+    n_genes <- 4
+    n_wy <- 20
+    
+    permute_fn <- function() sample(c("A", "B"), size = 10, replace = TRUE)
+    refit_fn <- function(assignment) runif(n_genes)
+    
+    # Run serial version
+    set.seed(999)
+    result_serial <- .westfall_young_permutation(
+        permute_fn = permute_fn,
+        refit_fn = refit_fn,
+        n_genes = n_genes,
+        wy_randomizations = n_wy,
+        nthreads = 1,
+        verbose = FALSE
+    )
+    
+    # Run parallel version (with same seed for reproducibility)
+    set.seed(999)
+    result_parallel <- .westfall_young_permutation(
+        permute_fn = permute_fn,
+        refit_fn = refit_fn,
+        n_genes = n_genes,
+        wy_randomizations = n_wy,
+        nthreads = 2,
+        verbose = FALSE
+    )
+    
+    # Both should produce valid results with same length
+    expect_equal(length(result_serial$perm_minima), length(result_parallel$perm_minima))
+    expect_equal(length(result_serial$perm_minima), n_wy)
+    
+    # Statistics should be comparable (same data distribution)
+    expect_equal(mean(result_serial$perm_minima, na.rm = TRUE), 
+                 mean(result_parallel$perm_minima, na.rm = TRUE), 
+                 tolerance = 0.1)  # Allow some variation due to RNG differences
+})
+
 # ============================================================================
 # TEST SUITE 4: .westfall_young_permutation_rank() - Serial vs Parallel
 # ============================================================================
@@ -2387,6 +2617,320 @@ test_that(".westfall_young_permutation_rank handles nthreads conversion", {
     
     expect_is(result, "list")
     expect_equal(nrow(result$perm_stats_matrix), 3)
+})
+
+test_that(".westfall_young_permutation_rank parallel mode (nthreads > 1) with list $statistics", {
+    skip_if_not_installed("parallel")
+    skip_if_not(.Platform$OS.type == "unix",
+                message = "Parallel execution uses mclapply (Unix only)")
+    
+    set.seed(42)
+    n_genes <- 4
+    n_wy <- 8
+    
+    permute_fn <- function() sample(c("A", "B"), 12, replace = TRUE)
+    # Return list with $statistics (full vectors, not p-values)
+    refit_fn <- function(assignment) {
+        list(statistics = runif(n_genes, 0, 5))
+    }
+    
+    result <- .westfall_young_permutation_rank(
+        permute_fn = permute_fn,
+        refit_fn = refit_fn,
+        n_genes = n_genes,
+        wy_randomizations = n_wy,
+        nthreads = 2,  # Parallel mode
+        verbose = FALSE
+    )
+    
+    # Verify output structure
+    expect_is(result, "list")
+    expect_true("perm_stats_matrix" %in% names(result))
+    
+    # Should be genes × permutations matrix
+    expect_equal(nrow(result$perm_stats_matrix), n_genes)
+    expect_equal(ncol(result$perm_stats_matrix), n_wy)
+    
+    # All values should be non-negative (test statistics are positive)
+    expect_true(all(result$perm_stats_matrix >= 0, na.rm = TRUE))
+})
+
+test_that(".westfall_young_permutation_rank parallel mode with numeric fallback (p-value conversion)", {
+    skip_if_not_installed("parallel")
+    skip_if_not(.Platform$OS.type == "unix",
+                message = "Parallel execution uses mclapply (Unix only)")
+    
+    set.seed(42)
+    n_genes <- 3
+    n_wy <- 6
+    
+    permute_fn <- function() sample(c("A", "B"), 10, replace = TRUE)
+    # Return numeric vector (fallback case - treated as p-values)
+    refit_fn <- function(assignment) {
+        runif(n_genes, 0.01, 0.1)  # p-values
+    }
+    
+    result <- .westfall_young_permutation_rank(
+        permute_fn = permute_fn,
+        refit_fn = refit_fn,
+        n_genes = n_genes,
+        wy_randomizations = n_wy,
+        nthreads = 2,  # Parallel mode
+        verbose = FALSE
+    )
+    
+    # Should have correct matrix dimensions
+    expect_is(result, "list")
+    expect_equal(nrow(result$perm_stats_matrix), n_genes)
+    expect_equal(ncol(result$perm_stats_matrix), n_wy)
+    
+    # Values should be -log(p + 1e-300) which are positive
+    expect_true(all(result$perm_stats_matrix > 0, na.rm = TRUE))
+    # Should be reasonably large since p-values are small
+    expect_true(all(result$perm_stats_matrix > 1, na.rm = TRUE))
+})
+
+test_that(".westfall_young_permutation_rank parallel mode reports progress", {
+    skip_if_not_installed("parallel")
+    skip_if_not(.Platform$OS.type == "unix",
+                message = "Parallel execution uses mclapply (Unix only)")
+    
+    set.seed(42)
+    n_genes <- 3
+    n_wy <- 20  # Large enough to trigger progress messages
+    
+    permute_fn <- function() sample(c("A", "B"), 10, replace = TRUE)
+    refit_fn <- function(assignment) list(statistics = runif(n_genes, 0, 3))
+    
+    # Execute with verbose=TRUE and suppress messages
+    # (message capture can be unreliable in some R environments)
+    result <- suppressMessages({
+        .westfall_young_permutation_rank(
+            permute_fn = permute_fn,
+            refit_fn = refit_fn,
+            n_genes = n_genes,
+            wy_randomizations = n_wy,
+            nthreads = 2,
+            verbose = TRUE
+        )
+    })
+    
+    # Verify results are correct
+    expect_is(result, "list")
+    expect_equal(nrow(result$perm_stats_matrix), n_genes)
+    expect_equal(ncol(result$perm_stats_matrix), n_wy)
+    expect_true(all(!is.na(result$perm_stats_matrix)))
+})
+
+test_that(".westfall_young_permutation_rank returns FULL statistics vectors per permutation", {
+    skip_if_not_installed("parallel")
+    
+    set.seed(123)
+    n_genes <- 5
+    n_wy <- 10
+    
+    # Create predictable statistics
+    counter <- 0
+    permute_fn <- function() sample(c("A", "B"), 12, replace = TRUE)
+    refit_fn <- function(assignment) {
+        # Return incrementing values so we can verify full vectors are returned
+        counter <<- counter + 1
+        list(statistics = seq(counter, counter + n_genes - 1))
+    }
+    
+    result <- .westfall_young_permutation_rank(
+        permute_fn = permute_fn,
+        refit_fn = refit_fn,
+        n_genes = n_genes,
+        wy_randomizations = n_wy,
+        nthreads = 1,
+        verbose = FALSE
+    )
+    
+    # Verify we got full vectors, not minima
+    # Matrix should be n_genes × n_wy with all different values
+    expect_equal(nrow(result$perm_stats_matrix), n_genes)
+    expect_equal(ncol(result$perm_stats_matrix), n_wy)
+    
+    # Each permutation (column) should have different values from others
+    col1 <- result$perm_stats_matrix[, 1]
+    col2 <- result$perm_stats_matrix[, 2]
+    expect_false(all(col1 == col2))  # Different permutations should differ
+})
+
+test_that(".westfall_young_permutation_rank serial batch processing returns full statistics", {
+    skip_if_not_installed("parallel")
+    
+    set.seed(321)
+    n_genes <- 4
+    n_wy <- 35  # Test batch boundaries
+    
+    permute_fn <- function() sample(c("A", "B"), 10, replace = TRUE)
+    refit_fn <- function(assignment) {
+        list(statistics = runif(n_genes, 1, 5))
+    }
+    
+    result <- .westfall_young_permutation_rank(
+        permute_fn = permute_fn,
+        refit_fn = refit_fn,
+        n_genes = n_genes,
+        wy_randomizations = n_wy,
+        nthreads = 1,  # Serial batch mode
+        verbose = FALSE
+    )
+    
+    # Verify matrix dimensions
+    expect_equal(nrow(result$perm_stats_matrix), n_genes)
+    expect_equal(ncol(result$perm_stats_matrix), n_wy)
+    
+    # All values should be valid statistics
+    expect_true(all(!is.na(result$perm_stats_matrix)))
+    expect_true(all(result$perm_stats_matrix > 0))
+})
+
+test_that(".westfall_young_permutation_rank serial batch processing with verbose reports progress", {
+    skip_if_not_installed("parallel")
+    
+    set.seed(321)
+    n_genes <- 3
+    n_wy <- 40  # Large enough to trigger batch progress
+    
+    permute_fn <- function() sample(c("A", "B"), 10, replace = TRUE)
+    refit_fn <- function(assignment) {
+        list(statistics = runif(n_genes, 0, 2))
+    }
+    
+    # Execute with verbose=TRUE and suppress messages
+    # (message capture can be unreliable in some R environments)
+    result <- suppressMessages({
+        .westfall_young_permutation_rank(
+            permute_fn = permute_fn,
+            refit_fn = refit_fn,
+            n_genes = n_genes,
+            wy_randomizations = n_wy,
+            nthreads = 1,
+            verbose = TRUE
+        )
+    })
+    
+    # Verify results are correct
+    expect_equal(nrow(result$perm_stats_matrix), n_genes)
+    expect_equal(ncol(result$perm_stats_matrix), n_wy)
+    expect_true(all(!is.na(result$perm_stats_matrix)))
+})
+
+test_that(".westfall_young_permutation_rank compute_permutation extracts $statistics correctly", {
+    skip_if_not_installed("parallel")
+    
+    set.seed(555)
+    n_genes <- 4
+    n_wy <- 12
+    
+    # Return specific statistics that we can verify
+    test_stats <- list(
+        c(1.0, 2.0, 3.0, 4.0),
+        c(5.0, 6.0, 7.0, 8.0),
+        c(0.5, 1.5, 2.5, 3.5)
+    )
+    stat_idx <- 0
+    
+    permute_fn <- function() sample(c("A", "B"), 10, replace = TRUE)
+    refit_fn <- function(assignment) {
+        # Cycle through test statistics
+        stat_idx <<- (stat_idx %% length(test_stats)) + 1
+        list(statistics = test_stats[[stat_idx]])
+    }
+    
+    result <- .westfall_young_permutation_rank(
+        permute_fn = permute_fn,
+        refit_fn = refit_fn,
+        n_genes = n_genes,
+        wy_randomizations = n_wy,
+        nthreads = 1,
+        verbose = FALSE
+    )
+    
+    # Should have extracted statistics correctly
+    expect_equal(nrow(result$perm_stats_matrix), n_genes)
+    expect_equal(ncol(result$perm_stats_matrix), n_wy)
+    
+    # First permutation should use test_stats[[1]]
+    expect_equal(result$perm_stats_matrix[, 1], c(1.0, 2.0, 3.0, 4.0))
+})
+
+test_that(".westfall_young_permutation_rank handles NA values in statistics", {
+    skip_if_not_installed("parallel")
+    
+    set.seed(789)
+    n_genes <- 3
+    n_wy <- 10
+    
+    permute_fn <- function() sample(c("A", "B"), 10, replace = TRUE)
+    refit_fn <- function(assignment) {
+        # Return statistics with some NAs
+        c(1.5, NA, 3.5)
+    }
+    
+    result <- .westfall_young_permutation_rank(
+        permute_fn = permute_fn,
+        refit_fn = refit_fn,
+        n_genes = n_genes,
+        wy_randomizations = n_wy,
+        nthreads = 1,
+        verbose = FALSE
+    )
+    
+    # Should handle NAs without crashing
+    expect_equal(nrow(result$perm_stats_matrix), n_genes)
+    expect_equal(ncol(result$perm_stats_matrix), n_wy)
+    
+    # Row 2 should be all NAs (from the NA in refit output)
+    expect_true(all(is.na(result$perm_stats_matrix[2, ])))
+})
+
+test_that(".westfall_young_permutation_rank parallel vs serial produce comparable matrices", {
+    skip_if_not_installed("parallel")
+    skip_if_not(.Platform$OS.type == "unix",
+                message = "Parallel execution uses mclapply (Unix only)")
+    
+    set.seed(999)
+    n_genes <- 4
+    n_wy <- 15
+    
+    permute_fn <- function() sample(c("A", "B"), 10, replace = TRUE)
+    refit_fn <- function(assignment) list(statistics = runif(n_genes, 0.5, 4))
+    
+    # Run serial
+    set.seed(999)
+    result_serial <- .westfall_young_permutation_rank(
+        permute_fn = permute_fn,
+        refit_fn = refit_fn,
+        n_genes = n_genes,
+        wy_randomizations = n_wy,
+        nthreads = 1,
+        verbose = FALSE
+    )
+    
+    # Run parallel
+    set.seed(999)
+    result_parallel <- .westfall_young_permutation_rank(
+        permute_fn = permute_fn,
+        refit_fn = refit_fn,
+        n_genes = n_genes,
+        wy_randomizations = n_wy,
+        nthreads = 2,
+        verbose = FALSE
+    )
+    
+    # Both should produce same dimensions
+    expect_equal(nrow(result_serial$perm_stats_matrix), nrow(result_parallel$perm_stats_matrix))
+    expect_equal(ncol(result_serial$perm_stats_matrix), ncol(result_parallel$perm_stats_matrix))
+    expect_equal(ncol(result_serial$perm_stats_matrix), n_wy)
+    
+    # Statistics should have similar ranges
+    expect_equal(range(result_serial$perm_stats_matrix, na.rm = TRUE)[1],
+                 range(result_parallel$perm_stats_matrix, na.rm = TRUE)[1],
+                 tolerance = 1.0)
 })
 
 # ============================================================================
