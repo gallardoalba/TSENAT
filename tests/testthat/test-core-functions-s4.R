@@ -63,7 +63,7 @@ test_that(".prepare_diversity_params extracts q values from config", {
                          "bootstrap_method", "bootstrap_ci", "tpm", 
                          "genes", "nboot", 
                          "bootstrap_include_diagnostics", "metadata", "norm_method", 
-                         "reference_group"))
+                         "reference_group", "log_base"))
 })
 
 test_that(".prepare_diversity_params uses explicit q values over config", {
