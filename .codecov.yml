@@ -1,7 +1,0 @@
-coverage:
-  precision: 2
-  round: down
-  range: "70..100"
-
-ignore:
-  - "R/zzz.R"              # Package initialization (.onLoad hook) - runs once at load time, not during tests

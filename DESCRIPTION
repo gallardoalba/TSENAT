@@ -16,7 +16,7 @@ LazyData: false
 Depends: R (>= 4.5.0)
 Imports: SummarizedExperiment, methods, stats, ggplot2, withr, BiocParallel, matrixStats, mgcv, geepack, pheatmap, cowplot, dplyr, tidyr, S4Vectors, rlang, Rcpp, memoise, digest, readr, ARTool
 LinkingTo: Rcpp, RcppArmadillo
-Suggests: testthat, knitr, rmarkdown, BiocStyle, kableExtra, patchwork, covr, RColorBrewer, gamsel, glmmTMB, glmnet, gridExtra, nlme, fdrtool, MASS, SplicingFactory, devtools, microbenchmark, gtable, e1071
+Suggests: testthat, knitr, rmarkdown, BiocStyle, kableExtra, patchwork, covr, RColorBrewer, gamsel, glmmTMB, glmnet, gridExtra, nlme, fdrtool, MASS, SplicingFactory, devtools, microbenchmark, gtable, e1071, magick
 VignetteBuilder: knitr
 URL: https://gallardoalba.github.io/TSENAT
 BugReports: https://github.com/gallardoalba/TSENAT/issues

@@ -38,3 +38,6 @@ r_dependencies_s4_interactive.html
 visualize_dependencies.py
 inst/pkgdown/
 citations.md
+custom.css
+citations.Rmd
+.codecov.yml
