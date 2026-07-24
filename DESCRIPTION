@@ -1,7 +1,7 @@
 Package: TSENAT
 Type: Package
 Title: Tsallis Entropy Analysis Toolbox
-Version: 0.99.0
+Version: 1.0.0
 Authors@R: person(given = "Cristóbal", family = "Gallardo Alba", role = c("aut", "cre"), email = "gallardoalba@pm.me", comment=c(ORCID="0000-0002-5752-2155"))
 Description: Quantifies and models isoform-usage complexity in RNA-seq data using 
     Tsallis entropy, a scale-dependent diversity measure. By tuning the entropic index 

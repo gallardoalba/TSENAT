@@ -1,4 +1,4 @@
-# TSENAT 0.99.0
+# TSENAT 1.0.0
 
 * **Aligned Rank Transform (ART)**: `calculate_rank_transform()` now defaults to the Aligned Rank Transform via the ARTool package (Kay et al. 2021) for proper non-parametric interaction testing. ART strips main effects before ranking ("alignment"), preserving interaction structure — a known limitation of classical rank-transform methods. The Conover-Iman Rank Transform remains available via `method='rt'`. ARTool added to Imports.
 
@@ -7,6 +7,8 @@
     * **Entropy & divergence core**: Fixed `.entropy_core()` q=0 species richness inflated by zero-count isoforms (B1); fixed `.entropy_max()` q=0 theoretical maximum off-by-one (B2); threaded `log_base` through `.normalize_log_odds_ratio()` pipeline (B3); restricted `log_base` to KL limit (q≈1) in Tsallis divergence (B10); eliminated pseudocount + min_prob double-correction (B11); corrected max divergence normalization for q≠1 using q-dependent formula (B12).
 
     * **C++ resampling kernels**: Fixed `entropy_cpp()` q=0 returning `log(n)` instead of `n-1`; removed `>1e-15` threshold so zeros contribute zero entropy; added `RNGseed` for reproducible parallel execution.
+
+    * **Parallel reproducibility (R-layer)**: Fixed `.bplapply()` not propagating `set.seed()` to BiocParallel workers, causing non-deterministic results across parallel runs (Westfall-Young, bootstrap, etc.); now derives `RNGseed` from current RNG state so all parallel operations are reproducible with `set.seed()`.
 
     * **Bootstrap & CI infrastructure**: Fixed BCa acceleration computed from bootstrap distribution instead of true jackknife (audit #3); fixed BCa z0 using wrong point estimate with effective_length mismatch (audit #4); added defensive copies in `bootstrap_compute_cpp_wrapper()` and `block_bootstrap_compute_cpp_wrapper()` (B6, I9); fixed BCa degenerate distribution handling and strict comparison with 0.5 padding (audit #12); implemented replicate-level bootstrap with proper C++ path (audit #11).
 
