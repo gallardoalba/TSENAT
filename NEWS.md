@@ -1,4 +1,4 @@
-# TSENAT 1.0.0
+# TSENAT 0.99.0
 
 * **Aligned Rank Transform (ART)**: `calculate_rank_transform()` now defaults to the Aligned Rank Transform via the ARTool package (Kay et al. 2021) for proper non-parametric interaction testing. ART strips main effects before ranking ("alignment"), preserving interaction structure — a known limitation of classical rank-transform methods. The Conover-Iman Rank Transform remains available via `method='rt'`. ARTool added to Imports.
 
