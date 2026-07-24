@@ -519,7 +519,7 @@ if (!is.null(concordance_results) && is.list(concordance_results)) {
   if (!is.null(concordance_results$agreement_dist) && nrow(concordance_results$agreement_dist) > 0) {
     cat("\n")
     print(knitr::kable(concordance_results$agreement_dist, 
-                 caption = "**Supplementary Table 20 | Agreement Distribution: Concordance by Gene Category.** Distribution of genes across categories: both methods significant, GAM only, SRH only, and neither method.",
+                 caption = "**Supplementary Table 20 | Agreement Distribution: Concordance by Gene Category.** Distribution of genes across categories: both methods significant, GAM only, Conover-Iman Rank Transform only, and neither method.",
                  align = c("l", "r", "r")))
   }
   
@@ -528,7 +528,7 @@ if (!is.null(concordance_results) && is.list(concordance_results)) {
     cat("\n")
     n_hc <- nrow(concordance_results$high_conf_table)
     print(knitr::kable(concordance_results$high_conf_table, 
-                 caption = paste0("**Supplementary Table 21 | Robust Entropic Order Index Interactions: High-Confidence Genes Detected by Both Methods (n=", n_hc, ", ranked by statistical significance).** Cross-method validation: genes significant in both GAM and SRH provide strongest evidence for q × condition effects."),
+                 caption = paste0("**Supplementary Table 21 | Robust Entropic Order Index Interactions: High-Confidence Genes Detected by Both Methods (n=", n_hc, ", ranked by statistical significance).** Cross-method validation: genes significant in both GAM and Conover-Iman Rank Transform provide strongest evidence for q × condition effects."),
                  align = c("l", "r", "r", "r", "r")))
   }
 } else {
@@ -538,13 +538,13 @@ if (!is.null(concordance_results) && is.list(concordance_results)) {
 
 ## Statistical Power vs. Robustness: Understanding Method Discordance
 
-The striking discordance between GAMM and SRH results (42.1% significant in GAMM only, 1.3% in rank test only and 1.3%  in both methods significant) reflects a fundamental trade-off in statistical methodology: **parametric methods maximize power when assumptions hold, while nonparametric methods sacrifice power for robustness to assumption violations**.
+The striking discordance between GAMM and Conover-Iman Rank Transform results (42.1% significant in GAMM only, 1.3% in rank test only and 1.3%  in both methods significant) reflects a fundamental trade-off in statistical methodology: **parametric methods maximize power when assumptions hold, while nonparametric methods sacrifice power for robustness to assumption violations**.
 
 GAMM's superior power derives from two factors:
 
-1. Distributional assumptions: GAMM assumes approximately normal residuals and homogeneous variance, which are reasonable after appropriate transformation for entropy data. Under these assumptions, parametric methods are theoretically optimal, achieving maximum power for a given type I error rate. The rank-based SRH test is assumption-free but necessarily discards quantitative information by converting measurements to ranks, which reduces statistical power when the underlying data are approximately normal.
+1. Distributional assumptions: GAMM assumes approximately normal residuals and homogeneous variance, which are reasonable after appropriate transformation for entropy data. Under these assumptions, parametric methods are theoretically optimal, achieving maximum power for a given type I error rate. The Conover-Iman Rank Transform is assumption-free but necessarily discards quantitative information by converting measurements to ranks, which reduces statistical power when the underlying data are approximately normal.
 
-2. Model flexibility with penalty: GAMM uses thin-plate splines with smoothness penalties that simultaneously fit nonlinear patterns while controlling degrees of freedom. This flexibility allows GAMM to detect subtle entropic index × group interactions across all q-values. The SRH test, by contrast, operates on rank patterns only, which is inherently less sensitive to continuous relationships across the ordering (q-values).
+2. Model flexibility with penalty: GAMM uses thin-plate splines with smoothness penalties that simultaneously fit nonlinear patterns while controlling degrees of freedom. This flexibility allows GAMM to detect subtle entropic index × group interactions across all q-values. The Conover-Iman Rank Transform, by contrast, operates on rank patterns only, which is inherently less sensitive to continuous relationships across the ordering (q-values).
 
 This complementary approach—combining high-power parametric tests with robust nonparametric alternatives—provides confidence that discoveries are methodologically sound rather than artifacts of statistical assumptions.
 
