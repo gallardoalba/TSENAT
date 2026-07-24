@@ -47,14 +47,17 @@
     # Normalize to sum to 1 (handle numerical errors)
     p <- p_nonzero/sum(p_nonzero)
 
-    # Species richness (q=0): S_0 = n_nonzero - 1
-    # Mathematically: S_0 = (1 - Σp_i^0)/(-1) = n - 1 (Tsallis 1988).
-    # NOTE: This is the Tsallis ENTROPY (n-1), NOT the Hill number/effective
-    # richness D_0 = n. The entropy value n-1 is consistent with the C++
+    # Species richness (q=0): S_0 = n_present - 1
+    # Mathematically: S_0 = (1 - Σp_i^0)/(-1) = n_present - 1 (Tsallis 1988).
+    # NOTE: This is the Tsallis ENTROPY (n_present-1), NOT the Hill number/effective
+    # richness D_0 = n. The entropy value n_present-1 is consistent with the C++
     # implementation (entropy_cpp, audit fix #5).
     # AUDIT FIX R13: Changed from length(p) to length(p)-1.
+    # AUDIT FIX July 2026: Count only species with p > 0 (zeros contribute nothing
+    # to species richness). Using sum(p > 0) instead of length(p) to exclude
+    # zero-proportion isoforms.
     if (q < q_tol) {
-        H <- length(p) - 1
+        H <- sum(p > 0) - 1
         return(H)
     }
 
@@ -149,8 +152,12 @@
         return(NA_real_)
 
     if (q < q_tol) {
-        # Species richness max: total number of species
-        H_max <- n_species
+        # AUDIT FIX July 2026: Tsallis q=0 max = n_species - 1 (not n_species).
+        # The maximum Tsallis entropy at q=0 for n species is n-1, achieved
+        # when all n species have equal (non-zero) proportions.  Using n_species
+        # would cause inconsistent normalization with .entropy_core() which
+        # correctly uses length(p)-1.
+        H_max <- n_species - 1
     } else if (abs(q - 1) < q_tol) {
         # Shannon max: log(n)
         H_max <- log(n_species)/log(log_base)

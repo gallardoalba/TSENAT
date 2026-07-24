@@ -291,7 +291,11 @@
 
     # Initialize IRLS
     weights <- rep(1, n_obs)
-    location_prev <- median(y, na.rm = TRUE)
+    # AUDIT FIX July 2026: Initialize to Inf instead of median(y) so that
+    # the convergence check runs on the first iteration.  Previously, setting
+    # location_prev to median(y) caused the first iteration's convergence
+    # check to be skipped (iter > 1 guard), wasting one iteration.
+    location_prev <- Inf
 
     # IRLS iterations for single location (intercept model)
     for (iter in seq_len(max_iter)) {

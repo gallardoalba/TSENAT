@@ -358,8 +358,8 @@
 #' @return List with:
 #'   - statistic: F-statistic for interaction
 #'   - p_value: p-value from interaction test
-#'   - method: Description of test used ('Scheirer-Ray-Hare')
-#'   - test_type: 'srh_interaction', 'srh_failed', or 'srh_error'
+#'   - method: Description of test used ('Conover-Iman Rank Transform')
+#'   - test_type: 'rt_interaction', 'rt_failed', or 'rt_error'
 #'
 
 #' @noRd
@@ -386,14 +386,14 @@
     # refits 30-40%) During permutations, only the factors are shuffled, not
     # the rank values
     if (!pre_ranked) {
-        # For both paired and unpaired: Use Scheirer-Ray-Hare test (REVISED
-        # March 2026) The aggregation-then-ANOVA approach for paired designs
-        # has inadequate degrees of freedom Scheirer-Ray-Hare properly handles
-        # two-way designs by testing on ranked data directly References:
-        # Scheirer, Castellan, Wilkinson (1976); Conover & Iman (1981)
+        # For both paired and unpaired: Use Conover-Iman Rank Transform
+        # The aggregation-then-ANOVA approach for paired designs
+        # has inadequate degrees of freedom. Conover-Iman properly handles
+        # two-way designs by testing on ranked data directly.
+        # References: Conover & Iman (1981); Scheirer, Castellan, Wilkinson (1976)
         if (paired && !is.null(subject_col)) {
             # Paired design: Rank within each subject ONLY (preserves
-            # within-subject dependence) Then apply Scheirer-Ray-Hare on the
+            # within-subject dependence) Then apply Conover-Iman Rank Transform on the
             # within-subject ranks
             data$ranks <- ave(data[[value_col]], data[[subject_col]], FUN = function(x) rank(x,
                 na.last = "keep"))
@@ -403,7 +403,7 @@
         }
     }
 
-    # Apply Scheirer-Ray-Hare test for q * condition interaction Works for both
+    # Apply Conover-Iman Rank Transform for q * condition interaction Works for both
     # paired (within-subject ranks) and unpaired (global ranks) cases
     tryCatch({
         # OPTIMIZATION: Skip factor conversion if pre_factored=TRUE (avoids
@@ -430,22 +430,22 @@
         df_residual <- as.integer(anova_result$Df[nrow(anova_result)])
 
         if (is.na(f_stat) || is.na(p_val)) {
-            return(list(statistic = NA_real_, p_value = NA_real_, method = "Scheirer-Ray-Hare (computation failed)",
-                test_type = "srh_failed", ss_interaction = NA_real_, df_interaction = NA_integer_,
+            return(list(statistic = NA_real_, p_value = NA_real_, method = "Conover-Iman Rank Transform (computation failed)",
+                test_type = "rt_failed", ss_interaction = NA_real_, df_interaction = NA_integer_,
                 ss_residual = NA_real_, df_residual = NA_integer_))
         }
 
         test_type_label <- if (paired)
-            "srh_paired" else "srh_unpaired"
+            "rt_paired" else "rt_unpaired"
         method_label <- if (paired)
-            "Scheirer-Ray-Hare Test (paired design, within-subject ranks; REVISED March 2026)" else "Scheirer-Ray-Hare Test (non-parametric 2-way ANOVA)"
+            "Conover-Iman Rank Transform (paired design, within-subject ranks)" else "Conover-Iman Rank Transform (non-parametric 2-way ANOVA on ranks)"
 
         return(list(statistic = f_stat, p_value = p_val, method = method_label, test_type = test_type_label,
             ss_interaction = ss_interaction, df_interaction = df_interaction,
             ss_residual = ss_residual, df_residual = df_residual))
     }, error = function(e) {
-        return(list(statistic = NA_real_, p_value = NA_real_, method = paste("Scheirer-Ray-Hare (error):",
-            e$message), test_type = "srh_error", ss_interaction = NA_real_, df_interaction = NA_integer_,
+        return(list(statistic = NA_real_, p_value = NA_real_, method = paste("Conover-Iman Rank Transform (error):",
+            e$message), test_type = "rt_error", ss_interaction = NA_real_, df_interaction = NA_integer_,
             ss_residual = NA_real_, df_residual = NA_integer_))
     })
 }

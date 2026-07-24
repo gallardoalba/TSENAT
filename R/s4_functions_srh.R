@@ -11,8 +11,8 @@
 #'   by condition (main discovery goal)
 #' - **Multi-q Analysis**: Combines diversity results for multiple q-values into
 #'   a single SummarizedExperiment for joint hypothesis testing
-#' - **Rank-Based Statistics**: Scheirer-Ray-Hare test (two-way ANOVA on ranked data)
-#' - **Scheirer-Ray-Hare Test**: Two-way non-parametric ANOVA on ranks
+#' - **Rank-Based Statistics**: Conover-Iman Rank Transform (two-way ANOVA on ranked data)
+#' - **Conover-Iman Rank Transform**: Two-way non-parametric ANOVA on ranks
 #' - **Multiple Testing Correction**: Hochberg, Benjamini-Yekutieli, or permutation
 #'   (Westfall-Young) procedures
 #' - **AR(1) Correlation Handling**: Westfall-Young preserves q-value spatial
@@ -95,7 +95,7 @@
 #'
 #' @details
 #' Analyzes how gene interactions change across q-value spectrum using
-#' rank-based (Scheirer-Ray-Hare) statistical tests.
+#' rank-based (Conover-Iman Rank Transform) statistical tests.
 #'
 #' **Parameter resolution priority** (explicit > @config > default/auto-detect):
 #' \itemize{

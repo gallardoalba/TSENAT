@@ -322,7 +322,7 @@ setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"), funct
 #' Compare method concordance for differential analysis results
 #'
 #' Compares statistical results from two different methods (typically SAIT/GAM for
-#' continuous data and Scheirer-Ray-Hare rank tests) to assess agreement and identify
+#' continuous data and Conover-Iman Rank Transform tests) to assess agreement and identify
 #' genes detected by one method but not the other.
 #'
 #' @aliases calculate_concordance,TSENATAnalysis-method
@@ -351,7 +351,7 @@ setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"), funct
 #'
 #' @details
 #' Compares results from two different statistical methods (typically GAM
-#' for continuous and Scheirer-Ray-Hare for rank-based analysis) on the same data.
+#' for continuous and Conover-Iman Rank Transform for rank-based analysis) on the same data.
 #' Identifies:
 #' - Genes significant in both methods (high confidence)
 #' - Genes detected by one method only (potential false positives or method-specific signal)
@@ -830,7 +830,7 @@ plot_divergence_spectrum <- function(analysis, gene = NULL, n_genes = 4, ncol = 
 #' analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #'
-#' # Note: calculate_concordance requires additional LM and Scheirer-Ray-Hare rank test
+#' # Note: calculate_concordance requires additional LM and Conover-Iman Rank Transform
 #' # results computed. For demo purposes, we show that
 #' # plot_concordance needs pre-computed concordance in @metadata
 #'

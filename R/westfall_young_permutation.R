@@ -169,7 +169,9 @@
     if (pi0_method == "bootstrap") {
         lambda_grid <- seq(0, 0.95, length.out = 20)
         n_boot <- 100
-        pi0_boot_mat <- matrix(NA, nrow = n_boot, ncol = length(lambda_grid))
+
+        # AUDIT FIX July 2026: Removed extraneous pi0_boot_mat <- matrix(NA, ...)
+        # allocation that was immediately overwritten by the vapply() call below.
 
         # Seed handling left to caller for Bioconductor compliance
         # Vectorize bootstrap loop: first use vapply over lambdas for each bootstrap sample
@@ -329,7 +331,7 @@
 # ════════════════════════════════════════════════════════════════════════════════
 # Consolidates redundant WY permutation logic shared between: 1.
 # .calculate_sait() - parametric tests (GAM, LMM, GEE) 2.  .calculate_srh() -
-# rank-based tests (Scheirer-Ray-Hare only, March 2026) rank) DESIGN PATTERN: -
+# rank-based tests (Conover-Iman Rank Transform only, March 2026) rank) DESIGN PATTERN: -
 # Core permutation loop is identical in both functions (~70% code duplication)
 # - Model refitting logic differs (parametric vs rank-based) - Solution:
 # Extract permutation machinery, supply model-specific refit_fn callback USAGE:

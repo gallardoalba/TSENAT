@@ -147,7 +147,7 @@
 #' # - type = "sait": Returns regularized/penalized regression (GAM, LMM, GEE, FPCA) interaction plot
 #' # - type = 'divergence': Returns distribution of divergence metrics across genes
 #' # - type = 'influence': Returns m-estimator sample influence analysis
-#' # - type = 'rank_test': Returns Scheirer-Ray-Hare interaction visualization
+#' # - type = 'rank_test': Returns Conover-Iman Rank Transform interaction results
 #' # - type = 'concordance': Returns method concordance comparison (LM vs rank test)
 #'
 #' @rdname results
@@ -1315,7 +1315,7 @@ print.assumptions_text <- function(x, ...) {
     # ====== BUILD FORMATTED TEXT OUTPUT ======
     output_lines <- c()
 
-    output_lines <- c(output_lines, "\nGlobal Concordance Metrics: SAIT vs Scheirer-Ray-Hare Methods\n")
+    output_lines <- c(output_lines, "\nGlobal Concordance Metrics: SAIT vs Conover-Iman Rank Transform\n")
     output_lines <- c(output_lines, .format_data_frame_as_text(summary_table))
 
     output_lines <- c(output_lines, "\nMethod Agreement Distribution\n")

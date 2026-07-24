@@ -82,7 +82,7 @@
 
     # Add global title with subtitle
     title_gg <- cowplot::ggdraw() + cowplot::draw_label("Comparing interaction detection across two statistical methods",
-        fontface = "bold", size = .font_sizes$title, x = 0.5, y = 0.75) + cowplot::draw_label("Concordance analysis between SAIT and Scheirer-Ray-Hare tests",
+        fontface = "bold", size = .font_sizes$title, x = 0.5, y = 0.75) + cowplot::draw_label("Concordance analysis between SAIT and Conover-Iman Rank Transform tests",
         fontface = "italic", size = .font_sizes$subtitle, x = 0.5, y = 0.45, color = "gray40")
 
     # Combine all elements and convert to grob
@@ -102,9 +102,9 @@
 }
 
 
-#' Compute Method Concordance between GAM and Scheirer-Ray-Hare Test Results
+#' Compute Method Concordance between GAM and Conover-Iman Rank Transform Results
 #'
-#' Analyzes agreement between GAM (flexible parametric) and Scheirer-Ray-Hare
+#' Analyzes agreement between GAM (flexible parametric) and Conover-Iman Rank Transform
 #' (rank-based)
 #' statistical test results. Merges results, calculates correlation, categorizes
 #' agreement patterns, and identifies high-confidence genes significant in
@@ -118,11 +118,11 @@
 #'     \item \code{effect_size}: Effect size estimate (optional)
 #'   }
 #'
-#' @param kw_results A data.frame from Scheirer-Ray-Hare test analysis with columns:
+#' @param kw_results A data.frame from Conover-Iman Rank Transform analysis with columns:
 #'   \itemize{
 #'     \item \code{gene}: Gene identifiers (must match gam_results$gene)
-#'     \item \code{p_value}: Scheirer-Ray-Hare test p-values
-#'     \item \code{adj_p_value}: Adjusted Scheirer-Ray-Hare p-values (optional)
+#'     \item \code{p_value}: Conover-Iman Rank Transform p-values
+#'     \item \code{adj_p_value}: Adjusted Conover-Iman Rank Transform p-values (optional)
 #'     \item \code{effect_size_eta2}: Effect size estimate (optional)
 #'   }
 #'
@@ -134,7 +134,7 @@
 #' padj_rank_test, effect_rank_test,
 #'       gam_sig, rank_test_sig, agreement
 #'     \item \code{spearman_rho}:  Spearman correlation between GAM and 
-#' Scheirer-Ray-Hare p-values
+#' Conover-Iman Rank Transform p-values
 #'     \item \code{high_conf}:  Subset of comparison_df for 
 #' genes significant in both methods,
 #'       ordered by minimum p-value
@@ -145,9 +145,9 @@
 #' Agreement categories are defined based on significance at adj_p < 0.05:
 #' \itemize{
 #'   \item 'Both significant':  Significant in both GAM and 
-#' Scheirer-Ray-Hare (most reliable)
+#' Conover-Iman Rank Transform (most reliable)
 #'   \item 'GAM only': Significant only in GAM
-#'   \item 'Scheirer-Ray-Hare only': Significant only in Scheirer-Ray-Hare test
+#'   \item 'Conover-Iman Rank Transform only': Significant only in Conover-Iman Rank Transform
 #'   \item 'Neither significant': Not significant in either method
 #' }
 #'

@@ -228,7 +228,7 @@
 }
 
 
-.normalize_log_odds_ratio <- function(entropy_matrix, n_isoforms, q = 2) {
+.normalize_log_odds_ratio <- function(entropy_matrix, n_isoforms, q = 2, log_base = exp(1)) {
     if (!is.matrix(entropy_matrix) && !is.data.frame(entropy_matrix)) {
         stop("Input must be a matrix or data.frame", call. = FALSE)
     }
@@ -288,7 +288,7 @@
         # Vectorized S_max computation across all rows
         if (abs(col_q - 1) < 1e-10) {
             # Shannon entropy: H_max = log(m) (vectorized)
-            s_max_vec <- log(n_iso_vec)
+            s_max_vec <- log(n_iso_vec, base = log_base)
         } else {
             # Tsallis entropy: S_max = (1 - m^(1-q)) / (q-1) (vectorized)
             s_max_vec <- (1 - n_iso_vec^(1 - col_q))/(col_q - 1)
@@ -299,7 +299,11 @@
         valid_mask <- !is.na(n_iso_vec) & n_iso_vec > 1 & !is.na(col_q) & !is.na(s_vals) &
             is.finite(s_vals) & s_max_vec > 0 & s_vals > 0
 
-        result[valid_mask, col_idx] <- log(s_vals[valid_mask]/s_max_vec[valid_mask])
+        # AUDIT FIX July 2026: Use log(..., base = log_base) instead of hardcoded
+        # natural log to maintain consistency with the entropy calculation's
+        # logarithm base.
+        result[valid_mask, col_idx] <- log(s_vals[valid_mask]/s_max_vec[valid_mask],
+            base = log_base)
     }
 
     return(result)
@@ -1118,7 +1122,9 @@
 
     # Pre-allocate weights matrix (vectorized storage)
     weights_matrix <- matrix(1, nrow = n_rows, ncol = n_cols)
-    means_vector <- rep(0, n_cols)
+    # AUDIT FIX July 2026: Initialize to NA_real_ instead of 0 so that
+    # columns whose q-value cannot be matched do not silently fill NAs with 0.
+    means_vector <- rep(NA_real_, n_cols)
 
     # Process all columns efficiently (vectorized outer loop handling)
     for (col_idx in seq_len(n_cols)) {
@@ -1194,9 +1200,12 @@
     result[is_finite_mask] <- weights_matrix[is_finite_mask] * entropy_matrix[is_finite_mask] +
         (1 - weights_matrix[is_finite_mask]) * rep(means_vector, n_rows)[is_finite_mask]
 
-    # For NA/NaN values: use prior mean
+    # For NA/NaN values: use prior mean (only for columns where mean was
+    # successfully determined)
     for (col_idx in seq_len(n_cols)) {
-        result[is_na_mask[, col_idx], col_idx] <- means_vector[col_idx]
+        if (!is.na(means_vector[col_idx])) {
+            result[is_na_mask[, col_idx], col_idx] <- means_vector[col_idx]
+        }
     }
 
     return(result)

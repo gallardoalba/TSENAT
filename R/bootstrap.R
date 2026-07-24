@@ -26,6 +26,9 @@
 #' @noRd
 block_bootstrap_compute_cpp_wrapper <- function(x, q = 1, normalize = TRUE, nboot = 1000L,
     log_base = exp(1), pseudocount = 0) {
+    # AUDIT FIX July 2026: Defensive copy (see bootstrap_compute_cpp_wrapper).
+    x <- as.numeric(x)
+
     # Comprehensive paired data validation
     if (length(x) == 0) {
         stop("For paired bootstrap, input vector cannot be empty")
@@ -87,6 +90,12 @@ block_bootstrap_compute_cpp_wrapper <- function(x, q = 1, normalize = TRUE, nboo
 #' @noRd
 bootstrap_compute_cpp_wrapper <- function(x, q = 1, normalize = TRUE, nboot = 1000L,
     log_base = exp(1), pseudocount = 0) {
+    # AUDIT FIX July 2026: Defensive copy to prevent accidental modification
+    # of caller's data when vector pseudocount is applied. While R's
+    # copy-on-write semantics protect the caller in most cases, explicit
+    # copying makes the intent clear and prevents edge cases with references.
+    x <- as.numeric(x)
+
     # Handle vector pseudocount by converting to scalar (sum per-element
     # effects)
     if (length(pseudocount) > 1) {

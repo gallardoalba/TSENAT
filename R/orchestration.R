@@ -40,7 +40,7 @@
 #'   \item \code{plot_divergence_distribution()} - Divergence distribution plot
 #'   \item \code{plot_divergence_spectrum()} - Divergence spectrum plot
 #'   \item \code{calculate_assumptions()} - Validate rank-based test assumptions
-#'   \item \code{calculate_srh()} - Scheirer-Ray-Hare rank-based interaction test
+#'   \item \code{calculate_srh()} - Conover-Iman Rank Transform interaction test
 #'   \item \code{calculate_concordance()} - Compare LM and rank test results
 #' }
 #'
@@ -243,7 +243,7 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
     step_times[["assumptions"]] <- Sys.time() - step_start
     
     # Step 15: SRH test
-    if (verbose) message(sprintf("[>] [%2d/16] Performing Scheirer-Ray-Hare test", 15))
+    if (verbose) message(sprintf("[>] [%2d/16] Performing Conover-Iman Rank Transform test", 15))
     step_start <- Sys.time()
     analysis <- .execute_srh_test(analysis, verbose, output_dir, output_format)
     step_times[["srh_test"]] <- Sys.time() - step_start
@@ -486,7 +486,7 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
 #'   control = 'untreated'
 #' )
 #'
-#' # For Scheirer-Ray-Hare rank tests (multiple q-values)
+#' # For Conover-Iman Rank Transform tests (multiple q-values)
 #' cfg <- TSENAT_config(
 #'   q = seq(0, 2, by = 0.5),          # Multiple q-values for spectrum or advanced testing
 #'   condition_col = 'treatment',
@@ -909,7 +909,7 @@ TSENAT_config <- function(q = 1, condition_col = "condition", subject_col = NULL
     analysis
 }
 
-#' Step 16: Scheirer-Ray-Hare rank-based test
+#' Step 16: Conover-Iman Rank Transform test
 #' @noRd
 .execute_srh_test <- function(analysis, verbose, output_dir, output_format) {
 
@@ -923,7 +923,7 @@ TSENAT_config <- function(q = 1, condition_col = "condition", subject_col = NULL
         output_file = output_file)
 
     if (verbose)
-        message("          [OK] Scheirer-Ray-Hare test completed")
+        message("          [OK] Conover-Iman Rank Transform completed")
     analysis
 }
 

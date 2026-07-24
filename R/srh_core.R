@@ -79,7 +79,7 @@
 #' @return Data frame with columns:
 #'   - gene: Gene identifier
 #'   - n_q_values_tested: Number of q-levels tested for this gene
-#' - f_statistic: F-statistic from Scheirer-Ray-Hare test (two-way ANOVA on ranked data)
+#' - f_statistic: F-statistic from Conover-Iman Rank Transform (two-way ANOVA on ranked data)
 #'   - p_value: P-value for H0: 'No Q×Condition interaction' (unadjusted)
 #'   - adj_p_value: Adjusted p-value using multicorr method (NEW - March 2026)
 #'   - ss_interaction: Sum of squares for q-effect (interaction sum of squares)
@@ -94,7 +94,7 @@
 #'     'Strongly q-dependent' (p < 0.05 AND eta2 > 0.10),
 #'     or 'Insufficient data' if < 2 q-levels
 #'   - test_method: Which rank-based test was used 
-#'     ('srh_paired' for paired designs, 'srh_unpaired' for unpaired)
+#'     ('rt_paired' for paired designs, 'rt_unpaired' for unpaired)
 #'   - heteroscedastic: Logical; whether unequal variances were detected
 #' - boundary_clustered: Logical; whether values clustered at boundaries
 #' detected
@@ -133,8 +133,8 @@
 #'     that differs significantly between conditions
 #'   
 #'   When condition_col provided, automatically uses:
-#' - **Paired designs** (paired=TRUE): Scheirer-Ray-Hare test with within-subject ranks (preserves subject-level dependence)
-#' - **Unpaired designs** (paired=FALSE): Scheirer-Ray-Hare test with global ranks
+#' - **Paired designs** (paired=TRUE): Conover-Iman Rank Transform with within-subject ranks (preserves subject-level dependence)
+#' - **Unpaired designs** (paired=FALSE): Conover-Iman Rank Transform with global ranks
 #' Both test for Q×Condition interactions on ranked data (non-parametric two-way ANOVA)
 #'
 
@@ -144,14 +144,14 @@
 #'   beneficial when multicorr='westfall-young' with high wy_randomizations.
 #'   
 #'   **Paired and unpaired Q×Condition interaction testing (March 2026):**
-#' Both use Scheirer-Ray-Hare test (two-way ANOVA on ranked data):
+#' Both use Conover-Iman Rank Transform (two-way ANOVA on ranked data):
 #' - **Paired designs** (paired=TRUE): Ranks computed within each subject, preserves subject-level dependence
 #' - **Unpaired designs** (paired=FALSE): Ranks computed globally across entire dataset
-#' Both then apply identical Scheirer-Ray-Hare framework for interaction testing.
+#' Both then apply identical Conover-Iman Rank Transform framework for interaction testing.
 #' This unified approach (revised March 2026) properly handles multi-q data with AR(1) correlation
 #' via Westfall-Young permutation when multicorr='westfall-young'.
 #'   
-#'   Theory: Scherier-Ray-Hare on ranked data is robust to distributional violations
+#'   Theory: Conover-Iman Rank Transform on ranked data is robust to distributional violations
 #'   and properly tests two-way interactions (Papers S165-S166, S181-S187).
 #' @param alpha Numeric; significance level for p-value correction methods
 #' (default: 0.05). 
@@ -218,12 +218,12 @@
 #'
 #' **Test selection by design:**
 #'
-#' Uses Scheirer-Ray-Hare test (rank-based) for Q×Condition interaction testing, or
+#' Uses Conover-Iman Rank Transform for Q×Condition interaction testing, or
 #' Westfall-Young permutation (blocked) if paired=TRUE. Both are appropriate for
 #' non-normally distributed entropy data.
 #'
 #' **Unpaired mode (paired=FALSE, default):**
-#' - Uses Scheirer-Ray-Hare test (non-parametric 2-way ANOVA)
+#' - Uses Conover-Iman Rank Transform (non-parametric 2-way ANOVA on ranks)
 #'
 #' **BLOCK-PERMUTATION WESTFALL-YOUNG FOR PAIRED DESIGNS (NEW - March 2026):**
 #' 
@@ -296,7 +296,7 @@
 #'             Papers S165-S166 (TSENAT-specific validation)
 #' 
 #' **Paired mode (paired=TRUE):**
-#' - Uses Scheirer-Ray-Hare test with subject blocking for Q * condition interaction
+#' - Uses Conover-Iman Rank Transform with subject blocking for Q * condition interaction
 #' - Uses Westfall-Young Max T permutation test with BLOCKED permutations that
 #'   respect within-subject pairing structure. Details:
 #' - Permutation: Labels shuffled within subjects, respecting condition structure
@@ -324,7 +324,7 @@
 #' provide a single-level condition variable or use an auxiliary grouping factor.
 #'
 #' Statistical test method (Q×Condition interaction):
-#' Uses Scheirer-Ray-Hare rank-based (within-subject ranking) test exclusively.
+#' Uses Conover-Iman Rank Transform (within-subject ranking) exclusively.
 #' This test handles the paired/within-subject design efficiently and is robust
 #' to heteroscedasticity and non-normality. See Papers S041-S042 for details.
 #'
@@ -375,7 +375,7 @@
 #' ts_se <- .calculate_diversity(counts, genes = genes, q = seq(0.5, 1.5, by
 #' = 0.25))
 #' 
-#' # Unpaired analysis (default): Scheirer-Ray-Hare + multi-test correction for AR(1) q-values
+#' # Unpaired analysis (default): Conover-Iman Rank Transform + multi-test correction for AR(1) q-values
 #' results <- .calculate_srh(ts_se, multicorr = 'hochberg')
 #' head(results)
 #' 
