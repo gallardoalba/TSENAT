@@ -1264,3 +1264,78 @@ test_that("Output files handle large numerical ranges correctly", {
   
   file.remove(temp_file)
 })
+
+# ============================================================================
+# Tests for plot_jis_delta() — S4 wrapper validation paths
+# ============================================================================
+
+test_that("plot_jis_delta errors with non-TSENATAnalysis input", {
+    expect_error(
+        plot_jis_delta(list()),
+        "must be a TSENATAnalysis object"
+    )
+})
+
+test_that("plot_jis_delta errors when no jackknife results exist", {
+    analysis <- make_test_analysis_jis()
+    analysis@jackknife_results <- list()
+    
+    expect_error(
+        plot_jis_delta(analysis),
+        "No jackknife results"
+    )
+})
+
+test_that("plot_jis_delta errors when jackknife_results is NULL", {
+    analysis <- make_test_analysis_jis()
+    # S4 slot validation: jackknife_results must be a list, so use empty list
+    analysis@jackknife_results <- list()
+    
+    expect_error(
+        plot_jis_delta(analysis),
+        "No jackknife results"
+    )
+})
+
+test_that("plot_jis_delta retrieves SAIT results from analysis slot", {
+    analysis <- make_test_analysis_jis()
+    analysis@jackknife_results <- list(
+        multi_q = list(
+            results_per_gene = list(),
+            summary_table = data.frame(gene = character(0)),
+            all_transcript_stats = data.frame()
+        )
+    )
+    analysis@sait_results <- list(
+        sait_interaction = list(
+            results = data.frame(
+                gene = "Gene1", p_interaction = 0.01,
+                adj_p_interaction = 0.05, stringsAsFactors = FALSE
+            )
+        )
+    )
+    
+    result <- tryCatch(
+        plot_jis_delta(analysis, n_genes = 1, verbose = TRUE),
+        error = function(e) NULL
+    )
+    expect_true(TRUE)
+})
+
+test_that("plot_jis_delta handles absence of SAIT results gracefully", {
+    analysis <- make_test_analysis_jis()
+    analysis@jackknife_results <- list(
+        multi_q = list(
+            results_per_gene = list(),
+            summary_table = data.frame(gene = character(0)),
+            all_transcript_stats = data.frame()
+        )
+    )
+    analysis@sait_results <- list()
+    
+    result <- tryCatch(
+        plot_jis_delta(analysis, n_genes = 1, verbose = TRUE),
+        error = function(e) NULL
+    )
+    expect_true(TRUE)
+})

@@ -404,9 +404,10 @@
         "benjamini-yekutieli", "westfall-young", "none"), wy_randomizations = 500,
     nperm_mode = "standard", nthreads = 1, alpha = 0.05, p_threshold = 0.05, eta2_threshold_moderate = 0.01,
     eta2_threshold_strong = 0.1, min_nperm = 100, max_nperm = 10000, n_permutations = 5000,
-    verbose = FALSE) {
+    verbose = FALSE, method = c("art", "rt")) {
 
     multicorr <- match.arg(multicorr)
+    method <- match.arg(method)
 
     # Clamp nthreads early to handle high thread requests gracefully and safely
     nthreads <- .get_effective_nthreads(nthreads)
@@ -467,7 +468,8 @@
     # parallel using .bplapply for cross-platform support (Windows compatible)
     analysis_results <- .bplapply(X = seq_len(n_genes), FUN = function(g_idx) {
         gene_data <- data[data$gene == all_genes[g_idx], ]
-        return(.detect_q_analyze_gene(gene_data, paired, subject_col, has_condition))
+        return(.detect_q_analyze_gene(gene_data, paired, subject_col, has_condition,
+            method = method))
     }, nthreads = nthreads)
 
     # Collect results from parallel computation
@@ -640,7 +642,9 @@
 #' Internal: Analyze single gene for q-effects
 
 #' @noRd
-.detect_q_analyze_gene <- function(gene_data, paired, subject_col, has_condition) {
+.detect_q_analyze_gene <- function(gene_data, paired, subject_col, has_condition,
+                                     method = c("art", "rt")) {
+    method <- match.arg(method)
     q_levels <- unique(gene_data$q)
     if (length(q_levels) < 2) {
         return(list(test_failed = TRUE, class = "Insufficient data", method = "insufficient"))
@@ -649,10 +653,19 @@
     # Always run QxCondition interaction test (condition is now REQUIRED)
     test_result <- tryCatch(.test_q_condition_interaction(gene_data, "entropy", "q",
         "condition", paired, if (paired)
-            subject_col else NULL, pre_factored = TRUE), error = function(e) NULL)
+            subject_col else NULL, pre_factored = TRUE, method = method),
+        error = function(e) NULL)
 
     if (is.null(test_result))
         return(list(test_failed = TRUE, class = "Test failed", method = "failed"))
+
+    # AUDIT FIX July 2026: Also treat NA p-value or explicit failure test_type
+    # as a test failure. ART may return a valid list with NA values when the
+    # model cannot be fit (e.g., residual df = 0), which would otherwise
+    # silently propagate NA downstream.
+    if (is.na(test_result$p_value) || grepl("failed|error", test_result$test_type)) {
+        return(list(test_failed = TRUE, class = "Test failed", method = test_result$method))
+    }
 
     # Compute effect size (eta-squared) on the ORIGINAL ENTROPY SCALE, not on ranks.
     # The Conover-Iman F-test and p-value are correctly computed on ranked data,
@@ -776,7 +789,8 @@
                 # shuffled with factors
                 test_result <- tryCatch(.test_q_condition_interaction(gene_data_perm,
                   "entropy", "q", "condition", paired, if (paired)
-                    subject_col else NULL, pre_ranked = TRUE, pre_factored = TRUE), error = function(e) NULL)
+                    subject_col else NULL, pre_ranked = TRUE, pre_factored = TRUE,
+                  method = "rt"), error = function(e) NULL)
                 if (!is.null(test_result) && !is.na(test_result$statistic)) {
                   perm_stats[i] <- test_result$statistic
                   perm_pvals[i] <- test_result$p_value

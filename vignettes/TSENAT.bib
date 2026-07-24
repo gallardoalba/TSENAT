@@ -826,3 +826,31 @@
   doi = {10.12688/f1000research.15398.3},
   note = {Comprehensive workflow for detecting differential transcript usage (DTU) from RNA-seq data following Salmon quantification. Explicitly defines and distinguishes DTU (transcript proportion changes), DTE (transcript abundance changes), and DGE (gene-level abundance changes) as complementary analyses. Shows that DTU and DTE can occur independently of gene-level expression changes, validating the need for transcript-level analysis methods designed specifically for these phenomena.}
 }
+
+@article{S271,
+  author = {Higgins, James J. and Tashtoush, Suleiman},
+  title = {An Aligned Rank Transform Test for Interaction},
+  journal = {Nonlinear World},
+  volume = {1},
+  number = {2},
+  pages = {201--211},
+  year = {1994},
+  note = {Foundational paper introducing the Aligned Rank Transform (ART) methodology for non-parametric testing of interactions in factorial designs. Demonstrates that aligning data before ranking properly preserves interaction structure, addressing a key limitation of classical rank-transform methods.}
+}
+
+@inproceedings{S272,
+  author = {Wobbrock, Jacob O. and Findlater, Leah and Gergle, Darren and Higgins, James J.},
+  title = {The Aligned Rank Transform for Nonparametric Factorial Analyses Using Only {ANOVA} Procedures},
+  booktitle = {Proceedings of the SIGCHI Conference on Human Factors in Computing Systems (CHI '11)},
+  pages = {143--146},
+  year = {2011},
+  doi = {10.1145/1978942.1978963},
+  note = {Modern formulation and validation of the Aligned Rank Transform (ART) for non-parametric factorial ANOVA. Provides the ARTool software framework and demonstrates proper Type I error control for interaction testing across balanced and unbalanced designs.}
+}
+
+@manual{S273,
+  author = {Kay, Matthew and Elkin, Lisa A. and Higgins, James J. and Wobbrock, Jacob O.},
+  title = {{ARTool}: Aligned Rank Transform for Nonparametric Factorial {ANOVAs}},
+  year = {2021},
+  note = {R package version 0.11.1. \url{https://cran.r-project.org/package=ARTool}. Provides the reference implementation of the Aligned Rank Transform used by TSENAT for non-parametric Q×Condition interaction testing.}
+}

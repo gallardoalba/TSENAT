@@ -170,7 +170,7 @@ test_that(".detect_q_analyze_gene: identifies insufficient data", {
   )
   
   result <- TSENAT:::.detect_q_analyze_gene(
-    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE
+    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE, method = "rt"
   )
   
   expect_true(result$test_failed)
@@ -188,7 +188,7 @@ test_that(".detect_q_analyze_gene: computes test statistics for valid data", {
   )
   
   result <- TSENAT:::.detect_q_analyze_gene(
-    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE
+    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE, method = "rt"
   )
   
   expect_false(result$test_failed)
@@ -216,7 +216,7 @@ test_that(".detect_q_analyze_gene: computes valid effect sizes", {
   )
   
   result <- TSENAT:::.detect_q_analyze_gene(
-    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE
+    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE, method = "rt"
   )
   
   # Effect size should be meaningful (eta2 between 0 and 1)
@@ -236,7 +236,7 @@ test_that(".detect_q_analyze_gene: sums of squares are consistent", {
   )
   
   result <- TSENAT:::.detect_q_analyze_gene(
-    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE
+    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE, method = "rt"
   )
   
   # Function returns ss_interaction (not ss_q) and ss_residual
@@ -257,7 +257,7 @@ test_that(".detect_q_analyze_gene: handles condition column", {
   )
   
   result <- TSENAT:::.detect_q_analyze_gene(
-    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE
+    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE, method = "rt"
   )
   
   expect_false(result$test_failed)
@@ -290,7 +290,7 @@ test_that(".detect_q_analyze_gene returns correct structure for test failure", {
     
     # Normal case should not have NULL test_result
     result <- TSENAT:::.detect_q_analyze_gene(
-        gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE
+        gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE, method = "rt"
     )
     
     # Either test succeeds or returns proper failure structure
@@ -314,7 +314,7 @@ test_that(".detect_q_analyze_gene failure path returns correct list structure", 
     )
     
     result <- TSENAT:::.detect_q_analyze_gene(
-        gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE
+        gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE, method = "rt"
     )
     
     # Should return failure list
@@ -344,7 +344,7 @@ test_that(".detect_q_analyze_gene distinguishes error modes", {
     )
     
     result_insufficient <- TSENAT:::.detect_q_analyze_gene(
-        gene_data_insufficient, paired = FALSE, subject_col = NULL, has_condition = TRUE
+        gene_data_insufficient, paired = FALSE, subject_col = NULL, has_condition = TRUE, method = "rt"
     )
     
     # Should be "Insufficient data" error
@@ -363,7 +363,7 @@ test_that(".detect_q_analyze_gene distinguishes error modes", {
     )
     
     result_valid <- TSENAT:::.detect_q_analyze_gene(
-        gene_data_valid, paired = FALSE, subject_col = NULL, has_condition = TRUE
+        gene_data_valid, paired = FALSE, subject_col = NULL, has_condition = TRUE, method = "rt"
     )
     
     # Should compute test results (test_failed should be FALSE for valid data)
@@ -391,7 +391,7 @@ test_that(".detect_q_analyze_gene returns failure when test computation fails", 
     )
     
     result <- TSENAT:::.detect_q_analyze_gene(
-        gene_data_degenerate, paired = FALSE, subject_col = NULL, has_condition = TRUE
+        gene_data_degenerate, paired = FALSE, subject_col = NULL, has_condition = TRUE, method = "rt"
     )
     
     # Function should return a list (either success or failure)

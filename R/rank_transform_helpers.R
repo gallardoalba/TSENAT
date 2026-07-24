@@ -358,15 +358,18 @@
 #' @return List with:
 #'   - statistic: F-statistic for interaction
 #'   - p_value: p-value from interaction test
-#'   - method: Description of test used ('Conover-Iman Rank Transform')
-#'   - test_type: 'rt_interaction', 'rt_failed', or 'rt_error'
+#'   - method: Description of test used ('Aligned Rank Transform (ART)' or 'Conover-Iman Rank Transform')
+#'   - test_type: 'art_paired', 'art_unpaired', 'rt_paired', 'rt_unpaired', 'rt_failed', or 'rt_error'
 #'
 
 #' @noRd
 #' @importFrom stats ave as.formula
+#' @importFrom ARTool art
 .test_q_condition_interaction <- function(data, value_col = "entropy", q_col = "q",
     condition_col = "condition", paired = FALSE, subject_col = NULL, pre_ranked = FALSE,
-    pre_factored = FALSE) {
+    pre_factored = FALSE, method = c("art", "rt")) {
+
+    method <- match.arg(method)
 
     # Validate required columns
     if (!value_col %in% colnames(data)) {
@@ -382,45 +385,41 @@
         stop("Column '", subject_col, "' not found in data (required for paired analysis)")
     }
 
+    # =========================================================================
+    # METHOD: Aligned Rank Transform (ART) — state-of-the-art non-parametric
+    # interaction testing. Uses ARTool package (Kay et al. 2021).
+    # References: Higgins & Tashtoush (1994), Wobbrock et al. (2011).
+    # =========================================================================
+    if (method == "art") {
+        return(.test_q_condition_interaction_art(
+            data, value_col, q_col, condition_col, paired, subject_col))
+    }
+
+    # =========================================================================
+    # METHOD: Conover-Iman Rank Transform (fallback / legacy)
+    # =========================================================================
     # OPTIMIZATION: Skip ranking if pre_ranked=TRUE (speeds up permutation
     # refits 30-40%) During permutations, only the factors are shuffled, not
     # the rank values
     if (!pre_ranked) {
-        # For both paired and unpaired: Use Conover-Iman Rank Transform
-        # The aggregation-then-ANOVA approach for paired designs
-        # has inadequate degrees of freedom. Conover-Iman properly handles
-        # two-way designs by testing on ranked data directly.
-        # References: Conover & Iman (1981); Scheirer, Castellan, Wilkinson (1976)
         if (paired && !is.null(subject_col)) {
-            # Paired design: Rank within each subject ONLY (preserves
-            # within-subject dependence) Then apply Conover-Iman Rank Transform on the
-            # within-subject ranks
             data$ranks <- ave(data[[value_col]], data[[subject_col]], FUN = function(x) rank(x,
                 na.last = "keep"))
         } else {
-            # Unpaired design: Rank across entire dataset
             data$ranks <- rank(data[[value_col]], na.last = "keep")
         }
     }
 
-    # Apply Conover-Iman Rank Transform for q * condition interaction Works for both
-    # paired (within-subject ranks) and unpaired (global ranks) cases
     tryCatch({
-        # OPTIMIZATION: Skip factor conversion if pre_factored=TRUE (avoids
-        # 200+ factor() calls)
         if (!pre_factored) {
             data[[q_col]] <- factor(data[[q_col]])
             data[[condition_col]] <- factor(data[[condition_col]])
         }
 
-        # Use pre-computed ranks (within-subject for paired, global for
-        # unpaired) Then apply two-way ANOVA on the ranked data
         formula_str <- paste("ranks ~", q_col, "*", condition_col)
         sait_model <- lm(as.formula(formula_str), data = data)
         anova_result <- anova(sait_model)
 
-        # Extract interaction F-statistic and p-value Interaction is the
-        # second-to-last row (before Residuals)
         interaction_row <- nrow(anova_result) - 1
         f_stat <- anova_result$`F value`[interaction_row]
         p_val <- anova_result$`Pr(>F)`[interaction_row]
@@ -430,23 +429,125 @@
         df_residual <- as.integer(anova_result$Df[nrow(anova_result)])
 
         if (is.na(f_stat) || is.na(p_val)) {
-            return(list(statistic = NA_real_, p_value = NA_real_, method = "Conover-Iman Rank Transform (computation failed)",
-                test_type = "rt_failed", ss_interaction = NA_real_, df_interaction = NA_integer_,
-                ss_residual = NA_real_, df_residual = NA_integer_))
+            return(list(statistic = NA_real_, p_value = NA_real_,
+                method = "Conover-Iman Rank Transform (computation failed)",
+                test_type = "rt_failed", ss_interaction = NA_real_,
+                df_interaction = NA_integer_, ss_residual = NA_real_,
+                df_residual = NA_integer_))
         }
 
-        test_type_label <- if (paired)
-            "rt_paired" else "rt_unpaired"
+        test_type_label <- if (paired) "rt_paired" else "rt_unpaired"
         method_label <- if (paired)
-            "Conover-Iman Rank Transform (paired design, within-subject ranks)" else "Conover-Iman Rank Transform (non-parametric 2-way ANOVA on ranks)"
+            "Conover-Iman Rank Transform (paired design, within-subject ranks)" else
+            "Conover-Iman Rank Transform (non-parametric 2-way ANOVA on ranks)"
 
-        return(list(statistic = f_stat, p_value = p_val, method = method_label, test_type = test_type_label,
-            ss_interaction = ss_interaction, df_interaction = df_interaction,
-            ss_residual = ss_residual, df_residual = df_residual))
+        return(list(statistic = f_stat, p_value = p_val, method = method_label,
+            test_type = test_type_label, ss_interaction = ss_interaction,
+            df_interaction = df_interaction, ss_residual = ss_residual,
+            df_residual = df_residual))
     }, error = function(e) {
-        return(list(statistic = NA_real_, p_value = NA_real_, method = paste("Conover-Iman Rank Transform (error):",
-            e$message), test_type = "rt_error", ss_interaction = NA_real_, df_interaction = NA_integer_,
-            ss_residual = NA_real_, df_residual = NA_integer_))
+        return(list(statistic = NA_real_, p_value = NA_real_,
+            method = paste("Conover-Iman Rank Transform (error):", e$message),
+            test_type = "rt_error", ss_interaction = NA_real_,
+            df_interaction = NA_integer_, ss_residual = NA_real_,
+            df_residual = NA_integer_))
+    })
+}
+
+# ============================================================================
+# ART (ALIGNED RANK TRANSFORM) IMPLEMENTATION
+# ============================================================================
+
+#' Aligned Rank Transform for Q×Condition interaction testing
+#'
+#' Uses ARTool package to perform proper non-parametric interaction testing.
+#' ART strips main effects before ranking ("alignment"), preserving interaction
+#' structure (Higgins & Tashtoush 1994, Wobbrock et al. 2011).
+#'
+#' @noRd
+.test_q_condition_interaction_art <- function(data, value_col, q_col, condition_col,
+                                               paired, subject_col) {
+    tryCatch({
+        # Ensure factors for ART
+        data[[q_col]] <- factor(data[[q_col]])
+        data[[condition_col]] <- factor(data[[condition_col]])
+
+        # Build ART formula: entropy ~ q * condition [+ Error(subject/q)]
+        # NOTE: When Error(subject/q) is used, ARTool returns row names as
+        # numbers ("1","2","3") instead of term names. We detect the
+        # interaction row by matching the Term column.
+        if (paired && !is.null(subject_col)) {
+            data[[subject_col]] <- factor(data[[subject_col]])
+            art_formula <- as.formula(paste0(
+                value_col, " ~ ", q_col, " * ", condition_col,
+                " + Error(", subject_col, "/", q_col, ")"))
+        } else {
+            art_formula <- as.formula(paste0(
+                value_col, " ~ ", q_col, " * ", condition_col))
+        }
+
+        # Fit ART model
+        art_model <- ARTool::art(art_formula, data = data)
+        art_anova <- stats::anova(art_model)
+
+        # Find interaction row: match by Term column, or by row name
+        interaction_term <- paste0(q_col, ":", condition_col)
+        if ("Term" %in% colnames(art_anova)) {
+            int_idx <- which(art_anova[["Term"]] == interaction_term)
+        } else {
+            int_idx <- which(rownames(art_anova) == interaction_term)
+        }
+
+        if (length(int_idx) == 0 || int_idx > nrow(art_anova)) {
+            return(list(statistic = NA_real_, p_value = NA_real_,
+                method = "Aligned Rank Transform (interaction term not found)",
+                test_type = "rt_failed", ss_interaction = NA_real_,
+                df_interaction = NA_integer_, ss_residual = NA_real_,
+                df_residual = NA_integer_))
+        }
+
+        int_row <- art_anova[int_idx, ]
+        f_stat <- as.numeric(int_row[["F value"]])
+        p_val  <- as.numeric(int_row[["Pr(>F)"]])
+        df_interaction <- as.integer(int_row[["Df"]])
+
+        # Extract SS values (columns may be named "Sum Sq" or "Sum Sq.res")
+        ss_interaction <- if ("Sum Sq" %in% colnames(int_row)) {
+            as.numeric(int_row[["Sum Sq"]])
+        } else NA_real_
+
+        # Residual row: last row of ANOVA table
+        resid_row <- art_anova[nrow(art_anova), ]
+        df_residual <- as.integer(resid_row[["Df.res"]] %||% resid_row[["Df"]])
+        ss_residual <- if ("Sum Sq.res" %in% colnames(resid_row)) {
+            as.numeric(resid_row[["Sum Sq.res"]])
+        } else if ("Sum Sq" %in% colnames(resid_row)) {
+            as.numeric(resid_row[["Sum Sq"]])
+        } else NA_real_
+
+        if (is.na(f_stat) || is.na(p_val)) {
+            return(list(statistic = NA_real_, p_value = NA_real_,
+                method = "Aligned Rank Transform (computation failed)",
+                test_type = "rt_failed", ss_interaction = NA_real_,
+                df_interaction = NA_integer_, ss_residual = NA_real_,
+                df_residual = NA_integer_))
+        }
+
+        test_type_label <- if (paired) "art_paired" else "art_unpaired"
+        method_label <- if (paired)
+            "Aligned Rank Transform (paired design)" else
+            "Aligned Rank Transform"
+
+        return(list(statistic = f_stat, p_value = p_val, method = method_label,
+            test_type = test_type_label, ss_interaction = ss_interaction,
+            df_interaction = df_interaction, ss_residual = ss_residual,
+            df_residual = df_residual))
+    }, error = function(e) {
+        return(list(statistic = NA_real_, p_value = NA_real_,
+            method = paste("Aligned Rank Transform (error):", e$message),
+            test_type = "rt_error", ss_interaction = NA_real_,
+            df_interaction = NA_integer_, ss_residual = NA_real_,
+            df_residual = NA_integer_))
     })
 }
 

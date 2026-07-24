@@ -155,7 +155,7 @@ TSENAT provides a flexible statistical framework optimized for entropy-based div
 The statistical methods available in TSENAT include:
 
 - **Scale-adaptive interaction tests (SAIT)**: Multiple modeling approaches optimized for repeated measures with AR(1) correlation structure. GAM/GAMM, LMM, GEE and FPCA are all parametrized to handle the non-normality and heteroscedasticity characteristic of entropy data.
-- **Conover-Iman Rank Transform**: The test operates solely on ranks, making it robust to outliers and extreme values. However, it shows lower power for interactions and can inflate Type I errors under heterogeneous variance. These limitations are mitigated through Hochberg multiple testing correction.
+- **Aligned Rank Transform (ART)**: State-of-the-art non-parametric interaction testing via the ARTool package (Kay et al. 2021). Strips main effects before ranking ("alignment") to properly preserve interaction structure — addressing the known limitation of classical rank-transform methods for factorial designs. The Conover-Iman Rank Transform remains available as a fallback via `method='rt'`.
 - **M-estimation**: Robust location estimation for group comparison using iteratively re-weighted least squares, resistant to outliers.
 - **Jackknife isoform switching (JIS)**: Leave-one-out resampling to identify transcripts with condition-specific switching patterns and quantify their influence on entropy differences.
 
@@ -208,13 +208,13 @@ TSENAT expects Salmon output organized with one subdirectory per sample:
 
 ```
 salmon_output/
-├── Sample_1/
+├── sample_1/
 │   └── quant.sf
-├── Sample_2/
+├── sample_2/
 │   └── quant.sf
-├── Sample_3/
+├── sample_3/
 │   └── quant.sf
-└── Sample_4/
+└── sample_4/
     └── quant.sf
 ```
 
@@ -224,10 +224,10 @@ Expected TSV file format:
 
 ```
 sample      condition    paired_samples
-Sample_1    normal            A
-Sample_2    normal            B
-Sample_3    tumor             A
-Sample_4    tumor             B
+sample_1    normal            A
+sample_2    normal            B
+sample_3    tumor             A
+sample_4    tumor             B
 ```
 
 Key requirements:

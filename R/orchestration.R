@@ -40,7 +40,7 @@
 #'   \item \code{plot_divergence_distribution()} - Divergence distribution plot
 #'   \item \code{plot_divergence_spectrum()} - Divergence spectrum plot
 #'   \item \code{calculate_assumptions()} - Validate rank-based test assumptions
-#'   \item \code{calculate_rank_transform()} - Conover-Iman Rank Transform interaction test
+#'   \item \code{calculate_rank_transform()} - ART (Aligned Rank Transform) interaction test
 #'   \item \code{calculate_concordance()} - Compare LM and rank test results
 #' }
 #'
@@ -243,7 +243,7 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
     step_times[["assumptions"]] <- Sys.time() - step_start
     
     # Step 15: SRH test
-    if (verbose) message(sprintf("[>] [%2d/16] Performing Conover-Iman Rank Transform test", 15))
+    if (verbose) message(sprintf("[>] [%2d/16] Performing ART (Aligned Rank Transform) interaction test", 15))
     step_start <- Sys.time()
     analysis <- .execute_rank_transform_test(analysis, verbose, output_dir, output_format)
     step_times[["rank_transform_test"]] <- Sys.time() - step_start

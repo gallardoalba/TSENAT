@@ -82,7 +82,7 @@
 
     # Add global title with subtitle
     title_gg <- cowplot::ggdraw() + cowplot::draw_label("Comparing interaction detection across two statistical methods",
-        fontface = "bold", size = .font_sizes$title, x = 0.5, y = 0.75) + cowplot::draw_label("Concordance analysis between SAIT and Conover-Iman Rank Transform tests",
+        fontface = "bold", size = .font_sizes$title, x = 0.5, y = 0.75) + cowplot::draw_label("Concordance analysis between SAIT and ART/Conover-Iman Rank Transform tests",
         fontface = "italic", size = .font_sizes$subtitle, x = 0.5, y = 0.45, color = "gray40")
 
     # Combine all elements and convert to grob
@@ -102,7 +102,7 @@
 }
 
 
-#' Compute Method Concordance between GAM and Conover-Iman Rank Transform Results
+#' Compute Method Concordance between GAM and ART/Conover-Iman Rank Transform Results
 #'
 #' Analyzes agreement between GAM (flexible parametric) and Conover-Iman Rank Transform
 #' (rank-based)

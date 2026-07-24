@@ -32,11 +32,11 @@ suppressPackageStartupMessages(library(kableExtra))
 
 # Introduction
 
-TSENAT (Tsallis Entropy Analysis Toolbox) allows the modelization and quantification of isoform-usage complexity in RNA-seq data using Tsallis entropy, a scale-dependent diversity measure distinct from differential abundance tools (DESeq2, edgeR) and differential usage tools (DEXSeq, DRIMSeq). By tuning the entropy index parameter (q), TSENAT enables to examine transcriptome heterogeneity at different scales: rare variants (low q) or dominant isoforms (high q). This package enables computing Tsallis entropy and Tsallis divergence from transcript-level abundance estimates, comparing measures between groups, and visualizing scale-dependent differences via q-curves.
+TSENAT (Tsallis Entropy Analysis Toolbox) enables the modeling and quantification of isoform-usage complexity in RNA-seq data using Tsallis entropy, a scale-dependent diversity measure distinct from differential abundance tools (DESeq2, edgeR) and differential usage tools (DEXSeq, DRIMSeq). By tuning the entropy index parameter ($q$), TSENAT examines transcriptome heterogeneity at different scales: rare variants (low $q$) or dominant isoforms (high $q$). The package computes Tsallis entropy and Tsallis divergence from transcript-level abundance estimates, compares measures between groups, and visualizes scale-dependent differences via q-curves.
 
 ## Motivation
 
-Common RNA-seq tools focus on either total gene abundance changes or individual transcript usage shifts, yet genes often remodel their isoform landscapes without changing overall expression-a phenomenon missed by these approaches. TSENAT makes possible to quantify this isoform-usage diversty directly via Tsallis entropy, allowing to capture biological signals invisible to abundance- or proportion-based summaries.
+Common RNA-seq tools focus on either total gene abundance changes or individual transcript usage shifts, yet genes often remodel their isoform landscapes without changing overall expression-a phenomenon missed by these approaches. TSENAT quantifies isoform-usage diversity directly via Tsallis entropy, capturing biological signals invisible to abundance- or proportion-based summaries.
 
 In this guide, we demonstrate the complete workflow: preprocessing transcript counts, computing entropy across entropic indices, testing for between-group differences, and visualizing scale-dependent complexity.
 
@@ -47,7 +47,7 @@ In this guide, we demonstrate the complete workflow: preprocessing transcript co
 3. **Test for differences** in entropy patterns between groups across entropic indices.
 4. **Visualize results**.
 
-Design assumptions: This guide assumes paired or longitudinal designs with >=6-8 samples per group for adequate power to detect entropy shifts while controlling false discovery rate. Smaller sample sizes may be underpowered to detect subtle isoform complexity changes.
+Design assumptions: This guide assumes paired or longitudinal designs with $\geq$ 6–8 samples per group for adequate power to detect entropy shifts while controlling false discovery rate. Smaller sample sizes may be underpowered to detect subtle isoform complexity changes.
 
 
 
@@ -194,7 +194,7 @@ Nijman's complementary analysis reveals the mechanism: "cancer-associated pertur
 
 # TSENAT Main Workflow
 
-We now demonstrate a complete workflow for detecting **isoform switching**-when cells reorganize their isoform landscape without necessarily changing total gene abundance. This often reflects strategic shifts in protein function driven by splicing regulation.
+We now demonstrate a complete workflow for detecting **isoform switching** — when cells reorganize their isoform landscape without necessarily changing total gene abundance. This often reflects strategic shifts in protein function driven by splicing regulation.
 
 In this workflow, you will:
 
@@ -291,7 +291,7 @@ on differential transcript usage, see [this paper](https://doi.org/10.1186/s1305
 analysis <- filter_analysis(analysis, stringency = "medium")
 ```
 
-The `stringency = "medium"` parameter keeps transcripts present in >=50% of samples 
+The `stringency = "medium"` parameter keeps transcripts present in $\geq$50% of samples 
 with TPM values above the median of mean gene TPM. This balances noise reduction with 
 preservation of isoform diversity needed for meaningful entropy calculations.
 
@@ -490,18 +490,18 @@ if (!is.null(sait_res) && is.data.frame(sait_res) && nrow(sait_res) > 0) {
     }
     
     knitr::kable(display, 
-                caption = "**Table 3 | Leading genes with scale-dependent condition effects from generalized additive models.** We display the 6 genes with lowest adjusted p-values (*q* < 0.05). Benjamini-Hochberg correction applied; columns show gene identifier, effect size, test statistic, convergence status, and heteroscedasticity detection. Methods: GAMs with *q* and condition as smooth predictors [@S190].",
+                caption = "**Table 3 | Leading genes with scale-dependent condition effects from generalized additive models.** We display the 6 genes with lowest adjusted p-values (*q* < 0.05). Hochberg step-up correction applied (FWER control); columns show gene identifier, effect size, test statistic, convergence status, and heteroscedasticity detection. Methods: GAMs with *q* and condition as smooth predictors [@S190].",
                 col.names = c("Gene", "P-value", "Adj. P-value", "Effect Size", "Test Statistic", "Model Converged", "Heteroscedasticity"),
                 digits = 4, row.names = FALSE)
 }
 ```
 
-**Interpretation:** TRUE in the Heteroscedasticity column indicates that the model satisfies homogeneity-of-variance assumptions across the q-spectrum; FALSE values suggest variance heterogeneity and warrant caution in result interpretation.
+**Interpretation:** TRUE in the Heteroscedasticity column indicates that variance heterogeneity was detected across the q-spectrum (assumption violated, results warrant caution); FALSE indicates homoscedasticity (variance homogeneity assumption satisfied).
 
 Now we will plot the q-curve profile for the top genes identified 
 by the scale-adaptive interaction test.
 
-```{r fig-2-scale-dependent-genes, fig.width=14, fig.height=12, out.width="98%", fig.pos="H", fig.cap = "**Figure 2:** Scale-dependent interaction analysis. GAM-identified genes showing significant q$\times$condition effects (Benjamini-Hochberg q < 0.05)."}
+```{r fig-2-scale-dependent-genes, fig.width=14, fig.height=12, out.width="98%", fig.pos="H", fig.cap = "**Figure 2:** Scale-dependent interaction analysis. GAM-identified genes showing significant q$\times$condition effects (Hochberg-adjusted p < 0.05)."}
 # Plot q-curve profiles for the top 4 genes using the S4 wrapper
 combined_plot <- plot_sait(
     analysis,
@@ -632,7 +632,7 @@ This heatmap reveals a critical blind spot in standard transcript quantification
 
 ## Effect Size Analysis
 
-To understand which diversity scales show the most pronounced biological differences between groups, we will compute Tsallis divergence $D_q$ across the q-spectrum [@K001; @I002; @I003; @I004; @I059; @I061]]. This metrics allows to reveal whether group differences are driven by rare isoforms (low q), dominant isoforms (high q), or uniformly across scales. Values $D > 0.1$ indicate meaningful information-theoretic separation between conditions, revealing that isoform complexity patterns fundamentally differ between treatment groups across all q-dependent scales [@I060]. 
+To understand which diversity scales show the most pronounced biological differences between groups, we will compute Tsallis divergence $D_q$ across the q-spectrum [@K001; @I002; @I003; @I004; @I059; @I061]. This metric reveals whether group differences are driven by rare isoforms (low $q$), dominant isoforms (high $q$), or uniformly across scales. Values $D > 0.1$ indicate meaningful information-theoretic separation between conditions, revealing that isoform complexity patterns fundamentally differ between treatment groups across all q-dependent scales [@I060]. 
 
 For two probability distributions $P$ and $Q$ representing isoform proportions in control and treatment conditions, Tsallis divergence is:
 

@@ -972,3 +972,137 @@ test_that(".fit_all_genes returns data.frame or empty frame", {
     
     expect_true(is.data.frame(result))
 })
+
+# ===========================================================================
+# Tests for .validate_sait_method_dependencies()
+# ===========================================================================
+
+test_that(".validate_sait_method_dependencies passes for valid methods", {
+    skip_if_not_installed("nlme")
+    skip_if_not_installed("mgcv")
+    skip_if_not_installed("geepack")
+    
+    expect_silent(TSENAT:::.validate_sait_method_dependencies("lmm"))
+    expect_silent(TSENAT:::.validate_sait_method_dependencies("gam"))
+    expect_silent(TSENAT:::.validate_sait_method_dependencies("gee"))
+    expect_invisible(TSENAT:::.validate_sait_method_dependencies("fpca"))
+})
+
+test_that("calculate_sait validates method parameter correctly", {
+    skip_if_not_installed("nlme")
+    skip_if_not_installed("mgcv")
+    skip_if_not_installed("geepack")
+    
+    data(readcounts, package = "TSENAT", envir = environment())
+    readcounts <- as.matrix(readcounts)
+    mode(readcounts) <- "numeric"
+    
+    metadata_df <- read.table(
+        system.file("extdata", "metadata.tsv", package = "TSENAT"),
+        header = TRUE, sep = "\t"
+    )
+    gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+    
+    config <- TSENAT_config(
+        sample_col = "sample",
+        condition_col = "condition",
+        q = seq(0, 2, by = 0.5)
+    )
+    analysis <- suppressWarnings(build_analysis(
+        readcounts = readcounts,
+        tx2gene = gff3_file,
+        metadata = metadata_df,
+        config = config,
+        tpm = tpm,
+        effective_length = effective_length
+    ))
+    analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = 10)
+    analysis <- calculate_diversity(analysis, q = seq(0, 2, by = 0.5), verbose = FALSE)
+    
+    # This should trigger the method validation path (covers lines 267-275 in sait_core.R)
+    result <- suppressWarnings(
+        calculate_sait(analysis, method = "lmm", verbose = FALSE)
+    )
+    expect_s4_class(result, "TSENATAnalysis")
+    
+    # Test that invalid method is rejected
+    expect_error(
+        suppressWarnings(calculate_sait(analysis, method = "invalid_method")),
+        "should be one of"
+    )
+})
+
+test_that("calculate_sait validates corstr parameter correctly", {
+    skip_if_not_installed("nlme")
+    skip_if_not_installed("mgcv")
+    skip_if_not_installed("geepack")
+    
+    data(readcounts, package = "TSENAT", envir = environment())
+    readcounts <- as.matrix(readcounts)
+    mode(readcounts) <- "numeric"
+    
+    metadata_df <- read.table(
+        system.file("extdata", "metadata.tsv", package = "TSENAT"),
+        header = TRUE, sep = "\t"
+    )
+    gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+    
+    config <- TSENAT_config(
+        sample_col = "sample",
+        condition_col = "condition",
+        q = seq(0, 2, by = 0.5)
+    )
+    analysis <- suppressWarnings(build_analysis(
+        readcounts = readcounts,
+        tx2gene = gff3_file,
+        metadata = metadata_df,
+        config = config,
+        tpm = tpm,
+        effective_length = effective_length
+    ))
+    analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = 10)
+    analysis <- calculate_diversity(analysis, q = seq(0, 2, by = 0.5), verbose = FALSE)
+    
+    # Invalid corstr should be rejected via match.arg
+    expect_error(
+        suppressWarnings(calculate_sait(analysis, method = "gee", corstr = "invalid_corstr")),
+        "should be one of"
+    )
+})
+
+test_that("calculate_sait validates pvalue parameter correctly", {
+    skip_if_not_installed("nlme")
+    skip_if_not_installed("mgcv")
+    
+    data(readcounts, package = "TSENAT", envir = environment())
+    readcounts <- as.matrix(readcounts)
+    mode(readcounts) <- "numeric"
+    
+    metadata_df <- read.table(
+        system.file("extdata", "metadata.tsv", package = "TSENAT"),
+        header = TRUE, sep = "\t"
+    )
+    gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+    
+    config <- TSENAT_config(
+        sample_col = "sample",
+        condition_col = "condition",
+        q = seq(0, 2, by = 0.5)
+    )
+    analysis <- suppressWarnings(build_analysis(
+        readcounts = readcounts,
+        tx2gene = gff3_file,
+        metadata = metadata_df,
+        config = config,
+        tpm = tpm,
+        effective_length = effective_length
+    ))
+    analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = 10)
+    analysis <- calculate_diversity(analysis, q = seq(0, 2, by = 0.5), verbose = FALSE)
+    
+    # Invalid pvalue should be rejected via match.arg
+    expect_error(
+        suppressWarnings(calculate_sait(analysis, method = "gam", pvalue = "invalid_pvalue")),
+        "should be one of"
+    )
+})

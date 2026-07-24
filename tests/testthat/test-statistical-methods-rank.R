@@ -348,7 +348,7 @@ test_that("Full workflow: detect -> classify -> recommend works end-to-end", {
   
   # Step 1: Detect interactions
   # Suppress expected chi-squared approximation warning from small cell counts in test data
-  results <- suppressWarnings(.calculate_rank_transform(model_data))
+  results <- suppressWarnings(.calculate_rank_transform(model_data, method = "rt"))
   expect_equal(nrow(results), 45)
   
   # Step 2: Classify
@@ -584,12 +584,14 @@ test_that("detect_q_gene_interactions westfall-young vs hochberg agreement", {
   result_wy <- .calculate_rank_transform(
     model_data,
     multicorr = "westfall-young",
-    wy_randomizations = 20
+    wy_randomizations = 20,
+    method = "rt"
   )
   
   result_hoch <- .calculate_rank_transform(
     model_data,
-    multicorr = "hochberg"
+    multicorr = "hochberg",
+    method = "rt"
   )
   
   # Both should produce valid p-values
@@ -1001,7 +1003,8 @@ test_that("detect_q_gene_interactions paired detects unbalanced designs", {
     model_data,
     paired = TRUE,
     subject_col = "subject",
-    verbose = FALSE
+    verbose = FALSE,
+    method = "rt"
   )
   expect_s3_class(result, "data.frame")
   expect_true(nrow(result) > 0)
@@ -1422,7 +1425,7 @@ test_that(".detect_q_analyze_gene: identifies insufficient data", {
   )
   
   result <- TSENAT:::.detect_q_analyze_gene(
-    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE
+    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE, method = "rt"
   )
   
   expect_true(result$test_failed)
@@ -1440,7 +1443,7 @@ test_that(".detect_q_analyze_gene: computes test statistics for valid data", {
   )
   
   result <- TSENAT:::.detect_q_analyze_gene(
-    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE
+    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE, method = "rt"
   )
   
   expect_false(result$test_failed)
@@ -1467,7 +1470,7 @@ test_that(".detect_q_analyze_gene: computes valid effect sizes", {
   )
   
   result <- TSENAT:::.detect_q_analyze_gene(
-    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE
+    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE, method = "rt"
   )
   
   # Effect size should be meaningful (eta2 between 0 and 1)
@@ -1491,7 +1494,7 @@ test_that(".detect_q_analyze_gene: interaction eta2 is low when only q main effe
   )
 
   result <- TSENAT:::.detect_q_analyze_gene(
-    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE
+    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE, method = "rt"
   )
 
   expect_false(result$test_failed)
@@ -1511,7 +1514,7 @@ test_that(".detect_q_analyze_gene: sums of squares are consistent", {
   )
   
   result <- TSENAT:::.detect_q_analyze_gene(
-    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE
+    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE, method = "rt"
   )
   
   # Function returns ss_interaction (not ss_q) and ss_residual
@@ -1532,7 +1535,7 @@ test_that(".detect_q_analyze_gene: handles condition column", {
   )
   
   result <- TSENAT:::.detect_q_analyze_gene(
-    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE
+    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE, method = "rt"
   )
   
   expect_false(result$test_failed)

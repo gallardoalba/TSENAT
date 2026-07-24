@@ -344,7 +344,8 @@ test_that("calculate_rank_transform handles multiple genes with varying signific
     result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
-        multicorr = "hochberg"
+        multicorr = "hochberg",
+        method = "rt"
     )
     
     rank_res <- results(result, type = "rank_test")
@@ -1365,7 +1366,8 @@ test_that("rank_test output file (TSV format) contains valid p-values", {
     condition_col = "condition",
     multicorr = "hochberg",
     output_file = output_file,
-    verbose = FALSE
+    verbose = FALSE,
+    method = "rt"
   )
   
   # Check if file was created

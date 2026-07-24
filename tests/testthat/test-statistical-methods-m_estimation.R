@@ -1911,3 +1911,181 @@ test_that(".calculate_m_estimator rejects invalid scale_method", {
         regexp = "should be one of"
     )
 })
+
+# ============================================================================
+# Tests for calculate_m_estimator() — S4 wrapper validation paths
+# ============================================================================
+
+test_that("calculate_m_estimator errors with non-TSENATAnalysis input", {
+    expect_error(
+        calculate_m_estimator(list()),
+        "'analysis' must be a TSENATAnalysis object"
+    )
+})
+
+test_that("calculate_m_estimator errors when diversity_results is NULL", {
+    data(readcounts, package = "TSENAT", envir = environment())
+    readcounts <- as.matrix(readcounts)
+    mode(readcounts) <- "numeric"
+    
+    metadata_df <- read.table(
+        system.file("extdata", "metadata.tsv", package = "TSENAT"),
+        header = TRUE, sep = "\t"
+    )
+    gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+    
+    config <- TSENAT_config(
+        sample_col = "sample",
+        condition_col = "condition",
+        q = seq(0, 2, by = 0.5)
+    )
+    analysis <- suppressWarnings(build_analysis(
+        readcounts = readcounts,
+        tx2gene = gff3_file,
+        metadata = metadata_df,
+        config = config,
+        tpm = tpm,
+        effective_length = effective_length
+    ))
+    # Don't run calculate_diversity — diversity_results should be empty
+    analysis@diversity_results <- list()
+    
+    expect_error(
+        calculate_m_estimator(analysis),
+        "Diversity results not found"
+    )
+})
+
+test_that("calculate_m_estimator errors when diversity_results is empty list", {
+    data(readcounts, package = "TSENAT", envir = environment())
+    readcounts <- as.matrix(readcounts)
+    mode(readcounts) <- "numeric"
+    
+    metadata_df <- read.table(
+        system.file("extdata", "metadata.tsv", package = "TSENAT"),
+        header = TRUE, sep = "\t"
+    )
+    gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+    
+    config <- TSENAT_config(
+        sample_col = "sample",
+        condition_col = "condition",
+        q = seq(0, 2, by = 0.5)
+    )
+    analysis <- suppressWarnings(build_analysis(
+        readcounts = readcounts,
+        tx2gene = gff3_file,
+        metadata = metadata_df,
+        config = config,
+        tpm = tpm,
+        effective_length = effective_length
+    ))
+    # diversity_results is empty because calculate_diversity not called
+    analysis@diversity_results <- list()
+    
+    expect_error(
+        calculate_m_estimator(analysis),
+        "Diversity results not found"
+    )
+})
+
+test_that("calculate_m_estimator auto-detects condition_col from config", {
+    data(readcounts, package = "TSENAT", envir = environment())
+    readcounts <- as.matrix(readcounts)
+    mode(readcounts) <- "numeric"
+    
+    metadata_df <- read.table(
+        system.file("extdata", "metadata.tsv", package = "TSENAT"),
+        header = TRUE, sep = "\t"
+    )
+    gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+    
+    config <- TSENAT_config(
+        sample_col = "sample",
+        condition_col = "condition",
+        q = seq(0, 2, by = 0.5)
+    )
+    analysis <- suppressWarnings(build_analysis(
+        readcounts = readcounts,
+        tx2gene = gff3_file,
+        metadata = metadata_df,
+        config = config,
+        tpm = tpm,
+        effective_length = effective_length
+    ))
+    analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = 10)
+    analysis <- calculate_diversity(analysis, q = c(0.5, 1.0), verbose = FALSE)
+    
+    # Should auto-detect condition_col from @config
+    result <- calculate_m_estimator(analysis, verbose = FALSE)
+    expect_s4_class(result, "TSENATAnalysis")
+    expect_true(!is.null(result@metadata$m_estimate_results))
+})
+
+test_that("calculate_m_estimator rejects invalid condition_col", {
+    data(readcounts, package = "TSENAT", envir = environment())
+    readcounts <- as.matrix(readcounts)
+    mode(readcounts) <- "numeric"
+    
+    metadata_df <- read.table(
+        system.file("extdata", "metadata.tsv", package = "TSENAT"),
+        header = TRUE, sep = "\t"
+    )
+    gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+    
+    config <- TSENAT_config(
+        sample_col = "sample",
+        condition_col = "condition",
+        q = seq(0, 2, by = 0.5)
+    )
+    analysis <- suppressWarnings(build_analysis(
+        readcounts = readcounts,
+        tx2gene = gff3_file,
+        metadata = metadata_df,
+        config = config,
+        tpm = tpm,
+        effective_length = effective_length
+    ))
+    analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = 10)
+    analysis <- calculate_diversity(analysis, q = c(0.5, 1.0), verbose = FALSE)
+    
+    expect_error(
+        calculate_m_estimator(analysis, condition_col = 123),
+        "'condition_col' must be a single character value"
+    )
+})
+
+test_that("calculate_m_estimator validates paired parameter", {
+    data(readcounts, package = "TSENAT", envir = environment())
+    readcounts <- as.matrix(readcounts)
+    mode(readcounts) <- "numeric"
+    
+    metadata_df <- read.table(
+        system.file("extdata", "metadata.tsv", package = "TSENAT"),
+        header = TRUE, sep = "\t"
+    )
+    gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+    
+    config <- TSENAT_config(
+        sample_col = "sample",
+        condition_col = "condition",
+        subject_col = "paired_samples",
+        control = "normal",
+        q = seq(0, 2, by = 0.5),
+        paired = TRUE
+    )
+    analysis <- suppressWarnings(build_analysis(
+        readcounts = readcounts,
+        tx2gene = gff3_file,
+        metadata = metadata_df,
+        config = config,
+        tpm = tpm,
+        effective_length = effective_length
+    ))
+    analysis <- filter_analysis(analysis, min_samples = 1, subset_n_genes = 10)
+    analysis <- calculate_diversity(analysis, q = c(0.5, 1.0), verbose = FALSE)
+    
+    # Should auto-detect paired from @config and use it
+    result <- calculate_m_estimator(analysis, verbose = FALSE)
+    expect_s4_class(result, "TSENATAnalysis")
+})

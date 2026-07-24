@@ -831,3 +831,93 @@ test_that(".build_se preserves count values correctly", {
     expect_equal(as.numeric(counts_assay[1, ]), c(100, 200))
     expect_equal(as.numeric(counts_assay[2, ]), c(50, 75))
 })
+
+# ===========================================================================
+# Tests for build_analysis() — salmon_dir and validation paths
+# ===========================================================================
+
+test_that("build_analysis errors when neither readcounts nor salmon_dir provided", {
+    expect_error(
+        build_analysis(tx2gene = gff3_dataset, metadata = metadata_df, config = config),
+        "Either 'readcounts' or 'salmon_dir'"
+    )
+})
+
+test_that("build_analysis validates missing sample_col with metadata", {
+    # Use a raw list (not TSENAT_config) to force sample_col to be NULL
+    bad_config <- list(condition_col = "condition")
+    expect_error(
+        build_analysis(
+            readcounts = readcounts,
+            tx2gene = gff3_dataset,
+            metadata = metadata_df,
+            config = bad_config
+        ),
+        "sample_col"
+    )
+})
+
+test_that("build_analysis validates missing condition_col with metadata", {
+    # Use a raw list (not TSENAT_config) to force condition_col to be NULL
+    bad_config <- list(sample_col = "sample")
+    expect_error(
+        build_analysis(
+            readcounts = readcounts,
+            tx2gene = gff3_dataset,
+            metadata = metadata_df,
+            config = bad_config
+        ),
+        "condition_col"
+    )
+})
+
+test_that("build_analysis works without metadata (no column validation needed)", {
+    config_no_meta <- list()
+    analysis <- build_analysis(
+        readcounts = readcounts,
+        tx2gene = gff3_dataset,
+        config = config_no_meta,
+        tpm = tpm,
+        effective_length = effective_length
+    )
+    expect_s4_class(analysis, "TSENATAnalysis")
+})
+
+test_that("build_analysis errors when salmon_dir has mismatched sample names", {
+    skip("Requires actual Salmon directory structure — tested in integration suite")
+})
+
+test_that("build_analysis accepts TSENAT_config object with all required params", {
+    config <- TSENAT_config(
+        sample_col = "sample",
+        condition_col = "condition",
+        q = seq(0, 2, by = 0.5)
+    )
+    analysis <- build_analysis(
+        readcounts = readcounts,
+        tx2gene = gff3_dataset,
+        metadata = metadata_df,
+        config = config,
+        tpm = tpm,
+        effective_length = effective_length
+    )
+    expect_s4_class(analysis, "TSENATAnalysis")
+})
+
+test_that("build_analysis stores config in the analysis object", {
+    config <- TSENAT_config(
+        sample_col = "sample",
+        condition_col = "condition",
+        q = seq(0, 2, by = 0.5)
+    )
+    analysis <- build_analysis(
+        readcounts = readcounts,
+        tx2gene = gff3_dataset,
+        metadata = metadata_df,
+        config = config,
+        tpm = tpm,
+        effective_length = effective_length
+    )
+    expect_true("sample_col" %in% names(analysis@config))
+    expect_true("condition_col" %in% names(analysis@config))
+})

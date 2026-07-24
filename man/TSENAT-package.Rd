@@ -97,7 +97,7 @@ TSENAT implements a complete analytical pipeline:
     probability scales without multiple testing correction for q-values.
   \item \strong{Robust resampling}: Leave-one-out jackknife + block bootstrap handles 
     paired designs and maintains correlation structure.
-  \item \strong{Multiple method backends}: nlme, MASS, geepack, or rank-based (Conover-Iman Rank Transform, 
+  \item \strong{Multiple method backends}: nlme, MASS, geepack, ARTool, or rank-based (ART/Conover-Iman), 
     sign test) for model flexibility.
   \item \strong{FDR-corrected testing}: Benjamini-Hochberg adjustment across genes and q-values.
   \item \strong{Production-grade visualization}: ggplot2-based plots optimized for 

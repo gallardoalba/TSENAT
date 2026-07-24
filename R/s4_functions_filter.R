@@ -1,0 +1,206 @@
+#' Filter Low-Abundance Transcripts in a TSENATAnalysis Object
+#'
+#' S4 wrapper for \code{.filter_se()} that filters low-abundance transcripts
+#' directly within a \code{TSENATAnalysis} object. This maintains the consistent
+#' S4 workflow pattern where functions accept and return analysis objects.
+#'
+#' @param analysis A \code{TSENATAnalysis} S4 object containing the
+#'   \code{SummarizedExperiment} to be filtered.
+#'
+#' @param min_tpm Numeric TPM threshold (default 1.0).
+#'   Keeps transcripts with 
+#' TPM >= \code{min_tpm} in >= \code{min_samples} samples.
+#'   Ignored if \code{stringency} is specified.
+#'
+#' @param tpm_assay_name Character; name of assay containing TPM data
+#' (default: NULL).
+#'   If NULL, searches for TPM assay automatically.
+#'
+#' @param min_samples Numeric. Minimum number of samples in which a transcript
+#'   must be present (default: 5). Ignored if \code{stringency} is specified.
+#'
+#' @param stringency Character. Filtering stringency level: 'soft' (permissive),
+#' 'medium' (balanced), or 'severe' (stringent). When specified,
+#' auto-estimates:
+#'   \code{min_samples},  \code{min_tpm},  \code{min_tx_per_gene},  and 
+#' \code{min_isoform_abundance}
+#'   from data. Requires \code{pair_col} in colData for paired designs.
+#'   User-provided values for any parameter override stringency defaults.
+#'   Default: 'medium' (balanced filtering recommended for most analyses).
+#'
+#' @param pair_col Character; column name in colData containing pair IDs for
+#' paired designs.
+#'   Default: NULL (auto-detect if needed).
+#'
+#' @param min_tx_per_gene Integer minimum number of transcripts per gene
+#' required
+#'   (default 2L).  Single-transcript genes are always kept.  Ignored if 
+#' \code{stringency}
+#' is specified; when specified, automatically adjusted based on stringency
+#' level.
+#'
+#' @param min_isoform_abundance Numeric in [0, 1]; minimum relative
+#' abundance threshold
+#'   for isoforms within each gene. Implements Soneson et al. (2016) filtering.
+#'   Default behavior:
+#'   - If \code{stringency} is specified:
+#'  uses stringency-based default (soft:  0. 01,  medium:  0. 05,  severe:  0.
+#' 15)
+#'   - If \code{stringency} is NULL: uses default 0.05 (5%)
+#'   - If explicitly provided: overrides any stringency default
+#' Set to 0 or NULL (post-stringency processing) to skip isoform-level
+#' filtering.
+#'
+#' @param assay_name Character; name or index of the assay to use for filtering
+#'   (default: 'counts'). Deprecated: use \code{tpm_assay_name} instead.
+#'
+#' @param subset_n_genes Integer; optional number of genes to retain after
+#' filtering.
+#'   If provided,  genes are selected based on \code{subset_select_by}.
+#'  Default:  NULL.
+#'
+#' @param subset_genes Character vector; optional specific genes to retain
+#' after filtering.
+#'   Default: NULL.
+#'
+#' @param subset_n_samples Integer; optional number of samples to retain
+#' after filtering.
+#'   If provided, samples are selected (balanced by condition if available).
+#'   Default: NULL.
+#'
+#' @param subset_samples Character vector; optional specific samples to
+#' retain after filtering.
+#'   Default: NULL.
+#'
+#' @param subset_select_by Character;  gene selection method for 
+#' \code{subset_n_genes}:
+#' 'variance' (highest variance), 'mean' (highest mean expression), or
+#' 'random'.
+#'   Default: 'variance'.
+#'
+#' @param subset_seed Integer;  random seed for  reproducibility when 
+#' \code{subset_select_by = 'random'}.
+#'   Default: 42.
+#'
+#' @param subset_min_count Numeric; optional minimum count threshold applied
+#' during subsetting.
+#'   Default: NULL.
+#'
+#' @param verbose Logical. If TRUE, print filtering progress and summary
+#' statistics
+#'   (default: FALSE).
+#'
+#' @return Invisibly returns the modified \code{analysis} object with filtered
+#'   \code{SummarizedExperiment} in the \code{@se} slot. The filtering operation
+#'   modifies the analysis object in-place while maintaining all other slots
+#'   (results, metadata, etc.).
+#'
+#' @details
+#' This wrapper applies \code{.filter_se()} to the SummarizedExperiment within
+#' the TSENATAnalysis object, optionally followed by subsetting parameters.
+#' The filtering and subsetting operations are applied in sequence:
+#'
+#' 1. Extracts the SE from \code{analysis@se}
+#' 2. Filters using \code{.filter_se()} with specified filtering parameters (default: 'medium' stringency)
+#' 3. If any subset parameters are provided, applies gene/sample selection
+#'    to select specific genes and/or samples
+#' 4. Stores the filtered/subsetted SE back in \code{analysis@se}
+#' 5. Returns the modified analysis object invisibly
+#'
+#' **Default Filtering (stringency = 'medium'):** By default, filtering applies
+#' balanced stringency: requires transcripts in >= 50% of samples with minimum
+#' isoform abundance of 5%, and genes with at least 2 transcripts. This balances
+#' noise reduction with preservation of isoform diversity for reliable entropy
+#' calculations.
+#'
+#' **Important:** Filtering should be performed BEFORE computing diversity,
+#' divergence, or SAIT interaction results. If called after analysis results
+#' have been computed, those results will be based on unfiltered data and
+#' may not align with the filtered SE dimensions.
+#'
+#' @seealso
+#' \code{\link{build_analysis}} for creating a new analysis object
+#'
+#' @examples
+#' # Create test analysis and filter
+#' data(readcounts)
+#' readcounts <- as.matrix(readcounts)
+#' mode(readcounts) <- 'numeric'
+#' metadata_df <- read.table(
+#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t'
+#' )
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+#' 'TSENAT')
+#' config <- TSENAT_config(sample_col = 'sample', condition_col = 'condition')
+#' analysis <- build_analysis(readcounts = readcounts, tx2gene =
+#' gff3_dataset, metadata = metadata_df, config = config,
+#'   tpm = tpm, effective_length = effective_length)
+#' analysis <- filter_analysis(analysis, stringency = 'medium')
+#'
+#' @export
+# ============================================================================
+# FILTER ANALYSIS WRAPPER
+# ============================================================================
+# Purpose: Wrapper that filters low-abundance transcripts and genes from
+# TSENATAnalysis object. Removes noise before diversity/divergence analysis by
+# applying multiple quality control criteria simultaneously.  Key Features: -
+# TPM-based abundance filtering: Remove transcripts with low expression -
+# Sample coverage: Require genes present in minimum number of samples - Min
+# transcripts per gene: Filter genes with too few isoforms - Isoform abundance
+# thresholds: Exclude rare isoforms from analysis - Subsetting options: Random
+# or variance-based gene/sample selection - Stringency presets: Default
+# 'medium' (balanced), 'soft' (permissive), or 'severe' (stringent) filtering
+# profiles.  Mathematical Background: QC filtering removes noise that would
+# artificially inflate entropy/divergence. Genes with single isoform (H=0) or
+# all absent samples contribute no signal. Rare transcripts have unreliable
+# expression values -> exclude them. Example: Raw data: 88 genes × 12 samples
+# (many genes expressed in <50% samples) After filter: 50 genes × 12 samples
+# (multi-isoform, well-represented genes) Result: More reliable diversity
+# estimates and smaller multiple-testing burden.
+# ============================================================================
+filter_analysis <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min_samples = 5L,
+    stringency = "medium", pair_col = NULL, min_tx_per_gene = 2L, min_isoform_abundance = NULL,
+    assay_name = "counts", subset_n_genes = NULL, subset_genes = NULL, subset_n_samples = NULL,
+    subset_samples = NULL, subset_select_by = c("variance", "mean", "random"), subset_seed = 42,
+    subset_min_count = NULL, verbose = FALSE) {
+    # Validate input
+    if (!inherits(analysis, "TSENATAnalysis")) {
+        stop("analysis must be a TSENATAnalysis object", call. = FALSE)
+    }
+
+    # Extract SE from analysis
+    se <- analysis@se
+
+    # Apply filtering via .filter_se() with all parameters
+    se_filtered <- .filter_se(se = se, min_tpm = min_tpm, tpm_assay_name = tpm_assay_name,
+        min_samples = min_samples, stringency = stringency, pair_col = pair_col,
+        min_tx_per_gene = min_tx_per_gene, min_isoform_abundance = min_isoform_abundance,
+        assay_name = assay_name, verbose = verbose)
+
+    # Store filtered SE back in analysis object
+    analysis@se <- se_filtered
+
+    # Apply optional subsetting after filtering
+    has_subset_params <- !is.null(subset_n_genes) || !is.null(subset_genes) || !is.null(subset_n_samples) ||
+        !is.null(subset_samples) || !is.null(subset_min_count)
+
+    if (has_subset_params) {
+        if (verbose) {
+            message("Applying subset_analysis to filtered data...")
+        }
+
+        # Use match.arg to validate subset_select_by
+        subset_select_by <- match.arg(subset_select_by)
+
+        # Apply subsetting via .subset_analysis
+        analysis <- .subset_analysis(analysis = analysis, n_genes = subset_n_genes,
+            n_samples = subset_n_samples, genes = subset_genes, samples = subset_samples,
+            select_by = subset_select_by, seed = subset_seed, min_count = subset_min_count,
+            verbose = verbose)
+    }
+
+    # Return modified analysis object
+    analysis
+}
+

@@ -61,11 +61,11 @@ values for each gene at that q-value.}
 \describe{
   \item{\code{sait_interaction}}{Regularized regression (GAM/LMM/GEE/FPCA) model results (list with
         \code{$results} data.frame, \code{$models} list, etc.)}
-  \item{\code{rank_test}}{Conover-Iman Rank Transform results}
+  \item{\code{rank_test}}{ART (Aligned Rank Transform) or Conover-Iman Rank Transform results}
   \item{\code{divergence_difference}}{Differential divergence comparison}
 }}
 
-\item{\code{rank_test_results}}{\code{list}. Conover-Iman Rank Transform statistical
+\item{\code{rank_test_results}}{\code{list}. ART (Aligned Rank Transform) or Conover-Iman Rank Transform
 test results. Names correspond to q-values (e.g., 'q_0.5', 'q_1.0').
 Computed by \code{calculate_rank_transform()} as a non-parametric alternative
 to linear mixed model testing.}

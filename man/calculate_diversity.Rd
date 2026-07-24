@@ -23,6 +23,7 @@ calculate_diversity(
   bootstrap_ci = NULL,
   bootstrap_include_diagnostics = NULL,
   output_file = NULL,
+  log_base = NULL,
   ...
 )
 }

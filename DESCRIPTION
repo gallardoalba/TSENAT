@@ -1,7 +1,7 @@
 Package: TSENAT
 Type: Package
 Title: Tsallis Entropy Analysis Toolbox
-Version: 0.99.30
+Version: 1.0.0
 Authors@R: person(given = "Cristóbal", family = "Gallardo Alba", role = c("aut", "cre"), email = "gallardoalba@pm.me", comment=c(ORCID="0000-0002-5752-2155"))
 Description: Quantifies and models isoform-usage complexity in RNA-seq data using 
     Tsallis entropy, a scale-dependent diversity measure. By tuning the entropic index 
@@ -14,7 +14,7 @@ License: GPL (>= 3) + file LICENSE
 Encoding: UTF-8
 LazyData: false
 Depends: R (>= 4.5.0)
-Imports: SummarizedExperiment, methods, stats, ggplot2, withr, BiocParallel, matrixStats, mgcv, geepack, pheatmap, cowplot, dplyr, tidyr, S4Vectors, rlang, Rcpp, memoise, digest, readr
+Imports: SummarizedExperiment, methods, stats, ggplot2, withr, BiocParallel, matrixStats, mgcv, geepack, pheatmap, cowplot, dplyr, tidyr, S4Vectors, rlang, Rcpp, memoise, digest, readr, ARTool
 LinkingTo: Rcpp, RcppArmadillo
 Suggests: testthat, knitr, rmarkdown, BiocStyle, kableExtra, patchwork, covr, RColorBrewer, gamsel, glmmTMB, glmnet, gridExtra, nlme, fdrtool, MASS, SplicingFactory, devtools, microbenchmark, gtable, e1071
 VignetteBuilder: knitr

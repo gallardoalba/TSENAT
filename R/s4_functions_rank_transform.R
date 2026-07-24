@@ -11,8 +11,11 @@
 #'   by condition (main discovery goal)
 #' - **Multi-q Analysis**: Combines diversity results for multiple q-values into
 #'   a single SummarizedExperiment for joint hypothesis testing
-#' - **Rank-Based Statistics**: Conover-Iman Rank Transform (two-way ANOVA on ranked data)
+#' - **Aligned Rank Transform (ART)**: State-of-the-art non-parametric interaction
+#'   testing via ARTool package (default). Strips main effects before ranking to
+#'   preserve interaction structure (Higgins & Tashtoush 1994, Wobbrock et al. 2011).
 #' - **Conover-Iman Rank Transform**: Two-way non-parametric ANOVA on ranks
+#'   (fallback via `method='rt'`)
 #' - **Multiple Testing Correction**: Hochberg, Benjamini-Yekutieli, or permutation
 #'   (Westfall-Young) procedures
 #' - **AR(1) Correlation Handling**: Westfall-Young preserves q-value spatial
@@ -89,6 +92,16 @@
 #'  when wy_randomizations='auto' (default: 100).
 #' @param max_nperm \code{integer}. Maximum permutations for automatic estimation
 #'  when wy_randomizations='auto' (default: 10000).
+#' @param method \code{character}. Non-parametric test method:
+#'   \itemize{
+#'     \item \code{'art'} (default): Aligned Rank Transform via ARTool package.
+#'       State-of-the-art for non-parametric interaction testing. Properly
+#'       handles factorial interactions by stripping main effects before ranking
+#'       (Higgins & Tashtoush 1994, Wobbrock et al. 2011).
+#'   \item \code{'rt'}: Conover-Iman Rank Transform. Legacy non-parametric
+#'     procedure. Valid for main effects but has known limitations for interaction
+#'     testing (Conover & Iman 1981). ART is strongly recommended.
+#'   }
 #' @param ... Additional arguments passed to the base \code{.calculate_rank_transform()} function.
 #'
 #' @return Modified TSENATAnalysis with interaction results in @rank_test_results.
@@ -158,7 +171,8 @@ calculate_rank_transform <- function(analysis, condition_col, output_file = NULL
         "none"), entropy_col = "diversity", q_col = "q", gene_col = "gene", wy_randomizations = 500,
     nperm_mode = c("standard", "conservative", "interactive"), nthreads = NULL, alpha = 0.05,
     p_threshold = 0.05, eta2_threshold_moderate = 0.01, eta2_threshold_strong = 0.1,
-    min_nperm = 100, max_nperm = 10000, verbose = FALSE, ...) {
+    min_nperm = 100, max_nperm = 10000, verbose = FALSE,
+    method = c("art", "rt"), ...) {
 
     # PHASE 1: Validate input and prerequisites
     condition_col <- .validate_rank_transform_input(analysis, condition_col, verbose)
@@ -170,6 +184,7 @@ calculate_rank_transform <- function(analysis, condition_col, output_file = NULL
     dots <- param_result$dots
     dots$condition_col <- condition_col
     dots$verbose <- verbose
+    dots$method <- method
 
     # Add exposed statistical parameters
     dots$alpha <- alpha

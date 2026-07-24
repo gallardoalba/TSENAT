@@ -79,9 +79,9 @@
         return(NULL)
     }
 
-    # AR(1) structure: Cov(ε_i,j, ε_i,k) = σ² * φ^|j-k| Appropriate for entropy
-    # curves where H(q) is ordered and autocorrelated Based on validation:
-    # papers confirm AR(1) decreasing covariance structure
+    # AR(1) structure: Cov(eps_i,j, eps_i,k) = sigma^2 * phi^|j-k|
+    # Appropriate for entropy curves where H(q) is ordered and autocorrelated.
+    # Based on validation: papers confirm AR(1) decreasing covariance structure
     tryCatch({
         # Create time index for AR(1) ordering by q within each subject
         df <- df[order(df$subject, df$q), ]
@@ -214,11 +214,11 @@
         }
     }
 
-    # AUDIT FIX #16: Strategy 4 removed — silently dropping the subject/pairing
+    # AUDIT FIX #16: Strategy 4 removed -- silently dropping the subject/pairing
     # structure inflates Type I error and produces invalid p-values for paired designs.
     # Instead, fail explicitly so the user can adjust their data or choose a different method.
     if (verbose)
-        message("[.try_sait_fallbacks] ALL FALLBACKS EXHAUSTED — pairing cannot be preserved. ",
+        message("[.try_sait_fallbacks] ALL FALLBACKS EXHAUSTED -- pairing cannot be preserved. ",
                 "Consider using method='gee' or method='gam' for this dataset.")
     return(NULL)
 }
