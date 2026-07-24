@@ -69,7 +69,11 @@
     }
 
     # Parallel execution
-    bpparam <- .get_bpparam(nthreads)
+    # Derive seed from current RNG state for reproducibility across parallel runs.
+    # Without this, set.seed() has no effect on parallel workers, making results
+    # non-deterministic even when the main R session's RNG is seeded.
+    seed <- sample.int(.Machine$integer.max, 1)
+    bpparam <- .get_bpparam(nthreads, seed = seed)
 
     if (is.null(FUN.VALUE)) {
         return(BiocParallel::bplapply(X, FUN, BPPARAM = bpparam))
