@@ -343,7 +343,7 @@ if (nrow(rank_sig) > 0) {
 
 Visualize q-curves for top genes:
 
-## ----extended-fig-1-rank-transform-q-curves, fig.width=12, fig.height=8, message=FALSE, out.width="98%", fig.pos="H", fig.cap="**Supplementary Figure 1 | Conover-Iman Rank Transform results for scale-dependent isoform switching.** Q-curves for top genes identified by Conover-Iman Rank Transform; compare visual patterns with GAMM results (main vignette Figure 2) to assess method agreement."----
+```{r extended-fig-1-rank-transform-q-curves, fig.width=12, fig.height=8, message=FALSE, out.width="98%", fig.pos="H", fig.cap="**Supplementary Figure 1 | Conover-Iman Rank Transform results for scale-dependent isoform switching.** Q-curves for top genes identified by Conover-Iman Rank Transform; compare visual patterns with GAMM results (main vignette Figure 2) to assess method agreement."}
 # Plot top genes from Conover-Iman Rank Transform (using all genes, not just significant ones)
 # This ensures the plot displays n_top genes regardless of significance threshold
 top_genes_plot <- plot_diversity_spectrum(analysis, sait_res = rank_transform_results_all, n_top = 4)
@@ -457,13 +457,24 @@ if ("p_interaction" %in% colnames(sait_results)) {
         })
       }
       
-      # Rename columns for better readability
-      colnames(gam_display) <- c("Gene", "p (interaction)", "Adjusted p", "Effect size", "Test statistic", "df")
+      # Rename columns for better readability — dynamic to match actual columns present
+      col_name_map <- c(
+        "gene" = "Gene",
+        "p_interaction" = "p (interaction)",
+        "adj_p_interaction" = "Adjusted p",
+        "effect_size" = "Effect size",
+        "test_statistic" = "Test statistic",
+        "df_residual" = "df"
+      )
+      present_cols <- intersect(names(col_name_map), colnames(gam_display))
+      gam_display <- gam_display[, present_cols, drop = FALSE]
+      colnames(gam_display) <- unname(col_name_map[present_cols])
+      n_cols <- ncol(gam_display)
       
       knitr::kable(gam_display, 
                    caption = "**Supplementary Table 18 | Top 10 Genes by GAMM p-value (with Effect Size and Test Statistics).** Ranked by adjusted p-value; compare with Conover-Iman Rank Transform results (Supplementary Table 16) for method agreement assessment.",
                    label = "gam-top-genes",
-                   align = c("l", "r", "r", "r", "r", "r"))
+                   align = c("l", rep("r", max(0, n_cols - 1))))
     }
   }
 } else {
@@ -541,7 +552,7 @@ This complementary approach—combining high-power parametric tests with robust 
 
 Visual comparison of concordance patterns provides intuitive assessment of which genes align between methods and which are method-specific. The following plots display significance calls, effect sizes, and agreement metrics in a format that facilitates interpretation of both robust discoveries and method-specific findings.
 
-```{r visualize-method-concordance, fig.width=10, fig.height=8, out.width="98%", fig.pos="H", fig.cap="**Supplementary Figure 2 | Method concordance visualization comparing SRH rank-based and GAMM approaches for detecting q × condition interactions.** Venn diagram or scatter plot showing overlap in genes identified as significant by each method; reveals parametric-nonparametric agreement patterns."}
+```{r visualize-method-concordance, fig.width=10, fig.height=8, out.width="98%", fig.pos="H", fig.cap="**Supplementary Figure 2 | Method concordance visualization comparing Conover-Iman Rank Transform and GAMM approaches for detecting q × condition interactions.** Venn diagram or scatter plot showing overlap in genes identified as significant by each method; reveals parametric-nonparametric agreement patterns."}
 # Create comparison plot using S4 wrapper
 # Concordance analysis results are stored in analysis metadata after calculate_concordance()
 p <- plot_concordance(analysis_rank, verbose = TRUE)
