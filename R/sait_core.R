@@ -244,8 +244,6 @@
 #' @noRd
 .calculate_sait <- function(se, condition_col = "condition", min_obs = 5, method = c("lmm",
     "gam", "fpca", "gee"), pvalue = c("satterthwaite", "lrt", "both"), subject_col = NULL,
-    # pvalue controls LMM p-value computation method and is passed to .fit_all_genes
-    # and .adjust_pvalues_multicorr. Not ignored — used throughout the pipeline.
     paired = FALSE, nthreads = 1, assay_name = "diversity", pcorr = "BH", verbose = FALSE,
     bias_correction = TRUE, regularization = c("pca", "lasso", "elasticnet", "gamsel",
         "spline"), corstr = c("ar1", "exchangeable", "independence"), multicorr = c("hochberg",

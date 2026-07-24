@@ -561,9 +561,10 @@
     alpha_val <- if (regularization == "lasso")
         1 else 0.5
 
+    # keep=TRUE stores cross-validated predictions
     cv_fit <- try(glmnet::cv.glmnet(x = mat_sub, y = grp_numeric, family = "binomial",
         alpha = alpha_val, nfolds = min(5, nrow(mat_sub) - 1), standardize = TRUE,
-        keep = TRUE),  # keep=TRUE stores cross-validated predictions
+        keep = TRUE),
         silent = TRUE)
     if (inherits(cv_fit, "try-error"))
         return(NULL)
