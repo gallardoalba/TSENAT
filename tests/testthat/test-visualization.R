@@ -584,6 +584,263 @@ test_that("make_plot_for_geneprepare_inputs handles file paths and various error
   )
 })
 
+# ════════════════════════════════════════════════════════════════════════════════
+# TESTS: .make_plot_for_geneprepare_inputs — SummarizedExperiment input path
+# Tests the SE-handling block: inherits(counts, "SummarizedExperiment") branch
+# ════════════════════════════════════════════════════════════════════════════════
+
+test_that("make_plot_for_geneprepare_inputs: SE auto-detects readcounts, samples, tx2gene", {
+    skip_on_bioc()
+    skip_if_not_installed("ggplot2")
+
+    # Build a SummarizedExperiment with all needed metadata
+    counts_mat <- matrix(c(10, 20, 30, 40, 50, 60), nrow = 3)
+    rownames(counts_mat) <- c("tx1", "tx2", "tx3")
+    colnames(counts_mat) <- c("s1", "s2")
+
+    tx2gene_df <- data.frame(
+        Transcript = c("tx1", "tx2", "tx3"),
+        Gen = c("G1", "G1", "G2"),
+        stringsAsFactors = FALSE
+    )
+
+    se <- SummarizedExperiment(
+        assays = list(counts = counts_mat),
+        rowData = DataFrame(genes = tx2gene_df$Gen),
+        colData = DataFrame(
+            condition = c("Normal", "Tumor"),
+            sample = c("s1", "s2")
+        )
+    )
+
+    # tx2gene=NULL triggers auto-detection from rowData$genes
+    prep <- .make_plot_for_geneprepare_inputs(
+        counts = se,
+        samples = NULL,
+        coldata = NULL,
+        condition_col = "condition",
+        tx2gene = NULL,
+        top_n = 2,
+        pseudocount = 1e-6
+    )
+
+    expect_type(prep, "list")
+    expect_true(all(c("counts", "samples", "mapping", "agg_fun") %in% names(prep)))
+    # samples auto-detected from colData$condition
+    expect_equal(prep$samples, c("Normal", "Tumor"))
+    # mapping built from rowData auto-detection
+    expect_equal(prep$mapping$Transcript, c("tx1", "tx2", "tx3"))
+    expect_equal(prep$mapping$Gen, c("G1", "G1", "G2"))
+    expect_equal(nrow(prep$counts), 3)
+    expect_equal(ncol(prep$counts), 2)
+})
+
+test_that("make_plot_for_geneprepare_inputs: SE with metadata$tx2gene preferred over rowData", {
+    skip_on_bioc()
+    skip_if_not_installed("ggplot2")
+
+    counts_mat <- matrix(1:6, nrow = 3)
+    rownames(counts_mat) <- c("txA", "txB", "txC")
+    colnames(counts_mat) <- c("s1", "s2")
+
+    tx2gene_meta <- data.frame(
+        Transcript = c("txA", "txB", "txC"),
+        Gen = c("GeneX", "GeneX", "GeneY"),
+        stringsAsFactors = FALSE
+    )
+
+    se <- SummarizedExperiment(
+        assays = list(counts = counts_mat),
+        rowData = DataFrame(genes = c("wrong1", "wrong2", "wrong3")),
+        colData = DataFrame(group = c("A", "B"))
+    )
+    S4Vectors::metadata(se) <- list(tx2gene = tx2gene_meta)
+
+    prep <- .make_plot_for_geneprepare_inputs(
+        counts = se,
+        samples = NULL,
+        coldata = NULL,
+        condition_col = "group",
+        tx2gene = NULL,
+        top_n = 2
+    )
+
+    # metadata$tx2gene should be used, not rowData$genes
+    expect_equal(prep$mapping$Transcript, c("txA", "txB", "txC"))
+    expect_equal(prep$mapping$Gen, c("GeneX", "GeneX", "GeneY"))
+    # samples from colData$group
+    expect_equal(prep$samples, c("A", "B"))
+})
+
+test_that("make_plot_for_geneprepare_inputs: SE with metadata$readcounts takes priority", {
+    skip_on_bioc()
+    skip_if_not_installed("ggplot2")
+
+    # metadata$readcounts overrides assay contents
+    meta_counts <- matrix(c(100, 200, 300, 400), nrow = 2,
+        dimnames = list(c("t1", "t2"), c("a", "b")))
+
+    se <- SummarizedExperiment(
+        assays = list(counts = matrix(1:4, nrow = 2)),
+        rowData = DataFrame(genes = c("G1", "G1")),
+        colData = DataFrame(condition = c("X", "Y"))
+    )
+    S4Vectors::metadata(se) <- list(readcounts = meta_counts)
+
+    prep <- .make_plot_for_geneprepare_inputs(
+        counts = se,
+        samples = NULL,
+        coldata = NULL,
+        condition_col = "condition",
+        tx2gene = NULL,
+        top_n = 1
+    )
+
+    expect_equal(as.vector(prep$counts), c(100, 200, 300, 400))
+})
+
+test_that("make_plot_for_geneprepare_inputs: SE with explicit tx2gene overrides auto-detection", {
+    skip_on_bioc()
+    skip_if_not_installed("ggplot2")
+
+    counts_mat <- matrix(1:6, nrow = 3)
+    rownames(counts_mat) <- c("t1", "t2", "t3")
+    colnames(counts_mat) <- c("A", "B")
+
+    explicit_tx2gene <- data.frame(
+        Transcript = c("t1", "t2", "t3"),
+        Gen = c("ExplicitGene", "ExplicitGene", "OtherGene"),
+        stringsAsFactors = FALSE
+    )
+
+    se <- SummarizedExperiment(
+        assays = list(counts = counts_mat),
+        rowData = DataFrame(genes = c("auto1", "auto2", "auto3")),
+        colData = DataFrame(group = c("C", "D"))
+    )
+
+    # Provide explicit tx2gene — should override auto-detection from rowData
+    prep <- .make_plot_for_geneprepare_inputs(
+        counts = se,
+        samples = NULL,
+        coldata = NULL,
+        condition_col = "group",
+        tx2gene = explicit_tx2gene,
+        top_n = 2
+    )
+
+    expect_equal(prep$mapping$Gen, c("ExplicitGene", "ExplicitGene", "OtherGene"))
+})
+
+test_that("make_plot_for_geneprepare_inputs: SE with explicit samples overrides colData auto-detection", {
+    skip_on_bioc()
+    skip_if_not_installed("ggplot2")
+
+    counts_mat <- matrix(1:6, nrow = 3)
+    rownames(counts_mat) <- c("t1", "t2", "t3")
+    colnames(counts_mat) <- c("A", "B")
+
+    se <- SummarizedExperiment(
+        assays = list(counts = counts_mat),
+        rowData = DataFrame(genes = c("G1", "G1", "G2")),
+        colData = DataFrame(group = c("ignored_A", "ignored_B"))
+    )
+
+    explicit_samples <- c("MyCtrl", "MyTreat")
+
+    prep <- .make_plot_for_geneprepare_inputs(
+        counts = se,
+        samples = explicit_samples,
+        coldata = NULL,
+        condition_col = "group",
+        tx2gene = NULL,
+        top_n = 2
+    )
+
+    expect_equal(prep$samples, c("MyCtrl", "MyTreat"))
+})
+
+test_that("make_plot_for_geneprepare_inputs: SE with preferred 'readcounts' assay", {
+    skip_on_bioc()
+    skip_if_not_installed("ggplot2")
+
+    rc_assay <- matrix(c(5, 10, 15, 20), nrow = 2,
+        dimnames = list(c("tx1", "tx2"), c("s1", "s2")))
+    other_assay <- matrix(1:4, nrow = 2)
+
+    se <- SummarizedExperiment(
+        assays = list(readcounts = rc_assay, counts = other_assay),
+        rowData = DataFrame(genes = c("G1", "G1")),
+        colData = DataFrame(condition = c("N", "T"))
+    )
+
+    prep <- .make_plot_for_geneprepare_inputs(
+        counts = se,
+        samples = NULL,
+        condition_col = "condition",
+        tx2gene = NULL,
+        top_n = 2
+    )
+
+    # Should prefer 'readcounts' assay over 'counts'
+    expect_equal(as.vector(prep$counts), c(5, 10, 15, 20))
+})
+
+test_that("make_plot_for_geneprepare_inputs: SE tx2gene fallback to rownames when no metadata/rowData", {
+    skip_on_bioc()
+    skip_if_not_installed("ggplot2")
+
+    counts_mat <- matrix(1:8, nrow = 4)
+    rownames(counts_mat) <- c("ENST001", "ENST002", "ENST003", "ENST004")
+    colnames(counts_mat) <- c("s1", "s2")
+
+    se <- SummarizedExperiment(
+        assays = list(counts = counts_mat),
+        colData = DataFrame(group = c("A", "B"))
+    )
+    # No rowData, no metadata$tx2gene → fallback to rownames
+
+    prep <- .make_plot_for_geneprepare_inputs(
+        counts = se,
+        samples = NULL,
+        condition_col = "group",
+        tx2gene = NULL,
+        top_n = 2
+    )
+
+    expect_equal(prep$mapping$Transcript, c("ENST001", "ENST002", "ENST003", "ENST004"))
+    expect_equal(prep$mapping$Gen, c("ENST001", "ENST002", "ENST003", "ENST004"))
+})
+
+test_that("make_plot_for_geneprepare_inputs: SE with colData fallback picks binary column", {
+    skip_on_bioc()
+    skip_if_not_installed("ggplot2")
+
+    counts_mat <- matrix(1:8, nrow = 4)
+    rownames(counts_mat) <- c("t1", "t2", "t3", "t4")
+    colnames(counts_mat) <- c("a", "b")
+
+    se <- SummarizedExperiment(
+        assays = list(counts = counts_mat),
+        rowData = DataFrame(genes = c("G1", "G1", "G2", "G2")),
+        colData = DataFrame(
+            random_id = c("id1", "id2"),
+            status = c("case", "control")
+        )
+    )
+
+    prep <- .make_plot_for_geneprepare_inputs(
+        counts = se,
+        samples = NULL,
+        condition_col = "nonexistent_col",
+        tx2gene = NULL,
+        top_n = 2
+    )
+
+    # Should fallback to binary column 'status'
+    expect_equal(prep$samples, c("case", "control"))
+})
+
 test_that("plot_jis_delta rejects results without q-values", {
   skip_on_bioc()
   # Create a mock object with correct class but no q-value results

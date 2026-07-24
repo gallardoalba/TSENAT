@@ -1179,6 +1179,57 @@ test_that("estimate_nperm works with SummarizedExperiment", {
   expect_true(nperm <= 10000)
 })
 
+test_that("estimate_nperm errors on invalid min_nperm", {
+  expect_error(.estimate_nperm(data.frame(entropy=1:3, q=1:3, gene='G'), min_nperm=5),
+    "min_nperm must be numeric and >= 10")
+})
+
+test_that("estimate_nperm errors on invalid max_nperm", {
+  expect_error(.estimate_nperm(data.frame(entropy=1:3, q=1:3, gene='G'), max_nperm=200000),
+    "max_nperm must be numeric and <= 100000")
+})
+
+test_that("estimate_nperm errors when max_nperm <= min_nperm", {
+  expect_error(.estimate_nperm(data.frame(entropy=1:3, q=1:3, gene='G'), min_nperm=200, max_nperm=100),
+    "max_nperm must be > min_nperm")
+})
+
+test_that("estimate_nperm errors on invalid mode", {
+  expect_error(.estimate_nperm(data.frame(entropy=1:3, q=1:3, gene='G'), mode="invalid"),
+    "'arg' should be one of")
+})
+
+test_that("estimate_nperm errors on non-SE/non-dataframe input", {
+  expect_error(.estimate_nperm(list(a=1)), "data must be SummarizedExperiment or data frame")
+})
+
+test_that("estimate_nperm errors on SE missing assay", {
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(other = matrix(1:4, 2)),
+    colData = S4Vectors::DataFrame(q = c(0.5, 1.0))
+  )
+  expect_error(.estimate_nperm(se), "must have assay named")
+})
+
+test_that("estimate_nperm errors on SE missing q column", {
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(diversity = matrix(1:4, 2)),
+    colData = S4Vectors::DataFrame(x = c(1, 2))
+  )
+  expect_error(.estimate_nperm(se), "colData must contain column")
+})
+
+test_that("estimate_nperm errors on dataframe missing columns", {
+  df <- data.frame(x = 1:3, y = 4:6)
+  expect_error(.estimate_nperm(df), "data frame must have columns")
+})
+
+test_that("estimate_nperm with single q-value returns valid estimate", {
+  df <- data.frame(diversity = rnorm(20), q = rep(1.0, 20), gene = rep('G', 20))
+  nperm <- .estimate_nperm(df)
+  expect_true(nperm >= 100 && nperm <= 10000)
+})
+
 test_that("detect_q_gene_interactions with wy_randomizations='auto'", {
   set.seed(3008)
   

@@ -171,6 +171,81 @@ test_that(".benjamini_yekutieli uses Harmonic constant c_m correctly", {
   expect_equal(adjusted, expected_result, tolerance = 1e-10)
 })
 
+test_that(".benjamini_yekutieli handles empty input", {
+  expect_equal(.benjamini_yekutieli(numeric(0)), numeric(0))
+})
+
+test_that(".benjamini_yekutieli handles all-NA input", {
+  result <- .benjamini_yekutieli(c(NA, NA, NA))
+  expect_equal(result, c(NA, NA, NA))
+})
+
+test_that(".benjamini_yekutieli handles all-NaN input", {
+  result <- .benjamini_yekutieli(c(NaN, NaN))
+  expect_equal(result, c(NaN, NaN))
+})
+
+test_that(".benjamini_yekutieli handles mixed NA and valid p-values", {
+  result <- .benjamini_yekutieli(c(0.01, NA, 0.05, NA, 0.1))
+  expect_equal(result[2], NA_real_)
+  expect_equal(result[4], NA_real_)
+  valid_result <- result[!is.na(result)]
+  expect_true(all(valid_result >= c(0.01, 0.05, 0.1)))
+  expect_true(all(is.finite(valid_result)))
+})
+
+test_that(".benjamini_yekutieli handles Inf values", {
+  result <- .benjamini_yekutieli(c(0.01, Inf, 0.05))
+  expect_equal(result[2], Inf)
+  expect_true(all(is.finite(result[-2])))
+})
+
+test_that(".benjamini_yekutieli with all p=1 returns 1", {
+  result <- .benjamini_yekutieli(c(1, 1, 1))
+  expect_equal(result, c(1, 1, 1))
+})
+
+test_that(".benjamini_yekutieli with all p=0 returns 0", {
+  result <- .benjamini_yekutieli(c(0, 0, 0))
+  expect_equal(result, c(0, 0, 0))
+})
+
+# ============================================================================
+# Hochberg Edge Case Tests (increasing coverage)
+# ============================================================================
+
+test_that(".hochberg_stepup handles empty input", {
+  expect_equal(.hochberg_stepup(numeric(0)), numeric(0))
+})
+
+test_that(".hochberg_stepup handles all-NA input", {
+  result <- .hochberg_stepup(c(NA, NA, NA))
+  expect_equal(result, c(NA, NA, NA))
+})
+
+test_that(".hochberg_stepup handles all-NaN input", {
+  result <- .hochberg_stepup(c(NaN, NaN))
+  expect_equal(result, c(NaN, NaN))
+})
+
+test_that(".hochberg_stepup handles mixed Inf and valid p-values", {
+  result <- .hochberg_stepup(c(0.01, Inf, 0.05, -Inf, 0.1))
+  expect_equal(result[2], Inf)
+  expect_equal(result[4], -Inf)
+  expect_true(all(is.finite(result[c(1, 3, 5)])))
+})
+
+test_that(".hochberg_stepup preserves NA in correct positions", {
+  result <- .hochberg_stepup(c(0.01, NA, 0.05, NA, 0.001))
+  expect_true(is.na(result[2]))
+  expect_true(is.na(result[4]))
+  expect_true(all(!is.na(result[c(1, 3, 5)])))
+})
+
+test_that(".hochberg_stepup with single NA returns NA", {
+  result <- .hochberg_stepup(NA_real_)
+  expect_equal(result, NA_real_)
+})
 
 # ============================================================================
 # Skewness Function Tests
