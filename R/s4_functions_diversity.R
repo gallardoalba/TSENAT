@@ -202,14 +202,15 @@ calculate_diversity <- function(analysis, q = NULL, norm = TRUE, norm_method = N
     reference_group = NULL, verbose = NULL, show_messages = FALSE, what = NULL, nthreads = NULL,
     pseudocount = NULL, min_valid_frac = NULL, shrinkage = NULL, bootstrap = NULL,
     nboot = NULL, bootstrap_method = NULL, bootstrap_ci = NULL, bootstrap_include_diagnostics = NULL,
-    output_file = NULL, ...) {
+    output_file = NULL, log_base = NULL, ...) {
     # Validate input
     .validate_diversity_analysis_input(analysis)
 
     # Prepare parameters and build calculation
     params <- .prepare_diversity_params(analysis, q, norm, norm_method, reference_group,
         verbose, what, nthreads, pseudocount, min_valid_frac, shrinkage, bootstrap,
-        nboot, bootstrap_method, bootstrap_ci, bootstrap_include_diagnostics, show_messages)
+        nboot, bootstrap_method, bootstrap_ci, bootstrap_include_diagnostics, show_messages,
+        log_base = log_base)
     .validate_norm_method(params$norm_method)
 
     # Execute diversity calculation
@@ -342,7 +343,7 @@ calculate_diversity <- function(analysis, q = NULL, norm = TRUE, norm_method = N
 
         # Apply post-hoc normalization
         result_se <- .apply_diversity_post_hoc_norm(result_se, params$norm_method,
-            params, q_val, params$verbose)
+            params, q_val, params$verbose, log_base = params$log_base)
 
         # Store with audit trail
         key <- paste0("q_", formatC(q_val, format = "f", digits = q_decimals))
@@ -701,7 +702,7 @@ calculate_diversity <- function(analysis, q = NULL, norm = TRUE, norm_method = N
     reference_group = NULL, verbose = NULL, what = NULL, nthreads = NULL, pseudocount = NULL,
     min_valid_frac = NULL, shrinkage = NULL, bootstrap = NULL, nboot = NULL, bootstrap_method = NULL,
     bootstrap_ci = NULL, bootstrap_include_diagnostics = NULL, show_messages = FALSE,
-    ...) {
+    log_base = NULL, ...) {
     # ... captures deprecated parameters (tpm, assayno, genes,
     # effective_length, metadata) that were removed from public API but may
     # still be passed by old test code
@@ -768,7 +769,8 @@ calculate_diversity <- function(analysis, q = NULL, norm = TRUE, norm_method = N
             analysis@config, "bootstrap_include_diagnostics", TRUE), metadata = resolve_slot_param(NULL,
             analysis@config, "metadata", NULL), norm_method = resolve_slot_param(norm_method,
             analysis@config, "norm_method", NULL), reference_group = resolve_slot_param(reference_group,
-            analysis@config, "reference_group", NULL))
+            analysis@config, "reference_group", NULL),
+        log_base = resolve_slot_param(log_base, analysis@config, "log_base", exp(1)))
 }
 
 # ============================================================================
@@ -831,7 +833,7 @@ calculate_diversity <- function(analysis, q = NULL, norm = TRUE, norm_method = N
 # ============================================================================
 #' @noRd
 .apply_diversity_post_hoc_norm <- function(result_se, norm_method, params, q_val,
-    verbose) {
+    verbose, log_base = exp(1)) {
     if (is.null(norm_method) || norm_method == "default" || !is(result_se, "SummarizedExperiment")) {
         return(result_se)
     }
@@ -861,13 +863,13 @@ calculate_diversity <- function(analysis, q = NULL, norm = TRUE, norm_method = N
     } else if (norm_method == "log_odds_ratio" && !is.null(params$genes)) {
         n_isoforms_vec <- table(params$genes)
         diversity_assay <- .normalize_log_odds_ratio(diversity_assay, n_isoforms = n_isoforms_vec,
-            q = q_val)
+            q = q_val, log_base = log_base)
         if (!is.null(ci_lower_assay))
             ci_lower_assay <- .normalize_log_odds_ratio(ci_lower_assay, n_isoforms = n_isoforms_vec,
-                q = q_val)
+                q = q_val, log_base = log_base)
         if (!is.null(ci_upper_assay))
             ci_upper_assay <- .normalize_log_odds_ratio(ci_upper_assay, n_isoforms = n_isoforms_vec,
-                q = q_val)
+                q = q_val, log_base = log_base)
         if (verbose)
             message("[calculate_diversity] Applied log-odds ratio normalization for q=",
                 q_val)

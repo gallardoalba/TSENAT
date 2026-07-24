@@ -490,15 +490,20 @@
         return(NA_real_)
     }
 
-    # BUGFIX #2: Add explicit safeguard for near-zero probabilities Prevents
-    # NaN/Inf from log(0) or extremely small values in power operations
-    min_prob <- 1e-10
-    p[p < min_prob] <- min_prob
-    r[r < min_prob] <- min_prob
+    # AUDIT FIX July 2026 (I6): Only apply min-probability clamping when
+    # pseudocount is zero. When pseudocount > 0, it already handles zero
+    # probabilities — applying both is a double-correction that distorts
+    # divergence values. When pseudocount == 0, min_prob acts as a safety
+    # net against log(0) and power-of-zero numerical issues.
+    if (pseudocount < 1e-10) {
+        min_prob <- 1e-10
+        p[p < min_prob] <- min_prob
+        r[r < min_prob] <- min_prob
 
-    # Re-normalize to maintain probability constraint (sum = 1)
-    p <- p/sum(p)
-    r <- r/sum(r)
+        # Re-normalize to maintain probability constraint (sum = 1)
+        p <- p/sum(p)
+        r <- r/sum(r)
+    }
 
     # Compute Tsallis divergence using correct formula from Paper I004
     # D_q(p||r) with D_q >= 0 and equality iff p = r BUGFIX: Ensure formula is
@@ -542,9 +547,11 @@
         return(NA_real_)
     }
 
-    # Apply log_base normalization CONSISTENTLY for all q values This ensures
-    # consistent scaling across multi-q spectrum analysis
-    if (log_base != exp(1)) {
+    # AUDIT FIX July 2026 (I10): log_base normalization only applies to the
+    # q→1 (KL divergence) limit. The Tsallis divergence for q≠1 is scale-invariant
+    # and does not involve a logarithm base. Previously applied to all q values,
+    # which distorted divergence values by a factor of 1/log(log_base) for q≠1.
+    if (abs(q_val - 1) < 0.01 && log_base != exp(1)) {
         div <- div/log(log_base)
     }
 
@@ -595,14 +602,19 @@
         return(rep(NA_real_, length(q_vals)))
     }
 
-    # BUGFIX: Add explicit safeguard for near-zero probabilities (ONCE)
-    min_prob <- 1e-10
-    p[p < min_prob] <- min_prob
-    r[r < min_prob] <- min_prob
+    # AUDIT FIX July 2026 (I6): Only apply min-probability clamping when
+    # pseudocount is zero. When pseudocount > 0, it already handles zero
+    # probabilities — applying both is a double-correction that distorts
+    # divergence values.
+    if (pseudocount < 1e-10) {
+        min_prob <- 1e-10
+        p[p < min_prob] <- min_prob
+        r[r < min_prob] <- min_prob
 
-    # Re-normalize to maintain probability constraint (ONCE)
-    p <- p/sum(p)
-    r <- r/sum(r)
+        # Re-normalize to maintain probability constraint (ONCE)
+        p <- p/sum(p)
+        r <- r/sum(r)
+    }
 
     # OPTIMIZATION: Pre-compute p and r powers for all q-values at once Using
     # outer product: p_q_matrix[i, j] = p[i]^q_vals[j] This is the KEY
@@ -646,9 +658,12 @@
         }
     }
 
-    # Apply log_base normalization CONSISTENTLY for all q values
-    if (log_base != exp(1)) {
-        result <- result/log(log_base)
+    # AUDIT FIX July 2026 (I10): log_base normalization only applies to the
+    # q→1 (KL divergence) limit. For q≠1, Tsallis divergence is scale-invariant.
+    # Only normalize the q≈1 entries in the result vector.
+    q1_mask <- abs(q_vals - 1) < 0.01
+    if (log_base != exp(1) && any(q1_mask)) {
+        result[q1_mask] <- result[q1_mask] / log(log_base)
     }
 
     # Ensure non-negativity (handle q < 1 cases that may produce negative

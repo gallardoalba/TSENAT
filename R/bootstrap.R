@@ -1872,16 +1872,31 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
     # as divergence should always be >= 0
     divergence <- abs(divergence)
 
-    # Apply log_base normalization CONSISTENTLY for all q values This ensures
-    # consistent scaling across multi-q spectrum analysis
-    if (log_base != exp(1)) {
+    # AUDIT FIX July 2026 (I10): log_base normalization only applies to the
+    # q→1 (KL divergence) limit. For q≠1, Tsallis divergence is scale-invariant
+    # and does not involve a logarithm base.
+    if (abs(q - 1) < 1e-10 && log_base != exp(1)) {
         divergence <- divergence/log(log_base)
     }
 
     # Normalize if requested
+    # AUDIT FIX July 2026 (I7): Max divergence normalization depends on q.
+    # - For q≈1 (KL limit): max = log(n), using Shannon-style max. Correct.
+    # - For q>1: Tsallis divergence is bounded by 1/(q-1) when p and r are
+    #   maximally different (one element concentrates in p, another in r).
+    # - For 0<q<1: Tsallis divergence is unbounded — normalization skipped.
+    # Previously used log(n) for all q, which is only valid for the KL limit.
     if (norm && divergence > 0) {
-        max_div <- log(length(p), base = log_base)
-        divergence <- divergence/max_div
+        if (abs(q - 1) < 1e-10) {
+            max_div <- log(length(p), base = log_base)
+        } else if (q > 1) {
+            max_div <- 1 / (q - 1)
+        } else {
+            max_div <- NA_real_  # q<1: unbounded, skip normalization
+        }
+        if (!is.na(max_div) && is.finite(max_div) && max_div > 0) {
+            divergence <- divergence / max_div
+        }
     }
 
     return(as.numeric(divergence))

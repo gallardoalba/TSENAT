@@ -2543,7 +2543,7 @@ test_that("plot_concordance verbose output uses correct slot names (Bug #1 fix)"
         high_conf = c("gene_1", "gene_2"),
         agreement_table = matrix(1:4, nrow=2),
         sait_method = "lmm_interaction",
-        rank_method = "scheirer_ray_hare",
+        rank_method = "conover_iman",
         timestamp = Sys.time()
     )
     

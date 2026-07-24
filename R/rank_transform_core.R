@@ -654,21 +654,33 @@
     if (is.null(test_result))
         return(list(test_failed = TRUE, class = "Test failed", method = "failed"))
 
-    # Compute total rank sum of squares to normalize effect size to the ranked analysis.
-    rank_data <- gene_data
-    if (paired && !is.null(subject_col)) {
-        rank_data$ranks <- ave(rank_data$entropy, rank_data[[subject_col]], FUN = function(x) rank(x,
-            na.last = "keep"))
+    # Compute effect size (eta-squared) on the ORIGINAL ENTROPY SCALE, not on ranks.
+    # The Conover-Iman F-test and p-value are correctly computed on ranked data,
+    # but eta-squared should reflect the proportion of entropy variance explained
+    # by the q×condition interaction, not rank variance. Standard Cohen (1988)
+    # thresholds (0.01 small, 0.06 medium, 0.14 large) apply to original-scale
+    # eta-squared, not rank-scale.
+    # AUDIT FIX July 2026: Compute eta2 on raw entropy via separate ANOVA.
+    gene_data$q_factor <- factor(gene_data$q)
+    gene_data$condition_factor <- factor(gene_data$condition)
+    raw_model <- tryCatch(
+        lm(entropy ~ q_factor * condition_factor, data = gene_data),
+        error = function(e) NULL
+    )
+    if (!is.null(raw_model)) {
+        raw_anova <- anova(raw_model)
+        interaction_row <- nrow(raw_anova) - 1
+        ss_interaction_raw <- raw_anova$`Sum Sq`[interaction_row]
+        ss_total_raw <- sum(raw_anova$`Sum Sq`)
+        eta2_raw <- if (ss_total_raw > 0) ss_interaction_raw / ss_total_raw else 0
     } else {
-        rank_data$ranks <- rank(rank_data$entropy, na.last = "keep")
+        eta2_raw <- 0
     }
-    overall_rank_mean <- mean(rank_data$ranks, na.rm = TRUE)
-    ss_total <- sum((rank_data$ranks - overall_rank_mean)^2, na.rm = TRUE)
 
     list(test_failed = FALSE, f_stat = as.numeric(test_result$statistic), p_val = as.numeric(test_result$p_value),
         n_q = length(q_levels), df_interaction = test_result$df_interaction,
         ss_interaction = test_result$ss_interaction, ss_residual = test_result$ss_residual,
-        eta2 = if (ss_total > 0) test_result$ss_interaction/ss_total else 0,
+        eta2 = eta2_raw,
         test_type = test_result$test_type, characteristics = test_result$characteristics)
 }
 
