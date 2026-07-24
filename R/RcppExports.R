@@ -13,6 +13,10 @@ bootstrap_compute_cpp <- function(x, nboot = 1000L, q = 1.0, normalize = TRUE, l
     .Call(`_TSENAT_bootstrap_compute_cpp`, x, nboot, q, normalize, log_base, pseudocount)
 }
 
+bootstrap_replicate_cpp <- function(counts, nboot = 1000L, q = 1.0, normalize = TRUE, log_base = 2.718281828, pseudocount = 0.0, block_ids = integer(0)) {
+    .Call(`_TSENAT_bootstrap_replicate_cpp`, counts, nboot, q, normalize, log_base, pseudocount, block_ids)
+}
+
 block_bootstrap_compute_cpp <- function(x, nboot = 1000L, q = 1.0, normalize = TRUE, log_base = 2.718281828, pseudocount = 0.0) {
     .Call(`_TSENAT_block_bootstrap_compute_cpp`, x, nboot, q, normalize, log_base, pseudocount)
 }

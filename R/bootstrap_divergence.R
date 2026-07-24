@@ -164,7 +164,7 @@
 .bootstrap_divergence <- function(x = NULL, y = NULL, se = NULL, res = NULL, top_n = 1,
     group_col = "group", control_group = "Normal", q = 1, norm = FALSE, nboot = 1000,
     ci = 0.95, method = c("percentile", "bca"), log_base = exp(1), pseudocount = 0,
-    gene_name = NULL, verbose = TRUE, paired = FALSE, pair_id_col = NULL) {
+    gene_name = NULL, verbose = TRUE, paired = FALSE, pair_id_col = NULL, seed = NULL) {
 
     method <- match.arg(method)
 
@@ -200,14 +200,23 @@
         warning("More than 50% of bootstrap replicates produced invalid divergence values")
     }
 
+    # AUDIT FIX #3: Compute true divergence jackknife for BCa acceleration.
+    # Leave-one-transcript-out from both x and y simultaneously.
+    jackknife_divs <- if (method == "bca" && length(x) == length(y) && length(x) >= 3) {
+        .compute_divergence_jackknife(x, y, q, log_base, norm)
+    } else {
+        NULL
+    }
+
     # Compute confidence interval
     ci_result <- .bootstrap_divergence_compute_ci(valid_divs, estimate, method, nboot,
-        ci)
+        ci, jackknife_estimates = jackknife_divs)
 
-    # Create result object
+    # Create result object — report actual valid replicates, not requested nboot
+    n_valid <- length(valid_divs)
     result <- list(estimate = estimate, lower_ci = ci_result$lower, upper_ci = ci_result$upper,
-        ci_level = ci, method = method, nboot = nboot, bootstrap_dist = valid_divs,
-        q = q, gene_name = gene_name)
+        ci_level = ci, method = method, nboot = nboot, n_valid = n_valid,
+        bootstrap_dist = valid_divs, q = q, gene_name = gene_name)
     class(result) <- "tsenat_divergence_bootstrap_ci"
 
     # Print results if requested
@@ -303,7 +312,7 @@
 
 #' @noRd
 .bootstrap_divergence_compute_ci <- function(valid_divs, estimate, method, nboot,
-    ci) {
+    ci, jackknife_estimates = NULL) {
     alpha <- 1 - ci
 
     if (nboot == 0) {
@@ -314,12 +323,43 @@
         lower <- stats::quantile(valid_divs, alpha/2, na.rm = TRUE)
         upper <- stats::quantile(valid_divs, 1 - alpha/2, na.rm = TRUE)
     } else if (method == "bca") {
-        ci_bca <- .bca_ci(valid_divs, estimate, alpha)
+        # AUDIT FIX #3: Pass true divergence jackknife estimates for BCa acceleration.
+        # The jackknife leaves out one transcript at a time from both x and y
+        # simultaneously, computing divergence on (x[-i], y[-i]).
+        ci_bca <- .bca_ci(valid_divs, estimate, alpha, jackknife_estimates = jackknife_estimates)
         lower <- ci_bca$lower
         upper <- ci_bca$upper
     }
 
     list(lower = as.numeric(lower), upper = as.numeric(upper))
+}
+
+#' Compute divergence jackknife estimates for BCa acceleration
+#'
+#' For each transcript i, computes leave-one-out divergence on (x[-i], y[-i]).
+#' Used by BCa to compute the skewness correction (acceleration factor a).
+#' Reference: Efron & Tibshirani (1993), "An Introduction to the Bootstrap", Ch. 14.
+#'
+#' @param x,y Numeric vectors of counts for two groups (same length).
+#' @param q Tsallis q parameter.
+#' @param log_base Logarithm base.
+#' @param norm Normalize divergence?
+#' @return Numeric vector of n jackknife divergence estimates.
+#' @noRd
+.compute_divergence_jackknife <- function(x, y, q, log_base = exp(1), norm = FALSE) {
+    n <- length(x)
+    if (n != length(y) || n < 3) return(NULL)
+
+    jackknife_divs <- numeric(n)
+    for (i in seq_len(n)) {
+        # Leave out transcript i from both distributions
+        x_loo <- x[-i]
+        y_loo <- y[-i]
+        p_loo <- x_loo / sum(x_loo)
+        r_loo <- y_loo / sum(y_loo)
+        jackknife_divs[i] <- .compute_tsallis_divergence(p_loo, r_loo, q, log_base, norm)
+    }
+    jackknife_divs
 }
 
 #' @noRd

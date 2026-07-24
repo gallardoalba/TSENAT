@@ -94,6 +94,9 @@
     subject <- validation$subject
 
     # Apply ARIMA(1,1,0) differencing for stationarity
+    # AUDIT FIX #32-33: ARIMA differencing is applied only for paired designs (subject > 1).
+    # GAM applies ARIMA for all designs; FPCA applies for all designs. Cross-method
+    # p-values are not directly comparable due to different preprocessing.
     arima_result <- .apply_arima_differencing(df, subject)
     df <- arima_result$df
     subject <- arima_result$subject
@@ -202,9 +205,9 @@
     # Extract slope difference
     slope_diff <- .extract_slope_diff(fit_alt)
 
-    # Compile result
+    # Compile result — use consistent threshold (30) for both correction and reporting
     gee_result <- data.frame(gene = g, p_interaction = p_interaction, n_clusters = n_clusters,
-        bias_correction_applied = bias_correction && n_clusters < 20, correlation_structure = selected_corstr,
+        bias_correction_applied = bias_correction && n_clusters < 30, correlation_structure = selected_corstr,
         corstr_selection_method = if (corstr == "auto")
             "QIC_based" else "user_specified", stringsAsFactors = FALSE)
 
@@ -222,6 +225,10 @@
     # Add Phase 1 bootstrap CI weighting tracking (March 2026)
     gee_result$ci_weighted <- !is.null(df$weight)
     gee_result$slope_diff <- slope_diff
+    # AUDIT FIX #32: Flag ARIMA differencing status for cross-method comparability.
+    # GEE applies ARIMA(1,1,0) only for paired designs; GAM always applies; FPCA always applies.
+    # Users should compare p-values within method, not across methods with different ARIMA handling.
+    gee_result$arima_applied <- use_arima
 
     # Add Phase 9 Kauermann-Carroll bias correction metadata
     gee_result$kc_bias_correction_applied <- !is.null(kc_metadata) && isTRUE(kc_metadata$kc_applied)
@@ -375,6 +382,16 @@
         return(NA_real_)
     }
 
+    # AUDIT FIX #15: For multi-level groups, test ALL interaction coefficients
+    # jointly using Wald test: β' V⁻¹ β ~ χ²(df = n_coefs). Previously only the
+    # first coefficient was tested, ignoring other group levels.
+    if (length(ia_names) > 1 && length(ia_names) <= length(stats::coef(fit_alt))) {
+        p_joint <- .compute_joint_wald_pvalue(fit_alt, ia_names, n_clusters, bias_correction)
+        if (!is.na(p_joint)) {
+            return(p_joint)
+        }
+    }
+
     # Try extracting from summary coefficient table first
     summ <- try(summary(fit_alt), silent = TRUE)
     if (!inherits(summ, "try-error") && !is.null(summ)) {
@@ -474,7 +491,44 @@
 }
 
 # ============================================================================
-# HELPER: Extract slope difference from interaction coefficient
+# HELPER: Joint Wald test for multiple interaction coefficients (AUDIT FIX #15)
+# ============================================================================
+# Tests H0: all q:group interaction coefficients = 0 jointly
+# Uses β' V⁻¹ β ~ χ²(df = k) where k = number of interaction coefficients
+.compute_joint_wald_pvalue <- function(fit_alt, ia_names, n_clusters, bias_correction) {
+    ia_idx <- which(names(stats::coef(fit_alt)) %in% ia_names)
+    if (length(ia_idx) == 0) return(NA_real_)
+
+    vcov_mat <- try(stats::vcov(fit_alt), silent = TRUE)
+    if (inherits(vcov_mat, "try-error") || is.null(vcov_mat)) return(NA_real_)
+    if (nrow(vcov_mat) < max(ia_idx)) return(NA_real_)
+
+    # Extract sub-matrix for interaction coefficients
+    beta <- stats::coef(fit_alt)[ia_idx]
+    V <- vcov_mat[ia_idx, ia_idx, drop = FALSE]
+
+    # Wald statistic: β' V⁻¹ β
+    V_inv <- try(solve(V), silent = TRUE)
+    if (inherits(V_inv, "try-error")) return(NA_real_)
+
+    wald_stat <- as.numeric(t(beta) %*% V_inv %*% beta)
+    df <- length(ia_idx)
+
+    if (bias_correction && n_clusters < 20) {
+        # Use F-distribution for small clusters: Wald/k ~ F(k, n_clusters - k)
+        f_stat <- wald_stat / df
+        df2 <- max(1, n_clusters - df)
+        stats::pf(f_stat, df1 = df, df2 = df2, lower.tail = FALSE)
+    } else {
+        stats::pchisq(wald_stat, df = df, lower.tail = FALSE)
+    }
+}
+
+# ============================================================================
+# AUDIT FIX #46: GEE slope_diff = interaction coefficient (q:group), representing
+# the additive change in entropy per unit-q when switching groups.
+# GAM slope_diff = difference in predicted entropy slopes (ΔH/Δq) between groups.
+# These have different units and magnitudes — not directly comparable across methods.
 # ============================================================================
 .extract_slope_diff <- function(fit_alt) {
     slope_diff <- NA_real_
@@ -747,20 +801,24 @@
     # Recompute z-statistic and p-value with bias correction
     # ========================================================================
 
+    # AUDIT FIX #14: Actually apply vcov_corrected to recompute the test statistic.
+    # Previously vcov_corrected was computed but discarded; only pnorm→pt was swapped.
     z_corrected <- z_statistic  # Default: no change
     p_corrected <- p_value  # Default: no change
 
     if (!is.na(z_statistic)) {
-        # For Wald test: z ~ N(0,1) or t with df = n_clusters - 1
-        z_corrected <- z_statistic  # Statistic itself doesn't change (same estimate)
+        if (!is.null(vcov_corrected) && all(dim(vcov_corrected) >= 1)) {
+            # Recompute z using the bias-corrected variance
+            se_corrected <- sqrt(diag(vcov_corrected))
+            if (length(se_corrected) >= 1 && se_corrected[1] > 0) {
+                z_corrected <- coef_est / se_corrected[1]
+            }
+        }
 
         if (use_t_distribution) {
-            # Use t-distribution (Kauermann-Carroll approach) More conservative
-            # p-values for small samples
             df_t <- max(1, n_clusters - 1)
             p_corrected <- 2 * stats::pt(abs(z_corrected), df = df_t, lower.tail = FALSE)
         } else {
-            # Standard normal
             p_corrected <- 2 * stats::pnorm(abs(z_corrected), lower.tail = FALSE)
         }
     }
@@ -894,19 +952,23 @@
                 corr_estimate <- as.numeric(fit_try$geese$alpha[1])
             }
 
-            # For gaussian family, quasi-likelihood = -0.5 * sum((y - mu)^2 /
-            # phi)
+            # AUDIT FIX #13: Pan (2001) QIC = -2*quasi_ll + 2*trace(solve(V_naive) %*% V_robust)
+            # where V_naive is the model-based covariance and V_robust is the sandwich estimator.
+            # The previous penalty (1*log(n_obs) for ar1/exchangeable, 0 for independence)
+            # was not Pan's QIC and biased selection toward independence.
             if (!is.na(dispersion) && dispersion > 0) {
                 quasi_ll <- -0.5 * sum(residuals_vec^2/dispersion)
 
-                # Penalty term: BIC-like penalty based on correlation structure
-                # complexity Number of observations
-                n_obs <- nrow(df)
-
-                # Penalty = number of correlation parameters adjusted by small
-                # sample correction factor log(n)
-                penalty <- switch(corstr_candidate, ar1 = 1 * log(n_obs), exchangeable = 1 *
-                  log(n_obs), independence = 0)
+                # Compute trace penalty: trace(solve(V_naive) %*% V_robust)
+                vcov_naive <- try(stats::vcov(fit_try, robust = FALSE), silent = TRUE)
+                vcov_robust <- try(stats::vcov(fit_try, robust = TRUE), silent = TRUE)
+                if (!inherits(vcov_naive, "try-error") && !inherits(vcov_robust, "try-error") &&
+                    nrow(vcov_naive) == nrow(vcov_robust)) {
+                    penalty <- 2 * sum(diag(solve(vcov_naive) %*% vcov_robust))
+                } else {
+                    # Fallback: standard penalty = 2 * p (number of parameters)
+                    penalty <- 2 * length(stats::coef(fit_try))
+                }
 
                 qic_val <- -2 * quasi_ll + penalty
             }
@@ -923,6 +985,12 @@
     # Select best model (lowest QIC)
     valid_qics <- qic_values[!is.infinite(qic_values)]
 
+    # Initialize QIC variables and correlation estimates for safe use in report generation
+    ar1_qic <- qic_values["ar1"]
+    exch_qic <- qic_values["exchangeable"]
+    indep_qic <- qic_values["independence"]
+    ar1_corr <- corr_estimates[["ar1"]]
+
     if (length(valid_qics) == 0) {
         # All models failed: default to AR(1)
         best_corstr <- "ar1"
@@ -931,13 +999,7 @@
         best_idx <- which.min(qic_values)
         best_corstr <- names(qic_values)[best_idx]
 
-        # Create detailed reasoning based on QIC values and observed
-        # correlations
-        ar1_qic <- qic_values["ar1"]
-        exch_qic <- qic_values["exchangeable"]
-        indep_qic <- qic_values["independence"]
-        ar1_corr <- corr_estimates[["ar1"]]
-
+        # Create detailed reasoning based on QIC values and observed correlations
         if (best_corstr == "ar1") {
             reason <- sprintf("AR(1) selected: QIC=%.3f (Exchangeable: %.3f, Independence: %.3f). Estimated AR(1) correlation=%.3f.",
                 ar1_qic, exch_qic, indep_qic, ifelse(is.na(ar1_corr), 0, ar1_corr))

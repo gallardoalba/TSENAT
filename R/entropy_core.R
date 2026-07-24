@@ -35,8 +35,10 @@
         stop("q must be non-negative")
     }
 
-    # Filter out zeros (standard in entropy)
-    p_nonzero <- proportions[proportions > 1e-15]
+    # Filter out only negative values (zeros contribute 0 to entropy)
+    # Filter out only negative values (zeros contribute 0 to entropy)
+    # AUDIT FIX R15: Removed >1e-15 threshold — zeros are valid, consistent with C++ fix #17
+    p_nonzero <- proportions[proportions >= 0]
 
     if (length(p_nonzero) == 0) {
         return(NA_real_)
@@ -45,15 +47,21 @@
     # Normalize to sum to 1 (handle numerical errors)
     p <- p_nonzero/sum(p_nonzero)
 
-    # Species richness (q=0): count species directly
+    # Species richness (q=0): S_0 = n_nonzero - 1
+    # Mathematically: S_0 = (1 - Σp_i^0)/(-1) = n - 1 (Tsallis 1988).
+    # NOTE: This is the Tsallis ENTROPY (n-1), NOT the Hill number/effective
+    # richness D_0 = n. The entropy value n-1 is consistent with the C++
+    # implementation (entropy_cpp, audit fix #5).
+    # AUDIT FIX R13: Changed from length(p) to length(p)-1.
     if (q < q_tol) {
-        H <- length(p)
+        H <- length(p) - 1
         return(H)
     }
 
-    # Shannon entropy (q=1): use -sum(p*log(p))
+    # Shannon entropy (q=1): -sum(p*log(p)) for p > 0 only
     if (abs(q - 1) < q_tol) {
-        H <- -sum(p * log(p))/log(log_base)
+        p_pos <- p[p > 0]
+        H <- -sum(p_pos * log(p_pos))/log(log_base)
     } else {
         # Tsallis entropy: (1 - sum(p^q)) / (q-1)
         # NOTE: log_base is NOT applied to Tsallis entropy, consistent with
@@ -68,7 +76,8 @@
     if (norm) {
         n <- length(p)
         if (q < q_tol) {
-            H_max <- log(n)/log(log_base)
+            # AUDIT FIX R14: Tsallis q=0 max = n - 1, not log(n)
+            H_max <- length(p) - 1
         } else if (abs(q - 1) < q_tol) {
             H_max <- log(n)/log(log_base)
         } else {

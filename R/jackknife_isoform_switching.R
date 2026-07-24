@@ -257,7 +257,7 @@
 #' @noRd
 .jis_bootstrap_delta_fast <- function(counts_A, counts_B, delta_influence, q = 1,
     norm = TRUE, log_base = exp(1), pseudocount = 0, nboot = 1000, confidence = 0.95,
-    method = "percentile", n_transcripts = NULL) {
+    method = "percentile", n_transcripts = NULL, paired = FALSE) {
     tryCatch({
         if (exists("jis_bootstrap_delta_cpp", mode = "function")) {
             result_cpp <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence,
@@ -278,11 +278,13 @@
 
         # Fallback to R implementation
         .compute_delta_statistics(counts_A, counts_B, delta_influence, q = q, norm = norm,
-            log_base = log_base, pseudocount = pseudocount, nboot = nboot, n_transcripts = n_transcripts)
+            log_base = log_base, pseudocount = pseudocount, nboot = nboot, n_transcripts = n_transcripts,
+            paired = paired)
     }, error = function(e) {
         # Fallback to R if C++ fails
         .compute_delta_statistics(counts_A, counts_B, delta_influence, q = q, norm = norm,
-            log_base = log_base, pseudocount = pseudocount, nboot = nboot, n_transcripts = n_transcripts)
+            log_base = log_base, pseudocount = pseudocount, nboot = nboot, n_transcripts = n_transcripts,
+            paired = paired)
     })
 }
 
@@ -393,9 +395,13 @@
             q = q, norm = norm, log_base = log_base, pseudocount = pseudocount, nboot = nboot,
             confidence = 0.95, method = "percentile", n_transcripts = nrow(counts_A))
 
-        # Determine switching status
-        switching_status <- ifelse(delta_influence > 0, "up", ifelse(delta_influence <
-            0, "down", "neutral"))
+        # AUDIT FIX #31: Determine switching status using CI, not just point estimate.
+        # If CI crosses zero, the direction is uncertain → "neutral".
+        # If CI is entirely above zero → "up"; entirely below zero → "down".
+        ci_lo <- delta_stats$ci_lower
+        ci_hi <- delta_stats$ci_upper
+        switching_status <- ifelse(!is.na(ci_lo) & !is.na(ci_hi) & ci_lo > 0, "up",
+            ifelse(!is.na(ci_lo) & !is.na(ci_hi) & ci_hi < 0, "down", "neutral"))
 
         # Compute effect size
         max_abs_influence <- max(abs(c(.jis_jackknife_influences_fast(counts_A, q,
@@ -648,7 +654,7 @@
 
 .compute_delta_statistics <- function(counts_A, counts_B, delta_influence, q = 1,
     norm = TRUE, log_base = exp(1), pseudocount = 0, nboot = 1000, confidence = 0.95,
-    n_transcripts = NULL) {
+    n_transcripts = NULL, paired = FALSE) {
     .calculate_tsallis <- function(counts, q, norm, log_base, pseudocount, n_transcripts_fixed) {
         if (is.vector(counts))
             counts <- t(as.matrix(counts))
@@ -676,15 +682,21 @@
         # Normalize by column (sample): divide each column by its total
         p <- t(t(counts)/col_sums_safe)
 
-        if (q == 1) {
-            # Shannon entropy: H = -sum(p_i * log(p_i)) Use epsilon offset to
-            # avoid log(0) while preserving probability conservation
-            eps <- 1e-15
+        # AUDIT FIX R9: Use tolerance for q == 1 comparison (consistent with C++)
+        q_tol <- 1e-6
+        if (abs(q - 1) < q_tol) {
+            # Shannon entropy: H = -sum(p_i * log(p_i))
+            # AUDIT FIX R11: Use scale-relative epsilon based on actual probability magnitudes
+            eps <- max(1e-15, min(p[p > 0]) * 1e-3)
             if (log_base == exp(1)) {
                 h <- -colSums(p * log(pmax(p, eps)))
             } else {
                 h <- -colSums(p * log(pmax(p, eps)))/log(log_base)
             }
+        } else if (abs(q) < q_tol) {
+            # AUDIT FIX R12: q=0 species richness (S_0 = n-1)
+            n_nonzero <- colSums(p > 1e-15)
+            h <- n_nonzero - 1
         } else {
             # Tsallis entropy: (1 - sum(p^q)) / (q - 1)
             p_q_sum <- colSums(p^q)
@@ -696,7 +708,7 @@
         h[with_zero_counts] <- NA_real_
 
         if (norm) {
-            if (q == 1) {
+            if (abs(q - 1) < 1e-6) {
                 # Use FIXED n_transcripts if provided, otherwise use current
                 # matrix dimensions
                 n_tx <- if (!is.null(n_transcripts_fixed))
@@ -737,8 +749,17 @@
     bootstrap_deltas_matrix <- matrix(nrow = nboot, ncol = n_tx)
 
     for (b in seq_len(nboot)) {
-        idx_A <- sample(seq_len(ncol(counts_A)), size = ncol(counts_A), replace = TRUE)
-        idx_B <- sample(seq_len(ncol(counts_B)), size = ncol(counts_B), replace = TRUE)
+        # AUDIT FIX #22 + R8: Use explicit paired flag (passed from caller)
+        # rather than column-count heuristic. Equal ncol does not guarantee pairing.
+        if (isTRUE(paired)) {
+            idx <- sample(seq_len(ncol(counts_A)), size = ncol(counts_A), replace = TRUE)
+            idx_A <- idx
+            idx_B <- idx
+        } else {
+            # Unpaired: independent resampling
+            idx_A <- sample(seq_len(ncol(counts_A)), size = ncol(counts_A), replace = TRUE)
+            idx_B <- sample(seq_len(ncol(counts_B)), size = ncol(counts_B), replace = TRUE)
+        }
 
         boot_A <- counts_A[, idx_A, drop = FALSE]
         boot_B <- counts_B[, idx_B, drop = FALSE]
@@ -759,21 +780,18 @@
     ci_upper <- apply(bootstrap_deltas_matrix, 2, function(x) quantile(x, 1 - alpha/2,
         na.rm = TRUE, type = 1))
 
-    # Compute two-tailed bootstrap p-values Two-tailed test: proportion of
-    # bootstrap samples with |bootstrap_delta| >= |observed_delta|
+    # AUDIT FIX #7: Standard bootstrap hypothesis test with null-centering.
+    # Center by subtracting mean, then p = proportion of |centered| >= |observed|.
     pvalues <- numeric(n_tx)
     for (i in seq_len(n_tx)) {
+        boot_deltas <- bootstrap_deltas_matrix[, i]
+        valid_boots <- !is.na(boot_deltas) & is.finite(boot_deltas)
         obs_abs <- abs(delta_influence[i])
-        boot_abs <- abs(bootstrap_deltas_matrix[, i])
-        # Two-tailed p-value: proportion of bootstrap samples as or more
-        # extreme than observed Handle case where all bootstrap values are
-        # NA/NaN
-        valid_boots <- !is.na(boot_abs) & is.finite(boot_abs)
-        if (!is.na(obs_abs) && is.finite(obs_abs) && any(valid_boots)) {
-            pvalues[i] <- mean(boot_abs[valid_boots] >= obs_abs, na.rm = FALSE)
-            pvalues[i] <- max(pvalues[i], 1/nboot)  # Minimum p-value = 1/nboot
+        if (any(valid_boots)) {
+            centered <- boot_deltas[valid_boots] - mean(boot_deltas[valid_boots])
+            pvalues[i] <- max(1/nboot, mean(abs(centered) >= obs_abs))
         } else {
-            pvalues[i] <- NA_real_  # Return NA if insufficient data
+            pvalues[i] <- NA_real_
         }
     }
 

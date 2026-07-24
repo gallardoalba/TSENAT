@@ -956,3 +956,61 @@ test_that("BUG 8: entropy_core and entropy_single return identical species richn
   
   expect_equal(h_core, h_single, tolerance = 1e-10)
 })
+
+# ============================================================================
+# AUDIT FIX TESTS: Tsallis q=0 fix, zero-filter removal
+# ============================================================================
+
+test_that("[AUDIT #5] Tsallis entropy at q=0 returns n-1 (not log(n))", {
+    # Tsallis S_0 = n - 1 (richness minus one), not log(n).
+    # Test via C++ entropy_cpp
+    
+    # Single species: n=1, S_0 = 0
+    expect_equal(TSENAT:::entropy_cpp(c(1), q = 0, normalize = FALSE), 0)
+    
+    # Two species: n=2, S_0 = 1
+    expect_equal(TSENAT:::entropy_cpp(c(0.5, 0.5), q = 0, normalize = FALSE), 1)
+    
+    # Five species: n=5, S_0 = 4
+    p <- c(0.2, 0.2, 0.2, 0.2, 0.2)
+    expect_equal(TSENAT:::entropy_cpp(p, q = 0, normalize = FALSE), 4)
+    
+    # Verify it is NOT log(n)
+    expect_false(abs(TSENAT:::entropy_cpp(c(0.5, 0.5), q = 0, normalize = FALSE) - log(2)) < 0.01)
+})
+
+test_that("[AUDIT #5] Normalized Tsallis entropy at q=0 max is n-1", {
+    # For uniform distribution of n species, normalized S_0 should be 1
+    p_uniform_2 <- c(0.5, 0.5)
+    p_uniform_5 <- rep(0.2, 5)
+    
+    h_norm_2 <- TSENAT:::entropy_cpp(p_uniform_2, q = 0, normalize = TRUE)
+    h_norm_5 <- TSENAT:::entropy_cpp(p_uniform_5, q = 0, normalize = TRUE)
+    
+    # Uniform distribution should give normalized entropy = 1
+    expect_equal(h_norm_2, 1.0, tolerance = 1e-10)
+    expect_equal(h_norm_5, 1.0, tolerance = 1e-10)
+    
+    # Single species: normalized = 0
+    expect_equal(TSENAT:::entropy_cpp(c(1), q = 0, normalize = TRUE), 0)
+})
+
+test_that("[AUDIT #17] entropy_cpp handles zeros correctly (no >1e-10 filter)", {
+    # Zero-probability entries should contribute 0 to entropy,
+    # not be silently dropped (which would change the effective n).
+    
+    # Mix of zeros and non-zeros
+    p_with_zeros <- c(0.5, 0.3, 0.2, 0, 0, 0, 1e-12)
+    p_no_zeros <- c(0.5, 0.3, 0.2)
+    
+    # Shannon entropy should be nearly identical (zeros contribute ~0)
+    h_with <- TSENAT:::entropy_cpp(p_with_zeros, q = 1, normalize = FALSE)
+    h_without <- TSENAT:::entropy_cpp(p_no_zeros, q = 1, normalize = FALSE)
+    
+    expect_equal(h_with, h_without, tolerance = 1e-10)
+    
+    # Tsallis q=2: 0^2 = 0, so zeros don't change sum(p^q)
+    h2_with <- TSENAT:::entropy_cpp(p_with_zeros, q = 2, normalize = FALSE)
+    h2_without <- TSENAT:::entropy_cpp(p_no_zeros, q = 2, normalize = FALSE)
+    expect_equal(h2_with, h2_without, tolerance = 1e-10)
+})

@@ -185,13 +185,30 @@
         return(NULL)
     }
 
-    # ===== BIAS CORRECTION & OUTPUT PROCESSING ===== Apply GAM-specific bias
-    # correction for small samples
+    # ===== BIAS CORRECTION & OUTPUT PROCESSING =====
+    # AUDIT FIX #8: .gam_bias_correct removed — the ad-hoc p-value multiplier
+    # (adjustment_factor <- 1 + (20 - n_eff)/20) had no theoretical basis and
+    # cited a non-existent reference. Raw p-values from valid ML-fitted GAMMs
+    # are returned directly.
     n_subjects_bc <- if (!is.null(subject))
         length(unique(na.omit(subject))) else NULL
-    bc_result <- .gam_bias_correct(fit_result$p_interaction, n_observations = prep_result$n_samples,
-        n_subjects = n_subjects_bc, ar1_correlation = TRUE, bias_correction = bias_correction,
-        entropy_data = prep_result$df$entropy, subject_data = prep_result$df$subject)
+    n_obs <- prep_result$n_samples
+    p_val <- fit_result$p_interaction
+    if (is.null(p_val) || length(p_val) == 0) p_val <- NA_real_
+    bc_result <- list(
+        p_value = p_val,
+        p_raw = p_val,
+        bias_correction_applied = FALSE,
+        n_observations = n_obs,
+        n_samples = n_obs,
+        n_subjects = n_subjects_bc,
+        n_effective = n_obs,
+        design_effect_ar1 = NA_real_,
+        rho_estimate = NA_real_,
+        rho_data_driven = FALSE,
+        correction_method = "none",
+        correction_rationale = "Bias correction removed (audit fix #8)"
+    )
 
     # Extract statistics from fitted model
     stats <- .extract_gam_statistics(fit_result$fit_alt, fit_result$anova_result)
@@ -227,47 +244,16 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
     .KNOTS_MEMO_CACHE <- new.env(hash = TRUE, parent = emptyenv())
 }
 
-# ===============================================================================
-# MEMOIZATION FUNCTION: AR(1) Design Effect with Caching
-# ===============================================================================
-# Computes (1+rho)/(1-rho) design effect for AR(1) correlation structures.
-# Caches results to avoid redundant computation across multiple genes.
-# Reference: Diggle et al. 2002 (AR(1) correlation design effect formula)
-# PERFORMANCE: First call O(1) computation; subsequent calls with same (rho, m)
-# are O(1) cache lookup vs. O(1) but with function call overhead.  With ~10K
-# genes, typical gains: ~5-10ms per analysis run.
-.ar1_design_effect_memo <- function(rho, cluster_size) {
-    # Validate inputs
-    if (!is.finite(rho) || rho < 0 || rho > 1) {
-        return(NA_real_)
+# AUDIT FIX #48: Clear memoization caches between independent analyses
+# to prevent stale cached values from corrupting results across datasets.
+.clear_gam_memo_cache <- function() {
+    if (exists(".GAM_MEMO_CACHE", mode = "environment")) {
+        rm(list = ls(.GAM_MEMO_CACHE), envir = .GAM_MEMO_CACHE)
     }
-    if (!is.finite(cluster_size) || cluster_size < 1) {
-        return(NA_real_)
+    if (exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
+        rm(list = ls(.KNOTS_MEMO_CACHE), envir = .KNOTS_MEMO_CACHE)
     }
-
-    # Create cache key: format rho and cluster_size for stable hashing
-    cache_key <- sprintf("rho=%.4f|m=%.1f", round(rho, 4), cluster_size)
-
-    # Check if already cached
-    if (exists(cache_key, envir = .GAM_MEMO_CACHE, inherits = FALSE)) {
-        return(get(cache_key, envir = .GAM_MEMO_CACHE))
-    }
-
-    # Compute AR(1) design effect: D_eff = (1+rho)/(1-rho) See: Diggle, P.J.,
-    # Heagerty, P., Liang, K.Y., Zeger, S.L. (2002) Analysis of Longitudinal
-    # Data, Oxford University Press.
-    design_eff <- (1 + rho)/(1 - rho)
-
-    # Validate result
-    if (!is.finite(design_eff) || design_eff < 1) {
-        # rho near 1 -> D_eff -> Inf; rho near 0 -> D_eff near 1
-        design_eff <- max(1, min(design_eff, Inf))
-    }
-
-    # Cache the result
-    assign(cache_key, design_eff, envir = .GAM_MEMO_CACHE)
-
-    return(design_eff)
+    invisible(NULL)
 }
 
 # ===============================================================================
@@ -429,6 +415,9 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
     }
 
     # Apply ARIMA differencing for both paired and unpaired designs
+    # AUDIT FIX #32-33: GAM applies ARIMA(1,1,0) differencing for all designs
+    # (paired and unpaired). GEE applies only for paired; LMM has no ARIMA.
+    # Cross-method p-values are not directly comparable.
     arima_result <- .compute_arima_differences(df, q_vals, df$group, subject_for_arima)
 
     if (!is.null(arima_result) && nrow(arima_result$df) >= 3) {
@@ -498,10 +487,12 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
 
     if (!is.null(gam_weights)) {
         fit <- try(mgcv::gamm(formula = formula, random = list(subject = ~1), correlation = nlme::corAR1(form = ~obs_seq |
-            subject), family = family_gam, weights = gam_weights, data = df), silent = TRUE)
+            subject), family = family_gam, weights = gam_weights, data = df,
+            method = "ML"), silent = TRUE)
     } else {
         fit <- try(mgcv::gamm(formula = formula, random = list(subject = ~1), correlation = nlme::corAR1(form = ~obs_seq |
-            subject), family = family_gam, data = df), silent = TRUE)
+            subject), family = family_gam, data = df,
+            method = "ML"), silent = TRUE)
     }
 
     return(fit)
@@ -526,9 +517,11 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
     fit_null <- .fit_gamm_ar1_single(entropy ~ group + s(q, bs = "tp", k = k_q_marginal),
         df, family_gam, gam_weights)
 
-    # Fit alternative model: entropy ~ group + s(q, by=group)
-    fit_alt <- .fit_gamm_ar1_single(entropy ~ group + s(q, bs = "tp", k = k_q_interaction,
-        by = group), df, family_gam, gam_weights)
+    # AUDIT FIX #2: Alt model must include main-effect s(q) so null and alt are nested.
+    # Without s(q), the reference group has no q-trend, invalidating the LRT.
+    # Use same k_q_marginal for BOTH smooths for proper nesting.
+    fit_alt <- .fit_gamm_ar1_single(entropy ~ group + s(q, bs = "tp", k = k_q_marginal) +
+        s(q, bs = "tp", k = k_q_marginal, by = group), df, family_gam, gam_weights)
 
     return(list(fit_null = fit_null, fit_alt = fit_alt, use_ar1 = TRUE))
 }
@@ -543,10 +536,10 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
 
     if (!is.null(gam_weights)) {
         fit <- try(mgcv::gamm(formula = formula, random = list(subject = ~1), family = family_gam,
-            weights = gam_weights, data = df), silent = TRUE)
+            weights = gam_weights, data = df, method = "ML"), silent = TRUE)
     } else {
         fit <- try(mgcv::gamm(formula = formula, random = list(subject = ~1), family = family_gam,
-            data = df), silent = TRUE)
+            data = df, method = "ML"), silent = TRUE)
     }
 
     return(fit)
@@ -562,8 +555,9 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
     fit_null <- .fit_gamm_nocorr_single(entropy ~ group + s(q, bs = "tp", k = k_q_marginal),
         df, family_gam, gam_weights)
 
-    fit_alt <- .fit_gamm_nocorr_single(entropy ~ group + s(q, bs = "tp", k = k_q_interaction,
-        by = group), df, family_gam, gam_weights)
+    # AUDIT FIX #2: Include main-effect s(q) in alt model for nested comparison
+    fit_alt <- .fit_gamm_nocorr_single(entropy ~ group + s(q, bs = "tp", k = k_q_marginal) +
+        s(q, bs = "tp", k = k_q_marginal, by = group), df, family_gam, gam_weights)
 
     return(list(fit_null = fit_null, fit_alt = fit_alt))
 }
@@ -581,9 +575,12 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
     p_interaction <- NA_real_
 
     old_warn <- options(warn = -1)
+    on.exit(options(old_warn))
 
     if (!is.null(fit_null$lme) && !is.null(fit_alt$lme)) {
-        # GAMM comparison via LME component
+        # AUDIT FIX #1: GAMM fitted with method="ML" — standard anova() on LME
+        # components is now valid (no REML bias). avoids mgcv::compareML()
+        # which may not be available in all mgcv versions.
         an <- try(anova(fit_null$lme, fit_alt$lme), silent = TRUE)
         if (!inherits(an, "try-error") && nrow(an) >= 2) {
             if ("p-value" %in% colnames(an)) {
@@ -611,7 +608,6 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
         }
     }
 
-    options(old_warn)
     return(list(p_interaction = p_interaction, anova_result = an))
 }
 
@@ -628,16 +624,17 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
         df$gam_weights <- gam_weights
         fit_null <- try(mgcv::gam(entropy ~ group + s(q, bs = "tp", k = k_q_marginal),
             family = family_gam, weights = gam_weights, data = df), silent = TRUE)
-        # Use group-specific smooth for interaction testing
-        fit_alt <- try(mgcv::gam(entropy ~ group + s(q, bs = "tp", k = k_q_interaction,
-            by = group), family = family_gam, weights = gam_weights, data = df),
-            silent = TRUE)
+        # AUDIT FIX #2: Include main-effect s(q) in alt model for nested comparison
+        fit_alt <- try(mgcv::gam(entropy ~ group + s(q, bs = "tp", k = k_q_marginal) +
+            s(q, bs = "tp", k = k_q_marginal, by = group), family = family_gam,
+            weights = gam_weights, data = df), silent = TRUE)
     } else {
         fit_null <- try(mgcv::gam(entropy ~ group + s(q, bs = "tp", k = k_q_marginal),
             family = family_gam, data = df), silent = TRUE)
-        # Use group-specific smooth for interaction testing
-        fit_alt <- try(mgcv::gam(entropy ~ group + s(q, bs = "tp", k = k_q_interaction,
-            by = group), family = family_gam, data = df), silent = TRUE)
+        # AUDIT FIX #2: Include main-effect s(q) in alt model for nested comparison
+        fit_alt <- try(mgcv::gam(entropy ~ group + s(q, bs = "tp", k = k_q_marginal) +
+            s(q, bs = "tp", k = k_q_marginal, by = group), family = family_gam,
+            data = df), silent = TRUE)
     }
 
     return(list(fit_null = fit_null, fit_alt = fit_alt))
@@ -692,12 +689,15 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
     if (!is.null(anova_result) && nrow(anova_result) >= 2 && !inherits(anova_result,
         "try-error")) {
         tryCatch({
+            # GAMM: anova.lme uses "L.Ratio" column
+            # GAM (F-test): anova.gam uses "F" column
+            # GAM (Chisq): anova.gam uses "Deviance" column
             if ("L.Ratio" %in% colnames(anova_result)) {
                 test_statistic <- as.numeric(anova_result[2, "L.Ratio"])[1]
             } else if ("F" %in% colnames(anova_result)) {
                 test_statistic <- as.numeric(anova_result[2, "F"])[1]
-            } else if ("Chisq" %in% colnames(anova_result)) {
-                test_statistic <- as.numeric(anova_result[2, "Chisq"])[1]
+            } else if ("Deviance" %in% colnames(anova_result)) {
+                test_statistic <- as.numeric(anova_result[2, "Deviance"])[1]
             }
             if (!is.finite(test_statistic)) {
                 test_statistic <- NA_real_
@@ -758,6 +758,9 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
 
 # ===============================================================================
 # HELPER FUNCTION: Compute slope difference between groups
+# AUDIT FIX #46: GAM slope_diff = predicted entropy slope difference (ΔH/Δq) between
+# groups, computed from predictions at min/max q. GEE slope_diff = interaction
+# coefficient (q:group). These have different units — not directly comparable.
 # ===============================================================================
 # Extracts slope_diff from GAM by computing predicted slopes for each group
 .compute_slope_diff <- function(fit_alt, df, q_vals, subject) {
@@ -811,10 +814,17 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
 # Creates result data frame with all statistics and metadata
 .compile_gam_results <- function(g, bc_result, test_statistic, effect_size, df_residual,
     model_converged, slope_diff, fit_alt, df, bounded_result, use_arima, subject) {
+    # Safety: ensure all bc_result values are length-1 scalars
+    p_val <- if (length(bc_result$p_value) == 1) bc_result$p_value else NA_real_
+    p_raw <- if (length(bc_result$p_raw) == 1) bc_result$p_raw else NA_real_
+    n_obs <- if (length(bc_result$n_observations) == 1) bc_result$n_observations else NA_real_
+    n_sub <- if (length(bc_result$n_subjects) == 1) bc_result$n_subjects else NA_integer_
+    n_eff <- if (length(bc_result$n_effective) == 1) bc_result$n_effective else NA_real_
+    rho <- if (length(bc_result$rho_estimate) == 1) bc_result$rho_estimate else NA_real_
     # Return result with bias correction information
-    result <- data.frame(gene = g, p_interaction = bc_result$p_value, p_raw = bc_result$p_raw,
-        n_observations = bc_result$n_observations, n_subjects = bc_result$n_subjects,
-        n_effective = bc_result$n_effective, rho_ar1 = bc_result$rho_estimate, stringsAsFactors = FALSE)
+    result <- data.frame(gene = g, p_interaction = p_val, p_raw = p_raw,
+        n_observations = n_obs, n_subjects = n_sub,
+        n_effective = n_eff, rho_ar1 = rho, stringsAsFactors = FALSE)
 
     # Explicitly add effect size, test statistic, and df columns
     result$test_statistic <- test_statistic
@@ -1031,147 +1041,6 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
 
 
 
-# GAM bias correction helper: adjusts for smoothing bias in small samples
-# (Hastie & Tibshirani (2015), Generalized Additive Models) When n_samples <
-# 20, small sample smoothing can inflate Type I error rates Applies degrees of
-# freedom adjustment based on sample size
-.gam_bias_correct <- function(p_value, n_observations = NULL, n_samples = NULL, n_subjects = NULL,
-    ar1_correlation = TRUE, bias_correction = TRUE, entropy_data = NULL, subject_data = NULL) {
-    # `n_samples` is provided for backward compatibility with earlier versions
-    # that accepted this argument name.  If `n_observations` is NULL we fall
-    # back to the user-supplied `n_samples` value so that tests and external
-    # code using either name will continue to work.
-    if (is.null(n_observations) && !is.null(n_samples)) {
-        n_observations <- n_samples
-    }
-
-    # validate presence of at least one of the size arguments
-    if (is.null(n_observations)) {
-        stop("must supply either 'n_observations' or 'n_samples'", call. = FALSE)
-    }
-    # For Tsallis multi-q design with ARIMA(1,1,0) covariance: - First
-    # differences DeltaH_q = H_q - H_{q-1} are modeled as AR(1) [IMPLEMENTED] -
-    # Differencing removes monotone trend in Tsallis entropy (dH/dq < 0)
-    # [VERIFIED] - True independent units are subjects, not observations - Bias
-    # correction threshold should use n_subjects, not n_observations CRITICAL
-    # FIX (March 2026): Calling functions now properly difference entropy
-    # before fitting AR(1) correlations. This guarantees stationarity
-    # assumptions.  See: .compute_arima_differences() helper function added
-    # March 2026.
-
-    # If n_subjects not provided, attempt to estimate from ARIMA structure
-    # Conservative: assume ~sqrt(n_obs) independent units under ARIMA(1,1,0)
-    if (is.null(n_subjects)) {
-        # For ARIMA(1,1,0), we lose 1 observation per subject via differencing
-        # Estimate: (observations - n_subjects) / n_subjects gives adjusted
-        # count Conservative: use sqrt(n_obs) which is robust estimate
-        n_subjects <- max(2, ceiling(sqrt(n_observations)))
-    }
-
-    # For ARIMA(1,1,0) correlation, effective degrees of freedom are reduced
-    # CRITICAL FIX March 2026: Use AR(1)-specific design effect formula (NOT
-    # Kish exchangeable formula) Background: - Previous code used: D_eff = 1 +
-    # (m-1)rho [Kish formula for ICC/exchangeable] - Correct for AR(1): D_eff =
-    # (1+phi)/(1-phi) [Diggle et al. 2002] - These formulas apply to VERY
-    # different correlation structures - AR(1) is appropriate for ordered
-    # q-values with geometric decay: Corr(t,t+k) = phi^k
-
-    if (ar1_correlation && n_observations > n_subjects && n_observations > 0) {
-        # Compute intra-subject cluster size
-        cluster_size <- n_observations/n_subjects
-
-        # Estimate rho from data if available; otherwise use conservative
-        # default
-        rho_avg <- NULL
-        data_driven_rho <- FALSE
-
-        if (!is.null(entropy_data) && !is.null(subject_data)) {
-            rho_est <- .estimate_ar1_rho(entropy_data, subject_data)
-            if (!is.null(rho_est) && rho_est >= 0 && rho_est <= 1) {
-                rho_avg <- rho_est
-                data_driven_rho <- TRUE
-            }
-        }
-
-        if (is.null(rho_avg)) {
-            # ARIMA(1,1,0) average correlation on first differences
-            # (trend-removed) Conservative default: rho = 0.35 based on AR(1)
-            # applied to differenced data SENSITIVITY ANALYSIS for AR(1) design
-            # effect: - rho = 0.20: D_eff = (1.2)/(0.8) = 1.5, n_eff =
-            # n_subjects / 1.5 - rho = 0.35: D_eff = (1.35)/(0.65) = 2.08,
-            # n_eff = n_subjects / 2.08 - rho = 0.50: D_eff = (1.5)/(0.5) =
-            # 3.0, n_eff = n_subjects / 3.0 (Accounting for finite-m
-            # corrections depending on cluster_size) Note: Much higher D_eff
-            # than Kish (which gave 1.2-1.6 for same rho) This demonstrates
-            # importance of using AR(1)-specific formula
-            rho_avg <- 0.35
-            data_driven_rho <- FALSE
-        }
-
-        # Design effect: Use AR(1)-specific formula (NOT Kish exchangeable
-        # formula) OPTIMIZATION: Use memoized version to cache repeated (rho,
-        # cluster_size) pairs
-        design_effect <- .ar1_design_effect_memo(rho_avg, cluster_size)
-
-        # Effective sample size accounting for AR(1) within-subject correlation
-        n_eff <- n_subjects/design_effect
-    } else {
-        # No ARIMA(1,1,0) or independence: effective n = n_subjects
-        n_eff <- n_subjects
-        design_effect <- NA_real_
-        rho_avg <- NA_real_
-        data_driven_rho <- FALSE
-    }
-
-    # Bias correction decision: use raw observation count rather than
-    # ARIMA-adjusted effective units.  Historical tests (and published Hastie &
-    # Tibshirani (2015), Generalized Additive Models guidance) trigger
-    # correction when the number of samples is small (<20); the original
-    # implementation compared against n_eff, which under AR(1) dependency could
-    # fall below 20 even for reasonably large datasets and therefore caused
-    # over-conservative adjustments.  To keep behaviour compatible with
-    # existing user expectations we now only suppress bias correction when the
-    # *observed* sample size is large.
-    if (!bias_correction || n_observations >= 20) {
-        return(list(p_value = p_value, p_raw = p_value, bias_correction_applied = FALSE,
-            n_observations = n_observations, n_samples = n_observations, n_subjects = n_subjects,
-            n_effective = n_eff, design_effect_ar1 = design_effect, rho_estimate = rho_avg,
-            rho_data_driven = data_driven_rho, correction_method = "none", correction_rationale = sprintf("n_observations=%.0f >= 20; GAM smoothing bias minimal (AR(1) D_eff=%.2f, rho=%.2f %s)",
-                n_observations, if (is.na(design_effect)) 0 else design_effect, if (is.na(rho_avg)) 0 else rho_avg,
-                if (data_driven_rho) "[data-driven]" else "[default]")))
-    }
-
-    # For small samples (n_eff < 20), smoothing bias can affect p-values
-    # (Hastie & Tibshirani (2015), Generalized Additive Models) Apply
-    # conservative adjustment accounting for ARIMA(1,1,0) structure
-
-    if (is.na(p_value)) {
-        return(list(p_value = p_value, p_raw = p_value, bias_correction_applied = FALSE,
-            n_observations = n_observations, n_samples = n_observations, n_subjects = n_subjects,
-            n_effective = n_eff, design_effect_ar1 = design_effect, rho_estimate = rho_avg,
-            rho_data_driven = data_driven_rho, correction_method = "na_value", correction_rationale = "p-value is NA"))
-    }
-
-    # Compute adjustment factor based on effective sample size Smaller
-    # effective samples get larger adjustments (less power, more conservative)
-    # Linear scaling: at n_eff=5, factor=2.0; at n_eff=19, factor=1.05
-    adjustment_factor <- 1 + (20 - n_eff)/20
-
-    # Apply multiplicative adjustment (Bonferroni-style, conservative for GAM
-    # smoothing bias) Reference: Hastie & Tibshirani (2015), Generalized
-    # Additive Models (empirical correction for GAM smoothing bias in small
-    # samples) This is more conservative than K-C correction but appropriate
-    # for GAM bias
-    p_corrected <- min(p_value * adjustment_factor, 1)
-
-    return(list(p_value = p_corrected, bias_correction_applied = TRUE, n_observations = n_observations,
-        n_samples = n_observations, n_subjects = n_subjects, n_effective = n_eff,
-        design_effect_ar1 = design_effect, rho_estimate = rho_avg, rho_data_driven = data_driven_rho,
-        adjustment_factor = adjustment_factor, p_raw = p_value, correction_method = "gam_smoothing_bias_c071",
-        correction_rationale = sprintf("n_eff=%.1f < 20; Adjusted for ARIMA(1,1,0) correlation: AR(1) D_eff=%.2f (rho=%.2f %s); adjustment_factor=%.2f",
-            n_eff, design_effect, if (is.na(rho_avg)) 0 else rho_avg, if (data_driven_rho) "[data-driven]" else "[default]",
-            adjustment_factor)))
-}
 
 # GAM regularization helper: applies spline constraints or GAMSEL for variable
 # selection Supports pca (no regularization), gamsel (automatic variable

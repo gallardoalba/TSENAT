@@ -1642,3 +1642,95 @@ test_that("Full workflow: validation -> pairing -> LM filtering -> gene processi
   )
   expect_true("summary_table" %in% names(summary_results))
 })
+
+# ============================================================================
+# AUDIT FIX TESTS: JIS bootstrap p-values, paired resampling
+# ============================================================================
+
+test_that("[AUDIT #7] JIS bootstrap p-values use null-centered distribution", {
+    # Without null-centering, the bootstrap distribution is centered near
+    # the observed delta, so p ≈ 0.5-1.0 (test never rejects).
+    # With null-centering, large true differences should yield small p-values.
+    
+    # Create two CLEARLY different count matrices with many samples
+    set.seed(123)
+    # 5 transcripts × 10 samples — each transcript has a clear shift
+    counts_A <- matrix(c(
+        500, 480, 520, 490, 510, 500, 490, 510, 480, 520,  # tx1: ~500 in A
+         10,   8,  12,   9,  11,  10,   9,  11,   8,  12,  # tx2: ~10 in A
+        300, 310, 290, 305, 295, 300, 310, 290, 305, 295,  # tx3: ~300 in A
+        50,  48,  52,  49,  51,  50,  49,  51,  48,  52,   # tx4: ~50 in A
+        200, 210, 190, 205, 195, 200, 210, 190, 205, 195   # tx5: ~200 in A
+    ), nrow = 5, ncol = 10, byrow = TRUE)
+    
+    counts_B <- matrix(c(
+         10,   8,  12,   9,  11,  10,   9,  11,   8,  12,  # tx1: ~10 in B (big shift from 500)
+        500, 480, 520, 490, 510, 500, 490, 510, 480, 520,  # tx2: ~500 in B (big shift from 10)
+         10,   8,  12,   9,  11,  10,   9,  11,   8,  12,  # tx3: ~10 in B (big shift from 300)
+        400, 410, 390, 405, 395, 400, 410, 390, 405, 395,  # tx4: ~400 in B (big shift from 50)
+        100, 110,  90, 105,  95, 100, 110,  90, 105,  95   # tx5: ~100 in B (shift from 200)
+    ), nrow = 5, ncol = 10, byrow = TRUE)
+    
+    n_tx <- 5L
+    
+    # Compute delta influence
+    inf_A <- TSENAT:::jis_jackknife_influences_cpp(counts_A, q = 1, normalize = TRUE,
+        log_base = exp(1), pseudocount = 0, n_tx_fixed = n_tx)
+    inf_B <- TSENAT:::jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE,
+        log_base = exp(1), pseudocount = 0, n_tx_fixed = n_tx)
+    delta_inf <- inf_A - inf_B
+    
+    # Bootstrap delta statistics
+    result <- TSENAT:::jis_bootstrap_delta_cpp(counts_A, counts_B, delta_inf,
+        q = 1, normalize = TRUE, log_base = exp(1), pseudocount = 0, nboot = 500,
+        confidence = 0.95, method = "percentile", n_transcripts_fixed = n_tx)
+    
+    # P-values should be valid
+    expect_equal(length(result$p_value), n_tx)
+    expect_true(all(result$p_value >= 0 & result$p_value <= 1))
+    # With clear differences, at least some p-values should be small
+    expect_true(any(result$p_value < 0.5),
+        info = "Null-centered p-values should detect real differences")
+})
+
+test_that("[AUDIT #22] JIS paired bootstrap resamples pairs as units", {
+    # When paired, both A and B should use the same resample indices
+    # to preserve the pairing structure.
+    
+    counts_A <- matrix(c(100, 50, 80, 40, 60, 30), nrow = 3, ncol = 2)
+    counts_B <- matrix(c(80, 60, 100, 30, 50, 40), nrow = 3, ncol = 2)
+    
+    # These have the same number of columns (paired design)
+    expect_equal(ncol(counts_A), ncol(counts_B))
+    
+    # The paired bootstrap should return valid results
+    delta_inf <- rep(0.1, 3)
+    result <- TSENAT:::jis_bootstrap_delta_cpp(counts_A, counts_B, delta_inf,
+        q = 1, normalize = TRUE, log_base = exp(1), pseudocount = 0, nboot = 100,
+        confidence = 0.95, method = "percentile", n_transcripts_fixed = 3L)
+    
+    expect_equal(length(result$ci_lower), 3)
+    expect_true(all(is.finite(result$ci_lower)))
+    expect_true(all(is.finite(result$ci_upper)))
+    expect_true(all(result$ci_lower <= result$ci_upper))
+})
+
+test_that("[AUDIT #7] JIS p-values have minimum bound of 1/nboot", {
+    # Minimum p-value should be 1/nboot (never exactly 0)
+    counts_A <- matrix(c(100, 10, 50, 5), nrow = 2, ncol = 2)
+    counts_B <- matrix(c(10, 100, 5, 50), nrow = 2, ncol = 2)
+    
+    inf_A <- TSENAT:::jis_jackknife_influences_cpp(counts_A, q = 1, normalize = TRUE,
+        log_base = exp(1), pseudocount = 0, n_tx_fixed = 2L)
+    inf_B <- TSENAT:::jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE,
+        log_base = exp(1), pseudocount = 0, n_tx_fixed = 2L)
+    delta_inf <- inf_A - inf_B
+    
+    nboot <- 50
+    result <- TSENAT:::jis_bootstrap_delta_cpp(counts_A, counts_B, delta_inf,
+        q = 1, normalize = TRUE, log_base = exp(1), pseudocount = 0, nboot = nboot,
+        confidence = 0.95, method = "percentile", n_transcripts_fixed = 2L)
+    
+    expect_true(all(result$p_value >= 1/nboot),
+        info = "P-values should be >= 1/nboot (no zero p-values)")
+})

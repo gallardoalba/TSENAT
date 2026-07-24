@@ -464,13 +464,52 @@
             g2)
     }
 
-    # Benjamini-Hochberg correction for multiple PCs tested
-    pc_pvals_adj <- stats::p.adjust(pc_pvals, method = "BH")
-    pc_pvals_adj_valid <- pc_pvals_adj[!is.na(pc_pvals_adj)]
+    # AUDIT FIX #9: Taking min of BH-adjusted p-values inflates Type I error.
+    # Replace with Hotelling's T² (2 groups) or MANOVA (>2 groups) on PC scores.
+    # Hotelling's T² tests the joint null hypothesis that all PC means are equal
+    # between groups, which correctly handles the multivariate nature of the test.
+    n_groups <- length(unique(na.omit(grp_vals)))
     pc_pvals_valid <- pc_pvals[!is.na(pc_pvals)]
-
-    p_interaction <- if (length(pc_pvals_adj_valid) > 0)
-        min(pc_pvals_adj_valid) else 1
+    
+    if (length(pc_pvals_valid) == 0) {
+        p_interaction <- 1
+    } else if (n_groups == 2 && n_pc_use >= 1) {
+        # MANOVA on PC scores (equivalent to Hotelling's T² for 2 groups)
+        pc_scores <- pca$x[, seq_len(n_pc_use), drop = FALSE]
+        grp_valid <- grp_vals[!is.na(grp_vals)]
+        pc_scores <- pc_scores[!is.na(grp_vals), , drop = FALSE]
+        g1_idx <- which(grp_valid == g1)
+        g2_idx <- which(grp_valid == g2)
+        if (length(g1_idx) > 1 && length(g2_idx) > 1 &&
+            ncol(pc_scores) <= min(length(g1_idx), length(g2_idx)) - 1) {
+            grp_factor <- factor(c(rep(g1, length(g1_idx)), rep(g2, length(g2_idx))))
+            pc_combined <- rbind(pc_scores[g1_idx, , drop = FALSE],
+                pc_scores[g2_idx, , drop = FALSE])
+            man <- try(summary(stats::manova(pc_combined ~ grp_factor)), silent = TRUE)
+            if (!inherits(man, "try-error") && length(man) >= 4) {
+                p_interaction <- man[[4]][1, "Pr(>F)"]
+            } else {
+                p_interaction <- if (length(pc_pvals_valid) > 0) min(pc_pvals_valid) else 1
+            }
+        } else {
+            p_interaction <- if (length(pc_pvals_valid) > 0) min(pc_pvals_valid) else 1
+        }
+    } else {
+        # >2 groups: use MANOVA
+        pc_scores <- pca$x[, seq_len(min(n_pc_use, ncol(pca$x))), drop = FALSE]
+        grp_factor <- factor(na.omit(grp_vals))
+        pc_scores <- pc_scores[!is.na(grp_vals), , drop = FALSE]
+        if (nrow(pc_scores) > ncol(pc_scores) + 1) {
+            man <- try(summary(stats::manova(pc_scores ~ grp_factor)), silent = TRUE)
+            if (!inherits(man, "try-error") && length(man) >= 4) {
+                p_interaction <- man[[4]][1, "Pr(>F)"]
+            } else {
+                p_interaction <- if (length(pc_pvals_valid) > 0) min(pc_pvals_valid) else 1
+            }
+        } else {
+            p_interaction <- if (length(pc_pvals_valid) > 0) min(pc_pvals_valid) else 1
+        }
+    }
     p_interaction <- min(p_interaction, 1)
 
     list(p_interaction = p_interaction, n_pcs_tested = n_pc_use, min_pc_pvalue = if (length(pc_pvals_valid) >
@@ -523,19 +562,41 @@
         1 else 0.5
 
     cv_fit <- try(glmnet::cv.glmnet(x = mat_sub, y = grp_numeric, family = "binomial",
-        alpha = alpha_val, nfolds = min(5, nrow(mat_sub) - 1), standardize = TRUE),
+        alpha = alpha_val, nfolds = min(5, nrow(mat_sub) - 1), standardize = TRUE,
+        keep = TRUE),  # keep=TRUE stores cross-validated predictions
         silent = TRUE)
     if (inherits(cv_fit, "try-error"))
         return(NULL)
 
-    pred_probs <- try(stats::predict(cv_fit, newx = mat_sub, s = "lambda.min", type = "response"),
-        silent = TRUE)
+    # AUDIT FIX R2+R3: Use cross-validated predictions (fit.preval) to avoid
+    # resubstitution bias. In-sample predictions (newx = mat_sub) produce
+    # overfitted probabilities that inflate Type I error.
+    # Also guard against NaN/Inf from perfect separation in binary glmnet.
+    if (is.null(cv_fit$fit.preval) || ncol(cv_fit$fit.preval) == 0) {
+        # Fallback: use lambda.min predictions if fit.preval unavailable
+        pred_probs <- try(stats::predict(cv_fit, newx = mat_sub, s = "lambda.min",
+            type = "response"), silent = TRUE)
+    } else {
+        # Use cross-validated predictions (stored by keep=TRUE at lambda.min)
+        lambda_idx <- which(cv_fit$lambda == cv_fit$lambda.min)
+        if (length(lambda_idx) > 0 && lambda_idx <= ncol(cv_fit$fit.preval)) {
+            pred_raw <- cv_fit$fit.preval[, lambda_idx]
+        } else {
+            pred_raw <- cv_fit$fit.preval[, 1]
+        }
+        pred_probs <- as.matrix(pred_raw)
+    }
+
     if (inherits(pred_probs, "try-error") || is.null(pred_probs))
         return(NULL)
+    pred_vals <- as.numeric(pred_probs)
+    if (any(is.nan(pred_vals)) || any(is.infinite(pred_vals))) {
+        return(NULL)  # Guard against NaN/Inf from perfect separation
+    }
 
     g1 <- unique(na.omit(grp_vals))[1]
     g2 <- unique(na.omit(grp_vals))[2]
-    pval <- .test_pc_groupdiff(as.numeric(pred_probs), grp_vals, subj_vals, g1, g2)
+    pval <- .test_pc_groupdiff(pred_vals, grp_vals, subj_vals, g1, g2)
     if (is.na(pval))
         return(NULL)
 

@@ -53,6 +53,22 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// bootstrap_replicate_cpp
+NumericVector bootstrap_replicate_cpp(NumericMatrix counts, int nboot, double q, bool normalize, double log_base, double pseudocount, IntegerVector block_ids);
+RcppExport SEXP _TSENAT_bootstrap_replicate_cpp(SEXP countsSEXP, SEXP nbootSEXP, SEXP qSEXP, SEXP normalizeSEXP, SEXP log_baseSEXP, SEXP pseudocountSEXP, SEXP block_idsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type counts(countsSEXP);
+    Rcpp::traits::input_parameter< int >::type nboot(nbootSEXP);
+    Rcpp::traits::input_parameter< double >::type q(qSEXP);
+    Rcpp::traits::input_parameter< bool >::type normalize(normalizeSEXP);
+    Rcpp::traits::input_parameter< double >::type log_base(log_baseSEXP);
+    Rcpp::traits::input_parameter< double >::type pseudocount(pseudocountSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type block_ids(block_idsSEXP);
+    rcpp_result_gen = Rcpp::wrap(bootstrap_replicate_cpp(counts, nboot, q, normalize, log_base, pseudocount, block_ids));
+    return rcpp_result_gen;
+END_RCPP
+}
 // block_bootstrap_compute_cpp
 NumericVector block_bootstrap_compute_cpp(NumericVector x, int nboot, double q, bool normalize, double log_base, double pseudocount);
 RcppExport SEXP _TSENAT_block_bootstrap_compute_cpp(SEXP xSEXP, SEXP nbootSEXP, SEXP qSEXP, SEXP normalizeSEXP, SEXP log_baseSEXP, SEXP pseudocountSEXP) {
@@ -185,6 +201,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_TSENAT_entropy_cpp", (DL_FUNC) &_TSENAT_entropy_cpp, 4},
     {"_TSENAT_jackknife_resampling_cpp", (DL_FUNC) &_TSENAT_jackknife_resampling_cpp, 5},
     {"_TSENAT_bootstrap_compute_cpp", (DL_FUNC) &_TSENAT_bootstrap_compute_cpp, 6},
+    {"_TSENAT_bootstrap_replicate_cpp", (DL_FUNC) &_TSENAT_bootstrap_replicate_cpp, 7},
     {"_TSENAT_block_bootstrap_compute_cpp", (DL_FUNC) &_TSENAT_block_bootstrap_compute_cpp, 6},
     {"_TSENAT_jis_tsallis_entropy_cpp", (DL_FUNC) &_TSENAT_jis_tsallis_entropy_cpp, 6},
     {"_TSENAT_jis_jackknife_influences_cpp", (DL_FUNC) &_TSENAT_jis_jackknife_influences_cpp, 6},

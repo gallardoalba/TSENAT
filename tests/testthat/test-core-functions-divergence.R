@@ -1548,3 +1548,61 @@ test_that("[BUG #4] Divergence merge detects partial matches as error", {
     expect_equal(nrow(result), 0,
                 info = "Version mismatch detected (no matches found)")
 })
+
+# ============================================================================
+# AUDIT FIX TESTS: Divergence sign, support violations, unequal-length warning
+# ============================================================================
+
+test_that("[AUDIT #6] tsallis_divergence_cpp returns large finite value on support violation (KL)", {
+    # KL divergence: when p>0 but r=0, divergence should be very large
+    # (finite, not +Inf — to keep bootstrap quantiles computable)
+    p <- c(0.5, 0.5)
+    r <- c(1.0, 0.0)  # Second category has 0 probability in r
+    
+    div <- TSENAT:::tsallis_divergence_cpp(p, r, q = 1)
+    expect_true(is.finite(div))
+    expect_true(div > 1000)  # Very large but finite
+})
+
+test_that("[AUDIT #6] tsallis_divergence_cpp returns large finite value on support violation (q>1)", {
+    # Tsallis divergence q>1: when p>0 but r=0, divergence should be very large (finite)
+    p <- c(0.5, 0.5)
+    r <- c(1.0, 0.0)
+    
+    div <- TSENAT:::tsallis_divergence_cpp(p, r, q = 2)
+    expect_true(is.finite(div))
+    expect_true(div > 1000)
+})
+
+test_that("[AUDIT #6] tsallis_divergence_cpp has correct sign (no abs wrapper)", {
+    # Divergence should be non-negative by mathematical property,
+    # not because of an abs() wrapper masking sign errors.
+    p <- c(0.3, 0.7)
+    r <- c(0.5, 0.5)
+    
+    div <- TSENAT:::tsallis_divergence_cpp(p, r, q = 1)
+    expect_true(is.finite(div))
+    expect_true(div >= 0)  # Non-negative without abs()
+    
+    # Identical distributions should have divergence = 0
+    div_identical <- TSENAT:::tsallis_divergence_cpp(c(0.5, 0.5), c(0.5, 0.5), q = 2)
+    expect_equal(div_identical, 0, tolerance = 1e-10)
+})
+
+test_that("[AUDIT #6] tsallis_divergence_cpp q=0 always returns 0", {
+    p <- c(0.3, 0.7)
+    r <- c(0.5, 0.5)
+    
+    div <- TSENAT:::tsallis_divergence_cpp(p, r, q = 0)
+    expect_equal(div, 0)
+})
+
+test_that("[AUDIT #25] tsallis_divergence_cpp warns on unequal-length vectors", {
+    p <- c(0.3, 0.4, 0.3)
+    r <- c(0.5, 0.5)  # Different length
+    
+    expect_warning(
+        TSENAT:::tsallis_divergence_cpp(p, r, q = 1),
+        pattern = "different lengths"
+    )
+})

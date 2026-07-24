@@ -214,20 +214,12 @@
         }
     }
 
-    # Strategy 4: Last resort - drop subject entirely
-    fit0_sait2 <- try(stats::lm(entropy ~ q + group, data = df, weights = if (!is.null(df$weight))
-        df$weight else NULL), silent = TRUE)
-    fit1_sait2 <- try(stats::lm(entropy ~ q * group, data = df, weights = if (!is.null(df$weight))
-        df$weight else NULL), silent = TRUE)
-    if (!inherits(fit0_sait2, "try-error") && !inherits(fit1_sait2, "try-error")) {
-        if (verbose) {
-            message("[.try_sait_fallbacks] Strategy 4: Subject removed - reduced power expected")
-        }
-        return(list(fit0 = fit0_sait2, fit1 = fit1_sait2, method = "sait_nosubject"))
-    }
-
+    # AUDIT FIX #16: Strategy 4 removed — silently dropping the subject/pairing
+    # structure inflates Type I error and produces invalid p-values for paired designs.
+    # Instead, fail explicitly so the user can adjust their data or choose a different method.
     if (verbose)
-        message("[.try_sait_fallbacks] ALL STRATEGIES FAILED - no model fitted")
+        message("[.try_sait_fallbacks] ALL FALLBACKS EXHAUSTED — pairing cannot be preserved. ",
+                "Consider using method='gee' or method='gam' for this dataset.")
     return(NULL)
 }
 

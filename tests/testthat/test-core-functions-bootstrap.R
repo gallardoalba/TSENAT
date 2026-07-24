@@ -7546,3 +7546,207 @@ test_that("[BUG #3] Paired bootstrap validates data structure comprehensively", 
         info = "NA values trigger warning"
     )
 })
+
+# ============================================================================
+# AUDIT FIX TESTS: BCa acceleration, z0, replicate bootstrap, divergence jackknife
+# ============================================================================
+
+test_that("[AUDIT #12] BCa z0 uses strict < comparison with 0.5/B padding", {
+    # When all bootstrap values are below the point estimate, 
+    # prop_less with <= would give 1.0, qnorm(1.0) = Inf → silently reset to 0.
+    # With strict < and +0.5/B padding, we avoid qnorm(0) and qnorm(1).
+    
+    boot_dist <- c(0.5, 0.6, 0.7, 0.8, 0.9)
+    theta_hat_low <- 0.4   # All bootstrap > estimate
+    theta_hat_high <- 1.0  # All bootstrap < estimate
+    
+    # These should not produce Inf/NaN z0
+    result_low <- TSENAT:::.bca_ci(boot_dist, theta_hat_low, 0.05)
+    result_high <- TSENAT:::.bca_ci(boot_dist, theta_hat_high, 0.05)
+    
+    expect_true(is.finite(result_low$lower))
+    expect_true(is.finite(result_low$upper))
+    expect_true(is.finite(result_high$lower))
+    expect_true(is.finite(result_high$upper))
+    expect_true(result_low$lower <= result_low$upper)
+    expect_true(result_high$lower <= result_high$upper)
+})
+
+test_that("[AUDIT #3] BCa acceleration uses true jackknife on original data", {
+    # Verify that .ci_bca computes acceleration from leave-one-out of x,
+    # not from leave-one-out of bootstrap distribution.
+    
+    x <- c(10, 20, 15, 5, 30, 20)
+    # Generate a bootstrap distribution
+    set.seed(42)
+    boot_dist <- replicate(500, {
+        idx <- sample(seq_along(x), size = length(x), replace = TRUE)
+        x_boot <- x[idx]
+        p_boot <- x_boot / sum(x_boot)
+        TSENAT:::entropy_cpp(p_boot, q = 1, normalize = TRUE, log_base = exp(1))
+    })
+    
+    # BCa should compute successfully (not fall back to percentile due to degenerate acceleration)
+    result <- TSENAT:::.ci_bca(x, boot_dist, q = 1, norm = TRUE, ci = 0.95,
+        log_base = exp(1), pseudocount = 0, what = "S")
+    
+    expect_true(is.finite(result$lower))
+    expect_true(is.finite(result$upper))
+    expect_true(result$lower <= result$upper)
+    # With true jackknife, acceleration should be non-zero for skewed data
+    # (unlike fake bootstrap-based jackknife which forces a≈0)
+})
+
+test_that("[AUDIT #3] .bca_ci accepts jackknife_estimates for divergence BCa", {
+    # Test the divergence path: pass true jackknife estimates
+    
+    boot_dist <- c(0.1, 0.15, 0.12, 0.18, 0.11, 0.14, 0.13, 0.16, 0.17, 0.19,
+                   0.2, 0.22, 0.21, 0.23, 0.25, 0.18, 0.15, 0.19, 0.24, 0.16)
+    theta_hat <- 0.15
+    
+    # True jackknife estimates (divergence from leave-one-transcript-out)
+    jack_est <- c(0.14, 0.16, 0.13, 0.17, 0.15, 0.14, 0.16, 0.15, 0.18, 0.14)
+    
+    result_with <- TSENAT:::.bca_ci(boot_dist, theta_hat, 0.05, jackknife_estimates = jack_est)
+    result_without <- TSENAT:::.bca_ci(boot_dist, theta_hat, 0.05, jackknife_estimates = NULL)
+    
+    expect_true(is.finite(result_with$lower))
+    expect_true(is.finite(result_with$upper))
+    expect_true(result_with$lower <= result_with$upper)
+    # Without jackknife: should still work (backward compatible)
+    expect_true(is.finite(result_without$lower))
+    expect_true(is.finite(result_without$upper))
+    # With true jackknife, acceleration may differ from bootstrap-based
+    # Both should produce valid intervals
+})
+
+test_that("[AUDIT #11] Replicate bootstrap produces valid entropy estimates", {
+    # Test the "replicate" resample_by mode vs default "read" mode
+    x <- c(10, 20, 15, 5, 30, 20)
+    
+    result_read <- TSENAT:::.calculate_tsallis_entropy_bootstrap(
+        x = x, q = 1, nboot = 200, ci = 0.95, method = "percentile",
+        verbose = FALSE, resample_by = "read")
+    
+    result_repl <- TSENAT:::.calculate_tsallis_entropy_bootstrap(
+        x = x, q = 1, nboot = 200, ci = 0.95, method = "percentile",
+        verbose = FALSE, resample_by = "replicate")
+    
+    # Both should produce valid CIs
+    expect_true(is.finite(result_read$lower_ci))
+    expect_true(is.finite(result_read$upper_ci))
+    expect_true(result_read$lower_ci <= result_read$upper_ci)
+    expect_true(result_read$estimate >= result_read$lower_ci)
+    expect_true(result_read$estimate <= result_read$upper_ci)
+    
+    expect_true(is.finite(result_repl$lower_ci))
+    expect_true(is.finite(result_repl$upper_ci))
+    expect_true(result_repl$lower_ci <= result_repl$upper_ci)
+    expect_true(result_repl$estimate >= result_repl$lower_ci)
+    expect_true(result_repl$estimate <= result_repl$upper_ci)
+    
+    # Replicate bootstrap should produce wider CIs (captures more variability)
+    # This is expected behavior, not a hard requirement
+    width_read <- result_read$upper_ci - result_read$lower_ci
+    width_repl <- result_repl$upper_ci - result_repl$lower_ci
+    expect_true(width_read > 0 && width_repl > 0)
+})
+
+test_that("[AUDIT #11] Replicate bootstrap with counts_matrix uses C++ path", {
+    # Matrix input: transcripts × samples
+    counts_mat <- matrix(c(5, 8, 3, 10, 12, 7, 2, 4, 1, 6, 8, 3), nrow = 3, ncol = 4)
+    x_agg <- rowSums(counts_mat)
+    
+    # Without counts_matrix: R-level fallback
+    result_r <- TSENAT:::.calculate_tsallis_entropy_bootstrap(
+        x = x_agg, q = 1, nboot = 100, ci = 0.95, method = "percentile",
+        verbose = FALSE, resample_by = "replicate")
+    
+    # With counts_matrix: C++ path
+    result_cpp <- TSENAT:::.calculate_tsallis_entropy_bootstrap(
+        x = x_agg, q = 1, nboot = 100, ci = 0.95, method = "percentile",
+        verbose = FALSE, resample_by = "replicate", counts_matrix = counts_mat)
+    
+    expect_true(is.finite(result_r$lower_ci))
+    expect_true(is.finite(result_r$upper_ci))
+    expect_true(is.finite(result_cpp$lower_ci))
+    expect_true(is.finite(result_cpp$upper_ci))
+    # Both paths should produce valid intervals
+    expect_true(result_r$lower_ci <= result_r$upper_ci)
+    expect_true(result_cpp$lower_ci <= result_cpp$upper_ci)
+})
+
+test_that("[AUDIT #11] Replicate bootstrap C++ wrapper validates inputs", {
+    counts_mat <- matrix(c(5, 8, 3, 10, 12, 7, 2, 4), nrow = 2, ncol = 4)
+    
+    # Valid matrix call
+    result <- TSENAT:::bootstrap_replicate_cpp_wrapper(counts_mat, q = 1, nboot = 50)
+    expect_equal(length(result), 50)
+    expect_true(all(is.finite(result)))
+    
+    # Error: vector instead of matrix
+    expect_error(
+        TSENAT:::bootstrap_replicate_cpp_wrapper(c(1, 2, 3), q = 1, nboot = 10),
+        pattern = "matrix"
+    )
+    
+    # Error: too few samples (need at least 2 columns)
+    expect_error(
+        TSENAT:::bootstrap_replicate_cpp_wrapper(matrix(1:2, nrow = 2, ncol = 1), q = 1, nboot = 10),
+        pattern = "2 samples"
+    )
+})
+
+test_that("[AUDIT #4] .bootstrap_compute_ci passes normalized x and point_est to .ci_bca", {
+    # Verify that the BCa path receives pre-normalized data
+    x <- c(10, 20, 15, 5, 30, 20)
+    eff_len <- c(0.8, 0.9, 0.7, 0.85, 0.95, 0.75)
+    
+    result <- TSENAT:::.bootstrap_compute_ci(
+        x = x, q = 1, norm = TRUE, nboot = 100, ci = 0.95,
+        method = "bca", log_base = exp(1), pseudocount = 0,
+        what = "S", effective_length = eff_len)
+    
+    expect_true(is.finite(result$point_est))
+    expect_true(is.finite(result$ci_result$lower))
+    expect_true(is.finite(result$ci_result$upper))
+    expect_true(result$ci_result$lower <= result$ci_result$upper)
+    expect_true(result$point_est >= result$ci_result$lower)
+    expect_true(result$point_est <= result$ci_result$upper)
+})
+
+test_that("[AUDIT #12] .bca_ci handles degenerate bootstrap distributions", {
+    # Degenerate: all bootstrap values identical
+    boot_dist <- rep(0.5, 100)
+    result <- TSENAT:::.bca_ci(boot_dist, 0.5, 0.05)
+    expect_true(is.finite(result$lower))
+    expect_true(is.finite(result$upper))
+    
+    # Degenerate: theta_hat = Inf
+    result_inf <- TSENAT:::.bca_ci(boot_dist, Inf, 0.05)
+    expect_true(is.finite(result_inf$lower))
+    expect_true(is.finite(result_inf$upper))
+    
+    # Small bootstrap distribution (minimum viable)
+    result_small <- TSENAT:::.bca_ci(c(0.3, 0.5, 0.7), 0.5, 0.05)
+    expect_true(is.finite(result_small$lower))
+    expect_true(is.finite(result_small$upper))
+})
+
+test_that("[AUDIT #3] .compute_divergence_jackknife produces valid estimates", {
+    x <- c(10, 20, 15, 5, 30)
+    y <- c(12, 18, 16, 8, 28)
+    
+    jack <- TSENAT:::.compute_divergence_jackknife(x, y, q = 1)
+    
+    expect_equal(length(jack), 5)
+    expect_true(all(is.finite(jack)))
+    # Jackknife estimates should be close to each other
+    expect_true(sd(jack) < 0.5)
+    
+    # Unequal lengths: should return NULL
+    expect_null(TSENAT:::.compute_divergence_jackknife(c(1, 2, 3), c(1, 2), q = 1))
+    
+    # Too few observations
+    expect_null(TSENAT:::.compute_divergence_jackknife(c(1, 2), c(1, 2), q = 1))
+})

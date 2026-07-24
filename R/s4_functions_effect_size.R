@@ -308,16 +308,21 @@ calculate_effect_sizes <- function(analysis, significance_threshold = NULL, enri
 
     if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
         results_df <- as.data.frame(result$interaction_results)
-        all_na_cols <- colnames(results_df)[vapply(results_df, function(x) all(is.na(x)),
-            FUN.VALUE = logical(1))]
-        if (length(all_na_cols) > 0) {
-            results_df <- results_df[, !colnames(results_df) %in% all_na_cols]
-            if (verbose) {
-                message("[calculate_effect_sizes] Removed NA columns: ", paste(all_na_cols,
-                  collapse = ", "))
+        # Only strip all-NA columns when there are actual rows
+        if (nrow(results_df) > 0) {
+            all_na_cols <- colnames(results_df)[vapply(results_df, function(x) all(is.na(x)),
+                FUN.VALUE = logical(1))]
+            if (length(all_na_cols) > 0) {
+                results_df <- results_df[, !colnames(results_df) %in% all_na_cols]
+                if (verbose) {
+                    message("[calculate_effect_sizes] Removed NA columns: ", paste(all_na_cols,
+                      collapse = ", "))
+                }
             }
         }
-        write.table(results_df, file = output_file, sep = "\t", quote = FALSE, row.names = FALSE)
+        # write.table handles 0-row data frames correctly (header-only output)
+        write.table(results_df, file = output_file, sep = "\t", quote = FALSE,
+            row.names = FALSE)
     } else {
         saveRDS(result, file = output_file)
     }

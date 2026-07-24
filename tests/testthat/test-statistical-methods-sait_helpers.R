@@ -108,17 +108,16 @@ testthat::test_that("LM fallback helpers choose appropriate method", {
     df <- data.frame(entropy = entropy, q = q, group = factor(group), subject = factor(subject))
     res <- TSENAT:::.try_sait_fallbacks(df)
     testthat::expect_type(res, "list")
-    # Phase 14: AR(1) tries nlme_ar1 first, then nlme, then glmmTMB, then sait_subject_fixed, then sait_nosubject
-    testthat::expect_true(res$method %in% c("nlme_ar1", "nlme", "glmmTMB", "sait_subject_fixed", "sait_nosubject"))
+    # Phase 14: AR(1) tries nlme_ar1 first, then nlme, then glmmTMB, then sait_subject_fixed
+    testthat::expect_true(res$method %in% c("nlme_ar1", "nlme", "glmmTMB", "sait_subject_fixed"))
     # fit1 can be lme, glmmTMB, or lm depending on which strategy succeeded
     testthat::expect_true(inherits(res$fit1, "lme") || inherits(res$fit1, "glmmTMB") || inherits(res$fit1, "lm") || inherits(res$fit1, "NA"))
 
-    # Test with categorical group only (no subject) - should fall back to nosubject strategy
+    # Test with categorical group only (no subject) — Strategy 4 removed (audit fix #16)
+    # Without subject column, all fallbacks exhausted → returns NULL
     df2 <- data.frame(entropy = entropy, q = q, group = factor(group))
     res2 <- TSENAT:::.try_sait_fallbacks(df2)
-    testthat::expect_type(res2, "list")
-    # Without subject column, should use nosubject fallback
-    testthat::expect_equal(res2$method, "sait_nosubject")
+    testthat::expect_null(res2)
 })
 
 testthat::test_that("LRT p extraction returns numeric p-value for nested lm models", {
@@ -985,63 +984,24 @@ test_that(".estimate_ar1_rho handles NULL subject_vec", {
 
 context("SAIT Helper: GAM Bias Correction")
 
-test_that(".gam_bias_correct increases p-value for small samples", {
-  config <- list()
-  
-  p_orig <- 0.01
-  
-  # Small sample: n=10 (less than 20)
-  result <- TSENAT:::.gam_bias_correct(p_orig, n_observations = 10, n_subjects = 2)
-  
-  # Function returns list with p_value element
-  expect_true(is.list(result))
-  expect_true("p_value" %in% names(result))
-  # Correction should increase p-value (conservative)
-  expect_gt(result$p_value, p_orig)
+test_that(".gam_bias_correct removed — audit fix #8", {
+  skip(".gam_bias_correct was removed — ad-hoc p-value multiplier had no theoretical basis")
 })
 
-test_that(".gam_bias_correct preserves p-value for large samples", {
-  config <- list()
-  
-  p_orig <- 0.01
-  
-  # Large sample: n=200 (>= 20)
-  result <- TSENAT:::.gam_bias_correct(p_orig, n_observations = 200, n_subjects = 50)
-  
-  # For large samples, no correction applied
-  expect_true(is.list(result))
-  expect_equal(result$p_value, p_orig)
+test_that(".gam_bias_correct removed — audit fix #8", {
+  skip(".gam_bias_correct was removed — ad-hoc p-value multiplier had no theoretical basis")
 })
 
-test_that(".gam_bias_correct handles NA p-value", {
-  config <- list()
-  
-  result <- TSENAT:::.gam_bias_correct(NA_real_, n_observations = 10, n_subjects = 2)
-  
-  expect_true(is.list(result))
-  expect_true(is.na(result$p_value))
+test_that(".gam_bias_correct removed — audit fix #8", {
+  skip(".gam_bias_correct was removed — ad-hoc p-value multiplier had no theoretical basis")
 })
 
-test_that(".gam_bias_correct bounds corrected p-value at 1", {
-  config <- list()
-  
-  # Very small p-value with aggressive correction
-  result <- TSENAT:::.gam_bias_correct(0.001, n_observations = 5, n_subjects = 1)
-  
-  expect_true(is.list(result))
-  expect_lte(result$p_value, 1.0)
+test_that(".gam_bias_correct removed — audit fix #8", {
+  skip(".gam_bias_correct was removed — ad-hoc p-value multiplier had no theoretical basis")
 })
 
-test_that(".gam_bias_correct handles n_observations parameter", {
-  config <- list()
-  
-  # Test with explicit n_observations
-  p_orig <- 0.01
-  
-  result <- TSENAT:::.gam_bias_correct(p_orig, n_observations = 8, n_subjects = 2)
-  
-  expect_true(is.list(result))
-  expect_gt(result$p_value, p_orig)
+test_that(".gam_bias_correct removed — audit fix #8", {
+  skip(".gam_bias_correct was removed — ad-hoc p-value multiplier had no theoretical basis")
 })
 
 # ===== ADF Stationarity Test =====

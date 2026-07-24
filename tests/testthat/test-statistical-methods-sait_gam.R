@@ -1371,82 +1371,20 @@ test_that("GAM bias correction is applied for small samples", {
     })
 })
 
-test_that(".gam_bias_correct returns correct adjustment for small samples", {
-    # Test p-value adjustment for sample sizes below 20
-    
-    # Large sample (should not be adjusted)
-    result_large <- TSENAT:::.gam_bias_correct(
-        p_value = 0.05,
-        n_observations = 25,
-        bias_correction = TRUE
-    )
-    
-    expect_false(result_large$bias_correction_applied)
-    expect_equal(result_large$p_value, 0.05)
-    
-    # Small sample (should be adjusted)
-    result_small <- TSENAT:::.gam_bias_correct(
-        p_value = 0.05,
-        n_observations = 10,
-        bias_correction = TRUE
-    )
-    
-    expect_true(result_small$bias_correction_applied)
-    # Adjusted p-value should be larger (more conservative) than original
-    expect_true(result_small$p_value > result_small$p_raw)
-    expect_true(result_small$p_value <= 1.0)
+test_that(".gam_bias_correct removed — bias correction deleted (audit fix #8)", {
+    skip(".gam_bias_correct was removed — the ad-hoc p-value multiplier had no theoretical basis")
 })
 
-test_that("GAM bias correction scales with sample size", {
-    # Very small sample should have larger adjustment
-    result_tiny <- TSENAT:::.gam_bias_correct(
-        p_value = 0.05,
-        n_observations = 5,
-        bias_correction = TRUE
-    )
-    
-    # Moderate small sample
-    result_moderate <- TSENAT:::.gam_bias_correct(
-        p_value = 0.05,
-        n_observations = 15,
-        bias_correction = TRUE
-    )
-    
-    # Both should have valid results and correction applied
-    expect_true(result_tiny$bias_correction_applied)
-    expect_true(result_moderate$bias_correction_applied)
-    
-    # Resulting p-values should be adjusted (not equal to original)
-    expect_true(result_tiny$p_value > result_tiny$p_raw)
-    expect_true(result_moderate$p_value > result_moderate$p_raw)
-    
-    # Both should be valid p-values
-    expect_true(result_tiny$p_value <= 1.0)
-    expect_true(result_moderate$p_value <= 1.0)
+test_that("GAM bias correction removed — scaling test skipped", {
+    skip(".gam_bias_correct was removed (audit fix #8)")
 })
 
-test_that("GAM bias correction handles NA p-values gracefully", {
-    # Test with NA p-value
-    result <- TSENAT:::.gam_bias_correct(
-        p_value = NA_real_,
-        n_observations = 10,
-        bias_correction = TRUE
-    )
-    
-    expect_true(is.na(result$p_value))
-    expect_false(result$bias_correction_applied)
+test_that("GAM bias correction removed — NA p-value test skipped", {
+    skip(".gam_bias_correct was removed (audit fix #8)")
 })
 
-test_that("GAM bias correction respects bias_correction=FALSE parameter", {
-    # Test with bias_correction=FALSE even for small samples
-    result <- TSENAT:::.gam_bias_correct(
-        p_value = 0.05,
-        n_observations = 10,
-        bias_correction = FALSE
-    )
-    
-    expect_false(result$bias_correction_applied)
-    expect_equal(result$p_value, 0.05)
+test_that("GAM bias correction removed — FALSE parameter test skipped", {
+    skip(".gam_bias_correct was removed (audit fix #8)")
 })
 
 # =============================================================================
@@ -1980,47 +1918,16 @@ test_that("Bias correction consistency with paired GAM", {
     })
 })
 
-test_that("P-value capping at 1.0 after adjustment", {
-    # Test that p-values are never adjusted above 1.0
-    result <- TSENAT:::.gam_bias_correct(
-        p_value = 0.95,
-        n_observations = 5,
-        bias_correction = TRUE
-    )
-    
-    expect_true(result$p_value <= 1.0)
+test_that("GAM bias correction removed — p-value capping test skipped", {
+    skip(".gam_bias_correct was removed (audit fix #8)")
 })
 
-test_that("Bias correction returns proper metadata structure", {
-    result <- TSENAT:::.gam_bias_correct(
-        p_value = 0.05,
-        n_observations = 10,
-        bias_correction = TRUE
-    )
-    
-    # Check required fields in result
-    expect_true("p_value" %in% names(result))
-    expect_true("bias_correction_applied" %in% names(result))
-    expect_true("n_samples" %in% names(result))
-    expect_true("correction_method" %in% names(result))
-    
-    # With correction applied, also check for raw p-value
-    if (result$bias_correction_applied) {
-        expect_true("p_raw" %in% names(result))
-        expect_true("adjustment_factor" %in% names(result))
-    }
+test_that("GAM bias correction removed — metadata test skipped", {
+    skip(".gam_bias_correct was removed (audit fix #8)")
 })
 
-test_that("GAM bias correction method identification", {
-    result <- TSENAT:::.gam_bias_correct(
-        p_value = 0.05,
-        n_observations = 10,
-        bias_correction = TRUE
-    )
-    
-    if (result$bias_correction_applied) {
-        expect_equal(result$correction_method, "gam_smoothing_bias_c071")
-    }
+test_that("GAM bias correction removed — method ID test skipped", {
+    skip(".gam_bias_correct was removed (audit fix #8)")
 })
 
 # ==============================================================================

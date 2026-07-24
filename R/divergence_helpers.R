@@ -86,13 +86,17 @@
     }
 
     # If no standard control label is found, use a conservative heuristic.
-    # This is only a fallback: it chooses the smallest group by sample count,
-    # which is typical for case/control designs but may be wrong for imbalanced
-    # or non-case-control datasets.
+    # This chooses the smallest group by sample count, which is typical for
+    # case/control designs but may be wrong for imbalanced or non-case-control
+    # datasets. Warn the user that this is an automatic guess.
     if (is.na(control_group)) {
         if (length(unique_groups) >= 2) {
             min_samples_group <- names(group_counts)[which.min(group_counts)]
             control_group <- min_samples_group
+            warning("Auto-detected control_group='", control_group,
+                "' (smallest group by sample count). ",
+                "This heuristic may be incorrect. Set control_group explicitly.",
+                call. = FALSE)
         } else if (length(unique_groups) == 1) {
             control_group <- unique_groups[1]
         }
@@ -537,10 +541,8 @@
         div <- div/log(log_base)
     }
 
-    # BUG FIX: Handle sign correctly for q < 1 When q < 1, (q_val - 1) is
-    # negative, so the formula naturally produces a positive divergence. We
-    # must take absolute value and ensure non-negativity.  Divergence should
-    # always be >= 0.
+    # abs() handles numerical underflow (sum_term ≈ 1) while preserving magnitude.
+    # max(0, div) would zero out small negative values, losing information.
     return(abs(div))
 }
 

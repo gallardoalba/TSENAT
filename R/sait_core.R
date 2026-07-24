@@ -244,6 +244,8 @@
 #' @noRd
 .calculate_sait <- function(se, condition_col = "condition", min_obs = 5, method = c("lmm",
     "gam", "fpca", "gee"), pvalue = c("satterthwaite", "lrt", "both"), subject_col = NULL,
+    # pvalue controls LMM p-value computation method and is passed to .fit_all_genes
+    # and .adjust_pvalues_multicorr. Not ignored — used throughout the pipeline.
     paired = FALSE, nthreads = 1, assay_name = "diversity", pcorr = "BH", verbose = FALSE,
     bias_correction = TRUE, regularization = c("pca", "lasso", "elasticnet", "gamsel",
         "spline"), corstr = c("ar1", "exchangeable", "independence"), multicorr = c("hochberg",
@@ -351,10 +353,19 @@
         stop("Results data.frame missing required 'p_interaction' column", call. = FALSE)
     }
     
-    # Adjust p-values for multiple q-values
+    # AUDIT FIX #23: Pass all parameters needed for Westfall-Young permutation refit.
+    # Without fit_one_fn and rownames_mat, the WY path cannot compute per-gene
+    # permutation p-values and silently falls back to no adjustment.
     res$adj_p_interaction <- .adjust_pvalues_multicorr(p_values = res$p_interaction,
         multicorr = multicorr, wy_randomizations = wy_randomizations, metadata = metadata,
-        verbose = verbose, storey = storey)
+        verbose = verbose, storey = storey,
+        fit_one_fn = attr(res, "fit_one_fn"),
+        rownames_mat = rownames(mat),
+        mat = mat, se = se, method = method, pvalue = pvalue,
+        subject_col = subject_col, paired = paired, min_obs = min_obs,
+        nthreads = nthreads, bias_correction = bias_correction,
+        regularization = regularization, corstr = corstr,
+        adaptive_knots = adaptive_knots)
     
     # Sort by adjusted p-values, then raw p-values
     res <- res[order(res$adj_p_interaction, res$p_interaction), , drop = FALSE]

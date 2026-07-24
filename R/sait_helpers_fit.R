@@ -190,8 +190,17 @@
                 subject = subject, regularization = regularization, weights = weights)
         } else if (method == "gee") {
             subject <- .get_subject_ids(se, subject_col, paired, mat, sample_names)
-            if (is.null(subject) && !paired)
+            if (is.null(subject) && !paired) {
+                # AUDIT FIX R10: Using sample_names as cluster IDs treats every observation
+                # as its own cluster (n=1). GEE degenerates to a standard GLM, losing the
+                # robust sandwich variance that is the primary benefit of GEE.
+                warning("[.fit_one_interaction] No subject/cluster column found. ",
+                        "GEE will treat each observation as its own cluster, ",
+                        "effectively becoming a standard GLM without robust variance estimation. ",
+                        "Consider specifying subject_col or using method='gam' instead.",
+                        call. = FALSE)
                 subject <- sample_names
+            }
             .gee_interaction(df, q_vals, g, subject = subject, min_obs = min_obs,
                 corstr = corstr, bias_correction = bias_correction, weights = weights)
         } else {
@@ -335,26 +344,34 @@
 
     if (use_var_structure) {
         if (verbose) {
-            fit0 <- try(nlme::lme(formula_null, random = ~1 | subject, data = df_model,
+            fit0 <- try(nlme::lme(formula_null, random = ~1 | subject,
+                correlation = nlme::corAR1(form = ~1 | subject), data = df_model,
                 method = "ML"), silent = TRUE)
-            fit1 <- try(nlme::lme(formula_alt, random = ~1 | subject, data = df_model,
+            fit1 <- try(nlme::lme(formula_alt, random = ~1 | subject,
+                correlation = nlme::corAR1(form = ~1 | subject), data = df_model,
                 method = "ML"), silent = TRUE)
         } else {
-            fit0 <- try(nlme::lme(formula_null, random = ~1 | subject, data = df_model,
+            fit0 <- try(nlme::lme(formula_null, random = ~1 | subject,
+                correlation = nlme::corAR1(form = ~1 | subject), data = df_model,
                 method = "ML"), silent = TRUE)
-            fit1 <- try(nlme::lme(formula_alt, random = ~1 | subject, data = df_model,
+            fit1 <- try(nlme::lme(formula_alt, random = ~1 | subject,
+                correlation = nlme::corAR1(form = ~1 | subject), data = df_model,
                 method = "ML"), silent = TRUE)
         }
     } else {
         if (verbose) {
-            fit0 <- try(nlme::lme(formula_null, random = ~1 | subject, data = df_model,
+            fit0 <- try(nlme::lme(formula_null, random = ~1 | subject,
+                correlation = nlme::corAR1(form = ~1 | subject), data = df_model,
                 method = "ML"), silent = TRUE)
-            fit1 <- try(nlme::lme(formula_alt, random = ~1 | subject, data = df_model,
+            fit1 <- try(nlme::lme(formula_alt, random = ~1 | subject,
+                correlation = nlme::corAR1(form = ~1 | subject), data = df_model,
                 method = "ML"), silent = TRUE)
         } else {
-            fit0 <- try(nlme::lme(formula_null, random = ~1 | subject, data = df_model,
+            fit0 <- try(nlme::lme(formula_null, random = ~1 | subject,
+                correlation = nlme::corAR1(form = ~1 | subject), data = df_model,
                 method = "ML"), silent = TRUE)
-            fit1 <- try(nlme::lme(formula_alt, random = ~1 | subject, data = df_model,
+            fit1 <- try(nlme::lme(formula_alt, random = ~1 | subject,
+                correlation = nlme::corAR1(form = ~1 | subject), data = df_model,
                 method = "ML"), silent = TRUE)
         }
     }

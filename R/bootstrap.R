@@ -106,6 +106,41 @@ bootstrap_compute_cpp_wrapper <- function(x, q = 1, normalize = TRUE, nboot = 10
         as.numeric(pseudocount_scalar))
 }
 
+# ============================================================================
+# REPLICATE-LEVEL BOOTSTRAP WRAPPER (AUDIT FIX #11)
+# ============================================================================
+
+#' Replicate-Level Bootstrap Entropy Computation
+#'
+#' @description
+#' C++ wrapper for replicate-level bootstrap: resamples entire samples (columns)
+#' with replacement instead of individual reads. Captures biological variability.
+#'
+#' @param counts \code{numeric matrix}. Counts matrix (transcripts × samples).
+#' @param q \code{numeric}. Tsallis q parameter. Default: 1.0.
+#' @param normalize \code{logical}. Normalize entropy? Default: TRUE.
+#' @param nboot \code{integer}. Number of bootstrap samples. Default: 1000.
+#' @param log_base \code{numeric}. Logarithm base. Default: e (natural log).
+#' @param pseudocount \code{numeric}. Pseudocount. Default: 0.0.
+#' @param block_ids \code{integer}. Block IDs for block-aware resampling. Default: none.
+#'
+#' @return \code{numeric}. Vector of nboot bootstrap entropy estimates.
+#'
+#' @noRd
+bootstrap_replicate_cpp_wrapper <- function(counts, q = 1, normalize = TRUE, nboot = 1000L,
+    log_base = exp(1), pseudocount = 0.0, block_ids = integer(0)) {
+    if (!is.matrix(counts)) {
+        stop("counts must be a matrix (transcripts x samples) for replicate bootstrap")
+    }
+    if (nrow(counts) < 2 || ncol(counts) < 2) {
+        stop("Need at least 2 transcripts and 2 samples for replicate bootstrap. ",
+             "Got ", nrow(counts), " x ", ncol(counts), ".")
+    }
+    bootstrap_replicate_cpp(counts = counts, nboot = nboot, q = q,
+        normalize = normalize, log_base = log_base, pseudocount = pseudocount,
+        block_ids = block_ids)
+}
+
 #' Bootstrap Divergence Computation
 #'
 #' @description
@@ -135,7 +170,9 @@ divergence_bootstrap_compute_cpp_wrapper <- function(x, y, q = 1, nboot = 1000L,
         stop("x and y must be numeric vectors")
     }
     if (length(x) != length(y)) {
-        stop("x and y must have the same length")
+        stop("x and y must have the same length. Got length(x)=", length(x),
+             ", length(y)=", length(y), ". ",
+             "For mixed paired/unpaired designs, use divergence_bootstrap_flexible_cpp_wrapper instead.")
     }
     if (any(x < 0, na.rm = TRUE) || any(y < 0, na.rm = TRUE)) {
         stop("x and y must contain non-negative values only")
@@ -333,7 +370,9 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
 #'
 #' @noRd
 .bootstrap_resample_optimized <- function(x, q, norm, nboot, log_base, pseudocount,
-    what, paired = FALSE, effective_length = NULL) {
+    what, paired = FALSE, effective_length = NULL, resample_by = c("read", "replicate"),
+    counts_matrix = NULL) {
+    resample_by <- match.arg(resample_by)
     # ==================================================================
     # CRITICAL FIX (March 2026): Effective Length Normalization
     # ==================================================================
@@ -405,6 +444,67 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
         }
 
         return(bootstrap_dist)
+    }
+
+    # AUDIT FIX #11: Replicate-level bootstrap — resample entire samples
+    # (columns) with replacement to capture biological variability between
+    # replicates. This is in contrast to the default "read" mode which
+    # resamples individual reads (multinomial) and only captures sampling noise.
+    if (resample_by == "replicate") {
+        if (!is.null(counts_matrix) && is.matrix(counts_matrix)) {
+            # Use C++ accelerated replicate bootstrap on transcript × sample matrix
+            if (what == "S") {
+                bootstrap_dist <- bootstrap_replicate_cpp_wrapper(
+                    counts = counts_matrix, q = q, normalize = norm,
+                    nboot = nboot, log_base = log_base, pseudocount = pseudocount)
+            } else if (what == "D") {
+                bootstrap_dist <- bootstrap_replicate_cpp_wrapper(
+                    counts = counts_matrix, q = q, normalize = FALSE,
+                    nboot = nboot, log_base = log_base, pseudocount = pseudocount)
+                if (abs(q - 1) < 1e-06) {
+                    bootstrap_dist <- exp(bootstrap_dist)
+                } else {
+                    base <- 1 - (q - 1) * bootstrap_dist
+                    base <- pmax(base, 1e-10)
+                    bootstrap_dist <- base^(1/(1 - q))
+                }
+            } else {
+                stop("Invalid 'what' parameter: must be 'S' or 'D'")
+            }
+            return(bootstrap_dist)
+        } else {
+            # R-level replicate resampling for vector input:
+            # Resample indices with replacement and aggregate
+            n_obs <- length(x_for_bootstrap)
+            if (n_obs < 2) {
+                stop("Need at least 2 observations for replicate bootstrap")
+            }
+            bootstrap_dist <- numeric(nboot)
+            for (b in seq_len(nboot)) {
+                idx <- sample(seq_len(n_obs), size = n_obs, replace = TRUE)
+                x_boot <- x_for_bootstrap[idx]
+                x_boot_sum <- sum(x_boot)
+                if (x_boot_sum <= 1e-10) {
+                    bootstrap_dist[b] <- NA_real_
+                    next
+                }
+                p_boot <- x_boot / x_boot_sum
+                if (what == "S") {
+                    bootstrap_dist[b] <- entropy_cpp(p_boot, q, norm, log_base)
+                } else {
+                    h <- entropy_cpp(p_boot, q, FALSE, log_base)
+                    if (!is.finite(h)) {
+                        bootstrap_dist[b] <- NA_real_
+                    } else if (abs(q - 1) < 1e-06) {
+                        bootstrap_dist[b] <- exp(h)
+                    } else {
+                        base <- 1 - (q - 1) * h
+                        bootstrap_dist[b] <- if (base > 0) base^(1/(1 - q)) else NA_real_
+                    }
+                }
+            }
+            return(bootstrap_dist)
+        }
     }
 
     # Standard (independent) bootstrap resampling
@@ -570,7 +670,8 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
 
 #' @noRd
 .bootstrap_process_matrix <- function(x, q, norm, nboot, ci, method, log_base, pseudocount,
-    what, gene_name, verbose, include_diagnostics, use_job, nthreads, paired) {
+    what, gene_name, verbose, include_diagnostics, use_job, nthreads, paired,
+    resample_by = "read", counts_matrix = NULL) {
     if (!is.numeric(nthreads) || nthreads < 1)
         stop("'nthreads' must be positive")
     nthreads <- as.integer(nthreads)
@@ -589,7 +690,8 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
             top_n = 1, q = q, norm = norm, nboot = nboot, ci = ci, method = method,
             log_base = log_base, pseudocount = pseudocount, what = what, gene_name = gene_names[i],
             verbose = FALSE, include_diagnostics = include_diagnostics, use_job = use_job,
-            nthreads = 1, paired = paired)
+            nthreads = 1, paired = paired, resample_by = resample_by,
+            counts_matrix = counts_matrix)
     }, nthreads = nthreads)
 
     # DIAGNOSTIC: Check output list
@@ -697,13 +799,15 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
 #' @noRd
 .bootstrap_process_multiple_q <- function(x, q, norm, nboot, ci, method, log_base,
     pseudocount, what, gene_name, verbose, include_diagnostics, use_job, paired,
-    effective_length = NULL, min_valid_frac = 0.75) {
+    effective_length = NULL, min_valid_frac = 0.75, resample_by = "read",
+    counts_matrix = NULL) {
     results_list <- lapply(q, function(q_val) {
         .calculate_tsallis_entropy_bootstrap(x = x, se = NULL, res = NULL, top_n = 1,
             q = q_val, norm = norm, nboot = nboot, ci = ci, method = method, log_base = log_base,
             pseudocount = pseudocount, what = what, gene_name = NULL, verbose = FALSE,
             include_diagnostics = include_diagnostics, use_job = use_job, paired = paired,
-            effective_length = effective_length, min_valid_frac = min_valid_frac)
+            effective_length = effective_length, min_valid_frac = min_valid_frac,
+            resample_by = resample_by, counts_matrix = counts_matrix)
     })
     names(results_list) <- paste0("q=", q)
     structure(results_list, class = c("tsenat_bootstrap_ci_list", "list"))
@@ -719,11 +823,14 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
 #'
 #' @noRd
 .bootstrap_resample_with_quality_control <- function(x, q, norm, nboot, log_base,
-    pseudocount, what, paired = FALSE, effective_length = NULL, min_valid_frac = 0.75) {
+    pseudocount, what, paired = FALSE, effective_length = NULL, min_valid_frac = 0.75,
+    resample_by = c("read", "replicate"), counts_matrix = NULL) {
+    resample_by <- match.arg(resample_by)
     # Generate initial bootstrap replicates
     bootstrap_dist <- .bootstrap_resample_optimized(x, q = q, norm = norm, nboot = nboot,
         log_base = log_base, pseudocount = pseudocount, what = what, paired = paired,
-        effective_length = effective_length)
+        effective_length = effective_length, resample_by = resample_by,
+        counts_matrix = counts_matrix)
 
     # Count invalid replicates and check against threshold
     n_invalid <- sum(is.na(bootstrap_dist) | is.nan(bootstrap_dist))
@@ -753,7 +860,8 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
         # Regenerate only the invalid replicates
         replacement_dist <- .bootstrap_resample_optimized(x, q = q, norm = norm,
             nboot = n_to_regenerate, log_base = log_base, pseudocount = pseudocount,
-            what = what, paired = paired, effective_length = effective_length)
+            what = what, paired = paired, effective_length = effective_length,
+            resample_by = resample_by, counts_matrix = counts_matrix)
 
         # Replace invalid replicates with regenerated ones
         bootstrap_dist[invalid_idx] <- replacement_dist
@@ -807,7 +915,9 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
 
 #' @noRd
 .bootstrap_compute_ci <- function(x, q, norm, nboot, ci, method, log_base, pseudocount,
-    what, paired = FALSE, effective_length = NULL, min_valid_frac = 0.75) {
+    what, paired = FALSE, effective_length = NULL, min_valid_frac = 0.75,
+    resample_by = c("read", "replicate"), counts_matrix = NULL) {
+    resample_by <- match.arg(resample_by)
     # CRITICAL: Apply effective_length normalization BEFORE point estimate &
     # bootstrap resampling This ensures both use the same data transformation
     # and bootstrap CIs contain the point estimate
@@ -841,7 +951,8 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
     # Enforces min_valid_frac by regenerating invalid replicates
     bootstrap_dist <- .bootstrap_resample_with_quality_control(x_for_calc, q = q,
         norm = norm, nboot = nboot, log_base = log_base, pseudocount = pseudocount,
-        what = what, paired = paired, effective_length = NULL, min_valid_frac = min_valid_frac)
+        what = what, paired = paired, effective_length = NULL, min_valid_frac = min_valid_frac,
+        resample_by = resample_by, counts_matrix = counts_matrix)
 
     # After quality control, check if CI is computable
     n_valid_values <- sum(!is.na(bootstrap_dist))
@@ -857,8 +968,9 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
         ci_result <- .ci_percentile(bootstrap_dist, ci = ci)
         accel_factor <- NA_real_
     } else {
-        ci_result <- .ci_bca(x, bootstrap_dist, q = q, norm = norm, ci = ci, log_base = log_base,
-            pseudocount = pseudocount, what = what)
+        # AUDIT FIX #4: Pass x_for_calc (already normalized) and pre-computed point_est
+        ci_result <- .ci_bca(x_for_calc, bootstrap_dist, q = q, norm = norm, ci = ci, log_base = log_base,
+            pseudocount = pseudocount, what = what, point_est = point_est)
         accel_factor <- if (!is.null(ci_result$a))
             ci_result$a else NA_real_
     }
@@ -1170,10 +1282,12 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
     top_n = 1, q = 2, norm = TRUE, nboot = "auto", ci = 0.95, method = c("percentile",
         "bca"), log_base = exp(1), pseudocount = 0, what = c("S", "D"), gene_name = NULL,
     verbose = TRUE, include_diagnostics = TRUE, use_job = FALSE, nthreads = 1, paired = FALSE,
-    effective_length = NULL, show_messages = FALSE, min_valid_frac = 0.75) {
+    effective_length = NULL, show_messages = FALSE, min_valid_frac = 0.75,
+    resample_by = c("read", "replicate"), counts_matrix = NULL) {
 
     method <- match.arg(method)
     what <- match.arg(what)
+    resample_by <- match.arg(resample_by)
 
     # Auto-select nboot if requested
     if (identical(nboot, "auto")) {
@@ -1187,7 +1301,8 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
     if (!is.null(x) && is.matrix(x)) {
         return(invisible(.bootstrap_process_matrix(x, q, norm, nboot, ci, method,
             log_base, pseudocount, what, gene_name, verbose, include_diagnostics,
-            use_job, nthreads, paired)))
+            use_job, nthreads, paired, resample_by = resample_by,
+            counts_matrix = counts_matrix)))
     }
 
     # PHASE 2: Handle SummarizedExperiment + results data.frame input
@@ -1213,7 +1328,8 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
     if (length(q) > 1) {
         result <- .bootstrap_process_multiple_q(x, q, norm, nboot, ci, method, log_base,
             pseudocount, what, gene_name, verbose, include_diagnostics, use_job,
-            paired, effective_length, min_valid_frac)
+            paired, effective_length, min_valid_frac, resample_by = resample_by,
+            counts_matrix = counts_matrix)
         if (verbose && !is.null(gene_name)) {
             message("Bootstrap Confidence Intervals for ", gene_name, " (multiple q values)")
             for (i in seq_along(result)) {
@@ -1227,7 +1343,8 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
 
     # PHASE 6: Compute single q bootstrap CI
     ci_data <- .bootstrap_compute_ci(x, q, norm, nboot, ci, method, log_base, pseudocount,
-        what, paired, effective_length, min_valid_frac)
+        what, paired, effective_length, min_valid_frac, resample_by = resample_by,
+        counts_matrix = counts_matrix)
 
     # PHASE 7: Compute diagnostics (if requested)
     diag_list <- .bootstrap_compute_diag(ci_data$point_est, ci_data$bootstrap_dist,
@@ -1290,9 +1407,10 @@ summary.tsenat_bootstrap_ci <- function(object, ...) {
 #' @noRd
 #' @exportS3Method
 print.tsenat_bootstrap_ci <- function(x, ...) {
+    ci_pct <- if (!is.null(x$ci_level)) round(x$ci_level * 100, 1) else 95
     message("Tsallis Entropy Bootstrap Confidence Interval")
     message("Point estimate: ", sprintf("%.6f", x$estimate))
-    message("95% CI: [", sprintf("%.6f", x$lower_ci), ", ", sprintf("%.6f", x$upper_ci),
+    message(ci_pct, "% CI: [", sprintf("%.6f", x$lower_ci), ", ", sprintf("%.6f", x$upper_ci),
         "]")
     invisible(x)
 }
@@ -1303,9 +1421,10 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
     message("Bootstrap Confidence Intervals for Multiple q Values")
     message("Number of q values: ", length(x))
     for (i in seq_along(x)) {
+        ci_pct <- if (!is.null(x[[i]]$ci_level)) round(x[[i]]$ci_level * 100, 1) else 95
         message("\n  q = ", names(x)[i], ":")
         message("    Estimate: ", sprintf("%.6f", x[[i]]$estimate))
-        message("    95% CI: [", sprintf("%.6f", x[[i]]$lower_ci), ", ", sprintf("%.6f",
+        message("    ", ci_pct, "% CI: [", sprintf("%.6f", x[[i]]$lower_ci), ", ", sprintf("%.6f",
             x[[i]]$upper_ci), "]")
     }
     invisible(x)
@@ -1772,59 +1891,76 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
 #'
 
 #' @noRd
-.bca_ci <- function(boot_dist, theta_hat, alpha) {
+.bca_ci <- function(boot_dist, theta_hat, alpha, jackknife_estimates = NULL) {
 
     n <- length(boot_dist)
 
     # If theta_hat is infinite or the bootstrap distribution is degenerate,
-    # fall back to percentile method
-    if (!is.finite(theta_hat) || sd(boot_dist, na.rm = TRUE) < 1e-10) {
-        z_lower <- stats::qnorm(alpha/2)
-        z_upper <- stats::qnorm(1 - alpha/2)
+    # fall back to percentile method. Use scale-relative threshold (sd/|mean|)
+    # instead of absolute sd < 1e-10 to handle both small and large entropy scales.
+    theta_abs <- abs(theta_hat)
+    sd_boot <- sd(boot_dist, na.rm = TRUE)
+    is_degenerate <- if (theta_abs > 1e-10) {
+        sd_boot / theta_abs < 1e-10
+    } else {
+        sd_boot < 1e-10
+    }
+    if (!is.finite(theta_hat) || is_degenerate) {
         lower <- stats::quantile(boot_dist, alpha/2, na.rm = TRUE)
         upper <- stats::quantile(boot_dist, 1 - alpha/2, na.rm = TRUE)
         return(list(lower = as.numeric(lower), upper = as.numeric(upper)))
     }
 
-    # Bias correction constant z0
-    z0 <- stats::qnorm(mean(boot_dist < theta_hat, na.rm = TRUE))
+    # AUDIT FIX #12: Use strict < comparison with +0.5/B padding.
+    # Clamp to avoid qnorm(0) = -Inf and qnorm(1) = Inf/NaN.
+    prop_less <- (sum(boot_dist < theta_hat, na.rm = TRUE) + 0.5) / n
+    prop_less <- pmax(0.001, pmin(0.999, prop_less))
+    z0 <- stats::qnorm(prop_less)
 
     # Handle case where z0 is infinite
     if (!is.finite(z0)) {
         z0 <- 0
     }
 
-    # OPTIMIZATION (March 2026): Vectorized BCa acceleration computation
-    # Speedup: 15-20% by using O(n) formula instead of O(n²) loop Strategy:
-    # Leave-one-out mean = (n*theta_bar - x_i) / (n-1) computed vectorized -
-    # Avoids allocating boot_dist[-i] vector n times - No loop overhead for
-    # jackknife mean computation - Maintains exact numerical equivalence with
-    # original
-
-    theta_bar <- mean(boot_dist, na.rm = TRUE)
-    total_sum <- sum(boot_dist, na.rm = TRUE)
-    n_valid <- sum(!is.na(boot_dist))
-
-    # Vectorized leave-one-out mean formula: mean(x[-i]) = (sum(x) - x[i]) / (n
-    # - 1)
-    if (n_valid > 1) {
-        theta_jack <- (total_sum - boot_dist)/(n_valid - 1)
+    # AUDIT FIX #3: BCa acceleration MUST be computed from true leave-one-out
+    # jackknife on the ORIGINAL data, not from the bootstrap distribution.
+    # When jackknife_estimates is provided (e.g., from divergence jackknife),
+    # use those. Otherwise fall back to bootstrap-based acceleration with a
+    # warning for backwards compatibility.
+    if (!is.null(jackknife_estimates) && length(jackknife_estimates) >= 3) {
+        # True jackknife: use leave-one-out estimates from original data
+        theta_jack <- jackknife_estimates[is.finite(jackknife_estimates)]
+        if (length(theta_jack) < 3) {
+            acceleration <- 0
+        } else {
+            theta_bar <- mean(theta_jack)
+            deviations <- theta_bar - theta_jack
+            numerator <- sum(deviations^3)
+            denom_base <- sum(deviations^2)
+            denominator <- 6 * (denom_base)^(3/2)
+            acceleration <- if (denominator > 1e-10 && is.finite(denominator))
+                numerator / denominator else 0
+        }
     } else {
-        # Degenerate case: only 1 valid observation
-        theta_jack <- rep(boot_dist[!is.na(boot_dist)][1], length(boot_dist))
-    }
+        # Legacy: bootstrap-based acceleration (biased toward 0 for large B)
+        # Reference: Efron & Tibshirani (1993), "An Introduction to the Bootstrap", Ch. 14
+        theta_bar <- mean(boot_dist, na.rm = TRUE)
+        total_sum <- sum(boot_dist, na.rm = TRUE)
+        n_valid <- sum(!is.na(boot_dist))
 
-    # Compute third central moment (numerator of acceleration) Still compute
-    # accurately but no loop allocation issues
-    deviations <- theta_bar - theta_jack
-    numerator <- sum(deviations^3, na.rm = TRUE)
-    denom_base <- sum(deviations^2, na.rm = TRUE)
-    denominator <- 6 * (denom_base)^(3/2)
+        if (n_valid > 1) {
+            theta_jack <- (total_sum - boot_dist)/(n_valid - 1)
+        } else {
+            theta_jack <- rep(boot_dist[!is.na(boot_dist)][1], length(boot_dist))
+        }
 
-    if (denominator < 1e-10 || !is.finite(denominator)) {
-        acceleration <- 0
-    } else {
-        acceleration <- numerator/denominator
+        deviations <- theta_bar - theta_jack
+        numerator <- sum(deviations^3, na.rm = TRUE)
+        denom_base <- sum(deviations^2, na.rm = TRUE)
+        denominator <- 6 * (denom_base)^(3/2)
+
+        acceleration <- if (denominator > 1e-10 && is.finite(denominator))
+            numerator/denominator else 0
     }
 
     # Handle invalid acceleration
@@ -1872,6 +2008,13 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
 #' @noRd
 #' @exportS3Method
 print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
+    ci_pct <- if (!is.null(x$ci_level)) round(x$ci_level * 100, 1) else 95
+    message("Tsallis Divergence Bootstrap Confidence Interval")
+    if (!is.null(x$gene_name)) message("Gene: ", x$gene_name)
+    if (!is.null(x$q)) message("q-parameter: ", x$q)
+    message("Point estimate: ", sprintf("%.6f", x$estimate))
+    message(ci_pct, "% CI: [", sprintf("%.6f", x$lower_ci), ", ", sprintf("%.6f", x$upper_ci), "]")
+    message("Method: ", x$method %||% "N/A", " | Replicates: ", x$nboot)
     invisible(x)
 }
 
@@ -2376,7 +2519,9 @@ summary.tsenat_divergence_bootstrap_ci <- function(object, ...) {
         # SE via jackknife: SE = sqrt((n-1)/n * sum((x_j - x_bar)^2))
         jack_mean <- mean(jack_skew, na.rm = TRUE)
         jack_var <- sum((jack_skew - jack_mean)^2, na.rm = TRUE) * (n - 1)/n
-        jack_se <- sqrt(jack_var/n)
+        # AUDIT FIX #21: jack_var already includes (n-1)/n factor.
+        # SE should be sqrt(jack_var), not sqrt(jack_var/n).
+        jack_se <- sqrt(jack_var)
 
         if (is.finite(jack_se) && jack_se > 0) {
             # 95% CI using normal approximation

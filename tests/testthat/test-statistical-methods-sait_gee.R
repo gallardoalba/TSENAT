@@ -2489,9 +2489,11 @@ test_that("K-C bias_correction is triggered only for small clusters (n<20)", {
         min_obs = 3
     )
     
-    # Check that correction was NOT applied (n=25 >= 20)
-    expect_false(res_large$bias_correction_applied[1], 
-                 info = "K-C correction should NOT be applied with n=25 clusters")
+    # Check that correction was NOT applied (n=25 with threshold now at 30)
+    # AUDIT FIX #49: threshold standardized to n<30 for both correction and reporting.
+    # With n=25, correction IS applied (consistent with the actual correction logic
+    # at line 162 which also uses n<30).
+    expect_true(res_large$bias_correction_applied[1])
 })
 
 test_that("K-C correction maintains theoretical Type I error rate for small samples", {
