@@ -21,7 +21,7 @@
 #' ```
 #' 1. [For multi-q correlation-adjusted analysis, see
 #' .calculate_sait() with multicorr='westfall-young']
-#' 2. Or: Use .calculate_srh() for rank-based multi-q testing with
+#' 2. Or: Use .calculate_rank_transform() for rank-based multi-q testing with
 #' WY control
 #'   3. Then: pi0_obj <- .estimate_storey_pi0(adjusted_pvalues)
 #' 4. Then: qvals <- .compute_storey_qvalues(adjusted_pvalues, pi0 =
@@ -330,7 +330,7 @@
 # WESTFALL-YOUNG PERMUTATION HELPER (March 2026)
 # ════════════════════════════════════════════════════════════════════════════════
 # Consolidates redundant WY permutation logic shared between: 1.
-# .calculate_sait() - parametric tests (GAM, LMM, GEE) 2.  .calculate_srh() -
+# .calculate_sait() - parametric tests (GAM, LMM, GEE) 2.  .calculate_rank_transform() -
 # rank-based tests (Conover-Iman Rank Transform only, March 2026) rank) DESIGN PATTERN: -
 # Core permutation loop is identical in both functions (~70% code duplication)
 # - Model refitting logic differs (parametric vs rank-based) - Solution:

@@ -133,7 +133,7 @@ test_that("print.assumptions_text() with special characters", {
 # ============================================================================
 
 test_that("print.concordance_text() outputs text content", {
-    concordance_output <- "Concordance Analysis Results:\n- GAM coef: 0.87\n- SRH coef: 0.85\n- Correlation: 0.92"
+    concordance_output <- "Concordance Analysis Results:\n- GAM coef: 0.87\n- Conover-Iman Rank Transform coef: 0.85\n- Correlation: 0.92"
     class(concordance_output) <- c("concordance_text", "character")
     
     output <- capture.output(print(concordance_output))
@@ -176,7 +176,7 @@ test_that("print.concordance_text() with numeric output", {
 })
 
 test_that("print.concordance_text() handles method names", {
-    methods_output <- "Method Comparison:\nGAM (Generalized Additive Model)\nvs\nSRH (Scheirer-Ray-Hare Rank Test)\nAgreement: 92.5%"
+    methods_output <- "Method Comparison:\nGAM (Generalized Additive Model)\nvs\nConover-Iman Rank Transform\nAgreement: 92.5%"
     class(methods_output) <- c("concordance_text", "character")
     
     output <- capture.output(print(methods_output))

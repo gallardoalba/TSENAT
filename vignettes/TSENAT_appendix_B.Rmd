@@ -53,11 +53,11 @@ The primary goal of this vignette is to validate that discoveries of scale-depen
 - Heteroscedasticity handling: Automatically detects variance heterogeneity (Breusch-Pagan test); ; however, heteroscedasticity-based variance weights are not applied in paired designs due to `mgcv::gamm()` limitations.
 - Key advantage: Captures smooth nonlinear q × condition interactions while accommodating paired sample correlation structure through random intercepts and AR(1) correlation modeling; includes small-sample bias correction for n < 20. 
 
-**Method 2: Rank-Based Scheirer-Ray-Hare Test (SRH)** with Hochberg Step-Up Correction.
+**Method 2: Rank-Based Conover-Iman Rank Transform** with Hochberg Step-Up Correction.
 
 - Framework: Pure non-parametric method; zero parametric or distributional assumptions.
 - Distributional assumption: None; operates entirely on ranks (1, 2, ..., n), equivalent to two-way ANOVA on ordinal data.
-- Treatment of q-ordering: Two-way SRH test on ranks, treating q-values as within-subject paired measurements; decomposes ranked data via ANOVA and computes F-statistic.
+- Treatment of q-ordering: Two-way Conover-Iman Rank Transform on ranks, treating q-values as within-subject paired measurements; decomposes ranked data via ANOVA and computes F-statistic.
 - Heteroscedasticity handling: Rank transformation inherently robust to heteroscedasticity (variance differences do not affect relative ordering); Hochberg step-up correction controls FWER across multiple tests.
 - Key advantage: Maximally robust to outliers and any distributional violations; valid under any continuous distribution and correlation structure.
 
@@ -166,9 +166,9 @@ analysis <- calculate_diversity(
 )
 ```
 
-# Rank-Based Approach (SRH)
+# Rank-Based Approach (Conover-Iman Rank Transform)
 
-The SRH test is a two-way non-parametric ANOVA that operates on ranks rather than raw values. It is particularly well-suited for Tsallis entropy analysis for three fundamental reasons:
+The Conover-Iman Rank Transform is a two-way non-parametric ANOVA that operates on ranks rather than raw values. It is particularly well-suited for Tsallis entropy analysis for three fundamental reasons:
 
 1. **Robustness to Distribution Violations**
 
@@ -178,13 +178,13 @@ Tsallis entropy values exhibit inherent distributional properties that often vio
 - Heteroscedasticity: Variance in entropy estimates varies systematically across q-values. Low q-values (emphasizing rare transcripts) produce volatile entropy estimates with high variance; high q-values (emphasizing abundant transcripts) produce stable estimates with lower variance.
 - Outlier sensitivity: Rare isoforms and count variability can produce extreme entropy values that heavily influence parametric tests.
 
-The SRH test avoids these issues by replacing raw entropy values with their ranks (1, 2, 3, ..., n). Ranks are **uniformly distributed and contain no outliers**, making the method valid for ANY continuous distribution—normal, skewed, bimodal, or otherwise. Critically, rank ordering is unaffected by normalization choice; whether entropy is normalized, log-transformed, or left raw, the test produces identical results [@S270; @S271].
+The Conover-Iman Rank Transform avoids these issues by replacing raw entropy values with their ranks (1, 2, 3, ..., n). Ranks are **uniformly distributed and contain no outliers**, making the method valid for ANY continuous distribution—normal, skewed, bimodal, or otherwise. Critically, rank ordering is unaffected by normalization choice; whether entropy is normalized, log-transformed, or left raw, the test produces identical results [@S270; @S271].
 
 2. **Paired Design for Ordered q-Value Structure**
 
 Tsallis entropy has a fundamental sequential property: entropy curves are smooth functions of q. As q increases from 0 (rare-species-emphasizing) to ∞ (common-species-emphasizing), entropy values change systematically. This ordered structure is critical to interpreting q-dependent patterns and exhibits **AR(1) autocorrelation**: consecutive q-values produce correlated entropy estimates.
 
-The SRH test handles this structure by treating measurements as paired/repeated within genes across ordered q-values, capturing the sequential nature while maintaining exchangeability of samples. Autocorrelation in the original entropy values does NOT affect rank ordering or the validity of inference—this property, known as the *exchangeability property* of rank-based tests, ensures that rank-based inference is valid under any correlation pattern [@S019; @C018]. Within-subject ranking preserves pairing structure while removing the influence of AR(1) dependence through rank transformation [@S030; @K003].
+The Conover-Iman Rank Transform handles this structure by treating measurements as paired/repeated within genes across ordered q-values, capturing the sequential nature while maintaining exchangeability of samples. Autocorrelation in the original entropy values does NOT affect rank ordering or the validity of inference—this property, known as the *exchangeability property* of rank-based tests, ensures that rank-based inference is valid under any correlation pattern [@S019; @C018]. Within-subject ranking preserves pairing structure while removing the influence of AR(1) dependence through rank transformation [@S030; @K003].
 
 3. **Interaction Testing: Testing q × Condition Effects**
 
@@ -200,13 +200,13 @@ where:
 - $MS_{\text{residual}}$ = residual sum of squares / residual degrees of freedom
 - $F$-statistic follows $F$-distribution under null hypothesis of no interaction
 
-This directly tests the core biological question: "Does entropy q-dependence differ between groups?" The rank-transformed two-way ANOVA is mathematically equivalent to the original SRH test statistic but computationally more stable and easier to interpret. Modern extensions of rank-based testing demonstrate the validity of permutation procedures for testing interactions even under complex dependence structures [@S166].
+This directly tests the core biological question: "Does entropy q-dependence differ between groups?" The rank-transformed two-way ANOVA is mathematically equivalent to the original Conover-Iman test statistic but computationally more stable and easier to interpret. Modern extensions of rank-based testing demonstrate the validity of permutation procedures for testing interactions even under complex dependence structures [@S166].
 
 ## Assumption Validation
 
 To ensure valid statistical inference, we verify key data assumptions across multiple dimensions.
 
-```{r validate-srh-assumptions, message=FALSE, results='hide'}
+```{r validate-rank-transform-assumptions, message=FALSE, results='hide'}
 # Validate statistical assumptions (including GAMM diagnostics)
 analysis <- calculate_assumptions(
     analysis,
@@ -228,41 +228,41 @@ if (!is.null(check_results) && !is.null(check_results$assumptions_table)) {
   
   knitr::kable(
     assumptions_df,
-    caption = "**Supplementary Table 14 | Assumption Checks for Scheirer-Ray-Hare Test.** Evaluates homogeneity of variance and normality for rank-based interaction test validity."
+    caption = "**Supplementary Table 14 | Assumption Checks for Conover-Iman Rank Transform.** Evaluates homogeneity of variance and normality for rank-based interaction test validity."
   )
 }
 ```
 
 
-**Interpretation of Results:** The exchangeability test, the unique assumption of the SRH test, detects strong serial correlation (p ≈ 0), indicating that consecutive samples are more correlated than expected by chance. This violation of exchangeability is **not problematic** for SRH because rank-based inference satisfies the *exchangeability property*—a principle ensuring that rank statistics depend only on value ordering, not on correlations in the original data [@S270; @S271; @K003]. The three reasons outlined above (robustness to distribution violations, paired design for ordered structure, and interaction testing) together uniquely suit SRH for multi-q entropy validation without requiring strong distributional assumptions.
+**Interpretation of Results:** The exchangeability test, the unique assumption of the Conover-Iman Rank Transform, detects strong serial correlation (p ≈ 0), indicating that consecutive samples are more correlated than expected by chance. This violation of exchangeability is **not problematic** for the Conover-Iman Rank Transform because rank-based inference satisfies the *exchangeability property*—a principle ensuring that rank statistics depend only on value ordering, not on correlations in the original data [@S270; @S271; @K003]. The three reasons outlined above (robustness to distribution violations, paired design for ordered structure, and interaction testing) together uniquely suit the Conover-Iman Rank Transform for multi-q entropy validation without requiring strong distributional assumptions.
 
-## SRH Test: Testing q x Condition Interactions
+## Conover-Iman Rank Transform: Testing q x Condition Interactions
 
-Now we will use the SRH test to evaluate whether entropy patterns across entropic indices (q-values) differ between normal and tumor samples.
+Now we will use the Conover-Iman Rank Transform to evaluate whether entropy patterns across entropic indices (q-values) differ between normal and tumor samples.
 
-```{r srh-rank-test-analysis, message=FALSE, results='hide'}
-# IMPORTANT: Create a copy of analysis before running SRH
+```{r rank-transform-test-analysis, message=FALSE, results='hide'}
+# IMPORTANT: Create a copy of analysis before running Conover-Iman Rank Transform
 # This preserves the GAMM results in 'analysis' for later concordance comparison
 
-# Run SRH test for q * condition INTERACTION on the copy
-analysis_rank <- calculate_srh(
+# Run Conover-Iman Rank Transform for q * condition INTERACTION on the copy
+analysis_rank <- calculate_rank_transform(
     analysis,
     multicorr = "hochberg"
 )
 
 # Extract ALL results (no filtering) for summary statistics
-srh_results_all <- results(analysis_rank, type = "rank_test", rankBy = "pvalue")
+rank_transform_results_all <- results(analysis_rank, type = "rank_test", rankBy = "pvalue")
 
 # Extract top significant genes for display
-srh_results <- results(analysis_rank, type = "rank_test", rankBy = "pvalue", n = 20, filterFDR = 0.05)
-print(head(srh_results, n = 10))
+rank_transform_results <- results(analysis_rank, type = "rank_test", rankBy = "pvalue", n = 20, filterFDR = 0.05)
+print(head(rank_transform_results, n = 10))
 ```
 
-```{r srh-results-summary, message=FALSE, echo=FALSE}
+```{r rank-transform-results-summary, message=FALSE, echo=FALSE}
 # Create summary statistics table with additional metrics using ALL tested genes
 # Handle NA and NaN values properly
-mean_effect <- mean(srh_results_all$effect_size_eta2, na.rm = TRUE)
-median_effect <- median(srh_results_all$effect_size_eta2, na.rm = TRUE)
+mean_effect <- mean(rank_transform_results_all$effect_size_eta2, na.rm = TRUE)
+median_effect <- median(rank_transform_results_all$effect_size_eta2, na.rm = TRUE)
 
 rank_summary_stats <- data.frame(
   Metric = c(
@@ -275,20 +275,20 @@ rank_summary_stats <- data.frame(
     "Strong effect genes ($\\eta^2$ > 10%)"
   ),
   Value = c(
-    nrow(srh_results_all),
-    sum(srh_results_all$p_value < 0.05, na.rm = TRUE),
-    sum(srh_results_all$adj_p_value < 0.05, na.rm = TRUE),
-    sum(is.na(srh_results_all$p_value)),
+    nrow(rank_transform_results_all),
+    sum(rank_transform_results_all$p_value < 0.05, na.rm = TRUE),
+    sum(rank_transform_results_all$adj_p_value < 0.05, na.rm = TRUE),
+    sum(is.na(rank_transform_results_all$p_value)),
     if (is.na(mean_effect) || !is.finite(mean_effect)) "Not available" else sprintf("%.1f%%", mean_effect * 100),
     if (is.na(median_effect) || !is.finite(median_effect)) "Not available" else sprintf("%.1f%%", median_effect * 100),
-    sum(srh_results_all$p_value < 0.05 & srh_results_all$effect_size_eta2 > 0.10, na.rm = TRUE)
+    sum(rank_transform_results_all$p_value < 0.05 & rank_transform_results_all$effect_size_eta2 > 0.10, na.rm = TRUE)
   )
 )
 
-knitr::kable(rank_summary_stats, caption = "**Supplementary Table 15 | Scheirer-Ray-Hare Test Results Summary.** Rank-based nonparametric test of *q* × condition interactions. Compare with GAMM results (main vignette Table 3) to assess parametric vs. nonparametric method concordance.", label = "srh-test-summary", align = c("l", "r"))
+knitr::kable(rank_summary_stats, caption = "**Supplementary Table 15 | Conover-Iman Rank Transform Results Summary.** Rank-based nonparametric test of *q* × condition interactions. Compare with GAMM results (main vignette Table 3) to assess parametric vs. nonparametric method concordance.", label = "rank-transform-test-summary", align = c("l", "r"))
 
 # Show top genes results
-rank_sig <- srh_results_all[!is.na(srh_results_all$p_value), ]
+rank_sig <- rank_transform_results_all[!is.na(rank_transform_results_all$p_value), ]
 if (nrow(rank_sig) > 0) {
   rank_sig <- rank_sig[order(rank_sig$adj_p_value), ]
   rank_sig <- rank_sig[1:min(10, nrow(rank_sig)), ]
@@ -316,7 +316,7 @@ if (nrow(rank_sig) > 0) {
     # Replace test method name for clarity (removed - column no longer included)
     # if ("test_method" %in% colnames(rank_display)) {
     #   rank_display$test_method <- sapply(rank_display$test_method, function(x) {
-    #     if (is.na(x)) "NA" else if (x == "srh_paired") "Scheirer-Ray-Hare (paired)" else x
+    #     if (is.na(x)) "NA" else if (x == "rt_paired") "Conover-Iman Rank Transform (paired)" else x
     #   })
     # }
     
@@ -334,7 +334,7 @@ if (nrow(rank_sig) > 0) {
     }
     
     knitr::kable(rank_display, 
-                 caption = "**Supplementary Table 16 | Top genes identified by Scheirer-Ray-Hare rank-based test.** Ranked by adjusted p-value; comparison with GAMM (main vignette Table 3) reveals method-specific sensitivities.",
+                 caption = "**Supplementary Table 16 | Top genes identified by Conover-Iman Rank Transform.** Ranked by adjusted p-value; comparison with GAMM (main vignette Table 3) reveals method-specific sensitivities.",
                  col.names = c("Gene", "P-value", "Adj. P-value", "F-Statistic", 
                                "Effect Size (η²)", "Interaction Class")[1:ncol(rank_display)])
   }
@@ -343,10 +343,10 @@ if (nrow(rank_sig) > 0) {
 
 Visualize q-curves for top genes:
 
-```{r extended-fig-1-srh-q-curves, fig.width=12, fig.height=8, message=FALSE, out.width="98%", fig.pos="H", fig.cap="**Supplementary Figure 1 | SRH rank test results for scale-dependent isoform switching.** Q-curves for top genes identified by Scheirer-Ray-Hare rank-based test; compare visual patterns with GAMM results (main vignette Figure 2) to assess method agreement."}
-# Plot top genes from SRH test (using all genes, not just significant ones)
+## ----extended-fig-1-rank-transform-q-curves, fig.width=12, fig.height=8, message=FALSE, out.width="98%", fig.pos="H", fig.cap="**Supplementary Figure 1 | Conover-Iman Rank Transform results for scale-dependent isoform switching.** Q-curves for top genes identified by Conover-Iman Rank Transform; compare visual patterns with GAMM results (main vignette Figure 2) to assess method agreement."----
+# Plot top genes from Conover-Iman Rank Transform (using all genes, not just significant ones)
 # This ensures the plot displays n_top genes regardless of significance threshold
-top_genes_plot <- plot_diversity_spectrum(analysis, sait_res = srh_results_all, n_top = 4)
+top_genes_plot <- plot_diversity_spectrum(analysis, sait_res = rank_transform_results_all, n_top = 4)
 print(top_genes_plot)
 ```
 
@@ -461,7 +461,7 @@ if ("p_interaction" %in% colnames(sait_results)) {
       colnames(gam_display) <- c("Gene", "p (interaction)", "Adjusted p", "Effect size", "Test statistic", "df")
       
       knitr::kable(gam_display, 
-                   caption = "**Supplementary Table 18 | Top 10 Genes by GAMM p-value (with Effect Size and Test Statistics).** Ranked by adjusted p-value; compare with SRH results (Supplementary Table 16) for method agreement assessment.",
+                   caption = "**Supplementary Table 18 | Top 10 Genes by GAMM p-value (with Effect Size and Test Statistics).** Ranked by adjusted p-value; compare with Conover-Iman Rank Transform results (Supplementary Table 16) for method agreement assessment.",
                    label = "gam-top-genes",
                    align = c("l", "r", "r", "r", "r", "r"))
     }
@@ -476,12 +476,12 @@ if ("p_interaction" %in% colnames(sait_results)) {
 
 # Method Concordance Analysis
 
-A critical validation step is to compare whether the SRH rank-based test and GAM produce consistent results. High concordance between methods (i.e., genes significant in both approaches) provides strong evidence that discoveries are robust to methodological choice. Discordant genes—those significant in only one method—warrant closer inspection: they may represent genuine biological signals revealed by one method's specific advantages, or artifacts of that method's assumptions. This section quantifies agreement between approaches and identifies high-confidence genes significant across both statistical frameworks.
+A critical validation step is to compare whether the Conover-Iman Rank Transform and GAM produce consistent results. High concordance between methods (i.e., genes significant in both approaches) provides strong evidence that discoveries are robust to methodological choice. Discordant genes—those significant in only one method—warrant closer inspection: they may represent genuine biological signals revealed by one method's specific advantages, or artifacts of that method's assumptions. This section quantifies agreement between approaches and identifies high-confidence genes significant across both statistical frameworks.
 
-```{r compare-srh-gam-methods, message=FALSE}
+```{r compare-rank-transform-gam-methods, message=FALSE}
 # Compute concordance analysis using new two-object API
 if (is.null(analysis_rank@rank_test_results) || length(analysis_rank@rank_test_results) == 0) {
-    stop("Cannot run calculate_concordance(): analysis_rank@rank_test_results is empty. Ensure calculate_srh() completed successfully.")
+    stop("Cannot run calculate_concordance(): analysis_rank@rank_test_results is empty. Ensure calculate_rank_transform() completed successfully.")
 }
 
 analysis_rank <- calculate_concordance(
@@ -500,7 +500,7 @@ if (!is.null(concordance_results) && is.list(concordance_results)) {
   # Display summary table
   if (!is.null(concordance_results$summary_table) && nrow(concordance_results$summary_table) > 0) {
     print(knitr::kable(concordance_results$summary_table, 
-                 caption = "**Supplementary Table 19 | Global Concordance Metrics: GAMM vs Scheirer-Ray-Hare Methods.** Quantifies agreement between parametric (GAMM) and nonparametric (SRH) approaches for detecting q × condition interactions.",
+                 caption = "**Supplementary Table 19 | Global Concordance Metrics: GAMM vs Conover-Iman Rank Transform.** Quantifies agreement between parametric (GAMM) and nonparametric (Conover-Iman Rank Transform) approaches for detecting q × condition interactions.",
                  align = c("l", "r")))
   }
   

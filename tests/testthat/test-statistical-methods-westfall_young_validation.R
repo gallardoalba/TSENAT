@@ -174,7 +174,7 @@ test_that("Type I error (FWER) is maintained at appropriate alpha level", {
     # Run rank-based test with multiple correction
     result <- suppressWarnings(
       tryCatch(
-        .calculate_srh(
+        .calculate_rank_transform(
           data = data_null,
           entropy_col = "entropy",
           q_col = "q",
@@ -276,7 +276,7 @@ test_that("detect_q_gene_interactions handles paired design correctly", {
   data_paired$condition <- data_paired$sample_type
   
   # Run with paired design
-  result <- .calculate_srh(
+  result <- .calculate_rank_transform(
     data = data_paired,
     entropy_col = "entropy",
     q_col = "q",
@@ -321,7 +321,7 @@ test_that("Westfall-Young permutation maintains FWER with adequate sample sizes"
   data_large$condition <- rep(c("A", "B"), length.out = nrow(data_large))
   
   # Run with Westfall-Young (uses permutation loop)
-  result <- .calculate_srh(
+  result <- .calculate_rank_transform(
     data = data_large,
     entropy_col = "entropy",
     q_col = "q",
@@ -370,7 +370,7 @@ test_that("Westfall-Young permutation works with unpaired rank-based tests", {
   
   # Run with Hochberg correction (more stable for moderate sample sizes)
   # Hochberg is valid under positive regression dependence (satisfied for Tsallis entropy q-values)
-  result <- .calculate_srh(
+  result <- .calculate_rank_transform(
     data = data_sig,
     entropy_col = "entropy",
     q_col = "q",
@@ -430,7 +430,7 @@ test_that("Parallel WY permutation (nthreads=2) produces valid results", {
   
   # Run with WY permutation and nthreads=2
   # Use smaller wy_randomizations for speed
-  result_parallel <- .calculate_srh(
+  result_parallel <- .calculate_rank_transform(
     data = data_parallel,
     entropy_col = "entropy",
     q_col = "q",
@@ -491,7 +491,7 @@ test_that("Serial (nthreads=1) and parallel (nthreads=2) WY produce consistent r
   # Set seed identically for both runs
   # Suppress chi-squared approximation warnings (expected with small sample sizes)
   set.seed(777)
-  result_serial <- suppressWarnings(.calculate_srh(
+  result_serial <- suppressWarnings(.calculate_rank_transform(
     data = data_compare,
     entropy_col = "entropy",
     q_col = "q",
@@ -506,7 +506,7 @@ test_that("Serial (nthreads=1) and parallel (nthreads=2) WY produce consistent r
   ))
   
   set.seed(777)
-  result_parallel <- suppressWarnings(.calculate_srh(
+  result_parallel <- suppressWarnings(.calculate_rank_transform(
     data = data_compare,
     entropy_col = "entropy",
     q_col = "q",
@@ -622,7 +622,7 @@ test_that("WY permutation respects .get_effective_nthreads() for high thread cou
   # Test 1: Normal execution with reasonable nthreads (should succeed)
   core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
   wy_threads <- if (is.na(core_limit)) 4 else min(4, core_limit)
-  result_normal <- .calculate_srh(
+  result_normal <- .calculate_rank_transform(
     data = data_wy,
     entropy_col = "entropy",
     q_col = "q",
@@ -644,7 +644,7 @@ test_that("WY permutation respects .get_effective_nthreads() for high thread cou
   # When _R_CHECK_LIMIT_CORES_ is set, this will be clamped to that limit
   # When not set, it will be clamped to system cores
   # Either way, the function should succeed (not error on thread count alone)
-  result_high <- .calculate_srh(
+  result_high <- .calculate_rank_transform(
     data = data_wy,
     entropy_col = "entropy",
     q_col = "q",
@@ -825,7 +825,7 @@ test_that("WY permutation parallel path computes permutation minima correctly", 
   data_par$condition <- data_par$sample_type
   
   # Run WY with parallel execution (nthreads=2)
-  result_par <- .calculate_srh(
+  result_par <- .calculate_rank_transform(
     data = data_par,
     entropy_col = "entropy",
     q_col = "q",
@@ -885,7 +885,7 @@ test_that("WY parallel execution respects .get_effective_nthreads() with high co
   
   # Request 999 threads - tests that source code clamps very high thread requests
   # via .get_effective_nthreads() before passing to parallel backend
-  result_high_threads <- .calculate_srh(
+  result_high_threads <- .calculate_rank_transform(
     data = data_high,
     entropy_col = "entropy",
     q_col = "q",
@@ -935,7 +935,7 @@ test_that("WY parallel and serial execution produce similar permutation distribu
   
   # Run SERIAL
   set.seed(3333)
-  result_serial <- .calculate_srh(
+  result_serial <- .calculate_rank_transform(
     data = data_comparison,
     entropy_col = "entropy",
     q_col = "q",
@@ -951,7 +951,7 @@ test_that("WY parallel and serial execution produce similar permutation distribu
   
   # Run PARALLEL (same seed for reproducible comparison)
   set.seed(3333)
-  result_parallel <- .calculate_srh(
+  result_parallel <- .calculate_rank_transform(
     data = data_comparison,
     entropy_col = "entropy",
     q_col = "q",

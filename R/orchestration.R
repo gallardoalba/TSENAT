@@ -40,7 +40,7 @@
 #'   \item \code{plot_divergence_distribution()} - Divergence distribution plot
 #'   \item \code{plot_divergence_spectrum()} - Divergence spectrum plot
 #'   \item \code{calculate_assumptions()} - Validate rank-based test assumptions
-#'   \item \code{calculate_srh()} - Conover-Iman Rank Transform interaction test
+#'   \item \code{calculate_rank_transform()} - Conover-Iman Rank Transform interaction test
 #'   \item \code{calculate_concordance()} - Compare LM and rank test results
 #' }
 #'
@@ -245,8 +245,8 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
     # Step 15: SRH test
     if (verbose) message(sprintf("[>] [%2d/16] Performing Conover-Iman Rank Transform test", 15))
     step_start <- Sys.time()
-    analysis <- .execute_srh_test(analysis, verbose, output_dir, output_format)
-    step_times[["srh_test"]] <- Sys.time() - step_start
+    analysis <- .execute_rank_transform_test(analysis, verbose, output_dir, output_format)
+    step_times[["rank_transform_test"]] <- Sys.time() - step_start
     
     # Step 16: Concordance
     if (verbose) message(sprintf("[>] [%2d/16] Computing LM-rank test concordance", 16))
@@ -911,15 +911,15 @@ TSENAT_config <- function(q = 1, condition_col = "condition", subject_col = NULL
 
 #' Step 16: Conover-Iman Rank Transform test
 #' @noRd
-.execute_srh_test <- function(analysis, verbose, output_dir, output_format) {
+.execute_rank_transform_test <- function(analysis, verbose, output_dir, output_format) {
 
     # Compute diversity for SRH analysis with bootstrap CIs
     analysis <- calculate_diversity(analysis, norm = TRUE, pseudocount = "auto",
         verbose = FALSE)
 
     # Run SRH test for q * condition interaction
-    output_file <- .build_output_file("srh_results", output_dir, output_format)
-    analysis <- calculate_srh(analysis, multicorr = "hochberg", verbose = FALSE,
+    output_file <- .build_output_file("rank_transform_results", output_dir, output_format)
+    analysis <- calculate_rank_transform(analysis, multicorr = "hochberg", verbose = FALSE,
         output_file = output_file)
 
     if (verbose)

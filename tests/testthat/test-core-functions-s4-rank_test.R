@@ -3,10 +3,10 @@ library(TSENAT)
 library(SummarizedExperiment)
 
 # ============================================================================
-# Tests for calculate_srh() S4 wrapper function
+# Tests for calculate_rank_transform() S4 wrapper function
 # ============================================================================
 
-context("S4 Rank Test: calculate_srh")
+context("S4 Rank Test: calculate_rank_transform")
 
 # CACHE LEVEL 1: Base analysis (built once from full dataset)
 .test_analysis_cache <- NULL
@@ -91,10 +91,10 @@ setup_rank_test_analysis <- function(n_genes = 100, n_samples = 4) {
 # Test 1: Basic functionality with real data
 # ============================================================================
 
-test_that("calculate_srh returns TSENATAnalysis with results", {
+test_that("calculate_rank_transform returns TSENATAnalysis with results", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 12)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition"
     )
@@ -111,10 +111,10 @@ test_that("calculate_srh returns TSENATAnalysis with results", {
 # Test 2: Paired design with subject_col
 # ============================================================================
 
-test_that("calculate_srh runs with paired design", {
+test_that("calculate_rank_transform runs with paired design", {
     analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         paired = TRUE,
@@ -130,10 +130,10 @@ test_that("calculate_srh runs with paired design", {
 # Test 3: Parameter resolution - explicit args override config
 # ============================================================================
 
-test_that("calculate_srh respects explicit parameters over config", {
+test_that("calculate_rank_transform respects explicit parameters over config", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
     )
@@ -147,10 +147,10 @@ test_that("calculate_srh respects explicit parameters over config", {
 # Test 4: Different test methods - Kruskal-Wallis (unpaired)
 # ============================================================================
 
-test_that("calculate_srh works with unpaired design", {
+test_that("calculate_rank_transform works with unpaired design", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
     )
@@ -164,10 +164,10 @@ test_that("calculate_srh works with unpaired design", {
 # Test 5: Paired design
 # ============================================================================
 
-test_that("calculate_srh works with paired design (Scheirer-Ray-Hare)", {
+test_that("calculate_rank_transform works with paired design (Conover-Iman Rank Transform)", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         paired = TRUE,
@@ -183,10 +183,10 @@ test_that("calculate_srh works with paired design (Scheirer-Ray-Hare)", {
 # Test 6: Different multiple correction methods - Hochberg
 # ============================================================================
 
-test_that("calculate_srh works with Hochberg correction", {
+test_that("calculate_rank_transform works with Hochberg correction", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         multicorr = "hochberg"
@@ -202,10 +202,10 @@ test_that("calculate_srh works with Hochberg correction", {
 # Test 7: Different multiple correction methods - Benjamini-Yekutieli
 # ============================================================================
 
-test_that("calculate_srh works with Benjamini-Yekutieli correction", {
+test_that("calculate_rank_transform works with Benjamini-Yekutieli correction", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         multicorr = "benjamini-yekutieli"
@@ -220,10 +220,10 @@ test_that("calculate_srh works with Benjamini-Yekutieli correction", {
 # Test 8: Multiple correction method - None
 # ============================================================================
 
-test_that("calculate_srh works with no multiple correction", {
+test_that("calculate_rank_transform works with no multiple correction", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         multicorr = "none"
@@ -238,10 +238,10 @@ test_that("calculate_srh works with no multiple correction", {
 # Test 9: Auto test selection
 # ============================================================================
 
-test_that("calculate_srh auto-selects appropriate test method", {
+test_that("calculate_rank_transform auto-selects appropriate test method", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
     )
@@ -255,23 +255,23 @@ test_that("calculate_srh auto-selects appropriate test method", {
 # Test 10: Error handling - missing required condition_col
 # ============================================================================
 
-test_that("calculate_srh requires condition_col argument", {
+test_that("calculate_rank_transform requires condition_col argument", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # Calling without condition_col should use condition_col from @config
-    result <- calculate_srh(analysis)
+    result <- calculate_rank_transform(analysis)
     expect_is(result, "TSENATAnalysis")
     
     # Invalid condition_col should error
-    expect_error(calculate_srh(analysis, condition_col = "nonexistent"))
+    expect_error(calculate_rank_transform(analysis, condition_col = "nonexistent"))
 })
 
-test_that("calculate_srh errors when condition_col is missing and not configured", {
+test_that("calculate_rank_transform errors when condition_col is missing and not configured", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     analysis@config$condition_col <- NULL
 
     expect_error(
-        calculate_srh(analysis),
+        calculate_rank_transform(analysis),
         "condition_col.*REQUIRED|Specify condition_col argument or set analysis@config\\$condition_col"
     )
 })
@@ -280,12 +280,12 @@ test_that("calculate_srh errors when condition_col is missing and not configured
 # Test 11: Invalid condition column
 # ============================================================================
 
-test_that("calculate_srh errors with invalid condition_col", {
+test_that("calculate_rank_transform errors with invalid condition_col", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # Should error when condition column doesn't exist in metadata
     expect_error(
-        calculate_srh(
+        calculate_rank_transform(
             analysis,
             condition_col = "nonexistent_column"
         ),
@@ -297,12 +297,12 @@ test_that("calculate_srh errors with invalid condition_col", {
 # Test 12: Paired design requires subject_col
 # ============================================================================
 
-test_that("calculate_srh requires subject_col when paired=TRUE", {
+test_that("calculate_rank_transform requires subject_col when paired=TRUE", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # Should error when subject column doesn't exist but paired=TRUE
     expect_error(
-        calculate_srh(
+        calculate_rank_transform(
             analysis,
             condition_col = "condition",
             paired = TRUE,
@@ -315,10 +315,10 @@ test_that("calculate_srh requires subject_col when paired=TRUE", {
 # Test 13: Results contain expected columns
 # ============================================================================
 
-test_that("calculate_srh results have correct structure", {
+test_that("calculate_rank_transform results have correct structure", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         multicorr = "hochberg"
@@ -338,10 +338,10 @@ test_that("calculate_srh results have correct structure", {
 # Test 14: Multiple genes with varying p-values
 # ============================================================================
 
-test_that("calculate_srh handles multiple genes with varying significance", {
+test_that("calculate_rank_transform handles multiple genes with varying significance", {
     analysis <- setup_rank_test_analysis(n_genes = 100, n_samples = 12)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         multicorr = "hochberg"
@@ -362,10 +362,10 @@ test_that("calculate_srh handles multiple genes with varying significance", {
 # Test 15: Check test_method output
 # ============================================================================
 
-test_that("calculate_srh returns Scheirer-Ray-Hare test method", {
+test_that("calculate_rank_transform returns Conover-Iman Rank Transform test method", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
     )
@@ -380,10 +380,10 @@ test_that("calculate_srh returns Scheirer-Ray-Hare test method", {
 # Test 16: Westfall-Young correction method
 # ============================================================================
 
-test_that("calculate_srh works with Westfall-Young correction", {
+test_that("calculate_rank_transform works with Westfall-Young correction", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         multicorr = "westfall-young",
@@ -400,11 +400,11 @@ test_that("calculate_srh works with Westfall-Young correction", {
 # Test 17: Explicit q-values parameter
 # ============================================================================
 
-test_that("calculate_srh accepts explicit q parameter", {
+test_that("calculate_rank_transform accepts explicit q parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Specify subset of q-values to test
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         q = c(0.5, 1.0, 1.5)
@@ -419,11 +419,11 @@ test_that("calculate_srh accepts explicit q parameter", {
 # Test 18: Custom entropy column name
 # ============================================================================
 
-test_that("calculate_srh accepts custom entropy_col parameter", {
+test_that("calculate_rank_transform accepts custom entropy_col parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Default entropy_col is "diversity"
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         entropy_col = "diversity"
@@ -438,10 +438,10 @@ test_that("calculate_srh accepts custom entropy_col parameter", {
 # Test 19: Custom q column name
 # ============================================================================
 
-test_that("calculate_srh accepts custom q_col parameter", {
+test_that("calculate_rank_transform accepts custom q_col parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         q_col = "q"
@@ -456,10 +456,10 @@ test_that("calculate_srh accepts custom q_col parameter", {
 # Test 20: Custom gene column name
 # ============================================================================
 
-test_that("calculate_srh accepts custom gene_col parameter", {
+test_that("calculate_rank_transform accepts custom gene_col parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         gene_col = "gene"
@@ -475,10 +475,10 @@ test_that("calculate_srh accepts custom gene_col parameter", {
 # Test 21: nthreads parameter for parallelization
 # ============================================================================
 
-test_that("calculate_srh accepts nthreads parameter", {
+test_that("calculate_rank_transform accepts nthreads parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         nthreads = 1
@@ -493,11 +493,11 @@ test_that("calculate_srh accepts nthreads parameter", {
 # Test 22: verbose parameter for progress output
 # ============================================================================
 
-test_that("calculate_srh accepts verbose parameter", {
+test_that("calculate_rank_transform accepts verbose parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Verbose may or may not produce output, but should not error
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         verbose = FALSE
@@ -512,11 +512,11 @@ test_that("calculate_srh accepts verbose parameter", {
 # Test 23: nperm_mode parameter (permutation estimation mode)
 # ============================================================================
 
-test_that("calculate_srh accepts nperm_mode parameter", {
+test_that("calculate_rank_transform accepts nperm_mode parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Test with different permutation modes
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         nperm_mode = "standard"
@@ -531,11 +531,11 @@ test_that("calculate_srh accepts nperm_mode parameter", {
 # Test 24: wy_randomizations parameter (Westfall-Young permutations)
 # ============================================================================
 
-test_that("calculate_srh wy_randomizations controls WY permutations", {
+test_that("calculate_rank_transform wy_randomizations controls WY permutations", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Test with explicit WY randomizations count
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         multicorr = "westfall-young",
@@ -551,13 +551,13 @@ test_that("calculate_srh wy_randomizations controls WY permutations", {
 # Test 25: output_file parameter (optional file output)
 # ============================================================================
 
-test_that("calculate_srh accepts output_file parameter", {
+test_that("calculate_rank_transform accepts output_file parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Create temporary file path
     temp_file <- tempfile(fileext = ".rds")
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         output_file = temp_file
@@ -572,10 +572,10 @@ test_that("calculate_srh accepts output_file parameter", {
 # Test 26: Combined parameters - multiple options together
 # ============================================================================
 
-test_that("calculate_srh handles combined parameter specifications", {
+test_that("calculate_rank_transform handles combined parameter specifications", {
     analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         multicorr = "benjamini-yekutieli",
@@ -597,63 +597,63 @@ test_that("calculate_srh handles combined parameter specifications", {
 # ============================================================================
 
 # ============================================================================
-# Test: .validate_srh_input() helper function
+# Test: .validate_rank_transform_input() helper function
 # ============================================================================
 
-test_that(".validate_srh_input rejects non-TSENATAnalysis input", {
+test_that(".validate_rank_transform_input rejects non-TSENATAnalysis input", {
     # Test with invalid input type
     expect_error(
-        TSENAT:::.validate_srh_input("not_an_analysis", "condition"),
+        TSENAT:::.validate_rank_transform_input("not_an_analysis", "condition"),
         "must be a TSENATAnalysis"
     )
     
     # Test with data.frame instead of analysis object
     expect_error(
-        TSENAT:::.validate_srh_input(data.frame(x = 1:10), "condition"),
+        TSENAT:::.validate_rank_transform_input(data.frame(x = 1:10), "condition"),
         "must be a TSENATAnalysis"
     )
 })
 
-test_that(".validate_srh_input requires diversity results", {
+test_that(".validate_rank_transform_input requires diversity results", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # Clear diversity_results to test prerequisite check
     analysis@diversity_results <- list()
     
     expect_error(
-        TSENAT:::.validate_srh_input(analysis, "condition"),
+        TSENAT:::.validate_rank_transform_input(analysis, "condition"),
         "Diversity results required"
     )
 })
 
-test_that(".validate_srh_input returns condition_col with default fallback", {
+test_that(".validate_rank_transform_input returns condition_col with default fallback", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # When condition_col is NULL/missing, should default to "condition"
-    result <- TSENAT:::.validate_srh_input(analysis, NULL)
+    result <- TSENAT:::.validate_rank_transform_input(analysis, NULL)
     expect_equal(result, "condition")
     
     # When condition_col is explicitly provided, should return it
-    result <- TSENAT:::.validate_srh_input(analysis, "sample_type")
+    result <- TSENAT:::.validate_rank_transform_input(analysis, "sample_type")
     expect_equal(result, "sample_type")
 })
 
-test_that(".validate_srh_input respects config condition_col", {
+test_that(".validate_rank_transform_input respects config condition_col", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # Set condition_col in config
     analysis@config$condition_col <- "my_condition"
     
     # When condition_col is NULL/missing, should read from config
-    result <- TSENAT:::.validate_srh_input(analysis, NULL)
+    result <- TSENAT:::.validate_rank_transform_input(analysis, NULL)
     expect_equal(result, "my_condition")
 })
 
 # ============================================================================
-# Test: .resolve_srh_params() helper function
+# Test: .resolve_rank_transform_params() helper function
 # ============================================================================
 
-test_that(".resolve_srh_params handles explicit arguments over config", {
+test_that(".resolve_rank_transform_params handles explicit arguments over config", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # Set config values
@@ -667,7 +667,7 @@ test_that(".resolve_srh_params handles explicit arguments over config", {
     )
     
     # Call with explicit arguments (should override config)
-    result <- TSENAT:::.resolve_srh_params(
+    result <- TSENAT:::.resolve_rank_transform_params(
         analysis,
         multicorr = "benjamini-yekutieli",
         nperm_mode = "standard",
@@ -691,7 +691,7 @@ test_that(".resolve_srh_params handles explicit arguments over config", {
     expect_equal(dots$gene_col, "custom_gene")
 })
 
-test_that(".resolve_srh_params falls back to config when args not provided", {
+test_that(".resolve_rank_transform_params falls back to config when args not provided", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # Set config values
@@ -705,7 +705,7 @@ test_that(".resolve_srh_params falls back to config when args not provided", {
     )
     
     # Call without explicit arguments (should use config)
-    result <- TSENAT:::.resolve_srh_params(
+    result <- TSENAT:::.resolve_rank_transform_params(
         analysis,
         multicorr = NULL,
         nperm_mode = NULL,
@@ -723,12 +723,12 @@ test_that(".resolve_srh_params falls back to config when args not provided", {
     expect_true("dots" %in% names(result))
 })
 
-test_that(".resolve_srh_params validates enum arguments", {
+test_that(".resolve_rank_transform_params validates enum arguments", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # Test with invalid enum values - should error
     expect_error(
-        TSENAT:::.resolve_srh_params(
+        TSENAT:::.resolve_rank_transform_params(
             analysis,
             multicorr = "invalid_multicorr",
             nperm_mode = NULL,
@@ -791,10 +791,10 @@ test_that(".prepare_multi_q_se uses cached combined SE when available", {
 })
 
 # ============================================================================
-# Test: .store_srh_results() helper function
+# Test: .store_rank_transform_results() helper function
 # ============================================================================
 
-test_that(".store_srh_results stores results in rank_test_results", {
+test_that(".store_rank_transform_results stores results in rank_test_results", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # Create dummy results data frame (mock output from rank test)
@@ -806,7 +806,7 @@ test_that(".store_srh_results stores results in rank_test_results", {
     )
     
     # Store results
-    analysis_stored <- TSENAT:::.store_srh_results(
+    analysis_stored <- TSENAT:::.store_rank_transform_results(
         analysis, 
         mock_results, 
         output_file = NULL, 
@@ -819,7 +819,7 @@ test_that(".store_srh_results stores results in rank_test_results", {
     expect_equal(nrow(analysis_stored@rank_test_results$rank_test), 3)
 })
 
-test_that(".store_srh_results creates rank_test_results list when needed", {
+test_that(".store_rank_transform_results creates rank_test_results list when needed", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # Clear rank_test_results to test list creation
@@ -832,7 +832,7 @@ test_that(".store_srh_results creates rank_test_results list when needed", {
         f_statistic = 5.0
     )
     
-    analysis_stored <- TSENAT:::.store_srh_results(
+    analysis_stored <- TSENAT:::.store_rank_transform_results(
         analysis, 
         mock_results, 
         output_file = NULL, 
@@ -844,12 +844,12 @@ test_that(".store_srh_results creates rank_test_results list when needed", {
     expect_true("rank_test" %in% names(analysis_stored@rank_test_results))
 })
 
-test_that(".store_srh_results returns modified TSENATAnalysis", {
+test_that(".store_rank_transform_results returns modified TSENATAnalysis", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     mock_results <- data.frame(gene = "gene1", p_value = 0.01)
     
-    analysis_returned <- TSENAT:::.store_srh_results(
+    analysis_returned <- TSENAT:::.store_rank_transform_results(
         analysis, 
         mock_results, 
         output_file = NULL, 
@@ -870,11 +870,11 @@ test_that("Helper functions integrate correctly in SRH workflow", {
     # Simulate workflow: validate -> resolve params -> prepare SE -> run test -> store results
     
     # 1. Validate
-    condition_col <- TSENAT:::.validate_srh_input(analysis, "condition")
+    condition_col <- TSENAT:::.validate_rank_transform_input(analysis, "condition")
     expect_equal(condition_col, "condition")
     
     # 2. Resolve params
-    param_result <- TSENAT:::.resolve_srh_params(
+    param_result <- TSENAT:::.resolve_rank_transform_params(
         analysis,
         multicorr = "hochberg",
         nperm_mode = "standard",
@@ -894,7 +894,7 @@ test_that("Helper functions integrate correctly in SRH workflow", {
     
     # 4. Mock store results
     mock_results <- data.frame(gene = "gene1", p_value = 0.01, adj_p_value = 0.05)
-    analysis_final <- TSENAT:::.store_srh_results(
+    analysis_final <- TSENAT:::.store_rank_transform_results(
         analysis,
         mock_results,
         output_file = NULL,
@@ -910,35 +910,35 @@ test_that("Helper functions integrate correctly in SRH workflow", {
 # ============================================================================
 
 # ============================================================================
-# Test: .validate_srh_input edge cases
+# Test: .validate_rank_transform_input edge cases
 # ============================================================================
 
-test_that(".validate_srh_input handles NULL explicitly", {
+test_that(".validate_rank_transform_input handles NULL explicitly", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # Pass NULL explicitly for condition_col (should default to "condition")
-    result <- TSENAT:::.validate_srh_input(analysis, NULL)
+    result <- TSENAT:::.validate_rank_transform_input(analysis, NULL)
     expect_equal(result, "condition")
 })
 
-test_that(".validate_srh_input prioritizes explicit condition_col over config", {
+test_that(".validate_rank_transform_input prioritizes explicit condition_col over config", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     analysis@config$condition_col <- "from_config"
     
     # Explicit arg should override config
-    result <- TSENAT:::.validate_srh_input(analysis, "explicit_value")
+    result <- TSENAT:::.validate_rank_transform_input(analysis, "explicit_value")
     expect_equal(result, "explicit_value")
 })
 
 # ============================================================================
-# Test: .resolve_srh_params with different multicorr methods
+# Test: .resolve_rank_transform_params with different multicorr methods
 # ============================================================================
 
-test_that(".resolve_srh_params handles all multicorr methods", {
+test_that(".resolve_rank_transform_params handles all multicorr methods", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     for (method in c("hochberg", "benjamini-yekutieli", "westfall-young", "none")) {
-        result <- TSENAT:::.resolve_srh_params(
+        result <- TSENAT:::.resolve_rank_transform_params(
             analysis,
             multicorr = method,
             nperm_mode = "standard",
@@ -955,11 +955,11 @@ test_that(".resolve_srh_params handles all multicorr methods", {
     }
 })
 
-test_that(".resolve_srh_params handles all nperm_mode values", {
+test_that(".resolve_rank_transform_params handles all nperm_mode values", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     for (mode in c("standard", "conservative", "interactive")) {
-        result <- TSENAT:::.resolve_srh_params(
+        result <- TSENAT:::.resolve_rank_transform_params(
             analysis,
             multicorr = "westfall-young",
             nperm_mode = mode,
@@ -976,10 +976,10 @@ test_that(".resolve_srh_params handles all nperm_mode values", {
     }
 })
 
-test_that(".resolve_srh_params preserves custom column names", {
+test_that(".resolve_rank_transform_params preserves custom column names", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
-    result <- TSENAT:::.resolve_srh_params(
+    result <- TSENAT:::.resolve_rank_transform_params(
         analysis,
         multicorr = "hochberg",
         nperm_mode = "standard",
@@ -997,12 +997,12 @@ test_that(".resolve_srh_params preserves custom column names", {
     expect_equal(result$dots$gene_col, "gene_id")
 })
 
-test_that(".resolve_srh_params handles nthreads appropriately", {
+test_that(".resolve_rank_transform_params handles nthreads appropriately", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # Test with various nthreads values
     for (nthreads_val in c(1, 2, 4, 8)) {
-        result <- TSENAT:::.resolve_srh_params(
+        result <- TSENAT:::.resolve_rank_transform_params(
             analysis,
             multicorr = "hochberg",
             nperm_mode = "standard",
@@ -1064,10 +1064,10 @@ test_that(".prepare_multi_q_se column names include q-value suffix", {
 })
 
 # ============================================================================
-# Test: .store_srh_results with empty results
+# Test: .store_rank_transform_results with empty results
 # ============================================================================
 
-test_that(".store_srh_results handles empty results data frame", {
+test_that(".store_rank_transform_results handles empty results data frame", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # Create empty results
@@ -1077,7 +1077,7 @@ test_that(".store_srh_results handles empty results data frame", {
         adj_p_value = numeric(0)
     )
     
-    analysis_stored <- TSENAT:::.store_srh_results(
+    analysis_stored <- TSENAT:::.store_rank_transform_results(
         analysis,
         empty_results,
         output_file = NULL,
@@ -1088,7 +1088,7 @@ test_that(".store_srh_results handles empty results data frame", {
     expect_equal(nrow(analysis_stored@rank_test_results$rank_test), 0)
 })
 
-test_that(".store_srh_results preserves existing rank_test_results", {
+test_that(".store_rank_transform_results preserves existing rank_test_results", {
     analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
     
     # Add existing results
@@ -1107,7 +1107,7 @@ test_that(".store_srh_results preserves existing rank_test_results", {
         adj_p_value = 0.1
     )
     
-    analysis_stored <- TSENAT:::.store_srh_results(
+    analysis_stored <- TSENAT:::.store_rank_transform_results(
         analysis,
         new_results,
         output_file = NULL,
@@ -1120,15 +1120,15 @@ test_that(".store_srh_results preserves existing rank_test_results", {
 })
 
 # ============================================================================
-# Test: calculate_srh with verbose output
+# Test: calculate_rank_transform with verbose output
 # ============================================================================
 
-test_that("calculate_srh respects verbose parameter", {
+test_that("calculate_rank_transform respects verbose parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Capture output with verbose = TRUE
     output <- capture.output({
-        result <- calculate_srh(
+        result <- calculate_rank_transform(
             analysis,
             condition_col = "condition",
             multicorr = "hochberg",
@@ -1141,13 +1141,13 @@ test_that("calculate_srh respects verbose parameter", {
 })
 
 # ============================================================================
-# Test: calculate_srh with different multicorr methods
+# Test: calculate_rank_transform with different multicorr methods
 # ============================================================================
 
-test_that("calculate_srh works with benjamini-yekutieli correction", {
+test_that("calculate_rank_transform works with benjamini-yekutieli correction", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         multicorr = "benjamini-yekutieli"
@@ -1158,10 +1158,10 @@ test_that("calculate_srh works with benjamini-yekutieli correction", {
     expect_true("adj_p_value" %in% colnames(rank_res))
 })
 
-test_that("calculate_srh works with no multiple correction", {
+test_that("calculate_rank_transform works with no multiple correction", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         multicorr = "none"
@@ -1175,14 +1175,14 @@ test_that("calculate_srh works with no multiple correction", {
 })
 
 # ============================================================================
-# Test: calculate_srh with explicit q-values
+# Test: calculate_rank_transform with explicit q-values
 # ============================================================================
 
-test_that("calculate_srh respects explicit q parameter", {
+test_that("calculate_rank_transform respects explicit q parameter", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Explicitly pass q-values
-    result_explicit <- calculate_srh(
+    result_explicit <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         q = c(0.5, 1.0, 1.5)
@@ -1194,16 +1194,16 @@ test_that("calculate_srh respects explicit q parameter", {
 })
 
 # ============================================================================
-# Test: calculate_srh with nthreads parameter
+# Test: calculate_rank_transform with nthreads parameter
 # ============================================================================
 
-test_that("calculate_srh respects nthreads parameter", {
+test_that("calculate_rank_transform respects nthreads parameter", {
     skip_if_not_installed("parallel")
     
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Test with 1 thread (should work on any system)
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         nthreads = 1
@@ -1213,13 +1213,13 @@ test_that("calculate_srh respects nthreads parameter", {
 })
 
 # ============================================================================
-# Test: calculate_srh with different entropy columns
+# Test: calculate_rank_transform with different entropy columns
 # ============================================================================
 
-test_that("calculate_srh handles custom entropy column names", {
+test_that("calculate_rank_transform handles custom entropy column names", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         entropy_col = "diversity"  # Default column name
@@ -1232,10 +1232,10 @@ test_that("calculate_srh handles custom entropy column names", {
 # Test: Integration - Full workflow with different parameter combinations
 # ============================================================================
 
-test_that("calculate_srh full workflow with Scheirer-Ray-Hare test", {
+test_that("calculate_rank_transform full workflow with Conover-Iman Rank Transform test", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         multicorr = "hochberg"
@@ -1246,10 +1246,10 @@ test_that("calculate_srh full workflow with Scheirer-Ray-Hare test", {
     expect_true(nrow(rank_res) > 0)
 })
 
-test_that("calculate_srh preserves effect size calculations", {
+test_that("calculate_rank_transform preserves effect size calculations", {
     analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition"
     )
@@ -1264,10 +1264,10 @@ test_that("calculate_srh preserves effect size calculations", {
     expect_true(all(res_df$effect_size_eta2 >= 0 & res_df$effect_size_eta2 <= 1, na.rm = TRUE))
 })
 
-test_that("calculate_srh classifies q-dependence correctly", {
+test_that("calculate_rank_transform classifies q-dependence correctly", {
     analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition"
     )
@@ -1285,10 +1285,10 @@ test_that("calculate_srh classifies q-dependence correctly", {
 # Test: Data integrity and consistency checks
 # ============================================================================
 
-test_that("calculate_srh results contain expected columns", {
+test_that("calculate_rank_transform results contain expected columns", {
     analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition"
     )
@@ -1306,10 +1306,10 @@ test_that("calculate_srh results contain expected columns", {
     }
 })
 
-test_that("calculate_srh results are sorted by adjusted p-value", {
+test_that("calculate_rank_transform results are sorted by adjusted p-value", {
     analysis <- setup_rank_test_analysis(n_genes = 30, n_samples = 8)
     
-    result <- calculate_srh(
+    result <- calculate_rank_transform(
         analysis,
         condition_col = "condition"
     )
@@ -1324,17 +1324,17 @@ test_that("calculate_srh results are sorted by adjusted p-value", {
     }
 })
 
-test_that("calculate_srh generates consistent results", {
+test_that("calculate_rank_transform generates consistent results", {
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     # Run twice and compare
-    result1 <- calculate_srh(
+    result1 <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         multicorr = "hochberg"
     )
     
-    result2 <- calculate_srh(
+    result2 <- calculate_rank_transform(
         analysis,
         condition_col = "condition",
         multicorr = "hochberg"
@@ -1360,7 +1360,7 @@ test_that("rank_test output file (TSV format) contains valid p-values", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_rank_pvalues.tsv")
   
-  result <- calculate_srh(
+  result <- calculate_rank_transform(
     analysis,
     condition_col = "condition",
     multicorr = "hochberg",
@@ -1402,7 +1402,7 @@ test_that("rank_test output file (CSV format) preserves numerical properties acr
   csv_file <- file.path(output_dir, "test_rank_format_csv.csv")
   
   # Run test with TSV output
-  result_tsv <- calculate_srh(
+  result_tsv <- calculate_rank_transform(
     analysis,
     condition_col = "condition",
     output_file = tsv_file,
@@ -1410,7 +1410,7 @@ test_that("rank_test output file (CSV format) preserves numerical properties acr
   )
   
   # Run test with CSV output
-  result_csv <- calculate_srh(
+  result_csv <- calculate_rank_transform(
     analysis,
     condition_col = "condition",
     output_file = csv_file,
@@ -1442,7 +1442,7 @@ test_that("rank_test statistics respect monotonicity: adj_p >= p_value", {
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_rank_monotone.tsv")
   
-  result <- calculate_srh(
+  result <- calculate_rank_transform(
     analysis,
     condition_col = "condition",
     multicorr = "hochberg",
@@ -1474,7 +1474,7 @@ test_that("rank_test results are consistent across different multicorr methods",
   
   # Test with no correction
   file_none <- file.path(output_dir, "test_rank_none.tsv")
-  result_none <- calculate_srh(
+  result_none <- calculate_rank_transform(
     analysis,
     condition_col = "condition",
     multicorr = "none",
@@ -1484,7 +1484,7 @@ test_that("rank_test results are consistent across different multicorr methods",
   
   # Test with Hochberg correction
   file_bh <- file.path(output_dir, "test_rank_bh.tsv")
-  result_bh <- calculate_srh(
+  result_bh <- calculate_rank_transform(
     analysis,
     condition_col = "condition",
     multicorr = "hochberg",
@@ -1553,7 +1553,7 @@ test_that("rank_test results with different test methods produce valid statistic
   output_dir <- tempdir()
   file_kw <- file.path(output_dir, "test_rank_kw.tsv")
   
-  result <- calculate_srh(
+  result <- calculate_rank_transform(
     analysis,
     condition_col = "condition",
     output_file = file_kw,
@@ -1587,12 +1587,12 @@ test_that("rank_test results with different test methods produce valid statistic
 
 test_that("rank_test paired designs produce mathematically valid results", {
   
-  # Paired Q×Condition interaction test (using Scheirer-Ray-Hare with within-subject ranking)
+  # Paired Q×Condition interaction test (using Conover-Iman Rank Transform with within-subject ranking)
   analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
   output_dir <- tempdir()
   output_file <- file.path(output_dir, "test_rank_paired.tsv")
   
-  result <- calculate_srh(
+  result <- calculate_rank_transform(
     analysis,
     condition_col = "condition",
     paired = TRUE,
@@ -1628,14 +1628,14 @@ test_that("rank_test results are deterministic and reproducible", {
   file1 <- file.path(output_dir, "test_rank_repro1.tsv")
   file2 <- file.path(output_dir, "test_rank_repro2.tsv")
   
-  result1 <- calculate_srh(
+  result1 <- calculate_rank_transform(
     analysis,
     condition_col = "condition",
     output_file = file1,
     verbose = FALSE
   )
   
-  result2 <- calculate_srh(
+  result2 <- calculate_rank_transform(
     analysis,
     condition_col = "condition",
     output_file = file2,

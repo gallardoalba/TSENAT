@@ -57,7 +57,7 @@ test_analysis_concordance <- local({
 
     # Compute rank test results (prerequisite for concordance)
     suppressWarnings({
-        analysis <- TSENAT::calculate_srh(analysis, method = "rank_test")
+        analysis <- TSENAT::calculate_rank_transform(analysis, method = "rank_test")
     })
 
     analysis

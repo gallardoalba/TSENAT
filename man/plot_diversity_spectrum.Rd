@@ -44,8 +44,8 @@ for each gene.}
   p-value column. Accepts either:
 - Results from `.calculate_sait()` (has `adj_p_interaction` or
 `p_interaction` columns)
-- Results from `.calculate_srh()` (has `adj_p_value` or `p_value`
-columns from Scheirer-Ray-Hare rank tests)
+- Results from `.calculate_rank_transform()` (has `adj_p_value` or `p_value`
+columns from Conover-Iman Rank Transform tests)
 If provided (and `gene` is NULL), plots top `n_top` genes ranked by
 p-value.
   Useful for plotting significant genes from any interaction analysis.}

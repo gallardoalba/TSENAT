@@ -40,7 +40,7 @@ test_that("test_rankbased_assumptions validates assumptions", {
 # NEW TESTS FOR GAP 3: INTERACTION DETECTION FUNCTIONS
 # ============================================================================
 
-# Test Suite: .calculate_srh()
+# Test Suite: .calculate_rank_transform()
 test_that("detect_q_gene_interactions basic functionality works", {
   # Create synthetic q×gene interaction data
   set.seed(42)
@@ -68,7 +68,7 @@ test_that("detect_q_gene_interactions basic functionality works", {
     stringsAsFactors = FALSE
   )
   
-  result <- .calculate_srh(model_data)
+  result <- .calculate_rank_transform(model_data)
   
   # Check output structure
   expect_is(result, "data.frame")
@@ -101,7 +101,7 @@ test_that("detect_q_gene_interactions correctly identifies robust gene", {
     stringsAsFactors = FALSE
   )
   
-  result <- .calculate_srh(model_data)
+  result <- .calculate_rank_transform(model_data)
   
   # Robust gene should have high p-value (not significant)
   expect_true(result$p_value[1] > 0.05)
@@ -129,7 +129,7 @@ test_that("detect_q_gene_interactions correctly identifies q-dependent gene", {
     stringsAsFactors = FALSE
   )
   
-  result <- .calculate_srh(model_data)
+  result <- .calculate_rank_transform(model_data)
   
   # Q-dependent gene should have low p-value (significant) and at least moderate effect size
   expect_true(result$p_value[1] < 0.05)
@@ -151,7 +151,7 @@ test_that("detect_q_gene_interactions handles missing values gracefully", {
     stringsAsFactors = FALSE
   )
   
-  result <- .calculate_srh(model_data)
+  result <- .calculate_rank_transform(model_data)
   
   # Should complete without error
   expect_is(result, "data.frame")
@@ -169,7 +169,7 @@ test_that("detect_q_gene_interactions requires minimum 2 q-levels", {
     stringsAsFactors = FALSE
   )
   
-  result <- .calculate_srh(model_data)
+  result <- .calculate_rank_transform(model_data)
   
   # Should mark as "Insufficient data"
   expect_equal(result$interaction_class[1], "Insufficient data")
@@ -186,12 +186,12 @@ test_that("detect_q_gene_interactions validates column names", {
   
   # Should error on missing entropy column
   expect_error(
-    .calculate_srh(model_data),
+    .calculate_rank_transform(model_data),
     "not found"
   )
 })
 
-test_that("detect_q_gene_interactions produces Scheirer-Ray-Hare test results", {
+test_that("detect_q_gene_interactions produces Conover-Iman Rank Transform results", {
   set.seed(111)
   entropy_vals <- c(
     rnorm(10, mean = 1.0, sd = 0.2),  # q=0.5
@@ -208,7 +208,7 @@ test_that("detect_q_gene_interactions produces Scheirer-Ray-Hare test results", 
     stringsAsFactors = FALSE
   )
   
-  result <- .calculate_srh(model_data)
+  result <- .calculate_rank_transform(model_data)
   
   # Should complete successfully
   expect_is(result, "data.frame")
@@ -348,7 +348,7 @@ test_that("Full workflow: detect -> classify -> recommend works end-to-end", {
   
   # Step 1: Detect interactions
   # Suppress expected chi-squared approximation warning from small cell counts in test data
-  results <- suppressWarnings(.calculate_srh(model_data))
+  results <- suppressWarnings(.calculate_rank_transform(model_data))
   expect_equal(nrow(results), 45)
   
   # Step 2: Classify
@@ -377,7 +377,7 @@ test_that("Functions handle edge case: single sample per q-level", {
   
   # Should handle without error (though with limited power)
   # Suppress expected warnings from edge-case variance calculations with N=1 per group
-  result <- suppressWarnings(.calculate_srh(model_data))
+  result <- suppressWarnings(.calculate_rank_transform(model_data))
   expect_is(result, "data.frame")
 })
 
@@ -395,7 +395,7 @@ test_that("Functions handle edge case: many q-levels", {
     stringsAsFactors = FALSE
   )
   
-  result <- .calculate_srh(model_data)
+  result <- .calculate_rank_transform(model_data)
   expect_equal(nrow(result), 1)
   expect_is(result$p_value[1], "numeric")
 })
@@ -417,7 +417,7 @@ test_that("detect_q_gene_interactions westfall-young parameter is accepted", {
   )
   
   # Should accept westfall-young without error
-  result <- .calculate_srh(
+  result <- .calculate_rank_transform(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 10  # Small number for speed in tests
@@ -444,7 +444,7 @@ test_that("detect_q_gene_interactions westfall-young produces valid adjusted p-v
     stringsAsFactors = FALSE
   )
   
-  result <- .calculate_srh(
+  result <- .calculate_rank_transform(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 15
@@ -468,7 +468,7 @@ test_that("detect_q_gene_interactions westfall-young adjusted p-values are monot
   )
   
   # Suppress expected chi-squared approximation warning from small cell counts in test data
-  result <- suppressWarnings(.calculate_srh(
+  result <- suppressWarnings(.calculate_rank_transform(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 10
@@ -493,13 +493,13 @@ test_that("detect_q_gene_interactions westfall-young wy_randomizations parameter
   
   # Test with different randomization counts
   # Suppress expected chi-squared approximation warning from small cell counts in test data
-  result_small <- suppressWarnings(.calculate_srh(
+  result_small <- suppressWarnings(.calculate_rank_transform(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 5
   ))
   
-  result_large <- suppressWarnings(.calculate_srh(
+  result_large <- suppressWarnings(.calculate_rank_transform(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 25
@@ -527,7 +527,7 @@ test_that("detect_q_gene_interactions westfall-young verbose mode works", {
   
   # Capture message output
   expect_message(
-    .calculate_srh(
+    .calculate_rank_transform(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = 10,
@@ -552,7 +552,7 @@ test_that("detect_q_gene_interactions westfall-young produces FWER control", {
   
   # Suppress warnings that may occur due to chi-squared approximations with small sample sizes
   result <- suppressWarnings(
-    .calculate_srh(
+    .calculate_rank_transform(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = 50
@@ -581,13 +581,13 @@ test_that("detect_q_gene_interactions westfall-young vs hochberg agreement", {
     stringsAsFactors = FALSE
   )
   
-  result_wy <- .calculate_srh(
+  result_wy <- .calculate_rank_transform(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 20
   )
   
-  result_hoch <- .calculate_srh(
+  result_hoch <- .calculate_rank_transform(
     model_data,
     multicorr = "hochberg"
   )
@@ -615,7 +615,7 @@ test_that("detect_q_gene_interactions westfall-young handles small randomization
   # Should work with very small wy_randomizations (though less accurate)
   # Suppress expected warning about small randomization count
   result <- suppressWarnings(
-    .calculate_srh(
+    .calculate_rank_transform(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = 5
@@ -643,7 +643,7 @@ test_that("detect_q_gene_interactions westfall-young handles edge cases graceful
   )
   
   # Should handle without crashing
-  result <- .calculate_srh(
+  result <- .calculate_rank_transform(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 10
@@ -671,7 +671,7 @@ test_that("detect_q_gene_interactions westfall-young phipson-smyth correction pr
   )
   
   result <- suppressWarnings(
-    .calculate_srh(
+    .calculate_rank_transform(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = 50
@@ -690,14 +690,14 @@ test_that("detect_q_gene_interactions westfall-young phipson-smyth correction pr
 # ============================================================================
 
 test_that("detect_q_gene_interactions has paired parameter with default FALSE", {
-  sig <- formals(.calculate_srh)
+  sig <- formals(.calculate_rank_transform)
   
   expect_true("paired" %in% names(sig))
   expect_false(sig$paired)  # Default should be FALSE
 })
 
 test_that("detect_q_gene_interactions has subject_col parameter", {
-  sig <- formals(.calculate_srh)
+  sig <- formals(.calculate_rank_transform)
   
   expect_true("subject_col" %in% names(sig))
   # subject_col can have a default value for paired analyses
@@ -714,7 +714,7 @@ test_that("detect_q_gene_interactions paired=TRUE without subject_col raises err
   )
   
   expect_error(
-    .calculate_srh(model_data, paired = TRUE, subject_col = NULL),
+    .calculate_rank_transform(model_data, paired = TRUE, subject_col = NULL),
     "paired=TRUE with subject_col=NULL is invalid"
   )
 })
@@ -731,7 +731,7 @@ test_that("detect_q_gene_interactions paired=FALSE with subject_col gives warnin
   )
   
   expect_warning(
-    .calculate_srh(model_data, paired = FALSE, subject_col = "subject", verbose = FALSE),
+    .calculate_rank_transform(model_data, paired = FALSE, subject_col = "subject", verbose = FALSE),
     "subject_col provided but paired=FALSE"
   )
 })
@@ -747,7 +747,7 @@ test_that("detect_q_gene_interactions detects missing subject_col in data", {
   )
   
   expect_error(
-    .calculate_srh(model_data, paired = TRUE, subject_col = "subject", verbose = FALSE),
+    .calculate_rank_transform(model_data, paired = TRUE, subject_col = "subject", verbose = FALSE),
     "subject_col.*not found"
   )
 })
@@ -790,7 +790,7 @@ test_that("detect_q_gene_interactions paired analysis with WY permutation works 
   
   # Run paired analysis (suppress expected warnings about perfect fits in permutations)
   result <- suppressWarnings(
-    .calculate_srh(
+    .calculate_rank_transform(
       model_data,
       paired = TRUE,
       subject_col = "subject",
@@ -866,7 +866,7 @@ test_that("detect_q_gene_interactions paired and unpaired give different results
   
   # Run both analyses (expect warnings about perfect fits)
   result_unpaired <- suppressWarnings(
-    .calculate_srh(
+    .calculate_rank_transform(
       model_data,
       paired = FALSE,
       multicorr = "hochberg",
@@ -875,7 +875,7 @@ test_that("detect_q_gene_interactions paired and unpaired give different results
   )
   
   result_paired <- suppressWarnings(
-    .calculate_srh(
+    .calculate_rank_transform(
       model_data,
       paired = TRUE,
       subject_col = "subject",
@@ -944,7 +944,7 @@ test_that("detect_q_gene_interactions SummarizedExperiment with paired data extr
   model_data <- do.call(rbind, model_data_list)
   
   # This should work with paired design
-  result <- .calculate_srh(
+  result <- .calculate_rank_transform(
     model_data,
     paired = TRUE,
     subject_col = "subject",
@@ -997,7 +997,7 @@ test_that("detect_q_gene_interactions paired detects unbalanced designs", {
   rownames(model_data) <- NULL
   
   # Should run without error (handles unbalanced designs)
-  result <- .calculate_srh(
+  result <- .calculate_rank_transform(
     model_data,
     paired = TRUE,
     subject_col = "subject",
@@ -1189,7 +1189,7 @@ test_that("detect_q_gene_interactions with wy_randomizations='auto'", {
   
   # Auto mode should estimate and use calculated value
   result_auto <- suppressWarnings(
-    .calculate_srh(
+    .calculate_rank_transform(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = "auto",
@@ -1201,7 +1201,7 @@ test_that("detect_q_gene_interactions with wy_randomizations='auto'", {
   # Explicit mode with estimate_nperm
   nperm_explicit <- .estimate_nperm(model_data, mode = "standard")
   result_explicit <- suppressWarnings(
-    .calculate_srh(
+    .calculate_rank_transform(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = nperm_explicit,
@@ -2017,7 +2017,7 @@ test_that("[PARALLELIZATION] .bplapply correctly parallelizes SRH gene analysis"
     
     # Run calculation with parallelization
     result <- tryCatch({
-        calculate_srh(
+        calculate_rank_transform(
             analysis = test_analysis,
             condition_col = "group",
             unpaired = TRUE,
@@ -2077,12 +2077,12 @@ test_that("[PARALLELIZATION] Results consistent across nthreads values", {
     
     # Run with single thread
     result_single <- tryCatch({
-        calculate_srh(test_analysis, condition_col = "group", unpaired = TRUE, nthreads = 1)
+        calculate_rank_transform(test_analysis, condition_col = "group", unpaired = TRUE, nthreads = 1)
     }, error = function(e) NULL)
     
     # Run with multiple threads (if available)
     result_multi <- tryCatch({
-        calculate_srh(test_analysis, condition_col = "group", unpaired = TRUE, nthreads = 2)
+        calculate_rank_transform(test_analysis, condition_col = "group", unpaired = TRUE, nthreads = 2)
     }, error = function(e) NULL)
     
     # If both succeed, verify structure consistency
@@ -2120,7 +2120,7 @@ test_that("[PARALLELIZATION] nthreads=1 single-threaded execution", {
     
     # This should work even without BiocParallel (falls back to serial)
     result <- tryCatch({
-        calculate_srh(test_analysis, condition_col = "group", unpaired = TRUE, nthreads = 1)
+        calculate_rank_transform(test_analysis, condition_col = "group", unpaired = TRUE, nthreads = 1)
     }, error = function(e) NULL)
     
     # Verify execution completed
@@ -2157,7 +2157,7 @@ test_that("[PARALLELIZATION] Single gene edge case", {
     
     # Single gene should still work with parallelization
     result <- tryCatch({
-        calculate_srh(test_analysis, condition_col = "group", unpaired = TRUE, nthreads = 2)
+        calculate_rank_transform(test_analysis, condition_col = "group", unpaired = TRUE, nthreads = 2)
     }, error = function(e) NULL)
     
     if (!is.null(result)) {
@@ -2198,7 +2198,7 @@ test_that("[PARALLELIZATION] Many genes parallelization efficiency", {
     
     # Many genes should benefit from parallelization
     result <- tryCatch({
-        calculate_srh(test_analysis, condition_col = "group", unpaired = TRUE, nthreads = 4)
+        calculate_rank_transform(test_analysis, condition_col = "group", unpaired = TRUE, nthreads = 4)
     }, error = function(e) NULL)
     
     if (!is.null(result)) {
@@ -2221,13 +2221,13 @@ test_that("[PARALLELIZATION] Cross-platform Windows compatibility via BiocParall
     )
     
     # Verify it's used instead of raw mclapply
-    # Check srh_core.R source contains .bplapply not mclapply for parallelization
+    # Check rank_transform_core.R source contains .bplapply not mclapply for parallelization
     
-    # Try multiple paths to find srh_core.R (system.file may fail during devtools testing)
+    # Try multiple paths to find rank_transform_core.R (system.file may fail during devtools testing)
     srh_source <- NULL
     
     # First try: system.file (works for installed packages)
-    srh_file <- system.file("R", "srh_core.R", package = "TSENAT")
+    srh_file <- system.file("R", "rank_transform_core.R", package = "TSENAT")
     if (nzchar(srh_file) && file.exists(srh_file)) {
         srh_source <- tryCatch({
             readLines(srh_file)
@@ -2236,7 +2236,7 @@ test_that("[PARALLELIZATION] Cross-platform Windows compatibility via BiocParall
     
     # Second try: relative path (works during devtools testing)
     if (is.null(srh_source) || length(srh_source) == 0) {
-        relative_path <- file.path(find.package("TSENAT"), "R", "srh_core.R")
+        relative_path <- file.path(find.package("TSENAT"), "R", "rank_transform_core.R")
         if (file.exists(relative_path)) {
             srh_source <- tryCatch({
                 readLines(relative_path)
@@ -2246,9 +2246,9 @@ test_that("[PARALLELIZATION] Cross-platform Windows compatibility via BiocParall
     
     # Third try: direct path from current working directory
     if (is.null(srh_source) || length(srh_source) == 0) {
-        if (file.exists("R/srh_core.R")) {
+        if (file.exists("R/rank_transform_core.R")) {
             srh_source <- tryCatch({
-                readLines("R/srh_core.R")
+                readLines("R/rank_transform_core.R")
             }, error = function(e) NULL)
         }
     }
@@ -2270,6 +2270,6 @@ test_that("[PARALLELIZATION] Cross-platform Windows compatibility via BiocParall
         expect_false(has_mclapply_in_phase5,
                     info = "Raw mclapply not used in PHASE 5 parallelization")
     } else {
-        skip("Could not load srh_core.R source code for parallelization verification")
+        skip("Could not load rank_transform_core.R source code for parallelization verification")
     }
 })

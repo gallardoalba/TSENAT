@@ -45,12 +45,12 @@ Modified TSENATAnalysis object with concordance results stored in:
 }
 \description{
 Compares statistical results from two different methods (typically SAIT/GAM for
-continuous data and Scheirer-Ray-Hare rank tests) to assess agreement and identify
+continuous data and Conover-Iman Rank Transform tests) to assess agreement and identify
 genes detected by one method but not the other.
 }
 \details{
 Compares results from two different statistical methods (typically GAM
-for continuous and Scheirer-Ray-Hare for rank-based analysis) on the same data.
+for continuous and Conover-Iman Rank Transform for rank-based analysis) on the same data.
 Identifies:
 - Genes significant in both methods (high confidence)
 - Genes detected by one method only (potential false positives or method-specific signal)
@@ -58,7 +58,7 @@ Identifies:
 }
 \examples{
 # Compare results from SAIT and rank-based testing
-# (Requires pre-computed analysis objects from calculate_sait and calculate_srh)
+# (Requires pre-computed analysis objects from calculate_sait and calculate_rank_transform)
 # results_df <- results(calculate_concordance(analysis_sait, analysis_rank))
 
 }

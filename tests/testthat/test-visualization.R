@@ -2096,7 +2096,7 @@ create_sait_res_p_interaction <- function() {
   )
 }
 
-# Helper: Create sait_res dataframe with adj_p_value format (Scheirer-Ray-Hare rank test)
+# Helper: Create sait_res dataframe with adj_p_value format (Conover-Iman Rank Transform)
 create_sait_res_adj_p_value <- function() {
   data.frame(
     gene = c("GENE_1", "GENE_2", "GENE_3", "GENE_4", "GENE_5"),
@@ -2348,7 +2348,7 @@ test_that("plot_diversity_spectrum gene-mode: detect adj_p_value format (line 58
   analysis <- setup_gene_mode_analysis()
   sait_res <- create_sait_res_adj_p_value()
   
-  # Should accept adj_p_value format (Scheirer-Ray-Hare rank test)
+  # Should accept adj_p_value format (Conover-Iman Rank Transform)
   result <- suppressWarnings(tryCatch({
     plot_diversity_spectrum(
       analysis,

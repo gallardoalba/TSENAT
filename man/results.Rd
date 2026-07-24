@@ -178,7 +178,7 @@ influence_plot <- results(analysis, type = 'influence', plot = TRUE)
 # - type = "sait": Returns regularized/penalized regression (GAM, LMM, GEE, FPCA) interaction plot
 # - type = 'divergence': Returns distribution of divergence metrics across genes
 # - type = 'influence': Returns m-estimator sample influence analysis
-# - type = 'rank_test': Returns Scheirer-Ray-Hare interaction visualization
+# - type = 'rank_test': Returns Conover-Iman Rank Transform interaction results
 # - type = 'concordance': Returns method concordance comparison (LM vs rank test)
 
 }

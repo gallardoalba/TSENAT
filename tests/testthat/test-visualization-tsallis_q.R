@@ -1193,7 +1193,7 @@ test_that(".plot_tsallis_gene_specific with sait_res (p_interaction)", {
     expect_is(p, c("ggplot", "gtable", "grob"))
 })
 
-test_that(".plot_tsallis_gene_specific with sait_res (adj_p_value - SRH)", {
+test_that(".plot_tsallis_gene_specific with sait_res (adj_p_value - Conover-Iman Rank Transform)", {
     skip_if_not_installed("ggplot2")
     
     se <- make_test_se_diversity()

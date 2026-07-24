@@ -376,7 +376,7 @@
 #' = 0.25))
 #' 
 #' # Unpaired analysis (default): Conover-Iman Rank Transform + multi-test correction for AR(1) q-values
-#' results <- .calculate_srh(ts_se, multicorr = 'hochberg')
+#' results <- .calculate_rank_transform(ts_se, multicorr = 'hochberg')
 #' head(results)
 #' 
 #' # Paired analysis with metadata
@@ -390,7 +390,7 @@
 #' SummarizedExperiment::colData(ts_se) <- coldata
 #' 
 #' # Paired analysis with blocked permutations
-#' results_paired <- .calculate_srh(
+#' results_paired <- .calculate_rank_transform(
 #'   ts_se, 
 #'   paired = TRUE,
 #'   subject_col = 'patient_id',
@@ -399,7 +399,7 @@
 #' )
 #' head(results_paired)
 #' @noRd
-.calculate_srh <- function(data, entropy_col = "diversity", q_col = "q", gene_col = "gene",
+.calculate_rank_transform <- function(data, entropy_col = "diversity", q_col = "q", gene_col = "gene",
     condition_col = NULL, paired = FALSE, subject_col = "paired_samples", multicorr = c("hochberg",
         "benjamini-yekutieli", "westfall-young", "none"), wy_randomizations = 500,
     nperm_mode = "standard", nthreads = 1, alpha = 0.05, p_threshold = 0.05, eta2_threshold_moderate = 0.01,

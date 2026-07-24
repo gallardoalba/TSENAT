@@ -1732,11 +1732,11 @@ test_that("calculate_divergence S4 wrapper basic call", {
   expect_true(is.null(result) || methods::is(result, "TSENATAnalysis"))
 })
 
-test_that("calculate_srh S4 wrapper with condition", {
+test_that("calculate_rank_transform S4 wrapper with condition", {
   analysis <- setup_minimal_analysis()
   
   result <- tryCatch({
-    TSENAT::calculate_srh(analysis, condition_col = "condition")
+    TSENAT::calculate_rank_transform(analysis, condition_col = "condition")
   }, error = function(e) NULL)
   
   expect_true(is.null(result) || methods::is(result, "TSENATAnalysis"))
@@ -1790,7 +1790,7 @@ test_that("calculate_rank_test without condition_col falls back", {
   analysis <- setup_minimal_analysis()
   
   result <- tryCatch({
-    TSENAT::calculate_srh(analysis)
+    TSENAT::calculate_rank_transform(analysis)
   }, error = function(e) NULL)
   
   expect_true(is.null(result) || methods::is(result, "TSENATAnalysis"))

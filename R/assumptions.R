@@ -1464,7 +1464,7 @@ print.rank_correlation_ci <- function(x, ...) {
 #'
 #' Stratifies genes based on their sensitivity to q-parameter changes.
 #'
-#' @param interaction_results Data frame output from .calculate_srh()
+#' @param interaction_results Data frame output from .calculate_rank_transform()
 #' @param p_threshold Numeric: p-value threshold for significance (default:
 #' 0.05)
 #' @param eta2_threshold_moderate Numeric: Effect size threshold for

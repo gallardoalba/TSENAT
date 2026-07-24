@@ -51,7 +51,7 @@ Pipeline execution order (enforced, follows TSENAT.Rmd vignette):
   \item \code{plot_divergence_distribution()} - Divergence distribution plot
   \item \code{plot_divergence_spectrum()} - Divergence spectrum plot
   \item \code{calculate_assumptions()} - Validate rank-based test assumptions
-  \item \code{calculate_srh()} - Scheirer-Ray-Hare rank-based interaction test
+  \item \code{calculate_rank_transform()} - Conover-Iman Rank Transform interaction test
   \item \code{calculate_concordance()} - Compare LM and rank test results
 }
 }

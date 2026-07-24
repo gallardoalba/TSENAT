@@ -370,7 +370,7 @@ setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"), funct
 #'
 #' @examples
 #' # Compare results from SAIT and rank-based testing
-#' # (Requires pre-computed analysis objects from calculate_sait and calculate_srh)
+#' # (Requires pre-computed analysis objects from calculate_sait and calculate_rank_transform)
 #' # results_df <- results(calculate_concordance(analysis_sait, analysis_rank))
 #'
 #' @aliases calculate_concordance
@@ -456,7 +456,7 @@ setGeneric("calculate_concordance", function(analysis_sait, analysis_rank = NULL
         !("rank_test" %in% names(analysis_sait@rank_test_results))) {
         if (is.null(analysis_sait@rank_test_results) || 
             length(analysis_sait@rank_test_results) == 0) {
-            stop("No rank test results found. Run calculate_srh() first.",
+            stop("No rank test results found. Run calculate_rank_transform() first.",
                 call. = FALSE)
         }
         rank_method <- names(analysis_sait@rank_test_results)[1]
