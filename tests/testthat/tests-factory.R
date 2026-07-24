@@ -146,8 +146,10 @@ create_test_analysis <- function(
   colnames(tpm) <- colnames(counts)
   S4Vectors::metadata(se)$tpm <- tpm
   
-  # Initialize TSENATAnalysis
-  analysis <- TSENAT::TSENATAnalysis(se = se, config = list())
+  # Initialize TSENATAnalysis with explicit control_group in config.
+  # This prevents auto-detection heuristics from guessing the wrong
+  # reference group and ensures reproducible, explicit test design.
+  analysis <- TSENAT::TSENATAnalysis(se = se, config = list(control_group = "control"))
   
   # Calculate diversity
   analysis <- TSENAT::calculate_diversity(
@@ -162,6 +164,8 @@ create_test_analysis <- function(
     analysis <- tryCatch({
       TSENAT::calculate_divergence(
         analysis,
+        group_col = "condition",
+        control_group = "control",
         verbose = FALSE
       )
     }, error = function(e) {
@@ -1546,8 +1550,10 @@ suppress_loess_warnings <- function(expr) {
     names(effective_length) <- rownames(counts)
     S4Vectors::metadata(se)$effective_length <- effective_length
 
-    # Initialize TSENATAnalysis
-    analysis <- TSENATAnalysis(se = se, config = list())
+    # Initialize TSENATAnalysis with explicit control_group in config.
+    # This prevents auto-detection heuristics from guessing the wrong
+    # reference group and ensures reproducible, explicit test design.
+    analysis <- TSENATAnalysis(se = se, config = list(control_group = "control"))
 
     # Calculate diversity
     analysis <- calculate_diversity(analysis, q = q_values, verbose = FALSE)

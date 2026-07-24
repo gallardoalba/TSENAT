@@ -1506,7 +1506,7 @@ test_that("S4 Wrappers: calculate_divergence accepts new arguments", {
   
   # Test each argument individually
   args_to_test <- list(
-    list(control_group = "Control"),
+    list(control_group = "control"),
     list(method = "mean"),
     list(paired = FALSE),
     list(bootstrap = FALSE),

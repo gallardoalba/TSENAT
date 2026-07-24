@@ -2889,13 +2889,14 @@ test_that(".apply_diversity_post_hoc_norm handles norm='none'", {
 # ============================================================================
 # Reference: Hill (1973), I018/I019 - species richness at q=0 is the total number
 # of species in the sample, not a logarithmic transform.
-# Bug: Previous code computed log-scaled species richness.
-# Fix: Now correctly returns the raw species count.
+# NOTE (July 2026): .entropy_core() returns Tsallis S_0 = n - 1 (AUDIT FIX R13),
+# not the Hill number D_0 = n.  The entropy value n-1 is the standard
+# Tsallis entropy at q=0 and is consistent with entropy_cpp.
 
 test_that("[BUG #1] Species richness (q=0) returns the total species count", {
   # Uniform distribution with 4 species
   proportions <- c(0.25, 0.25, 0.25, 0.25)
-  expected_n <- 4
+  expected_n <- 3  # Tsallis S_0 = n - 1 = 3
   
   # Test with natural log base (should be ignored for q=0)
   result_e <- .entropy_core(proportions, q = 0, log_base = exp(1))
@@ -2916,7 +2917,7 @@ test_that("[BUG #1] Species richness (q=0) returns the total species count", {
   proportions_8 <- rep(1/8, 8)
   result_8 <- .entropy_core(proportions_8, q = 0, log_base = exp(1))
   expect_gt(result_8, result_e)
-  expect_equal(result_8, 8)
+  expect_equal(result_8, 7)  # Tsallis S_0 = n - 1 = 7
 })
 
 # ============================================================================
@@ -2995,9 +2996,10 @@ test_that("[BUG #5] Invalid effective_length raises error instead of silent conv
 test_that("Edge cases: q very close to 0 returns species richness", {
   proportions <- c(0.5, 0.3, 0.2)
   
-  # q below the q_tol threshold should be treated as q=0 species richness
+  # q below the q_tol threshold should be treated as q=0
+  # Returns Tsallis S_0 = n - 1 = 2 (consistent with AUDIT FIX R13)
   result_q_near_0 <- .entropy_core(proportions, q = 1e-7, log_base = exp(1))
-  expect_equal(result_q_near_0, 3, tolerance = 1e-4)
+  expect_equal(result_q_near_0, 2, tolerance = 1e-4)
 })
 
 test_that("Edge cases: Very skewed distributions", {

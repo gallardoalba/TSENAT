@@ -17,12 +17,12 @@
 #' 2. 'condition', 'treatment', 'sample_type' (common alternatives)
 #'
 #' **Detection Strategy for control_group:**
-#' Once group column is found, identifies the reference group by:
-#' 1. First looking for common control/reference names: 'Normal', 'Control', 
-#'    'WT' (wild-type), 'Reference', 'Baseline', 'wt'
-#' 2. If no match, selects the unique group value with smallest sample count
-#'    (typically the control/reference in case-control designs)
-#' 3. If still no match, uses the first alphabetically sorted group name
+#' Once group column is found, identifies the reference group by looking for
+#' common control/reference names: 'Normal', 'Control', 'WT' (wild-type),
+#' 'Reference', 'Baseline', 'Wild-type', 'wild_type', 'wt'.
+#' If no standard name matches, an error is raised because the control group
+#' is a scientific decision that cannot be reliably guessed — the user must
+#' specify it explicitly via the \code{control_group} parameter.
 #'
 #' @param se SummarizedExperiment object with sample metadata in colData
 #'
@@ -71,9 +71,12 @@
     unique_groups <- unique(group_vec)
     group_counts <- table(group_vec)
 
-    # Candidate names for control/reference group (in priority order)
-    control_candidates <- c("Normal", "Control", "WT", "wt", "Reference", "Baseline",
-        "Wild-type", "wild_type")
+    # Candidate names for control/reference group (in priority order).
+    # Both capitalized and lowercase variants are included because real-world
+    # metadata uses inconsistent casing (e.g., "normal" in vignette, "Control"
+    # in TCGA-style datasets).
+    control_candidates <- c("Normal", "normal", "Control", "control", "WT", "wt",
+        "Reference", "reference", "Baseline", "baseline", "Wild-type", "wild_type")
 
     control_group <- NA_character_
 
@@ -85,18 +88,22 @@
         }
     }
 
-    # If no standard control label is found, use a conservative heuristic.
-    # This chooses the smallest group by sample count, which is typical for
-    # case/control designs but may be wrong for imbalanced or non-case-control
-    # datasets. Warn the user that this is an automatic guess.
+    # If no standard control label is found, we cannot reliably guess the
+    # reference group.  The control group is a scientific decision, not a
+    # computational convenience — choosing the smallest group, the first
+    # alphabetically, or any other heuristic can silently produce incorrect
+    # results.  Per Bioconductor reproducibility guidelines, we error out
+    # with a clear message that lists the available groups so the user can
+    # make an explicit, documented choice.
     if (is.na(control_group)) {
         if (length(unique_groups) >= 2) {
-            min_samples_group <- names(group_counts)[which.min(group_counts)]
-            control_group <- min_samples_group
-            warning("Auto-detected control_group='", control_group,
-                "' (smallest group by sample count). ",
-                "This heuristic may be incorrect. Set control_group explicitly.",
-                call. = FALSE)
+            stop(
+                "Could not auto-detect control_group. ",
+                "Available groups: ", paste(sQuote(unique_groups), collapse = ", "), ". ",
+                "Please specify 'control_group' explicitly (e.g., control_group = \"",
+                unique_groups[1], "\").",
+                call. = FALSE
+            )
         } else if (length(unique_groups) == 1) {
             control_group <- unique_groups[1]
         }

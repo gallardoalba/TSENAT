@@ -35,7 +35,7 @@
         stop("q must be non-negative")
     }
 
-    # Filter out only negative values (zeros contribute 0 to entropy)
+        # Filter out only negative values (zeros contribute 0 to entropy)
     # Filter out only negative values (zeros contribute 0 to entropy)
     # AUDIT FIX R15: Removed >1e-15 threshold — zeros are valid, consistent with C++ fix #17
     p_nonzero <- proportions[proportions >= 0]
@@ -197,9 +197,11 @@
 
     # Calculate entropy using standardized core logic
     if (q < q_tol) {
-        # Species richness (q=0): count species directly
+        # Tsallis entropy at q=0: S_0 = n_nonzero - 1
+        # Consistent with .entropy_core() (AUDIT FIX R13) and entropy_cpp
+        # (AUDIT FIX #5).  Not the Hill number / effective richness D_0 = n.
         p_nonzero <- p[p > 0]
-        entropy <- length(p_nonzero)
+        entropy <- length(p_nonzero) - 1
     } else if (abs(q - 1) < q_tol) {
         # Shannon entropy as q -> 1
         p_nonzero <- p[p > 0]

@@ -99,12 +99,7 @@ if ("package:TSENAT" %in% search()) {
 }
 
 pkg_root <- normalizePath("..", mustWork = FALSE)
-cat("DEBUG: pkg_root =", pkg_root, "\n")
 devtools::load_all(pkg_root)
-cat("DEBUG: find.package TSENAT =", find.package("TSENAT"), "\n")
-cat("DEBUG: search path =", paste(search(), collapse = " | "), "\n")
-cat("DEBUG: calculate_srh sources =", paste(getAnywhere("calculate_srh")$where, collapse = " | "), "\n")
-cat("DEBUG: .store_srh_results sources =", paste(getAnywhere(".store_srh_results")$where, collapse = " | "), "\n")
 
 # Load preprocessed dataset
 data(readcounts)
@@ -250,25 +245,10 @@ Now we will use the SRH test to evaluate whether entropy patterns across entropi
 # This preserves the GAMM results in 'analysis' for later concordance comparison
 
 # Run SRH test for q * condition INTERACTION on the copy
-cat("DEBUG: calculate_srh function: ", capture.output(getAnywhere("calculate_srh")), "\n")
-cat("DEBUG: .store_srh_results function: ", capture.output(getAnywhere(".store_srh_results")), "\n")
 analysis_rank <- calculate_srh(
     analysis,
     multicorr = "hochberg"
 )
-
-cat("DEBUG: analysis_rank class =", class(analysis_rank), "\n")
-cat("DEBUG: slotNames(analysis_rank) =", paste(slotNames(analysis_rank), collapse = ", "), "\n")
-cat("DEBUG: rank_test_results class =", class(analysis_rank@rank_test_results), "\n")
-cat("DEBUG: rank_test_results length =", length(analysis_rank@rank_test_results), "\n")
-cat("DEBUG: rank_test_results names =", paste(names(analysis_rank@rank_test_results), collapse = ", "), "\n")
-if (!is.null(analysis_rank@rank_test_results) && length(analysis_rank@rank_test_results) > 0) {
-    cat("DEBUG: rank_test_results[1] structure:\n")
-    print(str(analysis_rank@rank_test_results[[1]], max.level = 1))
-}
-if (is.null(analysis_rank@rank_test_results) || length(analysis_rank@rank_test_results) == 0) {
-    stop("No rank test results were stored in analysis_rank@rank_test_results after calculate_srh().")
-}
 
 # Extract ALL results (no filtering) for summary statistics
 srh_results_all <- results(analysis_rank, type = "rank_test", rankBy = "pvalue")
@@ -500,8 +480,6 @@ A critical validation step is to compare whether the SRH rank-based test and GAM
 
 ```{r compare-srh-gam-methods, message=FALSE}
 # Compute concordance analysis using new two-object API
-cat("DEBUG: before calculate_concordance, rank_test_results class =", class(analysis_rank@rank_test_results), "\n")
-cat("DEBUG: before calculate_concordance, rank_test_results names =", paste(names(analysis_rank@rank_test_results), collapse = ", "), "\n")
 if (is.null(analysis_rank@rank_test_results) || length(analysis_rank@rank_test_results) == 0) {
     stop("Cannot run calculate_concordance(): analysis_rank@rank_test_results is empty. Ensure calculate_srh() completed successfully.")
 }

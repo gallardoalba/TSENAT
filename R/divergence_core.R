@@ -77,37 +77,89 @@
 # ORCHESTRATOR HELPERS (March 2026 refactoring)
 # =========================================================================
 
-#' Validate group columns and auto-detect missing ones
-#' Consolidates duplicated if-pattern for group_col and control_group
-
+#' Validate group columns and auto-detect missing ones.
+#'
+#' Resolution order:
+#' 1. If group_col is provided  → use it as-is (user knows best)
+#' 2. If control_group is provided → find the colData column that contains it
+#' 3. If both are NULL → full auto-detection via .auto_detect_groups()
+#'
 #' @noRd
 .validate_and_auto_detect_groups <- function(se, group_col, control_group, progress) {
-    if (is.null(group_col) || is.null(control_group)) {
-        auto_groups <- .auto_detect_groups(se)
+    cd <- SummarizedExperiment::colData(se)
+    cd_colnames <- colnames(cd)
 
-        if (is.null(group_col)) {
+    # Candidate group columns in priority order
+    group_col_candidates <- c("sample_type", "group", "condition", "treatment",
+        "phenotype")
+
+    # ---- Resolve group_col ----
+    if (is.null(group_col)) {
+        if (!is.null(control_group)) {
+            # control_group is known → find the column that contains it
+            found <- FALSE
+            for (col_name in group_col_candidates) {
+                if (col_name %in% cd_colnames &&
+                    control_group %in% as.character(cd[[col_name]])) {
+                    group_col <- col_name
+                    found <- TRUE
+                    if (progress)
+                        message("[calculate_divergence] Using group_col='", group_col,
+                            "' (contains control_group='", control_group, "')")
+                    break
+                }
+            }
+            if (!found) {
+                stop("control_group='", control_group,
+                    "' not found in any candidate group column (",
+                    paste(group_col_candidates, collapse = ", "), "). ",
+                    "Please specify 'group_col' explicitly.",
+                    call. = FALSE)
+            }
+        } else {
+            # Neither provided → full auto-detection
+            auto_groups <- .auto_detect_groups(se)
             if (is.na(auto_groups$group_col)) {
-                stop("Could not auto-detect group column in colData. ", "Available columns: ",
-                  paste(colnames(SummarizedExperiment::colData(se)), collapse = ", "),
-                  ". Please specify 'group_col' explicitly.", call. = FALSE)
+                stop("Could not auto-detect group column in colData. ",
+                    "Available columns: ", paste(cd_colnames, collapse = ", "),
+                    ". Please specify 'group_col' explicitly.", call. = FALSE)
             }
             group_col <- auto_groups$group_col
             if (progress)
-                message("[calculate_divergence] Auto-detected group_col='", group_col,
-                  "'")
+                message("[calculate_divergence] Auto-detected group_col='", group_col, "'")
         }
+    }
 
-        if (is.null(control_group)) {
+    # ---- Resolve control_group ----
+    if (is.null(control_group)) {
+        # Not provided → only auto-detect if group_col also wasn't auto-detected above
+        # (if group_col was found via auto-detection above, control_group was too)
+        if (exists("auto_groups") && !is.null(auto_groups)) {
+            # Reuse result from above
             if (is.na(auto_groups$control_group)) {
-                stop("Could not auto-detect control_group. Found groups: ", paste(auto_groups$groups,
-                  collapse = ", "), ". Please specify 'control_group' explicitly.",
-                  call. = FALSE)
+                groups_in_col <- unique(as.character(cd[[group_col]]))
+                stop("Could not auto-detect control_group. ",
+                    "Available groups: ", paste(sQuote(groups_in_col), collapse = ", "),
+                    ". Please specify 'control_group' explicitly ",
+                    "(e.g., control_group = \"", groups_in_col[1], "\").",
+                    call. = FALSE)
             }
             control_group <- auto_groups$control_group
-            if (progress)
-                message("[calculate_divergence] Auto-detected control_group='", control_group,
-                  "'")
+        } else {
+            # group_col was provided but control_group wasn't → run detection
+            auto_groups <- .auto_detect_groups(se)
+            if (is.na(auto_groups$control_group)) {
+                groups_in_col <- unique(as.character(cd[[group_col]]))
+                stop("Could not auto-detect control_group. ",
+                    "Available groups: ", paste(sQuote(groups_in_col), collapse = ", "),
+                    ". Please specify 'control_group' explicitly ",
+                    "(e.g., control_group = \"", groups_in_col[1], "\").",
+                    call. = FALSE)
+            }
+            control_group <- auto_groups$control_group
         }
+        if (progress)
+            message("[calculate_divergence] Auto-detected control_group='", control_group, "'")
     }
 
     list(group_col = group_col, control_group = control_group)

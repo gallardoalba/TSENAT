@@ -667,6 +667,7 @@ test_that("calculate_divergence handles small gene count correctly", {
         nboot = 100,
         nthreads = max_threads,  # Respects environment core limit
         progress = FALSE,
+        control_group = "A"
     )
     
     # Should process all genes
@@ -710,6 +711,7 @@ test_that("calculate_divergence auto-detects cores when nthreads=NULL", {
         nboot = 100,
         nthreads = max_threads,
         progress = FALSE,
+        control_group = "G1"
     )
     
     # Should produce valid results as SummarizedExperiment
@@ -746,7 +748,8 @@ test_that("calculate_divergence processes all genes (top_n no longer used)", {
     # New API processes all genes provided, no top_n filtering
     result <- .calculate_divergence(
         se = se, q = 1, nboot = 100,
-        nthreads = 1, progress = FALSE
+        nthreads = 1, progress = FALSE,
+        control_group = "X"
     )
     
     # Should process all genes
@@ -792,7 +795,8 @@ test_that("calculate_divergence error handling for invalid input", {
     expect_no_error(
         .calculate_divergence(
             se = se,
-            q = 1, nthreads = 1, progress = FALSE
+            q = 1, nthreads = 1, progress = FALSE,
+            control_group = "A"
         )
     )
 })
@@ -821,7 +825,8 @@ test_that("calculate_divergence output includes required columns", {
     
     result <- .calculate_divergence(
         se = se, q = 1, nboot = 100,
-        nthreads = 1, progress = FALSE
+        nthreads = 1, progress = FALSE,
+        control_group = "Ctrl"
     )
     
     # Check output is SummarizedExperiment

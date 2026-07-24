@@ -466,7 +466,7 @@ test_that("calculate_divergence completes efficiently", {
   # Benchmark divergence calculation (requires diversity results and colData)
   bench <- microbenchmark::microbenchmark(
     times = 2,
-    calculate_divergence(analysis, group_col = "condition")
+    calculate_divergence(analysis, group_col = "condition", control_group = "group1")
   )
   
   # Divergence calculation should be efficient - tighter threshold for regression detection

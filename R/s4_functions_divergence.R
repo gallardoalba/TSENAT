@@ -204,6 +204,11 @@ calculate_divergence <- function(analysis, q = NULL, verbose = FALSE, nthreads =
     }
     control_group <- resolve_slot_param(control_group, analysis@config, "control_group",
         NULL)
+    # Fallback: TSENAT_config() stores this as "control", not "control_group".
+    # If not found under the canonical key, try the legacy key name.
+    if (is.null(control_group) && !is.null(analysis@config$control)) {
+        control_group <- analysis@config$control
+    }
     method <- resolve_slot_param(method, analysis@config, "method", "percentile")
     nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
     nboot <- resolve_slot_param(nboot, analysis@config, "nboot", NULL)

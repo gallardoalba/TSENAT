@@ -426,8 +426,10 @@ test_that(".auto_detect_groups detects Control group correctly", {
   expect_setequal(result$groups, c("Control", "Treatment"))
 })
 
-test_that(".auto_detect_groups uses fallback detection for non-standard names", {
-  # When no standard control name found, uses heuristics
+test_that(".auto_detect_groups errors on non-standard names (no heuristic)", {
+  # When no standard control name found, auto-detection raises an error
+  # rather than using a heuristic guess. The control group is a scientific
+  # decision that must be explicitly specified by the user.
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(counts = matrix(1:48, nrow = 8, ncol = 6)),
     colData = data.frame(
@@ -435,11 +437,10 @@ test_that(".auto_detect_groups uses fallback detection for non-standard names", 
     )
   )
   
-  result <- TSENAT:::.auto_detect_groups(se)
-  
-  expect_equal(result$group_col, "group")
-  # Should select GroupA (fewer samples) as control
-  expect_equal(result$control_group, "GroupA")
+  expect_error(
+    TSENAT:::.auto_detect_groups(se),
+    "Could not auto-detect control_group"
+  )
 })
 
 test_that(".auto_detect_groups prioritizes standard column names", {
