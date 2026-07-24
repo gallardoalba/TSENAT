@@ -69,6 +69,10 @@
 #'  Include bootstrap diagnostic information.  Default:  FALSE.
 #'   If NULL,  reads from \code{@config$bootstrap_include_diagnostics} if 
 #' available.
+#' @param log_base \code{numeric}. Logarithm base for Shannon entropy computation
+#'   (default: \code{exp(1)} for natural log). Set to 2 for bits or 10 for
+#'   dits. Only affects Shannon entropy (q = 1); Tsallis entropy (q != 1) is
+#'   scale-invariant and does not use a logarithm base.
 #' @details
 #' **Mathematical Background:**
 #' Tsallis entropy H_q for q-parameter:

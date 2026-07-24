@@ -811,6 +811,191 @@ results <- function(analysis, type, q = NULL, rankBy = "none", n = NA, filterFDR
 # Assumptions Result Processing
 # ============================================================================
 
+#' Extract assumption checks from attribute storage
+#'
+#' .calculate_assumptions() uses structure() which stores checks as
+#' an attribute, not as top-level list elements. This helper moves them
+#' into the main result list for consistent access.
+#'
+#' @param result A list potentially containing checks as an attribute.
+#' @return The result list with checks extracted from attribute.
+#' @keywords internal
+#' @noRd
+.extract_assumption_checks <- function(result) {
+    if (is.null(result$exchangeability) && !is.null(attr(result, "checks"))) {
+        checks_attr <- attr(result, "checks")
+        for (check_name in names(checks_attr)) {
+            result[[check_name]] <- checks_attr[[check_name]]
+        }
+    }
+    result
+}
+
+#' Format numeric values for display in assumptions table
+#'
+#' @param x A value to format (numeric, NULL, or NA).
+#' @return A character string representation.
+#' @keywords internal
+#' @noRd
+.format_assumption_value <- function(x) {
+    if (is.null(x)) return("N/A")
+    if (length(x) > 1) x <- x[1]
+    if (is.na(x)) return("N/A")
+    if (is.numeric(x)) {
+        if (x < 0.001) return(sprintf("%.0e", x))
+        if (x < 0.01)  return(sprintf("%.4f", x))
+        return(sprintf("%.3f", x))
+    }
+    as.character(x)
+}
+
+#' Capitalize first letter and replace underscores with spaces
+#' @keywords internal
+#' @noRd
+.capitalize_first <- function(x) {
+    x_clean <- gsub("_", " ", x)
+    paste0(toupper(substring(x_clean, 1, 1)), substring(x_clean, 2))
+}
+
+#' Process rank-based assumption checks (exchangeability, monotonicity, consistency)
+#' @keywords internal
+#' @noRd
+.process_rank_checks <- function(result) {
+    rows <- list()
+    fmt <- .format_assumption_value
+
+    if (!is.null(result$exchangeability)) {
+        check <- result$exchangeability
+        status_val <- if (!is.null(check$status)) check$status else "unknown"
+        rows[[length(rows) + 1]] <- list(
+            Test = "Exchangeability (Permutation test)",
+            Result = paste0("p=", fmt(check$p_value)),
+            Interpretation = paste0(toupper(substring(status_val, 1, 1)), substring(status_val, 2)))
+    }
+
+    if (!is.null(result$monotonicity)) {
+        check <- result$monotonicity
+        r_val <- fmt(check$mean_correlation)
+        interp <- if (!is.null(check$mean_correlation) && abs(check$mean_correlation) >= 0.3)
+            "Homogeneous" else "Heterogeneous"
+        rows[[length(rows) + 1]] <- list(
+            Test = "Monotonicity (Spearman rho)",
+            Result = paste0("r=", r_val), Interpretation = interp)
+    }
+
+    if (!is.null(result$consistency)) {
+        check <- result$consistency
+        w_val <- fmt(check$kendall_w)
+        icc_val <- fmt(check$icc_simplified)
+        interp <- if (!is.na(check$icc_simplified) && check$icc_simplified >= 0.5)
+            "Moderate" else "Low"
+        rows[[length(rows) + 1]] <- list(
+            Test = "Consistency (Kendall's W / ICC)",
+            Result = paste0("W=", w_val, ", ICC=", icc_val), Interpretation = interp)
+    }
+    rows
+}
+
+#' Process GAM-specific assumption checks
+#' @keywords internal
+#' @noRd
+.process_gam_checks <- function(result) {
+    rows <- list()
+    if (is.null(result$gam_metrics)) return(rows)
+
+    gm <- result$gam_metrics
+    metric_defs <- list(
+        concurvity = list(
+            test = "Concurvity (Smooth collinearity)",
+            field = "overall_concurvity",
+            fmt = function(m) sprintf("%.3f", m$overall_concurvity),
+            interp = function(m) if (m$overall_concurvity < 0.5) "Low" else "High"),
+        edf = list(
+            test = "EDF Ratio (Smoothing)",
+            field = "edf_ratio",
+            fmt = function(m) sprintf("%.3f", m$edf_ratio),
+            interp = function(m) if (m$edf_ratio < 0.1) "Over-smoothed"
+                else if (m$edf_ratio > 0.9) "Under-smoothed" else "Adequate"),
+        nonlinearity = list(
+            test = "Non-linearity (Delta R^2 vs LM)",
+            field = "r2_improvement_percent",
+            fmt = function(m) sprintf("%.1f%%", m$r2_improvement_percent),
+            interp = function(m) if (m$r2_improvement_percent < 1) "Use linear" else "Use GAM"),
+        basis_adequacy = list(
+            test = "Basis Dimension (Spline basis)",
+            field = "optimal_basis_dimension",
+            fmt = function(m) sprintf("k=%d", m$optimal_basis_dimension),
+            interp = function(m) "Adequate")
+    )
+
+    for (key in names(metric_defs)) {
+        metric <- gm[[key]]
+        if (is.null(metric)) next
+        def <- metric_defs[[key]]
+        has_error <- isTRUE(metric$error)
+        val_valid <- !is.null(metric[[def$field]]) && !is.na(metric[[def$field]])
+        result_str <- if (has_error || !val_valid) "NA" else def$fmt(metric)
+        interp <- if (!val_valid || has_error) "Unknown" else def$interp(metric)
+        rows[[length(rows) + 1]] <- list(Test = def$test, Result = result_str, Interpretation = interp)
+    }
+    rows
+}
+
+#' Clean metric detail string by removing HTML, parentheticals, and interpretive suffixes
+#' @keywords internal
+#' @noRd
+.clean_metric_detail <- function(detail) {
+    cleaned <- gsub("<.*?>|\\s+\\(.*\\)", "", detail)
+    gsub("\\s*[-.]\\s*(homogeneous|heterogeneous|suitable|independent|Poor|Moderate|over-smoothed|under-smoothed|Adequate|Rare|dimens|boot).*$",
+         "", cleaned, ignore.case = TRUE)
+}
+
+#' Process generic model metrics (GEE, LMM, FPCA share identical structure)
+#' @keywords internal
+#' @noRd
+.process_model_metrics <- function(metrics) {
+    rows <- list()
+    if (is.null(metrics)) return(rows)
+
+    for (metric_name in names(metrics)) {
+        if (metric_name == "consolidated") next
+        metric <- metrics[[metric_name]]
+        if (!is.list(metric)) next
+
+        result_val <- if (!is.null(metric$details)) .clean_metric_detail(metric$details) else "N/A"
+        test_val <- if (!is.null(metric$method))
+            sub("^[^:]*:\\s*", "", metric$method) else .capitalize_first(metric_name)
+        interp_val <- if (!is.null(metric$status))
+            gsub("OK|WARNING|FAIL", "", metric$status) else "unknown"
+
+        rows[[length(rows) + 1]] <- list(
+            Test = .capitalize_first(metric_name),
+            Result = substr(result_val, 1, 50),
+            Interpretation = paste0(toupper(substring(interp_val, 1, 1)), substring(interp_val, 2)))
+    }
+    rows
+}
+
+#' Build the final assumptions table from collected rows
+#' @keywords internal
+#' @noRd
+.assemble_assumptions_table <- function(rows, result, format) {
+    if (length(rows) == 0) return(NULL)
+
+    df <- do.call(rbind, lapply(rows, as.data.frame, stringsAsFactors = FALSE))
+    rownames(df) <- NULL
+
+    if (format == "list") {
+        return(list(assumptions_table = df, raw_result = result))
+    }
+
+    output_lines <- c("\nRank-Based Test Assumptions\n")
+    output_lines <- c(output_lines, .format_data_frame_as_text(df))
+    formatted_text <- paste(output_lines, collapse = "")
+    class(formatted_text) <- c("assumptions_text", "character")
+    formatted_text
+}
+
 #' Process assumptions results into formatted table
 #'
 #' Converts nested assumption check list into formatted data frame
@@ -819,313 +1004,20 @@ results <- function(analysis, type, q = NULL, rankBy = "none", n = NA, filterFDR
 #' @keywords internal
 #' @noRd
 .process_assumptions_results <- function(result, format = "text") {
-    if (is.null(result)) {
-        return(NULL)
-    }
+    if (is.null(result)) return(NULL)
+    if (!is.list(result)) return(result)
 
-    # Check if result is a list of assumption checks
-    if (!is.list(result)) {
-        return(result)
-    }
+    result <- .extract_assumption_checks(result)
 
-    # CRITICAL FIX: Extract checks from attribute if they're stored there The
-    # .calculate_assumptions() function uses structure() which stores checks as
-    # an attribute, not as top-level list elements
-    if (is.null(result$exchangeability) && !is.null(attr(result, "checks"))) {
-        # Move all checks from attribute into the main result list This allows
-        # rest of function to work with result$exchangeability, etc.
-        checks_attr <- attr(result, "checks")
-        for (check_name in names(checks_attr)) {
-            result[[check_name]] <- checks_attr[[check_name]]
-        }
-    }
+    rows <- c(
+        .process_rank_checks(result),
+        .process_gam_checks(result),
+        .process_model_metrics(result$gee_metrics),
+        .process_model_metrics(result$lmm_metrics),
+        .process_model_metrics(result$fpca_metrics)
+    )
 
-    # Build table as data frame
-    rows <- list()
-
-    # Helper to format p-values and test statistics
-    format_value <- function(x) {
-        if (is.null(x))
-            return("N/A")
-        # Handle vectors: extract first element
-        if (length(x) > 1)
-            x <- x[1]
-        if (is.na(x))
-            return("N/A")
-        if (is.numeric(x)) {
-            if (x < 0.001)
-                return(sprintf("%.0e", x))
-            if (x < 0.01)
-                return(sprintf("%.4f", x))
-            return(sprintf("%.3f", x))
-        }
-        return(as.character(x))
-    }
-
-    # Helper to capitalize first letter and remove underscores
-    capitalize_first <- function(x) {
-        x_clean <- gsub("_", " ", x)
-        paste0(toupper(substring(x_clean, 1, 1)), substring(x_clean, 2))
-    }
-
-    # ========== Rank-based tests (always present) ==========
-
-    # Exchangeability (core assumption for rank-based tests)
-    if (!is.null(result$exchangeability)) {
-        check <- result$exchangeability
-        status_val <- if (!is.null(check$status))
-            check$status else "unknown"
-        rows[[length(rows) + 1]] <- list(Test = "Exchangeability (Permutation test)",
-            Result = paste0("p=", format_value(check$p_value)), Interpretation = paste0(toupper(substring(status_val,
-                1, 1)), substring(status_val, 2)))
-    }
-
-    # Monotonicity (rank ordering consistency)
-    if (!is.null(result$monotonicity)) {
-        check <- result$monotonicity
-        r_val <- format_value(check$mean_correlation)
-        interp <- if (!is.null(check$mean_correlation)) {
-            if (abs(check$mean_correlation) < 0.3)
-                "Heterogeneous" else "Homogeneous"
-        } else "Unknown"
-        rows[[length(rows) + 1]] <- list(Test = "Monotonicity (Spearman rho)",
-            Result = paste0("r=", r_val), Interpretation = interp)
-    }
-
-    # Consistency (replicate agreement across samples)
-    if (!is.null(result$consistency)) {
-        check <- result$consistency
-        # Consistency stores: kendall_w and icc_simplified (not w_statistic and
-        # icc)
-        w_val <- format_value(check$kendall_w)
-        icc_val <- format_value(check$icc_simplified)
-        interp <- if (!is.na(check$icc_simplified)) {
-            if (check$icc_simplified < 0.5)
-                "Low" else "Moderate"
-        } else "Unknown"
-        rows[[length(rows) + 1]] <- list(Test = "Consistency (Kendall's W / ICC)",
-            Result = paste0("W=", w_val, ", ICC=", icc_val), Interpretation = interp)
-    }
-
-    # ========== GAM-specific tests (corrected key names) ==========
-
-    if (!is.null(result$gam_metrics)) {
-        gam_metrics <- result$gam_metrics
-
-        # Concurvity: actual key is gam_metrics$concurvity, not
-        # concurvity_index
-        if (!is.null(gam_metrics$concurvity)) {
-            metric <- gam_metrics$concurvity
-            has_error <- isTRUE(metric$error)
-            # Key is overall_concurvity, not concurvity_index
-            val_valid <- !is.null(metric$overall_concurvity) && !is.na(metric$overall_concurvity)
-            if (has_error || !val_valid) {
-                result_str <- "NA"
-            } else {
-                result_str <- sprintf("%.3f", metric$overall_concurvity)
-            }
-            interp <- if (!val_valid || has_error)
-                "Unknown" else if (metric$overall_concurvity < 0.5)
-                "Low" else "High"
-            rows[[length(rows) + 1]] <- list(Test = "Concurvity (Smooth collinearity)",
-                Result = result_str, Interpretation = interp)
-        }
-
-        # Effective DoF: actual key is edf with edf_ratio field
-        if (!is.null(gam_metrics$edf)) {
-            metric <- gam_metrics$edf
-            has_error <- isTRUE(metric$error)
-            val_valid <- !is.null(metric$edf_ratio) && !is.na(metric$edf_ratio)
-            if (has_error || !val_valid) {
-                result_str <- "NA"
-            } else {
-                result_str <- sprintf("%.3f", metric$edf_ratio)
-            }
-            interp <- if (!val_valid || has_error)
-                "Unknown" else if (metric$edf_ratio < 0.1)
-                "Over-smoothed" else if (metric$edf_ratio > 0.9)
-                "Under-smoothed" else "Adequate"
-            rows[[length(rows) + 1]] <- list(Test = "EDF Ratio (Smoothing)",
-                Result = result_str, Interpretation = interp)
-        }
-
-        # Non-linearity: actual key is nonlinearity with r2_improvement_percent
-        # field
-        if (!is.null(gam_metrics$nonlinearity)) {
-            metric <- gam_metrics$nonlinearity
-            has_error <- isTRUE(metric$error)
-            val_valid <- !is.null(metric$r2_improvement_percent) && !is.na(metric$r2_improvement_percent)
-            if (has_error || !val_valid) {
-                result_str <- "NA"
-            } else {
-                result_str <- sprintf("%.1f%%", metric$r2_improvement_percent)
-            }
-            interp <- if (!val_valid || has_error)
-                "Unknown" else if (metric$r2_improvement_percent < 1)
-                "Use linear" else "Use GAM"
-            rows[[length(rows) + 1]] <- list(Test = "Non-linearity (Delta R^2 vs LM)",
-                Result = result_str, Interpretation = interp)
-        }
-
-        # Basis Adequacy: actual key is basis_adequacy with
-        # optimal_basis_dimension field
-        if (!is.null(gam_metrics$basis_adequacy)) {
-            metric <- gam_metrics$basis_adequacy
-            has_error <- isTRUE(metric$error)
-            val_valid <- !is.null(metric$optimal_basis_dimension) && !is.na(metric$optimal_basis_dimension)
-            if (has_error || !val_valid) {
-                result_str <- "NA"
-            } else {
-                result_str <- sprintf("k=%d", metric$optimal_basis_dimension)
-            }
-            interp <- if (!val_valid || has_error)
-                "Unknown" else "Adequate"
-            rows[[length(rows) + 1]] <- list(Test = "Basis Dimension (Spline basis)",
-                Result = result_str, Interpretation = interp)
-        }
-    }
-
-    # ========== GEE-specific tests ==========
-
-    if (!is.null(result$gee_metrics)) {
-        gee_metrics <- result$gee_metrics
-
-        # Extract details from each GEE metric (correlation_fit,
-        # cluster_variation, etc.)
-        for (metric_name in names(gee_metrics)) {
-            if (metric_name == "consolidated")
-                next  # Skip consolidated summary
-
-            metric <- gee_metrics[[metric_name]]
-            if (!is.list(metric))
-                next
-
-            # Format result: just extract the essential value from details
-            result_val <- if (!is.null(metric$details)) {
-                # Remove HTML, parenthetical info, and interpretive adjectives
-                cleaned <- gsub("<.*?>|\\s+\\(.*\\)", "", metric$details)
-                # Remove trailing interpretive phrases (e.g., " - homogeneous", " - suitable", ". Poor", ". Moderate")
-                gsub("\\s*[-.]\\s*(homogeneous|heterogeneous|suitable|independent|Poor|Moderate|over-smoothed|under-smoothed|Adequate|homogeneous|Rare|dimens|boot).*$", "", cleaned, ignore.case = TRUE)
-            } else "N/A"
-
-            test_val <- if (!is.null(metric$method))
-                sub("^[^:]*:\\s*", "", metric$method) else capitalize_first(metric_name)
-            interp_val <- if (!is.null(metric$status))
-                gsub("OK|WARNING|FAIL", "", metric$status) else "unknown"
-
-            # Truncate result to 50 chars max
-            result_truncated <- substr(result_val, 1, 50)
-            interp_formatted <- paste0(toupper(substring(interp_val, 1, 1)), substring(interp_val,
-                2))
-
-            row_item <- list(Test = capitalize_first(metric_name), Result = result_truncated, 
-                Interpretation = interp_formatted)
-            rows[[length(rows) + 1]] <- row_item
-        }
-    }
-
-    # ========== LMM-specific tests ==========
-
-    if (!is.null(result$lmm_metrics)) {
-        lmm_metrics <- result$lmm_metrics
-
-        # Extract details from each LMM metric (variance_components, normality,
-        # etc.)
-        for (metric_name in names(lmm_metrics)) {
-            if (metric_name == "consolidated")
-                next  # Skip consolidated summary
-
-            metric <- lmm_metrics[[metric_name]]
-            if (!is.list(metric))
-                next
-
-            # Format result: just extract the essential value from details
-            result_val <- if (!is.null(metric$details)) {
-                # Remove HTML, parenthetical info, and interpretive adjectives
-                cleaned <- gsub("<.*?>|\\s+\\(.*\\)", "", metric$details)
-                # Remove trailing interpretive phrases
-                gsub("\\s*[-.]\\s*(homogeneous|heterogeneous|suitable|independent|Poor|Moderate|over-smoothed|under-smoothed|Adequate|Rare|dimens|boot).*$", "", cleaned, ignore.case = TRUE)
-            } else "N/A"
-
-            test_val <- if (!is.null(metric$method))
-                sub("^[^:]*:\\s*", "", metric$method) else capitalize_first(metric_name)
-            interp_val <- if (!is.null(metric$status))
-                gsub("OK|WARNING|FAIL", "", metric$status) else "unknown"
-
-            # Truncate result to 50 chars max
-            result_truncated <- substr(result_val, 1, 50)
-            interp_formatted <- paste0(toupper(substring(interp_val, 1, 1)), substring(interp_val,
-                2))
-
-            row_item <- list(Test = capitalize_first(metric_name), Result = result_truncated, 
-                Interpretation = interp_formatted)
-            rows[[length(rows) + 1]] <- row_item
-        }
-    }
-
-    # ========== FPCA-specific tests ==========
-
-    if (!is.null(result$fpca_metrics)) {
-        fpca_metrics <- result$fpca_metrics
-
-        # Extract details from each FPCA metric (variance_adequacy,
-        # bootstrap_stability, etc.)
-        for (metric_name in names(fpca_metrics)) {
-            if (metric_name == "consolidated")
-                next  # Skip consolidated summary
-
-            metric <- fpca_metrics[[metric_name]]
-            if (!is.list(metric))
-                next
-
-            # Format result: just extract the essential value from details
-            result_val <- if (!is.null(metric$details)) {
-                # Remove HTML, parenthetical info, and interpretive adjectives
-                cleaned <- gsub("<.*?>|\\s+\\(.*\\)", "", metric$details)
-                # Remove trailing interpretive phrases
-                gsub("\\s*[-.]\\s*(homogeneous|heterogeneous|suitable|independent|Poor|Moderate|over-smoothed|under-smoothed|Adequate|Rare|dimens|boot).*$", "", cleaned, ignore.case = TRUE)
-            } else "N/A"
-
-            test_val <- if (!is.null(metric$method))
-                sub("^[^:]*:\\s*", "", metric$method) else capitalize_first(metric_name)
-            interp_val <- if (!is.null(metric$status))
-                gsub("OK|WARNING|FAIL", "", metric$status) else "unknown"
-
-            # Truncate result to 50 chars max
-            result_truncated <- substr(result_val, 1, 50)
-            interp_formatted <- paste0(toupper(substring(interp_val, 1, 1)), substring(interp_val,
-                2))
-
-            row_item <- list(Test = capitalize_first(metric_name), Result = result_truncated, 
-                Interpretation = interp_formatted)
-            rows[[length(rows) + 1]] <- row_item
-        }
-    }
-
-    # Convert list of rows to data frame
-    if (length(rows) == 0) {
-        return(NULL)
-    }
-
-    df <- do.call(rbind, lapply(rows, as.data.frame, stringsAsFactors = FALSE))
-    rownames(df) <- NULL
-
-    # Return format based on format parameter
-    if (format == "list") {
-        # Return structured list
-        return(list(assumptions_table = df, raw_result = result))
-    }
-
-    # Default (format = 'text'): Return formatted text
-    output_lines <- c("\nRank-Based Test Assumptions\n")
-    output_lines <- c(output_lines, .format_data_frame_as_text(df))
-
-    # Combine all lines into single text string
-    formatted_text <- paste(output_lines, collapse = "")
-
-    # Add custom class for printing
-    class(formatted_text) <- c("assumptions_text", "character")
-    formatted_text
+    .assemble_assumptions_table(rows, result, format)
 }
 
 # ============================================================================

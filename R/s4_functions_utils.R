@@ -231,6 +231,16 @@ save_analysis_output <- function(data, output_file, object = NULL, verbose = FAL
         return(invisible(FALSE))
     }
 
+    # Check for lock files from office software (LibreOffice, OpenOffice)
+    lock_file <- paste0(dirname(output_file), "/.~lock.", basename(output_file), "#")
+    if (file.exists(lock_file)) {
+        warning("[", func_name, "] Output file appears to be locked by another program ",
+                "(lock file detected: ", basename(lock_file), "). ",
+                "Close the file in LibreOffice/Excel before re-running the pipeline. ",
+                "Skipping write to: ", output_file, call. = FALSE)
+        return(invisible(FALSE))
+    }
+
     # Create directory if requested
     if (create_dir) {
         output_dir <- dirname(output_file)
@@ -264,6 +274,14 @@ save_analysis_output <- function(data, output_file, object = NULL, verbose = FAL
             # Auto-detect separator
             sep <- if (ext == ".tsv")
                 "\t" else ifelse(ext == ".csv", ",", "\t")
+
+            # Guard against writing header-only files (empty results)
+            if (is.data.frame(write_data) && nrow(write_data) == 0) {
+                if (verbose)
+                    message("[", func_name, "] Skipping empty output (0 rows): ", output_file)
+                return(invisible(FALSE))
+            }
+
             write.table(write_data, file = output_file, sep = sep, quote = FALSE,
                 row.names = TRUE, col.names = NA)
 

@@ -19,6 +19,9 @@
 #' @param output_format \code{character}. Format for output files: 'tsv' (tab-separated),
 #'   'csv' (comma-separated), 'txt' (text), or 'rds' (R serialized). Default: 'tsv'.
 #' @param verbose \code{logical}. Print progress messages. Default: TRUE.
+#' @param tips \code{logical}. Show tips and usage examples at the end of the
+#'   pipeline run. Default: FALSE. Set to TRUE to see the `[TIPS]` section
+#'   displaying common result-extraction commands.
 #'
 #' @return \code{TSENATAnalysis} object containing complete analysis results,
 #'   plots, and metadata.
@@ -73,7 +76,7 @@
 #'
 #' @export
 TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, output_format = c("tsv", "csv", "txt", "rds"),
-    verbose = TRUE) {
+    verbose = TRUE, tips = FALSE) {
     # Validate output_format parameter per Bioconductor code syntax standards
     output_format <- match.arg(output_format)
     # Setup: validation and output configuration
@@ -101,7 +104,7 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
     total_time <- Sys.time() - workflow_start
     analysis <- .track_analysis_metadata(analysis, analysis@config)
     analysis <- .finalize_tsenat_analysis(analysis, verbose, step_times, total_time,
-        output_dir)
+        output_dir, tips)
     
     analysis
 }
@@ -148,7 +151,6 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
         stringency_level <- cfg$stringency %||% "medium"
         analysis <- filter_analysis(analysis, stringency = stringency_level)
         
-        # Validate that filtering produced non-empty result
         if (nrow(se(analysis)) == 0) {
             stop("[filter_analysis] ERROR: Filtering removed ALL transcripts. ",
                  "No data remaining for downstream analysis. ",
@@ -182,7 +184,7 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
     step_times[["m_estimate"]] <- Sys.time() - step_start
     
     # Step 5: SAIT interaction
-    if (verbose) message(sprintf("[>] [%2d/16] Fitting Scale-Adaptive Interaction Testing models", 5))
+    if (verbose) message(sprintf("[>] [%2d/16] Fitting SAIT interaction models", 5))
     step_start <- Sys.time()
     analysis <- .execute_sait_interaction_s4(analysis, verbose, output_dir, output_format)
     step_times[["sait_interaction"]] <- Sys.time() - step_start
@@ -242,14 +244,14 @@ TSENAT <- function(analysis, output_dir = "tsenat_outputs", save_output = TRUE, 
     analysis <- .execute_assumptions_check(analysis, verbose, output_dir, output_format)
     step_times[["assumptions"]] <- Sys.time() - step_start
     
-    # Step 15: SRH test
+    # Step 15: ART test
     if (verbose) message(sprintf("[>] [%2d/16] Performing ART (Aligned Rank Transform) interaction test", 15))
     step_start <- Sys.time()
     analysis <- .execute_rank_transform_test(analysis, verbose, output_dir, output_format)
     step_times[["rank_transform_test"]] <- Sys.time() - step_start
     
     # Step 16: Concordance
-    if (verbose) message(sprintf("[>] [%2d/16] Computing LM-rank test concordance", 16))
+    if (verbose) message(sprintf("[>] [%2d/16] Computing SAIT-ART concordance", 16))
     step_start <- Sys.time()
     analysis <- .execute_concordance_analysis(analysis, verbose, output_dir, output_format)
     step_times[["concordance"]] <- Sys.time() - step_start
@@ -525,7 +527,7 @@ TSENAT_config <- function(q = 1, condition_col = "condition", subject_col = NULL
     stringency = "medium", nthreads = 1, norm = TRUE, bootstrap_ci = 0.95, bootstrap_include_diagnostics = TRUE,
     min_valid_frac = 0.75, norm_method = NULL, pseudocount = 0, shrinkage = "none",
     sait_method = c("gam", "lmm", "fpca", "gee"), sait_pcorr = c("BH", "bonferroni", "hochberg", "holm"), jis_use_sait_fdr = TRUE, divergence_ci = 0.95,
-    assumptions_checks = c("rank", "gam", "all"), ...) {
+    assumptions_checks = c("all", "rank", "gam"), ...) {
     # Validate parameters per Bioconductor code syntax standards
     bootstrap_method <- match.arg(bootstrap_method)
     sait_method <- match.arg(sait_method)
@@ -590,35 +592,44 @@ TSENAT_config <- function(q = 1, condition_col = "condition", subject_col = NULL
 #' @noRd
 .log_pipeline_start <- function(se, q_vals, cfg) {
     n_conditions <- length(unique(se[[cfg$condition_col %||% "condition"]]))
-    output <- paste0("\n", "+============================================================+\n",
-        "|          TSENAT: Tsallis Entropy Analysis Toolbox          |\n", "+============================================================+\n",
-        "                                                              \n", "      Science is an essentially anarchic enterprise.          \n",
-        "                                                              \n", "                       -- Paul Feyerabend, Against Method     \n",
-        "                                                              \n", "[DATA] Data Summary\n",
-        "  Transcripts .......... ", format(nrow(se), big.mark = ","), "\n", "  Samples .............. ",
-        ncol(se), "\n", "  Conditions ........... ", n_conditions, "\n", sprintf("  Q-spectrum range ..... %g to %g (%d values)\n",
-            round(min(q_vals), 2), round(max(q_vals), 2), length(q_vals)), "\n[CONFIG] Analysis Configuration\n",
-        "  Design ............... ", if (cfg$paired)
-            "paired" else "unpaired", "\n", "  Filter stringency .... ", cfg$stringency %||% "medium",
-        "\n", "  Normalization ........ ", if (cfg$norm)
-            "enabled [0-1]" else "disabled", "\n", "  Normalization method . ", if (cfg$norm)
-            (cfg$norm_method %||% "range (default)") else "N/A", "\n", "  Pseudocount .......... ", if (cfg$pseudocount == 0)
-            "disabled" else as.character(cfg$pseudocount), "\n", "  Shrinkage ............ ", if (tolower(cfg$shrinkage %||%
-            "none") == "none")
-            "disabled" else toupper(cfg$shrinkage), "\n", "  Significance ......... p < ", format(cfg$p_threshold %||%
-            0.05, nsmall = 3), " | FDR < ", format(cfg$fdr_threshold %||% 0.05, nsmall = 3),
-        "\n", "  SAIT method ............ ", toupper(cfg$sait_method %||% "GAM"), "\n",
-        "  SAIT p-corr method ..... ", toupper(cfg$sait_pcorr %||% "BH"), "\n", "  Jackknife use_sait_fdr . ",
-        if (isTRUE(cfg$jis_use_sait_fdr))
-            "TRUE" else "FALSE", "\n")
+    design <- if (isTRUE(cfg$paired)) "paired" else "unpaired"
+    method <- toupper(cfg$sait_method %||% "GAM")
+    norm_label <- if (isTRUE(cfg$norm)) "enabled [0-1]" else "disabled"
+
+    output <- paste0("\n",
+        "+============================================================+\n",
+        "|          TSENAT: Tsallis Entropy Analysis Toolbox          |\n",
+        "+============================================================+\n",
+        "                                                              \n",
+        "      Science is an essentially anarchic enterprise.          \n",
+        "                                                              \n",
+        "                       -- Paul Feyerabend, Against Method     \n",
+        "                                                              \n",
+        "[DATA] Data Summary\n",
+        "  Transcripts .......... ", format(nrow(se), big.mark = ","), "\n",
+        "  Samples .............. ", ncol(se), "\n",
+        "  Conditions ........... ", n_conditions, "\n",
+        sprintf("  Q-spectrum range ..... %g to %g (%d values)\n",
+            round(min(q_vals), 2), round(max(q_vals), 2), length(q_vals)),
+        "\n[CONFIG] Analysis Configuration\n",
+        "  Design ............... ", design, "\n",
+        "  Filter stringency .... ", cfg$stringency %||% "medium", "\n",
+        "  Normalization ........ ", norm_label, "\n",
+        "  Normalization method . ", if (isTRUE(cfg$norm)) (cfg$norm_method %||% "range (default)") else "N/A", "\n",
+        "  Pseudocount .......... ", if (cfg$pseudocount == 0) "disabled" else as.character(cfg$pseudocount), "\n",
+        "  Shrinkage ............ ", if (tolower(cfg$shrinkage %||% "none") == "none") "disabled" else toupper(cfg$shrinkage), "\n",
+        "  Significance ......... p < ", format(cfg$p_threshold %||% 0.05, nsmall = 3),
+        " | FDR < ", format(cfg$fdr_threshold %||% 0.05, nsmall = 3), "\n",
+        "  SAIT method .......... ", method, "\n",
+        "  SAIT p-corr method ... ", toupper(cfg$sait_pcorr %||% "BH"), "\n",
+        "  Jackknife use_sait_fdr . ", if (isTRUE(cfg$jis_use_sait_fdr)) "TRUE" else "FALSE", "\n")
     if (isTRUE(cfg$bootstrap)) {
-        output <- paste0(output, "  Divergence CI ........ ", format(cfg$divergence_ci %||%
-            0.95, nsmall = 2), "\n")
+        output <- paste0(output, "  Divergence CI ........ ", format(cfg$divergence_ci %||% 0.95, nsmall = 2), "\n")
     }
     if (isTRUE(cfg$bootstrap) && !is.null(cfg$nboot)) {
-        output <- paste0(output, "  Bootstrap ........... ", cfg$nboot, " x ", toupper(cfg$bootstrap_method %||%
-            "PERCENTILE"), " (", format(cfg$bootstrap_ci %||% 0.95, nsmall = 2),
-            " CI)\n")
+        output <- paste0(output, "  Bootstrap ............. ", cfg$nboot, " x ",
+            toupper(cfg$bootstrap_method %||% "PERCENTILE"),
+            " (", format(cfg$bootstrap_ci %||% 0.95, nsmall = 2), " CI)\n")
     }
     output <- paste0(output, "\n")
     message(output)
@@ -923,7 +934,7 @@ TSENAT_config <- function(q = 1, condition_col = "condition", subject_col = NULL
         output_file = output_file)
 
     if (verbose)
-        message("          [OK] Conover-Iman Rank Transform completed")
+        message("          [OK] Aligned Rank Transform (ART) completed")
     analysis
 }
 
@@ -959,7 +970,7 @@ TSENAT_config <- function(q = 1, condition_col = "condition", subject_col = NULL
 #' Finalize analysis and print summary
 #' @noRd
 .finalize_tsenat_analysis <- function(analysis, verbose, step_times = NULL, total_time = NULL,
-    output_dir = NULL) {
+    output_dir = NULL, tips = TRUE) {
     if (verbose) {
         stats <- .extract_analysis_statistics(analysis)
 
@@ -1009,14 +1020,46 @@ TSENAT_config <- function(q = 1, condition_col = "condition", subject_col = NULL
             output <- paste0(output, sprintf("  Files saved ......... %d\n", n_files))
         }
 
-        output <- paste0(output, "\n[TIPS] Extract Results - Common Examples:\n",
-            "  # View object structure\n", "  show(result)\n\n", "  # View detailed statistics summary\n",
-            "  summary(result)\n\n", "  # Tsallis Entropy Diversity\n", "  # Get results for specific sample at q=1.0\n",
-            "  div <- results(result, type = 'diversity',\n", "                 n_genes = 4, sample = 'SRR14800481')\n\n",
-            "  # Scale-Adaptive Interaction Model Results\n", "  # Top 10 genes by p-value\n",
-            "  sait_result <- results(result, type = \"sait\",\n", "                rankBy = 'pvalue', n = 10)\n\n",
-            "  # Visualizations\n", "  plot_diversity <- results(result, type = 'diversity', plot = TRUE)\n",
-            "  plot_sait <- results(result, type = \"sait\", plot = TRUE)\n", "\n")
+        if (tips) {
+            output <- paste0(output, "\n[TIPS] Extract Results - Common Examples:\n",
+                "  # View object structure\n", "  show(result)\n\n",
+                "  # View detailed statistics summary\n",
+                "  summary(result)\n\n",
+                "  # ---- Diversity & Divergence ----\n",
+                "  # Tsallis entropy at q=1.0 for top 4 genes\n",
+                "  div <- results(result, type = 'diversity', q = 1.0, n_genes = 4)\n",
+                "  # Divergence metrics between conditions\n",
+                "  divg <- results(result, type = 'divergence')\n\n",
+                "  # ---- Statistical Tests ----\n",
+                "  # SAIT interaction results - top 10 by adjusted p-value\n",
+                "  sait <- results(result, type = 'sait', rankBy = 'pvalue', n = 10)\n",
+                "  # Aligned Rank Transform (ART) results\n",
+                "  rt <- results(result, type = 'rank_test', rankBy = 'pvalue', n = 10)\n",
+                "  # Concordance between SAIT and ART\n",
+                "  conc <- results(result, type = 'concordance')\n\n",
+                "  # ---- Quality Control ----\n",
+                "  # M-estimator sample QC (stored in metadata)\n",
+                "  qc <- metadata(result)$m_estimate_results\n",
+                "  # Assumption checks\n",
+                "  ac <- results(result, type = 'assumptions')\n",
+                "  # Jackknife isoform switching\n",
+                "  jis <- results(result, type = 'jackknife')\n\n",
+                "  # ---- Effect Sizes ----\n",
+                "  # Effect sizes across q-values\n",
+                "  es <- results(result, type = 'effect_sizes_divergence')\n\n",
+                "  # ---- Visualizations ----\n",
+                "  # Diversity q-spectrum plot\n",
+                "  plot_diversity <- results(result, type = 'diversity', plot = TRUE)\n",
+                "  # SAIT interaction plot\n",
+                "  plot_sait <- results(result, type = 'sait', plot = TRUE)\n",
+                "  # Divergence distribution plot\n",
+                "  plot_divg <- results(result, type = 'divergence', plot = TRUE)\n\n",
+                "  # ---- Quick Inspection ----\n",
+                "  # Access underlying SummarizedExperiment\n",
+                "  se(result)\n",
+                "  # Access configuration\n",
+                "  metadata(result)\n", "\n")
+        }
 
         message(output)
     }

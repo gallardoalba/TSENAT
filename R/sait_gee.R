@@ -811,7 +811,7 @@
             # Recompute z using the bias-corrected variance
             se_corrected <- sqrt(diag(vcov_corrected))
             if (length(se_corrected) >= 1 && se_corrected[1] > 0) {
-                z_corrected <- coef_est / se_corrected[1]
+                z_corrected <- coef_value / se_corrected[1]
             }
         }
 

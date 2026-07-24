@@ -1,6 +1,6 @@
 ---
 title: "Appendix B: Non-Parametric Validation of Scale-Adaptive Interaction Test Results via GAMM and Aligned Rank Transform (ART)"
-author: "Cristobal Gallardo <gallardoalba@pm.me>"
+author: "Cristobal Gallardo Alba <gallardoalba@pm.me>"
 date: "`r Sys.Date()`"
 output:
   BiocStyle::html_document:
@@ -492,8 +492,9 @@ A critical validation step is to compare whether the Aligned Rank Transform (ART
 
 ```{r compare-rank-transform-gam-methods, message=FALSE}
 # Compute concordance analysis using new two-object API
-if (is.null(analysis_rank@rank_test_results) || length(analysis_rank@rank_test_results) == 0) {
-    stop("Cannot run calculate_concordance(): analysis_rank@rank_test_results is empty. Ensure calculate_rank_transform() completed successfully.")
+rank_results <- results(analysis_rank, type = "rank_test")
+if (is.null(rank_results) || length(rank_results) == 0) {
+    stop("Cannot run calculate_concordance(): rank_test results are empty. Ensure calculate_rank_transform() completed successfully.")
 }
 
 analysis_rank <- calculate_concordance(

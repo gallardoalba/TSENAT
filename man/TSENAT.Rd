@@ -9,7 +9,8 @@ TSENAT(
   output_dir = "tsenat_outputs",
   save_output = TRUE,
   output_format = c("tsv", "csv", "txt", "rds"),
-  verbose = TRUE
+  verbose = TRUE,
+  tips = FALSE
 )
 }
 \arguments{
@@ -25,6 +26,10 @@ Default: TRUE. If FALSE, no TSV/CSV output files are written to disk.}
 'csv' (comma-separated), 'txt' (text), or 'rds' (R serialized). Default: 'tsv'.}
 
 \item{verbose}{\code{logical}. Print progress messages. Default: TRUE.}
+
+\item{tips}{\code{logical}. Show tips and usage examples at the end of the
+pipeline run. Default: FALSE. Set to TRUE to see the `[TIPS]` section
+displaying common result-extraction commands.}
 }
 \value{
 \code{TSENATAnalysis} object containing complete analysis results,

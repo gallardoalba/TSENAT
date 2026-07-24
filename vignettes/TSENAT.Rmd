@@ -1,6 +1,6 @@
 ---
 title: "TSENAT: Tsallis Entropy Analysis Toolbox"
-author: "Cristobal Gallardo <gallardoalba@pm.me>"
+author: "Cristobal Gallardo Alba <gallardoalba@pm.me>"
 date: "`r Sys.Date()`"
 output:
   BiocStyle::html_document:
@@ -58,7 +58,7 @@ The easiest way to install TSENAT is through Bioconda:
 
 ```{r install-bioconda, eval = FALSE}
 # Install from Bioconda
-# conda install -c bioconda r-tsenat
+conda install -c bioconda r-tsenat
 ```
 
 To install the latest development version from GitHub:

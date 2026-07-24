@@ -122,6 +122,11 @@ Optional file path to save results.
  spread (IQR), count, and group (if grouping variable available).
  Default: NULL (no file output).}
 
+\item{log_base}{\code{numeric}. Logarithm base for Shannon entropy computation
+(default: \code{exp(1)} for natural log). Set to 2 for bits or 10 for
+dits. Only affects Shannon entropy (q = 1); Tsallis entropy (q != 1) is
+scale-invariant and does not use a logarithm base.}
+
 \item{...}{Additional arguments passed to underlying functions for
 extensibility.}
 }

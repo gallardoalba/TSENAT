@@ -30,7 +30,7 @@ TSENAT_config(
   sait_pcorr = c("BH", "bonferroni", "hochberg", "holm"),
   jis_use_sait_fdr = TRUE,
   divergence_ci = 0.95,
-  assumptions_checks = c("rank", "gam", "all"),
+  assumptions_checks = c("all", "rank", "gam"),
   ...
 )
 }

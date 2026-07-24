@@ -888,6 +888,7 @@
 
 #' Aggregate bootstrap CI bounds by group and q-value
 #'
+#' @noRd
 # NOTE (March 2026): .bootstrap_aggregate_ci() moved to bootstrap.R for
 # consolidation
 

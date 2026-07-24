@@ -1,6 +1,6 @@
 ---
 title: "Appendix A: Equivalence Validation - TSENAT vs SplicingFactory"
-author: "Cristobal Gallardo <gallardoalba@pm.me>"
+author: "Cristobal Gallardo Alba <gallardoalba@pm.me>"
 date: "`r Sys.Date()`"
 output:
   BiocStyle::html_document:

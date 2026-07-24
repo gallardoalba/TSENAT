@@ -3740,3 +3740,283 @@ test_that(".fit_cached_gams validates input structure", {
     
     expect_true(is.null(result) || is.list(result))
 })
+
+# ============================================================================
+# Tests for refactored .process_assumptions_results() helpers
+# ============================================================================
+
+# --- .extract_assumption_checks ---
+
+test_that(".extract_assumption_checks extracts checks from attribute", {
+    result <- structure(list(extra = "data"),
+        checks = list(exchangeability = list(p_value = 0.05, status = "warning"),
+                      monotonicity = list(mean_correlation = 0.3)))
+    out <- TSENAT:::.extract_assumption_checks(result)
+    expect_true(!is.null(out$exchangeability))
+    expect_equal(out$exchangeability$p_value, 0.05)
+    expect_true(!is.null(out$monotonicity))
+})
+
+test_that(".extract_assumption_checks no-ops when exchangeability already present", {
+    result <- list(exchangeability = list(p_value = 0.1), extra = "x")
+    out <- TSENAT:::.extract_assumption_checks(result)
+    expect_equal(out$exchangeability$p_value, 0.1)
+})
+
+test_that(".extract_assumption_checks no-ops when no checks attribute", {
+    result <- list(something = "else")
+    out <- TSENAT:::.extract_assumption_checks(result)
+    expect_equal(out$something, "else")
+    expect_true(is.null(out$exchangeability))
+})
+
+# --- .format_assumption_value ---
+
+test_that(".format_assumption_value handles NULL", {
+    expect_equal(TSENAT:::.format_assumption_value(NULL), "N/A")
+})
+
+test_that(".format_assumption_value handles NA", {
+    expect_equal(TSENAT:::.format_assumption_value(NA_real_), "N/A")
+})
+
+test_that(".format_assumption_value formats very small p-values in scientific notation", {
+    expect_equal(TSENAT:::.format_assumption_value(0.0005), "5e-04")
+})
+
+test_that(".format_assumption_value formats small values to 4 decimals", {
+    expect_equal(TSENAT:::.format_assumption_value(0.005), "0.0050")
+})
+
+test_that(".format_assumption_value formats regular values to 3 decimals", {
+    expect_equal(TSENAT:::.format_assumption_value(0.123456), "0.123")
+})
+
+test_that(".format_assumption_value handles non-numeric values", {
+    expect_equal(TSENAT:::.format_assumption_value("hello"), "hello")
+})
+
+test_that(".format_assumption_value extracts first element of vectors", {
+    expect_equal(TSENAT:::.format_assumption_value(c(0.123, 0.456)), "0.123")
+})
+
+# --- .capitalize_first ---
+
+test_that(".capitalize_first capitalizes and removes underscores", {
+    expect_equal(TSENAT:::.capitalize_first("hello_world"), "Hello world")
+})
+
+test_that(".capitalize_first handles single word", {
+    expect_equal(TSENAT:::.capitalize_first("test"), "Test")
+})
+
+test_that(".capitalize_first handles already capitalized", {
+    expect_equal(TSENAT:::.capitalize_first("ALREADY_CAP"), "ALREADY CAP")
+})
+
+# --- .clean_metric_detail ---
+
+test_that(".clean_metric_detail removes HTML tags", {
+    expect_equal(TSENAT:::.clean_metric_detail("rho = <b>0.45</b>"), "rho = 0.45")
+})
+
+test_that(".clean_metric_detail removes parenthetical content", {
+    expect_equal(TSENAT:::.clean_metric_detail("value (good fit) is ok"), "value is ok")
+})
+
+test_that(".clean_metric_detail removes interpretive suffixes", {
+    expect_equal(TSENAT:::.clean_metric_detail("rho = 0.45 - moderate"), "rho = 0.45")
+})
+
+test_that(".clean_metric_detail removes 'Poor' suffix", {
+    expect_equal(TSENAT:::.clean_metric_detail("fit = 0.12. Poor performance"), "fit = 0.12")
+})
+
+test_that(".clean_metric_detail preserves clean strings", {
+    expect_equal(TSENAT:::.clean_metric_detail("simple result"), "simple result")
+})
+
+# --- .process_rank_checks ---
+
+test_that(".process_rank_checks returns exchangeability row", {
+    result <- list(exchangeability = list(p_value = 0.45, status = "passed"))
+    rows <- TSENAT:::.process_rank_checks(result)
+    expect_true(length(rows) >= 1)
+    expect_equal(rows[[1]]$Test, "Exchangeability (Permutation test)")
+    expect_match(rows[[1]]$Result, "p=0[.]450")
+})
+
+test_that(".process_rank_checks returns monotonicity row", {
+    result <- list(monotonicity = list(mean_correlation = 0.65))
+    rows <- TSENAT:::.process_rank_checks(result)
+    expect_match(rows[[1]]$Result, "r=0[.]650")
+})
+
+test_that(".process_rank_checks classifies low correlation as heterogeneous", {
+    result <- list(monotonicity = list(mean_correlation = 0.15))
+    rows <- TSENAT:::.process_rank_checks(result)
+    expect_equal(rows[[1]]$Interpretation, "Heterogeneous")
+})
+
+test_that(".process_rank_checks returns consistency row", {
+    result <- list(consistency = list(kendall_w = 0.72, icc_simplified = 0.68))
+    rows <- TSENAT:::.process_rank_checks(result)
+    expect_match(rows[[1]]$Result, "W=0[.]720")
+    expect_match(rows[[1]]$Result, "ICC=0[.]680")
+    expect_equal(rows[[1]]$Interpretation, "Moderate")
+})
+
+test_that(".process_rank_checks returns multiple rows", {
+    result <- list(
+        exchangeability = list(p_value = 0.5, status = "passed"),
+        monotonicity = list(mean_correlation = 0.8),
+        consistency = list(kendall_w = 0.6, icc_simplified = 0.3)
+    )
+    rows <- TSENAT:::.process_rank_checks(result)
+    expect_equal(length(rows), 3)
+})
+
+test_that(".process_rank_checks returns empty list for empty input", {
+    rows <- TSENAT:::.process_rank_checks(list())
+    expect_equal(length(rows), 0)
+})
+
+# --- .process_gam_checks ---
+
+test_that(".process_gam_checks returns empty list when no gam_metrics", {
+    rows <- TSENAT:::.process_gam_checks(list())
+    expect_equal(length(rows), 0)
+})
+
+test_that(".process_gam_checks returns concurvity row", {
+    result <- list(gam_metrics = list(
+        concurvity = list(error = FALSE, overall_concurvity = 0.35)
+    ))
+    rows <- TSENAT:::.process_gam_checks(result)
+    expect_true(any(vapply(rows, function(r) grepl("Concurvity", r$Test), logical(1))))
+})
+
+test_that(".process_gam_checks returns edf row with adequate smoothing", {
+    result <- list(gam_metrics = list(
+        edf = list(error = FALSE, edf_ratio = 0.45)
+    ))
+    rows <- TSENAT:::.process_gam_checks(result)
+    edf_rows <- Filter(function(r) grepl("EDF", r$Test), rows)
+    expect_equal(length(edf_rows), 1)
+    expect_equal(edf_rows[[1]]$Interpretation, "Adequate")
+})
+
+test_that(".process_gam_checks flags under-smoothed EDF", {
+    result <- list(gam_metrics = list(
+        edf = list(error = FALSE, edf_ratio = 0.95)
+    ))
+    rows <- TSENAT:::.process_gam_checks(result)
+    edf_rows <- Filter(function(r) grepl("EDF", r$Test), rows)
+    expect_equal(edf_rows[[1]]$Interpretation, "Under-smoothed")
+})
+
+test_that(".process_gam_checks handles error flags", {
+    result <- list(gam_metrics = list(
+        concurvity = list(error = TRUE, overall_concurvity = NA_real_)
+    ))
+    rows <- TSENAT:::.process_gam_checks(result)
+    con_rows <- Filter(function(r) grepl("Concurvity", r$Test), rows)
+    expect_equal(con_rows[[1]]$Result, "NA")
+    expect_equal(con_rows[[1]]$Interpretation, "Unknown")
+})
+
+test_that(".process_gam_checks returns nonlinearity row", {
+    result <- list(gam_metrics = list(
+        nonlinearity = list(error = FALSE, r2_improvement_percent = 12.5)
+    ))
+    rows <- TSENAT:::.process_gam_checks(result)
+    nl_rows <- Filter(function(r) grepl("Non-linear", r$Test), rows)
+    expect_match(nl_rows[[1]]$Result, "12[.]5%")
+    expect_equal(nl_rows[[1]]$Interpretation, "Use GAM")
+})
+
+test_that(".process_gam_checks returns basis dimension row", {
+    result <- list(gam_metrics = list(
+        basis_adequacy = list(error = FALSE, optimal_basis_dimension = 10)
+    ))
+    rows <- TSENAT:::.process_gam_checks(result)
+    bd_rows <- Filter(function(r) grepl("Basis", r$Test), rows)
+    expect_equal(bd_rows[[1]]$Result, "k=10")
+})
+
+# --- .process_model_metrics ---
+
+test_that(".process_model_metrics returns empty list for NULL input", {
+    rows <- TSENAT:::.process_model_metrics(NULL)
+    expect_equal(length(rows), 0)
+})
+
+test_that(".process_model_metrics skips consolidated entry", {
+    metrics <- list(
+        consolidated = list(method = "summary"),
+        correlation_fit = list(
+            method = "GEE: correlation_fit",
+            status = "OK",
+            details = "rho = 0.45 - moderate"
+        )
+    )
+    rows <- TSENAT:::.process_model_metrics(metrics)
+    expect_equal(length(rows), 1)
+    expect_equal(rows[[1]]$Test, "Correlation fit")
+})
+
+test_that(".process_model_metrics handles metric without details", {
+    metrics <- list(
+        variance_check = list(method = "LMM: check", status = "OK")
+    )
+    rows <- TSENAT:::.process_model_metrics(metrics)
+    expect_equal(rows[[1]]$Result, "N/A")
+})
+
+test_that(".process_model_metrics truncates long results to 50 chars", {
+    metrics <- list(
+        long_test = list(
+            method = "GEE: long_test",
+            status = "OK",
+            details = paste(rep("x", 100), collapse = "")
+        )
+    )
+    rows <- TSENAT:::.process_model_metrics(metrics)
+    expect_true(nchar(rows[[1]]$Result) <= 50)
+})
+
+test_that(".process_model_metrics handles multiple metrics", {
+    metrics <- list(
+        metric_a = list(method = "GEE: a", status = "OK", details = "val_a"),
+        metric_b = list(method = "LMM: b", status = "WARNING", details = "val_b")
+    )
+    rows <- TSENAT:::.process_model_metrics(metrics)
+    expect_equal(length(rows), 2)
+})
+
+# --- .assemble_assumptions_table ---
+
+test_that(".assemble_assumptions_table returns NULL for empty rows", {
+    result <- TSENAT:::.assemble_assumptions_table(list(), list(), "text")
+    expect_null(result)
+})
+
+test_that(".assemble_assumptions_table returns list format", {
+    rows <- list(
+        list(Test = "T1", Result = "R1", Interpretation = "I1"),
+        list(Test = "T2", Result = "R2", Interpretation = "I2")
+    )
+    result <- TSENAT:::.assemble_assumptions_table(rows, list(raw = TRUE), "list")
+    expect_true(is.list(result))
+    expect_true(!is.null(result$assumptions_table))
+    expect_equal(nrow(result$assumptions_table), 2)
+    expect_equal(result$raw_result$raw, TRUE)
+})
+
+test_that(".assemble_assumptions_table returns text format", {
+    rows <- list(list(Test = "T1", Result = "R1", Interpretation = "I1"))
+    result <- TSENAT:::.assemble_assumptions_table(rows, list(), "text")
+    expect_s3_class(result, "assumptions_text")
+    expect_match(result, "Rank-Based Test Assumptions")
+    expect_match(result, "T1")
+})

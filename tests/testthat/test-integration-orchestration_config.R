@@ -1748,3 +1748,75 @@ test_that("filter_analysis respects stringency parameter", {
     expect_true(all(!is.na(c(n_soft, n_medium))) || !is.na(n_severe),
                info = "At least one stringency level produces valid result")
 })
+
+# ============================================================================
+# Tests for TSENAT() tips argument
+# ============================================================================
+
+test_that("TSENAT tips = FALSE suppresses [TIPS] section (default)", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se)
+    config <- TSENAT_config(
+        sample_col = "sample", condition_col = "condition",
+        subject_col = "paired_samples", paired = TRUE, control = "normal",
+        q = seq(0, 2, by = 0.5), nthreads = 1,
+        generate_plots = FALSE
+    )
+    analysis@config <- unclass(config)
+    analysis <- filter_analysis(analysis, stringency = "medium", verbose = FALSE)
+    
+    output <- capture_messages(
+        result <- suppressWarnings(TSENAT(analysis, verbose = TRUE, save_output = FALSE))
+    )
+    
+    expect_false(any(grepl("\\[TIPS\\]", output)),
+                 info = "[TIPS] section should not appear when tips = FALSE (default)")
+})
+
+test_that("TSENAT tips = TRUE shows [TIPS] section", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se)
+    config <- TSENAT_config(
+        sample_col = "sample", condition_col = "condition",
+        subject_col = "paired_samples", paired = TRUE, control = "normal",
+        q = seq(0, 2, by = 0.5), nthreads = 1,
+        generate_plots = FALSE
+    )
+    analysis@config <- unclass(config)
+    analysis <- filter_analysis(analysis, stringency = "medium", verbose = FALSE)
+    
+    output <- capture_messages(
+        result <- suppressWarnings(TSENAT(analysis, verbose = TRUE, tips = TRUE, save_output = FALSE))
+    )
+    
+    expect_true(any(grepl("\\[TIPS\\]", output)),
+                info = "[TIPS] section should appear when tips = TRUE")
+    expect_true(any(grepl("Extract Results - Common Examples", output)),
+                info = "Tips header should be present")
+    expect_true(any(grepl("show\\(result\\)", output)),
+                info = "show(result) tip should be present")
+    expect_true(any(grepl("results\\(result, type = 'diversity'", output)),
+                info = "diversity results tip should be present")
+})
+
+test_that("TSENAT tips argument is accepted without error", {
+    se <- make_test_se()
+    analysis <- TSENATAnalysis(se)
+    config <- TSENAT_config(
+        sample_col = "sample", condition_col = "condition",
+        subject_col = "paired_samples", paired = TRUE, control = "normal",
+        q = seq(0, 2, by = 0.5), nthreads = 1,
+        generate_plots = FALSE
+    )
+    analysis@config <- unclass(config)
+    analysis <- filter_analysis(analysis, stringency = "medium", verbose = FALSE)
+    
+    expect_error(
+        suppressWarnings(TSENAT(analysis, tips = TRUE, save_output = FALSE)),
+        NA
+    )
+    expect_error(
+        suppressWarnings(TSENAT(analysis, tips = FALSE, save_output = FALSE)),
+        NA
+    )
+})
