@@ -389,6 +389,73 @@ test_that(".plot_divergence_spectrum with sait_res returns ggplot", {
   expect_is(p, "ggplot")
 })
 
+test_that(".spectrum_plot_top_genes issues warning for unmatched genes and plots with CIs", {
+  skip_if_not_installed("ggplot2")
+  skip_if_not_installed("SummarizedExperiment")
+
+  mat <- matrix(c(0.1, 0.2, 0.3, 0.4,
+                  0.5, 0.6, 0.7, 0.8,
+                  0.9, 1.0, 1.1, 1.2),
+                nrow = 3, ncol = 4, byrow = TRUE)
+  rownames(mat) <- c("gene1", "gene2", "gene3")
+  colnames(mat) <- c("q_0.5", "q_1.0", "q_1.5", "q_2.0")
+
+  ci_lower <- mat - 0.05
+  ci_upper <- mat + 0.05
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(div = mat, ci_lower = ci_lower, ci_upper = ci_upper)
+  )
+
+  sait_res <- data.frame(
+    gene = c("gene3", "geneX", "gene1"),
+    adj_p_interaction = c(0.01, 0.05, 0.02),
+    stringsAsFactors = FALSE
+  )
+
+  p <- expect_warning(
+    TSENAT:::.spectrum_plot_top_genes(
+      sait_res = sait_res,
+      n_genes_use = 3,
+      ncol = 2,
+      div_mat_sorted = mat,
+      q_vals_sorted = c(0.5, 1.0, 1.5, 2.0),
+      gene_names = rownames(mat),
+      metric = "median",
+      divergence_results_se = se
+    ),
+    "Some genes not found"
+  )
+
+  expect_is(p, "ggplot")
+  expect_true(grepl("Bootstrap CI \\(95%\\)", p$labels$subtitle))
+})
+
+test_that(".spectrum_plot_global uses bootstrap CI when ci assays available", {
+  skip_if_not_installed("ggplot2")
+  skip_if_not_installed("SummarizedExperiment")
+
+  mat <- matrix(rnorm(20, mean = 0.5, sd = 0.1), nrow = 5, ncol = 4)
+  rownames(mat) <- paste0("gene", 1:5)
+  colnames(mat) <- c("q_0.5", "q_1.0", "q_1.5", "q_2.0")
+
+  ci_lower <- mat - 0.05
+  ci_upper <- mat + 0.05
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(div = mat, ci_lower = ci_lower, ci_upper = ci_upper)
+  )
+
+  p <- TSENAT:::.spectrum_plot_global(
+    div_mat_sorted = mat,
+    q_vals_sorted = c(0.5, 1.0, 1.5, 2.0),
+    metric = "mean",
+    variability_metric = "sd",
+    divergence_results_se = se
+  )
+
+  expect_is(p, "ggplot")
+  expect_true(grepl("Bootstrap \\(95%\\)", p$labels$subtitle))
+})
+
 test_that(".plot_divergence_spectrum respects metric parameter", {
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("SummarizedExperiment")

@@ -3028,3 +3028,42 @@ test_that("Edge cases: log_base consistency across scales", {
   expect_equal(results[2], results[3], tolerance = 1e-12,
                info = paste("Tsallis entropy should be independent of log_base for q != 1 (bases", bases[2], "and", bases[3], ")"))
 })
+
+# ════════════════════════════════════════════════════════════════════════════════
+# Tests for .extract_q_columns()
+# ════════════════════════════════════════════════════════════════════════════════
+
+test_that(".extract_q_columns finds columns by numeric q-value match", {
+  # col_q_values: named numeric, names = column indices, values = q-values
+  df <- data.frame(gene = 1:3, div_1.0 = 4:6, div_1.5 = 7:9)
+  col_q_values <- c(`2` = 1.0, `3` = 1.5)
+  q_format_cache <- list(
+    `1.5` = list(patterns_alt = list("_q=1\\.5$", "_q=1\\.50$"))
+  )
+  result <- TSENAT:::.extract_q_columns(df, col_q_values, 1.5, q_format_cache)
+  expect_equal(as.numeric(result), 3)
+})
+
+test_that(".extract_q_columns falls back to pattern matching", {
+  df <- data.frame(gene = 1:3, x = 4:6, extra = 7:9,
+                   stringsAsFactors = FALSE, check.names = FALSE)
+  colnames(df) <- c("gene", "value_q=2.0", "extra")
+  col_q_values <- NA  # No numeric q-value match available
+  q_format_cache <- list(
+    `2` = list(patterns_alt = list("_q=2\\.0$", "_q=2\\.00$"))
+  )
+  result <- TSENAT:::.extract_q_columns(df, col_q_values, 2.0, q_format_cache)
+  expect_equal(result, 2)
+})
+
+test_that(".extract_q_columns errors when no columns found", {
+  df <- data.frame(a = 1:3, b = 4:6)
+  col_q_values <- NA
+  q_format_cache <- list(
+    `3` = list(patterns_alt = list("_q=3\\.0$"))
+  )
+  expect_error(
+    TSENAT:::.extract_q_columns(df, col_q_values, 3.0, q_format_cache),
+    "No columns found"
+  )
+})

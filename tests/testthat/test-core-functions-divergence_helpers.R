@@ -744,6 +744,74 @@ test_that(".tsallis_divergence_scalar returns 0 for identical distributions", {
   expect_true(abs(result) < 1e-10)
 })
 
+test_that(".prepare_paired_bootstrap_data returns valid mapping for named pairs", {
+  x <- c(sample1 = 1, sample2 = 2)
+  y <- c(sample3 = 3, sample4 = 4)
+  pair_ids <- c(sample1 = "pairA", sample2 = "pairB", sample3 = "pairA", sample4 = "pairB")
+
+  result <- TSENAT:::.prepare_paired_bootstrap_data(x, y, pair_ids)
+
+  expect_true(result$valid)
+  expect_equal(result$x_pair_ids, c(1, 2))
+  expect_equal(result$y_pair_ids, c(1, 2))
+})
+
+test_that(".prepare_paired_bootstrap_data treats NA pair_ids as unpaired", {
+  x <- c(sample1 = 1, sample2 = 2)
+  y <- c(sample3 = 3, sample4 = 4)
+  pair_ids <- c(sample1 = "pairA", sample2 = NA, sample3 = "pairA", sample4 = "pairB")
+
+  result <- TSENAT:::.prepare_paired_bootstrap_data(x, y, pair_ids)
+
+  expect_true(result$valid)
+  expect_equal(result$x_pair_ids, c(1, 0))
+  expect_equal(result$y_pair_ids, c(1, 3))
+})
+
+test_that(".prepare_paired_bootstrap_data fails when x names are missing in pair_ids", {
+  x <- c(sample1 = 1, sample2 = 2)
+  y <- c(sample3 = 3, sample4 = 4)
+  pair_ids <- c(sample1 = "pairA", sample3 = "pairA", sample4 = "pairB")
+
+  expect_warning(
+    result <- TSENAT:::.prepare_paired_bootstrap_data(x, y, pair_ids),
+    "Not all x samples found in pair_ids"
+  )
+  expect_false(result$valid)
+})
+
+test_that(".tsallis_divergence_vector returns expected values for q vector", {
+  x <- c(1, 2, 3)
+  y <- c(2, 1, 4)
+  q_vals <- c(0, 1, 2)
+
+  result <- TSENAT:::.tsallis_divergence_vector(x, y, q_vals)
+
+  expect_equal(length(result), 3)
+  expect_equal(result[1], 0)
+  expect_true(result[2] >= 0)
+  expect_true(result[3] >= 0)
+})
+
+test_that(".tsallis_divergence_vector handles empty and unequal-length input", {
+  expect_equal(TSENAT:::.tsallis_divergence_vector(numeric(0), numeric(0), c(0.5, 1)),
+               c(NA_real_, NA_real_))
+  expect_equal(TSENAT:::.tsallis_divergence_vector(c(1, 2), c(1, 2, 3), c(0.5, 1)),
+               c(NA_real_, NA_real_))
+})
+
+test_that(".tsallis_divergence_vector applies KL scaling for q near 1", {
+  x <- c(0.3, 0.7)
+  y <- c(0.4, 0.6)
+  q_vals <- c(1, 2)
+
+  result <- TSENAT:::.tsallis_divergence_vector(x, y, q_vals, log_base = 2)
+  scalar <- TSENAT:::.tsallis_divergence_scalar(x, y, q_val = 1, log_base = 2)
+
+  expect_equal(result[1], scalar)
+  expect_true(result[2] >= 0)
+})
+
 # =====================================================================
 # Additional Tests for .classify_q_pattern (edge cases)
 # =====================================================================

@@ -1886,3 +1886,99 @@ test_that(".fit_one_interaction ensures gene column in result", {
     expect_true(is.data.frame(result))
     expect_equal(result$gene, "GeneX")
 })
+
+# ════════════════════════════════════════════════════════════════════════════════
+# Tests for .setup_interaction_data()
+# ════════════════════════════════════════════════════════════════════════════════
+
+test_that(".setup_interaction_data builds correct data.frame", {
+    mat <- matrix(c(1.1, 1.2, 1.3, 2.1, 2.2, 2.3), nrow=2, byrow=TRUE,
+                  dimnames=list(c("g1","g2"), c("s1_q=0.5","s2_q=0.5","s3_q=0.5")))
+    q_vals <- c(0.5, 0.5, 0.5)
+    group_vec <- c("A", "B", "A")
+
+    df <- TSENAT:::.setup_interaction_data("g1", mat, q_vals, group_vec)
+
+    expect_is(df, "data.frame")
+    expect_equal(df$entropy, c(1.1, 1.2, 1.3))
+    expect_equal(df$q, c(0.5, 0.5, 0.5))
+    expect_equal(as.character(df$group), c("A", "B", "A"))
+    expect_equal(as.character(df$sample_name), c("s1", "s2", "s3"))
+})
+
+test_that(".setup_interaction_data errors for unknown gene", {
+    mat <- matrix(1:6, nrow=2, dimnames=list(c("g1","g2"), c("s1","s2","s3")))
+    q_vals <- c(0.5, 0.6, 0.7)
+    group_vec <- c("A","B","A")
+
+    expect_error(
+        TSENAT:::.setup_interaction_data("g3", mat, q_vals, group_vec),
+        "not found"
+    )
+})
+
+test_that(".setup_interaction_data handles NULL colnames", {
+    mat <- matrix(c(0.5, 0.6, 0.7, 1.5, 1.6, 1.7), nrow=2,
+                  dimnames=list(c("g1","g2"), NULL))
+    q_vals <- c(0.1, 0.2, 0.3)
+    group_vec <- c("X", "Y", "X")
+
+    df <- TSENAT:::.setup_interaction_data("g2", mat, q_vals, group_vec)
+
+    expect_is(df, "data.frame")
+    expect_equal(as.character(df$sample_name), c("S1", "S2", "S3"))
+})
+
+# ════════════════════════════════════════════════════════════════════════════════
+# Tests for .apply_weights_to_df()
+# ════════════════════════════════════════════════════════════════════════════════
+
+test_that(".apply_weights_to_df applies valid weights", {
+    df <- data.frame(entropy = 1:4, q = c(0.5, 1.0, 1.5, 2.0), stringsAsFactors = FALSE)
+    w <- c(1.0, 0.8, 0.6, 0.4)
+
+    result <- TSENAT:::.apply_weights_to_df(df, w, "gene1", verbose = FALSE)
+
+    expect_true("weight" %in% colnames(result))
+    expect_equal(result$weight, w)
+})
+
+test_that(".apply_weights_to_df ignores NULL weights", {
+    df <- data.frame(entropy = 1:3, q = c(0.5, 1.0, 1.5), stringsAsFactors = FALSE)
+
+    result <- TSENAT:::.apply_weights_to_df(df, NULL, "gene1", verbose = FALSE)
+
+    expect_false("weight" %in% colnames(result))
+})
+
+test_that(".apply_weights_to_df ignores mismatched weights with verbose message", {
+    df <- data.frame(entropy = 1:3, q = c(0.5, 1.0, 1.5), stringsAsFactors = FALSE)
+    w <- c(1.0, 2.0)  # wrong length
+
+    expect_message(
+        TSENAT:::.apply_weights_to_df(df, w, "geneX", verbose = TRUE),
+        "length mismatch"
+    )
+})
+
+# ════════════════════════════════════════════════════════════════════════════════
+# Tests for .check_lmm_sample_sizes()
+# ════════════════════════════════════════════════════════════════════════════════
+
+test_that(".check_lmm_sample_sizes passes valid data", {
+    df <- data.frame(subject = factor(c("A","A","B","B","A","B")), stringsAsFactors = FALSE)
+    result <- TSENAT:::.check_lmm_sample_sizes(df, min_obs = 3)
+    expect_true(result)
+})
+
+test_that(".check_lmm_sample_sizes returns NULL for insufficient rows", {
+    df <- data.frame(subject = factor("A"), stringsAsFactors = FALSE)
+    result <- suppressWarnings(TSENAT:::.check_lmm_sample_sizes(df, min_obs = 5))
+    expect_null(result)
+})
+
+test_that(".check_lmm_sample_sizes returns NULL for single subject", {
+    df <- data.frame(subject = factor(rep("X", 10)), stringsAsFactors = FALSE)
+    result <- suppressWarnings(TSENAT:::.check_lmm_sample_sizes(df, min_obs = 1))
+    expect_null(result)
+})

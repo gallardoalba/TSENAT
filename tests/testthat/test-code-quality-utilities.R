@@ -495,6 +495,87 @@ test_that("auto_detect_column logs unavailable fallback in verbose mode", {
     )
 })
 
+# ===========================================================================
+# Tests for resolve_slot_param()
+# ===========================================================================
+
+test_that("resolve_slot_param returns user_value when provided", {
+    config <- list(nthreads = 4, verbose = TRUE)
+    result <- TSENAT:::resolve_slot_param(
+        user_value = 8, config_list = config,
+        config_key = "nthreads", default_value = 1
+    )
+    expect_equal(result, 8)
+})
+
+test_that("resolve_slot_param falls back to config when user_value is NULL", {
+    config <- list(nthreads = 4, verbose = TRUE)
+    result <- TSENAT:::resolve_slot_param(
+        user_value = NULL, config_list = config,
+        config_key = "nthreads", default_value = 1
+    )
+    expect_equal(result, 4)
+})
+
+test_that("resolve_slot_param falls back to default when neither user nor config", {
+    config <- list(nthreads = 4)
+    result <- TSENAT:::resolve_slot_param(
+        user_value = NULL, config_list = config,
+        config_key = "missing_key", default_value = 16
+    )
+    expect_equal(result, 16)
+})
+
+test_that("resolve_slot_param returns NULL when everything is NULL and allow_null=TRUE", {
+    config <- list(other = 1)
+    result <- TSENAT:::resolve_slot_param(
+        user_value = NULL, config_list = config,
+        config_key = "nthreads", default_value = NULL
+    )
+    expect_null(result)
+})
+
+test_that("resolve_slot_param errors when allow_null=FALSE and nothing found", {
+    config <- list(other = 1)
+    expect_error(
+        TSENAT:::resolve_slot_param(
+            user_value = NULL, config_list = config,
+            config_key = "nthreads", default_value = NULL,
+            allow_null = FALSE
+        ),
+        "Could not resolve parameter"
+    )
+})
+
+test_that("resolve_slot_param uses description in error message", {
+    config <- list()
+    expect_error(
+        TSENAT:::resolve_slot_param(
+            user_value = NULL, config_list = config,
+            config_key = "nthreads", default_value = NULL,
+            description = "thread count", allow_null = FALSE
+        ),
+        "thread count"
+    )
+})
+
+test_that("resolve_slot_param handles NULL config_list", {
+    result <- TSENAT:::resolve_slot_param(
+        user_value = NULL, config_list = NULL,
+        config_key = "nthreads", default_value = 4
+    )
+    expect_equal(result, 4)
+})
+
+test_that("resolve_slot_param handles NULL config value for existing key", {
+    config <- list(nthreads = NULL)
+    result <- TSENAT:::resolve_slot_param(
+        user_value = NULL, config_list = config,
+        config_key = "nthreads", default_value = 4
+    )
+    expect_equal(result, 4)
+})
+
 
 
 test_that("save_analysis_output saves data.frame to CSV", {
@@ -635,6 +716,116 @@ test_that("save_analysis_output handles unknown format with RDS fallback", {
     
     expect_true(result)
     expect_true(file.exists(temp_file))
+})
+
+test_that("save_analysis_output returns verbose messages when verbose=TRUE", {
+    skip_if_not_installed("ggplot2")
+    
+    temp_file <- tempfile(fileext = ".tsv")
+    on.exit(unlink(temp_file), add = TRUE)
+    
+    test_df <- data.frame(x = 1)
+    
+    expect_message(
+        save_analysis_output(
+            data = test_df,
+            output_file = temp_file,
+            verbose = TRUE
+        ),
+        "Saved table to"
+    )
+})
+
+test_that("save_analysis_output skips empty data.frame with verbose message", {
+    temp_file <- tempfile(fileext = ".tsv")
+    on.exit(unlink(temp_file), add = TRUE)
+    
+    empty_df <- data.frame()
+    
+    result <- expect_message(
+        save_analysis_output(
+            data = empty_df,
+            output_file = temp_file,
+            verbose = TRUE
+        ),
+        "Skipping empty output"
+    )
+    
+    expect_false(result)
+})
+
+test_that("save_analysis_output saves ggplot to PDF with custom dimensions", {
+    skip_if_not_installed("ggplot2")
+    
+    temp_file <- tempfile(fileext = ".pdf")
+    on.exit(unlink(temp_file), add = TRUE)
+    
+    p <- ggplot2::ggplot(mtcars, ggplot2::aes(x = mpg, y = cyl)) + ggplot2::geom_point()
+    
+    result <- save_analysis_output(
+        data = p,
+        output_file = temp_file,
+        verbose = FALSE,
+        width = 10,
+        height = 8
+    )
+    
+    expect_true(result)
+    expect_true(file.exists(temp_file))
+    expect_gt(file.info(temp_file)$size, 0)
+})
+
+test_that("save_analysis_output warns for non-ggplot object with plot extension", {
+    temp_file <- tempfile(fileext = ".pdf")
+    on.exit(unlink(temp_file), add = TRUE)
+    
+    result <- suppressWarnings(
+        save_analysis_output(
+            data = data.frame(x = 1),
+            output_file = temp_file,
+            verbose = FALSE
+        )
+    )
+    
+    expect_false(result)
+})
+
+test_that("save_analysis_output saves SummarizedExperiment as table", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    temp_file <- tempfile(fileext = ".tsv")
+    on.exit(unlink(temp_file), add = TRUE)
+    
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = matrix(1:6, nrow = 2, dimnames = list(c("g1","g2"), c("s1","s2","s3"))))
+    )
+    
+    result <- save_analysis_output(
+        data = se,
+        output_file = temp_file,
+        verbose = FALSE
+    )
+    
+    expect_true(result)
+    expect_true(file.exists(temp_file))
+})
+
+test_that("save_analysis_output warns when save fails on locked file path", {
+    temp_file <- file.path(tempdir(), "locked", "test.csv")
+
+    test_df <- data.frame(x = 1)
+
+    result <- suppressWarnings(
+        save_analysis_output(
+            data = test_df,
+            output_file = temp_file,
+            create_dir = FALSE,
+            verbose = FALSE
+        )
+    )
+
+    # Directory doesn't exist, save should fail gracefully
+    expect_false(result)
 })
 
 test_that("extract_multiq_table returns data.frame for single q-value", {

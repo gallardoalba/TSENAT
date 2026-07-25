@@ -884,7 +884,57 @@ test_that("build_analysis works without metadata (no column validation needed)",
 })
 
 test_that("build_analysis errors when salmon_dir has mismatched sample names", {
-    skip("Requires actual Salmon directory structure — tested in integration suite")
+    tmpdir <- tempdir()
+    salmon_dir <- file.path(tmpdir, "salmon_mismatch")
+    dir.create(file.path(salmon_dir, "S1"), recursive = TRUE, showWarnings = FALSE)
+    dir.create(file.path(salmon_dir, "S2"), recursive = TRUE, showWarnings = FALSE)
+
+    quant_header <- data.frame(
+        Name = c("ENST00000001", "ENST00000002"),
+        Length = c(1000, 1200),
+        EffectiveLength = c(900, 1100),
+        TPM = c(10, 20),
+        NumReads = c(100, 200)
+    )
+
+    readr::write_tsv(quant_header, file.path(salmon_dir, "S1", "quant.sf"))
+    readr::write_tsv(quant_header, file.path(salmon_dir, "S2", "quant.sf"))
+
+    bad_metadata <- data.frame(
+        sample = c("A", "B"),
+        condition = c("control", "treated"),
+        row.names = c("A", "B")
+    )
+
+    expect_error(
+        build_analysis(
+            salmon_dir = salmon_dir,
+            tx2gene = gff3_dataset,
+            metadata = bad_metadata,
+            config = list(sample_col = "sample", condition_col = "condition")
+        ),
+        "Sample name mismatch between Salmon folder and metadata"
+    )
+})
+
+test_that("build_analysis reads metadata from config$metadata when metadata arg is NULL", {
+    config <- list(
+        sample_col = "sample",
+        condition_col = "condition",
+        metadata = metadata_df
+    )
+
+    analysis <- build_analysis(
+        readcounts = readcounts,
+        tx2gene = gff3_dataset,
+        config = config,
+        tpm = tpm,
+        effective_length = effective_length
+    )
+
+    expect_s4_class(analysis, "TSENATAnalysis")
+    expect_identical(rownames(SummarizedExperiment::colData(analysis@se)), metadata_df$sample)
+    expect_identical(analysis@config$metadata, metadata_df)
 })
 
 test_that("build_analysis accepts TSENAT_config object with all required params", {

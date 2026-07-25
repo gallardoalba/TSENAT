@@ -115,10 +115,15 @@
                 status = "? SKIP", details = "Empty data"))
         }
 
-        return(structure(list(overall_summary = "Cannot evaluate assumptions on empty data matrix"),
-            class = "rank_assumptions", checks = empty_checks, summary_stats = list(n_genes = 0,
-                n_samples = 0, entropy_min = NA_real_, entropy_max = NA_real_, entropy_mean = NA_real_,
-                entropy_median = NA_real_, n_missing = 0)))
+        # Return `summary_stats` as part of the object (for $ access) and
+        # keep `checks` as an attribute for backward compatibility
+        obj <- list(overall_summary = "Cannot evaluate assumptions on empty data matrix",
+            summary_stats = list(n_genes = 0, n_samples = 0, entropy_min = NA_real_,
+                entropy_max = NA_real_, entropy_mean = NA_real_, entropy_median = NA_real_,
+                n_missing = 0))
+        class(obj) <- "rank_assumptions"
+        attr(obj, "checks") <- empty_checks
+        return(obj)
     }
 
     # Calculate summary statistics for entropy data Guard against empty data:
@@ -336,9 +341,13 @@
         results$fpca_metrics <- fpca_result
     }
 
-    structure(list(overall_summary = paste("Rank-based assumptions evaluated with",
-        "rigorous statistical tests.")), class = "rank_assumptions", checks = results,
-        summary_stats = summary_stats)
+    # Return object with `summary_stats` available as a list element and
+    # `checks` set as an attribute (preserves previous access patterns)
+    obj <- list(overall_summary = paste("Rank-based assumptions evaluated with",
+        "rigorous statistical tests."), summary_stats = summary_stats)
+    class(obj) <- "rank_assumptions"
+    attr(obj, "checks") <- results
+    obj
 }
 
 #' Print method for rank-based assumptions check

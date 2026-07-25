@@ -2495,3 +2495,21 @@ test_that(".try_sait_fallbacks returns NULL for empty df", {
   expect_null(result)
 })
 
+# ════════════════════════════════════════════════════════════════════════════════
+# Tests for .clear_sait_helper_cache()
+# ════════════════════════════════════════════════════════════════════════════════
+
+test_that(".clear_sait_helper_cache runs without error when memoization enabled", {
+  old_opt <- getOption("TSENAT.memoization", TRUE)
+  options(TSENAT.memoization = TRUE)
+  expect_silent(TSENAT:::.clear_sait_helper_cache())
+  options(TSENAT.memoization = old_opt)
+})
+
+test_that(".clear_sait_helper_cache runs without error when memoization disabled", {
+  old_opt <- getOption("TSENAT.memoization", TRUE)
+  options(TSENAT.memoization = FALSE)
+  expect_silent(TSENAT:::.clear_sait_helper_cache())
+  options(TSENAT.memoization = old_opt)
+})
+

@@ -1106,3 +1106,80 @@ test_that("calculate_sait validates pvalue parameter correctly", {
         "should be one of"
     )
 })
+
+# ════════════════════════════════════════════════════════════════════════════════
+# Tests for .validate_sait_method_dependencies()
+# ════════════════════════════════════════════════════════════════════════════════
+
+test_that(".validate_sait_method_dependencies returns invisible TRUE for valid method", {
+    skip_if_not_installed("nlme")
+    result <- TSENAT:::.validate_sait_method_dependencies("lmm")
+    expect_true(result)
+})
+
+test_that(".validate_sait_method_dependencies passes for 'gam'", {
+    skip_if_not_installed("mgcv")
+    result <- TSENAT:::.validate_sait_method_dependencies("gam")
+    expect_true(result)
+})
+
+# ════════════════════════════════════════════════════════════════════════════════
+# Tests for .validate_sait_data_structure()
+# ════════════════════════════════════════════════════════════════════════════════
+
+test_that(".validate_sait_data_structure passes with valid columns and assay", {
+    skip_if_not_installed("SummarizedExperiment")
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(diversity = matrix(1:4, nrow = 2)),
+        colData = data.frame(condition = c("A", "B"), row.names = c("s1", "s2"))
+    )
+    result <- TSENAT:::.validate_sait_data_structure(se, "condition", "diversity")
+    expect_true(result)
+})
+
+test_that(".validate_sait_data_structure errors on missing condition_col", {
+    skip_if_not_installed("SummarizedExperiment")
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(div = matrix(1:4, nrow = 2)),
+        colData = data.frame(sample = c("s1", "s2"), row.names = c("s1", "s2"))
+    )
+    expect_error(
+        TSENAT:::.validate_sait_data_structure(se, "condition", "div"),
+        "condition_col"
+    )
+})
+
+test_that(".validate_sait_data_structure errors on missing assay", {
+    skip_if_not_installed("SummarizedExperiment")
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = matrix(1:4, nrow = 2)),
+        colData = data.frame(condition = c("A", "B"), row.names = c("s1", "s2"))
+    )
+    expect_error(
+        TSENAT:::.validate_sait_data_structure(se, "condition", "diversity"),
+        "Assay"
+    )
+})
+
+# ════════════════════════════════════════════════════════════════════════════════
+# Tests for .extract_sait_result_df()
+# ════════════════════════════════════════════════════════════════════════════════
+
+test_that(".extract_sait_result_df returns data.frame as-is", {
+    df <- data.frame(gene = "g1", p_interaction = 0.01, stringsAsFactors = FALSE)
+    result <- TSENAT:::.extract_sait_result_df(df)
+    expect_identical(result, df)
+})
+
+test_that(".extract_sait_result_df extracts results from list", {
+    df <- data.frame(gene = "g2", p_interaction = 0.05, stringsAsFactors = FALSE)
+    result <- TSENAT:::.extract_sait_result_df(list(results = df, extra = "x"))
+    expect_identical(result, df)
+})
+
+test_that(".extract_sait_result_df errors on invalid input", {
+    expect_error(
+        TSENAT:::.extract_sait_result_df(list(foo = "bar")),
+        "sait_result must be either"
+    )
+})

@@ -3853,3 +3853,42 @@ test_that(".select_samples_from_analysis errors on invalid n_samples", {
     "n_samples must be >= 1"
   )
 })
+
+# ════════════════════════════════════════════════════════════════════════════════
+# Tests for .detect_paired_structure()
+# ════════════════════════════════════════════════════════════════════════════════
+
+test_that(".detect_paired_structure detects paired_samples column", {
+  coldata <- data.frame(
+    condition = c("normal", "normal", "tumor", "tumor"),
+    paired_samples = c("A", "B", "A", "B"),
+    row.names = c("s1", "s2", "s3", "s4"),
+    stringsAsFactors = FALSE
+  )
+  result <- TSENAT:::.detect_paired_structure(coldata)
+  expect_true(result$is_paired)
+  expect_equal(result$pair_col, "paired_samples")
+  expect_equal(result$complete_pairs, c("A", "B"))
+})
+
+test_that(".detect_paired_structure detects pair column", {
+  coldata <- data.frame(
+    condition = c("A", "A", "B", "B"),
+    pair = c("p1", "p2", "p1", "p2"),
+    stringsAsFactors = FALSE
+  )
+  result <- TSENAT:::.detect_paired_structure(coldata)
+  expect_true(result$is_paired)
+  expect_equal(result$pair_col, "pair")
+})
+
+test_that(".detect_paired_structure returns FALSE with no pair column", {
+  coldata <- data.frame(
+    condition = c("A", "A", "B", "B"),
+    other = 1:4,
+    stringsAsFactors = FALSE
+  )
+  result <- TSENAT:::.detect_paired_structure(coldata)
+  expect_false(result$is_paired)
+  expect_null(result$pair_col)
+})
