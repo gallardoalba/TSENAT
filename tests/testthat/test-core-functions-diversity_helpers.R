@@ -1059,3 +1059,40 @@ test_that(".normalize_relative_reference handles multiple replicates per group",
   # Treatment samples should be higher
   expect_true(result[1, 4] > result[1, 1])  # treatment > control
 })
+
+# ═══════════════════════════════════════════════════════════
+# Additional edge case tests for SE structure validation
+# ═══════════════════════════════════════════════════════════
+
+test_that(".validate_se_structure returns TRUE for non-SE objects", {
+  result <- TSENAT:::.validate_se_structure(list(), 1.0)
+  expect_true(result)
+})
+
+test_that(".validate_se_structure errors on SE with no assays", {
+  se <- SummarizedExperiment::SummarizedExperiment()
+  expect_error(
+    TSENAT:::.validate_se_structure(se, 1.0),
+    "has no assays"
+  )
+})
+
+test_that(".validate_se_structure warns on empty assay", {
+  mat <- matrix(nrow=0, ncol=2)
+  se <- SummarizedExperiment::SummarizedExperiment(assays=list(data=mat))
+  expect_warning(
+    TSENAT:::.validate_se_structure(se, 1.0),
+    "is empty"
+  )
+})
+
+test_that(".apply_original_coldata handles zero-column SE", {
+  result_se <- SummarizedExperiment::SummarizedExperiment()
+  original_se <- SummarizedExperiment::SummarizedExperiment(
+    assays=list(data=matrix(1:4,2)),
+    colData=data.frame(group=c("A","B"))
+  )
+  result <- TSENAT:::.apply_original_coldata(result_se, original_se)
+  expect_is(result, "SummarizedExperiment")
+})
+
