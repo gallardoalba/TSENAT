@@ -2960,3 +2960,31 @@ test_that("Full Storey pi0 + q-value pipeline works", {
     expect_true(all(qvalue_result <= 1.0, na.rm = TRUE))
     expect_true(all(qvalue_result >= 0, na.rm = TRUE))
 })
+
+# ════════════════════════════════════════════════════════════════════════════════
+# NEW: Additional edge case tests for coverage increase
+# ════════════════════════════════════════════════════════════════════════════════
+
+test_that(".compute_storey_qvalues errors on empty input", {
+  expect_error(.compute_storey_qvalues(numeric(0)), "No valid p-values")
+})
+
+test_that(".compute_storey_qvalues errors on invalid pi0", {
+  expect_error(.compute_storey_qvalues(c(0.01, 0.05), pi0 = 1.5), "pi0 must be in range")
+  expect_error(.compute_storey_qvalues(c(0.01, 0.05), pi0 = -0.1), "pi0 must be in range")
+})
+
+test_that(".compute_storey_qvalues preserves NAs in original positions", {
+  result <- .compute_storey_qvalues(c(0.01, NA, 0.05, NA, 0.1))
+  expect_true(is.na(result[2]))
+  expect_true(is.na(result[4]))
+})
+
+test_that(".westfall_young_permutation errors on wy_randomizations < 1", {
+  permute_fn <- function() NULL
+  refit_fn <- function(x) runif(5)
+  expect_error(
+    .westfall_young_permutation(5, wy_randomizations = 0, permute_fn, refit_fn),
+    "wy_randomizations must be >= 1"
+  )
+})

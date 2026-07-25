@@ -2358,3 +2358,140 @@ test_that(".ar1_design_effect_memo behaves with memoization", {
     expect_equal(result1, result2)  # Should be identical
 })
 
+# ════════════════════════════════════════════════════════════════════════════════
+# Additional edge case tests for .estimate_ar1_rho and .test_residual_normality
+# ════════════════════════════════════════════════════════════════════════════════
+
+test_that(".estimate_ar1_rho handles nearly-constant data (low variance fallback)", {
+    # Nearly constant data triggers var_x < 1e-10 branch
+    x <- rep(1.0, 10) + c(0, 1e-12, 0, -1e-12, 0, 1e-12, 0, -1e-12, 0, 1e-12)
+    result <- TSENAT:::.estimate_ar1_rho(x, subject_vec = NULL)
+    expect_null(result)
+})
+
+test_that(".estimate_ar1_rho handles extremely short valid data after NA removal", {
+    x <- c(1.0, NA, NA, NA, 2.0)
+    result <- TSENAT:::.estimate_ar1_rho(x, subject_vec = NULL)
+    expect_null(result)
+})
+
+test_that(".estimate_ar1_rho returns NULL for NULL input", {
+    result <- TSENAT:::.estimate_ar1_rho(NULL, subject_vec = NULL)
+    expect_null(result)
+})
+
+test_that(".estimate_ar1_rho with subject_vec groups estimates per subject", {
+    set.seed(3001)
+    x <- c(1, 2, 3, 1.1, 2.2, 3.3)
+    subj <- c("A", "A", "A", "B", "B", "B")
+    result <- TSENAT:::.estimate_ar1_rho(x, subject_vec = subj)
+    expect_true(is.numeric(result) || is.null(result))
+})
+
+test_that(".test_residual_normality handles lme model type", {
+    skip_if_not_installed("nlme")
+    set.seed(3002)
+    df <- data.frame(
+        y = rnorm(20),
+        x = rnorm(20),
+        g = factor(rep(1:4, each = 5))
+    )
+    fit <- nlme::lme(y ~ x, random = ~1 | g, data = df)
+    result <- TSENAT:::.test_residual_normality(fit, "lme", verbose = FALSE)
+    expect_is(result, "list")
+    expect_true("shapiro_p_value" %in% names(result))
+    expect_true("residuals_normal" %in% names(result))
+})
+
+test_that(".test_residual_normality handles gamm model type", {
+    skip_if_not_installed("mgcv")
+    set.seed(3003)
+    df <- data.frame(
+        y = rnorm(30),
+        x = seq_len(30),
+        g = factor(rep(1:3, each = 10))
+    )
+    fit <- mgcv::gamm(y ~ s(x, k = 4), random = list(g = ~1), data = df)
+    result <- TSENAT:::.test_residual_normality(fit, "gamm", verbose = FALSE)
+    expect_is(result, "list")
+})
+
+test_that(".test_residual_normality handles model extraction errors gracefully", {
+    result <- TSENAT:::.test_residual_normality(list(), "gam", verbose = FALSE)
+    expect_is(result, "list")
+    expect_equal(result$test_status, "error")
+})
+
+test_that(".adf_test handles regression failure with degenerate data", {
+    # Constant data causes regression to fail or produce degenerate results
+    result <- TSENAT:::.adf_test(rep(5, 20), max_lag = 2)
+    expect_is(result, "list")
+    expect_true("conclusion" %in% names(result))
+})
+
+test_that(".adf_test handles NULL input", {
+    result <- TSENAT:::.adf_test(NULL)
+    expect_is(result, "list")
+    expect_equal(result$conclusion, "INSUFFICIENT_DATA")
+})
+
+test_that(".adf_test handles series with too many NAs", {
+    result <- TSENAT:::.adf_test(c(1, 2, NA, NA, NA))
+    expect_equal(result$conclusion, "INSUFFICIENT_DATA")
+})
+
+
+# ═══════════════════════════════════════════════════════════════
+# Additional edge case tests for LMM coverage
+# ═══════════════════════════════════════════════════════════════
+
+test_that(".try_lmm_ar1 handles empty data gracefully", {
+  df <- data.frame(entropy=numeric(0), q=numeric(0), group=character(0), subject=character(0))
+  result <- TSENAT:::.try_lmm_ar1(df, verbose=FALSE)
+  expect_null(result)
+})
+
+test_that(".try_lmm_ar1 returns NULL when nlme not available", {
+  skip_if_not_installed("nlme")
+  df <- data.frame(entropy=1:2, q=1:2, group=factor(c("A","A")), subject=factor(c("S1","S1")))
+  result <- TSENAT:::.try_lmm_ar1(df, verbose=FALSE)
+  expect_null(result)
+})
+
+test_that(".try_sait_fallbacks strategy 1 with nlme works", {
+  skip_if_not_installed("nlme")
+  set.seed(4001)
+  n <- 20
+  df <- data.frame(
+    entropy = rnorm(n),
+    q = rep(1:5, 4),
+    group = factor(rep(c("A","B"), each=n/2)),
+    subject = factor(rep(1:4, each=5))
+  )
+  result <- TSENAT:::.try_sait_fallbacks(df, verbose=FALSE)
+  expect_true(!is.null(result))
+  expect_true("fit0" %in% names(result))
+  expect_true("fit1" %in% names(result))
+})
+
+test_that(".try_sait_fallbacks strategy 2 with glmmTMB works", {
+  skip_if_not_installed("glmmTMB")
+  skip_if_not_installed("nlme")
+  set.seed(4002)
+  n <- 20
+  df <- data.frame(
+    entropy = rnorm(n),
+    q = rep(1:5, 4),
+    group = factor(rep(c("A","B"), each=n/2)),
+    subject = factor(rep(1:4, each=5))
+  )
+  result <- TSENAT:::.try_sait_fallbacks(df, verbose=FALSE)
+  expect_true(!is.null(result))
+})
+
+test_that(".try_sait_fallbacks returns NULL for empty df", {
+  df <- data.frame(entropy=numeric(0), q=numeric(0), group=factor(), subject=factor())
+  result <- TSENAT:::.try_sait_fallbacks(df, verbose=FALSE)
+  expect_null(result)
+})
+

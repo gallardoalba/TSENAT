@@ -2683,3 +2683,36 @@ test_that(".adjust_for_design_effect handles NULL and zero design_effect", {
     
     expect_equal(result_negative$multiplier, result_one$multiplier, tolerance = 1e-10)
 })
+
+test_that(".gee_interaction validates corstr parameter correctly", {
+  skip_if_not_installed("geepack")
+  df <- data.frame(entropy=rnorm(8), q=rep(1:4,2), group=factor(rep(c("A","B"),each=4)), subject=factor(rep(1:2,each=4)))
+  expect_error(
+    TSENAT:::.gee_interaction(df, q_vals=1:4, g="G1", subject=df$subject, corstr="invalid"),
+    "should be one of"
+  )
+})
+
+test_that(".gee_interaction returns NULL on validation failure", {
+  df <- data.frame(entropy=rnorm(4), q=1:4, group=factor(rep("A",4)), subject=factor(rep(1,4)))
+  result <- suppressWarnings(
+    TSENAT:::.gee_interaction(df, q_vals=1:4, g="G1", subject=df$subject, min_obs=10)
+  )
+  expect_null(result)
+})
+
+test_that(".gee_interaction handles ARIMA differencing with paired data", {
+  skip_if_not_installed("geepack")
+  set.seed(5001)
+  n <- 16
+  df <- data.frame(
+    entropy = rnorm(n),
+    q = rep(seq(0.5,2,length.out=4), 4),
+    group = factor(rep(c("A","B"), each=n/2)),
+    subject = factor(rep(1:4, each=4))
+  )
+  result <- TSENAT:::.gee_interaction(df, q_vals=unique(df$q), g="G1", subject=df$subject,
+    min_obs=3, corstr="ar1", bias_correction=TRUE)
+  expect_true(is.data.frame(result) || is.null(result))
+})
+

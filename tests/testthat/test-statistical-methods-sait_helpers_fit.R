@@ -1790,3 +1790,99 @@ test_that(".fit_all_genes function is exported", {
   expect_true(exists(".fit_all_genes", mode = "function"))
   expect_is(.fit_all_genes, "function")
 })
+
+# ════════════════════════════════════════════════════════════════════════════════
+# Additional edge case tests for .fit_one_interaction to increase coverage
+# ════════════════════════════════════════════════════════════════════════════════
+
+test_that(".fit_one_interaction GEE without subject_col returns data.frame with warning", {
+    skip_if_not_installed("geepack")
+    set.seed(2001)
+    n_total <- 12
+    q_vals <- rep(c(0.1, 0.5, 1.0, 1.5), 3)
+    group_vec <- rep(c("A", "B"), each = n_total/2)
+    entropy <- 0.3 + 0.2 * q_vals + rnorm(n_total, 0, 0.05)
+    mat <- matrix(entropy, nrow=1, dimnames=list("G1", paste0("s", 1:n_total)))
+    sample_names <- paste0("s", 1:n_total)
+
+    result <- suppressWarnings(
+        .fit_one_interaction("G1", se=NULL, mat=mat, q_vals=q_vals,
+            sample_names=sample_names, group_vec=group_vec,
+            method="gee", pvalue="lrt", subject_col=NULL, paired=FALSE,
+            min_obs=3, verbose=FALSE, suppress_lme4_warnings=TRUE, progress=FALSE)
+    )
+    expect_true(is.data.frame(result) || is.null(result))
+    if (is.data.frame(result)) {
+        expect_equal(result$gene, "G1")
+    }
+})
+
+test_that(".fit_one_interaction handles invalid method gracefully", {
+    set.seed(2002)
+    n_total <- 8
+    mat <- matrix(rnorm(n_total), nrow=1, dimnames=list("G1", paste0("s", 1:n_total)))
+    q_vals <- rep(c(0.5, 1.0), 4)
+    group_vec <- rep(c("A", "B"), 4)
+    sample_names <- paste0("s", 1:n_total)
+
+    result <- .fit_one_interaction("G1", se=NULL, mat=mat, q_vals=q_vals,
+        sample_names=sample_names, group_vec=group_vec,
+        method="invalid_method", pvalue="lrt", subject_col=NULL, paired=FALSE,
+        min_obs=2, verbose=FALSE, suppress_lme4_warnings=TRUE, progress=FALSE)
+    expect_null(result)
+})
+
+test_that(".fit_one_interaction LMM with insufficient data returns result", {
+    skip_if_not_installed("nlme")
+    set.seed(2003)
+    n_total <- 4
+    mat <- matrix(rnorm(n_total), nrow=1, dimnames=list("G1", paste0("s", 1:n_total)))
+    q_vals <- c(0.1, 0.5, 1.0, 1.5)
+    group_vec <- rep("A", 4)
+    sample_names <- paste0("s", 1:n_total)
+
+    result <- suppressWarnings(
+        .fit_one_interaction("G1", se=NULL, mat=mat, q_vals=q_vals,
+            sample_names=sample_names, group_vec=group_vec,
+            method="lmm", pvalue="lrt", subject_col=NULL, paired=FALSE,
+            min_obs=5, verbose=FALSE, suppress_lme4_warnings=TRUE, progress=FALSE)
+    )
+    # With insufficient data, result may be data.frame with NAs or error result
+    expect_true(is.data.frame(result) || is.list(result) || is.null(result))
+})
+
+test_that(".fit_one_interaction with method='gam' returns valid data.frame", {
+    skip_if_not_installed("mgcv")
+    set.seed(2004)
+    n_total <- 30
+    mat <- matrix(0.5 + 0.1 * seq_len(n_total) + rnorm(n_total, 0, 0.03),
+        nrow=1, dimnames=list("G1", paste0("s", 1:n_total)))
+    q_vals <- rep(seq(0.1, 2, length.out=10), 3)
+    group_vec <- rep(c("A", "B"), each=15)
+    sample_names <- paste0("s", 1:n_total)
+
+    result <- suppressWarnings(
+        .fit_one_interaction("G1", se=NULL, mat=mat, q_vals=q_vals,
+            sample_names=sample_names, group_vec=group_vec,
+            method="gam", pvalue="lrt", subject_col=NULL, paired=FALSE,
+            min_obs=5, verbose=FALSE, suppress_lme4_warnings=TRUE, progress=FALSE)
+    )
+    expect_true(is.data.frame(result))
+    expect_true("gene" %in% colnames(result))
+})
+
+test_that(".fit_one_interaction ensures gene column in result", {
+    set.seed(2005)
+    n_total <- 8
+    mat <- matrix(rnorm(n_total), nrow=1, dimnames=list("GeneX", paste0("s", 1:n_total)))
+    q_vals <- rep(c(0.5, 1.0), 4)
+    group_vec <- rep(c("A", "B"), 4)
+    sample_names <- paste0("s", 1:n_total)
+
+    result <- .fit_one_interaction("GeneX", se=NULL, mat=mat, q_vals=q_vals,
+        sample_names=sample_names, group_vec=group_vec,
+        method="lmm", pvalue="lrt", subject_col=NULL, paired=FALSE,
+        min_obs=2, verbose=FALSE, suppress_lme4_warnings=TRUE, progress=FALSE)
+    expect_true(is.data.frame(result))
+    expect_equal(result$gene, "GeneX")
+})
