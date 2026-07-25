@@ -72,6 +72,7 @@ jobs:
             }
             cran_pkgs <- c("remotes", "rcmdcheck", "covr")
             install.packages(cran_pkgs, repos = "https://cloud.r-project.org")
+            options(repos = BiocManager::repositories())
             remotes::install_deps(dependencies = TRUE, upgrade = "never")
             EOF
           no_output_timeout: 30m
