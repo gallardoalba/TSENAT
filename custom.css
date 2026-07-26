@@ -205,28 +205,28 @@ table {
 .table > tbody > tr > td:last-child:nth-child(6) { width: 23% !important; }
 
 /* ── All 5-column tables ────────────────────────────────────────────────── */
-/* Ample first column for long labels (Sample IDs, Transcript IDs like
-   ENST00000343575.11); compact for numeric/flag columns; generous for
-   final Status/Pattern/Direction column. */
+/* Balanced proportions: enough for long Method/Sample labels (col1),
+   compact for Genes/Count columns (col2-3), generous for numeric metrics
+   and Status/Pattern (col4-5) */
 .table > thead > tr > th:nth-child(1):nth-last-child(5),
 .table > tbody > tr > td:nth-child(1):nth-last-child(5) {
-    width: 30% !important;
+    width: 20% !important;
 }
 .table > thead > tr > th:nth-child(2):nth-last-child(4),
 .table > tbody > tr > td:nth-child(2):nth-last-child(4) {
-    width: 12% !important;
+    width: 14% !important;
 }
 .table > thead > tr > th:nth-child(3):nth-last-child(3),
 .table > tbody > tr > td:nth-child(3):nth-last-child(3) {
-    width: 12% !important;
+    width: 14% !important;
 }
 .table > thead > tr > th:nth-child(4):nth-last-child(2),
 .table > tbody > tr > td:nth-child(4):nth-last-child(2) {
-    width: 23% !important;
+    width: 26% !important;
 }
 .table > thead > tr > th:last-child:nth-child(5),
 .table > tbody > tr > td:last-child:nth-child(5) {
-    width: 23% !important;
+    width: 26% !important;
 }
 
 /* ============================================================================

@@ -16,7 +16,6 @@ complexity across RNA-seq samples
 <meta property="og:description" content="Tsallis Entropy Analysis Toolbox — quantifying isoform-usage
 complexity across RNA-seq samples
 ">
-<link rel="stylesheet" href="../custom.css">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -41,6 +40,7 @@ complexity across RNA-seq samples
 <li><a class="dropdown-item" href="articles/TSENAT.html">TSENAT Main Vignette</a></li>
     <li><a class="dropdown-item" href="articles/TSENAT_appendix_A.html">Appendix A</a></li>
     <li><a class="dropdown-item" href="articles/TSENAT_appendix_B.html">Appendix B</a></li>
+    <li><a class="dropdown-item" href="articles/citations.html">References</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html"><span class="fa fas fa-cubes fa-lg"></span> Functions</a></li>
@@ -54,7 +54,7 @@ complexity across RNA-seq samples
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="news/index.html"><span class="fa fas fa-newspaper fa-lg"></span> News</a></li>
-<li class="nav-item"><a class="nav-link" href="articles/citations.html"><span class="fa fas fa-book fa-lg"></span> References</a></li>
+<li class="nav-item"><a class="nav-link" href="citations.html"><span class="fa fas fa-book fa-lg"></span> References</a></li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -200,24 +200,9 @@ complexity across RNA-seq samples
 </div>
 </div>
 <div class="section level2">
-<h2 id="documentation--vignettes">Documentation &amp; Vignettes<a class="anchor" aria-label="anchor" href="#documentation--vignettes"></a>
+<h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>
 </h2>
-<p>TSENAT includes three complementary vignettes that together provide a complete guide to the package:</p>
-<div class="section level3">
-<h3 id="main-vignette--full-analysis-walkthrough">Main Vignette — Full Analysis Walkthrough<a class="anchor" aria-label="anchor" href="#main-vignette--full-analysis-walkthrough"></a>
-</h3>
 <p>For a complete walkthrough of the analysis pipeline with real biological examples, see the <a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT.html">main package vignette</a>. This includes theory background, step-by-step explanations of each analysis function, and interpretation guidance for understanding your results. It covers the entire workflow from loading Salmon-quantified data through entropy computation, statistical testing, and visualization.</p>
-</div>
-<div class="section level3">
-<h3 id="appendix-a--equivalence-validation">Appendix A — Equivalence Validation<a class="anchor" aria-label="anchor" href="#appendix-a--equivalence-validation"></a>
-</h3>
-<p><a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT_appendix_A.html">Appendix A</a> validates TSENAT’s entropy and diversity computations against <a href="https://bioconductor.org/packages/SplicingFactory/" class="external-link">SplicingFactory</a>, an independent Bioconductor package. This cross-validation confirms that Tsallis entropy values, diversity profiles, and the entropic index (q) parameterization produce numerically equivalent results across both implementations, ensuring computational correctness.</p>
-</div>
-<div class="section level3">
-<h3 id="appendix-b--non-parametric-validation">Appendix B — Non-Parametric Validation<a class="anchor" aria-label="anchor" href="#appendix-b--non-parametric-validation"></a>
-</h3>
-<p><a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT_appendix_B.html">Appendix B</a> provides non-parametric validation of the scale-adaptive interaction test (SAIT) results using the Aligned Rank Transform (ART) via the <a href="https://cran.r-project.org/package=ARTool" class="external-link">ARTool</a> package. This demonstrates concordance between the primary GAMM-based parametric approach and a fully non-parametric alternative, strengthening confidence in detected q × condition interactions.</p>
-</div>
 </div>
 <div class="section level2">
 <h2 id="statistical-inference-methods">Statistical Inference Methods<a class="anchor" aria-label="anchor" href="#statistical-inference-methods"></a>

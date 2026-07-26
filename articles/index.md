@@ -2,6 +2,7 @@
 
 ### All vignettes
 
+- [References](https://gallardoalba.github.io/TSENAT/articles/citations.md):
 - [Appendix A: Equivalence Validation - TSENAT vs
   SplicingFactory](https://gallardoalba.github.io/TSENAT/articles/TSENAT_appendix_A.md):
 - [Appendix B: Non-Parametric Validation of Scale-Adaptive Interaction

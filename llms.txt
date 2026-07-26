@@ -202,12 +202,7 @@ patterns](https://raw.githubusercontent.com/gallardoalba/TSENAT/gh-pages/article
 Isoform diversity profiles across q-values: TSENAT detects
 scale-dependent diversity patterns
 
-## Documentation & Vignettes
-
-TSENAT includes three complementary vignettes that together provide a
-complete guide to the package:
-
-### Main Vignette — Full Analysis Walkthrough
+## Documentation
 
 For a complete walkthrough of the analysis pipeline with real biological
 examples, see the [main package
@@ -217,28 +212,6 @@ analysis function, and interpretation guidance for understanding your
 results. It covers the entire workflow from loading Salmon-quantified
 data through entropy computation, statistical testing, and
 visualization.
-
-### Appendix A — Equivalence Validation
-
-[Appendix
-A](https://gallardoalba.github.io/TSENAT/articles/TSENAT_appendix_A.html)
-validates TSENAT’s entropy and diversity computations against
-[SplicingFactory](https://bioconductor.org/packages/SplicingFactory/),
-an independent Bioconductor package. This cross-validation confirms that
-Tsallis entropy values, diversity profiles, and the entropic index (q)
-parameterization produce numerically equivalent results across both
-implementations, ensuring computational correctness.
-
-### Appendix B — Non-Parametric Validation
-
-[Appendix
-B](https://gallardoalba.github.io/TSENAT/articles/TSENAT_appendix_B.html)
-provides non-parametric validation of the scale-adaptive interaction
-test (SAIT) results using the Aligned Rank Transform (ART) via the
-[ARTool](https://cran.r-project.org/package=ARTool) package. This
-demonstrates concordance between the primary GAMM-based parametric
-approach and a fully non-parametric alternative, strengthening
-confidence in detected q × condition interactions.
 
 ## Statistical Inference Methods
 
@@ -457,6 +430,7 @@ specialized focus on Tsallis entropy analysis.
 
 ### All vignettes
 
+- [References](https://gallardoalba.github.io/TSENAT/articles/citations.md):
 - [Appendix A: Equivalence Validation - TSENAT vs
   SplicingFactory](https://gallardoalba.github.io/TSENAT/articles/TSENAT_appendix_A.md):
 - [Appendix B: Non-Parametric Validation of Scale-Adaptive Interaction
