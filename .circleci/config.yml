@@ -79,9 +79,9 @@ jobs:
             }
             cran_pkgs <- c("remotes", "rcmdcheck", "covr")
             install.packages(cran_pkgs, repos = "https://cloud.r-project.org")
-            # Use BiocManager to install ALL dependencies (handles both CRAN + Bioconductor)
+            # Use BiocManager to set up Bioconductor repos, then install all DESCRIPTION deps
             BiocManager::install(version = "3.22", ask = FALSE, update = FALSE)
-            BiocManager::install(dependencies = TRUE, ask = FALSE, update = FALSE)
+            remotes::install_deps(".", dependencies = TRUE, repos = BiocManager::repositories(), upgrade = "never")
             EOF
           no_output_timeout: 30m
       - save_cache:
