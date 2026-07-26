@@ -126,8 +126,8 @@ TSENAT implements a complete analytical pipeline:
 - **Robust resampling**: Leave-one-out jackknife + block bootstrap
   handles paired designs and maintains correlation structure.
 
-- **Multiple method backends**: nlme, MASS, geepack, or rank-based
-  (Scheirer-Ray-Hare, sign test) for model flexibility.
+- **Multiple method backends**: nlme, MASS, geepack, ARTool, or
+  rank-based (ART/Conover-Iman), sign test) for model flexibility.
 
 - **FDR-corrected testing**: Benjamini-Hochberg adjustment across genes
   and q-values.
@@ -228,5 +228,10 @@ for creating TSENATAnalysis objects.
 
 ## Author
 
-**Maintainer**: Cristóbal Gallardo <gallardoalba@pm.me>
+**Maintainer**: Cristóbal Gallardo Alba <gallardoalba@pm.me>
 ([ORCID](https://orcid.org/0000-0002-5752-2155))
+
+Authors:
+
+- Cristóbal Gallardo Alba <gallardoalba@pm.me>
+  ([ORCID](https://orcid.org/0000-0002-5752-2155))

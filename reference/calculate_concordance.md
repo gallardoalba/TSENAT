@@ -1,8 +1,9 @@
 # Compare method concordance for differential analysis results
 
 Compares statistical results from two different methods (typically
-SAIT/GAM for continuous data and Scheirer-Ray-Hare rank tests) to assess
-agreement and identify genes detected by one method but not the other.
+SAIT/GAM for continuous data and Conover-Iman Rank Transform tests) to
+assess agreement and identify genes detected by one method but not the
+other.
 
 ## Usage
 
@@ -82,8 +83,8 @@ Modified TSENATAnalysis object with concordance results stored in:
 ## Details
 
 Compares results from two different statistical methods (typically GAM
-for continuous and Scheirer-Ray-Hare for rank-based analysis) on the
-same data. Identifies: - Genes significant in both methods (high
+for continuous and Conover-Iman Rank Transform for rank-based analysis)
+on the same data. Identifies: - Genes significant in both methods (high
 confidence) - Genes detected by one method only (potential false
 positives or method-specific signal) - Spearman correlation of p-values
 (overall agreement trends)
@@ -91,41 +92,7 @@ positives or method-specific signal) - Spearman correlation of p-values
 ## Examples
 
 ``` r
-# Load example data (matching TSENAT.Rmd workflow)
-data(readcounts)
-readcounts <- as.matrix(readcounts)
-mode(readcounts) <- 'numeric'
-metadata_df <- read.table(
-  system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
-  header = TRUE, sep = '\t'
-)
-gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
-'TSENAT')
-
-# Configure analysis parameters first (fail-fast principle)
-config <- TSENAT_config(
-  sample_col = 'sample',
-  condition_col = 'condition',
-  subject_col = 'paired_samples',
-  paired = TRUE,
-  control = 'normal',
-  q = seq(0, 2, by = 0.1)
-)
-
-# Build analysis with configured parameters and metadata as explicit parameter
-analysis <- build_analysis(
-  readcounts = readcounts,
-  tx2gene = gff3_dataset,
-  metadata = metadata_df,
-  config = config,
-  tpm = tpm,
-  effective_length = effective_length
-)
-
-analysis <- filter_analysis(analysis, stringency = 'severe')
-analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
-analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5, 2.0, 2.5))
-analysis <- suppressWarnings(calculate_sait(analysis, method = 'gam'))
-# Note: calculate_concordance requires results from both
-# calculate_srh and calculate_assumptions
+# Compare results from SAIT and rank-based testing
+# (Requires pre-computed analysis objects from calculate_sait and calculate_rank_transform)
+# results_df <- results(calculate_concordance(analysis_sait, analysis_rank))
 ```

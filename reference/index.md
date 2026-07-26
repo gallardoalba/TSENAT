@@ -35,10 +35,10 @@
   : Jackknife isoform switching analysis on TSENATAnalysis object
 - [`calculate_m_estimator()`](https://gallardoalba.github.io/TSENAT/reference/calculate_m_estimator.md)
   : M-Estimation for Sample Quality (S4 Wrapper)
+- [`calculate_rank_transform()`](https://gallardoalba.github.io/TSENAT/reference/calculate_rank_transform.md)
+  : Detect q-dependent gene interactions
 - [`calculate_sait()`](https://gallardoalba.github.io/TSENAT/reference/calculate_sait.md)
   : Calculate SAIT interactions and store in TSENATAnalysis
-- [`calculate_srh()`](https://gallardoalba.github.io/TSENAT/reference/calculate_srh.md)
-  : Detect q-dependent gene interactions
 - [`filter_analysis()`](https://gallardoalba.github.io/TSENAT/reference/filter_analysis.md)
   : Filter Low-Abundance Transcripts in a TSENATAnalysis Object
 - [`plot_concordance()`](https://gallardoalba.github.io/TSENAT/reference/plot_concordance.md)

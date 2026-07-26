@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Appendix B: Non-Parametric Test Validation • TSENAT</title>
+<title>Appendix B: Non-Parametric Validation of Scale-Adaptive Interaction Test Results via GAMM and Aligned Rank Transform (ART) • TSENAT</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Appendix B: Non-Parametric Test Validation">
-<style>aside.col-md-3 { position: sticky !important; top: 80px !important; max-height: calc(100vh - 100px) !important; overflow-y: auto !important; align-self: flex-start; } h1, h1.title, .page-header h1, .vignette h1, main h1 { font-size: 2.7rem !important; margin-top: 0.25rem !important; margin-bottom: 0 !important; } .page-header { margin-bottom: -1.2rem !important; } .page-header + p { margin-top: -1rem !important; margin-bottom: 1rem !important; } small.dont-index { display: block !important; margin-bottom: 1rem !important; } aside.col-md-3 h2[data-toc-skip] { font-weight: 700 !important; } article h1:first-of-type, main > h1:first-of-type { margin-top: 0 !important; padding-top: 0 !important; }</style>
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Appendix B: Non-Parametric Validation of Scale-Adaptive Interaction Test Results via GAMM and Aligned Rank Transform (ART)">
+<link rel="stylesheet" href="../custom.css">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TSENAT</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.99.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.99.33</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,17 +37,17 @@
     <li><a class="dropdown-item" href="../articles/TSENAT_appendix_B.html">Appendix B</a></li>
   </ul>
 </li>
-<li class="nav-item"><a class="nav-link" href="../reference/index.html"><span class="fa far fa-file-code fa-lg"></span> Functions</a></li>
+<li class="nav-item"><a class="nav-link" href="../reference/index.html"><span class="fa fas fa-cubes fa-lg"></span> Functions</a></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://app.codecov.io/gh/gallardoalba/TSENAT"><span class="fa fas fa-chart-bar fa-lg"></span> Coverage</a></li>
-<li class="nav-item"><a class="nav-link" href="../r_dependencies_s4_interactive.html"><span class="fa fab fa-github fa-lg"></span> Architecture</a></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-question-circle fa-lg"></span> Issues</a></li>
+<li class="nav-item"><a class="nav-link" href="../r_dependencies_s4_interactive.html"><span class="fa fas fa-project-diagram fa-lg"></span> Architecture</a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-bug fa-lg"></span> Issues</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-documents" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-file-pdf fa-lg"></span> Documents</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-documents">
 <li><a class="dropdown-item" href="../articles/TSENAT.pdf">TSENAT Vignette (PDF)</a></li>
   </ul>
 </li>
-<li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
+<li class="nav-item"><a class="nav-link" href="../news/index.html"><span class="fa fas fa-newspaper fa-lg"></span> News</a></li>
 <li class="nav-item"><a class="nav-link" href="../articles/citations.html"><span class="fa fas fa-book fa-lg"></span> References</a></li>
       </ul>
 <ul class="navbar-nav">
@@ -65,12 +65,12 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>Appendix B: Non-Parametric Test Validation</h1>
+      <h1>Appendix B: Non-Parametric Validation of Scale-Adaptive Interaction Test Results via GAMM and Aligned Rank Transform (ART)</h1>
                         <h4 data-toc-skip class="author">Cristobal
-Gallardo <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
+Gallardo Alba <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2026-05-03</h4>
+            <h4 data-toc-skip class="date">2026-07-26</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gallardoalba/TSENAT/blob/HEAD/vignettes/TSENAT_appendix_B.Rmd" class="external-link"><code>vignettes/TSENAT_appendix_B.Rmd</code></a></small>
       <div class="d-none name"><code>TSENAT_appendix_B.Rmd</code></div>
@@ -79,7 +79,7 @@ Gallardo <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a
     
     
 <div class="section level2">
-<h2 id="purpose-and-rationale">Purpose and Rationale<a class="anchor" aria-label="anchor" href="#purpose-and-rationale"></a>
+<h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
 <p>The primary goal of this vignette is to validate that discoveries of
 scale-dependent entropic index × group interactions from Scale-Adaptive
@@ -88,43 +88,56 @@ frameworks with minimal assumptions.</p>
 <div class="section level3">
 <h3 id="two-complementary-validation-approaches">Two Complementary Validation Approaches<a class="anchor" aria-label="anchor" href="#two-complementary-validation-approaches"></a>
 </h3>
-<p><strong>Method 1: Generalized Additive Models (GAM)</strong> with
-ARIMA-Ordered Measurement Structure.</p>
+<p><strong>Method 1: Generalized Additive Mixed Models (GAMM)</strong>
+with ARIMA-Ordered Measurement Structure.</p>
 <ul>
 <li>Framework: Semi-parametric model combining flexible smooth functions
-(thin-plate splines) with linear parametric structure; assumes additive
-model Y = f₁(q) + f₂(condition) + f₃(q, condition) + ε where f terms are
-smooth rather than linear.</li>
-<li>Distributional assumption: Gaussian residuals (reasonable for
-entropy after appropriate transformation); no strong parametric family
-required beyond tail behavior.</li>
+(thin-plate splines) with mixed-effects structure; assumes additive
+model Y = f₁(q) + f₂(condition) + f₃(q, condition) + subject-intercept +
+ε where f terms are smooth rather than linear.</li>
+<li>Paired design structure: Uses random intercepts by subject
+(~1|subject) with AR(1) correlation structure to accommodate repeated
+entropy measurements across q-values within each subject. This
+hierarchical approach preserves paired sample structure while modeling
+autocorrelation in q-ordered measurements.</li>
+<li>Distributional assumption: Uses Gaussian residuals (standard for
+mixed-effects models); automatically detects bounded support [0,1]
+entropy but applies Gaussian family due to <code><a href="https://rdrr.io/pkg/mgcv/man/gamm.html" class="external-link">mgcv::gamm()</a></code>
+limitations with extended families in paired designs.</li>
 <li>Treatment of entropic structure: Treats q-values as time-like
-ordered measurements, applies ARIMA(1,1,0) differencing to remove AR(1)
-autocorrelation and trend.</li>
+ordered measurements within each subject, applies ARIMA(1,1,0)
+first-differencing to remove monotone trend and ensure stationarity;
+AR(1) correlation structure captured through nlme::corAR1()
+specification.</li>
 <li>Heteroscedasticity handling: Automatically detects variance
-heterogeneity (Breusch-Pagan test); estimates and applies variance
-weights via power-law variance model or residual-based weighting.</li>
+heterogeneity (Breusch-Pagan test); however, heteroscedasticity-based
+variance weights are not applied in paired designs due to
+<code><a href="https://rdrr.io/pkg/mgcv/man/gamm.html" class="external-link">mgcv::gamm()</a></code> limitations.</li>
 <li>Key advantage: Captures smooth nonlinear q × condition interactions
-while adapting to heterogeneous entropy variance; computationally
-efficient.</li>
+while accommodating paired sample correlation structure through random
+intercepts and AR(1) correlation modeling; includes small-sample bias
+correction for n &lt; 20.</li>
 </ul>
-<p><strong>Method 2: Rank-Based Scheirer-Ray-Hare Test (SRH)</strong>
-with Hochberg Step-Up Correction.</p>
+<p><strong>Method 2: Aligned Rank Transform (ART)</strong> —
+State-of-the-art non-parametric interaction testing, with Hochberg
+Step-Up Correction. Falls back to Conover-Iman Rank Transform via
+<code>method='rt'</code> if needed.</p>
 <ul>
-<li>Framework: Pure non-parametric method; zero parametric or
-distributional assumptions.</li>
-<li>Distributional assumption: None; operates entirely on ranks (1, 2,
-…, n), equivalent to two-way ANOVA on ordinal data.</li>
-<li>Treatment of q-ordering: Two-way SRH test on ranks, treating
-q-values as within-subject paired measurements; decomposes ranked data
-via ANOVA and computes F-statistic.</li>
-<li>Heteroscedasticity handling: Rank transformation inherently robust
-to heteroscedasticity (variance differences do not affect relative
-ordering); Hochberg step-up correction controls FWER across multiple
-tests.</li>
-<li>Key advantage: Maximally robust to outliers and any distributional
-violations; valid under any continuous distribution and correlation
-structure.</li>
+<li>Framework: Pure non-parametric method via the ARTool package <span class="citation">(Kay et al. 2021)</span>. Strips main effects before
+ranking (“alignment”) to preserve interaction structure <span class="citation">(Higgins and Tashtoush 1994; Wobbrock et al.
+2011)</span>. Zero parametric or distributional assumptions.</li>
+<li>Distributional assumption: None; operates entirely on aligned ranks.
+Valid under any continuous distribution and correlation structure.</li>
+<li>Treatment of q-ordering: Two-way ART on raw entropy values, treating
+q-values as ordered factors; aligned ranks decomposed via ANOVA with
+proper F-test for interactions.</li>
+<li>Heteroscedasticity handling: ART inherently robust to
+heteroscedasticity through alignment and ranking; Hochberg step-up
+correction controls FWER across multiple tests.</li>
+<li>Key advantage: State-of-the-art for non-parametric interaction
+testing. Properly handles factorial interactions by removing main
+effects before ranking. More reliable Type I error control than
+classical rank-transform methods for interaction terms.</li>
 </ul>
 </div>
 <div class="section level3">
@@ -135,20 +148,20 @@ no single method is universally optimal. Different approaches trade-off
 power for robustness:</p>
 <table class="table">
 <colgroup>
-<col width="14%">
-<col width="33%">
-<col width="51%">
+<col width="16%">
+<col width="37%">
+<col width="45%">
 </colgroup>
 <thead><tr class="header">
 <th>Aspect</th>
-<th>Parametric (GAM)</th>
-<th>Non-Parametric (Rank-Based)</th>
+<th>Parametric (GAMM)</th>
+<th>Non-Parametric (ART)</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
 <td>Assumptions</td>
 <td>Normality, homoscedasticity</td>
-<td>Ranks only; fully non-parametric</td>
+<td>None; aligned ranks, fully non-parametric</td>
 </tr>
 <tr class="even">
 <td>Power</td>
@@ -156,11 +169,17 @@ power for robustness:</p>
 <td>Good; reduced but robust to violations</td>
 </tr>
 <tr class="odd">
+<td>Interaction testing</td>
+<td>Standard ANOVA-type</td>
+<td>Proper interaction tests via alignment <span class="citation">(Higgins and Tashtoush 1994)</span>
+</td>
+</tr>
+<tr class="even">
 <td>Robustness</td>
 <td>Moderate</td>
 <td>Highest</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Outlier sensitivity</td>
 <td>Moderate potential for bias</td>
 <td>Minimal; inherently resistant</td>
@@ -180,7 +199,6 @@ packages, setting a random seed for reproducibility, and preparing the
 test dataset.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressPackageStartupMessages</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gallardoalba.github.io/TSENAT">TSENAT</a></span><span class="op">)</span></span>
 <span>    <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
 <span>    <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bioconductor.org/packages/SummarizedExperiment" class="external-link">SummarizedExperiment</a></span><span class="op">)</span></span>
 <span>    <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
@@ -188,6 +206,16 @@ test dataset.</p>
 <span><span class="op">}</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
+<span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"devtools"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"Please install devtools to run this vignette against the local package source."</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="st">"package:TSENAT"</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/search.html" class="external-link">search</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/detach.html" class="external-link">detach</a></span><span class="op">(</span><span class="st">"package:TSENAT"</span>, unload <span class="op">=</span> <span class="cn">TRUE</span>, character.only <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">pkg_root</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/normalizePath.html" class="external-link">normalizePath</a></span><span class="op">(</span><span class="st">".."</span>, mustWork <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/load_all.html" class="external-link">load_all</a></span><span class="op">(</span><span class="va">pkg_root</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Load preprocessed dataset</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span></span>
@@ -232,9 +260,9 @@ test dataset.</p>
 <h3 id="computing-tsallis-entropy-with-pseudocount-regularization">Computing Tsallis Entropy with Pseudocount Regularization<a class="anchor" aria-label="anchor" href="#computing-tsallis-entropy-with-pseudocount-regularization"></a>
 </h3>
 <p>Pseudocounts are critical for statistical robustness when applying
-rank-based tests to sparse RNA-seq count data. RNA-seq experiments
+non-parametric tests to sparse RNA-seq count data. RNA-seq experiments
 typically contain many zero or near-zero counts, which creates two
-problems for rank-based nonparametric methods:</p>
+problems for rank-based methods:</p>
 <ol style="list-style-type: decimal">
 <li><p><strong>Ties in rankings:</strong> Sparse counts produce many
 tied values (especially zeros), which reduces the discriminatory power
@@ -275,11 +303,15 @@ across the range of sequencing depths in your dataset.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="rank-based-approach-srh">Rank-Based Approach (SRH)<a class="anchor" aria-label="anchor" href="#rank-based-approach-srh"></a>
+<h2 id="aligned-rank-transform-art">Aligned Rank Transform (ART)<a class="anchor" aria-label="anchor" href="#aligned-rank-transform-art"></a>
 </h2>
-<p>The SRH test is a two-way non-parametric ANOVA that operates on ranks
-rather than raw values. It is particularly well-suited for Tsallis
-entropy analysis for three fundamental reasons:</p>
+<p>TSENAT uses the <strong>Aligned Rank Transform (ART)</strong> as the
+default non-parametric method for testing Q×Condition interactions. ART
+is the state-of-the-art for non-parametric factorial analysis,
+implemented via the ARTool R package <span class="citation">(Kay et al.
+2021; Wobbrock et al. 2011)</span>. The classical Conover-Iman Rank
+Transform remains available via <code>method='rt'</code> as a fallback
+<span class="citation">(Conover and Iman 1981)</span>.</p>
 <ol style="list-style-type: decimal">
 <li><strong>Robustness to Distribution Violations</strong></li>
 </ol>
@@ -297,14 +329,14 @@ with lower variance.</li>
 <li>Outlier sensitivity: Rare isoforms and count variability can produce
 extreme entropy values that heavily influence parametric tests.</li>
 </ul>
-<p>The SRH test avoids these issues by replacing raw entropy values with
-their ranks (1, 2, 3, …, n). Ranks are <strong>uniformly distributed and
-contain no outliers</strong>, making the method valid for ANY continuous
-distribution—normal, skewed, bimodal, or otherwise. Critically, rank
-ordering is unaffected by normalization choice; whether entropy is
-normalized, log-transformed, or left raw, the test produces identical
-results <span class="citation">(Conover and Iman 1981; Puri and Sen
-1971)</span>.</p>
+<p>ART avoids these issues through alignment and ranking — stripping
+main effects before ranking preserves interaction structure while
+eliminating distributional dependence. The aligned ranks are uniformly
+distributed and contain no outliers, making the method valid for ANY
+continuous distribution <span class="citation">(Higgins and Tashtoush
+1994; Wobbrock et al. 2011)</span>. Critically, rank ordering is
+unaffected by normalization choice; whether entropy is normalized,
+log-transformed, or left raw, the test produces identical results <span class="citation">(Conover and Iman 1981)</span>.</p>
 <ol start="2" style="list-style-type: decimal">
 <li><strong>Paired Design for Ordered q-Value Structure</strong></li>
 </ol>
@@ -315,16 +347,14 @@ values change systematically. This ordered structure is critical to
 interpreting q-dependent patterns and exhibits <strong>AR(1)
 autocorrelation</strong>: consecutive q-values produce correlated
 entropy estimates.</p>
-<p>The SRH test handles this structure by treating measurements as
-paired/repeated within genes across ordered q-values, capturing the
-sequential nature while maintaining exchangeability of samples.
-Autocorrelation in the original entropy values does NOT affect rank
-ordering or the validity of inference—this property, known as the
-<em>exchangeability property</em> of rank-based tests, ensures that
-rank-based inference is valid under any correlation pattern <span class="citation">(Ernst 2004; Song 2007)</span>. Within-subject ranking
-preserves pairing structure while removing the influence of AR(1)
-dependence through rank transformation <span class="citation">(Zhang and
-Yuan 2018; Saulsbury 2020)</span>.</p>
+<p>ART handles this structure through its alignment step: within-subject
+ranking after stripping main effects preserves the pairing structure
+while removing the influence of AR(1) dependence <span class="citation">(Higgins and Tashtoush 1994; Wobbrock et al.
+2011)</span>. Autocorrelation in the original entropy values does NOT
+affect aligned rank ordering or the validity of inference — this
+property, known as the <em>exchangeability property</em> of rank-based
+tests, ensures that rank-based inference is valid under any correlation
+pattern <span class="citation">(Ernst 2004; Song 2007)</span>.</p>
 <ol start="3" style="list-style-type: decimal">
 <li><strong>Interaction Testing: Testing q × Condition
 Effects</strong></li>
@@ -355,28 +385,29 @@ follows
 under null hypothesis of no interaction</li>
 </ul>
 <p>This directly tests the core biological question: “Does entropy
-q-dependence differ between groups?” The rank-transformed two-way ANOVA
-is mathematically equivalent to the original SRH test statistic but
-computationally more stable and easier to interpret. Modern extensions
-of rank-based testing demonstrate the validity of permutation procedures
-for testing interactions even under complex dependence structures <span class="citation">(Meinshausen et al. 2012)</span>.</p>
+q-dependence differ between groups?” The aligned rank ANOVA is the
+modern state-of-the-art approach for non-parametric interaction testing,
+validated across balanced and unbalanced designs <span class="citation">(Wobbrock et al. 2011)</span>.</p>
 <div class="section level3">
 <h3 id="assumption-validation">Assumption Validation<a class="anchor" aria-label="anchor" href="#assumption-validation"></a>
 </h3>
 <p>To ensure valid statistical inference, we verify key data assumptions
 across multiple dimensions.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Validate statistical assumptions (including GAM diagnostics)</span></span>
+<code class="sourceCode R"><span><span class="co"># Validate statistical assumptions (including GAMM diagnostics)</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_assumptions.html">calculate_assumptions</a></span><span class="op">(</span></span>
 <span>    <span class="va">analysis</span>,</span>
-<span>    checks <span class="op">=</span> <span class="st">"all"</span>  <span class="co"># Include core checks + GAM diagnostics</span></span>
+<span>    checks <span class="op">=</span> <span class="st">"all"</span>  <span class="co"># Include core checks + GAMM diagnostics</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Get assumptions</span></span>
 <span><span class="va">assumptions_text</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"assumptions"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">assumptions_text</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>Assumption Checks for Scheirer-Ray-Hare Test</caption>
+<caption>
+<strong>Supplementary Table 14 | Assumption Checks for Aligned
+Rank Transform (ART).</strong> Evaluates homogeneity of variance and
+normality for rank-based interaction test validity.</caption>
 <colgroup>
 <col width="33%">
 <col width="45%">
@@ -475,46 +506,52 @@ across multiple dimensions.</p>
 </tr>
 </tbody>
 </table>
-<!-- Diagnostic note for GAM metrics --><p><strong>Interpretation of Results:</strong> The exchangeability test,
-the unique assumption of the SRH test, detects strong serial correlation
-(p ≈ 0), indicating that consecutive samples are more correlated than
-expected by chance. This violation of exchangeability is <strong>not
-problematic</strong> for SRH because rank-based inference satisfies the
-<em>exchangeability property</em>—a principle ensuring that rank
-statistics depend only on value ordering, not on correlations in the
-original data <span class="citation">(Conover and Iman 1981; Puri and
-Sen 1971; Saulsbury 2020)</span>. The three reasons outlined above
-(robustness to distribution violations, paired design for ordered
-structure, and interaction testing) together uniquely suit SRH for
-multi-q entropy validation without requiring strong distributional
-assumptions.</p>
+<p><strong>Interpretation of Results:</strong> The exchangeability test
+detects strong serial correlation (p ≈ 0), indicating that consecutive
+samples are more correlated than expected by chance. This violation is
+<strong>not problematic</strong> for the Aligned Rank Transform because
+ART’s alignment step removes main effects before ranking, and rank-based
+inference satisfies the <em>exchangeability property</em> — a principle
+ensuring that rank statistics depend only on value ordering, not on
+correlations in the original data <span class="citation">(Conover and
+Iman 1981; Higgins and Tashtoush 1994; Saulsbury 2020)</span>. The three
+reasons outlined above (distributional robustness, paired ordered
+structure handling, and proper interaction testing via alignment)
+together make ART ideally suited for multi-q entropy validation without
+requiring strong distributional assumptions.</p>
 </div>
 <div class="section level3">
-<h3 id="srh-test-testing-q-x-condition-interactions">SRH Test: Testing q x Condition Interactions<a class="anchor" aria-label="anchor" href="#srh-test-testing-q-x-condition-interactions"></a>
+<h3 id="aligned-rank-transform-art-testing-q-condition-interactions">Aligned Rank Transform (ART): Testing q × Condition
+Interactions<a class="anchor" aria-label="anchor" href="#aligned-rank-transform-art-testing-q-condition-interactions"></a>
 </h3>
-<p>Now we will use the SRH test to evaluate whether entropy patterns
-across entropic indices (q-values) differ between normal and tumor
-samples.</p>
+<p>Now we use the <strong>Aligned Rank Transform (ART, default)</strong>
+— the state-of-the-art non-parametric method for interaction testing —
+combined with Hochberg step-up correction for multiple testing across
+genes. ART properly handles factorial interactions by stripping main
+effects before ranking, providing more reliable Type I error control
+than classical rank-transform methods.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># IMPORTANT: Create a copy of analysis before running SRH</span></span>
-<span><span class="co"># This preserves the GAM results in 'analysis' for later concordance comparison</span></span>
+<code class="sourceCode R"><span><span class="co"># Run Aligned Rank Transform (ART, default method)</span></span>
+<span><span class="co"># This preserves the GAMM results in 'analysis' for later concordance comparison</span></span>
 <span></span>
-<span><span class="co"># Run SRH test for q * condition INTERACTION on the copy</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_srh.html">calculate_srh</a></span><span class="op">(</span></span>
+<span><span class="co"># Run ART for q × condition interaction</span></span>
+<span><span class="va">analysis_rank</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_rank_transform.html">calculate_rank_transform</a></span><span class="op">(</span></span>
 <span>    <span class="va">analysis</span>,</span>
 <span>    multicorr <span class="op">=</span> <span class="st">"hochberg"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Extract ALL results (no filtering) for summary statistics</span></span>
-<span><span class="va">srh_results_all</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"rank_test"</span>, rankBy <span class="op">=</span> <span class="st">"pvalue"</span><span class="op">)</span></span>
+<span><span class="va">rank_transform_results_all</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis_rank</span>, type <span class="op">=</span> <span class="st">"rank_test"</span>, rankBy <span class="op">=</span> <span class="st">"pvalue"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Extract top significant genes for display</span></span>
-<span><span class="va">srh_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"rank_test"</span>, rankBy <span class="op">=</span> <span class="st">"pvalue"</span>, n <span class="op">=</span> <span class="fl">20</span>, filterFDR <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">srh_results</span>, n <span class="op">=</span> <span class="fl">10</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">rank_transform_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis_rank</span>, type <span class="op">=</span> <span class="st">"rank_test"</span>, rankBy <span class="op">=</span> <span class="st">"pvalue"</span>, n <span class="op">=</span> <span class="fl">20</span>, filterFDR <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">rank_transform_results</span>, n <span class="op">=</span> <span class="fl">10</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>Supplementary Table 3 | Scheirer-Ray-Hare Test Results Summary.
-Rank-based nonparametric test of <em>q</em> × condition
-interactions.</caption>
+<caption>
+<strong>Supplementary Table 15 | Aligned Rank Transform (ART)
+Results Summary.</strong> Non-parametric test of <em>q</em> × condition
+interactions via ART. Compare with GAMM results (main vignette Table 3)
+to assess parametric vs. non-parametric method concordance.</caption>
 <thead><tr class="header">
 <th align="left">Metric</th>
 <th align="right">Value</th>
@@ -530,7 +567,7 @@ interactions.</caption>
 </tr>
 <tr class="odd">
 <td align="left">Significant (adj_p &lt; 0.05, FWER-controlled)</td>
-<td align="right">2</td>
+<td align="right">3</td>
 </tr>
 <tr class="even">
 <td align="left">NAs</td>
@@ -539,35 +576,36 @@ interactions.</caption>
 <tr class="odd">
 <td align="left">Mean effect size
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>η</mi><mn>2</mn></msup><annotation encoding="application/x-tex">\eta^2</annotation></semantics></math>)</td>
-<td align="right">28.6%</td>
+<td align="right">0.8%</td>
 </tr>
 <tr class="even">
 <td align="left">Median effect size
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>η</mi><mn>2</mn></msup><annotation encoding="application/x-tex">\eta^2</annotation></semantics></math>)</td>
-<td align="right">26.2%</td>
+<td align="right">0.4%</td>
 </tr>
 <tr class="odd">
 <td align="left">Strong effect genes
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>η</mi><mn>2</mn></msup><annotation encoding="application/x-tex">\eta^2</annotation></semantics></math>
 &gt; 10%)</td>
-<td align="right">1</td>
+<td align="right">0</td>
 </tr>
 </tbody>
 </table>
 <table style="width:100%;" class="table">
-<caption>Supplementary Table 4 | Top genes identified by
-Scheirer-Ray-Hare rank-based test.</caption>
+<caption>
+<strong>Supplementary Table 16 | Top genes identified by
+Aligned Rank Transform (ART).</strong> Ranked by adjusted p-value;
+comparison with GAMM (main vignette Table 3) reveals method-specific
+sensitivities.</caption>
 <colgroup>
-<col width="3%">
 <col width="11%">
 <col width="10%">
+<col width="15%">
 <col width="14%">
-<col width="13%">
-<col width="19%">
-<col width="26%">
+<col width="20%">
+<col width="27%">
 </colgroup>
 <thead><tr class="header">
-<th align="left"></th>
 <th align="left">Gene</th>
 <th align="left">P-value</th>
 <th align="left">Adj. P-value</th>
@@ -577,128 +615,124 @@ Scheirer-Ray-Hare rank-based test.</caption>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left">1</td>
 <td align="left">CXCL12</td>
-<td align="left">9.4e-63</td>
-<td align="left">7.2e-61</td>
-<td align="left">14.3098</td>
-<td align="left">0.2996</td>
-<td align="left">Strongly q-dependent</td>
+<td align="left">2.6e-34</td>
+<td align="left">2e-32</td>
+<td align="left">9.7609</td>
+<td align="left">0.0657</td>
+<td align="left">Moderately q-dependent</td>
 </tr>
 <tr class="even">
-<td align="left">2</td>
+<td align="left">PLP1</td>
+<td align="left">4.5e-15</td>
+<td align="left">3.4e-13</td>
+<td align="left">4.6613</td>
+<td align="left">0.0364</td>
+<td align="left">Moderately q-dependent</td>
+</tr>
+<tr class="odd">
 <td align="left">LINC03040</td>
-<td align="left">9.6e-30</td>
-<td align="left">7.3e-28</td>
-<td align="left">7.0503</td>
-<td align="left">0.0728</td>
+<td align="left">1.7e-10</td>
+<td align="left">1.3e-08</td>
+<td align="left">3.5894</td>
+<td align="left">0.0470</td>
 <td align="left">Moderately q-dependent</td>
 </tr>
+<tr class="even">
+<td align="left">EXOC1</td>
+<td align="left">0.062250</td>
+<td align="left">1</td>
+<td align="left">1.4028</td>
+<td align="left">0.0051</td>
+<td align="left">Robust across q</td>
+</tr>
 <tr class="odd">
-<td align="left">72</td>
 <td align="left">ING3</td>
-<td align="left">0.017000</td>
+<td align="left">0.069535</td>
 <td align="left">1</td>
-<td align="left">1.5613</td>
-<td align="left">0.0876</td>
-<td align="left">Moderately q-dependent</td>
-</tr>
-<tr class="even">
-<td align="left">23</td>
-<td align="left">SPICE1</td>
-<td align="left">0.062881</td>
-<td align="left">1</td>
-<td align="left">1.3820</td>
-<td align="left">0.3557</td>
-<td align="left">Robust across q</td>
-</tr>
-<tr class="odd">
-<td align="left">48</td>
-<td align="left">FAM114A2</td>
-<td align="left">0.079169</td>
-<td align="left">1</td>
-<td align="left">1.3472</td>
-<td align="left">0.2218</td>
+<td align="left">1.3854</td>
+<td align="left">0.0247</td>
 <td align="left">Robust across q</td>
 </tr>
 <tr class="even">
-<td align="left">24</td>
-<td align="left">THY1</td>
-<td align="left">0.300758</td>
-<td align="left">1</td>
-<td align="left">1.1095</td>
-<td align="left">0.3530</td>
-<td align="left">Robust across q</td>
-</tr>
-<tr class="odd">
-<td align="left">34</td>
 <td align="left">METTL26</td>
-<td align="left">0.353148</td>
+<td align="left">0.081721</td>
 <td align="left">1</td>
-<td align="left">1.0736</td>
-<td align="left">0.3005</td>
-<td align="left">Robust across q</td>
-</tr>
-<tr class="even">
-<td align="left">45</td>
-<td align="left">RAP1GDS1</td>
-<td align="left">0.385474</td>
-<td align="left">1</td>
-<td align="left">1.0529</td>
-<td align="left">0.2275</td>
+<td align="left">1.3593</td>
+<td align="left">0.0169</td>
 <td align="left">Robust across q</td>
 </tr>
 <tr class="odd">
-<td align="left">55</td>
-<td align="left">GSKIP</td>
-<td align="left">0.535638</td>
+<td align="left">RAP1GDS1</td>
+<td align="left">0.128620</td>
 <td align="left">1</td>
-<td align="left">0.9642</td>
-<td align="left">0.1818</td>
+<td align="left">1.2825</td>
+<td align="left">0.0187</td>
 <td align="left">Robust across q</td>
 </tr>
 <tr class="even">
-<td align="left">35</td>
-<td align="left">MEF2A</td>
-<td align="left">0.591729</td>
+<td align="left">FAM114A2</td>
+<td align="left">0.317423</td>
 <td align="left">1</td>
-<td align="left">0.9324</td>
-<td align="left">0.3000</td>
+<td align="left">1.1030</td>
+<td align="left">0.0234</td>
+<td align="left">Robust across q</td>
+</tr>
+<tr class="odd">
+<td align="left">ZNF714</td>
+<td align="left">0.375444</td>
+<td align="left">1</td>
+<td align="left">1.0630</td>
+<td align="left">0.0201</td>
+<td align="left">Robust across q</td>
+</tr>
+<tr class="even">
+<td align="left">ATG5</td>
+<td align="left">0.386207</td>
+<td align="left">1</td>
+<td align="left">1.0559</td>
+<td align="left">0.0204</td>
 <td align="left">Robust across q</td>
 </tr>
 </tbody>
 </table>
 <p>Visualize q-curves for top genes:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Plot top genes from SRH test (using all genes, not just significant ones)</span></span>
+<code class="sourceCode R"><span><span class="co"># Plot top genes from Aligned Rank Transform (ART) (using all genes, not just significant ones)</span></span>
 <span><span class="co"># This ensures the plot displays n_top genes regardless of significance threshold</span></span>
-<span><span class="va">top_genes_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_diversity_spectrum.html">plot_diversity_spectrum</a></span><span class="op">(</span><span class="va">analysis</span>, sait_res <span class="op">=</span> <span class="va">srh_results_all</span>, n_top <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
+<span><span class="va">top_genes_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_diversity_spectrum.html">plot_diversity_spectrum</a></span><span class="op">(</span><span class="va">analysis</span>, sait_res <span class="op">=</span> <span class="va">rank_transform_results_all</span>, n_top <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">top_genes_plot</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<img src="TSENAT_appendix_B_files/figure-html/extended-fig-1-srh-q-curves-1.png" class="r-plt" alt="Extended Data Figure 1 | SRH rank test results for scale-dependent isoform switching." width="98%"><p class="caption">
-Extended Data Figure 1 | SRH rank test results for scale-dependent
-isoform switching.
+<img src="TSENAT_appendix_B_files/figure-html/extended-fig-1-rank-transform-q-curves-1.png" class="r-plt" alt="**Supplementary Figure 1 | Aligned Rank Transform (ART) results for scale-dependent isoform switching.** Q-curves for top genes identified by ART; compare visual patterns with GAMM results (main vignette Figure 2) to assess method agreement." width="98%"><p class="caption">
+<strong>Supplementary Figure 1 | Aligned Rank Transform (ART) results
+for scale-dependent isoform switching.</strong> Q-curves for top genes
+identified by ART; compare visual patterns with GAMM results (main
+vignette Figure 2) to assess method agreement.
 </p>
 </div>
 <hr>
 </div>
 </div>
 <div class="section level2">
-<h2 id="generalized-additive-model-approach-gam">Generalized Additive Model Approach (GAM)<a class="anchor" aria-label="anchor" href="#generalized-additive-model-approach-gam"></a>
+<h2 id="generalized-additive-mixed-model-approach-gamm">Generalized Additive Mixed Model Approach (GAMM)<a class="anchor" aria-label="anchor" href="#generalized-additive-mixed-model-approach-gamm"></a>
 </h2>
-<p>This section loads precomputed GAM results generated in the main
+<p>This section loads precomputed GAMM results generated in the main
 vignette (<a href="TSENAT.Rmd">TSENAT.Rmd</a>).</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Load precomputed LM analysis object from RDS file</span></span>
+<code class="sourceCode R"><span><span class="co"># Load precomputed GAMM analysis object from RDS file</span></span>
 <span><span class="va">analysis_sait</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"analysis_sait.rds"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Extract GAM results for inspection using accessor function</span></span>
+<span><span class="co"># Extract GAMM results for inspection using accessor function</span></span>
 <span><span class="va">sait_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis_sait</span>, type <span class="op">=</span> <span class="st">"sait"</span>, rankBy <span class="op">=</span> <span class="st">"pvalue"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">sait_results</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>GAM Results Summary</caption>
+<caption>
+<strong>Supplementary Table 17 | GAMM Results Summary.</strong>
+Overview of generalized additive mixed model statistics for q ×
+condition interaction tests across full q-spectrum with paired sample
+structure.</caption>
 <thead><tr class="header">
 <th align="left">Metric</th>
 <th align="right">Value</th>
@@ -710,11 +744,11 @@ vignette (<a href="TSENAT.Rmd">TSENAT.Rmd</a>).</p>
 </tr>
 <tr class="even">
 <td align="left">Significant (p &lt; 0.05)</td>
-<td align="right">65</td>
+<td align="right">49</td>
 </tr>
 <tr class="odd">
 <td align="left">Concordant (p &lt; 0.05 AND adj_p &lt; 0.05)</td>
-<td align="right">59</td>
+<td align="right">33</td>
 </tr>
 <tr class="even">
 <td align="left">NAs</td>
@@ -722,15 +756,15 @@ vignette (<a href="TSENAT.Rmd">TSENAT.Rmd</a>).</p>
 </tr>
 <tr class="odd">
 <td align="left">Mean effect size</td>
-<td align="right">20.1%</td>
+<td align="right">21.3%</td>
 </tr>
 <tr class="even">
 <td align="left">Median effect size</td>
-<td align="right">15.4%</td>
+<td align="right">16.7%</td>
 </tr>
 <tr class="odd">
 <td align="left">Strong effect genes (effect_size &gt; 30%)</td>
-<td align="right">17</td>
+<td align="right">19</td>
 </tr>
 <tr class="even">
 <td align="left">Model convergence rate</td>
@@ -738,15 +772,18 @@ vignette (<a href="TSENAT.Rmd">TSENAT.Rmd</a>).</p>
 </tr>
 </tbody>
 </table>
-<table class="table">
-<caption>Top 10 Genes by GAM p-value (with Effect Size and Test
-Statistics)</caption>
+<table style="width:100%;" class="table">
+<caption>
+<strong>Supplementary Table 18 | Top 10 Genes by GAMM p-value
+(with Effect Size and Test Statistics).</strong> Ranked by adjusted
+p-value; compare with ART results (Supplementary Table 16) for method
+agreement assessment.</caption>
 <colgroup>
-<col width="21%">
-<col width="21%">
-<col width="14%">
+<col width="13%">
+<col width="23%">
 <col width="16%">
-<col width="20%">
+<col width="17%">
+<col width="22%">
 <col width="5%">
 </colgroup>
 <thead><tr class="header">
@@ -760,83 +797,83 @@ Statistics)</caption>
 <tbody>
 <tr class="odd">
 <td align="left">CXCL12</td>
-<td align="right">3.93e-164</td>
-<td align="right">2.99e-162</td>
-<td align="right">81.3%</td>
-<td align="right">752.51</td>
+<td align="right">4.63e-88</td>
+<td align="right">3.52e-86</td>
+<td align="right">81.6%</td>
+<td align="right">6.00</td>
 <td align="right">640</td>
 </tr>
 <tr class="even">
 <td align="left">THY1</td>
-<td align="right">9.80e-97</td>
-<td align="right">7.35e-95</td>
-<td align="right">60.1%</td>
-<td align="right">442.14</td>
+<td align="right">3.80e-32</td>
+<td align="right">2.85e-30</td>
+<td align="right">60.5%</td>
+<td align="right">3.48</td>
 <td align="right">640</td>
+</tr>
+<tr class="odd">
+<td align="left">MEF2A</td>
+<td align="right">1.32e-23</td>
+<td align="right">9.79e-22</td>
+<td align="right">20.0%</td>
+<td align="right">0.93</td>
+<td align="right">642</td>
+</tr>
+<tr class="even">
+<td align="left">RAP1GDS1</td>
+<td align="right">6.85e-20</td>
+<td align="right">5.00e-18</td>
+<td align="right">55.2%</td>
+<td align="right">0.85</td>
+<td align="right">644</td>
+</tr>
+<tr class="odd">
+<td align="left">GSKIP</td>
+<td align="right">1.40e-18</td>
+<td align="right">1.01e-16</td>
+<td align="right">31.1%</td>
+<td align="right">1.01</td>
+<td align="right">639</td>
+</tr>
+<tr class="even">
+<td align="left">DUOXA2</td>
+<td align="right">5.40e-12</td>
+<td align="right">3.83e-10</td>
+<td align="right">30.6%</td>
+<td align="right">8.66</td>
+<td align="right">560</td>
 </tr>
 <tr class="odd">
 <td align="left">ING3</td>
-<td align="right">2.72e-77</td>
-<td align="right">2.02e-75</td>
-<td align="right">35.3%</td>
-<td align="right">352.59</td>
-<td align="right">640</td>
+<td align="right">6.95e-12</td>
+<td align="right">4.86e-10</td>
+<td align="right">35.9%</td>
+<td align="right">0.68</td>
+<td align="right">644</td>
 </tr>
 <tr class="even">
-<td align="left">SNHG10</td>
-<td align="right">9.81e-75</td>
-<td align="right">7.16e-73</td>
-<td align="right">5.1%</td>
-<td align="right">340.82</td>
-<td align="right">640</td>
+<td align="left">EXOC1</td>
+<td align="right">1.24e-10</td>
+<td align="right">8.56e-09</td>
+<td align="right">23.8%</td>
+<td align="right">0.59</td>
+<td align="right">643</td>
 </tr>
 <tr class="odd">
-<td align="left">LINC03040</td>
-<td align="right">1.87e-57</td>
-<td align="right">1.35e-55</td>
-<td align="right">73.8%</td>
-<td align="right">261.24</td>
-<td align="right">643</td>
+<td align="left">THOC6</td>
+<td align="right">1.69e-10</td>
+<td align="right">1.15e-08</td>
+<td align="right">14.6%</td>
+<td align="right">1.64</td>
+<td align="right">642</td>
 </tr>
 <tr class="even">
 <td align="left">HDAC2</td>
-<td align="right">2.61e-51</td>
-<td align="right">1.85e-49</td>
-<td align="right">28.4%</td>
-<td align="right">232.94</td>
-<td align="right">640</td>
-</tr>
-<tr class="odd">
-<td align="left">ENSG00000274322</td>
-<td align="right">4.75e-48</td>
-<td align="right">3.33e-46</td>
-<td align="right">4.7%</td>
-<td align="right">217.93</td>
-<td align="right">640</td>
-</tr>
-<tr class="even">
-<td align="left">MEF2A</td>
-<td align="right">1.37e-43</td>
-<td align="right">9.46e-42</td>
-<td align="right">19.3%</td>
-<td align="right">197.39</td>
-<td align="right">640</td>
-</tr>
-<tr class="odd">
-<td align="left">RAP1GDS1</td>
-<td align="right">7.65e-38</td>
-<td align="right">5.20e-36</td>
-<td align="right">54.8%</td>
-<td align="right">170.93</td>
-<td align="right">640</td>
-</tr>
-<tr class="even">
-<td align="left">PDE7A</td>
-<td align="right">1.64e-37</td>
-<td align="right">1.10e-35</td>
-<td align="right">0.4%</td>
-<td align="right">169.40</td>
-<td align="right">640</td>
+<td align="right">2.64e-10</td>
+<td align="right">1.77e-08</td>
+<td align="right">29.0%</td>
+<td align="right">0.61</td>
+<td align="right">642</td>
 </tr>
 </tbody>
 </table>
@@ -845,11 +882,11 @@ Statistics)</caption>
 <div class="section level2">
 <h2 id="method-concordance-analysis">Method Concordance Analysis<a class="anchor" aria-label="anchor" href="#method-concordance-analysis"></a>
 </h2>
-<p>A critical validation step is to compare whether the SRH rank-based
-test and GAM produce consistent results. High concordance between
-methods (i.e., genes significant in both approaches) provides strong
-evidence that discoveries are robust to methodological choice.
-Discordant genes—those significant in only one method—warrant closer
+<p>A critical validation step is to compare whether the Aligned Rank
+Transform (ART) and GAMM produce consistent results. High concordance
+between methods (i.e., genes significant in both approaches) provides
+strong evidence that discoveries are robust to methodological choice.
+Discordant genes — those significant in only one method — warrant closer
 inspection: they may represent genuine biological signals revealed by
 one method’s specific advantages, or artifacts of that method’s
 assumptions. This section quantifies agreement between approaches and
@@ -857,18 +894,105 @@ identifies high-confidence genes significant across both statistical
 frameworks.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Compute concordance analysis using new two-object API</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_concordance.html">calculate_concordance</a></span><span class="op">(</span></span>
+<span><span class="va">rank_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis_rank</span>, type <span class="op">=</span> <span class="st">"rank_test"</span><span class="op">)</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">rank_results</span><span class="op">)</span> <span class="op">||</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">rank_results</span><span class="op">)</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"Cannot run calculate_concordance(): rank_test results are empty. Ensure calculate_rank_transform() completed successfully."</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">analysis_rank</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_concordance.html">calculate_concordance</a></span><span class="op">(</span></span>
 <span>    analysis_sait <span class="op">=</span> <span class="va">analysis_sait</span>,</span>
-<span>    analysis_rank <span class="op">=</span> <span class="va">analysis</span>,</span>
+<span>    analysis_rank <span class="op">=</span> <span class="va">analysis_rank</span>,</span>
 <span>    verbose <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Extract concordance results with list format for component display</span></span>
-<span><span class="va">concordance_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"concordance"</span>, format <span class="op">=</span> <span class="st">"list"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">concordance_results</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis_rank</span>, type <span class="op">=</span> <span class="st">"concordance"</span>, format <span class="op">=</span> <span class="st">"list"</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
-<caption>Robust Entropic Order Index Interactions: High-Confidence Genes
-Detected by Both Methods (n=2, ranked by statistical
-significance)</caption>
+<caption>
+<strong>Supplementary Table 19 | Global Concordance Metrics:
+GAMM vs Aligned Rank Transform (ART).</strong> Quantifies agreement
+between parametric (GAMM) and non-parametric (ART) approaches for
+detecting q × condition interactions.</caption>
+<thead><tr class="header">
+<th align="left">Metric</th>
+<th align="right">Value</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">Total genes compared</td>
+<td align="right">76</td>
+</tr>
+<tr class="even">
+<td align="left">Spearman correlation (p-values)</td>
+<td align="right">rho = 0.1097</td>
+</tr>
+<tr class="odd">
+<td align="left">Both methods significant (p &lt; 0.05)</td>
+<td align="right">1 (1.3%)</td>
+</tr>
+<tr class="even">
+<td align="left">SAIT only significant</td>
+<td align="right">32 (42.1%)</td>
+</tr>
+<tr class="odd">
+<td align="left">Rank test only significant</td>
+<td align="right">1 (1.3%)</td>
+</tr>
+<tr class="even">
+<td align="left">Neither significant</td>
+<td align="right">42 (55.3%)</td>
+</tr>
+<tr class="odd">
+<td align="left">Concordance rate</td>
+<td align="right">1.3%</td>
+</tr>
+<tr class="even">
+<td align="left">Discordance rate</td>
+<td align="right">43.4%</td>
+</tr>
+</tbody>
+</table>
+<table class="table">
+<caption>
+<strong>Supplementary Table 20 | Agreement Distribution:
+Concordance by Gene Category.</strong> Distribution of genes across
+categories: both methods significant, GAMM only, ART only, and neither
+method.</caption>
+<thead><tr class="header">
+<th align="left">Agreement Category</th>
+<th align="right">Number of Genes</th>
+<th align="right">Percentage</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">Both significant</td>
+<td align="right">1</td>
+<td align="right">1.3%</td>
+</tr>
+<tr class="even">
+<td align="left">SAIT only</td>
+<td align="right">32</td>
+<td align="right">42.1%</td>
+</tr>
+<tr class="odd">
+<td align="left">Rank test only</td>
+<td align="right">1</td>
+<td align="right">1.3%</td>
+</tr>
+<tr class="even">
+<td align="left">Neither significant</td>
+<td align="right">42</td>
+<td align="right">55.3%</td>
+</tr>
+</tbody>
+</table>
+<table class="table">
+<caption>
+<strong>Supplementary Table 21 | Robust Entropic Order Index
+Interactions: High-Confidence Genes Detected by Both Methods (n=1,
+ranked by statistical significance).</strong> Cross-method validation:
+genes significant in both GAMM and ART provide strongest evidence for q
+× condition effects.</caption>
 <thead><tr class="header">
 <th align="left">Gene</th>
 <th align="right">SAIT adj p</th>
@@ -876,50 +1000,41 @@ significance)</caption>
 <th align="right">SAIT Effect</th>
 <th align="right">Rank test rho^2</th>
 </tr></thead>
-<tbody>
-<tr class="odd">
+<tbody><tr class="odd">
 <td align="left">CXCL12</td>
-<td align="right">2.99e-162</td>
-<td align="right">7.24e-61</td>
-<td align="right">81.3%</td>
-<td align="right">0.300</td>
-</tr>
-<tr class="even">
-<td align="left">LINC03040</td>
-<td align="right">1.35e-55</td>
-<td align="right">7.287e-28</td>
-<td align="right">73.8%</td>
-<td align="right">0.073</td>
-</tr>
-</tbody>
+<td align="right">3.52e-86</td>
+<td align="right">2.020e-32</td>
+<td align="right">81.6%</td>
+<td align="right">0.066</td>
+</tr></tbody>
 </table>
 <div class="section level3">
 <h3 id="statistical-power-vs--robustness-understanding-method-discordance">Statistical Power vs. Robustness: Understanding Method
 Discordance<a class="anchor" aria-label="anchor" href="#statistical-power-vs--robustness-understanding-method-discordance"></a>
 </h3>
-<p>The striking discordance between GAM and SRH results (75.0%
-significant in LM only, 0.0% in rank test only, 2.6% both methods
+<p>The striking discordance between GAMM and ART results (42.1%
+significant in GAMM only, 1.3% in ART only, and 1.3% in both methods
 significant) reflects a fundamental trade-off in statistical
 methodology: <strong>parametric methods maximize power when assumptions
-hold, while nonparametric methods sacrifice power for robustness to
+hold, while non-parametric methods sacrifice power for robustness to
 assumption violations</strong>.</p>
-<p>GAM’s superior power derives from two factors:</p>
+<p>GAMM’s superior power derives from two factors:</p>
 <ol style="list-style-type: decimal">
-<li><p>Distributional assumptions: GAM assumes approximately normal
+<li><p>Distributional assumptions: GAMM assumes approximately normal
 residuals and homogeneous variance, which are reasonable after
 appropriate transformation for entropy data. Under these assumptions,
 parametric methods are theoretically optimal, achieving maximum power
-for a given type I error rate. The rank-based SRH test is
-assumption-free but necessarily discards quantitative information by
-converting measurements to ranks, which reduces statistical power when
-the underlying data are approximately normal.</p></li>
-<li><p>Model flexibility with penalty: GAM uses thin-plate splines with
+for a given type I error rate. ART is assumption-free but necessarily
+discards quantitative information through alignment and ranking, which
+reduces statistical power when the underlying data are approximately
+normal.</p></li>
+<li><p>Model flexibility with penalty: GAMM uses thin-plate splines with
 smoothness penalties that simultaneously fit nonlinear patterns while
-controlling degrees of freedom. This flexibility allows GAM to detect
-subtle entropic index × group interactions across all q-values. The SRH
-test, by contrast, operates on rank patterns only, which is inherently
-less sensitive to continuous relationships across the ordering
-(q-values).</p></li>
+controlling degrees of freedom. This flexibility allows GAMM to detect
+subtle entropic index × group interactions across all q-values. ART
+operates on aligned rank patterns, which is inherently less sensitive to
+continuous relationships across q-values but provides superior Type I
+error control for interaction terms.</p></li>
 </ol>
 <p>This complementary approach—combining high-power parametric tests
 with robust nonparametric alternatives—provides confidence that
@@ -937,12 +1052,15 @@ of both robust discoveries and method-specific findings.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Create comparison plot using S4 wrapper</span></span>
 <span><span class="co"># Concordance analysis results are stored in analysis metadata after calculate_concordance()</span></span>
-<span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_concordance.html">plot_concordance</a></span><span class="op">(</span><span class="va">analysis</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_concordance.html">plot_concordance</a></span><span class="op">(</span><span class="va">analysis_rank</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu">grid</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/grid/grid.draw.html" class="external-link">grid.draw</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<img src="TSENAT_appendix_B_files/figure-html/visualize-method-concordance-1.png" class="r-plt" alt="Method concordance visualization comparing SRH rank-based and GAM approaches for detecting q × condition interactions." width="98%"><p class="caption">
-Method concordance visualization comparing SRH rank-based and GAM
-approaches for detecting q × condition interactions.
+<img src="TSENAT_appendix_B_files/figure-html/visualize-method-concordance-1.png" class="r-plt" alt="**Supplementary Figure 2 | Method concordance visualization comparing Aligned Rank Transform (ART) and GAMM approaches for detecting q × condition interactions.** Scatter plot showing overlap in genes identified as significant by each method; reveals parametric-non-parametric agreement patterns." width="98%"><p class="caption">
+<strong>Supplementary Figure 2 | Method concordance visualization
+comparing Aligned Rank Transform (ART) and GAMM approaches for detecting
+q × condition interactions.</strong> Scatter plot showing overlap in
+genes identified as significant by each method; reveals
+parametric-non-parametric agreement patterns.
 </p>
 </div>
 <hr>
@@ -976,40 +1094,52 @@ approaches for detecting q × condition interactions.
 <span><span class="co">#&gt; [8] base     </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; other attached packages:</span></span>
-<span><span class="co">#&gt;  [1] gridExtra_2.3               dplyr_1.2.1                </span></span>
-<span><span class="co">#&gt;  [3] SummarizedExperiment_1.40.0 Biobase_2.70.0             </span></span>
-<span><span class="co">#&gt;  [5] GenomicRanges_1.62.1        Seqinfo_1.0.0              </span></span>
-<span><span class="co">#&gt;  [7] IRanges_2.44.0              S4Vectors_0.48.1           </span></span>
-<span><span class="co">#&gt;  [9] BiocGenerics_0.56.0         generics_0.1.4             </span></span>
-<span><span class="co">#&gt; [11] MatrixGenerics_1.22.0       matrixStats_1.5.0          </span></span>
-<span><span class="co">#&gt; [13] ggplot2_4.0.3               TSENAT_0.99.0              </span></span>
-<span><span class="co">#&gt; [15] kableExtra_1.4.0           </span></span>
+<span><span class="co">#&gt;  [1] TSENAT_0.99.33              testthat_3.3.2             </span></span>
+<span><span class="co">#&gt;  [3] gridExtra_2.3               dplyr_1.2.1                </span></span>
+<span><span class="co">#&gt;  [5] SummarizedExperiment_1.40.0 Biobase_2.70.0             </span></span>
+<span><span class="co">#&gt;  [7] GenomicRanges_1.62.1        Seqinfo_1.0.0              </span></span>
+<span><span class="co">#&gt;  [9] IRanges_2.44.0              S4Vectors_0.48.1           </span></span>
+<span><span class="co">#&gt; [11] BiocGenerics_0.56.0         generics_0.1.4             </span></span>
+<span><span class="co">#&gt; [13] MatrixGenerics_1.22.0       matrixStats_1.5.0          </span></span>
+<span><span class="co">#&gt; [15] ggplot2_4.0.3               kableExtra_1.4.0           </span></span>
+<span><span class="co">#&gt; [17] BiocStyle_2.38.0           </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
-<span><span class="co">#&gt;  [1] gtable_0.3.6        xfun_0.57           bslib_0.10.0       </span></span>
-<span><span class="co">#&gt;  [4] htmlwidgets_1.6.4   lattice_0.22-9      vctrs_0.7.3        </span></span>
-<span><span class="co">#&gt;  [7] tools_4.5.3         parallel_4.5.3      tibble_3.3.1       </span></span>
-<span><span class="co">#&gt; [10] pkgconfig_2.0.3     pheatmap_1.0.13     Matrix_1.7-5       </span></span>
-<span><span class="co">#&gt; [13] RColorBrewer_1.1-3  S7_0.2.2            desc_1.4.3         </span></span>
-<span><span class="co">#&gt; [16] lifecycle_1.0.5     compiler_4.5.3      farver_2.1.2       </span></span>
-<span><span class="co">#&gt; [19] stringr_1.6.0       textshaping_1.0.5   codetools_0.2-20   </span></span>
-<span><span class="co">#&gt; [22] htmltools_0.5.9     sass_0.4.10         yaml_2.3.12        </span></span>
-<span><span class="co">#&gt; [25] pkgdown_2.2.0       pillar_1.11.1       jquerylib_0.1.4    </span></span>
-<span><span class="co">#&gt; [28] tidyr_1.3.2         MASS_7.3-65         BiocParallel_1.44.0</span></span>
-<span><span class="co">#&gt; [31] cachem_1.1.0        DelayedArray_0.36.1 abind_1.4-8        </span></span>
-<span><span class="co">#&gt; [34] nlme_3.1-169        tidyselect_1.2.1    digest_0.6.39      </span></span>
-<span><span class="co">#&gt; [37] stringi_1.8.7       purrr_1.2.2         labeling_0.4.3     </span></span>
-<span><span class="co">#&gt; [40] geepack_1.3.13      splines_4.5.3       cowplot_1.2.0      </span></span>
-<span><span class="co">#&gt; [43] fastmap_1.2.0       grid_4.5.3          cli_3.6.6          </span></span>
-<span><span class="co">#&gt; [46] SparseArray_1.10.10 magrittr_2.0.5      S4Arrays_1.10.1    </span></span>
-<span><span class="co">#&gt; [49] broom_1.0.12        withr_3.0.2         backports_1.5.0    </span></span>
-<span><span class="co">#&gt; [52] scales_1.4.0        rmarkdown_2.31      XVector_0.50.0     </span></span>
-<span><span class="co">#&gt; [55] otel_0.2.0          ragg_1.5.0          memoise_2.0.1      </span></span>
-<span><span class="co">#&gt; [58] evaluate_1.0.5      knitr_1.51          viridisLite_0.4.3  </span></span>
-<span><span class="co">#&gt; [61] mgcv_1.9-4          rlang_1.2.0         Rcpp_1.1.1-1.1     </span></span>
-<span><span class="co">#&gt; [64] glue_1.8.1          xml2_1.5.2          svglite_2.2.2      </span></span>
-<span><span class="co">#&gt; [67] rstudioapi_0.18.0   jsonlite_2.0.0      R6_2.6.1           </span></span>
-<span><span class="co">#&gt; [70] systemfonts_1.3.2   fs_2.1.0</span></span></code></pre></div>
+<span><span class="co">#&gt;   [1] Rdpack_2.6.6        sandwich_3.1-1      rlang_1.2.0        </span></span>
+<span><span class="co">#&gt;   [4] magrittr_2.0.5      multcomp_1.4-30     otel_0.2.0         </span></span>
+<span><span class="co">#&gt;   [7] compiler_4.5.3      mgcv_1.9-4          systemfonts_1.3.2  </span></span>
+<span><span class="co">#&gt;  [10] vctrs_0.7.3         stringr_1.6.0       pkgconfig_2.0.3    </span></span>
+<span><span class="co">#&gt;  [13] fastmap_1.2.0       backports_1.5.1     XVector_0.50.0     </span></span>
+<span><span class="co">#&gt;  [16] ellipsis_0.3.3      labeling_0.4.3      rmarkdown_2.31     </span></span>
+<span><span class="co">#&gt;  [19] sessioninfo_1.2.3   tzdb_0.5.0          nloptr_2.2.1       </span></span>
+<span><span class="co">#&gt;  [22] ragg_1.5.2          purrr_1.2.2         xfun_0.58          </span></span>
+<span><span class="co">#&gt;  [25] cachem_1.1.0        jsonlite_2.0.0      DelayedArray_0.36.1</span></span>
+<span><span class="co">#&gt;  [28] BiocParallel_1.44.0 broom_1.0.13        parallel_4.5.3     </span></span>
+<span><span class="co">#&gt;  [31] R6_2.6.1            bslib_0.11.0        stringi_1.8.7      </span></span>
+<span><span class="co">#&gt;  [34] RColorBrewer_1.1-3  boot_1.3-32         car_3.1-5          </span></span>
+<span><span class="co">#&gt;  [37] pkgload_1.5.2       brio_1.1.5          jquerylib_0.1.4    </span></span>
+<span><span class="co">#&gt;  [40] estimability_1.5.1  Rcpp_1.1.1-1.1      bookdown_0.46      </span></span>
+<span><span class="co">#&gt;  [43] knitr_1.51          usethis_3.2.1       zoo_1.8-15         </span></span>
+<span><span class="co">#&gt;  [46] readr_2.2.0         Matrix_1.7-5        splines_4.5.3      </span></span>
+<span><span class="co">#&gt;  [49] tidyselect_1.2.1    rstudioapi_0.18.0   abind_1.4-8        </span></span>
+<span><span class="co">#&gt;  [52] yaml_2.3.12         codetools_0.2-20    pkgbuild_1.4.8     </span></span>
+<span><span class="co">#&gt;  [55] plyr_1.8.9          lattice_0.22-9      tibble_3.3.1       </span></span>
+<span><span class="co">#&gt;  [58] withr_3.0.3         S7_0.2.2            evaluate_1.0.5     </span></span>
+<span><span class="co">#&gt;  [61] survival_3.8-6      desc_1.4.3          xml2_1.5.2         </span></span>
+<span><span class="co">#&gt;  [64] pillar_1.11.1       BiocManager_1.30.27 carData_3.0-6      </span></span>
+<span><span class="co">#&gt;  [67] reformulas_0.4.4    rprojroot_2.1.1     hms_1.1.4          </span></span>
+<span><span class="co">#&gt;  [70] scales_1.4.0        minqa_1.2.8         ARTool_0.11.2      </span></span>
+<span><span class="co">#&gt;  [73] xtable_1.8-8        glue_1.8.1          pheatmap_1.0.13    </span></span>
+<span><span class="co">#&gt;  [76] emmeans_2.0.3       tools_4.5.3         lme4_2.0-1         </span></span>
+<span><span class="co">#&gt;  [79] fs_2.1.0            mvtnorm_1.3-6       cowplot_1.2.0      </span></span>
+<span><span class="co">#&gt;  [82] grid_4.5.3          tidyr_1.3.2         rbibutils_2.4.1    </span></span>
+<span><span class="co">#&gt;  [85] devtools_2.5.2      nlme_3.1-169        Formula_1.2-5      </span></span>
+<span><span class="co">#&gt;  [88] cli_3.6.6           textshaping_1.0.5   S4Arrays_1.10.1    </span></span>
+<span><span class="co">#&gt;  [91] viridisLite_0.4.3   svglite_2.2.2       geepack_1.3.13     </span></span>
+<span><span class="co">#&gt;  [94] gtable_0.3.6        sass_0.4.10         digest_0.6.39      </span></span>
+<span><span class="co">#&gt;  [97] TH.data_1.1-5       SparseArray_1.10.10 htmlwidgets_1.6.4  </span></span>
+<span><span class="co">#&gt; [100] farver_2.1.2        memoise_2.0.1       htmltools_0.5.9    </span></span>
+<span><span class="co">#&gt; [103] pkgdown_2.2.0       lifecycle_1.0.5     MASS_7.3-65</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
@@ -1018,11 +1148,11 @@ approaches for detecting q × condition interactions.
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by <a href="https://github.com/gallardoalba" class="external-link">Cristóbal Gallardo</a>.</p>
+  <p>Developed by Cristóbal Gallardo Alba.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0. NULL</p>
 </div>
 
     </footer>

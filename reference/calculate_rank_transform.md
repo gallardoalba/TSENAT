@@ -1,15 +1,15 @@
 # Detect q-dependent gene interactions
 
-Wrapper around \[.calculate_srh()\] that manages TSENATAnalysis object.
-Tests for genes with condition-specific q-dependent entropy patterns by
-testing whether the effect of q-values DIFFERS between experimental
-conditions. This detects disease-relevant or condition-specific isoform
-switching patterns.
+Wrapper around \[.calculate_rank_transform()\] that manages
+TSENATAnalysis object. Tests for genes with condition-specific
+q-dependent entropy patterns by testing whether the effect of q-values
+DIFFERS between experimental conditions. This detects disease-relevant
+or condition-specific isoform switching patterns.
 
 ## Usage
 
 ``` r
-calculate_srh(
+calculate_rank_transform(
   analysis,
   condition_col,
   output_file = NULL,
@@ -29,6 +29,7 @@ calculate_srh(
   min_nperm = 100,
   max_nperm = 10000,
   verbose = FALSE,
+  method = c("art", "rt"),
   ...
 )
 ```
@@ -130,13 +131,28 @@ calculate_srh(
 
   `logical`. If TRUE, prints progress messages. Default: FALSE.
 
+- method:
+
+  `character`. Non-parametric test method:
+
+  - `'art'` (default): Aligned Rank Transform via ARTool package.
+    State-of-the-art for non-parametric interaction testing. Properly
+    handles factorial interactions by stripping main effects before
+    ranking (Higgins & Tashtoush 1994, Wobbrock et al. 2011).
+
+  - `'rt'`: Conover-Iman Rank Transform. Legacy non-parametric
+    procedure. Valid for main effects but has known limitations for
+    interaction testing (Conover & Iman 1981). ART is strongly
+    recommended.
+
 - ...:
 
-  Additional arguments passed to the base `.calculate_srh()` function.
+  Additional arguments passed to the base `.calculate_rank_transform()`
+  function.
 
 ## Value
 
-Modified TSENATAnalysis with interaction results in @sait_results.
+Modified TSENATAnalysis with interaction results in @rank_test_results.
 
 ## Details
 
@@ -145,15 +161,17 @@ Modified TSENATAnalysis with interaction results in @sait_results.
 \- \*\*Q\\\times\\ Condition Interaction\*\*: Tests if entropy patterns
 across q-values differ by condition (main discovery goal) - \*\*Multi-q
 Analysis\*\*: Combines diversity results for multiple q-values into a
-single SummarizedExperiment for joint hypothesis testing -
-\*\*Rank-Based Statistics\*\*: Scheirer-Ray-Hare test (two-way ANOVA on
-ranked data, - \*\*Scheirer-Ray-Hare Test\*\*: Two-way non-parametric
-ANOVA on ranks - \*\*Multiple Testing Correction\*\*: Hochberg,
-Benjamini-Yekutieli, or permutation (Westfall-Young) procedures -
-\*\*AR(1) Correlation Handling\*\*: Westfall-Young preserves q-value
-spatial correlations (important for ordered q measurements) - \*\*Effect
-Sizes\*\*: Eta-squared (\\\eta^2\\) for q\\\times\\ condition
-interactions
+single SummarizedExperiment for joint hypothesis testing - \*\*Aligned
+Rank Transform (ART)\*\*: State-of-the-art non-parametric interaction
+testing via ARTool package (default). Strips main effects before ranking
+to preserve interaction structure (Higgins & Tashtoush 1994, Wobbrock et
+al. 2011). - \*\*Conover-Iman Rank Transform\*\*: Two-way non-parametric
+ANOVA on ranks (fallback via \`method='rt'\`) - \*\*Multiple Testing
+Correction\*\*: Hochberg, Benjamini-Yekutieli, or permutation
+(Westfall-Young) procedures - \*\*AR(1) Correlation Handling\*\*:
+Westfall-Young preserves q-value spatial correlations (important for
+ordered q measurements) - \*\*Effect Sizes\*\*: Eta-squared (\\\eta^2\\)
+for q\\\times\\ condition interactions
 
 \## Statistical Hypotheses
 
@@ -178,7 +196,7 @@ B\*\*: Flat entropy profile across q (uniform isoform usage) -
 disease-associated splicing regulation
 
 Analyzes how gene interactions change across q-value spectrum using
-rank-based (Scheirer-Ray-Hare) or parametric (GAM) statistical tests.
+rank-based (Conover-Iman Rank Transform) statistical tests.
 
 \*\*Parameter resolution priority\*\* (explicit \> @config \>
 default/auto-detect):
@@ -195,8 +213,6 @@ default/auto-detect):
 - `multicorr`: explicit arg \> `@config$multicorr` \> 'hochberg'
 
 - `nthreads`: explicit arg \> `@config$nthreads` \> 1 (default)
-
-- `test`: explicit arg \> `@config$test` \> 'auto' (auto-selection)
 
 - `nperm_mode`: explicit arg \> `@config$nperm_mode` \> 'standard'
 
@@ -234,7 +250,7 @@ analysis <- filter_analysis(
 analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
 
 # Test Q\eqn{\times} Condition interaction (condition_col is REQUIRED)
-analysis <- calculate_srh(
+analysis <- calculate_rank_transform(
   analysis,
   condition_col = 'condition',
   multicorr = 'hochberg'
@@ -243,24 +259,24 @@ analysis <- calculate_srh(
 rank_test_res <- results(analysis, type = 'rank_test')
 if (!is.null(rank_test_res)) head(rank_test_res)
 #>       gene n_q_values_tested f_statistic   p_value adj_p_value ss_interaction
-#> 1 SH3PXD2A                 3  0.10283830 0.9024993           1     0.35754547
-#> 2     ATG5                 3  0.31874647 0.7288031           1     0.41779676
-#> 3   FAXDC2                 3  0.07408088 0.9287176           1     0.53373469
-#> 4     CYBB                 3  0.19803026 0.8211066           1     0.33734628
-#> 5   PICALM                 3  0.07600418 0.9269395           1     0.04742451
-#> 6  CCDC149                 3  0.09984740 0.9051897           1     0.45310777
+#> 1    FBXO3                 3  0.24069643 0.7871571   0.9981785     101.791667
+#> 2 FAM114A2                 3  0.50372281 0.6078809   0.9981785     215.041667
+#> 3 TMEM183A                 3  0.09054441 0.9136116   0.9981785      39.500000
+#> 4   ZNF493                 3  0.04868521 0.9525346   0.9981785      21.291667
+#> 5    HDAC2                 3  0.51866394 0.5990786   0.9981785     220.166667
+#> 6     CYBB                 3  0.01900408 0.9811838   0.9981785       8.041667
 #>   ss_residual df_interaction df_residual effect_size_eta2 interaction_class
-#> 1   0.1850105              2          45        0.6590021   Robust across q
-#> 2   0.4288228              2          45        0.4934882   Robust across q
-#> 3   0.6214901              2          45        0.4620180   Robust across q
-#> 4   0.4670058              2          45        0.4194013   Robust across q
-#> 5   0.1261091              2          45        0.2732872   Robust across q
-#> 6   1.2613314              2          45        0.2642892   Robust across q
+#> 1     8881.00              2          45      0.012441534   Robust across q
+#> 2     8965.00              2          45      0.011374346   Robust across q
+#> 3     9161.25              2          45      0.005771208   Robust across q
+#> 4     9184.00              2          45      0.004486701   Robust across q
+#> 5     8914.25              2          45      0.003787202   Robust across q
+#> 6     8886.25              2          45      0.003673146   Robust across q
 #>    test_method heteroscedastic boundary_clustered highly_skewed
-#> 1 srh_unpaired           FALSE              FALSE         FALSE
-#> 2 srh_unpaired           FALSE              FALSE         FALSE
-#> 3 srh_unpaired           FALSE              FALSE         FALSE
-#> 4 srh_unpaired           FALSE              FALSE         FALSE
-#> 5 srh_unpaired           FALSE              FALSE         FALSE
-#> 6 srh_unpaired           FALSE              FALSE         FALSE
+#> 1 art_unpaired           FALSE              FALSE         FALSE
+#> 2 art_unpaired           FALSE              FALSE         FALSE
+#> 3 art_unpaired           FALSE              FALSE         FALSE
+#> 4 art_unpaired           FALSE              FALSE         FALSE
+#> 5 art_unpaired           FALSE              FALSE         FALSE
+#> 6 art_unpaired           FALSE              FALSE         FALSE
 ```

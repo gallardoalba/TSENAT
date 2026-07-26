@@ -113,20 +113,19 @@ analysis <- build_analysis(
 analysis <- filter_analysis(analysis, stringency = 'severe')
 analysis <- calculate_diversity(
   analysis,
-  q = c(0.5, 1.0, 1.5, 2.0, 2.5),
+  q = seq(0.2, 2, by = 0.4),
   verbose = FALSE
 )
 analysis <- calculate_divergence(
   analysis,
-  q = c(0.5, 1.0, 1.5, 2.0, 2.5)
+  q = seq(0.2, 2, by = 0.4)
 )
-analysis <- suppressWarnings(calculate_sait(analysis, method = 'gam'))
+analysis <- suppressWarnings(calculate_sait(analysis, method = 'lmm'))
 analysis <- calculate_jis(
   analysis,
-  q = c(0.5, 1, 1.5),
-  n_bootstrap = 50
+  q = seq(0.2, 2, by = 0.4),
+  n_bootstrap = 20
 )
-heatmap_file <- plot_jis_delta(analysis, n_genes
-= 2)
+heatmap_file <- plot_jis_delta(analysis, n_genes = 2)
 
 ```

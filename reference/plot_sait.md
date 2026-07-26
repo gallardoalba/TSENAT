@@ -112,6 +112,7 @@ for running LM analysis on TSENATAnalysis.
 ## Examples
 
 ``` r
+if (FALSE) { # \dontrun{
 # Plot 3: GAM q-curves for genes with q-by-condition interactions
 data(readcounts)
 readcounts <- as.matrix(readcounts)
@@ -148,6 +149,6 @@ analysis <- calculate_diversity(analysis, q = seq(0.2, 2, by = 0.4))
 analysis <- suppressWarnings(calculate_sait(analysis, method = 'gam'))
 
 p_gam <- plot_sait(analysis, n_top = 2, sig_alpha = 0.15)
-#> Warning: No valid plots generated
 # print(p_gam)
+} # }
 ```

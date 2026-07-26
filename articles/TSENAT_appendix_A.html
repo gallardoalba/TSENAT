@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Appendix A: TSENAT vs SplicingFactory Validation • TSENAT</title>
+<title>Appendix A: Equivalence Validation - TSENAT vs SplicingFactory • TSENAT</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Appendix A: TSENAT vs SplicingFactory Validation">
-<style>aside.col-md-3 { position: sticky !important; top: 80px !important; max-height: calc(100vh - 100px) !important; overflow-y: auto !important; align-self: flex-start; } h1, h1.title, .page-header h1, .vignette h1, main h1 { font-size: 2.7rem !important; margin-top: 0.25rem !important; margin-bottom: 0 !important; } .page-header { margin-bottom: -1.2rem !important; } .page-header + p { margin-top: -1rem !important; margin-bottom: 1rem !important; } small.dont-index { display: block !important; margin-bottom: 1rem !important; } aside.col-md-3 h2[data-toc-skip] { font-weight: 700 !important; } article h1:first-of-type, main > h1:first-of-type { margin-top: 0 !important; padding-top: 0 !important; }</style>
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Appendix A: Equivalence Validation - TSENAT vs SplicingFactory">
+<link rel="stylesheet" href="../custom.css">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TSENAT</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.99.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.99.33</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,17 +37,17 @@
     <li><a class="dropdown-item" href="../articles/TSENAT_appendix_B.html">Appendix B</a></li>
   </ul>
 </li>
-<li class="nav-item"><a class="nav-link" href="../reference/index.html"><span class="fa far fa-file-code fa-lg"></span> Functions</a></li>
+<li class="nav-item"><a class="nav-link" href="../reference/index.html"><span class="fa fas fa-cubes fa-lg"></span> Functions</a></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://app.codecov.io/gh/gallardoalba/TSENAT"><span class="fa fas fa-chart-bar fa-lg"></span> Coverage</a></li>
-<li class="nav-item"><a class="nav-link" href="../r_dependencies_s4_interactive.html"><span class="fa fab fa-github fa-lg"></span> Architecture</a></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-question-circle fa-lg"></span> Issues</a></li>
+<li class="nav-item"><a class="nav-link" href="../r_dependencies_s4_interactive.html"><span class="fa fas fa-project-diagram fa-lg"></span> Architecture</a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-bug fa-lg"></span> Issues</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-documents" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-file-pdf fa-lg"></span> Documents</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-documents">
 <li><a class="dropdown-item" href="../articles/TSENAT.pdf">TSENAT Vignette (PDF)</a></li>
   </ul>
 </li>
-<li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
+<li class="nav-item"><a class="nav-link" href="../news/index.html"><span class="fa fas fa-newspaper fa-lg"></span> News</a></li>
 <li class="nav-item"><a class="nav-link" href="../articles/citations.html"><span class="fa fas fa-book fa-lg"></span> References</a></li>
       </ul>
 <ul class="navbar-nav">
@@ -65,12 +65,12 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>Appendix A: TSENAT vs SplicingFactory Validation</h1>
+      <h1>Appendix A: Equivalence Validation - TSENAT vs SplicingFactory</h1>
                         <h4 data-toc-skip class="author">Cristobal
-Gallardo <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
+Gallardo Alba <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2026-05-03</h4>
+            <h4 data-toc-skip class="date">2026-07-26</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gallardoalba/TSENAT/blob/HEAD/vignettes/TSENAT_appendix_A.Rmd" class="external-link"><code>vignettes/TSENAT_appendix_A.Rmd</code></a></small>
       <div class="d-none name"><code>TSENAT_appendix_A.Rmd</code></div>
@@ -332,7 +332,7 @@ above.</p>
 </h4>
 <table class="table">
 <caption>
-<strong>Supplementary Table 5 | Shannon Entropy Analysis
+<strong>Supplementary Table 8 | Shannon Entropy Analysis
 Summary Statistics.</strong> Differential analysis comparing Normal
 (N=8) vs Tumor (N=8) samples using SplicingFactory’s
 <code><a href="https://rdrr.io/pkg/SplicingFactory/man/calculate_difference.html" class="external-link">calculate_difference()</a></code> method.</caption>
@@ -377,8 +377,8 @@ size detection.</p>
 </h5>
 <table class="table">
 <caption>
-<strong>Supplementary Table 6a | SplicingFactory method - Top
-10 genes identified by Shannon entropy (naive mode).</strong> Ranked by
+<strong>Supplementary Table 9 | SplicingFactory method - Top 10
+genes identified by Shannon entropy (naive mode).</strong> Ranked by
 adjusted <em>P</em>-value.</caption>
 <colgroup>
 <col width="12%">
@@ -497,7 +497,7 @@ adjusted <em>P</em>-value.</caption>
 </h5>
 <table class="table">
 <caption>
-<strong>Supplementary Table 6b | TSENAT method - Top 10 genes
+<strong>Supplementary Table 10 | TSENAT method - Top 10 genes
 identified by Tsallis entropy at q=1 (Shannon equivalence).</strong>
 Results obtained using SplicingFactory’s
 <code><a href="https://rdrr.io/pkg/SplicingFactory/man/calculate_difference.html" class="external-link">calculate_difference()</a></code> method applied to TSENAT Tsallis q=1
@@ -621,7 +621,7 @@ diversity values. Ranked by adjusted <em>P</em>-value.</caption>
 </h4>
 <table class="table">
 <caption>
-<strong>Supplementary Table 8 | Simpson Index Analysis Summary
+<strong>Supplementary Table 11 | Simpson Index Analysis Summary
 Statistics.</strong> Differential analysis using Simpson diversity
 metric (Gini-Simpson index) comparing Normal (N=8) vs Tumor (N=8)
 samples using SplicingFactory’s <code><a href="https://rdrr.io/pkg/SplicingFactory/man/calculate_difference.html" class="external-link">calculate_difference()</a></code>
@@ -667,7 +667,7 @@ mathematical and statistical equivalence to SplicingFactory.</p>
 </h5>
 <table class="table">
 <caption>
-<strong>Supplementary Table 9a | SplicingFactory method - Top
+<strong>Supplementary Table 12 | SplicingFactory method - Top
 10 genes by Simpson index (Gini-Simpson, emphasizes dominant
 isoforms).</strong> Ranked by adjusted <em>P</em>-value.</caption>
 <colgroup>
@@ -787,7 +787,7 @@ isoforms).</strong> Ranked by adjusted <em>P</em>-value.</caption>
 </h5>
 <table class="table">
 <caption>
-<strong>Supplementary Table 9b | TSENAT method - Top 10 genes
+<strong>Supplementary Table 13 | TSENAT method - Top 10 genes
 by Tsallis entropy at q=2 (Simpson equivalence).</strong> Results
 obtained using SplicingFactory’s <code><a href="https://rdrr.io/pkg/SplicingFactory/man/calculate_difference.html" class="external-link">calculate_difference()</a></code>
 method applied to TSENAT Tsallis q=2 diversity values. Ranked by
@@ -1004,30 +1004,39 @@ entropy and Simpson index calculations.</p>
 <span><span class="co">#&gt;  [7] IRanges_2.44.0              S4Vectors_0.48.1           </span></span>
 <span><span class="co">#&gt;  [9] BiocGenerics_0.56.0         generics_0.1.4             </span></span>
 <span><span class="co">#&gt; [11] MatrixGenerics_1.22.0       matrixStats_1.5.0          </span></span>
-<span><span class="co">#&gt; [13] TSENAT_0.99.0               SplicingFactory_1.18.0     </span></span>
-<span><span class="co">#&gt; [15] kableExtra_1.4.0           </span></span>
+<span><span class="co">#&gt; [13] TSENAT_0.99.33              SplicingFactory_1.18.0     </span></span>
+<span><span class="co">#&gt; [15] kableExtra_1.4.0            BiocStyle_2.38.0           </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
-<span><span class="co">#&gt;  [1] gtable_0.3.6        xfun_0.57           bslib_0.10.0       </span></span>
-<span><span class="co">#&gt;  [4] ggplot2_4.0.3       htmlwidgets_1.6.4   lattice_0.22-9     </span></span>
-<span><span class="co">#&gt;  [7] vctrs_0.7.3         tools_4.5.3         tibble_3.3.1       </span></span>
-<span><span class="co">#&gt; [10] pkgconfig_2.0.3     pheatmap_1.0.13     Matrix_1.7-5       </span></span>
-<span><span class="co">#&gt; [13] RColorBrewer_1.1-3  S7_0.2.2            desc_1.4.3         </span></span>
-<span><span class="co">#&gt; [16] lifecycle_1.0.5     compiler_4.5.3      farver_2.1.2       </span></span>
-<span><span class="co">#&gt; [19] stringr_1.6.0       textshaping_1.0.5   htmltools_0.5.9    </span></span>
-<span><span class="co">#&gt; [22] sass_0.4.10         yaml_2.3.12         pkgdown_2.2.0      </span></span>
-<span><span class="co">#&gt; [25] pillar_1.11.1       jquerylib_0.1.4     tidyr_1.3.2        </span></span>
-<span><span class="co">#&gt; [28] DelayedArray_0.36.1 cachem_1.1.0        abind_1.4-8        </span></span>
-<span><span class="co">#&gt; [31] tidyselect_1.2.1    digest_0.6.39       stringi_1.8.7      </span></span>
-<span><span class="co">#&gt; [34] purrr_1.2.2         cowplot_1.2.0       fastmap_1.2.0      </span></span>
-<span><span class="co">#&gt; [37] grid_4.5.3          cli_3.6.6           SparseArray_1.10.10</span></span>
-<span><span class="co">#&gt; [40] magrittr_2.0.5      S4Arrays_1.10.1     withr_3.0.2        </span></span>
-<span><span class="co">#&gt; [43] scales_1.4.0        rmarkdown_2.31      XVector_0.50.0     </span></span>
-<span><span class="co">#&gt; [46] otel_0.2.0          ragg_1.5.0          memoise_2.0.1      </span></span>
-<span><span class="co">#&gt; [49] evaluate_1.0.5      viridisLite_0.4.3   rlang_1.2.0        </span></span>
-<span><span class="co">#&gt; [52] Rcpp_1.1.1-1.1      glue_1.8.1          xml2_1.5.2         </span></span>
-<span><span class="co">#&gt; [55] svglite_2.2.2       rstudioapi_0.18.0   jsonlite_2.0.0     </span></span>
-<span><span class="co">#&gt; [58] R6_2.6.1            systemfonts_1.3.2   fs_2.1.0</span></span></code></pre></div>
+<span><span class="co">#&gt;  [1] tidyselect_1.2.1    viridisLite_0.4.3   farver_2.1.2       </span></span>
+<span><span class="co">#&gt;  [4] S7_0.2.2            fastmap_1.2.0       TH.data_1.1-5      </span></span>
+<span><span class="co">#&gt;  [7] digest_0.6.39       estimability_1.5.1  lifecycle_1.0.5    </span></span>
+<span><span class="co">#&gt; [10] survival_3.8-6      magrittr_2.0.5      compiler_4.5.3     </span></span>
+<span><span class="co">#&gt; [13] rlang_1.2.0         sass_0.4.10         tools_4.5.3        </span></span>
+<span><span class="co">#&gt; [16] yaml_2.3.12         S4Arrays_1.10.1     htmlwidgets_1.6.4  </span></span>
+<span><span class="co">#&gt; [19] DelayedArray_0.36.1 plyr_1.8.9          xml2_1.5.2         </span></span>
+<span><span class="co">#&gt; [22] RColorBrewer_1.1-3  abind_1.4-8         multcomp_1.4-30    </span></span>
+<span><span class="co">#&gt; [25] withr_3.0.3         purrr_1.2.2         desc_1.4.3         </span></span>
+<span><span class="co">#&gt; [28] grid_4.5.3          xtable_1.8-8        ggplot2_4.0.3      </span></span>
+<span><span class="co">#&gt; [31] emmeans_2.0.3       scales_1.4.0        MASS_7.3-65        </span></span>
+<span><span class="co">#&gt; [34] cli_3.6.6           mvtnorm_1.3-6       rmarkdown_2.31     </span></span>
+<span><span class="co">#&gt; [37] reformulas_0.4.4    ragg_1.5.2          otel_0.2.0         </span></span>
+<span><span class="co">#&gt; [40] ARTool_0.11.2       rstudioapi_0.18.0   minqa_1.2.8        </span></span>
+<span><span class="co">#&gt; [43] cachem_1.1.0        stringr_1.6.0       splines_4.5.3      </span></span>
+<span><span class="co">#&gt; [46] BiocManager_1.30.27 XVector_0.50.0      vctrs_0.7.3        </span></span>
+<span><span class="co">#&gt; [49] boot_1.3-32         Matrix_1.7-5        sandwich_3.1-1     </span></span>
+<span><span class="co">#&gt; [52] jsonlite_2.0.0      carData_3.0-6       bookdown_0.46      </span></span>
+<span><span class="co">#&gt; [55] car_3.1-5           Formula_1.2-5       systemfonts_1.3.2  </span></span>
+<span><span class="co">#&gt; [58] tidyr_1.3.2         jquerylib_0.1.4     glue_1.8.1         </span></span>
+<span><span class="co">#&gt; [61] nloptr_2.2.1        pkgdown_2.2.0       codetools_0.2-20   </span></span>
+<span><span class="co">#&gt; [64] cowplot_1.2.0       stringi_1.8.7       gtable_0.3.6       </span></span>
+<span><span class="co">#&gt; [67] lme4_2.0-1          tibble_3.3.1        pillar_1.11.1      </span></span>
+<span><span class="co">#&gt; [70] htmltools_0.5.9     R6_2.6.1            textshaping_1.0.5  </span></span>
+<span><span class="co">#&gt; [73] Rdpack_2.6.6        evaluate_1.0.5      lattice_0.22-9     </span></span>
+<span><span class="co">#&gt; [76] rbibutils_2.4.1     pheatmap_1.0.13     memoise_2.0.1      </span></span>
+<span><span class="co">#&gt; [79] bslib_0.11.0        Rcpp_1.1.1-1.1      svglite_2.2.2      </span></span>
+<span><span class="co">#&gt; [82] SparseArray_1.10.10 nlme_3.1-169        xfun_0.58          </span></span>
+<span><span class="co">#&gt; [85] fs_2.1.0            zoo_1.8-15          pkgconfig_2.0.3</span></span></code></pre></div>
 </div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
@@ -1037,11 +1046,11 @@ entropy and Simpson index calculations.</p>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by <a href="https://github.com/gallardoalba" class="external-link">Cristóbal Gallardo</a>.</p>
+  <p>Developed by Cristóbal Gallardo Alba.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0. NULL</p>
 </div>
 
     </footer>

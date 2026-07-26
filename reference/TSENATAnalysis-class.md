@@ -46,8 +46,8 @@ for result retrieval.
 Access results via the unified `results(obj, type = ...)` accessor
 method: - `type='diversity'` for Tsallis entropy across q-values -
 `type = "sait"` for regularized/penalized regression (GAM, LMM, GEE,
-FPCA) interaction results - `type='rank_test'` for Scheirer-Ray-Hare
-rank-based test results - `type='divergence'` for divergence metrics -
+FPCA) interaction results - `type='rank_test'` for Conover-Iman Rank
+Transform results - `type='divergence'` for divergence metrics -
 `type='jackknife'` for jackknife resampling results Use `metadata(obj)`
 to access reproducibility metadata.
 
@@ -87,22 +87,19 @@ to access reproducibility metadata.
 
   `rank_test`
 
-  :   Scheirer-Ray-Hare rank-based test results
+  :   ART (Aligned Rank Transform) or Conover-Iman Rank Transform
+      results
 
   `divergence_difference`
 
   :   Differential divergence comparison
 
-- `pairwise_results`:
-
-  `list`. Pairwise group comparison results. Results from running
-  statistical tests for group comparisons.
-
 - `rank_test_results`:
 
-  `list`. Scheirer-Ray-Hare rank-based statistical test results. Names
-  correspond to q-values (e.g., 'q_0.5', 'q_1.0'). Computed by
-  [`calculate_srh()`](https://gallardoalba.github.io/TSENAT/reference/calculate_srh.md)
+  `list`. ART (Aligned Rank Transform) or Conover-Iman Rank Transform
+  test results. Names correspond to q-values (e.g., 'q_0.5', 'q_1.0').
+  Computed by
+  [`calculate_rank_transform()`](https://gallardoalba.github.io/TSENAT/reference/calculate_rank_transform.md)
   as a non-parametric alternative to linear mixed model testing.
 
 - `jackknife_results`:

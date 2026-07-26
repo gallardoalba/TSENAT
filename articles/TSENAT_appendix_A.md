@@ -1,4 +1,4 @@
-# Appendix A: TSENAT vs SplicingFactory Validation
+# Appendix A: Equivalence Validation - TSENAT vs SplicingFactory
 
 ## Introduction
 
@@ -253,7 +253,7 @@ above.
 | SplicingFactory (Shannon/naive) | 214 | 26 | -0.0009354 | 1.582967 |
 | TSENAT (Tsallis q=1) | 213 | 26 | 0.0003618 | 1.586675 |
 
-**Supplementary Table 5 \| Shannon Entropy Analysis Summary
+**Supplementary Table 8 \| Shannon Entropy Analysis Summary
 Statistics.** Differential analysis comparing Normal (N=8) vs Tumor
 (N=8) samples using SplicingFactory’s
 [`calculate_difference()`](https://rdrr.io/pkg/SplicingFactory/man/calculate_difference.html)
@@ -280,7 +280,7 @@ detection.
 | HNRNPR   |      0.5162 |     0.5907 |    0.0746 |  0.1947 | 4.60e-04 |    9.85e-03 |
 | OSR1     |      0.0497 |     0.2891 |    0.2394 |  2.5411 | 4.10e-04 |    9.85e-03 |
 
-**Supplementary Table 6a \| SplicingFactory method - Top 10 genes
+**Supplementary Table 9 \| SplicingFactory method - Top 10 genes
 identified by Shannon entropy (naive mode).** Ranked by adjusted
 *P*-value. {.table}
 
@@ -299,7 +299,7 @@ identified by Shannon entropy (naive mode).** Ranked by adjusted
 | OSR1     |      0.0497 |     0.2891 |    0.2394 |  2.5411 | 4.10e-04 |    9.80e-03 |
 | GFPT1    |      0.0231 |     0.0025 |   -0.0207 | -3.2253 | 3.80e-04 |    9.80e-03 |
 
-**Supplementary Table 6b \| TSENAT method - Top 10 genes identified by
+**Supplementary Table 10 \| TSENAT method - Top 10 genes identified by
 Tsallis entropy at q=1 (Shannon equivalence).** Results obtained using
 SplicingFactory’s
 [`calculate_difference()`](https://rdrr.io/pkg/SplicingFactory/man/calculate_difference.html)
@@ -315,7 +315,7 @@ adjusted *P*-value. {.table}
 | SplicingFactory (Simpson) | 214 | 26 | -0.0012687 | 1.812772 |
 | TSENAT (Tsallis q=2) | 213 | 26 | -0.0000521 | 1.817060 |
 
-**Supplementary Table 8 \| Simpson Index Analysis Summary Statistics.**
+**Supplementary Table 11 \| Simpson Index Analysis Summary Statistics.**
 Differential analysis using Simpson diversity metric (Gini-Simpson
 index) comparing Normal (N=8) vs Tumor (N=8) samples using
 SplicingFactory’s
@@ -343,7 +343,7 @@ and statistical equivalence to SplicingFactory.
 | GFPT1    |      0.0051 |     0.0004 |   -0.0047 | -3.5271 | 3.80e-04 |    8.78e-03 |
 | OSR1     |      0.0124 |     0.1156 |    0.1032 |  3.2168 | 4.10e-04 |    8.78e-03 |
 
-**Supplementary Table 9a \| SplicingFactory method - Top 10 genes by
+**Supplementary Table 12 \| SplicingFactory method - Top 10 genes by
 Simpson index (Gini-Simpson, emphasizes dominant isoforms).** Ranked by
 adjusted *P*-value. {.table}
 
@@ -362,7 +362,7 @@ adjusted *P*-value. {.table}
 | OSR1     |      0.0249 |     0.2312 |    0.2063 |  3.2168 | 4.10e-04 | 8.74e-03    |
 | GFPT1    |      0.0103 |     0.0009 |   -0.0094 | -3.5271 | 3.80e-04 | 8.74e-03    |
 
-**Supplementary Table 9b \| TSENAT method - Top 10 genes by Tsallis
+**Supplementary Table 13 \| TSENAT method - Top 10 genes by Tsallis
 entropy at q=2 (Simpson equivalence).** Results obtained using
 SplicingFactory’s
 [`calculate_difference()`](https://rdrr.io/pkg/SplicingFactory/man/calculate_difference.html)
@@ -453,28 +453,37 @@ sessionInfo()
 #>  [7] IRanges_2.44.0              S4Vectors_0.48.1           
 #>  [9] BiocGenerics_0.56.0         generics_0.1.4             
 #> [11] MatrixGenerics_1.22.0       matrixStats_1.5.0          
-#> [13] TSENAT_0.99.0               SplicingFactory_1.18.0     
-#> [15] kableExtra_1.4.0           
+#> [13] TSENAT_0.99.33              SplicingFactory_1.18.0     
+#> [15] kableExtra_1.4.0            BiocStyle_2.38.0           
 #> 
 #> loaded via a namespace (and not attached):
-#>  [1] gtable_0.3.6        xfun_0.57           bslib_0.10.0       
-#>  [4] ggplot2_4.0.3       htmlwidgets_1.6.4   lattice_0.22-9     
-#>  [7] vctrs_0.7.3         tools_4.5.3         tibble_3.3.1       
-#> [10] pkgconfig_2.0.3     pheatmap_1.0.13     Matrix_1.7-5       
-#> [13] RColorBrewer_1.1-3  S7_0.2.2            desc_1.4.3         
-#> [16] lifecycle_1.0.5     compiler_4.5.3      farver_2.1.2       
-#> [19] stringr_1.6.0       textshaping_1.0.5   htmltools_0.5.9    
-#> [22] sass_0.4.10         yaml_2.3.12         pkgdown_2.2.0      
-#> [25] pillar_1.11.1       jquerylib_0.1.4     tidyr_1.3.2        
-#> [28] DelayedArray_0.36.1 cachem_1.1.0        abind_1.4-8        
-#> [31] tidyselect_1.2.1    digest_0.6.39       stringi_1.8.7      
-#> [34] purrr_1.2.2         cowplot_1.2.0       fastmap_1.2.0      
-#> [37] grid_4.5.3          cli_3.6.6           SparseArray_1.10.10
-#> [40] magrittr_2.0.5      S4Arrays_1.10.1     withr_3.0.2        
-#> [43] scales_1.4.0        rmarkdown_2.31      XVector_0.50.0     
-#> [46] otel_0.2.0          ragg_1.5.0          memoise_2.0.1      
-#> [49] evaluate_1.0.5      viridisLite_0.4.3   rlang_1.2.0        
-#> [52] Rcpp_1.1.1-1.1      glue_1.8.1          xml2_1.5.2         
-#> [55] svglite_2.2.2       rstudioapi_0.18.0   jsonlite_2.0.0     
-#> [58] R6_2.6.1            systemfonts_1.3.2   fs_2.1.0
+#>  [1] tidyselect_1.2.1    viridisLite_0.4.3   farver_2.1.2       
+#>  [4] S7_0.2.2            fastmap_1.2.0       TH.data_1.1-5      
+#>  [7] digest_0.6.39       estimability_1.5.1  lifecycle_1.0.5    
+#> [10] survival_3.8-6      magrittr_2.0.5      compiler_4.5.3     
+#> [13] rlang_1.2.0         sass_0.4.10         tools_4.5.3        
+#> [16] yaml_2.3.12         S4Arrays_1.10.1     htmlwidgets_1.6.4  
+#> [19] DelayedArray_0.36.1 plyr_1.8.9          xml2_1.5.2         
+#> [22] RColorBrewer_1.1-3  abind_1.4-8         multcomp_1.4-30    
+#> [25] withr_3.0.3         purrr_1.2.2         desc_1.4.3         
+#> [28] grid_4.5.3          xtable_1.8-8        ggplot2_4.0.3      
+#> [31] emmeans_2.0.3       scales_1.4.0        MASS_7.3-65        
+#> [34] cli_3.6.6           mvtnorm_1.3-6       rmarkdown_2.31     
+#> [37] reformulas_0.4.4    ragg_1.5.2          otel_0.2.0         
+#> [40] ARTool_0.11.2       rstudioapi_0.18.0   minqa_1.2.8        
+#> [43] cachem_1.1.0        stringr_1.6.0       splines_4.5.3      
+#> [46] BiocManager_1.30.27 XVector_0.50.0      vctrs_0.7.3        
+#> [49] boot_1.3-32         Matrix_1.7-5        sandwich_3.1-1     
+#> [52] jsonlite_2.0.0      carData_3.0-6       bookdown_0.46      
+#> [55] car_3.1-5           Formula_1.2-5       systemfonts_1.3.2  
+#> [58] tidyr_1.3.2         jquerylib_0.1.4     glue_1.8.1         
+#> [61] nloptr_2.2.1        pkgdown_2.2.0       codetools_0.2-20   
+#> [64] cowplot_1.2.0       stringi_1.8.7       gtable_0.3.6       
+#> [67] lme4_2.0-1          tibble_3.3.1        pillar_1.11.1      
+#> [70] htmltools_0.5.9     R6_2.6.1            textshaping_1.0.5  
+#> [73] Rdpack_2.6.6        evaluate_1.0.5      lattice_0.22-9     
+#> [76] rbibutils_2.4.1     pheatmap_1.0.13     memoise_2.0.1      
+#> [79] bslib_0.11.0        Rcpp_1.1.1-1.1      svglite_2.2.2      
+#> [82] SparseArray_1.10.10 nlme_3.1-169        xfun_0.58          
+#> [85] fs_2.1.0            zoo_1.8-15          pkgconfig_2.0.3
 ```

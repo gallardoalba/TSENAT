@@ -27,6 +27,7 @@ calculate_diversity(
   bootstrap_ci = NULL,
   bootstrap_include_diagnostics = NULL,
   output_file = NULL,
+  log_base = NULL,
   ...
 )
 ```
@@ -157,6 +158,13 @@ calculate_diversity(
   The spectrum file contains columns: q, central (median diversity),
   spread (IQR), count, and group (if grouping variable available).
   Default: NULL (no file output).
+
+- log_base:
+
+  `numeric`. Logarithm base for Shannon entropy computation (default:
+  `exp(1)` for natural log). Set to 2 for bits or 10 for dits. Only
+  affects Shannon entropy (q = 1); Tsallis entropy (q != 1) is
+  scale-invariant and does not use a logarithm base.
 
 - ...:
 

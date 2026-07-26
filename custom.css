@@ -1,9 +1,66 @@
 /* ============================================================================
-   TABLE EXPANSION CSS FOR PKGDOWN VIGNETTES
-   ============================================================================
-   Force tables to expand horizontally to prevent awkward line wrapping
-   and ensure readability of data tables in vignettes
-*/
+   PKGDOWN CUSTOM STYLES — TSENAT
+   ============================================================================ */
+
+/* ── Typography ─────────────────────────────────────────────────────────── */
+
+body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    padding-top: 12px;
+}
+
+h1, h2, h3, h4 {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-top: 2rem;
+}
+
+h1 { border-bottom: 3px solid #18bc9c; padding-bottom: 0.5rem; }
+h2 { border-bottom: 2px solid #ecf0f1; padding-bottom: 0.3rem; }
+
+/* ── Code blocks ────────────────────────────────────────────────────────── */
+
+code {
+    color: #e74c3c;
+    background-color: #fdf2f2;
+    padding: 0.15em 0.4em;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+
+pre, pre code {
+    background-color: #f8f9fa;
+    border: 1px solid #ecf0f1;
+    border-radius: 6px;
+    color: #2c3e50;
+}
+
+/* ── KaTeX / Math ───────────────────────────────────────────────────────── */
+
+.katex-display {
+    margin: 1.5rem 0;
+    padding: 0.5rem 0;
+    overflow-x: auto;
+}
+
+/* ── Smooth transitions ─────────────────────────────────────────────────── */
+
+a, .navbar a, .btn {
+    transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+/* ── Print ──────────────────────────────────────────────────────────────── */
+
+@media print {
+    .navbar, .pkgdown-footer { display: none; }
+    a[href]:after { content: none; }
+}
+
+/* ============================================================================
+   TABLE EXPANSION CSS
+   ============================================================================ */
+/* Force tables to expand horizontally to prevent awkward line wrapping
+   and ensure readability of data tables in vignettes */
 
 /* Container scrolling for wide tables */
 .table-container {
@@ -12,41 +69,164 @@
     margin-bottom: 1rem;
 }
 
-/* Make all tables scrollable on small screens */
+/* Make all tables expand to full width */
 table {
-    min-width: 100%;
+    width: 100% !important;
     table-layout: auto;
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
+    border-collapse: collapse;
+    display: table !important;
+    margin: 1.5rem 0 !important;
+    font-size: 0.95rem;
 }
 
-/* Bootstrap-styled tables */
+/* Bootstrap-styled tables - professional scientific style */
 .table {
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
+    width: 100% !important;
+    display: table !important;
+    table-layout: auto;
+    margin-bottom: 1.5rem;
+    border: 1px solid #ddd;
 }
 
-/* Table cells: prevent content wrapping within cells */
-table th,
-table td {
-    white-space: nowrap;
-    padding: 0.5rem;
+/* Table header - scientific publication style */
+.table > thead > tr {
+    border-top: 2px solid #2c3e50 !important;
+    border-bottom: 2px solid #2c3e50 !important;
 }
 
-/* Allow longer column content to expand */
-table td {
-    text-overflow: ellipsis;
+.table > thead > tr > th {
+    background-color: #2c3e50 !important;
+    color: #fff !important;
+    font-weight: 700 !important;
+    text-align: left !important;
+    padding: 1rem 0.75rem !important;
+    border: none !important;
+    letter-spacing: 0.3px;
+}
+
+.table > thead > tr > th[align="right"] {
+    text-align: right !important;
+}
+
+/* Table body rows - alternating colors for readability */
+.table > tbody > tr {
+    border-bottom: 1px solid #ecf0f1 !important;
+}
+
+.table > tbody > tr.odd {
+    background-color: #f9f9f9;
+}
+
+.table > tbody > tr.even {
+    background-color: #fff;
+}
+
+/* Subtle hover effect for interactivity */
+.table > tbody > tr:hover {
+    background-color: #f0f5f7 !important;
+}
+
+/* Table cells - professional spacing and alignment */
+.table > tbody > tr > td {
+    padding: 0.9rem 0.75rem !important;
+    border: none !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    word-break: break-word !important;
+}
+
+/* Align numeric columns right */
+.table > tbody > tr > td[align="right"],
+.table > thead > tr > th[align="right"] {
+    text-align: right !important;
+}
+
+/* Align text columns left */
+.table > tbody > tr > td[align="left"],
+.table > thead > tr > th[align="left"] {
+    text-align: left !important;
+}
+
+/* Table footer - match header style */
+.table > tfoot > tr {
+    border-top: 2px solid #2c3e50 !important;
+    background-color: #f5f5f5;
+}
+
+.table > tfoot > tr > td {
+    font-weight: 600;
+    padding: 0.9rem 0.75rem !important;
 }
 
 /* Vignette-specific table styling */
 .vignette table {
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
-    margin: 1rem 0;
+    width: 100% !important;
+    table-layout: auto;
+    margin: 1.5rem 0;
     border-collapse: collapse;
+}
+
+/* ============================================================================
+   COLUMN WIDTH OPTIMIZATION FOR SPECIFIC TABLE TYPES
+   ============================================================================
+   NOTE: No blanket nth-child rules — let table-layout:auto distribute columns
+   naturally for tables that don't match the scoped selectors below.
+*/
+
+/* 7-column tables: balanced for both divergence (Gene|P|Slope|D(q)|Pattern)
+   and differential-expression (Gene|Normal|Tumor|Diff|log2FC|p|adj_p) layouts */
+.table > thead > tr > th:nth-child(1):nth-last-child(7),
+.table > tbody > tr > td:nth-child(1):nth-last-child(7) { width: 14% !important; }
+.table > thead > tr > th:nth-child(2):nth-last-child(6),
+.table > tbody > tr > td:nth-child(2):nth-last-child(6) { width: 14% !important; }
+.table > thead > tr > th:nth-child(3):nth-last-child(5),
+.table > tbody > tr > td:nth-child(3):nth-last-child(5) { width: 14% !important; }
+.table > thead > tr > th:nth-child(4):nth-last-child(4),
+.table > tbody > tr > td:nth-child(4):nth-last-child(4) { width: 14% !important; }
+.table > thead > tr > th:nth-child(5):nth-last-child(3),
+.table > tbody > tr > td:nth-child(5):nth-last-child(3) { width: 14% !important; }
+.table > thead > tr > th:nth-child(6):nth-last-child(2),
+.table > tbody > tr > td:nth-child(6):nth-last-child(2) { width: 15% !important; }
+.table > thead > tr > th:last-child:nth-child(7),
+.table > tbody > tr > td:last-child:nth-child(7) { width: 15% !important; }
+
+/* 6-column tables: Gene | p | Adj p | Effect size | Test stat | df */
+.table > thead > tr > th:nth-child(1):nth-last-child(6),
+.table > tbody > tr > td:nth-child(1):nth-last-child(6) { width: 14% !important; }
+.table > thead > tr > th:nth-child(2):nth-last-child(5),
+.table > tbody > tr > td:nth-child(2):nth-last-child(5) { width: 16% !important; }
+.table > thead > tr > th:nth-child(3):nth-last-child(4),
+.table > tbody > tr > td:nth-child(3):nth-last-child(4) { width: 16% !important; }
+.table > thead > tr > th:nth-child(4):nth-last-child(3),
+.table > tbody > tr > td:nth-child(4):nth-last-child(3) { width: 15% !important; }
+.table > thead > tr > th:nth-child(5):nth-last-child(2),
+.table > tbody > tr > td:nth-child(5):nth-last-child(2) { width: 16% !important; }
+.table > thead > tr > th:last-child:nth-child(6),
+.table > tbody > tr > td:last-child:nth-child(6) { width: 23% !important; }
+
+/* ── All 5-column tables ────────────────────────────────────────────────── */
+/* Ample first column for long labels (Sample IDs, Transcript IDs like
+   ENST00000343575.11); compact for numeric/flag columns; generous for
+   final Status/Pattern/Direction column. */
+.table > thead > tr > th:nth-child(1):nth-last-child(5),
+.table > tbody > tr > td:nth-child(1):nth-last-child(5) {
+    width: 30% !important;
+}
+.table > thead > tr > th:nth-child(2):nth-last-child(4),
+.table > tbody > tr > td:nth-child(2):nth-last-child(4) {
+    width: 12% !important;
+}
+.table > thead > tr > th:nth-child(3):nth-last-child(3),
+.table > tbody > tr > td:nth-child(3):nth-last-child(3) {
+    width: 12% !important;
+}
+.table > thead > tr > th:nth-child(4):nth-last-child(2),
+.table > tbody > tr > td:nth-child(4):nth-last-child(2) {
+    width: 23% !important;
+}
+.table > thead > tr > th:last-child:nth-child(5),
+.table > tbody > tr > td:last-child:nth-child(5) {
+    width: 23% !important;
 }
 
 /* ============================================================================
@@ -200,17 +380,55 @@ aside > div:first-child h2 {
 }
 
 /* ============================================================================
-   TITLE SIZE REDUCTION
+   TITLE SIZE DIFFERENTIATION
    ============================================================================
-   Reduce h1 font sizes for main page titles to improve visual hierarchy
+   Index.html page header: 2.7rem (large main title)
+   Vignettes/Articles: 1.35rem (regular content headings)
 */
 
+/* Main package title on index.html */
+.section.level1:first-child {
+    margin-top: 1.5rem !important;
+    margin-bottom: 0 !important;
+}
+
+.page-header {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.page-header h1 {
+    font-size: 2.5rem !important;
+    margin-top: 0 !important;
+    margin-bottom: -1.2rem !important;
+    padding: 0 !important;
+}
+
+/* First paragraph after title - aggressive override */
+.section.level1 > p:first-of-type,
+.page-header + p,
+main .section.level1 > p:nth-of-type(1) {
+    margin-top: -1.5rem !important;
+    margin-bottom: 1rem !important;
+}
+
+/* All paragraphs in main content area - reduce top margin */
+main p {
+    margin-top: 0.25rem !important;
+}
+
+/* Vignette and article titles */
+article h1,
+.vignette h1 {
+    font-size: 1.35rem !important;
+    margin-top: 0.25rem !important;
+    margin-bottom: 0.75rem !important;
+}
+
+/* General h1 styling */
 h1,
 h1.title,
-.page-header h1,
-.vignette h1,
 main h1 {
-    font-size: 1.35rem !important;
     margin-top: 0.25rem !important;
     margin-bottom: 0.75rem !important;
 }

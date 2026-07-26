@@ -127,6 +127,7 @@ defaults
 ## Examples
 
 ``` r
+if (FALSE) { # \dontrun{
 # Create test analysis with appropriate sample structure for paired design
 # Note: requires lme4 package for LMM fitting; uses synthetic data
 set.seed(42)
@@ -202,28 +203,5 @@ analysis <- suppressWarnings(calculate_sait(
 # View top interaction results using unified accessor (first 3 genes)
 res <- results(analysis, type = "sait")
 if (!is.null(res)) head(res, 3)
-#>      gene p_interaction        p_raw n_observations n_subjects n_effective
-#> 1  GENE_2  3.243028e-11 3.243028e-11             64         16    14.91552
-#> 2 GENE_16  2.846394e-10 2.846394e-10             64         16    12.63764
-#> 3 GENE_12  3.813131e-10 3.813131e-10             64         16    12.21766
-#>      rho_ar1 test_statistic effect_size df_residual model_converged
-#> 1 0.04696714       48.30386   0.8654711    58.00221            TRUE
-#> 2 0.15914471       43.95960   0.8297352    58.00643            TRUE
-#> 3 0.18223084       43.37480   0.8236480    58.00825            TRUE
-#>      slope_diff arima_transformation bounded_support_model family_used
-#> 1  1.883577e-06                 TRUE                 FALSE    Gaussian
-#> 2 -3.589224e-06                 TRUE                 FALSE    Gaussian
-#> 3 -1.424366e-05                 TRUE                 FALSE    Gaussian
-#>   heteroscedasticity_detected variance_ratio_q              fit_method
-#> 1                       FALSE         2.361163 mgcv::gamm_arima(1,1,0)
-#> 2                       FALSE         3.511304 mgcv::gamm_arima(1,1,0)
-#> 3                        TRUE         3.882614 mgcv::gamm_arima(1,1,0)
-#>   shapiro_p_value residuals_normal n_residuals_tested ci_weighted
-#> 1     0.076530821             TRUE                 64       FALSE
-#> 2     0.003200931            FALSE                 64       FALSE
-#> 3     0.264509774             TRUE                 64       FALSE
-#>   adj_p_interaction gene_name gene_id
-#> 1      1.621514e-09    GENE_2  GENE_2
-#> 2      1.394733e-08   GENE_16 GENE_16
-#> 3      1.830303e-08   GENE_12 GENE_12
+} # }
 ```

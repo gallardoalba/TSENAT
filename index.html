@@ -6,13 +6,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>TSENAT • TSENAT</title>
 <script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="TSENAT">
-<meta name="description" content="Quantifies and models isoform-usage complexity in RNA-seq data using Tsallis entropy, a scale-dependent diversity measure. By tuning the entropic index parameter (q), TSENAT examines transcriptome heterogeneity at different scales: rare variants (low q) or dominant isoforms (high q). It enables computing Tsallis entropy and Tsallis divergence from transcript-level estimates, comparing measures between conditions, testing for differences, and visualizing scale-dependent complexity via q-curves.">
-<meta property="og:description" content="Quantifies and models isoform-usage complexity in RNA-seq data using Tsallis entropy, a scale-dependent diversity measure. By tuning the entropic index parameter (q), TSENAT examines transcriptome heterogeneity at different scales: rare variants (low q) or dominant isoforms (high q). It enables computing Tsallis entropy and Tsallis divergence from transcript-level estimates, comparing measures between conditions, testing for differences, and visualizing scale-dependent complexity via q-curves.">
-<style>aside.col-md-3 { position: sticky !important; top: 80px !important; max-height: calc(100vh - 100px) !important; overflow-y: auto !important; align-self: flex-start; } h1, h1.title, .page-header h1, .vignette h1, main h1 { font-size: 2.7rem !important; margin-top: 0.25rem !important; margin-bottom: 0 !important; } .page-header { margin-bottom: -1.2rem !important; } .page-header + p { margin-top: -1rem !important; margin-bottom: 1rem !important; } small.dont-index { display: block !important; margin-bottom: 1rem !important; } aside.col-md-3 h2[data-toc-skip] { font-weight: 700 !important; } article h1:first-of-type, main > h1:first-of-type { margin-top: 0 !important; padding-top: 0 !important; }</style>
+<meta name="description" content="Tsallis Entropy Analysis Toolbox — quantifying isoform-usage
+complexity across RNA-seq samples
+">
+<meta property="og:description" content="Tsallis Entropy Analysis Toolbox — quantifying isoform-usage
+complexity across RNA-seq samples
+">
+<link rel="stylesheet" href="../custom.css">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -22,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="index.html">TSENAT</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.99.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.99.33</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -39,17 +43,17 @@
     <li><a class="dropdown-item" href="articles/TSENAT_appendix_B.html">Appendix B</a></li>
   </ul>
 </li>
-<li class="nav-item"><a class="nav-link" href="reference/index.html"><span class="fa far fa-file-code fa-lg"></span> Functions</a></li>
+<li class="nav-item"><a class="nav-link" href="reference/index.html"><span class="fa fas fa-cubes fa-lg"></span> Functions</a></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://app.codecov.io/gh/gallardoalba/TSENAT"><span class="fa fas fa-chart-bar fa-lg"></span> Coverage</a></li>
-<li class="nav-item"><a class="nav-link" href="r_dependencies_s4_interactive.html"><span class="fa fab fa-github fa-lg"></span> Architecture</a></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-question-circle fa-lg"></span> Issues</a></li>
+<li class="nav-item"><a class="nav-link" href="r_dependencies_s4_interactive.html"><span class="fa fas fa-project-diagram fa-lg"></span> Architecture</a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-bug fa-lg"></span> Issues</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-documents" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-file-pdf fa-lg"></span> Documents</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-documents">
 <li><a class="dropdown-item" href="articles/TSENAT.pdf">TSENAT Vignette (PDF)</a></li>
   </ul>
 </li>
-<li class="nav-item"><a class="nav-link" href="news/index.html">News</a></li>
+<li class="nav-item"><a class="nav-link" href="news/index.html"><span class="fa fas fa-newspaper fa-lg"></span> News</a></li>
 <li class="nav-item"><a class="nav-link" href="articles/citations.html"><span class="fa fas fa-book fa-lg"></span> References</a></li>
       </ul>
 <ul class="navbar-nav">
@@ -62,25 +66,23 @@
 </nav><div class="container template-home">
 <div class="row">
   <main id="main" class="col-md-9">
-<div class="section level1">
-<div class="page-header"><h1 id="tsenat-tsallis-entropy-analysis-toolbox">TSENAT: Tsallis Entropy Analysis Toolbox<a class="anchor" aria-label="anchor" href="#tsenat-tsallis-entropy-analysis-toolbox"></a>
-</h1></div>
-<p>TSENAT is a R package for quantifying and modeling <strong>isoform-usage complexity</strong> across RNA-seq samples using <strong>Tsallis entropy</strong> - a scale-dependent information-theoretic measure of transcript heterogeneity.</p>
+<p><img width="1931" height="732" alt="TSENAT: Tsallis Entropy Analysis Toolbox. TSENAT is a R package for quantifying and modeling isoform-usage complexity across RNA-seq samples using Tsallis entropy - a scale-dependent information-theoretic measure of transcript heterogeneity." src="https://github.com/user-attachments/assets/b89df329-c697-40ce-a037-0f82fc782a23"></p>
 <div class="section level2">
 <h2 id="the-problem">The Problem<a class="anchor" aria-label="anchor" href="#the-problem"></a>
 </h2>
-<p>Standard differential expression tools (DESeq2, edgeR) detect changes in total transcript abundance. However, genes often reorganize their isoform diversity <em>without</em> changing total abundance: they may shift from a balanced isoform distribution to dominance by a single isoform, or vice versa. This <strong>isoform switching and splicing-driven regulation</strong> is biologically important for cell state and function but invisible to abundance-focused methods.</p>
+<p>RNA-seq analysis typically addresses one of three complementary biological questions: (1) which genes change in total abundance?, (2) which individual transcripts shift their abundance?, (3) which transcripts shift their <em>proportions</em> within genes, independent of total abundance?</p>
+<p>However, a fourth question remains largely invisible: <strong>how does isoform-usage complexity change?</strong></p>
 </div>
 <div class="section level2">
 <h2 id="the-solution">The Solution<a class="anchor" aria-label="anchor" href="#the-solution"></a>
 </h2>
-<p>TSENAT captures isoform diversity independently of which specific isoforms are abundant. The method uses Tsallis entropy, whose entropic index parameter (q) enables to evaluate different data dimensions:</p>
+<p>TSENAT captures isoform-usage complexity throught Tsallis entropy, whose entropic index parameter (q) enables to evaluate different data dimensions:</p>
 <ul>
 <li><p><strong>Low q</strong> (e.g., 0.5): Focuses on rare isoforms - detects if diversity is maintained or collapsed</p></li>
 <li><p><strong>Mid q</strong> (e.g., 1.0): Balanced view (Shannon entropy) - overall isoform complexity</p></li>
 <li><p><strong>High q</strong> (e.g., 2.0): Focuses on dominant isoforms - detects dominance shifts</p></li>
 </ul>
-<p>By examining diversity across multiple entropic indices (q-values), you identify scale-dependent diversity changes - the hallmark of coordinate isoform switching.</p>
+<p>By examining diversity across multiple entropic indices (q-values), TSENAT allows to identify scale-dependent diversity changes - the hallmark of coordinate isoform switching.</p>
 </div>
 <div class="section level2">
 <h2 id="the-mathematics-behind-tsallis-entropy">The Mathematics Behind Tsallis Entropy<a class="anchor" aria-label="anchor" href="#the-mathematics-behind-tsallis-entropy"></a>
@@ -195,19 +197,38 @@
 <div class="float">
 <img src="https://raw.githubusercontent.com/gallardoalba/TSENAT/gh-pages/articles/TSENAT_files/figure-html/fig-1-isoform-diversity-profiles-1.png" alt="Isoform diversity profiles across q-values: TSENAT detects scale-dependent diversity patterns"><div class="figcaption">Isoform diversity profiles across q-values: TSENAT detects scale-dependent diversity patterns</div>
 </div>
-<p>For a complete walkthrough of the analysis pipeline with real biological examples, see the <a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT.html">main package vignette</a>. This includes theory background, step-by-step explanations of each analysis function, and interpretation guidance for understanding your results.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="documentation--vignettes">Documentation &amp; Vignettes<a class="anchor" aria-label="anchor" href="#documentation--vignettes"></a>
+</h2>
+<p>TSENAT includes three complementary vignettes that together provide a complete guide to the package:</p>
+<div class="section level3">
+<h3 id="main-vignette--full-analysis-walkthrough">Main Vignette — Full Analysis Walkthrough<a class="anchor" aria-label="anchor" href="#main-vignette--full-analysis-walkthrough"></a>
+</h3>
+<p>For a complete walkthrough of the analysis pipeline with real biological examples, see the <a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT.html">main package vignette</a>. This includes theory background, step-by-step explanations of each analysis function, and interpretation guidance for understanding your results. It covers the entire workflow from loading Salmon-quantified data through entropy computation, statistical testing, and visualization.</p>
+</div>
+<div class="section level3">
+<h3 id="appendix-a--equivalence-validation">Appendix A — Equivalence Validation<a class="anchor" aria-label="anchor" href="#appendix-a--equivalence-validation"></a>
+</h3>
+<p><a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT_appendix_A.html">Appendix A</a> validates TSENAT’s entropy and diversity computations against <a href="https://bioconductor.org/packages/SplicingFactory/" class="external-link">SplicingFactory</a>, an independent Bioconductor package. This cross-validation confirms that Tsallis entropy values, diversity profiles, and the entropic index (q) parameterization produce numerically equivalent results across both implementations, ensuring computational correctness.</p>
+</div>
+<div class="section level3">
+<h3 id="appendix-b--non-parametric-validation">Appendix B — Non-Parametric Validation<a class="anchor" aria-label="anchor" href="#appendix-b--non-parametric-validation"></a>
+</h3>
+<p><a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT_appendix_B.html">Appendix B</a> provides non-parametric validation of the scale-adaptive interaction test (SAIT) results using the Aligned Rank Transform (ART) via the <a href="https://cran.r-project.org/package=ARTool" class="external-link">ARTool</a> package. This demonstrates concordance between the primary GAMM-based parametric approach and a fully non-parametric alternative, strengthening confidence in detected q × condition interactions.</p>
 </div>
 </div>
 <div class="section level2">
 <h2 id="statistical-inference-methods">Statistical Inference Methods<a class="anchor" aria-label="anchor" href="#statistical-inference-methods"></a>
 </h2>
-<p>TSENAT provides a flexible statistical framework optimized for entropy-based diversity analysis. The recommended main workflow relies on <strong>Generalized Additive Models (GAM)</strong> via <a href="https://CRAN.R-project.org/package=mgcv" class="external-link"><code>mgcv::gam()</code></a> combined with ARIMA differencing.</p>
+<p>TSENAT provides a flexible statistical framework optimized for entropy-based diversity analysis. The recommended main workflow (paired design) relies on <strong>Generalized Additive Mixed Models (GAMM)</strong> via <a href="https://CRAN.R-project.org/package=mgcv" class="external-link"><code>mgcv::gamm()</code></a> combined with ARIMA differencing.</p>
 <p>The statistical methods available in TSENAT include:</p>
 <ul>
 <li>
-<strong>Scale-adaptive interaction tests (SAIT)</strong>: Multiple modeling approaches optimized for repeated measures with AR(1) correlation structure. GAM, LMM, GEE and FPCA are all parametrized to handle the non-normality and heteroscedasticity characteristic of entropy data.</li>
+<strong>Scale-adaptive interaction tests (SAIT)</strong>: Multiple modeling approaches optimized for repeated measures with AR(1) correlation structure. GAM/GAMM, LMM, GEE and FPCA are all parametrized to handle the non-normality and heteroscedasticity characteristic of entropy data.</li>
 <li>
-<strong>Scheirer-Ray-Hare (SRH) rank tests</strong>: The test operates solely on ranks, making it robust to outliers and extreme values. However, it shows lower power for interactions and can inflate Type I errors under heterogeneous variance. These limitations are mitigated through Hochberg multiple testing correction.</li>
+<strong>Aligned Rank Transform (ART)</strong>: State-of-the-art non-parametric interaction testing via the ARTool package (Kay et al. 2021). Strips main effects before ranking (“alignment”) to properly preserve interaction structure — addressing the known limitation of classical rank-transform methods for factorial designs. The Conover-Iman Rank Transform remains available as a fallback via <code>method='rt'</code>.</li>
 <li>
 <strong>M-estimation</strong>: Robust location estimation for group comparison using iteratively re-weighted least squares, resistant to outliers.</li>
 <li>
@@ -231,14 +252,14 @@
 </tr></thead>
 <tbody>
 <tr>
-<td><strong>DESeq2, edgeR, limma</strong></td>
-<td>Which genes change in <em>total abundance</em>?</td>
-<td>TSENAT detects isoform-usage complexity changes independent of total abundance</td>
+<td><strong>edgeR, DESeq2</strong></td>
+<td>Do individual transcripts increase/decrease in expression? Do genes change in total abundance?</td>
+<td>TSENAT measures isoform-usage complexity changes independent of transcript or gene abundance</td>
 </tr>
 <tr>
-<td><strong>DRIMSeq</strong></td>
-<td>Which <em>individual transcripts</em> shift usage?</td>
-<td>TSENAT measures overall isoform diversity, not individual transcript shifts</td>
+<td><strong>DEXSeq, DRIMSeq</strong></td>
+<td>Which transcripts shift their <em>proportions</em> within genes, independent of abundance changes?</td>
+<td>TSENAT detects whether the isoform landscape consolidates or fragments</td>
 </tr>
 <tr>
 <td><strong>IsoformSwitchAnalyzeR</strong></td>
@@ -290,24 +311,24 @@
 <p>Your Salmon output must be organized with one folder per sample, each containing a quant.sf file with transcript-level quantification. Sample folder names must exactly match the row names in your metadata file (case-sensitive) to ensure correct sample attribution.</p>
 <p>TSENAT expects Salmon output organized with one subdirectory per sample:</p>
 <pre><code>salmon_output/
-├── Sample_1/
+├── sample_1/
 │   └── quant.sf
-├── Sample_2/
+├── sample_2/
 │   └── quant.sf
-├── Sample_3/
+├── sample_3/
 │   └── quant.sf
-└── Sample_4/
+└── sample_4/
     └── quant.sf</code></pre>
 </div>
 <div class="section level3">
 <h3 id="metadata-file-structure">Metadata File Structure<a class="anchor" aria-label="anchor" href="#metadata-file-structure"></a>
 </h3>
 <p>Expected TSV file format:</p>
-<pre><code>sample        condition    paired_samples
-SRR14800481   normal       A
-SRR14800480   normal       B
-SRR14800479   tumor        A
-SRR14800478   tumor        B</code></pre>
+<pre><code>sample      condition    paired_samples
+sample_1    normal            A
+sample_2    normal            B
+sample_3    tumor             A
+sample_4    tumor             B</code></pre>
 <p>Key requirements:</p>
 <ul>
 <li>
@@ -320,15 +341,9 @@ SRR14800478   tumor        B</code></pre>
 </div>
 </div>
 <div class="section level2">
-<h2 id="tests-coverage">Tests coverage<a class="anchor" aria-label="anchor" href="#tests-coverage"></a>
+<h2 id="tests-coverage">Tests Coverage<a class="anchor" aria-label="anchor" href="#tests-coverage"></a>
 </h2>
 <p>Testing is vital in research as it ensures the validity and reliability of results, which is essential for accurately interpreting findings. The report about the current testing coverage can be found <a href="https://app.codecov.io/gh/gallardoalba/TSENAT" class="external-link">here</a>.</p>
-</div>
-<div class="section level2">
-<h2 id="package-architecture">Package Architecture<a class="anchor" aria-label="anchor" href="#package-architecture"></a>
-</h2>
-<p>Get a visual overview of TSENAT’s structure in <a href="https://gallardoalba.github.io/TSENAT/r_dependencies_s4_interactive.html">package architecture</a>. This helps you understand how the 600+ functions that integrate TSENAT work together.</p>
-<p><img width="1200" height="738" alt="dependency_graph_2026-04-17" src="https://github.com/user-attachments/assets/3f9ca1e0-1848-4389-905a-2b2617a2e40a"></p>
 </div>
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
@@ -350,7 +365,6 @@ SRR14800478   tumor        B</code></pre>
 <p><strong>“If I ever come back from the past, it’s to create a cyclone.”</strong></p>
 <p>– Juan José Lozano</p>
 </blockquote>
-</div>
 </div>
 
   </main><aside class="col-md-3"><div class="license">
@@ -397,11 +411,11 @@ SRR14800478   tumor        B</code></pre>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by <a href="https://github.com/gallardoalba" class="external-link">Cristóbal Gallardo</a>.</p>
+  <p>Developed by Cristóbal Gallardo Alba.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0. NULL</p>
 </div>
 
     </footer>

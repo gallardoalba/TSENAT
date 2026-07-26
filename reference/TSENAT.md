@@ -11,8 +11,9 @@ TSENAT(
   analysis,
   output_dir = "tsenat_outputs",
   save_output = TRUE,
-  output_format = "tsv",
-  verbose = TRUE
+  output_format = c("tsv", "csv", "txt", "rds"),
+  verbose = TRUE,
+  tips = FALSE
 )
 ```
 
@@ -42,6 +43,12 @@ TSENAT(
 - verbose:
 
   `logical`. Print progress messages. Default: TRUE.
+
+- tips:
+
+  `logical`. Show tips and usage examples at the end of the pipeline
+  run. Default: FALSE. Set to TRUE to see the \`\[TIPS\]\` section
+  displaying common result-extraction commands.
 
 ## Value
 
@@ -95,8 +102,8 @@ Pipeline execution order (enforced, follows TSENAT.Rmd vignette):
 14. [`calculate_assumptions()`](https://gallardoalba.github.io/TSENAT/reference/calculate_assumptions.md) -
     Validate rank-based test assumptions
 
-15. [`calculate_srh()`](https://gallardoalba.github.io/TSENAT/reference/calculate_srh.md) -
-    Scheirer-Ray-Hare rank-based interaction test
+15. [`calculate_rank_transform()`](https://gallardoalba.github.io/TSENAT/reference/calculate_rank_transform.md) -
+    ART (Aligned Rank Transform) interaction test
 
 16. [`calculate_concordance()`](https://gallardoalba.github.io/TSENAT/reference/calculate_concordance.md) -
     Compare LM and rank test results
@@ -152,22 +159,20 @@ result <- TSENAT(analysis)
 #>   Pseudocount .......... disabled
 #>   Shrinkage ............ disabled
 #>   Significance ......... p < 0.050 | FDR < 0.050
-#>   SAIT method ............ GAM
-#>   SAIT p-corr method ..... BH
+#>   SAIT method .......... GAM
+#>   SAIT p-corr method ... BH
 #>   Jackknife use_sait_fdr . TRUE
 #> 
 #> =============================================================
 #> [>] [ 1/16] Filtering low-abundance transcripts
-#>           [OK] Complete
+#>           [OK] Complete - 341 transcripts remaining
 #> [>] [ 2/16] Computing Tsallis entropy
 #>           [OK] 10 q-values processed
 #> [>] [ 3/16] Plotting diversity q-spectrum
 #>           [OK] Plot generated
 #> [>] [ 4/16] Computing M-estimator influence
 #>           [OK] M-estimate QC complete
-#> [>] [ 5/16] Fitting Scale-Adaptive Interaction Testing models
-#> Warning: nlminb problem, convergence error code = 1
-#>   message = singular convergence (7)
+#> [>] [ 5/16] Fitting SAIT interaction models
 #>           [OK] SAIT interaction analysis complete
 #> [>] [ 6/16] Plotting SAIT results
 #>           [OK] SAIT interaction plot generated
@@ -188,9 +193,9 @@ result <- TSENAT(analysis)
 #>           [OK] Multi-gene divergence spectrum plot generated
 #> [>] [14/16] Checking statistical assumptions
 #>           [OK] Assumptions validated
-#> [>] [15/16] Performing Scheirer-Ray-Hare test
-#>           [OK] Scheirer-Ray-Hare test completed
-#> [>] [16/16] Computing LM-rank test concordance
+#> [>] [15/16] Performing ART (Aligned Rank Transform) interaction test
+#>           [OK] Aligned Rank Transform (ART) completed
+#> [>] [16/16] Computing SAIT-ART concordance
 #>           [OK] Concordance analysis completed
 #> =============================================================
 #> 
@@ -201,36 +206,14 @@ result <- TSENAT(analysis)
 #> [RESULTS] Results Summary
 #> 
 #> [PERF] Performance
-#>   Total time ........... 27.7s
+#>   Total time ........... 30.2s
 #>   Slowest steps:
-#>     1. sait_interaction     13.7s (49.3%)
-#>     2. jackknife            5.0s (18.0%)
-#>     3. sait_plot            2.6s (9.5%)
+#>     1. sait_interaction     13.3s (44.2%)
+#>     2. rank_transform_test  5.3s (17.5%)
+#>     3. jackknife            4.0s (13.3%)
 #> 
 #> [OUTPUT] Output
 #>   Directory ........... tsenat_outputs
 #>   Files saved ......... 18
-#> 
-#> [TIPS] Extract Results - Common Examples:
-#>   # View object structure
-#>   show(result)
-#> 
-#>   # View detailed statistics summary
-#>   summary(result)
-#> 
-#>   # Tsallis Entropy Diversity
-#>   # Get results for specific sample at q=1.0
-#>   div <- results(result, type = 'diversity',
-#>                  n_genes = 4, sample = 'SRR14800481')
-#> 
-#>   # Scale-Adaptive Interaction Model Results
-#>   # Top 10 genes by p-value
-#>   sait_result <- results(result, type = "sait",
-#>                 rankBy = 'pvalue', n = 10)
-#> 
-#>   # Visualizations
-#>   plot_diversity <- results(result, type = 'diversity', plot = TRUE)
-#>   plot_sait <- results(result, type = "sait", plot = TRUE)
-#> 
 # }
 ```

@@ -246,12 +246,11 @@ analysis
 #> Samples:     10
 #> Configuration: 27 parameters
 #> Analysis status: EMPTY
-#> Created: 2026-05-03 04:21:51.133091
+#> Created: 2026-07-26 16:50:15.644855
 #> 
 print(dim(analysis))
 #> NULL
 
-# \donttest{
 # Method 2: From Salmon quantification folder
 # Requires directory structure like:
 #   salmon_output/
@@ -289,7 +288,6 @@ print(dim(analysis))
 #   config = cfg
 #   # Note: metadata argument omitted - will be read from config$metadata
 # )
-# }
 
 # Advanced: Assigning metadata to assays after object creation
 # When adding metadata to SummarizedExperiment assays, always use the

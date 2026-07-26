@@ -1,27 +1,26 @@
 # TSENAT: Tsallis Entropy Analysis Toolbox
 
-## Overview
+## Introduction
 
-TSENAT (Tsallis Entropy Analysis Toolbox) allows the modelization and
+TSENAT (Tsallis Entropy Analysis Toolbox) enables the modeling and
 quantification of isoform-usage complexity in RNA-seq data using Tsallis
-entropy, a scale-dependent diversity measure distinct from
-abundance-focused tools (DESeq2, edgeR) and differential transcript
-usage packages (DRIMSeq). By tuning the entropy index parameter (q),
-TSENAT enables to examine transcriptome heterogeneity at different
-scales: rare variants (low q) or dominant isoforms (high q). This
-package enables computing Tsallis entropy and Tsallis divergence from
-transcript-level abundance estimates, comparing measures between groups,
-and visualizing scale-dependent differences via q-curves.
+entropy, a scale-dependent diversity measure distinct from differential
+abundance tools (DESeq2, edgeR) and differential usage tools (DEXSeq,
+DRIMSeq). By tuning the entropy index parameter ($`q`$), TSENAT examines
+transcriptome heterogeneity at different scales: rare variants (low
+$`q`$) or dominant isoforms (high $`q`$). The package computes Tsallis
+entropy and Tsallis divergence from transcript-level abundance
+estimates, compares measures between groups, and visualizes
+scale-dependent differences via q-curves.
 
 ### Motivation
 
 Common RNA-seq tools focus on either total gene abundance changes or
 individual transcript usage shifts, yet genes often remodel their
 isoform landscapes without changing overall expression-a phenomenon
-missed by these approaches. TSENAT makes possible to quantify this
-isoform-usage diversty directly via Tsallis entropy, allowing to capture
-biological signals invisible to abundance- or proportion-based
-summaries.
+missed by these approaches. TSENAT quantifies isoform-usage diversity
+directly via Tsallis entropy, capturing biological signals invisible to
+abundance- or proportion-based summaries.
 
 In this guide, we demonstrate the complete workflow: preprocessing
 transcript counts, computing entropy across entropic indices, testing
@@ -39,7 +38,7 @@ complexity.
 4.  **Visualize results**.
 
 Design assumptions: This guide assumes paired or longitudinal designs
-with \>=6-8 samples per group for adequate power to detect entropy
+with $`\geq`$ 6–8 samples per group for adequate power to detect entropy
 shifts while controlling false discovery rate. Smaller sample sizes may
 be underpowered to detect subtle isoform complexity changes.
 
@@ -47,7 +46,8 @@ be underpowered to detect subtle isoform complexity changes.
 
 The easiest way to install TSENAT is through Bioconda:
 
-``` bash
+``` r
+# Install from Bioconda
 conda install -c bioconda r-tsenat
 ```
 
@@ -69,6 +69,9 @@ library(SummarizedExperiment)
 
 # Load example data
 data("readcounts", package = "TSENAT")
+
+# Load readcounts object, which contains Salmon-quantified
+# fragment counts with EM-based ambiguity resolution applied
 readcounts <- as.matrix(readcounts)
 
 # Load sample metadata and annotation
@@ -254,13 +257,16 @@ multiple organizational scales.
 ### Beyond Classical Abundance Measures
 
 Traditional RNA-seq analysis focuses on fold-changes and differential
-abundance. Since isoform reorganization can occur independently of total
-abundance changes, entropy-based approaches complement classical methods
-by detecting complexity shifts that transcript-level statistics alone
-cannot reveal. Standard statistical tests (t-tests, DESeq2, etc.) miss
-the phenomenon entirely: a gene can show zero fold-change while
-experiencing dramatic isoform reshuffling. This represents a fundamental
-analytical gap that entropy-based methods address.
+abundance of specific transcripts. Tools like edgeR (Robinson et al.
+2010; Baldoni et al. 2024), DESeq2 (Love et al. 2014), and DEXSeq
+(Anders et al. 2012) measure whether individual transcripts
+increase/decrease in expression or shift in relative
+proportion.Entropy-based approaches complement these methods by
+detecting complexity shifts —whether genes consolidate onto fewer
+dominant isoforms or maintain balanced distributions. TSENAT detects
+this reorganization answering a fundamentally different biological
+question: not “which transcripts change?” but “how is the isoform
+complexity changing?”
 
 ### Mechanistic Evidence: Disease and Evolution
 
@@ -290,7 +296,7 @@ organizational principles (Nijman 2020).
 ## TSENAT Main Workflow
 
 We now demonstrate a complete workflow for detecting **isoform
-switching**-when cells reorganize their isoform landscape without
+switching** — when cells reorganize their isoform landscape without
 necessarily changing total gene abundance. This often reflects strategic
 shifts in protein function driven by splicing regulation.
 
@@ -333,9 +339,9 @@ Now we will load the example dataset and associated metadata:
 
 # Load example dataset (lazy-loaded as 'readcounts' by default)
 # This includes SALMON preprocessing outputs:
-# - readcounts: transcript-level NumReads (raw fragment counts)
-# - tpm: TPM matrix (length- and library-normalized estimates)
-# - effective_length: EffectiveLength vector (read-length corrected)
+# - readcounts: Salmon NumReads (raw fragment counts with EM-based ambiguity resolution)
+# - tpm: Salmon TPM matrix (length and library-normalized expression)
+# - effective_length: Salmon EffectiveLength vector (accounts for fragment length distribution)
 data(readcounts)
 
 readcounts <- as.matrix(readcounts)
@@ -405,7 +411,7 @@ analysis <- filter_analysis(analysis, stringency = "medium")
 ```
 
 The `stringency = "medium"` parameter keeps transcripts present in
-\>=50% of samples with TPM values above the median of mean gene TPM.
+\$\$50% of samples with TPM values above the median of mean gene TPM.
 This balances noise reduction with preservation of isoform diversity
 needed for meaningful entropy calculations.
 
@@ -447,13 +453,15 @@ print(diversity)
 **Table 1:** Tsallis entropy for first 4 genes across three diversity
 scales (sample: SRR14800481) {.table}
 
-With the q-spectrum we can produce a q-curve per sample and gene. These
-curves show how diversity emphasis shifts from rare to dominant isoforms
-as `q` increases and form the basis for interaction tests. The q-curve
-shows entropy as a function of `q`. Diverging curves between groups
-indicate scale-dependent diversity differences: separation at low `q`
-implies differences in rare isoforms, while separation at high `q`
-signals differences in dominant isoforms.
+With the q-spectrum we can produce q-curves at two levels:
+
+1.  **Overall diversity profile (Figure 1)**: Shows how entropy changes
+    across q-values for all samples aggregated, colored by condition
+    (control vs. treatment).
+
+2.  **Gene-specific q-curves (Figure 2)**: For genes with significant
+    q×condition interactions, shows how each gene’s diversity pattern
+    differs by condition across the entropic spectrum.
 
 ``` r
 
@@ -470,6 +478,10 @@ treatment.](TSENAT_files/figure-html/fig-1-isoform-diversity-profiles-1.png)
 **Figure 1:** Isoform diversity profiles across entropic indices. Lines
 show normalized Tsallis entropy (0-1) for each sample, blue control and
 red treatment.
+
+Diverging curves between groups indicate scale-dependent diversity
+differences: separation at low `q` implies differences in rare isoforms,
+while separation at high `q` signals differences in dominant isoforms.
 
 ### Quality Control: Sample Influence Assessment
 
@@ -589,24 +601,25 @@ print(sait_results)
 
 | Gene | P-value | Adj. P-value | Effect Size | Test Statistic | Model Converged | Heteroscedasticity |
 |:---|:---|:---|---:|---:|:---|:---|
-| CXCL12 | 3.93e-164 | 2.99e-162 | 0.8127 | 752.5086 | TRUE | TRUE |
-| THY1 | 9.80e-97 | 7.35e-95 | 0.6008 | 442.1369 | TRUE | TRUE |
-| ING3 | 2.72e-77 | 2.02e-75 | 0.3533 | 352.5945 | TRUE | TRUE |
-| SNHG10 | 9.81e-75 | 7.16e-73 | 0.0515 | 340.8200 | TRUE | TRUE |
-| LINC03040 | 1.87e-57 | 1.35e-55 | 0.7380 | 261.2380 | TRUE | TRUE |
-| HDAC2 | 2.61e-51 | 1.85e-49 | 0.2844 | 232.9431 | TRUE | TRUE |
+| CXCL12 | 4.63e-88 | 3.52e-86 | 0.8158 | 5.9954 | TRUE | TRUE |
+| THY1 | 3.80e-32 | 2.85e-30 | 0.6052 | 3.4843 | TRUE | TRUE |
+| MEF2A | 1.32e-23 | 9.79e-22 | 0.2003 | 0.9256 | TRUE | TRUE |
+| RAP1GDS1 | 6.85e-20 | 5.00e-18 | 0.5516 | 0.8500 | TRUE | TRUE |
+| GSKIP | 1.40e-18 | 1.01e-16 | 0.3107 | 1.0130 | TRUE | TRUE |
+| ING3 | 6.95e-12 | 4.93e-10 | 0.3589 | 0.6840 | TRUE | TRUE |
 
 **Table 3 \| Leading genes with scale-dependent condition effects from
 generalized additive models.** We display the 6 genes with lowest
-adjusted p-values (*q* \< 0.05). Benjamini-Hochberg correction applied;
-columns show gene identifier, effect size, test statistic, convergence
-status, and heteroscedasticity detection. Methods: GAMs with *q* and
-condition as smooth predictors (Benjamini and Hochberg 1995). {.table}
+adjusted p-values (*q* \< 0.05). Hochberg step-up correction applied
+(FWER control); columns show gene identifier, effect size, test
+statistic, convergence status, and heteroscedasticity detection.
+Methods: GAMs with *q* and condition as smooth predictors (Benjamini and
+Hochberg 1995). {.table}
 
 **Interpretation:** TRUE in the Heteroscedasticity column indicates that
-the model satisfies homogeneity-of-variance assumptions across the
-q-spectrum; FALSE values suggest variance heterogeneity and warrant
-caution in result interpretation.
+variance heterogeneity was detected across the q-spectrum (assumption
+violated, results warrant caution); FALSE indicates homoscedasticity
+(variance homogeneity assumption satisfied).
 
 Now we will plot the q-curve profile for the top genes identified by the
 scale-adaptive interaction test.
@@ -623,12 +636,11 @@ print(combined_plot)
 ```
 
 ![\*\*Figure 2:\*\* Scale-dependent interaction analysis. GAM-identified
-genes showing significant q\$ imes\$condition effects
-(Benjamini-Hochberg q \<
-0.05).](TSENAT_files/figure-html/fig-2-scale-dependent-genes-1.png)
+genes showing significant q\$ imes\$condition effects (Hochberg-adjusted
+p \< 0.05).](TSENAT_files/figure-html/fig-2-scale-dependent-genes-1.png)
 
 **Figure 2:** Scale-dependent interaction analysis. GAM-identified genes
-showing significant q\$ imes\$condition effects (Benjamini-Hochberg q \<
+showing significant q\$ imes\$condition effects (Hochberg-adjusted p \<
 0.05).
 
 ### Transcript Switching Across Diversity Scales
@@ -800,13 +812,13 @@ repertoire itself changes.
 To understand which diversity scales show the most pronounced biological
 differences between groups, we will compute Tsallis divergence $`D_q`$
 across the q-spectrum (Kullback and Leibler 1951; Furuichi 2006; Jost
-2006; Erven and Harremoes 2014; Sason 2022; Shiner et al. 2002)\]. This
-metrics allows to reveal whether group differences are driven by rare
-isoforms (low q), dominant isoforms (high q), or uniformly across
-scales. Values $`D > 0.1`$ indicate meaningful information-theoretic
-separation between conditions, revealing that isoform complexity
-patterns fundamentally differ between treatment groups across all
-q-dependent scales (Ré and Azad 2014).
+2006; Erven and Harremoes 2014; Sason 2022; Shiner et al. 2002). This
+metric reveals whether group differences are driven by rare isoforms
+(low $`q`$), dominant isoforms (high $`q`$), or uniformly across scales.
+Values $`D > 0.1`$ indicate meaningful information-theoretic separation
+between conditions, revealing that isoform complexity patterns
+fundamentally differ between treatment groups across all q-dependent
+scales (Ré and Azad 2014).
 
 For two probability distributions $`P`$ and $`Q`$ representing isoform
 proportions in control and treatment conditions, Tsallis divergence is:
@@ -830,7 +842,7 @@ analysis <- calculate_divergence(analysis)
 | GSR     | 0.08359 | 0.08801 | 0.09349 |
 | SNX4    | 0.06378 | 0.06744 | 0.07200 |
 
-**Table 3 \| Pairwise Tsallis divergence estimates.** Divergence
+**Table 5 \| Pairwise Tsallis divergence estimates.** Divergence
 (distance) between conditions from Tsallis entropy framework. Columns:
 gene identifier; pairwise comparison; divergence value; confidence
 interval (95%). Ranked by magnitude. {.table}
@@ -855,16 +867,19 @@ top_genes_result <- results(
 print(top_genes_result)
 ```
 
-| Gene      | P-value | Slope Diff | D(q=0.5) | D(q=1.0) | D(q=2.0) | Pattern     |
-|:----------|--------:|-----------:|---------:|---------:|---------:|:------------|
-| CXCL12    |       0 |    -0.3725 |   0.3115 |   0.3697 |   0.1643 | Balanced    |
-| THY1      |       0 |     0.2928 |   0.1481 |   0.1720 |   0.0589 | Balanced    |
-| ING3      |       0 |     0.1136 |   0.0122 |   0.0137 |   0.0040 | Rare driven |
-| SNHG10    |       0 |     0.1203 |   0.0874 |   0.0956 |   0.0283 | Rare driven |
-| LINC03040 |       0 |     0.1063 |   0.2850 |   0.3119 |   0.1098 | Rare driven |
-| HDAC2     |       0 |     0.1244 |   0.0651 |   0.0699 |   0.0201 | Rare driven |
+| Gene     | P-value  | Slope Diff |  D(q=0.5) |  D(q=1.0) |  D(q=2.0) | Pattern     |
+|:---------|:---------|-----------:|----------:|----------:|----------:|:------------|
+| CXCL12   | 3.52e-86 | -3.322e-01 | 3.115e-01 | 3.697e-01 | 1.643e-01 | Balanced    |
+| THY1     | 2.85e-30 |  2.474e-01 | 1.481e-01 | 1.720e-01 | 5.890e-02 | Balanced    |
+| MEF2A    | 9.79e-22 | -1.268e-01 | 3.870e-02 | 3.940e-02 | 1.000e-02 | Rare driven |
+| RAP1GDS1 | 5.00e-18 |  1.240e-01 | 1.700e-02 | 1.870e-02 | 5.300e-03 | Rare driven |
+| GSKIP    | 1.01e-16 |  1.353e-01 | 2.125e-01 | 2.352e-01 | 8.390e-02 | Rare driven |
+| ING3     | 4.93e-10 |  1.112e-01 | 1.220e-02 | 1.370e-02 | 4.000e-03 | Rare driven |
 
-Top 6 Genes by Effect Size (Tsallis Divergence) {.table}
+**Table 7 \| Top 6 Genes by Effect Size (Tsallis Divergence).** Genes
+ranked by interaction p-value; columns show divergence at key q-values
+(0.5, 1.0, 2.0) and inferred pattern type (rare-driven, abundant-driven,
+or balanced). {.table}
 
 #### Interpretation of Pattern Types:
 
@@ -907,7 +922,16 @@ plot_obj <- plot_divergence_distribution(
 print(plot_obj)
 ```
 
-![](TSENAT_files/figure-html/effect-size-plot-multiq-1.png)
+![\*\*Figure 5:\*\* Distribution of Tsallis divergence effect sizes
+across genes. X-axis shows divergence values; y-axis shows gene density.
+Threshold line indicates substantial divergence (D \> 0.1)
+distinguishing signal genes from
+background.](TSENAT_files/figure-html/effect-size-plot-multiq-1.png)
+
+**Figure 5:** Distribution of Tsallis divergence effect sizes across
+genes. X-axis shows divergence values; y-axis shows gene density.
+Threshold line indicates substantial divergence (D \> 0.1)
+distinguishing signal genes from background.
 
 ``` r
 
@@ -921,12 +945,12 @@ p_multi <- plot_divergence_spectrum(
 print(p_multi)
 ```
 
-![\*\*Figure 5:\*\* Q-spectrum curves for top genes by significance.
+![\*\*Figure 6:\*\* Q-spectrum curves for top genes by significance.
 Each line represents divergence as a function of q-value; shape reveals
 biological pattern (rare-driven, balanced, or
 abundant-driven).](TSENAT_files/figure-html/compare-q-spectra-plot-1.png)
 
-**Figure 5:** Q-spectrum curves for top genes by significance. Each line
+**Figure 6:** Q-spectrum curves for top genes by significance. Each line
 represents divergence as a function of q-value; shape reveals biological
 pattern (rare-driven, balanced, or abundant-driven).
 
@@ -957,12 +981,12 @@ p <- plot_divergence_spectrum(analysis)
 print(p)
 ```
 
-![\*\*Figure 6:\*\* Global divergence spectrum across all genes.
+![\*\*Figure 7:\*\* Global divergence spectrum across all genes.
 Aggregated q-spectrum pattern shows which abundance scales (rare vs.
 abundant isoforms) are affected
 genome-wide.](TSENAT_files/figure-html/visualize-q-spectrum-1.png)
 
-**Figure 6:** Global divergence spectrum across all genes. Aggregated
+**Figure 7:** Global divergence spectrum across all genes. Aggregated
 q-spectrum pattern shows which abundance scales (rare vs. abundant
 isoforms) are affected genome-wide.
 
@@ -1188,31 +1212,39 @@ sessionInfo()
 #>  [5] IRanges_2.44.0              S4Vectors_0.48.1           
 #>  [7] BiocGenerics_0.56.0         generics_0.1.4             
 #>  [9] MatrixGenerics_1.22.0       matrixStats_1.5.0          
-#> [11] ggplot2_4.0.3               TSENAT_0.99.0              
-#> [13] kableExtra_1.4.0           
+#> [11] ggplot2_4.0.3               TSENAT_0.99.33             
+#> [13] kableExtra_1.4.0            BiocStyle_2.38.0           
 #> 
 #> loaded via a namespace (and not attached):
-#>  [1] gtable_0.3.6        xfun_0.57           bslib_0.10.0       
-#>  [4] htmlwidgets_1.6.4   lattice_0.22-9      vctrs_0.7.3        
-#>  [7] tools_4.5.3         parallel_4.5.3      tibble_3.3.1       
-#> [10] pkgconfig_2.0.3     pheatmap_1.0.13     Matrix_1.7-5       
-#> [13] RColorBrewer_1.1-3  S7_0.2.2            desc_1.4.3         
-#> [16] lifecycle_1.0.5     compiler_4.5.3      farver_2.1.2       
-#> [19] stringr_1.6.0       textshaping_1.0.5   codetools_0.2-20   
-#> [22] htmltools_0.5.9     sass_0.4.10         yaml_2.3.12        
-#> [25] pkgdown_2.2.0       pillar_1.11.1       jquerylib_0.1.4    
-#> [28] tidyr_1.3.2         BiocParallel_1.44.0 cachem_1.1.0       
-#> [31] DelayedArray_0.36.1 abind_1.4-8         nlme_3.1-169       
-#> [34] tidyselect_1.2.1    digest_0.6.39       stringi_1.8.7      
-#> [37] dplyr_1.2.1         purrr_1.2.2         splines_4.5.3      
-#> [40] labeling_0.4.3      cowplot_1.2.0       fastmap_1.2.0      
-#> [43] grid_4.5.3          cli_3.6.6           SparseArray_1.10.10
-#> [46] magrittr_2.0.5      S4Arrays_1.10.1     withr_3.0.2        
-#> [49] scales_1.4.0        rmarkdown_2.31      XVector_0.50.0     
-#> [52] otel_0.2.0          ragg_1.5.0          memoise_2.0.1      
-#> [55] evaluate_1.0.5      knitr_1.51          viridisLite_0.4.3  
-#> [58] mgcv_1.9-4          rlang_1.2.0         Rcpp_1.1.1-1.1     
-#> [61] glue_1.8.1          xml2_1.5.2          svglite_2.2.2      
-#> [64] rstudioapi_0.18.0   jsonlite_2.0.0      R6_2.6.1           
-#> [67] systemfonts_1.3.2   fs_2.1.0
+#>  [1] Rdpack_2.6.6        sandwich_3.1-1      rlang_1.2.0        
+#>  [4] magrittr_2.0.5      multcomp_1.4-30     otel_0.2.0         
+#>  [7] compiler_4.5.3      mgcv_1.9-4          systemfonts_1.3.2  
+#> [10] vctrs_0.7.3         stringr_1.6.0       pkgconfig_2.0.3    
+#> [13] fastmap_1.2.0       XVector_0.50.0      labeling_0.4.3     
+#> [16] rmarkdown_2.31      nloptr_2.2.1        ragg_1.5.2         
+#> [19] purrr_1.2.2         xfun_0.58           cachem_1.1.0       
+#> [22] jsonlite_2.0.0      DelayedArray_0.36.1 BiocParallel_1.44.0
+#> [25] parallel_4.5.3      R6_2.6.1            bslib_0.11.0       
+#> [28] stringi_1.8.7       RColorBrewer_1.1-3  car_3.1-5          
+#> [31] boot_1.3-32         jquerylib_0.1.4     estimability_1.5.1 
+#> [34] Rcpp_1.1.1-1.1      bookdown_0.46       knitr_1.51         
+#> [37] zoo_1.8-15          Matrix_1.7-5        splines_4.5.3      
+#> [40] tidyselect_1.2.1    rstudioapi_0.18.0   abind_1.4-8        
+#> [43] yaml_2.3.12         codetools_0.2-20    lattice_0.22-9     
+#> [46] tibble_3.3.1        plyr_1.8.9          withr_3.0.3        
+#> [49] S7_0.2.2            evaluate_1.0.5      desc_1.4.3         
+#> [52] survival_3.8-6      xml2_1.5.2          pillar_1.11.1      
+#> [55] BiocManager_1.30.27 carData_3.0-6       reformulas_0.4.4   
+#> [58] scales_1.4.0        minqa_1.2.8         ARTool_0.11.2      
+#> [61] xtable_1.8-8        glue_1.8.1          pheatmap_1.0.13    
+#> [64] emmeans_2.0.3       tools_4.5.3         lme4_2.0-1         
+#> [67] fs_2.1.0            mvtnorm_1.3-6       cowplot_1.2.0      
+#> [70] grid_4.5.3          tidyr_1.3.2         rbibutils_2.4.1    
+#> [73] nlme_3.1-169        Formula_1.2-5       cli_3.6.6          
+#> [76] textshaping_1.0.5   S4Arrays_1.10.1     viridisLite_0.4.3  
+#> [79] svglite_2.2.2       dplyr_1.2.1         gtable_0.3.6       
+#> [82] sass_0.4.10         digest_0.6.39       SparseArray_1.10.10
+#> [85] TH.data_1.1-5       htmlwidgets_1.6.4   farver_2.1.2       
+#> [88] memoise_2.0.1       htmltools_0.5.9     pkgdown_2.2.0      
+#> [91] lifecycle_1.0.5     MASS_7.3-65
 ```
