@@ -1,0 +1,139 @@
+url: https://gallardoalba.github.io/TSENAT
+
+pkgdown:
+  title: TSENAT
+
+template:
+  bootstrap: 5
+  params:
+    bootswatch: "flatly"
+  bslib:
+    preset: flatly
+    primary: "#2c3e50"
+    navbar-bg: "#1a252f"
+    link-color: "#18bc9c"
+    link-hover-color: "#0f7864"
+    font-size-base: 1rem
+  assets:
+    css:
+      - custom.css
+
+navbar:
+  structure:
+    left:
+      - articles
+      - reference
+      - coverage
+      - architecture
+      - issue
+      - documents
+      - news
+      - references
+    right:
+      - github
+
+  components:
+    articles:
+      text: Articles
+      icon: fas fa-file-alt fa-lg
+      menu:
+        - text: TSENAT Main Vignette
+          href: articles/TSENAT.html
+        - text: Appendix A
+          href: articles/TSENAT_appendix_A.html
+        - text: Appendix B
+          href: articles/TSENAT_appendix_B.html
+
+    reference:
+      text: Functions
+      icon: fas fa-cubes fa-lg
+      href: reference/index.html
+
+    coverage:
+      text: Coverage
+      icon: fas fa-chart-bar fa-lg
+      href: https://app.codecov.io/gh/gallardoalba/TSENAT
+
+    architecture:
+      text: Architecture
+      icon: fas fa-project-diagram fa-lg
+      href: r_dependencies_s4_interactive.html
+
+    issue:
+      text: Issues
+      icon: fas fa-bug fa-lg
+      href: https://github.com/gallardoalba/TSENAT/issues
+
+    documents:
+      text: Documents
+      icon: fas fa-file-pdf fa-lg
+      menu:
+        - text: TSENAT Vignette (PDF)
+          href: articles/TSENAT.pdf
+
+    news:
+      text: News
+      icon: fas fa-newspaper fa-lg
+      href: news/index.html
+
+    references:
+      text: References
+      icon: fas fa-book fa-lg
+      href: citations.html
+
+home:
+  title: "TSENAT"
+  description: |
+    Tsallis Entropy Analysis Toolbox — quantifying isoform-usage
+    complexity across RNA-seq samples
+  contents: README.md
+  sidebar:
+    structure:
+      - license
+      - citation
+      - developers
+      - dev_status
+    components:
+      license:
+        title: "License"
+        text: |
+          TSENAT is released under the GNU General Public License v3.0. 
+          You are free to use, modify, and distribute this software, 
+          provided you include the source code and make it available 
+          under the same license.
+          
+          [Read the full license](LICENSE-text.html)
+      citation:
+        title: "Citation"
+        text: |
+          [Citing TSENAT](authors.html#citation)
+      developers:
+        title: "Developers"
+        text: |
+          Cristóbal Gallardo
+          
+          Author, maintainer
+          
+          [ORCID](https://orcid.org/0000-0002-5752-2155)
+      dev_status:
+        title: "Dev status"
+        text: |
+          [![CircleCI](https://circleci.com/gh/gallardoalba/TSENAT.svg?style=svg)](https://app.circleci.com/pipelines/github/gallardoalba/TSENAT) 
+          
+          [![pkgdown](https://img.shields.io/badge/docs-pkgdown-blue.svg)](https://gallardoalba.github.io/TSENAT/)
+          
+          [![License: GPL-3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+
+news:
+  releases:
+  - text: "v0.99.33"
+    href: https://github.com/gallardoalba/TSENAT/releases/tag/v.0.99.32
+
+authors:
+  "Cristóbal Gallardo":
+    href: https://github.com/gallardoalba
+
+footer:
+  structure:
+    left:  [developed_by]
+    right: [built_with, pkgdown]
