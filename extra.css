@@ -15,7 +15,7 @@ h1, h2, h3, h4 {
     margin-top: 2rem;
 }
 
-h1 { border-bottom: 3px solid #18bc9c; padding-bottom: 0.5rem; }
+h1 { border-bottom: 3px solid #18bc9c; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
 h2 { border-bottom: 2px solid #ecf0f1; padding-bottom: 0.3rem; }
 
 /* ── Code blocks ────────────────────────────────────────────────────────── */
@@ -47,6 +47,15 @@ pre, pre code {
 
 a, .navbar a, .btn {
     transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+/* ── Table column balancing ─────────────────────────────────────────────── */
+/* Override width:100% so tables size naturally to content instead of
+   forcing all excess space into the first text column.                   */
+
+table {
+    width: auto !important;
+    max-width: 100%;
 }
 
 /* ── Navbar / Banner spacing ────────────────────────────────────────────── */

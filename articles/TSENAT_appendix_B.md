@@ -447,23 +447,23 @@ generalized additive mixed model statistics for q × condition
 interaction tests across full q-spectrum with paired sample structure.
 {.table}
 
-| Gene     | p (interaction) | Adjusted p | Effect size | Test statistic |  df |
-|:---------|----------------:|-----------:|------------:|---------------:|----:|
-| CXCL12   |        4.63e-88 |   3.52e-86 |       81.6% |           6.00 | 640 |
-| THY1     |        3.80e-32 |   2.85e-30 |       60.5% |           3.48 | 640 |
-| MEF2A    |        1.32e-23 |   9.79e-22 |       20.0% |           0.93 | 642 |
-| RAP1GDS1 |        6.85e-20 |   5.00e-18 |       55.2% |           0.85 | 644 |
-| GSKIP    |        1.40e-18 |   1.01e-16 |       31.1% |           1.01 | 639 |
-| DUOXA2   |        5.40e-12 |   3.83e-10 |       30.6% |           8.66 | 560 |
-| ING3     |        6.95e-12 |   4.86e-10 |       35.9% |           0.68 | 644 |
-| EXOC1    |        1.24e-10 |   8.56e-09 |       23.8% |           0.59 | 643 |
-| THOC6    |        1.69e-10 |   1.15e-08 |       14.6% |           1.64 | 642 |
-| HDAC2    |        2.64e-10 |   1.77e-08 |       29.0% |           0.61 | 642 |
+| Gene     | p (interaction) | Adjusted p | Effect size | Test statistic |
+|:---------|----------------:|-----------:|------------:|---------------:|
+| CXCL12   |        4.63e-88 |   3.52e-86 |       81.6% |           6.00 |
+| THY1     |        3.80e-32 |   2.85e-30 |       60.5% |           3.48 |
+| MEF2A    |        1.32e-23 |   9.79e-22 |       20.0% |           0.93 |
+| RAP1GDS1 |        6.85e-20 |   5.00e-18 |       55.2% |           0.85 |
+| GSKIP    |        1.40e-18 |   1.01e-16 |       31.1% |           1.01 |
+| DUOXA2   |        5.40e-12 |   3.83e-10 |       30.6% |           8.66 |
+| ING3     |        6.95e-12 |   4.86e-10 |       35.9% |           0.68 |
+| EXOC1    |        1.24e-10 |   8.56e-09 |       23.8% |           0.59 |
+| THOC6    |        1.69e-10 |   1.15e-08 |       14.6% |           1.64 |
+| HDAC2    |        2.64e-10 |   1.77e-08 |       29.0% |           0.61 |
 
 **Supplementary Table 18 \| Top 10 Genes by GAMM p-value (with Effect
 Size and Test Statistics).** Ranked by adjusted p-value; compare with
 ART results (Supplementary Table 16) for method agreement assessment.
-{.table style="width:100%;"}
+{.table}
 
 ------------------------------------------------------------------------
 
