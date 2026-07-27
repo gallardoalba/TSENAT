@@ -3,90 +3,68 @@
 <head>
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tsallis Entropy Analysis Toolbox • TSENAT</title>
-<!-- jquery --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script><!-- Bootstrap --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha256-bZLfwXAP04zRMK2BjiO8iu9pf4FbLqX6zitd+tIvLhE=" crossorigin="anonymous">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha256-nuL8/2cJ5NDSSwnKD8VqreErSWHtnEP9E7AySL+1ev4=" crossorigin="anonymous"></script><!-- bootstrap-toc --><link rel="stylesheet" href="bootstrap-toc.css">
-<script src="bootstrap-toc.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous">
-<!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- pkgdown --><link href="pkgdown.css" rel="stylesheet">
-<script src="pkgdown.js"></script><meta property="og:title" content="Tsallis Entropy Analysis Toolbox">
-<meta property="og:description" content="Quantifies and models isoform-usage complexity in RNA-seq data using Tsallis entropy, a scale-dependent diversity measure. By tuning the entropic index parameter (q), TSENAT examines transcriptome heterogeneity at different scales: rare variants (low q) or dominant isoforms (high q). It enables computing Tsallis entropy and Tsallis divergence from transcript-level estimates, comparing measures between conditions, testing for differences, and visualizing scale-dependent complexity via q-curves.">
-<!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
-<script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
-<script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-<![endif]-->
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<title>TSENAT • TSENAT</title>
+<script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<link href="deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
+<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="TSENAT">
+<meta name="description" content="Tsallis Entropy Analysis Toolbox — quantifying isoform-usage
+complexity across RNA-seq samples
+">
+<meta property="og:description" content="Tsallis Entropy Analysis Toolbox — quantifying isoform-usage
+complexity across RNA-seq samples
+">
 </head>
-<body data-spy="scroll" data-target="#toc">
+<body>
+    <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
-    <div class="container template-home">
-      <header><div class="navbar navbar-default navbar-fixed-top" role="navigation">
-  <div class="container">
-    <div class="navbar-header">
-      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
-        <span class="sr-only">Toggle navigation</span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-      </button>
-      <span class="navbar-brand">
-        <a class="navbar-link" href="index.html">TSENAT</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.99.34</span>
-      </span>
-    </div>
+    <nav class="navbar navbar-expand-lg fixed-top bg-primary" data-bs-theme="dark" aria-label="Site navigation"><div class="container">
 
-    <div id="navbar" class="navbar-collapse collapse">
-      <ul class="nav navbar-nav">
-<li>
-  <a href="articles/TSENAT.html">Get started</a>
-</li>
-<li>
-  <a href="reference/index.html">Reference</a>
-</li>
-<li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-    Articles
+    <a class="navbar-brand me-2" href="index.html">TSENAT</a>
 
-    <span class="caret"></span>
-  </a>
-  <ul class="dropdown-menu" role="menu">
-<li>
-      <a href="articles/citations.html">References</a>
-    </li>
-    <li>
-      <a href="articles/TSENAT_appendix_A.html">Appendix A: Equivalence Validation - TSENAT vs SplicingFactory</a>
-    </li>
-    <li>
-      <a href="articles/TSENAT_appendix_B.html">Appendix B: Non-Parametric Validation of Scale-Adaptive Interaction Test Results via GAMM and Aligned Rank Transform (ART)</a>
-    </li>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.99.34</small>
+
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div id="navbar" class="collapse navbar-collapse ms-3">
+      <ul class="navbar-nav me-auto">
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-file-alt fa-lg"></span> Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
+<li><a class="dropdown-item" href="articles/TSENAT.html">TSENAT Main Vignette</a></li>
+    <li><a class="dropdown-item" href="articles/TSENAT_appendix_A.html">Appendix A</a></li>
+    <li><a class="dropdown-item" href="articles/TSENAT_appendix_B.html">Appendix B</a></li>
   </ul>
 </li>
-<li>
-  <a href="news/index.html">Changelog</a>
+<li class="nav-item"><a class="nav-link" href="reference/index.html"><span class="fa fas fa-cubes fa-lg"></span> Functions</a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://app.codecov.io/gh/gallardoalba/TSENAT"><span class="fa fas fa-chart-bar fa-lg"></span> Coverage</a></li>
+<li class="nav-item"><a class="nav-link" href="r_dependencies_s4_interactive.html"><span class="fa fas fa-project-diagram fa-lg"></span> Architecture</a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-bug fa-lg"></span> Issues</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-documents" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-file-pdf fa-lg"></span> Documents</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-documents">
+<li><a class="dropdown-item" href="articles/TSENAT.pdf">TSENAT Vignette (PDF)</a></li>
+  </ul>
 </li>
+<li class="nav-item"><a class="nav-link" href="news/index.html"><span class="fa fas fa-newspaper fa-lg"></span> News</a></li>
+<li class="nav-item"><a class="nav-link" href="citations.html"><span class="fa fas fa-book fa-lg"></span> References</a></li>
       </ul>
-<ul class="nav navbar-nav navbar-right">
-<li>
-  <a href="https://github.com/gallardoalba/TSENAT/" class="external-link">
-    <span class="fab fa-github fa-lg"></span>
-
-  </a>
-</li>
+<ul class="navbar-nav">
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
-<!--/.nav-collapse -->
+
+
   </div>
-<!--/.container -->
-</div>
-<!--/.navbar -->
-
-
-
-      </header><div class="row">
-  <div class="contents col-md-9">
-
-
+</nav><div class="container template-home">
+<div class="row">
+  <main id="main" class="col-md-9">
 <p><img width="1931" height="732" alt="TSENAT: Tsallis Entropy Analysis Toolbox. TSENAT is a R package for quantifying and modeling isoform-usage complexity across RNA-seq samples using Tsallis entropy - a scale-dependent information-theoretic measure of transcript heterogeneity." src="https://github.com/user-attachments/assets/b89df329-c697-40ce-a037-0f82fc782a23"></p>
 <div class="section level2">
 <h2 id="the-problem">The Problem<a class="anchor" aria-label="anchor" href="#the-problem"></a>
@@ -149,7 +127,7 @@
 <p>Start by loading the built-in example dataset from TSENAT, which includes transcript-level read counts, TPM values, and effective lengths from Salmon quantification. Then load the sample metadata and annotation file that describe your experimental design.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressMessages</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gallardoalba.github.io/TSENAT" class="external-link">TSENAT</a></span><span class="op">)</span></span>
+<span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gallardoalba.github.io/TSENAT">TSENAT</a></span><span class="op">)</span></span>
 <span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bioconductor.org/packages/SummarizedExperiment" class="external-link">SummarizedExperiment</a></span><span class="op">)</span><span class="op">}</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Load example dataset (includes readcounts, tpm, and effective_length)</span></span>
@@ -230,7 +208,7 @@
 <div class="section level2">
 <h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>
 </h2>
-<p>For a complete walkthrough of the analysis pipeline with real biological examples, see the <a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT.html" class="external-link">main package vignette</a>. This includes theory background, step-by-step explanations of each analysis function, and interpretation guidance for understanding your results. It covers the entire workflow from loading Salmon-quantified data through entropy computation, statistical testing, and visualization.</p>
+<p>For a complete walkthrough of the analysis pipeline with real biological examples, see the <a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT.html">main package vignette</a>. This includes theory background, step-by-step explanations of each analysis function, and interpretation guidance for understanding your results. It covers the entire workflow from loading Salmon-quantified data through entropy computation, statistical testing, and visualization.</p>
 </div>
 <div class="section level2">
 <h2 id="statistical-inference-methods">Statistical Inference Methods<a class="anchor" aria-label="anchor" href="#statistical-inference-methods"></a>
@@ -298,7 +276,7 @@
 <p>TSENAT is specifically engineered to work seamlessly with Salmon quantification output. Rather than requiring manual parsing or format conversion, TSENAT automatically discovers transcript-level quantification files across your Salmon output directory and integrates them directly into the analysis pipeline. This tight integration means you can move from Salmon quantification to entropy analysis without intermediate data manipulation—the raw <code>quant.sf</code> files are all you need. TSENAT discovers these files automatically, validates their compatibility with your experimental design, and handles length-correction and normalization as part of the diversity computation workflow.</p>
 <p>To get started with Salmon-quantified data:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressMessages</a></span><span class="op">(</span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gallardoalba.github.io/TSENAT" class="external-link">TSENAT</a></span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressMessages</a></span><span class="op">(</span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gallardoalba.github.io/TSENAT">TSENAT</a></span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Prepare configuration FIRST</span></span>
 <span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/TSENAT_config.html">TSENAT_config</a></span><span class="op">(</span></span>
@@ -380,44 +358,31 @@ sample_4    tumor             B</code></pre>
 </blockquote>
 </div>
 
-  </div>
-
-  <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
-    <div class="links">
-<h2 data-toc-skip>Links</h2>
-<ul class="list-unstyled">
-<li><a href="https://www.bioconductor.org/packages/TSENAT" class="external-link">View on Bioconductor</a></li>
-<li><a href="https://github.com/gallardoalba/TSENAT/" class="external-link">Browse source code</a></li>
-<li><a href="https://github.com/gallardoalba/TSENAT/issues" class="external-link">Report a bug</a></li>
-</ul>
-</div>
-
-<div class="license">
+  </main><aside class="col-md-3"><div class="license">
 <h2 data-toc-skip>License</h2>
 <ul class="list-unstyled">
-<li>GPL (&gt;= 3) + file <a href="LICENSE-text.html">LICENSE</a>
+<li>
+<p>TSENAT is released under the GNU General Public License v3.0. You are free to use, modify, and distribute this software, provided you include the source code and make it available under the same license.</p>
+<p><a href="LICENSE-text.html">Read the full license</a></p>
 </li>
-</ul>
-</div>
-
-<div class="community">
-<h2 data-toc-skip>Community</h2>
-<ul class="list-unstyled">
-<li><a href="CODE_OF_CONDUCT.html">Code of conduct</a></li>
 </ul>
 </div>
 
 <div class="citation">
 <h2 data-toc-skip>Citation</h2>
 <ul class="list-unstyled">
-<li><a href="authors.html#citation">Citing TSENAT</a></li>
+<li><p><a href="authors.html#citation">Citing TSENAT</a></p></li>
 </ul>
 </div>
 
 <div class="developers">
 <h2 data-toc-skip>Developers</h2>
 <ul class="list-unstyled">
-<li>Cristóbal Gallardo Alba <br><small class="roles"> Author, maintainer </small> <a href="https://orcid.org/0000-0002-5752-2155" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a>  </li>
+<li>
+<p>Cristóbal Gallardo</p>
+<p>Author, maintainer</p>
+<p><a href="https://orcid.org/0000-0002-5752-2155" class="external-link">ORCID</a></p>
+</li>
 </ul>
 </div>
 
@@ -432,23 +397,20 @@ sample_4    tumor             B</code></pre>
 </ul>
 </div>
 
-  </div>
+  </aside>
 </div>
 
 
-      <footer><div class="copyright">
-  <p></p>
-<p>Developed by Cristóbal Gallardo Alba.</p>
+    <footer><div class="pkgdown-footer-left">
+  <p>Developed by Cristóbal Gallardo Alba.</p>
 </div>
 
-<div class="pkgdown">
-  <p></p>
-<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+<div class="pkgdown-footer-right">
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0. NULL</p>
 </div>
 
-      </footer>
+    </footer>
 </div>
-
 
 
 
