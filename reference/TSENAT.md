@@ -206,11 +206,11 @@ result <- TSENAT(analysis)
 #> [RESULTS] Results Summary
 #> 
 #> [PERF] Performance
-#>   Total time ........... 32.2s
+#>   Total time ........... 32.3s
 #>   Slowest steps:
-#>     1. sait_interaction     14.9s (46.3%)
-#>     2. rank_transform_test  5.8s (17.9%)
-#>     3. jackknife            2.1s (6.6%)
+#>     1. sait_interaction     15.1s (46.9%)
+#>     2. rank_transform_test  6.1s (18.9%)
+#>     3. sait_plot            2.3s (7.1%)
 #> 
 #> [OUTPUT] Output
 #>   Directory ........... tsenat_outputs
