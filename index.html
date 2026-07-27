@@ -25,7 +25,7 @@ complexity across RNA-seq samples
 
     <a class="navbar-brand me-2" href="index.html">TSENAT</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.99.33</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.99.34</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -40,7 +40,6 @@ complexity across RNA-seq samples
 <li><a class="dropdown-item" href="articles/TSENAT.html">TSENAT Main Vignette</a></li>
     <li><a class="dropdown-item" href="articles/TSENAT_appendix_A.html">Appendix A</a></li>
     <li><a class="dropdown-item" href="articles/TSENAT_appendix_B.html">Appendix B</a></li>
-    <li><a class="dropdown-item" href="articles/citations.html">References</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html"><span class="fa fas fa-cubes fa-lg"></span> Functions</a></li>
@@ -197,6 +196,14 @@ complexity across RNA-seq samples
 <div class="float">
 <img src="https://raw.githubusercontent.com/gallardoalba/TSENAT/gh-pages/articles/TSENAT_files/figure-html/fig-1-isoform-diversity-profiles-1.png" alt="Isoform diversity profiles across q-values: TSENAT detects scale-dependent diversity patterns"><div class="figcaption">Isoform diversity profiles across q-values: TSENAT detects scale-dependent diversity patterns</div>
 </div>
+<p>TSENAT identifies <strong>scale-dependent genes</strong> — genes whose entropy changes are driven by specific isoform abundance ranges. For example, a gene may show strong entropy differences at low q (rare isoforms) but not at high q (dominant isoforms), revealing <em>which</em> isoforms drive the biological signal:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Extract the scale-dependent genes plot</span></span>
+<span><span class="va">sait_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/results.html">results</a></span><span class="op">(</span><span class="va">result</span>, type <span class="op">=</span> <span class="st">"sait"</span>, plot <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">sait_plot</span><span class="op">)</span></span></code></pre></div>
+<div class="float">
+<img src="https://raw.githubusercontent.com/gallardoalba/TSENAT/gh-pages/articles/TSENAT_files/figure-html/fig-2-scale-dependent-genes-1.png" alt="Scale-dependent genes: entropy differences vary across q-values, revealing which isoform abundance ranges drive condition-specific changes"><div class="figcaption">Scale-dependent genes: entropy differences vary across q-values, revealing which isoform abundance ranges drive condition-specific changes</div>
+</div>
 </div>
 </div>
 <div class="section level2">
@@ -269,7 +276,7 @@ complexity across RNA-seq samples
 </h2>
 <p>TSENAT is specifically engineered to work seamlessly with Salmon quantification output. Rather than requiring manual parsing or format conversion, TSENAT automatically discovers transcript-level quantification files across your Salmon output directory and integrates them directly into the analysis pipeline. This tight integration means you can move from Salmon quantification to entropy analysis without intermediate data manipulation—the raw <code>quant.sf</code> files are all you need. TSENAT discovers these files automatically, validates their compatibility with your experimental design, and handles length-correction and normalization as part of the diversity computation workflow.</p>
 <p>To get started with Salmon-quantified data:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressMessages</a></span><span class="op">(</span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gallardoalba.github.io/TSENAT">TSENAT</a></span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Prepare configuration FIRST</span></span>
@@ -334,12 +341,12 @@ sample_4    tumor             B</code></pre>
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
 <p>If you use TSENAT in your research, please cite:</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="co">@software{gallardo2026tsenat,</span></span>
-<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="co">  title={TSENAT: Tsallis Entropy Analysis Toolbox},</span></span>
-<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co">  author={Gallardo Alba, Cristóbal},</span></span>
-<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co">  url={https://github.com/gallardoalba/TSENAT},</span></span>
-<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">  year={2026}</span></span>
-<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="co">@software{gallardo2026tsenat,</span></span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="co">  title={TSENAT: Tsallis Entropy Analysis Toolbox},</span></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="co">  author={Gallardo Alba, Cristóbal},</span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co">  url={https://github.com/gallardoalba/TSENAT},</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="co">  year={2026}</span></span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="license-and-attribution">License and Attribution<a class="anchor" aria-label="anchor" href="#license-and-attribution"></a>

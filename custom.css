@@ -1,4 +1,4 @@
-]633;E;head -72 /tmp/full-custom.css;0f711521-ccd8-43e9-824a-f0d91f34ca56]633;C/* ============================================================================
+/* ============================================================================
    PKGDOWN CUSTOM STYLES — TSENAT
    ============================================================================ */
 
@@ -6,7 +6,7 @@
 
 body {
     font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-    padding-top: 12px;
+    padding-top: 20px;
 }
 
 h1, h2, h3, h4 {
@@ -49,6 +49,12 @@ a, .navbar a, .btn {
     transition: color 0.2s ease, background-color 0.2s ease;
 }
 
+/* ── Navbar / Banner spacing ────────────────────────────────────────────── */
+
+.navbar {
+    margin-top: 6px;
+}
+
 /* ── Print ──────────────────────────────────────────────────────────────── */
 
 @media print {
@@ -57,10 +63,11 @@ a, .navbar a, .btn {
 }
 
 /* ============================================================================
-   TABLE EXPANSION CSS
-   ============================================================================ */
-/* Force tables to expand horizontally to prevent awkward line wrapping
-   and ensure readability of data tables in vignettes */
+   TABLE EXPANSION CSS FOR PKGDOWN VIGNETTES
+   ============================================================================
+   Force tables to expand horizontally to prevent awkward line wrapping
+   and ensure readability of data tables in vignettes
+*/
 
 /* Container scrolling for wide tables */
 .table-container {
@@ -70,7 +77,235 @@ a, .navbar a, .btn {
 }
 
 /* Make all tables expand to full width */
+table {
+    width: 100% !important;
+    table-layout: auto;
+    border-collapse: collapse;
+    display: table !important;
+    margin: 1.5rem 0 !important;
+    font-size: 0.95rem;
+}
 
+/* Bootstrap-styled tables - professional scientific style */
+.table {
+    width: 100% !important;
+    display: table !important;
+    table-layout: auto;
+    margin-bottom: 1.5rem;
+    border: 1px solid #ddd;
+}
+
+/* Table header - scientific publication style */
+.table > thead > tr {
+    border-top: 2px solid #2c3e50 !important;
+    border-bottom: 2px solid #2c3e50 !important;
+}
+
+.table > thead > tr > th {
+    background-color: #2c3e50 !important;
+    color: #fff !important;
+    font-weight: 700 !important;
+    text-align: left !important;
+    padding: 1rem 0.75rem !important;
+    border: none !important;
+    letter-spacing: 0.3px;
+}
+
+.table > thead > tr > th[align="right"] {
+    text-align: right !important;
+}
+
+/* Table body rows - alternating colors for readability */
+.table > tbody > tr {
+    border-bottom: 1px solid #ecf0f1 !important;
+}
+
+.table > tbody > tr.odd {
+    background-color: #f9f9f9;
+}
+
+.table > tbody > tr.even {
+    background-color: #fff;
+}
+
+/* Subtle hover effect for interactivity */
+.table > tbody > tr:hover {
+    background-color: #f0f5f7 !important;
+}
+
+/* Table cells - professional spacing and alignment */
+.table > tbody > tr > td {
+    padding: 0.9rem 0.75rem !important;
+    border: none !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    word-break: break-word !important;
+}
+
+/* Align numeric columns right */
+.table > tbody > tr > td[align="right"],
+.table > thead > tr > th[align="right"] {
+    text-align: right !important;
+}
+
+/* Align text columns left */
+.table > tbody > tr > td[align="left"],
+.table > thead > tr > th[align="left"] {
+    text-align: left !important;
+}
+
+/* Table footer - match header style */
+.table > tfoot > tr {
+    border-top: 2px solid #2c3e50 !important;
+    background-color: #f5f5f5;
+}
+
+.table > tfoot > tr > td {
+    font-weight: 600;
+    padding: 0.9rem 0.75rem !important;
+}
+
+/* Vignette-specific table styling */
+.vignette table {
+    width: 100% !important;
+    table-layout: auto;
+    margin: 1.5rem 0;
+    border-collapse: collapse;
+}
+
+/* ============================================================================
+   COLUMN WIDTH OPTIMIZATION FOR SPECIFIC TABLE TYPES
+   ============================================================================
+*/
+
+/* 5-column tables: Sample | Condition | Proportion_Affected | Distance | Status */
+.table > thead > tr > th:nth-child(1),
+.table > tbody > tr > td:nth-child(1) {
+    width: 22% !important;
+    min-width: 22% !important;
+}
+
+.table > thead > tr > th:nth-child(2),
+.table > tbody > tr > td:nth-child(2) {
+    width: 12% !important;
+    min-width: 12% !important;
+}
+
+.table > thead > tr > th:nth-child(3),
+.table > tbody > tr > td:nth-child(3) {
+    width: 16% !important;
+    min-width: 16% !important;
+}
+
+.table > thead > tr > th:nth-child(4),
+.table > tbody > tr > td:nth-child(4) {
+    width: 16% !important;
+    min-width: 16% !important;
+}
+
+.table > thead > tr > th:nth-child(5),
+.table > tbody > tr > td:nth-child(5) {
+    width: 22% !important;
+    min-width: 22% !important;
+}
+
+/* 7-column tables: Gene | P-value | various metrics | Pattern */
+.table > thead > tr:first-child > th:nth-child(1):nth-last-child(7),
+.table > tbody > tr > td:nth-child(1):nth-last-child(7) {
+    width: 12% !important;
+    min-width: 12% !important;
+}
+
+.table > thead > tr > th:nth-child(2),
+.table > tbody > tr > td:nth-child(2) {
+    width: 16% !important;
+    min-width: 16% !important;
+}
+
+.table > thead > tr > th:nth-child(3),
+.table > tbody > tr > td:nth-child(3) {
+    width: 14% !important;
+    min-width: 14% !important;
+}
+
+.table > thead > tr > th:nth-child(4),
+.table > tbody > tr > td:nth-child(4) {
+    width: 13% !important;
+    min-width: 13% !important;
+}
+
+.table > thead > tr > th:nth-child(5),
+.table > tbody > tr > td:nth-child(5) {
+    width: 13% !important;
+    min-width: 13% !important;
+}
+
+.table > thead > tr > th:nth-child(6),
+.table > tbody > tr > td:nth-child(6) {
+    width: 10% !important;
+    min-width: 10% !important;
+}
+
+.table > thead > tr > th:nth-child(7),
+.table > tbody > tr > td:nth-child(7) {
+    width: 22% !important;
+    min-width: 22% !important;
+}
+
+/* 5-column equal width tables: Gene | q=0.0 | q=0.5 | q=1.0 | q=1.5 | q=2.0 */
+/* Only for diversity/entropy tables - no caption with 5th column override */
+.table:not(:has(> caption)) > thead > tr > th:nth-last-child(5):first-child,
+.table:not(:has(> caption)) > tbody > tr > td:nth-last-child(5):first-child {
+    width: 20% !important;
+}
+
+.table:not(:has(> caption)) > thead > tr > th:nth-last-child(4):nth-child(2),
+.table:not(:has(> caption)) > tbody > tr > td:nth-last-child(4):nth-child(2) {
+    width: 20% !important;
+}
+
+.table:not(:has(> caption)) > thead > tr > th:nth-last-child(3):nth-child(3),
+.table:not(:has(> caption)) > tbody > tr > td:nth-last-child(3):nth-child(3) {
+    width: 20% !important;
+}
+
+.table:not(:has(> caption)) > thead > tr > th:nth-last-child(2):nth-child(4),
+.table:not(:has(> caption)) > tbody > tr > td:nth-last-child(2):nth-child(4) {
+    width: 20% !important;
+}
+
+.table:not(:has(> caption)) > thead > tr > th:last-child:nth-child(5),
+.table:not(:has(> caption)) > tbody > tr > td:last-child:nth-child(5) {
+    width: 20% !important;
+}
+
+/* M-estimation and similar 5-column tables: wider Status column */
+.table:has(> caption) > thead > tr > th:first-child,
+.table:has(> caption) > tbody > tr > td:nth-child(1) {
+    width: 17.5% !important;
+}
+
+.table:has(> caption) > thead > tr > th:nth-child(2),
+.table:has(> caption) > tbody > tr > td:nth-child(2) {
+    width: 17.5% !important;
+}
+
+.table:has(> caption) > thead > tr > th:nth-child(3),
+.table:has(> caption) > tbody > tr > td:nth-child(3) {
+    width: 17.5% !important;
+}
+
+.table:has(> caption) > thead > tr > th:nth-child(4),
+.table:has(> caption) > tbody > tr > td:nth-child(4) {
+    width: 17.5% !important;
+}
+
+.table:has(> caption) > thead > tr > th:last-child:nth-child(5),
+.table:has(> caption) > tbody > tr > td:last-child:nth-child(5) {
+    width: 30% !important;
+}
+
+/* ============================================================================
    SIDEBAR STYLING - Minimal, clean style matching the flatly theme
    ============================================================================
 */

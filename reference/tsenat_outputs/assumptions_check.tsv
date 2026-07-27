@@ -14,5 +14,5 @@
 13	assumption	Normality	p=4.77e-11	Non-normal
 14	assumption	Homogeneity	p=0.0615; CV=0.222	Homogeneous
 15	assumption	Influence	Outliers=0, Extreme=0, Influential=26.4%	Many outliers
-16	assumption	Variance adequacy	Failed: infinite or missing values in 'x'	? ERROR
-17	assumption	Bootstrap stability	Failed: infinite or missing values in 'x'	? ERROR
+16	assumption	Variance adequacy	Components for 90%=11, 95%=14, 99%=22	Poor reduction
+17	assumption	Bootstrap stability	Bootstrap SE=0.220; Stable CIs=100%	Moderate stability

@@ -453,7 +453,7 @@ sessionInfo()
 #>  [7] IRanges_2.44.0              S4Vectors_0.48.1           
 #>  [9] BiocGenerics_0.56.0         generics_0.1.4             
 #> [11] MatrixGenerics_1.22.0       matrixStats_1.5.0          
-#> [13] TSENAT_0.99.33              SplicingFactory_1.18.0     
+#> [13] TSENAT_0.99.34              SplicingFactory_1.18.0     
 #> [15] kableExtra_1.4.0            BiocStyle_2.38.0           
 #> 
 #> loaded via a namespace (and not attached):

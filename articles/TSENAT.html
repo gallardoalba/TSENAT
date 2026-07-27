@@ -19,7 +19,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TSENAT</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.99.33</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.99.34</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,7 +34,6 @@
 <li><a class="dropdown-item" href="../articles/TSENAT.html">TSENAT Main Vignette</a></li>
     <li><a class="dropdown-item" href="../articles/TSENAT_appendix_A.html">Appendix A</a></li>
     <li><a class="dropdown-item" href="../articles/TSENAT_appendix_B.html">Appendix B</a></li>
-    <li><a class="dropdown-item" href="../articles/citations.html">References</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html"><span class="fa fas fa-cubes fa-lg"></span> Functions</a></li>
@@ -70,7 +69,7 @@
 Gallardo Alba <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2026-07-26</h4>
+            <h4 data-toc-skip class="date">2026-07-27</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gallardoalba/TSENAT/blob/HEAD/vignettes/TSENAT.Rmd" class="external-link"><code>vignettes/TSENAT.Rmd</code></a></small>
       <div class="d-none name"><code>TSENAT.Rmd</code></div>
@@ -789,15 +788,27 @@ identifying such scale-dependent biological signals.</p>
 <p>We can test for these interactions using one of four methods, each
 with specific strengths:</p>
 <ul>
-<li>GAM (generalized additive model): flexibly captures nonlinear
-q-response patterns via adaptive smoothing splines. Default method.</li>
-<li>LMM (linear mixed models): models subject-level random intercepts to
-account for within-subject correlation in repeated q-ordered
+<li>
+<strong>GAM</strong> (generalized additive model): flexibly captures
+nonlinear q-response patterns via adaptive smoothing splines. Default
+for unpaired (cross-sectional) designs.</li>
+<li>
+<strong>GAMM</strong> (generalized additive mixed model): extends
+GAM with subject-level random intercepts and AR(1) correlation structure
+to accommodate within-subject correlation in repeated q-ordered
+measurements. Default for paired/longitudinal designs.</li>
+<li>
+<strong>LMM</strong> (linear mixed models): parametric alternative
+with subject-level random intercepts for repeated q-ordered
 measurements.</li>
-<li>GEE (generalized estimating equations): particularly useful for
-paired and longitudinal designs with repeated q-measures.</li>
-<li>FPCA (functional principal component analysis): treats q-values as
-ordered functional data, implicitly capturing q-ordering structure.</li>
+<li>
+<strong>GEE</strong> (generalized estimating equations):
+population-averaged approach particularly useful for paired and
+longitudinal designs with repeated q-measures.</li>
+<li>
+<strong>FPCA</strong> (functional principal component analysis):
+treats q-values as ordered functional data, implicitly capturing
+q-ordering structure.</li>
 </ul>
 <p>All methods automatically account for the AR(1) correlation structure
 inherent in Tsallis entropy measurements.</p>
@@ -898,11 +909,28 @@ predictors <span class="citation">(Benjamini and Hochberg
 </tr>
 </tbody>
 </table>
-<p><strong>Interpretation:</strong> TRUE in the Heteroscedasticity
-column indicates that variance heterogeneity was detected across the
-q-spectrum (assumption violated, results warrant caution); FALSE
-indicates homoscedasticity (variance homogeneity assumption
-satisfied).</p>
+<p><strong>Interpretation:</strong></p>
+<ul>
+<li>
+<strong>Effect Size</strong>
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>η</mi><mn>2</mn></msup><annotation encoding="application/x-tex">\eta^2</annotation></semantics></math>):
+Proportion of variance in entropy explained by the q × condition
+interaction, ranging from 0 to 1. Values above 0.14 are considered large
+(Cohen’s convention).</li>
+<li>
+<strong>Test Statistic</strong>
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>F</mi><annotation encoding="application/x-tex">F</annotation></semantics></math>):
+F-statistic for the smooth interaction term, quantifying the
+signal-to-noise ratio of the scale-dependent effect.</li>
+<li>
+<strong>Model Converged</strong>: TRUE if the GAM optimization
+converged successfully; FALSE indicates convergence failure (results for
+that gene are unreliable and should be excluded).</li>
+<li>
+<strong>Heteroscedasticity</strong>: TRUE indicates variance
+heterogeneity was detected across the q-spectrum (assumption violated,
+results warrant caution).</li>
+</ul>
 <p>Now we will plot the q-curve profile for the top genes identified by
 the scale-adaptive interaction test.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
@@ -914,7 +942,7 @@ the scale-adaptive interaction test.</p>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">combined_plot</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<img src="TSENAT_files/figure-html/fig-2-scale-dependent-genes-1.png" class="r-plt" alt="**Figure 2:** Scale-dependent interaction analysis. GAM-identified genes showing significant q$ imes$condition effects (Hochberg-adjusted p &lt; 0.05)." width="98%"><p class="caption">
+<img src="TSENAT_files/figure-html/fig-2-scale-dependent-genes-1.png" class="r-plt" alt="**Figure 2:** Scale-dependent interaction analysis. GAM-identified genes showing significant q$  imes$condition effects (Hochberg-adjusted p &lt; 0.05)." width="98%"><p class="caption">
 <strong>Figure 2:</strong> Scale-dependent interaction analysis.
 GAM-identified genes showing significant q$ imes$condition effects
 (Hochberg-adjusted p &lt; 0.05).
@@ -1582,7 +1610,7 @@ Theory</em>, 60(7), 3797–3820. <a href="https://doi.org/10.1109/TIT.2014.23205
 <span><span class="co">#&gt;  [5] IRanges_2.44.0              S4Vectors_0.48.1           </span></span>
 <span><span class="co">#&gt;  [7] BiocGenerics_0.56.0         generics_0.1.4             </span></span>
 <span><span class="co">#&gt;  [9] MatrixGenerics_1.22.0       matrixStats_1.5.0          </span></span>
-<span><span class="co">#&gt; [11] ggplot2_4.0.3               TSENAT_0.99.33             </span></span>
+<span><span class="co">#&gt; [11] ggplot2_4.0.3               TSENAT_0.99.34             </span></span>
 <span><span class="co">#&gt; [13] kableExtra_1.4.0            BiocStyle_2.38.0           </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>

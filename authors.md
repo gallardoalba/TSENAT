@@ -11,12 +11,12 @@ Source:
 [`DESCRIPTION`](https://github.com/gallardoalba/TSENAT/blob/HEAD/DESCRIPTION)
 
 Gallardo Alba C (2026). *TSENAT: Tsallis Entropy Analysis Toolbox*. R
-package version 0.99.33, <https://gallardoalba.github.io/TSENAT>.
+package version 0.99.34, <https://gallardoalba.github.io/TSENAT>.
 
     @Manual{,
       title = {TSENAT: Tsallis Entropy Analysis Toolbox},
       author = {Cristóbal {Gallardo Alba}},
       year = {2026},
-      note = {R package version 0.99.33},
+      note = {R package version 0.99.34},
       url = {https://gallardoalba.github.io/TSENAT},
     }

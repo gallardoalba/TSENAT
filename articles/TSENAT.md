@@ -571,14 +571,19 @@ biological signals.
 We can test for these interactions using one of four methods, each with
 specific strengths:
 
-- GAM (generalized additive model): flexibly captures nonlinear
-  q-response patterns via adaptive smoothing splines. Default method.
-- LMM (linear mixed models): models subject-level random intercepts to
-  account for within-subject correlation in repeated q-ordered
-  measurements.
-- GEE (generalized estimating equations): particularly useful for paired
-  and longitudinal designs with repeated q-measures.
-- FPCA (functional principal component analysis): treats q-values as
+- **GAM** (generalized additive model): flexibly captures nonlinear
+  q-response patterns via adaptive smoothing splines. Default for
+  unpaired (cross-sectional) designs.
+- **GAMM** (generalized additive mixed model): extends GAM with
+  subject-level random intercepts and AR(1) correlation structure to
+  accommodate within-subject correlation in repeated q-ordered
+  measurements. Default for paired/longitudinal designs.
+- **LMM** (linear mixed models): parametric alternative with
+  subject-level random intercepts for repeated q-ordered measurements.
+- **GEE** (generalized estimating equations): population-averaged
+  approach particularly useful for paired and longitudinal designs with
+  repeated q-measures.
+- **FPCA** (functional principal component analysis): treats q-values as
   ordered functional data, implicitly capturing q-ordering structure.
 
 All methods automatically account for the AR(1) correlation structure
@@ -616,10 +621,20 @@ statistic, convergence status, and heteroscedasticity detection.
 Methods: GAMs with *q* and condition as smooth predictors (Benjamini and
 Hochberg 1995). {.table}
 
-**Interpretation:** TRUE in the Heteroscedasticity column indicates that
-variance heterogeneity was detected across the q-spectrum (assumption
-violated, results warrant caution); FALSE indicates homoscedasticity
-(variance homogeneity assumption satisfied).
+**Interpretation:**
+
+- **Effect Size** ($`\eta^2`$): Proportion of variance in entropy
+  explained by the q × condition interaction, ranging from 0 to 1.
+  Values above 0.14 are considered large (Cohen’s convention).
+- **Test Statistic** ($`F`$): F-statistic for the smooth interaction
+  term, quantifying the signal-to-noise ratio of the scale-dependent
+  effect.
+- **Model Converged**: TRUE if the GAM optimization converged
+  successfully; FALSE indicates convergence failure (results for that
+  gene are unreliable and should be excluded).
+- **Heteroscedasticity**: TRUE indicates variance heterogeneity was
+  detected across the q-spectrum (assumption violated, results warrant
+  caution).
 
 Now we will plot the q-curve profile for the top genes identified by the
 scale-adaptive interaction test.
@@ -1212,7 +1227,7 @@ sessionInfo()
 #>  [5] IRanges_2.44.0              S4Vectors_0.48.1           
 #>  [7] BiocGenerics_0.56.0         generics_0.1.4             
 #>  [9] MatrixGenerics_1.22.0       matrixStats_1.5.0          
-#> [11] ggplot2_4.0.3               TSENAT_0.99.33             
+#> [11] ggplot2_4.0.3               TSENAT_0.99.34             
 #> [13] kableExtra_1.4.0            BiocStyle_2.38.0           
 #> 
 #> loaded via a namespace (and not attached):

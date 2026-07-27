@@ -627,7 +627,7 @@ sessionInfo()
 #> [8] base     
 #> 
 #> other attached packages:
-#>  [1] TSENAT_0.99.33              testthat_3.3.2             
+#>  [1] TSENAT_0.99.34              testthat_3.3.2             
 #>  [3] gridExtra_2.3               dplyr_1.2.1                
 #>  [5] SummarizedExperiment_1.40.0 Biobase_2.70.0             
 #>  [7] GenomicRanges_1.62.1        Seqinfo_1.0.0              
