@@ -212,19 +212,19 @@ switching_raw <- results(analysis, type = 'switching_tables', format = 'raw')
 
 # Get the diversity spectrum plot
 diversity_plot <- results(analysis, type = 'diversity', plot = TRUE)
-#> Warning: Plot for type 'diversity' not found. Available plot types: diversity, sait, influence, jackknife, divergence. Available plots: none
+#> Warning: Plot for type 'diversity' not found. Available: none
 
 # Get the LM/regularized regression (GAM, LMM, GEE, FPCA) interaction plot
 sait_plot <- results(analysis, type = "sait", plot = TRUE)
-#> Warning: Plot for type 'sait' not found. Available plot types: diversity, sait, influence, jackknife, divergence. Available plots: none
+#> Warning: Plot for type 'sait' not found. Available: none
 
 # Get the divergence distribution plot
 div_dist_plot <- results(analysis, type = 'divergence', plot = TRUE)
-#> Warning: Plot for type 'divergence' not found. Available plot types: diversity, sait, influence, jackknife, divergence. Available plots: none
+#> Warning: Plot for type 'divergence' not found. Available: none
 
 # Get the influence/m-estimator plot
 influence_plot <- results(analysis, type = 'influence', plot = TRUE)
-#> Warning: Plot for type 'influence' not found. Available plot types: diversity, sait, influence, jackknife, divergence. Available plots: none
+#> Warning: Plot for type 'influence' not found. Available: none
 
 # Available plot types correspond to analysis types:
 # - type = 'diversity': Returns Tsallis entropy q-spectrum visualization

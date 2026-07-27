@@ -1,4 +1,4 @@
-# Appendix B: Non-Parametric Validation of Scale-Adaptive Interaction Test Results via GAMM and Aligned Rank Transform (ART)
+# Appendix B: Cross-Method Validation of Scale-Adaptive Interaction Test Results via GAMM and Aligned Rank Transform (ART)
 
 ## Introduction
 
@@ -37,12 +37,12 @@ ARIMA-Ordered Measurement Structure.
   [`mgcv::gamm()`](https://rdrr.io/pkg/mgcv/man/gamm.html) limitations.
 - Key advantage: Captures smooth nonlinear q × condition interactions
   while accommodating paired sample correlation structure through random
-  intercepts and AR(1) correlation modeling; includes small-sample bias
-  correction for n \< 20.
+  intercepts and AR(1) correlation modeling.
 
 **Method 2: Aligned Rank Transform (ART)** — State-of-the-art
 non-parametric interaction testing, with Hochberg Step-Up Correction.
-Falls back to Conover-Iman Rank Transform via `method='rt'` if needed.
+The Conover-Iman Rank Transform is also available via the `method='rt'`
+option as an alternative approach.
 
 - Framework: Pure non-parametric method via the ARTool package (Kay et
   al. 2021). Strips main effects before ranking (“alignment”) to
@@ -51,8 +51,11 @@ Falls back to Conover-Iman Rank Transform via `method='rt'` if needed.
 - Distributional assumption: None; operates entirely on aligned ranks.
   Valid under any continuous distribution and correlation structure.
 - Treatment of q-ordering: Two-way ART on raw entropy values, treating
-  q-values as ordered factors; aligned ranks decomposed via ANOVA with
-  proper F-test for interactions.
+  q-values as categorical factors; aligned ranks decomposed via ANOVA
+  with proper F-test for interactions. Because q is treated as a factor,
+  the continuous ordering of q-values is discarded in the ART analysis —
+  this is a fundamental difference from GAMM, which models q as a
+  continuous smooth predictor.
 - Heteroscedasticity handling: ART inherently robust to
   heteroscedasticity through alignment and ranking; Hochberg step-up
   correction controls FWER across multiple tests.
@@ -67,11 +70,12 @@ Statistical testing in transcriptomics faces a fundamental challenge: no
 single method is universally optimal. Different approaches trade-off
 power for robustness:
 
-| Aspect | Parametric (GAMM) | Non-Parametric (ART) |
+| Aspect | Semi-Parametric (GAMM) | Non-Parametric (ART) |
 |----|----|----|
 | Assumptions | Normality, homoscedasticity | None; aligned ranks, fully non-parametric |
 | Power | Highest (if assumptions hold) | Good; reduced but robust to violations |
-| Interaction testing | Standard ANOVA-type | Proper interaction tests via alignment (Higgins and Tashtoush 1994) |
+| Interaction testing | F-test on penalized smooth terms | Proper interaction tests via alignment (Higgins and Tashtoush 1994) |
+| q-value treatment | Continuous smooth predictor (preserves ordinal structure) | Categorical factor (discards ordering) |
 | Robustness | Moderate | Highest |
 | Outlier sensitivity | Moderate potential for bias | Minimal; inherently resistant |
 
@@ -200,8 +204,8 @@ TSENAT uses the **Aligned Rank Transform (ART)** as the default
 non-parametric method for testing Q×Condition interactions. ART is the
 state-of-the-art for non-parametric factorial analysis, implemented via
 the ARTool R package (Kay et al. 2021; Wobbrock et al. 2011). The
-classical Conover-Iman Rank Transform remains available via
-`method='rt'` as a fallback (Conover and Iman 1981).
+classical Conover-Iman Rank Transform is also available via
+`method='rt'` as an alternative approach (Conover and Iman 1981).
 
 1.  **Robustness to Distribution Violations**
 
@@ -241,16 +245,19 @@ estimates.
 ART handles this structure through its alignment step: within-subject
 ranking after stripping main effects preserves the pairing structure
 while removing the influence of AR(1) dependence (Higgins and Tashtoush
-1994; Wobbrock et al. 2011). Autocorrelation in the original entropy
-values does NOT affect aligned rank ordering or the validity of
-inference — this property, known as the *exchangeability property* of
-rank-based tests, ensures that rank-based inference is valid under any
-correlation pattern (Ernst 2004; Song 2007).
+1994; Wobbrock et al. 2011). Because aligned ranks are constructed from
+residuals after removing main effects, autocorrelation in the original
+entropy values does not propagate into the test statistic — rank-based
+tests are invariant to monotonic transformations of the data, and
+alignment renders the residuals approximately exchangeable under the
+null hypothesis of no interaction (Ernst 2004; Song 2007). However, this
+robustness is not absolute: strong autocorrelation can reduce effective
+sample size and affect power even when the test remains valid.
 
 3.  **Interaction Testing: Testing q × Condition Effects**
 
-The implementation uses two-way ANOVA applied to ranks (the modern
-computational approach):
+The implementation uses ART (alignment + ranking + ANOVA), the modern
+state-of-the-art approach:
 
 ``` math
 F_{q \times \text{condition}} = \frac{MS_{\text{interaction}}}{MS_{\text{residual}}}
@@ -258,9 +265,12 @@ F_{q \times \text{condition}} = \frac{MS_{\text{interaction}}}{MS_{\text{residua
 
 where:
 
-- Data are first ranked: $`R = \text{rank}(\text{entropy})`$
-  (within-subject ranks for paired designs)
-- Two-way ANOVA decomposes ranked data:
+- Main effects are stripped via alignment: residuals = original − main
+  effect estimates
+- Aligned data are then ranked:
+  $`R = \text{rank}(\text{aligned residuals})`$ (within-subject for
+  paired designs)
+- Two-way ANOVA decomposes aligned ranked data:
   $`R = \mu + \alpha_q + \beta_{\text{condition}} + \gamma_{q \times \text{condition}} + \epsilon`$
 - $`MS_{\text{interaction}}`$ = sum of squares for $`q \times`$
   condition interaction / degrees of freedom
@@ -320,14 +330,15 @@ interaction test validity. {.table}
 serial correlation (p ≈ 0), indicating that consecutive samples are more
 correlated than expected by chance. This violation is **not
 problematic** for the Aligned Rank Transform because ART’s alignment
-step removes main effects before ranking, and rank-based inference
-satisfies the *exchangeability property* — a principle ensuring that
-rank statistics depend only on value ordering, not on correlations in
-the original data (Conover and Iman 1981; Higgins and Tashtoush 1994;
-Saulsbury 2020). The three reasons outlined above (distributional
-robustness, paired ordered structure handling, and proper interaction
-testing via alignment) together make ART ideally suited for multi-q
-entropy validation without requiring strong distributional assumptions.
+step removes main effects before ranking, after which the aligned
+residuals are approximately exchangeable under the null hypothesis of no
+interaction (Conover and Iman 1981; Higgins and Tashtoush 1994). While
+strong autocorrelation can reduce effective sample size and affect
+power, the test itself remains valid. The three reasons outlined above
+(distributional robustness, paired ordered structure handling, and
+proper interaction testing via alignment) together make ART ideally
+suited for multi-q entropy validation without requiring strong
+distributional assumptions.
 
 ### Aligned Rank Transform (ART): Testing q × Condition Interactions
 
@@ -537,14 +548,15 @@ effects. {.table}
 
 ### Statistical Power vs. Robustness: Understanding Method Discordance
 
-The striking discordance between GAMM and ART results (42.1% significant
-in GAMM only, 1.3% in ART only, and 1.3% in both methods significant)
-reflects a fundamental trade-off in statistical methodology:
-**parametric methods maximize power when assumptions hold, while
-non-parametric methods sacrifice power for robustness to assumption
-violations**.
+The substantial discordance between GAMM and ART results — where GAMM
+identifies many more significant genes — reflects a fundamental
+trade-off in statistical methodology: **parametric methods maximize
+power when assumptions hold, while non-parametric methods sacrifice
+power for robustness to assumption violations**. The exact percentages
+depend on the dataset and analysis parameters; the pattern of GAMM
+detecting more interactions than ART is the consistent finding.
 
-GAMM’s superior power derives from two factors:
+GAMM’s superior power derives from three factors:
 
 1.  Distributional assumptions: GAMM assumes approximately normal
     residuals and homogeneous variance, which are reasonable after
@@ -559,9 +571,16 @@ GAMM’s superior power derives from two factors:
     smoothness penalties that simultaneously fit nonlinear patterns
     while controlling degrees of freedom. This flexibility allows GAMM
     to detect subtle entropic index × group interactions across all
-    q-values. ART operates on aligned rank patterns, which is inherently
-    less sensitive to continuous relationships across q-values but
-    provides superior Type I error control for interaction terms.
+    q-values.
+
+3.  Continuous vs. categorical q treatment: GAMM models q as a
+    continuous smooth predictor across all 41 q-values, preserving the
+    ordinal structure and borrowing strength across adjacent q-levels.
+    ART treats q as a categorical factor — while this enables proper
+    interaction testing via alignment, it discards the continuous
+    ordering information, reducing sensitivity to graded q-dependent
+    trends. This discretization is a major contributor to ART’s lower
+    power relative to GAMM, independent of distributional assumptions.
 
 This complementary approach—combining high-power parametric tests with
 robust nonparametric alternatives—provides confidence that discoveries

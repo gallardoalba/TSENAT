@@ -195,7 +195,10 @@ diversity_plot <- results(result, type = "diversity", plot=TRUE)
 print(diversity_plot)
 ```
 
-![](https://raw.githubusercontent.com/gallardoalba/TSENAT/gh-pages/articles/TSENAT_files/figure-html/fig-1-isoform-diversity-profiles-1.png)
+![Isoform diversity profiles across
+q-values](https://raw.githubusercontent.com/gallardoalba/TSENAT/gh-pages/articles/TSENAT_files/figure-html/fig-1-isoform-diversity-profiles-1.png)
+
+Isoform diversity profiles across q-values
 
 ``` r
 
@@ -204,7 +207,10 @@ sait_plot <- results(result, type = "sait", plot = TRUE)
 print(sait_plot)
 ```
 
-![](https://raw.githubusercontent.com/gallardoalba/TSENAT/gh-pages/articles/TSENAT_files/figure-html/fig-2-scale-dependent-genes-1.png)
+![Scale-dependent
+genes](https://raw.githubusercontent.com/gallardoalba/TSENAT/gh-pages/articles/TSENAT_files/figure-html/fig-2-scale-dependent-genes-1.png)
+
+Scale-dependent genes
 
 ## Documentation
 
@@ -437,7 +443,7 @@ specialized focus on Tsallis entropy analysis.
 - [References](https://gallardoalba.github.io/TSENAT/articles/citations.md):
 - [Appendix A: Equivalence Validation - TSENAT vs
   SplicingFactory](https://gallardoalba.github.io/TSENAT/articles/TSENAT_appendix_A.md):
-- [Appendix B: Non-Parametric Validation of Scale-Adaptive Interaction
+- [Appendix B: Cross-Method Validation of Scale-Adaptive Interaction
   Test Results via GAMM and Aligned Rank Transform
   (ART)](https://gallardoalba.github.io/TSENAT/articles/TSENAT_appendix_B.md):
 - [TSENAT: Tsallis Entropy Analysis

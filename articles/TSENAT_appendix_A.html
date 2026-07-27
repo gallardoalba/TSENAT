@@ -70,7 +70,7 @@
 Gallardo Alba <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2026-07-27</h4>
+            <h4 data-toc-skip class="date">2026-07-28</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gallardoalba/TSENAT/blob/HEAD/vignettes/TSENAT_appendix_A.Rmd" class="external-link"><code>vignettes/TSENAT_appendix_A.Rmd</code></a></small>
       <div class="d-none name"><code>TSENAT_appendix_A.Rmd</code></div>
@@ -98,65 +98,14 @@ changes</li>
 for transcript diversity analysis or validating cross-package
 comparisons.</p>
 <hr>
-<div class="section level3">
-<h3 id="document-structure">Document Structure<a class="anchor" aria-label="anchor" href="#document-structure"></a>
-</h3>
-<ul>
-<li>Background: Conceptual overview of transcript diversity and the
-Tsallis framework</li>
-<li>Benchmarking (main section): Hands-on comparison using both
-packages</li>
-<li>Results: Side-by-side analysis tables (Shannon and Simpson)</li>
-<li>Analysis: Technical explanation of equivalence, normalization
-differences, and when to use each method</li>
-<li>Conclusion</li>
-</ul>
-<hr>
-</div>
-<div class="section level3">
-<h3 id="background-transcript-diversity-concepts">Background: Transcript Diversity Concepts<a class="anchor" aria-label="anchor" href="#background-transcript-diversity-concepts"></a>
-</h3>
-<p><strong>Transcript diversity</strong> measures how variable isoform
-expression is within genes. Two standard approaches:</p>
-<ul>
-<li>Shannon entropy: Overall diversity (number and evenness of
-isoforms)</li>
-<li>Simpson index: Dominance (whether one isoform monopolizes
-expression)</li>
-</ul>
-<p>TSENAT’s approach: Generalized Tsallis entropy framework where q=1
-gives Shannon and q=2 gives Simpson. This allows sensitivity analysis
-across the q continuum while maintaining equivalence with established
-methods.</p>
-<p><strong>Key question</strong>: Does TSENAT’s mathematical
-generalization produce identical statistical results?</p>
-<hr>
-</div>
-<div class="section level3">
-<h3 id="dataset-and-methods">Dataset and Methods<a class="anchor" aria-label="anchor" href="#dataset-and-methods"></a>
-</h3>
-<p>We use TCGA BRCA RNA-seq data as our validation dataset, which is
-included in the <strong>SplicingFactory package</strong>:</p>
-<ul>
-<li>Public, reproducible resource.</li>
-<li>Multiple transcript isoforms per gene.</li>
-<li>Real biological signal.</li>
-<li>Variable sequencing depth and isoform abundance.</li>
-</ul>
-<p>Analysis pipeline:</p>
-<ol style="list-style-type: decimal">
-<li>Load transcript-level read counts.</li>
-<li>Filter genes.</li>
-<li>Compute entropy values.</li>
-<li>Statistical testing (Wilcoxon rank-sum) for group differences.</li>
-<li>Compare results (concordance, effect sizes, rankings).</li>
-</ol>
-<hr>
-</div>
 </div>
 <div class="section level2">
 <h2 id="benchmarking">Benchmarking<a class="anchor" aria-label="anchor" href="#benchmarking"></a>
 </h2>
+<p>For background on transcript diversity measures and the Tsallis
+entropy framework, see the main vignette. We use the TCGA BRCA RNA-seq
+dataset included with the SplicingFactory package as our validation
+benchmark.</p>
 <div class="section level4">
 <h4 id="importing-example-data">Importing example data<a class="anchor" aria-label="anchor" href="#importing-example-data"></a>
 </h4>
@@ -914,7 +863,7 @@ adjusted <em>P</em>-value.</caption>
 <p>where
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mi>i</mi></msub><mo>=</mo><mfrac><msub><mi>x</mi><mi>i</mi></msub><mrow><msub><mo>∑</mo><mi>i</mi></msub><msub><mi>x</mi><mi>i</mi></msub></mrow></mfrac></mrow><annotation encoding="application/x-tex">p_i = \frac{x_i}{\sum_i x_i}</annotation></semantics></math>
 (transcript proportions).</p>
-<p>Howerver, SplicingFactory returns raw values, while TSENAT normalizes
+<p>However, SplicingFactory returns raw values, while TSENAT normalizes
 by the theoretical maximum
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mn>1</mn><mi>/</mi><mi>n</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(1-1/n)</annotation></semantics></math>:</p>
 <table class="table">

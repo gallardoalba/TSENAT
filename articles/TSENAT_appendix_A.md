@@ -17,56 +17,11 @@ diversity analysis or validating cross-package comparisons.
 
 ------------------------------------------------------------------------
 
-### Document Structure
-
-- Background: Conceptual overview of transcript diversity and the
-  Tsallis framework
-- Benchmarking (main section): Hands-on comparison using both packages
-- Results: Side-by-side analysis tables (Shannon and Simpson)
-- Analysis: Technical explanation of equivalence, normalization
-  differences, and when to use each method
-- Conclusion
-
-------------------------------------------------------------------------
-
-### Background: Transcript Diversity Concepts
-
-**Transcript diversity** measures how variable isoform expression is
-within genes. Two standard approaches:
-
-- Shannon entropy: Overall diversity (number and evenness of isoforms)
-- Simpson index: Dominance (whether one isoform monopolizes expression)
-
-TSENAT’s approach: Generalized Tsallis entropy framework where q=1 gives
-Shannon and q=2 gives Simpson. This allows sensitivity analysis across
-the q continuum while maintaining equivalence with established methods.
-
-**Key question**: Does TSENAT’s mathematical generalization produce
-identical statistical results?
-
-------------------------------------------------------------------------
-
-### Dataset and Methods
-
-We use TCGA BRCA RNA-seq data as our validation dataset, which is
-included in the **SplicingFactory package**:
-
-- Public, reproducible resource.
-- Multiple transcript isoforms per gene.
-- Real biological signal.
-- Variable sequencing depth and isoform abundance.
-
-Analysis pipeline:
-
-1.  Load transcript-level read counts.
-2.  Filter genes.
-3.  Compute entropy values.
-4.  Statistical testing (Wilcoxon rank-sum) for group differences.
-5.  Compare results (concordance, effect sizes, rankings).
-
-------------------------------------------------------------------------
-
 ## Benchmarking
+
+For background on transcript diversity measures and the Tsallis entropy
+framework, see the main vignette. We use the TCGA BRCA RNA-seq dataset
+included with the SplicingFactory package as our validation benchmark.
 
 #### Importing example data
 
@@ -381,7 +336,7 @@ Simpson = Tsallis_{q=2} = 1 - \sum_{i=1}^n p_i^2
 
 where $`p_i = \frac{x_i}{\sum_i x_i}`$ (transcript proportions).
 
-Howerver, SplicingFactory returns raw values, while TSENAT normalizes by
+However, SplicingFactory returns raw values, while TSENAT normalizes by
 the theoretical maximum $`(1-1/n)`$:
 
 |                  | SplicingFactory    | TSENAT                             |

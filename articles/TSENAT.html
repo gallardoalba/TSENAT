@@ -70,7 +70,7 @@
 Gallardo Alba <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2026-07-27</h4>
+            <h4 data-toc-skip class="date">2026-07-28</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gallardoalba/TSENAT/blob/HEAD/vignettes/TSENAT.Rmd" class="external-link"><code>vignettes/TSENAT.Rmd</code></a></small>
       <div class="d-none name"><code>TSENAT.Rmd</code></div>
@@ -211,25 +211,28 @@ quantified mathematically. Shannon entropy became the foundation for
 understanding complexity across mathematics, physics, and biology—if you
 draw a transcript from a distribution, how predictable is the
 outcome?</p>
-<p>However, Shannon entropy treats all elements equally, regardless of
-their frequency: it weights rare and common elements identically. This
-limitation led mathematicians and physicists to explore generalized
-entropy families, most notably Rényi’s parametric family and Tsallis
-entropy. Both introduced tunable parameters that allow sensitivity to
-shift between rare and abundant elements. Remarkably, despite appearing
-different mathematically, Tsallis and Rényi entropies can be unified
-within a coherent framework through generalized logarithmic and
-exponential functions <span class="citation">(Tsallis 2017)</span>—both
-answer the fundamental question: What organizational scales matter?</p>
-<p>More recently, Hill numbers <span class="citation">(Chao et al.
-2010)</span> provided a modern ecological framework that reinterprets
-all generalized entropy measures as “true diversity” of different
-orders. This formulation clarified a crucial insight: diversity
-questions have scale-dependent answers. The Hill numbers framework
-unified richness (q=0), Shannon entropy (q=1), Simpson/Gini (q=2), and
-higher-order generalizations under a single mathematical
-umbrella—formalizing the idea that rare species and dominant species
-reveal different ecological (or in our case, transcriptomic) truths.</p>
+<p>However, Shannon entropy applies a fixed weighting function
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>−</mi><mi>p</mi><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mi>p</mi></mrow><annotation encoding="application/x-tex">-p\log p</annotation></semantics></math>)
+that peaks at intermediate frequencies, giving most influence to
+mid-abundance elements. It lacks a tunable parameter to shift emphasis
+between rare and common elements. This limitation led mathematicians and
+physicists to explore generalized entropy families, most notably Rényi’s
+parametric family and Tsallis entropy. Both introduced tunable
+parameters that allow sensitivity to shift between rare and abundant
+elements. Remarkably, despite appearing different mathematically,
+Tsallis and Rényi entropies can be unified within a coherent framework
+through generalized logarithmic and exponential functions <span class="citation">(Tsallis 2017)</span>—both answer the fundamental
+question: What organizational scales matter?</p>
+<p>Hill numbers <span class="citation">(Chao et al. 2010)</span>,
+introduced in 1973 and later unified with generalized entropy measures,
+provided an ecological framework that reinterprets diversity measures as
+“true diversity” of different orders. This formulation clarified a
+crucial insight: diversity questions have scale-dependent answers. The
+Hill numbers framework unified richness (q=0), Shannon entropy (q=1),
+Simpson/Gini (q=2), and higher-order generalizations under a single
+mathematical umbrella—formalizing the idea that rare species and
+dominant species reveal different ecological (or in our case,
+transcriptomic) truths.</p>
 </div>
 <div class="section level3">
 <h3 id="why-this-matters-for-rna-seq-the-isoform-complexity-problem">Why This Matters for RNA-seq: The Isoform Complexity Problem<a class="anchor" aria-label="anchor" href="#why-this-matters-for-rna-seq-the-isoform-complexity-problem"></a>
@@ -295,10 +298,10 @@ sensitivity across all abundance scales.</li>
 captures core expression architecture.</li>
 </ul>
 <p>This principle formalizes what cannot be implemented in classical
-Shannon analysis: the ability “not to set rare and common events on the
-same footing, as in standard statistics, but to enhance or depress them
-according to the parameter chosen” <span class="citation">(Anastasiadis
-2012; Ramírez-Reyes et al. 2016; Alomani and Kayid 2023)</span>.</p>
+Shannon analysis: the ability to enhance or depress the contribution of
+rare versus common events according to the parameter chosen, rather than
+setting them on equal footing as in standard statistics <span class="citation">(Anastasiadis 2012; Ramírez-Reyes et al. 2016; Alomani
+and Kayid 2023)</span>.</p>
 </div>
 <div class="section level4">
 <h4 id="biological-interpretation-richness-and-evenness">Biological Interpretation: Richness and Evenness<a class="anchor" aria-label="anchor" href="#biological-interpretation-richness-and-evenness"></a>
@@ -343,9 +346,11 @@ demands</li>
 wholesale reorganization or targeted adjustments</li>
 </ul>
 <p>TSENAT enables detection of these changes through entropy-based
-approaches, which capture whether complexity is increasing (diversity
-spreading across isoforms) or decreasing (consolidation onto dominant
-isoforms). The recent emphasis on information-theoretic approaches in
+approaches, which capture whether isoform diversity is increasing
+(complexity spreading across isoforms) or decreasing (consolidation onto
+dominant isoforms), changes that can occur even when total gene
+abundance remains constant <span class="citation">(Ramírez-Reyes et al.
+2016)</span>. The recent emphasis on information-theoretic approaches in
 computational biology <span class="citation">(Chanda et al. 2020; Bajić
 2024)</span> reflects broader recognition that complex biological
 systems encode information across multiple organizational scales.</p>
@@ -354,14 +359,15 @@ systems encode information across multiple organizational scales.</p>
 <h3 id="beyond-classical-abundance-measures">Beyond Classical Abundance Measures<a class="anchor" aria-label="anchor" href="#beyond-classical-abundance-measures"></a>
 </h3>
 <p>Traditional RNA-seq analysis focuses on fold-changes and differential
-abundance of specific transcripts. Tools like edgeR <span class="citation">(Robinson et al. 2010; Baldoni et al. 2024)</span>,
-DESeq2 <span class="citation">(Love et al. 2014)</span>, and DEXSeq
-<span class="citation">(Anders et al. 2012)</span> measure whether
-individual transcripts increase/decrease in expression or shift in
-relative proportion.Entropy-based approaches complement these methods by
-detecting complexity shifts —whether genes consolidate onto fewer
-dominant isoforms or maintain balanced distributions. TSENAT detects
-this reorganization answering a fundamentally different biological
+abundance of specific transcripts. Tools like edgeR <span class="citation">(Robinson et al. 2010; Baldoni et al. 2024)</span> and
+DESeq2 <span class="citation">(Love et al. 2014)</span> are primarily
+designed for gene-level differential expression analysis; with
+appropriate configuration (e.g., tximport for transcript-level
+aggregation), they can also assess transcript-level changes <span class="citation">(Love et al. 2018)</span>. DEXSeq <span class="citation">(Anders et al. 2012)</span> and DRIMSeq detect shifts
+in relative isoform proportions (differential transcript usage).
+Entropy-based approaches complement these methods by detecting
+complexity shifts—whether genes consolidate onto fewer dominant isoforms
+or maintain balanced distributions—a fundamentally different biological
 question: not “which transcripts change?” but “how is the isoform
 complexity changing?”</p>
 </div>
@@ -407,12 +413,12 @@ changes (using Scale-Adaptive Interaction Tests)</li>
 jackknife resampling)</li>
 <li>Interpret results in the context of paired experimental designs</li>
 </ol>
-<p>We’ll work with a paired experimental design where treated and
-control samples are linked, enabling detection of robust biological
-signals while controlling for subject-level variability. By the end,
-you’ll know not just <em>which genes</em> undergo isoform switching, but
-<em>which transcripts</em> are responsible and <em>at which diversity
-scales</em> the switching occurs.</p>
+<p>We’ll work with a paired experimental design where normal and tumor
+samples are linked, enabling detection of robust biological signals
+while controlling for subject-level variability. By the end, you’ll know
+not just <em>which genes</em> undergo isoform switching, but <em>which
+transcripts</em> are responsible and <em>at which diversity scales</em>
+the switching occurs.</p>
 <div class="section level3">
 <h3 id="load-data-and-metadata">Load data and metadata<a class="anchor" aria-label="anchor" href="#load-data-and-metadata"></a>
 </h3>
@@ -790,14 +796,14 @@ identifying such scale-dependent biological signals.</p>
 with specific strengths:</p>
 <ul>
 <li>
-<strong>GAM</strong> (generalized additive model): flexibly captures
-nonlinear q-response patterns via adaptive smoothing splines. Default
-for unpaired (cross-sectional) designs.</li>
-<li>
-<strong>GAMM</strong> (generalized additive mixed model): extends
-GAM with subject-level random intercepts and AR(1) correlation structure
-to accommodate within-subject correlation in repeated q-ordered
-measurements. Default for paired/longitudinal designs.</li>
+<strong>GAM / GAMM</strong> (generalized additive models / mixed
+models): flexibly capture nonlinear q-response patterns via adaptive
+smoothing splines. For unpaired (cross-sectional) designs, GAM is used
+directly. When <code>paired = TRUE</code>, <code>method = "gam"</code>
+automatically dispatches to GAMM internally, adding subject-level random
+intercepts and AR(1) correlation structure to accommodate within-subject
+correlation in repeated q-ordered measurements. GAMM can also be
+selected explicitly with <code>method = "gamm"</code>.</li>
 <li>
 <strong>LMM</strong> (linear mixed models): parametric alternative
 with subject-level random intercepts for repeated q-ordered
@@ -913,11 +919,12 @@ predictors <span class="citation">(Benjamini and Hochberg
 <p><strong>Interpretation:</strong></p>
 <ul>
 <li>
-<strong>Effect Size</strong>
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>η</mi><mn>2</mn></msup><annotation encoding="application/x-tex">\eta^2</annotation></semantics></math>):
-Proportion of variance in entropy explained by the q × condition
-interaction, ranging from 0 to 1. Values above 0.14 are considered large
-(Cohen’s convention).</li>
+<strong>Effect Size</strong>: Proportion of deviance in entropy
+explained by the q × condition interaction, ranging from 0 to 1. Larger
+values indicate stronger scale-dependent effects, but note that deviance
+explained in GAMs differs from classical η² and does not share the same
+interpretive thresholds (Cohen’s conventions for η² do not directly
+apply).</li>
 <li>
 <strong>Test Statistic</strong>
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>F</mi><annotation encoding="application/x-tex">F</annotation></semantics></math>):
@@ -980,31 +987,8 @@ iterations (positive = more influential in normal condition; negative =
 more influential in tumor condition).</p>
 </div>
 <div class="section level4">
-<h4 id="key-interpretation-questions">Key Interpretation Questions<a class="anchor" aria-label="anchor" href="#key-interpretation-questions"></a>
+<h4 id="configuring-the-switching-analysis">Configuring the Switching Analysis<a class="anchor" aria-label="anchor" href="#configuring-the-switching-analysis"></a>
 </h4>
-<ul>
-<li>
-<strong>Consistent switching</strong>: Do the same transcripts show
-significant delta influence across all <em>q</em>-values? Suggests
-robust, scale-independent splicing shift.</li>
-<li>
-<strong>Mixed/scale-dependent switching</strong>: Do different
-transcripts matter at different <em>q</em>-values? Suggests regulatory
-complexity where mechanisms differ by scale.</li>
-<li>
-<strong>Classification</strong>: Does isoform reorganization involve
-the same transcripts across scales, or a layered process where different
-regulatory inputs dominate at rare vs. abundant scales?</li>
-</ul>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Multi-Q analysis: Test switching at different q values</span></span>
-<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_jis.html">calculate_jis</a></span><span class="op">(</span></span>
-<span>    <span class="va">analysis</span>,</span>
-<span>    q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.5</span>, <span class="fl">1</span>, <span class="fl">1.5</span>, <span class="fl">2</span><span class="op">)</span>,</span>
-<span>    nboot <span class="op">=</span> <span class="fl">100</span>,</span>
-<span>    lm_p_threshold <span class="op">=</span> <span class="fl">0.05</span>,</span>
-<span>    threshold <span class="op">=</span> <span class="fl">90</span></span>
-<span><span class="op">)</span></span></code></pre></div>
 <p>We configure three key parameters for the switching analysis:
 <code>nboot = 100</code> specifies 100 bootstrap resamples to estimate
 robust confidence intervals for delta influence values <span class="citation">(Efron, Bradley and Tibshirani, Robert J. 1993)</span>;
@@ -1017,14 +1001,23 @@ and <code>threshold = 90</code> designates transcripts with support
 90% across bootstrap samples as robust switches. These parameters
 balance sensitivity (detecting switching) with specificity (avoiding
 false positives from noise).</p>
-<p>The tables below show the transcript switching patterns for the top
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Multi-Q analysis: Test switching at different q values</span></span>
+<span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_jis.html">calculate_jis</a></span><span class="op">(</span></span>
+<span>    <span class="va">analysis</span>,</span>
+<span>    q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.5</span>, <span class="fl">1</span>, <span class="fl">1.5</span>, <span class="fl">2</span><span class="op">)</span>,</span>
+<span>    nboot <span class="op">=</span> <span class="fl">100</span>,</span>
+<span>    lm_p_threshold <span class="op">=</span> <span class="fl">0.05</span>,</span>
+<span>    threshold <span class="op">=</span> <span class="fl">90</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The tables below show the transcript influence patterns for the top
 genes with strongest q×condition interactions, automatically computed
 via bootstrap resampling. The <code>Direction Consistency</code> column
-classifies each transcript: “Consistent” indicates stable switching
-across entropic indices, while “Mixed” indicates scale-dependent
-switching. This reveals whether isoform shifts involve the same
-transcripts across scales or whether different entropic indices
-emphasize different transcripts.</p>
+classifies each transcript: “Consistent positive” or “Consistent
+negative” indicates the transcript favors the same condition across all
+entropic indices, while “Mixed directions” indicates its direction of
+influence varies with scale, suggesting scale-dependent regulatory
+roles.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Retrieve gene switching tables</span></span>
 <span><span class="va">tables_result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/results.html">results</a></span><span class="op">(</span><span class="va">analysis</span>, type <span class="op">=</span> <span class="st">"switching_tables"</span><span class="op">)</span></span></code></pre></div>
@@ -1102,17 +1095,40 @@ emphasize different transcripts.</p>
 </table>
 </div>
 <div class="section level4">
+<h4 id="key-interpretation-questions">Key Interpretation Questions<a class="anchor" aria-label="anchor" href="#key-interpretation-questions"></a>
+</h4>
+<ul>
+<li>
+<strong>Scale-consistent influence</strong>: Do the same transcripts
+show delta influence of the same sign across all <em>q</em>-values?
+Indicates transcripts that contribute proportionally to the condition
+difference regardless of which diversity scale you examine—their role in
+the entropy shift is robust across rare and abundant isoform
+emphasis.</li>
+<li>
+<strong>Scale-dependent influence</strong>: Do different transcripts
+dominate at different <em>q</em>-values? Indicates layered regulation
+where distinct mechanisms operate at different abundance scales—rare
+isoforms drive differences at low <em>q</em> while abundant isoforms
+dominate at high <em>q</em>.</li>
+<li>
+<strong>Directional consistency</strong>: Does each transcript
+consistently favor the same condition across <em>q</em>-values, or does
+its direction of influence flip? Stable direction suggests a single
+regulatory mechanism; flipping direction suggests the transcript plays
+different roles at different diversity scales.</li>
+</ul>
+</div>
+<div class="section level4">
 <h4 id="delta-influence-across-diversity-scales">Delta Influence Across Diversity Scales<a class="anchor" aria-label="anchor" href="#delta-influence-across-diversity-scales"></a>
 </h4>
 <p>Visualize switching patterns for the top genes identified by the SAIT
-interaction test. This shows which transcripts are switching in genes
-with significant q × condition interaction effects. The heatmaps below
-display <strong>jackknife delta influence</strong> <span class="citation">(Efron and Tibshirani 1993)</span>-a resampling-based
-measure of how robustly each transcript’s relative contribution changes
-between conditions-across different entropic indices and transcripts for
-each gene. Delta influence values are computed from bootstrap resampling
-iterations, providing robust, non-parametric estimates of transcript
-switching significance weighted by consistency across replicates.</p>
+interaction test. The heatmaps below display <strong>jackknife delta
+influence</strong> (described in Section 3.6.1) across different
+entropic indices and transcripts for each gene, providing robust,
+non-parametric estimates of transcript switching significance weighted
+by consistency across bootstrap replicates <span class="citation">(Efron
+and Tibshirani 1993)</span>.</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Generate multi-Q heatmaps for top 4 genes using S4 wrapper</span></span>
 <span><span class="fu"><a href="../reference/plot_jis_delta.html">plot_jis_delta</a></span><span class="op">(</span><span class="va">analysis</span>, n_genes <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span></code></pre></div>
@@ -1345,7 +1361,7 @@ divergence at key q-values (0.5, 1.0, 2.0) and inferred pattern type
 <li>Rare driven: D(q=0.5) &gt;&gt; D(q=2.0). Low-abundance isoforms are
 condition-specific; treatment group preferentially expresses rare
 transcripts not seen in control.</li>
-<li>Abundant driver: D(q=0.5) &lt;&lt; D(q=2.0). High-abundance isoforms
+<li>Abundant driven: D(q=0.5) &lt;&lt; D(q=2.0). High-abundance isoforms
 shift between conditions; treatment remodels the dominant transcript
 landscape without rare variants changing.</li>
 <li>Balanced: D(q=0.5) ~= D(q=2.0). All isoforms shift proportionally;
@@ -1439,11 +1455,11 @@ vs. abundant isoforms) are affected genome-wide.
 check for data quality issues <span class="citation">(Efron and
 Tibshirani 1993; Efron, Bradley and Tibshirani, Robert J.
 1993)</span>.</p></li>
-<li><p>Monotonicity check: By Tsallis entropy theory , entropy is
-monotone decreasing in q. Divergence should NOT show erratic increases
-with q. Small fluctuations are normal, but large spikes indicate
-numerical instability <span class="citation">(Furuichi
-2006)</span>.</p></li>
+<li><p>Monotonicity check: Tsallis entropy is monotone decreasing in q
+for a fixed distribution <span class="citation">(Furuichi 2006)</span>.
+While divergence between two distributions is not strictly monotonic,
+large erratic spikes in the divergence q-spectrum may indicate numerical
+instability.</p></li>
 <li><p>Comparison with genome-wide patterns: Compute q-spectra for
 housekeeping genes (GAPDH, ACTB, etc.). These should show BALANCED
 patterns. If not, revisit normalization parameters <span class="citation">(Erhard et al. 2018)</span>.</p></li>
@@ -1462,11 +1478,11 @@ SplicingFactory</strong></p>
 implementations are mathematically equivalent to SplicingFactory.</p>
 <p><strong><a href="TSENAT_appendix_A.html">View Appendix
 A</a></strong></p>
-<p><strong>Appendix B: Non-Parametric Validation of Statistical Test
+<p><strong>Appendix B: Cross-Method Validation of Statistical Test
 Results via GAM and Rank-Based Methods</strong></p>
 <p>Objective: Validate q-value * group interaction detection results
-from statistical tests using complementary non-parametric modeling
-approaches.</p>
+from statistical tests using complementary parametric and non-parametric
+modeling approaches.</p>
 <p><strong><a href="TSENAT_appendix_B.html">View Appendix
 B</a></strong></p>
 <div class="section level3">

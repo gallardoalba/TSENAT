@@ -195,7 +195,10 @@ diversity_plot <- results(result, type = "diversity", plot=TRUE)
 print(diversity_plot)
 ```
 
-![](https://raw.githubusercontent.com/gallardoalba/TSENAT/gh-pages/articles/TSENAT_files/figure-html/fig-1-isoform-diversity-profiles-1.png)
+![Isoform diversity profiles across
+q-values](https://raw.githubusercontent.com/gallardoalba/TSENAT/gh-pages/articles/TSENAT_files/figure-html/fig-1-isoform-diversity-profiles-1.png)
+
+Isoform diversity profiles across q-values
 
 ``` r
 
@@ -204,7 +207,10 @@ sait_plot <- results(result, type = "sait", plot = TRUE)
 print(sait_plot)
 ```
 
-![](https://raw.githubusercontent.com/gallardoalba/TSENAT/gh-pages/articles/TSENAT_files/figure-html/fig-2-scale-dependent-genes-1.png)
+![Scale-dependent
+genes](https://raw.githubusercontent.com/gallardoalba/TSENAT/gh-pages/articles/TSENAT_files/figure-html/fig-2-scale-dependent-genes-1.png)
+
+Scale-dependent genes
 
 ## Documentation
 
