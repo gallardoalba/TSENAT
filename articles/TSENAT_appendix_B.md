@@ -9,32 +9,42 @@ frameworks with minimal assumptions.
 
 ### Two Complementary Validation Approaches
 
-**Method 1: Generalized Additive Mixed Models (GAMM)** with
-ARIMA-Ordered Measurement Structure.
+**Method 1: Generalized Additive Mixed Models (GAMM)** with functional
+q-curve structure.
 
 - Framework: Semi-parametric model combining flexible smooth functions
-  (thin-plate splines) with mixed-effects structure; assumes additive
-  model Y = f₁(q) + f₂(condition) + f₃(q, condition) +
+  (regression splines in paired designs) with mixed-effects structure;
+  assumes additive model Y = f₁(q) + f₂(condition) + f₃(q, condition) +
   subject-intercept + ε where f terms are smooth rather than linear.
 - Paired design structure: Uses random intercepts by subject
   (~1\|subject) with AR(1) correlation structure to accommodate repeated
-  entropy measurements across q-values within each subject. This
-  hierarchical approach preserves paired sample structure while modeling
-  autocorrelation in q-ordered measurements.
+  entropy measurements across q-values within each subject. Paired
+  models are fit via
+  [`nlme::lme`](https://rdrr.io/pkg/nlme/man/lme.html) with natural
+  regression splines (`ns(q, df = 3) × condition`) and a marginal F-test
+  for the interaction; this hierarchical approach preserves paired
+  sample structure while modeling autocorrelation in q-ordered
+  measurements.
 - Distributional assumption: Uses Gaussian residuals (standard for
   mixed-effects models); automatically detects bounded support \[0,1\]
-  entropy but applies Gaussian family due to
-  [`mgcv::gamm()`](https://rdrr.io/pkg/mgcv/man/gamm.html) limitations
-  with extended families in paired designs.
-- Treatment of entropic structure: Treats q-values as time-like ordered
-  measurements within each subject, applies ARIMA(1,1,0)
-  first-differencing to remove monotone trend and ensure stationarity;
-  AR(1) correlation structure captured through nlme::corAR1()
-  specification.
+  entropy but applies Gaussian family because the paired mixed-model
+  paths ([`nlme::lme`](https://rdrr.io/pkg/nlme/man/lme.html) /
+  [`mgcv::gamm()`](https://rdrr.io/pkg/mgcv/man/gamm.html)) do not
+  support extended families in paired designs.
+- Treatment of entropic structure: q is treated as a deterministic
+  functional argument of the Tsallis statistic, not as a time index. The
+  confirmatory hypothesis is the functional interaction — H0: β(q) = 0
+  for all q, tested on the ORIGINAL entropy curve H(q). The AR(1)
+  structure in
+  [`nlme::corAR1()`](https://rdrr.io/pkg/nlme/man/corAR1.html) is a
+  working covariance model for the functional residuals, validated by
+  Monte Carlo simulation.
 - Heteroscedasticity handling: Automatically detects variance
   heterogeneity (Breusch-Pagan test); however, heteroscedasticity-based
-  variance weights are not applied in paired designs due to
-  [`mgcv::gamm()`](https://rdrr.io/pkg/mgcv/man/gamm.html) limitations.
+  variance weights are not applied in paired designs due to paired
+  mixed-model path limitations
+  ([`nlme::lme`](https://rdrr.io/pkg/nlme/man/lme.html) /
+  [`mgcv::gamm()`](https://rdrr.io/pkg/mgcv/man/gamm.html)).
 - Key advantage: Captures smooth nonlinear q × condition interactions
   while accommodating paired sample correlation structure through random
   intercepts and AR(1) correlation modeling.
@@ -74,7 +84,7 @@ power for robustness:
 |----|----|----|
 | Assumptions | Normality, homoscedasticity | None; aligned ranks, fully non-parametric |
 | Power | Highest (if assumptions hold) | Good; reduced but robust to violations |
-| Interaction testing | F-test on penalized smooth terms | Proper interaction tests via alignment (Higgins and Tashtoush 1994) |
+| Interaction testing | Marginal F-test on regression-spline interaction terms | Proper interaction tests via alignment (Higgins and Tashtoush 1994) |
 | q-value treatment | Continuous smooth predictor (preserves ordinal structure) | Categorical factor (discards ordering) |
 | Robustness | Moderate | Highest |
 | Outlier sensitivity | Moderate potential for bias | Minimal; inherently resistant |
@@ -371,8 +381,8 @@ print(head(rank_transform_results, n = 10))
 | Metric                                       | Value |
 |:---------------------------------------------|------:|
 | Genes tested                                 |    77 |
-| Significant (p \< 0.05)                      |     3 |
-| Significant (adj_p \< 0.05, FWER-controlled) |     3 |
+| Significant (p \< 0.05)                      |    45 |
+| Significant (adj_p \< 0.05, FWER-controlled) |    40 |
 | NAs                                          |     0 |
 | Mean effect size ($`\eta^2`$)                |  0.8% |
 | Median effect size ($`\eta^2`$)              |  0.4% |
@@ -385,16 +395,16 @@ vs. non-parametric method concordance. {.table}
 
 | Gene | P-value | Adj. P-value | F-Statistic | Effect Size (η²) | Interaction Class |
 |:---|:---|:---|:---|:---|:---|
-| CXCL12 | 2.6e-34 | 2e-32 | 9.7609 | 0.0657 | Moderately q-dependent |
-| PLP1 | 4.5e-15 | 3.4e-13 | 4.6613 | 0.0364 | Moderately q-dependent |
-| LINC03040 | 1.7e-10 | 1.3e-08 | 3.5894 | 0.0470 | Moderately q-dependent |
-| EXOC1 | 0.062250 | 1 | 1.4028 | 0.0051 | Robust across q |
-| ING3 | 0.069535 | 1 | 1.3854 | 0.0247 | Robust across q |
-| METTL26 | 0.081721 | 1 | 1.3593 | 0.0169 | Robust across q |
-| RAP1GDS1 | 0.128620 | 1 | 1.2825 | 0.0187 | Robust across q |
-| FAM114A2 | 0.317423 | 1 | 1.1030 | 0.0234 | Robust across q |
-| ZNF714 | 0.375444 | 1 | 1.0630 | 0.0201 | Robust across q |
-| ATG5 | 0.386207 | 1 | 1.0559 | 0.0204 | Robust across q |
+| CXCL12 | 1.3e-130 | 9.9e-129 | 80.3513 | 0.0657 | Moderately q-dependent |
+| PLP1 | 1.2e-98 | 9.5e-97 | 44.1746 | 0.0364 | Moderately q-dependent |
+| LINC03040 | 6.9e-76 | 5.2e-74 | 27.8414 | 0.0470 | Moderately q-dependent |
+| ING3 | 4.9e-44 | 3.6e-42 | 13.0747 | 0.0247 | Moderately q-dependent |
+| ATG5 | 4.2e-42 | 3e-40 | 12.3991 | 0.0204 | Moderately q-dependent |
+| CENPV | 2.5e-38 | 1.8e-36 | 11.1349 | 0.0080 | Moderately q-dependent |
+| FAM114A2 | 1.8e-37 | 1.3e-35 | 10.8532 | 0.0234 | Moderately q-dependent |
+| ZNF714 | 1.9e-34 | 1.4e-32 | 9.9022 | 0.0201 | Moderately q-dependent |
+| ETFRF1 | 1.4e-25 | 9.9e-24 | 7.3482 | 0.0090 | Moderately q-dependent |
+| METTL26 | 4.2e-25 | 2.8e-23 | 7.2225 | 0.0169 | Moderately q-dependent |
 
 **Supplementary Table 16 \| Top genes identified by Aligned Rank
 Transform (ART).** Ranked by adjusted p-value; comparison with GAMM
@@ -445,12 +455,12 @@ print(sait_results)
 | Metric                                   |  Value |
 |:-----------------------------------------|-------:|
 | Genes tested                             |     76 |
-| Significant (p \< 0.05)                  |     49 |
-| Concordant (p \< 0.05 AND adj_p \< 0.05) |     33 |
+| Significant (p \< 0.05)                  |     66 |
+| Concordant (p \< 0.05 AND adj_p \< 0.05) |     57 |
 | NAs                                      |      0 |
-| Mean effect size                         |  21.3% |
-| Median effect size                       |  16.7% |
-| Strong effect genes (effect_size \> 30%) |     19 |
+| Mean effect size                         |  30.0% |
+| Median effect size                       |  24.8% |
+| Strong effect genes (effect_size \> 30%) |     32 |
 | Model convergence rate                   | 100.0% |
 
 **Supplementary Table 17 \| GAMM Results Summary.** Overview of
@@ -458,18 +468,18 @@ generalized additive mixed model statistics for q × condition
 interaction tests across full q-spectrum with paired sample structure.
 {.table}
 
-| Gene     | p (interaction) | Adjusted p | Effect size | Test statistic |
-|:---------|----------------:|-----------:|------------:|---------------:|
-| CXCL12   |        4.63e-88 |   3.52e-86 |       81.6% |           6.00 |
-| THY1     |        3.80e-32 |   2.85e-30 |       60.5% |           3.48 |
-| MEF2A    |        1.32e-23 |   9.79e-22 |       20.0% |           0.93 |
-| RAP1GDS1 |        6.85e-20 |   5.00e-18 |       55.2% |           0.85 |
-| GSKIP    |        1.40e-18 |   1.01e-16 |       31.1% |           1.01 |
-| DUOXA2   |        5.40e-12 |   3.83e-10 |       30.6% |           8.66 |
-| ING3     |        6.95e-12 |   4.86e-10 |       35.9% |           0.68 |
-| EXOC1    |        1.24e-10 |   8.56e-09 |       23.8% |           0.59 |
-| THOC6    |        1.69e-10 |   1.15e-08 |       14.6% |           1.64 |
-| HDAC2    |        2.64e-10 |   1.77e-08 |       29.0% |           0.61 |
+| Gene            | p (interaction) | Adjusted p | Effect size | Test statistic |
+|:----------------|----------------:|-----------:|------------:|---------------:|
+| CXCL12          |       2.15e-139 |  1.63e-137 |       74.0% |         370.00 |
+| ING3            |        4.15e-57 |   3.12e-55 |       32.3% |         109.18 |
+| THY1            |        7.49e-55 |   5.54e-53 |       35.8% |         103.97 |
+| LINC03040       |        5.54e-47 |   4.05e-45 |       58.1% |          86.46 |
+| SNHG10          |        7.69e-43 |   5.54e-41 |       21.0% |          77.62 |
+| MEF2A           |        2.34e-36 |   1.66e-34 |       17.1% |          64.30 |
+| ASMTL           |        2.18e-33 |   1.52e-31 |       39.4% |          58.41 |
+| HDAC2           |        2.93e-33 |   2.02e-31 |       22.7% |          58.15 |
+| ENSG00000274322 |        3.02e-29 |   2.05e-27 |       43.9% |          50.38 |
+| ATG5            |        2.32e-28 |   1.56e-26 |       51.5% |          48.70 |
 
 **Supplementary Table 18 \| Top 10 Genes by GAMM p-value (with Effect
 Size and Test Statistics).** Ranked by adjusted p-value; compare with
@@ -512,39 +522,37 @@ concordance_results <- results(analysis_rank, type = "concordance", format = "li
 | Metric                               |        Value |
 |:-------------------------------------|-------------:|
 | Total genes compared                 |           76 |
-| Spearman correlation (p-values)      | rho = 0.1097 |
-| Both methods significant (p \< 0.05) |     1 (1.3%) |
-| SAIT only significant                |   32 (42.1%) |
-| Rank test only significant           |     1 (1.3%) |
-| Neither significant                  |   42 (55.3%) |
-| Concordance rate                     |         1.3% |
-| Discordance rate                     |        43.4% |
+| Spearman correlation (p-values)      | rho = 0.5025 |
+| Both methods significant (p \< 0.05) |   35 (46.1%) |
+| SAIT only significant                |   22 (28.9%) |
+| Rank test only significant           |     4 (5.3%) |
+| Neither significant                  |   15 (19.7%) |
+| Concordance rate                     |        46.1% |
+| Discordance rate                     |        34.2% |
 
 **Supplementary Table 19 \| Global Concordance Metrics: GAMM vs Aligned
 Rank Transform (ART).** Quantifies agreement between parametric (GAMM)
 and non-parametric (ART) approaches for detecting q × condition
 interactions. {.table}
 
-| Agreement Category  | Number of Genes | Percentage |
-|:--------------------|----------------:|-----------:|
-| Both significant    |               1 |       1.3% |
-| SAIT only           |              32 |      42.1% |
-| Rank test only      |               1 |       1.3% |
-| Neither significant |              42 |      55.3% |
+| Gene      | SAIT adj p | Rank test adj p | SAIT Effect | Rank test rho^2 |
+|:----------|-----------:|----------------:|------------:|----------------:|
+| CXCL12    |  1.63e-137 |       9.85e-129 |       74.0% |           0.066 |
+| LINC03040 |  4.046e-45 |        5.18e-74 |       58.1% |           0.047 |
+| ING3      |   3.12e-55 |       3.643e-42 |       32.3% |           0.025 |
+| ATG5      |  1.557e-26 |       3.045e-40 |       51.5% |           0.020 |
+| SPICE1    |  5.743e-22 |       3.274e-22 |       53.8% |           0.021 |
+| ASMTL     |  1.523e-31 |       1.101e-19 |       39.4% |           0.005 |
+| FAM114A2  |  6.857e-19 |       1.294e-35 |       39.5% |           0.023 |
+| ETFRF1    |  1.935e-18 |       9.853e-24 |       62.5% |           0.009 |
+| RAP1GDS1  |  2.191e-25 |       8.824e-16 |       37.5% |           0.019 |
+| ZNF714    |  3.273e-12 |       1.358e-32 |       30.4% |           0.020 |
 
-**Supplementary Table 20 \| Agreement Distribution: Concordance by Gene
-Category.** Distribution of genes across categories: both methods
-significant, GAMM only, ART only, and neither method. {.table}
-
-| Gene   | SAIT adj p | Rank test adj p | SAIT Effect | Rank test rho^2 |
-|:-------|-----------:|----------------:|------------:|----------------:|
-| CXCL12 |   3.52e-86 |       2.020e-32 |       81.6% |           0.066 |
-
-**Supplementary Table 21 \| Robust Entropic Order Index Interactions:
-High-Confidence Genes Detected by Both Methods (n=1, ranked by
-statistical significance).** Cross-method validation: genes significant
-in both GAMM and ART provide strongest evidence for q × condition
-effects. {.table}
+**Supplementary Table 20 \| Robust Entropic Order Index Interactions:
+Top 10 High-Confidence Genes Detected by Both Methods (of 35 concordant,
+ranked by statistical significance).** Cross-method validation: genes
+significant in both GAMM and ART provide strongest evidence for q ×
+condition effects. {.table}
 
 ### Statistical Power vs. Robustness: Understanding Method Discordance
 
@@ -567,11 +575,11 @@ GAMM’s superior power derives from three factors:
     and ranking, which reduces statistical power when the underlying
     data are approximately normal.
 
-2.  Model flexibility with penalty: GAMM uses thin-plate splines with
-    smoothness penalties that simultaneously fit nonlinear patterns
-    while controlling degrees of freedom. This flexibility allows GAMM
-    to detect subtle entropic index × group interactions across all
-    q-values.
+2.  Model flexibility: GAMM captures nonlinear q patterns with splines
+    (natural regression splines with 3 df for paired designs) that
+    simultaneously fit nonlinear trends while controlling degrees of
+    freedom. This flexibility allows GAMM to detect subtle entropic
+    index × group interactions across all q-values.
 
 3.  Continuous vs. categorical q treatment: GAMM models q as a
     continuous smooth predictor across all 41 q-values, preserving the
@@ -646,7 +654,7 @@ sessionInfo()
 #> [8] base     
 #> 
 #> other attached packages:
-#>  [1] TSENAT_0.99.34              testthat_3.3.2             
+#>  [1] TSENAT_0.99.35              testthat_3.3.2             
 #>  [3] gridExtra_2.3               dplyr_1.2.1                
 #>  [5] SummarizedExperiment_1.40.0 Biobase_2.70.0             
 #>  [7] GenomicRanges_1.62.1        Seqinfo_1.0.0              

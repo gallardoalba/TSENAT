@@ -50,7 +50,13 @@ calculate_sait(
 - method:
 
   `character`. Statistical method (e. g. , 'lmm', 'gam', 'gee'). If
-  NULL, uses method from @config\$method or defaults to 'lmm'.
+  NULL, uses method from @config\$method or defaults to 'lmm'. For
+  paired designs, `'gam'` dispatches to GAMM:
+  [`nlme::lme`](https://rdrr.io/pkg/nlme/man/lme.html) with regression
+  splines (`ns(q, df = 3) x condition`), subject random intercept and
+  AR(1) within subject x condition (marginal F-test for the
+  interaction); [`mgcv::gamm()`](https://rdrr.io/pkg/mgcv/man/gamm.html)
+  and standard GAM are fallbacks.
 
 - paired:
 
@@ -77,8 +83,9 @@ calculate_sait(
 - corstr:
 
   `character` or `NULL`. Correlation structure for GEE models. Options:
-  'ar1', 'exchangeable', 'independence'. If NULL, uses method from
-  @config or base function defaults.
+  'ar1', 'exchangeable', 'independence', 'auto'. 'auto' selects the best
+  structure via QIC. If NULL, uses method from @config or base function
+  defaults.
 
 - pcorr:
 
@@ -104,7 +111,9 @@ calculate_sait(
 
   Additional arguments passed to the base LM function, including:
   pvalue, min_obs, assay_name, bias_correction, regularization, storey,
-  wy_randomizations, adaptive_knots, etc.
+  wy_randomizations, adaptive_knots, block_col, strata_col,
+  permutation_scheme (exchangeability-compatible Westfall-Young
+  permutations), etc.
 
 ## Value
 

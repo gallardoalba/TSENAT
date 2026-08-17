@@ -69,7 +69,7 @@ distributions $`P`$ and $`Q`$ representing isoform proportions in
 control and treatment conditions, Tsallis divergence is:
 
 ``` math
-D_q(P||Q) = \frac{1 - \sum_i p_i^q \cdot q_i^{1-q}}{q-1}
+D_q(P||Q) = \frac{\sum_i p_i^q \cdot q_i^{1-q} - 1}{q-1}
 ```
 
 where $`p_i`$ and $`q_i`$ are the probability values at position $`i`$.
@@ -227,15 +227,19 @@ visualization.
 
 TSENAT provides a flexible statistical framework optimized for
 entropy-based diversity analysis. The recommended main workflow (paired
-design) relies on **Generalized Additive Mixed Models (GAMM)** via
-[`mgcv::gamm()`](https://CRAN.R-project.org/package=mgcv) combined with
-ARIMA differencing.
+design) relies on **Generalized Additive Mixed Models (GAMM)**: paired
+designs are fit with
+[`nlme::lme`](https://rdrr.io/pkg/nlme/man/lme.html) using regression
+splines (`ns(q, df = 3) × condition`), a subject random intercept, and
+AR(1) correlation within each subject × condition block, with the
+interaction tested via a marginal F-test.
 
 The statistical methods available in TSENAT include:
 
 - **Scale-adaptive interaction tests (SAIT)**: Multiple modeling
-  approaches optimized for repeated measures with AR(1) correlation
-  structure. GAM/GAMM, LMM, GEE and FPCA are all parametrized to handle
+  approaches for repeated q-ordered measurements. GAM/GAMM, LMM, GEE and
+  FPCA model within-subject correlation with a working AR(1) structure
+  within each subject × condition block, and are parametrized to handle
   the non-normality and heteroscedasticity characteristic of entropy
   data.
 - **Aligned Rank Transform (ART)**: State-of-the-art non-parametric

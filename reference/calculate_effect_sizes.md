@@ -78,15 +78,15 @@ object visibly to support piping and method chaining.
 
   Results in metadata with function call tracking
 
-\*\*Parameter resolution priority\*\* (explicit \> metadata \> default):
+\*\*Parameter resolution priority\*\* (explicit \> config \> default):
 
 - `significance_threshold`: Uses explicit arg, else
-  `metadata(analysis)$significance_threshold`, else 0.05
+  `analysis@config$significance_threshold`, else 0.05
 
 - `enrich_per_q_pattern`: Uses explicit arg, else
-  `metadata(analysis)$enrich_per_q_pattern`, else TRUE
+  `analysis@config$enrich_per_q_pattern`, else TRUE
 
-- `verbose`: Uses explicit arg, else `metadata(analysis)$verbose`, else
+- `verbose`: Uses explicit arg, else `analysis@config$verbose`, else
   TRUE
 
 Results are accessed via: `metadata(analysis)$effect_sizes_divergence`

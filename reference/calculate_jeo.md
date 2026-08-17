@@ -134,255 +134,255 @@ analysis <- calculate_diversity(analysis, q = c(0.5, 1.0, 1.5))
 # Run jackknife estimation
 analysis <- calculate_jeo(analysis, q = c(0.5, 1.0, 1.5))
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (1.935) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Total count (2.034) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (1) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Total count (4.341) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (2.693) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Total count (5.241) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
-#> Consider aggregating samples or filtering genes with low abundance.
-#> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
-#> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
+#> Consider aggregating samples or filtering genes with low abundance.
+#> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
+#> Warning: Total count (0) below recommended minimum (10-20).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (3.097) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (9.378) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (1.935) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Total count (2.034) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (1) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Total count (4.341) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (2.693) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Total count (5.241) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
-#> Consider aggregating samples or filtering genes with low abundance.
-#> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
-#> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
+#> Consider aggregating samples or filtering genes with low abundance.
+#> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
+#> Warning: Total count (0) below recommended minimum (10-20).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (3.097) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (9.378) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (1.935) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Total count (2.034) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (1) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Total count (4.341) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (2.693) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Total count (5.241) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
-#> Consider aggregating samples or filtering genes with low abundance.
-#> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
-#> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
+#> Consider aggregating samples or filtering genes with low abundance.
+#> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
+#> Warning: Total count (0) below recommended minimum (10-20).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (3.097) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 #> Warning: Total count (9.378) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Total count (0) below recommended minimum (10-20).
-#> Jackknife estimates may be unreliable (per papers S111, S114).
+#> Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).
 #> Consider aggregating samples or filtering genes with low abundance.
 #> Warning: Gene unable to compute jackknife (diversity estimate is NA). Likely cause: zero or near-zero counts. Returning NA result.
 # Check jackknife results using unified accessor

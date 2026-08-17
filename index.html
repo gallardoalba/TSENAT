@@ -9,8 +9,7 @@
 <link href="deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><link href="extra.css" rel="stylesheet">
-<meta property="og:title" content="TSENAT">
+<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="TSENAT">
 <meta name="description" content="Tsallis Entropy Analysis Toolbox — quantifying isoform-usage
 complexity across RNA-seq samples
 ">
@@ -26,7 +25,7 @@ complexity across RNA-seq samples
 
     <a class="navbar-brand me-2" href="index.html">TSENAT</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.99.34</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.99.35</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -104,7 +103,7 @@ complexity across RNA-seq samples
 </h3>
 <p>While Tsallis entropy quantifies diversity <em>within</em> a single distribution, <strong>Tsallis divergence</strong> <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>D</mi><mi>q</mi></msub><annotation encoding="application/x-tex">D_q</annotation></semantics></math> measures the information-theoretic distance <em>between</em> two distributions.</p>
 <p><strong>Mathematical Definition</strong> (Furuichi formula): For two probability distributions <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>P</mi><annotation encoding="application/x-tex">P</annotation></semantics></math> and <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>Q</mi><annotation encoding="application/x-tex">Q</annotation></semantics></math> representing isoform proportions in control and treatment conditions, Tsallis divergence is:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>D</mi><mi>q</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>P</mi><mo stretchy="false" form="prefix">|</mo><mo stretchy="false" form="prefix">|</mo><mi>Q</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mfrac><mrow><mn>1</mn><mo>−</mo><munder><mo>∑</mo><mi>i</mi></munder><msubsup><mi>p</mi><mi>i</mi><mi>q</mi></msubsup><mo>⋅</mo><msubsup><mi>q</mi><mi>i</mi><mrow><mn>1</mn><mo>−</mo><mi>q</mi></mrow></msubsup></mrow><mrow><mi>q</mi><mo>−</mo><mn>1</mn></mrow></mfrac></mrow><annotation encoding="application/x-tex">D_q(P||Q) = \frac{1 - \sum_i p_i^q \cdot q_i^{1-q}}{q-1}</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>D</mi><mi>q</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>P</mi><mo stretchy="false" form="prefix">|</mo><mo stretchy="false" form="prefix">|</mo><mi>Q</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mfrac><mrow><munder><mo>∑</mo><mi>i</mi></munder><msubsup><mi>p</mi><mi>i</mi><mi>q</mi></msubsup><mo>⋅</mo><msubsup><mi>q</mi><mi>i</mi><mrow><mn>1</mn><mo>−</mo><mi>q</mi></mrow></msubsup><mo>−</mo><mn>1</mn></mrow><mrow><mi>q</mi><mo>−</mo><mn>1</mn></mrow></mfrac></mrow><annotation encoding="application/x-tex">D_q(P||Q) = \frac{\sum_i p_i^q \cdot q_i^{1-q} - 1}{q-1}</annotation></semantics></math></p>
 <p>where <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>p</mi><mi>i</mi></msub><annotation encoding="application/x-tex">p_i</annotation></semantics></math> and <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>q</mi><mi>i</mi></msub><annotation encoding="application/x-tex">q_i</annotation></semantics></math> are the probability values at position <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>.</p>
 <p>Tsallis divergence enables the quantification of how fundamentally different the isoform complexity patterns are between experimental conditions.</p>
 </div>
@@ -214,11 +213,11 @@ complexity across RNA-seq samples
 <div class="section level2">
 <h2 id="statistical-inference-methods">Statistical Inference Methods<a class="anchor" aria-label="anchor" href="#statistical-inference-methods"></a>
 </h2>
-<p>TSENAT provides a flexible statistical framework optimized for entropy-based diversity analysis. The recommended main workflow (paired design) relies on <strong>Generalized Additive Mixed Models (GAMM)</strong> via <a href="https://CRAN.R-project.org/package=mgcv" class="external-link"><code>mgcv::gamm()</code></a> combined with ARIMA differencing.</p>
+<p>TSENAT provides a flexible statistical framework optimized for entropy-based diversity analysis. The recommended main workflow (paired design) relies on <strong>Generalized Additive Mixed Models (GAMM)</strong>: paired designs are fit with <code><a href="https://rdrr.io/pkg/nlme/man/lme.html" class="external-link">nlme::lme</a></code> using regression splines (<code>ns(q, df = 3) × condition</code>), a subject random intercept, and AR(1) correlation within each subject × condition block, with the interaction tested via a marginal F-test.</p>
 <p>The statistical methods available in TSENAT include:</p>
 <ul>
 <li>
-<strong>Scale-adaptive interaction tests (SAIT)</strong>: Multiple modeling approaches optimized for repeated measures with AR(1) correlation structure. GAM/GAMM, LMM, GEE and FPCA are all parametrized to handle the non-normality and heteroscedasticity characteristic of entropy data.</li>
+<strong>Scale-adaptive interaction tests (SAIT)</strong>: Multiple modeling approaches for repeated q-ordered measurements. GAM/GAMM, LMM, GEE and FPCA model within-subject correlation with a working AR(1) structure within each subject × condition block, and are parametrized to handle the non-normality and heteroscedasticity characteristic of entropy data.</li>
 <li>
 <strong>Aligned Rank Transform (ART)</strong>: State-of-the-art non-parametric interaction testing via the ARTool package (Kay et al. 2021). Strips main effects before ranking (“alignment”) to properly preserve interaction structure — addressing the known limitation of classical rank-transform methods for factorial designs. The Conover-Iman Rank Transform remains available as a fallback via <code>method='rt'</code>.</li>
 <li>

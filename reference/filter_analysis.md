@@ -12,7 +12,7 @@ filter_analysis(
   min_tpm = 1,
   tpm_assay_name = NULL,
   min_samples = 5L,
-  stringency = "medium",
+  stringency = NULL,
   pair_col = NULL,
   min_tx_per_gene = 2L,
   min_isoform_abundance = NULL,

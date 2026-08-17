@@ -9,8 +9,7 @@
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
-<meta property="og:title" content="Appendix B: Cross-Method Validation of Scale-Adaptive Interaction Test Results via GAMM and Aligned Rank Transform (ART)">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Appendix B: Cross-Method Validation of Scale-Adaptive Interaction Test Results via GAMM and Aligned Rank Transform (ART)">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -20,7 +19,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TSENAT</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.99.34</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.99.35</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -70,7 +69,7 @@
 Gallardo Alba <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2026-07-28</h4>
+            <h4 data-toc-skip class="date">2026-08-17</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gallardoalba/TSENAT/blob/HEAD/vignettes/TSENAT_appendix_B.Rmd" class="external-link"><code>vignettes/TSENAT_appendix_B.Rmd</code></a></small>
       <div class="d-none name"><code>TSENAT_appendix_B.Rmd</code></div>
@@ -89,30 +88,35 @@ frameworks with minimal assumptions.</p>
 <h3 id="two-complementary-validation-approaches">Two Complementary Validation Approaches<a class="anchor" aria-label="anchor" href="#two-complementary-validation-approaches"></a>
 </h3>
 <p><strong>Method 1: Generalized Additive Mixed Models (GAMM)</strong>
-with ARIMA-Ordered Measurement Structure.</p>
+with functional q-curve structure.</p>
 <ul>
 <li>Framework: Semi-parametric model combining flexible smooth functions
-(thin-plate splines) with mixed-effects structure; assumes additive
-model Y = f₁(q) + f₂(condition) + f₃(q, condition) + subject-intercept +
-ε where f terms are smooth rather than linear.</li>
+(regression splines in paired designs) with mixed-effects structure;
+assumes additive model Y = f₁(q) + f₂(condition) + f₃(q, condition) +
+subject-intercept + ε where f terms are smooth rather than linear.</li>
 <li>Paired design structure: Uses random intercepts by subject
 (~1|subject) with AR(1) correlation structure to accommodate repeated
-entropy measurements across q-values within each subject. This
-hierarchical approach preserves paired sample structure while modeling
-autocorrelation in q-ordered measurements.</li>
+entropy measurements across q-values within each subject. Paired models
+are fit via <code><a href="https://rdrr.io/pkg/nlme/man/lme.html" class="external-link">nlme::lme</a></code> with natural regression splines
+(<code>ns(q, df = 3) × condition</code>) and a marginal F-test for the
+interaction; this hierarchical approach preserves paired sample
+structure while modeling autocorrelation in q-ordered measurements.</li>
 <li>Distributional assumption: Uses Gaussian residuals (standard for
 mixed-effects models); automatically detects bounded support [0,1]
-entropy but applies Gaussian family due to <code><a href="https://rdrr.io/pkg/mgcv/man/gamm.html" class="external-link">mgcv::gamm()</a></code>
-limitations with extended families in paired designs.</li>
-<li>Treatment of entropic structure: Treats q-values as time-like
-ordered measurements within each subject, applies ARIMA(1,1,0)
-first-differencing to remove monotone trend and ensure stationarity;
-AR(1) correlation structure captured through nlme::corAR1()
-specification.</li>
+entropy but applies Gaussian family because the paired mixed-model paths
+(<code><a href="https://rdrr.io/pkg/nlme/man/lme.html" class="external-link">nlme::lme</a></code> / <code><a href="https://rdrr.io/pkg/mgcv/man/gamm.html" class="external-link">mgcv::gamm()</a></code>) do not support
+extended families in paired designs.</li>
+<li>Treatment of entropic structure: q is treated as a deterministic
+functional argument of the Tsallis statistic, not as a time index. The
+confirmatory hypothesis is the functional interaction — H0: β(q) = 0 for
+all q, tested on the ORIGINAL entropy curve H(q). The AR(1) structure in
+<code><a href="https://rdrr.io/pkg/nlme/man/corAR1.html" class="external-link">nlme::corAR1()</a></code> is a working covariance model for the
+functional residuals, validated by Monte Carlo simulation.</li>
 <li>Heteroscedasticity handling: Automatically detects variance
 heterogeneity (Breusch-Pagan test); however, heteroscedasticity-based
-variance weights are not applied in paired designs due to
-<code><a href="https://rdrr.io/pkg/mgcv/man/gamm.html" class="external-link">mgcv::gamm()</a></code> limitations.</li>
+variance weights are not applied in paired designs due to paired
+mixed-model path limitations (<code><a href="https://rdrr.io/pkg/nlme/man/lme.html" class="external-link">nlme::lme</a></code> /
+<code><a href="https://rdrr.io/pkg/mgcv/man/gamm.html" class="external-link">mgcv::gamm()</a></code>).</li>
 <li>Key advantage: Captures smooth nonlinear q × condition interactions
 while accommodating paired sample correlation structure through random
 intercepts and AR(1) correlation modeling.</li>
@@ -172,7 +176,7 @@ power for robustness:</p>
 </tr>
 <tr class="odd">
 <td>Interaction testing</td>
-<td>F-test on penalized smooth terms</td>
+<td>Marginal F-test on regression-spline interaction terms</td>
 <td>Proper interaction tests via alignment <span class="citation">(Higgins and Tashtoush 1994)</span>
 </td>
 </tr>
@@ -578,11 +582,11 @@ to assess parametric vs. non-parametric method concordance.</caption>
 </tr>
 <tr class="even">
 <td align="left">Significant (p &lt; 0.05)</td>
-<td align="right">3</td>
+<td align="right">45</td>
 </tr>
 <tr class="odd">
 <td align="left">Significant (adj_p &lt; 0.05, FWER-controlled)</td>
-<td align="right">3</td>
+<td align="right">40</td>
 </tr>
 <tr class="even">
 <td align="left">NAs</td>
@@ -631,83 +635,83 @@ sensitivities.</caption>
 <tbody>
 <tr class="odd">
 <td align="left">CXCL12</td>
-<td align="left">2.6e-34</td>
-<td align="left">2e-32</td>
-<td align="left">9.7609</td>
+<td align="left">1.3e-130</td>
+<td align="left">9.9e-129</td>
+<td align="left">80.3513</td>
 <td align="left">0.0657</td>
 <td align="left">Moderately q-dependent</td>
 </tr>
 <tr class="even">
 <td align="left">PLP1</td>
-<td align="left">4.5e-15</td>
-<td align="left">3.4e-13</td>
-<td align="left">4.6613</td>
+<td align="left">1.2e-98</td>
+<td align="left">9.5e-97</td>
+<td align="left">44.1746</td>
 <td align="left">0.0364</td>
 <td align="left">Moderately q-dependent</td>
 </tr>
 <tr class="odd">
 <td align="left">LINC03040</td>
-<td align="left">1.7e-10</td>
-<td align="left">1.3e-08</td>
-<td align="left">3.5894</td>
+<td align="left">6.9e-76</td>
+<td align="left">5.2e-74</td>
+<td align="left">27.8414</td>
 <td align="left">0.0470</td>
 <td align="left">Moderately q-dependent</td>
 </tr>
 <tr class="even">
-<td align="left">EXOC1</td>
-<td align="left">0.062250</td>
-<td align="left">1</td>
-<td align="left">1.4028</td>
-<td align="left">0.0051</td>
-<td align="left">Robust across q</td>
+<td align="left">ING3</td>
+<td align="left">4.9e-44</td>
+<td align="left">3.6e-42</td>
+<td align="left">13.0747</td>
+<td align="left">0.0247</td>
+<td align="left">Moderately q-dependent</td>
 </tr>
 <tr class="odd">
-<td align="left">ING3</td>
-<td align="left">0.069535</td>
-<td align="left">1</td>
-<td align="left">1.3854</td>
-<td align="left">0.0247</td>
-<td align="left">Robust across q</td>
+<td align="left">ATG5</td>
+<td align="left">4.2e-42</td>
+<td align="left">3e-40</td>
+<td align="left">12.3991</td>
+<td align="left">0.0204</td>
+<td align="left">Moderately q-dependent</td>
+</tr>
+<tr class="even">
+<td align="left">CENPV</td>
+<td align="left">2.5e-38</td>
+<td align="left">1.8e-36</td>
+<td align="left">11.1349</td>
+<td align="left">0.0080</td>
+<td align="left">Moderately q-dependent</td>
+</tr>
+<tr class="odd">
+<td align="left">FAM114A2</td>
+<td align="left">1.8e-37</td>
+<td align="left">1.3e-35</td>
+<td align="left">10.8532</td>
+<td align="left">0.0234</td>
+<td align="left">Moderately q-dependent</td>
+</tr>
+<tr class="even">
+<td align="left">ZNF714</td>
+<td align="left">1.9e-34</td>
+<td align="left">1.4e-32</td>
+<td align="left">9.9022</td>
+<td align="left">0.0201</td>
+<td align="left">Moderately q-dependent</td>
+</tr>
+<tr class="odd">
+<td align="left">ETFRF1</td>
+<td align="left">1.4e-25</td>
+<td align="left">9.9e-24</td>
+<td align="left">7.3482</td>
+<td align="left">0.0090</td>
+<td align="left">Moderately q-dependent</td>
 </tr>
 <tr class="even">
 <td align="left">METTL26</td>
-<td align="left">0.081721</td>
-<td align="left">1</td>
-<td align="left">1.3593</td>
+<td align="left">4.2e-25</td>
+<td align="left">2.8e-23</td>
+<td align="left">7.2225</td>
 <td align="left">0.0169</td>
-<td align="left">Robust across q</td>
-</tr>
-<tr class="odd">
-<td align="left">RAP1GDS1</td>
-<td align="left">0.128620</td>
-<td align="left">1</td>
-<td align="left">1.2825</td>
-<td align="left">0.0187</td>
-<td align="left">Robust across q</td>
-</tr>
-<tr class="even">
-<td align="left">FAM114A2</td>
-<td align="left">0.317423</td>
-<td align="left">1</td>
-<td align="left">1.1030</td>
-<td align="left">0.0234</td>
-<td align="left">Robust across q</td>
-</tr>
-<tr class="odd">
-<td align="left">ZNF714</td>
-<td align="left">0.375444</td>
-<td align="left">1</td>
-<td align="left">1.0630</td>
-<td align="left">0.0201</td>
-<td align="left">Robust across q</td>
-</tr>
-<tr class="even">
-<td align="left">ATG5</td>
-<td align="left">0.386207</td>
-<td align="left">1</td>
-<td align="left">1.0559</td>
-<td align="left">0.0204</td>
-<td align="left">Robust across q</td>
+<td align="left">Moderately q-dependent</td>
 </tr>
 </tbody>
 </table>
@@ -759,11 +763,11 @@ structure.</caption>
 </tr>
 <tr class="even">
 <td align="left">Significant (p &lt; 0.05)</td>
-<td align="right">49</td>
+<td align="right">66</td>
 </tr>
 <tr class="odd">
 <td align="left">Concordant (p &lt; 0.05 AND adj_p &lt; 0.05)</td>
-<td align="right">33</td>
+<td align="right">57</td>
 </tr>
 <tr class="even">
 <td align="left">NAs</td>
@@ -771,15 +775,15 @@ structure.</caption>
 </tr>
 <tr class="odd">
 <td align="left">Mean effect size</td>
-<td align="right">21.3%</td>
+<td align="right">30.0%</td>
 </tr>
 <tr class="even">
 <td align="left">Median effect size</td>
-<td align="right">16.7%</td>
+<td align="right">24.8%</td>
 </tr>
 <tr class="odd">
 <td align="left">Strong effect genes (effect_size &gt; 30%)</td>
-<td align="right">19</td>
+<td align="right">32</td>
 </tr>
 <tr class="even">
 <td align="left">Model convergence rate</td>
@@ -793,6 +797,13 @@ structure.</caption>
 (with Effect Size and Test Statistics).</strong> Ranked by adjusted
 p-value; compare with ART results (Supplementary Table 16) for method
 agreement assessment.</caption>
+<colgroup>
+<col width="22%">
+<col width="22%">
+<col width="15%">
+<col width="17%">
+<col width="21%">
+</colgroup>
 <thead><tr class="header">
 <th align="left">Gene</th>
 <th align="right">p (interaction)</th>
@@ -803,73 +814,73 @@ agreement assessment.</caption>
 <tbody>
 <tr class="odd">
 <td align="left">CXCL12</td>
-<td align="right">4.63e-88</td>
-<td align="right">3.52e-86</td>
-<td align="right">81.6%</td>
-<td align="right">6.00</td>
+<td align="right">2.15e-139</td>
+<td align="right">1.63e-137</td>
+<td align="right">74.0%</td>
+<td align="right">370.00</td>
 </tr>
 <tr class="even">
-<td align="left">THY1</td>
-<td align="right">3.80e-32</td>
-<td align="right">2.85e-30</td>
-<td align="right">60.5%</td>
-<td align="right">3.48</td>
-</tr>
-<tr class="odd">
-<td align="left">MEF2A</td>
-<td align="right">1.32e-23</td>
-<td align="right">9.79e-22</td>
-<td align="right">20.0%</td>
-<td align="right">0.93</td>
-</tr>
-<tr class="even">
-<td align="left">RAP1GDS1</td>
-<td align="right">6.85e-20</td>
-<td align="right">5.00e-18</td>
-<td align="right">55.2%</td>
-<td align="right">0.85</td>
-</tr>
-<tr class="odd">
-<td align="left">GSKIP</td>
-<td align="right">1.40e-18</td>
-<td align="right">1.01e-16</td>
-<td align="right">31.1%</td>
-<td align="right">1.01</td>
-</tr>
-<tr class="even">
-<td align="left">DUOXA2</td>
-<td align="right">5.40e-12</td>
-<td align="right">3.83e-10</td>
-<td align="right">30.6%</td>
-<td align="right">8.66</td>
-</tr>
-<tr class="odd">
 <td align="left">ING3</td>
-<td align="right">6.95e-12</td>
-<td align="right">4.86e-10</td>
-<td align="right">35.9%</td>
-<td align="right">0.68</td>
-</tr>
-<tr class="even">
-<td align="left">EXOC1</td>
-<td align="right">1.24e-10</td>
-<td align="right">8.56e-09</td>
-<td align="right">23.8%</td>
-<td align="right">0.59</td>
+<td align="right">4.15e-57</td>
+<td align="right">3.12e-55</td>
+<td align="right">32.3%</td>
+<td align="right">109.18</td>
 </tr>
 <tr class="odd">
-<td align="left">THOC6</td>
-<td align="right">1.69e-10</td>
-<td align="right">1.15e-08</td>
-<td align="right">14.6%</td>
-<td align="right">1.64</td>
+<td align="left">THY1</td>
+<td align="right">7.49e-55</td>
+<td align="right">5.54e-53</td>
+<td align="right">35.8%</td>
+<td align="right">103.97</td>
+</tr>
+<tr class="even">
+<td align="left">LINC03040</td>
+<td align="right">5.54e-47</td>
+<td align="right">4.05e-45</td>
+<td align="right">58.1%</td>
+<td align="right">86.46</td>
+</tr>
+<tr class="odd">
+<td align="left">SNHG10</td>
+<td align="right">7.69e-43</td>
+<td align="right">5.54e-41</td>
+<td align="right">21.0%</td>
+<td align="right">77.62</td>
+</tr>
+<tr class="even">
+<td align="left">MEF2A</td>
+<td align="right">2.34e-36</td>
+<td align="right">1.66e-34</td>
+<td align="right">17.1%</td>
+<td align="right">64.30</td>
+</tr>
+<tr class="odd">
+<td align="left">ASMTL</td>
+<td align="right">2.18e-33</td>
+<td align="right">1.52e-31</td>
+<td align="right">39.4%</td>
+<td align="right">58.41</td>
 </tr>
 <tr class="even">
 <td align="left">HDAC2</td>
-<td align="right">2.64e-10</td>
-<td align="right">1.77e-08</td>
-<td align="right">29.0%</td>
-<td align="right">0.61</td>
+<td align="right">2.93e-33</td>
+<td align="right">2.02e-31</td>
+<td align="right">22.7%</td>
+<td align="right">58.15</td>
+</tr>
+<tr class="odd">
+<td align="left">ENSG00000274322</td>
+<td align="right">3.02e-29</td>
+<td align="right">2.05e-27</td>
+<td align="right">43.9%</td>
+<td align="right">50.38</td>
+</tr>
+<tr class="even">
+<td align="left">ATG5</td>
+<td align="right">2.32e-28</td>
+<td align="right">1.56e-26</td>
+<td align="right">51.5%</td>
+<td align="right">48.70</td>
 </tr>
 </tbody>
 </table>
@@ -920,75 +931,41 @@ detecting q × condition interactions.</caption>
 </tr>
 <tr class="even">
 <td align="left">Spearman correlation (p-values)</td>
-<td align="right">rho = 0.1097</td>
+<td align="right">rho = 0.5025</td>
 </tr>
 <tr class="odd">
 <td align="left">Both methods significant (p &lt; 0.05)</td>
-<td align="right">1 (1.3%)</td>
+<td align="right">35 (46.1%)</td>
 </tr>
 <tr class="even">
 <td align="left">SAIT only significant</td>
-<td align="right">32 (42.1%)</td>
+<td align="right">22 (28.9%)</td>
 </tr>
 <tr class="odd">
 <td align="left">Rank test only significant</td>
-<td align="right">1 (1.3%)</td>
+<td align="right">4 (5.3%)</td>
 </tr>
 <tr class="even">
 <td align="left">Neither significant</td>
-<td align="right">42 (55.3%)</td>
+<td align="right">15 (19.7%)</td>
 </tr>
 <tr class="odd">
 <td align="left">Concordance rate</td>
-<td align="right">1.3%</td>
+<td align="right">46.1%</td>
 </tr>
 <tr class="even">
 <td align="left">Discordance rate</td>
-<td align="right">43.4%</td>
+<td align="right">34.2%</td>
 </tr>
 </tbody>
 </table>
 <table class="table">
 <caption>
-<strong>Supplementary Table 20 | Agreement Distribution:
-Concordance by Gene Category.</strong> Distribution of genes across
-categories: both methods significant, GAMM only, ART only, and neither
-method.</caption>
-<thead><tr class="header">
-<th align="left">Agreement Category</th>
-<th align="right">Number of Genes</th>
-<th align="right">Percentage</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">Both significant</td>
-<td align="right">1</td>
-<td align="right">1.3%</td>
-</tr>
-<tr class="even">
-<td align="left">SAIT only</td>
-<td align="right">32</td>
-<td align="right">42.1%</td>
-</tr>
-<tr class="odd">
-<td align="left">Rank test only</td>
-<td align="right">1</td>
-<td align="right">1.3%</td>
-</tr>
-<tr class="even">
-<td align="left">Neither significant</td>
-<td align="right">42</td>
-<td align="right">55.3%</td>
-</tr>
-</tbody>
-</table>
-<table class="table">
-<caption>
-<strong>Supplementary Table 21 | Robust Entropic Order Index
-Interactions: High-Confidence Genes Detected by Both Methods (n=1,
-ranked by statistical significance).</strong> Cross-method validation:
-genes significant in both GAMM and ART provide strongest evidence for q
-× condition effects.</caption>
+<strong>Supplementary Table 20 | Robust Entropic Order Index
+Interactions: Top 10 High-Confidence Genes Detected by Both Methods (of
+35 concordant, ranked by statistical significance).</strong>
+Cross-method validation: genes significant in both GAMM and ART provide
+strongest evidence for q × condition effects.</caption>
 <thead><tr class="header">
 <th align="left">Gene</th>
 <th align="right">SAIT adj p</th>
@@ -996,13 +973,78 @@ genes significant in both GAMM and ART provide strongest evidence for q
 <th align="right">SAIT Effect</th>
 <th align="right">Rank test rho^2</th>
 </tr></thead>
-<tbody><tr class="odd">
+<tbody>
+<tr class="odd">
 <td align="left">CXCL12</td>
-<td align="right">3.52e-86</td>
-<td align="right">2.020e-32</td>
-<td align="right">81.6%</td>
+<td align="right">1.63e-137</td>
+<td align="right">9.85e-129</td>
+<td align="right">74.0%</td>
 <td align="right">0.066</td>
-</tr></tbody>
+</tr>
+<tr class="even">
+<td align="left">LINC03040</td>
+<td align="right">4.046e-45</td>
+<td align="right">5.18e-74</td>
+<td align="right">58.1%</td>
+<td align="right">0.047</td>
+</tr>
+<tr class="odd">
+<td align="left">ING3</td>
+<td align="right">3.12e-55</td>
+<td align="right">3.643e-42</td>
+<td align="right">32.3%</td>
+<td align="right">0.025</td>
+</tr>
+<tr class="even">
+<td align="left">ATG5</td>
+<td align="right">1.557e-26</td>
+<td align="right">3.045e-40</td>
+<td align="right">51.5%</td>
+<td align="right">0.020</td>
+</tr>
+<tr class="odd">
+<td align="left">SPICE1</td>
+<td align="right">5.743e-22</td>
+<td align="right">3.274e-22</td>
+<td align="right">53.8%</td>
+<td align="right">0.021</td>
+</tr>
+<tr class="even">
+<td align="left">ASMTL</td>
+<td align="right">1.523e-31</td>
+<td align="right">1.101e-19</td>
+<td align="right">39.4%</td>
+<td align="right">0.005</td>
+</tr>
+<tr class="odd">
+<td align="left">FAM114A2</td>
+<td align="right">6.857e-19</td>
+<td align="right">1.294e-35</td>
+<td align="right">39.5%</td>
+<td align="right">0.023</td>
+</tr>
+<tr class="even">
+<td align="left">ETFRF1</td>
+<td align="right">1.935e-18</td>
+<td align="right">9.853e-24</td>
+<td align="right">62.5%</td>
+<td align="right">0.009</td>
+</tr>
+<tr class="odd">
+<td align="left">RAP1GDS1</td>
+<td align="right">2.191e-25</td>
+<td align="right">8.824e-16</td>
+<td align="right">37.5%</td>
+<td align="right">0.019</td>
+</tr>
+<tr class="even">
+<td align="left">ZNF714</td>
+<td align="right">3.273e-12</td>
+<td align="right">1.358e-32</td>
+<td align="right">30.4%</td>
+<td align="right">0.020</td>
+</tr>
+</tbody>
 </table>
 <div class="section level3">
 <h3 id="statistical-power-vs--robustness-understanding-method-discordance">Statistical Power vs. Robustness: Understanding Method
@@ -1026,10 +1068,11 @@ for a given type I error rate. ART is assumption-free but necessarily
 discards quantitative information through alignment and ranking, which
 reduces statistical power when the underlying data are approximately
 normal.</p></li>
-<li><p>Model flexibility with penalty: GAMM uses thin-plate splines with
-smoothness penalties that simultaneously fit nonlinear patterns while
-controlling degrees of freedom. This flexibility allows GAMM to detect
-subtle entropic index × group interactions across all q-values.</p></li>
+<li><p>Model flexibility: GAMM captures nonlinear q patterns with
+splines (natural regression splines with 3 df for paired designs) that
+simultaneously fit nonlinear trends while controlling degrees of
+freedom. This flexibility allows GAMM to detect subtle entropic index ×
+group interactions across all q-values.</p></li>
 <li><p>Continuous vs. categorical q treatment: GAMM models q as a
 continuous smooth predictor across all 41 q-values, preserving the
 ordinal structure and borrowing strength across adjacent q-levels. ART
@@ -1097,7 +1140,7 @@ parametric-non-parametric agreement patterns.
 <span><span class="co">#&gt; [8] base     </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; other attached packages:</span></span>
-<span><span class="co">#&gt;  [1] TSENAT_0.99.34              testthat_3.3.2             </span></span>
+<span><span class="co">#&gt;  [1] TSENAT_0.99.35              testthat_3.3.2             </span></span>
 <span><span class="co">#&gt;  [3] gridExtra_2.3               dplyr_1.2.1                </span></span>
 <span><span class="co">#&gt;  [5] SummarizedExperiment_1.40.0 Biobase_2.70.0             </span></span>
 <span><span class="co">#&gt;  [7] GenomicRanges_1.62.1        Seqinfo_1.0.0              </span></span>

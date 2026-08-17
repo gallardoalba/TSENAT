@@ -138,7 +138,7 @@ metadata(analysis) <- list(processing_date = Sys.Date(), method = 'test')
 # Retrieve all metadata
 metadata(analysis)
 #> $processing_date
-#> [1] "2026-07-28"
+#> [1] "2026-08-17"
 #> 
 #> $method
 #> [1] "test"

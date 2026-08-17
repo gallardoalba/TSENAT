@@ -22,6 +22,7 @@ calculate_jis(
   sait_results = NULL,
   sait_p_threshold = 0.05,
   use_sait_fdr = TRUE,
+  nthreads = NULL,
   output_file = NULL,
   verbose = FALSE,
   ...
@@ -103,6 +104,12 @@ calculate_jis(
 
   `logical`. If TRUE, uses adjusted p-values from sait_results (default:
   TRUE).
+
+- nthreads:
+
+  `numeric` or `NULL`. Number of CPU threads for parallel processing. If
+  NULL, reads from `@config$nthreads` (or defaults to 1). If \> 1 and
+  multiple q-values provided, uses parallel PSOCK cluster.
 
 - output_file:
 

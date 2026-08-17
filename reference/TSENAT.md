@@ -173,6 +173,8 @@ result <- TSENAT(analysis)
 #> [>] [ 4/16] Computing M-estimator influence
 #>           [OK] M-estimate QC complete
 #> [>] [ 5/16] Fitting SAIT interaction models
+#> Warning: nlminb problem, convergence error code = 1
+#>   message = iteration limit reached without convergence (10)
 #>           [OK] SAIT interaction analysis complete
 #> [>] [ 6/16] Plotting SAIT results
 #>           [OK] SAIT interaction plot generated
@@ -206,11 +208,11 @@ result <- TSENAT(analysis)
 #> [RESULTS] Results Summary
 #> 
 #> [PERF] Performance
-#>   Total time ........... 38.1s
+#>   Total time ........... 28.1s
 #>   Slowest steps:
-#>     1. sait_interaction     13.3s (35.0%)
-#>     2. jackknife            11.8s (31.0%)
-#>     3. rank_transform_test  5.1s (13.5%)
+#>     1. rank_transform_test  6.4s (22.7%)
+#>     2. jackknife            5.7s (20.2%)
+#>     3. sait_interaction     4.9s (17.3%)
 #> 
 #> [OUTPUT] Output
 #>   Directory ........... tsenat_outputs

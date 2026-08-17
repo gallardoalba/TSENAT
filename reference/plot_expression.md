@@ -15,6 +15,7 @@ plot_expression(
   output_file = NULL,
   metric = c("median", "mean", "variance", "iqr"),
   use_tpm = TRUE,
+  quantity = c("abundance", "usage"),
   width = NULL,
   height = NULL,
   fontsize = 16,

@@ -15,9 +15,9 @@ calculate_divergence(
   nthreads = NULL,
   output_file = NULL,
   control_group = NULL,
-  paired = FALSE,
+  paired = NULL,
   method = NULL,
-  bootstrap = FALSE,
+  bootstrap = NULL,
   nboot = NULL,
   progress = FALSE,
   ...
@@ -110,15 +110,22 @@ Key Features:
 
 - Flexible control group: Compare any condition vs. any other condition
 
-\*\*Mathematical Background:\*\* Tsallis divergence D_q between two
-probability distributions:
+\*\*Mathematical Background:\*\* Tsallis divergence between the
+per-condition isoform-usage distributions \\P\\ (control) and \\Q\\
+(treatment), built by summing transcript counts across samples within
+each condition:
 
 
-      D_q(P||Q) = (log_2(N) - entropy_q(P) + entropy_q(Q)) / (q - 1)
+      D_q(P||Q) = (sum_i P_i^q * Q_i^(1-q) - 1) / (q - 1)   for q > 0, q != 1
+      D_1(P||Q) = sum_i P_i * log(P_i / Q_i)                 (KL limit)
 
-Measures how much transcript composition changes from control to
-condition. Values near 0: Similar isoform composition; Large positive
-values: Major change.
+q = 0 convention: D_0(P\|\|Q) = 1 - sum_i: P_i \> 0 Q_i (the Q-mass on
+P's zero support, with 0^0 = 0). Under pseudocount regularization all
+bins are positive and D_0 = 0. Measures how much isoform composition
+changes from control to condition. Values near 0: Similar isoform
+composition; Large positive values: Major change. Note: the default is
+norm = 'none', so reported values are raw divergences on the count scale
+(not rescaled across genes).
 
 \*\*Example Use Case:\*\* Control sample: All reads from dominant
 isoform (low entropy)  
@@ -166,11 +173,11 @@ analysis <- calculate_divergence(analysis, q = c(0.5, 1.0, 1.5))
 
 # Check divergence results using unified accessor
 head(results(analysis, type = 'divergence'))
-#>               q_0.5        q_1      q_1.5
-#> DES      1.00000000 0.97550617 0.37328802
-#> SYNM     0.95161102 0.86914555 0.28623852
-#> HIPK2    0.10360517 0.11224915 0.03518892
-#> REG3A    0.29954936 0.20518742 0.04708207
-#> SH3PXD2A 0.03982424 0.04235353 0.01285111
-#> EFNB2    0.11930832 0.12438627 0.03827434
+#>                 q_0.5          q_1        q_1.5
+#> DES      0.000000e+00 0.000000e+00 0.000000e+00
+#> SYNM     9.296544e-06 1.856638e-05 2.780964e-05
+#> HIPK2    0.000000e+00 0.000000e+00 0.000000e+00
+#> REG3A    2.960352e-03 5.910282e-03 8.854202e-03
+#> SH3PXD2A 1.492930e-04 2.919431e-04 4.284469e-04
+#> EFNB2    0.000000e+00 0.000000e+00 0.000000e+00
 ```

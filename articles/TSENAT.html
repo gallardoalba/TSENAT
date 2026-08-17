@@ -9,8 +9,7 @@
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
-<meta property="og:title" content="TSENAT: Tsallis Entropy Analysis Toolbox">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="TSENAT: Tsallis Entropy Analysis Toolbox">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -20,7 +19,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TSENAT</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.99.34</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.99.35</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -70,7 +69,7 @@
 Gallardo Alba <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2026-07-28</h4>
+            <h4 data-toc-skip class="date">2026-08-17</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gallardoalba/TSENAT/blob/HEAD/vignettes/TSENAT.Rmd" class="external-link"><code>vignettes/TSENAT.Rmd</code></a></small>
       <div class="d-none name"><code>TSENAT.Rmd</code></div>
@@ -800,10 +799,12 @@ with specific strengths:</p>
 models): flexibly capture nonlinear q-response patterns via adaptive
 smoothing splines. For unpaired (cross-sectional) designs, GAM is used
 directly. When <code>paired = TRUE</code>, <code>method = "gam"</code>
-automatically dispatches to GAMM internally, adding subject-level random
-intercepts and AR(1) correlation structure to accommodate within-subject
-correlation in repeated q-ordered measurements. GAMM can also be
-selected explicitly with <code>method = "gamm"</code>.</li>
+automatically dispatches to GAMM internally: <code><a href="https://rdrr.io/pkg/nlme/man/lme.html" class="external-link">nlme::lme</a></code> with
+regression splines (<code>ns(q, df = 3) × condition</code>),
+subject-level random intercepts and AR(1) correlation within each
+subject × condition block (marginal F-test for the interaction).
+<code><a href="https://rdrr.io/pkg/mgcv/man/gamm.html" class="external-link">mgcv::gamm()</a></code> and standard GAM serve as fallbacks. GAMM can
+also be selected explicitly with <code>method = "gamm"</code>.</li>
 <li>
 <strong>LMM</strong> (linear mixed models): parametric alternative
 with subject-level random intercepts for repeated q-ordered
@@ -842,19 +843,19 @@ detection. Methods: GAMs with <em>q</em> and condition as smooth
 predictors <span class="citation">(Benjamini and Hochberg
 1995)</span>.</caption>
 <colgroup>
-<col width="9%">
-<col width="9%">
+<col width="10%">
+<col width="10%">
 <col width="13%">
 <col width="12%">
+<col width="15%">
 <col width="16%">
-<col width="17%">
 <col width="20%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Gene</th>
 <th align="left">P-value</th>
 <th align="left">Adj. P-value</th>
-<th align="right">Effect Size</th>
+<th align="left">Effect Size</th>
 <th align="right">Test Statistic</th>
 <th align="left">Model Converged</th>
 <th align="left">Heteroscedasticity</th>
@@ -862,55 +863,55 @@ predictors <span class="citation">(Benjamini and Hochberg
 <tbody>
 <tr class="odd">
 <td align="left">CXCL12</td>
-<td align="left">4.63e-88</td>
-<td align="left">3.52e-86</td>
-<td align="right">0.8158</td>
-<td align="right">5.9954</td>
-<td align="left">TRUE</td>
-<td align="left">TRUE</td>
-</tr>
-<tr class="even">
-<td align="left">THY1</td>
-<td align="left">3.80e-32</td>
-<td align="left">2.85e-30</td>
-<td align="right">0.6052</td>
-<td align="right">3.4843</td>
-<td align="left">TRUE</td>
-<td align="left">TRUE</td>
-</tr>
-<tr class="odd">
-<td align="left">MEF2A</td>
-<td align="left">1.32e-23</td>
-<td align="left">9.79e-22</td>
-<td align="right">0.2003</td>
-<td align="right">0.9256</td>
-<td align="left">TRUE</td>
-<td align="left">TRUE</td>
-</tr>
-<tr class="even">
-<td align="left">RAP1GDS1</td>
-<td align="left">6.85e-20</td>
-<td align="left">5.00e-18</td>
-<td align="right">0.5516</td>
-<td align="right">0.8500</td>
-<td align="left">TRUE</td>
-<td align="left">TRUE</td>
-</tr>
-<tr class="odd">
-<td align="left">GSKIP</td>
-<td align="left">1.40e-18</td>
-<td align="left">1.01e-16</td>
-<td align="right">0.3107</td>
-<td align="right">1.0130</td>
+<td align="left">2.15e-139</td>
+<td align="left">1.63e-137</td>
+<td align="left">74.0%</td>
+<td align="right">369.9998</td>
 <td align="left">TRUE</td>
 <td align="left">TRUE</td>
 </tr>
 <tr class="even">
 <td align="left">ING3</td>
-<td align="left">6.95e-12</td>
-<td align="left">4.93e-10</td>
-<td align="right">0.3589</td>
-<td align="right">0.6840</td>
+<td align="left">4.15e-57</td>
+<td align="left">3.12e-55</td>
+<td align="left">32.3%</td>
+<td align="right">109.1815</td>
+<td align="left">TRUE</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="odd">
+<td align="left">THY1</td>
+<td align="left">7.49e-55</td>
+<td align="left">5.54e-53</td>
+<td align="left">35.8%</td>
+<td align="right">103.9746</td>
+<td align="left">TRUE</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="even">
+<td align="left">LINC03040</td>
+<td align="left">5.54e-47</td>
+<td align="left">4.05e-45</td>
+<td align="left">58.1%</td>
+<td align="right">86.4559</td>
+<td align="left">TRUE</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="odd">
+<td align="left">SNHG10</td>
+<td align="left">7.69e-43</td>
+<td align="left">5.54e-41</td>
+<td align="left">21.0%</td>
+<td align="right">77.6209</td>
+<td align="left">TRUE</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="even">
+<td align="left">MEF2A</td>
+<td align="left">2.34e-36</td>
+<td align="left">1.66e-34</td>
+<td align="left">17.1%</td>
+<td align="right">64.3021</td>
 <td align="left">TRUE</td>
 <td align="left">TRUE</td>
 </tr>
@@ -919,11 +920,12 @@ predictors <span class="citation">(Benjamini and Hochberg
 <p><strong>Interpretation:</strong></p>
 <ul>
 <li>
-<strong>Effect Size</strong>: Proportion of deviance in entropy
-explained by the q × condition interaction, ranging from 0 to 1. Larger
-values indicate stronger scale-dependent effects, but note that deviance
-explained in GAMs differs from classical η² and does not share the same
-interpretive thresholds (Cohen’s conventions for η² do not directly
+<strong>Effect Size</strong>: Proportion of variance in entropy
+explained by the fitted model, ranging from 0 to 1 (deviance explained
+for GAM paths; model pseudo-R² for the paired regression-spline path).
+Larger values indicate stronger scale-dependent effects, but note that
+this deviance/R² scale differs from classical η² and does not share the
+same interpretive thresholds (Cohen’s conventions for η² do not directly
 apply).</li>
 <li>
 <strong>Test Statistic</strong>
@@ -1059,7 +1061,7 @@ roles.</p>
 </table>
 </div>
 <div class="section level4">
-<h4 id="gene-thy1-ensg00000154096-15">Gene: THY1 (ENSG00000154096.15)<a class="anchor" aria-label="anchor" href="#gene-thy1-ensg00000154096-15"></a>
+<h4 id="gene-ing3-ensg00000071243-17">Gene: ING3 (ENSG00000071243.17)<a class="anchor" aria-label="anchor" href="#gene-ing3-ensg00000071243-17"></a>
 </h4>
 <table class="table">
 <thead><tr class="header">
@@ -1071,24 +1073,45 @@ roles.</p>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left">ENST00000524970.5</td>
-<td align="center">-0.046</td>
-<td align="center">0.002</td>
-<td align="center">0.014</td>
+<td align="left">ENST00000315870.10</td>
+<td align="center">-0.004</td>
+<td align="center">0.000</td>
+<td align="center">0.012</td>
 <td align="right">Mixed directions</td>
 </tr>
 <tr class="even">
-<td align="left">ENST00000900758.1</td>
-<td align="center">0.045</td>
-<td align="center">0.031</td>
-<td align="center">0.019</td>
+<td align="left">ENST00000339121.9</td>
+<td align="center">0.011</td>
+<td align="center">0.016</td>
+<td align="center">0.017</td>
 <td align="right">Consistent positive</td>
 </tr>
 <tr class="odd">
-<td align="left">ENST00000956364.1</td>
-<td align="center">-0.075</td>
-<td align="center">-0.092</td>
-<td align="center">-0.102</td>
+<td align="left">ENST00000427726.5</td>
+<td align="center">0.022</td>
+<td align="center">0.040</td>
+<td align="center">0.053</td>
+<td align="right">Consistent positive</td>
+</tr>
+<tr class="even">
+<td align="left">ENST00000431467.1</td>
+<td align="center">-0.058</td>
+<td align="center">-0.040</td>
+<td align="center">-0.025</td>
+<td align="right">Consistent negative</td>
+</tr>
+<tr class="odd">
+<td align="left">ENST00000445699.5</td>
+<td align="center">0.006</td>
+<td align="center">0.011</td>
+<td align="center">0.015</td>
+<td align="right">Consistent positive</td>
+</tr>
+<tr class="even">
+<td align="left">ENST00000875858.1</td>
+<td align="center">-0.052</td>
+<td align="center">-0.035</td>
+<td align="center">-0.023</td>
 <td align="right">Consistent negative</td>
 </tr>
 </tbody>
@@ -1206,7 +1229,7 @@ and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>Q</mi><annotation encoding="application/x-tex">Q</annotation></semantics></math>
 representing isoform proportions in control and treatment conditions,
 Tsallis divergence is:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>D</mi><mi>q</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>P</mi><mo stretchy="false" form="prefix">|</mo><mo stretchy="false" form="prefix">|</mo><mi>Q</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mfrac><mrow><mn>1</mn><mo>−</mo><munder><mo>∑</mo><mi>i</mi></munder><msubsup><mi>p</mi><mi>i</mi><mi>q</mi></msubsup><mo>⋅</mo><msubsup><mi>q</mi><mi>i</mi><mrow><mn>1</mn><mo>−</mo><mi>q</mi></mrow></msubsup></mrow><mrow><mi>q</mi><mo>−</mo><mn>1</mn></mrow></mfrac></mrow><annotation encoding="application/x-tex">D_q(P||Q) = \frac{1 - \sum_i p_i^q \cdot q_i^{1-q}}{q-1}</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>D</mi><mi>q</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>P</mi><mo stretchy="false" form="prefix">|</mo><mo stretchy="false" form="prefix">|</mo><mi>Q</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mfrac><mrow><munder><mo>∑</mo><mi>i</mi></munder><msubsup><mi>p</mi><mi>i</mi><mi>q</mi></msubsup><mo>⋅</mo><msubsup><mi>q</mi><mi>i</mi><mrow><mn>1</mn><mo>−</mo><mi>q</mi></mrow></msubsup><mo>−</mo><mn>1</mn></mrow><mrow><mi>q</mi><mo>−</mo><mn>1</mn></mrow></mfrac></mrow><annotation encoding="application/x-tex">D_q(P||Q) = \frac{\sum_i p_i^q \cdot q_i^{1-q} - 1}{q-1}</annotation></semantics></math></p>
 <p>where
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>p</mi><mi>i</mi></msub><annotation encoding="application/x-tex">p_i</annotation></semantics></math>
 and
@@ -1225,34 +1248,34 @@ comparison; divergence value; confidence interval (95%). Ranked by
 magnitude.</caption>
 <thead><tr class="header">
 <th align="left"></th>
-<th align="right">q_0.01</th>
+<th align="right">q_0</th>
 <th align="right">q_0.05</th>
 <th align="right">q_0.1</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
 <td align="left">FOXJ2</td>
-<td align="right">0.04377</td>
-<td align="right">0.04633</td>
-<td align="right">0.04952</td>
+<td align="right">0</td>
+<td align="right">0.00271</td>
+<td align="right">0.00556</td>
 </tr>
 <tr class="even">
 <td align="left">TMEM38A</td>
-<td align="right">0.14876</td>
-<td align="right">0.15768</td>
-<td align="right">0.16891</td>
+<td align="right">0</td>
+<td align="right">0.00008</td>
+<td align="right">0.00016</td>
 </tr>
 <tr class="odd">
 <td align="left">GSR</td>
-<td align="right">0.08359</td>
-<td align="right">0.08801</td>
-<td align="right">0.09349</td>
+<td align="right">0</td>
+<td align="right">0.00000</td>
+<td align="right">0.00000</td>
 </tr>
 <tr class="even">
 <td align="left">SNX4</td>
-<td align="right">0.06378</td>
-<td align="right">0.06744</td>
-<td align="right">0.07200</td>
+<td align="right">0</td>
+<td align="right">0.00000</td>
+<td align="right">0.00000</td>
 </tr>
 </tbody>
 </table>
@@ -1273,7 +1296,7 @@ magnitude.</caption>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">top_genes_result</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
+<table style="width:100%;" class="table">
 <caption>
 <strong>Table 7 | Top 6 Genes by Effect Size (Tsallis
 Divergence).</strong> Genes ranked by interaction p-value; columns show
@@ -1282,11 +1305,11 @@ divergence at key q-values (0.5, 1.0, 2.0) and inferred pattern type
 <colgroup>
 <col width="12%">
 <col width="12%">
-<col width="15%">
 <col width="14%">
+<col width="12%">
+<col width="12%">
 <col width="14%">
-<col width="14%">
-<col width="16%">
+<col width="20%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Gene</th>
@@ -1300,57 +1323,57 @@ divergence at key q-values (0.5, 1.0, 2.0) and inferred pattern type
 <tbody>
 <tr class="odd">
 <td align="left">CXCL12</td>
-<td align="left">3.52e-86</td>
-<td align="right">-3.322e-01</td>
-<td align="right">3.115e-01</td>
-<td align="right">3.697e-01</td>
-<td align="right">1.643e-01</td>
-<td align="left">Balanced</td>
-</tr>
-<tr class="even">
-<td align="left">THY1</td>
-<td align="left">2.85e-30</td>
-<td align="right">2.474e-01</td>
-<td align="right">1.481e-01</td>
-<td align="right">1.720e-01</td>
-<td align="right">5.890e-02</td>
-<td align="left">Balanced</td>
-</tr>
-<tr class="odd">
-<td align="left">MEF2A</td>
-<td align="left">9.79e-22</td>
-<td align="right">-1.268e-01</td>
-<td align="right">3.870e-02</td>
-<td align="right">3.940e-02</td>
-<td align="right">1.000e-02</td>
-<td align="left">Rare driven</td>
-</tr>
-<tr class="even">
-<td align="left">RAP1GDS1</td>
-<td align="left">5.00e-18</td>
-<td align="right">1.240e-01</td>
-<td align="right">1.700e-02</td>
-<td align="right">1.870e-02</td>
-<td align="right">5.300e-03</td>
-<td align="left">Rare driven</td>
-</tr>
-<tr class="odd">
-<td align="left">GSKIP</td>
-<td align="left">1.01e-16</td>
-<td align="right">1.353e-01</td>
-<td align="right">2.125e-01</td>
-<td align="right">2.352e-01</td>
-<td align="right">8.390e-02</td>
-<td align="left">Rare driven</td>
+<td align="left">1.63e-137</td>
+<td align="right">1.923e-01</td>
+<td align="right">2.388e-01</td>
+<td align="right">5.028e-01</td>
+<td align="right">1.2742e+00</td>
+<td align="left">Abundant driven</td>
 </tr>
 <tr class="even">
 <td align="left">ING3</td>
-<td align="left">4.93e-10</td>
-<td align="right">1.112e-01</td>
-<td align="right">1.220e-02</td>
-<td align="right">1.370e-02</td>
-<td align="right">4.000e-03</td>
-<td align="left">Rare driven</td>
+<td align="left">3.12e-55</td>
+<td align="right">-5.550e-02</td>
+<td align="right">3.540e-02</td>
+<td align="right">6.840e-02</td>
+<td align="right">1.3250e-01</td>
+<td align="left">Abundant driven</td>
+</tr>
+<tr class="odd">
+<td align="left">THY1</td>
+<td align="left">5.54e-53</td>
+<td align="right">-1.361e-01</td>
+<td align="right">5.700e-03</td>
+<td align="right">1.170e-02</td>
+<td align="right">2.5000e-02</td>
+<td align="left">Abundant driven</td>
+</tr>
+<tr class="even">
+<td align="left">LINC03040</td>
+<td align="left">4.05e-45</td>
+<td align="right">-5.250e-02</td>
+<td align="right">1.240e-02</td>
+<td align="right">2.460e-02</td>
+<td align="right">4.9200e-02</td>
+<td align="left">Abundant driven</td>
+</tr>
+<tr class="odd">
+<td align="left">SNHG10</td>
+<td align="left">5.54e-41</td>
+<td align="right">-5.220e-02</td>
+<td align="right">7.000e-03</td>
+<td align="right">1.450e-02</td>
+<td align="right">3.1600e-02</td>
+<td align="left">Abundant driven</td>
+</tr>
+<tr class="even">
+<td align="left">MEF2A</td>
+<td align="left">1.66e-34</td>
+<td align="right">7.260e-02</td>
+<td align="right">3.570e-02</td>
+<td align="right">7.370e-02</td>
+<td align="right">1.6230e-01</td>
+<td align="left">Abundant driven</td>
 </tr>
 </tbody>
 </table>
@@ -1627,7 +1650,7 @@ Theory</em>, 60(7), 3797–3820. <a href="https://doi.org/10.1109/TIT.2014.23205
 <span><span class="co">#&gt;  [5] IRanges_2.44.0              S4Vectors_0.48.1           </span></span>
 <span><span class="co">#&gt;  [7] BiocGenerics_0.56.0         generics_0.1.4             </span></span>
 <span><span class="co">#&gt;  [9] MatrixGenerics_1.22.0       matrixStats_1.5.0          </span></span>
-<span><span class="co">#&gt; [11] ggplot2_4.0.3               TSENAT_0.99.34             </span></span>
+<span><span class="co">#&gt; [11] ggplot2_4.0.3               TSENAT_0.99.35             </span></span>
 <span><span class="co">#&gt; [13] kableExtra_1.4.0            BiocStyle_2.38.0           </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>

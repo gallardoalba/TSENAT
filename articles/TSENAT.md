@@ -581,10 +581,13 @@ specific strengths:
   capture nonlinear q-response patterns via adaptive smoothing splines.
   For unpaired (cross-sectional) designs, GAM is used directly. When
   `paired = TRUE`, `method = "gam"` automatically dispatches to GAMM
-  internally, adding subject-level random intercepts and AR(1)
-  correlation structure to accommodate within-subject correlation in
-  repeated q-ordered measurements. GAMM can also be selected explicitly
-  with `method = "gamm"`.
+  internally: [`nlme::lme`](https://rdrr.io/pkg/nlme/man/lme.html) with
+  regression splines (`ns(q, df = 3) × condition`), subject-level random
+  intercepts and AR(1) correlation within each subject × condition block
+  (marginal F-test for the interaction).
+  [`mgcv::gamm()`](https://rdrr.io/pkg/mgcv/man/gamm.html) and standard
+  GAM serve as fallbacks. GAMM can also be selected explicitly with
+  `method = "gamm"`.
 - **LMM** (linear mixed models): parametric alternative with
   subject-level random intercepts for repeated q-ordered measurements.
 - **GEE** (generalized estimating equations): population-averaged
@@ -612,13 +615,13 @@ print(sait_results)
 ```
 
 | Gene | P-value | Adj. P-value | Effect Size | Test Statistic | Model Converged | Heteroscedasticity |
-|:---|:---|:---|---:|---:|:---|:---|
-| CXCL12 | 4.63e-88 | 3.52e-86 | 0.8158 | 5.9954 | TRUE | TRUE |
-| THY1 | 3.80e-32 | 2.85e-30 | 0.6052 | 3.4843 | TRUE | TRUE |
-| MEF2A | 1.32e-23 | 9.79e-22 | 0.2003 | 0.9256 | TRUE | TRUE |
-| RAP1GDS1 | 6.85e-20 | 5.00e-18 | 0.5516 | 0.8500 | TRUE | TRUE |
-| GSKIP | 1.40e-18 | 1.01e-16 | 0.3107 | 1.0130 | TRUE | TRUE |
-| ING3 | 6.95e-12 | 4.93e-10 | 0.3589 | 0.6840 | TRUE | TRUE |
+|:---|:---|:---|:---|---:|:---|:---|
+| CXCL12 | 2.15e-139 | 1.63e-137 | 74.0% | 369.9998 | TRUE | TRUE |
+| ING3 | 4.15e-57 | 3.12e-55 | 32.3% | 109.1815 | TRUE | TRUE |
+| THY1 | 7.49e-55 | 5.54e-53 | 35.8% | 103.9746 | TRUE | TRUE |
+| LINC03040 | 5.54e-47 | 4.05e-45 | 58.1% | 86.4559 | TRUE | TRUE |
+| SNHG10 | 7.69e-43 | 5.54e-41 | 21.0% | 77.6209 | TRUE | TRUE |
+| MEF2A | 2.34e-36 | 1.66e-34 | 17.1% | 64.3021 | TRUE | TRUE |
 
 **Table 3 \| Leading genes with scale-dependent condition effects from
 generalized additive models.** We display the 6 genes with lowest
@@ -630,12 +633,13 @@ Hochberg 1995). {.table}
 
 **Interpretation:**
 
-- **Effect Size**: Proportion of deviance in entropy explained by the q
-  × condition interaction, ranging from 0 to 1. Larger values indicate
-  stronger scale-dependent effects, but note that deviance explained in
-  GAMs differs from classical η² and does not share the same
-  interpretive thresholds (Cohen’s conventions for η² do not directly
-  apply).
+- **Effect Size**: Proportion of variance in entropy explained by the
+  fitted model, ranging from 0 to 1 (deviance explained for GAM paths;
+  model pseudo-R² for the paired regression-spline path). Larger values
+  indicate stronger scale-dependent effects, but note that this
+  deviance/R² scale differs from classical η² and does not share the
+  same interpretive thresholds (Cohen’s conventions for η² do not
+  directly apply).
 - **Test Statistic** ($`F`$): F-statistic for the smooth interaction
   term, quantifying the signal-to-noise ratio of the scale-dependent
   effect.
@@ -741,13 +745,16 @@ tables_result <- results(analysis, type = "switching_tables")
 | ENST00000374426.6  | -0.063 | -0.051 | -0.040 |   Consistent negative |
 | ENST00000374429.6  | 0.164  | 0.156  | 0.123  |   Consistent positive |
 
-#### Gene: THY1 (ENSG00000154096.15)
+#### Gene: ING3 (ENSG00000071243.17)
 
-| Transcript        | q=0.50 | q=1.00 | q=1.50 | Direction Consistency |
-|:------------------|:------:|:------:|:------:|----------------------:|
-| ENST00000524970.5 | -0.046 | 0.002  | 0.014  |      Mixed directions |
-| ENST00000900758.1 | 0.045  | 0.031  | 0.019  |   Consistent positive |
-| ENST00000956364.1 | -0.075 | -0.092 | -0.102 |   Consistent negative |
+| Transcript         | q=0.50 | q=1.00 | q=1.50 | Direction Consistency |
+|:-------------------|:------:|:------:|:------:|----------------------:|
+| ENST00000315870.10 | -0.004 | 0.000  | 0.012  |      Mixed directions |
+| ENST00000339121.9  | 0.011  | 0.016  | 0.017  |   Consistent positive |
+| ENST00000427726.5  | 0.022  | 0.040  | 0.053  |   Consistent positive |
+| ENST00000431467.1  | -0.058 | -0.040 | -0.025 |   Consistent negative |
+| ENST00000445699.5  | 0.006  | 0.011  | 0.015  |   Consistent positive |
+| ENST00000875858.1  | -0.052 | -0.035 | -0.023 |   Consistent negative |
 
 #### Key Interpretation Questions
 
@@ -852,7 +859,7 @@ For two probability distributions $`P`$ and $`Q`$ representing isoform
 proportions in control and treatment conditions, Tsallis divergence is:
 
 ``` math
-D_q(P||Q) = \frac{1 - \sum_i p_i^q \cdot q_i^{1-q}}{q-1}
+D_q(P||Q) = \frac{\sum_i p_i^q \cdot q_i^{1-q} - 1}{q-1}
 ```
 
 where $`p_i`$ and $`q_i`$ are the probability values at position $`i`$.
@@ -863,12 +870,12 @@ where $`p_i`$ and $`q_i`$ are the probability values at position $`i`$.
 analysis <- calculate_divergence(analysis)
 ```
 
-|         |  q_0.01 |  q_0.05 |   q_0.1 |
-|:--------|--------:|--------:|--------:|
-| FOXJ2   | 0.04377 | 0.04633 | 0.04952 |
-| TMEM38A | 0.14876 | 0.15768 | 0.16891 |
-| GSR     | 0.08359 | 0.08801 | 0.09349 |
-| SNX4    | 0.06378 | 0.06744 | 0.07200 |
+|         | q_0 |  q_0.05 |   q_0.1 |
+|:--------|----:|--------:|--------:|
+| FOXJ2   |   0 | 0.00271 | 0.00556 |
+| TMEM38A |   0 | 0.00008 | 0.00016 |
+| GSR     |   0 | 0.00000 | 0.00000 |
+| SNX4    |   0 | 0.00000 | 0.00000 |
 
 **Table 5 \| Pairwise Tsallis divergence estimates.** Divergence
 (distance) between conditions from Tsallis entropy framework. Columns:
@@ -895,19 +902,19 @@ top_genes_result <- results(
 print(top_genes_result)
 ```
 
-| Gene     | P-value  | Slope Diff |  D(q=0.5) |  D(q=1.0) |  D(q=2.0) | Pattern     |
-|:---------|:---------|-----------:|----------:|----------:|----------:|:------------|
-| CXCL12   | 3.52e-86 | -3.322e-01 | 3.115e-01 | 3.697e-01 | 1.643e-01 | Balanced    |
-| THY1     | 2.85e-30 |  2.474e-01 | 1.481e-01 | 1.720e-01 | 5.890e-02 | Balanced    |
-| MEF2A    | 9.79e-22 | -1.268e-01 | 3.870e-02 | 3.940e-02 | 1.000e-02 | Rare driven |
-| RAP1GDS1 | 5.00e-18 |  1.240e-01 | 1.700e-02 | 1.870e-02 | 5.300e-03 | Rare driven |
-| GSKIP    | 1.01e-16 |  1.353e-01 | 2.125e-01 | 2.352e-01 | 8.390e-02 | Rare driven |
-| ING3     | 4.93e-10 |  1.112e-01 | 1.220e-02 | 1.370e-02 | 4.000e-03 | Rare driven |
+| Gene      | P-value   | Slope Diff |  D(q=0.5) |  D(q=1.0) |   D(q=2.0) | Pattern         |
+|:----------|:----------|-----------:|----------:|----------:|-----------:|:----------------|
+| CXCL12    | 1.63e-137 |  1.923e-01 | 2.388e-01 | 5.028e-01 | 1.2742e+00 | Abundant driven |
+| ING3      | 3.12e-55  | -5.550e-02 | 3.540e-02 | 6.840e-02 | 1.3250e-01 | Abundant driven |
+| THY1      | 5.54e-53  | -1.361e-01 | 5.700e-03 | 1.170e-02 | 2.5000e-02 | Abundant driven |
+| LINC03040 | 4.05e-45  | -5.250e-02 | 1.240e-02 | 2.460e-02 | 4.9200e-02 | Abundant driven |
+| SNHG10    | 5.54e-41  | -5.220e-02 | 7.000e-03 | 1.450e-02 | 3.1600e-02 | Abundant driven |
+| MEF2A     | 1.66e-34  |  7.260e-02 | 3.570e-02 | 7.370e-02 | 1.6230e-01 | Abundant driven |
 
 **Table 7 \| Top 6 Genes by Effect Size (Tsallis Divergence).** Genes
 ranked by interaction p-value; columns show divergence at key q-values
 (0.5, 1.0, 2.0) and inferred pattern type (rare-driven, abundant-driven,
-or balanced). {.table}
+or balanced). {.table style="width:100%;"}
 
 #### Interpretation of Pattern Types:
 
@@ -1240,7 +1247,7 @@ sessionInfo()
 #>  [5] IRanges_2.44.0              S4Vectors_0.48.1           
 #>  [7] BiocGenerics_0.56.0         generics_0.1.4             
 #>  [9] MatrixGenerics_1.22.0       matrixStats_1.5.0          
-#> [11] ggplot2_4.0.3               TSENAT_0.99.34             
+#> [11] ggplot2_4.0.3               TSENAT_0.99.35             
 #> [13] kableExtra_1.4.0            BiocStyle_2.38.0           
 #> 
 #> loaded via a namespace (and not attached):
