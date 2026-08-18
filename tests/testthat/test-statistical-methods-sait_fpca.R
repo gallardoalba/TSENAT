@@ -673,47 +673,6 @@ test_that("FPCA regularization with paired design works correctly", {
 
 context("FPCA Helper Functions")
 
-test_that(".apply_arima_differencing_fpca applies differencing for paired design", {
-    # Create test data frame with multiple subjects
-    df <- data.frame(
-        entropy = c(1.0, 2.0, 3.0, 1.5, 2.5, 3.5),
-        q = rep(c(0.5, 1.0, 1.5), 2),
-        group = rep(c("A", "B"), 3),
-        subject = rep(c("S1", "S2"), each = 3),
-        sample_name = c("S1_1", "S1_2", "S1_3", "S2_1", "S2_2", "S2_3"),
-        stringsAsFactors = FALSE
-    )
-    
-    result <- .apply_arima_differencing_fpca(df)
-    
-    # For each subject, differencing reduces rows by 1
-    # 2 subjects * 2 differences each = 4 rows
-    expect_equal(nrow(result), 4)
-    # Check that entropy values are differenced
-    expect_true(all(!is.na(result$entropy)))
-    # Differenced entropy should be differences of original
-    expect_equal(result$entropy[1], 2.0 - 1.0)  # S1: diff(1.0, 2.0)
-    expect_equal(result$entropy[2], 3.0 - 2.0)  # S1: diff(2.0, 3.0)
-})
-
-test_that(".apply_arima_differencing_fpca handles single subject", {
-    # Single subject should return original data
-    df <- data.frame(
-        entropy = c(1.0, 2.0, 3.0),
-        q = c(0.5, 1.0, 1.5),
-        group = c("A", "A", "A"),
-        subject = c("S1", "S1", "S1"),
-        sample_name = c("S1_1", "S1_2", "S1_3"),
-        stringsAsFactors = FALSE
-    )
-    
-    result <- .apply_arima_differencing_fpca(df)
-    
-    # Single subject should return original (no differencing)
-    expect_equal(nrow(result), 3)
-    expect_equal(result$entropy, df$entropy)
-})
-
 test_that(".build_curve_matrix constructs ordered matrix", {
     # Create test data
     entropy_vals <- c(1, 2, 3, 1.5, 2.5, 3.5)

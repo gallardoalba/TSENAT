@@ -40,16 +40,16 @@
 #'   \item{Storing}{Results in metadata with function call tracking}
 #' }
 #'
-#' **Parameter resolution priority** (explicit > metadata > default):
+#' **Parameter resolution priority** (explicit > config > default):
 #' \itemize{
 #'   \item \code{significance_threshold}:  Uses explicit arg,
-#'  else \code{metadata(analysis)$significance_threshold},
+#'  else \code{analysis@config$significance_threshold},
 #'     else 0.05
 #'   \item \code{enrich_per_q_pattern}:  Uses explicit arg,
-#'  else \code{metadata(analysis)$enrich_per_q_pattern},
+#'  else \code{analysis@config$enrich_per_q_pattern},
 #'     else TRUE
 #'   \item \code{verbose}:  Uses explicit arg,
-#'  else \code{metadata(analysis)$verbose},  else TRUE
+#'  else \code{analysis@config$verbose},  else TRUE
 #' }
 #'
 #' Results are accessed via: \code{metadata(analysis)$effect_sizes_divergence}

@@ -134,47 +134,61 @@ test_that(".configure_parallel rejects invalid threads", {
 # GENE PROCESSING HELPERS
 # ============================================================================
 
-test_that(".compute_aggregate_counts sums transcript counts", {
-    counts_matrix <- matrix(c(1, 2, 3, 4, 5, 6), 2, 3)
+test_that(".compute_group_isoform_counts builds per-isoform condition vectors", {
+    # 2 isoforms (rows), 4 samples (cols): 2 control + 2 treatment
+    counts_matrix <- matrix(c(1, 2, 3, 4, 5, 6, 7, 8), 2, 4)
     rd <- S4Vectors::DataFrame(gene_name = c("GENE1", "GENE1"))
-    
+    colnames(counts_matrix) <- paste0("S", 1:4)
+
     se <- SummarizedExperiment::SummarizedExperiment(
         assays = list(counts = counts_matrix),
-        rowData = rd
+        rowData = rd,
+        colData = data.frame(group = c("A", "A", "B", "B"), row.names = paste0("S", 1:4))
     )
-    
-    result <- .compute_aggregate_counts(se, "GENE1", "gene_name", rd)
-    expect_equal(result, c(3, 7, 11))  # colSums of the two rows
+
+    result <- .compute_group_isoform_counts(se, "GENE1", "gene_name", rd,
+        groups = c("A", "A", "B", "B"), control_group = "A")
+
+    # P and Q are distributions over ISOFORMS: rowSums within each group
+    expect_equal(result$control, c(4, 6))       # rows sums of cols 1-2
+    expect_equal(result$treatment, c(12, 14))   # rows sums of cols 3-4
+    expect_equal(dim(result$control_matrix), c(2, 2))
+    expect_equal(dim(result$treatment_matrix), c(2, 2))
 })
 
-test_that(".compute_aggregate_counts returns NULL when gene not found", {
+test_that(".compute_group_isoform_counts handles unequal group sizes", {
+    # 2 control samples, 3 treatment samples: valid (same isoform state space)
+    counts_matrix <- matrix(c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10), 2, 5)
+    rd <- S4Vectors::DataFrame(gene_name = c("GENE1", "GENE1"))
+    colnames(counts_matrix) <- paste0("S", 1:5)
+
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = counts_matrix),
+        rowData = rd,
+        colData = data.frame(group = c("A", "A", "B", "B", "B"), row.names = paste0("S", 1:5))
+    )
+
+    result <- .compute_group_isoform_counts(se, "GENE1", "gene_name", rd,
+        groups = c("A", "A", "B", "B", "B"), control_group = "A")
+
+    expect_equal(length(result$control), 2)
+    expect_equal(length(result$treatment), 2)
+    expect_equal(dim(result$control_matrix), c(2, 2))
+    expect_equal(dim(result$treatment_matrix), c(2, 3))
+})
+
+test_that(".compute_group_isoform_counts returns NULL when gene not found", {
     counts_matrix <- matrix(1:6, 2, 3)
     rd <- S4Vectors::DataFrame(gene_name = c("GENE1", "GENE2"))
-    
+
     se <- SummarizedExperiment::SummarizedExperiment(
         assays = list(counts = counts_matrix),
         rowData = rd
     )
-    
-    result <- .compute_aggregate_counts(se, "MISSING", "gene_name", rd)
+
+    result <- .compute_group_isoform_counts(se, "MISSING", "gene_name", rd,
+        groups = c("A", "B", "B"), control_group = "A")
     expect_null(result)
-})
-
-test_that(".extract_group_counts_gene splits by group", {
-    counts <- c(10, 20, 30, 40, 50)
-    groups <- c("A", "A", "B", "B", "B")
-    
-    result <- .extract_group_counts_gene(counts, groups, "A")
-    expect_equal(result$control, c(10, 20))
-    expect_equal(result$treatment, c(30, 40, 50))
-})
-
-test_that(".extract_group_counts_gene errors on length mismatch", {
-    counts <- c(10, 20, 30)
-    groups <- c("A", "B")
-    
-    expect_error(.extract_group_counts_gene(counts, groups, "A"),
-                 "Length mismatch")
 })
 
 test_that(".make_error_result creates proper error structure", {
@@ -514,6 +528,24 @@ test_that(".detect_pair_ids detects paired_samples column", {
   expect_true(all(names(result$pair_ids) == c("s1", "s2", "s3", "s4", "s5")))
 })
 
+test_that(".detect_pair_ids rejects columns where every ID appears once", {
+  # A column of all-unique IDs (e.g., a sample/subject ID) is
+  # not a pair structure and must not be accepted as one.
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = matrix(1:20, nrow = 4, ncol = 5)),
+    colData = data.frame(
+      subject_id = c("subj_1", "subj_2", "subj_3", "subj_4", "subj_5")
+    )
+  )
+  colnames(se) <- c("s1", "s2", "s3", "s4", "s5")
+  
+  result <- TSENAT:::.detect_pair_ids(se)
+  
+  expect_null(result$pair_ids)
+  expect_true(is.na(result$column_name))
+  expect_equal(result$num_pairs, 0)
+})
+
 # =====================================================================
 # Tests for .jis_resample_paired_data
 # =====================================================================
@@ -600,11 +632,11 @@ test_that(".jis_resample_paired_data throws error for unequal groups", {
   
   # Should succeed with balanced groups
   expect_equal(length(result$control_resampled), length(result$treatment_resampled))
-  # AUDIT FIX M3: Should return failed=FALSE for successful resampling
+  # Should return failed=FALSE for successful resampling
   expect_false(isTRUE(result$failed))
 })
 
-test_that(".jis_resample_paired_data returns failed=TRUE for impossible pairing (M3 fix)", {
+test_that(".jis_resample_paired_data returns failed=TRUE for impossible pairing", {
   # Create intentionally unbalanceable pairs: every pair is control-only or treatment-only
   control_samples <- c(s1 = 10, s2 = 15)
   treatment_samples <- c(s3 = 20)
@@ -616,7 +648,7 @@ test_that(".jis_resample_paired_data returns failed=TRUE for impossible pairing 
   
   # With single-sample pairs, resampling will produce unequal groups.
   # The function should return failed=TRUE instead of throwing stop().
-  # The warning is expected — this is the graceful behavior (was stop() before M3 fix).
+  # The warning is expected — this is the graceful behavior (was stop() before the fix).
   set.seed(789)
   expect_warning(
     result <- TSENAT:::.jis_resample_paired_data(

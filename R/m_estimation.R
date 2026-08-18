@@ -291,7 +291,7 @@
 
     # Initialize IRLS
     weights <- rep(1, n_obs)
-    # AUDIT FIX July 2026: Initialize to Inf instead of median(y) so that
+    # Initialize to Inf instead of median(y) so that
     # the convergence check runs on the first iteration.  Previously, setting
     # location_prev to median(y) caused the first iteration's convergence
     # check to be skipped (iter > 1 guard), wasting one iteration.
@@ -748,6 +748,47 @@
     list(coef = coef, weights = weights, converged = converged)
 }
 
+#' Sandwich variance for M-estimation
+#'
+#' Asymptotic covariance of the M-estimator: Var(beta) = A^-1 B A^-1 with
+#' A = sum(psi'(r_i) x_i x_i') and B = sum(psi(r_i)^2 x_i x_i'), where psi is
+#' the score function evaluated at the RESIDUAL scale (Huber: r for |r|<=k,
+#' k*sign(r) otherwise). Returns per-coefficient standard errors.
+#' @noRd
+.mest_sandwich_se <- function(y, X, coef, scale_local, loss_type, use_intercept) {
+    if (use_intercept) {
+        Xd <- cbind(1, X)
+    } else {
+        Xd <- matrix(1, nrow = length(y), ncol = 1)
+    }
+
+    fitted <- as.numeric(Xd %*% coef)
+    r <- y - fitted
+    k <- scale_local
+
+    if (loss_type == "huber") {
+        psi <- ifelse(abs(r) <= k, r, k * sign(r))
+        psip <- ifelse(abs(r) <= k, 1, 0)
+    } else if (loss_type == "tukey") {
+        u <- r/k
+        inside <- abs(u) <= 1
+        psi <- ifelse(inside, r * (1 - u^2)^2, 0)
+        psip <- ifelse(inside, (1 - u^2) * (1 - 5 * u^2), 0)
+    } else {
+        psi <- r
+        psip <- rep(1, length(r))
+    }
+
+    A <- crossprod(Xd, psip * Xd)
+    B <- crossprod(Xd, psi^2 * Xd)
+    A_inv <- tryCatch(solve(A), error = function(e) NULL)
+    if (is.null(A_inv)) {
+        return(rep(NA_real_, ncol(Xd)))
+    }
+    V <- A_inv %*% B %*% A_inv
+    sqrt(pmax(diag(V), 0))
+}
+
 
 #' @noRd
 .processMEstimateFeature <- function(feature_idx, x, samples, loss_type, scale, max_iter,
@@ -788,7 +829,9 @@
 
     if (is.na(scale_local)) {
         return(data.frame(location_diff = NA_real_, se_diff = NA_real_, t_stat = NA_real_,
-            pvalue = NA_real_, n_down_weighted = NA_integer_, max_weight = NA_real_,
+            pvalue = NA_real_, se_robust = NA_real_, t_robust = NA_real_,
+            pvalue_robust = NA_real_, ci95_low = NA_real_, ci95_high = NA_real_,
+            n_down_weighted = NA_integer_, max_weight = NA_real_,
             row.names = rownames(x)[feature_idx]))
     }
 
@@ -853,8 +896,27 @@
     max_weight <- if (all(is.na(weights)))
         NA_real_ else max(weights, na.rm = TRUE)
 
+    # A13: robust sandwich SE for the M-estimator (asymptotically correct
+    # under outliers/misspecification); p-value with normal reference
+    se_robust_vec <- .mest_sandwich_se(y, X, coef, scale_local, loss_type,
+        use_intercept)
+    se_robust <- if (use_intercept) se_robust_vec[2] else se_robust_vec[1]
+    if (!is.finite(se_robust) || se_robust <= 0) {
+        se_robust <- NA_real_
+    }
+    if (is.finite(se_robust)) {
+        t_robust <- location_diff/se_robust
+        pvalue_robust <- 2 * stats::pnorm(-abs(t_robust))
+        ci95_low <- location_diff - 1.96 * se_robust
+        ci95_high <- location_diff + 1.96 * se_robust
+    } else {
+        t_robust <- pvalue_robust <- ci95_low <- ci95_high <- NA_real_
+    }
+
     data.frame(location_diff = location_diff, se_diff = se_diff, t_stat = t_stat,
-        pvalue = pvalue, n_down_weighted = n_down_weighted, max_weight = max_weight,
+        pvalue = pvalue, se_robust = se_robust, t_robust = t_robust,
+        pvalue_robust = pvalue_robust, ci95_low = ci95_low, ci95_high = ci95_high,
+        n_down_weighted = n_down_weighted, max_weight = max_weight,
         row.names = rownames(x)[feature_idx])
 }
 

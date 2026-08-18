@@ -160,7 +160,7 @@
 # estimates and smaller multiple-testing burden.
 # ============================================================================
 filter_analysis <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min_samples = 5L,
-    stringency = "medium", pair_col = NULL, min_tx_per_gene = 2L, min_isoform_abundance = NULL,
+    stringency = NULL, pair_col = NULL, min_tx_per_gene = 2L, min_isoform_abundance = NULL,
     assay_name = "counts", subset_n_genes = NULL, subset_genes = NULL, subset_n_samples = NULL,
     subset_samples = NULL, subset_select_by = c("variance", "mean", "random"), subset_seed = 42,
     subset_min_count = NULL, verbose = FALSE) {
@@ -168,6 +168,10 @@ filter_analysis <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min_sa
     if (!inherits(analysis, "TSENATAnalysis")) {
         stop("analysis must be a TSENATAnalysis object", call. = FALSE)
     }
+
+    # Resolve stringency: explicit > config > default ("medium")
+    stringency <- resolve_slot_param(stringency, analysis@config, "stringency",
+        "medium")
 
     # Extract SE from analysis
     se <- analysis@se

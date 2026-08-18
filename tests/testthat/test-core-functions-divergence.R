@@ -158,7 +158,7 @@ test_that("calculate_divergence handles parallel processing", {
     expect_is(result_seq, "SummarizedExperiment")
     expect_false(all(is.na(rowData(result_seq)$estimate)))
 })
-test_that("calculate_divergence auto-detects paired samples", {
+test_that("calculate_divergence honors the explicit paired flag (no silent autodetection)", {
     skip_if_not_installed("SummarizedExperiment")
     
     set.seed(46)
@@ -177,7 +177,23 @@ test_that("calculate_divergence auto-detects paired samples", {
     SummarizedExperiment::colData(se)$condition <- factor(c(rep("Normal", 4), rep("Tumor", 4)))
     SummarizedExperiment::colData(se)$paired_samples <- c("A", "B", "C", "D", "A", "B", "C", "D")
     
-    # Test with bootstrap=TRUE (triggers auto-detection)
+    # Paired=FALSE is authoritative. Even though a
+    # pairing-like column exists, the bootstrap must stay unpaired unless the
+    # caller explicitly requests paired=TRUE.
+    exec_false <- TSENAT:::.prepare_divergence_execution(
+        se = se, bootstrap = TRUE, paired = FALSE,
+        nboot = 10, method = "percentile", nthreads = 1, progress = FALSE
+    )
+    expect_null(exec_false$pair_ids)
+    
+    exec_true <- TSENAT:::.prepare_divergence_execution(
+        se = se, bootstrap = TRUE, paired = TRUE,
+        nboot = 10, method = "percentile", nthreads = 1, progress = FALSE
+    )
+    expect_false(is.null(exec_true$pair_ids))
+    expect_equal(exec_true$pair_ids[["S1"]], exec_true$pair_ids[["S5"]])
+    
+    # End-to-end: paired=FALSE + bootstrap must still produce valid results
     result <- .calculate_divergence(
         se = se,
         bootstrap = TRUE,
@@ -197,6 +213,39 @@ test_that("calculate_divergence auto-detects paired samples", {
     # Should have CIs from bootstrap
     expect_false(all(is.na(rd$lower_ci)))
     expect_false(all(is.na(rd$upper_ci)))
+})
+
+test_that("generic estimate columns require exact q=1 (no nearest-q aliasing)", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    set.seed(49)
+    se <- create_count_se(
+        n_genes = 12,
+        n_samples = 6,
+        n_control = 3,
+        lambda = 100,
+        seed = 49
+    )
+    colnames(se) <- paste0("S", seq_len(ncol(se)))
+    SummarizedExperiment::colData(se)$condition <- factor(c(rep("A", 3), rep("B", 3)))
+    
+    # q contains exactly 1 -> generic columns populated from the q=1 column
+    res_has1 <- .calculate_divergence(
+        se = se, q = c(0.5, 1, 2), control_group = "A", progress = FALSE
+    )
+    rd1 <- rowData(res_has1)
+    expect_false(all(is.na(rd1$estimate)))
+    expect_equal(rd1$estimate, rd1$estimate_q1)
+    
+    # q does NOT contain 1 -> generic columns must be NA, never aliased to
+    # the nearest q (AUDITXX P0 #2).
+    res_no1 <- .calculate_divergence(
+        se = se, q = c(0, 2), control_group = "A", progress = FALSE
+    )
+    rd0 <- rowData(res_no1)
+    expect_true(all(is.na(rd0$estimate)))
+    expect_true(all(is.na(rd0$lower_ci)))
+    expect_true(all(is.na(rd0$upper_ci)))
 })
 
 test_that("calculate_divergence works without paired_samples column", {
@@ -901,7 +950,7 @@ test_that("calculate_divergence handles bootstrap with bca method", {
     group_col_name = "sample_type"
   )
   
-  result <- .calculate_divergence(
+  result <- suppressWarnings(.calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -909,7 +958,7 @@ test_that("calculate_divergence handles bootstrap with bca method", {
     nboot = 100,
     method = "bca",  # Bias-corrected accelerated method
     progress = FALSE
-  )
+  ))
   
   expect_true(methods::is(result, "SummarizedExperiment"))
 })
@@ -1550,10 +1599,10 @@ test_that("[BUG #4] Divergence merge detects partial matches as error", {
 })
 
 # ============================================================================
-# AUDIT FIX TESTS: Divergence sign, support violations, unequal-length warning
+# TESTS: Divergence sign, support violations, unequal-length warning
 # ============================================================================
 
-test_that("[AUDIT #6] tsallis_divergence_cpp returns large finite value on support violation (KL)", {
+test_that("tsallis_divergence_cpp returns large finite value on support violation (KL)", {
     # KL divergence: when p>0 but r=0, divergence should be very large
     # (finite, not +Inf — to keep bootstrap quantiles computable)
     p <- c(0.5, 0.5)
@@ -1564,7 +1613,7 @@ test_that("[AUDIT #6] tsallis_divergence_cpp returns large finite value on suppo
     expect_true(div > 1000)  # Very large but finite
 })
 
-test_that("[AUDIT #6] tsallis_divergence_cpp returns large finite value on support violation (q>1)", {
+test_that("tsallis_divergence_cpp returns large finite value on support violation (q>1)", {
     # Tsallis divergence q>1: when p>0 but r=0, divergence should be very large (finite)
     p <- c(0.5, 0.5)
     r <- c(1.0, 0.0)
@@ -1574,7 +1623,7 @@ test_that("[AUDIT #6] tsallis_divergence_cpp returns large finite value on suppo
     expect_true(div > 1000)
 })
 
-test_that("[AUDIT #6] tsallis_divergence_cpp has correct sign (no abs wrapper)", {
+test_that("tsallis_divergence_cpp has correct sign (no abs wrapper)", {
     # Divergence should be non-negative by mathematical property,
     # not because of an abs() wrapper masking sign errors.
     p <- c(0.3, 0.7)
@@ -1589,7 +1638,7 @@ test_that("[AUDIT #6] tsallis_divergence_cpp has correct sign (no abs wrapper)",
     expect_equal(div_identical, 0, tolerance = 1e-10)
 })
 
-test_that("[AUDIT #6] tsallis_divergence_cpp q=0 always returns 0", {
+test_that("tsallis_divergence_cpp q=0 always returns 0", {
     p <- c(0.3, 0.7)
     r <- c(0.5, 0.5)
     
@@ -1597,7 +1646,7 @@ test_that("[AUDIT #6] tsallis_divergence_cpp q=0 always returns 0", {
     expect_equal(div, 0)
 })
 
-test_that("[AUDIT #25] tsallis_divergence_cpp warns on unequal-length vectors", {
+test_that("tsallis_divergence_cpp warns on unequal-length vectors", {
     p <- c(0.3, 0.4, 0.3)
     r <- c(0.5, 0.5)  # Different length
     
@@ -1689,11 +1738,76 @@ test_that("M6: q=0 divergence is support-difference (not constant zero)", {
     # Different supports → divergence should be > 0
     expect_true(div_diff > 0)
 
-    # With pseudocount > 0, all entries get positive probability → supports identical
+    # q=0 is now evaluated on the RAW (pre-pseudocount) support
+    # (review_divergence.md, Option A): with pseudocount > 0 the regularized
+    # vectors are all-positive, but the support divergence still reflects the
+    # underlying zero structure.
+    # Here: raw P support = {1, 2}; raw R = (0.3, 0, 0.7) → D_0 = 1 - 0.3 = 0.7
     div_same_smoothed <- TSENAT:::.tsallis_divergence_scalar(
         x = c(5, 5, 0), y = c(3, 0, 7), q_val = 0, pseudocount = 0.5
     )
-    expect_equal(div_same_smoothed, 0)
+    expect_equal(div_same_smoothed, 0.7)
+})
+
+# ============================================================================
+# COVERAGE IMPROVEMENT: .print_divergence_summary (66.7%)
+# ============================================================================
+
+test_that(".print_divergence_summary prints summary with no errors", {
+    row_data <- data.frame(
+        gene_name = paste0("GENE_", 1:5),
+        error = NA_character_,
+        stringsAsFactors = FALSE
+    )
+    
+    expect_message(
+        TSENAT:::.print_divergence_summary(5, 0, 10.5, row_data, progress = TRUE),
+        "DIVERGENCE COMPUTATION COMPLETE"
+    )
+})
+
+test_that(".print_divergence_summary prints failed genes when errors exist", {
+    row_data <- data.frame(
+        gene_name = paste0("GENE_", 1:5),
+        error = c("err1", NA, "err2", NA, NA),
+        stringsAsFactors = FALSE
+    )
+    
+    output <- capture_messages(
+        TSENAT:::.print_divergence_summary(5, 2, 10.5, row_data, progress = TRUE)
+    )
+    
+    expect_true(any(grepl("Failed genes", output)))
+    expect_true(any(grepl("err1", output)))
+    expect_true(any(grepl("err2", output)))
+})
+
+test_that(".print_divergence_summary truncates when more than 10 errors", {
+    genes <- paste0("GENE_", 1:15)
+    errors <- c(rep("fail", 15))
+    row_data <- data.frame(
+        gene_name = genes,
+        error = errors,
+        stringsAsFactors = FALSE
+    )
+    
+    output <- capture_messages(
+        TSENAT:::.print_divergence_summary(15, 15, 30.0, row_data, progress = TRUE)
+    )
+    
+    expect_true(any(grepl("and.*more", output)))
+})
+
+test_that(".print_divergence_summary silent when progress=FALSE", {
+    row_data <- data.frame(
+        gene_name = paste0("GENE_", 1:5),
+        error = NA_character_,
+        stringsAsFactors = FALSE
+    )
+    
+    expect_silent(
+        TSENAT:::.print_divergence_summary(5, 0, 10.5, row_data, progress = FALSE)
+    )
 })
 
 # ============================================================================

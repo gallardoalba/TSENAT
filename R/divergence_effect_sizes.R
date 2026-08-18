@@ -106,9 +106,10 @@
 #' then averaged to account for pairing structure.
 #'
 #' **Database References:**
-#' - Papers I002-I004: Tsallis divergence mathematical foundation
+#' - Furuichi (2006); Jost (2006); van Erven & Harremoës (2014): Tsallis
+#'   divergence mathematical foundation
 #' - Papers Ramsay (2005), Springer Series in Statistics: Bootstrap CI computation respecting data structure
-#' - Papers S197: Quality filtering and effect size thresholds
+#' - Love et al. (2014): quality filtering and effect size thresholds
 #'
 #' @noRd
 .calculate_effect_sizes <- function(sait_res, divergence_results_se, significance_threshold = 0.05,

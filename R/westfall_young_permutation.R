@@ -6,35 +6,26 @@
 #' when a substantial proportion of null hypotheses are true (large \eqn{\pi_0}).
 #' 
 #' @details
-#' 
-#' **CRITICAL FOR TSENAT: Must Use Westfall-Young Preprocessing First**
-#' 
-#' These functions assume **independent p-values**. For TSENAT's multi-q
-#' Tsallis
-#' entropy analysis where q-values exhibit AR(1) correlation (ρ(k) = φ^|k|):
-#' 
-#' ✓ **CORRECT**: Apply Westfall-Young FIRST → Then Storey to WY-adjusted
-#' p-values
-#'   ✗ **INCORRECT**: Apply Storey directly to raw multi-q p-values
-#' 
+#'
+#' **Storey and Westfall-Young are SEPARATE layers**
+#'
+#' Westfall-Young controls the FWER; Storey's q-values control the FDR. They
+#' must not be chained: WY-adjusted p-values are no longer Uniform(0,1) under
+#' the null, so a pi0 estimator designed for raw hypothesis p-values is
+#' invalid on them.
+#'
+#' ✓ **CORRECT** (FWER): Westfall-Young on raw gene-level statistics/p-values
+#' ✓ **CORRECT** (FDR): Storey q-values (or BH/BY) on RAW gene-level p-values
+#'   ✗ **INCORRECT**: Storey applied to WY-adjusted p-values
+#'
 #' Example workflow:
 #' ```
-#' 1. [For multi-q correlation-adjusted analysis, see
-#' .calculate_sait() with multicorr='westfall-young']
-#' 2. Or: Use .calculate_rank_transform() for rank-based multi-q testing with
-#' WY control
-#'   3. Then: pi0_obj <- .estimate_storey_pi0(adjusted_pvalues)
-#' 4. Then: qvals <- .compute_storey_qvalues(adjusted_pvalues, pi0 =
-#' pi0_obj$pi0)
+#' # FDR layer (exploratory):
+#' qvals <- .compute_storey_qvalues(raw_pvalues)
+#' # FWER layer (independent):
+#' wy_adj <- .westfall_young_permutation(...)
 #' ```
-#' 
-#' **Why Westfall-Young First?**
-#' - Westfall-Young corrects for q-value AR(1) correlation structure
-#' - WY-adjusted p-values satisfy exchangeability (independence-like property)
-#' - Storey \eqn{\pi_0} estimation becomes mathematically valid
-#' - Type I error properly controlled at α level
-#' - Combined approach: more powerful than either method alone
-#' 
+#'
 #' **Storey's \eqn{\pi_0} Estimation:**
 #'
 #' The proportion of true null hypotheses (\eqn{\pi_0}) is estimated from the p-value
@@ -56,11 +47,11 @@
 #' This maintains FDR <= α while incorporating the estimated proportion of 
 #' true signals.
 #' 
-#' @param pvalues Numeric vector of p-values (0 <= p <= 1). 
-#'   **IMPORTANT**: For TSENAT multi-q Tsallis entropy: use 
-#'   Westfall-Young preprocessed p-values only (already correlation-adjusted).
-#' Direct application to raw multi-q p-values violates the independence
-#' assumption.
+#' @param pvalues Numeric vector of p-values (0 <= p <= 1).
+#'   Use RAW gene-level hypothesis p-values. Do NOT pass
+#'   FWER-adjusted (e.g., Westfall-Young) p-values — their null distribution
+#'   is not Uniform(0,1) and the pi0 estimator would be invalid. Storey (FDR)
+#'   and Westfall-Young (FWER) are separate layers.
 #' @param lambda Optional threshold for \eqn{\pi_0} estimation (default: 0.5). 
 #'   Common range: 0.3-0.9. Higher λ uses more conservative p-values.
 #' @param pi0_method Character specifying π₀ estimation method:
@@ -170,7 +161,7 @@
         lambda_grid <- seq(0, 0.95, length.out = 20)
         n_boot <- 100
 
-        # AUDIT FIX July 2026: Removed extraneous pi0_boot_mat <- matrix(NA, ...)
+        # Removed extraneous pi0_boot_mat <- matrix(NA, ...)
         # allocation that was immediately overwritten by the vapply() call below.
 
         # Seed handling left to caller for Bioconductor compliance
@@ -211,9 +202,8 @@
 #' when many true signals are present.
 #' 
 #' @param pvalues Numeric vector of p-values (0 <= p <= 1). 
-#'   **IMPORTANT**: These must be independent or correlation-adjusted. 
-#' For TSENAT multi-q tests, use Westfall-Young adjusted p-values, not raw
-#' p-values.
+#'   Use RAW gene-level p-values (one test per gene). Do not
+#'   pass FWER-adjusted (Westfall-Young) p-values.
 #' @param pi0 Estimated proportion of true null hypotheses. If NULL, 
 #'   estimated using .estimate_storey_pi0() with default parameters.
 #' @param fdr_level Desired false discovery rate level (default: 0.05)
@@ -224,15 +214,12 @@
 #' 
 #' @details
 #' 
-#' **Independence Requirement:**
+#' **Input requirements:**
 #'
-#' Input p-values must satisfy the independence assumption. If your p-values 
-#' come from correlated tests (e.g., TSENAT's multiple q-value entropy
-#' comparisons
-#' which exhibit AR(1) correlation), you MUST first apply a correlation-aware 
-#' method like Westfall-Young. Applying Storey to unadjusted correlated
-#' p-values
-#' violates its mathematical assumptions and underestimates π₀.
+#' Storey's q-values are an FDR layer over RAW gene-level p-values. FWER
+#' control (e.g., Westfall-Young) is a SEPARATE layer and must not be chained
+#' into this function: FWER-adjusted p-values are not Uniform(0,1) under the
+#' null, which invalidates the π₀ estimator.
 #' 
 #' **Q-Value Computation:**
 #' 
@@ -353,6 +340,115 @@
 # Note: If signal is very strong, all permutation minima may be >>observed
 # p-values, leading to identical adjusted p-values = (0+1)/(B+1). This is
 # CORRECT behavior!
+# Permutation schemes for Westfall-Young.
+# Exchangeability is the critical assumption. The permutation scheme must
+# respect the experimental design:
+#   - paired designs: swap labels WITHIN subject (subject is the pairing unit);
+#   - blocked designs: permute labels WITHIN block (blocks are the
+#     exchangeable units; a block confounded with condition CANNOT be
+#     permuted and is rejected);
+#   - stratified designs: permute labels WITHIN stratum;
+#   - unpaired: shuffle labels within q-level (or unrestricted).
+# Returns a permute_fn closure plus the resolved scheme name.
+.build_wy_permutation_scheme <- function(group_vec, subject_vec = NULL,
+    block_vec = NULL, strata_vec = NULL, q_vals = NULL,
+    permutation_scheme = c("auto", "within_subject", "within_block",
+        "within_strata", "unpaired_q")) {
+    permutation_scheme <- match.arg(permutation_scheme)
+    n <- length(group_vec)
+    if (n < 2) {
+        stop("WY permutation requires at least 2 samples", call. = FALSE)
+    }
+
+    # Resolve "auto" from the available design information
+    if (permutation_scheme == "auto") {
+        if (!is.null(subject_vec)) {
+            permutation_scheme <- "within_subject"
+        } else if (!is.null(block_vec)) {
+            permutation_scheme <- "within_block"
+        } else if (!is.null(strata_vec)) {
+            permutation_scheme <- "within_strata"
+        } else {
+            permutation_scheme <- "unpaired_q"
+        }
+    }
+
+    # Validate that the requested scheme is compatible with the design.
+    # A unit (block or stratum) with >= 2 samples but a single condition is
+    # confounded with condition: labels are not exchangeable within it and
+    # permuting them is impossible without destroying the design (the
+    # "batch A -> control, batch B -> treatment" case).
+    .check_exchangeable_units <- function(unit_vec, unit_name, scheme_name) {
+        if (is.null(unit_vec)) {
+            stop(sprintf("[WY] permutation_scheme='%s' requires %s, but it was not provided",
+                scheme_name, unit_name), call. = FALSE)
+        }
+        for (u in unique(unit_vec)) {
+            idx <- which(unit_vec == u)
+            if (length(idx) >= 2 && length(unique(group_vec[idx])) < 2) {
+                stop(sprintf("[WY] %s '%s' is confounded with condition: it contains %d samples but a single condition. Labels are not exchangeable within it. Use permutation_scheme='within_subject' (paired) or restructure the design.",
+                    unit_name, u, length(idx)), call. = FALSE)
+            }
+        }
+        invisible(TRUE)
+    }
+
+    scheme_used <- permutation_scheme
+    permute_fn <- switch(scheme_used,
+        within_subject = {
+            if (is.null(subject_vec)) {
+                stop("[WY] permutation_scheme='within_subject' requires subject_vec",
+                    call. = FALSE)
+            }
+            function() {
+                a <- group_vec
+                for (u in unique(subject_vec)) {
+                    idx <- which(subject_vec == u)
+                    if (length(idx) > 1) a[idx] <- sample(group_vec[idx])
+                }
+                a
+            }
+        },
+        within_block = {
+            .check_exchangeable_units(block_vec, "block_col", scheme_used)
+            function() {
+                a <- group_vec
+                for (b in unique(block_vec)) {
+                    idx <- which(block_vec == b)
+                    if (length(idx) > 1) a[idx] <- sample(group_vec[idx])
+                }
+                a
+            }
+        },
+        within_strata = {
+            .check_exchangeable_units(strata_vec, "strata_col", scheme_used)
+            function() {
+                a <- group_vec
+                for (s in unique(strata_vec)) {
+                    idx <- which(strata_vec == s)
+                    if (length(idx) > 1) a[idx] <- sample(group_vec[idx])
+                }
+                a
+            }
+        },
+        unpaired_q = function() {
+            a <- group_vec
+            if (!is.null(q_vals)) {
+                for (qv in unique(q_vals)) {
+                    idx <- which(q_vals == qv)
+                    if (length(idx) > 1) a[idx] <- sample(group_vec[idx])
+                }
+            } else {
+                a <- sample(group_vec)
+            }
+            a
+        })
+
+    list(permute_fn = permute_fn, scheme_used = scheme_used,
+        note = sprintf("permutation scheme '%s' (exchangeability-compatible permutations)",
+            scheme_used))
+}
+
 .westfall_young_permutation <- function(n_genes, wy_randomizations, permute_fn, refit_fn,
     nthreads = 1, verbose = FALSE) {
     # Args: n_genes: Total number of genes (for verbose output)

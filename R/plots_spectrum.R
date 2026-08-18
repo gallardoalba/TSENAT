@@ -265,52 +265,70 @@
 
 #' @noRd
 .spectrum_plot_global <- function(div_mat_sorted, q_vals_sorted, metric, variability_metric,
-    divergence_results_se = NULL) {
+    divergence_results_se = NULL, analysis = NULL) {
 
-    # Check if bootstrap CI assays are available
-    has_ci_assays <- FALSE
-    ci_lower_mat <- NULL
-    ci_upper_mat <- NULL
+    metric_label <- if (metric == "median")
+        "Median" else "Mean"
 
-    if (!is.null(divergence_results_se) && methods::is(divergence_results_se, "SummarizedExperiment")) {
+    # When the analysis object is available and bootstrap CI assays exist,
+    # compute a VALID CI for the aggregated statistic via global bootstrap
+    # (same resampled replicates across all genes per iteration). Averaging
+    # gene-wise CI bounds is NOT a CI of the mean/median, so that path is
+    # never presented as one.
+    if (!is.null(analysis) && methods::is(analysis, "TSENATAnalysis") && !is.null(divergence_results_se) &&
+        methods::is(divergence_results_se, "SummarizedExperiment")) {
         assay_names <- names(SummarizedExperiment::assays(divergence_results_se))
-        if ("ci_lower" %in% assay_names && "ci_upper" %in% assay_names) {
-            has_ci_assays <- TRUE
-            ci_lower_mat <- SummarizedExperiment::assay(divergence_results_se, "ci_lower")[,
-                colnames(div_mat_sorted)]
-            ci_upper_mat <- SummarizedExperiment::assay(divergence_results_se, "ci_upper")[,
-                colnames(div_mat_sorted)]
+        has_ci_assays <- ("ci_lower" %in% assay_names) && ("ci_upper" %in% assay_names)
+
+        if (has_ci_assays) {
+            cfg <- analysis@config
+            gene_col <- resolve_slot_param(NULL, cfg, "gene_col", "gene_id")
+            group_col <- resolve_slot_param(NULL, cfg, "group_col", NULL)
+            if (is.null(group_col))
+                group_col <- resolve_slot_param(NULL, cfg, "condition_col", "condition")
+            control_group <- resolve_slot_param(NULL, cfg, "control_group", NULL)
+            if (is.null(control_group) && !is.null(cfg$control))
+                control_group <- cfg$control
+
+            rd <- SummarizedExperiment::rowData(analysis@se)
+            cd <- SummarizedExperiment::colData(analysis@se)
+            if (!is.null(rd) && nrow(rd) > 0 && gene_col %in% colnames(rd) && !is.null(group_col) &&
+                group_col %in% colnames(cd)) {
+                if (is.null(control_group)) {
+                  group_levels <- unique(as.character(cd[[group_col]]))
+                  control_group <- group_levels[1]
+                }
+                nboot <- 100
+                if (!is.null(cfg$nboot) && is.numeric(cfg$nboot) && length(cfg$nboot) ==
+                  1 && !is.na(cfg$nboot) && cfg$nboot >= 1)
+                  nboot <- min(as.integer(cfg$nboot), 200)
+
+                global_ci <- .bootstrap_global_divergence_ci(se = analysis@se,
+                  gene_col = gene_col, group_col = group_col, control_group = control_group,
+                  q_vals = q_vals_sorted, metric = metric, nboot = nboot, ci = 0.95)
+
+                if (!is.null(global_ci)) {
+                  summary_stats <- data.frame(q = q_vals_sorted, central = global_ci$central,
+                    ci_lower = global_ci$ci_lower, ci_upper = global_ci$ci_upper,
+                    stringsAsFactors = FALSE)
+                  p <- .create_ci_ribbon_plot(summary_stats, x_col = "q", y_col = "central",
+                    ci_lower_col = "ci_lower", ci_upper_col = "ci_upper", ribbon_alpha = 0.1,
+                    line_width = 1.3, show_points = TRUE)
+                  p <- .apply_publication_theme(p, base_theme = "theme_base",
+                    base_size = 11, title = paste0("Global Divergence Spectrum: ",
+                      metric_label, " gene-level D[q]"), subtitle = paste0(metric_label,
+                      " gene-level D_q with Bootstrap (95%) CI of the ", tolower(metric_label),
+                      " (global bootstrap, B=", global_ci$nboot, ", ", global_ci$n_genes,
+                      " genes)"))
+                  p <- p + ggplot2::labs(x = "q value", y = expression("Divergence D[q]"))
+                  return(p)
+                }
+            }
         }
     }
 
-    # Unified subtitle construction function to avoid duplication
-    construct_subtitle <- function(metric_label, ci_source, spread_label = NULL,
-        n_genes) {
-        if (!is.null(ci_source)) {
-            paste0(metric_label, " with ", ci_source, " CI (", n_genes, " genes)")
-        } else {
-            paste0(metric_label, " +/- ", spread_label, " (", n_genes, " genes)")
-        }
-    }
-
-    # Bootstrap CI branch
-    if (has_ci_assays && !all(is.na(ci_lower_mat)) && !all(is.na(ci_upper_mat))) {
-        summary_stats <- data.frame(q = q_vals_sorted, central = colMeans(div_mat_sorted,
-            na.rm = TRUE), ci_lower = colMeans(ci_lower_mat, na.rm = TRUE), ci_upper = colMeans(ci_upper_mat,
-            na.rm = TRUE), stringsAsFactors = FALSE)
-
-        # Use CI ribbon helper with publication theme
-        p <- .create_ci_ribbon_plot(summary_stats, x_col = "q", y_col = "central",
-            ci_lower_col = "ci_lower", ci_upper_col = "ci_upper", ribbon_alpha = 0.1,
-            line_width = 1.3, show_points = TRUE)
-        p <- .apply_publication_theme(p, base_theme = "theme_base", base_size = 11,
-            title = "Global Divergence Spectrum: Average D[q]",
-            subtitle = construct_subtitle("Mean", "Bootstrap (95%)", n_genes = nrow(div_mat_sorted)))
-        p <- p + ggplot2::labs(x = "q value", y = expression("Divergence D[q]"))
-        return(p)
-    }
-
-    # Fallback to IQR/SD computation
+    # Fallback: descriptive spread (IQR/2 or SD) around the gene-level
+    # central statistic. Explicitly NOT a confidence interval.
     if (variability_metric == "iqr") {
         summary_stats <- data.frame(q = q_vals_sorted, central = apply(div_mat_sorted,
             2, function(x) {
@@ -319,7 +337,7 @@
             }), spread = apply(div_mat_sorted, 2, function(x) stats::IQR(x, na.rm = TRUE)),
             stringsAsFactors = FALSE)
         spread_factor <- 0.5
-        spread_label <- "IQR"
+        spread_label <- "IQR/2"
     } else {
         summary_stats <- data.frame(q = q_vals_sorted, central = apply(div_mat_sorted,
             2, function(x) {
@@ -335,7 +353,7 @@
         stop("Cannot compute statistics. Check divergence matrix values", call. = FALSE)
     }
 
-    # Create lower/upper bounds for ribbon plot
+    # Create lower/upper bounds for ribbon plot (descriptive spread)
     summary_stats$ci_lower <- summary_stats$central - summary_stats$spread * spread_factor
     summary_stats$ci_upper <- summary_stats$central + summary_stats$spread * spread_factor
 
@@ -343,10 +361,9 @@
     p <- .create_ci_ribbon_plot(summary_stats, x_col = "q", y_col = "central", ci_lower_col = "ci_lower",
         ci_upper_col = "ci_upper", ribbon_alpha = 0.1, line_width = 1.3, show_points = TRUE)
 
-    metric_label <- if (metric == "median")
-        "Median" else "Mean"
-    p <- .apply_publication_theme(p, base_theme = "theme_base", base_size = 11, title = "Global Divergence Spectrum: Average D[q]",
-        subtitle = construct_subtitle(metric_label, NULL, spread_label, nrow(div_mat_sorted)))
+    p <- .apply_publication_theme(p, base_theme = "theme_base", base_size = 11, title = paste0("Global Divergence Spectrum: ",
+        metric_label, " gene-level D[q]"), subtitle = paste0(metric_label, " gene-level D_q +/- ",
+        spread_label, " (descriptive spread; ", nrow(div_mat_sorted), " genes)"))
     p <- p + ggplot2::labs(x = "q value", y = expression("Divergence D[q]"))
 
     return(p)
@@ -356,7 +373,7 @@
 #' @noRd
 .plot_divergence_spectrum <- function(divergence_results_se, gene = NULL, sait_res = NULL,
     n_genes = 4, ncol = 2, metric = c("median", "mean"), variability_metric = c("iqr",
-        "sd")) {
+        "sd"), analysis = NULL) {
     # Validate inputs and extract matrix
     metric <- match.arg(metric)
     variability_metric <- match.arg(variability_metric)
@@ -389,7 +406,7 @@
     }
 
     # Pass SummarizedExperiment to global plot so it can use bootstrap CIs if
-    # available
+    # available; the analysis object enables a valid GLOBAL bootstrap CI
     return(.spectrum_plot_global(div_mat_sorted, q_vals_sorted, metric, variability_metric,
-        divergence_results_se = divergence_results_se))
+        divergence_results_se = divergence_results_se, analysis = analysis))
 }

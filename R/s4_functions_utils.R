@@ -71,6 +71,40 @@ resolve_slot_param <- function(user_value, config_list, config_key, default_valu
     return(NULL)
 }
 
+#' Canonical q-result key
+#'
+#' Single source of truth for q-value string keys: `q_1.000` style, matching
+#' the keys produced by calculate_diversity().
+#'
+#' @noRd
+.q_key <- function(q) {
+    paste0("q_", formatC(as.numeric(q), format = "f", digits = 3))
+}
+
+#' Resolve a q value against available result keys (tolerance-aware)
+#'
+#' Returns the key whose numeric q is closest to `q` if within `tolerance`,
+#' otherwise NULL. This removes the string-format fragility of looking up
+#' results with paste0("q_", q).
+#'
+#' @noRd
+.resolve_q_key <- function(q, available_keys, tolerance = 1e-08) {
+    if (length(available_keys) == 0) {
+        return(NULL)
+    }
+    q_numeric <- suppressWarnings(as.numeric(gsub("_", ".", sub("^q_", "",
+        available_keys))))
+    valid <- !is.na(q_numeric)
+    if (!any(valid)) {
+        return(NULL)
+    }
+    idx <- which.min(abs(q_numeric[valid] - as.numeric(q)))
+    if (abs(q_numeric[valid][idx] - as.numeric(q)) > tolerance) {
+        return(NULL)
+    }
+    available_keys[valid][idx]
+}
+
 
 #' Auto-Detect Column from Candidate Names
 #'

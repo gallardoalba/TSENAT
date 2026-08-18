@@ -46,7 +46,9 @@
 #' basis adequacy).
 #'
 #' References:
-#' - GAM: @S150 (2023), @S143 (2015), @S137 (1979)
+#' - GAM: Siems et al., "Curve Your Enthusiasm: Concurvity Regularization in
+#'   Differentiable Generalized Additive Models"; Hall, "Using a generalized
+#'   additive model to compute bias-corrected near-surface bulk salinities"
 #'
 #' @noRd
 .calculate_assumptions <- function(data, checks = "rank", alpha = 0.05, q_values = NULL,
@@ -597,7 +599,8 @@ print.rank_assumptions <- function(x, ...) {
 #' Compute Concurvity Index for GAM
 #'
 #' Detects collinearity among smooth terms. Values > 0.8 indicate problematic
-#' collinearity that may require regularization (S150, S143).
+#' collinearity that may require regularization (Siems et al., concurvity
+#' regularization in differentiable GAMs).
 #'
 #' @param data Matrix of predictor values (columns=predictors, rows=observations)
 #' @param gam_cache Optional pre-fitted GAM models (for optimization)
@@ -705,7 +708,9 @@ print.rank_assumptions <- function(x, ...) {
 #' Compute Effective Degrees of Freedom (EDF) for GAM
 #'
 #' Assesses smoothing adequacy. EDF ratio < 0.5 (over-smoothed), 0.5-2.0
-#' (appropriate), > 2.0 (under-smoothed). References: S137, C045
+#' (appropriate), > 2.0 (under-smoothed). References: Hall, "Using a
+#' generalized additive model to compute bias-corrected near-surface bulk
+#' salinities"; "Workshop 8: Generalized additive models".
 #'
 #' @param data Matrix of predictor values
 #' @param q_values Optional numeric vector of q-values for per-gene GAM fitting
@@ -777,7 +782,7 @@ print.rank_assumptions <- function(x, ...) {
 #' Compute Non-linearity Contribution
 #'
 #' Quantifies GAM benefit over linear model. <5% (use LM), 5-20% (GAM justified),
-#' >20% (GAM essential). Reference: C045
+#' >20% (GAM essential). Reference: Wood (2017).
 #'
 #' @param data Matrix of predictor values
 #' @param q_values Optional numeric vector of q-values for per-gene GAM fitting
@@ -1106,7 +1111,8 @@ print.rank_assumptions <- function(x, ...) {
 
 #' Compute Working Correlation Structure Fit for GEE
 #'
-#' Validates if assumed correlation structure matches data. References: S042, S032
+#' Validates if assumed correlation structure matches data. References:
+#' geepack documentation (Højsgaard et al. 2023); Kraemer & Kupfer (2005).
 #'
 #' @param data Matrix of expression values
 #' @param assumed_structure Character: assumed correlation structure ('exchangeable', 'ar1', etc.)
@@ -1290,7 +1296,8 @@ print.rank_assumptions <- function(x, ...) {
 
 #' Compute GEE Scale Parameter (Dispersion)
 #'
-#' Assesses over/under-dispersion in GEE model. Reference: S042
+#' Assesses over/under-dispersion in GEE model. Reference: geepack
+#' documentation (Højsgaard et al. 2023).
 #'
 #' @param data Matrix of expression values
 #' @param cluster_col Optional vector of cluster assignments

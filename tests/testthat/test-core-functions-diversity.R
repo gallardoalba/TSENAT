@@ -2887,9 +2887,9 @@ test_that(".apply_diversity_post_hoc_norm handles norm='none'", {
 # ============================================================================
 # BUG FIX #1: Species Richness (q=0) Formula Correction (May 2026)
 # ============================================================================
-# Reference: Hill (1973), I018/I019 - species richness at q=0 is the total number
+# Reference: Hill (1973); Chao et al. (2014); Heip et al. (1998) - species richness at q=0 is the total number
 # of species in the sample, not a logarithmic transform.
-# NOTE (July 2026): .entropy_core() returns Tsallis S_0 = n - 1 (AUDIT FIX R13),
+# NOTE (July 2026): .entropy_core() returns Tsallis S_0 = n - 1,
 # not the Hill number D_0 = n.  The entropy value n-1 is the standard
 # Tsallis entropy at q=0 and is consistent with entropy_cpp.
 
@@ -3003,7 +3003,7 @@ test_that("Edge cases: q very close to 0 returns species richness", {
   proportions <- c(0.5, 0.3, 0.2)
   
   # q below the q_tol threshold should be treated as q=0
-  # Returns Tsallis S_0 = n - 1 = 2 (consistent with AUDIT FIX R13)
+  # Returns Tsallis S_0 = n - 1 = 2
   result_q_near_0 <- .entropy_core(proportions, q = 1e-7, log_base = exp(1))
   expect_equal(result_q_near_0, 2, tolerance = 1e-4)
 })

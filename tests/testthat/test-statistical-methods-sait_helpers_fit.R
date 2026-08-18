@@ -739,7 +739,7 @@ test_that(".fit_one_interaction outputs verbose messages when verbose=TRUE", {
             suppress_lme4_warnings = TRUE,
             progress = FALSE
         ),
-        "ARIMA|entropy|weights",  # Expect one of these keywords (regex pattern)
+        "AR\\(1\\)|nlme|lmm",  # Expect one of these keywords (regex pattern)
         ignore.case = TRUE
     )
 })

@@ -5132,7 +5132,7 @@ gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 config <- TSENAT_config(
     condition_col = "condition",
     subject_col = "paired_samples",
-    q = seq(0, 2, length.out = 15),  # Reduced for test speed
+    q = sort(unique(c(seq(0, 2, length.out = 15), 0.5, 0.8))),  # Reduced grid + JIS cache q-values
     paired = TRUE,
     control = "normal"
 )

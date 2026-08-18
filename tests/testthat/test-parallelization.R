@@ -1,7 +1,7 @@
 context("Parallelization: Method Calculation with Multiple Threads")
 
-# Skip entire test file on Bioconductor due to long runtime (26.71s)
-skip_on_bioc()
+# Runtime ~27s: kept in the daily CI (Bioconductor check budget is 40 min).
+# Slow Monte Carlo validation lives in tests/testthat/ (skipped on Bioconductor via skip_on_bioc).
 
 # Internal helper access for calculate_method
 calculate_method <- TSENAT:::.calculate_method
@@ -768,8 +768,11 @@ test_that("Serial vs Parallel: CI bounds are numerically identical", {
   rd_serial <- SummarizedExperiment::rowData(div_se_serial)
   rd_parallel <- SummarizedExperiment::rowData(div_se_parallel)
   
-  # Find CI columns (lower_ci, upper_ci, ci_width)
-  ci_cols <- grep("^(lower_ci|upper_ci|ci_width)", colnames(rd_serial), value = TRUE)
+  # Find per-q CI columns (lower_ci_q*, upper_ci_q*, ci_width_q*). The generic
+  # lower_ci/upper_ci/ci_width columns are populated only when the q grid
+  # contains exactly q = 1 (auditxx P0#2); the default grid (0.01..1.96 by 0.05)
+  # does not include it, so those generic columns are NA by contract here.
+  ci_cols <- grep("^(lower_ci|upper_ci|ci_width)_q", colnames(rd_serial), value = TRUE)
   
   # CI columns should exist and have values
   expect_gt(length(ci_cols), 0)

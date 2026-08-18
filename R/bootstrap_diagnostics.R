@@ -6,8 +6,8 @@
 # - Skewness detection: Identifies non-normal bootstrap distributions -
 # Multimodality detection: Detects multi-peaked distributions - CI width
 # analysis: Assesses precision and stability of estimates - Integration with
-# existing diagnostics infrastructure Reference: Papers S111, S114 - Bootstrap
-# CI quality assessment
+# existing diagnostics infrastructure Reference: Zhang & Cao (2023); Friedl &
+# Stampfer (2002) - Bootstrap CI quality assessment
 
 #' Estimate Bootstrap Distribution Skewness with Robust Statistics
 #'
@@ -44,8 +44,8 @@
 #'
 #' **Confidence bounds:**
 #' Bootstrap distributions with |skewness| > 2 may produce unreliable CIs.
-#' Jackknife confidence intervals (papers S111, S114) quantify skewness
-#' uncertainty.
+#' Jackknife confidence intervals (Zhang & Cao 2023; Friedl & Stampfer 2002)
+#' quantify skewness uncertainty.
 #'
 #' @noRd
 #' @noRd
@@ -96,7 +96,7 @@
         skewness_mad <- NA_real_
     }
 
-    # CONFIDENCE INTERVALS (via jackknife, papers S111, S114)
+    # CONFIDENCE INTERVALS (via jackknife; Zhang & Cao 2023, Friedl & Stampfer 2002)
     ci_lower <- NA_real_
     ci_upper <- NA_real_
 
@@ -119,7 +119,7 @@
         # SE via jackknife: SE = sqrt((n-1)/n * sum((x_j - x_bar)^2))
         jack_mean <- mean(jack_skew, na.rm = TRUE)
         jack_var <- sum((jack_skew - jack_mean)^2, na.rm = TRUE) * (n - 1)/n
-        # AUDIT FIX #21: jack_var already includes (n-1)/n factor.
+        # jack_var already includes (n-1)/n factor.
         # SE should be sqrt(jack_var), not sqrt(jack_var/n).
         jack_se <- sqrt(jack_var)
 

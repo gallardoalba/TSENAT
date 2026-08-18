@@ -980,18 +980,22 @@ test_that("Feature selection reduces model complexity as expected", {
 context("LMM Bias Correction Analysis: Literature Review")
 
 test_that("LMM hypothesis testing does NOT need p-value bias correction", {
-  # FINDING 1: Papers S160-S164 address PARAMETER ESTIMATION bias, not hypothesis testing bias
+  # FINDING 1: This literature addresses PARAMETER ESTIMATION bias, not
+  # hypothesis testing bias
   #
   # Papers integrated in Phase 12:
-  # - S160: "Selection bias in linear mixed models" 
+  # - "Selection bias in linear mixed models" (Metron, 2010)
   #         → Addresses bias from non-random sample selection
-  # - S161: "Bias Correction in GLMM With Multiple Dispersion (Lin & Breslow 1996)"
+  # - Lin & Breslow (1996), "Bias correction in GLMM with multiple
+  #         components of dispersion"
   #         → Addresses bias in COEFFICIENT & VARIANCE COMPONENT ESTIMATION
-  # - S162: "Random-effects meta-analysis via GLMM"
+  # - Hanada (2023), "Random-effects meta-analysis via generalized linear
+  #         mixed models"
   #         → Addresses parameter estimation in hierarchical models
-  # - S163: "Bias correction in generalised linear mixed models"
+  # - "Bias correction in generalised linear mixed models" (Biometrika)
   #         → Addresses estimation bias in fixed and random effects
-  # - S164: "Reduced-bias estimation and inference in mixed-effects models"
+  # - Kyriakou (2016), "Reduced-bias estimation and inference in
+  #         mixed-effects models"
   #         → Addresses bias in PARAMETER ESTIMATION via adjusted score equations
   
   # CONCLUSION FROM ALL PAPERS:
@@ -2023,4 +2027,74 @@ test_that(".lmm_regularization with multiple q values", {
     result <- TSENAT:::.lmm_regularization(df$q, df$entropy, df$group, 
                                             regularization = "elasticnet")
     expect_true(is.null(result) || is.list(result))
+})
+
+# ════════════════════════════════════════════════════════════════════════════════
+# Post-selection inference de-coupling
+# The LASSO/ElasticNet feature selection is EXPLORATORY ONLY; the confirmatory
+# LMM p-value must not depend on it (selection + inference on the same data
+# would invalidate the nominal p-value distribution).
+# ════════════════════════════════════════════════════════════════════════════════
+
+test_that("confirmatory LMM p-values identical with pca vs lasso regularization", {
+    skip_if_not_installed("nlme")
+    skip_if_not_installed("glmnet")
+
+    set.seed(123)
+    n_q <- 10L
+    n_sub <- 6L
+    qvec <- seq(0.1, 2, length.out = n_q)
+    subjects <- rep(rep(paste0("S", seq_len(n_sub)), each = n_q), 2)
+    conds <- rep(c("Normal", "Tumor"), each = n_sub * n_q)
+    coln <- paste0(subjects, "_", conds, "_q=", rep(qvec, times = 2 * n_sub))
+
+    genes <- lapply(1:4, function(g) {
+        u <- rnorm(n_sub, sd = 0.5)
+        unlist(lapply(seq_len(n_sub), function(s) {
+            c(u[s] + rnorm(n_q, sd = 0.2), u[s] + rnorm(n_q, sd = 0.2))
+        }))
+    })
+    mat <- do.call(rbind, genes)
+    colnames(mat) <- coln
+    rownames(mat) <- paste0("g", 1:4)
+
+    cd <- data.frame(
+        samples = paste0(subjects, "_", conds),
+        sample_type = conds,
+        sample_base = subjects,
+        row.names = coln,
+        stringsAsFactors = FALSE
+    )
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(diversity = mat),
+        colData = cd
+    )
+
+    res_pca <- .calculate_sait(se, condition_col = "sample_type", method = "lmm",
+        subject_col = "sample_base", min_obs = 8, regularization = "pca")
+    res_lasso <- .calculate_sait(se, condition_col = "sample_type", method = "lmm",
+        subject_col = "sample_base", min_obs = 8, regularization = "lasso")
+
+    expect_identical(res_pca$p_interaction, res_lasso$p_interaction)
+    expect_identical(res_pca$adj_p_interaction, res_lasso$adj_p_interaction)
+})
+
+test_that(".lmm_regularization result is labelled exploratory", {
+    skip_if_not_installed("glmnet")
+
+    set.seed(7)
+    n_q <- 8L
+    n_sub <- 6L
+    q_vals <- rep(seq(0.1, 2, length.out = n_q), n_sub * 2)
+    grp <- rep(c("A", "B"), each = n_q * n_sub)
+    subject_vec <- rep(rep(seq_len(n_sub), each = n_q), 2)
+    # Group-only signal: LASSO selects a non-empty, non-full subset of the
+    # q x group interaction design matrix (avoids the degenerate NULL branch).
+    gi <- as.numeric(factor(grp)) - 1
+    y <- gi * 2 + rnorm(length(q_vals), sd = 0.01)
+
+    fs <- TSENAT:::.lmm_regularization(q_vals, y, grp,
+        subject_vec = subject_vec, regularization = "lasso")
+    expect_false(is.null(fs))
+    expect_identical(fs$inference_type, "exploratory")
 })

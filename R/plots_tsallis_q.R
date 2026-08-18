@@ -203,13 +203,14 @@ plot_diversity_spectrum <- function(se, assay_name = "diversity", condition_col 
         if ("gene" %in% colnames(long)) {
             long$Gene <- long$gene
         } else {
-            se_rownames <- rownames(se)
-            if (!is.null(se_rownames) && length(se_rownames) > 0) {
-                n_per_gene <- nrow(long)/length(se_rownames)
-                long$Gene <- rep(se_rownames, each = n_per_gene)
-            } else {
-                stop("Cannot reconstruct Gene column from data")
-            }
+            # NEVER reconstruct gene identity by position (rep()). The long
+            # format prepared by .prepare_tsallis_long always carries an
+            # explicit Gene column from rownames/rowData; if it is missing
+            # here, the data source is incompatible and guessing would risk
+            # assigning values to the wrong gene.
+            stop("Cannot resolve Gene column from data. The diversity result ",
+                "must carry gene identifiers in rownames/rowData so that ",
+                "observations are never matched by position.", call. = FALSE)
         }
     }
 
@@ -251,10 +252,12 @@ plot_diversity_spectrum <- function(se, assay_name = "diversity", condition_col 
 
     # Determine subtitle based on bootstrap availability and metric
     ci_subtitle <- if (has_bootstrap_ci) {
+        # Per-gene panels use the gene's own bootstrap CI (valid per gene);
+        # the ribbon is a CI, not a descriptive spread.
         "Median with Bootstrap 95% Confidence Intervals"
     } else {
         if (metric == "iqr") {
-            "Median +/- Interquartile Range (IQR)"
+            "Median +/- IQR/2 (descriptive spread)"
         } else {
             "Median +/- Standard Deviation (SD)"
         }
@@ -312,16 +315,13 @@ plot_diversity_spectrum <- function(se, assay_name = "diversity", condition_col 
 
 .plot_tsallis_bootstrap_ci <- function(se, long, output_file) {
 
-    # Bootstrap CI Visualization Methodology (From Literature: S115, S018)
+    # Bootstrap CI Visualization Methodology (Efron & Tibshirani 1993)
     # =================================================================== Point
     # estimator: ORIGINAL OBSERVED MEDIAN (robust measure of central tendency)
-    # CI bounds: BOOTSTRAP PERCENTILE METHOD (2.5th and 97.5th percentiles)
-    # Aggregation: MEDIAN of per-sample bootstrap CI bounds across samples in
-    # group INTERPRETATION: - Line represents observed median Tsallis entropy
-    # (actual data) - Ribbon represents bootstrap 95% confidence interval
-    # around the estimate - If line falls outside ribbon: indicates asymmetric
-    # bootstrapping distribution (NOT a problem - reveals non-normality in the
-    # resampling distribution)
+    # Ribbon: aggregation (median) of PER-GENE, PER-SAMPLE bootstrap CI
+    # bounds. NOTE: this is a descriptive aggregation of individual interval
+    # bounds, NOT a bootstrap CI of the group median itself; it is labeled
+    # accordingly in the subtitle.
 
     long$q <- as.numeric(as.character(long$q))
     unique_q <- sort(unique(long$q))
@@ -345,7 +345,8 @@ plot_diversity_spectrum <- function(se, assay_name = "diversity", condition_col 
     p <- .apply_group_aesthetics(p, palette = "palette_blue_red", legend_name = "Group")
     p <- .apply_publication_theme(p, base_theme = "theme_spectrum", base_size = 11,
         title = "Tsallis Entropy q-Spectrum: Scale-Dependent Diversity Patterns",
-        subtitle = "Lines trace median normalized entropy from rare (low q) to dominant (high q) isoforms")
+        subtitle = paste0("Median entropy by group; ribbon = median of per-sample ",
+            "bootstrap CI bounds (descriptive aggregation, not a CI of the median)"))
     p <- p + ggplot2::labs(x = "q value", y = "Tsallis entropy",
         color = "Group", fill = "Group")
 
@@ -455,7 +456,7 @@ plot_diversity_spectrum <- function(se, assay_name = "diversity", condition_col 
 
     # Determine subtitle based on metric
     subtitle <- if (metric == "iqr") {
-        "Median +/- Interquartile Range (IQR)"
+        "Median +/- IQR/2 (descriptive spread)"
     } else {
         "Median +/- Standard Deviation (SD)"
     }
@@ -515,7 +516,7 @@ plot_diversity_spectrum <- function(se, assay_name = "diversity", condition_col 
     if (metric == "iqr") {
         stats_df <- dplyr::summarise(dplyr::group_by(long, group, q), median = median(tsallis,
             na.rm = TRUE), spread = stats::IQR(tsallis, na.rm = TRUE)/2, .groups = "drop")
-        subtitle <- "Median +/- Interquartile Range (IQR)"
+        subtitle <- "Median +/- IQR/2 (descriptive spread)"
     } else {
         stats_df <- dplyr::summarise(dplyr::group_by(long, group, q), median = median(tsallis,
             na.rm = TRUE), spread = sqrt(stats::var(tsallis, na.rm = TRUE)), .groups = "drop")

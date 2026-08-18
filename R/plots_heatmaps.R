@@ -346,11 +346,13 @@
 
 .plot_expression <- function(se, gene = NULL, condition_col = "condition", res = NULL,
     top_n = 3, output_file = NULL, metric = c("median", "mean", "variance", "iqr"),
-    use_tpm = TRUE, width = NULL, height = NULL, fontsize = 16, cellwidth = 0, cellheight = 0,
-    layout_ncol = 2) {
+    use_tpm = TRUE, quantity = c("abundance", "usage"), width = NULL, height = NULL,
+    fontsize = 16, cellwidth = 0, cellheight = 0, layout_ncol = 2) {
     if (!requireNamespace("pheatmap", quietly = TRUE)) {
         stop("pheatmap package required", call. = FALSE)
     }
+
+    quantity <- match.arg(quantity)
 
     # Phase 1: Validate input and extract components
     se_data <- .validate_se_for_heatmaps(se, condition_col = condition_col)
@@ -373,6 +375,19 @@
     # Build tx2gene mapping
     tx2gene <- data.frame(Transcript = rownames(counts), Gen = as.character(rd[[gene_col]]),
         stringsAsFactors = FALSE)
+
+    # Quantity transform: "usage" normalizes each transcript by its GENE total
+    # per sample (isoform usage) — the quantity relevant to isoform-switching
+    # conclusions. "abundance" keeps raw counts/TPM, which shows absolute
+    # abundance changes only.
+    if (quantity == "usage") {
+        gene_vec <- as.character(rd[[gene_col]])
+        denom <- rowsum(counts, group = gene_vec, reorder = FALSE)
+        tx_gene_idx <- match(gene_vec, rownames(denom))
+        usage_mat <- counts/denom[tx_gene_idx, , drop = FALSE]
+        usage_mat[!is.finite(usage_mat)] <- 0
+        counts <- usage_mat
+    }
 
     conditions <- as.character(cd[[condition_col]])
     unique_conditions <- unique(conditions)
@@ -443,14 +458,21 @@
         stop("No valid heatmaps created", call. = FALSE)
     }
 
+    n_missing <- sum(vapply(heatmap_plots, is.null, logical(1)))
+    if (n_missing > 0) {
+        warning("Requested ", length(gene), " gene(s) but only ", length(gene) -
+            n_missing, " could be plotted (", n_missing, " not found or without data).",
+            call. = FALSE)
+    }
+
     # Phase 5: Render grid
     tryCatch({
         metric_label <- if (metric_choice == "iqr")
             "IQR" else metric_choice
 
         .plot_grid_setup(n_layout_rows, output_file, dims$png_width, dims$png_height,
-            title = "Isoform Expression Profiles", subtitle = paste("Log2-normalized",
-                metric_label, "by condition"))
+            title = if (quantity == "usage") "Isoform Usage Profiles" else "Isoform Expression Profiles",
+            subtitle = paste("Log2-normalized", metric_label, "by condition"))
 
         .render_heatmaps_to_grid(heatmap_plots, gene_layout, layout_ncol)
         .plot_grid_finalize(output_file, verbose = FALSE)

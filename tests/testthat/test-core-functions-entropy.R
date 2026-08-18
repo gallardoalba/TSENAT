@@ -958,10 +958,10 @@ test_that("BUG 8: entropy_core and entropy_single return identical species richn
 })
 
 # ============================================================================
-# AUDIT FIX TESTS: Tsallis q=0 fix, zero-filter removal
+# TESTS: Tsallis q=0 fix, zero-filter removal
 # ============================================================================
 
-test_that("[AUDIT #5] Tsallis entropy at q=0 returns n-1 (not log(n))", {
+test_that("Tsallis entropy at q=0 returns n-1 (not log(n))", {
     # Tsallis S_0 = n - 1 (richness minus one), not log(n).
     # Test via C++ entropy_cpp
     
@@ -979,7 +979,7 @@ test_that("[AUDIT #5] Tsallis entropy at q=0 returns n-1 (not log(n))", {
     expect_false(abs(TSENAT:::entropy_cpp(c(0.5, 0.5), q = 0, normalize = FALSE) - log(2)) < 0.01)
 })
 
-test_that("[AUDIT #5] Normalized Tsallis entropy at q=0 max is n-1", {
+test_that("Normalized Tsallis entropy at q=0 max is n-1", {
     # For uniform distribution of n species, normalized S_0 should be 1
     p_uniform_2 <- c(0.5, 0.5)
     p_uniform_5 <- rep(0.2, 5)
@@ -995,7 +995,7 @@ test_that("[AUDIT #5] Normalized Tsallis entropy at q=0 max is n-1", {
     expect_equal(TSENAT:::entropy_cpp(c(1), q = 0, normalize = TRUE), 0)
 })
 
-test_that("[AUDIT #17] entropy_cpp handles zeros correctly (no >1e-10 filter)", {
+test_that("entropy_cpp handles zeros correctly (no >1e-10 filter)", {
     # Zero-probability entries should contribute 0 to entropy,
     # not be silently dropped (which would change the effective n).
     

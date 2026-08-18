@@ -110,21 +110,26 @@
 #' **Database Verification (tsenat_papers.db):**
 #' Bootstrap methodology for divergence estimation is validated across 363
 #' papers:
-#' - **I001-I004** (Tsallis divergence theory): Mathematical foundations for
+#' - **Plastino & Plastino (1993); Furuichi (2006); Jost (2006); van Erven &
+#'   Harremoës (2014)** (Tsallis divergence theory): Mathematical foundations for
 #' Tsallis
 #' divergence computation and properties across q-parameters. q-parameter
 #' effects
 #'   on divergence magnitude are theoretically grounded (q_weight = 0.5 + q).
-#' - **Ramsay (2005), Springer Series in Statistics, Li (2023), R Package 'hillR', S018, S030** (Bootstrap methodology): Percentile and BCa
+#' - **Ramsay (2005), Springer Series in Statistics; Li (2023), R Package
+#'   'hillR'; Zhang & Yuan (2018)** (Bootstrap methodology): Percentile and BCa
 #' bootstrap
-#' performance validated. Coverage probabilities for entropy/divergence
-#' estimates
-#'   confirmed with confidence level >= 0.95 using nboot >= 500.
+#' performance validated. Simulation and literature-based evidence supports
+#' bootstrap inference under regular conditions (coverage near the nominal
+#' level with nboot >= 500), but coverage can deteriorate at low sequencing
+#' depth and small sample sizes (see NEWS.md).
 #'
 #' This function's implementation (percentile and BCa methods) aligns with
 #' approaches
-#' validated in papers Ramsay (2005), Springer Series in Statistics, S018, S030. Effect sizes from divergence are robust
-#' across q-values and reproducible in bootstrap resampling (papers S063-S067).
+#' validated in Ramsay (2005), Springer Series in Statistics, and Zhang & Yuan
+#' (2018). Effect sizes from divergence are robust
+#' across q-values and reproducible in bootstrap resampling (Ching et al. 2014;
+#' Yu et al. 2017; Qiao et al. 2018; Vieth & Enard 2019; Minnier 2023).
 #'
 #' @examples
 #' # Example 1: Direct vector input (two distributions)
@@ -200,7 +205,7 @@
         warning("More than 50% of bootstrap replicates produced invalid divergence values")
     }
 
-    # AUDIT FIX #3: Compute true divergence jackknife for BCa acceleration.
+    # Compute true divergence jackknife for BCa acceleration.
     # Leave-one-transcript-out from both x and y simultaneously.
     jackknife_divs <- if (method == "bca" && length(x) == length(y) && length(x) >= 3) {
         .compute_divergence_jackknife(x, y, q, log_base, norm)
@@ -323,7 +328,7 @@
         lower <- stats::quantile(valid_divs, alpha/2, na.rm = TRUE)
         upper <- stats::quantile(valid_divs, 1 - alpha/2, na.rm = TRUE)
     } else if (method == "bca") {
-        # AUDIT FIX #3: Pass true divergence jackknife estimates for BCa acceleration.
+        # Pass true divergence jackknife estimates for BCa acceleration.
         # The jackknife leaves out one transcript at a time from both x and y
         # simultaneously, computing divergence on (x[-i], y[-i]).
         ci_bca <- .bca_ci(valid_divs, estimate, alpha, jackknife_estimates = jackknife_estimates)

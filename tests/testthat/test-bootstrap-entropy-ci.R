@@ -353,7 +353,7 @@ test_that("aggregated transcript counts via drop=FALSE produce valid entropy", {
 # Tests for Minimum Sample Size Validation (2.1 Implementation)
 # ============================================================================
 # Added to bootstrap_entropy.R lines 281-290 to warn when total_count < 10
-# Following papers S111, S114 recommendations
+# Following the jackknife resampling recommendations (Zhang & Cao 2023)
 
 test_that("minimum sample size warning triggers for low counts (total < 10)", {
     # Test with total_count = 5 (2+1+1+1)
@@ -372,10 +372,10 @@ test_that("minimum sample size warning triggers for low counts (total < 10)", {
     )
 })
 
-test_that("minimum sample size warning includes paper references (S111, S114)", {
+test_that("minimum sample size warning includes the jackknife literature reference", {
     x_low <- c(3, 2, 1)  # total = 6
     
-    # Should mention papers S111 and S114
+    # Should mention the jackknife resampling literature
     expect_warning(
         .calculate_tsallis_entropy_bootstrap(
             x = x_low,
@@ -384,7 +384,7 @@ test_that("minimum sample size warning includes paper references (S111, S114)", 
                         verbose = FALSE,
             show_messages = TRUE
         ),
-        "S111.*S114|S114.*S111"
+        "Zhang & Cao|jackknife resampling"
     )
 })
 
@@ -475,7 +475,7 @@ test_that("minimum sample size validation with high counts (no warning)", {
 # Tests for .suggest_nboot() Helper Function (2.2 Implementation)
 # ============================================================================
 # Adaptive bootstrap sample size recommendations based on gene count
-# and BCa vs percentile method choice (paper C017 efficiency guidelines)
+# and BCa vs percentile method choice (Efron & Tibshirani 1993 efficiency guidelines)
 
 test_that(".suggest_nboot() single gene, percentile method", {
     nboot_rec <- .suggest_nboot(n_genes = 1, use_bca = FALSE)
@@ -721,7 +721,8 @@ test_that("multiple genes benefit from lower nboot recommendations", {
 # ============================================================================
 # Tests for Diagnostic Output Option (2.3 Implementation)
 # ============================================================================
-# Optional diagnostic fields to assess CI quality (papers S111, S114)
+# Optional diagnostic fields to assess CI quality (Zhang & Cao 2023;
+# Friedl & Stampfer 2002)
 # - effective_sample_size: from autocorrelation adjustment
 # - skewness: bootstrap distribution asymmetry
 # - bias: difference between point estimate and median
@@ -1065,7 +1066,7 @@ test_that("parameter include_diagnostics backward compatible (default TRUE)", {
 # Tests for Jackknife-of-Bootstrap (JOB) Method (2.4 Implementation)
 # ============================================================================
 # Optional hybrid approach combining jackknife and bootstrap for robustness
-# (Paper S111: jackknife-of-bootstrap for more stable CI estimates)
+# (Zhang & Cao 2023: jackknife-of-bootstrap for more stable CI estimates)
 
 test_that("JOB disabled by default (use_job=FALSE)", {
     x <- c(100, 50, 30, 20)
@@ -1781,7 +1782,7 @@ test_that("matrix as second matrix input (edge case)", {
 })
 
 # Tests for 2.6: Paired Sample Handling
-# Block bootstrap methodology for paired/matched samples (paper S112)
+# Block bootstrap methodology for paired/matched samples (Quenouille 1949)
 
 # Helper function: simulate paired data (matched case-control design)
 simulate_paired_data <- function(n_pairs = 10) {

@@ -1181,7 +1181,7 @@ test_that(".jackknife_warn_on_q_parameters mentions paper citations", {
   
   expect_warning(
     TSENAT:::.jackknife_warn_on_q_parameters(counts, q = 1, verbose = FALSE),
-    "S111|S114"
+    "Zhang & Cao|jackknife resampling"
   )
 })
 
@@ -1601,10 +1601,10 @@ test_that("jackknife multi-q accepts Hill numbers (D)", {
 })
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# AUDIT FIX C1: Tsallis (q≠1) jackknife is log_base-invariant
+# Tsallis (q≠1) jackknife is log_base-invariant
 # ═══════════════════════════════════════════════════════════════════════════════
 
-test_that("Tsallis jackknife estimates are invariant to log_base (C1 fix)", {
+test_that("Tsallis jackknife estimates are invariant to log_base", {
   # Balanced distribution
   p <- c(0.25, 0.25, 0.25, 0.25)
   
@@ -1630,7 +1630,7 @@ test_that("Shannon jackknife estimates differ with log_base (expected)", {
   expect_true(all(result_10 < result_2))
 })
 
-test_that("Tsallis jackknife influence is consistent across log_base (C1 fix)", {
+test_that("Tsallis jackknife influence is consistent across log_base", {
   # Test via the full jackknife pipeline (norm=TRUE path)
   x <- c(500, 200, 100, 50, 20)
   

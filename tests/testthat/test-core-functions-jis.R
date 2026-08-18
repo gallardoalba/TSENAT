@@ -1644,10 +1644,10 @@ test_that("Full workflow: validation -> pairing -> LM filtering -> gene processi
 })
 
 # ============================================================================
-# AUDIT FIX TESTS: JIS bootstrap p-values, paired resampling
+# TESTS: JIS bootstrap p-values, paired resampling
 # ============================================================================
 
-test_that("[AUDIT #7] JIS bootstrap p-values use null-centered distribution", {
+test_that("JIS bootstrap p-values use null-centered distribution", {
     # Without null-centering, the bootstrap distribution is centered near
     # the observed delta, so p ≈ 0.5-1.0 (test never rejects).
     # With null-centering, large true differences should yield small p-values.
@@ -1693,7 +1693,7 @@ test_that("[AUDIT #7] JIS bootstrap p-values use null-centered distribution", {
         info = "Null-centered p-values should detect real differences")
 })
 
-test_that("[AUDIT #22] JIS paired bootstrap resamples pairs as units", {
+test_that("JIS paired bootstrap resamples pairs as units", {
     # When paired, both A and B should use the same resample indices
     # to preserve the pairing structure.
     
@@ -1715,7 +1715,7 @@ test_that("[AUDIT #22] JIS paired bootstrap resamples pairs as units", {
     expect_true(all(result$ci_lower <= result$ci_upper))
 })
 
-test_that("[AUDIT #7] JIS p-values have minimum bound of 1/nboot", {
+test_that("JIS p-values have minimum bound of 1/nboot", {
     # Minimum p-value should be 1/nboot (never exactly 0)
     counts_A <- matrix(c(100, 10, 50, 5), nrow = 2, ncol = 2)
     counts_B <- matrix(c(10, 100, 5, 50), nrow = 2, ncol = 2)

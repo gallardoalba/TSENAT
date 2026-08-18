@@ -2091,10 +2091,10 @@ test_that("calculate_m_estimator validates paired parameter", {
 })
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# AUDIT FIX H1: Paired design uses correct df = n_obs - 1
+# Paired design uses correct df = n_obs - 1
 # ═══════════════════════════════════════════════════════════════════════════════
 
-test_that("paired m-estimation uses df = n-1 (not n-2) (H1 fix)", {
+test_that("paired m-estimation uses df = n-1 (not n-2)", {
   # For paired design, the model fits a single parameter (mean of differences).
   # The correct residual df is n_obs - 1, not n_obs - 2.
   # We verify indirectly: paired and unpaired on the SAME data should produce
@@ -2125,7 +2125,7 @@ test_that("paired m-estimation uses df = n-1 (not n-2) (H1 fix)", {
   expect_false(isTRUE(all.equal(result_paired$pvalue, result_unpaired$pvalue)))
 })
 
-test_that("paired m-estimation df is correct for small n (H1 fix)", {
+test_that("paired m-estimation df is correct for small n", {
   # With n_obs = 8 pairs, paired df should be 7 (not 6)
   set.seed(4002)
   n_pairs <- 8
@@ -2146,10 +2146,10 @@ test_that("paired m-estimation df is correct for small n (H1 fix)", {
 })
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# AUDIT FIX H2: Huber weight uses 1/|u| without 0.01 floor
+# Huber weight uses 1/|u| without 0.01 floor
 # ═══════════════════════════════════════════════════════════════════════════════
 
-test_that("Huber weights decline as 1/|u| without 0.01 floor (H2 fix)", {
+test_that("Huber weights decline as 1/|u| without 0.01 floor", {
   # Create data with an extreme outlier to trigger |u| >> 1
   set.seed(4003)
   y <- c(rnorm(7, mean = 10, sd = 1), 1000)  # One extreme outlier
@@ -2170,7 +2170,7 @@ test_that("Huber weights decline as 1/|u| without 0.01 floor (H2 fix)", {
   expect_true(min(result$weights[is.finite(result$weights)]) < 0.01)
 })
 
-test_that("Huber weights for moderate residuals are correct (H2 fix)", {
+test_that("Huber weights for moderate residuals are correct", {
   # Simple data: clear group difference
   y <- c(rep(1, 4), rep(2, 4))
   X <- c(rep(0, 4), rep(1, 4))

@@ -184,7 +184,7 @@ test_that(".detect_salmon_samples extracts sample names correctly from paths", {
   )
 })
 
-test_that(".detect_salmon_samples warns on duplicate sample names", {
+test_that(".detect_salmon_samples stops on duplicate sample names", {
   tmpdir <- tempdir()
   on.exit(unlink(file.path(tmpdir, "salmon_dup"), recursive = TRUE))
   
@@ -197,7 +197,9 @@ test_that(".detect_salmon_samples warns on duplicate sample names", {
   create_mock_salmon_file(file.path(salmon_dir, "batch1", "sample1", "quant.sf"))
   create_mock_salmon_file(file.path(salmon_dir, "batch2", "sample1", "quant.sf"))
   
-  expect_warning(
+  # AUDIT S6: duplicate sample names are a hard error (previously a warning
+  # that let duplicate matrix columns corrupt downstream analysis)
+  expect_error(
     .detect_salmon_samples(salmon_dir, recursive = TRUE),
     "duplicate sample names"
   )
@@ -248,7 +250,7 @@ test_that("validate_salmon_files checks for required columns", {
   )
 })
 
-test_that(".validate_salmon_files detects transcript ID mismatches", {
+test_that(".validate_salmon_files stops on transcript ID mismatches", {
   tmpdir <- tempdir()
   on.exit(unlink(file.path(tmpdir, "mismatch_test"), recursive = TRUE))
   
@@ -278,12 +280,92 @@ test_that(".validate_salmon_files detects transcript ID mismatches", {
   )
   readr::write_tsv(file2_data, file.path(dir2, "quant.sf"))
   
-  expect_warning(
+  # AUDIT S5: mismatch is a hard error (previously a warning followed by
+  # positional matrix fill that silently corrupted downstream entropy)
+  expect_error(
     .validate_salmon_files(
       c(file.path(dir1, "quant.sf"), file.path(dir2, "quant.sf")),
       verbose = FALSE
     ),
     "Transcript ID mismatch"
+  )
+})
+
+test_that(".read_salmon_samples reorders shuffled transcripts by ID, not position", {
+  tmpdir <- tempdir()
+  on.exit(unlink(file.path(tmpdir, "reorder_test"), recursive = TRUE))
+
+  dir1 <- file.path(tmpdir, "reorder_test", "s1")
+  dir2 <- file.path(tmpdir, "reorder_test", "s2")
+  dir.create(dir1, recursive = TRUE, showWarnings = FALSE)
+  dir.create(dir2, recursive = TRUE, showWarnings = FALSE)
+
+  n_tx <- 20
+  base <- data.frame(
+    Name = paste0("TX", seq_len(n_tx)),
+    Length = seq_len(n_tx) * 10,
+    EffectiveLength = seq_len(n_tx) * 9,
+    TPM = rep(1, n_tx),
+    NumReads = seq_len(n_tx) * 100
+  )
+  readr::write_tsv(base, file.path(dir1, "quant.sf"))
+
+  # Same transcripts, DIFFERENT order, different counts per transcript
+  shuffled <- base[sample(n_tx), , drop = FALSE]
+  shuffled$NumReads <- rev(shuffled$NumReads)
+  shuffled$TPM <- rev(shuffled$TPM)
+  shuffled$EffectiveLength <- rev(shuffled$EffectiveLength)
+  readr::write_tsv(shuffled, file.path(dir2, "quant.sf"))
+
+  res <- .read_salmon_samples(c(file.path(dir1, "quant.sf"), file.path(dir2, "quant.sf")),
+    sample_names = c("s1", "s2"), verbose = FALSE)
+
+  expect_identical(unname(res$counts[, 1]), base$NumReads)
+  # Counts for s2 must align with the s1 transcript order
+  expect_identical(unname(res$counts[, 2]), shuffled$NumReads[match(base$Name, shuffled$Name)])
+  expect_identical(res$transcript_ids, base$Name)
+})
+
+test_that(".read_salmon_samples stops when transcripts are missing in a file", {
+  tmpdir <- tempdir()
+  on.exit(unlink(file.path(tmpdir, "missing_tx_test"), recursive = TRUE))
+
+  dir1 <- file.path(tmpdir, "missing_tx_test", "s1")
+  dir2 <- file.path(tmpdir, "missing_tx_test", "s2")
+  dir.create(dir1, recursive = TRUE, showWarnings = FALSE)
+  dir.create(dir2, recursive = TRUE, showWarnings = FALSE)
+
+  base <- data.frame(
+    Name = paste0("TX", 1:10), Length = 1:10, EffectiveLength = 1:10,
+    TPM = 1, NumReads = 10
+  )
+  subset_file <- base[1:5, ]
+  readr::write_tsv(base, file.path(dir1, "quant.sf"))
+  readr::write_tsv(subset_file, file.path(dir2, "quant.sf"))
+
+  expect_error(
+    .read_salmon_samples(c(file.path(dir1, "quant.sf"), file.path(dir2, "quant.sf")),
+      sample_names = c("s1", "s2"), verbose = FALSE),
+    "Missing in file 2"
+  )
+})
+
+test_that(".validate_salmon_files rejects negative/non-finite quantification values", {
+  tmpdir <- tempdir()
+  on.exit(unlink(file.path(tmpdir, "numeric_integrity"), recursive = TRUE))
+
+  bad_dir <- file.path(tmpdir, "numeric_integrity", "sample1")
+  dir.create(bad_dir, recursive = TRUE, showWarnings = FALSE)
+  bad_file <- file.path(bad_dir, "quant.sf")
+
+  bad_content <- "Name\tLength\tEffectiveLength\tTPM\tNumReads\n"
+  bad_content <- paste0(bad_content, "ENST00000000001\t1000\t900\t5.5\t-3.2\n")
+  bad_content <- paste0(bad_content, "ENST00000000002\t1001\t901\t3.2\t10.0\n")
+  writeLines(bad_content, bad_file)
+
+  expect_error(
+    .validate_salmon_files(bad_file, verbose = FALSE),
+    "Negative values"
   )
 })
 

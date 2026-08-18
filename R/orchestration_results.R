@@ -1197,18 +1197,27 @@ print.assumptions_text <- function(x, ...) {
         check.names = FALSE)
 
     # ====== 3. HIGH-CONFIDENCE GENES TABLE ======
+    .format_padj_display <- function(x) {
+        if (is.na(x)) return("NA")
+        if (x <= 0) return("<1e-300")
+        if (x < 1e-50) return(sprintf("%.2e", x))
+        sprintf("%.3e", x)
+    }
     high_conf_table <- NULL
     if (!is.null(high_conf) && nrow(high_conf) > 0) {
-        high_conf_table <- data.frame(Gene = high_conf$gene, `SAIT adj p` = vapply(high_conf$padj_sait,
-            function(x) {
-                if (x < 1e-50)
-                  sprintf("%.2e", x) else sprintf("%.3e", x)
-            }, character(1)), `Rank test adj p` = vapply(high_conf$padj_rank, function(x) {
-            if (x < 1e-50)
-                sprintf("%.2e", x) else sprintf("%.3e", x)
-        }, character(1)), `SAIT Effect` = sprintf("%.1f%%", high_conf$effect_sait * 100),
-            `Rank test rho^2` = sprintf("%.3f", high_conf$effect_rank), stringsAsFactors = FALSE,
-            check.names = FALSE)
+        high_conf_table <- data.frame(Gene = high_conf$gene,
+            `SAIT adj p` = vapply(high_conf$padj_sait, .format_padj_display,
+                character(1)),
+            `Rank test adj p` = vapply(high_conf$padj_rank, .format_padj_display,
+                character(1)),
+            `SAIT Effect` = vapply(high_conf$effect_sait, function(x) {
+                if (is.na(x) || !is.finite(x)) "NA" else sprintf("%.1f%%", x *
+                    100)
+            }, character(1)),
+            `Rank test rho^2` = vapply(high_conf$effect_rank, function(x) {
+                if (is.na(x) || !is.finite(x)) "NA" else sprintf("%.3f", x)
+            }, character(1)),
+            stringsAsFactors = FALSE, check.names = FALSE)
     }
 
     # ====== 4. ALL GENES TABLE ======

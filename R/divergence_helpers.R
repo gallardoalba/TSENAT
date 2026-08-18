@@ -136,11 +136,8 @@
 #' - At least 2 samples per pair
 #' - Deterministic structure (e.g., all A's paired with another A sample nearby)
 #'
-#' **Database References (Papers validating auto-detection approach):**
-#' - S102: 'Experimental Control and Paired Design' - standardizes paired
-#' design annotation
-#' - S107: 'Related Sample Designs and Paired t-test' - validates paired
-#' structure detection
+#' Pairing auto-detection follows standard paired-design conventions:
+#' subject/patient identifiers are shared across conditions.
 #'
 #' @param se SummarizedExperiment object with sample metadata in colData
 #'
@@ -187,6 +184,14 @@
             unique_pairs <- unique(pair_ids)
             samples_per_pair <- table(pair_ids)
 
+            # Structural validation: a pairing column must
+            # actually PAIR observations. A column in which every identifier
+            # appears once (e.g., a plain sample/subject ID) is not a pair
+            # structure; skip it and try the next candidate.
+            if (sum(samples_per_pair >= 2) == 0) {
+                next
+            }
+
             return(list(pair_ids = pair_ids, column_name = col_name, num_pairs = length(unique_pairs),
                 samples_per_pair = samples_per_pair))
         }
@@ -194,6 +199,65 @@
 
     # No pairing detected
     return(list(pair_ids = NULL, column_name = NA_character_, num_pairs = 0, samples_per_pair = numeric(0)))
+}
+
+
+#' Validate the paired-design invariant: at most 1 control + 1 treatment per pair
+#'
+#' AUDIT R5: pair-respecting bootstrap resampling requires a well-defined
+#' resampling unit. A pair that mixes both conditions with REPEATED
+#' observations in one of them (e.g., control + control + treatment) is
+#' rejected: its resampling unit is ambiguous. Incomplete/single-condition
+#' pairs are tolerated because the bootstrap machinery handles unmatched
+#' samples as unpaired units. Validate this BEFORE bootstrap; stop with an
+#' actionable message instead of silently skipping replicates.
+#'
+#' @param se SummarizedExperiment with sample metadata in colData
+#' @param pair_ids Named character vector (names = sample names, values = pair IDs)
+#' @param group_col character; colData column with group/condition labels
+#' @param control_group character; control group label
+#'
+#' @return invisible(TRUE) if the invariant holds; errors otherwise
+#' @noRd
+.validate_pair_structure <- function(se, pair_ids, group_col, control_group) {
+    cd <- SummarizedExperiment::colData(se)
+    if (is.null(pair_ids) || length(pair_ids) == 0) {
+        return(invisible(TRUE))
+    }
+    if (is.null(group_col) || !group_col %in% colnames(cd)) {
+        return(invisible(TRUE))  # No group info: cannot validate, stay permissive
+    }
+
+    groups <- as.character(cd[[group_col]])
+    names(groups) <- colnames(se)
+
+    bad_pairs <- character(0)
+    for (pid in unique(as.character(pair_ids))) {
+        idx <- which(as.character(pair_ids) == pid)
+        smp <- names(pair_ids)[idx]
+        if (length(smp) == 0) next
+        g <- groups[smp]
+        n_ctrl <- sum(g == control_group, na.rm = TRUE)
+        n_trt <- sum(g != control_group, na.rm = TRUE)
+        # Reject only pairs that mix both conditions AND contain repeated
+        # observations within a condition (ill-defined resampling unit).
+        # Incomplete or single-condition pairs are handled as unpaired units
+        # by the bootstrap machinery.
+        if (n_ctrl >= 1 && n_trt >= 1 && (n_ctrl > 1 || n_trt > 1)) {
+            bad_pairs <- c(bad_pairs, pid)
+        }
+    }
+
+    if (length(bad_pairs) > 0) {
+        stop("[.validate_pair_structure] Paired-design invariant violated: pair(s) ",
+            paste(sQuote(unique(bad_pairs)), collapse = ", "),
+            " contain repeated samples from the same condition (each pair may contain at most one control and one ",
+            "treatment sample; the pair is the resampling unit). ",
+            "Fix the pairing column in colData or set bootstrap = FALSE / paired = FALSE.",
+            call. = FALSE)
+    }
+
+    invisible(TRUE)
 }
 
 
@@ -209,10 +273,9 @@
 #' - For each drawn pair i, include both samples from pair i
 #' - This maintains pairing structure across bootstrap replicates
 #'
-#' **Statistical Justification (Papers Ramsay (2005), Springer Series in Statistics, S102-S109):**
+#' **Statistical Justification:**
 #' - Ramsay (2005), Springer Series in Statistics: Bootstrap for confidence intervals requires preserving data structure
-#' - S102: 'Paired Design' - paired resampling required for matched samples
-#' - S107: 'Related Sample Designs' - within-pair correlation invalidates
+#' - Paired resampling is required for matched samples; within-pair correlation invalidates
 #' independent resampling
 #'
 #' @param control_samples Vector of counts for control group
@@ -508,7 +571,27 @@
         return(NA_real_)
     }
 
-    # AUDIT FIX July 2026 (I6): Only apply min-probability clamping when
+    # q = 0 limit (convention 0^0 = 0) is evaluated on the UNCLAMPED,
+    # PRE-PSEUDOCOUNT support so the limit keeps its support-difference
+    # meaning: D_0(p||r) = 1 - sum_{i: P_i > 0} R_i (the R-mass on P's zero
+    # support). With pseudocount > 0 the regularized vectors are all-positive
+    # and would make D_0 identically 0; computing it on the raw counts avoids
+    # that degeneracy (review_divergence.md, Option A).
+    q_tol <- 1e-10
+    if (q_val == 0) {
+        if (sum(x, na.rm = TRUE) <= 0 || sum(y, na.rm = TRUE) <= 0) {
+            return(NA_real_)
+        }
+        p0 <- x/sum(x)
+        r0 <- y/sum(y)
+        div <- 1 - sum(r0[p0 > 0], na.rm = TRUE)
+        if (div < 0 && div > -1e-12) {
+            div <- 0
+        }
+        return(div)
+    }
+
+    # Only apply min-probability clamping when
     # pseudocount is zero. When pseudocount > 0, it already handles zero
     # probabilities --- applying both is a double-correction that distorts
     # divergence values. When pseudocount == 0, min_prob acts as a safety
@@ -523,29 +606,26 @@
         r <- r/sum(r)
     }
 
-    # Compute Tsallis divergence using correct formula from Paper I004
-    # D_q(p||r) with D_q >= 0 and equality iff p = r BUGFIX: Ensure formula is
-    # applied correctly for all q values
+    # Compute Tsallis divergence (Furuichi 2006; van Erven & Harremoës 2014):
+    #   D_q(p||r) = (sum_i p_i^q * r_i^(1-q) - 1) / (q - 1)   for q > 0, q != 1
+    #   D_1(p||r) = sum_i p_i * log(p_i / r_i)               (KL limit, q = 1)
+    #   D_0(p||r) = 1 - sum_{i: p_i > 0} r_i                 (q -> 0 limit with
+    #               the convention 0^0 = 0, i.e. the Q-mass on P's zero
+    #               support; under pseudocount > 0 every bin is positive and
+    #               D_0 = 0).
+    # Support violations (p_i > 0 with r_i = 0) make D_q = +Inf for q >= 1 in
+    # the exact theory; the pseudocount/min-probability regularization keeps
+    # the estimate finite here.
+    # The formula is non-negative for valid distributions; abs() is NOT used,
+    # only tiny negative roundoff is clamped to zero.
+    q_tol <- 1e-10
 
-    if (abs(q_val) < 0.01) {
-        # q=0: Support-difference divergence.
-        # D_0(p||r) = |supp(p) \u0394 supp(r)| / |supp(p) \u222A supp(r)|
-        # where supp(\u00B7) = {i : prob_i > 0} after pseudocount threshold.
-        # This measures what fraction of isoforms are present in one
-        # distribution but not the other (Jaccard-style).
-        min_pos <- 1e-10
-        supp_p <- p > min_pos
-        supp_r <- r > min_pos
-        n_sym_diff <- sum(xor(supp_p, supp_r))
-        n_union <- sum(supp_p | supp_r)
-        div <- if (n_union > 0) n_sym_diff / n_union else 0
-    } else if (abs(q_val - 1) < 0.01) {
-        # KL divergence (special case q -> 1): lim_{q->1} D_q = sum(p*log(p/r))
+    if (q_val > 0 && abs(q_val - 1) < q_tol) {
+        # KL divergence (q = 1, exact up to numerical tolerance 1e-10):
+        # lim_{q->1} D_q = sum(p * log(p/r))
         div <- sum(p * log(p/r), na.rm = TRUE)
-    } else if (q_val > 0 && q_val != 1) {
-        # Standard Tsallis divergence formula: D_q(p||r) = (1/(q-1)) * (1 -
-        # sum(p^q * r^(1-q))) This ensures D_q >= 0 and is asymmetric in p, r
-        # CRITICAL: Ensure p and r vectors are properly aligned
+    } else if (q_val > 0) {
+        # Standard Tsallis divergence: D_q(p||r) = (sum(p^q * r^(1-q)) - 1)/(q - 1)
         p_power <- p^q_val
         r_power <- r^(1 - q_val)
 
@@ -561,7 +641,7 @@
             sum_term <- sum(p_power * r_power, na.rm = TRUE)
         }
 
-        div <- (1 - sum_term)/(q_val - 1)
+        div <- (sum_term - 1)/(q_val - 1)
     } else {
         # Invalid q value
         return(NA_real_)
@@ -571,17 +651,21 @@
         return(NA_real_)
     }
 
-    # AUDIT FIX July 2026 (I10): log_base normalization only applies to the
+    # Numerical safety: the formula is non-negative for valid distributions.
+    # Clamp only tiny negative roundoff to zero; larger negatives would
+    # indicate a real anomaly and are left visible.
+    if (div < 0 && div > -1e-12) {
+        div <- 0
+    }
+
+    # Log_base normalization only applies to the
     # q\u21921 (KL divergence) limit. The Tsallis divergence for q\u22601 is scale-invariant
-    # and does not involve a logarithm base. Previously applied to all q values,
-    # which distorted divergence values by a factor of 1/log(log_base) for q\u22601.
-    if (abs(q_val - 1) < 0.01 && log_base != exp(1)) {
+    # and does not involve a logarithm base.
+    if (q_val > 0 && abs(q_val - 1) < q_tol && log_base != exp(1)) {
         div <- div/log(log_base)
     }
 
-    # abs() handles numerical underflow (sum_term \u2248 1) while preserving magnitude.
-    # max(0, div) would zero out small negative values, losing information.
-    return(abs(div))
+    return(div)
 }
 
 #' Vectorized Tsallis Divergence Calculation (OPTIMIZED)
@@ -602,7 +686,7 @@
 #'
 #' @noRd
 .tsallis_divergence_vector <- function(x, y, q_vals, pseudocount = 0.5, log_base = exp(1)) {
-    # Input validation
+    # Input validation (identical to the previous pure-R implementation)
     if (length(x) == 0 || length(y) == 0) {
         return(rep(NA_real_, length(q_vals)))
     }
@@ -618,90 +702,12 @@
         return(rep(NA_real_, length(q_vals)))
     }
 
-    # Normalize to probabilities (ONCE, not for each q-value)
-    p <- (x + pseudocount)/(sum(x) + length(x) * pseudocount)
-    r <- (y + pseudocount)/(sum(y) + length(y) * pseudocount)
-
-    if (any(is.na(p)) || any(is.na(r))) {
-        return(rep(NA_real_, length(q_vals)))
-    }
-
-    # AUDIT FIX July 2026 (I6): Only apply min-probability clamping when
-    # pseudocount is zero. When pseudocount > 0, it already handles zero
-    # probabilities --- applying both is a double-correction that distorts
-    # divergence values.
-    if (pseudocount < 1e-10) {
-        min_prob <- 1e-10
-        p[p < min_prob] <- min_prob
-        r[r < min_prob] <- min_prob
-
-        # Re-normalize to maintain probability constraint (ONCE)
-        p <- p/sum(p)
-        r <- r/sum(r)
-    }
-
-    # OPTIMIZATION: Pre-compute p and r powers for all q-values at once Using
-    # outer product: p_q_matrix[i, j] = p[i]^q_vals[j] This is the KEY
-    # optimization that provides 2-3x speedup
-    p_q_mat <- outer(p, q_vals, `^`)  # Vectorized: p^q for all q
-    r_1mq_mat <- outer(r, 1 - q_vals, `^`)  # Vectorized: r^(1-q) for all q
-
-    # Initialize result vector
-    result <- numeric(length(q_vals))
-
-    # Process each q-value using pre-computed powers
-    for (j in seq_along(q_vals)) {
-        q_val <- q_vals[j]
-
-        # Special cases
-        if (abs(q_val) < 0.01) {
-            # q=0: Support-difference divergence (Jaccard-style)
-            min_pos <- 1e-10
-            supp_p <- p > min_pos
-            supp_r <- r > min_pos
-            n_sym_diff <- sum(xor(supp_p, supp_r))
-            n_union <- sum(supp_p | supp_r)
-            result[j] <- if (n_union > 0) n_sym_diff / n_union else 0
-        } else if (abs(q_val - 1) < 0.01) {
-            # q=1: KL divergence
-            result[j] <- sum(p * log(p/r), na.rm = TRUE)
-        } else if (q_val > 0 && q_val != 1) {
-            # Standard Tsallis divergence
-            p_power <- p_q_mat[, j]  # Already computed!
-            r_power <- r_1mq_mat[, j]  # Already computed!
-
-            # Check for numerical issues
-            if (any(is.nan(p_power)) || any(is.infinite(p_power)) || any(is.nan(r_power)) ||
-                any(is.infinite(r_power))) {
-                # Log-space computation for numerical stability
-                log_p_power <- q_val * log(p + 1e-10)
-                log_r_power <- (1 - q_val) * log(r + 1e-10)
-                sum_term <- sum(exp(log_p_power + log_r_power), na.rm = TRUE)
-            } else {
-                sum_term <- sum(p_power * r_power, na.rm = TRUE)
-            }
-
-            result[j] <- (1 - sum_term)/(q_val - 1)
-        } else {
-            result[j] <- NA_real_
-        }
-    }
-
-    # AUDIT FIX July 2026 (I10): log_base normalization only applies to the
-    # q\u21921 (KL divergence) limit. For q\u22601, Tsallis divergence is scale-invariant.
-    # Only normalize the q\u22481 entries in the result vector.
-    q1_mask <- abs(q_vals - 1) < 0.01
-    if (log_base != exp(1) && any(q1_mask)) {
-        result[q1_mask] <- result[q1_mask] / log(log_base)
-    }
-
-    # Ensure non-negativity (handle q < 1 cases that may produce negative
-    # values)
-    result <- abs(result)
-
-    # Replace non-finite values with NA
-    result[!is.finite(result)] <- NA_real_
-
-    return(result)
+    # Multi-q C++ kernel: ONE normalization pass for all q, exact mirror of
+    # the R semantics (pseudocount normalization, q=0 limit on unclamped
+    # probabilities, min_prob clamp only for pseudocount==0, KL limit with
+    # log_base correction, log-space fallback, roundoff clamp, non-finite
+    # to NA).
+    tsallis_divergence_vector_cpp(as.numeric(x), as.numeric(y), as.numeric(q_vals),
+        pseudocount, log_base)
 }
 

@@ -338,30 +338,38 @@ setMethod("[", signature(x = "TSENATAnalysis"), function(x, i, j, drop = TRUE) {
         names(new_obj@jackknife_results) <- names(x@jackknife_results)
     }
 
-    # Subset divergence results
+    # Subset divergence results: rows = genes, columns = q-VALUES.
+    # The second index j refers to SAMPLES and must NOT be applied to the
+    # q-value axis of divergence results.
     if (length(x@divergence_results) > 0) {
         new_obj@divergence_results <- lapply(x@divergence_results, function(div_res) {
             if (inherits(div_res, "SummarizedExperiment")) {
-                # Subset both dimensions if applicable
-                if (nrow(div_res) == n_genes) {
-                  return(div_res[i, j])
-                }
-                return(div_res[, j])
+                # genes x q-values: subset rows only, keep ALL q columns
+                return(div_res[i, , drop = FALSE])
             }
             if (is.matrix(div_res) && nrow(div_res) == n_genes) {
-                return(div_res[i, j, drop = FALSE])
+                return(div_res[i, , drop = FALSE])
             }
-            # Return as-is for non-sample-indexed results
+            if (is.data.frame(div_res) && nrow(div_res) == n_genes) {
+                return(div_res[i, , drop = FALSE])
+            }
+            # Return as-is for non-gene-indexed results
             return(div_res)
         })
         names(new_obj@divergence_results) <- names(x@divergence_results)
     }
 
-    # Subset SAIT results (sample-indexed components only)
+    # Subset SAIT results (gene-level statistics: subset rows by genes;
+    # sample-level diagnostics, if any, subset by j)
     if (length(x@sait_results) > 0) {
-        # SAIT results include gene-level statistics that don't need subsetting
-        # Only subset sample-level diagnostic matrices
+        # SAIT results are gene-level tables: subset rows by i
         new_obj@sait_results <- lapply(x@sait_results, function(sait_res) {
+            if (is.data.frame(sait_res) && nrow(sait_res) == n_genes) {
+                return(sait_res[i, , drop = FALSE])
+            }
+            if (is.matrix(sait_res) && nrow(sait_res) == n_genes) {
+                return(sait_res[i, , drop = FALSE])
+            }
             if (is.list(sait_res)) {
                 # Subset sample diagnostics if present
                 if (!is.null(sait_res$residuals) && is.matrix(sait_res$residuals)) {
@@ -382,6 +390,15 @@ setMethod("[", signature(x = "TSENATAnalysis"), function(x, i, j, drop = TRUE) {
 
     # Preserve plots (they are visualization-level and generally retained)
     new_obj@plots <- x@plots
+
+    # Mark the subset so downstream consumers know that inferential results
+    # (bootstrap CIs, jackknife p-values, SAIT statistics) were computed on
+    # the FULL dataset and are potentially stale for this subset.
+    new_obj@metadata$subset_applied <- TRUE
+    new_obj@metadata$subset_info <- list(genes = length(i), samples = length(j),
+        gene_names = rownames(se_subset), sample_names = colnames(se_subset))
+    new_obj@metadata$stale_results <- c("sait_results", "jackknife_results",
+        "rank_test_results", "divergence_results")
 
     # Validate the new object
     validObject(new_obj)

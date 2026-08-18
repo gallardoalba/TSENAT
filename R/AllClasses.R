@@ -120,21 +120,12 @@ setClass("TSENATAnalysis", slots = list(se = "SummarizedExperiment", config = "l
             return("@metadata must be a list")
         }
 
-        # Check colData has required columns if sample metadata expected
-        cdata <- colData(object@se)
-        if (!is.null(cdata) && ncol(cdata) > 0) {
-            if (!"sample_id" %in% colnames(cdata)) {
-                return("colData missing 'sample_id' column required for analysis")
-            }
-        }
-
-        # Check rowData has gene identifiers if results computed
-        rdata <- rowData(object@se)
-        if (!is.null(rdata) && ncol(rdata) > 0) {
-            if (!"gene_id" %in% colnames(rdata) && !"transcript_id" %in% colnames(rdata)) {
-                return("rowData missing 'gene_id' or 'transcript_id' column")
-            }
-        }
+        # NOTE: The class no longer requires 'sample_id' in colData nor
+        # 'gene_id'/'transcript_id' in rowData. Those are module-level
+        # contracts: each analysis function validates the columns it needs.
+        # This keeps the S4 layer compatible with any valid
+        # SummarizedExperiment (identifiers may live in rownames, 'gene',
+        # 'tx_id', etc.).
 
         # NEW: Validate config parameters against SE metadata
         if (length(object@config) > 0) {

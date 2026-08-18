@@ -1,7 +1,7 @@
 context("C++ Bootstrap Implementation (Rcpp)")
 
-# Skip entire test file on Bioconductor due to long runtime (14.33s)
-skip_on_bioc()
+# Runtime ~14s: kept in the daily CI (Bioconductor check budget is 40 min).
+# Slow Monte Carlo validation lives in tests/testthat/ (skipped on Bioconductor via skip_on_bioc).
 
 # Test data preparation
 test_counts <- c(100, 50, 25, 10)

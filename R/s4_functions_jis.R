@@ -418,6 +418,26 @@ calculate_jis <- function(analysis, condition_col = NULL, subject_col = NULL, ge
     q_vals <- if (is.numeric(q))
         q else as.numeric(q)
 
+    # Restrict to q-values actually available in diversity_results (numeric
+    # comparison, tolerant to the q_1.000 / q_1_00 naming conventions).
+    # Missing q-values are an error, not a silent continuation.
+    if (length(analysis@diversity_results) > 0) {
+        n_requested <- length(q_vals)
+        available_q <- .extract_q_from_key(names(analysis@diversity_results))
+        available_q <- sort(unique(available_q[!is.na(available_q)]))
+        usable_q <- intersect(round(q_vals, 8), round(available_q, 8))
+        if (length(usable_q) == 0) {
+            stop("[calculate_jis] No matching q-values between requested (",
+                paste(q_vals, collapse = ", "), ") and available diversity q (",
+                paste(available_q, collapse = ", "), ").", call. = FALSE)
+        }
+        q_vals <- sort(unique(usable_q))
+        if (verbose && length(q_vals) < n_requested) {
+            message("[calculate_jis] Restricting q-values to available diversity results: ",
+                paste(q_vals, collapse = ", "))
+        }
+    }
+
     # Resolve all parameters from config using standard resolver Defaults match
     # TSENAT.Rmd vignette usage
     norm <- resolve_slot_param(norm, analysis@config, "norm", TRUE)

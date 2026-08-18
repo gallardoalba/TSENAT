@@ -2784,10 +2784,10 @@ test_that(".process_effect_sizes_divergence_results errors on missing sort_by co
 })
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# AUDIT FIX L2: .createResultsDataFrame and .formatMultiQResult column name consistency
+# .createResultsDataFrame and .formatMultiQResult column name consistency
 # ═══════════════════════════════════════════════════════════════════════════════
 
-test_that("createResultsDataFrame and formatMultiQResult produce compatible columns (L2 fix)", {
+test_that("createResultsDataFrame and formatMultiQResult produce compatible columns", {
   # Test that column names from createResultsDataFrame match those from formatMultiQResult
   q_values <- c(0.5, 1.0, 1.25, 2.0)
   

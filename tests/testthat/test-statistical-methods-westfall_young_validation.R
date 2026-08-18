@@ -2988,3 +2988,64 @@ test_that(".westfall_young_permutation errors on wy_randomizations < 1", {
     "wy_randomizations must be >= 1"
   )
 })
+
+# ════════════════════════════════════════════════════════════════════════════════
+# Exchangeability-compatible permutation schemes
+# ════════════════════════════════════════════════════════════════════════════════
+
+test_that(".build_wy_permutation_scheme auto-resolves from design info", {
+  s <- .build_wy_permutation_scheme(
+    group_vec = c("A", "A", "B", "B"),
+    subject_vec = c("S1", "S2", "S1", "S2"),
+    q_vals = NULL, permutation_scheme = "auto")
+  expect_identical(s$scheme_used, "within_subject")
+
+  s2 <- .build_wy_permutation_scheme(
+    group_vec = c("A", "A", "B", "B"),
+    block_vec = c("b1", "b2", "b1", "b2"),
+    q_vals = NULL, permutation_scheme = "auto")
+  expect_identical(s2$scheme_used, "within_block")
+})
+
+test_that(".build_wy_permutation_scheme within_subject swaps only within subjects", {
+  set.seed(1)
+  group <- c("A", "A", "B", "B", "A", "B")
+  subj <- c("S1", "S2", "S1", "S2", "S3", "S3")
+  s <- .build_wy_permutation_scheme(group_vec = group, subject_vec = subj,
+    q_vals = NULL, permutation_scheme = "within_subject")
+  for (i in 1:50) {
+    a <- s$permute_fn()
+    expect_identical(sort(a[subj == "S1"]), c("A", "B"))
+    expect_identical(sort(a[subj == "S2"]), c("A", "B"))
+    expect_identical(sort(a[subj == "S3"]), c("A", "B"))
+  }
+})
+
+test_that(".build_wy_permutation_scheme rejects confounded blocks/strata", {
+  expect_error(
+    .build_wy_permutation_scheme(group_vec = c("A", "A", "B", "B"),
+      block_vec = c("b1", "b1", "b2", "b2"), q_vals = NULL,
+      permutation_scheme = "within_block"),
+    "confounded with condition")
+
+  expect_error(
+    .build_wy_permutation_scheme(group_vec = c("A", "A", "B", "B"),
+      strata_vec = c("s1", "s1", "s2", "s2"), q_vals = NULL,
+      permutation_scheme = "within_strata"),
+    "confounded with condition")
+})
+
+test_that(".build_wy_permutation_scheme rejects schemes missing required vectors", {
+  expect_error(
+    .build_wy_permutation_scheme(group_vec = c("A", "B"), subject_vec = NULL,
+      q_vals = NULL, permutation_scheme = "within_subject"),
+    "requires subject_vec")
+  expect_error(
+    .build_wy_permutation_scheme(group_vec = c("A", "B"), block_vec = NULL,
+      q_vals = NULL, permutation_scheme = "within_block"),
+    "requires block_col")
+  expect_error(
+    .build_wy_permutation_scheme(group_vec = c("A", "B"), strata_vec = NULL,
+      q_vals = NULL, permutation_scheme = "within_strata"),
+    "requires strata_col")
+})

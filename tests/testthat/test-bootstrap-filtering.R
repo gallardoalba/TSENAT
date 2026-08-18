@@ -129,7 +129,7 @@ test_that("Function skips low-count genes and uses next valid gene", {
   expect_true("estimate" %in% names(result))
 })
 
-test_that("Minimum threshold is 10 (per papers S111, S114)", {
+test_that("Minimum threshold is 10", {
   # Gene with exactly 10 counts should be accepted
   counts_matrix <- rbind(
     Gene1 = c(5, 3, 1, 1)          # Total: 10 (at boundary)
@@ -290,7 +290,7 @@ test_that("Warning message mentions minimum threshold and database papers", {
     warning = function(w) conditionMessage(w)
   )
   
-  # Warning should mention papers S111, S114
+  # Warning should mention the minimum-count threshold
   result <- suppressWarnings(
     .calculate_tsallis_entropy_bootstrap(
       se = se, res = res, top_n = 1, q = 1, nboot = 100, 
@@ -334,7 +334,7 @@ test_that("Feature 4.2 gracefully handles genes by rownames vs rowData", {
   expect_true("estimate" %in% names(result))
 })
 
-test_that("Feature 4.2 implementation uses database recommendation from papers S111, S114", {
+test_that("Feature 4.2 implementation uses the documented minimum-count recommendation", {
   # Verify that the 10-count threshold aligns with database recommendations
   # This test documents the source of the threshold value
   

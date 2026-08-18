@@ -13,23 +13,23 @@
 #'
 #' ## Literature Support
 #'
-#' Papers S168-S171 validate AR(1) for ordered measurements:
-#' - **S171 (PRIMARY)**: Generalized AR(1) covariance in functional/smooth data contexts
-#' - **S168-S170**: Theoretical foundation and empirical validation of AR(1) ordering
-#' - **S170**: ACF structure confirms geometric decay across q-order
+#' The AR(1) working correlation for ordered measurements is supported by:
+#' - **Zimmerman & Harville (1991, PRIMARY)**: generalized AR(1) covariance in functional/smooth data contexts
+#' - **Grunwald, Hyndman & Tedesco (2000); Autocorrelation function and AR(1)/AR(2) models (2020)**: theoretical foundation and empirical validation of AR(1) ordering
+#' - The ACF structure confirms geometric decay across q-order
 #'
 #' ## FPCA Methodology
 #'
-#' **1. ARIMA(1,1,0) Differencing**
-#'    - Applied BEFORE curve matrix construction
-#'    - Removes monotone trend: ΔH_q = H_q - H_{q-1}
-#'    - AR(1) model fits to differenced data (ΔH_q), not raw H_q
+#' **1. Curve Preprocessing (no differencing)**
+#'    - The curve matrix is built from the ORIGINAL H(q) values
+#'    - q is a deterministic functional argument, not a time index;
+#'      differencing would change the hypothesis to a derivative contrast
 #'
 #' **2. Curve Matrix Construction**
 #'    - Rows = samples; Columns = sorted q-values (preserves sequential order)
 #'    - Critical: q-ordering enables smooth curve interpolation
 #'
-#' **3. PCA on Differenced Curves**
+#' **3. PCA on Original Curves**
 #'    - Decomposes variance around mean (centered data)
 #'    - PC1 = primary shape variation mode (e.g., steepness of change)
 #'    - PC2, PC3, ... = secondary shape variations
@@ -43,11 +43,14 @@
 #'
 #' ## Important Clarifications
 #'
-#' - **AR(1) modeling**: Occurs in differenced data (before PCA), not in PCA itself
-#' - **PCA function**: Decomposes centered variance; does NOT model AR(1) structure
+#' - **AR(1) modeling**: NOT performed by PCA. PCA decomposes the observed
+#'   covariance matrix; any AR(1) interpretation is a modeling choice that
+#'   must be validated separately.
 #' - **FPCA testing**: Detects curve SHAPE differences between groups
-#' - **Stationarity**: Achieved via differencing; smooth PCs appropriate for stationary data
-#' - **Validation**: TEST L.1.6 confirms differenced data follows rho(k) = φ^|k|
+#' - **Stationarity**: Not required for PCA; the functional hypothesis is
+#'   tested on the original curves
+#' - **Validation**: any AR(1) claim must be demonstrated empirically;
+#'   PCA itself does not estimate AR(1) parameters.
 #'
 #' @param mat Entropy matrix (genes × measurements)
 #' @param q_vals Entropic indices (q-parameter values)
@@ -86,13 +89,15 @@
     df <- do.call(data.frame, dfargs)
     df <- df[!is.na(df$entropy), ]
 
-    # Apply ARIMA(1,1,0) differencing for stationarity
-    df <- .apply_arima_differencing_fpca(df)
+    # No ARIMA differencing before FPCA. q is a
+    # deterministic functional argument, not a time index; the functional
+    # hypothesis is tested on the ORIGINAL H(q) curves, and the curve
+    # matrix captures the full functional shape.
 
     # Build ordered curve matrix (rows = samples, columns = sorted q-values)
     mat_sub <- .build_curve_matrix(df$entropy, df$q, df$sample_name, min_obs)
     if (is.null(mat_sub)) {
-        warning(sprintf(".fpca_interaction (gene %s): Failed to build curve matrix. Likely due to insufficient samples (<%d) after ARIMA differencing or data quality issues.",
+        warning(sprintf(".fpca_interaction (gene %s): Failed to build curve matrix. Likely due to insufficient samples (<%d) or data quality issues.",
             g, min_obs), call. = FALSE)
         return(NULL)
     }
@@ -109,7 +114,11 @@
         return(NULL)
     }
 
-    subj_vals <- if (!is.null(df$subject) && "subject" %in% colnames(df)) {
+    # Subject pairing only applies when the design is
+    # genuinely paired (the `subject` argument was provided). The data frame
+    # carries a `subject` column only when it was provided, so it cannot be
+    # used as the pairing indicator.
+    subj_vals <- if (!is.null(subject) && !is.null(df$subject) && "subject" %in% colnames(df)) {
         df$subject[match(used_samples, df$sample_name)]
     } else {
         NULL
@@ -170,28 +179,33 @@
 # complexity 
 # Bioconductor compliance: All functions < 50 lines 
 # Principal Component Analysis (FPCA) for entropy curves RESPECTS Q-VALUE
-# ORDERING: 
+# ORDERING:
 #   - Unlike independent q analysis, this method treats q-values as
-# ORDERED measurements 
+# ORDERED measurements
 #   - Creates 'curve matrix' with q-values as columns (ordered) and samples as rows
 #   - PCA on ordered curves naturally yields smooth
-# functional components 
-#   - This implicitly captures the AR(1) correlation structure (Zimmerman & Harville, 1991)
+# functional components
+#   - PCA decomposes the OBSERVED covariance structure; it does NOT estimate
+#     an AR(1) model.
 #
 # PAPER VALIDATION (AR(1) for ordered measurements):
-#   S171 (PRIMARY): Generalized AR(1) covariance in functional/smooth data
-#   S168-S170: Theoretical foundation and empirical validation of AR(1) ordering
-#   S170: ACF structure confirms correlation decays geometrically across q-order
+#   Zimmerman & Harville (1991, PRIMARY): generalized AR(1) covariance in
+#   functional/smooth data
+#   Grunwald, Hyndman & Tedesco (2000); autocorrelation function and AR(1)/AR(2)
+#   models (2020): theoretical foundation and empirical validation of AR(1)
+#   ordering
+#   AR(1) is a modeling HYPOTHESIS, not a mathematical
+#   property of Tsallis entropy; it must be demonstrated empirically.
 #
-# HOW FPCA RESPECTS ORDERING AND STATIONARITY:
+# HOW FPCA RESPECTS ORDERING AND THE FUNCTIONAL HYPOTHESIS:
 #
-#   1. ARIMA(1,1,0) differencing (applied BEFORE curve matrix):
-#      - Removes monotone trend by differencing: DeltaH_q = H_q - H_{q-1}
-#      - AR(1) correlation model fits to DeltaH_q (differenced data), not raw H_q
+#   1. No ARIMA(1,1,0) differencing: the curve matrix is built
+#      from the ORIGINAL H(q) values; q is a deterministic functional
+#      argument, not a time index
 #
 #   2. Curve matrix: q-values as columns (preserves sequential order)
 #
-#   3. PCA on differenced curves: decomposes VARIANCE around mean (centered data)
+#   3. PCA on original curves: decomposes VARIANCE around mean (centered data)
 #      - PC1: primary mode of shape variation (e.g., steepness of decrease)
 #      - PC2, PC3: secondary shape variations
 #      - Each PC: orthogonal functional basis (smooth patterns)
@@ -202,70 +216,10 @@
 #      - Tests functional/shape differences, NOT correlation structure per se
 #
 # IMPORTANT CLARIFICATION:
-#   - AR(1) structure:        modeled in differenced data (before PCA)
+# - **AR(1) structure**: NOT modeled by PCA; PCA decomposes the
+#   observed covariance of the curves
 #   - PCA role:               decomposes centered variance, does NOT model AR(1)
-#   - FPCA testing detects:   curve SHAPE differences between groups (TEST L.1.6)
-#   - Stationarity:           achieved via differencing; smooth PCs appropriate
-#   - Validation pattern:     differenced data follow AR(1): rho(k) = phi^|k|
-
-# ==============================================================================
-# Apply ARIMA(1,1,0) Differencing for Stationarity
-# ==============================================================================
-# DESCRIPTION:
-#   Computes first differences within subjects (paired design).
-#   FPCA-specific version (different signature from GEE version).
-#
-# PARAMETERS:
-#   df: Data frame with entropy, q, group, subject, sample_name columns
-#
-# RETURNS:
-#   Data frame with differenced values (or original if unpaired)
-.apply_arima_differencing_fpca <- function(df) {
-    if (nrow(df) == 0) {
-        return(df)
-    }
-
-    # Determine grouping for ARIMA differencing BUGFIX (April 2026): Use
-    # sample_name for unpaired designs (subject is seq_along(q_vals)) Use
-    # subject for paired designs (subject is actual subject IDs)
-    grouping_var <- if (!is.null(df$subject) && !all(df$subject == seq_along(df$q))) {
-        # Paired design: subject is meaningful
-        df$subject
-    } else if ("sample_name" %in% colnames(df)) {
-        # Unpaired design: use sample_name for grouping
-        df$sample_name
-    } else {
-        return(df)  # Can't group, skip ARIMA
-    }
-
-    # Check if we have multiple groups
-    n_groups <- length(unique(grouping_var))
-    if (n_groups < 2) {
-        return(df)
-    }
-
-    # Sort by grouping variable and q for proper within-group differencing
-    df <- df[order(grouping_var, df$q), ]
-
-    # Compute first differences within each group
-    df_list <- list()
-    for (grp in unique(grouping_var)) {
-        idx <- which(grouping_var == grp)
-        if (length(idx) >= 2) {
-            grp_data <- df[idx, ]
-            n_diff <- nrow(grp_data) - 1
-            df_list[[as.character(grp)]] <- data.frame(entropy = diff(grp_data$entropy),
-                q = grp_data$q[-1], group = grp_data$group[-nrow(grp_data)], subject = rep(grp,
-                  n_diff), sample_name = grp_data$sample_name[-nrow(grp_data)], stringsAsFactors = FALSE)
-        }
-    }
-
-    if (length(df_list) > 0) {
-        do.call(rbind, df_list)
-    } else {
-        df
-    }
-}
+#   - FPCA testing detects:   curve SHAPE differences between groups
 
 # ==============================================================================
 # Build Curve Matrix for FPCA
@@ -361,7 +315,7 @@
 # (functional difference) - If groups have SAME shape but different intercepts:
 # only PC1 differs (level shift)
 #   - If groups have DIFFERENT shapes: multiple PCs differ (shape variation)
-#   - AR(1) structure: modeled in differenced data (before PCA)
+#   - AR(1) structure: NOT estimated by PCA
 #   - PCA tests: shape differences, NOT AR(1) correlation structure
 #
 # PARAMETERS:
@@ -386,12 +340,23 @@
         pc_g1_subj <- .aggregate_by_subject(pc_vals, grp_vals, subj_vals, g1)
         pc_g2_subj <- .aggregate_by_subject(pc_vals, grp_vals, subj_vals, g2)
 
-        # Paired test requires both groups present
-        if (length(pc_g1_subj) >= 2 && length(pc_g2_subj) >= 2 && !anyNA(pc_g1_subj) &&
-            !anyNA(pc_g2_subj)) {
-            t_res <- try(stats::t.test(pc_g1_subj, pc_g2_subj, paired = TRUE), silent = TRUE)
-            if (!inherits(t_res, "try-error")) {
-                return(as.numeric(t_res$p.value))
+        # AUDIT R2: align on the COMMON subject set before the paired test.
+        # Aggregating per group independently yields group-specific subject
+        # orderings, so paired=TRUE would pair by POSITION and mispair
+        # subjects when the order differs between groups (e.g. A: S1 S2 S3,
+        # B: S2 S1 S3 would pair A_S1 with B_S2). Explicitly intersect and
+        # order both vectors by the shared subject IDs.
+        subj_common <- intersect(names(pc_g1_subj), names(pc_g2_subj))
+        if (length(subj_common) >= 2) {
+            pc_g1_subj <- pc_g1_subj[subj_common]
+            pc_g2_subj <- pc_g2_subj[subj_common]
+            # Paired test requires both groups present
+            if (!anyNA(pc_g1_subj) && !anyNA(pc_g2_subj)) {
+                t_res <- try(stats::t.test(pc_g1_subj, pc_g2_subj, paired = TRUE),
+                    silent = TRUE)
+                if (!inherits(t_res, "try-error")) {
+                    return(as.numeric(t_res$p.value))
+                }
             }
         }
     }
@@ -439,6 +404,51 @@
     max(2, min(5, n_pc_max_var, ncol(pca$x)))
 }
 
+# ==============================================================================
+# Paired multivariate test
+# ==============================================================================
+# For paired designs the global FPCA test must respect the pairing: aggregate
+# PC scores per subject within each group and run Hotelling's T^2 on the
+# per-subject PC difference vectors. The legacy MANOVA on pooled PC scores
+# ignored the pairing even though the per-PC tests used paired t-tests.
+.paired_hotelling_t2 <- function(x_a, x_b) {
+    d_mat <- x_a - x_b
+    n <- nrow(d_mat)
+    p <- ncol(d_mat)
+    if (n <= p || p < 1) return(NA_real_)
+
+    dbar <- colMeans(d_mat)
+    s_d <- try(stats::cov(d_mat), silent = TRUE)
+    if (inherits(s_d, "try-error")) return(NA_real_)
+    s_inv <- try(solve(s_d), silent = TRUE)
+    if (inherits(s_inv, "try-error")) return(NA_real_)
+
+    t2 <- as.numeric(n * t(dbar) %*% s_inv %*% dbar)
+    if (!is.finite(t2)) return(NA_real_)
+    if (t2 <= 0) return(1)
+
+    f_stat <- ((n - p)/((n - 1) * p)) * t2
+    stats::pf(f_stat, df1 = p, df2 = n - p, lower.tail = FALSE)
+}
+
+# Per-subject aggregated paired test on PC score matrix
+.paired_pc_test <- function(pc_scores, grp_vals, subj_vals, g1, g2) {
+    subj_common <- intersect(unique(as.character(subj_vals[grp_vals == g1])),
+        unique(as.character(subj_vals[grp_vals == g2])))
+    if (length(subj_common) < 2) return(NA_real_)
+
+    agg_a <- do.call(rbind, lapply(subj_common, function(s) {
+        idx <- which(grp_vals == g1 & as.character(subj_vals) == s)
+        colMeans(pc_scores[idx, , drop = FALSE])
+    }))
+    agg_b <- do.call(rbind, lapply(subj_common, function(s) {
+        idx <- which(grp_vals == g2 & as.character(subj_vals) == s)
+        colMeans(pc_scores[idx, , drop = FALSE])
+    }))
+
+    .paired_hotelling_t2(agg_a, agg_b)
+}
+
 # Test all PCs for group differences with BH multiple testing correction
 # Returns adjusted p-value from multiple PCs tested Multiple testing
 # correction: Apply Benjamini-Hochberg (BH) correction for multiple testing.
@@ -464,7 +474,7 @@
             g2)
     }
 
-    # AUDIT FIX #9: Taking min of BH-adjusted p-values inflates Type I error.
+    # Taking min of BH-adjusted p-values inflates Type I error.
     # Replace with Hotelling's T² (2 groups) or MANOVA (>2 groups) on PC scores.
     # Hotelling's T² tests the joint null hypothesis that all PC means are equal
     # between groups, which correctly handles the multivariate nature of the test.
@@ -474,27 +484,41 @@
     if (length(pc_pvals_valid) == 0) {
         p_interaction <- 1
     } else if (n_groups == 2 && n_pc_use >= 1) {
-        # MANOVA on PC scores (equivalent to Hotelling's T² for 2 groups)
         pc_scores <- pca$x[, seq_len(n_pc_use), drop = FALSE]
         grp_valid <- grp_vals[!is.na(grp_vals)]
         pc_scores <- pc_scores[!is.na(grp_vals), , drop = FALSE]
-        g1_idx <- which(grp_valid == g1)
-        g2_idx <- which(grp_valid == g2)
-        if (length(g1_idx) > 1 && length(g2_idx) > 1 &&
-            ncol(pc_scores) <= min(length(g1_idx), length(g2_idx)) - 1) {
-            grp_factor <- factor(c(rep(g1, length(g1_idx)), rep(g2, length(g2_idx))))
-            pc_combined <- rbind(pc_scores[g1_idx, , drop = FALSE],
-                pc_scores[g2_idx, , drop = FALSE])
-            man <- try(summary(stats::manova(pc_combined ~ grp_factor)), silent = TRUE)
-            if (!inherits(man, "try-error") && length(man) >= 4) {
-                p_interaction <- man[[4]][1, "Pr(>F)"]
+
+        # For paired designs, run a PAIRED multivariate test
+        # (Hotelling T^2 on per-subject PC difference vectors). The previous
+        # MANOVA ignored the pairing even though the per-PC tests used paired
+        # t-tests, making the final p_interaction an unpaired test.
+        paired_p <- NA_real_
+        if (!is.null(subj_vals)) {
+            subj_valid <- subj_vals[!is.na(grp_vals)]
+            paired_p <- .paired_pc_test(pc_scores, grp_valid, subj_valid, g1, g2)
+        }
+        if (!is.na(paired_p)) {
+            p_interaction <- paired_p
+        } else {
+            # Fallback: MANOVA on PC scores (equivalent to Hotelling's T² for 2 groups)
+            g1_idx <- which(grp_valid == g1)
+            g2_idx <- which(grp_valid == g2)
+            if (length(g1_idx) > 1 && length(g2_idx) > 1 &&
+                ncol(pc_scores) <= min(length(g1_idx), length(g2_idx)) - 1) {
+                grp_factor <- factor(c(rep(g1, length(g1_idx)), rep(g2, length(g2_idx))))
+                pc_combined <- rbind(pc_scores[g1_idx, , drop = FALSE],
+                    pc_scores[g2_idx, , drop = FALSE])
+                man <- try(summary(stats::manova(pc_combined ~ grp_factor)), silent = TRUE)
+                if (!inherits(man, "try-error") && length(man) >= 4) {
+                    p_interaction <- man[[4]][1, "Pr(>F)"]
+                } else {
+                    # MANOVA failed: return NA rather than invalid min-p across correlated PCs
+                    p_interaction <- NA_real_
+                }
             } else {
-                # MANOVA failed: return NA rather than invalid min-p across correlated PCs
+                # Insufficient samples for MANOVA: return NA
                 p_interaction <- NA_real_
             }
-        } else {
-            # Insufficient samples for MANOVA: return NA
-            p_interaction <- NA_real_
         }
     } else {
         # >2 groups: use MANOVA
@@ -541,20 +565,23 @@
 
     data.frame(gene = g, p_interaction = result_pc$p_interaction, n_pcs_tested = result_pc$n_pcs_tested,
         min_pc_pvalue = result_pc$min_pc_pvalue, slope_diff = NA_real_, ci_weighted = !is.null(weights),
-        stringsAsFactors = FALSE)
+        inference_type = "confirmatory", stringsAsFactors = FALSE)
 }
 
-# Fit LASSO/ElasticNet regression on curves Tests group difference in predicted
-# probabilities respecting q-value ordering Regularized regression
-# (LASSO/ElasticNet) on ordered curve matrix: - Uses full curve (all q-values)
-# to predict group membership - Regularization selects features (q-values)
-# important for group discrimination - Predicted probabilities capture
-# group-specific curve patterns (respecting q-order) - This inherently tests
-# for curve SHAPE difference since it uses the full curve @param mat_sub Curve
-# matrix (samples × sorted q-values) @param grp_vals Group assignments @param
-# subj_vals Subject identifiers (NULL for unpaired) @param g Gene identifier
-# @param regularization 'lasso' or 'elasticnet' @param weights Optional weights
-# parameter @return Data frame with gene, p_interaction, slope_diff
+# Fit LASSO/ElasticNet regression on curves (EXPLORATORY)
+#
+# This path is a group-separability classifier (full curve -> group), NOT a
+# direct test of H0: f_A(q) = f_B(q). It can detect intercept, scale, shape or
+# noise differences. Its p-value is therefore labelled `inference_type =
+# "exploratory"` and must not be presented as a confirmatory SAIT interaction
+# p-value. Cross-validation is grouped by subject to avoid leaking
+# observations of the same subject across training/validation folds.
+#
+# @param mat_sub Curve matrix (samples × sorted q-values) @param grp_vals
+# Group assignments @param subj_vals Subject identifiers (NULL for unpaired)
+# @param g Gene identifier @param regularization 'lasso' or 'elasticnet'
+# @param weights Optional weights parameter @return Data frame with gene,
+# p_interaction, slope_diff, inference_type
 .fpca_regularization_method <- function(mat_sub, grp_vals, subj_vals, g, regularization = "lasso",
     weights = NULL) {
     if (!requireNamespace("glmnet", quietly = TRUE)) {
@@ -565,15 +592,26 @@
     alpha_val <- if (regularization == "lasso")
         1 else 0.5
 
+    # Grouped cross-validation by subject. Ordinary CV puts
+    # observations from the same subject into training AND validation folds
+    # simultaneously (leakage). Folds are assigned per unique subject.
+    foldid <- NULL
+    if (!is.null(subj_vals) && length(unique(subj_vals)) >= 3) {
+        u_subj <- unique(as.character(subj_vals))
+        nfolds <- min(5, length(u_subj))
+        subj_fold <- sample(rep(seq_len(nfolds), length.out = length(u_subj)))
+        names(subj_fold) <- u_subj
+        foldid <- unname(subj_fold[as.character(subj_vals)])
+    }
+
     # keep=TRUE stores cross-validated predictions
     cv_fit <- try(glmnet::cv.glmnet(x = mat_sub, y = grp_numeric, family = "binomial",
-        alpha = alpha_val, nfolds = min(5, nrow(mat_sub) - 1), standardize = TRUE,
-        keep = TRUE),
-        silent = TRUE)
+        alpha = alpha_val, nfolds = min(5, nrow(mat_sub) - 1), foldid = foldid,
+        standardize = TRUE, keep = TRUE), silent = TRUE)
     if (inherits(cv_fit, "try-error"))
         return(NULL)
 
-    # AUDIT FIX R2+R3: Use cross-validated predictions (fit.preval) to avoid
+    # Use cross-validated predictions (fit.preval) to avoid
     # resubstitution bias. In-sample predictions (newx = mat_sub) produce
     # overfitted probabilities that inflate Type I error.
     # Also guard against NaN/Inf from perfect separation in binary glmnet.
@@ -605,6 +643,7 @@
     if (is.na(pval))
         return(NULL)
 
-    data.frame(gene = g, p_interaction = pval, slope_diff = NA_real_, ci_weighted = !is.null(weights),
-        stringsAsFactors = FALSE)
+    data.frame(gene = g, p_interaction = pval, n_pcs_tested = NA_integer_,
+        min_pc_pvalue = NA_real_, slope_diff = NA_real_, ci_weighted = !is.null(weights),
+        inference_type = "exploratory", stringsAsFactors = FALSE)
 }

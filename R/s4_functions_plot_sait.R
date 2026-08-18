@@ -160,19 +160,15 @@ plot_sait <- function(analysis, n_top = 6, genes = NULL, condition_col = NULL, s
     }
 
     # =========================================================================
-    # RECONSTRUCT COMBINED DIVERSITY SE FOR PLOTTING (Same approach as in
-    # calculate_sait)
+    # COMBINE STORED DIVERSITY RESULTS FOR PLOTTING (same approach as in
+    # calculate_sait). NEVER recompute: the figure must represent exactly the
+    # analysis stored in @diversity_results (same q, same norm, same
+    # pseudocount), not a second estimate with different defaults.
     # =========================================================================
-    # Extract q-values from diversity_results keys
-    q_keys <- names(analysis@diversity_results)
-    q_computed <- as.numeric(sub("^q_", "", q_keys))
-
-    # Reconstruct combined diversity SE with all q-values
     diversity_combined <- tryCatch({
-        .calculate_diversity(x = analysis@se, q = sort(q_computed), norm = TRUE,
-            verbose = verbose, bootstrap = FALSE)
+        .combine_diversity_results_for_sait(analysis@diversity_results)
     }, error = function(e) {
-        stop("[plot_sait] Failed to reconstruct diversity SE:\n", conditionMessage(e),
+        stop("[plot_sait] Failed to combine stored diversity results:\n", conditionMessage(e),
             call. = FALSE)
     })
 

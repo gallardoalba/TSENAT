@@ -1,5 +1,5 @@
 ---
-title: "Appendix A: Equivalence Validation - TSENAT vs SplicingFactory"
+title: "Appendix A: Endpoint Equivalence with SplicingFactory"
 author: "Cristobal Gallardo Alba <gallardoalba@pm.me>"
 date: "`r Sys.Date()`"
 output:
@@ -17,7 +17,7 @@ header-includes:
   - \usepackage{tabu}
 bibliography: TSENAT.bib
 vignette: |
-  %\VignetteIndexEntry{2. TSENAT Appendix A: Equivalence Validation}
+  %\VignetteIndexEntry{2. TSENAT Appendix A: Endpoint Equivalence}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -34,11 +34,13 @@ suppressPackageStartupMessages(library(kableExtra))
 
 # Introduction
 
-This appendix validates that **TSENAT's transcript diversity measures (Shannon entropy, Simpson index) are mathematically equivalent to SplicingFactory's implementations**. We benchmark both packages on TCGA BRCA RNA-seq data to demonstrate:
+This appendix characterizes the **mathematical relationship and endpoint equivalence** between TSENAT's transcript diversity measures (Shannon entropy, Simpson index) and SplicingFactory's implementations. We benchmark both packages on TCGA BRCA RNA-seq data to demonstrate:
 
-- Shannon equivalence: TSENAT Tsallis q=1 ~ SplicingFactory Shannon
-- Simpson equivalence: TSENAT Tsallis q=2 ~ SplicingFactory Simpson  
-- Identical statistical results: Same gene rankings, p-values, fold changes
+- Endpoint equivalence: TSENAT Tsallis q=1 recovers SplicingFactory Shannon (up to the documented normalization convention)
+- Endpoint equivalence: TSENAT Tsallis q=2 recovers SplicingFactory Simpson (up to the documented normalization convention)
+- Close empirical agreement under the tested dataset/filtering/normalization: same gene rankings, p-values, fold changes
+
+The benchmark demonstrates agreement under the specific dataset, filtering, normalization and statistical procedure tested here; it is **not** a proof of general statistical equivalence across all datasets and designs.
 
 **Who needs this appendix?** Anyone evaluating TSENAT for transcript diversity analysis or validating cross-package comparisons.
 
@@ -260,7 +262,7 @@ knitr::kable(shannon_summary, row.names = FALSE,
              align = c("l", "r", "r", "r", "r"))
 ```
 
-**Interpretation**: Both methods similarly identify significantly different transcript diversity between Normal and Tumor samples. The comparable number of significant genes (padj<0.05) and mean log2FC values demonstrate equivalent statistical power and effect size detection.
+**Interpretation**: Both methods similarly identify significantly different transcript diversity between Normal and Tumor samples. The comparable number of significant genes (padj<0.05) and mean log2FC values provide empirical evidence of agreement in this benchmark, not proof of equal statistical power in general.
 
 #### Top 10 Significant Genes - SplicingFactory (Laplace)
 ```{r shannon-splicing-factory-genes, message=FALSE, warning=FALSE, echo=FALSE}
@@ -388,9 +390,9 @@ However, SplicingFactory returns raw values, while TSENAT normalizes by the theo
 | Range | 0 to ~1 | 0 to 1 |
 | Scale difference | Raw | ~2x for 2-isoform genes |
 
-This explains observed differences like *C1orf213* Normal: 0.3852 (SplicingFactory) vs 0.7703 (TSENAT). Since C1orf213 has 2 expressed isoforms, the normalization factor is $1 - 1/2 = 0.5$. The calculation: $0.3852 / 0.5 = 0.7704$ confirms this scaling factor. Despite raw value differences, statistical analysis yields identical results:
+This explains observed differences like *C1orf213* Normal: 0.3852 (SplicingFactory) vs 0.7703 (TSENAT). Since C1orf213 has 2 expressed isoforms, the normalization factor is $1 - 1/2 = 0.5$. The calculation: $0.3852 / 0.5 = 0.7704$ confirms this scaling factor. Despite raw value differences, statistical analysis yields identical results under this benchmark:
 
-1. log2 fold changes: Normalization factor cancels in ratios: $\log_2\left(\frac{S_{norm,t}}{S_{norm,n}}\right) = \log_2\left(\frac{S_{raw,t}/K}{S_{raw,n}/K}\right) = \log_2\left(\frac{S_{raw,t}}{S_{raw,n}}\right)$
+1. log2 fold changes: Normalization factor cancels in ratios: $\log_2\left(\frac{S_{norm,t}}{S_{norm,n}}\right) = \log_2\left(\frac{S_{raw,t}/K}{S_{raw,n}/K}\right) = \log_2\left(\frac{S_{raw,t}}{S_{raw,n}}\right)$ — this cancellation requires that $K = 1 - 1/n$ is the *same* for both conditions, which holds when $n$ is a fixed gene-level annotation universe but not necessarily when $n$ is an observed-support count
 
 2. P-values and rankings: Wilcoxon rank-sum tests depend only on gene ranks, not absolute values, so both methods identify the same significant genes
 
@@ -399,9 +401,9 @@ This explains observed differences like *C1orf213* Normal: 0.3852 (SplicingFacto
 
 ***
 
-# Conclusion: Equivalence Validation Summary
+# Conclusion: Endpoint Equivalence Summary
 
-This appendix has demonstrated that TSENAT's implementation of transcript diversity measures is mathematically and statistically equivalent to SplicingFactory's established methods for both Shannon entropy and Simpson index calculations.
+This appendix has characterized the **mathematical relationship and endpoint equivalence** between TSENAT and SplicingFactory: at q=1 and q=2, TSENAT recovers the corresponding Shannon and Gini–Simpson quantities up to the documented normalization convention. The benchmark shows close agreement under the tested dataset, filtering, normalization and statistical procedure. It does not validate q<1, q>2, SAIT/paired inference, bootstrap, divergence, q=0, or Salmon integration.
 
 ***
 

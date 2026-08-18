@@ -5,11 +5,24 @@
 # This is an internal helper called by the public calculate_divergence() wrapper.
 # NOT exported. Do not document with roxygen2.
 #
-# Architecture: Transcript-level counts -> Gene-level aggregation -> Tsallis divergence
-# 
-# Computes Tsallis divergence comparing two groups across multiple genes,
-# with optional bootstrap confidence intervals. Automatically aggregates
-# transcript-level counts to gene-level (per Paper I033).
+# Architecture: Transcript-level counts -> per-condition isoform vectors ->
+# Tsallis divergence.
+#
+# For each gene, reads are summed ACROSS SAMPLES but WITHIN isoforms to build
+# the two distributions P (control) and Q (treatment) over the ISOFORM state
+# space. The estimand is therefore the divergence between POOLED
+# condition-level isoform compositions (biological replicates aggregated
+# within condition), not subject-level compositions.
+# D_q(P||Q) = (sum_i P_i^q Q_i^(1-q) - 1)/(q - 1) (KL limit at q = 1; no
+# +/-0.01 band). q = 0 is evaluated on the RAW (pre-pseudocount) support so
+# D_0 = 1 - sum_{i: P_i>0} Q_i keeps its support-difference meaning even
+# under pseudocount regularization (Option A of the divergence review).
+# Bootstrap CIs resample BIOLOGICAL REPLICATES (paired pairs as units when
+# available): for paired designs the bootstrap preserves subject pairing when
+# estimating uncertainty around the pooled condition-level divergence; it does
+# NOT compute subject-by-subject divergences. method='bca' is not implemented
+# and falls back to percentile with a warning; the effective method is
+# recorded in the result metadata.
 # 
 # Returns a SummarizedExperiment object containing:
 # - assay: genes * q matrix of divergence estimates (one per q value)
@@ -34,7 +47,7 @@
 #   progress: Logical; show progress bar (default: TRUE)
 .calculate_divergence <- function(se, group_col = NULL, control_group = NULL, q = 1,
     paired = FALSE, bootstrap = FALSE, nboot = "auto", ci = 0.95, method = "percentile",
-    norm = TRUE, log_base = exp(1), pseudocount = 0.5, nthreads = 1, progress = FALSE) {
+    norm = "none", log_base = exp(1), pseudocount = 0.5, nthreads = 1, progress = FALSE) {
 
     # =========================================================================
     # INPUT VALIDATION - Must be done BEFORE implementation Following
@@ -196,30 +209,26 @@
     pair_ids <- NULL
     pairing_info <- ""
 
-    if (isTRUE(bootstrap)) {
-        # Use isTRUE to safely handle NA Auto-detect paired samples
+    if (isTRUE(bootstrap) && isTRUE(paired)) {
+        # Paired flag is EXPLICIT and authoritative: pair-
+        # respecting resampling only happens when the caller requested a
+        # paired design. paired=FALSE must never silently switch to paired
+        # bootstrap merely because colData contains a pairing-like column.
         pair_detected <- .detect_pair_ids(se)
 
         if (pair_detected$num_pairs > 0) {
             pair_ids <- pair_detected$pair_ids
             pairing_info <- sprintf(" [paired: %d unique pairs from '%s' column]",
                 pair_detected$num_pairs, pair_detected$column_name)
-
-            if (isFALSE(paired) && progress) {
-                # Use isFALSE to safely handle NA
-                message("NOTE: Paired sample structure detected in '", pair_detected$column_name,
-                  "' column.\n", "      Using pair-respecting bootstrap resampling.")
-            }
         } else {
-            if (isTRUE(paired)) {
-                # Use isTRUE to safely handle NA
-                warning("paired=TRUE but no pair ID column detected in colData. ",
-                    "Using independent bootstrap resampling instead. ",
-                    "This ignores within-pair correlation and may produce ",
-                    "anti-conservative confidence intervals.",
-                    call. = FALSE)
-            }
+            warning("paired=TRUE but no pair ID column detected in colData. ",
+                "Using independent bootstrap resampling instead. ",
+                "This ignores within-pair correlation and may produce ",
+                "anti-conservative confidence intervals.",
+                call. = FALSE)
         }
+    } else if (isTRUE(bootstrap) && isFALSE(paired) && progress) {
+        message("paired=FALSE: using independent (unpaired) bootstrap resampling.")
     }
 
     if (progress) {
@@ -250,12 +259,23 @@
     start_time <- Sys.time()
     num_genes <- length(gene_indices)
 
+    # Precompute transcript->gene index ONCE (O(T)); each gene then resolves
+    # its transcripts in O(1) instead of re-scanning all rows (O(G*T)).
+    gene_index <- if (!is.null(rd) && !is.na(gene_col) && gene_col %in% colnames(rd)) {
+        split(seq_len(nrow(se)), as.character(rd[[gene_col]]))
+    } else if (!is.null(rownames(se))) {
+        split(seq_len(nrow(se)), rownames(se))
+    } else {
+        NULL
+    }
+
     # Define per-gene computation function
     compute_gene_divergence <- function(i) {
         gene_idx <- gene_indices[i]
 
         .process_single_gene_div(gene_idx, all_gene_names, se, gene_col, rd, group_col,
-            control_group, q, nboot, ci, method, log_base, pseudocount, pair_ids)
+            control_group, q, nboot, ci, method, log_base, pseudocount, pair_ids,
+            gene_index = gene_index)
     }
 
     # Execute using BiocParallel infrastructure
@@ -285,11 +305,14 @@
     rownames(row_data_df) <- row_data_df$gene_name
     rownames(assay_matrix) <- row_data_df$gene_name
 
-    # Populate generic estimate/lower_ci/upper_ci columns using reference q
-    # value (q=1)
+    # Populate generic estimate/lower_ci/upper_ci columns ONLY from an exact
+    # q=1 column (auditxx P0 #2). Aliasing to the NEAREST q silently reports a
+    # different estimand (e.g., the q=0.5 or q=0 divergence) as if it were the
+    # reference q=1. When q=1 was not requested, the generic columns are NA.
     q_ref <- 1
-    q_idx <- which.min(abs(q - q_ref))
-    if (length(q_idx) > 0 && q_idx <= length(q)) {
+    q_tol <- 1e-10
+    q_idx <- which(abs(q - q_ref) < q_tol)
+    if (length(q_idx) == 1 && q_idx <= length(q)) {
         ref_q <- q[q_idx]
         estimate_col <- paste0("estimate_q", ref_q)
         lower_ci_col <- paste0("lower_ci_q", ref_q)
@@ -302,6 +325,11 @@
             row_data_df$upper_ci <- row_data_df[[upper_ci_col]]
             row_data_df$ci_width <- row_data_df[[ci_width_col]]
         }
+    } else {
+        row_data_df$estimate <- NA_real_
+        row_data_df$lower_ci <- NA_real_
+        row_data_df$upper_ci <- NA_real_
+        row_data_df$ci_width <- NA_real_
     }
 
     # Apply normalization if requested
@@ -372,7 +400,7 @@
 #' @noRd
 .calculate_divergence_impl <- function(se, group_col = NULL, control_group = NULL,
     q = 1, paired = FALSE, bootstrap = FALSE, nboot = "auto", ci = 0.95, method = "percentile",
-    norm = TRUE, log_base = exp(1), pseudocount = 0.5, nthreads = 1, progress = FALSE) {
+    norm = "none", log_base = exp(1), pseudocount = 0.5, nthreads = 1, progress = FALSE) {
 
     # =========================================================================
     # =========================================================================
@@ -450,6 +478,13 @@
         nthreads, progress)
     pair_ids <- exec_setup$pair_ids
 
+    # AUDIT R5: validate the paired-design invariant (exactly 1 control + 1
+    # treatment per pair) before any bootstrap resampling. A pair with, e.g.,
+    # control + control + treatment has an ill-defined resampling unit.
+    if (!is.null(pair_ids) && isTRUE(bootstrap)) {
+        .validate_pair_structure(se, pair_ids, group_col, control_group)
+    }
+
     # =========================================================================
     # EXECUTE DIVERGENCE COMPUTATION (SEQUENTIAL OR PARALLEL)
     # =========================================================================
@@ -517,7 +552,8 @@
     }
     if (any(q < 0)) {
         stop("q parameter must be >= 0. ", "Note: q should be in range [0, 3] for typical use. ",
-            "q=0 represents uniform divergence. ", "Got: ", paste(q, collapse = ", "))
+            "q=0 represents a support-based divergence limit (D_0(P||Q) = 1 - sum_{P_i>0} Q_i). ",
+            "Got: ", paste(q, collapse = ", "))
     }
     q
 }
@@ -591,12 +627,25 @@
 # GENE PROCESSING HELPERS
 # ============================================================================
 
-#' Aggregate transcript-level counts to gene-level
-#' Sums counts across all transcripts for a given gene
+#' Extract isoform-level counts per condition group
+#'
+#' Builds per-isoform count vectors by summing reads across samples within each
+#' group. P and Q are therefore distributions over ISOFORM categories (the
+#' state space of the Tsallis divergence), NOT distributions over samples.
+#' Groups may contain different numbers of replicates: only the state space
+#' (number of isoforms) must match.
+#'
 #' @noRd
-.compute_aggregate_counts <- function(se, target_gene, gene_col, rd) {
-    # Find ALL transcripts for this gene
-    if (!is.na(gene_col) && !is.null(rd)) {
+.compute_group_isoform_counts <- function(se, target_gene, gene_col, rd, groups,
+    control_group, gene_index = NULL) {
+    # Find ALL transcripts for this gene. With the precomputed gene index this
+    # is O(1) per gene; direct callers fall back to the O(T) scan.
+    if (!is.null(gene_index)) {
+        gene_transcript_indices <- gene_index[[as.character(target_gene)]]
+        if (is.null(gene_transcript_indices)) {
+            gene_transcript_indices <- integer(0)
+        }
+    } else if (!is.na(gene_col) && !is.null(rd)) {
         gene_transcript_indices <- which(as.character(rd[[gene_col]]) == target_gene)
     } else {
         gene_transcript_indices <- which(rownames(se) == target_gene)
@@ -606,24 +655,13 @@
         return(NULL)
     }
 
-    # Aggregate counts across all transcripts for this gene
     counts_matrix <- as.matrix(SummarizedExperiment::assay(se, "counts")[gene_transcript_indices,
         , drop = FALSE])
-    colSums(counts_matrix)
-}
 
-#' Extract group-specific counts
-#' Splits gene-level counts by group membership
-#' @noRd
-.extract_group_counts_gene <- function(counts_gene, groups, control_group) {
-    if (length(counts_gene) != length(groups)) {
-        stop("Length mismatch: counts_gene and groups must have same length")
-    }
-
-    x <- counts_gene[groups == control_group]
-    y <- counts_gene[groups != control_group]
-
-    list(control = x, treatment = y)
+    list(control = rowSums(counts_matrix[, groups == control_group, drop = FALSE]),
+        treatment = rowSums(counts_matrix[, groups != control_group, drop = FALSE]),
+        control_matrix = counts_matrix[, groups == control_group, drop = FALSE],
+        treatment_matrix = counts_matrix[, groups != control_group, drop = FALSE])
 }
 
 #' Construct error result structure
@@ -635,50 +673,221 @@
         computation_time_sec = elapsed_sec, error = error_msg)
 }
 
-#' Build bootstrap arguments for calculate_divergence_bootstrap
-#' Conditionally includes pair_ids if detected
-#' @noRd
-
 # NOTE (March 2026): .bootstrap_build_args() moved to bootstrap.R
 
+#' Bootstrap sample-index resampling plan for divergence
+#'
+#' Resamples BIOLOGICAL REPLICATES (sample columns) within each condition
+#' group. When pair_ids are available, paired samples are resampled jointly as
+#' units (each drawn pair contributes its control and treatment sample);
+#' samples without a pair are resampled independently. Group sizes are
+#' preserved in every bootstrap iteration, so control and treatment groups may
+#' legitimately differ in size.
+#'
 #' @noRd
-.compute_divergence_q <- function(x, y, q_vals, nboot, ci, method, log_base, pseudocount,
-    gene_name, pair_ids = NULL) {
+.bootstrap_sample_indices <- function(x_mat, y_mat, nboot, pair_ids) {
+    samples_ctrl <- colnames(x_mat)
+    samples_trt <- colnames(y_mat)
+    n_c <- length(samples_ctrl)
+    n_t <- length(samples_trt)
+
+    use_pairs <- !is.null(pair_ids) && length(pair_ids) > 0
+    ctrl_pair <- trt_pair <- common_pairs <- NULL
+    if (use_pairs) {
+        ctrl_pair <- as.character(pair_ids[samples_ctrl])
+        trt_pair <- as.character(pair_ids[samples_trt])
+        ctrl_pair[is.na(ctrl_pair)] <- ""
+        trt_pair[is.na(trt_pair)] <- ""
+        common_pairs <- intersect(unique(ctrl_pair[ctrl_pair != ""]), unique(trt_pair[trt_pair !=
+            ""]))
+    }
+    use_pairs <- use_pairs && length(common_pairs) > 0
+
+    ctrl_idx <- vector("list", nboot)
+    trt_idx <- vector("list", nboot)
+    for (b in seq_len(nboot)) {
+        if (use_pairs) {
+            drawn <- sample(common_pairs, length(common_pairs), replace = TRUE)
+            idx_x_paired <- vapply(drawn, function(p) match(p, ctrl_pair), integer(1))
+            idx_y_paired <- vapply(drawn, function(p) match(p, trt_pair), integer(1))
+            x_unp <- which(!(ctrl_pair %in% common_pairs))
+            y_unp <- which(!(trt_pair %in% common_pairs))
+            idx_x_unp <- if (length(x_unp) > 0)
+                sample(x_unp, length(x_unp), replace = TRUE) else integer(0)
+            idx_y_unp <- if (length(y_unp) > 0)
+                sample(y_unp, length(y_unp), replace = TRUE) else integer(0)
+            ctrl_idx[[b]] <- c(idx_x_paired, idx_x_unp)
+            trt_idx[[b]] <- c(idx_y_paired, idx_y_unp)
+        } else {
+            ctrl_idx[[b]] <- sample(seq_len(n_c), n_c, replace = TRUE)
+            trt_idx[[b]] <- sample(seq_len(n_t), n_t, replace = TRUE)
+        }
+    }
+    list(ctrl = ctrl_idx, trt = trt_idx)
+}
+
+#' Compute divergence per q with replicate-level bootstrap CIs
+#'
+#' Point estimates use the per-condition isoform vectors (sums over samples).
+#' Bootstrap resamples BIOLOGICAL REPLICATES and recomputes the isoform
+#' distributions and D_q in each iteration, giving percentile CIs at the
+#' replicate level (paired pairs are resampled as units when pair_ids is
+#' provided). method='bca' is not implemented for divergence and falls back to
+#' percentile with a warning.
+#'
+#' @noRd
+.compute_divergence_q <- function(x_mat, y_mat, q_vals, nboot, ci, method, log_base,
+    pseudocount, gene_name, pair_ids = NULL) {
+    x <- rowSums(x_mat)
+    y <- rowSums(y_mat)
+
     gene_results <- list()
 
-    # OPTIMIZATION (March 2026): Vectorize point estimate computation for
-    # multi-q analysis Pre-compute all point estimates using vectorized
-    # function (2-3x faster for 3+ q-values) Then use bootstrap for CI
-    # computation separately
+    # Vectorize point estimate computation for multi-q analysis
     if (length(q_vals) > 1) {
-        # Vectorized point estimate computation (FAST PATH)
         point_estimates <- .tsallis_divergence_vector(x, y, q_vals, pseudocount = pseudocount,
             log_base = log_base)
     } else {
-        point_estimates <- NULL  # Fall back to scalar computation for single q
+        point_estimates <- NULL
     }
 
-    # Process each q-value
+    if (nboot > 0 && identical(method, "bca")) {
+        warning("BCa bootstrap not available for divergence (requires two-sample ",
+            "jackknife acceleration). Falling back to percentile method.", call. = FALSE)
+        method <- "percentile"
+    }
+
+    boot_matrix <- NULL
+    if (nboot > 0) {
+        plan <- .bootstrap_sample_indices(x_mat, y_mat, nboot, pair_ids)
+        boot_matrix <- matrix(NA_real_, nrow = nboot, ncol = length(q_vals))
+        for (b in seq_len(nboot)) {
+            xb <- rowSums(x_mat[, plan$ctrl[[b]], drop = FALSE])
+            yb <- rowSums(y_mat[, plan$trt[[b]], drop = FALSE])
+            boot_matrix[b, ] <- .tsallis_divergence_vector(xb, yb, q_vals, pseudocount = pseudocount,
+                log_base = log_base)
+        }
+    }
+
+    alpha <- (1 - ci)/2
     for (j in seq_along(q_vals)) {
         q_val <- q_vals[j]
 
-        bootstrap_args <- .bootstrap_build_args(x, y, q_val, nboot, ci, method, log_base,
-            pseudocount, gene_name, pair_ids)
+        est <- if (!is.null(point_estimates)) point_estimates[j] else .tsallis_divergence_scalar(x,
+            y, q_val, pseudocount, log_base)
 
-        result <- do.call(.calculate_divergence_bootstrap, bootstrap_args)
-
-        # If we have pre-computed point estimates and bootstrap was run, use
-        # the vectorized point estimate (often more numerically stable)
-        if (!is.null(point_estimates) && !is.na(point_estimates[j]) && nboot > 0) {
-            # Verify consistency: vectorized vs scalar computation (should be
-            # within 1e-8 relative error due to different computation order)
-            result$estimate <- point_estimates[j]
+        lower_ci <- upper_ci <- NA_real_
+        if (nboot > 0) {
+            dist_j <- boot_matrix[, j]
+            lower_ci <- stats::quantile(dist_j, probs = alpha, names = FALSE,
+                na.rm = TRUE)
+            upper_ci <- stats::quantile(dist_j, probs = 1 - alpha, names = FALSE,
+                na.rm = TRUE)
         }
 
-        gene_results[[j]] <- result
+        gene_results[[j]] <- list(estimate = est, lower_ci = lower_ci, upper_ci = upper_ci,
+            q = q_val, nboot = nboot, method = if (nboot > 0) method else NA_character_)
     }
 
     gene_results
+}
+
+#' Global (across-gene) bootstrap CI for the aggregated divergence statistic
+#'
+#' Averaging gene-wise CI bounds is NOT a CI for the across-gene mean/median.
+#' This helper computes the valid quantity: in each bootstrap iteration the
+#' experimental units (samples) are resampled ONCE with a shared plan, D_q is
+#' recomputed for every gene, the across-gene statistic (mean or median) is
+#' evaluated, and quantiles of the resulting bootstrap distribution are taken.
+#'
+#' @param se SummarizedExperiment with counts assay and gene/condition metadata
+#' @param gene_col Character: rowData column with gene identifiers
+#' @param group_col Character: colData column with condition groups
+#' @param control_group Character: reference condition level
+#' @param q_vals Numeric vector of q values
+#' @param metric Character: "mean" or "median" across genes
+#' @param nboot Integer: number of bootstrap replicates
+#' @param ci Numeric: confidence level in (0, 1)
+#' @param pseudocount Numeric: pseudocount for probability normalization
+#' @param log_base Numeric: logarithm base
+#' @param pair_ids Named vector or NULL: pair identifiers for paired resampling
+#'
+#' @return List with central, ci_lower, ci_upper (length = length(q_vals)),
+#'   nboot, ci, metric, n_genes; NULL if no computable genes
+#' @noRd
+.bootstrap_global_divergence_ci <- function(se, gene_col, group_col, control_group,
+    q_vals, metric = c("mean", "median"), nboot = 100, ci = 0.95, pseudocount = 0.5,
+    log_base = exp(1), pair_ids = NULL) {
+    metric <- match.arg(metric)
+    rd <- SummarizedExperiment::rowData(se)
+    groups <- se[[group_col]]
+    gene_names <- unique(as.character(rd[[gene_col]]))
+    gene_names <- gene_names[!is.na(gene_names)]
+
+    # Transcript->gene index built once; each gene lookup is then O(1)
+    gene_index <- if (!is.null(rd) && gene_col %in% colnames(rd)) {
+        split(seq_len(nrow(se)), as.character(rd[[gene_col]]))
+    } else {
+        NULL
+    }
+
+    # Per-gene isoform matrices (identical column order across genes)
+    xmats <- vector("list", length(gene_names))
+    ymats <- vector("list", length(gene_names))
+    for (g in seq_along(gene_names)) {
+        gc <- .compute_group_isoform_counts(se, gene_names[g], gene_col, rd, groups,
+            control_group, gene_index = gene_index)
+        if (is.null(gc))
+            next
+        if (ncol(gc$control_matrix) == 0 || ncol(gc$treatment_matrix) == 0)
+            next
+        xmats[[g]] <- gc$control_matrix
+        ymats[[g]] <- gc$treatment_matrix
+    }
+    keep <- !vapply(xmats, is.null, logical(1))
+    if (!any(keep))
+        return(NULL)
+    xmats <- xmats[keep]
+    ymats <- ymats[keep]
+    G <- length(xmats)
+    Q <- length(q_vals)
+
+    # ONE shared resampling plan so the same experimental units are used for
+    # every gene within a bootstrap iteration (the across-gene aggregate is
+    # then a coherent statistic of that resampled dataset)
+    plan <- .bootstrap_sample_indices(xmats[[1]], ymats[[1]], nboot, pair_ids)
+
+    # Point statistic on the observed data
+    est_mat <- matrix(NA_real_, G, Q)
+    for (g in seq_len(G)) {
+        est_mat[g, ] <- .tsallis_divergence_vector(rowSums(xmats[[g]]), rowSums(ymats[[g]]),
+            q_vals, pseudocount = pseudocount, log_base = log_base)
+    }
+    agg <- function(m) if (metric == "mean") colMeans(m, na.rm = TRUE) else apply(m,
+        2, stats::median, na.rm = TRUE)
+    central <- agg(est_mat)
+
+    # Bootstrap distribution of the aggregated statistic
+    boot_global <- matrix(NA_real_, nboot, Q)
+    for (b in seq_len(nboot)) {
+        est_b <- matrix(NA_real_, G, Q)
+        for (g in seq_len(G)) {
+            xb <- rowSums(xmats[[g]][, plan$ctrl[[b]], drop = FALSE])
+            yb <- rowSums(ymats[[g]][, plan$trt[[b]], drop = FALSE])
+            est_b[g, ] <- .tsallis_divergence_vector(xb, yb, q_vals, pseudocount = pseudocount,
+                log_base = log_base)
+        }
+        boot_global[b, ] <- agg(est_b)
+    }
+
+    alpha <- (1 - ci)/2
+    ci_lower <- apply(boot_global, 2, stats::quantile, probs = alpha, names = FALSE,
+        na.rm = TRUE)
+    ci_upper <- apply(boot_global, 2, stats::quantile, probs = 1 - alpha, names = FALSE,
+        na.rm = TRUE)
+
+    list(central = central, ci_lower = ci_lower, ci_upper = ci_upper, nboot = nboot,
+        ci = ci, metric = metric, n_genes = G)
 }
 
 # RESULTS COMPILATION HELPERS
@@ -970,33 +1179,36 @@
 #' Consolidates logic shared between sequential and parallel processing
 #' @noRd
 .process_single_gene_div <- function(gene_idx, all_gene_names, se, gene_col, rd,
-    group_col, control_group, q, nboot, ci, method, log_base, pseudocount, pair_ids) {
+    group_col, control_group, q, nboot, ci, method, log_base, pseudocount, pair_ids,
+    gene_index = NULL) {
     target_gene <- all_gene_names[gene_idx]
     gene_name <- target_gene
     gene_start <- Sys.time()
 
     tryCatch({
-        # Aggregate transcript-level counts to gene-level
-        counts_gene <- .compute_aggregate_counts(se, target_gene, gene_col, rd)
-
-        if (is.null(counts_gene) || length(counts_gene) == 0) {
-            return(.make_error_result(gene_name, q, "No transcripts found for gene"))
-        }
-
         # Extract group vector for sample grouping
         groups <- se[[group_col]]
 
-        group_counts <- .extract_group_counts_gene(counts_gene, groups, control_group)
-        x <- group_counts$control
-        y <- group_counts$treatment
+        # Build per-isoform counts per condition (P and Q are distributions
+        # over ISOFORMS, not over samples)
+        group_counts <- .compute_group_isoform_counts(se, target_gene, gene_col,
+            rd, groups, control_group, gene_index = gene_index)
 
-        if (length(x) == 0 || length(y) == 0) {
+        if (is.null(group_counts) || length(group_counts$control) == 0 || length(group_counts$treatment) ==
+            0) {
+            return(.make_error_result(gene_name, q, "No transcripts found for gene"))
+        }
+
+        x_mat <- group_counts$control_matrix
+        y_mat <- group_counts$treatment_matrix
+
+        if (ncol(x_mat) == 0 || ncol(y_mat) == 0) {
             return(.make_error_result(gene_name, q, "Insufficient group samples"))
         }
 
-        # Compute divergence for each q value (with vectorization optimization)
-        gene_results <- .compute_divergence_q(x, y, q, nboot, ci, method, log_base,
-            pseudocount, gene_name, pair_ids)
+        # Compute divergence for each q value (replicate-level bootstrap)
+        gene_results <- .compute_divergence_q(x_mat, y_mat, q, nboot, ci, method,
+            log_base, pseudocount, gene_name, pair_ids)
 
         gene_elapsed <- as.numeric(Sys.time() - gene_start, units = "secs")
 

@@ -71,13 +71,46 @@
     # /path/to/salmon/sample1/quant.sf -> 'sample1'
     sample_names <- basename(dirname(file_paths))
 
-    # Check for duplicate sample names (might indicate nested structure issues)
+    # AUDIT S6: duplicate sample names must HARD FAIL. Two nested folders
+    # named 'sampleA' (batch1/sampleA, batch2/sampleA) would silently produce
+    # duplicate column names in the count/TPM matrices and corrupt metadata
+    # matching, paired-design detection and bootstrap mapping.
     if (length(unique(sample_names)) != length(sample_names)) {
-        warning("[.detect_salmon_samples] Found duplicate sample names. ", "This may indicate nested sample folders with same names.")
+        dupes <- unique(sample_names[duplicated(sample_names)])
+        stop("[.detect_salmon_samples] Found duplicate sample names: ",
+            paste(sQuote(dupes), collapse = ", "), ".\n",
+            "  Duplicate sample names would create duplicated columns in the count matrices\n",
+            "  and corrupt downstream metadata matching. Rename the folders or pass a\n",
+            "  unique sample_names vector explicitly to .read_salmon_samples().",
+            call. = FALSE)
     }
 
     # Return structured list
     list(sample_names = sample_names, file_paths = file_paths, count = length(file_paths))
+}
+
+
+#' @noRd
+.check_salmon_numeric_integrity <- function(data, file_label) {
+    # AUDIT2 §23: reject negative or non-finite quantification values BEFORE
+    # they can reach the diversity engine. EffectiveLength must be positive.
+    numeric_cols <- intersect(c("NumReads", "TPM", "EffectiveLength"), colnames(data))
+    for (col in numeric_cols) {
+        x <- data[[col]]
+        if (any(!is.finite(x), na.rm = TRUE)) {
+            stop("[.check_salmon_numeric_integrity] Non-finite values in column '",
+                col, "' of ", file_label, ".", call. = FALSE)
+        }
+        if (any(x < 0, na.rm = TRUE)) {
+            stop("[.check_salmon_numeric_integrity] Negative values in column '",
+                col, "' of ", file_label, ".", call. = FALSE)
+        }
+    }
+    if ("EffectiveLength" %in% colnames(data) && any(data$EffectiveLength <= 0, na.rm = TRUE)) {
+        stop("[.check_salmon_numeric_integrity] EffectiveLength must be positive in ",
+            file_label, ".", call. = FALSE)
+    }
+    invisible(TRUE)
 }
 
 
@@ -139,6 +172,9 @@
             stop("[.validate_salmon_files] First file is empty (no data rows)")
         }
 
+        # Numerical integrity: no negative/non-finite quantification values
+        .check_salmon_numeric_integrity(first_data, basename(first_file))
+
         transcript_ids_first <- first_data$Name
     }, error = function(e) {
         stop("[.validate_salmon_files] Error reading first file: ", basename(first_file),
@@ -162,26 +198,42 @@
 
                 transcript_ids_current <- current_data$Name
 
-                # Check if same transcripts in all files
-                if (!identical(transcript_ids_first, transcript_ids_current)) {
-                  warnings_msg <- ""
-
-                  # Check for missing transcripts
-                  missing_in_curr <- setdiff(transcript_ids_first, transcript_ids_current)
-                  extra_in_curr <- setdiff(transcript_ids_current, transcript_ids_first)
-
+                # AUDIT S5: transcript-ID mismatch between files must HARD
+                # FAIL. The old behaviour (warning + positional matrix fill)
+                # could silently corrupt every downstream entropy value:
+                # counts from a reordered transcriptome were placed under the
+                # AUDIT S5: transcript-ID mismatch between files must HARD
+                # FAIL when the transcript SETS differ. The old behaviour
+                # (warning + positional matrix fill) could silently corrupt
+                # every downstream entropy value: counts from a reordered
+                # transcriptome were placed under the first file's transcript
+                # IDs. Reordering alone (same ID set, different row order) is
+                # NOT an error: .read_salmon_samples() reorders every file by
+                # transcript ID before assignment.
+                missing_in_curr <- setdiff(transcript_ids_first, transcript_ids_current)
+                extra_in_curr <- setdiff(transcript_ids_current, transcript_ids_first)
+                if (length(missing_in_curr) > 0 || length(extra_in_curr) > 0) {
+                  msg <- paste0("[.validate_salmon_files] Transcript ID mismatch between files (sample ",
+                    i, " = ", basename(current_file), "):\n")
                   if (length(missing_in_curr) > 0) {
-                    warnings_msg <- paste0(warnings_msg, "  Missing in file ", i,
-                      ": ", length(missing_in_curr), " transcripts\n")
+                    msg <- paste0(msg, "  Missing in file ", i, ": ", length(missing_in_curr),
+                      " transcripts (e.g. ", paste(head(missing_in_curr, 3), collapse = ", "),
+                      ")\n")
                   }
                   if (length(extra_in_curr) > 0) {
-                    warnings_msg <- paste0(warnings_msg, "  Extra in file ", i, ": ",
-                      length(extra_in_curr), " transcripts\n")
+                    msg <- paste0(msg, "  Extra in file ", i, ": ", length(extra_in_curr),
+                      " transcripts (e.g. ", paste(head(extra_in_curr, 3), collapse = ", "),
+                      ")\n")
                   }
-
-                  warning("[.validate_salmon_files] Transcript ID mismatch between files:\n",
-                    warnings_msg, "  Suggestion: Ensure all files use same transcriptome reference")
+                  msg <- paste0(msg, "  All files must use the SAME transcriptome reference with ",
+                    "identical transcript ID sets. Continuing would fill the ",
+                    "count matrix positionally and corrupt downstream entropy analysis.")
+                  stop(msg, call. = FALSE)
                 }
+
+                # Numerical integrity (audit2 §23): reject non-finite/negative
+                # quantification values before they reach the diversity engine.
+                .check_salmon_numeric_integrity(current_data, basename(current_file))
 
                 if (nrow(current_data) == 0) {
                   stop("[.validate_salmon_files] File is empty (no data rows): ",
@@ -327,7 +379,10 @@
     if (include_eff_length)
         eff_length_matrix[, 1] <- first_data$EffectiveLength
 
-    # Process remaining files
+    # AUDIT S5 (defense in depth): even when .validate_salmon_files() has
+    # already run, NEVER assign counts positionally across files with
+    # different transcript orders. Reorder every file by transcript ID,
+    # verify the reorder, and stop if any ID is missing/duplicated.
     if (n_samples > 1) {
         for (i in 2:n_samples) {
             if (verbose && i%%max(1, n_samples%/%10) == 0) {
@@ -337,6 +392,31 @@
 
             current_data <- readr::read_tsv(file_paths[i], col_types = col_spec,
                 show_col_types = FALSE)
+
+            .check_salmon_numeric_integrity(current_data, basename(file_paths[i]))
+
+            # Reorder current file to the FIRST file's transcript order
+            if (!identical(current_data$Name, transcript_ids)) {
+                if (anyDuplicated(current_data$Name)) {
+                  stop("[.read_salmon_samples] Duplicated transcript IDs in ",
+                    basename(file_paths[i]), ".", call. = FALSE)
+                }
+                idx <- match(transcript_ids, current_data$Name)
+                if (anyNA(idx)) {
+                  missing_ids <- transcript_ids[is.na(idx)]
+                  stop("[.read_salmon_samples] Transcript IDs missing in ",
+                    basename(file_paths[i]), ": ",
+                    paste(head(missing_ids, 5), collapse = ", "), " (and ",
+                    max(0, length(missing_ids) - 5), " more). ",
+                    "All files must use the same transcriptome reference.",
+                    call. = FALSE)
+                }
+                current_data <- current_data[idx, , drop = FALSE]
+            }
+            if (!identical(current_data$Name, transcript_ids)) {
+                stop("[.read_salmon_samples] Transcript ID reordering failed for ",
+                  basename(file_paths[i]), ".", call. = FALSE)
+            }
 
             # Assign counts
             counts_matrix[, i] <- current_data$NumReads

@@ -1,6 +1,12 @@
 # LMM regularization helper: performs feature selection on q-value interactions
 # before fitting mixed model. Reduces overfitting with high-dimensional
 # q-interaction terms.
+#
+# Feature selection and inference on the SAME data
+# invalidates the nominal distribution of downstream p-values. This helper is
+# therefore EXPLORATORY ONLY: `.lmm_interaction()` uses its output only for
+# descriptive messaging, never to modify the tested model. Cross-validation is
+# grouped by subject so observations of one subject cannot leak across folds.
 .lmm_regularization <- function(q_vals, entropy_vals, group_vec, subject_vec = NULL,
     regularization = c("pca", "lasso", "elasticnet")) {
     regularization <- match.arg(regularization)
@@ -43,13 +49,24 @@
         stop("Package 'glmnet' is required for LMM regularization")
     }
 
+    # Grouped cross-validation by subject to avoid leakage of
+    # within-subject q-curves across training and validation folds.
+    foldid <- NULL
+    if (!is.null(subject_vec) && length(unique(subject_vec)) >= 3) {
+        u_subj <- unique(as.character(subject_vec))
+        nfolds <- min(5, length(u_subj))
+        subj_fold <- sample(rep(seq_len(nfolds), length.out = length(u_subj)))
+        names(subj_fold) <- u_subj
+        foldid <- unname(subj_fold[as.character(subject_vec)])
+    }
+
     # Fit regularized regression to identify important q:group interactions
     alpha_val <- if (regularization == "lasso")
         1 else 0.5  # 1 for LASSO, 0.5 for Elastic Net
 
     cv_fit <- try(glmnet::cv.glmnet(x = X, y = entropy_vals, family = "gaussian",
-        alpha = alpha_val, nfolds = min(5, length(entropy_vals) - 1), standardize = TRUE),
-        silent = TRUE)
+        alpha = alpha_val, nfolds = min(5, length(entropy_vals) - 1), foldid = foldid,
+        standardize = TRUE), silent = TRUE)
 
     if (inherits(cv_fit, "try-error")) {
         return(NULL)
@@ -66,9 +83,11 @@
     }
 
     # Return the selected feature indices (these correspond to q-value
-    # interaction terms)
+    # interaction terms). EXPLORATORY ONLY: the returned selection
+    # must not be used to modify the confirmatory LMM (selection + inference
+    # on the same data invalidates nominal p-values).
     list(selected_features = selected_features, feature_names = colnames(X)[selected_features],
-        q_values = uq)
+        q_values = uq, inference_type = "exploratory")
 }
 
 ## AR(1) correlation structure helper for ordered q-values (Phase 14
@@ -81,14 +100,21 @@
 
     # AR(1) structure: Cov(eps_i,j, eps_i,k) = sigma^2 * phi^|j-k|
     # Appropriate for entropy curves where H(q) is ordered and autocorrelated.
-    # Based on validation: papers confirm AR(1) decreasing covariance structure
+    # The AR(1) index is defined over q WITHIN each
+    # subject x condition block. The legacy (subject, q) ordering interleaved
+    # A(q1), B(q1), A(q2), B(q2)... and treated it as one AR(1) series,
+    # mixing condition and q.
     tryCatch({
-        # Create time index for AR(1) ordering by q within each subject
-        df <- df[order(df$subject, df$q), ]
-        df$time_idx <- sequence(rle(as.character(df$subject))$lengths)
+        # Create time index for AR(1) ordering by q within each subject x condition
+        df$condition <- factor(as.character(df$group))
+        df <- df[order(as.character(df$subject), as.character(df$condition), df$q), , drop = FALSE]
+        # Grid index (may contain gaps when q values are missing) for the
+        # corAR1 fallback. Primary: corCAR1 over ACTUAL q distances
+        # see .build_ar1_cor() in sait_helpers.R.
+        df$time_idx <- match(df$q, sort(unique(df$q)))
 
         # Phase 15: Ensure factor levels are properly set before fitting to
-        # prevent 'los nombres no coinciden' errors in anova comparisons
+        # prevent 'names do not match' errors in anova comparisons
         if (!is.factor(df$subject)) {
             df$subject <- factor(df$subject)
         }
@@ -97,15 +123,23 @@
         }
 
         # Fit models (verbose parameter only affects messaging, not model fitting)
-        fit0_ar1 <- nlme::lme(entropy ~ q + group, random = ~1 | subject, correlation = nlme::corAR1(form = ~time_idx |
-            subject), data = df, method = "ML")
-        fit1_ar1 <- nlme::lme(entropy ~ q * group, random = ~1 | subject, correlation = nlme::corAR1(form = ~time_idx |
-            subject), data = df, method = "ML")
+        cor_builder <- try(.build_ar1_cor(df, grid_col = "time_idx"), silent = TRUE)
+        fit0_ar1 <- fit1_ar1 <- NULL
+        if (!inherits(cor_builder, "try-error") && !is.null(cor_builder)) {
+            fit0_ar1 <- try(nlme::lme(entropy ~ q + group, random = ~1 | subject,
+                correlation = cor_builder$cor_obj, data = df, method = "ML"),
+                silent = TRUE)
+            fit1_ar1 <- try(nlme::lme(entropy ~ q * group, random = ~1 | subject,
+                correlation = cor_builder$cor_obj, data = df, method = "ML"),
+                silent = TRUE)
+        }
 
-        if (!inherits(fit0_ar1, "try-error") && !inherits(fit1_ar1, "try-error")) {
+        if (!inherits(fit0_ar1, "try-error") && !inherits(fit1_ar1, "try-error") &&
+            !is.null(fit0_ar1) && !is.null(fit1_ar1)) {
             if (verbose)
                 message("[.try_lmm_ar1] AR(1) correlation structure fitted successfully")
-            return(list(fit0 = fit0_ar1, fit1 = fit1_ar1, method = "nlme_ar1"))
+            return(list(fit0 = fit0_ar1, fit1 = fit1_ar1, method = "nlme_ar1",
+                correlation_structure = cor_builder$label))
         }
         NULL
     }, error = function(e) {
@@ -214,7 +248,7 @@
         }
     }
 
-    # AUDIT FIX #16: Strategy 4 removed -- silently dropping the subject/pairing
+    # Strategy 4 removed -- silently dropping the subject/pairing
     # structure inflates Type I error and produces invalid p-values for paired designs.
     # Instead, fail explicitly so the user can adjust their data or choose a different method.
     if (verbose)
@@ -244,7 +278,7 @@
     }
 
     # Phase 15: Wrap anova in tryCatch to handle factor level mismatches
-    # gracefully This prevents 'los nombres no coinciden' errors from
+    # gracefully This prevents 'names do not match' errors from
     # propagating and crashing the workflow
     an <- tryCatch({
         stats::anova(fit0, fit1)

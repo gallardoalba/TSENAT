@@ -69,18 +69,23 @@ TSENATAnalysis <- function(se, config = list()) {
         }
     }
 
-    # Ensure sample_id column exists in colData without mutating the caller's object
-    cd <- as.data.frame(SummarizedExperiment::colData(se))
-    if (!"sample_id" %in% colnames(cd)) {
-        cd$sample_id <- colnames(se)
+    # Ensure sample_id column exists in colData WITHOUT reconstructing the
+    # SummarizedExperiment (reconstruction drops specialized structure such
+    # as rowRanges, altExps, etc.)
+    se_obj <- se
+    cd_obj <- SummarizedExperiment::colData(se_obj)
+    if (!"sample_id" %in% colnames(cd_obj)) {
+        cd_df <- as.data.frame(cd_obj)
+        sids <- colnames(se_obj)
+        if (is.null(sids) || length(sids) != nrow(cd_df)) {
+            sids <- rownames(cd_df)
+        }
+        if (is.null(sids) || length(sids) != nrow(cd_df)) {
+            sids <- as.character(seq_len(nrow(cd_df)))
+        }
+        cd_df$sample_id <- sids
+        SummarizedExperiment::colData(se_obj) <- S4Vectors::DataFrame(cd_df)
     }
-
-    se_obj <- SummarizedExperiment::SummarizedExperiment(
-        assays = SummarizedExperiment::assays(se),
-        rowData = SummarizedExperiment::rowData(se),
-        colData = S4Vectors::DataFrame(cd),
-        metadata = S4Vectors::metadata(se)
-    )
 
     # Create new object with all slots initialized
     new("TSENATAnalysis", se = se_obj, config = if (length(config) > 0)

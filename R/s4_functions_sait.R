@@ -17,6 +17,10 @@
 #' @param method \code{character}.  Statistical method (e. g. ,  'lmm',
 #'  'gam',  'gee').
 #'   If NULL, uses method from @config$method or defaults to 'lmm'.
+#'   For paired designs, \code{'gam'} dispatches to GAMM: \code{nlme::lme}
+#'   with regression splines (\code{ns(q, df = 3) x condition}), subject
+#'   random intercept and AR(1) within subject x condition (marginal F-test
+#'   for the interaction); \code{mgcv::gamm()} and standard GAM are fallbacks.
 #' @param paired \code{logical}. Whether to use paired design. Default: FALSE.
 #'   If not specified, reads from \code{@config$paired} if available.
 #' @param subject_col \code{character} or  \code{NULL}.
@@ -47,7 +51,9 @@
 #' Default: NULL (no file output).
 #' @param ... Additional arguments passed to the base LM function,
 #' including: pvalue, min_obs, assay_name, bias_correction, regularization,
-#' storey, wy_randomizations, adaptive_knots, etc.
+#' storey, wy_randomizations, adaptive_knots, block_col, strata_col,
+#' permutation_scheme (exchangeability-compatible Westfall-Young
+#' permutations), etc.
 #'
 #' @return Modified TSENATAnalysis with results in @sait_results$sait_interaction.
 #'

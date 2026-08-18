@@ -11,17 +11,22 @@
 #' correlation structure:
 #'
 #' 1. **Input Validation**: Check minimum observations, group structure, and subject IDs
-#' 2. **ARIMA Differencing**: Remove non-stationarity via first-differencing within subjects
+#' 2. **No ARIMA Differencing**: the test targets the functional
+#'    interaction on the original H(q) curve
 #' 3. **Weight Preparation**: Apply heteroscedasticity weights or bootstrap CI weights
 #' 4. **Correlation Structure Selection**: Choose AR(1), exchangeable, or independence via QIC
 #' 5. **Model Fitting**: Fit null (main effects) and alternative (interaction) models
 #' 6. **Interaction Testing**: Extract p-value with bias correction for small clusters
-#' 7. **Kauermann-Carroll Correction**: Apply HC1 bias reduction for n_clusters < 30
+#' 7. **Small-Cluster Sandwich Correction**: HC1 bias reduction for n_clusters < 30
+#'    (empirical correction inspired by Kauermann & Carroll 2001, combined
+#'    with a t-reference; NOT a literal KC estimator)
 #'
 #' ## Key References
 #'
-#' - Zimmerman & Harville (1991, S171): AR(1) for ordered covariate structures
-#' - Kauermann & Carroll (2001): Sandwich variance bias correction for small clusters
+#' - Zimmerman & Harville (1991): AR(1) for ordered covariate structures
+#' - Kauermann & Carroll (2001): inspiration for small-cluster sandwich
+#'   variance bias reduction (the implementation below is an EMPIRICAL
+#'   small-cluster correction, not the literal KC estimator)
 #' - Pan (2001): QIC model selection criterion for GEE
 #' - Mancl & DeRouen (2001): Covariate-adjusted ANOVA-type tests with GEE
 #'
@@ -31,8 +36,10 @@
 #'   directly (no random intercepts like mixed models). For AR(1), the pattern
 #'   Corr(q_i, q_j) = ρ^|i-j| accounts for ordered q-value measurements.
 #'
-#' - **Design Effect**: Multi-q measurements create effective sample size reduction
-#'   D_eff = (1 + ρ) / (1 - ρ). HC1 correction adjusts variance using n_effective = n_clusters / D_eff.
+#' - **Design Effect**: Multi-q measurements create within-cluster correlation,
+#'   quantified descriptively as D_eff (finite-m AR(1) form). It
+#'   is NOT used to rescale the sandwich variance (which would double-count the
+#'   dependence); HC1 uses the number of clusters.
 #'
 #' - **Bias Correction**: Applied when n_clusters < 30. Uses t-distribution with
 #'   df = n_clusters - 1 for conservative (Type I error-protecting) p-values.
@@ -48,8 +55,10 @@
 #'   - `'ar1'`: Autoregressive order 1, Corr(i,j) = ρ^|i-j|
 #'   - `'exchangeable'`: Equal correlation across all pairs (no ordering assumed)
 #'   - `'independence'`: Null model, no within-subject correlation
-#' @param bias_correction logical; if TRUE (default), apply Kauermann-Carroll HC1
-#'   bias reduction when n_clusters < 30. Ensures Type I error control in small samples
+#' @param bias_correction logical; if TRUE (default), apply an empirical
+#'   small-cluster sandwich (HC1) bias reduction when n_clusters < 30, with a
+#'   t-reference (df = n_clusters - p). Inspired by Kauermann & Carroll (2001)
+#'   but NOT a literal KC estimator. Ensures Type I error control in small samples
 #' @param weights numeric or NULL; optional observation weights for heteroscedasticity
 #'   (e.g., from bootstrap CI computations). If provided, takes precedence over
 #'   internal heteroscedasticity detection
@@ -57,7 +66,7 @@
 #' @return data.frame (single row) with columns:
 #'   - **gene**: gene identifier (from `g` argument)
 #'   - **p_interaction**: p-value for q × group interaction (bias-corrected if applicable)
-#'   - **p_interaction_raw**: p-value before K-C correction (if applied)
+#'   - **p_interaction_raw**: p-value before small-cluster correction (if applied)
 #'   - **n_clusters**: number of subjects/clusters in analysis
 #'   - **bias_correction_applied**: logical; whether HC1 adjustment was performed
 #'   - **correlation_structure**: selected structure ('ar1', 'exchangeable', 'independence')
@@ -68,7 +77,9 @@
 #'   - **slope_diff**: estimated group slope difference from interaction coefficient
 #'   - **design_effect_ar1**: multiplier for effective sample size (D_eff)
 #'   - **rho_ar1_estimate**: estimated AR(1) autocorrelation from residuals
-#'   - **kc_bias_correction_applied**: logical; whether K-C correction was applied
+#'   - **kc_bias_correction_applied**: logical; whether the empirical
+#'     small-cluster sandwich correction was applied (column name kept for
+#'     backwards compatibility)
 #'   - **kc_multiplier**: HC1 adjustment multiplier (n_eff / (n_eff - p))
 #'   - **n_effective**: effective sample size after design effect reduction
 #'   - **kc_method**: method applied ('hc1', 'hc3', or 'kc')
@@ -93,17 +104,20 @@
     df <- validation$df
     subject <- validation$subject
 
-    # Apply ARIMA(1,1,0) differencing for stationarity
-    # AUDIT FIX #32-33: ARIMA differencing is applied only for paired designs (subject > 1).
-    # GAM applies ARIMA for all designs; FPCA applies for all designs. Cross-method
-    # p-values are not directly comparable due to different preprocessing.
-    arima_result <- .apply_arima_differencing(df, subject)
-    df <- arima_result$df
-    subject <- arima_result$subject
-    use_arima <- arima_result$use_arima
-    df_orig_nrows <- arima_result$df_orig_nrows
-
+    # ========================================================================
+    # REMOVED ARIMA(1,1,0) differencing.
+    # ========================================================================
+    # Differencing rows sorted by (subject, q) interleaves condition and q
+    # (A(q1), B(q1), A(q2), B(q2), ...), so diff() mixes within-q condition
+    # contrasts with between-q transitions. The estimand stops being the
+    # difference between entropy curves and becomes a mixture of DeltaH terms.
+    # The GEE is therefore fitted on the ORIGINAL entropy H(q). For corstr=
+    # 'ar1', rows are ordered by subject -> condition (group) -> q so that
+    # adjacent observations within a cluster are q-adjacent within a
+    # condition, never interleaved across conditions.
     df$subject <- factor(subject)
+    df <- df[order(as.character(df$subject), as.character(df$group), df$q), , drop = FALSE]
+    use_arima <- FALSE
 
     # Prepare weights (heteroscedasticity or bootstrap CI)
     weights_result <- .prepare_gee_weights(df)
@@ -142,19 +156,33 @@
     p_interaction <- .extract_interaction_pvalue(fit_alt, n_clusters, bias_correction)
 
     # ========================================================================
-    # PHASE 7: Kauermann-Carroll Bias Correction (P7 extraction, July 2026)
+    # PHASE 7: Kauermann-Carroll Bias Correction
+    # When the interaction test is JOINT over several q:group
+    # coefficients, the joint Wald test already carries its own small-sample
+    # correction (.compute_joint_wald_pvalue uses an F approximation).
+    # Overwriting the joint p-value with a K-C correction computed on a SINGLE
+    # coefficient destroys the joint-test interpretation. K-C is only applied
+    # when the model has exactly one interaction coefficient.
     # ========================================================================
-    kc_result <- .gee_apply_kc_correction(
-        fit_alt = fit_alt, df = df,
-        p_interaction = p_interaction,
-        n_clusters = n_clusters,
-        bias_correction = bias_correction
-    )
-    p_interaction <- kc_result$p_interaction
-    kc_metadata <- kc_result$kc_metadata
+    n_ia_coefs <- .count_interaction_coefs(fit_alt)
+    if (n_ia_coefs == 1L) {
+        kc_result <- .gee_apply_kc_correction(
+            fit_alt = fit_alt, df = df,
+            p_interaction = p_interaction,
+            n_clusters = n_clusters,
+            bias_correction = bias_correction
+        )
+        p_interaction <- kc_result$p_interaction
+        kc_metadata <- kc_result$kc_metadata
+    } else {
+        kc_metadata <- list(kc_applied = FALSE, design_effect = 1, rho_ar1 = NA_real_,
+            note = if (n_ia_coefs > 1L)
+                "joint Wald test used; per-coefficient K-C skipped" else
+                "no interaction coefficients")
+    }
 
     # ========================================================================
-    # PHASE 8: Assemble result row (P7 extraction, July 2026)
+    # PHASE 8: Assemble result row
     # ========================================================================
     gee_result <- .gee_assemble_result_row(
         g = g, p_interaction = p_interaction,
@@ -169,6 +197,17 @@
     )
 
     return(gee_result)
+}
+
+# ============================================================================
+# HELPER: Count q:group interaction coefficients in fitted GEE model
+# ============================================================================
+.count_interaction_coefs <- function(fit_alt) {
+    if (inherits(fit_alt, "try-error") || is.null(fit_alt)) {
+        return(0L)
+    }
+    coef_names <- names(stats::coef(fit_alt))
+    length(coef_names[grepl("^q:", coef_names, ignore.case = TRUE)])
 }
 
 # ============================================================================
@@ -195,48 +234,6 @@
     }
 
     list(valid = TRUE, subject = subject, df = df)
-}
-
-# ============================================================================
-# HELPER: Apply ARIMA(1,1,0) differencing for stationarity
-# ============================================================================
-.apply_arima_differencing <- function(df, subject) {
-    use_arima <- FALSE
-    df_orig_nrows <- nrow(df)
-
-    if (length(unique(subject)) > 1) {
-        # Sort by subject and q for proper within-subject differencing
-        sort_idx <- order(subject, df$q)
-        df_sorted <- df[sort_idx, ]
-        subject_sorted <- subject[sort_idx]
-
-        # Compute first differences within subjects
-        df_diff_list <- list()
-        for (subj in unique(subject_sorted)) {
-            subj_idx <- which(subject_sorted == subj)
-            if (length(subj_idx) >= 2) {
-                subj_data <- df_sorted[subj_idx, ]
-                # Use the group of the later row in each difference pair.
-                # This preserves both group levels for geeglm when subjects
-                # span conditions (paired designs), unlike group[1] which
-                # collapses to a single level.
-                subj_group <- as.character(subj_data$group[-1])
-                n_diff <- nrow(subj_data) - 1
-                df_diff_list[[as.character(subj)]] <- data.frame(entropy = diff(subj_data$entropy),
-                  q = subj_data$q[-nrow(subj_data)], group = subj_group,
-                  stringsAsFactors = FALSE)
-            }
-        }
-
-        if (length(df_diff_list) > 0) {
-            df <- do.call(rbind, df_diff_list)
-            rownames(df) <- NULL
-            subject <- rep(names(df_diff_list), vapply(df_diff_list, nrow, FUN.VALUE = integer(1)))
-            use_arima <- TRUE
-        }
-    }
-
-    list(df = df, subject = subject, use_arima = use_arima, df_orig_nrows = df_orig_nrows)
 }
 
 # ============================================================================
@@ -297,7 +294,7 @@
 }
 
 # ============================================================================
-# P7 EXTRACTED: Apply Kauermann-Carroll bias correction (July 2026 refactoring)
+# Apply Kauermann-Carroll bias correction (July 2026 refactoring)
 # ============================================================================
 # Extracted from .gee_interaction() to reduce cyclomatic complexity (75→~35).
 # Handles AR(1) rho estimation, design effect computation, and K-C correction.
@@ -323,7 +320,7 @@
     residuals_alt <- residuals(fit_alt)
     if (!is.null(residuals_alt) && length(residuals_alt) > 2) {
         # Estimate AR(1) rho within each cluster (subject) and pool via
-        # Fisher z-transform (M5 fix, July 2026)
+        # Fisher z-transform
         subject_levels <- levels(df$subject)
         if (length(subject_levels) > 0 && length(residuals_alt) == nrow(df)) {
             rho_per_subject <- vapply(subject_levels, function(s) {
@@ -395,7 +392,7 @@
 }
 
 # ============================================================================
-# P7 EXTRACTED: Assemble GEE result row (July 2026 refactoring)
+# Assemble GEE result row (July 2026 refactoring)
 # ============================================================================
 # Extracted from .gee_interaction() to reduce cyclomatic complexity (75→~35).
 # Assembles all computed components into the final single-row data.frame.
@@ -472,7 +469,7 @@
         return(NA_real_)
     }
 
-    # AUDIT FIX #15: For multi-level groups, test ALL interaction coefficients
+    # For multi-level groups, test ALL interaction coefficients
     # jointly using Wald test: β' V⁻¹ β ~ χ²(df = n_coefs). Previously only the
     # first coefficient was tested, ignoring other group levels.
     if (length(ia_names) > 1 && length(ia_names) <= length(stats::coef(fit_alt))) {
@@ -533,8 +530,8 @@
         return(NA_real_)
 
     # Use t-distribution (conservative, maintains Type I error for small
-    # clusters)
-    df_corr <- max(1, n_clusters - 1)
+    # clusters). df = n_clusters - p (estimated coefficients).
+    df_corr <- max(1, n_clusters - length(stats::coef(fit_alt)))
     2 * stats::pt(abs(z_stat), df = df_corr, lower.tail = FALSE)
 }
 
@@ -573,7 +570,9 @@
 
     # Apply bias correction if specified and small clusters (threshold: 30, consistent)
     if (bias_correction && n_clusters < 30) {
-        df_corr <- max(1, n_clusters - 1)
+        # Use df = n_clusters - p (estimated coefficients) instead
+        # of n_clusters - 1 (anti-conservative for few clusters)
+        df_corr <- max(1, n_clusters - length(stats::coef(fit_alt)))
         2 * stats::pt(abs(z_stat), df = df_corr, lower.tail = FALSE)
     } else {
         2 * stats::pnorm(abs(z_stat), lower.tail = FALSE)
@@ -581,7 +580,7 @@
 }
 
 # ============================================================================
-# HELPER: Joint Wald test for multiple interaction coefficients (AUDIT FIX #15)
+# HELPER: Joint Wald test for multiple interaction coefficients
 # ============================================================================
 # Tests H0: all q:group interaction coefficients = 0 jointly
 # Uses β' V⁻¹ β ~ χ²(df = k) where k = number of interaction coefficients
@@ -605,9 +604,14 @@
     df <- length(ia_idx)
 
     if (bias_correction && n_clusters < 30) {
-        # Use F-distribution for small clusters: Wald/k ~ F(k, n_clusters - k)
+        # Use F-distribution for small clusters: Wald/k ~ F(k, n_clusters - p)
+        # where p = number of estimated coefficients. Validation (
+        # tests/testthat/test-gee-small-sample.R) showed that
+        # df2 = n_clusters - k is anti-conservative for few clusters; the
+        # n_clusters - p reference is conservative but controls the type I.
         f_stat <- wald_stat / df
-        df2 <- max(1, n_clusters - df)
+        p_model <- length(stats::coef(fit_alt))
+        df2 <- max(1, n_clusters - p_model)
         stats::pf(f_stat, df1 = df, df2 = df2, lower.tail = FALSE)
     } else {
         stats::pchisq(wald_stat, df = df, lower.tail = FALSE)
@@ -615,7 +619,7 @@
 }
 
 # ============================================================================
-# AUDIT FIX #46: GEE slope_diff = interaction coefficient (q:group), representing
+# GEE slope_diff = interaction coefficient (q:group), representing
 # the additive change in entropy per unit-q when switching groups.
 # GAM slope_diff = difference in predicted entropy slopes (ΔH/Δq) between groups.
 # These have different units and magnitudes — not directly comparable across methods.
@@ -704,14 +708,21 @@
 
 
 # ============================================================================
-# Kauermann-Carroll Bias Correction for GEE Sandwich Variance Estimation
+# Empirical Small-Cluster Sandwich Correction for GEE Variance Estimation
 # ============================================================================
 # Phase 9 Implementation (March 2026) Extended for Tsallis multi-q measurements
-# with AR(1) correlation structure References: - Kauermann & Carroll (2001). 'A
-# note on the efficiency of sandwich covariance matrix estimation.' JASA
-# 96(456): 1387-1396.  - Mancl & DeRouen (2001). 'A covariate-adjusted
-# ANOVA-type test for correlated data.' Biometrics 57(1): 126-131.  - Li &
-# Redden (2015). 'Comparing logistic and linear models: bias reduction via
+# with AR(1) correlation structure.
+#
+# AUDIT R4: this is NOT a literal Kauermann-Carroll estimator. It combines an
+# HC1-style sandwich variance multiplier, a t-reference with degrees of
+# freedom based on the number of clusters, and a descriptive AR(1) design
+# effect. It should be described as an EMPIRICAL small-cluster sandwich
+# correction (validated by Monte Carlo in test-gee-small-sample.R), not as
+# "the KC correction". References: - Kauermann & Carroll (2001). 'A note on
+# the efficiency of sandwich covariance matrix estimation.' JASA 96(456):
+# 1387-1396.  - Mancl & DeRouen (2001). 'A covariate-adjusted ANOVA-type test
+# for correlated data.' Biometrics 57(1): 126-131.  - Li & Redden (2015).
+# 'Comparing logistic and linear models: bias reduction via
 # Kauermann-Carroll adjustment.' Biometrical Journal 57(5): 808-820.
 # ============================================================================
 
@@ -787,7 +798,7 @@
 }
 
 # ============================================================================
-# MAIN: Kauermann-Carroll Bias Correction for GEE
+# MAIN: Empirical Small-Cluster Sandwich Correction for GEE
 # ============================================================================
 # @param p_value numeric; unadjusted p-value from Wald test @param z_statistic
 # numeric; Wald z-statistic (or coefficient / SE) @param vcov_sandwich_raw
@@ -850,14 +861,21 @@
         }
     }
 
-    # Effective sample size
-    n_effective <- n_clusters/design_effect
+    # The GEE sandwich estimator already accounts for
+    # within-cluster dependence in the variance. Scaling the variance again by
+    # a design-effect-reduced sample size (n_eff = n_clusters / D_eff) counts
+    # the dependence TWICE. The HC1 multiplier therefore uses the number of
+    # CLUSTERS (empirical small-cluster correction, inspired by Kauermann &
+    # Carroll 2001 but not the literal KC estimator). The design effect is
+    # retained as descriptive metadata only and never enters the variance
+    # multiplier.
+    n_effective <- n_clusters
 
     # ========================================================================
     # Decision: Apply correction?
     # ========================================================================
 
-    # Correction typically applied when n_effective < 30 (small clusters) But
+    # Correction typically applied when n_clusters < 30 (small clusters) But
     # make it data-adaptive
     correction_threshold <- 30
 
@@ -866,7 +884,7 @@
         return(list(p_value = p_value, p_raw = p_value, z_corrected = z_statistic,
             vcov_corrected = vcov_sandwich_raw, multiplier = 1, n_clusters = n_clusters,
             n_parameters = n_parameters, n_effective = n_effective, design_effect = design_effect,
-            method_applied = "none", report = sprintf("No K-C correction (n_eff=%.1f > threshold=%d)",
+            method_applied = "none", report = sprintf("No small-cluster correction (n_eff=%.1f > threshold=%d)",
                 n_effective, correction_threshold)))
     }
 
@@ -899,7 +917,7 @@
     # Recompute z-statistic and p-value with bias correction
     # ========================================================================
 
-    # AUDIT FIX #14: Actually apply vcov_corrected to recompute the test statistic.
+    # Actually apply vcov_corrected to recompute the test statistic.
     # Previously vcov_corrected was computed but discarded; only pnorm→pt was swapped.
     z_corrected <- z_statistic  # Default: no change
     p_corrected <- p_value  # Default: no change
@@ -927,9 +945,9 @@
     # ========================================================================
 
     method_label <- switch(bias_correction_method, hc1 = "HC1 (bias-reduced)", hc3 = "HC3 (leverage-adjusted)",
-        kc = "Kauermann-Carroll")
+        kc = "empirical small-cluster (KC-style)")
 
-    report <- sprintf("K-C Bias Correction (%s):\n  n_clusters=%d, n_parameters=%d\n  n_effective=%.1f (design_effect=%.2f)\n  HC multiplier=%.4f\n  p-value: %.4f -> %.4f%s",
+    report <- sprintf("Empirical small-cluster sandwich correction (%s):\n  n_clusters=%d, n_parameters=%d\n  n_effective=%.1f (design_effect=%.2f)\n  HC multiplier=%.4f\n  p-value: %.4f -> %.4f%s",
         method_label, n_clusters, n_parameters, n_effective, design_effect, multiplier,
         p_value, p_corrected, if (use_t_distribution)
             sprintf(" (df=%d, t-dist)", max(1, n_clusters - 1)) else " (normal)")
@@ -980,11 +998,11 @@
 # GEE interaction helper for calculate_sait_interaction Generalized Estimating
 # Equations (GEE) with AR(1) correlation structure for q-dependent entropy
 # measurements. GEE is robust for correlated data and doesn't assume normality
-# of random effects.  Paper S171 (Zimmerman & Harville, 1991): 'Linear Models
+# of random effects.  Zimmerman & Harville (1991): 'Linear Models
 # with Generalized AR(1) Covariance Structure for Longitudinal and Spatial
 # Data' validates AR(1) for ordered covariate structures (like q-values).
-# Papers S168-S170: Theoretical foundation and empirical estimation of AR(1)
-# parameters.  TEST L.1.6: Confirms q-value correlation follows AR(1) pattern
+# Grunwald, Hyndman & Tedesco (2000): theoretical foundation and empirical
+# estimation of AR(1) parameters.  TEST L.1.6: Confirms q-value correlation follows AR(1) pattern
 # (rho(k) = phi^|k|).  @param df data.frame with columns: entropy, q, group,
 # subject (if paired) @param q_vals numeric vector of q values used Helper:
 # Compare GEE correlation structures and select best via QIC Purpose: Validate
@@ -1051,7 +1069,7 @@
                 corr_estimate <- as.numeric(fit_try$geese$alpha[1])
             }
 
-            # AUDIT FIX #13: Pan (2001) QIC = -2*quasi_ll + 2*trace(solve(V_naive) %*% V_robust)
+            # Pan (2001) QIC = -2*quasi_ll + 2*trace(solve(V_naive) %*% V_robust)
             # where V_naive is the model-based covariance and V_robust is the sandwich estimator.
             # The previous penalty (1*log(n_obs) for ar1/exchangeable, 0 for independence)
             # was not Pan's QIC and biased selection toward independence.

@@ -12,6 +12,7 @@ plot_expression(
   output_file = NULL,
   metric = c("median", "mean", "variance", "iqr"),
   use_tpm = TRUE,
+  quantity = c("abundance", "usage"),
   width = NULL,
   height = NULL,
   fontsize = 16,
@@ -56,6 +57,11 @@ Requires TPM data
 in metadata from `build_analysis()` or `.build_se()` with `tpm`
 parameter.
   Raises error if TPM not available and `use_tpm = TRUE`.}
+
+\item{quantity}{\code{character}. Quantity to visualize:
+`"abundance"` plots raw counts (or TPM when `use_tpm = TRUE`),
+`"usage"` plots each transcript's proportion of its gene total per
+sample (default: `"abundance"`).}
 
 \item{width}{\code{numeric} or \code{NULL}. Output image width in inches. 
 If NULL, automatically calculated based on number of genes (default: ~13

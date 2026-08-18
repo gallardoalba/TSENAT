@@ -133,10 +133,10 @@ summary.tsenat_bootstrap_ci <- function(object, ...) {
     stats <- summary(object$bootstrap_dist)
     message(paste(capture.output(str(stats)), collapse = "\n"))
 
-    # Display diagnostics if available (papers S111, S114)
+    # Display diagnostics if available (Zhang & Cao 2023; Friedl & Stampfer 2002)
     if (!is.null(object$diagnostics)) {
         message("")
-        message("=== CI Quality Diagnostics (papers S111, S114) ===")
+        message("=== CI Quality Diagnostics (jackknife resampling, e.g., Zhang & Cao 2023) ===")
         message("Effective sample size: ", sprintf("%.1f", object$diagnostics$effective_sample_size),
             " (>= n * 0.5 is good)")
         message("Skewness: ", sprintf("%.4f", object$diagnostics$skewness), " (|.| > 2 suggests unreliability)")
@@ -183,7 +183,7 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
 #' Compute bootstrap CIs leaving out each observation and assess stability.
 #' JOB is a hybrid approach combining jackknife (leave-one-out) validation with
 #' bootstrap confidence intervals, providing more robust estimates when data
-#' is limited (paper S111).
+#' is limited (Zhang & Cao 2023).
 #'
 #' @param x Numeric vector: original transcript counts
 #' @param q Numeric: Tsallis entropy parameter
@@ -206,7 +206,7 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
 #'   }
 #'
 #' @details
-#' JOB Procedure (paper S111):
+#' JOB Procedure (Zhang & Cao 2023):
 #' 1. Compute bootstrap CI on full dataset
 #' 2. For each observation i, remove it and compute bootstrap CI on
 #' remaining data
@@ -532,8 +532,9 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
     acf_1 <- max(-0.999, min(0.999, acf_1))  # Bound to (-1, 1)
 
     # Effective sample size accounting for autocorrelation magnitude Uses
-    # absolute value following GEE standard (Liang & Zeger, 2001; S046) and
-    # modern variance estimation methodology (S127, S044, S051, S200, S041).
+    # absolute value following GEE standard (Liang & Zeger, 2001; Pan 2001) and
+    # modern variance estimation methodology (Lai et al. 2011; Demidenko 2013;
+    # Bates et al. 2015; Li et al. 2021; Hardin & Hilbe 2013).
     # Correlation magnitude (not sign) affects variance structure
     # symmetrically.
     n_eff <- n/(1 + 2 * abs(acf_1))

@@ -1,3 +1,4 @@
+
 ################################################################################
 #' Internal: Core Tsallis entropy calculation (consolidated)
 #' 
@@ -9,13 +10,18 @@
 #' @param q Numeric. Generalization parameter. Default: 1.0 (Shannon entropy)
 #' @param norm Logical. Normalize by maximum entropy. Default: FALSE
 #' @param log_base Numeric. Logarithm base. Default: exp(1) (natural log)
-#' @param q_tol Numeric. Tolerance for detecting q=1 case. Default: 1e-6
+#' @param q_tol Numeric. Tolerance for detecting q=1 case. Default: TSENAT_Q_TOL (1e-6)
+#' @param n_present Integer or NULL. Raw support count (number of categories
+#' with positive RAW counts, BEFORE pseudocount regularization). When not NULL,
+#' the q=0 branch returns n_present - 1 instead of counting positive
+#' proportions, so pseudocounts never alter the q=0 support statistic (audit3).
 #'
 #' @return Numeric. Entropy value
 #'
 
 #' @noRd
-.entropy_core <- function(proportions, q = 1, norm = FALSE, log_base = exp(1), q_tol = 1e-06) {
+.entropy_core <- function(proportions, q = 1, norm = FALSE, log_base = exp(1), q_tol = TSENAT_Q_TOL,
+    n_present = NULL) {
     # Input validation
     if (!is.numeric(proportions) || length(proportions) == 0) {
         return(NA_real_)
@@ -35,9 +41,15 @@
         stop("q must be non-negative")
     }
 
-        # Filter out only negative values (zeros contribute 0 to entropy)
-    # Filter out only negative values (zeros contribute 0 to entropy)
-    # AUDIT FIX R15: Removed >1e-15 threshold — zeros are valid, consistent with C++ fix #17
+    # Negative proportions are invalid input: silently discarding them would
+    # compute entropy on a different abundance vector than the user supplied
+    # (audit 2026-08-17: reject instead of filter).
+    if (any(proportions < 0)) {
+        stop("Proportions must be non-negative.", call. = FALSE)
+    }
+
+    # Keep only positive proportions (zeros contribute 0 to entropy).
+    # Removed >1e-15 threshold — zeros are valid, consistent with C++ fix #17
     p_nonzero <- proportions[proportions >= 0]
 
     if (length(p_nonzero) == 0) {
@@ -51,13 +63,16 @@
     # Mathematically: S_0 = (1 - Σp_i^0)/(-1) = n_present - 1 (Tsallis 1988).
     # NOTE: This is the Tsallis ENTROPY (n_present-1), NOT the Hill number/effective
     # richness D_0 = n. The entropy value n_present-1 is consistent with the C++
-    # implementation (entropy_cpp, audit fix #5).
-    # AUDIT FIX R13: Changed from length(p) to length(p)-1.
-    # AUDIT FIX July 2026: Count only species with p > 0 (zeros contribute nothing
+    # implementation (entropy_cpp).
+    # Changed from length(p) to length(p)-1.
+    # Count only species with p > 0 (zeros contribute nothing
     # to species richness). Using sum(p > 0) instead of length(p) to exclude
     # zero-proportion isoforms.
     if (q < q_tol) {
-        H <- sum(p > 0) - 1
+        # AUDIT3 RED 2: q=0 uses RAW support (pre-pseudocount) when known, so
+        # pseudocount regularization never inflates the support statistic to
+        # the annotated universe.
+        H <- (if (!is.null(n_present)) n_present else sum(p > 0)) - 1
         return(H)
     }
 
@@ -72,14 +87,24 @@
         # The Tsallis formula (1 - Σp^q)/(q-1) is scale-invariant and does
         # not use a logarithm base. Only Shannon entropy (q→1 limit) uses
         # log_base for cross-study comparability.
-        H <- (1 - sum(p^q))/(q - 1)
+        # Numerically stable evaluation near q = 1. The raw
+        # form (1 - Σp^q)/(q-1) becomes 0/0 as q→1. With t = q-1 and
+        # Σ p exp(t log p) = 1 + Σ p expm1(t log p), the entropy equals
+        # -Σ p expm1(t log p) / t, which is stable for arbitrarily small t.
+        p_pos <- p[p > 0]
+        t_q <- q - 1
+        if (abs(t_q) < 1e-07) {
+            H <- -sum(p_pos * log(p_pos))/log(log_base)
+        } else {
+            H <- -sum(p_pos * expm1(t_q * log(p_pos)))/t_q
+        }
     }
 
     # Normalize by maximum entropy if requested
     if (norm) {
         n <- length(p)
         if (q < q_tol) {
-            # AUDIT FIX R14: Tsallis q=0 max = n - 1, not log(n)
+            # Tsallis q=0 max = n - 1, not log(n)
             H_max <- length(p) - 1
         } else if (abs(q - 1) < q_tol) {
             H_max <- log(n)/log(log_base)
@@ -96,6 +121,24 @@
 
     return(H)
 }
+
+################################################################################
+# SINGLE SOURCE OF TRUTH: q-tolerance for the entropy layer
+#
+# Previously .entropy_core() used q_tol = 1e-6 while .calc_S()/
+# .calc_D() used sqrt(.Machine$double.eps) (~1.5e-8), so the same conceptual
+# quantity could be evaluated differently depending on the internal route
+# (e.g. .entropy_core(x, q = 1e-7) returned S_0 but
+# .calculate_tsallis_entropy(x, q = 1e-7) returned S(1e-7)).
+#
+# TSENAT_Q_TOL is the ONE tolerance used by the entropy layer to decide
+#   q ~ 0  -> Tsallis S_0 = n_present - 1  (support convention)
+#   q ~ 1  -> Shannon limit
+# The divergence layer keeps its own documented DIVERGENCE_Q_TOL = 1e-10
+# (validated against the C++ kernels in test-divergence-kernel-validation.R).
+################################################################################
+TSENAT_Q_TOL <- 1e-06
+
 
 #' Internal: Vectorized Tsallis entropy calculation
 #'
@@ -122,13 +165,15 @@
 
     # Apply to each row
     entropy_vals <- apply(counts, 1, function(row) {
+        # Raw support BEFORE pseudocount (q=0 policy)
+        support_raw <- sum(row > 0)
         # Add pseudocount and normalize
         total <- sum(row, na.rm = TRUE) + length(row) * pseudocount
         if (total <= 0)
             return(NA_real_)
 
         p <- (row + pseudocount)/total
-        .entropy_core(p, q = q, norm = norm, log_base = log_base)
+        .entropy_core(p, q = q, norm = norm, log_base = log_base, n_present = support_raw)
     })
 
     return(unname(entropy_vals))
@@ -141,18 +186,18 @@
 #' @param n_species Integer. Number of species
 #' @param q Numeric. Generalization parameter. Default: 1.0
 #' @param log_base Numeric. Logarithm base. Default: exp(1)
-#' @param q_tol Numeric. Tolerance for q=1 detection. Default: 1e-6
+#' @param q_tol Numeric. Tolerance for q=1 detection. Default: TSENAT_Q_TOL (1e-6)
 #'
 #' @return Numeric. Maximum entropy value
 #'
 
 #' @noRd
-.entropy_max <- function(n_species, q = 1, log_base = exp(1), q_tol = 1e-06) {
+.entropy_max <- function(n_species, q = 1, log_base = exp(1), q_tol = TSENAT_Q_TOL) {
     if (n_species < 1)
         return(NA_real_)
 
     if (q < q_tol) {
-        # AUDIT FIX July 2026: Tsallis q=0 max = n_species - 1 (not n_species).
+        # Tsallis q=0 max = n_species - 1 (not n_species).
         # The maximum Tsallis entropy at q=0 for n species is n-1, achieved
         # when all n species have equal (non-zero) proportions.  Using n_species
         # would cause inconsistent normalization with .entropy_core() which
@@ -183,7 +228,7 @@
 #' @param log_base Numeric. Logarithm base. Default: exp(1) (natural log)
 #' @param pseudocount Numeric. Add to each count before normalization.
 #' Default: 0
-#' @param q_tol Numeric. Tolerance for detecting q=1 case. Default: 1e-6
+#' @param q_tol Numeric. Tolerance for detecting q=1 case. Default: TSENAT_Q_TOL (1e-6)
 #'
 #' @return Numeric scalar: entropy value
 #'
@@ -193,7 +238,7 @@
 #'
 #' @noRd
 .entropy_single <- function(counts, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0,
-    q_tol = 1e-06) {
+    q_tol = TSENAT_Q_TOL) {
     # Pseudocount contract: .entropy_single adds pseudocount and normalizes to
     # proportions before calling .entropy_core. .entropy_core expects already-
     # proportioned input with no pseudocount handling. .entropy_vectorized also
@@ -205,16 +250,18 @@
     if (total <= 0)
         return(NA_real_)
 
+    # Raw support BEFORE pseudocount (q=0 policy, audit3)
+    support_raw <- sum(counts > 0)
+
     p <- (counts + pseudocount)/total
     n <- length(p)
 
     # Calculate entropy using standardized core logic
     if (q < q_tol) {
-        # Tsallis entropy at q=0: S_0 = n_nonzero - 1
-        # Consistent with .entropy_core() (AUDIT FIX R13) and entropy_cpp
-        # (AUDIT FIX #5).  Not the Hill number / effective richness D_0 = n.
-        p_nonzero <- p[p > 0]
-        entropy <- length(p_nonzero) - 1
+        # Tsallis entropy at q=0: S_0 = n_nonzero - 1 on RAW support, so a
+        # positive pseudocount never inflates richness to the annotated
+        # universe.
+        entropy <- support_raw - 1
     } else if (abs(q - 1) < q_tol) {
         # Shannon entropy as q -> 1
         p_nonzero <- p[p > 0]
@@ -226,7 +273,17 @@
     } else {
         # Generalized Tsallis entropy: (1 - sum(p^q)) / (q-1) [log_base NOT
         # applied]
-        entropy <- (1/(q - 1)) * (1 - sum(p^q))
+        # Stable evaluation near q = 1 via
+        # H = -Σ p expm1(t log p) / t with t = q - 1.
+        p_nonzero <- p[p > 0]
+        t_q <- q - 1
+        if (abs(t_q) < 1e-07) {
+            entropy <- if (length(p_nonzero) > 0) {
+                -sum(p_nonzero * log(p_nonzero)/log(log_base))
+            } else 0
+        } else {
+            entropy <- -sum(p_nonzero * expm1(t_q * log(p_nonzero)))/t_q
+        }
     }
 
     # Normalize to [0, 1] if requested

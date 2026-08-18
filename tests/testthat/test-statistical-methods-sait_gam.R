@@ -296,7 +296,13 @@ test_that(".fit_gamm_ar1_single handles simple GAMM fitting", {
     test_data <- create_gam_test_data(n_samples = 3, n_q = 6)
     df <- test_data$df
     df$subject <- rep(1:3, each = 6)
-    df$obs_seq <- rep(1:6, 3)
+    # AR(1) is now corAR1(~obs_seq | subject/condition);
+    # the condition column and per-(subject, condition) obs_seq are required.
+    df$condition <- factor(df$group)
+    df <- df[order(df$subject, df$condition, df$q), ]
+    df$obs_seq <- unlist(lapply(
+        rle(paste(as.character(df$subject), as.character(df$condition)))$lengths,
+        seq_len))
     
     formula <- entropy ~ group + s(q, bs = "tp", k = 3)
     
@@ -1258,7 +1264,7 @@ test_that("GAM works with continuous q-value patterns", {
 # GAM Bias Correction Tests
 # ============================================================================
 
-context("GAM Bias Correction for Small Samples (C071)")
+context("GAM Bias Correction for Small Samples (Hastie & Tibshirani 1990)")
 
 # Helper function to create test SummarizedExperiment with small samples
 create_test_se_small_gam <- function(n_samples = 12, n_genes = 5, seed = 42) {
@@ -2140,4 +2146,38 @@ test_that(".compare_gam_models handles models with different smooth terms", {
         expect_true(is.list(result))
         expect_true(is.numeric(result$p_interaction) || is.na(result$p_interaction))
     }
+})
+
+# ════════════════════════════════════════════════════════════════════════════════
+# Fix (2026-08): p-value underflow and effect size in the lme_ns_car1 path
+# (nlme::lme + ns(q, df=3) * condition with CAR(1) over actual q distances)
+# ════════════════════════════════════════════════════════════════════════════════
+
+test_that(".gam_interaction lme path does not underflow p to 0 on strong signal", {
+    skip_if_not_installed("nlme")
+    skip_if_not_installed("splines")
+
+    set.seed(31)
+    n_q <- 8L
+    n_sub <- 6L
+    q_vals <- seq(0.1, 2, length.out = n_q)
+    df <- do.call(rbind, lapply(seq_len(n_sub), function(s) {
+        rbind(
+            data.frame(entropy = 1 + 0.05 * q_vals + rnorm(n_q, sd = 1e-04),
+                q = q_vals, group = "A", subject = paste0("S", s)),
+            data.frame(entropy = 1 + 1.5 * q_vals + rnorm(n_q, sd = 1e-04),
+                q = q_vals, group = "B", subject = paste0("S", s))
+        )
+    }))
+
+    res <- suppressWarnings(TSENAT:::.gam_interaction(df, q_vals = rep(q_vals, 2 * n_sub),
+        g = "g_strong", subject = df$subject,
+        regularization = "pca", bias_correction = FALSE))
+
+    expect_true(is.data.frame(res))
+    expect_true(res$p_interaction > 0)          # never 0 due to underflow
+    expect_true(res$p_interaction < 0.05)       # strong signal detected
+    expect_true(!is.na(res$effect_size))        # pseudo-R² from the lme path
+    expect_true(res$effect_size >= 0 && res$effect_size <= 1)
+    expect_identical(res$fit_method, "lme_ns_car1")
 })

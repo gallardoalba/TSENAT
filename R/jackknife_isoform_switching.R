@@ -471,6 +471,13 @@
     # Apply FDR correction first
     results_per_gene <- .jis_apply_fdr(results_per_gene, all_pvalues)
 
+    # Precompute gene -> gene_name map ONCE (O(T)); avoids rescanning rowData
+    # for every gene (O(G*T)).
+    gene_name_map <- NULL
+    if ("gene_name" %in% colnames(rowData(se))) {
+        gene_name_map <- setNames(as.character(rowData(se)$gene_name), as.character(rowData(se)[[gene_col]]))
+    }
+
     # Build transcript-level statistics
     all_transcript_stats <- do.call(rbind, lapply(names(results_per_gene), function(gene) {
         res <- results_per_gene[[gene]]
@@ -480,11 +487,11 @@
             0)
             res$delta_pvalue else rep(NA_real_, length(res$transcript_ids))
 
-        # Extract gene name if available
+        # Extract gene name if available (O(1) map lookup)
         gene_name <- gene
-        if ("gene_name" %in% colnames(rowData(se))) {
-            gn <- rowData(se)[which(rowData(se)[[gene_col]] == gene)[1], "gene_name"]
-            if (!is.na(gn))
+        if (!is.null(gene_name_map)) {
+            gn <- gene_name_map[[as.character(gene)]]
+            if (!is.null(gn) && !is.na(gn))
                 gene_name <- as.character(gn)
         }
 
@@ -502,9 +509,9 @@
         res <- results_per_gene[[gene]]
         delta_vals <- res$delta_influence[is.finite(res$delta_influence)]
         gene_name <- gene
-        if ("gene_name" %in% colnames(rowData(se))) {
-            gn <- rowData(se)[which(rowData(se)[[gene_col]] == gene)[1], "gene_name"]
-            if (!is.na(gn))
+        if (!is.null(gene_name_map)) {
+            gn <- gene_name_map[[as.character(gene)]]
+            if (!is.null(gn) && !is.na(gn))
                 gene_name <- as.character(gn)
         }
         data.frame(gene = gene, gene_name = gene_name, n_transcripts = length(res$transcript_ids),
@@ -700,11 +707,11 @@
         # Normalize by column (sample): divide each column by its total
         p <- t(t(counts)/col_sums_safe)
 
-        # AUDIT FIX R9: Use tolerance for q == 1 comparison (consistent with C++)
-        q_tol <- 1e-6
+        # Use tolerance for q == 1 comparison (consistent with C++)
+        q_tol <- TSENAT_Q_TOL
         if (abs(q - 1) < q_tol) {
             # Shannon entropy: H = -sum(p_i * log(p_i))
-            # AUDIT FIX R11: Use scale-relative epsilon based on actual probability magnitudes
+            # Use scale-relative epsilon based on actual probability magnitudes
             eps <- max(1e-15, min(p[p > 0]) * 1e-3)
             if (log_base == exp(1)) {
                 h <- -colSums(p * log(pmax(p, eps)))
@@ -712,7 +719,7 @@
                 h <- -colSums(p * log(pmax(p, eps)))/log(log_base)
             }
         } else if (abs(q) < q_tol) {
-            # AUDIT FIX R12: q=0 species richness (S_0 = n-1)
+            # q=0 species richness (S_0 = n-1)
             n_nonzero <- colSums(p > 1e-15)
             h <- n_nonzero - 1
         } else {
@@ -767,7 +774,7 @@
     bootstrap_deltas_matrix <- matrix(nrow = nboot, ncol = n_tx)
 
     for (b in seq_len(nboot)) {
-        # AUDIT FIX #22 + R8: Use explicit paired flag (passed from caller)
+        # Use explicit paired flag (passed from caller)
         # rather than column-count heuristic. Equal ncol does not guarantee pairing.
         if (isTRUE(paired)) {
             # Guard: paired bootstrap requires column-aligned matrices
@@ -801,7 +808,7 @@
     ci_upper <- apply(bootstrap_deltas_matrix, 2, function(x) quantile(x, 1 - alpha/2,
         na.rm = TRUE, type = 1))
 
-    # AUDIT FIX #7: Standard bootstrap hypothesis test with null-centering.
+    # Standard bootstrap hypothesis test with null-centering.
     # Center by subtracting mean, then p = proportion of |centered| >= |observed|.
     pvalues <- numeric(n_tx)
     for (i in seq_len(n_tx)) {

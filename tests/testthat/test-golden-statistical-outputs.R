@@ -206,12 +206,11 @@ test_that("entropy of all-NA returns NA", {
     expect_true(is.na(.ent(c(NA, NA, NA))))
 })
 
-test_that("entropy filters out negative proportions and computes on valid ones", {
-    # Negative values are filtered; entropy computed on remaining valid proportions
-    val <- .ent(c(-0.1, 0.5, 0.6))
-    expect_true(is.finite(val))
-    # Only (0.5, 0.6) remain, normalized to (0.5/1.1, 0.6/1.1)
-    expect_true(val > 0)
+test_that("entropy rejects negative proportions instead of silently filtering", {
+    # Negative values are invalid input: silently discarding them would
+    # compute entropy on a different abundance vector than the user supplied
+    # (audit 2026-08-17).
+    expect_error(.ent(c(-0.1, 0.5, 0.6)), "non-negative")
 })
 
 test_that("entropy rejects negative q", {

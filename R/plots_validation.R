@@ -27,11 +27,11 @@
     }
 
     if (nrow(se) == 0) {
-        stop("SummarizedExperiment has no rows (samples)", call. = FALSE)
+        stop("SummarizedExperiment has no rows (genes)", call. = FALSE)
     }
 
     if (ncol(se) == 0) {
-        stop("SummarizedExperiment has no columns (genes)", call. = FALSE)
+        stop("SummarizedExperiment has no columns (samples)", call. = FALSE)
     }
 
     # Check for diversity assay

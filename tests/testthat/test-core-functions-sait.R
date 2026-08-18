@@ -950,7 +950,7 @@ test_that(".fit_all_genes returns data.frame or empty frame", {
     )
     
     # Test with larger sample and realistic variation
-    result <- tryCatch(
+    result <- suppressWarnings(tryCatch(
         TSENAT:::.fit_all_genes(
             mat = mat,
             se = se,
@@ -968,7 +968,7 @@ test_that(".fit_all_genes returns data.frame or empty frame", {
             adaptive_knots = FALSE
         ),
         error = function(e) data.frame()
-    )
+    ))
     
     expect_true(is.data.frame(result))
 })

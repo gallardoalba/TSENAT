@@ -293,11 +293,14 @@ test_that("SAIT results are subsetted correctly (residuals and fitted values)", 
 test_that("Divergence results (SummarizedExperiment) are subsetted correctly", {
   analysis <- .create_test_analysis(n_genes = 20, n_samples = 10)
   
+  ncol_div_before <- ncol(analysis@divergence_results$tsallis)
+  
   subset_obj <- analysis[1:5, 1:3]
   
-  # Check divergence SE subsetting
+  # Divergence rows = genes (subset by i), columns = q-VALUES (preserved:
+  # the second index refers to SAMPLES and must not shrink the q axis)
   expect_equal(nrow(subset_obj@divergence_results$tsallis), 5)
-  expect_equal(ncol(subset_obj@divergence_results$tsallis), 3)
+  expect_equal(ncol(subset_obj@divergence_results$tsallis), ncol_div_before)
 })
 
 # ===========================================================================

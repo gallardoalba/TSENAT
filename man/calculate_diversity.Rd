@@ -7,7 +7,7 @@
 calculate_diversity(
   analysis,
   q = NULL,
-  norm = TRUE,
+  norm = NULL,
   norm_method = NULL,
   reference_group = NULL,
   verbose = NULL,
@@ -40,17 +40,19 @@ TRUE,  FALSE,  'none',  'range',  'zscore',  'log_odds_ratio',
  If NULL, reads from \code{@config$norm} or defaults to TRUE.}
 
 \item{norm_method}{\code{character}.
- Post-hoc normalization method applied after diversity computation.
-  Options:
-  \itemize{
-    \item \code{'default'} - Simple normalization by theoretical maximum (current behavior)
-    \item \code{'zscore'} - Z-score normalization per q-value
-    \item \code{'log_odds_ratio'} - Log-odds ratio relative to max entropy (q and 
-isoform-aware)
-    \item \code{'relative_reference'} - Divide by reference group mean (requires reference_group)
-    \item \code{NULL} - No post-hoc normalization (default)
-  }
-  If NULL, reads from \code{@config$norm_method} if available.}
+Post-hoc normalization method applied after diversity computation.
+ Options:
+ \itemize{
+   \item \code{'default'} - Simple normalization by theoretical maximum (current behavior)
+   \item \code{'zscore'} - Z-score normalization per q-value
+   \item \code{'log_odds_ratio'} - Log-ratio of entropy to the uniform maximum
+ (q and isoform-aware). Values are <= 0: 0 = uniform, < 0 = more
+ concentrated. Name kept for backwards compatibility; this is a
+ log-relative-entropy ratio, not an odds ratio.
+   \item \code{'relative_reference'} - Divide by reference group mean (requires reference_group)
+   \item \code{NULL} - No post-hoc normalization (default)
+ }
+ If NULL, reads from \code{@config$norm_method} if available.}
 
 \item{reference_group}{\code{character}.
  For \code{norm_method = 'relative_reference'},  
@@ -180,6 +182,14 @@ This wrapper calls \code{.calculate_diversity()} once per q-value, storing
 results as SummarizedExperiment objects. It extracts key parameters from
 \code{analysis@config} with 
 priority resolution (explicit > \code{@config} > default).
+
+**Counts, TPM and effective length:**
+The wrapper always computes entropy from the RAW count assay with
+effective-length correction (`tpm = FALSE` internally). The TPM matrix
+stored in metadata by \code{build_analysis()} is used only for
+filtering/QC (e.g., \code{filter_analysis()}). Because TPM already
+incorporates effective-length normalization, the two are never combined in
+a single computation (combining them at the core level is a hard error).
 
 **Diversity Spectrum Computation:**
 By default, this function computes and saves a diversity spectrum (aggregated

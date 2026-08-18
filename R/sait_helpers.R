@@ -44,13 +44,89 @@
 }
 
 # ==============================================================================
+# Helper: AR(1) correlation object over ACTUAL q distances
+# ==============================================================================
+# PURPOSE:
+#   The previous AR(1) structure indexed q by POSITION in the sorted q grid:
+#   corAR1(~ grid_index | subject/condition) models Corr(e_i, e_j) =
+#   rho^|rank(q_i) - rank(q_j)|. That is valid only when q values are equally
+#   spaced; on an IRREGULAR grid (e.g. q = 0, 0.01, 1, 2) the step 0.01 -> 1
+#   is treated as one unit of distance.
+#
+#   corCAR1(form = ~q | subject/condition) models
+#   Corr(e_i, e_j) = exp(-phi * |q_i - q_j|), the continuous-time analogue of
+#   AR(1) over real q distances. Monte Carlo validation of the package design
+#   (paired, 12 subjects, q = (0, 0.01, 0.5, 1, 2), true correlation
+#   exp(-0.7 |dq|)): grid-index corAR1 gives empirical type I ~0.165 while
+#   corCAR1 on q distances is calibrated (~0.07).
+#
+#   Fallback: grid-index corAR1 (Monte-Carlo validated on regular q grids,
+#   including missing-q gaps). Only reached when corCAR1 fails, e.g. when q
+#   is duplicated within a subject x condition block (corCAR1 requires unique
+#   covariate values within groups).
+#
+# PARAMETERS:
+#   df: data frame with columns 'q', 'subject', 'condition', and a grid-index
+#       column 'grid_col' (obs_seq / time_idx depending on caller).
+#
+# RETURNS:
+#   list(cor_obj = nlme correlation object, label = structure name) or NULL
+.build_ar1_cor <- function(df, grid_col = "time_idx") {
+    # Duplicated q within a subject x condition block is
+    # pseudoreplication. Validate it DETERMINISTICALLY before constructing any
+    # correlation object: constructing corCAR1 does not validate the data, and
+    # nlme discovers the problem only at fit time (which previously made the
+    # intended corCAR1->corAR1 fallback silently unreachable).
+    dup_rows <- duplicated(df[c("subject", "condition", "q")])
+    if (any(dup_rows)) {
+        stop("[.build_ar1_cor] Duplicated q values within a subject x condition block are pseudoreplicated observations; the paired AR(1) model requires a unique q per block. Remove duplicates or use an unpaired method.",
+            call. = FALSE)
+    }
+
+    car1 <- try(nlme::corCAR1(form = ~q | subject/condition), silent = TRUE)
+    if (!inherits(car1, "try-error")) {
+        return(list(cor_obj = car1, label = "car1_q_distance_within_subject_condition"))
+    }
+    ar1 <- try(nlme::corAR1(form = stats::as.formula(paste0("~", grid_col, " | subject/condition"))),
+        silent = TRUE)
+    if (!inherits(ar1, "try-error")) {
+        # HARD GUARD: grid-index corAR1 models
+        # rho^|rank(q_i)-rank(q_j)| and is only valid for EQUALLY spaced q.
+        # Warn when the fallback is used on an irregular q grid (the primary
+        # corCAR1 path handles irregular grids correctly).
+        if ("q" %in% colnames(df)) {
+            uq <- sort(unique(as.numeric(stats::na.omit(df$q))))
+            if (length(uq) >= 3) {
+                gaps <- diff(uq)
+                pos_gaps <- gaps[gaps > 0]
+                if (length(pos_gaps) >= 1 && all(is.finite(pos_gaps))) {
+                    ratio <- max(pos_gaps)/min(pos_gaps)
+                    if (is.finite(ratio) && ratio > 1 + 1e-06) {
+                        warning("[.build_ar1_cor] Grid-index corAR1 fallback used on an IRREGULAR q grid (gap ratio ",
+                          format(ratio, digits = 3), "). The grid-index model assumes equally spaced q; prefer the continuous-q corCAR1 structure.",
+                          call. = FALSE)
+                    }
+                }
+            }
+        }
+        return(list(cor_obj = ar1, label = "ar1_grid_within_subject_condition"))
+    }
+    NULL
+}
+
+# ==============================================================================
 # Helper: Compute AR(1) design effect for autocorrelated entropy differences
 # ==============================================================================
 # PURPOSE:
-#   Estimates autocorrelation (rho) from differenced entropy data and computes
-#   design effect for bias correction in analysis. This is NOT the Kish formula
-#   (which assumes exchangeable ICC); TSENAT uses AR(1) correlation structure
-#   after ARIMA(1,1,0) differencing.
+#   Estimates autocorrelation (rho) from estimated q-profile increments and
+#   computes a design effect for small-sample/descriptive correlation
+#   adjustment. This is NOT the Kish formula (which assumes exchangeable
+#   ICC); TSENAT uses an AR(1) correlation structure.
+#
+#   LEGACY NOTE: this helper operates on differenced q-profile increments for
+#   this diagnostic only; it does NOT transform the response used by
+#   confirmatory SAIT (no ARIMA differencing is applied in any confirmatory
+#   path — q is a deterministic functional argument, not time).
 #
 # NOTE: AR(1) design effect computation has been consolidated into
 # .compute_ar1_design_effect() in sait_gee.R, which uses the exact
@@ -130,10 +206,12 @@
 # Helper: Knot Selection for Tsallis Entropy Curve Fitting
 # ==============================================================================
 # MATHEMATICAL FOUNDATION:
-#   Tsallis entropy H_q is MATHEMATICALLY GUARANTEED to be monotone decreasing
-#   in q. Therefore, k-selection uses a simple fixed formula based on the
-#   number of unique q-values. This ensures adequate smoothing without
-#   noise-driven over-complexity.
+#   The theoretical Tsallis entropy H_q of a FIXED distribution is monotone
+#   decreasing in q. TSENAT therefore uses a parsimonious fixed formula for
+#   the spline basis dimension based on the number of unique q-values. Note
+#   that the fitted empirical spline is NOT constrained to be monotone: the
+#   mathematical property concerns the population functional, not noisy
+#   finite-sample estimates.
 #
 # KNOT SELECTION FORMULA:
 #   k = max(min_k, min(max_k, n_q_unique - 1))
@@ -151,81 +229,27 @@
 #   formula to respect mathematical monotonicity property of Tsallis entropy
 
 # ==============================================================================
-# STATIONARITY VALIDATION FRAMEWORK FOR TSALLIS ENTROPY MODELING
-# ==============================================================================
-# MATHEMATICAL JUSTIFICATION:
-#   - Tsallis entropy H_q is monotone DECREASING in q (proven in Tsallis 1988)
-#   - This monotonicity makes the series NON-STATIONARY (systematic/deterministic trend)
-#   - AR(1) models assume stationarity (constant mean/variance around trend)
-#   - SOLUTION: ARIMA(1,1,0) applies AR(1) to FIRST DIFFERENCES
-#   - DeltaH_q = H_q - H_{q-1} removes the trend (differencing)
-#   - Then AR(1) can model residual correlation in the differenced series
-#
-# VALIDATION FRAMEWORK:
-#   Four complementary tests validate core assumptions before ARIMA(1,1,0)
-#
-# TEST 1: Monotonicity Check (Visual Validation)
-#   Purpose: Detect q-value ordering issues or data quality problems
-#   Method: Count decreasing vs increasing pairs in ordered q-values
-#   Expected for Tsallis: >95% pairs should be decreasing (monotone)
-#
-# TEST 2: Augmented Dickey-Fuller (ADF) Test for Unit Root
-#   H0 (Null): Series has unit root (non-stationary)
-#   H1 (Alt):  Series is stationary
-#   Expected for raw Tsallis entropy: FAIL to reject H0 (non-stationary with unit root)
-#   Expected for differenced data:    REJECT H0 (stationary, no unit root)
-#   Reference: Dickey & Fuller (1979, 1981); MacKinnon (1996)
-#
-# TEST 3: KPSS Test (Reverse of ADF)
-#   H0 (Null): Series IS stationary
-#   H1 (Alt):  Series is NON-stationary
-#   Expected for raw Tsallis entropy: REJECT H0 (non-stationary)
-#   Expected for differenced data:    FAIL to reject H0 (stationary)
-#   Reference: Kwiatkowski, Phillips, Schmidt & Shin (1992)
-#
-# TEST 4: Integration Order Validation
-#   Apply ADF/KPSS to differenced data to confirm ARIMA(1,1,0) appropriateness
-#   Expected: Differenced data should be I(0)—integrated of order 0 (stationary)
-#
-# DECISION LOGIC FOR ARIMA(1,1,0):
-#   Use ARIMA(1,1,0) if ALL conditions met:
-#   ✓ Raw data is NON-monotone (>5% violations) OR fails stationarity tests
-#   ✓ ADF test FAILs to reject H0 on raw data (has unit root)
-#   ✓ KPSS test REJECTs H0 on raw data (non-stationary)
-#   ✓ ADF test REJECTs H0 on differenced data (stationary)
-#   ✓ KPSS test FAILs to reject H0 on differenced data (stationary)
-#
-# REFERENCES:
-#   Dickey, D. A., & Fuller, W. A. (1979). Distribution of the estimators for
-#     autoregressive time series with a unit root. J American Statistical
-#     Association, 74(366), 427-431.
-#   Kwiatkowski, D., Phillips, P. C., Schmidt, P., & Shin, Y. (1992). Testing
-#     the null hypothesis of stationarity against the alternative of a unit root.
-#     Journal of Econometrics, 54(1-3), 159-178.
-#   MacKinnon, J. G. (1996). Numerical distribution functions for unit root and
-#     cointegration tests. Journal of Applied Econometrics, 11(6), 601-618.
-#   Tsallis, C. (1988). Possible generalization of Boltzmann-Gibbs statistics.
-#     Journal of Statistical Physics, 52(1), 479-487.
-
-# ==============================================================================
 # RESIDUAL DIAGNOSTICS: Shapiro-Wilk Normality Testing
 # ==============================================================================
 # PURPOSE:
-#   Verify that residuals from GAM/LMM/GEE models satisfy normality assumption.
-#   This is a standard diagnostic for validating statistical model assumptions.
+#   Residual-normality DIAGNOSTIC for GAM/LMM/GEE models. Shapiro-Wilk does
+#   NOT establish Gaussianity: with large n it detects trivial deviations, with
+#   small n it has little power. Interpret p-values together with QQ plots and
+#   model robustness; the result is descriptive, not a validity gate.
 #
 # DATABASE EVIDENCE (March 2026):
 #   - Alberghina & Westerhoff (2001): Foundations of Systems Biology
-#   - B004 (2008): Linear Models in Systems Biology
+#   - Liang & Zeger (1986): longitudinal data analysis via GEE
 #   - Springer Handbook (2006): Springer Handbook of Statistical Methods
 #
 # METHOD:
 #   Shapiro-Wilk test on model residuals (tests H0: residuals are normal)
 #   Standard Practice: Applied universally in statistical modeling literature
 #
-# INTERPRETATION:
-#   - p > 0.05: Fail to reject H0 → Residuals appear normal [OK]
-#   - p ≤ 0.05: Reject H0 → Residuals show significant departure from normality [?]
+# INTERPRETATION (descriptive, not a validity gate):
+#   - p > 0.05: no strong evidence of non-normality in this sample
+#   - p <= 0.05: evidence of departure; inspect QQ plots and consider
+#     robustness/sensitivity analyses (do NOT automatically reject the model)
 #
 # IMPLEMENTATION:
 #   Extract residuals from fitted model, apply shapiro.test()
@@ -332,108 +356,14 @@
 
     if (verbose) {
         status_text <- if (is_normal)
-            "PASS [OK]" else "FAIL ?"
-        message(sprintf("[.test_residual_normality] %s (p=%.4f, n=%d residuals)",
+            "residuals appear normal" else "non-normality detected"
+        message(sprintf("[.test_residual_normality] %s (p=%.4f, n=%d residuals; descriptive diagnostic)",
             status_text, p_value, n_res))
     }
 
     return(list(shapiro_p_value = p_value, residuals_normal = is_normal, n_residuals = n_res,
         test_status = if (is_normal) "pass" else "fail", report = sprintf("Shapiro-Wilk test: p=%.4f, %s normal (n=%d residuals)",
             p_value, if (is_normal) "residuals appear" else "residuals NOT", n_res)))
-}
-
-# ==================================================================
-# ARIMA(1,1,0) Implementation: Compute First Differences of Entropy
-# ==================================================================
-# BACKGROUND:
-#   - Tsallis entropy H_q is monotone decreasing in q (non-stationary)
-#   - AR(1) assumes stationarity (constant mean, variance)
-#   - Solution: Apply AR(1) to first differences DeltaH_q = H_q - H_{q-1}
-#   - Result: ARIMA(1,1,0) = Integrated AR(1) = AR(1) on differenced data
-#
-# IMPLEMENTATION STEPS:
-#   1. Order data by q-values to ensure proper differencing
-#   2. Compute differences within each subject (NOT across subjects)
-#   3. Return data frame with differenced entropy, q values, group, subject
-#   4. Note: Loses 1 observation per subject (trade-off for stationarity)
-#
-# RETURNS:
-#   list(df_diff, n_lost_obs) or NULL if insufficient data
-.compute_arima_differences <- function(df, q_vals, group_vec, subject_vec = NULL) {
-
-    if (is.null(df) || nrow(df) == 0) {
-        return(NULL)
-    }
-
-    # Add q and group to data frame for sorting
-    df_full <- data.frame(entropy = as.numeric(df$entropy), q = as.numeric(q_vals),
-        group = factor(group_vec), subject = if (!is.null(subject_vec))
-            factor(subject_vec) else factor(seq_len(nrow(df))), stringsAsFactors = FALSE)
-
-    # Remove NA entropy values
-    df_full <- df_full[!is.na(df_full$entropy), ]
-
-    if (nrow(df_full) < 2) {
-        return(NULL)
-    }
-
-    # Sort by subject and q to ensure proper differencing within subjects
-    df_full <- df_full[order(df_full$subject, df_full$q), ]
-
-    # Compute first differences within each subject
-    df_diff_list <- list()
-    n_lost <- 0
-
-    for (subj in levels(df_full$subject)) {
-        subj_idx <- which(df_full$subject == subj)
-
-        if (length(subj_idx) < 2) {
-            # Skip subjects with < 2 observations (can't compute difference)
-            n_lost <- n_lost + length(subj_idx)
-            next
-        }
-
-        # Extract subject data (should already be sorted by q)
-        subj_data <- df_full[subj_idx, ]
-
-        # Compute differences: DeltaH_q = H_q - H_{q-1} CRITICAL: Convert group
-        # to character BEFORE subsetting to avoid factor level issues When you
-        # subset a factor, R keeps ALL original levels, which causes rbind()
-        # problems later
-        n_diff <- nrow(subj_data) - 1
-
-        df_diff_list[[subj]] <- data.frame(entropy_diff = diff(subj_data$entropy),
-            q = subj_data$q[-1], q_prev = subj_data$q[-nrow(subj_data)],
-            group = as.character(subj_data$group[-1]),
-            subject = rep(subj, n_diff), stringsAsFactors = FALSE)
-    }
-
-    if (length(df_diff_list) == 0) {
-        return(NULL)
-    }
-
-    # Combine all subject differences
-    df_diff <- do.call(rbind, df_diff_list)
-    rownames(df_diff) <- NULL
-
-    if (nrow(df_diff) == 0) {
-        return(NULL)
-    }
-
-    # Rename entropy_diff to entropy for compatibility with model fitting
-    names(df_diff)[names(df_diff) == "entropy_diff"] <- "entropy"
-
-    # CRITICAL FIX (Phase 15): Ensure factor consistency after ARIMA
-    # differencing Problem: Some subjects/groups may be completely dropped by
-    # differencing, leaving factor levels that don't exist in the data. nlme
-    # can't handle this.  Solution: Convert to factor WITHOUT forcing unused
-    # original levels.  Just let R infer the levels from the actual data
-    # present.
-    df_diff$subject <- factor(as.character(df_diff$subject))
-    df_diff$group <- factor(as.character(df_diff$group))
-
-    return(list(df = df_diff, n_observations_original = nrow(df_full) + n_lost, n_observations_differenced = nrow(df_diff),
-        n_observations_lost = n_lost, transformation = "ARIMA(1,1,0): First differences"))
 }
 
 # Helper: Check if entropy data is truly bounded in [0, 1] Returns TRUE if data
@@ -512,7 +442,11 @@ if (getOption("TSENAT.memoization", TRUE)) {
 # heteroscedasticity ignored Solution: Detect heteroscedasticity and apply
 # appropriate variance adjustment/weighting
 
-# Detect heteroscedasticity using Breusch-Pagan test
+# Detect heteroscedasticity using a BP-STYLE auxiliary-regression diagnostic.
+# This is NOT the standard Breusch-Pagan test: the classical BP assumptions do
+# not hold for correlated repeated-q observations, and the auxiliary model
+# log(residuals^2 + 1e-8) ~ q + group is a heuristic. It is a diagnostic only
+# and must not control the confirmatory model.
 .detect_heteroscedasticity <- function(df, q_vals, group_vec, verbose = FALSE) {
     # Fit OLS to get residuals
     fit_ols <- try(lm(entropy ~ q + group, data = df), silent = TRUE)
@@ -912,7 +846,7 @@ if (getOption("TSENAT.memoization", TRUE)) {
         df[, all_col_names, drop = FALSE]
     })
 
-    # Phase 15: Wrap rbind in try-error to catch 'los nombres no coinciden'
+    # Phase 15: Wrap rbind in try-error to catch 'names do not match'
     # errors from factor level mismatches during result combination
     res <- try(do.call(rbind, all_results), silent = FALSE)
     if (inherits(res, "try-error")) {
@@ -1033,17 +967,25 @@ if (getOption("TSENAT.memoization", TRUE)) {
 #' @param regularization Character; dimensionality reduction (WY/FPCA)
 #' @param corstr Character; correlation structure (WY/GEE)
 #' @param adaptive_knots Logical; adaptive knots (WY/GAM)
+#' @param block_col Character or NULL; colData column with block IDs for
+#'   exchangeability-compatible WY permutations
+#' @param strata_col Character or NULL; colData column with strata for
+#'   exchangeability-compatible WY permutations
+#' @param permutation_scheme Character; WY permutation scheme: 'auto',
+#'   'within_subject', 'within_block', 'within_strata' or 'unpaired_q'
 #' @param storey Logical; apply Storey after primary correction
 #'
 #' @return Adjusted p-values vector
 #'
 
 #' @noRd
-.adjust_pvalues_multicorr <- function(p_values, multicorr = c("hochberg", "westfall-young", "benjamini-yekutieli"), wy_randomizations, fit_one_fn = NULL,
+.adjust_pvalues_multicorr <- function(p_values, multicorr = c("hochberg", "westfall-young", "benjamini-yekutieli", "bh"), wy_randomizations, fit_one_fn = NULL,
     metadata = NULL, mat = NULL, rownames_mat = NULL, se = NULL, assay_name = "diversity",
     method = NULL, pvalue = NULL, subject_col = NULL, paired = FALSE, min_obs = 10,
     nthreads = 1, verbose = FALSE, bias_correction = TRUE, regularization = NULL,
-    corstr = "ar1", adaptive_knots = TRUE, storey = FALSE) {
+    corstr = "ar1", adaptive_knots = TRUE, block_col = NULL, strata_col = NULL,
+    permutation_scheme = c("auto", "within_subject", "within_block",
+        "within_strata", "unpaired_q"), storey = FALSE) {
     # Validate multicorr parameter per Bioconductor code syntax standards
     multicorr <- match.arg(multicorr)
 
@@ -1051,6 +993,14 @@ if (getOption("TSENAT.memoization", TRUE)) {
         adj_p <- .hochberg_stepup(p_values)
         if (verbose) {
             message("[calculate_sait_interaction] Applied Hochberg stepup ", "adjustment for multi-q correlation")
+        }
+    } else if (multicorr == "bh") {
+        # Benjamini-Hochberg FDR : dependence-agnostic FDR option
+        # for within-gene multi-q p-values. Gene-level FDR is `pcorr` (default
+        # 'BH'); this applies BH at the q-level family within each gene.
+        adj_p <- stats::p.adjust(p_values, method = "BH")
+        if (verbose) {
+            message("[calculate_sait_interaction] Applied Benjamini-Hochberg (BH) FDR adjustment for multi-q p-values")
         }
     } else if (multicorr == "westfall-young") {
         if (verbose) {
@@ -1065,35 +1015,42 @@ if (getOption("TSENAT.memoization", TRUE)) {
         is_paired <- isTRUE(paired) && !is.null(subject_col) &&
             subject_col %in% colnames(SummarizedExperiment::colData(se))
 
-        # Build subject vector for paired permutation
+        # Build subject/block/strata vectors for exchangeability-compatible
+        # permutations
+        cd <- SummarizedExperiment::colData(se)
+        sample_q <- colnames(mat)
         subject_vec <- NULL
         if (is_paired) {
-            cd <- SummarizedExperiment::colData(se)
-            sample_q <- colnames(mat)
             subject_vec <- as.character(cd[sample_q, subject_col])
+        }
+        block_vec <- strata_vec <- NULL
+        if (!is.null(block_col)) {
+            if (!block_col %in% colnames(cd)) {
+                stop(sprintf("[WY] block_col '%s' not found in colData", block_col),
+                    call. = FALSE)
+            }
+            block_vec <- as.character(cd[sample_q, block_col])
+        }
+        if (!is.null(strata_col)) {
+            if (!strata_col %in% colnames(cd)) {
+                stop(sprintf("[WY] strata_col '%s' not found in colData", strata_col),
+                    call. = FALSE)
+            }
+            strata_vec <- as.character(cd[sample_q, strata_col])
+        }
+
+        # Resolve and validate the permutation scheme
+        scheme <- .build_wy_permutation_scheme(group_vec = group_vec_orig,
+            subject_vec = subject_vec, block_vec = block_vec,
+            strata_vec = strata_vec, q_vals = metadata$q_vals,
+            permutation_scheme = permutation_scheme)
+        if (verbose) {
+            message(sprintf("[calculate_sait_interaction] WY %s", scheme$note))
         }
 
         # Run Westfall-Young permutation
         perm_result <- .westfall_young_permutation(n_genes = length(p_values), wy_randomizations = wy_randomizations,
-            permute_fn = function() {
-                perm_assignment <- group_vec_orig
-                if (is_paired && !is.null(subject_vec)) {
-                    # PAIRED: shuffle condition labels WITHIN each subject
-                    # (preserves within-subject correlation structure)
-                    for (subj in unique(subject_vec)) {
-                        subj_idx <- which(subject_vec == subj)
-                        perm_assignment[subj_idx] <- sample(group_vec_orig[subj_idx])
-                    }
-                } else {
-                    # UNPAIRED: shuffle group labels within each q-level
-                    q_unique <- unique(metadata$q_vals)
-                    for (q_val in q_unique) {
-                        q_idx <- which(metadata$q_vals == q_val)
-                        perm_assignment[q_idx] <- sample(group_vec_orig[q_idx])
-                    }
-                }
-                return(perm_assignment)
-            }, refit_fn = function(perm_assignment) {
+            permute_fn = scheme$permute_fn, refit_fn = function(perm_assignment) {
                 # Refit all genes with permuted group assignment
                 perm_pvalues <- numeric(length(p_values))
                 for (g_idx in seq_along(rownames_mat)) {
@@ -1129,13 +1086,21 @@ if (getOption("TSENAT.memoization", TRUE)) {
     }
 
     # Apply optional Storey adaptive FDR enhancement layer
+    # Storey's q-values must be computed on the RAW gene-level
+    # p-values. Applying Storey to p-values already adjusted by Westfall-Young
+    # (FWER) is not a standard FDR pipeline: FWER-adjusted p-values are not
+    # distributed as Uniform(0,1) under the null, so the pi0 estimator is
+    # invalid. FWER (WY) and FDR (BH/BY/Storey) are therefore separate layers:
+    # Storey is derived from raw p-values and REPLACES the primary adjustment
+    # as the reported FDR quantity.
     if (storey) {
         if (requireNamespace("fdrtool", quietly = TRUE)) {
             tryCatch({
-                adj_p <- .compute_storey_qvalues(adj_p)
+                adj_p <- .compute_storey_qvalues(p_values)
                 if (verbose) {
-                  message("[calculate_sait_interaction] Applied Storey ", "adaptive FDR pi0 correction to ",
-                    multicorr, " p-values")
+                  message("[calculate_sait_interaction] Applied Storey ",
+                    "adaptive FDR pi0 correction to RAW p-values (",
+                    "not chained after ", multicorr, ")")
                 }
             }, error = function(e) {
                 if (verbose) {
@@ -1168,7 +1133,7 @@ if (getOption("TSENAT.memoization", TRUE)) {
 
 #' @noRd
 .map_gene_annotations <- function(res, se, verbose) {
-    # P3 guard (July 2026): .finalize_sait_results may be called without SE
+    # Guard: .finalize_sait_results may be called without SE
     # for pure post-processing (e.g., unit tests, external result objects).
     if (is.null(se)) {
         # Ensure gene_name column exists even without annotations

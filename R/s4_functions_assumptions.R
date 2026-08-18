@@ -132,8 +132,8 @@ setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"), funct
 # Helper function to extract q-value from key
 
 .extract_q_from_key <- function(key) {
-    # Extract numeric part from 'q_X.X' format
-    as.numeric(sub("^q_", "", key))
+    # Extract numeric part from 'q_X.X' / 'q_X.XXX' / 'q_X_XX' formats
+    as.numeric(gsub("_", ".", sub("^q_", "", key)))
 }
 
 # Helper: Format assumptions results for output
@@ -240,13 +240,21 @@ setMethod("calculate_assumptions", signature(analysis = "TSENATAnalysis"), funct
     diversity_data <- NULL
     q_used <- q
     
-    # If q is specified, try to get that specific q-value
+    # If q is specified, resolve it against the available keys with a numeric
+    # tolerance. A missing q is an ERROR (never a silent fallback to another
+    # q-value).
     if (!is.null(q)) {
-        q_key <- paste0("q_", q)
-        if (q_key %in% names(analysis@diversity_results)) {
-            div_se <- analysis@diversity_results[[q_key]]
-            diversity_data <- assay(div_se, "diversity")
+        q_key <- .resolve_q_key(q, names(analysis@diversity_results))
+        if (is.null(q_key)) {
+            available_q <- .extract_q_from_key(names(analysis@diversity_results))
+            stop("Requested q = ", q, " not found in diversity results. ",
+                "Available q: ", paste(sort(available_q), collapse = ", "), ". ",
+                "Run calculate_diversity() with the requested q first.",
+                call. = FALSE)
         }
+        div_se <- analysis@diversity_results[[q_key]]
+        diversity_data <- assay(div_se, "diversity")
+        q_used <- .extract_q_from_key(q_key)
     }
     
     # If q is NULL and multiple diversity results exist, combine all q-values

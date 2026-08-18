@@ -24,14 +24,16 @@
 #' numbers), or 'both'.
 #' @param log_base Base of the logarithm used for Shannon limits and
 #' normalization (default: \code{exp(1)}).
-#' @param pseudocount Numeric scalar. Add this value to all transcript counts
-#'   before computing proportions (default: 0). Useful for stability with
-#'   zero-count features.
+#' @param pseudocount Numeric scalar. Added to all transcript values AFTER
+#'   effective-length normalization (i.e., on the effective-abundance scale),
+#'   immediately before computing proportions (default: 0). Useful for
+#'   stability with zero-count features.
 #' @param effective_length Numeric vector of effective transcript lengths
 #' (length = length(x)).
-#'   When provided, counts are normalized by length to remove length bias before
-#' entropy calculation. This implements SALMON's recommended isoform-level
-#' approach.
+#'   When provided, counts are normalized by length FIRST, and any pseudocount
+#'   is then added on the effective-abundance scale, so regularization is
+#'   constant per transcript (a count-space pseudocount would be divided by
+#'   L_eff and systematically boost short isoforms).
 
 #' @noRd
 #' @return For `what = 'S'` or `what = 'D'`: a numeric vector
@@ -62,10 +64,17 @@
 #'
 #' ## Normalization
 #'
-#' When `norm = TRUE`, entropy/Hill numbers are scaled to [0, 1]:
-#'   - Divide by theoretical maximum at given \eqn{q}{q}
-#'   - Natural logarithms used for limits as \eqn{q \to 1}{q → 1}
-#'   - Results in dimensionless measure independent of species count
+#' When `norm = TRUE`, the **Tsallis entropy S_q** is scaled to [0, 1] by
+#' dividing by its theoretical maximum at the given \eqn{q}{q} (natural
+#' logarithms for the Shannon limit \eqn{q \to 1}{q → 1}). For
+#' \eqn{q > 0}{q > 0}, this makes entropy dimensionless and independent of
+#' species count. At \eqn{q = 0}{q = 0}, the normalized value represents
+#' observed isoform richness relative to the annotated isoform universe.
+#'
+#' **Hill numbers D_q are NEVER normalized**: `norm` only applies to the
+#' Tsallis entropy path (`what = "S"`). D_q is always returned on its native
+#' "effective number of species" scale, which already carries interpretable
+#' units — dividing it by its theoretical maximum would change the estimand.
 #' @examples
 #' x <- c(10, 5, 0)
 #' .calculate_tsallis_entropy(x, q = c(0.5, 1, 2), norm = TRUE)
@@ -82,9 +91,61 @@
         stop("x must be numeric")
     }
 
-    # Apply pseudocount if specified BEFORE length normalization or proportion
-    # calculation Handles both scalar and vector pseudocounts Vector
-    # pseudocounts are applied per-isoform (row-wise for matrices)
+    # Negative expression values are invalid input: they would be silently
+    # discarded downstream, computing entropy on a different abundance vector
+    # than the user supplied (audit 2026-08-17).
+    if (any(x < 0, na.rm = TRUE)) {
+        stop("Input expression values must be non-negative.", call. = FALSE)
+    }
+
+    # Discontinuity guard (audit3): for q != 1 the Tsallis entropy is
+    # log-base invariant, while the Shannon value at q = 1 is divided by
+    # log(log_base). A multi-q spectrum therefore has an artificial jump at
+    # q = 1 when log_base != exp(1). Non-natural bases are only supported for
+    # single-q analyses.
+    if (length(q) > 1 && abs(log_base - exp(1)) > 1e-10) {
+        stop("[.calculate_tsallis_entropy] log_base != exp(1) is only supported for single-q analyses: for q != 1 the Tsallis entropy is log-base invariant, so a multi-q spectrum would be discontinuous at q = 1. Use log_base = exp(1) for multi-q spectra.",
+            call. = FALSE)
+    }
+
+    # AUDIT3 RED 2: raw support is captured BEFORE pseudocount regularization,
+    # so q=0 keeps its observed-support meaning.
+    support_raw <- if (is.matrix(x))
+        rowSums(x > 0) else sum(x > 0)
+
+    n <- length(x)
+
+    # EFFECTIVE LENGTH NORMALIZATION (applied FIRST; audit final2) If
+    # effective_length is provided, normalize counts by length to remove
+    # length bias. This is SALMON's recommended approach for isoform-level
+    # analysis: normalized counts = x / effective_length (accounts for
+    # read-length & alignability bias).
+    if (!is.null(effective_length)) {
+        if (length(effective_length) != length(x)) {
+            stop("effective_length must have same length as x")
+        }
+        # Check for valid effective_length values (must be finite and positive)
+        invalid_length_idx <- which(!is.finite(effective_length) | effective_length <= 0)
+        if (length(invalid_length_idx) > 0) {
+            stop("[.calculate_diversity] CRITICAL: ",
+                 length(invalid_length_idx), " out of ", length(effective_length),
+                 " transcripts have invalid effective_length (<=0, NA, NaN, or Inf). ",
+                 "These transcripts are unreliable and must be filtered before analysis. ",
+                 "Affected transcript indices: ", paste(head(invalid_length_idx, 5), collapse=", "),
+                 if(length(invalid_length_idx) > 5) paste(", ... and", length(invalid_length_idx)-5, "more") else "",
+                 ". Please review your quantification output for quality issues.",
+                 call. = FALSE)
+        }
+        x <- x/effective_length
+    }
+
+    # AUDIT FINAL2: the pseudocount is added AFTER effective-length
+    # normalization, on the effective-abundance scale, so the regularization
+    # is constant per transcript. The previous pseudocount-then-divide order
+    # produced a length-dependent pseudocount c/L_i that systematically
+    # boosted short isoforms and distorted the within-gene composition TSENAT
+    # estimates. Handles both scalar and vector pseudocounts (vector
+    # pseudocounts are applied per-isoform, row-wise for matrices).
     if (any(pseudocount > 0)) {
         if (is.matrix(x) && length(pseudocount) > 1) {
             # Per-isoform pseudocounts: apply row-wise via sweep
@@ -95,8 +156,6 @@
         }
     }
 
-    n <- length(x)
-
     # If all counts sum to zero, return NA; allow single-element vectors to
     # proceed
     if (sum(x, na.rm = TRUE) <= 0) {
@@ -106,61 +165,35 @@
         return(rep(NA_real_, length(q)))
     }
 
-    # EFFECTIVE LENGTH NORMALIZATION If effective_length is provided, normalize
-    # counts by length to remove length bias This is SALMON's recommended
-    # approach for isoform-level analysis Normalized counts = x /
-    # effective_length (accounts for read-length & alignability bias) Then
-    # proportions = normalized_counts / sum(normalized_counts)
-    if (!is.null(effective_length)) {
-        if (length(effective_length) != length(x)) {
-            stop("effective_length must have same length as x")
-        }
-        # Check for valid effective_length values (must be positive)
-        invalid_length_idx <- which(effective_length <= 0 | is.na(effective_length))
-        if (length(invalid_length_idx) > 0) {
-            stop("[.calculate_diversity] CRITICAL: ",
-                 length(invalid_length_idx), " out of ", length(effective_length),
-                 " transcripts have invalid effective_length (<=0 or NA). ",
-                 "These transcripts are unreliable and must be filtered before analysis. ",
-                 "Affected transcript indices: ", paste(head(invalid_length_idx, 5), collapse=", "),
-                 if(length(invalid_length_idx) > 5) paste(", ... and", length(invalid_length_idx)-5, "more") else "",
-                 ". Please review your quantification output for quality issues.",
-                 call. = FALSE)
-        }
-        # Normalize counts: x_norm = x / effective_length
-        x_normalized <- x/effective_length
-        # Calculate proportions from normalized counts
-        p <- x_normalized/sum(x_normalized)
-    } else {
-        # Standard proportions from raw counts (no length normalization)
-        p <- x/sum(x)
-    }
+    p <- x/sum(x)
 
-    tol <- sqrt(.Machine$double.eps)
-    S_vec <- .calc_S(p = p, q = q, tol = tol, n = n, log_base = log_base, norm = norm)
-    D_vec <- .calc_D(p = p, q = q, tol = tol, log_base = log_base)
+    # Compute ONLY the requested quantity (previously both S and D were always
+    # evaluated even when only one was requested: ~2x wasted work per vector).
+    # AUDIT S1: single package-wide q tolerance (TSENAT_Q_TOL defined in
+    # entropy_core.R) — .entropy_core() and .calc_S()/.calc_D() must agree on
+    # what counts as q = 0 / q = 1.
+    tol <- TSENAT_Q_TOL
+    format_out <- function(v) {
+        if (length(q) > 1) {
+            names(v) <- paste0("q=", q)
+            return(v)
+        }
+        unname(v)
+    }
 
     if (what == "S") {
-        out <- S_vec
-        if (length(q) > 1) {
-            names(out) <- paste0("q=", q)
-        }
-        if (length(q) == 1) {
-            return(unname(out))
-        }
-        return(out)
+        return(format_out(.calc_S(p = p, q = q, tol = tol, n = n, log_base = log_base,
+            norm = norm, support_raw = support_raw)))
     }
     if (what == "D") {
-        out <- D_vec
-        if (length(q) > 1) {
-            names(out) <- paste0("q=", q)
-        }
-        if (length(q) == 1) {
-            return(unname(out))
-        }
-        return(out)
+        return(format_out(.calc_D(p = p, q = q, tol = tol, log_base = log_base,
+            support_raw = support_raw)))
     }
+
     # both
+    S_vec <- .calc_S(p = p, q = q, tol = tol, n = n, log_base = log_base, norm = norm,
+        support_raw = support_raw)
+    D_vec <- .calc_D(p = p, q = q, tol = tol, log_base = log_base, support_raw = support_raw)
     names(S_vec) <- paste0("q=", q)
     names(D_vec) <- paste0("q=", q)
     return(list(S = S_vec, D = D_vec))
@@ -299,7 +332,7 @@
         valid_mask <- !is.na(n_iso_vec) & n_iso_vec > 1 & !is.na(col_q) & !is.na(s_vals) &
             is.finite(s_vals) & s_max_vec > 0
 
-        # AUDIT FIX July 2026: Use log(..., base = log_base) instead of hardcoded
+        # Use log(..., base = log_base) instead of hardcoded
         # natural log to maintain consistency with the entropy calculation's
         # logarithm base.
         # Also handle s_vals ≤ 0: these are non-positive entropy estimates
@@ -311,7 +344,10 @@
         result[pos_mask, col_idx] <- log(s_vals[pos_mask]/s_max_vec[pos_mask],
             base = log_base)
         if (any(neg_mask)) {
-            # Floor at log(1e-10) to indicate near-zero entropy
+            # DOCUMENTED NUMERICAL TRUNCATION (audit3): the mathematical value
+            # is log(0/S_max) = -Inf. We floor at log(1e-10) for plotting
+            # stability; this is a display/visualization truncation, not the
+            # mathematical value.
             result[neg_mask, col_idx] <- log(1e-10, base = log_base)
         }
     }
@@ -372,12 +408,14 @@
 
 # Helpers for Tsallis entropy calculations
 
-.calc_S <- function(p, q, tol, n, log_base, norm) {
+.calc_S <- function(p, q, tol, n, log_base, norm, support_raw = NULL) {
     vapply(q, function(qi) {
         if (abs(qi) < tol) {
-            # q=0: Species richness (number of nonzero species) - 1 S_0 =
-            # count(p > 0) - 1
-            richness <- sum(p > 0) - 1
+            # q=0: Species richness (number of RAW-support species) - 1.
+            # support_raw is pre-pseudocount support; pseudocounts never
+            # inflate q=0 richness to the annotated universe (audit3).
+            richness <- (if (!is.null(support_raw) && length(support_raw) == 1) support_raw else sum(p >
+                0)) - 1
             if (norm) {
                 if (n <= 1) {
                   # Single isoform: normalized richness is undefined
@@ -419,12 +457,14 @@
     }, numeric(1))
 }
 
-.calc_D <- function(p, q, tol, log_base) {
+.calc_D <- function(p, q, tol, log_base, support_raw = NULL) {
     vapply(q, function(qi) {
         if (abs(qi) < tol) {
-            # q=0: Hill number D_0 = number of nonzero species (true species
-            # richness) D_0 = count(p > 0)
-            D0 <- sum(p > 0)
+            # q=0: Hill number D_0 = number of RAW-support species (true
+            # effective richness); pseudocounts never inflate it to the
+            # annotated universe (audit3).
+            D0 <- if (!is.null(support_raw) && length(support_raw) == 1)
+                support_raw else sum(p > 0)
             return(D0)
         } else if (abs(qi - 1) < tol) {
             sh <- -sum(ifelse(p > 0, p * log(p, base = log_base), 0))
@@ -628,7 +668,8 @@
 #' unreliable confidence intervals. Filtering by minimum count prevents this.
 #'
 #' **References:**
-#' Papers S070, S197 (DESeq2, edgeR) recommend filtering low-abundance genes
+#' Bioconductor (2022) and Love et al. (2014, DESeq2) recommend filtering
+#' low-abundance genes
 #' before hypothesis testing because their estimates are unreliable.
 #'
 #' @examples
@@ -718,9 +759,12 @@
 
 #' Estimate Pseudocounts for Tsallis Entropy Calculation
 #'
-#' Computes library size-adjusted pseudocounts using size-factor normalization,
-#' a principled approach recommended in edgeR (Robinson et al. 2010) and DESeq2
-#' (Love et al. 2014) for regularization of count-based diversity analysis.
+#' Computes a GLOBAL sequencing-depth-scaled pseudocount heuristic:
+#' `log2(mean_library_size / 1e6 + 1)`. This is NOT a sample-specific
+#' size-factor adjustment: the same scalar is added to every sample, so its
+#' relative influence is larger in shallow samples. Sample-specific size
+#' factors are computed only as descriptive diagnostics and do not enter the
+#' pseudocount formula (audit3).
 #'
 #' @param se SummarizedExperiment or Matrix; raw count matrix (genes x samples).
 #'            If SummarizedExperiment, assay(se) is extracted.
@@ -735,21 +779,19 @@
 #'  total_counts}.
 #'
 #' @details
-#' This function computes pseudocounts via size-factor adjustment:
+#' This function computes a depth-scaled pseudocount heuristic:
 #'
-#' 1. Computes library size factors: `size_factors = colSums(counts) /
-#' mean(colSums(counts))`
+#' 1. Computes library size factors (descriptive only): `size_factors =
+#' colSums(counts) / mean(colSums(counts))`
 #' 2. Calculates mean library size: `mean_lib_size = mean(colSums(counts))`
 #' 3. Returns pseudocount: `log2(mean_lib_size / 1e6 + 1)`
 #'
 #' The pseudocount scales with the overall sequencing depth, ensuring
 #' appropriate
 #' regularization regardless of the count magnitude (e.g., RNA-seq vs.
-#' ribo-seq data).
-#'
-#' This approach is widely used in differential expression analysis and provides
-#' a heuristic but effective way to normalize pseudocount strength across
-#' datasets.
+#' ribo-seq data). It is a global heuristic: the size factors do NOT enter the
+#' formula, so regularization strength differs between shallow and deep
+#' samples.
 #'
 #' **References for this approach:**
 #' - Robinson et al. (2010, edgeR): Method of using compositional invariants
@@ -859,7 +901,7 @@
 
     # Data validation and diagnostics
     if (verbose)
-        message("Pseudocount Estimation (Size-Factor Adjustment, Option B)")
+        message("Pseudocount Estimation (Sequencing-Depth-Scaled Heuristic)")
 
     n_genes <- nrow(raw_counts)
     n_samples <- ncol(raw_counts)
@@ -933,7 +975,7 @@
     alpha <- 1 - ci
     z_alpha <- qnorm(alpha/2)  # Two-tailed critical value
 
-    # AUDIT FIX #4: Accept pre-computed point_est from caller to avoid recomputing
+    # Accept pre-computed point_est from caller to avoid recomputing
     # from raw x when x has already been normalized (e.g., by effective_length).
     if (is.null(point_est)) {
         point_est <- .calculate_tsallis_entropy(x, q = q, norm = norm, what = what, log_base = log_base,
@@ -942,7 +984,7 @@
     point_est <- as.numeric(point_est)
 
     # Proportion of bootstrap replicates <= point estimate
-    # AUDIT FIX #12: Use strict < comparison with +0.5/B padding to prevent
+    # Use strict < comparison with +0.5/B padding to prevent
     # qnorm(0) → -Inf when all bootstrap values exceed the point estimate.
     # Clamp to [0.001, 0.999] to avoid qnorm(1) = Inf producing NaN.
     B <- length(bootstrap_dist)
@@ -950,7 +992,7 @@
     prop_less <- max(0.001, min(0.999, prop_less))
     z0 <- qnorm(prop_less)
 
-    # AUDIT FIX #3: BCa acceleration MUST be computed from true leave-one-out
+    # BCa acceleration MUST be computed from true leave-one-out
     # jackknife on the ORIGINAL data, not from the bootstrap distribution.
     # Computing leave-one-out means of bootstrap replicates yields theta_jack[i] ≈ theta_bar
     # for all i when B is large, forcing a → 0 and silently disabling the BCa skewness correction.
@@ -995,7 +1037,10 @@
     lower <- quantile(bootstrap_dist, probs = p_low, type = 7, names = FALSE)
     upper <- quantile(bootstrap_dist, probs = p_high, type = 7, names = FALSE)
 
-    return(list(lower = lower, upper = upper))
+    # Also return the acceleration factor and the leave-one-out jackknife
+    # estimates used for it, so tests can verify the BCa jackknife implements
+    # exactly the same estimator as the point estimate (audit 2026-08-17).
+    return(list(lower = lower, upper = upper, a = a, jackknife = theta_jack))
 }
 
 #' Estimate Hyperparameters for Empirical Bayes Shrinkage
@@ -1031,10 +1076,16 @@
 .estimate_shrinkage_params <- function(x, genes, entropy_matrix, q = 2, min_count = 1) {
     gene_levels <- unique(genes)
 
+    # Precomputed transcript->gene index (O(T) once) for O(1) per-gene lookups
+    gene_index <- split(seq_along(genes), genes)
+
     # Count expressed isoforms per gene (non-zero after filtering) Use vapply
     # with named input to preserve gene names in output
     n_isoforms <- vapply(setNames(gene_levels, gene_levels), function(g) {
-        gene_mask <- genes == g
+        gene_mask <- gene_index[[as.character(g)]]
+        if (is.null(gene_mask)) {
+            return(0L)
+        }
         gene_counts <- rowSums(x[gene_mask, , drop = FALSE])
         sum(gene_counts > min_count)
     }, FUN.VALUE = integer(1))
@@ -1075,22 +1126,16 @@
 
         # Get mean entropy and variance for each gene from this column
         entropy_vals <- entropy_matrix[, col_name]
-        gene_names <- rownames(entropy_matrix)
 
-        # For each gene, calculate per-sample variance Map genes to their rows
-        # and compute row-wise variance
-        gene_variances <- vapply(gene_names, function(g_name) {
-            # Find the index of this gene
-            gene_idx <- which(rownames(entropy_matrix) == g_name)
-            if (length(gene_idx) > 0) {
-                # This gene has a single entropy value per sample-q combination
-                # We use the mean entropy value as a proxy for expression level
-                var(entropy_matrix[gene_idx, grep(paste0("_q=", q_val, "$"), colnames(entropy_matrix))],
-                  na.rm = TRUE)
-            } else {
-                NA
-            }
-        }, FUN.VALUE = numeric(1))
+        # Row-wise variance across this q's sample columns (vectorized; no
+        # O(G^2) rowname scans). Each gene row holds the same q across its
+        # samples, so its row variance is the per-gene spread for this q.
+        q_col_idx <- grep(paste0("_q=", q_val, "$"), colnames(entropy_matrix))
+        gene_variances <- if (length(q_col_idx) > 0) {
+            apply(entropy_matrix[, q_col_idx, drop = FALSE], 1, var, na.rm = TRUE)
+        } else {
+            rep(NA_real_, nrow(entropy_matrix))
+        }
 
         # Fit loess trend: variance ~ mean entropy per q-value Only use genes
         # with valid finite values for robust fitting
@@ -1127,7 +1172,8 @@
                 # Outlier detection: genes with variance >2SD from trend (Love
                 # et al. 2014 DESeq2)
                 outlier_threshold <- 2 * sd_resid
-                outliers <- gene_names[valid_idx][abs(residuals) > outlier_threshold]
+                outliers <- rownames(entropy_matrix)[valid_idx][abs(residuals) >
+                  outlier_threshold]
                 outlier_genes[[col_name]] <- outliers
 
             }, error = function(e) {
@@ -1225,7 +1271,7 @@
 
     # Pre-allocate weights matrix (vectorized storage)
     weights_matrix <- matrix(1, nrow = n_rows, ncol = n_cols)
-    # AUDIT FIX July 2026: Initialize to NA_real_ instead of 0 so that
+    # Initialize to NA_real_ instead of 0 so that
     # columns whose q-value cannot be matched do not silently fill NAs with 0.
     means_vector <- rep(NA_real_, n_cols)
 
@@ -1364,6 +1410,10 @@
     # multiple values when length(q) > 1
     gene_levels <- unique(genes)
 
+    # Precompute transcript->gene index ONCE (O(T)) instead of scanning the
+    # full genes vector for every gene (O(G*T)) inside .tsallis_row.
+    gene_index <- split(seq_along(genes), genes)
+
     # ensure column names order matches the order used when constructing the
     # result matrix (samples vary outer, q varies inner). If sample names are
     # missing, synthesize deterministic names so column creation still works.
@@ -1377,7 +1427,8 @@
     # compute requested quantity ('S' or 'D') in parallel
     result_list <- .bplapply(gene_levels, function(gene) {
         .tsallis_row(x = x, genes = genes, gene = gene, q = q, norm = norm, what = what,
-            pseudocount = pseudocount, effective_length = effective_length, log_base = log_base)
+            pseudocount = pseudocount, effective_length = effective_length, log_base = log_base,
+            gene_index = gene_index)
     }, nthreads = nthreads)
 
     # Convert list to matrix (each element is a named vector) result_list is a
@@ -1447,39 +1498,61 @@
 # Internal helpers for calculate_method
 
 .tsallis_row <- function(x, genes, gene, q, norm, what, pseudocount = 0, effective_length = NULL,
-    log_base = exp(1)) {
-    idx <- which(genes == gene)
+    log_base = exp(1), gene_index = NULL) {
+    # O(1) transcript lookup from the precomputed gene index (built ONCE per
+    # .calculate_method call); direct callers fall back to the linear scan.
+    if (!is.null(gene_index)) {
+        idx <- gene_index[[as.character(gene)]]
+        if (is.null(idx))
+            idx <- integer(0)
+    } else {
+        idx <- which(genes == gene)
+    }
     n_q <- length(q)
     n_samples <- ncol(x)
 
     # Pre-allocate output vector to avoid unlist(lapply(...)) overhead
     out <- setNames(numeric(n_q * n_samples), NULL)
 
-    # Vectorized loop for each sample
-    for (j in seq_len(n_samples)) {
-        # Get counts for this gene and sample
-        counts <- x[idx, j]
+    # Extract the gene block ONCE and apply sample-independent transforms once
+    counts_mat <- x[idx, , drop = FALSE]
+    if (nrow(counts_mat) == 0) {
+        out[] <- NA_real_
+        return(out)
+    }
 
-        # Apply pseudocount to counts (add before calculating proportions)
+    # AUDIT FINAL2: effective-length normalization is applied FIRST and the
+    # pseudocount is then added on the effective-abundance scale, so the
+    # regularization is constant per transcript. The previous order
+    # (pseudocount, THEN division by L_eff) produced a length-dependent
+    # pseudocount c/L_i that systematically boosted short isoforms and
+    # distorted the within-gene composition TSENAT estimates.
+    el_vec <- NULL
+    if (!is.null(effective_length) && is.vector(effective_length)) {
+        el_vec <- effective_length[idx]
+    }
+
+    for (j in seq_len(n_samples)) {
+        counts <- counts_mat[, j]
+
+        if (!is.null(effective_length)) {
+            if (!is.null(el_vec)) {
+                if (length(el_vec) == length(counts)) {
+                  counts <- counts/el_vec
+                }
+            } else if (is.matrix(effective_length)) {
+                el <- effective_length[idx, j]
+                if (!is.null(el) && length(el) == length(counts)) {
+                  counts <- counts/el
+                }
+            }
+        }
+
+        # Pseudocount AFTER length normalization (effective-abundance scale)
         if (pseudocount > 0) {
             counts <- counts + pseudocount
         }
 
-        # Apply effective length normalization if provided
-        if (!is.null(effective_length)) {
-            el <- NULL
-            if (is.vector(effective_length)) {
-                el <- effective_length[idx]
-            } else if (is.matrix(effective_length)) {
-                el <- effective_length[idx, j]
-            }
-            # Normalize counts by effective length (convert to TPM-like units)
-            if (!is.null(el) && length(el) == length(counts)) {
-                counts <- counts/el
-            }
-        }
-
-        # Calculate entropy on the adjusted counts
         v <- .calculate_tsallis_entropy(counts, q = q, norm = norm, what = what, log_base = log_base)
         out_idx <- (j - 1) * n_q + seq_len(n_q)
         if (length(v) == n_q && all(is.finite(v) | is.na(v))) {

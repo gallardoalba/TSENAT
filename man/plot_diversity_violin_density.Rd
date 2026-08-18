@@ -8,7 +8,8 @@ plot_diversity_violin_density(
   se,
   assay_name = "diversity",
   title = NULL,
-  output_file = NULL
+  output_file = NULL,
+  q = NULL
 )
 }
 \arguments{
@@ -24,6 +25,11 @@ containing
 as an image.
   If provided, the plot will be saved with appropriate dimensions.
   Default: NULL (no file output, only return object).}
+
+\item{q}{\code{numeric} or \code{NULL}. Single q value to plot. If NULL,
+the q value must be unambiguous from the stored diversity results
+(exactly one q); otherwise an error is raised listing the available
+q values.}
 }
 \value{
 A `ggplot2` object showing a 1x2 grid with violin plot on the

@@ -532,10 +532,10 @@ test_that("Metadata correctly reports LM filtering statistics", {
 })
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# AUDIT FIX H3: Paired bootstrap requires column-aligned matrices
+# Paired bootstrap requires column-aligned matrices
 # ═══════════════════════════════════════════════════════════════════════════════
 
-test_that("compute_delta_statistics asserts equal ncol for paired bootstrap (H3 fix)", {
+test_that("compute_delta_statistics asserts equal ncol for paired bootstrap", {
   skip_on_bioc()
   
   # Create counts with different column counts for A and B

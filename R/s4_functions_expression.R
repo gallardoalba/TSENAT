@@ -61,6 +61,11 @@
 #' parameter.
 #'   Raises error if TPM not available and `use_tpm = TRUE`.
 #'
+#' @param quantity \code{character}. Quantity to visualize:
+#'   `"abundance"` plots raw counts (or TPM when `use_tpm = TRUE`),
+#'   `"usage"` plots each transcript's proportion of its gene total per
+#'   sample (default: `"abundance"`).
+#'
 #' @param verbose \code{logical}. If \code{TRUE}, print diagnostic messages
 #'   during plotting (default: FALSE).
 #'
@@ -139,24 +144,23 @@
 #' @importFrom methods is
 plot_expression <- function(analysis, gene = NULL, condition_col = NULL, top_n = 4,
     output_file = NULL, metric = c("median", "mean", "variance", "iqr"), use_tpm = TRUE,
-    width = NULL, height = NULL, fontsize = 16, cellwidth = 0, cellheight = 0, layout_ncol = 2,
-    verbose = FALSE, ...) {
+    quantity = c("abundance", "usage"), width = NULL, height = NULL, fontsize = 16,
+    cellwidth = 0, cellheight = 0, layout_ncol = 2, verbose = FALSE, ...) {
 
     # Load visualization dependencies (ggplot2, cowplot, pheatmap, etc.)
     .load_visualization_deps()
 
-    # Validate parameters per Bioconductor code syntax standards
-    metric <- match.arg(metric)
-
-    # Extract verbose parameter if not provided
-    verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
-
-    # =========================================================================
-    # INPUT VALIDATION
-    # =========================================================================
+    # Validate input FIRST (before accessing analysis@config)
     if (!is(analysis, "TSENATAnalysis")) {
         stop("analysis must be a TSENATAnalysis object", call. = FALSE)
     }
+
+    # Validate parameters per Bioconductor code syntax standards
+    metric <- match.arg(metric)
+    quantity <- match.arg(quantity)
+
+    # Extract verbose parameter if not provided
+    verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
 
     se <- analysis@se
     if (!inherits(se, "SummarizedExperiment")) {
@@ -244,8 +248,9 @@ plot_expression <- function(analysis, gene = NULL, condition_col = NULL, top_n =
     plot_file <- tryCatch({
         .plot_expression(se = se, gene = gene, condition_col = condition_col, res = sait_results_df,
             top_n = top_n, output_file = output_file, metric = metric[1], use_tpm = use_tpm,
-            width = width, height = height, fontsize = fontsize, cellwidth = cellwidth,
-            cellheight = cellheight, layout_ncol = layout_ncol, ...)
+            quantity = quantity, width = width, height = height, fontsize = fontsize,
+            cellwidth = cellwidth, cellheight = cellheight, layout_ncol = layout_ncol,
+            ...)
     }, error = function(e) {
         stop("[plot_expression]", conditionMessage(e), call. = FALSE)
     })

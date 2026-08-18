@@ -100,7 +100,11 @@
 #'     If TPM is missing, the function will fail with an explicit error message
 #'     that guides you to pass it to \code{build_analysis()}.
 #'   \item \code{calculate_diversity()} uses \code{effective_length} for 
-#'     length-normalized entropy calculations.
+#'     length-normalized entropy calculations from RAW counts.
+#'   \item TPM and effective-length correction are mutually exclusive and are
+#'     never combined: TPM already incorporates effective-length
+#'     normalization, so diversity on TPM together with an
+#'     \code{effective_length} is a hard error (double normalization).
 #' }
 #'
 #' Following Bioconductor best practices (fail-fast principle), these are explicit

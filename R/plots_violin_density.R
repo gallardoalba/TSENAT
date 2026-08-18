@@ -15,6 +15,10 @@
 #' as an image.
 #'   If provided, the plot will be saved with appropriate dimensions.
 #'   Default: NULL (no file output, only return object).
+#' @param q \code{numeric} or \code{NULL}. Single q value to plot. If NULL,
+#'   the q value must be unambiguous from the stored diversity results
+#'   (exactly one q); otherwise an error is raised listing the available
+#'   q values.
 #'
 #' @return A `ggplot2` object showing a 1x2 grid with violin plot on the
 #' left and
@@ -45,12 +49,15 @@
 #' # print(p)
 #'
 plot_diversity_violin_density <- function(se, assay_name = "diversity", title = NULL,
-    output_file = NULL) {
+    output_file = NULL, q = NULL) {
     # Load visualization dependencies (ggplot2, cowplot, etc.)
     .load_visualization_deps()
 
-    # Normalize input (handles TSENATAnalysis → SE, condition_col, assay validation)
-    normalized <- .normalize_plot_input(se, assay_name = assay_name, multi_q = FALSE)
+    # Normalize input (handles TSENATAnalysis → SE, condition_col, assay
+    # validation). For single-q plots the q value MUST be unambiguous:
+    # explicit q=, or exactly one q stored in the object.
+    normalized <- .normalize_plot_input(se, assay_name = assay_name, multi_q = FALSE,
+        q = q)
     se <- normalized$se
 
     # Extract q-value and long-format data

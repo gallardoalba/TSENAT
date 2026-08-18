@@ -13,6 +13,10 @@ bootstrap_compute_cpp <- function(x, nboot = 1000L, q = 1.0, normalize = TRUE, l
     .Call(`_TSENAT_bootstrap_compute_cpp`, x, nboot, q, normalize, log_base, pseudocount)
 }
 
+bootstrap_compute_multi_q_cpp <- function(x, q, nboot = 1000L, normalize = TRUE, log_base = 2.718281828, pseudocount = 0.0) {
+    .Call(`_TSENAT_bootstrap_compute_multi_q_cpp`, x, q, nboot, normalize, log_base, pseudocount)
+}
+
 bootstrap_replicate_cpp <- function(counts, nboot = 1000L, q = 1.0, normalize = TRUE, log_base = 2.718281828, pseudocount = 0.0, block_ids = integer(0)) {
     .Call(`_TSENAT_bootstrap_replicate_cpp`, counts, nboot, q, normalize, log_base, pseudocount, block_ids)
 }
@@ -35,6 +39,10 @@ jis_bootstrap_delta_cpp <- function(counts_A, counts_B, delta_influence, q = 1.0
 
 tsallis_divergence_cpp <- function(p, r, q = 1.0, log_base = 2.718281828) {
     .Call(`_TSENAT_tsallis_divergence_cpp`, p, r, q, log_base)
+}
+
+tsallis_divergence_vector_cpp <- function(x, y, q_vals, pseudocount = 0.5, log_base = 2.718281828) {
+    .Call(`_TSENAT_tsallis_divergence_vector_cpp`, x, y, q_vals, pseudocount, log_base)
 }
 
 divergence_bootstrap_compute_cpp <- function(x, y, nboot = 1000L, q = 1.0, paired = FALSE, pseudocount = 0.0, log_base = 2.718281828) {

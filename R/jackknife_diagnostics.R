@@ -107,7 +107,7 @@
 #' - One very large outlier: single dominant isoform (entropy driven by one
 #' transcript)
 #'
-#' **Tsallis entropy q-parameter optimization (papers S111, I004):**
+#' **Tsallis entropy q-parameter optimization (Zhang & Cao 2023):**
 #' The Tsallis entropy parameter \eqn{q}{q} controls the weight given to
 #' rare vs. abundant
 #' isoforms. Different q values have different resampling properties that
@@ -122,7 +122,7 @@
 #' sensitivity.
 #' Jackknife results capture both rare and abundant isoform contributions.
 #' Provides
-#'   reliable diversity assessment for general use (papers S111, I004).
+#'   reliable diversity assessment for general use (Zhang & Cao 2023).
 #' - \eqn{q > 2}{q > 2}: May be insensitive to rare isoform diversity.
 #' Jackknife focuses
 #' on most abundant transcripts only. May miss important rare transcript
@@ -131,7 +131,7 @@
 #' 0.5 or q > 2,
 #' recommending appropriate interpretation.  Set \code{verbose=TRUE} for 
 #' additional guidance
-#' when q is in the recommended range (per papers S111, I004).
+#' when q is in the recommended range (Zhang & Cao 2023).
 #'
 #' **Display behavior (verbose parameter):**
 #' When x is a matrix/data.frame and verbose=TRUE (default):
@@ -181,26 +181,29 @@
 #' validate leave-one-out jackknife for entropy/divergence estimates.
 #' Standard error
 #'   estimation via jackknife is confirmed for these measures.
-#' [OK] q-parameter effects: Papers I001-I004 establish that q-parameter
+#' [OK] q-parameter effects: Plastino & Plastino (1993); Furuichi (2006);
+#' Jost (2006); van Erven & Harremoës (2014) establish that q-parameter
 #' controls weight
-#' distribution (q_weight = 0.5 + q). Papers S111, I004 specifically
+#' distribution (q_weight = 0.5 + q). Zhang & Cao (2023) specifically
 #' validate that
 #' q in [0.5, 2] is the recommended range for balanced sensitivity
 #' (mentioned in
 #' function documentation above). Lower q emphasizes abundant isoforms;
 #' higher q
 #'   emphasizes rare isoforms.
-#' [OK] Influence patterns: Paper I004 (validation) confirms that
+#' [OK] Influence patterns: van Erven & Harremoës (2014) confirms that
 #' jackknife-derived influence
 #' metrics correctly reflect transcript contribution to entropy across
 #' q-values.
-#' [OK] Bootstrap confidence: Papers Li (2023), R Package 'hillR', S018 show that 500-1000
+#' [OK] Bootstrap confidence: Li (2023) and the R package 'hillR' show that
+#' 500-1000
 #' resampling iterations
 #' (as in jackknife) achieve >=95% CI coverage for entropy estimates,
 #' validating the
 #'   standard error estimates computed here.
 #'
-#' Users can cite papers I001-I004 for q-parameter theoretical grounding and
+#' Users can cite Plastino & Plastino (1993), Furuichi (2006), Jost (2006),
+#' van Erven & Harremoës (2014) for q-parameter theoretical grounding and
 #' Ramsay (2005), Springer Series in Statistics/Li (2023), R Package 'hillR'
 #' for jackknife methodology validation.
 #'
@@ -583,10 +586,10 @@
     } else {
         for (i in seq_len(n)) {
             denom <- 1 - p[i]
-            # Guard against NA/NaN in denom before using in if() statement
+            # Guard against NA/NaN in denom before using in if() statement.
+            # Tsallis entropy is scale-invariant; no log_base division.
             jackknife_estimates[i] <- if (!is.na(denom) && !is.nan(denom) && denom >
                 1e-10)
-                # Tsallis entropy is scale-invariant; no log_base division
                 (1/(q - 1)) * (1 - sum((p/denom)^q)) else NA_real_
         }
     }
@@ -626,7 +629,8 @@
     total_count <- sum(x)
     if (total_count < 10) {
         warning("Total count (", total_count, ") below recommended minimum (10-20).\n",
-            "Jackknife estimates may be unreliable (per papers S111, S114).\n", "Consider aggregating samples or filtering genes with low abundance.")
+            "Jackknife estimates may be unreliable (jackknife resampling literature, e.g., Zhang & Cao 2023).\n",
+            "Consider aggregating samples or filtering genes with low abundance.")
     }
 }
 
@@ -644,15 +648,15 @@
         if (q < 0.5) {
             message("Low q (", q, ") heavily underweights rare isoforms and emphasizes common ones.\n",
                 "  -> Jackknife results may have large influence from abundant transcripts.\n",
-                "  -> Better for detecting changes in dominant isoforms (papers S111, I004).")
+                "  -> Better for detecting changes in dominant isoforms (Zhang & Cao 2023).")
         } else if (q > 2) {
             message("High q (", q, ") may be insensitive to rare isoform diversity.\n",
                 "  -> Jackknife results focus on most abundant transcripts only.\n",
-                "  -> May miss important rare transcript contributions (papers S111, I004).\n",
+                "  -> May miss important rare transcript contributions (Zhang & Cao 2023).\n",
                 "  -> Consider q in [0.5, 2] for balanced diversity assessment.")
         } else {
             message("q = ", q, " is in the recommended range [0.5, 2].\n", "  -> Balanced sensitivity to rare and abundant isoforms.\n",
-                "  -> Jackknife results should be reliable for diversity assessment (papers S111, I004).")
+                "  -> Jackknife results should be reliable for diversity assessment (Zhang & Cao 2023).")
         }
     }
 }
@@ -797,8 +801,9 @@ print.tsenat_jackknife_list <- function(x, ...) {
     }
 
     # Create summary_df from sait_res
-    summary_df <- data.frame(gene = sait_res$gene, gene_name = sait_res$gene_name, p_interaction = sait_res$p_interaction,
-        adj_p_interaction = sait_res$adj_p_interaction, stringsAsFactors = FALSE)
+    summary_df <- data.frame(gene = sait_res$gene, gene_name = sait_res$gene_name,
+        p_interaction = sait_res$p_interaction, adj_p_interaction = sait_res$adj_p_interaction,
+        stringsAsFactors = FALSE)
 
     # Sort by adjusted p-value (most significant first)
     summary_df <- summary_df[order(summary_df$adj_p_interaction, na.last = TRUE),

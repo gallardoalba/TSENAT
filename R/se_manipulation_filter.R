@@ -47,6 +47,9 @@
 #'   paired design stringency. Options:
 #'   - 'soft' (permissive): 25% of samples (min 2), min_tpm = Q1 (25th %ile)
 #'   - 'medium' (balanced): 50% of samples (min 3), min_tpm = Q2 (median)
+#'     The median threshold is a CONVENIENCE default: for confirmatory
+#'     analyses, specify an explicit, pre-specified threshold rather than
+#'     relying on the dataset-dependent median.
 #'   - 'severe' (stringent): 75% of samples, min_tpm = Q3 (75th %ile)
 #'   - NULL (default): use explicit `min_samples` and `min_tpm`
 #' When stringency is specified, all three filtering parameters are
@@ -384,13 +387,16 @@
     genes_filt <- genes_vec[tokeep]
     assay_mat_filt <- assay_mat[tokeep, , drop = FALSE]
 
+    # Precompute isoform index per gene (O(T) once); each gene lookup is O(1)
+    gene_index <- split(seq_along(genes_filt), genes_filt)
+
     # For each gene, calculate relative abundance of each isoform
     keep_iso <- rep(FALSE, sum(tokeep))  # length = # rows still kept
     gene_unique <- unique(genes_filt)
 
     for (gene in gene_unique) {
         # Get indices of all isoforms for this gene (within filtered set)
-        gene_idx <- which(genes_filt == gene)
+        gene_idx <- gene_index[[as.character(gene)]]
 
         if (length(gene_idx) == 1) {
             # Single isoform gene - always keep
@@ -1099,64 +1105,71 @@
 # ============================================================================
 .sync_subset_metadata <- function(analysis_obj, gene_idx, sample_idx, verbose) {
     se <- analysis_obj@se
-    analysis_se <- analysis_obj@se
+    md <- S4Vectors::metadata(se)
 
     # 1. Sync tx2gene mapping (transcript-to-gene mapping)
-    if (!is.null(S4Vectors::metadata(se)$tx2gene)) {
-        tx2gene_full <- S4Vectors::metadata(se)$tx2gene
-        tx2gene_subset <- tx2gene_full[tx2gene_full$Transcript %in% rownames(analysis_se),
-            ]
-        S4Vectors::metadata(analysis_se)$tx2gene <- tx2gene_subset
-
+    if (!is.null(md$tx2gene)) {
+        tx2gene_full <- md$tx2gene
+        md$tx2gene <- tx2gene_full[tx2gene_full$Transcript %in% rownames(se), ,
+            drop = FALSE]
         if (verbose) {
-            message("[subset_analysis] Filtered tx2gene: ", nrow(tx2gene_full), " -> ",
-                nrow(tx2gene_subset), " transcripts")
+            message("[subset_analysis] Filtered tx2gene: ", nrow(tx2gene_full),
+                " -> ", nrow(md$tx2gene), " transcripts")
         }
     }
 
     # 2. Sync readcounts (original count matrix stored in metadata)
-    if (!is.null(S4Vectors::metadata(se)$readcounts)) {
-        readcounts_full <- S4Vectors::metadata(se)$readcounts
-        readcounts_subset <- readcounts_full[gene_idx, sample_idx, drop = FALSE]
-        S4Vectors::metadata(analysis_se)$readcounts <- readcounts_subset
-
+    if (!is.null(md$readcounts)) {
+        readcounts_full <- md$readcounts
+        md$readcounts <- readcounts_full[gene_idx, sample_idx, drop = FALSE]
         if (verbose) {
             message("[subset_analysis] Filtered readcounts: ", nrow(readcounts_full),
-                " -> ", nrow(readcounts_subset), " transcripts")
+                " -> ", nrow(md$readcounts), " transcripts")
         }
     }
 
     # 3. Sync tpm (TPM matrix stored in metadata)
-    if (!is.null(S4Vectors::metadata(se)$tpm)) {
-        tpm_full <- S4Vectors::metadata(se)$tpm
-        tpm_subset <- tpm_full[gene_idx, sample_idx, drop = FALSE]
-        S4Vectors::metadata(analysis_se)$tpm <- tpm_subset
-
+    if (!is.null(md$tpm)) {
+        tpm_full <- md$tpm
+        md$tpm <- tpm_full[gene_idx, sample_idx, drop = FALSE]
         if (verbose) {
-            message("[subset_analysis] Filtered tpm: ", nrow(tpm_full), " -> ", nrow(tpm_subset),
+            message("[subset_analysis] Filtered tpm: ", nrow(tpm_full), " -> ",
+                nrow(md$tpm), " transcripts")
+        }
+    }
+
+    # 4. Sync effective_length: must stay aligned with the assay rows, or the
+    # downstream length normalization silently misaligns transcripts
+    # (audit 2026-08-17).
+    if (!is.null(md$effective_length)) {
+        eff_len_full <- md$effective_length
+        if (is.vector(eff_len_full)) {
+            if (!is.null(names(eff_len_full))) {
+                idx <- match(rownames(se), names(eff_len_full))
+                if (all(!is.na(idx)) && length(idx) == nrow(se)) {
+                    md$effective_length <- eff_len_full[idx]
+                }
+            } else if (max(gene_idx) <= length(eff_len_full)) {
+                # Unnamed vector aligned with the pre-subset rows
+                md$effective_length <- eff_len_full[gene_idx]
+            }
+        } else if (is.matrix(eff_len_full)) {
+            # Matrix - subset by rows and columns
+            md$effective_length <- eff_len_full[gene_idx, sample_idx, drop = FALSE]
+        }
+        if (verbose) {
+            message("[subset_analysis] Filtered effective_length: ",
+                length(eff_len_full), " -> ", length(md$effective_length),
                 " transcripts")
         }
     }
 
-    # 4. Sync effective_length (effective lengths)
-    if (!is.null(S4Vectors::metadata(se)$effective_length)) {
-        eff_len_full <- S4Vectors::metadata(se)$effective_length
-
-        # Could be vector or matrix, handle both
-        if (is.vector(eff_len_full)) {
-            # Named vector - subset by matching names to selected genes
-            tx_names_subset <- rownames(analysis_se)
-            eff_len_subset <- eff_len_full[na.omit(match(tx_names_subset, names(eff_len_full)))]
-            if (length(eff_len_subset) > 0) {
-                S4Vectors::metadata(analysis_se)$effective_length <- eff_len_subset
-            }
-        } else if (is.matrix(eff_len_full)) {
-            # Matrix - subset by rows and columns
-            eff_len_subset <- eff_len_full[gene_idx, sample_idx, drop = FALSE]
-            S4Vectors::metadata(analysis_se)$effective_length <- eff_len_subset
-        }
-    }
-
+    # Write the modified metadata back into the S4 object and the slot.
+    # NOTE: assignments like metadata(se)$x <- ... only modify a local copy of
+    # the object, which is why these syncs previously had no effect on the
+    # returned analysis object.
+    S4Vectors::metadata(se) <- md
+    analysis_obj@se <- se
     return(analysis_obj)
 }
 

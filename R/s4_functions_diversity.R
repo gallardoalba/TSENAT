@@ -28,8 +28,10 @@
 #'   \itemize{
 #'     \item \code{'default'} - Simple normalization by theoretical maximum (current behavior)
 #'     \item \code{'zscore'} - Z-score normalization per q-value
-#'     \item \code{'log_odds_ratio'} - Log-odds ratio relative to max entropy (q and 
-#' isoform-aware)
+#'     \item \code{'log_odds_ratio'} - Log-ratio of entropy to the uniform maximum
+#'   (q and isoform-aware). Values are <= 0: 0 = uniform, < 0 = more
+#'   concentrated. Name kept for backwards compatibility; this is a
+#'   log-relative-entropy ratio, not an odds ratio.
 #'     \item \code{'relative_reference'} - Divide by reference group mean (requires reference_group)
 #'     \item \code{NULL} - No post-hoc normalization (default)
 #'   }
@@ -130,6 +132,14 @@
 #' \code{analysis@config} with 
 #' priority resolution (explicit > \code{@config} > default).
 #'
+#' **Counts, TPM and effective length:**
+#' The wrapper always computes entropy from the RAW count assay with
+#' effective-length correction (`tpm = FALSE` internally). The TPM matrix
+#' stored in metadata by \code{build_analysis()} is used only for
+#' filtering/QC (e.g., \code{filter_analysis()}). Because TPM already
+#' incorporates effective-length normalization, the two are never combined in
+#' a single computation (combining them at the core level is a hard error).
+#'
 #' **Diversity Spectrum Computation:**
 #' By default, this function computes and saves a diversity spectrum (aggregated
 #' statistics across all q-values and  groups) when 
@@ -202,7 +212,7 @@
 #'
 #' @export
 #' @importFrom utils write.table
-calculate_diversity <- function(analysis, q = NULL, norm = TRUE, norm_method = NULL,
+calculate_diversity <- function(analysis, q = NULL, norm = NULL, norm_method = NULL,
     reference_group = NULL, verbose = NULL, show_messages = FALSE, what = NULL, nthreads = NULL,
     pseudocount = NULL, min_valid_frac = NULL, shrinkage = NULL, bootstrap = NULL,
     nboot = NULL, bootstrap_method = NULL, bootstrap_ci = NULL, bootstrap_include_diagnostics = NULL,

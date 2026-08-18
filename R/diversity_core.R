@@ -8,6 +8,11 @@
 #' For SummarizedExperiment: looks for an assay named 'tpm'; if found, uses it;
 #' otherwise falls back to the assay specified by `assayno` parameter and warns
 #' if `tpm=TRUE`.
+#' Mutually exclusive with `effective_length`: TPM already incorporates
+#' effective-length normalization, so supplying both `tpm = TRUE` and an
+#' `effective_length` (as a parameter OR via SummarizedExperiment metadata)
+#' is a hard error (double normalization). Use raw counts (`tpm = FALSE`)
+#' together with `effective_length` when length correction is desired.
 #' @param genes Character vector assigning each transcript (row) to a gene.
 #' Must have length equal to nrow(x) or the number of transcripts in `x`.
 #' @param norm Logical or character; normalization/standardization mode
@@ -18,9 +23,12 @@
 #' - 'range': Range standardization [0,1] per gene (classic approach)
 #' - 'zscore': Z-score standardization per q-value: (S_q - mean) / sd
 #'   Useful for cross-study comparison; results in mean=0, sd=1
-#' - 'log_odds_ratio': Log-odds ratio relative to random expectation:
-#'   log(S_q / S_q_max) where S_q_max is entropy of uniform distribution
-#'   Interpretation: 0 = uniform, >0 = more structured than random
+#' - 'log_odds_ratio': Log-ratio of entropy to the uniform maximum:
+#'   log(S_q / S_q_max) where S_q_max is entropy of the uniform distribution.
+#'   Since S_q <= S_q_max always, values are <= 0:
+#'   0 = maximally uniform; < 0 = increasingly concentrated/less diverse.
+#'   The NAME is kept for backwards compatibility; mathematically this is a
+#'   log-relative-entropy ratio (no odds are involved), not an odds ratio.
 #' - 'relative_reference': Ratio to reference group mean (requires colData
 #' 'sample_type')
 #'   Interpretation: Reference group mean=1, >1 higher than reference
@@ -28,20 +36,24 @@
 #' @param verbose Logical; print diagnostic messages when TRUE (default: TRUE).
 #' @param q Numeric scalar or vector of Tsallis q values to evaluate (q >= 0).
 #' If length(q) > 1, the result will contain separate columns per sample and
-#' q. q = 0 is supported and represents species richness.
+#' q. q = 0 returns the Tsallis SUPPORT statistic S_0 = n_present - 1 (number
+#' of positive-support isoforms minus one; with a positive pseudocount this
+#' becomes the annotated universe n - 1, not observed richness). For the Hill
+#' effective richness D_0 = n, use `what = 'D'`.
 #' @param what Which quantity to return: 'S' for Tsallis entropy or 'D' for Hill
 #' numbers.
 #' @param nthreads Number of threads for parallel processing (default: 1).
 #' Set to > 1 to parallelize per-gene entropy calculations.
-#' @param pseudocount Numeric scalar or 'auto'. Add this value to all
-#' transcript counts
+#' @param pseudocount Numeric scalar or 'auto'. Added to transcript values
+#' AFTER effective-length normalization (on the effective-abundance scale),
 #' before calculating proportions (default: 0). Useful for handling genes with
 #' zero counts in some samples. Values like 0.5 or 1 are commonly used to avoid
-#' zero-division issues and NaN results. When set to 'auto', pseudocount is
-#' automatically estimated using library size adjustment via
-#' `.estimate_pseudocount()`
-#' (recommended for sparse count data where regularization strength should adapt
-#' to sequencing depth).
+#' zero-division issues and NaN results. When set to 'auto', the pseudocount is
+#' estimated from the RESOLVED raw-count matrix via the sequencing-depth-scaled
+#' heuristic `.estimate_pseudocount()` after the input representation has been
+#' fixed (recommended for sparse count data where regularization strength
+#' should adapt to sequencing depth). `'auto'` is not supported for
+#' `tpm = TRUE` input (the depth heuristic is defined on raw counts).
 #' @param min_count Numeric scalar or NULL; minimum total transcript count
 #' per gene
 #' required to include the gene in results (default: NULL = auto-detect).
@@ -58,8 +70,8 @@
 #' **Important:** This filtering happens BEFORE diversity calculation and
 #' bootstrap.
 #' Genes filtered by `min_count` will not appear in output.
-#' **Bibliography:** Papers S070, S197 (DESeq2, edgeR) recommend filtering
-#' low-abundance
+#' **Bibliography:** Bioconductor (2022) and Love et al. (2014, DESeq2)
+#' recommend filtering low-abundance
 #' genes before hypothesis testing; same principle applies to bootstrap CI
 #' validity.
 #' @param shrinkage Character; method for stabilizing entropy estimates,
@@ -86,6 +98,9 @@
 #' (EffectiveLength column).
 #' Example: load(readcounts.RData'); .calculate_diversity(readcounts,
 #' effective_length=effective_length)
+#' Only valid together with raw counts (`tpm = FALSE`): combining with
+#' `tpm = TRUE` stops with an error, because TPM already incorporates
+#' effective-length normalization (double normalization rejected).
 #' @param bootstrap Logical; if TRUE, compute bootstrap confidence intervals
 #' around
 #' Tsallis entropy point estimates using \code{.
@@ -114,8 +129,8 @@
 #' diagnostic
 #' fields in bootstrap results: effective_sample_size, skewness, bias,
 #' acceleration_factor
-#' (for BCa method). Diagnostics assess CI quality and reliability (papers
-#' S111, S114).
+#' (for BCa method). Diagnostics assess CI quality and reliability (Zhang &
+#' Cao 2023; Friedl & Stampfer 2002).
 #' Set to FALSE to reduce computation time for large datasets.
 #' @param metadata Optional list or data frame used to enrich the result. If
 #' provided,
@@ -147,41 +162,45 @@
 #' @importFrom SummarizedExperiment SummarizedExperiment assays assay rowData colData
 #' @details
 #' **Database Verification (tsenat_papers.db):**
-#' [OK] Tsallis entropy calculation: Papers I001-I004 provide complete
+#' [OK] Tsallis entropy calculation: Plastino & Plastino (1993); Furuichi
+#' (2006); Jost (2006); van Erven & Harremoës (2014) provide complete
 #' mathematical
 #' foundations for Tsallis entropy computation: S_q = (1 - Sum p_i^q) / (1 -
 #' q).
 #'   The q-parameter controls emphasis on rare vs. abundant transcripts through
-#'   q_weight = 0.5 + q, affecting information gain linearly (papers S063-S067).
-#' [OK] Entropy normalization methods: Papers I023 (Hill numbers), B002-B007
-#' (entropy
+#'   q_weight = 0.5 + q, affecting information gain linearly (Ching et al.
+#'   2014; Yu et al. 2017; Qiao et al. 2018).
+#' [OK] Entropy normalization methods: Hill (1973); Bajić & Japundžić-Žigon
+#' (2022); Bajić (2024) (entropy
 #'   standardization) validate normalization approaches. 'range' normalization
 #'   [0,1] is standard; 'zscore', 'log_odds_ratio', and 'relative_reference'
 #'   follow published methodologies for cross-study comparison.
 #' [OK] Effective length bias correction: Salmon quantification method
-#' (Smith et al., 2017;
-#' reference dataset S001-S003) recommends normalization by effective length
+#' (Smith et al., 2017) recommends normalization by effective length
 #' to
 #' remove transcript-length bias. This is implemented via the
 #' effective_length parameter.
 #' [OK] Shrinkage methodology: Empirical Bayes shrinkage uses global-mean
-#' borrowing as
-#' described in papers S004-S006 (Bayesian shrinkage methods), improving
+#' borrowing (Bayesian shrinkage methods), improving
 #' stability
 #'   for genes with few expressed isoforms.
-#' [OK] Bootstrap properties: Papers Li (2023), R Package 'hillR', S018, S030 show that entropy
-#' estimates with
-#' pseudocount >= 0.5 achieve >=95% confidence interval coverage in 500+
-#' resampling iterations.
-#' [OK] Multi-q analysis: Papers I004 (validation) and S063-S067 (power
-#' analysis) establish
+#' [OK] Bootstrap properties: Coverage depends on sample size, sequencing
+#' depth, estimator, sparsity and the bootstrap scheme. Simulation evidence
+#' (Li 2023, R Package 'hillR') supports coverage near the nominal level under
+#' regular conditions, but TSENAT's own validation suite identifies scenarios
+#' where coverage deteriorates, particularly at low depth (see NEWS.md).
+#' [OK] Multi-q analysis: van Erven & Harremoës (2014) and the RNA-seq power
+#' analysis literature (Ching et al. 2014; Yu et al. 2017; Qiao et al. 2018;
+#' Vieth & Enard 2019) establish
 #' that analyzing multiple q values reveals different aspects of isoform
 #' diversity,
 #' with each q capturing distinct biological information (rare vs. abundant
 #' isoform shifts).
 #'
-#' Users testing genes at multiple q values can cite papers I001-I004 for theory
-#' and S063-S067 for power/informativeness validation.
+#' Users testing genes at multiple q values can cite Plastino & Plastino
+#' (1993), Furuichi (2006), Jost (2006), van Erven & Harremoës (2014) for theory
+#' and Ching et al. (2014), Yu et al. (2017), Qiao et al. (2018) for
+#' power/informativeness validation.
 #'
 #' @examples
 #' # Create minimal example data
@@ -215,10 +234,10 @@
     what <- validated$what
     shrinkage <- validated$shrinkage
 
-    # Handle pseudocount auto-estimation
-    pseudocount <- .handle_pseudocount_auto(pseudocount, x, verbose)
-
-    # Prepare input and calculate diversity
+    # pseudocount = "auto" is resolved INSIDE .prepare_diversity_data(), after
+    # the input representation (counts vs TPM, SE vs tximport list) has been
+    # fixed, so the depth heuristic always runs on the resolved raw-count
+    # matrix.
     prep <- .prepare_diversity_data(x, genes, original_x, effective_length, norm,
         q, what, nthreads, shrinkage, pseudocount, verbose, tpm, assayno, show_messages,
         min_valid_frac, log_base = log_base)
@@ -227,6 +246,7 @@
     genes <- prep$genes
     se_assay_mat <- prep$se_assay_mat
     effective_length <- prep$effective_length  # Extract effective_length from prep result
+    pseudocount <- prep$pseudocount  # resolved numeric (after 'auto' estimation)
 
     # Optional: Compute bootstrap CIs
     bootstrap_ci_results <- .bootstrap_diversity_ci(bootstrap, result, genes, se_assay_mat,
@@ -242,7 +262,9 @@
     # Build and return SummarizedExperiment
     .build_diversity_se_output(result, output_structure, original_x, se_assay_mat,
         bootstrap_ci_results, bootstrap, metadata, verbose, what, q, genes, sample_col,
-        condition_col, subject_col)
+        condition_col, subject_col, norm = norm, pseudocount = pseudocount,
+        shrinkage = shrinkage, effective_length_used = !is.null(effective_length),
+        log_base = log_base)
 }
 
 # ============================================================================
@@ -398,6 +420,9 @@
     if (!is.numeric(x) || any(is.na(x))) {
         stop("Input data must be numeric and contain no NAs!", call. = FALSE)
     }
+    if (any(x < 0)) {
+        stop("Input expression values must be non-negative.", call. = FALSE)
+    }
     if (nrow(x) != length(genes)) {
         stop("The number of rows is not equal to the given gene set.", call. = FALSE)
     }
@@ -417,6 +442,62 @@
         }
     }
 
+    # AUDIT3 #9: TPM already incorporates effective-length normalization.
+    # Applying effective-length correction to TPM would double-normalize and
+    # produce a quantity that is neither NumReads/L_eff nor TPM composition.
+    if (isTRUE(tpm) && !is.null(effective_length)) {
+        stop("[.prepare_diversity_data] tpm = TRUE with effective_length is invalid: TPM already incorporates effective-length normalization. Use raw counts (tpm = FALSE) with effective-length correction, or set effective_length = NULL when analysing TPM.",
+            call. = FALSE)
+    }
+
+    # AUDIT 2026-08-17: validate effective_length at the main diversity input
+    # boundary. Previously the multi-gene path (.tsallis_row) divided counts
+    # by effective_length directly, bypassing the validation in
+    # .calculate_tsallis_entropy(), so an invalid length could silently become
+    # zeros/NA instead of failing.
+    if (!is.null(effective_length)) {
+        el <- effective_length
+        if (is.data.frame(el)) {
+            el <- as.matrix(el)
+        }
+        if (is.vector(el) && !is.matrix(el)) {
+            if (length(el) != nrow(x)) {
+                stop("effective_length must have one value per transcript (length == nrow(x)).",
+                    call. = FALSE)
+            }
+        } else if (is.matrix(el)) {
+            if (!identical(dim(el), dim(x))) {
+                stop("effective_length matrix must have the same dimensions as the input data (transcripts x samples).",
+                    call. = FALSE)
+            }
+        } else {
+            stop("effective_length must be a numeric vector or matrix.", call. = FALSE)
+        }
+        if (any(!is.finite(el)) || any(el <= 0)) {
+            stop("effective_length must contain finite positive values.", call. = FALSE)
+        }
+    }
+
+    # AUDIT FINAL2: resolve pseudocount = "auto" AFTER the input
+    # representation is fixed. The sequencing-depth heuristic must be
+    # estimated from the resolved RAW-count matrix — never from a TPM assay
+    # (whose column sums are ~1e6 by construction, not library sizes) nor
+    # from an unresolved tximport-style list. TPM + "auto" is rejected.
+    if (is.character(pseudocount) && length(pseudocount) == 1 && tolower(pseudocount) ==
+        "auto") {
+        if (isTRUE(tpm)) {
+            stop("[.prepare_diversity_data] pseudocount = 'auto' is not supported for TPM input: the sequencing-depth heuristic is defined on raw counts. Provide an explicit pseudocount for TPM data, or analyse counts (tpm = FALSE).",
+                call. = FALSE)
+        }
+        if (verbose && show_messages) {
+            message("Computing pseudocount automatically via .estimate_pseudocount()...")
+        }
+        pseudocount <- .estimate_pseudocount(se_assay_mat, verbose = FALSE)$scalar_pseudocount
+        if (verbose && show_messages) {
+            message(sprintf("  -> Estimated pseudocount = %.4f", pseudocount))
+        }
+    }
+
     # Calculate diversity
     use_range_norm <- (norm == "range")
     if (!is.null(effective_length) && verbose && show_messages) {
@@ -431,7 +512,8 @@
 
 
 
-    list(result = result, x = x, genes = genes, se_assay_mat = se_assay_mat, effective_length = effective_length)
+    list(result = result, x = x, genes = genes, se_assay_mat = se_assay_mat, effective_length = effective_length,
+        pseudocount = pseudocount)
 }
 
 # NOTE (March 2026): .bootstrap_diversity_ci() moved to bootstrap.R for
@@ -446,11 +528,14 @@
     n_genes <- length(filtered_gene_ids)
 
     if (n_genes > 0) {
+        # Precompute transcript->gene index once (O(T)); avoids scanning the
+        # full genes vector for every gene (O(G*T)).
+        gene_index <- split(seq_along(genes), genes)
         counts_assay <- matrix(0, nrow = n_genes, ncol = n_samples)
         for (i in seq_len(n_genes)) {
             gene_id <- filtered_gene_ids[i]
-            tx_mask <- which(genes == gene_id)
-            if (length(tx_mask) > 0) {
+            tx_mask <- gene_index[[as.character(gene_id)]]
+            if (!is.null(tx_mask) && length(tx_mask) > 0) {
                 counts_assay[i, ] <- colSums(se_assay_mat[tx_mask, , drop = FALSE])
             }
         }
@@ -649,11 +734,14 @@
 #'
 #' @noRd
 .build_diversity_metadata <- function(q, what, se_assay_mat, bootstrap, bootstrap_ci_results,
-    original_x) {
+    original_x, norm = NULL, pseudocount = NULL, shrinkage = NULL, effective_length_used = FALSE,
+    log_base = NULL) {
     result_meta_list <- list(q = q, what = what[1], readcounts = se_assay_mat, bootstrap = bootstrap,
         bootstrap_nboot = if (!is.null(bootstrap_ci_results)) bootstrap_ci_results$bootstrap_nboot else NULL,
         bootstrap_method = if (!is.null(bootstrap_ci_results)) bootstrap_ci_results$bootstrap_method else NULL,
-        bootstrap_ci = if (!is.null(bootstrap_ci_results)) bootstrap_ci_results$bootstrap_ci else NULL)
+        bootstrap_ci = if (!is.null(bootstrap_ci_results)) bootstrap_ci_results$bootstrap_ci else NULL,
+        norm = norm, pseudocount = pseudocount, shrinkage = shrinkage,
+        effective_length_used = effective_length_used, log_base = log_base)
 
     if (is(original_x, "SummarizedExperiment") || is(original_x, "RangedSummarizedExperiment")) {
         result_meta_list$se <- original_x
@@ -667,7 +755,8 @@
 #' @noRd
 .build_diversity_se_output <- function(result, output_structure, original_x, se_assay_mat,
     bootstrap_ci_results, bootstrap, metadata, verbose, what, q, genes, sample_col = "sample",
-    condition_col = NULL, subject_col = NULL) {
+    condition_col = NULL, subject_col = NULL, norm = NULL, pseudocount = NULL,
+    shrinkage = NULL, effective_length_used = FALSE, log_base = NULL) {
 
     result_assay <- output_structure$result_assay
     filtered_gene_ids <- as.character(result[, 1])
@@ -717,7 +806,9 @@
 
     # Step 6: Build metadata
     result_meta_list <- .build_diversity_metadata(q, what, se_assay_mat, bootstrap,
-        bootstrap_ci_results, original_x)
+        bootstrap_ci_results, original_x, norm = norm, pseudocount = pseudocount,
+        shrinkage = shrinkage, effective_length_used = effective_length_used,
+        log_base = log_base)
 
     # Step 7: Create and return SummarizedExperiment
     result <- SummarizedExperiment::SummarizedExperiment(assays = assays_list, rowData = output_structure$rowData,

@@ -100,13 +100,13 @@ plot_divergence_spectrum <- function(analysis, gene = NULL, n_genes = 4, ncol = 
     # Load visualization dependencies (ggplot2, cowplot, etc.)
     .load_visualization_deps()
 
-    # Extract verbose parameter if not provided
-    verbose <- resolve_slot_param(verbose, analysis@config, "verbose", TRUE)
-
-    # Validate input
+    # Validate input FIRST (before accessing analysis@config)
     if (!is(analysis, "TSENATAnalysis")) {
         stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
     }
+
+    # Extract verbose parameter if not provided
+    verbose <- resolve_slot_param(verbose, analysis@config, "verbose", TRUE)
 
     # Match metric and variability_metric arguments
     metric <- match.arg(metric)
@@ -164,7 +164,7 @@ plot_divergence_spectrum <- function(analysis, gene = NULL, n_genes = 4, ncol = 
     p <- tryCatch({
         .plot_divergence_spectrum(divergence_results_se = divergence_results_se,
             gene = gene, sait_res = sait_res, n_genes = n_genes, ncol = ncol, metric = metric,
-            variability_metric = variability_metric, ...)
+            variability_metric = variability_metric, analysis = analysis, ...)
     }, error = function(e) {
         if (verbose) {
             message("plot_divergence_spectrum failed: ", e$message)
@@ -181,10 +181,12 @@ plot_divergence_spectrum <- function(analysis, gene = NULL, n_genes = 4, ncol = 
     if (!is.null(output_file)) {
         save_analysis_output(p, output_file, object = analysis, verbose = verbose,
             func_name = "plot_divergence_spectrum", width = width, height = height)
+        # Documented contract: return the file path invisibly when saved
+        return(invisible(output_file))
     }
 
-    # Return file path if saved, otherwise return plot
-    invisible(p)
+    # Return plot object when no file is requested
+    p
 }
 
 # ============================================================================

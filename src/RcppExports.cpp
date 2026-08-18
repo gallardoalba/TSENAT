@@ -53,6 +53,21 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// bootstrap_compute_multi_q_cpp
+NumericMatrix bootstrap_compute_multi_q_cpp(NumericVector x, NumericVector q, int nboot, bool normalize, double log_base, double pseudocount);
+RcppExport SEXP _TSENAT_bootstrap_compute_multi_q_cpp(SEXP xSEXP, SEXP qSEXP, SEXP nbootSEXP, SEXP normalizeSEXP, SEXP log_baseSEXP, SEXP pseudocountSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type q(qSEXP);
+    Rcpp::traits::input_parameter< int >::type nboot(nbootSEXP);
+    Rcpp::traits::input_parameter< bool >::type normalize(normalizeSEXP);
+    Rcpp::traits::input_parameter< double >::type log_base(log_baseSEXP);
+    Rcpp::traits::input_parameter< double >::type pseudocount(pseudocountSEXP);
+    rcpp_result_gen = Rcpp::wrap(bootstrap_compute_multi_q_cpp(x, q, nboot, normalize, log_base, pseudocount));
+    return rcpp_result_gen;
+END_RCPP
+}
 // bootstrap_replicate_cpp
 NumericVector bootstrap_replicate_cpp(NumericMatrix counts, int nboot, double q, bool normalize, double log_base, double pseudocount, IntegerVector block_ids);
 RcppExport SEXP _TSENAT_bootstrap_replicate_cpp(SEXP countsSEXP, SEXP nbootSEXP, SEXP qSEXP, SEXP normalizeSEXP, SEXP log_baseSEXP, SEXP pseudocountSEXP, SEXP block_idsSEXP) {
@@ -147,6 +162,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// tsallis_divergence_vector_cpp
+NumericVector tsallis_divergence_vector_cpp(NumericVector x, NumericVector y, NumericVector q_vals, double pseudocount, double log_base);
+RcppExport SEXP _TSENAT_tsallis_divergence_vector_cpp(SEXP xSEXP, SEXP ySEXP, SEXP q_valsSEXP, SEXP pseudocountSEXP, SEXP log_baseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type q_vals(q_valsSEXP);
+    Rcpp::traits::input_parameter< double >::type pseudocount(pseudocountSEXP);
+    Rcpp::traits::input_parameter< double >::type log_base(log_baseSEXP);
+    rcpp_result_gen = Rcpp::wrap(tsallis_divergence_vector_cpp(x, y, q_vals, pseudocount, log_base));
+    return rcpp_result_gen;
+END_RCPP
+}
 // divergence_bootstrap_compute_cpp
 NumericVector divergence_bootstrap_compute_cpp(NumericVector x, NumericVector y, int nboot, double q, bool paired, double pseudocount, double log_base);
 RcppExport SEXP _TSENAT_divergence_bootstrap_compute_cpp(SEXP xSEXP, SEXP ySEXP, SEXP nbootSEXP, SEXP qSEXP, SEXP pairedSEXP, SEXP pseudocountSEXP, SEXP log_baseSEXP) {
@@ -201,12 +230,14 @@ static const R_CallMethodDef CallEntries[] = {
     {"_TSENAT_entropy_cpp", (DL_FUNC) &_TSENAT_entropy_cpp, 4},
     {"_TSENAT_jackknife_resampling_cpp", (DL_FUNC) &_TSENAT_jackknife_resampling_cpp, 5},
     {"_TSENAT_bootstrap_compute_cpp", (DL_FUNC) &_TSENAT_bootstrap_compute_cpp, 6},
+    {"_TSENAT_bootstrap_compute_multi_q_cpp", (DL_FUNC) &_TSENAT_bootstrap_compute_multi_q_cpp, 6},
     {"_TSENAT_bootstrap_replicate_cpp", (DL_FUNC) &_TSENAT_bootstrap_replicate_cpp, 7},
     {"_TSENAT_block_bootstrap_compute_cpp", (DL_FUNC) &_TSENAT_block_bootstrap_compute_cpp, 6},
     {"_TSENAT_jis_tsallis_entropy_cpp", (DL_FUNC) &_TSENAT_jis_tsallis_entropy_cpp, 6},
     {"_TSENAT_jis_jackknife_influences_cpp", (DL_FUNC) &_TSENAT_jis_jackknife_influences_cpp, 6},
     {"_TSENAT_jis_bootstrap_delta_cpp", (DL_FUNC) &_TSENAT_jis_bootstrap_delta_cpp, 11},
     {"_TSENAT_tsallis_divergence_cpp", (DL_FUNC) &_TSENAT_tsallis_divergence_cpp, 4},
+    {"_TSENAT_tsallis_divergence_vector_cpp", (DL_FUNC) &_TSENAT_tsallis_divergence_vector_cpp, 5},
     {"_TSENAT_divergence_bootstrap_compute_cpp", (DL_FUNC) &_TSENAT_divergence_bootstrap_compute_cpp, 7},
     {"_TSENAT_divergence_bootstrap_paired_cpp", (DL_FUNC) &_TSENAT_divergence_bootstrap_paired_cpp, 7},
     {"_TSENAT_divergence_bootstrap_flexible_cpp", (DL_FUNC) &_TSENAT_divergence_bootstrap_flexible_cpp, 8},

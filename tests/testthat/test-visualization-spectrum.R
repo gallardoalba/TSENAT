@@ -430,7 +430,7 @@ test_that(".spectrum_plot_top_genes issues warning for unmatched genes and plots
   expect_true(grepl("Bootstrap CI \\(95%\\)", p$labels$subtitle))
 })
 
-test_that(".spectrum_plot_global uses bootstrap CI when ci assays available", {
+test_that(".spectrum_plot_global without analysis never claims a bootstrap CI", {
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("SummarizedExperiment")
 
@@ -444,16 +444,61 @@ test_that(".spectrum_plot_global uses bootstrap CI when ci assays available", {
     assays = list(div = mat, ci_lower = ci_lower, ci_upper = ci_upper)
   )
 
+  # Without the analysis object a VALID global bootstrap CI cannot be
+  # computed, so the plot must fall back to descriptive spread and must
+  # NOT label the band as a bootstrap CI.
   p <- TSENAT:::.spectrum_plot_global(
     div_mat_sorted = mat,
     q_vals_sorted = c(0.5, 1.0, 1.5, 2.0),
     metric = "mean",
     variability_metric = "sd",
-    divergence_results_se = se
+    divergence_results_se = se,
+    analysis = NULL
   )
 
   expect_is(p, "ggplot")
+  expect_false(grepl("Bootstrap", p$labels$subtitle))
+  expect_true(grepl("descriptive spread", p$labels$subtitle))
+})
+
+test_that("plot_divergence_spectrum global mode shows a valid global bootstrap CI", {
+  skip_if_not_installed("ggplot2")
+  skip_if_not_installed("SummarizedExperiment")
+
+  # Small TSENATAnalysis with paired-free 2-condition design
+  set.seed(42)
+  n_tx <- 12
+  counts <- pmax(matrix(rpois(n_tx * 6, lambda = 60), nrow = n_tx), 40)
+  rownames(counts) <- paste0("tx", seq_len(n_tx))
+  colnames(counts) <- paste0("s", seq_len(6))
+  gene_ids <- paste0("g", rep(seq_len(4), each = 3))
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = counts),
+    rowData = S4Vectors::DataFrame(
+      gene_id = gene_ids,
+      row.names = rownames(counts)
+    ),
+    colData = S4Vectors::DataFrame(
+      condition = rep(c("control", "treatment"), each = 3),
+      row.names = colnames(counts)
+    )
+  )
+  # Diversity requires the tx2gene mapping when genes= is not explicit
+  S4Vectors::metadata(se)$tx2gene <- data.frame(
+    Transcript = rownames(counts), Gene = gene_ids, stringsAsFactors = FALSE
+  )
+
+  analysis <- TSENAT::TSENATAnalysis(se = se, config = list(
+    condition_col = "condition", control_group = "control", nthreads = 1))
+  analysis <- calculate_diversity(analysis, q = c(0.5, 1), min_valid_frac = 0)
+  analysis <- calculate_divergence(analysis, q = c(0.5, 1), bootstrap = TRUE,
+    nboot = 20)
+
+  p <- plot_divergence_spectrum(analysis, metric = "mean")
+
+  expect_is(p, "ggplot")
   expect_true(grepl("Bootstrap \\(95%\\)", p$labels$subtitle))
+  expect_true(grepl("global bootstrap", p$labels$subtitle))
 })
 
 test_that(".plot_divergence_spectrum respects metric parameter", {

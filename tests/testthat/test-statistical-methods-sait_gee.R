@@ -960,7 +960,7 @@ test_that("GEE detects heteroscedasticity and adjusts weights", {
     expect_true(!is.na(rd_df$p_interaction[1]))
 })
 
-test_that("GEE handles ARIMA differencing for non-stationary data", {
+test_that("GEE fits on original H(q) without ARIMA differencing", {
     skip_if_not_installed("geepack")
     
     # Create non-stationary data (Tsallis entropy trend)
@@ -971,7 +971,6 @@ test_that("GEE handles ARIMA differencing for non-stationary data", {
     coln <- paste0(subject_ids, "_q=", rep(qvec, times = n_subjects))
     
     # Non-stationary trend: entropy decreases monotonically with q (Tsallis property)
-    # This requires ARIMA(1,1,0) differencing to achieve stationarity
     base_trend <- rep(1 - cumsum(qvec/100), times = n_subjects)  # Monotone decreasing
     group_vec <- rep(c("N", "N", "N", "T", "T"), each = length(qvec))
     
@@ -996,7 +995,8 @@ test_that("GEE handles ARIMA differencing for non-stationary data", {
         colData = cd
     )
     
-    # GEE should apply ARIMA differencing internally
+    # GEE no longer applies ARIMA(1,1,0) differencing,
+    # which interleaved condition and q. It fits on the original H(q).
     res <- .calculate_sait(se,
         condition_col = "condition",
         method = "gee",
@@ -1010,10 +1010,14 @@ test_that("GEE handles ARIMA differencing for non-stationary data", {
         rd_df <- as.data.frame(SummarizedExperiment::rowData(res))
     }
     
-    # Should produce valid p-values even with non-stationary input
+    # Should produce valid p-values on the original scale
     expect_true("p_interaction" %in% colnames(rd_df))
     if (!is.na(rd_df$p_interaction[1])) {
         expect_true(rd_df$p_interaction[1] >= 0 && rd_df$p_interaction[1] <= 1)
+    }
+    # ARIMA differencing must be reported as not applied
+    if ("arima_applied" %in% colnames(rd_df)) {
+        expect_false(isTRUE(rd_df$arima_applied[1]))
     }
 })
 
@@ -1387,43 +1391,6 @@ test_that(".validate_gee_inputs handles bootstrap CI weights", {
     expect_equal(result$df$weight, weights)
 })
 
-test_that(".apply_arima_differencing returns original data when single subject", {
-    skip_if_not_installed("geepack")
-    
-    set.seed(992)
-    df <- data.frame(
-        entropy = c(0.5, 0.6, 0.7, 0.8),
-        q = c(0.01, 0.02, 0.03, 0.04),
-        group = c("N", "N", "T", "T")
-    )
-    subject <- factor(c(1, 1, 1, 1))  # Single subject
-    
-    result <- .apply_arima_differencing(df = df, subject = subject)
-    
-    expect_equal(nrow(result$df), nrow(df))
-    expect_false(result$use_arima)
-})
-
-test_that(".apply_arima_differencing applies first differences within subjects", {
-    skip_if_not_installed("geepack")
-    
-    set.seed(993)
-    df <- data.frame(
-        entropy = c(0.5, 0.6, 0.7, 1.0, 1.1, 1.2),
-        q = c(0.01, 0.02, 0.03, 0.01, 0.02, 0.03),
-        group = c("N", "N", "N", "T", "T", "T")
-    )
-    subject <- factor(c("S1", "S1", "S1", "S2", "S2", "S2"))
-    
-    result <- .apply_arima_differencing(df = df, subject = subject)
-    
-    expect_true(result$use_arima)
-    # After differencing: 6 observations → 4 differences (1 per subject per q)
-    expect_true(nrow(result$df) < nrow(df))
-    # First difference: df$entropy[2] - df$entropy[1] = 0.6 - 0.5 = 0.1
-    expect_true(abs(result$df$entropy[1] - 0.1) < 0.01)
-})
-
 test_that(".prepare_gee_weights returns NULL when no heteroscedasticity", {
     skip_if_not_installed("geepack")
     
@@ -1673,10 +1640,7 @@ test_that("GEE helper functions work together in integration", {
     validation <- .validate_gee_inputs(df, subject, min_obs = 3, weights = weights)
     expect_true(validation$valid)
     
-    arima_result <- .apply_arima_differencing(validation$df, validation$subject)
-    arima_result$df$subject <- factor(arima_result$subject)
-    
-    weights_result <- .prepare_gee_weights(arima_result$df)
+    weights_result <- .prepare_gee_weights(validation$df)
     
     models <- .fit_gee_models(weights_result$df, selected_corstr = "independence", gee_weights = weights_result$gee_weights)
     
@@ -1731,7 +1695,10 @@ test_that(".kc_bias_correct skips correction for large n_effective", {
 })
 
 test_that(".kc_bias_correct accounts for AR(1) design effect", {
-    # With AR(1) correlation, effective n should be less than observed n
+    # H08: the AR(1) design effect is DESCRIPTIVE metadata only; the HC1
+    # multiplier uses the number of clusters (the sandwich already accounts
+    # for within-cluster dependence). So n_effective must equal n_clusters,
+    # while design_effect > 1 is still reported.
     rho_ar1 <- 0.4
     cluster_size <- 20
     
@@ -1746,8 +1713,7 @@ test_that(".kc_bias_correct accounts for AR(1) design effect", {
         verbose = FALSE
     )
     
-    # n_effective should be < 20 due to design effect
-    expect_true(result$n_effective < 20)
+    expect_equal(result$n_effective, 20)
     expect_true(result$design_effect > 1.0)
     expect_equal(result$rho_ar1, rho_ar1)
 })
@@ -2154,33 +2120,6 @@ test_that(".validate_gee_inputs handles weights parameter", {
   expect_true(result$valid)
 })
 
-test_that(".apply_arima_differencing returns list with df, subject, use_arima", {
-  df <- data.frame(
-    q = c(0.5, 1.0, 1.5, 0.5, 1.0, 1.5),
-    entropy = c(2.0, 2.5, 2.8, 2.1, 2.6, 2.9),
-    group = c("A", "A", "A", "B", "B", "B"),
-    subject = c("S1", "S1", "S1", "S2", "S2", "S2")
-  )
-  
-  result <- TSENAT:::.apply_arima_differencing(df, subject = factor(df$subject))
-  expect_true(is.list(result))
-  expect_true("df" %in% names(result))
-  expect_true("use_arima" %in% names(result))
-})
-
-test_that(".apply_arima_differencing handles single subject", {
-  df <- data.frame(
-    q = c(0.5, 1.0, 1.5),
-    entropy = c(2.0, 2.5, 2.8),
-    group = c("A", "A", "A"),
-    subject = c("S1", "S1", "S1")
-  )
-  
-  result <- TSENAT:::.apply_arima_differencing(df, subject = factor(df$subject))
-  expect_true(is.list(result))
-  expect_false(result$use_arima)  # No differencing for single subject
-})
-
 test_that(".prepare_gee_weights returns list with df and gee_weights", {
   df <- data.frame(
     entropy = c(1.0, 2.0, 3.0, 0.5, 1.5),
@@ -2495,7 +2434,7 @@ test_that("K-C bias_correction is triggered only for small clusters (n<20)", {
     )
     
     # Check that correction was NOT applied (n=25 with threshold now at 30)
-    # AUDIT FIX #49: threshold standardized to n<30 for both correction and reporting.
+    # Threshold standardized to n<30 for both correction and reporting.
     # With n=25, correction IS applied (consistent with the actual correction logic
     # at line 162 which also uses n<30).
     expect_true(res_large$bias_correction_applied[1])
@@ -2706,7 +2645,7 @@ test_that(".gee_interaction returns NULL on validation failure", {
   expect_null(result)
 })
 
-test_that(".gee_interaction handles ARIMA differencing with paired data", {
+test_that(".gee_interaction handles paired data (no ARIMA differencing)", {
   skip_if_not_installed("geepack")
   set.seed(5001)
   n <- 16

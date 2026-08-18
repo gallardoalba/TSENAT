@@ -1,10 +1,15 @@
 version: 2.1
 
-jobs:
-  build:
-    docker:
-      - image: rocker/r-ver:4.5.2
-    working_directory: /root/repo
+# The pipeline used to run everything inside one job, which exceeded CircleCI's
+# one-hour job time limit. It is now split into four jobs: dependencies are
+# installed once and cached (deps), the package (with vignettes) is built once
+# (build) and its tarball is shared through the workspace, and R CMD check and
+# coverage each run in their own job so no single job approaches the 60-minute
+# limit.
+
+commands:
+  install_os_deps:
+    description: Install system libraries required to build/check the package
     steps:
       - run:
           name: Install OS dependencies
@@ -20,13 +25,173 @@ jobs:
             
             apt-get install -y --no-install-recommends \
               build-essential gfortran gcc-13 g++-13 liblapack-dev libblas-dev \
-              libxml2-dev libssl-dev libcurl4-openssl-dev libgit2-dev \
+              libxml2-dev libssl-dev libcurl4-openssl-dev libgit2-dev libuv1-dev cmake libnlopt-dev \
               pandoc openssh-client git python3-pip \
               libharfbuzz-dev libfribidi-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev \
               fontconfig libfontconfig1-dev pkg-config
             
             rm -rf /var/lib/apt/lists/*
+  configure_r:
+    description: Configure R for faster, non-interactive package installation
+    steps:
+      - run:
+          name: Configure R for faster package installation
+          command: |
+            mkdir -p ~/.config/R
+            cat >> ~/.Rprofile \<<'EOF'
+            # Prefer binary packages over source compilation (speeds up installation)
+            options(install.packages.check.source = "no")
+            # Cap parallel compilation: CI containers have few cores and little
+            # RAM, and oversubscribed make jobs slow builds down or get OOM-killed.
+            options(Ncpus = min(4L, parallel::detectCores()))
+            # Increase timeout for slow CRAN mirrors
+            options(timeout = 300)
+            # Avoid interactive repository-selection prompts
+            options(repos = c(CRAN = "https://cloud.r-project.org"))
+            EOF
+            cat ~/.Rprofile
+
+jobs:
+  deps:
+    docker:
+      - image: rocker/r-ver:4.5.2
+    working_directory: /root/repo
+    steps:
       - checkout
+      - install_os_deps
+      - configure_r
+      - restore_cache:
+          keys:
+            - v3-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.2
+      - run:
+          name: Install package dependencies
+          command: |
+            Rscript - \<<'EOF'
+            if (!requireNamespace("BiocManager", quietly = TRUE)) {
+              install.packages("BiocManager")
+            }
+            installed <- rownames(installed.packages())
+            cran_pkgs <- setdiff(c("remotes", "rcmdcheck", "covr"), installed)
+            if (length(cran_pkgs)) install.packages(cran_pkgs)
+
+            # Depends/Imports/LinkingTo; Bioconductor packages are routed
+            # through BiocManager automatically.
+            remotes::install_deps(
+              dependencies = c("Depends", "Imports", "LinkingTo"),
+              upgrade = "never"
+            )
+
+            # Suggests needed by tests, vignettes and coverage. glmmTMB is
+            # deliberately excluded: package code only uses it behind
+            # requireNamespace(), its tests use skip_if_not_installed(), and
+            # compiling its TMB dependency alone costs 10+ minutes on CI.
+            suggests <- read.dcf("DESCRIPTION")[1, "Suggests"]
+            suggests <- gsub("\n", " ", suggests)
+            suggests <- trimws(strsplit(suggests, ",")[[1]])
+            suggests <- setdiff(suggests, c("glmmTMB", installed))
+            if (length(suggests)) {
+              avail_cran <- rownames(available.packages())
+              cran_sug <- unique(c(suggests[suggests %in% avail_cran], "DT", "htmltools"))
+              cran_sug <- setdiff(cran_sug, installed)
+              if (length(cran_sug)) install.packages(cran_sug)
+              bioc_sug <- setdiff(suggests, avail_cran)
+              if (length(bioc_sug)) BiocManager::install(bioc_sug, update = FALSE, ask = FALSE)
+            }
+
+            # Fail the job if anything is still missing: install.packages() and
+            # BiocManager::install() can emit warnings instead of errors, and a
+            # half-installed library must never be saved to the cache (it breaks
+            # downstream build/check jobs with "dependency not available").
+            imports <- read.dcf("DESCRIPTION")[1, c("Imports", "LinkingTo")]
+            imports <- trimws(strsplit(gsub("\n", " ", paste(imports, collapse = ", ")), ",")[[1]])
+            needed <- unique(c(imports, suggests))
+            missing <- needed[!vapply(needed, requireNamespace, logical(1), quietly = TRUE)]
+            if (length(missing)) {
+              cat("ERROR: still not installed:", paste(missing, collapse = ", "), "\n")
+              quit(status = 1)
+            }
+            EOF
+          no_output_timeout: 45m
+      - save_cache:
+          paths:
+            - /usr/local/lib/R/site-library
+          key: v3-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.2
+
+  build:
+    docker:
+      - image: rocker/r-ver:4.5.2
+    working_directory: /root/repo
+    steps:
+      - checkout
+      - install_os_deps
+      - configure_r
+      - restore_cache:
+          keys:
+            - v3-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.2
+      - run:
+          name: Build package (with vignettes)
+          command: |
+            set -euxo pipefail
+            R CMD build --compact-vignettes=both .
+            mkdir -p build/ci_artifact
+            cp TSENAT_*.tar.gz build/ci_artifact/
+            ls -la build/ci_artifact
+          no_output_timeout: 40m
+      - persist_to_workspace:
+          root: /root/repo
+          paths:
+            - build/ci_artifact
+
+  check:
+    docker:
+      - image: rocker/r-ver:4.5.2
+    working_directory: /root/repo
+    steps:
+      - checkout
+      - install_os_deps
+      - configure_r
+      - restore_cache:
+          keys:
+            - v3-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.2
+      - attach_workspace:
+          at: /root/repo
+      - run:
+          name: Record R session and key package versions
+          command: |
+            # Numerical mixed-model/bootstrap tests are sensitive to R and
+            # package versions; record them for reproducibility (audit 2026-08-17).
+            Rscript -e 'cat("R version: ", R.version.string, "\n", sep = "");
+            pkgs <- c("nlme", "mgcv", "geepack", "testthat", "Rcpp", "S4Vectors", "BiocParallel")
+            for (p in pkgs) cat(sprintf("%-14s %s\n", p, tryCatch(as.character(packageVersion(p)), error = function(e) "not installed")))
+            cat("Session info:\n"); print(sessionInfo(), locale = FALSE)' | tee ci-session-info.txt
+      - run:
+          name: Run R CMD check
+          command: |
+            export _R_CHECK_FORCE_SUGGESTS_=false
+            export NOT_CRAN=true
+            # The heavy Monte Carlo validation suite is skipped under R CMD check
+            # (see tests/testthat/test-type1-calibration.R guard); run it locally
+            # with: Rscript tests/testthat/run-validation.R
+            R CMD check --no-manual --ignore-vignettes build/ci_artifact/*.tar.gz
+          no_output_timeout: 45m
+      - store_artifacts:
+          path: TSENAT.Rcheck/00check.log
+          destination: check
+      - store_artifacts:
+          path: ci-session-info.txt
+          destination: session-info
+
+  coverage:
+    docker:
+      - image: rocker/r-ver:4.5.2
+    working_directory: /root/repo
+    steps:
+      - checkout
+      - install_os_deps
+      - configure_r
+      - restore_cache:
+          keys:
+            - v3-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.2
       - run:
           name: Configure compiler environment
           command: |
@@ -47,52 +212,15 @@ jobs:
             if [ -f /usr/bin/gcov-13 ] && [ ! -f /usr/bin/gcov ]; then
               ln -s /usr/bin/gcov-13 /usr/bin/gcov
             fi
-      - restore_cache:
-          keys:
-            - v1-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.2
-      - run:
-          name: Configure R for faster package installation
-          command: |
-            mkdir -p ~/.config/R
-            cat >> ~/.Rprofile \<<'EOF'
-            # Prefer binary packages over source compilation (speeds up installation)
-            options(install.packages.check.source = "no")
-            # Use parallel compilation (faster vignette & package builds)
-            options(Ncpus = 8)
-            # Increase timeout for slow CRAN mirrors
-            options(timeout = 300)
-            EOF
-            cat ~/.Rprofile
-      - run:
-          name: Install package dependencies
-          command: |
-            Rscript - \<<'EOF'
-            if (!requireNamespace("BiocManager", quietly = TRUE)) {
-              install.packages("BiocManager", repos = "https://cloud.r-project.org")
-            }
-            cran_pkgs <- c("remotes", "rcmdcheck", "covr")
-            install.packages(cran_pkgs, repos = "https://cloud.r-project.org")
-            remotes::install_deps(dependencies = TRUE, upgrade = "never")
-            EOF
-          no_output_timeout: 30m
-      - save_cache:
-          paths:
-            - /usr/local/lib/R/site-library
-          key: v1-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.2
-      - run:
-          name: Build package
-          command: |
-            R CMD build --compact-vignettes=both .
-          no_output_timeout: 20m
       - run:
           name: Fetch tools and CI config from maintenance branch
           command: |
             set -euxo pipefail
+            echo "=== CI tooling provenance (audit 2026-08-17) ==="
+            echo "PR commit under test: $(git rev-parse HEAD)"
             ORIG_URL=$(git remote get-url origin)
             if command -v ssh >/dev/null 2>&1; then
               git fetch origin maintenance || true
-              git checkout origin/maintenance -- tools || true
-              git checkout origin/maintenance -- .codecov.yml || true
             else
               # Convert SSH-style remote URL to HTTPS if needed
               if echo "$ORIG_URL" | grep -qE '^(git@|ssh://)'; then
@@ -102,27 +230,23 @@ jobs:
               fi
               # Fetch the maintenance branch from the HTTPS URL into origin/maintenance
               git fetch "$HTTPS_URL" maintenance:refs/remotes/origin/maintenance || true
+            fi
+            echo "maintenance branch tip: $(git rev-parse origin/maintenance 2>/dev/null || echo unavailable)"
+            # Reproducibility: prefer the tooling contained in the checked-out
+            # commit. Fall back to the maintenance branch only when the local
+            # tooling is missing.
+            if [ ! -d tools ] || [ -z "$(find tools -type f -print -quit)" ]; then
+              echo "tools/ missing locally; checking out from origin/maintenance"
               git checkout origin/maintenance -- tools || true
+            fi
+            if [ ! -f .codecov.yml ]; then
+              echo ".codecov.yml missing locally; checking out from origin/maintenance"
               git checkout origin/maintenance -- .codecov.yml || true
             fi
+            echo "Tooling files in use:"
+            find tools -type f | sort
             chmod +x tools/*.sh || true
             find tools -type f -name '*.R' -exec chmod +x {} \; || true
-      - run:
-          name: Apply code formatting (if available)
-          command: |
-            if [ -f tools/apply_formatR.R ]; then
-              echo "Running code style formatter..."
-              Rscript tools/apply_formatR.R || echo "Warning: Code formatting script failed"
-            else
-              echo "Skipping code formatting (tools/apply_formatR.R not found)"
-            fi
-      - run:
-          name: Run checks with parallel compilation
-          command: |
-            export _R_CHECK_FORCE_SUGGESTS_=false
-            export NOT_CRAN=true
-            R CMD check --no-manual --ignore-vignettes *.tar.gz
-          no_output_timeout: 30m
       - run:
           name: Generate coverage report and upload to Codecov
           environment:
@@ -138,7 +262,7 @@ jobs:
             else
               echo "Warning: tools/run_coverage.R not found"
             fi
-          no_output_timeout: 30m
+          no_output_timeout: 45m
       - store_artifacts:
           path: coverage
           destination: coverage
@@ -147,4 +271,13 @@ workflows:
   version: 2
   build_and_upload:
     jobs:
-      - build
+      - deps
+      - build:
+          requires:
+            - deps
+      - check:
+          requires:
+            - build
+      - coverage:
+          requires:
+            - deps

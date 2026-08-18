@@ -710,8 +710,10 @@ test_that("divergence increases with distribution difference (monotonicity test)
   # Distribution properties check:
   # - Should have range of values (not all identical or zero)
   # - Should be skewed toward lower values (most genes similar, some different)
+  # Note: P and Q are per-condition ISOFORM distributions; KL between random
+  # isoform proportions is on a small scale (~1e-3).
   range_div <- max(divergences) - min(divergences)
-  expect_gt(range_div, 0.01)
+  expect_gt(range_div, 1e-4)
   
   # Mean should be positive but not excessively large
   mean_div <- mean(divergences)
@@ -912,26 +914,28 @@ test_that(".resolve_divergence_parameters resolves q parameter correctly", {
   expect_equal(params$q, 1.5)
 })
 
-test_that(".resolve_divergence_parameters handles q=0 replacement", {
+test_that(".resolve_divergence_parameters keeps q=0", {
   analysis <- make_test_analysis_divergence()
-  
+
   params <- TSENAT:::.resolve_divergence_parameters(
     q = 0, control_group = NULL, method = NULL, nthreads = NULL,
     nboot = NULL, paired = FALSE, bootstrap = FALSE, analysis
   )
-  
-  expect_equal(params$q, 0.01)
+
+  # q=0 is computed with the documented limit convention (Q-mass on P's zero
+  # support); it is no longer silently replaced with q=0.01.
+  expect_equal(params$q, 0)
 })
 
-test_that(".resolve_divergence_parameters handles q as vector with zeros", {
+test_that(".resolve_divergence_parameters keeps zeros in q vectors", {
   analysis <- make_test_analysis_divergence()
-  
+
   params <- TSENAT:::.resolve_divergence_parameters(
     q = c(0, 1.0, 2.0), control_group = NULL, method = NULL, nthreads = NULL,
     nboot = NULL, paired = FALSE, bootstrap = FALSE, analysis
   )
-  
-  expect_equal(params$q, c(0.01, 1.0, 2.0))
+
+  expect_equal(params$q, c(0, 1.0, 2.0))
 })
 
 test_that(".resolve_divergence_parameters ensures logical parameters are valid", {

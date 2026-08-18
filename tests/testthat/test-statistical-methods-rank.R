@@ -1,8 +1,10 @@
 
 context("rank_based_methods: Rank-Based Nonparametric Methods")
 
-# Skip entire test file on Bioconductor due to long runtime (12.96s)
-skip_on_bioc()
+# The statistical CALIBRATION suite (Monte Carlo type-I /
+# FWER / FDR validation) lives in tests/testthat/ (skipped on Bioconductor via
+# skip_on_bioc; runnable locally with Rscript tests/testthat/run-validation.R).
+# This deterministic suite runs in the fast daily CI (runtime ~13s).
 
 library(TSENAT)
 
@@ -946,13 +948,13 @@ test_that("detect_q_gene_interactions SummarizedExperiment with paired data extr
   model_data <- do.call(rbind, model_data_list)
   
   # This should work with paired design
-  result <- .calculate_rank_transform(
+  result <- suppressWarnings(.calculate_rank_transform(
     model_data,
     paired = TRUE,
     subject_col = "subject",
     multicorr = "hochberg",
     verbose = FALSE
-  )
+  ))
   
   expect_is(result, "data.frame")
   expect_equal(nrow(result), n_genes)

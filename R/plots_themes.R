@@ -867,7 +867,7 @@
 #'
 #' @noRd
 .normalize_plot_input <- function(se, assay_name = "diversity", condition_col = NULL,
-    multi_q = TRUE) {
+    multi_q = TRUE, q = NULL) {
     # Handle TSENATAnalysis objects
     if (methods::is(se, "TSENATAnalysis")) {
         if (is.null(condition_col)) {
@@ -876,7 +876,22 @@
         if (multi_q) {
             se <- .prepare_combined_se(se)
         } else if (length(se@diversity_results) > 0) {
-            se <- se@diversity_results[[1]]
+            avail_keys <- names(se@diversity_results)
+            if (is.null(q)) {
+                if (length(avail_keys) == 1) {
+                  se <- se@diversity_results[[1]]
+                } else {
+                  stop("Multiple q-values available (", paste(avail_keys, collapse = ", "),
+                    "). Specify q= to select one explicitly.", call. = FALSE)
+                }
+            } else {
+                q_key <- .resolve_q_key(q, avail_keys)
+                if (is.null(q_key)) {
+                  stop("Requested q = ", q, " not found in diversity results. Available: ",
+                    paste(avail_keys, collapse = ", "), ".", call. = FALSE)
+                }
+                se <- se@diversity_results[[q_key]]
+            }
         } else {
             stop("No diversity results found in TSENATAnalysis object. Run calculate_diversity() first.",
                 call. = FALSE)

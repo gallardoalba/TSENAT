@@ -113,7 +113,7 @@ testthat::test_that("LM fallback helpers choose appropriate method", {
     # fit1 can be lme, glmmTMB, or lm depending on which strategy succeeded
     testthat::expect_true(inherits(res$fit1, "lme") || inherits(res$fit1, "glmmTMB") || inherits(res$fit1, "lm") || inherits(res$fit1, "NA"))
 
-    # Test with categorical group only (no subject) — Strategy 4 removed (audit fix #16)
+    # Test with categorical group only (no subject) — Strategy 4 removed
     # Without subject column, all fallbacks exhausted → returns NULL
     df2 <- data.frame(entropy = entropy, q = q, group = factor(group))
     res2 <- TSENAT:::.try_sait_fallbacks(df2)
@@ -433,7 +433,8 @@ test_that(".detect_heteroscedasticity handles missing values gracefully", {
 
 # ═══════════════════════════════════════════════════════════════════════════
 # RECOMMENDATION 1: Shapiro-Wilk Residual Normality Testing (NEW - March 2026)
-# Database Evidence: B001, B004, C017
+# Database Evidence: Bajić & Japundžić-Žigon (2022); Liang & Zeger (1986);
+# Efron & Tibshirani (1993)
 # ═══════════════════════════════════════════════════════════════════════════
 
 testthat::test_that(".test_residual_normality returns list with shapiro test results", {

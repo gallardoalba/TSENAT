@@ -10,6 +10,9 @@
 #'   \item Bootstrap confidence intervals: Quantify uncertainty in divergence estimates
 #'   \item Multiple testing correction: Hochberg, Benjamini-Yekutieli, or no correction
 #'   \item Paired designs: Supports paired/repeated measures via subject_col parameter
+#'   \item Partially paired designs: Incomplete pairs (a sample missing its
+#'     control or treatment counterpart) are treated as unpaired units and do
+#'     not receive the paired covariance treatment
 #'   \item Effect size reporting: Log-fold-change and confidence intervals per gene
 #'   \item Flexible control group: Compare any condition vs. any other condition
 #' }
@@ -49,12 +52,20 @@
 #'
 #' @details
 #' **Mathematical Background:**
-#' Tsallis divergence D_q between two probability distributions:
+#' Tsallis divergence between the per-condition isoform-usage distributions
+#' \eqn{P} (control) and \eqn{Q} (treatment), built by summing transcript
+#' counts across samples within each condition:
 #' \preformatted{
-#'   D_q(P||Q) = (log_2(N) - entropy_q(P) + entropy_q(Q)) / (q - 1)
+#'   D_q(P||Q) = (sum_i P_i^q * Q_i^(1-q) - 1) / (q - 1)   for q > 0, q != 1
+#'   D_1(P||Q) = sum_i P_i * log(P_i / Q_i)                 (KL limit)
 #' }
-#' Measures how much transcript composition changes from control to condition.
-#' Values near 0: Similar isoform composition; Large positive values: Major change.
+#' q = 0 convention: D_0(P||Q) = 1 - sum_\{i: P_i > 0\} Q_i (the Q-mass on P's
+#' zero support, with 0^0 = 0). Under pseudocount regularization all bins are
+#' positive and D_0 = 0.
+#' Measures how much isoform composition changes from control to condition.
+#' Values near 0: Similar isoform composition; Large positive values: Major
+#' change. Note: the default is norm = 'none', so reported values are raw
+#' divergences on the count scale (not rescaled across genes).
 #'
 #' **Example Use Case:**
 #' Control sample: All reads from dominant isoform (low entropy)\cr
@@ -105,7 +116,7 @@
 #' @export
 #' @importFrom utils write.table
 calculate_divergence <- function(analysis, q = NULL, verbose = FALSE, nthreads = NULL,
-    output_file = NULL, control_group = NULL, paired = FALSE, method = NULL, bootstrap = FALSE,
+    output_file = NULL, control_group = NULL, paired = NULL, method = NULL, bootstrap = NULL,
     nboot = NULL, progress = FALSE, ...) {
 
     # Step 1: Validate input
@@ -145,6 +156,11 @@ calculate_divergence <- function(analysis, q = NULL, verbose = FALSE, nthreads =
 
     # Step 6: Store results
     analysis <- .store_divergence_results(analysis, result)
+
+    # Record resolved parameters so downstream code/tests can verify that
+    # config values (paired, bootstrap) actually reached this computation
+    analysis@metadata$last_divergence <- list(paired = params$paired, bootstrap = params$bootstrap,
+        q = params$q, method = params$method, nboot = params$nboot)
 
     # Step 7: Track metadata
     analysis@metadata$function_calls <- c(analysis@metadata$function_calls, paste0("calculate_divergence[q=",
@@ -213,27 +229,18 @@ calculate_divergence <- function(analysis, q = NULL, verbose = FALSE, nthreads =
     nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
     nboot <- resolve_slot_param(nboot, analysis@config, "nboot", NULL)
 
-    # Replace q=0 with q=0.01 (q=0 always returns 0, which is uninformative)
-    if (is.vector(q)) {
-        q[q == 0] <- 0.01
-    } else if (is.numeric(q) && length(q) == 1 && q == 0) {
-        q <- 0.01
+    # Ensure paired is logical: explicit > config > default (FALSE). NULL is
+    # the only "not specified" value, so config$paired is honored when the
+    # user does not pass an explicit argument.
+    paired <- resolve_slot_param(paired, analysis@config, "paired", FALSE)
+    if (!is.logical(paired) || is.na(paired)) {
+        paired <- FALSE
     }
 
-    # Ensure paired is logical
-    if (!isTRUE(paired) && !isFALSE(paired)) {
-        paired <- if ("paired" %in% names(analysis@config))
-            analysis@config$paired else FALSE
-        if (!is.logical(paired) || is.na(paired))
-            paired <- FALSE
-    }
-
-    # Ensure bootstrap is logical
-    if (!isTRUE(bootstrap) && !isFALSE(bootstrap)) {
-        bootstrap <- if ("bootstrap" %in% names(analysis@config))
-            analysis@config$bootstrap else FALSE
-        if (!is.logical(bootstrap) || is.na(bootstrap))
-            bootstrap <- FALSE
+    # Ensure bootstrap is logical: explicit > config > default (FALSE)
+    bootstrap <- resolve_slot_param(bootstrap, analysis@config, "bootstrap", FALSE)
+    if (!is.logical(bootstrap) || is.na(bootstrap)) {
+        bootstrap <- FALSE
     }
 
     # Sanitize method

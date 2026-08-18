@@ -950,19 +950,20 @@ test_that(".bootstrap_resample_optimized with paired=TRUE and what='D'", {
   expect_equal(length(result), 5)
 })
 
-test_that(".bootstrap_resample_optimized handles effective_length zero values", {
+test_that(".bootstrap_resample_optimized rejects zero effective_length instead of zeroing out", {
   counts <- c(100, 80, 60, 40, 20)
-  # Includes zero effective length
+  # Includes zero effective length: invalid quantification input must fail
+  # loudly, not silently become C/0 -> Inf -> 0 (audit 2026-08-17).
   eff_length <- c(1000, 0, 800, 700, 600)
-  
-  result <- TSENAT:::.bootstrap_resample_optimized(
-    x = counts, q = 2.0, norm = "none", nboot = 8,
-    log_base = 2, pseudocount = 0.5, what = "S", paired = FALSE,
-    effective_length = eff_length
+
+  expect_error(
+    TSENAT:::.bootstrap_resample_optimized(
+      x = counts, q = 2.0, norm = "none", nboot = 8,
+      log_base = 2, pseudocount = 0.5, what = "S", paired = FALSE,
+      effective_length = eff_length
+    ),
+    "non-finite|finite positive"
   )
-  
-  expect_is(result, "numeric")
-  expect_equal(length(result), 8)
 })
 
 test_that(".bootstrap_resample_optimized with different q values", {
@@ -1806,10 +1807,10 @@ test_that("[BUG #3] Paired bootstrap validates data structure comprehensively", 
 })
 
 # ============================================================================
-# AUDIT FIX TESTS: BCa acceleration, z0, replicate bootstrap, divergence jackknife
+# TESTS: BCa acceleration, z0, replicate bootstrap, divergence jackknife
 # ============================================================================
 
-test_that("[AUDIT #12] BCa z0 uses strict < comparison with 0.5/B padding", {
+test_that("BCa z0 uses strict < comparison with 0.5/B padding", {
     # When all bootstrap values are below the point estimate, 
     # prop_less with <= would give 1.0, qnorm(1.0) = Inf → silently reset to 0.
     # With strict < and +0.5/B padding, we avoid qnorm(0) and qnorm(1).
@@ -1830,7 +1831,7 @@ test_that("[AUDIT #12] BCa z0 uses strict < comparison with 0.5/B padding", {
     expect_true(result_high$lower <= result_high$upper)
 })
 
-test_that("[AUDIT #3] BCa acceleration uses true jackknife on original data", {
+test_that("BCa acceleration uses true jackknife on original data", {
     # Verify that .ci_bca computes acceleration from leave-one-out of x,
     # not from leave-one-out of bootstrap distribution.
     
@@ -1855,7 +1856,7 @@ test_that("[AUDIT #3] BCa acceleration uses true jackknife on original data", {
     # (unlike fake bootstrap-based jackknife which forces a≈0)
 })
 
-test_that("[AUDIT #3] .bca_ci accepts jackknife_estimates for divergence BCa", {
+test_that(".bca_ci accepts jackknife_estimates for divergence BCa", {
     # Test the divergence path: pass true jackknife estimates
     
     boot_dist <- c(0.1, 0.15, 0.12, 0.18, 0.11, 0.14, 0.13, 0.16, 0.17, 0.19,
@@ -1878,7 +1879,7 @@ test_that("[AUDIT #3] .bca_ci accepts jackknife_estimates for divergence BCa", {
     # Both should produce valid intervals
 })
 
-test_that("[AUDIT #11] Replicate bootstrap produces valid entropy estimates", {
+test_that("Replicate bootstrap produces valid entropy estimates", {
     # Test the "replicate" resample_by mode vs default "read" mode
     x <- c(10, 20, 15, 5, 30, 20)
     
@@ -1910,7 +1911,7 @@ test_that("[AUDIT #11] Replicate bootstrap produces valid entropy estimates", {
     expect_true(width_read > 0 && width_repl > 0)
 })
 
-test_that("[AUDIT #11] Replicate bootstrap with counts_matrix uses C++ path", {
+test_that("Replicate bootstrap with counts_matrix uses C++ path", {
     # Matrix input: transcripts × samples
     counts_mat <- matrix(c(5, 8, 3, 10, 12, 7, 2, 4, 1, 6, 8, 3), nrow = 3, ncol = 4)
     x_agg <- rowSums(counts_mat)
@@ -1934,7 +1935,7 @@ test_that("[AUDIT #11] Replicate bootstrap with counts_matrix uses C++ path", {
     expect_true(result_cpp$lower_ci <= result_cpp$upper_ci)
 })
 
-test_that("[AUDIT #11] Replicate bootstrap C++ wrapper validates inputs", {
+test_that("Replicate bootstrap C++ wrapper validates inputs", {
     counts_mat <- matrix(c(5, 8, 3, 10, 12, 7, 2, 4), nrow = 2, ncol = 4)
     
     # Valid matrix call
@@ -1955,7 +1956,7 @@ test_that("[AUDIT #11] Replicate bootstrap C++ wrapper validates inputs", {
     )
 })
 
-test_that("[AUDIT #4] .bootstrap_compute_ci passes normalized x and point_est to .ci_bca", {
+test_that(".bootstrap_compute_ci passes normalized x and point_est to .ci_bca", {
     # Verify that the BCa path receives pre-normalized data
     x <- c(10, 20, 15, 5, 30, 20)
     eff_len <- c(0.8, 0.9, 0.7, 0.85, 0.95, 0.75)
@@ -1973,7 +1974,7 @@ test_that("[AUDIT #4] .bootstrap_compute_ci passes normalized x and point_est to
     expect_true(result$point_est <= result$ci_result$upper)
 })
 
-test_that("[AUDIT #12] .bca_ci handles degenerate bootstrap distributions", {
+test_that(".bca_ci handles degenerate bootstrap distributions", {
     # Degenerate: all bootstrap values identical
     boot_dist <- rep(0.5, 100)
     result <- TSENAT:::.bca_ci(boot_dist, 0.5, 0.05)
@@ -1991,7 +1992,7 @@ test_that("[AUDIT #12] .bca_ci handles degenerate bootstrap distributions", {
     expect_true(is.finite(result_small$upper))
 })
 
-test_that("[AUDIT #3] .compute_divergence_jackknife produces valid estimates", {
+test_that(".compute_divergence_jackknife produces valid estimates", {
     x <- c(10, 20, 15, 5, 30)
     y <- c(12, 18, 16, 8, 28)
     

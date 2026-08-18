@@ -19,7 +19,8 @@
 #' 1. LMM (Linear Mixed Models):
 #'    - Uses nlme::lme with AR(1) covariance structure to model correlation
 #'      across ordered q-values within each subject (repeated measures design)
-#'    - ARIMA(1,1,0): Implements first-differencing to enforce stationarity
+#'    - No ARIMA(1,1,0) differencing: the functional interaction
+#'      is tested on the ORIGINAL H(q) curve
 #' - Heteroscedasticity detection: Applies nlme::varPower() for q-dependent
 #' variance
 #' - Hypothesis test: Likelihood Ratio Test (LRT) comparing null (no
@@ -109,10 +110,10 @@
 #' - slope_diff: Numeric interaction coefficient (slope difference between
 #' groups)
 #' - fit_method: Character method used ('nlme::lme',
-#' 'nlme::lme_arima(1,1,0)', 'gam', 'fpca', 'gee', etc.)
+#' 'nlme::lme_ar1_raw', 'gam', 'fpca', 'gee', etc.)
 #'   - singular: Logical TRUE if model fit was singular (lmer only)
-#' - arima_transformation: Logical TRUE if ARIMA(1,1,0) first-differencing
-#' applied (LMM)
+#' - arima_transformation: Legacy flag; always FALSE (no ARIMA differencing
+#' in confirmatory paths)
 #'   - ci_weighted: Logical TRUE if inverse-variance weights were applied
 #'   - n_subjects: Integer number of subjects in model
 #'   - small_sample_flag: Logical TRUE if sample size < optimal threshold
@@ -166,7 +167,7 @@
     df <- .apply_weights_to_df(df, weights, g, verbose)
 
     # Phase 15: Wrap all method fitting in tryCatch to handle edge case errors
-    # gracefully (e.g., 'los nombres no coinciden' from factor level
+    # gracefully (e.g., 'names do not match' from factor level
     # mismatches) CRITICAL: Must NOT use return() inside tryCatch - it bypasses
     # error handler!  Instead, assign to result variable so error handler can
     # catch anything
@@ -191,7 +192,7 @@
         } else if (method == "gee") {
             subject <- .get_subject_ids(se, subject_col, paired, mat, sample_names)
             if (is.null(subject) && !paired) {
-                # AUDIT FIX R10: Using sample_names as cluster IDs treats every observation
+                # Using sample_names as cluster IDs treats every observation
                 # as its own cluster (n=1). GEE degenerates to a standard GLM, losing the
                 # robust sandwich variance that is the primary benefit of GEE.
                 warning("[.fit_one_interaction] No subject/cluster column found. ",
@@ -230,7 +231,7 @@
             message(diag_msg)
 
         # Return NA results on any error instead of crashing This handles edge
-        # cases like 'los nombres no coinciden' gracefully
+        # cases like 'names do not match' gracefully
         data.frame(gene = g, p_interaction = NA_real_, p_lrt = NA_real_, slope_diff = NA_real_,
             fit_method = "ERROR", singular = NA, arima_transformation = NA, ci_weighted = NA,
             n_subjects = NA_integer_, small_sample_flag = NA, message = error_msg,
@@ -276,32 +277,16 @@
         return(NULL)
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # ARIMA(1,1,0) TRANSFORMATION: First differencing for stationarity
+    # NO ARIMA differencing on the raw entropy curve.
+    # q is a deterministic functional argument of the Tsallis statistic, not a
+    # time index: H(q) - H(q-Δq) is a discrete derivative of a diversity
+    # function, not a stationarity transform of a stochastic series. The LMM
+    # now tests the functional interaction on the ORIGINAL H(q) curve
+    # (H0: beta(q) = 0 for all q, linear contrast), consistent with the GEE
+    # and GAMM paths.
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Problem: Raw Tsallis entropy H_q is monotone increasing with q, violating
-    # stationarity assumption (constant mean) required for AR(1) modeling
-    # Solution: Use first differences DeltaH_q = H_q - H_{q-1} to remove trend
-    # - Bounded-support data [0, log(m)] after differencing approximates
-    # normality - Enables valid hypothesis testing under AR(1) correlation
-    # structure - Information preserved: interaction effects remain in
-    # differenced data
-
-    arima_result <- .compute_arima_differences(df, q_vals, df$group, df$subject)
-
-    if (is.null(arima_result) || nrow(arima_result$df) < 3) {
-        df_model <- df
-        use_arima <- FALSE
-        if (verbose) {
-            message("[.lmm_interaction] ARIMA(1,1,0) differencing lost too many observations; using raw entropy")
-        }
-    } else {
-        df_model <- arima_result$df
-        use_arima <- TRUE
-        if (verbose) {
-            message(sprintf("[.lmm_interaction] ARIMA(1,1,0): %d observations -> %d after differencing",
-                arima_result$n_observations_original, arima_result$n_observations_differenced))
-        }
-    }
+    df_model <- df
+    use_arima <- FALSE
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # MODEL FORMULAS: NULL (no interaction) vs ALTERNATIVE (q*group
@@ -311,14 +296,18 @@
     formula_alt <- entropy ~ q * group
 
     # OPTIONAL REGULARIZATION: Apply feature selection if not PCA
+    # The selection result is EXPLORATORY and is never used
+    # to modify the confirmatory LMM formula (selection + inference on the
+    # same data invalidates nominal p-values).
     fs_result <- NULL
     if (regularization != "pca") {
         fs_result <- .lmm_regularization(q_vals = df_model$q, entropy_vals = df_model$entropy,
             group_vec = df_model$group, subject_vec = df_model$subject, regularization = regularization)
         if (!is.null(fs_result) && verbose) {
             uq_levels <- length(fs_result$q_values)
-            message("[.lmm_interaction] regularization retained ", length(fs_result$selected_features),
-                " of ", uq_levels - 1, " q-interaction features")
+            message("[.lmm_interaction] regularization (EXPLORATORY) retained ",
+                length(fs_result$selected_features), " of ", uq_levels - 1,
+                " q-interaction features; confirmatory model unchanged")
         }
     }
 
@@ -334,47 +323,41 @@
     # structure
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-    # Phase 16: Log factor structure before fitting to diagnose 'nombres no
-    # coinciden' errors
+    # Phase 16: Log factor structure before fitting to diagnose 'names do not
+    # match' errors
     if (verbose) {
         message(sprintf("[.lmm_interaction] Gene '%s' data: %d obs, q-levels=%d, group-levels=%s, subject-levels=%d",
             g, nrow(df_model), length(unique(df_model$q)), paste(levels(df_model$group),
                 collapse = "/"), length(levels(df_model$subject))))
     }
 
-    if (use_var_structure) {
-        if (verbose) {
-            fit0 <- try(nlme::lme(formula_null, random = ~1 | subject,
-                correlation = nlme::corAR1(form = ~1 | subject), data = df_model,
-                method = "ML"), silent = TRUE)
-            fit1 <- try(nlme::lme(formula_alt, random = ~1 | subject,
-                correlation = nlme::corAR1(form = ~1 | subject), data = df_model,
-                method = "ML"), silent = TRUE)
-        } else {
-            fit0 <- try(nlme::lme(formula_null, random = ~1 | subject,
-                correlation = nlme::corAR1(form = ~1 | subject), data = df_model,
-                method = "ML"), silent = TRUE)
-            fit1 <- try(nlme::lme(formula_alt, random = ~1 | subject,
-                correlation = nlme::corAR1(form = ~1 | subject), data = df_model,
-                method = "ML"), silent = TRUE)
-        }
-    } else {
-        if (verbose) {
-            fit0 <- try(nlme::lme(formula_null, random = ~1 | subject,
-                correlation = nlme::corAR1(form = ~1 | subject), data = df_model,
-                method = "ML"), silent = TRUE)
-            fit1 <- try(nlme::lme(formula_alt, random = ~1 | subject,
-                correlation = nlme::corAR1(form = ~1 | subject), data = df_model,
-                method = "ML"), silent = TRUE)
-        } else {
-            fit0 <- try(nlme::lme(formula_null, random = ~1 | subject,
-                correlation = nlme::corAR1(form = ~1 | subject), data = df_model,
-                method = "ML"), silent = TRUE)
-            fit1 <- try(nlme::lme(formula_alt, random = ~1 | subject,
-                correlation = nlme::corAR1(form = ~1 | subject), data = df_model,
-                method = "ML"), silent = TRUE)
-        }
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # AR(1) is defined over q WITHIN each subject x condition
+    # block (corAR1(~ time_idx | subject/condition)). The legacy
+    # corAR1(form = ~1 | subject) treated the (subject, q)-sorted rows, which
+    # interleave conditions, as a single AR(1) series.
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    df_model$condition <- factor(as.character(df_model$group))
+    df_model <- df_model[order(as.character(df_model$subject), as.character(df_model$condition),
+        df_model$q), , drop = FALSE]
+    # Grid index (may contain gaps when q values are missing) for the corAR1
+    # fallback. Primary: corCAR1 over ACTUAL q distances — see
+    # .build_ar1_cor() in sait_helpers.R. A renumbered 1..n sequence would
+    # treat gaps as unit distance and inflate the type I error.
+    df_model$time_idx <- match(df_model$q, sort(unique(df_model$q)))
+
+    cor_builder <- try(.build_ar1_cor(df_model, grid_col = "time_idx"), silent = TRUE)
+    if (inherits(cor_builder, "try-error")) {
+        cor_builder <- NULL
     }
+    fit0 <- fit1 <- NULL
+    if (!is.null(cor_builder)) {
+        fit0 <- try(nlme::lme(formula_null, random = ~1 | subject, correlation = cor_builder$cor_obj,
+            data = df_model, method = "ML"), silent = TRUE)
+        fit1 <- try(nlme::lme(formula_alt, random = ~1 | subject, correlation = cor_builder$cor_obj,
+            data = df_model, method = "ML"), silent = TRUE)
+    }
+    used_cor_label <- if (!is.null(cor_builder)) cor_builder$label else NA_character_
 
     # Phase 16: Log fit errors for diagnosis
     if (inherits(fit0, "try-error") && verbose) {
@@ -393,7 +376,9 @@
     used_fit_method <- "nlme::lme"
     used_singular <- FALSE
 
-    if (inherits(fit0, "try-error") || inherits(fit1, "try-error")) {
+    fit_failed <- is.null(fit0) || is.null(fit1) || inherits(fit0, "try-error") ||
+        inherits(fit1, "try-error")
+    if (fit_failed) {
         if (progress || verbose) {
             message("[.lmm_interaction] nlme::lme failed; trying fallback models")
         }
@@ -403,8 +388,7 @@
             used_fit_method <- fb$method
         }
     } else {
-        used_fit_method <- if (use_arima)
-            "nlme::lme_arima(1,1,0)" else "nlme::lme_ar1_raw"
+        used_fit_method <- "nlme::lme_ar1_raw"
     }
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -426,18 +410,25 @@
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     slope_diff <- NA_real_
     if (!is.null(fallback_sait) && !is.null(fallback_sait$fit1)) {
-        coefs <- tryCatch(coef(fallback_sait$fit1), error = function(e) NULL)
+        # nlme::coef() on an lme fit returns PER-SUBJECT coefficients (one
+        # row per subject); the interaction slope must come from the FIXED
+        # effects instead, or the result data.frame is expanded to one row
+        # per subject.
+        coefs <- tryCatch(nlme::fixef(fallback_sait$fit1), error = function(e) NULL)
+        if (is.null(coefs)) {
+            coefs <- tryCatch(stats::coef(fallback_sait$fit1), error = function(e) NULL)
+        }
         if (!is.null(coefs)) {
             interaction_idx <- grep("q:group|group:q", names(coefs), ignore.case = FALSE)
             if (length(interaction_idx) > 0)
-                slope_diff <- coefs[interaction_idx[1]]
+                slope_diff <- as.numeric(coefs[interaction_idx[1]])[1]
         }
     } else if (!inherits(fit1, "try-error")) {
         coefs <- tryCatch(nlme::fixef(fit1), error = function(e) NULL)
         if (!is.null(coefs)) {
             interaction_idx <- grep("q:group|group:q", names(coefs), ignore.case = FALSE)
             if (length(interaction_idx) > 0)
-                slope_diff <- coefs[interaction_idx[1]]
+                slope_diff <- as.numeric(coefs[interaction_idx[1]])[1]
         }
     }
 
@@ -448,7 +439,8 @@
     res <- data.frame(gene = g, p_interaction = lrt_result$p_value, p_lrt = lrt_result$p_value,
         slope_diff = slope_diff, fit_method = used_fit_method, singular = used_singular,
         arima_transformation = use_arima, ci_weighted = has_weights, n_subjects = lrt_result$n_subjects,
-        small_sample_flag = lrt_result$small_sample_flag, stringsAsFactors = FALSE)
+        small_sample_flag = lrt_result$small_sample_flag, correlation_structure = used_cor_label,
+        stringsAsFactors = FALSE)
     if (!is.null(msg))
         res$message <- msg
     res
