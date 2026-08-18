@@ -1,0 +1,17 @@
+sample	condition	paired_samples
+SRR14800481	normal	A
+SRR14800480	normal	B
+SRR14800477	normal	C
+SRR14800476	normal	D
+SRR14800475	normal	E
+SRR14800490	normal	F
+SRR14800489	normal	G
+SRR14800488	normal	H
+SRR14800479	tumor	A
+SRR14800478	tumor	B
+SRR14800487	tumor	C
+SRR14800486	tumor	D
+SRR14800485	tumor	E
+SRR14800484	tumor	F
+SRR14800483	tumor	G
+SRR14800482	tumor	H

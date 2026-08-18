@@ -1,0 +1,35 @@
+Package: TSENAT
+Type: Package
+Title: Tsallis Entropy Analysis Toolbox
+Version: 0.99.35
+Authors@R: person(given = "Cristóbal", family = "Gallardo Alba", role = c("aut", "cre"), email = "gallardoalba@pm.me", comment=c(ORCID="0000-0002-5752-2155"))
+Description: Quantifies and models isoform-usage complexity in RNA-seq data using 
+    Tsallis entropy, a scale-dependent diversity measure. By tuning the entropic index 
+    parameter (q), TSENAT examines transcriptome heterogeneity at different scales: 
+    rare variants (low q) or dominant isoforms (high q). It enables 
+    computing Tsallis entropy and Tsallis divergence from transcript-level estimates, 
+    comparing measures between conditions, testing for differences, and visualizing 
+    scale-dependent complexity via q-curves.
+License: GPL (>= 3) + file LICENSE
+Encoding: UTF-8
+LazyData: false
+Depends: R (>= 4.5.0)
+Imports: SummarizedExperiment, methods, stats, ggplot2, withr,
+        BiocParallel, matrixStats, mgcv, geepack, pheatmap, cowplot,
+        dplyr, tidyr, S4Vectors, rlang, Rcpp, memoise, digest, readr,
+        ARTool, nlme, splines
+LinkingTo: Rcpp, RcppArmadillo
+Suggests: testthat, knitr, rmarkdown, BiocStyle, kableExtra, patchwork,
+        covr, RColorBrewer, gamsel, glmmTMB, glmnet, gridExtra,
+        fdrtool, MASS, SplicingFactory, devtools, gtable
+VignetteBuilder: knitr
+URL: https://gallardoalba.github.io/TSENAT
+BugReports: https://github.com/gallardoalba/TSENAT/issues
+biocViews: Transcriptomics, RNASeq, DifferentialSplicing,
+        AlternativeSplicing, TranscriptomeVariant, GeneExpression,
+        DifferentialExpression
+Config/roxygen2/version: 8.0.0
+Author: Cristóbal Gallardo Alba [aut, cre] (ORCID:
+    <https://orcid.org/0000-0002-5752-2155>)
+Maintainer: Cristóbal Gallardo Alba <gallardoalba@pm.me>
+Built: R 4.5.3; x86_64-conda-linux-gnu; 2026-08-18 09:28:53 UTC; unix

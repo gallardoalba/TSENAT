@@ -1,0 +1,50 @@
+AllGenerics             Generic Functions for TSENATAnalysis S4 Class
+TSENAT                  Run complete TSENAT analysis pipeline
+TSENATAnalysis          Constructor for TSENATAnalysis objects
+TSENATAnalysis-class    TSENATAnalysis S4 Class Definition
+TSENAT_config           Create and return TSENAT configuration
+build_analysis          Build a Complete TSENATAnalysis Object
+calculate_assumptions   Test statistical assumptions on diversity data
+                        in TSENATAnalysis
+calculate_concordance   Compare method concordance for differential
+                        analysis results
+calculate_divergence    Calculate divergence metrics and store in
+                        TSENATAnalysis
+calculate_diversity     Calculate diversity and store in TSENATAnalysis
+calculate_effect_sizes
+                        Compute Effect Sizes from Divergence Results
+                        (S4 Wrapper)
+calculate_jeo           Jackknife resampling with confidence intervals
+calculate_jis           Jackknife isoform switching analysis on
+                        TSENATAnalysis object
+calculate_m_estimator   M-Estimation for Sample Quality (S4 Wrapper)
+calculate_rank_transform
+                        Detect q-dependent gene interactions
+calculate_sait          Calculate SAIT interactions and store in
+                        TSENATAnalysis
+filter_analysis         Filter Low-Abundance Transcripts in a
+                        TSENATAnalysis Object
+metadata,TSENATAnalysis-method
+                        Metadata Accessor Methods
+plot_concordance        Plot method concordance results from
+                        TSENATAnalysis
+plot_divergence_distribution
+                        Plot Tsallis Divergence Effect Size
+                        Distribution (S4 Wrapper)
+plot_divergence_spectrum
+                        Plot Global Divergence q-Curve Across All Genes
+                        (S4 Wrapper)
+plot_diversity_spectrum
+                        Plot Tsallis Entropy q-Curve
+plot_diversity_violin_density
+                        Combined Violin and Density Plot Grid for
+                        Single q Value
+plot_expression         Plot Top Transcripts from TSENATAnalysis Object
+plot_jis_delta          Plot Multi-Q Delta Influence Heatmaps from
+                        TSENATAnalysis Object
+plot_sait               Plot GAM q-curves from TSENATAnalysis object
+readcounts              Example transcript-level read counts dataset
+results                 Extract analysis results from TSENATAnalysis
+                        object
+se                      Extract SummarizedExperiment from
+                        TSENATAnalysis

@@ -71,6 +71,12 @@ plot_expression(
   \`.build_se()\` with \`tpm\` parameter. Raises error if TPM not
   available and \`use_tpm = TRUE\`.
 
+- quantity:
+
+  `character`. Quantity to visualize: \`"abundance"\` plots raw counts
+  (or TPM when \`use_tpm = TRUE\`), \`"usage"\` plots each transcript's
+  proportion of its gene total per sample (default: \`"abundance"\`).
+
 - width:
 
   `numeric` or `NULL`. Output image width in inches. If NULL,

@@ -104,11 +104,13 @@ TRUE,  FALSE,  'none',  'range',  'zscore',  'log_odds_ratio',
 
 <dt id="arg-norm-method">norm_method<a class="anchor" aria-label="anchor" href="#arg-norm-method"></a></dt>
 <dd><p><code>character</code>.
- Post-hoc normalization method applied after diversity computation.
-  Options:</p><ul><li><p><code>'default'</code> - Simple normalization by theoretical maximum (current behavior)</p></li>
+Post-hoc normalization method applied after diversity computation.
+ Options:</p><ul><li><p><code>'default'</code> - Simple normalization by theoretical maximum (current behavior)</p></li>
 <li><p><code>'zscore'</code> - Z-score normalization per q-value</p></li>
-<li><p><code>'log_odds_ratio'</code> - Log-odds ratio relative to max entropy (q and
-isoform-aware)</p></li>
+<li><p><code>'log_odds_ratio'</code> - Log-ratio of entropy to the uniform maximum
+ (q and isoform-aware). Values are &lt;= 0: 0 = uniform, &lt; 0 = more
+ concentrated. Name kept for backwards compatibility; this is a
+ log-relative-entropy ratio, not an odds ratio.</p></li>
 <li><p><code>'relative_reference'</code> - Divide by reference group mean (requires reference_group)</p></li>
 <li><p><code>NULL</code> - No post-hoc normalization (default)</p></li>
 </ul><p>If NULL, reads from <code>@config$norm_method</code> if available.</p></dd>
@@ -248,6 +250,13 @@ Larger q emphasizes dominant isoforms; smaller q emphasizes rare ones.</p>
 results as SummarizedExperiment objects. It extracts key parameters from
 <code>analysis@config</code> with
 priority resolution (explicit &gt; <code>@config</code> &gt; default).</p>
+<p>**Counts, TPM and effective length:**
+The wrapper always computes entropy from the RAW count assay with
+effective-length correction (`tpm = FALSE` internally). The TPM matrix
+stored in metadata by <code><a href="build_analysis.html">build_analysis()</a></code> is used only for
+filtering/QC (e.g., <code><a href="filter_analysis.html">filter_analysis()</a></code>). Because TPM already
+incorporates effective-length normalization, the two are never combined in
+a single computation (combining them at the core level is a hard error).</p>
 <p>**Diversity Spectrum Computation:**
 By default, this function computes and saves a diversity spectrum (aggregated
 statistics across all q-values and  groups) when

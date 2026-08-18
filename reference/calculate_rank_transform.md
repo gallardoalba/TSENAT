@@ -259,19 +259,19 @@ analysis <- calculate_rank_transform(
 rank_test_res <- results(analysis, type = 'rank_test')
 if (!is.null(rank_test_res)) head(rank_test_res)
 #>       gene n_q_values_tested f_statistic   p_value adj_p_value ss_interaction
-#> 1    FBXO3                 3  0.24069643 0.7871571   0.9981785     101.791667
-#> 2 FAM114A2                 3  0.50372281 0.6078809   0.9981785     215.041667
-#> 3 TMEM183A                 3  0.09054441 0.9136116   0.9981785      39.500000
-#> 4   ZNF493                 3  0.04868521 0.9525346   0.9981785      21.291667
-#> 5    HDAC2                 3  0.51866394 0.5990786   0.9981785     220.166667
-#> 6     CYBB                 3  0.01900408 0.9811838   0.9981785       8.041667
+#> 1    MEF2A                 3  0.26984762 0.7648094   0.9991352      116.37500
+#> 2   CXCL12                 3  1.38172153 0.2623264   0.9991352      563.16667
+#> 3 TMEM183A                 3  0.34864178 0.7076686   0.9991352      148.66667
+#> 4    HDAC2                 3  0.05328004 0.9481784   0.9991352       23.16667
+#> 5     IRF3                 3  0.06459154 0.9375432   0.9991352       28.12500
+#> 6     VRK2                 3  0.25152758 0.7787750   0.9991352      108.79167
 #>   ss_residual df_interaction df_residual effect_size_eta2 interaction_class
-#> 1     8881.00              2          45      0.012441534   Robust across q
-#> 2     8965.00              2          45      0.011374346   Robust across q
-#> 3     9161.25              2          45      0.005771208   Robust across q
-#> 4     9184.00              2          45      0.004486701   Robust across q
-#> 5     8914.25              2          45      0.003787202   Robust across q
-#> 6     8886.25              2          45      0.003673146   Robust across q
+#> 1     9056.50              2          45      0.018754270   Robust across q
+#> 2     8559.25              2          45      0.018594599   Robust across q
+#> 3     8954.75              2          45      0.008455433   Robust across q
+#> 4     9131.00              2          45      0.006489764   Robust across q
+#> 5     9144.00              2          45      0.006061426   Robust across q
+#> 6     9083.00              2          45      0.005209667   Robust across q
 #>    test_method heteroscedastic boundary_clustered highly_skewed
 #> 1 art_unpaired           FALSE              FALSE         FALSE
 #> 2 art_unpaired           FALSE              FALSE         FALSE

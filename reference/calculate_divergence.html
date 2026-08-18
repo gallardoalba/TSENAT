@@ -153,6 +153,9 @@ Default:  FALSE.</p></dd>
 <li><p>Bootstrap confidence intervals: Quantify uncertainty in divergence estimates</p></li>
 <li><p>Multiple testing correction: Hochberg, Benjamini-Yekutieli, or no correction</p></li>
 <li><p>Paired designs: Supports paired/repeated measures via subject_col parameter</p></li>
+<li><p>Partially paired designs: Incomplete pairs (a sample missing its
+    control or treatment counterpart) are treated as unpaired units and do
+    not receive the paired covariance treatment</p></li>
 <li><p>Effect size reporting: Log-fold-change and confidence intervals per gene</p></li>
 <li><p>Flexible control group: Compare any condition vs. any other condition</p></li>
 </ul><p>**Mathematical Background:**
@@ -161,7 +164,7 @@ Tsallis divergence between the per-condition isoform-usage distributions
 counts across samples within each condition:</p><div class="sourceCode"><pre><code>
   D_q(P||Q) = (sum_i P_i^q * Q_i^(1-q) - 1) / (q - 1)   for q &gt; 0, q != 1
   D_1(P||Q) = sum_i P_i * log(P_i / Q_i)                 (KL limit)
-</code></pre></div><p>q = 0 convention: D_0(P||Q) = 1 - sum_i: P_i &gt; 0 Q_i (the Q-mass on P's
+</code></pre></div><p>q = 0 convention: D_0(P||Q) = 1 - sum_{i: P_i &gt; 0} Q_i (the Q-mass on P's
 zero support, with 0^0 = 0). Under pseudocount regularization all bins are
 positive and D_0 = 0.
 Measures how much isoform composition changes from control to condition.

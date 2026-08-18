@@ -13,19 +13,60 @@
     `.apply_arima_differencing_fpca`) and their tests were deleted, and
     the LMM fallback `slope_diff` is now extracted from fixed effects
     ([`nlme::fixef`](https://rdrr.io/pkg/nlme/man/fixed.effects.html))
-    instead of per-subject coefficients. Rationale:
-    `docs/architecture/ADR-006-no-arima-differencing-functional-q.md`.
-  - **Correlation structure**: AR(1) within subject × condition using
-    the q-grid index (`rho^|Δgrid|`, handles missing q) in GAMM and LMM;
-    GEE fits H(q) with a joint Wald test and a small-cluster F reference
-    (df = n_clusters − p); the AR(1) design effect is descriptive-only.
-  - **Paired GAMM**:
+    instead of per-subject coefficients..
+  - **Correlation structure**: AR(1)-type within subject × condition
+    modelled over **actual q distances**
+    ([`nlme::corCAR1`](https://rdrr.io/pkg/nlme/man/corCAR1.html),
+    Corr(e_i, e_j) = exp(-φ\|q_i - q_j\|)) as the primary structure in
+    GAMM and LMM, so irregular q grids are handled correctly (the
+    q-grid-index `rho^|Δgrid|` form, which is valid only on equally
+    spaced grids, is kept as a documented fallback and for the legacy
+    mgcv paths); GEE fits H(q) with a joint Wald test and a
+    small-cluster F reference (df = n_clusters − p); the AR(1) design
+    effect is descriptive-only.
+  - **Salmon input integrity** (audit hardening): Salmon quantification
+    files are now matched by **transcript ID** rather than positional
+    order; transcript sets and sample identifiers must be unique and
+    consistent across files (a mismatch is a hard error, not a warning),
+    and negative or non-finite quantification values are rejected at
+    input. Paired-design bootstrap also validates the 1-control +
+    1-treatment-per-pair invariant before resampling. \*
+    **TPM/effective-length contract**: diversity is computed from raw
+    counts with effective-length correction; `tpm = TRUE` together with
+    an `effective_length` (parameter or SummarizedExperiment metadata)
+    is now a hard error, since TPM already incorporates effective-length
+    normalization (double normalization rejected). TPM remains available
+    for abundance-based filtering/QC.
+  - **Pseudocount ordering and `'auto'` resolution**: effective-length
+    normalization is now applied BEFORE the pseudocount, so
+    regularization is constant on the effective-abundance scale
+    (previously the count-space pseudocount was implicitly divided by
+    transcript length, systematically boosting short isoforms);
+    `pseudocount = 'auto'` is now estimated from the resolved raw-count
+    matrix after input resolution and is rejected for TPM input. \*
+    **Paired GAMM**:
     [`nlme::lme`](https://rdrr.io/pkg/nlme/man/lme.html) with
     `ns(q, df = 3) × condition` and a marginal F-test (mgcv gamm is
     singular on paired designs); no p-value underflow for strong signals
     (log-space recomputation) and pseudo-R² `effect_size`; `slope_diff`
     from population-level predictions; fit metadata records
     `model_used`/`fallback_level`/`correlation_structure`/`test_type`.
+  - **Bootstrap resampling invariant**: the read-level bootstrap now
+    resamples from exactly the point-estimate proportions
+    `(x/l + c)/sum(x/l + c)` — the pseudocount is embedded on the
+    effective-abundance scale BEFORE the depth rescale (previously it
+    was added after the rescale, breaking the factorization for `c > 0`
+    and shifting the resampling probabilities away from the assay
+    estimate); the CI point estimate is computed by the estimator itself
+    on the raw input, and q = 0 bootstrap replicates now carry the
+    support distribution of the multinomial draws (`entropy_cpp` q = 0
+    counts positive entries — zero-proportion bins no longer count as
+    species). Locked by `test-bootstrap-invariant.R`.
+  - **Provenance rename**: the primary paired GAMM metadata
+    `fit_method`/`model_used` is now `lme_ns_car1` (continuous CAR(1)
+    correlation over ACTUAL q distances), reserving
+    `ar1_grid_within_subject_condition` for the grid-index fallback;
+    previously the primary path was mislabelled `lme_ns_ar1`.
   - **Westfall–Young schemes**: `block_col`, `strata_col` and
     `permutation_scheme` with exchangeability validation (confounded
     blocks/strata rejected).
@@ -34,6 +75,14 @@
     lock).
   - **Robust M-estimation**: sandwich variance with robust
     SE/p-values/95% CIs.
+  - **Performance (ART)**: the Aligned Rank Transform no longer
+    recomputes ANOVAs for all effects per gene — only the q × condition
+    interaction row is extracted via
+    [`ARTool::artlm()`](https://rdrr.io/pkg/ARTool/man/artlm.html) +
+    `flat.anova()` (identical F and p-values, ~3× faster on the ANOVA
+    step). Parallel per-gene workers now pin BLAS/OpenMP to a single
+    thread to avoid core oversubscription (ART vignette step measured 42
+    s → 3.3 s at nthreads = 3).
   - **Documented limitations**: unpaired ART slightly anti-conservative
     at small n (Conover-Iman `method='rt'` recommended for confirmatory
     unpaired inference); GEE mildly anti-conservative under strong

@@ -60,8 +60,10 @@ calculate_diversity(
 
   - `'zscore'` - Z-score normalization per q-value
 
-  - `'log_odds_ratio'` - Log-odds ratio relative to max entropy (q and
-    isoform-aware)
+  - `'log_odds_ratio'` - Log-ratio of entropy to the uniform maximum (q
+    and isoform-aware). Values are \<= 0: 0 = uniform, \< 0 = more
+    concentrated. Name kept for backwards compatibility; this is a
+    log-relative-entropy ratio, not an odds ratio.
 
   - `'relative_reference'` - Divide by reference group mean (requires
     reference_group)
@@ -220,6 +222,16 @@ This wrapper calls `.calculate_diversity()` once per q-value, storing
 results as SummarizedExperiment objects. It extracts key parameters from
 `analysis@config` with priority resolution (explicit \> `@config` \>
 default).
+
+\*\*Counts, TPM and effective length:\*\* The wrapper always computes
+entropy from the RAW count assay with effective-length correction (\`tpm
+= FALSE\` internally). The TPM matrix stored in metadata by
+[`build_analysis()`](https://gallardoalba.github.io/TSENAT/reference/build_analysis.md)
+is used only for filtering/QC (e.g.,
+[`filter_analysis()`](https://gallardoalba.github.io/TSENAT/reference/filter_analysis.md)).
+Because TPM already incorporates effective-length normalization, the two
+are never combined in a single computation (combining them at the core
+level is a hard error).
 
 \*\*Diversity Spectrum Computation:\*\* By default, this function
 computes and saves a diversity spectrum (aggregated statistics across

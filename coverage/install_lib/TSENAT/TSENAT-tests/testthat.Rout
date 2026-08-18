@@ -1,0 +1,70 @@
+
+R version 4.5.3 (2026-03-11) -- "Reassured Reassurer"
+Copyright (C) 2026 The R Foundation for Statistical Computing
+Platform: x86_64-conda-linux-gnu
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library("testthat")
+> library("TSENAT")
+Registered S3 method overwritten by 'lme4':
+  method           from
+  na.action.merMod car 
+> 
+> test_check("TSENAT")
+── Skip: [FACTORY FILE] This file provides test utilities, not tests ───────────
+Reason: This file contains test data factory functions for use across the test suite, not test cases
+
+ Maximum number of PQL iterations:  20 
+
+ Maximum number of PQL iterations:  20 
+
+ Maximum number of PQL iterations:  20 
+
+ Maximum number of PQL iterations:  20 
+
+ Maximum number of PQL iterations:  20 
+
+ Maximum number of PQL iterations:  20 
+
+ Maximum number of PQL iterations:  20 
+
+ Maximum number of PQL iterations:  20 
+[ FAIL 0 | WARN 64 | SKIP 28 | PASS 12517 ]
+
+══ Skipped tests (28) ══════════════════════════════════════════════════════════
+• Could not load rank_transform_core.R source code for parallelization
+  verification (1): 'test-statistical-methods-rank.R:2329:9'
+• DESCRIPTION file not found (1): 'test-package-initialization.R:262:3'
+• Monte Carlo validation suite skipped under testthat; run
+  tests/testthat/run-validation.R or set TSENAT_RUN_VALIDATION=true (22):
+  'test-ar1-structure.R:39:9', 'test-bootstrap-coverage.R:56:9',
+  'test-effect-sizes.R:57:9', 'test-estimation-sensitivity.R:34:9',
+  'test-filtering.R:52:9', 'test-fwer-fdr.R:37:9',
+  'test-fwer-westfall-young.R:38:9', 'test-gee-small-sample.R:36:9',
+  'test-lmm-functional.R:53:9', 'test-m-estimator-coverage.R:36:9',
+  'test-missing-q.R:49:9', 'test-pairing.R:37:9',
+  'test-postselection-lasso.R:53:9', 'test-power.R:35:9',
+  'test-q-grid-invariance.R:37:9', 'test-qic-auto-selection.R:47:9',
+  'test-robustness-nonnormal.R:39:9', 'test-type1-art.R:48:9',
+  'test-type1-calibration.R:37:9', 'test-type1-fpca.R:38:9',
+  'test-type1-rank.R:38:9', 'test-wy-permutation-schemes.R:56:9'
+• Performance tests skipped by default - resource-intensive (1):
+  'test-infrastructure-performance.R:21:3'
+• SnowParam fallback test requires Windows (2): 'test-parallelization.R:126:5',
+  'test-parallelization.R:134:5'
+• This file contains test data factory functions for use across the test suite,
+  not test cases (1): 'tests-factory.R:13:3'
+
+[ FAIL 0 | WARN 64 | SKIP 28 | PASS 12517 ]
+> 

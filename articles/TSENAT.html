@@ -69,7 +69,7 @@
 Gallardo Alba <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2026-08-17</h4>
+            <h4 data-toc-skip class="date">2026-08-18</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gallardoalba/TSENAT/blob/HEAD/vignettes/TSENAT.Rmd" class="external-link"><code>vignettes/TSENAT.Rmd</code></a></small>
       <div class="d-none name"><code>TSENAT.Rmd</code></div>
@@ -91,23 +91,17 @@ variants (low
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>q</mi><annotation encoding="application/x-tex">q</annotation></semantics></math>)
 or dominant isoforms (high
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>q</mi><annotation encoding="application/x-tex">q</annotation></semantics></math>).
-The package computes Tsallis entropy and Tsallis divergence from
-transcript-level abundance estimates, compares measures between groups,
-and visualizes scale-dependent differences via q-curves.</p>
-<div class="section level3">
-<h3 id="motivation">Motivation<a class="anchor" aria-label="anchor" href="#motivation"></a>
-</h3>
-<p>Common RNA-seq tools focus on either total gene abundance changes or
-individual transcript usage shifts, yet genes often remodel their
-isoform landscapes without changing overall expression-a phenomenon
-missed by these approaches. TSENAT quantifies isoform-usage diversity
-directly via Tsallis entropy, capturing biological signals invisible to
-abundance- or proportion-based summaries.</p>
+Genes often remodel their isoform landscapes without changing overall
+expression—a phenomenon abundance- and proportion-based summaries
+miss—and TSENAT quantifies this directly via Tsallis entropy, capturing
+biological signals invisible to classical approaches. The package
+computes Tsallis entropy and Tsallis divergence from transcript-level
+abundance estimates, compares measures between groups, and visualizes
+scale-dependent differences via q-curves.</p>
 <p>In this guide, we demonstrate the complete workflow: preprocessing
 transcript counts, computing entropy across entropic indices, testing
 for between-group differences, and visualizing scale-dependent
 complexity.</p>
-</div>
 <div class="section level3">
 <h3 id="high-level-workflow">High-level workflow<a class="anchor" aria-label="anchor" href="#high-level-workflow"></a>
 </h3>
@@ -124,12 +118,11 @@ groups across entropic indices.</li>
 <li>
 <strong>Visualize results</strong>.</li>
 </ol>
-<p>Design assumptions: This guide assumes paired or longitudinal designs
-with
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>≥</mo><annotation encoding="application/x-tex">\geq</annotation></semantics></math>
-6–8 samples per group for adequate power to detect entropy shifts while
-controlling false discovery rate. Smaller sample sizes may be
-underpowered to detect subtle isoform complexity changes.</p>
+<p>Design assumptions: This guide assumes paired or longitudinal
+designs. The simulation studies suggest that small sample sizes can have
+limited power; as a general practical guideline, paired studies with
+fewer than approximately 6–8 subjects should be interpreted cautiously,
+and users should assess power for their own design.</p>
 </div>
 <div class="section level3">
 <h3 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -182,6 +175,9 @@ workflow:</p>
 <span>  config <span class="op">=</span> <span class="va">config</span>,</span>
 <span>  tpm <span class="op">=</span> <span class="va">tpm</span>,</span>
 <span>  effective_length <span class="op">=</span> <span class="va">effective_length</span><span class="op">)</span></span>
+<span><span class="co"># Roles: tpm -&gt; abundance QC in filter_analysis(); effective_length -&gt;</span></span>
+<span><span class="co"># length-normalized entropy from RAW counts. The two are mutually exclusive</span></span>
+<span><span class="co"># in a single computation (TPM already incorporates length normalization).</span></span>
 <span></span>
 <span><span class="co"># Filter low-abundance transcripts</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/filter_analysis.html">filter_analysis</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span>
@@ -236,20 +232,17 @@ transcriptomic) truths.</p>
 <div class="section level3">
 <h3 id="why-this-matters-for-rna-seq-the-isoform-complexity-problem">Why This Matters for RNA-seq: The Isoform Complexity Problem<a class="anchor" aria-label="anchor" href="#why-this-matters-for-rna-seq-the-isoform-complexity-problem"></a>
 </h3>
-<p>Standard RNA-seq analysis measures whether transcript abundance
-changes between conditions. But a critical complementary question
-remains underexplored: how does the diversity of isoforms change? A gene
-may show little change in total abundance while dramatically reshuffling
-its isoform repertoire—a phenomenon that current methods largely
-miss.</p>
-<p>Entropy quantifies precisely this: the complexity, richness, and
-balance of isoform heterogeneity. By measuring entropy across different
-biological scales (using the parameter q discussed below), researchers
-can detect whether changes are driven by shifts in rare isoforms or
-reorganization of dominant variants. The beauty of the Tsallis framework
-is that you obtain a complete picture of isoform heterogeneity by
-computing across a range of entropic indices—a “q-curve”—revealing which
-aspects of isoform organization change between conditions.</p>
+<p>A gene may show little change in total abundance while dramatically
+reshuffling its isoform repertoire. Entropy quantifies precisely this:
+the complexity, richness, and balance of isoform heterogeneity. By
+measuring entropy across different biological scales (using the
+parameter
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>q</mi><annotation encoding="application/x-tex">q</annotation></semantics></math>
+discussed below), researchers can detect whether changes are driven by
+shifts in rare isoforms or reorganization of dominant variants.
+Computing entropy across a range of entropic indices produces a
+“q-curve” that reveals which aspects of isoform organization change
+between conditions.</p>
 </div>
 <div class="section level3">
 <h3 id="mathematical-foundation-and-interpretation">Mathematical Foundation and Interpretation<a class="anchor" aria-label="anchor" href="#mathematical-foundation-and-interpretation"></a>
@@ -257,8 +250,10 @@ aspects of isoform organization change between conditions.</p>
 <div class="section level4">
 <h4 id="tsallis-entropy-definition-and-intuition">Tsallis Entropy: Definition and Intuition<a class="anchor" aria-label="anchor" href="#tsallis-entropy-definition-and-intuition"></a>
 </h4>
-<p>For a discrete probability vector p=(p₁,…,pₙ) representing isoform
-proportions within a gene, Tsallis entropy is defined as:</p>
+<p>For a discrete probability vector
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>=</mo><mo stretchy="false" form="prefix">(</mo><msub><mi>p</mi><mn>1</mn></msub><mo>,</mo><mi>…</mi><mo>,</mo><msub><mi>p</mi><mi>n</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">p = (p_1, \ldots, p_n)</annotation></semantics></math>
+representing isoform proportions within a gene, Tsallis entropy is
+defined as:</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mi>q</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>p</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mfrac><mrow><mn>1</mn><mo>−</mo><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><msubsup><mi>p</mi><mi>i</mi><mi>q</mi></msubsup></mrow><mrow><mi>q</mi><mo>−</mo><mn>1</mn></mrow></mfrac></mrow><annotation encoding="application/x-tex">S_q(p)=\frac{1-\sum_{i=1}^{n}p_i^q}{q-1}</annotation></semantics></math></p>
 <p>This parametric family unites diverse entropy concepts under a single
 framework:</p>
@@ -399,10 +394,15 @@ transcript-level entropy captures similar organizational principles
 <div class="section level2">
 <h2 id="tsenat-main-workflow">TSENAT Main Workflow<a class="anchor" aria-label="anchor" href="#tsenat-main-workflow"></a>
 </h2>
-<p>We now demonstrate a complete workflow for detecting <strong>isoform
-switching</strong> — when cells reorganize their isoform landscape
-without necessarily changing total gene abundance. This often reflects
-strategic shifts in protein function driven by splicing regulation.</p>
+<p>We now demonstrate a complete workflow for detecting
+<strong>scale-dependent isoform complexity changes</strong> —
+condition-dependent reorganization of the isoform landscape without
+necessarily changing total gene abundance. The primary statistical
+target is whether the condition effect on the entropy q-spectrum is
+non-zero
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>H</mi><mn>0</mn></msub><mo>:</mo><msub><mi mathvariant="normal">Δ</mi><mi>g</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>q</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">H_0: \Delta_g(q) = 0</annotation></semantics></math>
+for all
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>q</mi><annotation encoding="application/x-tex">q</annotation></semantics></math>).</p>
 <p>In this workflow, you will:</p>
 <ol style="list-style-type: decimal">
 <li>Load transcript counts and sample metadata</li>
@@ -439,6 +439,9 @@ the switching occurs.</p>
 <span><span class="co"># - readcounts: Salmon NumReads (raw fragment counts with EM-based ambiguity resolution)</span></span>
 <span><span class="co"># - tpm: Salmon TPM matrix (length and library-normalized expression)</span></span>
 <span><span class="co"># - effective_length: Salmon EffectiveLength vector (accounts for fragment length distribution)</span></span>
+<span><span class="co"># Roles: tpm -&gt; abundance QC in filter_analysis(); effective_length -&gt;</span></span>
+<span><span class="co"># length-normalized entropy from RAW counts. The two are mutually exclusive</span></span>
+<span><span class="co"># in a single computation (TPM already incorporates length normalization).</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">readcounts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span></span>
@@ -484,10 +487,20 @@ builder function (fail-fast principle):</p>
 <span>  tx2gene <span class="op">=</span> <span class="va">gff3_file</span>, </span>
 <span>  tpm <span class="op">=</span> <span class="va">tpm</span>,</span>
 <span>  effective_length <span class="op">=</span> <span class="va">effective_length</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<span><span class="op">)</span></span>
+<span><span class="co"># Roles: tpm -&gt; abundance QC in filter_analysis(); effective_length -&gt;</span></span>
+<span><span class="co"># length-normalized entropy from RAW counts. The two are mutually exclusive</span></span>
+<span><span class="co"># in a single computation (TPM already incorporates length normalization).</span></span></code></pre></div>
 <p>The <code>TSENATAnalysis</code> object contains a
 <code>SummarizedExperiment</code> with transcript-level counts and gene
-annotations extracted from the GFF3 file.</p>
+annotations extracted from the GFF3 file. The <code>tpm</code> matrix
+and the <code>effective_length</code> vector serve distinct roles:
+<code>tpm</code> drives abundance-based filtering, whereas
+<code>effective_length</code> is consumed by
+<code><a href="../reference/calculate_diversity.html">calculate_diversity()</a></code> for length-normalized entropy
+computed from raw counts. The two are never combined in a single
+computation, since TPM already incorporates effective-length
+normalization.</p>
 <p>To reduce noise and improve statistical power, we should filter out
 lowly-expressed transcripts. Expression estimates of transcript isoforms
 with zero or low expression might be highly variable <span class="citation">(Jose and Lal 2013; Chakraborty 2019)</span>. For more
@@ -497,9 +510,11 @@ transcript usage, see <a href="https://doi.org/10.1186/s13059-015-0862-3" class=
 <code class="sourceCode R"><span><span class="co"># Filter lowly-expressed transcripts</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/filter_analysis.html">filter_analysis</a></span><span class="op">(</span><span class="va">analysis</span>, stringency <span class="op">=</span> <span class="st">"medium"</span><span class="op">)</span></span></code></pre></div>
 <p>The <code>stringency = "medium"</code> parameter keeps transcripts
-present in $$50% of samples with TPM values above the median of mean
-gene TPM. This balances noise reduction with preservation of isoform
-diversity needed for meaningful entropy calculations.</p>
+present in
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>≥</mo><mn>50</mn><mi>%</mi></mrow><annotation encoding="application/x-tex">\geq 50\%</annotation></semantics></math>
+of samples with TPM values above the median of mean gene TPM. This
+balances noise reduction with preservation of isoform diversity needed
+for meaningful entropy calculations.</p>
 </div>
 <div class="section level3">
 <h3 id="compute-tsallis-entropy">Compute Tsallis Entropy<a class="anchor" aria-label="anchor" href="#compute-tsallis-entropy"></a>
@@ -597,7 +612,9 @@ blue control and red treatment.
 <p>Diverging curves between groups indicate scale-dependent diversity
 differences: separation at low <code>q</code> implies differences in
 rare isoforms, while separation at high <code>q</code> signals
-differences in dominant isoforms.</p>
+differences in dominant isoforms (the rare-/abundant-driven pattern
+classification is defined in “Interpretation of Pattern Types”
+below).</p>
 </div>
 <div class="section level3">
 <h3 id="quality-control-sample-influence-assessment">Quality Control: Sample Influence Assessment<a class="anchor" aria-label="anchor" href="#quality-control-sample-influence-assessment"></a>
@@ -799,12 +816,19 @@ with specific strengths:</p>
 models): flexibly capture nonlinear q-response patterns via adaptive
 smoothing splines. For unpaired (cross-sectional) designs, GAM is used
 directly. When <code>paired = TRUE</code>, <code>method = "gam"</code>
-automatically dispatches to GAMM internally: <code><a href="https://rdrr.io/pkg/nlme/man/lme.html" class="external-link">nlme::lme</a></code> with
-regression splines (<code>ns(q, df = 3) × condition</code>),
-subject-level random intercepts and AR(1) correlation within each
-subject × condition block (marginal F-test for the interaction).
-<code><a href="https://rdrr.io/pkg/mgcv/man/gamm.html" class="external-link">mgcv::gamm()</a></code> and standard GAM serve as fallbacks. GAMM can
-also be selected explicitly with <code>method = "gamm"</code>.</li>
+dispatches to a <strong>spline-based GAMM-style path implemented with
+<code><a href="https://rdrr.io/pkg/nlme/man/lme.html" class="external-link">nlme::lme</a></code></strong> (natural regression splines,
+<code>ns(q, df = 3) × condition</code>), subject-level random intercepts
+and a continuous-q AR(1) working correlation
+(<code><a href="https://rdrr.io/pkg/nlme/man/corCAR1.html" class="external-link">nlme::corCAR1</a></code>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">exp</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mi>−</mi><mi>ϕ</mi><mo stretchy="false" form="prefix">|</mo><msub><mi>q</mi><mi>i</mi></msub><mo>−</mo><msub><mi>q</mi><mi>j</mi></msub><mo stretchy="false" form="prefix">|</mo><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\exp(-\phi|q_i-q_j|)</annotation></semantics></math>)
+within each subject × condition block (marginal F-test for the
+interaction). <code><a href="https://rdrr.io/pkg/mgcv/man/gamm.html" class="external-link">mgcv::gamm()</a></code> and standard GAM serve as
+fallbacks. GAMM can also be selected explicitly with
+<code>method = "gamm"</code>. Note that the fitted spline is not
+constrained to be monotone: the monotonicity of the theoretical entropy
+functional does not imply that noisy finite-sample estimates are
+monotone at every q.</li>
 <li>
 <strong>LMM</strong> (linear mixed models): parametric alternative
 with subject-level random intercepts for repeated q-ordered
@@ -818,8 +842,18 @@ longitudinal designs with repeated q-measures.</li>
 treats q-values as ordered functional data, implicitly capturing
 q-ordering structure.</li>
 </ul>
-<p>All methods automatically account for the AR(1) correlation structure
-inherent in Tsallis entropy measurements.</p>
+<p>GAM/LMM/GEE (and the FPCA global test) can account for within-subject
+dependence across the q-grid using an AR(1) <em>working correlation</em>
+model. This is a working covariance approximation for discretized
+functional estimates — correlation in entropy estimates across q is not
+biological temporal autocorrelation. ART provides a complementary
+rank-based interaction test and does not model AR(1) correlation
+explicitly (it treats q as a categorical factor).</p>
+<p>SAIT consumes the stored diversity assay <strong>as
+computed</strong>: with the default range normalization
+(<code>norm = TRUE</code>) the interaction is tested on range-normalized
+entropy (relative to each gene’s theoretical maximum); use
+<code>norm = 'none'</code> to test raw Tsallis entropy.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Scale-adaptive interaction test across q values using S4 wrapper</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_sait.html">calculate_sait</a></span><span class="op">(</span></span>
@@ -866,7 +900,7 @@ predictors <span class="citation">(Benjamini and Hochberg
 <td align="left">2.15e-139</td>
 <td align="left">1.63e-137</td>
 <td align="left">74.0%</td>
-<td align="right">369.9998</td>
+<td align="right">369.9997</td>
 <td align="left">TRUE</td>
 <td align="left">TRUE</td>
 </tr>
@@ -892,8 +926,8 @@ predictors <span class="citation">(Benjamini and Hochberg
 <td align="left">LINC03040</td>
 <td align="left">5.54e-47</td>
 <td align="left">4.05e-45</td>
-<td align="left">58.1%</td>
-<td align="right">86.4559</td>
+<td align="left">58.3%</td>
+<td align="right">86.4560</td>
 <td align="left">TRUE</td>
 <td align="left">TRUE</td>
 </tr>
@@ -902,7 +936,7 @@ predictors <span class="citation">(Benjamini and Hochberg
 <td align="left">7.69e-43</td>
 <td align="left">5.54e-41</td>
 <td align="left">21.0%</td>
-<td align="right">77.6209</td>
+<td align="right">77.6208</td>
 <td align="left">TRUE</td>
 <td align="left">TRUE</td>
 </tr>
@@ -910,8 +944,8 @@ predictors <span class="citation">(Benjamini and Hochberg
 <td align="left">MEF2A</td>
 <td align="left">2.34e-36</td>
 <td align="left">1.66e-34</td>
-<td align="left">17.1%</td>
-<td align="right">64.3021</td>
+<td align="left">17.7%</td>
+<td align="right">64.3034</td>
 <td align="left">TRUE</td>
 <td align="left">TRUE</td>
 </tr>
@@ -922,11 +956,17 @@ predictors <span class="citation">(Benjamini and Hochberg
 <li>
 <strong>Effect Size</strong>: Proportion of variance in entropy
 explained by the fitted model, ranging from 0 to 1 (deviance explained
-for GAM paths; model pseudo-R² for the paired regression-spline path).
-Larger values indicate stronger scale-dependent effects, but note that
-this deviance/R² scale differs from classical η² and does not share the
-same interpretive thresholds (Cohen’s conventions for η² do not directly
-apply).</li>
+for GAM paths; model
+pseudo-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>R</mi><mn>2</mn></msup><annotation encoding="application/x-tex">R^2</annotation></semantics></math>
+for the paired regression-spline path). Larger values indicate stronger
+scale-dependent effects, but note that this
+deviance/<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>R</mi><mn>2</mn></msup><annotation encoding="application/x-tex">R^2</annotation></semantics></math>
+scale differs from classical
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>η</mi><mn>2</mn></msup><annotation encoding="application/x-tex">\eta^2</annotation></semantics></math>
+and does not share the same interpretive thresholds (Cohen’s conventions
+for
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>η</mi><mn>2</mn></msup><annotation encoding="application/x-tex">\eta^2</annotation></semantics></math>
+do not directly apply).</li>
 <li>
 <strong>Test Statistic</strong>
 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>F</mi><annotation encoding="application/x-tex">F</annotation></semantics></math>):
@@ -941,6 +981,20 @@ that gene are unreliable and should be excluded).</li>
 heterogeneity was detected across the q-spectrum (assumption violated,
 results warrant caution).</li>
 </ul>
+<p><strong>Multiplicity and Westfall–Young.</strong> When each gene
+receives one omnibus q-dependent test, the multiplicity family is the
+set of genes. The gene-level FDR procedure defaults to BH
+(<code>pcorr = "BH"</code>); the within-gene multi-q correction
+(<code>multicorr</code>, default Hochberg) assumes positive regression
+dependence among q-level p-values (plausible under the AR(1) working
+correlation across q). When a rigorous FWER guarantee is needed, use
+<code>multicorr = "westfall-young"</code>: permutations are then
+performed <strong>only within exchangeable units/strata</strong> — for
+paired designs, treatment labels are not freely permuted across
+subjects, and blocks/strata confounded with condition are rejected.
+Under arbitrary dependence among gene p-values, prefer
+<code>multicorr = "benjamini-yekutieli"</code> (dependence-robust FDR)
+or Westfall–Young.</p>
 <p>Now we will plot the q-curve profile for the top genes identified by
 the scale-adaptive interaction test.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
@@ -964,8 +1018,9 @@ GAM-identified genes showing significant q$ imes$condition effects
 </h3>
 <p>The SAIT interaction tests whether condition effects depend on which
 diversity scale (q-value) you examine. This section identifies
-<strong>which individual transcripts</strong> drive these
-scale-dependent patterns, revealing whether the same transcripts switch
+<strong>candidate transcript contributors</strong> — an influence
+diagnostic (transcripts whose removal changes the diversity contrast),
+not causal attribution — revealing whether the same transcripts switch
 across all scales or whether different regulatory mechanisms dominate at
 rare versus abundant isoform scales.</p>
 <div class="section level4">
@@ -1218,24 +1273,22 @@ whether group differences are driven by rare isoforms (low
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>q</mi><annotation encoding="application/x-tex">q</annotation></semantics></math>),
 dominant isoforms (high
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>q</mi><annotation encoding="application/x-tex">q</annotation></semantics></math>),
-or uniformly across scales. Values
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>&gt;</mo><mn>0.1</mn></mrow><annotation encoding="application/x-tex">D &gt; 0.1</annotation></semantics></math>
-indicate meaningful information-theoretic separation between conditions,
-revealing that isoform complexity patterns fundamentally differ between
-treatment groups across all q-dependent scales <span class="citation">(Ré and Azad 2014)</span>.</p>
+or uniformly across scales.</p>
 <p>For two probability distributions
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>P</mi><annotation encoding="application/x-tex">P</annotation></semantics></math>
 and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>Q</mi><annotation encoding="application/x-tex">Q</annotation></semantics></math>
 representing isoform proportions in control and treatment conditions,
 Tsallis divergence is:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>D</mi><mi>q</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>P</mi><mo stretchy="false" form="prefix">|</mo><mo stretchy="false" form="prefix">|</mo><mi>Q</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mfrac><mrow><munder><mo>∑</mo><mi>i</mi></munder><msubsup><mi>p</mi><mi>i</mi><mi>q</mi></msubsup><mo>⋅</mo><msubsup><mi>q</mi><mi>i</mi><mrow><mn>1</mn><mo>−</mo><mi>q</mi></mrow></msubsup><mo>−</mo><mn>1</mn></mrow><mrow><mi>q</mi><mo>−</mo><mn>1</mn></mrow></mfrac></mrow><annotation encoding="application/x-tex">D_q(P||Q) = \frac{\sum_i p_i^q \cdot q_i^{1-q} - 1}{q-1}</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>D</mi><mi>q</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>P</mi><mo stretchy="false" form="prefix">|</mo><mo stretchy="false" form="prefix">|</mo><mi>Q</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mfrac><mrow><munder><mo>∑</mo><mi>i</mi></munder><msubsup><mi>p</mi><mi>i</mi><mi>q</mi></msubsup><mo>⋅</mo><msubsup><mi>r</mi><mi>i</mi><mrow><mn>1</mn><mo>−</mo><mi>q</mi></mrow></msubsup><mo>−</mo><mn>1</mn></mrow><mrow><mi>q</mi><mo>−</mo><mn>1</mn></mrow></mfrac></mrow><annotation encoding="application/x-tex">D_q(P||Q) = \frac{\sum_i p_i^q \cdot r_i^{1-q} - 1}{q-1}</annotation></semantics></math></p>
 <p>where
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>p</mi><mi>i</mi></msub><annotation encoding="application/x-tex">p_i</annotation></semantics></math>
 and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>q</mi><mi>i</mi></msub><annotation encoding="application/x-tex">q_i</annotation></semantics></math>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>r</mi><mi>i</mi></msub><annotation encoding="application/x-tex">r_i</annotation></semantics></math>
 are the probability values at position
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>.</p>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>q</mi><annotation encoding="application/x-tex">q</annotation></semantics></math>
+is the entropic parameter).</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Computes pairwise information-theoretic distance (Tsallis divergence)</span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_divergence.html">calculate_divergence</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span></span></code></pre></div>
@@ -1296,25 +1349,25 @@ magnitude.</caption>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">top_genes_result</span><span class="op">)</span></span></code></pre></div>
-<table style="width:100%;" class="table">
+<table class="table">
 <caption>
 <strong>Table 7 | Top 6 Genes by Effect Size (Tsallis
 Divergence).</strong> Genes ranked by interaction p-value; columns show
 divergence at key q-values (0.5, 1.0, 2.0) and inferred pattern type
 (rare-driven, abundant-driven, or balanced).</caption>
 <colgroup>
+<col width="11%">
+<col width="11%">
+<col width="22%">
+<col width="11%">
+<col width="11%">
 <col width="12%">
-<col width="12%">
-<col width="14%">
-<col width="12%">
-<col width="12%">
-<col width="14%">
-<col width="20%">
+<col width="18%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Gene</th>
 <th align="left">P-value</th>
-<th align="right">Slope Diff</th>
+<th align="right">Endpoint Slope Diff</th>
 <th align="right">D(q=0.5)</th>
 <th align="right">D(q=1.0)</th>
 <th align="right">D(q=2.0)</th>
@@ -1380,6 +1433,9 @@ divergence at key q-values (0.5, 1.0, 2.0) and inferred pattern type
 <div class="section level4">
 <h4 id="interpretation-of-pattern-types">Interpretation of Pattern Types:<a class="anchor" aria-label="anchor" href="#interpretation-of-pattern-types"></a>
 </h4>
+<p>These labels are heuristic summaries of the q-spectrum; they should
+be interpreted together with the full divergence curve rather than from
+two q-values alone.</p>
 <ul>
 <li>Rare driven: D(q=0.5) &gt;&gt; D(q=2.0). Low-abundance isoforms are
 condition-specific; treatment group preferentially expresses rare
@@ -1393,9 +1449,11 @@ rebalancing.</li>
 </ul>
 <p>The effect sizes reveal which genes show the most
 information-theoretic separation across the q-spectrum <strong>between
-paired treatment groups</strong>. Genes with Tsallis divergence D &gt;
-0.1 show substantial divergence, indicating that entropy distributions
-differ fundamentally between conditions across the full q-spectrum.</p>
+paired treatment groups</strong>. Here, genes with Tsallis divergence
+above the illustrative threshold
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo>&gt;</mo><mn>0.1</mn></mrow><annotation encoding="application/x-tex">D &gt; 0.1</annotation></semantics></math>
+are highlighted for this example dataset; this threshold is not a
+universal biological or statistical significance cutoff.</p>
 <p><strong>Biological Interpretation:</strong> Following Tsallis entropy
 theory and information-theoretic principles <span class="citation">(Furuichi 2006; Jost 2006; Erven and Harremoes 2014;
 Hyndman and Athanasopoulos 2018)</span>, effect size quantification
@@ -1417,11 +1475,10 @@ isoform switching.</p>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">plot_obj</span><span class="op">)</span></span></code></pre></div>
 <div class="figure" style="text-align: center">
-<img src="TSENAT_files/figure-html/effect-size-plot-multiq-1.png" class="r-plt" alt="**Figure 5:** Distribution of Tsallis divergence effect sizes across genes. X-axis shows divergence values; y-axis shows gene density. Threshold line indicates substantial divergence (D &gt; 0.1) distinguishing signal genes from background." width="98%"><p class="caption">
+<img src="TSENAT_files/figure-html/effect-size-plot-multiq-1.png" class="r-plt" alt="**Figure 5:** Distribution of Tsallis divergence effect sizes across genes. X-axis shows divergence values; y-axis shows gene density." width="98%"><p class="caption">
 <strong>Figure 5:</strong> Distribution of Tsallis divergence effect
 sizes across genes. X-axis shows divergence values; y-axis shows gene
-density. Threshold line indicates substantial divergence (D &gt; 0.1)
-distinguishing signal genes from background.
+density.
 </p>
 </div>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
@@ -1443,21 +1500,31 @@ abundant-driven).
 </div>
 <p>Interpreting the Q-Spectrum Curve:</p>
 <ul>
-<li><p><strong>Shape matters more than single value</strong>: The
-<strong>q-spectrum</strong> curve is the complete biological story <span class="citation">(Chao et al. 2010)</span>. A flat curve (balanced)
-vs. declining curve (rare driven) vs. rising curve (abundant driven)
-encode fundamentally different mechanisms <span class="citation">(Sason
-2022)</span>. As described in the pattern table above, genes falling
-into each category reveal different regulatory strategies.</p></li>
+<li><p><strong>Shape</strong>: As defined in the pattern types above, a
+flat curve (balanced) vs. declining curve (rare driven) vs. rising curve
+(abundant driven) is a descriptive summary of the q-spectrum <span class="citation">(Sason 2022)</span>. A predominantly declining spectrum
+is consistent with stronger divergence at low-abundance scales, whereas
+a predominantly rising spectrum is consistent with stronger divergence
+at dominant-abundance scales; these are descriptive interpretations, not
+mechanistic classifications — the full curve is the complete story, not
+any single q point <span class="citation">(Chao et al.
+2010)</span>.</p></li>
 <li><p><strong>q=1 (KL divergence)</strong>: The middle point
 corresponds to ordinary Kullback-Leibler divergence <span class="citation">(Kullback and Leibler 1951; Ré and Azad 2014)</span>,
-where the Tsallis divergence reduces to standard KL divergence in the
-limit q→1. This weights all isoforms equally.</p></li>
+to which Tsallis divergence converges in the limit
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>→</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q \to 1</annotation></semantics></math>.
+KL weights each isoform by its probability under
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>P</mi><annotation encoding="application/x-tex">P</annotation></semantics></math>
+times its log-ratio
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>p</mi><mi>i</mi></msub><mi>/</mi><msub><mi>r</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\log(p_i/r_i)</annotation></semantics></math>;
+it does <strong>not</strong> weight all isoforms equally (rare
+categories can contribute very large log-ratios).</p></li>
 </ul>
 <p>We can also plot the global divergence spectrum across all genes.
-This curve is the full biological signature of <strong>isoform
-switching</strong>-the pattern encodes which abundance scales (rare
-vs. abundant) are affected.</p>
+This curve is the full signature of <strong>scale-dependent isoform
+complexity change</strong> — the pattern encodes which abundance scales
+(rare vs. abundant) are affected, and may reflect coordinate isoform
+switching.</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Visualize global divergence q-spectrum across all genes (aggregated)</span></span>
 <span><span class="co"># Plot is rendered directly by knitr (no file dependency)</span></span>
@@ -1473,19 +1540,28 @@ vs. abundant isoforms) are affected genome-wide.
 </div>
 <p>Statistical Validation During Interpretation:</p>
 <ol style="list-style-type: decimal">
-<li><p>Bootstrap CI validity: Per-q CIs should narrow as q increases
-(higher q = aggregation effect, less variance). If CIs grow with q,
-check for data quality issues <span class="citation">(Efron and
+<li><p>Bootstrap CI width: CI width may vary systematically across q. In
+many datasets, higher q can be more stable because dominant isoforms
+contribute most strongly, but increasing q does <strong>not</strong>
+guarantee narrower confidence intervals; unstable dominant-isoform
+estimates can violate that pattern <span class="citation">(Efron and
 Tibshirani 1993; Efron, Bradley and Tibshirani, Robert J.
 1993)</span>.</p></li>
-<li><p>Monotonicity check: Tsallis entropy is monotone decreasing in q
-for a fixed distribution <span class="citation">(Furuichi 2006)</span>.
-While divergence between two distributions is not strictly monotonic,
-large erratic spikes in the divergence q-spectrum may indicate numerical
-instability.</p></li>
-<li><p>Comparison with genome-wide patterns: Compute q-spectra for
-housekeeping genes (GAPDH, ACTB, etc.). These should show BALANCED
-patterns. If not, revisit normalization parameters <span class="citation">(Erhard et al. 2018)</span>.</p></li>
+<li><p>Monotonicity check: For a fixed probability distribution, the
+standard Tsallis entropy decreases as q increases under the convention
+used here <span class="citation">(Furuichi 2006)</span>. This property
+concerns the entropy functional, not the normalized entropy, Hill
+numbers, or divergence. While divergence between two distributions is
+not strictly monotonic, large erratic spikes in the divergence
+q-spectrum may indicate numerical instability.</p></li>
+<li><p>Comparison with genome-wide patterns (optional negative control):
+Compute q-spectra for genes expected <em>a priori</em> to be stable in
+the biological system (e.g., GAPDH, ACTB). No universal requirement that
+housekeeping genes exhibit a “balanced” q-spectrum should be imposed — a
+housekeeping gene can have condition-dependent isoform usage. Unexpected
+patterns should be investigated rather than automatically attributed to
+normalization <span class="citation">(Erhard et al.
+2018)</span>.</p></li>
 </ol>
 </div>
 </div>
@@ -1495,17 +1571,19 @@ patterns. If not, revisit normalization parameters <span class="citation">(Erhar
 </h2>
 <p>This main vignette is complemented by two comprehensive
 appendices:</p>
-<p><strong>Appendix A: Equivalence Validation - TSENAT vs
+<p><strong>Appendix A: Endpoint Equivalence with
 SplicingFactory</strong></p>
-<p>Objetive: Validates that TSENAT’s Shannon and Simpson entropy
-implementations are mathematically equivalent to SplicingFactory.</p>
+<p>Objective: Characterizes the mathematical relationship and endpoint
+equivalence between TSENAT’s Shannon and Simpson implementations and
+SplicingFactory’s, under the tested dataset and normalization
+convention.</p>
 <p><strong><a href="TSENAT_appendix_A.html">View Appendix
 A</a></strong></p>
-<p><strong>Appendix B: Cross-Method Validation of Statistical Test
-Results via GAM and Rank-Based Methods</strong></p>
-<p>Objective: Validate q-value * group interaction detection results
-from statistical tests using complementary parametric and non-parametric
-modeling approaches.</p>
+<p><strong>Appendix B: Cross-Method Robustness and Concordance (GAMM vs
+ART)</strong></p>
+<p>Objective: Assess the robustness and concordance of q × condition
+interaction discoveries across parametric (GAMM) and rank-based (ART)
+approaches.</p>
 <p><strong><a href="TSENAT_appendix_B.html">View Appendix
 B</a></strong></p>
 <div class="section level3">
@@ -1570,7 +1648,7 @@ Principles and Practice</em> (2nd ed.). OTexts. <a href="https://otexts.com/fpp2
 363–375. <a href="https://doi.org/10.1111/j.2006.0030-1299.14714.x" class="external-link uri">https://doi.org/10.1111/j.2006.0030-1299.14714.x</a></p></li>
 <li><p>Jose, J., &amp; Lal, P. S. (2013). “Application of ARIMA(1,1,0)
 Model for Predicting Time Delay of Search Engine Crawlers.”
-<em>Informatica Economică</em>, 17(4), 26–39. <a href="https://doi.org/10.12948/issn14531305/17.4.2013.03" class="external-link uri">https://doi.org/10.12948/issn14531305/17.4.2013.03</a></p></li>
+<em>Informatica Economic</em>, 17(4), 26–39. <a href="https://doi.org/10.12948/issn14531305/17.4.2013.03" class="external-link uri">https://doi.org/10.12948/issn14531305/17.4.2013.03</a></p></li>
 <li><p>Kullback, S., &amp; Leibler, R. A. (1951). “On information and
 sufficiency.” <em>Annals of Mathematical Statistics</em>, 22(1), 79–86.
 <a href="https://doi.org/10.1214/aoms/1177729694" class="external-link uri">https://doi.org/10.1214/aoms/1177729694</a></p></li>

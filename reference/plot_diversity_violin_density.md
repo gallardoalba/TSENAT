@@ -38,6 +38,12 @@ plot_diversity_violin_density(
   provided, the plot will be saved with appropriate dimensions. Default:
   NULL (no file output, only return object).
 
+- q:
+
+  `numeric` or `NULL`. Single q value to plot. If NULL, the q value must
+  be unambiguous from the stored diversity results (exactly one q);
+  otherwise an error is raised listing the available q values.
+
 ## Value
 
 A \`ggplot2\` object showing a 1x2 grid with violin plot on the left and

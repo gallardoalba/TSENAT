@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Appendix A: Equivalence Validation - TSENAT vs SplicingFactory • TSENAT</title>
+<title>Appendix A: Endpoint Equivalence with SplicingFactory • TSENAT</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Appendix A: Equivalence Validation - TSENAT vs SplicingFactory">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Appendix A: Endpoint Equivalence with SplicingFactory">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -64,12 +64,12 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>Appendix A: Equivalence Validation - TSENAT vs SplicingFactory</h1>
+      <h1>Appendix A: Endpoint Equivalence with SplicingFactory</h1>
                         <h4 data-toc-skip class="author">Cristobal
 Gallardo Alba <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2026-08-17</h4>
+            <h4 data-toc-skip class="date">2026-08-18</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gallardoalba/TSENAT/blob/HEAD/vignettes/TSENAT_appendix_A.Rmd" class="external-link"><code>vignettes/TSENAT_appendix_A.Rmd</code></a></small>
       <div class="d-none name"><code>TSENAT_appendix_A.Rmd</code></div>
@@ -80,19 +80,24 @@ Gallardo Alba <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.
 <div class="section level2">
 <h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
-<p>This appendix validates that <strong>TSENAT’s transcript diversity
-measures (Shannon entropy, Simpson index) are mathematically equivalent
-to SplicingFactory’s implementations</strong>. We benchmark both
-packages on TCGA BRCA RNA-seq data to demonstrate:</p>
+<p>This appendix characterizes the <strong>mathematical relationship and
+endpoint equivalence</strong> between TSENAT’s transcript diversity
+measures (Shannon entropy, Simpson index) and SplicingFactory’s
+implementations. We benchmark both packages on TCGA BRCA RNA-seq data to
+demonstrate:</p>
 <ul>
-<li>Shannon equivalence: TSENAT Tsallis q=1 ~ SplicingFactory
-Shannon</li>
-<li>Simpson equivalence: TSENAT Tsallis q=2 ~ SplicingFactory
-Simpson<br>
-</li>
-<li>Identical statistical results: Same gene rankings, p-values, fold
+<li>Endpoint equivalence: TSENAT Tsallis q=1 recovers SplicingFactory
+Shannon (up to the documented normalization convention)</li>
+<li>Endpoint equivalence: TSENAT Tsallis q=2 recovers SplicingFactory
+Simpson (up to the documented normalization convention)</li>
+<li>Close empirical agreement under the tested
+dataset/filtering/normalization: same gene rankings, p-values, fold
 changes</li>
 </ul>
+<p>The benchmark demonstrates agreement under the specific dataset,
+filtering, normalization and statistical procedure tested here; it is
+<strong>not</strong> a proof of general statistical equivalence across
+all datasets and designs.</p>
 <p><strong>Who needs this appendix?</strong> Anyone evaluating TSENAT
 for transcript diversity analysis or validating cross-package
 comparisons.</p>
@@ -318,8 +323,8 @@ Summary Statistics.</strong> Differential analysis comparing Normal
 <p><strong>Interpretation</strong>: Both methods similarly identify
 significantly different transcript diversity between Normal and Tumor
 samples. The comparable number of significant genes (padj&lt;0.05) and
-mean log2FC values demonstrate equivalent statistical power and effect
-size detection.</p>
+mean log2FC values provide empirical evidence of agreement in this
+benchmark, not proof of equal statistical power in general.</p>
 <div class="section level5">
 <h5 id="top-10-significant-genes---splicingfactory-laplace">Top 10 Significant Genes - SplicingFactory (Laplace)<a class="anchor" aria-label="anchor" href="#top-10-significant-genes---splicingfactory-laplace"></a>
 </h5>
@@ -896,10 +901,17 @@ expressed isoforms, the normalization factor is
 The calculation:
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0.3852</mn><mi>/</mi><mn>0.5</mn><mo>=</mo><mn>0.7704</mn></mrow><annotation encoding="application/x-tex">0.3852 / 0.5 = 0.7704</annotation></semantics></math>
 confirms this scaling factor. Despite raw value differences, statistical
-analysis yields identical results:</p>
+analysis yields identical results under this benchmark:</p>
 <ol style="list-style-type: decimal">
 <li><p>log2 fold changes: Normalization factor cancels in ratios:
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mn>2</mn></msub><mrow><mo stretchy="true" form="prefix">(</mo><mfrac><msub><mi>S</mi><mrow><mi>n</mi><mi>o</mi><mi>r</mi><mi>m</mi><mo>,</mo><mi>t</mi></mrow></msub><msub><mi>S</mi><mrow><mi>n</mi><mi>o</mi><mi>r</mi><mi>m</mi><mo>,</mo><mi>n</mi></mrow></msub></mfrac><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><msub><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mn>2</mn></msub><mrow><mo stretchy="true" form="prefix">(</mo><mfrac><mrow><msub><mi>S</mi><mrow><mi>r</mi><mi>a</mi><mi>w</mi><mo>,</mo><mi>t</mi></mrow></msub><mi>/</mi><mi>K</mi></mrow><mrow><msub><mi>S</mi><mrow><mi>r</mi><mi>a</mi><mi>w</mi><mo>,</mo><mi>n</mi></mrow></msub><mi>/</mi><mi>K</mi></mrow></mfrac><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><msub><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mn>2</mn></msub><mrow><mo stretchy="true" form="prefix">(</mo><mfrac><msub><mi>S</mi><mrow><mi>r</mi><mi>a</mi><mi>w</mi><mo>,</mo><mi>t</mi></mrow></msub><msub><mi>S</mi><mrow><mi>r</mi><mi>a</mi><mi>w</mi><mo>,</mo><mi>n</mi></mrow></msub></mfrac><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\log_2\left(\frac{S_{norm,t}}{S_{norm,n}}\right) = \log_2\left(\frac{S_{raw,t}/K}{S_{raw,n}/K}\right) = \log_2\left(\frac{S_{raw,t}}{S_{raw,n}}\right)</annotation></semantics></math></p></li>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mn>2</mn></msub><mrow><mo stretchy="true" form="prefix">(</mo><mfrac><msub><mi>S</mi><mrow><mi>n</mi><mi>o</mi><mi>r</mi><mi>m</mi><mo>,</mo><mi>t</mi></mrow></msub><msub><mi>S</mi><mrow><mi>n</mi><mi>o</mi><mi>r</mi><mi>m</mi><mo>,</mo><mi>n</mi></mrow></msub></mfrac><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><msub><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mn>2</mn></msub><mrow><mo stretchy="true" form="prefix">(</mo><mfrac><mrow><msub><mi>S</mi><mrow><mi>r</mi><mi>a</mi><mi>w</mi><mo>,</mo><mi>t</mi></mrow></msub><mi>/</mi><mi>K</mi></mrow><mrow><msub><mi>S</mi><mrow><mi>r</mi><mi>a</mi><mi>w</mi><mo>,</mo><mi>n</mi></mrow></msub><mi>/</mi><mi>K</mi></mrow></mfrac><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><msub><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mn>2</mn></msub><mrow><mo stretchy="true" form="prefix">(</mo><mfrac><msub><mi>S</mi><mrow><mi>r</mi><mi>a</mi><mi>w</mi><mo>,</mo><mi>t</mi></mrow></msub><msub><mi>S</mi><mrow><mi>r</mi><mi>a</mi><mi>w</mi><mo>,</mo><mi>n</mi></mrow></msub></mfrac><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\log_2\left(\frac{S_{norm,t}}{S_{norm,n}}\right) = \log_2\left(\frac{S_{raw,t}/K}{S_{raw,n}/K}\right) = \log_2\left(\frac{S_{raw,t}}{S_{raw,n}}\right)</annotation></semantics></math>
+— this cancellation requires that
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>K</mi><mo>=</mo><mn>1</mn><mo>−</mo><mn>1</mn><mi>/</mi><mi>n</mi></mrow><annotation encoding="application/x-tex">K = 1 - 1/n</annotation></semantics></math>
+is the <em>same</em> for both conditions, which holds when
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>
+is a fixed gene-level annotation universe but not necessarily when
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>
+is an observed-support count</p></li>
 <li><p>P-values and rankings: Wilcoxon rank-sum tests depend only on
 gene ranks, not absolute values, so both methods identify the same
 significant genes</p></li>
@@ -911,12 +923,16 @@ scaling</p></li>
 </div>
 </div>
 <div class="section level2">
-<h2 id="conclusion-equivalence-validation-summary">Conclusion: Equivalence Validation Summary<a class="anchor" aria-label="anchor" href="#conclusion-equivalence-validation-summary"></a>
+<h2 id="conclusion-endpoint-equivalence-summary">Conclusion: Endpoint Equivalence Summary<a class="anchor" aria-label="anchor" href="#conclusion-endpoint-equivalence-summary"></a>
 </h2>
-<p>This appendix has demonstrated that TSENAT’s implementation of
-transcript diversity measures is mathematically and statistically
-equivalent to SplicingFactory’s established methods for both Shannon
-entropy and Simpson index calculations.</p>
+<p>This appendix has characterized the <strong>mathematical relationship
+and endpoint equivalence</strong> between TSENAT and SplicingFactory: at
+q=1 and q=2, TSENAT recovers the corresponding Shannon and Gini–Simpson
+quantities up to the documented normalization convention. The benchmark
+shows close agreement under the tested dataset, filtering, normalization
+and statistical procedure. It does not validate q&lt;1, q&gt;2,
+SAIT/paired inference, bootstrap, divergence, q=0, or Salmon
+integration.</p>
 <hr>
 <div class="section level3">
 <h3 id="session-information">Session Information<a class="anchor" aria-label="anchor" href="#session-information"></a>

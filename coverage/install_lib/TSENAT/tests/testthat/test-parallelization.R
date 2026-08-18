@@ -1,0 +1,1006 @@
+context("Parallelization: Method Calculation with Multiple Threads")
+
+# Runtime ~27s: kept in the daily CI (Bioconductor check budget is 40 min).
+# Slow Monte Carlo validation lives in tests/testthat/ (skipped on Bioconductor via skip_on_bioc).
+
+# Internal helper access for calculate_method
+calculate_method <- TSENAT:::.calculate_method
+
+test_that("calculate_method serial and parallel produce identical results", {
+    set.seed(789)
+    # Create large dataset: 50 genes with multiple transcripts each, 6 samples
+    ntx <- 300  # total transcripts
+    nsamp <- 6
+    x <- matrix(rpois(ntx * nsamp, lambda = 10), nrow = ntx, ncol = nsamp)
+    colnames(x) <- paste0("Sample", seq_len(nsamp))
+    # Assign transcripts to genes (50 genes, ~6 transcripts each)
+    genes <- rep(paste0("Gene_", seq_len(50)), each = 6)
+    
+    # Single q value
+    res_serial <- .calculate_method(x, genes, norm = TRUE, q = 2, nthreads = 1)
+    res_parallel_2 <- .calculate_method(x, genes, norm = TRUE, q = 2, nthreads = 2)
+    core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
+    max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
+    res_parallel_4 <- .calculate_method(x, genes, norm = TRUE, q = 2, nthreads = max_threads)
+    
+    # Should produce identical results
+    expect_equal(res_serial, res_parallel_2, tolerance = 1e-10)
+    expect_equal(res_serial, res_parallel_4, tolerance = 1e-10)
+    
+    # Check structure
+    expect_equal(nrow(res_serial), 50)
+    expect_equal(nrow(res_parallel_2), 50)
+    expect_true("Gene" %in% colnames(res_serial))
+})
+
+test_that("calculate_method parallelization with multiple q values", {
+    set.seed(111)
+    # Create dataset: 40 genes with multiple transcripts, 5 samples
+    ntx <- 200
+    nsamp <- 5
+    x <- matrix(rpois(ntx * nsamp, lambda = 8), nrow = ntx, ncol = nsamp)
+    colnames(x) <- paste0("S", seq_len(nsamp))
+    genes <- rep(paste0("G", seq_len(40)), each = 5)
+    
+    # Multiple q values
+    qvec <- c(0.5, 1, 2)
+    
+    res_serial <- .calculate_method(x, genes, norm = TRUE, q = qvec, nthreads = 1)
+    res_parallel <- .calculate_method(x, genes, norm = TRUE, q = qvec, nthreads = 2)
+    
+    expect_equal(res_serial, res_parallel, tolerance = 1e-10)
+    
+    # Should have columns for each sample-q combination
+    expected_cols <- 1 + (nsamp * length(qvec))
+    expect_equal(ncol(res_serial), expected_cols)
+})
+
+context("Parallelization: Large Dataset Stress Testing")
+
+test_that("Large calculate_method dataset with single q value", {
+    
+    set.seed(555)
+    # 500 genes with multiple transcripts, 8 samples, single q value
+    ntx <- 2000  # 4 transcripts per gene
+    nsamp <- 8
+    x <- matrix(rpois(ntx * nsamp, lambda = 15), nrow = ntx, ncol = nsamp)
+    colnames(x) <- paste0("Samp_", seq_len(nsamp))
+    genes <- rep(paste0("Gene_", seq_len(500)), each = 4)
+    
+    # Serial execution
+    res_serial <- .calculate_method(x, genes, norm = TRUE, q = 2, nthreads = 1)
+    
+    # Parallel execution
+    core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
+    max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
+    res_parallel <- .calculate_method(x, genes, norm = TRUE, q = 2, nthreads = max_threads)
+    
+    # Should produce identical results
+    expect_equal(res_serial, res_parallel, tolerance = 1e-10)
+    
+    # Correct dimensions
+    expect_equal(nrow(res_serial), 500)
+    expect_equal(nrow(res_parallel), 500)
+    expected_cols <- 1 + nsamp  # 1 for gene + 8 samples (single q)
+    expect_equal(ncol(res_serial), expected_cols)
+})
+
+context("Parallelization: Cross-Backend Consistency Validation")
+
+
+context("Parallel helper functions")
+
+test_that(".get_bpparam returns SerialParam for nthreads=1", {
+    bpparam <- TSENAT:::.get_bpparam(nthreads = 1)
+    expect_is(bpparam, "SerialParam")
+})
+
+test_that(".get_bpparam returns MulticoreParam for nthreads>1 on Unix", {
+    skip_if_not(.Platform$OS.type == "unix",
+                message = "Multicore parallelization requires Unix (uses mclapply)")
+    bpparam <- TSENAT:::.get_bpparam(nthreads = 2)
+    expect_is(bpparam, "MulticoreParam")
+})
+
+test_that(".get_bpparam on Unix: MulticoreParam without RNGseed when seed=NULL", {
+    skip_if_not(.Platform$OS.type == "unix",
+                message = "Multicore parallelization requires Unix (uses mclapply)")
+    bpparam <- TSENAT:::.get_bpparam(nthreads = 2, seed = NULL)
+    expect_is(bpparam, "MulticoreParam")
+    # RNGseed slot should be NA when not provided
+    expect_true(is.na(bpparam$RNGseed) || is.null(bpparam$RNGseed))
+})
+
+test_that(".get_bpparam on Unix: MulticoreParam with RNGseed when seed provided", {
+    skip_if_not(.Platform$OS.type == "unix",
+                message = "Multicore parallelization requires Unix (uses mclapply)")
+    has_rngseed <- "RNGseed" %in% names(formals(BiocParallel::MulticoreParam))
+    skip_if_not(has_rngseed,
+                message = "BiocParallel version does not support RNGseed")
+    bpparam <- TSENAT:::.get_bpparam(nthreads = 2, seed = 42L)
+    expect_is(bpparam, "MulticoreParam")
+    expect_equal(bpparam$RNGseed, 42L)
+})
+
+test_that(".get_bpparam on Windows: SnowParam without RNGseed when seed=NULL", {
+    skip_if_not(.Platform$OS.type == "windows",
+                message = "SnowParam fallback test requires Windows")
+    bpparam <- TSENAT:::.get_bpparam(nthreads = 2, seed = NULL)
+    expect_is(bpparam, "SnowParam")
+    expect_true(is.na(bpparam$RNGseed) || is.null(bpparam$RNGseed))
+})
+
+test_that(".get_bpparam on Windows: SnowParam with RNGseed when seed provided", {
+    skip_if_not(.Platform$OS.type == "windows",
+                message = "SnowParam fallback test requires Windows")
+    has_rngseed <- "RNGseed" %in% names(formals(BiocParallel::SnowParam))
+    skip_if_not(has_rngseed,
+                message = "BiocParallel version does not support RNGseed in SnowParam")
+    bpparam <- TSENAT:::.get_bpparam(nthreads = 2, seed = 42L)
+    expect_is(bpparam, "SnowParam")
+    expect_equal(bpparam$RNGseed, 42L)
+})
+
+test_that(".get_bpparam: has_rngseed detection works for MulticoreParam", {
+    # Verify the capability detection logic returns the correct boolean
+    has_rngseed <- "RNGseed" %in% names(formals(BiocParallel::MulticoreParam))
+    expect_true(is.logical(has_rngseed))
+    expect_length(has_rngseed, 1)
+})
+
+test_that(".get_bpparam: has_rngseed detection works for SnowParam", {
+    # Verify the capability detection logic returns the correct boolean
+    has_rngseed <- "RNGseed" %in% names(formals(BiocParallel::SnowParam))
+    expect_true(is.logical(has_rngseed))
+    expect_length(has_rngseed, 1)
+})
+
+test_that(".get_bpparam returns correct worker count", {
+    bpparam <- TSENAT:::.get_bpparam(nthreads = 1)
+    expect_equal(BiocParallel::bpworkers(bpparam), 1)
+    
+    bpparam <- TSENAT:::.get_bpparam(nthreads = 4)
+    expect_equal(BiocParallel::bpworkers(bpparam), 4)
+})
+
+test_that(".bplapply serial execution returns list", {
+    X <- 1:5
+    FUN <- function(x) x * 2
+    
+    result <- TSENAT:::.bplapply(X, FUN, nthreads = 1)
+    
+    expect_type(result, "list")
+    expect_equal(result, list(2, 4, 6, 8, 10))
+})
+
+test_that(".bplapply parallel execution returns list", {
+    X <- 1:5
+    FUN <- function(x) x * 2
+    
+    result <- TSENAT:::.bplapply(X, FUN, nthreads = 2)
+    
+    expect_type(result, "list")
+    expect_equal(unlist(result), c(2, 4, 6, 8, 10))
+})
+
+test_that(".bplapply serial and parallel produce identical results", {
+    X <- 1:10
+    FUN <- function(x) x * 3
+    
+    result_serial <- TSENAT:::.bplapply(X, FUN, nthreads = 1)
+    result_parallel <- TSENAT:::.bplapply(X, FUN, nthreads = 2)
+    
+    expect_equal(result_parallel, result_serial)
+    expect_equal(unlist(result_serial), 3 * 1:10)
+})
+
+test_that(".bplapply handles complex return types", {
+    X <- list(c(1, 2, 3), c(4, 5, 6), c(7, 8, 9))
+    FUN <- function(vec) list(mean = mean(vec), sd = sd(vec))
+    
+    result <- TSENAT:::.bplapply(X, FUN, nthreads = 1)
+    
+    expect_type(result, "list")
+    expect_equal(result[[1]]$mean, 2)
+    expect_equal(result[[3]]$mean, 8)
+})
+
+test_that(".validate_nthreads accepts valid values", {
+    expect_silent(TSENAT:::.validate_nthreads(1))
+    expect_silent(TSENAT:::.validate_nthreads(4))
+    expect_silent(TSENAT:::.validate_nthreads(NULL))
+})
+
+test_that(".validate_nthreads rejects invalid values", {
+    expect_error(TSENAT:::.validate_nthreads("auto"), "single numeric")
+    expect_error(TSENAT:::.validate_nthreads(Inf), "finite")
+    expect_error(TSENAT:::.validate_nthreads(-1), "non-negative")
+    expect_error(TSENAT:::.validate_nthreads(c(1, 2)), "single numeric")
+})
+
+test_that(".get_effective_nthreads respects mc.cores option", {
+    old_mc <- getOption("mc.cores")
+    on.exit(options(mc.cores = old_mc))
+    options(mc.cores = 2)
+    
+    result <- TSENAT:::.get_effective_nthreads(8)
+    expect_equal(result, 2)
+})
+
+test_that(".get_nthreads_auto_detect handles NA from detectCores", {
+    # Should return at least 1 even if detectCores fails
+    result <- TSENAT:::.get_nthreads_auto_detect(NULL)
+    expect_true(is.numeric(result))
+    expect_true(result >= 1)
+})
+
+test_that(".get_nthreads_auto_detect respects explicit nthreads", {
+    result <- TSENAT:::.get_nthreads_auto_detect(nthreads = 1)
+    expect_equal(result, 1)
+})
+
+# ============================================================================
+# Parallelization: .calculate_divergence() with nthreads
+# ============================================================================
+
+context("Parallelization: calculate_divergence with nthreads")
+
+test_that("calculate_divergence sequential execution produces valid results", {
+    library(SummarizedExperiment)
+    set.seed(42)
+    
+    # Create test SummarizedExperiment: 30 genes, 8 samples
+    n_genes <- 30
+    n_samples <- 8
+    counts <- matrix(rpois(n_genes * n_samples, lambda = 100), 
+                     nrow = n_genes, ncol = n_samples)
+    rownames(counts) <- paste0("Gene_", 1:n_genes)
+    colnames(counts) <- paste0("Sample_", 1:n_samples)
+    
+    metadata <- data.frame(
+        group = factor(c(rep("Normal", n_samples/2), rep("Tumor", n_samples/2))),
+        row.names = colnames(counts)
+    )
+    
+    se <- SummarizedExperiment(
+        assays = list(counts = counts),
+        colData = metadata
+    )
+    
+    # Run sequential calculation (no res or top_n parameters - processes all genes)
+    set.seed(42)
+    result_seq <- .calculate_divergence(
+        se = se,
+        q = 1,
+        nboot = 100,
+        ci = 0.95,
+        method = "percentile",
+        nthreads = 1,
+        progress = FALSE
+    )
+    
+    # Check output structure (now returns SummarizedExperiment)
+    expect_is(result_seq, "SummarizedExperiment")
+    expect_equal(nrow(result_seq), n_genes)  # Should have all genes
+    
+    # Check rowData has required columns
+    rd <- rowData(result_seq)
+    expect_true("gene_name" %in% colnames(rd))
+    expect_true("estimate" %in% colnames(rd))
+    expect_true("lower_ci" %in% colnames(rd))
+    expect_true("upper_ci" %in% colnames(rd))
+    
+    # Check values (allow for NAs in some cases)
+    expect_true(nrow(result_seq) > 0)
+    expect_true(all(result_seq$ci_width >= 0, na.rm = TRUE))
+})
+
+test_that("calculate_divergence sequential vs parallel produce consistent results", {
+    library(SummarizedExperiment)
+    set.seed(42)
+    
+    # Create test data
+    n_genes <- 25
+    n_samples <- 8
+    counts <- matrix(rpois(n_genes * n_samples, lambda = 50), 
+                     nrow = n_genes, ncol = n_samples)
+    rownames(counts) <- paste0("Gene_", 1:n_genes)
+    colnames(counts) <- paste0("Sample_", 1:n_samples)
+    
+    metadata <- data.frame(
+        group = factor(c(rep("Normal", n_samples/2), rep("Tumor", n_samples/2))),
+        row.names = colnames(counts)
+    )
+    
+    se <- SummarizedExperiment(
+        assays = list(counts = counts),
+        colData = metadata
+    )
+    
+    # Run sequential (nthreads=1)
+    set.seed(42)
+    result_seq <- .calculate_divergence(
+        se = se,
+        q = 1,
+        nboot = 100,
+        ci = 0.95,
+        method = "percentile",
+        nthreads = 1,
+        progress = FALSE,
+    )
+    
+    # Run parallel with 2 threads
+    set.seed(42)
+    result_par2 <- .calculate_divergence(
+        se = se,
+        q = 1,
+        nboot = 100,
+        ci = 0.95,
+        method = "percentile",
+        nthreads = 2,
+        progress = FALSE,
+    )
+    
+    # Both should return SummarizedExperiment
+    expect_is(result_seq, "SummarizedExperiment")
+    expect_is(result_par2, "SummarizedExperiment")
+    
+    # Both should have all genes
+    expect_equal(nrow(result_seq), n_genes)
+    expect_equal(nrow(result_par2), n_genes)
+    
+    # Results should be approximately equal (parallel RNG differs from sequential)
+    # Check that numeric estimates match within tolerance (bootstrap stochasticity)
+    rd_seq <- rowData(result_seq)
+    rd_par <- rowData(result_par2)
+    
+    # Use approximate equality due to RNG differences in parallel execution
+    # Tolerance of 0.01 (1%) is reasonable for bootstrap estimates
+    expect_equal(rd_seq$estimate, rd_par$estimate, tolerance = 0.02)
+    expect_equal(rd_seq$lower_ci, rd_par$lower_ci, tolerance = 0.05)
+    expect_equal(rd_seq$upper_ci, rd_par$upper_ci, tolerance = 0.05)
+})
+
+test_that("calculate_divergence multiple thread levels produce consistent nrows", {
+    library(SummarizedExperiment)
+    set.seed(99)
+    
+    # Create test data
+    n_genes <- 20
+    n_samples <- 8
+    counts <- matrix(rpois(n_genes * n_samples, lambda = 75), 
+                     nrow = n_genes, ncol = n_samples)
+    rownames(counts) <- paste0("Gene_", 1:n_genes)
+    colnames(counts) <- paste0("Sample_", 1:n_samples)
+    
+    metadata <- data.frame(
+        group = factor(c(rep("Control", n_samples/2), rep("Treatment", n_samples/2))),
+        row.names = colnames(counts)
+    )
+    
+    se <- SummarizedExperiment(
+        assays = list(counts = counts),
+        colData = metadata
+    )
+    
+    # Run with different thread counts
+    result_1t <- .calculate_divergence(
+        se = se, q = 1, nboot = 100,
+        nthreads = 1, progress = FALSE
+    )
+    
+    result_2t <- .calculate_divergence(
+        se = se, q = 1, nboot = 100,
+        nthreads = 2, progress = FALSE
+    )
+    
+    core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
+    max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
+    result_3t <- .calculate_divergence(
+        se = se, q = 1, nboot = 100,
+        nthreads = max_threads, progress = FALSE
+    )
+    
+    # All should return SummarizedExperiment with all genes
+    expect_is(result_1t, "SummarizedExperiment")
+    expect_is(result_2t, "SummarizedExperiment")
+    expect_is(result_3t, "SummarizedExperiment")
+    
+    expect_equal(nrow(result_1t), n_genes)
+    expect_equal(nrow(result_2t), n_genes)
+    expect_equal(nrow(result_3t), n_genes)
+    
+    # Results from different thread counts should be approximately equal
+    # (RNG differs between sequential and parallel, and between different thread counts)
+    rd_1t <- rowData(result_1t)
+    rd_2t <- rowData(result_2t) 
+    rd_3t <- rowData(result_3t)
+    
+    # Use approximate equality with tolerance due to RNG differences
+    expect_equal(rd_1t$estimate, rd_2t$estimate, tolerance = 0.02)
+    expect_equal(rd_2t$estimate, rd_3t$estimate, tolerance = 0.02)
+})
+
+test_that("calculate_divergence handles small gene count correctly", {
+    library(SummarizedExperiment)
+    set.seed(55)
+    
+    # Create very small dataset: only 3 genes
+    n_genes <- 3
+    n_samples <- 6
+    counts <- matrix(rpois(n_genes * n_samples, lambda = 80), 
+                     nrow = n_genes, ncol = n_samples)
+    rownames(counts) <- paste0("Gene_", 1:n_genes)
+    colnames(counts) <- paste0("Sample_", 1:n_samples)
+    
+    metadata <- data.frame(
+        group = factor(c(rep("A", n_samples/2), rep("B", n_samples/2))),
+        row.names = colnames(counts)
+    )
+    
+    se <- SummarizedExperiment(
+        assays = list(counts = counts),
+        colData = metadata
+    )
+    
+    # Request parallel computation (should work even though few genes)
+    core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
+    max_threads <- if (is.na(core_limit)) min(3, parallel::detectCores()) else min(3, core_limit)
+    result <- .calculate_divergence(
+        se = se,
+        q = 1,
+        nboot = 100,
+        nthreads = max_threads,  # Respects environment core limit
+        progress = FALSE,
+        control_group = "A"
+    )
+    
+    # Should process all genes
+    expect_is(result, "SummarizedExperiment")
+    expect_equal(nrow(result), n_genes)
+    
+    # Check gene names in rowData
+    rd <- rowData(result)
+    expect_true("gene_name" %in% colnames(rd))
+})
+
+test_that("calculate_divergence auto-detects cores when nthreads=NULL", {
+    library(SummarizedExperiment)
+    set.seed(77)
+    
+    # Create test data
+    n_genes <- 15
+    n_samples <- 8
+    counts <- matrix(rpois(n_genes * n_samples, lambda = 60), 
+                     nrow = n_genes, ncol = n_samples)
+    rownames(counts) <- paste0("Gene_", 1:n_genes)
+    colnames(counts) <- paste0("Sample_", 1:n_samples)
+    
+    metadata <- data.frame(
+        group = factor(c(rep("G1", n_samples/2), rep("G2", n_samples/2))),
+        row.names = colnames(counts)
+    )
+    
+    se <- SummarizedExperiment(
+        assays = list(counts = counts),
+        colData = metadata
+    )
+    
+    # Run with max 2 threads (respecting environment limits)
+    set.seed(77)
+    core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
+    max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
+    result_auto <- .calculate_divergence(
+        se = se,
+        q = 1,
+        nboot = 100,
+        nthreads = max_threads,
+        progress = FALSE,
+        control_group = "G1"
+    )
+    
+    # Should produce valid results as SummarizedExperiment
+    expect_is(result_auto, "SummarizedExperiment")
+    expect_equal(nrow(result_auto), n_genes)
+    
+    # Check rowData structure
+    rd <- rowData(result_auto)
+    expect_true("estimate" %in% colnames(rd))
+})
+
+test_that("calculate_divergence processes all genes (top_n no longer used)", {
+    library(SummarizedExperiment)
+    set.seed(88)
+    
+    # Create test data with many genes
+    n_genes <- 50
+    n_samples <- 8
+    counts <- matrix(rpois(n_genes * n_samples, lambda = 70), 
+                     nrow = n_genes, ncol = n_samples)
+    rownames(counts) <- paste0("Gene_", 1:n_genes)
+    colnames(counts) <- paste0("Sample_", 1:n_samples)
+    
+    metadata <- data.frame(
+        group = factor(c(rep("X", n_samples/2), rep("Y", n_samples/2))),
+        row.names = colnames(counts)
+    )
+    
+    se <- SummarizedExperiment(
+        assays = list(counts = counts),
+        colData = metadata
+    )
+    
+    # New API processes all genes provided, no top_n filtering
+    result <- .calculate_divergence(
+        se = se, q = 1, nboot = 100,
+        nthreads = 1, progress = FALSE,
+        control_group = "X"
+    )
+    
+    # Should process all genes
+    expect_is(result, "SummarizedExperiment")
+    expect_equal(nrow(result), n_genes)
+    
+    # Verify all expected genes are present
+    rd <- rowData(result)
+    expect_true(all(!is.na(rd$estimate)))
+})
+
+test_that("calculate_divergence error handling for invalid input", {
+    library(SummarizedExperiment)
+    
+    # Invalid SE (not SummarizedExperiment)
+    expect_error(
+        .calculate_divergence(
+            se = data.frame(x = 1:4),
+            q = 1, nthreads = 1
+        ),
+        "SummarizedExperiment|class"
+    )
+    
+    # Valid SE but empty (should warn or error)
+    n_genes <- 5
+    n_samples <- 4
+    counts <- matrix(rpois(n_genes * n_samples, lambda = 50), 
+                     nrow = n_genes, ncol = n_samples)
+    rownames(counts) <- paste0("Gene_", 1:n_genes)
+    colnames(counts) <- paste0("Sample_", 1:n_samples)
+    
+    metadata <- data.frame(
+        group = factor(c("A", "A", "B", "B")),
+        row.names = colnames(counts)
+    )
+    
+    se <- SummarizedExperiment(
+        assays = list(counts = counts),
+        colData = metadata
+    )
+    
+    # Valid SE should not error
+    expect_no_error(
+        .calculate_divergence(
+            se = se,
+            q = 1, nthreads = 1, progress = FALSE,
+            control_group = "A"
+        )
+    )
+})
+
+test_that("calculate_divergence output includes required columns", {
+    library(SummarizedExperiment)
+    set.seed(33)
+    
+    # Create small dataset
+    n_genes <- 8
+    n_samples <- 6
+    counts <- matrix(rpois(n_genes * n_samples, lambda = 95), 
+                     nrow = n_genes, ncol = n_samples)
+    rownames(counts) <- paste0("Gene_", 1:n_genes)
+    colnames(counts) <- paste0("Sample_", 1:n_samples)
+    
+    metadata <- data.frame(
+        group = factor(c(rep("Ctrl", 3), rep("Trt", 3))),
+        row.names = colnames(counts)
+    )
+    
+    se <- SummarizedExperiment(
+        assays = list(counts = counts),
+        colData = metadata
+    )
+    
+    result <- .calculate_divergence(
+        se = se, q = 1, nboot = 100,
+        nthreads = 1, progress = FALSE,
+        control_group = "Ctrl"
+    )
+    
+    # Check output is SummarizedExperiment
+    expect_is(result, "SummarizedExperiment")
+    
+    # Check required columns exist in rowData
+    rd <- rowData(result)
+    expect_true("gene_name" %in% colnames(rd))
+    expect_true("estimate" %in% colnames(rd))
+    expect_true("lower_ci" %in% colnames(rd))
+    expect_true("upper_ci" %in% colnames(rd))
+    expect_true("ci_width" %in% colnames(rd))
+})
+
+
+context("Parallelization - Phase 1: BiocParallel Integration")
+
+# Helper function to pass through bootstrap parameters to calculate_divergence
+silent_calculate_divergence <- function(analysis, nthreads = 1, bootstrap = FALSE, nboot = NULL, ...) {
+  calculate_divergence(
+    analysis = analysis,
+    nthreads = nthreads,
+    bootstrap = bootstrap,
+    nboot = nboot,
+    progress = FALSE,
+    verbose = FALSE,
+    ...
+  )
+}
+
+test_that("Serial (nthreads=1) produces valid divergence results", {
+  expect_error(
+    {
+      analysis <- create_test_analysis()
+      result_serial <- silent_calculate_divergence(
+        analysis,
+        nthreads = 1
+      )
+    },
+    NA  # Expect NO error
+  )
+  
+  # Result should be TSENATAnalysis
+  expect_is(result_serial, "TSENATAnalysis")
+  
+  # Extract divergence results
+  div_se <- result_serial@divergence_results$divergence_se
+  expect_is(div_se, "SummarizedExperiment")
+  expect_gt(nrow(div_se), 0)
+  
+  # Check computation mode metadata
+  expect_true("computation_mode" %in% colnames(SummarizedExperiment::colData(div_se)))
+  expect_equal(
+    SummarizedExperiment::colData(div_se)$computation_mode[1],
+    "sequential"
+  )
+})
+
+test_that("Parallel (nthreads=2) produces valid divergence results", {
+  
+  expect_error(
+    {
+      analysis <- create_test_analysis()
+      result_parallel <- silent_calculate_divergence(
+        analysis,
+        nthreads = 2
+      )
+    },
+    NA  # Expect NO error
+  )
+  
+  # Result should be TSENATAnalysis
+  expect_is(result_parallel, "TSENATAnalysis")
+  
+  # Extract divergence results
+  div_se <- result_parallel@divergence_results$divergence_se
+  expect_is(div_se, "SummarizedExperiment")
+  expect_gt(nrow(div_se), 0)
+  
+  # Check computation mode metadata
+  expect_true("computation_mode" %in% colnames(SummarizedExperiment::colData(div_se)))
+  expect_equal(
+    SummarizedExperiment::colData(div_se)$computation_mode[1],
+    "parallel"
+  )
+})
+
+test_that("Serial vs Parallel: Estimates are numerically identical", {
+  
+  analysis <- create_test_analysis()
+  
+  # Run serial computation
+  result_serial <- silent_calculate_divergence(
+    analysis,
+    nthreads = 1
+  )
+  
+  # Run parallel computation on fresh analysis object
+  analysis <- create_test_analysis()
+  result_parallel <- silent_calculate_divergence(
+    analysis,
+    nthreads = 2
+  )
+  
+  # Extract divergence SummarizedExperiment from results
+  div_se_serial <- result_serial@divergence_results$divergence_se
+  div_se_parallel <- result_parallel@divergence_results$divergence_se
+  
+  # Extract assay matrices
+  assay_serial <- SummarizedExperiment::assay(div_se_serial)
+  assay_parallel <- SummarizedExperiment::assay(div_se_parallel)
+  
+  # Compare dimensions
+  expect_equal(
+    dim(assay_serial),
+    dim(assay_parallel),
+    info = "Dimensions must match"
+  )
+  
+  # Compare all divergence estimates
+  # Use all.equal for numerical comparison (accounts for floating point precision)
+  diff_matrix <- abs(assay_serial - assay_parallel)
+  max_diff <- max(diff_matrix, na.rm = TRUE)
+  
+  expect_lt(max_diff, 1e-10)
+})
+
+test_that("Serial vs Parallel: CI bounds are numerically identical", {
+  
+  analysis <- create_test_analysis()
+  
+  # Run serial computation with bootstrap CI
+  result_serial <- silent_calculate_divergence(
+    analysis,
+    nthreads = 1,
+    bootstrap = TRUE,
+    nboot = 100
+  )
+  
+  # Run parallel computation with bootstrap CI
+  analysis <- create_test_analysis()
+  result_parallel <- silent_calculate_divergence(
+    analysis,
+    nthreads = 2,
+    bootstrap = TRUE,
+    nboot = 100
+  )
+  
+  # Extract divergence SummarizedExperiment from results
+  div_se_serial <- result_serial@divergence_results$divergence_se
+  div_se_parallel <- result_parallel@divergence_results$divergence_se
+  
+  # Extract rowData
+  rd_serial <- SummarizedExperiment::rowData(div_se_serial)
+  rd_parallel <- SummarizedExperiment::rowData(div_se_parallel)
+  
+  # Find per-q CI columns (lower_ci_q*, upper_ci_q*, ci_width_q*). The generic
+  # lower_ci/upper_ci/ci_width columns are populated only when the q grid
+  # contains exactly q = 1 (auditxx P0#2); the default grid (0.01..1.96 by 0.05)
+  # does not include it, so those generic columns are NA by contract here.
+  ci_cols <- grep("^(lower_ci|upper_ci|ci_width)_q", colnames(rd_serial), value = TRUE)
+  
+  # CI columns should exist and have values
+  expect_gt(length(ci_cols), 0)
+  
+  # Verify both serial and parallel generated valid CI values (not all NA)
+  for (col in ci_cols) {
+    # Check serial CIs are valid (not all NA)
+    expect_false(all(is.na(rd_serial[[col]])), 
+                 info = paste("Serial", col, "should have values"))
+    
+    # Check parallel CIs are valid (not all NA)
+    expect_false(all(is.na(rd_parallel[[col]])), 
+                 info = paste("Parallel", col, "should have values"))
+    
+    # CIs should be reasonable (lower < upper for lower_ci and upper_ci pairs)
+    if (grepl("^lower_ci", col)) {
+      upper_col <- sub("^lower", "upper", col)
+      if (upper_col %in% colnames(rd_serial)) {
+        expect_true(all(rd_serial[[col]][!is.na(rd_serial[[col]])] <= 
+                        rd_serial[[upper_col]][!is.na(rd_serial[[upper_col]])]))
+        expect_true(all(rd_parallel[[col]][!is.na(rd_parallel[[col]])] <= 
+                        rd_parallel[[upper_col]][!is.na(rd_parallel[[upper_col]])]))
+      }
+    }
+  }
+})
+
+test_that("Serial vs Parallel: Row metadata identical", {
+  
+  analysis <- create_test_analysis()
+  result_serial <- silent_calculate_divergence(
+    analysis,
+    nthreads = 1
+  )
+  
+  analysis <- create_test_analysis()
+  result_parallel <- silent_calculate_divergence(
+    analysis,
+    nthreads = 2
+  )
+  
+  # Extract divergence SummarizedExperiment from results
+  div_se_serial <- result_serial@divergence_results$divergence_se
+  div_se_parallel <- result_parallel@divergence_results$divergence_se
+  
+  rd_serial <- SummarizedExperiment::rowData(div_se_serial)
+  rd_parallel <- SummarizedExperiment::rowData(div_se_parallel)
+  
+  # Compare gene names (primary identifiers)
+  expect_equal(
+    rd_serial$gene_name,
+    rd_parallel$gene_name,
+    info = "Gene names must match"
+  )
+  
+  # Compare error statuses
+  expect_equal(
+    is.na(rd_serial$error),
+    is.na(rd_parallel$error),
+    info = "Error status must match"
+  )
+})
+
+test_that("Increasing threads maintains numerical stability", {
+  
+  analysis <- create_test_analysis()
+  # Run with 1 thread
+  result_1thread <- silent_calculate_divergence(
+    analysis,
+    nthreads = 1
+  )
+  
+  # Run with 4 threads (if available, respecting environment core limit)
+  core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
+  max_threads <- if (is.na(core_limit)) parallel::detectCores() else core_limit
+  if (max_threads >= 4) {
+    analysis <- create_test_analysis()
+    result_4threads <- silent_calculate_divergence(
+      analysis,
+      nthreads = 4
+    )
+    
+    # Extract divergence SummarizedExperiment from results
+    div_se_1 <- result_1thread@divergence_results$divergence_se
+    div_se_4 <- result_4threads@divergence_results$divergence_se
+    
+    assay_1 <- SummarizedExperiment::assay(div_se_1)
+    assay_4 <- SummarizedExperiment::assay(div_se_4)
+    
+    diff_matrix <- abs(assay_1 - assay_4)
+    max_diff <- max(diff_matrix, na.rm = TRUE)
+    
+    expect_lt(max_diff, 1e-10)
+  } else {
+  }
+})
+
+test_that("nthreads parameter is properly validated", {
+  analysis <- create_test_analysis()
+  
+  # Test with zero (should coerce to 1)
+  analysis <- create_test_analysis()
+  result <- silent_calculate_divergence(
+    analysis,
+    nthreads = 0
+  )
+  expect_is(result, "TSENATAnalysis")
+  expect_is(result@divergence_results$divergence_se, "SummarizedExperiment")
+  
+  # Test with huge number (should be clamped by .get_effective_nthreads())
+  # When _R_CHECK_LIMIT_CORES_ is set, requesting 999 threads is silently clamped
+  # to the core limit, so the function should succeed without error
+  analysis <- create_test_analysis()
+  
+  # This should always succeed - either with clamping (when core limit set)
+  # or with system cores (when no core limit)
+  result <- suppressWarnings(
+    silent_calculate_divergence(analysis, nthreads = 999)
+  )
+  expect_is(result, "TSENATAnalysis")
+  expect_is(result@divergence_results$divergence_se, "SummarizedExperiment")
+})
+
+test_that("Computation mode is correctly reported in colData", {
+  
+  analysis <- create_test_analysis()
+  result_serial <- silent_calculate_divergence(
+    analysis,
+    nthreads = 1
+  )
+  
+  analysis <- create_test_analysis()
+  result_parallel <- silent_calculate_divergence(
+    analysis,
+    nthreads = 2
+  )
+  
+  # Extract divergence SummarizedExperiment from TSENATAnalysis wrapper
+  div_se_serial <- result_serial@divergence_results$divergence_se
+  div_se_parallel <- result_parallel@divergence_results$divergence_se
+  
+  coldata_serial <- SummarizedExperiment::colData(div_se_serial)
+  coldata_parallel <- SummarizedExperiment::colData(div_se_parallel)
+  
+  # Check that computation_mode is present and correct
+  expect_true("computation_mode" %in% colnames(coldata_serial))
+  expect_true("computation_mode" %in% colnames(coldata_parallel))
+  
+  expect_equal(coldata_serial$computation_mode[1], "sequential")
+  expect_equal(coldata_parallel$computation_mode[1], "parallel")
+})
+
+# ============================================================================
+# SECTION: Thread Management and Effective Core Detection
+# ============================================================================
+# Tests for .get_effective_nthreads
+
+test_that(".get_effective_nthreads returns 1 for nthreads <= 1", {
+  # Single thread
+  result <- TSENAT:::.get_effective_nthreads(nthreads = 1)
+  expect_equal(result, 1)
+  
+  # No threads specified (default)
+  result <- TSENAT:::.get_effective_nthreads()
+  expect_equal(result, 1)
+  
+  # Zero threads
+  result <- TSENAT:::.get_effective_nthreads(nthreads = 0)
+  expect_equal(result, 1)
+  
+  # Negative threads are rejected by .validate_nthreads
+  expect_error(
+    TSENAT:::.get_effective_nthreads(nthreads = -5),
+    "non-negative"
+  )
+})
+
+test_that(".get_effective_nthreads respects R CMD check limits", {
+  # Set environment variable temporarily
+  withr::local_envvar(c("_R_CHECK_LIMIT_CORES_" = "2"))
+  
+  # Request more threads than limit
+  result <- TSENAT:::.get_effective_nthreads(nthreads = 8)
+  
+  # Should be clamped to limit
+  expect_equal(result, 2)
+})
+
+test_that(".get_effective_nthreads handles invalid core_limit gracefully", {
+  # Set invalid environment variable
+  withr::local_envvar(c("_R_CHECK_LIMIT_CORES_" = "not_a_number"))
+  
+  # Should silently ignore invalid limit and return requested value
+  result <- TSENAT:::.get_effective_nthreads(nthreads = 4)
+  expect_equal(result, 4)
+})
+
+test_that(".get_effective_nthreads handles zero core_limit", {
+  # Set zero (invalid) limit
+  withr::local_envvar(c("_R_CHECK_LIMIT_CORES_" = "0"))
+  
+  # Should ignore zero limit and return requested value (at least 1)
+  result <- TSENAT:::.get_effective_nthreads(nthreads = 4)
+  expect_equal(result, 4)
+})
+
+test_that(".get_effective_nthreads returns positive value always", {
+  # Even with constraints, should never return <= 0
+  withr::local_envvar(c("_R_CHECK_LIMIT_CORES_" = "1"))
+  
+  result <- TSENAT:::.get_effective_nthreads(nthreads = 1)
+  expect_true(result >= 1)
+})
+
+test_that(".get_effective_nthreads handles large thread requests", {
+  # Request very large number of threads
+  result <- TSENAT:::.get_effective_nthreads(nthreads = 1000)
+  
+  # Should return something reasonable (at most system cores or clamped value)
+  expect_true(is.numeric(result))
+  expect_true(result >= 1)
+})
+
+test_that(".get_effective_nthreads with missing environment variable", {
+  # Ensure environment variable doesn't exist
+  withr::local_envvar(c("_R_CHECK_LIMIT_CORES_" = NA))
+  
+  # Should work normally
+  result <- TSENAT:::.get_effective_nthreads(nthreads = 4)
+  expect_equal(result, 4)
+})

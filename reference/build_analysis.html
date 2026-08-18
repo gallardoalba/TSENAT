@@ -197,7 +197,11 @@ filtering and normalization in downstream analysis:</p><ul><li><p><code><a href=
     If TPM is missing, the function will fail with an explicit error message
     that guides you to pass it to <code>build_analysis()</code>.</p></li>
 <li><p><code><a href="calculate_diversity.html">calculate_diversity()</a></code> uses <code>effective_length</code> for
-    length-normalized entropy calculations.</p></li>
+    length-normalized entropy calculations from RAW counts.</p></li>
+<li><p>TPM and effective-length correction are mutually exclusive and are
+    never combined: TPM already incorporates effective-length
+    normalization, so diversity on TPM together with an
+    <code>effective_length</code> is a hard error (double normalization).</p></li>
 </ul><p>Following Bioconductor best practices (fail-fast principle), these are explicit
 parameters, not optional. They must be passed at object construction time:</p><div class="sourceCode"><pre><code><span></span>
 <span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_analysis.html">build_analysis</a></span><span class="op">(</span></span>
@@ -274,7 +278,7 @@ constructing the <code>readcounts</code> matrix,
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Samples:     10</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Configuration: 27 parameters</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Analysis status: EMPTY</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Created: 2026-08-17 18:27:34.555743</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Created: 2026-08-18 12:25:10.582404</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">analysis</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>

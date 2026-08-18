@@ -51,28 +51,42 @@ S_q = \frac{1 - \sum_{i=1}^{n} p_i^q}{q - 1}
 This elegant formula unifies diverse diversity concepts at specific
 entropic indices (q-values):
 
-- **q = 0**: Richness — Simple count of expressed isoforms; emphasizes
-  rare variants most strongly.
+- **q = 0**: Support richness — the number of isoforms with positive
+  support. Every positive-support isoform contributes equally; it does
+  not weight rare abundance values. q = 0 is evaluated on the RAW
+  (pre-pseudocount) support, so pseudocount regularization does not
+  change it.
 - **q = 1**: Shannon entropy — Standard information-theoretic measure;
   balanced weighting across scales.
-- **q = 2**: Gini-Simpson index — Probability that two randomly-drawn
-  transcripts are different; robust to rare variants.
+- **q = 2**: Gini-Simpson entropy — emphasizes dominant isoforms and
+  relatively downweights rare isoforms.
+
+More generally, for $`0 < q < 1`$ sensitivity to low-abundance isoforms
+increases as q decreases, while for $`q > 1`$ emphasis on
+common/dominant isoforms increases with q.
 
 ### Divergence Analysis: Measuring Information-Theoretic Distance Between Conditions
 
 While Tsallis entropy quantifies diversity *within* a single
-distribution, **Tsallis divergence** $`D_q`$ measures the
-information-theoretic distance *between* two distributions.
+distribution, **Tsallis divergence** $`D_q(P\|Q)`$ measures the
+information-theoretic separation *between* two distributions. It is
+**directional**: TSENAT reports the divergence from the control
+composition $`P`$ to the treatment composition $`Q`$, and in general
+$`D_q(P\|Q) \neq D_q(Q\|P)`$ — it is not a symmetric distance. The
+argument order is therefore part of the result.
 
 **Mathematical Definition** (Furuichi formula): For two probability
 distributions $`P`$ and $`Q`$ representing isoform proportions in
 control and treatment conditions, Tsallis divergence is:
 
 ``` math
-D_q(P||Q) = \frac{\sum_i p_i^q \cdot q_i^{1-q} - 1}{q-1}
+D_q(P||Q) = \frac{\sum_i p_i^q \cdot r_i^{1-q} - 1}{q-1}
 ```
 
-where $`p_i`$ and $`q_i`$ are the probability values at position $`i`$.
+where $`p_i`$ and $`r_i`$ are the probability values at position $`i`$
+for the two distributions $`P`$ and $`Q`$ ($`q`$ is the entropic
+parameter, not an index). The $`q \to 1`$ limit gives the
+Kullback–Leibler divergence.
 
 Tsallis divergence enables the quantification of how fundamentally
 different the isoform complexity patterns are between experimental
@@ -154,6 +168,13 @@ analysis <- build_analysis(
   effective_length = effective_length)
 ```
 
+Both `tpm` and `effective_length` are stored in the analysis object’s
+metadata, where they serve distinct roles: `tpm` is used by
+[`filter_analysis()`](https://gallardoalba.github.io/TSENAT/reference/filter_analysis.md)
+for abundance-based quality control, while `effective_length` is used by
+[`calculate_diversity()`](https://gallardoalba.github.io/TSENAT/reference/calculate_diversity.md)
+for length-normalized entropy computed from **raw counts**.
+
 ### Orchestration Function
 
 The
@@ -227,27 +248,37 @@ visualization.
 
 TSENAT provides a flexible statistical framework optimized for
 entropy-based diversity analysis. The recommended main workflow (paired
-design) relies on **Generalized Additive Mixed Models (GAMM)**: paired
-designs are fit with
-[`nlme::lme`](https://rdrr.io/pkg/nlme/man/lme.html) using regression
-splines (`ns(q, df = 3) × condition`), a subject random intercept, and
-AR(1) correlation within each subject × condition block, with the
-interaction tested via a marginal F-test.
+design) uses a **spline-based generalized additive mixed-model approach
+(GAMM-style)**, fitted with
+[`nlme::lme`](https://rdrr.io/pkg/nlme/man/lme.html) (natural regression
+splines, `ns(q, df = 3) × condition`), a subject random intercept, and
+an AR(1)-type working correlation within each subject × condition block,
+with the interaction tested via a marginal F-test. Note that this path
+does not use [`mgcv::gamm()`](https://rdrr.io/pkg/mgcv/man/gamm.html),
+which is unstable for the paired configuration and is retained only as a
+fallback.
+
+**Continuous-q correlation.** The primary paired correlation structure
+is a continuous-time AR(1) via
+[`nlme::corCAR1`](https://rdrr.io/pkg/nlme/man/corCAR1.html), so
+correlation decays with the actual distance between q-values,
+$`\mathrm{Corr}(\epsilon_i, \epsilon_j) = \exp(-\phi |q_i - q_j|)`$.
+This matters because q can be irregularly spaced: the grid-index form
+$`\rho^{|\mathrm{rank}(q_i)-\mathrm{rank}(q_j)|}`$ (legacy/fallback
+`corAR1`) is only valid for equally spaced q grids.
 
 The statistical methods available in TSENAT include:
 
 - **Scale-adaptive interaction tests (SAIT)**: Multiple modeling
   approaches for repeated q-ordered measurements. GAM/GAMM, LMM, GEE and
   FPCA model within-subject correlation with a working AR(1) structure
-  within each subject × condition block, and are parametrized to handle
-  the non-normality and heteroscedasticity characteristic of entropy
-  data.
-- **Aligned Rank Transform (ART)**: State-of-the-art non-parametric
-  interaction testing via the ARTool package (Kay et al. 2021). Strips
-  main effects before ranking (“alignment”) to properly preserve
-  interaction structure — addressing the known limitation of classical
-  rank-transform methods for factorial designs. The Conover-Iman Rank
-  Transform remains available as a fallback via `method='rt'`.
+  within each subject × condition block. Different paths carry different
+  robustness assumptions: the primary paired regression-spline model
+  assumes Gaussian residuals and uses the correlation structure for
+  within-subject q dependence; heteroscedasticity is diagnosed but is
+  not automatically incorporated through variance weights in this path.
+- **Aligned Rank Transform (ART)**: Rank-based non-parametric
+  interaction testing via the ARTool package (Kay et al. 2021).
 - **M-estimation**: Robust location estimation for group comparison
   using iteratively re-weighted least squares, resistant to outliers.
 - **Jackknife isoform switching (JIS)**: Leave-one-out resampling to
@@ -260,7 +291,7 @@ Below is how TSENAT complements other Bioconductor tools:
 
 | Tool | Answers | TSENAT Difference |
 |----|----|----|
-| **edgeR, DESeq2** | Do individual transcripts increase/decrease in expression? Do genes change in total abundance? | TSENAT measures isoform-usage complexity changes independent of transcript or gene abundance |
+| **edgeR, DESeq2** | Do individual transcripts increase/decrease in expression? Do genes change in total abundance? | TSENAT targets isoform-usage complexity rather than total gene abundance. The entropy functional is invariant to multiplicative changes in total abundance, although estimation precision and regularization can depend on sequencing depth and transcript abundance |
 | **DEXSeq, DRIMSeq** | Which transcripts shift their *proportions* within genes, independent of abundance changes? | TSENAT detects whether the isoform landscape consolidates or fragments |
 | **IsoformSwitchAnalyzeR** | Which *individual isoforms* switch; what are the *functional consequences*? | TSENAT measures overall isoform diversity and diversity shifts rather than cataloging individual transcript switches or predicting functional consequences; complements switch identification with diversity patterns |
 | **SplicingFactory** | What is the *overall isoform diversity*? | TSENAT extends with scale-dependent diversity (q-spectrum) vs fixed measures |

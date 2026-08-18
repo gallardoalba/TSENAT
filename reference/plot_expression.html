@@ -132,6 +132,13 @@ parameter.
   Raises error if TPM not available and `use_tpm = TRUE`.</p></dd>
 
 
+<dt id="arg-quantity">quantity<a class="anchor" aria-label="anchor" href="#arg-quantity"></a></dt>
+<dd><p><code>character</code>. Quantity to visualize:
+`"abundance"` plots raw counts (or TPM when `use_tpm = TRUE`),
+`"usage"` plots each transcript's proportion of its gene total per
+sample (default: `"abundance"`).</p></dd>
+
+
 <dt id="arg-width">width<a class="anchor" aria-label="anchor" href="#arg-width"></a></dt>
 <dd><p><code>numeric</code> or <code>NULL</code>. Output image width in inches.
 If NULL, automatically calculated based on number of genes (default: ~13

@@ -173,8 +173,49 @@ result <- TSENAT(analysis)
 #> [>] [ 4/16] Computing M-estimator influence
 #>           [OK] M-estimate QC complete
 #> [>] [ 5/16] Fitting SAIT interaction models
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
 #> Warning: nlminb problem, convergence error code = 1
 #>   message = iteration limit reached without convergence (10)
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
+#> Warning: Weights are not used by the primary paired model path (lme_ns_car1): the supplied data_adaptive_heteroscedasticity weights only apply to the GAM/GAMM paths. If weighting is required for the paired analysis, select a GAM-based method explicitly.
 #>           [OK] SAIT interaction analysis complete
 #> [>] [ 6/16] Plotting SAIT results
 #>           [OK] SAIT interaction plot generated
@@ -208,11 +249,11 @@ result <- TSENAT(analysis)
 #> [RESULTS] Results Summary
 #> 
 #> [PERF] Performance
-#>   Total time ........... 28.1s
+#>   Total time ........... 44.6s
 #>   Slowest steps:
-#>     1. rank_transform_test  6.4s (22.7%)
-#>     2. jackknife            5.7s (20.2%)
-#>     3. sait_interaction     4.9s (17.3%)
+#>     1. jackknife            18.3s (41.0%)
+#>     2. rank_transform_test  8.6s (19.4%)
+#>     3. sait_interaction     7.1s (15.8%)
 #> 
 #> [OUTPUT] Output
 #>   Directory ........... tsenat_outputs

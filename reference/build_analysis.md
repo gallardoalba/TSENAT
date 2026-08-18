@@ -146,7 +146,13 @@ filtering and normalization in downstream analysis:
   pass it to `build_analysis()`.
 
 - [`calculate_diversity()`](https://gallardoalba.github.io/TSENAT/reference/calculate_diversity.md)
-  uses `effective_length` for length-normalized entropy calculations.
+  uses `effective_length` for length-normalized entropy calculations
+  from RAW counts.
+
+- TPM and effective-length correction are mutually exclusive and are
+  never combined: TPM already incorporates effective-length
+  normalization, so diversity on TPM together with an `effective_length`
+  is a hard error (double normalization).
 
 Following Bioconductor best practices (fail-fast principle), these are
 explicit parameters, not optional. They must be passed at object
@@ -246,7 +252,7 @@ analysis
 #> Samples:     10
 #> Configuration: 27 parameters
 #> Analysis status: EMPTY
-#> Created: 2026-08-17 18:27:34.555743
+#> Created: 2026-08-18 12:25:10.582404
 #> 
 print(dim(analysis))
 #> NULL

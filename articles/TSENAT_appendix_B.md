@@ -1,78 +1,55 @@
-# Appendix B: Cross-Method Validation of Scale-Adaptive Interaction Test Results via GAMM and Aligned Rank Transform (ART)
+# Appendix B: Cross-Method Robustness and Concordance of Scale-Adaptive Interaction Test Results via GAMM and Aligned Rank Transform (ART)
 
 ## Introduction
 
-The primary goal of this vignette is to validate that discoveries of
-scale-dependent entropic index × group interactions from Scale-Adaptive
-Interaction Tests (SAIT) generalize to non-parametric statistical
-frameworks with minimal assumptions.
+The primary goal of this vignette is to assess the **robustness and
+concordance** of scale-dependent entropic index × group interaction
+discoveries from Scale-Adaptive Interaction Tests (SAIT): do they
+generalize to a non-parametric statistical framework with fewer
+distributional assumptions? Agreement between GAMM and ART establishes
+robustness under complementary modeling assumptions.
 
-### Two Complementary Validation Approaches
+### Two Complementary Approaches
 
-**Method 1: Generalized Additive Mixed Models (GAMM)** with functional
-q-curve structure.
+**Method 1: Paired regression-spline mixed model (GAMM-style)** with
+functional q-curve structure (full details in the main vignette). TSENAT
+historically refers to this family as GAMM; it is fitted with
+[`nlme::lme`](https://rdrr.io/pkg/nlme/man/lme.html), not
+[`mgcv::gamm()`](https://rdrr.io/pkg/mgcv/man/gamm.html).
 
-- Framework: Semi-parametric model combining flexible smooth functions
-  (regression splines in paired designs) with mixed-effects structure;
-  assumes additive model Y = f₁(q) + f₂(condition) + f₃(q, condition) +
-  subject-intercept + ε where f terms are smooth rather than linear.
-- Paired design structure: Uses random intercepts by subject
-  (~1\|subject) with AR(1) correlation structure to accommodate repeated
-  entropy measurements across q-values within each subject. Paired
-  models are fit via
-  [`nlme::lme`](https://rdrr.io/pkg/nlme/man/lme.html) with natural
-  regression splines (`ns(q, df = 3) × condition`) and a marginal F-test
-  for the interaction; this hierarchical approach preserves paired
-  sample structure while modeling autocorrelation in q-ordered
-  measurements.
-- Distributional assumption: Uses Gaussian residuals (standard for
-  mixed-effects models); automatically detects bounded support \[0,1\]
-  entropy but applies Gaussian family because the paired mixed-model
-  paths ([`nlme::lme`](https://rdrr.io/pkg/nlme/man/lme.html) /
-  [`mgcv::gamm()`](https://rdrr.io/pkg/mgcv/man/gamm.html)) do not
-  support extended families in paired designs.
-- Treatment of entropic structure: q is treated as a deterministic
-  functional argument of the Tsallis statistic, not as a time index. The
-  confirmatory hypothesis is the functional interaction — H0: β(q) = 0
-  for all q, tested on the ORIGINAL entropy curve H(q). The AR(1)
-  structure in
-  [`nlme::corAR1()`](https://rdrr.io/pkg/nlme/man/corAR1.html) is a
-  working covariance model for the functional residuals, validated by
-  Monte Carlo simulation.
-- Heteroscedasticity handling: Automatically detects variance
-  heterogeneity (Breusch-Pagan test); however, heteroscedasticity-based
-  variance weights are not applied in paired designs due to paired
-  mixed-model path limitations
-  ([`nlme::lme`](https://rdrr.io/pkg/nlme/man/lme.html) /
-  [`mgcv::gamm()`](https://rdrr.io/pkg/mgcv/man/gamm.html)).
-- Key advantage: Captures smooth nonlinear q × condition interactions
-  while accommodating paired sample correlation structure through random
-  intercepts and AR(1) correlation modeling.
+- Framework: Semi-parametric model
+  $`Y = f_1(q) + f_2(condition) + f_3(q, condition)`$ +
+  subject-intercept + $`\varepsilon`$ with smooth rather than linear
+  $`f`$ terms.
+- Paired fits: [`nlme::lme`](https://rdrr.io/pkg/nlme/man/lme.html) with
+  `ns(q, df = 3) × condition`, subject random intercepts, and a
+  continuous-q AR(1) working correlation within subject × condition
+  ([`nlme::corCAR1`](https://rdrr.io/pkg/nlme/man/corCAR1.html),
+  $`\exp(-\phi|q_i-q_j|)`$; validated by Monte Carlo simulation); the
+  interaction is tested with a marginal F-test.
+- q is a deterministic functional argument (not time): the confirmatory
+  hypothesis is the functional interaction $`H_0: \beta(q) = 0`$ for all
+  q, tested on the original H(q) curve. Gaussian residuals are assumed
+  (paired mixed-model paths do not support extended families);
+  heteroscedasticity is detected but variance weights are not applied in
+  paired designs.
 
-**Method 2: Aligned Rank Transform (ART)** — State-of-the-art
-non-parametric interaction testing, with Hochberg Step-Up Correction.
-The Conover-Iman Rank Transform is also available via the `method='rt'`
-option as an alternative approach.
+**Method 2: Aligned Rank Transform (ART)** — rank-based non-parametric
+interaction testing (ARTool (Kay et al. 2021)), with Hochberg step-up
+FWER correction. The Conover-Iman Rank Transform is available via
+`method='rt'`.
 
-- Framework: Pure non-parametric method via the ARTool package (Kay et
-  al. 2021). Strips main effects before ranking (“alignment”) to
-  preserve interaction structure (Higgins and Tashtoush 1994; Wobbrock
-  et al. 2011). Zero parametric or distributional assumptions.
-- Distributional assumption: None; operates entirely on aligned ranks.
-  Valid under any continuous distribution and correlation structure.
-- Treatment of q-ordering: Two-way ART on raw entropy values, treating
-  q-values as categorical factors; aligned ranks decomposed via ANOVA
-  with proper F-test for interactions. Because q is treated as a factor,
-  the continuous ordering of q-values is discarded in the ART analysis —
-  this is a fundamental difference from GAMM, which models q as a
-  continuous smooth predictor.
-- Heteroscedasticity handling: ART inherently robust to
-  heteroscedasticity through alignment and ranking; Hochberg step-up
-  correction controls FWER across multiple tests.
-- Key advantage: State-of-the-art for non-parametric interaction
-  testing. Properly handles factorial interactions by removing main
-  effects before ranking. More reliable Type I error control than
-  classical rank-transform methods for interaction terms.
+- ART strips main effects before ranking (“alignment”) to preserve
+  interaction structure (Higgins and Tashtoush 1994; Wobbrock et al.
+  2011). It makes no Gaussian-error assumption, but is not
+  assumption-free: validity depends on the design, exchangeability,
+  alignment and sample size.
+- q is treated as a categorical factor (its continuous ordering and the
+  AR(1) working correlation across q are not modeled) — the fundamental
+  difference from GAMM.
+- Monte Carlo caveat: unpaired ART is mildly anti-conservative at small
+  n (Conover-Iman `rt` recommended there). A full treatment follows in
+  the “Aligned Rank Transform (ART)” section below.
 
 ### Why Two Methods for One Question?
 
@@ -82,15 +59,16 @@ power for robustness:
 
 | Aspect | Semi-Parametric (GAMM) | Non-Parametric (ART) |
 |----|----|----|
-| Assumptions | Normality, homoscedasticity | None; aligned ranks, fully non-parametric |
+| Assumptions | Normality, homoscedasticity | No Gaussian errors; validity still requires a valid design, exchangeability and alignment |
 | Power | Highest (if assumptions hold) | Good; reduced but robust to violations |
 | Interaction testing | Marginal F-test on regression-spline interaction terms | Proper interaction tests via alignment (Higgins and Tashtoush 1994) |
 | q-value treatment | Continuous smooth predictor (preserves ordinal structure) | Categorical factor (discards ordering) |
 | Robustness | Moderate | Highest |
 | Outlier sensitivity | Moderate potential for bias | Minimal; inherently resistant |
 
-Validation strategy: Concordance between both methods confirms
-robustness across statistical frameworks.
+Robustness strategy: Concordance between both methods provides evidence
+of robustness across statistical frameworks (it does not by itself prove
+either method correct).
 
 ------------------------------------------------------------------------
 
@@ -154,6 +132,9 @@ analysis <- build_analysis(
     effective_length = effective_length,
     config = config
 )
+# Roles: tpm -> abundance QC in filter_analysis(); effective_length ->
+# length-normalized entropy from RAW counts. The two are mutually exclusive
+# in a single computation (TPM already incorporates length normalization).
 
 # Apply filtering for quality control
 analysis <- filter_analysis(
@@ -164,10 +145,9 @@ analysis <- filter_analysis(
 
 ### Computing Tsallis Entropy with Pseudocount Regularization
 
-Pseudocounts are critical for statistical robustness when applying
-non-parametric tests to sparse RNA-seq count data. RNA-seq experiments
-typically contain many zero or near-zero counts, which creates two
-problems for rank-based methods:
+Pseudocounts are an **optional regularization mechanism**. RNA-seq
+experiments typically contain many zero or near-zero counts, which
+creates two practical problems for rank-based methods:
 
 1.  **Ties in rankings:** Sparse counts produce many tied values
     (especially zeros), which reduces the discriminatory power of rank
@@ -176,20 +156,29 @@ problems for rank-based methods:
     information, reducing statistical power.
 
 2.  **Library size artifacts:** Small count differences due to
-    sequencing depth variations overshadow true biological differences.
-    Normalized library sizes (accounting for sequencing depth) ensure
-    that entropy estimates reflect true biological diversity rather than
-    technical artifacts (Robinson et al. 2010; Love et al. 2014).
+    sequencing depth variations can overshadow biological differences.
+    Normalized library sizes (accounting for sequencing depth) can make
+    entropy estimates more comparable across samples (Robinson et al.
+    2010; Love et al. 2014).
 
-By adding small pseudocounts proportional to library size, we achieve
-two benefits:
+By adding small pseudocounts we achieve two benefits:
 
-- **Regularization** breaks ties and prevents zero-inflation bias that
-  compromises rank-based inference.
-- **Normalization** makes entropy estimates comparable across samples
-  with different sequencing depths. This approach is standard in RNA-seq
-  analysis and is particularly important for entropy-based diversity
-  metrics, which require positive values for logarithmic transforms.
+- **Regularization** breaks ties and reduces zero-inflation effects on
+  rank-based inference.
+- **Comparability** makes entropy estimates more stable across samples
+  with different sequencing depths.
+
+Importantly, a pseudocount is a regularization *choice*, not a standard
+RNA-seq normalization procedure, and it **changes the estimand**: for
+
+``` math
+p_i = \frac{x_i + a}{\sum_j (x_j + a)}
+```
+
+you are no longer measuring the empirical transcript composition. This
+is especially consequential for low-abundance genes and $`q<1`$ (where
+small probabilities are amplified) and for $`q=0`$ (where a positive
+pseudocount changes the support).
 
 The
 [`calculate_diversity()`](https://gallardoalba.github.io/TSENAT/reference/calculate_diversity.md)
@@ -211,11 +200,12 @@ analysis <- calculate_diversity(
 ## Aligned Rank Transform (ART)
 
 TSENAT uses the **Aligned Rank Transform (ART)** as the default
-non-parametric method for testing Q×Condition interactions. ART is the
-state-of-the-art for non-parametric factorial analysis, implemented via
-the ARTool R package (Kay et al. 2021; Wobbrock et al. 2011). The
-classical Conover-Iman Rank Transform is also available via
-`method='rt'` as an alternative approach (Conover and Iman 1981).
+non-parametric method for testing Q×Condition interactions. ART is a
+well-established rank-based non-parametric approach for factorial
+analysis, implemented via the ARTool R package (Kay et al. 2021;
+Wobbrock et al. 2011). The classical Conover-Iman Rank Transform is also
+available via `method='rt'` as an alternative approach (Conover and Iman
+1981).
 
 1.  **Robustness to Distribution Violations**
 
@@ -233,22 +223,25 @@ often violate parametric assumptions:
 - Outlier sensitivity: Rare isoforms and count variability can produce
   extreme entropy values that heavily influence parametric tests.
 
-ART avoids these issues through alignment and ranking — stripping main
-effects before ranking preserves interaction structure while eliminating
-distributional dependence. The aligned ranks are uniformly distributed
-and contain no outliers, making the method valid for ANY continuous
-distribution (Higgins and Tashtoush 1994; Wobbrock et al. 2011).
-Critically, rank ordering is unaffected by normalization choice; whether
-entropy is normalized, log-transformed, or left raw, the test produces
-identical results (Conover and Iman 1981).
+ART mitigates these issues through alignment and ranking — stripping
+main effects before ranking preserves interaction structure while
+removing distributional shape dependence. The aligned ranks are more
+uniformly distributed and contain no outliers, making the method
+substantially less sensitive to distributional shape than parametric
+tests (Higgins and Tashtoush 1994; Wobbrock et al. 2011). Critically,
+rank ordering is unaffected by normalization choice; whether entropy is
+normalized, log-transformed, or left raw, the test produces identical
+results (Conover and Iman 1981). This robustness does not make ART
+assumption-free: its validity still depends on the experimental design,
+exchangeability structure, alignment procedure, and sample size.
 
 2.  **Paired Design for Ordered q-Value Structure**
 
 Tsallis entropy has a fundamental sequential property: entropy curves
 are smooth functions of q. As q increases from 0
-(rare-species-emphasizing) to ∞ (common-species-emphasizing), entropy
-values change systematically. This ordered structure is critical to
-interpreting q-dependent patterns and exhibits **AR(1)
+(rare-species-emphasizing) to $`\infty`$ (common-species-emphasizing),
+entropy values change systematically. This ordered structure is critical
+to interpreting q-dependent patterns and exhibits **AR(1)
 autocorrelation**: consecutive q-values produce correlated entropy
 estimates.
 
@@ -266,8 +259,8 @@ sample size and affect power even when the test remains valid.
 
 3.  **Interaction Testing: Testing q × Condition Effects**
 
-The implementation uses ART (alignment + ranking + ANOVA), the modern
-state-of-the-art approach:
+The implementation uses ART (alignment + ranking + ANOVA), a rank-based
+factorial approach:
 
 ``` math
 F_{q \times \text{condition}} = \frac{MS_{\text{interaction}}}{MS_{\text{residual}}}
@@ -275,7 +268,7 @@ F_{q \times \text{condition}} = \frac{MS_{\text{interaction}}}{MS_{\text{residua
 
 where:
 
-- Main effects are stripped via alignment: residuals = original − main
+- Main effects are stripped via alignment: residuals = original - main
   effect estimates
 - Aligned data are then ranked:
   $`R = \text{rank}(\text{aligned residuals})`$ (within-subject for
@@ -290,9 +283,10 @@ where:
   interaction
 
 This directly tests the core biological question: “Does entropy
-q-dependence differ between groups?” The aligned rank ANOVA is the
-modern state-of-the-art approach for non-parametric interaction testing,
-validated across balanced and unbalanced designs (Wobbrock et al. 2011).
+q-dependence differ between groups?” ART is validated across balanced
+and unbalanced designs (Wobbrock et al. 2011); our Monte Carlo results
+confirm calibration for the paired design (and flag unpaired ART as
+mildly anti-conservative at small n).
 
 ### Assumption Validation
 
@@ -315,49 +309,42 @@ print(assumptions_text)
 | Test | Result | Interpretation |
 |:---|:---|:---|
 | Exchangeability (Permutation test) | p=0e+00 | Ordering detected |
-| Monotonicity (Spearman rho) | r=0.259 | Heterogeneous |
-| Consistency (Kendall’s W / ICC) | W=0e+00, ICC=0.108 | Low |
+| Monotonicity (Spearman rho) | r=0.326 | Homogeneous |
+| Consistency (Kendall’s W / ICC) | W=0e+00, ICC=0.047 | Low |
 | Concurvity (Smooth collinearity) | 0.000 | Low |
 | EDF Ratio (Smoothing) | 0.024 | Over-smoothed |
 | Non-linearity (Delta R^2 vs LM) | 0.0% | Use linear |
-| Basis Dimension (Spline basis) | k=10 | Adequate |
-| Correlation fit | Observed autocorr=-0.007; independence suitable | Good fit |
+| Basis Dimension (Spline basis) | k=3 | Adequate |
+| Correlation fit | Observed autocorr=0.076; independence suitable | Good fit |
 | Cluster variation | Mean size=77.0 | Homogeneous |
-| Independence | Mean within-cluster residual correlation=-0.018 | Independent |
+| Independence | Mean within-cluster residual correlation=0.069 | Independent |
 | Scale parameter | phi=0.100 | Under-dispersed (rare) |
-| Variance components | ICC=0.119; B=0.006, W=0.048 | Lmm justified |
-| Normality | p=3.57e-27 | Non-normal |
-| Homogeneity | p=3.14e-128; CV=0.439 | Heterogeneous |
-| Influence | Outliers=778, Extreme=0, Influential=26.6% | Many outliers |
-| Variance adequacy | Components for 90%=10, 95%=13, 99%=17 | Poor reduction |
-| Bootstrap stability | Bootstrap SE=0.200; Stable CIs=100% | Moderate stability |
+| Variance components | ICC=0.049; B=2.14e-04, W=0.004 | Use sait model |
+| Normality | p=8.76e-09 | Non-normal |
+| Homogeneity | p=2.23e-159; CV=0.872 | Heterogeneous |
+| Influence | Outliers=1144, Extreme=894, Influential=8.6% | Some outliers |
+| Variance adequacy | Components for 90%=5, 95%=7, 99%=11 | Moderate reduction |
+| Bootstrap stability | Bootstrap SE=0.380; Stable CIs=100% | Moderate stability |
 
 **Supplementary Table 14 \| Assumption Checks for Aligned Rank Transform
 (ART).** Evaluates homogeneity of variance and normality for rank-based
 interaction test validity. {.table}
 
 **Interpretation of Results:** The exchangeability test detects strong
-serial correlation (p ≈ 0), indicating that consecutive samples are more
-correlated than expected by chance. This violation is **not
-problematic** for the Aligned Rank Transform because ART’s alignment
-step removes main effects before ranking, after which the aligned
-residuals are approximately exchangeable under the null hypothesis of no
-interaction (Conover and Iman 1981; Higgins and Tashtoush 1994). While
-strong autocorrelation can reduce effective sample size and affect
-power, the test itself remains valid. The three reasons outlined above
-(distributional robustness, paired ordered structure handling, and
-proper interaction testing via alignment) together make ART ideally
-suited for multi-q entropy validation without requiring strong
-distributional assumptions.
+serial correlation ($`p \approx 0`$), indicating that consecutive
+samples are more correlated than expected by chance. This violation is
+**not problematic** for the Aligned Rank Transform because ART’s
+alignment step removes main effects before ranking, after which the
+aligned residuals are approximately exchangeable under the null
+hypothesis of no interaction (Conover and Iman 1981; Higgins and
+Tashtoush 1994). While strong autocorrelation can reduce effective
+sample size and affect power, the test itself remains valid.
 
-### Aligned Rank Transform (ART): Testing q × Condition Interactions
+### Running the ART Analysis
 
-Now we use the **Aligned Rank Transform (ART, default)** — the
-state-of-the-art non-parametric method for interaction testing —
-combined with Hochberg step-up correction for multiple testing across
-genes. ART properly handles factorial interactions by stripping main
-effects before ranking, providing more reliable Type I error control
-than classical rank-transform methods.
+We run ART (the default rank method) with Hochberg step-up correction
+for multiple testing across genes, then compare the results against GAMM
+below.
 
 ``` r
 
@@ -381,35 +368,34 @@ print(head(rank_transform_results, n = 10))
 | Metric                                       | Value |
 |:---------------------------------------------|------:|
 | Genes tested                                 |    77 |
-| Significant (p \< 0.05)                      |    45 |
-| Significant (adj_p \< 0.05, FWER-controlled) |    40 |
+| Significant (p \< 0.05)                      |    52 |
+| Significant (adj_p \< 0.05, FWER-controlled) |    50 |
 | NAs                                          |     0 |
-| Mean effect size ($`\eta^2`$)                |  0.8% |
-| Median effect size ($`\eta^2`$)              |  0.4% |
-| Strong effect genes ($`\eta^2`$ \> 10%)      |     0 |
+| Mean effect size ($`\eta^2`$)                |  1.6% |
+| Median effect size ($`\eta^2`$)              |  0.8% |
+| Strong effect genes ($`\eta^2`$ \> 10%)      |     1 |
 
 **Supplementary Table 15 \| Aligned Rank Transform (ART) Results
 Summary.** Non-parametric test of *q* × condition interactions via ART.
 Compare with GAMM results (main vignette Table 3) to assess parametric
 vs. non-parametric method concordance. {.table}
 
-| Gene | P-value | Adj. P-value | F-Statistic | Effect Size (η²) | Interaction Class |
+| Gene | P-value | Adj. P-value | F-Statistic | Effect Size (eta-squared) | Interaction Class |
 |:---|:---|:---|:---|:---|:---|
-| CXCL12 | 1.3e-130 | 9.9e-129 | 80.3513 | 0.0657 | Moderately q-dependent |
-| PLP1 | 1.2e-98 | 9.5e-97 | 44.1746 | 0.0364 | Moderately q-dependent |
-| LINC03040 | 6.9e-76 | 5.2e-74 | 27.8414 | 0.0470 | Moderately q-dependent |
-| ING3 | 4.9e-44 | 3.6e-42 | 13.0747 | 0.0247 | Moderately q-dependent |
-| ATG5 | 4.2e-42 | 3e-40 | 12.3991 | 0.0204 | Moderately q-dependent |
-| CENPV | 2.5e-38 | 1.8e-36 | 11.1349 | 0.0080 | Moderately q-dependent |
-| FAM114A2 | 1.8e-37 | 1.3e-35 | 10.8532 | 0.0234 | Moderately q-dependent |
-| ZNF714 | 1.9e-34 | 1.4e-32 | 9.9022 | 0.0201 | Moderately q-dependent |
-| ETFRF1 | 1.4e-25 | 9.9e-24 | 7.3482 | 0.0090 | Moderately q-dependent |
-| METTL26 | 4.2e-25 | 2.8e-23 | 7.2225 | 0.0169 | Moderately q-dependent |
+| CXCL12 | 3.8e-146 | 2.9e-144 | 106.0585 | 0.1062 | Strongly q-dependent |
+| SPNS2 | 1.1e-111 | 8.3e-110 | 56.7003 | 0.0774 | Moderately q-dependent |
+| CCNE1 | 1.1e-87 | 8e-86 | 35.5687 | 0.0367 | Moderately q-dependent |
+| THOC6 | 1.7e-79 | 1.3e-77 | 30.0465 | 0.0422 | Moderately q-dependent |
+| DUOXA2 | 3e-78 | 2.2e-76 | 29.2740 | 0.0624 | Moderately q-dependent |
+| ETFRF1 | 1.5e-77 | 1.1e-75 | 28.8350 | 0.0227 | Moderately q-dependent |
+| LINC03040 | 8.1e-74 | 5.8e-72 | 26.6334 | 0.0511 | Moderately q-dependent |
+| PLP1 | 7.8e-68 | 5.5e-66 | 23.3649 | 0.0551 | Moderately q-dependent |
+| SRPRA | 1.5e-58 | 1.1e-56 | 18.8734 | 0.0141 | Moderately q-dependent |
+| GLB1L2 | 2.7e-56 | 1.8e-54 | 17.8874 | 0.0357 | Moderately q-dependent |
 
 **Supplementary Table 16 \| Top genes identified by Aligned Rank
 Transform (ART).** Ranked by adjusted p-value; comparison with GAMM
-(main vignette Table 3) reveals method-specific sensitivities. {.table
-style="width:100%;"}
+(main vignette Table 3) reveals method-specific sensitivities. {.table}
 
 Visualize q-curves for top genes:
 
@@ -458,24 +444,24 @@ print(sait_results)
 | Significant (p \< 0.05)                  |     66 |
 | Concordant (p \< 0.05 AND adj_p \< 0.05) |     57 |
 | NAs                                      |      0 |
-| Mean effect size                         |  30.0% |
-| Median effect size                       |  24.8% |
-| Strong effect genes (effect_size \> 30%) |     32 |
+| Mean effect size                         |  36.3% |
+| Median effect size                       |  33.3% |
+| Strong effect genes (effect_size \> 30%) |     39 |
 | Model convergence rate                   | 100.0% |
 
-**Supplementary Table 17 \| GAMM Results Summary.** Overview of
-generalized additive mixed model statistics for q × condition
-interaction tests across full q-spectrum with paired sample structure.
-{.table}
+**Supplementary Table 17 \| GAMM Results Summary** (summary of the GAMM
+results computed in the main vignette, Table 3). Overview of generalized
+additive mixed model statistics for q × condition interaction tests
+across full q-spectrum with paired sample structure. {.table}
 
 | Gene            | p (interaction) | Adjusted p | Effect size | Test statistic |
 |:----------------|----------------:|-----------:|------------:|---------------:|
 | CXCL12          |       2.15e-139 |  1.63e-137 |       74.0% |         370.00 |
 | ING3            |        4.15e-57 |   3.12e-55 |       32.3% |         109.18 |
 | THY1            |        7.49e-55 |   5.54e-53 |       35.8% |         103.97 |
-| LINC03040       |        5.54e-47 |   4.05e-45 |       58.1% |          86.46 |
+| LINC03040       |        5.54e-47 |   4.05e-45 |       58.3% |          86.46 |
 | SNHG10          |        7.69e-43 |   5.54e-41 |       21.0% |          77.62 |
-| MEF2A           |        2.34e-36 |   1.66e-34 |       17.1% |          64.30 |
+| MEF2A           |        2.34e-36 |   1.66e-34 |       17.7% |          64.30 |
 | ASMTL           |        2.18e-33 |   1.52e-31 |       39.4% |          58.41 |
 | HDAC2           |        2.93e-33 |   2.02e-31 |       22.7% |          58.15 |
 | ENSG00000274322 |        3.02e-29 |   2.05e-27 |       43.9% |          50.38 |
@@ -522,12 +508,12 @@ concordance_results <- results(analysis_rank, type = "concordance", format = "li
 | Metric                               |        Value |
 |:-------------------------------------|-------------:|
 | Total genes compared                 |           76 |
-| Spearman correlation (p-values)      | rho = 0.5025 |
-| Both methods significant (p \< 0.05) |   35 (46.1%) |
-| SAIT only significant                |   22 (28.9%) |
-| Rank test only significant           |     4 (5.3%) |
-| Neither significant                  |   15 (19.7%) |
-| Concordance rate                     |        46.1% |
+| Spearman correlation (p-values)      | rho = 0.3082 |
+| Both methods significant (p \< 0.05) |   40 (52.6%) |
+| SAIT only significant                |   17 (22.4%) |
+| Rank test only significant           |    9 (11.8%) |
+| Neither significant                  |   10 (13.2%) |
+| Concordance rate                     |        52.6% |
 | Discordance rate                     |        34.2% |
 
 **Supplementary Table 19 \| Global Concordance Metrics: GAMM vs Aligned
@@ -537,19 +523,19 @@ interactions. {.table}
 
 | Gene      | SAIT adj p | Rank test adj p | SAIT Effect | Rank test rho^2 |
 |:----------|-----------:|----------------:|------------:|----------------:|
-| CXCL12    |  1.63e-137 |       9.85e-129 |       74.0% |           0.066 |
-| LINC03040 |  4.046e-45 |        5.18e-74 |       58.1% |           0.047 |
-| ING3      |   3.12e-55 |       3.643e-42 |       32.3% |           0.025 |
-| ATG5      |  1.557e-26 |       3.045e-40 |       51.5% |           0.020 |
-| SPICE1    |  5.743e-22 |       3.274e-22 |       53.8% |           0.021 |
-| ASMTL     |  1.523e-31 |       1.101e-19 |       39.4% |           0.005 |
-| FAM114A2  |  6.857e-19 |       1.294e-35 |       39.5% |           0.023 |
-| ETFRF1    |  1.935e-18 |       9.853e-24 |       62.5% |           0.009 |
-| RAP1GDS1  |  2.191e-25 |       8.824e-16 |       37.5% |           0.019 |
-| ZNF714    |  3.273e-12 |       1.358e-32 |       30.4% |           0.020 |
+| CXCL12    |  1.63e-137 |       2.95e-144 |       74.0% |           0.106 |
+| LINC03040 |  4.046e-45 |        5.79e-72 |       58.3% |           0.051 |
+| SNHG10    |  5.538e-41 |       5.655e-49 |       21.0% |           0.030 |
+| MEF2A     |  1.662e-34 |        7.61e-53 |       17.7% |           0.043 |
+| FAXDC2    |  1.438e-21 |       1.288e-32 |       19.4% |           0.033 |
+| ING3      |   3.12e-55 |       6.756e-21 |       32.3% |           0.014 |
+| FAM114A2  |  6.857e-19 |        2.73e-54 |       39.5% |           0.037 |
+| ETFRF1    |  1.935e-18 |        1.11e-75 |       62.5% |           0.023 |
+| ATG5      |  1.557e-26 |       3.117e-18 |       51.5% |           0.013 |
+| SPNS2     |  4.395e-18 |       8.25e-110 |        4.4% |           0.077 |
 
 **Supplementary Table 20 \| Robust Entropic Order Index Interactions:
-Top 10 High-Confidence Genes Detected by Both Methods (of 35 concordant,
+Top 10 High-Confidence Genes Detected by Both Methods (of 40 concordant,
 ranked by statistical significance).** Cross-method validation: genes
 significant in both GAMM and ART provide strongest evidence for q ×
 condition effects. {.table}

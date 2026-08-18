@@ -65,10 +65,10 @@ file.
   “Dynamical Shannon entropy and information Tsallis entropy in complex
   systems.” *Physica A*, 341, 649-676. doi: 10.1016/j.physa.2004.03.094
 
-- **Bajić, D.** (2022). “On quantization errors in approximate and
+- **Baji'{c}, D.** (2022). “On quantization errors in approximate and
   sample entropy.” *Entropy*, 24(1), 73. doi: 10.3390/e24010073
 
-- **Bajić, D.** (2024). “Information theory, living systems, and
+- **Baji'{c}, D.** (2024). “Information theory, living systems, and
   communication engineering.” *Entropy*, 26(5), 430. doi:
   10.3390/e26050430
 
@@ -204,7 +204,7 @@ file.
 
 - **Jose, J., & Lal, P. S.** (2013). “Application of ARIMA(1,1,0) model
   for predicting time delay of search engine crawlers.” *Informatica
-  Economică*, 17(4), 26-39. doi: 10.12948/issn14531305/17.4.2013.03
+  Economic*, 17(4), 26-39. doi: 10.12948/issn14531305/17.4.2013.03
 
 ------------------------------------------------------------------------
 
