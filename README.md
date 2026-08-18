@@ -39,7 +39,7 @@ More generally, for $0 < q < 1$ sensitivity to low-abundance isoforms increases 
 
 ### Divergence Analysis: Measuring Information-Theoretic Distance Between Conditions
 
-While Tsallis entropy quantifies diversity *within* a single distribution, **Tsallis divergence** $D_q(P\|Q)$ measures the information-theoretic separation *between* two distributions. It is **directional**: TSENAT reports the divergence from the control composition $P$ to the treatment composition $Q$, and in general $D_q(P\|Q) \neq D_q(Q\|P)$ — it is not a symmetric distance. The argument order is therefore part of the result.
+While Tsallis entropy quantifies diversity *within* a single distribution, **Tsallis divergence** $D_q(P\|Q)$ measures the information-theoretic separation *between* two distributions.
 
 **Mathematical Definition** (Furuichi formula): For two probability distributions $P$ and $Q$ representing isoform proportions in control and treatment conditions, Tsallis divergence is:
 
@@ -165,13 +165,11 @@ For a complete walkthrough of the analysis pipeline with real biological example
 
 ## Statistical Inference Methods 
 
-TSENAT provides a flexible statistical framework optimized for entropy-based diversity analysis. The recommended main workflow (paired design) uses a **spline-based generalized additive mixed-model approach (GAMM-style)**, fitted with `nlme::lme` (natural regression splines, `ns(q, df = 3) × condition`), a subject random intercept, and an AR(1)-type working correlation within each subject × condition block, with the interaction tested via a marginal F-test. Note that this path does not use `mgcv::gamm()`, which is unstable for the paired configuration and is retained only as a fallback.
-
-**Continuous-q correlation.** The primary paired correlation structure is a continuous-time AR(1) via `nlme::corCAR1`, so correlation decays with the actual distance between q-values, $\mathrm{Corr}(\epsilon_i, \epsilon_j) = \exp(-\phi |q_i - q_j|)$. This matters because q can be irregularly spaced: the grid-index form $\rho^{|\mathrm{rank}(q_i)-\mathrm{rank}(q_j)|}$ (legacy/fallback `corAR1`) is only valid for equally spaced q grids.
+TSENAT provides a flexible statistical framework optimized for entropy-based diversity analysis. The recommended main workflow (paired design) uses a **spline-based generalized additive mixed-model approach (GAMM-style)**, fitted with `nlme::lme`.
 
 The statistical methods available in TSENAT include:
 
-- **Scale-adaptive interaction tests (SAIT)**: Multiple modeling approaches for repeated q-ordered measurements. GAM/GAMM, LMM, GEE and FPCA model within-subject correlation with a working AR(1) structure within each subject × condition block. Different paths carry different robustness assumptions: the primary paired regression-spline model assumes Gaussian residuals and uses the correlation structure for within-subject q dependence; heteroscedasticity is diagnosed but is not automatically incorporated through variance weights in this path.
+- **Scale-adaptive interaction tests (SAIT)**: Multiple modeling approaches for repeated q-ordered measurements. GAM/GAMM, LMM, GEE and FPCA model within-subject correlation with a working AR(1) structure within each subject × condition block.
 - **Aligned Rank Transform (ART)**: Rank-based non-parametric interaction testing via the ARTool package (Kay et al. 2021).
 - **M-estimation**: Robust location estimation for group comparison using iteratively re-weighted least squares, resistant to outliers.
 - **Jackknife isoform switching (JIS)**: Leave-one-out resampling to identify transcripts with condition-specific switching patterns and quantify their influence on entropy differences.
@@ -182,7 +180,7 @@ The statistical methods available in TSENAT include:
 
 | Tool | Answers | TSENAT Difference |
 |------|---------|-------------------|
-| **edgeR, DESeq2** | Do individual transcripts increase/decrease in expression? Do genes change in total abundance? | TSENAT targets isoform-usage complexity rather than total gene abundance. The entropy functional is invariant to multiplicative changes in total abundance, although estimation precision and regularization can depend on sequencing depth and transcript abundance |
+| **edgeR, DESeq2** | Do individual transcripts increase/decrease in expression? Do genes change in total abundance? | TSENAT targets isoform-usage complexity rather than total gene abundance |
 | **DEXSeq, DRIMSeq** | Which transcripts shift their *proportions* within genes, independent of abundance changes? | TSENAT detects whether the isoform landscape consolidates or fragments |
 | **IsoformSwitchAnalyzeR** | Which *individual isoforms* switch; what are the *functional consequences*? | TSENAT measures overall isoform diversity and diversity shifts rather than cataloging individual transcript switches or predicting functional consequences; complements switch identification with diversity patterns |
 | **SplicingFactory** | What is the *overall isoform diversity*? | TSENAT extends with scale-dependent diversity (q-spectrum) vs fixed measures |
@@ -190,7 +188,7 @@ The statistical methods available in TSENAT include:
 
 ## Native Salmon Integration
 
-TSENAT is specifically engineered to work seamlessly with Salmon quantification output. Rather than requiring manual parsing or format conversion, TSENAT automatically discovers transcript-level quantification files across your Salmon output directory and integrates them directly into the analysis pipeline. This tight integration means you can move from Salmon quantification to entropy analysis without intermediate data manipulation—the raw `quant.sf` files are all you need. TSENAT discovers these files automatically, validates their compatibility with your experimental design, and handles length-correction and normalization as part of the diversity computation workflow.
+TSENAT is specifically engineered to work seamlessly with Salmon quantification output. Rather than requiring manual parsing or format conversion, TSENAT automatically discovers transcript-level quantification files across your Salmon output directory and integrates them directly into the analysis pipeline. This tight integration means you can move from Salmon quantification to entropy analysis without intermediate data manipulation—the raw `quant.sf` files are all you need.
 
 To get started with Salmon-quantified data:
 
