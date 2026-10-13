@@ -217,6 +217,20 @@ test_that("gee method filters genes with min_obs", {
     expect_false("g2" %in% genes_present)
 })
 
+test_that("GEE small-cluster correction excludes subjects with no observed responses", {
+    skip_if_not_installed("geepack")
+    set.seed(129)
+    d <- expand.grid(subject = paste0("s", 1:4), group = c("A", "B"),
+        q = 1:4, KEEP.OUT.ATTRS = FALSE)
+    d$entropy <- d$q + (d$group == "B") * d$q^2 +
+        as.integer(factor(d$subject)) * 0.2 + rnorm(nrow(d), sd = 0.1)
+    d$entropy[d$subject == "s4"] <- NA_real_
+
+    result <- suppressWarnings(TSENAT:::.gee_interaction(d, d$q, "g",
+        subject = d$subject, min_obs = 2, corstr = "independence"))
+    expect_equal(result$n_clusters, 3L)
+})
+
 test_that("gee method handles missing subject_col gracefully", {
     skip_if_not_installed("geepack")
     

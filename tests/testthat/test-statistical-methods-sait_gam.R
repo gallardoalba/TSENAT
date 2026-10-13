@@ -144,6 +144,37 @@ test_that(".select_gam_family forces gaussian for paired designs", {
     expect_equal(result$family_gam$family, "gaussian")
 })
 
+test_that(".select_gam_family records Beta override for paired designs", {
+    bounded_result <- list(
+        use_gamma = FALSE,
+        use_beta = TRUE,
+        family_obj = structure(list(family = "Beta regression"), class = "family"),
+        inverse_link = function(eta) 1 / (1 + exp(-eta)),
+        stabilized_df = data.frame(entropy = c(1e-07, 1 - 1e-07)),
+        family_info = list(family_choice = "beta")
+    )
+
+    result <- .select_gam_family(bounded_result, subject = c("s1", "s2"))
+    expect_equal(result$family_gam$family, "gaussian")
+    expect_false(result$use_bounded_family)
+})
+
+test_that(".select_gam_family retains Beta only for unpaired models", {
+    bounded_result <- list(
+        use_gamma = FALSE,
+        use_beta = TRUE,
+        family_obj = structure(list(family = "Beta regression"), class = "family"),
+        inverse_link = function(eta) 1 / (1 + exp(-eta)),
+        stabilized_df = data.frame(entropy = c(1e-07, 1 - 1e-07)),
+        family_info = list(family_choice = "beta")
+    )
+
+    result <- .select_gam_family(bounded_result, subject = NULL)
+
+    expect_equal(result$family_gam$family, "Beta regression")
+    expect_true(result$use_bounded_family)
+})
+
 test_that(".select_gam_family preserves unbounded family for unpaired designs", {
     bounded_result <- list(
         use_gamma = FALSE,
@@ -558,6 +589,88 @@ test_that(".compile_gam_results creates valid result data frame", {
         expect_true("gene" %in% names(result))
         expect_true("p_interaction" %in% names(result))
         expect_equal(result$gene[1], "test_gene")
+        expect_true("inference_type" %in% names(result))
+        expect_true("confirmatory" %in% names(result))
+        expect_equal(result$inference_type[1], "confirmatory")
+        expect_true(isTRUE(result$confirmatory[1]) || isFALSE(result$confirmatory[1]))
+    }
+})
+
+test_that(".compile_gam_results keeps primary paired lme path confirmatory when weights were ignored", {
+    bc_result <- list(
+        p_value = 0.01,
+        p_raw = 0.01,
+        n_observations = 80,
+        n_subjects = 10,
+        n_effective = 8,
+        rho_estimate = 0.2,
+        bias_correction_applied = FALSE
+    )
+
+    bounded_result <- list(
+        use_gamma = FALSE,
+        family_info = list(heteroscedastic = TRUE, var_ratio_q = 1.5)
+    )
+
+    df <- data.frame(
+        entropy = c(0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1),
+        q = c(0.1, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5),
+        group = factor(c("A", "A", "A", "A", "B", "B", "B", "B"))
+    )
+
+    fit_meta <- list(
+        model_used = "lme_ns_car1",
+        fallback_level = 1L,
+        correlation_structure = "corCAR1",
+        test_type = "marginal_F",
+        weights_source = "not_used_primary_lme_ns"
+    )
+
+    result <- .compile_gam_results(
+        g = "paired_signal",
+        bc_result = bc_result,
+        test_statistic = 9.5,
+        effect_size = 0.62,
+        df_residual = 20,
+        model_converged = TRUE,
+        slope_diff = 0.2,
+        fit_alt = structure(list(), class = "lme"),
+        df = df,
+        bounded_result = bounded_result,
+        use_arima = FALSE,
+        subject = rep(1:4, each = 2),
+        fit_meta = fit_meta
+    )
+
+    expect_equal(result$inference_type[1], "confirmatory")
+    expect_true(isTRUE(result$confirmatory[1]))
+    expect_equal(result$model_used[1], "lme_ns_car1")
+})
+
+test_that(".compare_gam_models extracts the interaction term rather than row position", {
+    skip_if_not_installed("mgcv")
+
+    test_data <- create_gam_test_data(n_q = 12, n_samples = 4)
+    df <- test_data$df
+    df$group <- factor(df$group)
+
+    gam1 <- tryCatch(
+        mgcv::gam(entropy ~ group + s(q, bs = "tp", k = 4), data = df),
+        error = function(e) NULL
+    )
+    gam2 <- tryCatch(
+        mgcv::gam(entropy ~ group + s(q, bs = "tp", k = 4) + s(q, bs = "tp", k = 4, by = group),
+            data = df),
+        error = function(e) NULL
+    )
+
+    if (!is.null(gam1) && !is.null(gam2)) {
+        p <- .compare_gam_models(gam1, gam2)
+        expect_true(is.numeric(p$p_interaction) || is.na(p$p_interaction))
+        expect_false(is.na(p$p_interaction))
+        if (!is.null(p$anova_result) && nrow(p$anova_result) >= 2) {
+            expect_true(any(grepl("Pr\\(>Chi\\)|Pr\\(>F\\)|p-value", colnames(p$anova_result), ignore.case = TRUE)))
+        }
     }
 })
 
@@ -572,6 +685,34 @@ test_that(".gam_interaction processes unpaired data correctly", {
     skip_if_not_installed("nlme")
     
     test_data <- create_gam_test_data(n_q = 8, n_samples = 4)
+
+test_that("unpaired Beta GAM extracts mgcv chi-square interaction p-values", {
+    skip_if_not_installed("mgcv")
+
+    q_vals <- seq(0.1, 2, length.out = 8)
+    set.seed(2101)
+    df <- do.call(rbind, lapply(seq_len(12), function(sample_idx) {
+        data.frame(
+            entropy = pmin(0.98, pmax(0.02, seq(0.02, 0.98, length.out = 8) +
+                rnorm(8, sd = 0.01) + if (sample_idx > 6) 0.03 else 0)),
+            q = q_vals,
+            group = if (sample_idx <= 6) "A" else "B"
+        )
+    }))
+
+    result <- suppressWarnings(.gam_interaction(
+        df = df,
+        q_vals = q_vals,
+        g = "beta_interaction",
+        subject = NULL,
+        min_obs = 5
+    ))
+
+    expect_true(is.data.frame(result))
+    expect_equal(result$family_used[1], "Beta")
+    expect_true(is.finite(result$p_interaction[1]))
+    expect_true(result$p_interaction[1] >= 0 && result$p_interaction[1] <= 1)
+})
     df <- test_data$df
     
     # Create minimal mock for bounded support
@@ -1658,13 +1799,13 @@ test_that(".fit_gam_paired_design with weights", {
     subject <- rep(1:4, each = 8)
     weights <- df$weight
     
-    result <- .fit_gam_paired_design(
+    result <- expect_warning(.fit_gam_paired_design(
         df = df,
         subject = subject,
         family_gam = stats::gaussian(),
         k_q = 3,
         gam_weights = weights
-    )
+    ), "Weights are not used by the primary paired model path")
     
     expect_true(is.list(result))
     # With weights, model should still produce valid p-value or NA
@@ -2090,6 +2231,14 @@ test_that(".compare_gam_models handles identical models (no interaction)", {
         expect_true(is.numeric(result$p_interaction))
         expect_true(result$p_interaction >= 0 && result$p_interaction <= 1)
     }
+})
+
+test_that(".compare_gam_models returns NA when either nested model failed", {
+    failed_fit <- try(stop("simulated model fit failure"), silent = TRUE)
+    valid_placeholder <- list()
+
+    expect_equal(.compare_gam_models(failed_fit, valid_placeholder)$p_interaction, NA_real_)
+    expect_null(.compare_gam_models(valid_placeholder, failed_fit)$anova_result)
 })
 
 test_that(".compare_gam_models handles incompatible model formulas", {

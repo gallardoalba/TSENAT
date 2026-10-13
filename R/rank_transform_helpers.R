@@ -529,17 +529,41 @@
         # cost. flat.anova is an unregistered S3 generic: the call is built
         # BY NAME inside the ARTool namespace (so UseMethod dispatches
         # correctly and codetools sees no undefined global function). Any
-        # failure falls back to the full anova.
+        # failure falls back to the full anova. For paired Error() models,
+        # artlm() refits an aovlist term and can report a singular Error model;
+        # use ARTool's full repeated-measures ANOVA directly instead.
         interaction_term <- paste0(q_col, ":", condition_col)
         art_anova <- NULL
-        try({
-            artlm_int <- ARTool::artlm(art_model, interaction_term)
-            anova_int <- eval(call("flat.anova", m.l = artlm_int, type = "III",
-                test = "F"), envir = asNamespace("ARTool"))
-            if ("Term" %in% colnames(anova_int) && interaction_term %in% anova_int[["Term"]]) {
-                art_anova <- anova_int
+        if (paired) {
+            singular_error <- FALSE
+            art_anova <- withCallingHandlers(stats::anova(art_model), warning = function(w) {
+                if (grepl("Error() model is singular", conditionMessage(w), fixed = TRUE)) {
+                    singular_error <<- TRUE
+                    invokeRestart("muffleWarning")
+                }
+            })
+            if (singular_error) {
+                fallback_formula <- as.formula(paste0(
+                    value_col, " ~ ", q_col, " * ", condition_col,
+                    " + Error(", subject_col, "/", q_col, ")"))
+                fallback_model <- try(ARTool::art(fallback_formula, data = dat), silent = TRUE)
+                if (inherits(fallback_model, "try-error")) {
+                    warning("Paired ART Error(subject/(q*condition)) model is singular and Error(subject/q) fallback failed: ",
+                        as.character(fallback_model), call. = FALSE)
+                } else {
+                    art_anova <- stats::anova(fallback_model)
+                }
             }
-        }, silent = TRUE)
+        } else {
+            try({
+                artlm_int <- ARTool::artlm(art_model, interaction_term)
+                anova_int <- eval(call("flat.anova", m.l = artlm_int, type = "III",
+                    test = "F"), envir = asNamespace("ARTool"))
+                if ("Term" %in% colnames(anova_int) && interaction_term %in% anova_int[["Term"]]) {
+                    art_anova <- anova_int
+                }
+            }, silent = TRUE)
+        }
         if (is.null(art_anova)) {
             art_anova <- stats::anova(art_model)
         }

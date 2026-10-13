@@ -81,6 +81,8 @@
         stop("progress must be a logical", call. = FALSE)
     }
 
+    .validate_divergence_numeric_params(pseudocount, log_base)
+
     # Call implementation directly - errors will propagate clearly
     .calculate_divergence_impl(se, group_col, control_group, q, paired, bootstrap,
         nboot, ci, method, norm, log_base, pseudocount, nthreads, progress)
@@ -546,16 +548,19 @@
 #' Ensures q >= 0 and returns sorted vector
 #' @noRd
 .validate_and_sort_q_values <- function(q) {
-    q <- sort(as.numeric(q))
-    if (length(q) == 0) {
-        stop("q parameter must be a non-empty numeric vector of Tsallis q-values (e.g., q = c(0, 0.5, 1, 2))")
+    q <- as.numeric(q)
+    if (length(q) == 0 || anyNA(q) || !all(is.finite(q))) {
+        stop("q parameter must be a non-empty numeric vector of finite Tsallis q-values (e.g., q = c(0, 0.5, 1, 2))")
     }
     if (any(q < 0)) {
         stop("q parameter must be >= 0. ", "Note: q should be in range [0, 3] for typical use. ",
             "q=0 represents a support-based divergence limit (D_0(P||Q) = 1 - sum_{P_i>0} Q_i). ",
             "Got: ", paste(q, collapse = ", "))
     }
-    q
+    if (anyDuplicated(q)) {
+        stop("q parameter must not contain duplicate values; got: ", paste(q, collapse = ", "), call. = FALSE)
+    }
+    sort(q)
 }
 
 #' Validate SummarizedExperiment input
@@ -713,9 +718,9 @@
             x_unp <- which(!(ctrl_pair %in% common_pairs))
             y_unp <- which(!(trt_pair %in% common_pairs))
             idx_x_unp <- if (length(x_unp) > 0)
-                sample(x_unp, length(x_unp), replace = TRUE) else integer(0)
+                x_unp[sample.int(length(x_unp), length(x_unp), replace = TRUE)] else integer(0)
             idx_y_unp <- if (length(y_unp) > 0)
-                sample(y_unp, length(y_unp), replace = TRUE) else integer(0)
+                y_unp[sample.int(length(y_unp), length(y_unp), replace = TRUE)] else integer(0)
             ctrl_idx[[b]] <- c(idx_x_paired, idx_x_unp)
             trt_idx[[b]] <- c(idx_y_paired, idx_y_unp)
         } else {

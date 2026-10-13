@@ -120,7 +120,10 @@
 #'   - `[correction_method]`: 'gam_smoothing_bias_c071' if corrected
 #'   - `[arima_transformation]`: Legacy flag; always FALSE (no ARIMA
 #'     differencing in confirmatory paths)
-#'   - `[bounded_support_model]`: TRUE if Beta or Gamma family used
+#'   - `[family_selected]`, `[family_used]`, `[family_overridden]`: selected
+#'     preprocessing family, actual fitted family, and whether paired-design
+#'     fitting overrode Beta/Gamma with Gaussian
+#'   - `[bounded_support_model]`: TRUE if a non-Gaussian family was fitted
 #'   - `[shapiro_p_value]`: P-value from Shapiro-Wilk residual normality test
 #'     (descriptive diagnostic only — not an inferential validity gate)
 #'   - `[residuals_normal]`: Logical; residuals pass normality test (descriptive)
@@ -130,8 +133,9 @@
 #'
 #' **GAMM Limitations**:
 #' - `mgcv::gamm()` does NOT support extended families (Beta, Gamma)
-#' - For paired designs, forces Gaussian family with warning (March 2026 fix);
-#'   the regression-spline `nlme::lme` path is also Gaussian-only
+#' - Paired designs use Gaussian errors; a selected Beta/Gamma family is
+#'   overridden and reported in the per-gene result metadata, with one
+#'   analysis-level warning
 #'
 #' **ARIMA Status**:
 #' - No ARIMA(1,1,0) differencing is applied in confirmatory paths; the
@@ -336,20 +340,14 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
     # Computation Vehicle/Wood (2024), CRAN R Package 'mgcv' (GAMM Tutorial,
     # mgcv Documentation)
 
-    use_bounded_family <- bounded_result$use_gamma
+    selected_extended_family <- isTRUE(bounded_result$use_beta) || isTRUE(bounded_result$use_gamma)
+    use_bounded_family <- selected_extended_family && is.null(subject)
     family_gam <- bounded_result$family_obj
     inverse_link_fn <- bounded_result$inverse_link
 
     if (!is.null(subject)) {
         # For paired/mixed designs using gamm(), force gaussian family CRITICAL
-        # FIX (March 2026): mgcv::gamm() does NOT support extended families
-        # Warn user that bounded family selection is being overridden for
-        # reproducibility
-        if (use_bounded_family) {
-            warning("[calculate_sait_interaction] GAMM with paired design detected. ",
-                "mgcv::gamm() does not support extended families. ", "Forcing gaussian family. Results may be less accurate for bounded data.",
-                call. = FALSE)
-        }
+        # The selected-family override is reported once after all genes are fit.
         family_gam <- stats::gaussian()
         inverse_link_fn <- function(eta) eta
     }
@@ -543,36 +541,64 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
 # Performs model comparison and extracts interaction p-value
 .compare_gam_models <- function(fit_null, fit_alt) {
     p_interaction <- NA_real_
+    an <- NULL
+
+    if (is.null(fit_null) || is.null(fit_alt) || inherits(fit_null, "try-error") ||
+        inherits(fit_alt, "try-error")) {
+        return(list(p_interaction = p_interaction, anova_result = an))
+    }
 
     old_warn <- options(warn = -1)
-    on.exit(options(old_warn))
+    on.exit(options(old_warn), add = TRUE)
 
     if (!is.null(fit_null$lme) && !is.null(fit_alt$lme)) {
         # GAMM fitted with method='ML' — standard anova() on LME components is
         # now valid (no REML bias). avoids mgcv::compareML() which may not be
         # available in all mgcv versions.
         an <- try(anova(fit_null$lme, fit_alt$lme), silent = TRUE)
-        if (!inherits(an, "try-error") && nrow(an) >= 2) {
-            if ("p-value" %in% colnames(an)) {
-                p_interaction <- an[2, "p-value"]
-            } else if ("Pr(>Chisq)" %in% colnames(an)) {
-                p_interaction <- an[2, "Pr(>Chisq)"]
-            } else if ("Pr(>F)" %in% colnames(an)) {
-                p_interaction <- an[2, "Pr(>F)"]
-            }
-        }
     } else {
         # Standard GAM comparison via anova.gam()
         an <- try(anova(fit_null, fit_alt, test = "Chisq"), silent = TRUE)
-        if (!inherits(an, "try-error") && nrow(an) >= 2) {
-            if ("p-value" %in% colnames(an)) {
-                p_interaction <- an[2, "p-value"]
-            } else if ("Pr(>Chi)" %in% colnames(an)) {
-                p_interaction <- an[2, "Pr(>Chi)"]
-            } else if ("p-value" %in% tolower(colnames(an))) {
-                col_idx <- grep("p-value", tolower(colnames(an)))[1]
-                if (!is.na(col_idx) && nrow(an) >= 2) {
-                  p_interaction <- an[2, col_idx]
+    }
+
+    if (!inherits(an, "try-error") && !is.null(an) && nrow(an) >= 2) {
+        cols <- colnames(an)
+        p_col <- NULL
+
+        if ("p-value" %in% cols) {
+            p_col <- "p-value"
+        } else if ("Pr(>Chisq)" %in% cols) {
+            p_col <- "Pr(>Chisq)"
+        } else if ("Pr(>F)" %in% cols) {
+            p_col <- "Pr(>F)"
+        } else if ("Pr(>Chi)" %in% cols) {
+            p_col <- "Pr(>Chi)"
+        } else if ("p_value" %in% cols) {
+            p_col <- "p_value"
+        } else if ("p-value" %in% tolower(cols)) {
+            p_col <- cols[grep("p-value", tolower(cols))[1]]
+        }
+
+        if (!is.null(p_col)) {
+            row_candidates <- integer(0)
+            if (!is.null(rownames(an))) {
+                interaction_hits <- grep("interaction|interact|by.*group|group.*q|s\\(q\\).*group|s\\(q\\):group|condition",
+                    rownames(an), ignore.case = TRUE)
+                if (length(interaction_hits) > 0) {
+                    row_candidates <- c(row_candidates, interaction_hits)
+                }
+            }
+            if (length(row_candidates) == 0) {
+                row_candidates <- c(2L, 1L)
+            }
+
+            for (idx in row_candidates) {
+                if (idx <= nrow(an)) {
+                    p_val <- suppressWarnings(as.numeric(an[idx, p_col]))
+                    if (is.finite(p_val)) {
+                        p_interaction <- p_val
+                        break
+                    }
                 }
             }
         }
@@ -657,8 +683,11 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
         weights_source <- attr(gam_weights, "source", exact = TRUE)
         if (is.null(weights_source))
             weights_source <- "user_provided"
+        # Record the provenance but do not let a computed-but-ignored weight
+        # trigger the exploratory label for the confirmatory lme_ns_car1 path.
+        weights_source <- "not_used_primary_lme_ns"
         warning("Weights are not used by the primary paired model path (lme_ns_car1): ",
-            "the supplied ", weights_source, " weights only apply to the GAM/GAMM paths. ",
+            "the supplied weights were computed for the GAM/GAMM fallback paths only. ",
             "If weighting is required for the paired analysis, select a GAM-based method explicitly.",
             call. = FALSE)
     }
@@ -962,13 +991,62 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
             "data-driven" else "default"
     }
 
+    fit_meta_status <- NULL
+    if (!is.null(fit_meta)) {
+        fit_meta_status <- fit_meta
+    }
+
+    is_confirmatory <- TRUE
+    if (!is.null(fit_meta_status)) {
+        model_used <- fit_meta_status$model_used
+        weights_source <- fit_meta_status$weights_source
+        fallback_level <- fit_meta_status$fallback_level
+
+        if (!is.null(model_used) && identical(model_used, "lme_ns_car1")) {
+            is_confirmatory <- TRUE
+        } else if (!is.null(weights_source) && identical(weights_source, "data_adaptive_heteroscedasticity")) {
+            is_confirmatory <- FALSE
+        } else if (!is.null(fallback_level) && is.numeric(fallback_level) &&
+            length(fallback_level) == 1 && !is.na(fallback_level) && fallback_level > 1) {
+            is_confirmatory <- FALSE
+        }
+    }
+
+    result$inference_type <- if (is_confirmatory)
+        "confirmatory" else "exploratory"
+    result$confirmatory <- is_confirmatory
+
     # Add ARIMA transformation flag
     result$arima_transformation <- use_arima
 
     # Add bounded support handling flag and family selection information
-    result$bounded_support_model <- bounded_result$use_gamma
-    result$family_used <- if (bounded_result$use_gamma)
-        "Gamma" else "Gaussian"
+    fitted_family_raw <- if (inherits(fit_alt, "lme")) {
+        "gaussian"
+    } else if (is.list(fit_alt) && !is.null(fit_alt$gam$family$family)) {
+        fit_alt$gam$family$family
+    } else if (!is.null(fit_alt$family$family)) {
+        fit_alt$family$family
+    } else {
+        NA_character_
+    }
+    fitted_family <- if (is.na(fitted_family_raw)) {
+        NA_character_
+    } else if (grepl("beta", fitted_family_raw, ignore.case = TRUE)) {
+        "Beta"
+    } else if (grepl("gamma", fitted_family_raw, ignore.case = TRUE)) {
+        "Gamma"
+    } else if (grepl("gaussian|normal", fitted_family_raw, ignore.case = TRUE)) {
+        "Gaussian"
+    } else if (grepl("quasibinomial", fitted_family_raw, ignore.case = TRUE)) {
+        "Quasibinomial"
+    } else {
+        fitted_family_raw
+    }
+    result$family_used <- fitted_family
+    result$bounded_support_model <- !is.na(fitted_family) && fitted_family != "Gaussian"
+    result$family_selected <- bounded_result$family_info$family_choice
+    result$family_overridden <- !is.na(result$family_selected) &&
+        tolower(result$family_selected) %in% c("beta", "gamma") && fitted_family == "Gaussian"
     result$heteroscedasticity_detected <- bounded_result$family_info$heteroscedastic
     result$variance_ratio_q <- bounded_result$family_info$var_ratio_q
 
@@ -1161,7 +1239,7 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
     }
 
     # Step 9: Abort if all models failed
-    if (inherits(fit_result$fit_null, "try-error") && inherits(fit_result$fit_alt,
+    if (inherits(fit_result$fit_null, "try-error") || inherits(fit_result$fit_alt,
         "try-error")) {
         return(list(fit_null = NULL, fit_alt = NULL, p_interaction = NA_real_, anova_result = NULL,
             fit_meta = list(model_used = NA_character_, fallback_level = NA_integer_,
@@ -1227,7 +1305,7 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
         gam_weights)
 
     # Step 3: Check if both models failed
-    if (inherits(fit_result$fit_null, "try-error") && inherits(fit_result$fit_alt,
+    if (inherits(fit_result$fit_null, "try-error") || inherits(fit_result$fit_alt,
         "try-error")) {
         return(list(fit_null = NULL, fit_alt = NULL, p_interaction = NA_real_, anova_result = NULL,
             fit_meta = list(model_used = NA_character_, fallback_level = NA_integer_,
@@ -1247,6 +1325,10 @@ if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
             p_interaction <- anova_result[2, "Pr(F)"]
         } else if ("Pr(>F)" %in% colnames(anova_result)) {
             p_interaction <- anova_result[2, "Pr(>F)"]
+        } else if ("Pr(>Chi)" %in% colnames(anova_result)) {
+            p_interaction <- anova_result[2, "Pr(>Chi)"]
+        } else if ("Pr(>Chisq)" %in% colnames(anova_result)) {
+            p_interaction <- anova_result[2, "Pr(>Chisq)"]
         } else if ("p-value" %in% colnames(anova_result)) {
             p_interaction <- anova_result[2, "p-value"]
         }

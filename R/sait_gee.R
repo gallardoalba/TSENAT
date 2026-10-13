@@ -125,7 +125,8 @@
     gee_weights <- weights_result$gee_weights
 
     # Count clusters for bias correction decisions
-    n_clusters <- nlevels(df$subject)
+    n_clusters <- length(unique(as.character(df$subject[is.finite(df$entropy) &
+        !is.na(df$subject)])))
 
     # Final validation
     if (sum(!is.na(df$entropy)) < 2) {

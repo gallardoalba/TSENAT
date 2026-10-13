@@ -359,6 +359,12 @@
     if (n < 2) {
         stop("WY permutation requires at least 2 samples", call. = FALSE)
     }
+    for (unit_vec in list(subject_vec, block_vec, strata_vec, q_vals)) {
+        if (!is.null(unit_vec) && length(unit_vec) != n) {
+            stop("group_vec, design vectors, and q_vals must have the same length",
+                call. = FALSE)
+        }
+    }
 
     # Resolve "auto" from the available design information
     if (permutation_scheme == "auto") {
@@ -400,11 +406,20 @@
                 stop("[WY] permutation_scheme='within_subject' requires subject_vec",
                     call. = FALSE)
             }
+            subject_q <- if (is.null(q_vals)) {
+                subject_vec
+            } else {
+                interaction(subject_vec, q_vals, drop = TRUE, lex.order = TRUE)
+            }
+            subject_q_indices <- split(seq_len(n), subject_q)
             function() {
                 a <- group_vec
-                for (u in unique(subject_vec)) {
-                    idx <- which(subject_vec == u)
-                    if (length(idx) > 1) a[idx] <- sample(group_vec[idx])
+                for (idx in subject_q_indices) {
+                    if (length(idx) > 1L) {
+                        # Keep each repeated-measure q block balanced while
+                        # swapping condition labels within subject.
+                        a[idx] <- sample(a[idx], length(idx), replace = FALSE)
+                    }
                 }
                 a
             }

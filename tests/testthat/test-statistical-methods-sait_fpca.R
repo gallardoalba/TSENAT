@@ -846,6 +846,18 @@ test_that(".fpca_regularization_method produces valid output", {
 # ============================================================================
 # M4: FPCA MANOVA failure — returns NA, not invalid min(pc_pvals_valid)# ============================================================================
 
+test_that("paired FPCA does not fall back to unpaired MANOVA", {
+    scores_a <- cbind(c(1, 2, 4, 7), c(2, 5, 3, 8))
+    delta <- c(-2, -1, 1, 2)
+    scores <- rbind(scores_a, scores_a + delta %o% c(1, 2))
+    pca <- list(x = scores, sdev = c(2, 1))
+    groups <- rep(c("A", "B"), each = 4)
+    subjects <- rep(paste0("s", 1:4), 2)
+
+    result <- TSENAT:::.test_all_pcs(pca, groups, subjects)
+    expect_true(is.na(result$p_interaction))
+})
+
 test_that("M4: FPCA with insufficient samples for MANOVA returns NA p-value", {
     set.seed(42)
     # Create data too small for MANOVA

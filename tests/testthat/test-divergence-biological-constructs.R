@@ -70,6 +70,17 @@ test_that("Bootstrap consistency: bootstrap mean centers on the point estimate",
     expect_lt(mean(dist, na.rm = TRUE), point + 0.05)
 })
 
+test_that("paired bootstrap preserves singleton unpaired sample indices", {
+    x_mat <- matrix(1:9, nrow = 3, dimnames = list(NULL, c("C1", "C2", "C3")))
+    y_mat <- matrix(1:6, nrow = 3, dimnames = list(NULL, c("T1", "T2")))
+    pair_ids <- c(C1 = "A", C2 = "B", C3 = "", T1 = "A", T2 = "B")
+
+    set.seed(7)
+    plan <- TSENAT:::.bootstrap_sample_indices(x_mat, y_mat, 20, pair_ids)
+
+    expect_true(all(vapply(plan$ctrl, function(idx) tail(idx, 1L) == 3L, logical(1))))
+})
+
 test_that("Support is directional: P>0/Q=0 differs from P=0/Q>0", {
     # Directedness: support violations depend on the direction.
     P <- c(0.7, 0.3, 0.0)

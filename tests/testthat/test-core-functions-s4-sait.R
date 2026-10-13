@@ -60,19 +60,36 @@ test_that("S4 Wrappers: calculate_sait accepts new arguments", {
   
   for (args in args_to_test) {
     arg_string <- paste(names(args), collapse = ", ")
-    # Test that arguments are accepted
-    result <- tryCatch({
+    run_call <- function() tryCatch({
       do.call(calculate_sait, 
               c(list(analysis = analysis, verbose = FALSE), args))
     }, error = function(e) {
       list(error = paste("Error:", e$message))
     })
+
+    result <- suppressWarnings(run_call())
     
     # Should accept arguments without syntax errors
     expect_true(!is.list(result) || !("error" %in% names(result)),
                 info = paste("Failed for argument:", arg_string,
                             "Error:", if(is.list(result) && "error" %in% names(result)) result$error else "None"))
   }
+})
+
+test_that("GAM mixed-model path reports ignored weights once per analysis", {
+  analysis <- .create_test_analysis()
+  warnings <- character()
+
+  withCallingHandlers(
+    calculate_sait(analysis, condition_col = "condition", verbose = FALSE),
+    warning = function(w) {
+      warnings <<- c(warnings, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    }
+  )
+
+  expect_length(warnings, 1L)
+  expect_match(warnings, "Weights are not used by the primary paired model path")
 })
 
 # Tests for .sync_coldata_from_diversity helper

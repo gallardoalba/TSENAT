@@ -268,7 +268,7 @@ test_that("m_estimate with SummarizedExperiment includes all QC metrics", {
     assays = list(diversity = matrix(rnorm(87 * 16, mean = 4, sd = 1), nrow = 87, ncol = 16)),
     colData = data.frame(
       sample_type = rep(c("normal", "tumor"), each = 4*n_q),
-      pair_id = rep(c("A", "B", "C", "D", "E", "F", "G", "H"), each = n_q)
+      pair_id = rep(rep(c("A", "B", "C", "D"), each = n_q), times = 2)
     )
   )
   colnames(se) <- col_names
@@ -477,7 +477,7 @@ test_that("Paired parameter propagates through recursive calls", {
     assays = list(diversity = matrix(rnorm(60, mean = 3, sd = 1), nrow = 60, ncol = 16)),
     colData = data.frame(
       sample_type = rep(c("case", "control"), each = 4*n_q),
-      pair_id = rep(1:8, each = n_q)
+      pair_id = rep(rep(1:4, each = n_q), times = 2)
     )
   )
   colnames(se) <- col_names
@@ -1360,6 +1360,28 @@ test_that(".processMEstimateFeature with paired design", {
   expect_true(all(is.finite(result_unpaired$location_diff)))
 })
 
+test_that("paired m-estimation aligns pair IDs and excludes incomplete pairs", {
+  values <- matrix(c(11, 12, 22, 21), nrow = 1,
+    dimnames = list("g", c("a1", "a2", "b2", "b1")))
+  groups <- c("A", "A", "B", "B")
+  sample_info <- data.frame(pair_id = c("P1", "P2", "P2", "P1"),
+    row.names = colnames(values))
+  aligned <- TSENAT:::.mest_align_paired_samples(values, groups,
+    colnames(values), sample_info, colnames(values))
+  expect_identical(colnames(aligned$entropy_by_sample), c("a1", "a2", "b1", "b2"))
+
+  complete <- matrix(c(1, 2, 4, 8, 2, 3, 6, 10), nrow = 1,
+    dimnames = list("g", NULL))
+  with_missing_pair <- matrix(c(1, 2, 4, 8, NA, 2, 3, 6, 10, NA), nrow = 1,
+    dimnames = list("g", NULL))
+  fit <- function(x, labels) TSENAT:::.processMEstimateFeature(1, x, labels,
+    "huber", NULL, 50, 1e-6, TRUE, "mad")
+  result_complete <- fit(complete, c(rep("A", 4), rep("B", 4)))
+  result_missing <- fit(with_missing_pair, c(rep("A", 5), rep("B", 5)))
+  expect_equal(result_missing$location_diff, result_complete$location_diff)
+  expect_equal(result_missing$pvalue, result_complete$pvalue)
+})
+
 test_that(".processMEstimateFeature processes all rows independently", {
   set.seed(3006)
   x <- matrix(
@@ -1486,7 +1508,7 @@ test_that(".handleMEstimateSEInput preserves paired metadata", {
                                      nrow = 15, ncol = 8)),
     colData = data.frame(
       sample_type = rep(c("case", "control"), each = 2*n_q),
-      pair_id = rep(c("P1", "P2", "P3", "P4"), each = n_q)
+      pair_id = rep(c("P1", "P2", "P1", "P2"), each = n_q)
     )
   )
   colnames(se) <- col_names

@@ -218,6 +218,18 @@ calculate_divergence <- function(analysis, q = NULL, verbose = FALSE, nthreads =
     } else if (!is.null(analysis@config$q) && identical(q, analysis@config$q)) {
         q_source <- "config"
     }
+
+    # group_col resolution: config$condition_col is the canonical location for
+    # sample condition labels in this package. `group_col` is used by the core
+    # divergence implementation; keep it aligned with config when available.
+    group_col <- resolve_slot_param(NULL, analysis@config, "condition_col", NULL)
+    if (is.null(group_col)) {
+        group_col <- resolve_slot_param(NULL, analysis@config, "group_col", NULL)
+    }
+    if (is.null(group_col) && !is.null(analysis@config$condition)) {
+        group_col <- analysis@config$condition
+    }
+
     control_group <- resolve_slot_param(control_group, analysis@config, "control_group",
         NULL)
     # Fallback: TSENAT_config() stores this as "control", not "control_group".
@@ -228,6 +240,10 @@ calculate_divergence <- function(analysis, q = NULL, verbose = FALSE, nthreads =
     method <- resolve_slot_param(method, analysis@config, "method", "percentile")
     nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
     nboot <- resolve_slot_param(nboot, analysis@config, "nboot", NULL)
+    ci <- resolve_slot_param(NULL, analysis@config, "divergence_ci", 0.95)
+    if (!is.numeric(ci) || length(ci) != 1 || is.na(ci) || ci <= 0 || ci >= 1) {
+        ci <- 0.95
+    }
 
     # Ensure paired is logical: explicit > config > default (FALSE). NULL is
     # the only "not specified" value, so config$paired is honored when the
@@ -251,8 +267,9 @@ calculate_divergence <- function(analysis, q = NULL, verbose = FALSE, nthreads =
         method <- "percentile"
     }
 
-    list(q = q, q_source = q_source, control_group = control_group, method = method,
-        nthreads = nthreads, nboot = nboot, paired = paired, bootstrap = bootstrap)
+    list(q = q, q_source = q_source, group_col = group_col, control_group = control_group,
+        method = method, nthreads = nthreads, nboot = nboot, paired = paired,
+        bootstrap = bootstrap, ci = ci)
 }
 
 #' Build arguments list for divergence calculation
@@ -261,6 +278,10 @@ calculate_divergence <- function(analysis, q = NULL, verbose = FALSE, nthreads =
 #' @noRd
 .build_divergence_args <- function(analysis, params, verbose, progress, ...) {
     args <- list(se = analysis@se, q = params$q, progress = progress)
+
+    if (!is.null(params$group_col)) {
+        args$group_col <- params$group_col
+    }
 
     if (!is.null(params$control_group)) {
         args$control_group <- params$control_group
@@ -278,6 +299,10 @@ calculate_divergence <- function(analysis, q = NULL, verbose = FALSE, nthreads =
         args$nthreads <- params$nthreads
     }
 
+    if (!is.null(params$ci)) {
+        args$ci <- params$ci
+    }
+
     if (isTRUE(params$bootstrap)) {
         args$bootstrap <- params$bootstrap
         if (!is.null(params$nboot)) {
@@ -285,8 +310,22 @@ calculate_divergence <- function(analysis, q = NULL, verbose = FALSE, nthreads =
         }
     }
 
-    # Merge with additional args (may override defaults)
-    c(args, list(...))
+    # Explicit extras override resolved config values without creating
+    # duplicate names that make do.call() fail.
+    extra_args <- list(...)
+    if (length(extra_args) > 0) {
+        extra_names <- names(extra_args)
+        for (i in seq_along(extra_args)) {
+            arg_name <- if (is.null(extra_names)) "" else extra_names[[i]]
+            if (is.na(arg_name) || !nzchar(arg_name)) {
+                args <- c(args, extra_args[i])
+            } else {
+                args[[arg_name]] <- extra_args[[i]]
+            }
+        }
+    }
+
+    args
 }
 
 #' Store divergence results in analysis object
