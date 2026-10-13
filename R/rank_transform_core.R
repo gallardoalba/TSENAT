@@ -520,7 +520,7 @@
     # PHASE 7: APPLY MULTIPLE TESTING CORRECTION
     interaction_results <- .detect_q_apply_multicorr(interaction_results, multicorr,
         wy_randomizations, nperm_mode, data, paired, subject_col, has_condition,
-        nthreads, verbose)
+        method, nthreads, verbose)
 
     # PHASE 8: FINAL SORTING
     interaction_results <- interaction_results[order(interaction_results$adj_p_value,
@@ -724,12 +724,12 @@
 
 #' @noRd
 .detect_q_apply_multicorr <- function(interaction_results, multicorr, wy_randomizations,
-    nperm_mode, data, paired, subject_col, has_condition, nthreads, verbose) {
+    nperm_mode, data, paired, subject_col, has_condition, method, nthreads, verbose) {
     if (multicorr == "westfall-young") {
         permute_fn <- .detect_q_get_permute_function(data, paired, subject_col, has_condition)
         perm_result <- .westfall_young_permutation_rank(nrow(interaction_results),
             wy_randomizations, permute_fn, .detect_q_refit_permuted_tests(interaction_results,
-                data, paired, subject_col, has_condition), nthreads, verbose)
+                data, paired, subject_col, has_condition, method), nthreads, verbose)
 
         max_stats <- apply(perm_result$perm_stats_matrix, 2, max, na.rm = TRUE)
         H_obs <- interaction_results$f_statistic
@@ -762,12 +762,19 @@
     # OPTIMIZATION: Pre-compute subject list once, not per permutation
     if (paired) {
         unique_subjects <- unique(data_orig[[subject_col]])
+        unique_q <- unique(data_orig$q)
         function() {
             d <- data_orig
             for (subj in unique_subjects) {
-                idx <- d[[subject_col]] == subj
-                if (sum(idx) > 0)
-                  d$condition[idx] <- as.character(sample(d$condition[idx]))
+                for (qv in unique_q) {
+                    idx <- which(d[[subject_col]] == subj & d$q == qv)
+                    labels <- unique(as.character(d$condition[idx]))
+                    if (length(labels) > 1L) {
+                        shuffled <- sample(labels)
+                        label_map <- setNames(shuffled, labels)
+                        d$condition[idx] <- unname(label_map[as.character(d$condition[idx])])
+                    }
+                }
             }
             d
         }
@@ -784,15 +791,7 @@
 
 #' @noRd
 .detect_q_refit_permuted_tests <- function(interaction_results, data, paired, subject_col,
-    has_condition) {
-    # OPTIMIZATION: Pre-compute ranks once for all permutations During
-    # permutation refits, we only shuffle condition/q factors, not the rank
-    # values. This saves 500+ re-ranking operations per gene (30-40% speedup)
-    data_with_ranks <- data
-    if (!"ranks" %in% colnames(data_with_ranks)) {
-        data_with_ranks$ranks <- rank(data_with_ranks$entropy, na.last = "keep")
-    }
-
+    has_condition, method = "rt") {
     function(data_perm) {
         # OPTIMIZATION: Reuse pre-computed ranks - data_perm already has them
         # Just update the condition/q factors to permuted values
@@ -807,13 +806,12 @@
 
             if (!is.null(gene_data_perm) && nrow(gene_data_perm) > 0 && length(unique(gene_data_perm$q)) >=
                 2) {
-                # OPTIMIZATION: Pass pre_ranked=TRUE to skip re-ranking in test
-                # function Ranks are already computed from original data and
-                # shuffled with factors
+                # Recompute ranks within this gene (and within subject for
+                # paired designs), matching the observed test.
                 test_result <- tryCatch(.test_q_condition_interaction(gene_data_perm,
-                  "entropy", "q", "condition", paired, if (paired)
-                    subject_col else NULL, pre_ranked = TRUE, pre_factored = TRUE,
-                  method = "rt"), error = function(e) NULL)
+                    "entropy", "q", "condition", paired, if (paired)
+                        subject_col else NULL, pre_ranked = FALSE, pre_factored = TRUE,
+                    method = method), error = function(e) NULL)
                 if (!is.null(test_result) && !is.na(test_result$statistic)) {
                   perm_stats[i] <- test_result$statistic
                   perm_pvals[i] <- test_result$p_value

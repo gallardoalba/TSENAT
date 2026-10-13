@@ -3021,6 +3021,19 @@ test_that(".build_wy_permutation_scheme within_subject swaps only within subject
   }
 })
 
+test_that("within_subject WY permutations preserve subject-by-q blocks", {
+  group <- rep(c("A", "B"), times = 12)
+  subject <- rep(rep(paste0("s", 1:6), each = 2), times = 2)
+  q <- rep(rep(c(1, 2), each = 6), each = 2)
+  scheme <- .build_wy_permutation_scheme(group, subject_vec = subject,
+    q_vals = q, permutation_scheme = "within_subject")
+
+  set.seed(22)
+  permuted <- scheme$permute_fn()
+  expect_true(all(vapply(split(permuted, interaction(subject, q, drop = TRUE)),
+    function(labels) identical(sort(labels), c("A", "B")), logical(1))))
+})
+
 test_that(".build_wy_permutation_scheme rejects confounded blocks/strata", {
   expect_error(
     .build_wy_permutation_scheme(group_vec = c("A", "A", "B", "B"),

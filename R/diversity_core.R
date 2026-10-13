@@ -252,7 +252,7 @@
     bootstrap_ci_results <- .bootstrap_diversity_ci(bootstrap, result, genes, se_assay_mat,
         bootstrap_method, bootstrap_ci, bootstrap_nboot, q, pseudocount, nthreads,
         bootstrap_include_diagnostics, verbose, effective_length, show_messages,
-        min_valid_frac)
+        min_valid_frac, norm = norm, what = what, log_base = log_base)
 
     # Prepare output structure
     gene_names <- .extract_gene_names(original_x, genes, result)

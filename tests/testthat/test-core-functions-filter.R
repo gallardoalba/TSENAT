@@ -23,6 +23,19 @@ test_that(".filter_se filters all assays consistently", {
   expect_true(nrow(assays(se_filt)[[1]]) <= 3)  # Some rows filtered
 })
 
+test_that("metadata TPM is aligned by transcript and sample names", {
+  counts <- matrix(1:4, nrow = 2,
+    dimnames = list(c("tx1", "tx2"), c("S1", "S2")))
+  tpm <- matrix(c(0, 100, 0, 0), nrow = 2,
+    dimnames = list(c("tx2", "tx1"), c("S2", "S1")))
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = counts), metadata = list(tpm = tpm))
+
+  filtered <- TSENAT:::.filter_se(se, min_samples = 1, min_tpm = 50,
+    verbose = FALSE)
+  expect_identical(rownames(filtered), "tx1")
+})
+
 test_that(".filter_se preserves colnames and rownames across assays", {
   # Create SE with named assays
   counts <- matrix(1:12, nrow = 4, ncol = 3)

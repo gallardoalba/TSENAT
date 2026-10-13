@@ -45,6 +45,63 @@ make_gd_paired <- function(n_q = 3, n_subjects = 8, seed = 123) {
     d
 }
 
+test_that("WY rank refits use the selected method and gene-local ranks", {
+    gd <- make_gd_unpaired()
+    gd$gene <- "g1"
+    gd$q <- factor(gd$q)
+    gd$condition <- factor(gd$condition)
+    interaction_results <- data.frame(gene = "g1")
+    methods <- if (requireNamespace("ARTool", quietly = TRUE)) c("rt", "art") else "rt"
+
+    for (method in methods) {
+        refit <- TSENAT:::.detect_q_refit_permuted_tests(interaction_results,
+            gd, paired = FALSE, subject_col = NULL, has_condition = TRUE,
+            method = method)
+        observed <- refit(gd)$statistics[1]
+        expected <- art_test(gd, "entropy", "q", "condition", paired = FALSE,
+            subject_col = NULL, pre_factored = TRUE, method = method)$statistic
+        expect_equal(observed, as.numeric(expected))
+    }
+
+    gd_paired <- make_gd_paired()
+    gd_paired$gene <- "g1"
+    gd_paired$q <- factor(gd_paired$q)
+    gd_paired$condition <- factor(gd_paired$condition)
+    for (method in methods) {
+        refit <- TSENAT:::.detect_q_refit_permuted_tests(interaction_results,
+            gd_paired, paired = TRUE, subject_col = "subject", has_condition = TRUE,
+            method = method)
+        observed <- refit(gd_paired)$statistics[1]
+        expected <- art_test(gd_paired, "entropy", "q", "condition", paired = TRUE,
+            subject_col = "subject", pre_factored = TRUE, method = method)$statistic
+        expect_equal(observed, as.numeric(expected))
+    }
+})
+
+test_that("paired rank-WY swaps subject-by-q labels consistently across genes", {
+    d <- expand.grid(gene = c("g1", "g2"), subject = paste0("s", 1:4),
+        q = factor(1:3), condition = factor(c("A", "B")),
+        stringsAsFactors = FALSE)
+    d$original_condition <- d$condition
+    permute <- TSENAT:::.detect_q_get_permute_function(d, TRUE, "subject", TRUE)
+    set.seed(18)
+    permuted <- permute()
+
+    for (block in split(permuted, interaction(permuted$subject, permuted$q, drop = TRUE))) {
+        for (gene in unique(block$gene)) {
+            labels <- as.character(block$condition[block$gene == gene])
+            expect_identical(sort(labels), c("A", "B"))
+        }
+        for (condition in c("A", "B")) {
+            labels_by_gene <- vapply(unique(block$gene), function(gene) {
+                as.character(block$condition[block$gene == gene &
+                    block$original_condition == condition])[1]
+            }, character(1))
+            expect_length(unique(labels_by_gene), 1L)
+        }
+    }
+})
+
 # ------------------------------------------------------------------------------
 # SUITE 1: ART basic functionality
 # ------------------------------------------------------------------------------

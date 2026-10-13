@@ -1,3 +1,24 @@
+# TSENAT 0.99.36
+
+* **Inference and pipeline fixes**:
+
+    * Paired GAM results now distinguish the family selected during
+      preprocessing from the family actually fitted. The Gaussian override is
+      recorded per gene, with one analysis-level warning when Beta or Gamma was
+      selected for paired data.
+    * Within-subject Westfall-Young permutations now shuffle condition labels
+      within subject-by-q blocks, preserving the paired condition balance at
+      every q value.
+    * The S4 divergence wrapper now resolves the grouping column and confidence
+      level from the analysis configuration. Explicit extra arguments override
+      resolved values without duplicate names, preventing the `ci` argument
+      matching error in `TSENAT()` workflows.
+    * Diversity bootstrap confidence intervals now use the requested
+      normalization, quantity (`S` or `D`), and logarithm base, matching the
+      point-estimate settings.
+    * Expanded regression coverage for divergence forwarding, paired
+      permutations, family provenance, and statistical/data-boundary cases.
+
 # TSENAT 0.99.35
 
 * **Statistical inference hardening** (August 2026). Main changes:

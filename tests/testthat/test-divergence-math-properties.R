@@ -19,6 +19,15 @@
 #  10. Unequal group sizes: valid as long as the isoform state space matches
 # =============================================================================
 
+test_that("divergence rejects invalid pseudocounts and logarithm bases", {
+    expect_error(TSENAT:::.calculate_divergence(NULL, log_base = 0.5), "log_base")
+    expect_error(TSENAT:::.calculate_divergence(NULL, pseudocount = -2), "pseudocount")
+    expect_error(TSENAT:::.tsallis_divergence_scalar(c(10, 1), c(1, 10),
+        q_val = 1, pseudocount = -2), "pseudocount")
+    expect_gt(TSENAT:::.tsallis_divergence_scalar(c(10, 1), c(1, 10),
+        q_val = 1, pseudocount = 0, log_base = 2), 0)
+})
+
 test_that("Identity: D_q(P||P) = 0 for all q", {
     x <- c(70, 20, 10)
     for (q in c(0, 0.5, 1, 1.5, 2, 3)) {

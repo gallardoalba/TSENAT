@@ -394,7 +394,8 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
 # From diversity_core.R: Compute bootstrap CI for diversity measures
 .bootstrap_diversity_ci <- function(bootstrap, result, genes, se_assay_mat, bootstrap_method = c("percentile", "bca"),
     bootstrap_ci, bootstrap_nboot, q, pseudocount, nthreads, bootstrap_include_diagnostics,
-    verbose, effective_length = NULL, show_messages = FALSE, min_valid_frac = 0.75) {
+    verbose, effective_length = NULL, show_messages = FALSE, min_valid_frac = 0.75,
+    norm = "range", what = "S", log_base = exp(1)) {
 
     # Validate bootstrap_method parameter per Bioconductor code syntax standards
     bootstrap_method <- match.arg(bootstrap_method)
@@ -470,11 +471,11 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
             # correctly
             tryCatch({
                 boot_result <- .calculate_tsallis_entropy_bootstrap(x = counts_vec,
-                  q = q, norm = TRUE, nboot = bootstrap_nboot, ci = bootstrap_ci,
+                  q = q, norm = identical(norm, "range"), nboot = bootstrap_nboot, ci = bootstrap_ci,
                   method = bootstrap_method, pseudocount = pseudocount, nthreads = nthreads,
                   verbose = FALSE, include_diagnostics = bootstrap_include_diagnostics,
                   effective_length = el_for_gene_txs, show_messages = show_messages,
-                  min_valid_frac = min_valid_frac)
+                  min_valid_frac = min_valid_frac, what = what[1], log_base = log_base)
 
                 bootstrap_results_list[[length(bootstrap_results_list) + 1]] <- boot_result
                 pair_metadata <- rbind(pair_metadata, data.frame(gene = g, sample_idx = s))

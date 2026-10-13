@@ -355,6 +355,16 @@
         pvalue = pvalue, subject_col = subject_col, paired = paired, min_obs = min_obs,
         nthreads = nthreads, verbose = verbose, bias_correction = bias_correction,
         regularization = regularization, corstr = corstr, adaptive_knots = adaptive_knots)
+
+    if (identical(method, "gam") && isTRUE(paired) && "family_selected" %in% colnames(res)) {
+        overridden_families <- unique(tolower(stats::na.omit(as.character(res$family_selected))))
+        overridden_families <- intersect(overridden_families, c("beta", "gamma"))
+        if (length(overridden_families) > 0) {
+            warning(sprintf("Paired method='gam' uses a Gaussian model; selected %s family for %d gene(s). See family_selected and family_used in the results. The Gaussian model may be less suitable for bounded responses.",
+                paste(overridden_families, collapse = "/"), sum(res$family_overridden, na.rm = TRUE)),
+                call. = FALSE)
+        }
+    }
     
     if (verbose && nrow(res) > 0)
         message("[.calculate_sait] .fit_all_genes() completed successfully with ",

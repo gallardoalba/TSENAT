@@ -550,6 +550,18 @@
 #'
 
 #' @noRd
+.validate_divergence_numeric_params <- function(pseudocount, log_base) {
+    if (!is.numeric(pseudocount) || length(pseudocount) != 1L ||
+        !is.finite(pseudocount) || pseudocount < 0) {
+        stop("pseudocount must be a single finite non-negative number.", call. = FALSE)
+    }
+    if (!is.numeric(log_base) || length(log_base) != 1L ||
+        !is.finite(log_base) || log_base <= 1) {
+        stop("log_base must be a single finite number greater than 1.", call. = FALSE)
+    }
+    invisible(TRUE)
+}
+
 .tsallis_divergence_scalar <- function(x, y, q_val, pseudocount = 0.5, log_base = exp(1)) {
     # Validate input vectors
     if (length(x) == 0 || length(y) == 0) {
@@ -561,6 +573,11 @@
         # This can happen if paired bootstrap resampling produces unequal group
         # sizes Return NA rather than crashing
         return(NA_real_)
+    }
+
+    .validate_divergence_numeric_params(pseudocount, log_base)
+    if (length(q_val) != 1L || !is.numeric(q_val) || !is.finite(q_val) || q_val < 0) {
+        stop("q must be a single finite non-negative number.", call. = FALSE)
     }
 
     # Normalize to probabilities
@@ -686,6 +703,11 @@
 #'
 #' @noRd
 .tsallis_divergence_vector <- function(x, y, q_vals, pseudocount = 0.5, log_base = exp(1)) {
+    .validate_divergence_numeric_params(pseudocount, log_base)
+    if (!is.numeric(q_vals) || length(q_vals) == 0L || any(!is.finite(q_vals)) ||
+        any(q_vals < 0)) {
+        stop("q_vals must contain finite non-negative numbers.", call. = FALSE)
+    }
     # Input validation (identical to the previous pure-R implementation)
     if (length(x) == 0 || length(y) == 0) {
         return(rep(NA_real_, length(q_vals)))

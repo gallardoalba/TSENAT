@@ -131,11 +131,22 @@ test_that("Multiple plot functions work after lazy-loading", {
   # SAIT interaction requires at least 5 q-values
   analysis <- calculate_diversity(analysis, q = seq(0.5, 2, by = 0.375), verbose = FALSE)
   analysis <- calculate_divergence(analysis, q = seq(0.5, 2, by = 0.375), verbose = FALSE)
-  analysis <- calculate_sait(
-    analysis, 
-    condition_col = "condition",
-    verbose = FALSE
-  )
+  sait_warnings <- character()
+  withCallingHandlers({
+    analysis <- calculate_sait(
+      analysis,
+      condition_col = "condition",
+      verbose = FALSE
+    )
+  }, warning = function(w) {
+    sait_warnings <<- c(sait_warnings, conditionMessage(w))
+    invokeRestart("muffleWarning")
+  })
+  expect_equal(sum(startsWith(sait_warnings,
+    "Weights are not used by the primary paired model path")), 1L)
+  expect_equal(sum(startsWith(sait_warnings,
+    "[.fit_gam_paired_design] Data-adaptive heteroscedasticity weights were used by fallback")),
+    1L)
   
   # These should all trigger lazy-loading on first call
   # and work correctly on subsequent calls

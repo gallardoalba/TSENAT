@@ -989,6 +989,18 @@ test_that(".build_divergence_args includes bootstrap params when bootstrap=TRUE"
   expect_equal(args$nboot, 100)
 })
 
+test_that(".build_divergence_args lets explicit extras override resolved params", {
+  analysis <- make_test_analysis_divergence()
+  params <- list(q = 1.0, method = "percentile", ci = 0.95)
+
+  args <- TSENAT:::.build_divergence_args(
+    analysis, params, verbose = FALSE, progress = FALSE, ci = 0.9
+  )
+
+  expect_identical(sum(names(args) == "ci"), 1L)
+  expect_equal(args$ci, 0.9)
+})
+
 # Test .store_divergence_results()
 test_that(".store_divergence_results handles NULL result", {
   analysis <- make_test_analysis_divergence()

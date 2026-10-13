@@ -188,7 +188,8 @@
         } else if (method == "fpca") {
             subject <- .get_subject_ids(se, subject_col, paired, mat, sample_names)
             .fpca_interaction(mat, q_vals, sample_names, group_vec, g, min_obs = min_obs,
-                subject = subject, regularization = regularization, weights = weights)
+                subject = if (isTRUE(paired)) subject else NULL,
+                regularization = regularization, weights = weights)
         } else if (method == "gee") {
             subject <- .get_subject_ids(se, subject_col, paired, mat, sample_names)
             if (is.null(subject) && !paired) {

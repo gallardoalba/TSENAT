@@ -497,7 +497,7 @@
             subj_valid <- subj_vals[!is.na(grp_vals)]
             paired_p <- .paired_pc_test(pc_scores, grp_valid, subj_valid, g1, g2)
         }
-        if (!is.na(paired_p)) {
+        if (!is.null(subj_vals)) {
             p_interaction <- paired_p
         } else {
             # Fallback: MANOVA on PC scores (equivalent to Hotelling's T² for 2 groups)

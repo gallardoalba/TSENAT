@@ -185,7 +185,35 @@
     # Priority 2: metadata TPM (SALMON preprocessed)
     md <- S4Vectors::metadata(se)
     if (!is.null(md$tpm) && is.matrix(md$tpm)) {
-        return(list(mat = as.matrix(md$tpm), source = "metadata$tpm (SALMON preprocessed)"))
+        mat <- as.matrix(md$tpm)
+        se_rows <- rownames(se)
+        se_cols <- colnames(se)
+
+        if (!is.null(rownames(mat)) && !is.null(se_rows)) {
+            row_idx <- match(se_rows, rownames(mat))
+            if (anyNA(row_idx)) {
+                stop("metadata$tpm is missing transcript row names present in the SummarizedExperiment.",
+                    call. = FALSE)
+            }
+            mat <- mat[row_idx, , drop = FALSE]
+        } else if (nrow(mat) != nrow(se)) {
+            stop("metadata$tpm must have one row per transcript when row names are unavailable.",
+                call. = FALSE)
+        }
+
+        if (!is.null(colnames(mat)) && !is.null(se_cols)) {
+            col_idx <- match(se_cols, colnames(mat))
+            if (anyNA(col_idx)) {
+                stop("metadata$tpm is missing sample column names present in the SummarizedExperiment.",
+                    call. = FALSE)
+            }
+            mat <- mat[, col_idx, drop = FALSE]
+        } else if (ncol(mat) != ncol(se)) {
+            stop("metadata$tpm must have one column per sample when column names are unavailable.",
+                call. = FALSE)
+        }
+
+        return(list(mat = mat, source = "metadata$tpm (SALMON preprocessed)"))
     }
 
     # Priority 3: auto-detect 'tpm' assay by name

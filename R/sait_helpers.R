@@ -814,10 +814,30 @@ if (getOption("TSENAT.memoization", TRUE)) {
             adaptive_knots = adaptive_knots, weights = gene_weights)
     }
 
-    if (nthreads > 1) {
-        res_list <- .bplapply(rownames(mat), fit_one, nthreads = nthreads)
-    } else {
-        res_list <- lapply(rownames(mat), fit_one)
+    analysis_warnings <- character()
+    collect_analysis_warning <- function(w) {
+        msg <- conditionMessage(w)
+        warning_prefixes <- c(
+            "Weights are not used by the primary paired model path",
+            "[.fit_gam_paired_design] Data-adaptive heteroscedasticity weights were used by fallback",
+            "[.fit_gam_unpaired_design] Data-adaptive heteroscedasticity weights were used"
+        )
+        if (any(startsWith(msg, warning_prefixes))) {
+            if (!msg %in% analysis_warnings) {
+                analysis_warnings <<- c(analysis_warnings, msg)
+            }
+            invokeRestart("muffleWarning")
+        }
+    }
+    res_list <- withCallingHandlers({
+        if (nthreads > 1) {
+            .bplapply(rownames(mat), fit_one, nthreads = nthreads)
+        } else {
+            lapply(rownames(mat), fit_one)
+        }
+    }, warning = collect_analysis_warning)
+    for (msg in analysis_warnings) {
+        warning(msg, call. = FALSE)
     }
     all_results <- Filter(Negate(is.null), res_list)
 

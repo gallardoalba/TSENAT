@@ -492,6 +492,50 @@
 }
 
 
+#' Align paired samples by pair ID when metadata provides one
+#' @noRd
+.mest_align_paired_samples <- function(entropy_by_sample, group_assignment_unique,
+    unique_samples, sample_info, sample_names_full) {
+    candidates <- c("pair_id", "paired_samples", "Pair_ID", "Pair", "subject_id")
+    pair_col <- candidates[candidates %in% colnames(sample_info)][1]
+    if (is.na(pair_col)) {
+        return(NULL)
+    }
+
+    first_col <- match(unique_samples, sample_names_full)
+    pair_ids <- as.character(sample_info[[pair_col]][first_col])
+    group_values <- as.character(group_assignment_unique)
+    group_levels <- unique(group_values)
+    if (length(group_levels) != 2L) {
+        stop("Paired M-estimation requires exactly two groups.", call. = FALSE)
+    }
+
+    idx_a <- which(group_values == group_levels[1])
+    idx_b <- which(group_values == group_levels[2])
+    ids_a <- pair_ids[idx_a]
+    ids_b <- pair_ids[idx_b]
+    valid_a <- !is.na(ids_a) & nzchar(ids_a)
+    valid_b <- !is.na(ids_b) & nzchar(ids_b)
+    if (anyDuplicated(ids_a[valid_a]) || anyDuplicated(ids_b[valid_b])) {
+        stop("Paired M-estimation requires unique pair IDs within each group.", call. = FALSE)
+    }
+
+    complete_ids <- ids_a[valid_a & ids_a %in% ids_b[valid_b]]
+    if (length(complete_ids) == 0L) {
+        stop("Paired M-estimation found no complete pair IDs across groups.", call. = FALSE)
+    }
+    order_idx <- c(idx_a[match(complete_ids, ids_a)], idx_b[match(complete_ids, ids_b)])
+    if (length(order_idx) < length(unique_samples)) {
+        warning("Paired M-estimation excludes samples without a matching pair ID.",
+            call. = FALSE)
+    }
+
+    list(entropy_by_sample = entropy_by_sample[, order_idx, drop = FALSE],
+        group_assignment_unique = group_assignment_unique[order_idx],
+        unique_samples = unique_samples[order_idx])
+}
+
+
 #' @noRd
 .handleMEstimateSEInput <- function(x, samples, q_combine_method, paired, scale,
     loss_type, max_iter, tol, pcorr, scale_method, influence_threshold, verbose) {
@@ -511,6 +555,16 @@
         paired_meta <- S4Vectors::metadata(x)$paired
         if (is.logical(paired_meta) && length(paired_meta) == 1) {
             paired <- paired_meta
+        }
+    }
+
+    if (isTRUE(paired)) {
+        aligned <- .mest_align_paired_samples(entropy_by_sample, group_assignment_unique,
+            unique_samples, sample_info, sample_names_full)
+        if (!is.null(aligned)) {
+            entropy_by_sample <- aligned$entropy_by_sample
+            group_assignment_unique <- aligned$group_assignment_unique
+            unique_samples <- aligned$unique_samples
         }
     }
 
@@ -655,6 +709,9 @@
     # Helper: Perform IRLS (iteratively re-weighted least squares) regression
     # Returns: list(coef, weights, converged)
 
+    valid_obs <- is.finite(y) & is.finite(X)
+    y <- y[valid_obs]
+    X <- X[valid_obs]
     n_obs <- length(y)
 
     # Initialize regression coefficients
@@ -822,7 +879,18 @@
         use_intercept <- TRUE
     }
 
+    valid_obs <- is.finite(y) & is.finite(X)
+    y <- y[valid_obs]
+    X <- X[valid_obs]
     n_obs <- length(y)
+
+    if (n_obs < 2 || (use_intercept && (sum(X == 0) == 0 || sum(X == 1) == 0))) {
+        return(data.frame(location_diff = NA_real_, se_diff = NA_real_, t_stat = NA_real_,
+            pvalue = NA_real_, se_robust = NA_real_, t_robust = NA_real_,
+            pvalue_robust = NA_real_, ci95_low = NA_real_, ci95_high = NA_real_,
+            n_down_weighted = NA_integer_, max_weight = NA_real_,
+            row.names = rownames(x)[feature_idx]))
+    }
 
     # Determine scale
     scale_local <- .determineMEstimateScale(y, scale = scale, scale_method = scale_method)
@@ -856,7 +924,8 @@
 
     # Estimate of error variance
     rss <- sum(weights * residuals^2, na.rm = TRUE)
-    sigma_sq <- rss/max(1, n_obs - 2)
+    residual_df <- n_obs - if (use_intercept) 2 else 1
+    sigma_sq <- rss/max(1, residual_df)
     if (is.na(sigma_sq) || is.infinite(sigma_sq) || sigma_sq <= 0) {
         sigma_sq <- var(y, na.rm = TRUE)
         if (is.na(sigma_sq) || sigma_sq <= 0)
@@ -871,7 +940,7 @@
         if (sx_squared > 0) {
             se_diff <- sqrt(sigma_sq/sx_squared)
         } else {
-            se_diff <- sqrt(sigma_sq/length(group1) + sigma_sq/length(group2))
+            se_diff <- sqrt(sigma_sq/sum(X == 0) + sigma_sq/sum(X == 1))
         }
     } else {
         # SE for mean of differences

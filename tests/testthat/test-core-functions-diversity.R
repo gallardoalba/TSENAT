@@ -487,6 +487,22 @@ test_that("bootstrap=TRUE with percentile method creates CI assays", {
     expect_identical(div_dim, ci_lower_dim)
 })
 
+test_that("bootstrap CIs use the requested Hill estimator and norm", {
+    x <- matrix(c(900, 100, 800, 200), nrow = 2, dimnames = list(c("tx1", "tx2"),
+        c("S1", "S2")))
+    result <- .calculate_diversity(x, genes = c("g1", "g1"), q = 1,
+        what = "D", norm = "none", bootstrap = TRUE, bootstrap_nboot = 100,
+        pseudocount = 0, verbose = FALSE)
+
+    point <- SummarizedExperiment::assay(result, "hill")
+    lower <- SummarizedExperiment::assay(result, "ci_lower")
+    upper <- SummarizedExperiment::assay(result, "ci_upper")
+
+    expect_true(all(point > 1))
+    expect_true(all(lower > 1))
+    expect_true(all(upper > 1))
+})
+
 test_that("bootstrap CI bounds are monotonic (lower <= upper)", {
     td <- create_diversity_test_matrix_3x2_standard()
     x <- td$x; genes <- td$genes
